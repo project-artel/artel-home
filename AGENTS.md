@@ -8,6 +8,11 @@ Read `.agents/docs/project.md` before non-trivial
 work. Repository-specific commands, constraints, and narrower instructions take
 precedence over these template defaults.
 
+Before designing or changing React UI, Replay Studio, QA timeline, evidence, or
+agent-status interfaces, read `.agents/docs/DESIGN.md` and follow its semantic
+tokens, layouts, components, states, and accessibility rules unless the task
+explicitly requires otherwise.
+
 ## Project Workflow
 
 For non-trivial work, follow:
