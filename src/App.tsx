@@ -1,0 +1,54 @@
+import './App.css'
+
+const actions = [
+  { label: 'Connect Unity session', variant: 'primary' },
+  { label: 'Open recording', variant: 'secondary' },
+  { label: 'Run test', variant: 'secondary' },
+] as const
+
+export function App() {
+  return (
+    <div className="app-shell">
+      <header className="top-bar">
+        <a className="brand" href="/" aria-label="ARTEL Replay Studio home">
+          <span className="brand-mark" aria-hidden="true">A</span>
+          <span>ARTEL</span>
+          <span className="product-name">Replay Studio</span>
+        </a>
+        <div className="connection-status" role="status">
+          <span className="status-dot" aria-hidden="true" />
+          Offline
+        </div>
+      </header>
+
+      <main className="workspace">
+        <section className="empty-state" aria-labelledby="empty-state-title">
+          <div className="empty-state-icon" aria-hidden="true">
+            <span />
+          </div>
+          <p className="eyebrow">Replay workspace</p>
+          <h1 id="empty-state-title">Start with a QA session</h1>
+          <p className="empty-state-copy">
+            Connect a live Unity session or open a recording to inspect agent
+            actions, game state, and evidence on one synchronized timeline.
+          </p>
+          <div className="action-group" aria-label="Session actions">
+            {actions.map((action) => (
+              <button
+                className={`button button--${action.variant}`}
+                key={action.label}
+                type="button"
+              >
+                {action.label}
+              </button>
+            ))}
+          </div>
+          <p className="shortcut-hint">
+            No active session <span aria-hidden="true">·</span> Events and evidence
+            will appear here
+          </p>
+        </section>
+      </main>
+    </div>
+  )
+}

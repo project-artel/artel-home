@@ -5,15 +5,15 @@ Fill this document during project initialization. Agents must verify commands ag
 ## Overview
 
 - Product: artel-home
-- Primary users: TODO
-- Core domain: TODO
-- Runtime environment: TODO
+- Primary users: Game QA engineers and developers reviewing automated test sessions
+- Core domain: Unity game QA replay, agent activity, and evidence inspection
+- Runtime environment: Browser application built with React, TypeScript, and Vite
 
 ## Architecture
 
-- Entry points: TODO
-- Main modules: TODO
-- Dependency direction: TODO
+- Entry points: `index.html`, `src/main.tsx`
+- Main modules: Application shell in `src/App.tsx`; shared semantic styles in `src/styles/`
+- Dependency direction: Application UI depends on shared styles; future domain components should depend on design-system primitives
 - External systems: GitHub repository `project-artel/artel-home`
 - Persistent data: TODO
 
@@ -21,19 +21,19 @@ Fill this document during project initialization. Agents must verify commands ag
 
 | Purpose | Command |
 |---|---|
-| Install dependencies | TODO |
-| Run locally | TODO |
-| Format | TODO |
-| Lint | TODO |
-| Type-check | TODO |
-| Unit tests | TODO |
-| Integration tests | TODO |
-| Build | TODO |
+| Install dependencies | `npm install` |
+| Run locally | `npm run dev` |
+| Format | Not configured |
+| Lint | `npm run lint` |
+| Type-check | `npm run typecheck` |
+| Unit tests | Not configured |
+| Integration tests | Not configured |
+| Build | `npm run build` |
 
 ## Constraints
 
-- Supported platforms:
-- Compatibility requirements:
+- Supported platforms: Modern desktop and mobile browsers
+- Compatibility requirements: Node.js 20.19 or newer for local tooling
 - Performance constraints:
 - Security or privacy requirements:
 

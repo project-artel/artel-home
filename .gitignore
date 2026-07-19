@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Local environment
+.env
+.env.local
+.env.*.local
+
+# Tooling
+*.local
+*.tsbuildinfo
+.vite/
+
+# Editors and OS files
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
