@@ -2,7 +2,7 @@
 
 - Date: 2026-07-21
 - Jira Issue: ARTEL-66
-- Status: Draft
+- Status: In Review
 - Repository: `artel-home`
 - Work Type: `feat`
 - Server counterpart: `artel-orchestration-server` ARTEL-58 (Project CRUD + planning-document storage)
@@ -106,13 +106,17 @@ GET    /api/projects/{projectId}/documents/{id}/download-url  200 DownloadTicket
 type Genre = 'ACTION' | 'RPG' | 'PUZZLE' | 'SIMULATION' | 'STRATEGY'
            | 'SPORTS' | 'SHOOTER' | 'CASUAL' | 'OTHER'
 
+/** `myRole` decides whether owner-only actions render at all. */
+type ProjectRole = 'OWNER' | 'MEMBER'
+
 type ProjectSummary = {
   id: string
   name: string
   genre: Genre
   description: string | null
   documentCount: number
-  latestDocument: { version: number; fileName: string; uploadedAt: string } | null
+  latestDocument: ProjectDocument | null
+  myRole: ProjectRole
   updatedAt: string
 }
 
@@ -123,10 +127,20 @@ type ProjectPage = {
   total: number
 }
 
-/** `document` is the latest version only; full history is a separate call. */
-type ProjectDetail = Omit<ProjectSummary, 'latestDocument'> & {
-  createdAt: string
+/**
+ * `document` is the latest version only; full history is a separate call.
+ * There is deliberately no `documentCount` here — the detail screen loads the
+ * history anyway, and a second count could disagree with the list beside it.
+ */
+type ProjectDetail = {
+  id: string
+  name: string
+  genre: Genre
+  description: string | null
+  myRole: ProjectRole
   document: ProjectDocument | null
+  createdAt: string
+  updatedAt: string
 }
 
 type ProjectDocument = {
@@ -148,7 +162,8 @@ type ProjectDocument = {
   spinner or progress indicator, because nothing will ever move it.
 - `DELETE` is a soft delete: the project disappears from the list and every
   subsequent read returns `404`, indistinguishable from a project that never
-  existed.
+  existed. Only an `OWNER` may delete; a member who tries gets `403`, while a
+  non-member gets `404` and is never told the project exists.
 - Uploading a new document **adds a version**; it never replaces one. The
   highest `version` is the current 기획서 and is what the detail page leads with.
 - Validation errors return `400` with `{ code, message, fields?: Record<string, string> }`.
@@ -216,39 +231,44 @@ type ProjectDocument = {
 
 ## Approach (Checklist)
 
-- [ ] **Step 0: Recon** — confirm the merged `develop` state and re-read
+- [x] **Step 0: Recon** — confirm the merged `develop` state and re-read
       `DESIGN.md`, `web-interface-guidelines`, and the ARTEL-45 plan for the
       established client conventions.
-- [ ] Add `react-router-dom` and mount `BrowserRouter` inside the authenticated
+- [x] Add `react-router-dom` and mount `BrowserRouter` inside the authenticated
       branch of `App.tsx`; move the existing empty state under `/projects`.
-- [ ] Move the top bar out of `App.tsx` into `src/shell/AppShell.tsx` so both
+- [x] Move the top bar out of `App.tsx` into `src/shell/AppShell.tsx` so both
       routes share it without duplication.
-- [ ] Add `src/projects/projectTypes.ts` with the types above.
-- [ ] Add `src/projects/projectApi.ts` (list, create, get, patch, upload
+- [x] Add `src/projects/projectTypes.ts` with the types above.
+- [x] Add `src/projects/projectApi.ts` (list, create, get, patch, upload
       ticket, register document, list documents, download ticket) with a
       tolerant parser per response type.
-- [ ] Add `src/projects/uploadDocument.ts` — the XHR-based presigned PUT with
+- [x] Add `src/projects/uploadDocument.ts` — the XHR-based presigned PUT with
       progress, abort, and error mapping.
-- [ ] Add `useProjects` and `useProject` hooks with `AbortController` cleanup.
-- [ ] Build `ProjectListPage` with loading, empty, error, and populated states.
-- [ ] Build `ProjectCreateDialog` with focus trap, `Escape`, and inline errors.
-- [ ] Build `ProjectDetailPage` information form with dirty tracking and
-      `PATCH` save.
-- [ ] Add "Load more" paging to the list, driven by `total` vs items loaded.
-- [ ] Add the delete action: a confirmation dialog that requires an explicit
+- [x] Add `useProjects` and `useProject` hooks with `AbortController` cleanup.
+- [x] Build `ProjectListPage` with loading, empty, error, and populated states.
+- [x] Build `ProjectCreateDialog` with focus trap, `Escape`, and inline errors.
+- [x] Build `ProjectDetailPage` information form with dirty tracking and
+      `PATCH` save. **Changed during implementation:** the panel reads as a
+      definition list and the form opens behind an `Edit` button. A form left
+      permanently open makes the whole page read as a settings screen, and the
+      project tab is going to gain more panels.
+- [x] Add "Load more" paging to the list, driven by `total` vs items loaded.
+- [x] Add the delete action: a confirmation dialog that requires an explicit
       second step, then `DELETE` and navigate back to `/projects`. Deletion is
       not reversible from the UI, so it must never be one stray click.
-- [ ] Build the document panel: current version, history, upload with progress,
+- [x] Build the document panel: current version, history, upload with progress,
       download-on-click.
-- [ ] Add `NotFoundPage` and the `/login` route so the server failure redirect
+- [x] Add `NotFoundPage` and the `/login` route so the server failure redirect
       lands on a real screen.
-- [ ] Extract shared primitives only where they are used twice or more
+- [x] Extract shared primitives only where they are used twice or more
       (`Button`, `Field`, `Dialog`) under `src/design-system/primitives/`, per
       DESIGN.md — do not build the full primitive set speculatively.
-- [ ] Update `README.md` (project structure, routes, upload flow, the fact that
+- [x] Update `README.md` (project structure, routes, upload flow, the fact that
       SPA fallback is now load-bearing rather than nice-to-have).
-- [ ] Run lint, type-check, and the production build.
-- [ ] Manually verify the full flow against a locally running orchestration
+- [x] Run lint, type-check, and the production build.
+- [ ] Automated tests. Still none — this repository has no test harness, so
+      every guarantee below is manual. Not silently dropped.
+- [x] Manually verify the full flow against a locally running orchestration
       server on the ARTEL-58 branch.
 
 ## Configuration
