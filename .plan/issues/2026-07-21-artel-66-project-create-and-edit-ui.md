@@ -17,7 +17,10 @@ survive the addition of sessions, runs, and bug reports without a rewrite.
 
 ## Non-goals
 
-- Project deletion, archiving, sharing, or member management.
+- Archiving, sharing, or member management. Deletion **is** in scope (the server
+  spec defines it), but only as a confirmed destructive action on the detail
+  page — there is no bulk delete and no undo affordance, because the server's
+  soft delete is not exposed as restorable.
 - In-browser rendering or preview of the planning document. The document is
   uploaded, listed, and downloaded; parsing it belongs to the agent pipeline.
 - Any Replay Studio workspace work (viewport, timeline, inspector). The current
@@ -84,11 +87,15 @@ survive the addition of sessions, runs, and bug reports without a rewrite.
 
 ## API Contract (agreed with ARTEL-58)
 
+Reconciled 2026-07-21 with the Notion API spec DB; ARTEL-58 records the
+divergences from that draft and writes the implemented contract back.
+
 ```text
-GET    /api/projects                                  200 ProjectSummary[]
+GET    /api/projects?page=0&size=20                   200 ProjectPage
 POST   /api/projects                                  201 ProjectDetail
 GET    /api/projects/{projectId}                      200 ProjectDetail
 PATCH  /api/projects/{projectId}                      200 ProjectDetail
+DELETE /api/projects/{projectId}                      200 { deleted, projectId }
 POST   /api/projects/{projectId}/documents/upload-url 200 UploadTicket
 POST   /api/projects/{projectId}/documents            201 ProjectDocument
 GET    /api/projects/{projectId}/documents            200 ProjectDocument[]  (newest version first)
@@ -109,7 +116,18 @@ type ProjectSummary = {
   updatedAt: string
 }
 
-type ProjectDetail = ProjectSummary & { createdAt: string }
+type ProjectPage = {
+  items: ProjectSummary[]
+  page: number
+  size: number
+  total: number
+}
+
+/** `document` is the latest version only; full history is a separate call. */
+type ProjectDetail = Omit<ProjectSummary, 'latestDocument'> & {
+  createdAt: string
+  document: ProjectDocument | null
+}
 
 type ProjectDocument = {
   id: string
@@ -119,11 +137,18 @@ type ProjectDocument = {
   sizeBytes: number
   uploadedAt: string
   uploadedBy: { id: string; displayName: string }
+  parseStatus: 'PENDING'   // reserved; nothing advances it yet
 }
 ```
 
 - `POST /api/projects` body: `{ name, description, genre }`.
 - `PATCH /api/projects/{id}` body: any subset of `{ name, description, genre }`.
+- `parseStatus` is a placeholder for the future parsing pipeline and is always
+  `PENDING`. Render it as a static label ("파싱 대기") if at all — **never** as a
+  spinner or progress indicator, because nothing will ever move it.
+- `DELETE` is a soft delete: the project disappears from the list and every
+  subsequent read returns `404`, indistinguishable from a project that never
+  existed.
 - Uploading a new document **adds a version**; it never replaces one. The
   highest `version` is the current 기획서 and is what the detail page leads with.
 - Validation errors return `400` with `{ code, message, fields?: Record<string, string> }`.
@@ -209,6 +234,10 @@ type ProjectDocument = {
 - [ ] Build `ProjectCreateDialog` with focus trap, `Escape`, and inline errors.
 - [ ] Build `ProjectDetailPage` information form with dirty tracking and
       `PATCH` save.
+- [ ] Add "Load more" paging to the list, driven by `total` vs items loaded.
+- [ ] Add the delete action: a confirmation dialog that requires an explicit
+      second step, then `DELETE` and navigate back to `/projects`. Deletion is
+      not reversible from the UI, so it must never be one stray click.
 - [ ] Build the document panel: current version, history, upload with progress,
       download-on-click.
 - [ ] Add `NotFoundPage` and the `/login` route so the server failure redirect
@@ -274,10 +303,11 @@ the new primitives, and resumable/multipart upload for very large documents.
 
 ## Open Questions
 
-- **Does the list need pagination?** Assumed no for now — a user owns a handful
-  of projects. If the server returns a page envelope instead of a bare array,
-  the parser and `useProjects` change shape, so this needs settling before the
-  contract is frozen.
+- **How should page 2+ be reached?** Pagination is settled (the server returns
+  `{items, page, size, total}`), but the interaction is not. This plan assumes a
+  plain "Load more" button appending to the list, because it is the least code
+  and degrades well when `total` is small. Numbered pages or infinite scroll
+  would both need the page number in the URL to stay linkable.
 - **Where does the existing Replay Studio empty state belong?** It is parked
   under `/projects` for now. Once sessions attach to a project it likely moves
   to `/projects/:projectId/replay`, which is a separate issue.
