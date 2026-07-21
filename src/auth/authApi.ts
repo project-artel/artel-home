@@ -1,4 +1,4 @@
-import type { AuthUser } from './authTypes'
+import type { AuthUser, LinkedIdentity } from './authTypes'
 
 const orchestrationUrl = (import.meta.env.VITE_ORCHESTRATION_URL ?? 'http://localhost:8080').replace(/\/$/, '')
 
@@ -49,25 +49,52 @@ export async function apiFetch(path: string, init?: RequestInit): Promise<Respon
   return response
 }
 
+function parseLinkedIdentity(data: unknown): LinkedIdentity | null {
+  if (typeof data !== 'object' || data === null) {
+    return null
+  }
+
+  const { provider, login, displayName, avatarUrl } = data as Record<string, unknown>
+
+  if (typeof provider !== 'string' || typeof login !== 'string' || typeof displayName !== 'string') {
+    return null
+  }
+
+  return {
+    provider,
+    login,
+    displayName,
+    avatarUrl: typeof avatarUrl === 'string' ? avatarUrl : null,
+  }
+}
+
+/**
+ * Only `id` and `displayName` are required, because those are what the shell
+ * renders. Every other field degrades to a safe default: a session that is
+ * otherwise valid must never be rejected over a cosmetic field, which would
+ * bounce the user back to the login screen with no way forward.
+ */
 function parseAuthUser(data: unknown): AuthUser {
   if (typeof data !== 'object' || data === null) {
     throw new Error('Malformed session payload')
   }
 
-  const record = data as Record<string, unknown>
-  const { id, provider, login, displayName, avatarUrl } = record
+  const { id, displayName, email, identities } = data as Record<string, unknown>
 
-  if (
-    typeof id !== 'string' ||
-    typeof provider !== 'string' ||
-    typeof login !== 'string' ||
-    typeof displayName !== 'string' ||
-    (avatarUrl !== null && typeof avatarUrl !== 'string')
-  ) {
+  if (typeof id !== 'string' || typeof displayName !== 'string') {
     throw new Error('Malformed session payload')
   }
 
-  return { id, provider, login, displayName, avatarUrl }
+  return {
+    id,
+    displayName,
+    email: typeof email === 'string' ? email : null,
+    identities: Array.isArray(identities)
+      ? identities
+          .map(parseLinkedIdentity)
+          .filter((identity): identity is LinkedIdentity => identity !== null)
+      : [],
+  }
 }
 
 export async function getCurrentUser(signal?: AbortSignal): Promise<AuthUser | null> {

@@ -67,6 +67,30 @@ ID so one user can link several providers.
       to a generic message.
 - [ ] Provider linking UI — explicitly out of scope; endpoints undesigned.
 
+### `/api/auth/me` payload reshape (found while debugging a failed login)
+
+The change request described only the `id` semantic change, but the server also
+restructured the response. `provider`, `login`, and `avatarUrl` moved from the
+top level into an `identities[]` array:
+
+```json
+{ "id": "1042", "displayName": "...", "email": "...",
+  "identities": [{ "provider": "github", "login": "...", "avatarUrl": "..." }] }
+```
+
+Home's strict parser rejected the unknown shape, so a *successful* login threw
+`Malformed session payload`, flipped the state to `error`, and returned the user
+to the login screen. `AuthUser` now models the multi-identity shape.
+
+The parser now requires only `id` and `displayName` — the fields the shell
+actually renders — and degrades every other field to a safe default. An
+otherwise valid session must never be rejected over a cosmetic field, because
+the failure mode is an unrecoverable bounce back to login.
+
+- [ ] Server-side: `.plan/issues/2026-07-19-artel-44-jwt-authentication.md` still
+      claims the "Home session contract stays unchanged". It is stale as of
+      `cacef7c` / `42b8afe` and should be corrected.
+
 ### Confirmed with the server team
 
 - **Deployment is same-site** (subdomains of one registrable domain), so the

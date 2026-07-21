@@ -11,6 +11,10 @@ const actions = [
 export function App() {
   const auth = useAuth()
 
+  // The server sorts identities with the most recently used provider first, so
+  // the first entry is what the shell should represent the signed-in user with.
+  const primaryIdentity = auth.user?.identities[0] ?? null
+
   if (auth.status === 'loading') {
     return (
       <main className="session-loading" aria-live="polite">
@@ -38,8 +42,8 @@ export function App() {
             Offline
           </div>
           <div className="user-menu">
-            {auth.user.avatarUrl ? (
-              <img className="user-avatar" src={auth.user.avatarUrl} alt="" />
+            {primaryIdentity?.avatarUrl ? (
+              <img className="user-avatar" src={primaryIdentity.avatarUrl} alt="" />
             ) : (
               <span className="user-avatar user-avatar--fallback" aria-hidden="true">
                 {auth.user.displayName.slice(0, 1).toUpperCase()}
