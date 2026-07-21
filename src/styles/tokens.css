@@ -11,6 +11,8 @@
   --color-action-primary: #24c7e8;
   --color-action-primary-strong: #0ba8c7;
   --color-status-offline: #707b88;
+  --color-status-critical: #ff634f;
+  --color-status-critical-muted: #291713;
 
   --font-sans: Inter, "Pretendard Variable", Pretendard, sans-serif;
   --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;

@@ -1,4 +1,6 @@
 import './App.css'
+import { LoginPage } from './LoginPage'
+import { useAuth } from './auth/useAuth'
 
 const actions = [
   { label: 'Connect Unity session', variant: 'primary' },
@@ -7,6 +9,21 @@ const actions = [
 ] as const
 
 export function App() {
+  const auth = useAuth()
+
+  if (auth.status === 'loading') {
+    return (
+      <main className="session-loading" aria-live="polite">
+        <span className="loading-mark" aria-hidden="true" />
+        Checking your session…
+      </main>
+    )
+  }
+
+  if (auth.status === 'unauthenticated' || auth.status === 'error') {
+    return <LoginPage serviceUnavailable={auth.status === 'error'} />
+  }
+
   return (
     <div className="app-shell">
       <header className="top-bar">
@@ -15,9 +32,24 @@ export function App() {
           <span>ARTEL</span>
           <span className="product-name">Replay Studio</span>
         </a>
-        <div className="connection-status" role="status">
-          <span className="status-dot" aria-hidden="true" />
-          Offline
+        <div className="top-bar-actions">
+          <div className="connection-status" role="status">
+            <span className="status-dot" aria-hidden="true" />
+            Offline
+          </div>
+          <div className="user-menu">
+            {auth.user.avatarUrl ? (
+              <img className="user-avatar" src={auth.user.avatarUrl} alt="" />
+            ) : (
+              <span className="user-avatar user-avatar--fallback" aria-hidden="true">
+                {auth.user.displayName.slice(0, 1).toUpperCase()}
+              </span>
+            )}
+            <span className="user-name">{auth.user.displayName}</span>
+            <button className="logout-button" type="button" onClick={() => void auth.logout()}>
+              Sign out
+            </button>
+          </div>
         </div>
       </header>
 
