@@ -46,6 +46,32 @@ Add an accessible social-login boundary to Artel Home. GitHub is the only enable
 - [ ] Run the production build after the platform-specific Rolldown native binding is available.
 - [ ] Verify the real GitHub redirect/callback/logout flow with ARTEL-44.
 
+## ARTEL-44 Follow-up (2026-07-21)
+
+The server moved `sub` / `me.id` from `"github:42"` to an opaque internal user
+ID so one user can link several providers.
+
+- [x] Treat `id` as opaque. No parsing existed to remove; `AuthUser.id` is not
+      read by any UI. Contract recorded on the type to prevent regression.
+- [x] Cache key version bump — not applicable. Home holds no client-side cache
+      (no `localStorage`, `sessionStorage`, IndexedDB, or Cache API usage).
+- [x] Centralize `401` handling in `apiFetch` + `setUnauthorizedHandler`.
+      Access-token TTL is 15 minutes, so expiry during a session is routine.
+      `getCurrentUser` keeps its own `401 → null` path: there a `401` means
+      "not signed in yet", not "the session expired".
+- [x] Distinguish `?error=oauth` from `?error=server`; unknown codes fall back
+      to a generic message.
+- [ ] Provider linking UI — explicitly out of scope; endpoints undesigned.
+
+### Confirmed with the server team
+
+- **Deployment is same-site** (subdomains of one registrable domain), so the
+  `SameSite=Lax` cookie is attached to `GET /api/auth/me` and no
+  `SameSite=None` change is required. Recorded in `README.md` because local
+  development cannot surface a regression here.
+- **Static hosting provides SPA fallback**, so the `{HOME}/login?error=...`
+  failure redirect reaches the login screen without adding a router.
+
 ## Accessibility and Design Requirements
 
 - Use semantic design tokens and no raw colors in TSX.

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { endSession, getCurrentUser } from './authApi'
+import { endSession, getCurrentUser, setUnauthorizedHandler } from './authApi'
 import { AuthContext, type AuthContextValue } from './AuthContext'
 import type { AuthState } from './authTypes'
 
@@ -13,6 +13,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setState({ status: 'unauthenticated', user: null })
     }
   }, [])
+
+  useEffect(() => setUnauthorizedHandler(() => {
+    setState({ status: 'unauthenticated', user: null })
+  }), [])
 
   useEffect(() => {
     const controller = new AbortController()

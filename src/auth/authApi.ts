@@ -6,6 +6,49 @@ export function getOAuthLoginUrl(path: string): string {
   return `${orchestrationUrl}${path}`
 }
 
+export class UnauthorizedError extends Error {
+  constructor() {
+    super('The session is no longer valid')
+    this.name = 'UnauthorizedError'
+  }
+}
+
+let unauthorizedHandler: (() => void) | null = null
+
+/**
+ * Registers the single listener notified when any authenticated call is
+ * rejected with 401. Access tokens expire after 15 minutes, so expiry during
+ * an active session is routine and must return the app to the login boundary.
+ */
+export function setUnauthorizedHandler(handler: () => void): () => void {
+  unauthorizedHandler = handler
+  return () => {
+    if (unauthorizedHandler === handler) {
+      unauthorizedHandler = null
+    }
+  }
+}
+
+/**
+ * Performs a credentialed call against the orchestration server. Every
+ * authenticated request must go through here so session expiry is handled in
+ * one place. `getCurrentUser` deliberately bypasses it: a 401 there means
+ * "not signed in yet", not "the session just expired".
+ */
+export async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
+  const response = await fetch(`${orchestrationUrl}${path}`, {
+    ...init,
+    credentials: 'include',
+  })
+
+  if (response.status === 401) {
+    unauthorizedHandler?.()
+    throw new UnauthorizedError()
+  }
+
+  return response
+}
+
 function parseAuthUser(data: unknown): AuthUser {
   if (typeof data !== 'object' || data === null) {
     throw new Error('Malformed session payload')

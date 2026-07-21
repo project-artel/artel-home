@@ -2,8 +2,23 @@ import { useEffect, useState } from 'react'
 import { getOAuthLoginUrl } from './auth/authApi'
 import { oauthProviders } from './auth/oauthProviders'
 
-function readOAuthError(): boolean {
-  return new URLSearchParams(window.location.search).has('error')
+/**
+ * The orchestration server reports a failed callback as `?error=oauth` (the
+ * provider exchange failed) or `?error=server` (the server could not issue a
+ * session). Unknown codes fall back to the generic message so a new server
+ * code never renders an empty alert.
+ */
+const oauthErrorMessages: Record<string, string> = {
+  oauth: 'GitHub sign-in could not be completed. Please try again.',
+  server: 'We could not start your session. Please try again shortly.',
+}
+
+const genericOAuthErrorMessage = 'Sign-in could not be completed. Please try again.'
+
+function readOAuthError(): string | null {
+  const code = new URLSearchParams(window.location.search).get('error')
+  if (code === null) return null
+  return oauthErrorMessages[code] ?? genericOAuthErrorMessage
 }
 
 function ProviderIcon({ providerId }: { providerId: string }) {
@@ -22,7 +37,7 @@ export function LoginPage({ serviceUnavailable = false }: { serviceUnavailable?:
   const [oauthError] = useState(readOAuthError)
 
   useEffect(() => {
-    if (!oauthError) return
+    if (oauthError === null) return
     const url = new URL(window.location.href)
     url.searchParams.delete('error')
     window.history.replaceState(null, '', url)
@@ -39,10 +54,10 @@ export function LoginPage({ serviceUnavailable = false }: { serviceUnavailable?:
           and replay evidence.
         </p>
 
-        {oauthError && (
+        {oauthError !== null && (
           <div className="login-error" role="alert">
             <span aria-hidden="true">!</span>
-            GitHub sign-in could not be completed. Please try again.
+            {oauthError}
           </div>
         )}
 
