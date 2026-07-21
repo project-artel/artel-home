@@ -43,8 +43,12 @@ Add an accessible social-login boundary to Artel Home. GitHub is the only enable
 - [x] Keep the provider button list data-driven for future OAuth providers.
 - [ ] Add automated component tests when the repository test harness is introduced.
 - [x] Run lint and type-check.
-- [ ] Run the production build after the platform-specific Rolldown native binding is available.
+- [x] Run the production build. The Rolldown native binding resolved once a
+      local Node toolchain was available.
 - [ ] Verify the real GitHub redirect/callback/logout flow with ARTEL-44.
+      Blocked: the multi-provider server change is still undeployed.
+- [ ] Verify the same-site cookie assumption against a real deployed pair of
+      subdomains. Local development cannot surface this.
 
 ## ARTEL-44 Follow-up (2026-07-21)
 
