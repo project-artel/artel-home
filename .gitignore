@@ -5,9 +5,15 @@ node_modules/
 dist/
 
 # Local environment
-.env
-.env.local
-.env.*.local
+# 열거하면 .env.bak이나 편집기 스왑 파일 같은 파생 파일이 빠져나간다.
+# 전부 막고 예시 파일만 되살린다.
+.env*
+!.env.example
+
+# 편집기 스왑 파일. .env를 열어두면 비밀값이 그대로 담긴다.
+*.swp
+*.swo
+*~
 
 # Tooling
 *.local
