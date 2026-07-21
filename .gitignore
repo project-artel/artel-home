@@ -14,6 +14,10 @@ dist/
 *.tsbuildinfo
 .vite/
 
+# Agent tooling
+.claude/settings.local.json
+.claude/worktrees/
+
 # Editors and OS files
 .idea/
 .vscode/*
