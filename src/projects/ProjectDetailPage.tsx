@@ -91,6 +91,7 @@ function ProjectDetailView({
   const [saving, setSaving] = useState(false)
   const [announcement, setAnnouncement] = useState('')
   const [deleting, setDeleting] = useState(false)
+  const [editing, setEditing] = useState(false)
   const [syncedFrom, setSyncedFrom] = useState(project)
   const navigate = useNavigate()
 
@@ -109,6 +110,14 @@ function ProjectDetailView({
     draft.description !== saved.description ||
     draft.genre !== saved.genre
 
+  /** Leaving edit mode discards the draft, so nothing half-typed survives unseen. */
+  function cancelEditing() {
+    setDraft(toDraft(project))
+    setFieldErrors({})
+    setFailure(null)
+    setEditing(false)
+  }
+
   async function save(event: React.FormEvent) {
     event.preventDefault()
     setSaving(true)
@@ -122,6 +131,7 @@ function ProjectDetailView({
         genre: draft.genre,
       })
       onSaved(updated)
+      setEditing(false)
       setAnnouncement('Project saved.')
     } catch (error: unknown) {
       if (error instanceof ProjectApiError) {
@@ -162,35 +172,77 @@ function ProjectDetailView({
 
       <div className="detail-columns">
         <section className="panel" aria-labelledby="information-title">
-          <header className="panel-header">
+          <header className="panel-header panel-header--split">
             <h2 id="information-title">Information</h2>
+            {/* Read first, edit on request. The project tab will gain more
+                panels, and a form left permanently open would make the whole
+                page read as a settings screen. */}
+            {!editing && (
+              <button
+                className="button button--secondary button--compact"
+                onClick={() => setEditing(true)}
+                type="button"
+              >
+                Edit
+              </button>
+            )}
           </header>
 
-          <form onSubmit={save} noValidate>
-            {failure !== null && (
-              <div className="inline-error" role="alert">
-                <span aria-hidden="true">!</span>
-                {failure}
-              </div>
-            )}
+          {editing ? (
+            <form onSubmit={save} noValidate>
+              {failure !== null && (
+                <div className="inline-error" role="alert">
+                  <span aria-hidden="true">!</span>
+                  {failure}
+                </div>
+              )}
 
-            <ProjectForm
-              draft={draft}
-              onChange={setDraft}
-              fieldErrors={fieldErrors}
-              disabled={saving}
-            >
-              <div className="form-actions">
-                <button
-                  className="button button--primary"
-                  disabled={!dirty || saving || draft.name.trim().length === 0}
-                  type="submit"
-                >
-                  {saving ? 'Saving…' : 'Save changes'}
-                </button>
-              </div>
-            </ProjectForm>
-          </form>
+              <ProjectForm
+                draft={draft}
+                onChange={setDraft}
+                fieldErrors={fieldErrors}
+                disabled={saving}
+              >
+                <div className="form-actions">
+                  <button
+                    className="button button--secondary"
+                    disabled={saving}
+                    onClick={cancelEditing}
+                    type="button"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="button button--primary"
+                    disabled={!dirty || saving || draft.name.trim().length === 0}
+                    type="submit"
+                  >
+                    {saving ? 'Saving…' : 'Save changes'}
+                  </button>
+                </div>
+              </ProjectForm>
+            </form>
+          ) : (
+            <dl className="detail-fields">
+              <dt>Name</dt>
+              <dd>{project.name}</dd>
+
+              <dt>Genre</dt>
+              <dd>{GENRE_LABELS[project.genre]}</dd>
+
+              <dt>Description</dt>
+              <dd>
+                {project.description !== null && project.description.length > 0 ? (
+                  project.description
+                ) : (
+                  <span className="detail-empty">No description</span>
+                )}
+              </dd>
+
+              <dt>Created</dt>
+              <dd>{formatDate(project.createdAt)}</dd>
+            </dl>
+          )}
 
           <p aria-live="polite" className="visually-hidden">{announcement}</p>
         </section>
