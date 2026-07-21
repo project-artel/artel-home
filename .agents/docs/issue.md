@@ -13,6 +13,7 @@ An issue is ready when it has:
 - known constraints
 - explicit non-goals when scope could expand
 - dependencies or blockers
+- an assignee, and the 작업 유형 and 레포지토리 fields set
 
 ## Issue Template
 
@@ -36,7 +37,8 @@ An issue is ready when it has:
 1. Create or refine issue.
 2. Confirm dependencies and priority.
 3. Mark in progress only when active work starts.
-4. Link branch, plan, and PR.
+4. Link branch, plan, and PR. The branch name carries the issue key, which is
+   what ties commits and the PR back to this issue.
 5. Update scope changes in issue before implementing them.
 6. Close only after acceptance criteria and required validation pass.
 

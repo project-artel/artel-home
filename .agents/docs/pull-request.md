@@ -6,7 +6,7 @@ PR should let reviewer understand intent, verify evidence, and identify risk wit
 
 ## Before Opening
 
-- Confirm issue acceptance criteria.
+- Confirm acceptance criteria from Jira or the user request.
 - Update plan to reflect final implementation.
 - Review full diff against default branch.
 - Remove debug code and unrelated churn.
@@ -38,7 +38,7 @@ Use Conventional Commit format:
 
 ## Rollback
 
-Closes #123
+Jira: ARTEL-123 (omit when no Jira work item exists)
 ```
 
 `Code Walkthrough` carries one entry per meaningful changed unit — module,
