@@ -6,7 +6,7 @@ PR should let reviewer understand intent, verify evidence, and identify risk wit
 
 ## Before Opening
 
-- Confirm issue acceptance criteria.
+- Confirm acceptance criteria from Jira or the user request.
 - Update plan to reflect final implementation.
 - Review full diff against default branch.
 - Remove debug code and unrelated churn.
@@ -28,6 +28,9 @@ Use Conventional Commit format:
 
 ## What Changed
 
+## Code Walkthrough
+- `path/to/unit.ext:12` — what the unit now does, and why it had to change
+
 ## Validation
 - [ ] Command or manual check
 
@@ -35,8 +38,14 @@ Use Conventional Commit format:
 
 ## Rollback
 
-Closes #123
+Jira: ARTEL-123 (omit when no Jira work item exists)
 ```
+
+`Code Walkthrough` carries one entry per meaningful changed unit — module,
+class, function, migration, or configuration file — anchored with `path:line`.
+State what the unit now does and why the change was necessary. Do not restate
+the diff line by line; the reviewer can read it. Collapse mechanical edits such
+as renames or formatting into a single entry.
 
 ## Review Rules
 
