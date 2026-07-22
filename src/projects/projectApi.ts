@@ -48,15 +48,24 @@ export class ProjectApiError extends Error {
   }
 }
 
-function asRecord(data: unknown): Record<string, unknown> | null {
+/*
+ * The helpers below are exported so sibling API modules (`gameApi.ts`) share
+ * one error type, one error-mapping rule, and one tolerant-parsing vocabulary.
+ * They are deliberately not moved to a neutral module: every one of them is
+ * about the project-scoped API this file defines, and a second copy is how the
+ * two would drift on something that matters, like which status codes carry
+ * field errors.
+ */
+
+export function asRecord(data: unknown): Record<string, unknown> | null {
   return typeof data === 'object' && data !== null ? (data as Record<string, unknown>) : null
 }
 
-function asString(value: unknown, fallback = ''): string {
+export function asString(value: unknown, fallback = ''): string {
   return typeof value === 'string' ? value : fallback
 }
 
-function asNullableString(value: unknown): string | null {
+export function asNullableString(value: unknown): string | null {
   return typeof value === 'string' ? value : null
 }
 
@@ -96,7 +105,7 @@ const genericFailureMessage = 'The request could not be completed. Please try ag
  * empty, or not JSON is normal for a 5xx behind a proxy, so it must not throw
  * a second, less useful error on top of the first.
  */
-async function toApiError(response: Response): Promise<ProjectApiError> {
+export async function toApiError(response: Response): Promise<ProjectApiError> {
   let code: string | null = null
   let message = ''
   let fields: Record<string, string> = {}
@@ -120,7 +129,7 @@ async function toApiError(response: Response): Promise<ProjectApiError> {
   )
 }
 
-async function readJson(response: Response): Promise<unknown> {
+export async function readJson(response: Response): Promise<unknown> {
   if (!response.ok) {
     throw await toApiError(response)
   }
@@ -132,7 +141,7 @@ async function readJson(response: Response): Promise<unknown> {
   }
 }
 
-function jsonRequest(body: unknown): RequestInit {
+export function jsonRequest(body: unknown): RequestInit {
   return {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -287,7 +296,7 @@ function parseDownloadTicket(data: unknown): DownloadTicket {
 }
 
 /** Project and document IDs are opaque strings, so they are escaped, not parsed. */
-function projectPath(projectId: string, suffix = ''): string {
+export function projectPath(projectId: string, suffix = ''): string {
   return `/api/projects/${encodeURIComponent(projectId)}${suffix}`
 }
 

@@ -236,15 +236,6 @@
   letter-spacing: normal;
 }
 
-.connection-status {
-  display: inline-flex;
-  min-height: 32px;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--color-text-secondary);
-  font-size: 12px;
-}
-
 .status-dot {
   width: 7px;
   height: 7px;
@@ -388,7 +379,6 @@ h1 {
     min-height: 44px;
   }
 
-  .connection-status,
   .user-name {
     display: none;
   }
@@ -937,4 +927,245 @@ h1 {
 .detail-empty {
   color: var(--color-text-muted);
   font-style: italic;
+}
+
+/* ── Game instances ──────────────────────────────────────────────────────── */
+
+/* An empty panel that still has to offer its action, so the copy and the
+   button need a gap the bare `.panel-empty` paragraph does not provide. */
+.panel-empty-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+/* Two controls in a split panel header. Wraps rather than shrinking the
+   buttons, so the 32px pointer target survives a narrow column. */
+.panel-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* A quiet caveat under a list — not an error, so it must not look like one. */
+.panel-note {
+  margin: var(--space-3) 0 0;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.instance-list,
+.build-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.instance-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4) 0;
+}
+
+.instance-row + .instance-row {
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+/* The banner already carries its own bottom margin from `.inline-error`; the
+   row supplies the rhythm above it. */
+.instance-row .inline-error {
+  margin-bottom: 0;
+}
+
+.instance-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.instance-name {
+  color: var(--color-text-primary);
+  font-size: 15px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* Reserved width so a reload flipping `connected` cannot reflow the row. The
+   colour is a second signal only — the label carries the state on its own. */
+.instance-state {
+  display: inline-flex;
+  min-width: 78px;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.instance-state--connected {
+  color: var(--color-status-success);
+}
+
+.status-dot--connected {
+  border-color: var(--color-status-success);
+  background: var(--color-status-success);
+}
+
+.instance-meta {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.instance-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.instance-edit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* A value the developer has to move into another application by hand, paired
+   with the button that does it for them. */
+.copy-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-raised);
+}
+
+.copy-value {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--color-text-primary);
+  font-size: 12px;
+  line-height: 18px;
+  overflow-wrap: anywhere;
+}
+
+/* ── SDK install guide ───────────────────────────────────────────────────── */
+
+.install-guide {
+  margin-top: var(--space-2);
+}
+
+.guide-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: 0;
+  padding-left: var(--space-5);
+}
+
+.guide-step {
+  color: var(--color-text-secondary);
+}
+
+.guide-step::marker {
+  color: var(--color-action-primary);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.guide-copy {
+  margin: 0 0 var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.guide-step .copy-line {
+  margin-top: var(--space-2);
+}
+
+.guide-note {
+  margin: var(--space-5) 0 var(--space-4);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+/* ── Game builds ─────────────────────────────────────────────────────────── */
+
+.build-row + .build-row {
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+/* The whole summary line is the disclosure control, so the keyboard reaches it
+   in one stop instead of hunting for a separate chevron. */
+.build-summary {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-2);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  text-align: left;
+}
+
+.build-summary:hover {
+  background: var(--color-bg-hover);
+}
+
+.build-version {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.build-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.build-label--empty {
+  color: var(--color-text-muted);
+}
+
+.build-created {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* Shape, not colour: the marker says open or closed on its own. */
+.build-marker {
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.build-detail {
+  padding: 0 var(--space-2) var(--space-4);
+}
+
+.build-detail .detail-fields {
+  margin-top: 0;
+}
+
+.build-version-note {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 18px;
 }

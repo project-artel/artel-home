@@ -27,10 +27,6 @@ export function AppShell() {
           <span className="product-name">Replay Studio</span>
         </Link>
         <div className="top-bar-actions">
-          <div className="connection-status" role="status">
-            <span className="status-dot" aria-hidden="true" />
-            Offline
-          </div>
           <div className="user-menu">
             {primaryIdentity?.avatarUrl ? (
               <img className="user-avatar" src={primaryIdentity.avatarUrl} alt="" />
