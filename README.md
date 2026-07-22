@@ -30,12 +30,59 @@ Vite prints the local development URL after the server starts.
 
 ```text
 src/
-  styles/       Global styles and semantic design tokens
-  App.tsx       Application shell and initial empty state
-  main.tsx      React entry point
+  auth/             Session state, credentialed fetch, OAuth provider registry
+  design-system/    Shared primitives composed by domain components
+  projects/         Project list, detail, and planning-document surfaces
+  shell/            Signed-in chrome shared by every route
+  styles/           Global styles and semantic design tokens
+  App.tsx           Login boundary and the authenticated router
+  main.tsx          React entry point
 ```
 
 UI work must follow [`.agents/docs/DESIGN.md`](.agents/docs/DESIGN.md).
+
+## Routes
+
+Only the authenticated subtree is routed; the login boundary stays a plain
+render so a routing fault cannot strand a signed-out user.
+
+| Path | Screen |
+|---|---|
+| `/projects` | Project list and the create dialog |
+| `/projects/:projectId` | Project information, planning documents |
+| `/login` | Where a failed OAuth callback lands |
+
+**Static hosting must rewrite unknown paths to `index.html`.** This was already
+required for the `{HOME}/login?error=...` redirect, but it is now load-bearing
+for every project deep link: without the fallback, opening or reloading
+`/projects/{id}` serves a hosting 404 instead of the app.
+
+## Planning documents
+
+A planning document is a PDF, at most 50 MB, uploaded in three steps:
+
+1. `POST /api/projects/{id}/documents/upload-url` returns a presigned URL.
+2. The browser `PUT`s the file **directly to object storage**. This is the one
+   request that must not go through `apiFetch` and must not send credentials —
+   it leaves our origin, so the session cookie would leak cross-origin and the
+   upload signature would break. It uses `XMLHttpRequest` because only that
+   reports upload progress.
+3. `POST /api/projects/{id}/documents` registers the object. **The document does
+   not exist until this call succeeds**; if the session expires in between, the
+   bytes are in storage but unreferenced, and the UI reports the failure rather
+   than claiming success.
+
+Uploading adds a version. Nothing is replaced, and downloads resolve a fresh
+short-lived URL on click so a presigned link is never left sitting in the DOM.
+
+## Projects and members
+
+Users and projects are many-to-many. Each response carries `myRole`
+(`OWNER` or `MEMBER`) for the requesting user; an unknown value degrades to
+`MEMBER`, which hides destructive actions rather than offering ones the server
+would refuse. Only an owner can delete, and deletion is soft on the server but
+has no restore path in the UI, so it is treated as final. There is no member
+management UI yet — the only membership the server creates is the creator's.
 
 ## Authentication
 

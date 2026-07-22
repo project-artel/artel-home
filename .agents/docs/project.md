@@ -14,7 +14,7 @@ Fill this document during project initialization. Agents must verify commands ag
 - Entry points: `index.html`, `src/main.tsx`
 - Main modules: Application shell in `src/App.tsx`; shared semantic styles in `src/styles/`
 - Dependency direction: Application UI depends on shared styles; future domain components should depend on design-system primitives
-- External systems: GitHub repository `project-artel/artel-home`; Jira project `ARTEL` via the `mcp-atlassian` MCP server
+- External systems: GitHub repository `project-artel/artel-home`; Jira project `ARTEL` via the `mcp-atlassian` MCP server ; Notion workspace via the `ntn` CLI
 - Persistent data: TODO
 
 ## Commands
@@ -30,7 +30,10 @@ Fill this document during project initialization. Agents must verify commands ag
 | Integration tests | Not configured |
 | Build | `npm run build` |
 | Set up Jira credentials | `cp .jira.env.example .jira.env` |
+| Install Notion CLI | `curl -fsSL https://ntn.dev \| bash` |
+| Verify Notion CLI auth | `ntn whoami` |
 
+### Jira
 Jira access goes through the `mcp-atlassian` MCP server, declared in `.mcp.json`
 at the repository root. Claude Code starts it on demand and asks for approval
 the first time it connects.
@@ -44,6 +47,20 @@ excludes `.jira.env`; never commit it.
 The server reads that file itself, so the setup does not depend on how Claude
 Code was launched or on which shell exports the variables. Do not register a
 `jira` server in user scope as well, or two copies start.
+
+### Notion
+Notion access goes through the `ntn` CLI. Agents follow
+`.agents/skills/notion-cli/SKILL.md`, which is symlinked into
+`.claude/skills/notion-cli` for Claude Code.
+
+Authenticate with a token rather than `ntn login`: export `NOTION_API_TOKEN`
+from your shell profile, using a token issued at
+`https://www.notion.so/profile/integrations`. The integration must be connected
+to each page and data source it needs, otherwise reads return 404. Never commit
+the token.
+
+Write operations (`ntn pages create`, `ntn files create`, `ntn workers deploy`)
+are not pre-approved and require explicit confirmation.
 
 ## Constraints
 

@@ -13,6 +13,12 @@
   --color-status-offline: #707b88;
   --color-status-critical: #ff634f;
   --color-status-critical-muted: #291713;
+  --color-status-critical-strong: #e04a37;
+  --color-status-success: #48c78e;
+  --color-status-success-muted: #0f2119;
+  --color-status-warning: #f2b84b;
+  --color-status-warning-muted: #241c0d;
+  --color-overlay-scrim: rgb(4 7 10 / 72%);
 
   --font-sans: Inter, "Pretendard Variable", Pretendard, sans-serif;
   --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
