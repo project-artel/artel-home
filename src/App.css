@@ -1169,3 +1169,206 @@ h1 {
   font-size: 12px;
   line-height: 18px;
 }
+
+/* ── Test scenarios ──────────────────────────────────────────────────────── */
+
+.scenario-hint {
+  margin: var(--space-1) 0 var(--space-4);
+  max-width: 60ch;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.panel-header--split .scenario-hint {
+  margin-bottom: 0;
+}
+
+/*
+ * The conversation drives the scenario, so it leads at every width. Below
+ * 1023px the two stack in that order rather than competing for a narrow column.
+ */
+.scenario-workspace {
+  display: grid;
+  gap: var(--space-5);
+  align-items: start;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+}
+
+@media (max-width: 1023px) {
+  .scenario-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Amber, and it says why: a reconnect is a degraded state, not a failure. */
+.scenario-reconnecting {
+  border-color: var(--color-status-warning);
+  color: var(--color-status-warning);
+}
+
+.scenario-dirty {
+  border-color: var(--color-action-primary);
+  color: var(--color-action-primary);
+}
+
+.scenario-chat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  /* Holds the composer in view while the thread scrolls inside the panel. */
+  max-height: calc(100vh - 220px);
+  min-height: 420px;
+}
+
+.chat-thread {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chat-message {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-raised);
+}
+
+/*
+ * The speaker is named in text on every message. The left border is a second,
+ * faster cue — never the only one.
+ */
+.chat-message--user {
+  border-left: 2px solid var(--color-border-strong);
+}
+
+.chat-message--assistant {
+  border-left: 2px solid var(--color-action-primary);
+}
+
+.chat-author {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-2);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.chat-time {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.chat-body {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 14px;
+  line-height: 21px;
+  white-space: pre-wrap;
+}
+
+.chat-status {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.chat-composer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.chat-composer .form-actions {
+  margin-top: 0;
+}
+
+.chat-closed {
+  padding: var(--space-4);
+  border: 1px solid var(--color-status-warning);
+  border-radius: var(--radius-md);
+  background: var(--color-status-warning-muted);
+}
+
+.chat-closed-title {
+  margin: 0 0 var(--space-2);
+  color: var(--color-status-warning);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.chat-closed-copy {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.scenario-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.scenario-readonly-value {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 14px;
+  line-height: 21px;
+  white-space: pre-wrap;
+}
+
+.scenario-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.scenario-step {
+  padding: var(--space-4);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-raised);
+}
+
+.scenario-step-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.scenario-step-number {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.scenario-step-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.scenario-step .detail-fields {
+  margin-top: 0;
+}
+
+.scenario-step .field + .field {
+  margin-top: var(--space-3);
+}
