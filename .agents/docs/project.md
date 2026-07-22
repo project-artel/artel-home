@@ -14,7 +14,7 @@ Fill this document during project initialization. Agents must verify commands ag
 - Entry points: `index.html`, `src/main.tsx`
 - Main modules: Application shell in `src/App.tsx`; shared semantic styles in `src/styles/`
 - Dependency direction: Application UI depends on shared styles; future domain components should depend on design-system primitives
-- External systems: GitHub repository `project-artel/artel-home`; Notion workspace via the `ntn` CLI
+- External systems: GitHub repository `project-artel/artel-home`; Jira project `ARTEL` via the `mcp-atlassian` MCP server ; Notion workspace via the `ntn` CLI
 - Persistent data: TODO
 
 ## Commands
@@ -29,9 +29,26 @@ Fill this document during project initialization. Agents must verify commands ag
 | Unit tests | Not configured |
 | Integration tests | Not configured |
 | Build | `npm run build` |
+| Set up Jira credentials | `cp .jira.env.example .jira.env` |
 | Install Notion CLI | `curl -fsSL https://ntn.dev \| bash` |
 | Verify Notion CLI auth | `ntn whoami` |
 
+### Jira
+Jira access goes through the `mcp-atlassian` MCP server, declared in `.mcp.json`
+at the repository root. Claude Code starts it on demand and asks for approval
+the first time it connects.
+
+Credentials live in `.jira.env`, which the server reads through `--env-file`.
+Copy `.jira.env.example` and fill in `JIRA_URL`, `JIRA_USERNAME`, and
+`JIRA_API_TOKEN`, issuing the token at
+`https://id.atlassian.com/manage-profile/security/api-tokens`. `.gitignore`
+excludes `.jira.env`; never commit it.
+
+The server reads that file itself, so the setup does not depend on how Claude
+Code was launched or on which shell exports the variables. Do not register a
+`jira` server in user scope as well, or two copies start.
+
+### Notion
 Notion access goes through the `ntn` CLI. Agents follow
 `.agents/skills/notion-cli/SKILL.md`, which is symlinked into
 `.claude/skills/notion-cli` for Claude Code.
