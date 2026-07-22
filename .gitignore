@@ -30,5 +30,5 @@ dist/
 !.vscode/extensions.json
 .DS_Store
 
-# Jira MCP credentials
+# Local-only Jira credentials for the MCP server
 .jira.env

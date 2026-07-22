@@ -3,9 +3,12 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { DeleteProjectDialog } from './DeleteProjectDialog'
 import { DocumentPanel } from './DocumentPanel'
 import { formatDate } from './formatters'
+import { GameBuildPanel } from './GameBuildPanel'
+import { GameInstancePanel } from './GameInstancePanel'
 import { ProjectApiError, updateProject } from './projectApi'
 import { ProjectForm } from './ProjectForm'
 import { GENRE_LABELS, type ProjectDetail, type ProjectDraft } from './projectTypes'
+import type { GameBuild, GameInstance } from './gameTypes'
 import { useProject } from './useProject'
 
 /**
@@ -18,8 +21,21 @@ export function ProjectDetailRoute() {
 }
 
 function ProjectDetailPage({ projectId }: { projectId: string }) {
-  const { status, project, documents, reload, applyProject, applyNewDocument } =
-    useProject(projectId)
+  const {
+    applyBuild,
+    applyInstance,
+    applyNewDocument,
+    applyNewInstance,
+    applyProject,
+    builds,
+    documents,
+    instances,
+    project,
+    refreshGameState,
+    reload,
+    removeInstance,
+    status,
+  } = useProject(projectId)
 
   if (status === 'loading') {
     return (
@@ -58,7 +74,14 @@ function ProjectDetailPage({ projectId }: { projectId: string }) {
 
   return (
     <ProjectDetailView
+      builds={builds}
       documents={documents}
+      instances={instances}
+      onBuildSaved={applyBuild}
+      onInstanceCreated={applyNewInstance}
+      onInstanceRefresh={refreshGameState}
+      onInstanceRemoved={removeInstance}
+      onInstanceSaved={applyInstance}
       onNewDocument={applyNewDocument}
       onSaved={applyProject}
       project={project}
@@ -77,13 +100,27 @@ function toDraft(project: ProjectDetail): ProjectDraft {
 function ProjectDetailView({
   project,
   documents,
+  instances,
+  builds,
   onSaved,
   onNewDocument,
+  onInstanceCreated,
+  onInstanceRefresh,
+  onInstanceRemoved,
+  onInstanceSaved,
+  onBuildSaved,
 }: {
   project: ProjectDetail
   documents: Parameters<typeof DocumentPanel>[0]['documents']
+  instances: GameInstance[]
+  builds: GameBuild[]
   onSaved: (project: ProjectDetail) => void
   onNewDocument: Parameters<typeof DocumentPanel>[0]['onUploaded']
+  onInstanceCreated: (instance: GameInstance) => void
+  onInstanceRefresh: () => Promise<void>
+  onInstanceRemoved: (instanceId: string) => void
+  onInstanceSaved: (instance: GameInstance) => void
+  onBuildSaved: (build: GameBuild) => void
 }) {
   const [draft, setDraft] = useState<ProjectDraft>(() => toDraft(project))
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
@@ -252,6 +289,21 @@ function ProjectDetailView({
           onUploaded={onNewDocument}
           projectId={project.id}
         />
+
+        {/* Both panels join the existing two-column grid and wrap into a second
+            row, giving 2×2 at ≥1024px and a single column below it. Their rows
+            are short, so a full-width row for either would leave most of the
+            width empty at 1440px. */}
+        <GameInstancePanel
+          instances={instances}
+          onCreated={onInstanceCreated}
+          onRefresh={onInstanceRefresh}
+          onRemoved={onInstanceRemoved}
+          onSaved={onInstanceSaved}
+          projectId={project.id}
+        />
+
+        <GameBuildPanel builds={builds} onSaved={onBuildSaved} projectId={project.id} />
       </div>
 
       {deleting && (

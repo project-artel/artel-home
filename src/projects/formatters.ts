@@ -5,7 +5,8 @@
  * renders as an em dash rather than "Invalid Date" or "NaN B".
  */
 
-const PLACEHOLDER = '—'
+/** Exported so callers that render a missing value directly use the same mark. */
+export const PLACEHOLDER = '—'
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
   year: 'numeric',
