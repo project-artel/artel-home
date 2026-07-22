@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ProjectApiError } from '../projects/projectApi'
 import {
   getTestScenario,
@@ -56,7 +56,14 @@ export function useScenarioSession(testScenarioId: number) {
   const [sending, setSending] = useState(false)
   const [awaitingReply, setAwaitingReply] = useState(false)
   const [sendFailure, setSendFailure] = useState<string | null>(null)
-  const [connected, setConnected] = useState(false)
+  // A subscription is assumed live until the transport says otherwise; see the
+  // `open` listener for why it cannot be the thing that proves it.
+  const [connected, setConnected] = useState(true)
+
+  const savedRef = useRef(EMPTY_SCENARIO_DRAFT)
+  useEffect(() => {
+    savedRef.current = state.saved
+  }, [state.saved])
 
   const applyLoaded = useCallback(([scenario, messages]: Awaited<ReturnType<typeof load>>) => {
     setState({ status: 'ready', saved: scenario.payload, messages })
@@ -90,12 +97,21 @@ export function useScenarioSession(testScenarioId: number) {
    * though, so re-reading them recovers the outcome of anything that was
    * missed. A failure here is left alone — what is on screen is still valid,
    * just older than the user hoped.
+   *
+   * Unlike a full read, this keeps unsent canvas edits. The user made them and
+   * nothing has replaced them: a dropped connection is not an answer, and
+   * discarding work over a blip the user never saw would be its own bug.
    */
   const recover = useCallback(() => {
     load(testScenarioId)
-      .then(applyLoaded)
+      .then(([scenario, messages]) => {
+        setDraft((current) =>
+          isScenarioDraftEqual(current, savedRef.current) ? scenario.payload : current,
+        )
+        setState({ status: 'ready', saved: scenario.payload, messages })
+      })
       .catch(() => undefined)
-  }, [testScenarioId, applyLoaded])
+  }, [testScenarioId])
 
   // A closed conversation drops the stream. `EventSource` would otherwise keep
   // reconnecting to a session that can no longer produce anything, and the
@@ -104,14 +120,22 @@ export function useScenarioSession(testScenarioId: number) {
     if (state.status !== 'ready' || closure !== null) return undefined
 
     const source = new EventSource(scenarioStreamUrl(testScenarioId), { withCredentials: true })
-    // The first open belongs to the read that just completed, so there is
-    // nothing to recover yet. Every open after it follows a dropped connection.
-    let opened = false
+    /*
+     * `open` cannot be used to mean "subscribed". The server commits the SSE
+     * response on its first element, so on a quiet stream the headers — and
+     * therefore `open` — do not arrive until the agent says something. Treating
+     * that as "not connected yet" would flag a healthy screen as reconnecting
+     * for as long as the user takes to type, and would delay recovery until an
+     * event that may never come.
+     *
+     * So the subscription is assumed live, and only a transport failure moves
+     * it. `open` is what clears that state again.
+     */
+    let live = true
 
     source.addEventListener('open', () => {
+      live = true
       setConnected(true)
-      if (opened) recover()
-      opened = true
     })
 
     source.addEventListener('result', (event: Event) => {
@@ -150,12 +174,20 @@ export function useScenarioSession(testScenarioId: number) {
      * the same name; only the server's arrives as a `MessageEvent` with a body.
      *
      * A transport failure is not a closed session — `EventSource` reconnects on
-     * its own, and `recover` catches up on whatever was missed. Only the
-     * server's own failure closes the chat.
+     * its own. Only the server's own failure closes the chat.
+     *
+     * Recovery runs the moment the gap is noticed rather than when the socket
+     * returns: the scenario and the transcript are stored, so re-reading them
+     * does not depend on the stream coming back. `live` keeps that to once per
+     * gap, since `EventSource` reports a failure on every retry.
      */
     source.addEventListener('error', (event: Event) => {
       if (!(event instanceof MessageEvent)) {
         setConnected(false)
+        if (live) {
+          live = false
+          recover()
+        }
         return
       }
 
