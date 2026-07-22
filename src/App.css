@@ -1330,45 +1330,162 @@ h1 {
   white-space: pre-wrap;
 }
 
-.scenario-steps {
+
+/*
+ * The step flow. Nodes are small and uniform so the sequence reads as a
+ * sequence; the detail lives in the editor below, not on the cards.
+ */
+.scenario-flow {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   gap: var(--space-3);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.scenario-step {
-  padding: var(--space-4);
+.scenario-flow-item {
+  position: relative;
+}
+
+/* The connector says "then", so it is drawn between nodes, never after the last. */
+.scenario-flow-item:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: calc(var(--space-3) * -1);
+  width: var(--space-3);
+  height: 1px;
+  background: var(--color-border-strong);
+}
+
+.scenario-node {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  width: 168px;
+  min-height: 96px;
+  padding: var(--space-3);
   border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-raised);
+  color: var(--color-text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--motion-fast) var(--ease-standard);
+}
+
+.scenario-node:hover {
+  border-color: var(--color-border-strong);
+  background: var(--color-bg-hover);
+}
+
+.scenario-node:focus-visible {
+  outline: 2px solid var(--color-action-primary);
+  outline-offset: 2px;
+}
+
+/*
+ * Selection is cyan, per the design system, and is also carried by
+ * `aria-current` and by the editor appearing below — never by colour alone.
+ */
+.scenario-node--selected {
+  border-color: var(--color-action-primary);
+  background: var(--color-bg-hover);
+}
+
+.scenario-node-step {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.scenario-node-title {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+  /* Two lines, then ellipsis: nodes must stay the same height to read as a row. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+.scenario-node-action {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 16px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+.scenario-node--add {
+  align-items: center;
+  justify-content: center;
+  border-style: dashed;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.scenario-node-plus {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.scenario-flow-item--dragging .scenario-node {
+  opacity: 0.4;
+}
+
+/* Where the dragged node would land. A left edge, not a colour swap. */
+.scenario-flow-item--drop .scenario-node {
+  border-left: 3px solid var(--color-action-primary);
+}
+
+.scenario-step-editor {
+  margin-top: var(--space-5);
+  padding: var(--space-4);
+  border: 1px solid var(--color-action-primary);
   border-radius: var(--radius-md);
   background: var(--color-bg-raised);
 }
 
-.scenario-step-header {
+.scenario-step-editor-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--space-4);
 }
 
-.scenario-step-number {
-  color: var(--color-text-secondary);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
+.scenario-step-editor-header h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
 }
 
 .scenario-step-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
 }
 
-.scenario-step .detail-fields {
+.scenario-step-editor .detail-fields {
   margin-top: 0;
 }
 
-.scenario-step .field + .field {
+.scenario-step-editor .field + .field {
   margin-top: var(--space-3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scenario-node {
+    transition: none;
+  }
 }
