@@ -6,6 +6,7 @@ import { useAuth } from './auth/useAuth'
 import { ProjectDetailRoute } from './projects/ProjectDetailPage'
 import { ProjectListPage } from './projects/ProjectListPage'
 import { AppShell } from './shell/AppShell'
+import { TestScenarioRoute } from './testScenarios/TestScenarioPage'
 
 export function App() {
   const auth = useAuth()
@@ -32,6 +33,10 @@ export function App() {
           <Route path="/" element={<Navigate replace to="/projects" />} />
           <Route path="/projects" element={<ProjectListPage />} />
           <Route path="/projects/:projectId" element={<ProjectDetailRoute />} />
+          <Route
+            path="/projects/:projectId/test-scenarios/:testScenarioId"
+            element={<TestScenarioRoute />}
+          />
           {/* The server's failed-callback redirect lands on /login. A user who
               is already signed in has nothing to do there, so send them on. */}
           <Route path="/login" element={<Navigate replace to="/projects" />} />

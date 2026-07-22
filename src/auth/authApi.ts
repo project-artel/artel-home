@@ -2,8 +2,19 @@ import type { AuthUser, LinkedIdentity } from './authTypes'
 
 const orchestrationUrl = (import.meta.env.VITE_ORCHESTRATION_URL ?? 'http://localhost:8080').replace(/\/$/, '')
 
-export function getOAuthLoginUrl(path: string): string {
+/**
+ * The absolute URL of an orchestration path.
+ *
+ * `apiFetch` covers everything that goes through `fetch`. This exists for the
+ * two callers that cannot: an OAuth redirect the browser performs itself, and
+ * `EventSource`, which is given a URL and opens the connection on its own.
+ */
+export function orchestrationUrlFor(path: string): string {
   return `${orchestrationUrl}${path}`
+}
+
+export function getOAuthLoginUrl(path: string): string {
+  return orchestrationUrlFor(path)
 }
 
 export class UnauthorizedError extends Error {

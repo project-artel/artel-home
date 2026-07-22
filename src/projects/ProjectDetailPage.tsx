@@ -8,6 +8,7 @@ import { GameInstancePanel } from './GameInstancePanel'
 import { ProjectApiError, updateProject } from './projectApi'
 import { ProjectForm } from './ProjectForm'
 import { GENRE_LABELS, type ProjectDetail, type ProjectDraft } from './projectTypes'
+import { StartScenarioPanel } from '../testScenarios/StartScenarioPanel'
 import type { GameBuild, GameInstance } from './gameTypes'
 import { useProject } from './useProject'
 
@@ -304,6 +305,8 @@ function ProjectDetailView({
         />
 
         <GameBuildPanel builds={builds} onSaved={onBuildSaved} projectId={project.id} />
+
+        <StartScenarioPanel projectId={project.id} />
       </div>
 
       {deleting && (
