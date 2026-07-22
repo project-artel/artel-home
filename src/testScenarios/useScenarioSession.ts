@@ -215,10 +215,10 @@ export function useScenarioSession(testScenarioId: number) {
    * request resolves — the send being accepted is not the agent having
    * answered, and a thread that looked settled at that point would be lying.
    *
-   * The draft goes along only when it differs from the stored scenario. That is
-   * the only case where it carries information: an unchanged draft would tell
-   * the agent to rebase on what it already produced, which is what omitting it
-   * already means.
+   * The canvas travels with every message, changed or not. There is no endpoint
+   * that stores a draft, so this is the only way one reaches the agent — and
+   * sending it unconditionally keeps the agent anchored to the scenario on
+   * screen rather than to whatever its own history window still holds.
    */
   const send = useCallback(
     async (message: string) => {
@@ -227,8 +227,6 @@ export function useScenarioSession(testScenarioId: number) {
 
       setSending(true)
       setSendFailure(null)
-
-      const edited = isScenarioDraftEqual(draft, state.saved) ? null : draft
 
       setState((previous) => ({
         ...previous,
@@ -246,7 +244,7 @@ export function useScenarioSession(testScenarioId: number) {
       setAwaitingReply(true)
 
       try {
-        await sendScenarioMessage(testScenarioId, trimmed, edited)
+        await sendScenarioMessage(testScenarioId, trimmed, draft)
         return true
       } catch (error: unknown) {
         setAwaitingReply(false)
@@ -272,7 +270,7 @@ export function useScenarioSession(testScenarioId: number) {
         setSending(false)
       }
     },
-    [closure, draft, sending, state.saved, testScenarioId],
+    [closure, draft, sending, testScenarioId],
   )
 
   const reload = useCallback(() => {

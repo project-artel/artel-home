@@ -163,9 +163,12 @@ export async function listScenarioMessages(
  * answered: the reply arrives on the stream. The response body is a plain
  * string, so there is nothing to parse and nothing to apply to the screen.
  *
- * `draft` carries the user's canvas edits. It is omitted on the first message
- * of a scenario, where it would be ignored — that message opens the agent
- * session, and the session contract has no slot for a draft.
+ * `draft` carries the canvas. The caller sends it on every message, so the
+ * agent always rebases on the scenario the user is looking at. It is accepted
+ * as `null` for the one case that cannot use it: the first message of a
+ * scenario opens the agent session, and the session contract has no slot for a
+ * draft, so a scenario reopened after its session ended starts the agent from
+ * nothing. Carrying it into the session hand-off needs a server change.
  */
 export async function sendScenarioMessage(
   testScenarioId: number,
