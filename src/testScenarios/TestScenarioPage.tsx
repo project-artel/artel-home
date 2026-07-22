@@ -1,4 +1,7 @@
-import { Link, useParams } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { ApproveScenarioDialog } from './ApproveScenarioDialog'
+import { DeleteScenarioDialog } from './DeleteScenarioDialog'
 import { ScenarioCanvas } from './ScenarioCanvas'
 import { ScenarioChat } from './ScenarioChat'
 import { useScenarioSession } from './useScenarioSession'
@@ -39,6 +42,10 @@ function TestScenarioPage({
 }) {
   const scenarioId = Number(testScenarioId)
   const session = useScenarioSession(scenarioId)
+  const navigate = useNavigate()
+  // Approve finalizes and Delete discards; both end the scenario, so each opens
+  // a confirmation first rather than acting on a single click.
+  const [dialog, setDialog] = useState<'approve' | 'delete' | null>(null)
 
   if (!Number.isInteger(scenarioId) || scenarioId <= 0) {
     return (
@@ -103,12 +110,28 @@ function TestScenarioPage({
             Scenario <span className="mono">#{scenarioId}</span>
           </p>
         </div>
-        {/* Only the interrupted state is announced. A healthy stream is the
-            expected case, and a permanent "connected" badge would be noise on
-            a screen whose real subject is the conversation. */}
-        {!session.connected && session.closure === null && (
-          <span className="badge scenario-reconnecting">Reconnecting…</span>
-        )}
+        <div className="page-header-actions">
+          {/* Only the interrupted state is announced. A healthy stream is the
+              expected case, and a permanent "connected" badge would be noise on
+              a screen whose real subject is the conversation. */}
+          {!session.connected && session.closure === null && (
+            <span className="badge scenario-reconnecting">Reconnecting…</span>
+          )}
+          <button
+            className="button button--danger-quiet"
+            onClick={() => setDialog('delete')}
+            type="button"
+          >
+            Delete
+          </button>
+          <button
+            className="button button--primary"
+            onClick={() => setDialog('approve')}
+            type="button"
+          >
+            Approve
+          </button>
+        </div>
       </header>
 
       <div className="scenario-workspace">
@@ -127,6 +150,24 @@ function TestScenarioPage({
           readOnly={session.closure !== null}
         />
       </div>
+
+      {dialog === 'approve' && (
+        <ApproveScenarioDialog
+          draft={session.draft}
+          onApproved={() => navigate(backLink(projectId), { replace: true })}
+          onClose={() => setDialog(null)}
+          testScenarioId={scenarioId}
+        />
+      )}
+
+      {dialog === 'delete' && (
+        <DeleteScenarioDialog
+          onClose={() => setDialog(null)}
+          onDeleted={() => navigate(backLink(projectId), { replace: true })}
+          scenarioTitle={session.saved.title}
+          testScenarioId={scenarioId}
+        />
+      )}
     </section>
   )
 }

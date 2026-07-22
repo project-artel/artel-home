@@ -428,6 +428,12 @@ h1 {
   color: var(--color-text-primary);
 }
 
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
 .page-subtitle {
   display: flex;
   align-items: center;

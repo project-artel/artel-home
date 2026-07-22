@@ -189,6 +189,43 @@ export async function sendScenarioMessage(
   }
 }
 
+/**
+ * Approves the scenario: the server finalizes the current draft as the stored
+ * `payload`, clears the chat thread it was authored in, and closes the agent
+ * session (which ends the stream with a `closed` event). The draft travels with
+ * the call so the finalized scenario is exactly what the user is looking at,
+ * unsent canvas edits included.
+ *
+ * A `404` means the scenario is gone or not this user's to approve; the caller
+ * treats it as already-removed rather than a fault.
+ */
+export async function approveTestScenario(
+  testScenarioId: number,
+  draft: ScenarioDraft,
+): Promise<void> {
+  const response = await apiFetch(scenarioPath(testScenarioId, '/approve'), {
+    method: 'POST',
+    ...jsonRequest({ draft }),
+  })
+
+  if (!response.ok) {
+    throw await toApiError(response)
+  }
+}
+
+/**
+ * Deletes the scenario and its conversation outright (Decline). The server also
+ * closes the agent session. There is no restore path, so the caller confirms
+ * first and leaves the screen once it resolves.
+ */
+export async function deleteTestScenario(testScenarioId: number): Promise<void> {
+  const response = await apiFetch(scenarioPath(testScenarioId), { method: 'DELETE' })
+
+  if (!response.ok) {
+    throw await toApiError(response)
+  }
+}
+
 export function scenarioStreamUrl(testScenarioId: number): string {
   return orchestrationUrlFor(scenarioPath(testScenarioId, '/stream'))
 }
