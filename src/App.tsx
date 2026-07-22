@@ -3,6 +3,7 @@ import './App.css'
 import { LoginPage } from './LoginPage'
 import { NotFoundPage } from './NotFoundPage'
 import { useAuth } from './auth/useAuth'
+import { GameInstanceDetailRoute } from './projects/GameInstanceDetailPage'
 import { ProjectDetailRoute } from './projects/ProjectDetailPage'
 import { ProjectListPage } from './projects/ProjectListPage'
 import { AppShell } from './shell/AppShell'
@@ -33,6 +34,10 @@ export function App() {
           <Route path="/" element={<Navigate replace to="/projects" />} />
           <Route path="/projects" element={<ProjectListPage />} />
           <Route path="/projects/:projectId" element={<ProjectDetailRoute />} />
+          <Route
+            path="/projects/:projectId/instances/:instanceId"
+            element={<GameInstanceDetailRoute />}
+          />
           <Route
             path="/projects/:projectId/test-scenarios/:testScenarioId"
             element={<TestScenarioRoute />}

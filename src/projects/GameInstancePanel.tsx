@@ -1,4 +1,5 @@
 import { useId, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Dialog } from '../design-system/primitives/Dialog'
 import { CopyButton } from './CopyButton'
 import { DeleteGameInstanceDialog } from './DeleteGameInstanceDialog'
@@ -298,7 +299,15 @@ function GameInstanceRow({
       ) : (
         <>
           <div className="instance-main">
-            <span className="instance-name">{instance.name}</span>
+            {/* The name is the way into the instance's live screen. The row's
+                other controls act on the row itself, so the identity is what
+                navigates. */}
+            <Link
+              className="instance-name"
+              to={`/projects/${encodeURIComponent(projectId)}/instances/${encodeURIComponent(instance.id)}`}
+            >
+              {instance.name}
+            </Link>
             <span className="badge">{describePlatform(instance.platform)}</span>
             <ConnectionState connected={instance.connected} />
           </div>
