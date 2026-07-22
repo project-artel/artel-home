@@ -1290,8 +1290,16 @@ h1 {
   gap: var(--space-3);
 }
 
-.chat-composer .form-actions {
-  margin-top: 0;
+.chat-composer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+/* The hint sits beside Send, so it does not carry the block's usual top gap. */
+.chat-composer-actions .shortcut-hint {
+  margin: 0;
 }
 
 .chat-closed {

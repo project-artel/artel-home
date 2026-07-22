@@ -47,6 +47,20 @@ export function ScenarioChat({
     }
   }
 
+  /**
+   * Enter sends; Shift+Enter is the newline.
+   *
+   * `isComposing` is what keeps that from breaking Korean and every other IME
+   * input: the Enter that commits a composition raises `keydown` first, so
+   * without this check the message would be sent halfway through a word.
+   */
+  function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return
+
+    event.preventDefault()
+    void submit(event)
+  }
+
   return (
     <section className="panel scenario-chat" aria-labelledby="scenario-chat-title">
       <header className="panel-header">
@@ -97,15 +111,20 @@ export function ScenarioChat({
           </label>
           <textarea
             className="field-input field-input--multiline"
+            aria-describedby="scenario-chat-hint"
             disabled={sending}
             id="scenario-chat-input"
             onChange={(event) => setInput(event.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder="Describe what should be tested"
             rows={3}
             value={input}
           />
 
-          <div className="form-actions">
+          <div className="chat-composer-actions">
+            <p className="shortcut-hint" id="scenario-chat-hint">
+              Enter to send · Shift+Enter for a new line
+            </p>
             <button
               className="button button--primary button--compact"
               disabled={sending || input.trim().length === 0}
