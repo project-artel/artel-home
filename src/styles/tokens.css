@@ -19,6 +19,9 @@
   --color-status-warning: #f2b84b;
   --color-status-warning-muted: #241c0d;
   --color-overlay-scrim: rgb(4 7 10 / 72%);
+  /* Deeper than the dialog scrim because it sits over an arbitrary game frame,
+     and a bright one drags status text under its contrast floor at 72%. */
+  --color-overlay-stream: rgb(9 12 16 / 88%);
 
   --font-sans: Inter, "Pretendard Variable", Pretendard, sans-serif;
   --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;

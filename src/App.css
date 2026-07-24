@@ -997,6 +997,17 @@ h1 {
   overflow-wrap: anywhere;
 }
 
+/* The name keeps the row's typography and gains link affordances only on hover
+   and focus, so the row still reads as a name rather than as a control. */
+a.instance-name {
+  text-decoration: none;
+}
+
+a.instance-name:hover {
+  color: var(--color-action-primary);
+  text-decoration: underline;
+}
+
 /* Reserved width so a reload flipping `connected` cannot reflow the row. The
    colour is a second signal only — the label carries the state on its own. */
 .instance-state {
@@ -1496,4 +1507,90 @@ h1 {
   .scenario-node {
     transition: none;
   }
+}
+
+/* ── Game stream ─────────────────────────────────────────────────────────── */
+
+/* A fixed 16:9 box, so a frame arriving, freezing, or stopping never moves the
+   page around it. */
+.game-stream {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-canvas);
+}
+
+.game-stream-video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* `contain`, never `cover`: a cropped frame would hide the part of the game
+     screen the tester is looking for. */
+  object-fit: contain;
+}
+
+/* Annotations sit over the video and never take the pointer. Clicking the
+   video does nothing by design, and a transparent layer that swallowed those
+   clicks would make that look broken instead of deliberate. */
+.game-stream-annotations {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Covers the frame rather than sitting beside it: the last frame stays visible
+   as evidence, and nothing may present it as if it were still live. */
+.game-stream-notice {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  background: var(--color-overlay-stream);
+  text-align: center;
+}
+
+.game-stream-notice-label {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+}
+
+.game-stream-notice-detail {
+  margin: 0;
+  max-width: 52ch;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+/* Repeats the severity in a second, non-colour channel, so the notice still
+   reads correctly with colour removed or unavailable. */
+.game-stream-mark {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid currentcolor;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.game-stream-notice--warning .game-stream-mark,
+.game-stream-notice--warning .game-stream-notice-label {
+  color: var(--color-status-warning);
+}
+
+.game-stream-notice--critical .game-stream-mark,
+.game-stream-notice--critical .game-stream-notice-label {
+  color: var(--color-status-critical);
 }
