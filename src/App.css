@@ -1657,3 +1657,375 @@ a.instance-name:hover {
 .game-stream-notice--critical .game-stream-notice-label {
   color: var(--color-status-critical);
 }
+
+/* QA Try detail: a live viewport and one chronological evidence surface.
+   Terminal tries deliberately collapse to the evidence surface only. */
+.qa-page {
+  min-height: calc(100vh - 48px);
+}
+
+.qa-page-header {
+  padding-bottom: var(--space-4);
+}
+
+.qa-page-header h1 .mono {
+  color: var(--color-text-secondary);
+  font-size: 0.72em;
+  font-weight: 500;
+}
+
+.qa-status {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 999px;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-raised);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.qa-status::before {
+  width: 6px;
+  height: 6px;
+  margin-right: var(--space-2);
+  border-radius: 999px;
+  background: currentColor;
+  content: "";
+}
+
+.qa-status--starting,
+.qa-status--running {
+  color: var(--color-action-primary);
+}
+
+.qa-status--completed {
+  color: var(--color-status-success);
+}
+
+.qa-status--failed {
+  color: var(--color-status-critical);
+}
+
+.qa-status--cancelled {
+  color: var(--color-status-warning);
+}
+
+.sr-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.qa-workspace {
+  display: grid;
+  min-height: 620px;
+  gap: var(--space-4);
+}
+
+.qa-page--active .qa-workspace {
+  grid-template-columns: minmax(0, 1.55fr) minmax(360px, 0.85fr);
+}
+
+.qa-page--terminal .qa-workspace {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.qa-stream-panel,
+.qa-log-panel {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
+}
+
+.qa-stream-panel {
+  display: grid;
+  min-height: 520px;
+  place-items: center;
+  background: var(--color-bg-canvas);
+}
+
+.qa-stream-panel .game-stream {
+  width: 100%;
+}
+
+.qa-log-panel {
+  display: grid;
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.qa-log-header {
+  display: flex;
+  min-width: 0;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.qa-log-header h2 {
+  margin: 0;
+  font-size: 15px;
+  line-height: 22px;
+}
+
+.qa-log-header p {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.qa-log-count {
+  flex: none;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.qa-log-viewport {
+  position: relative;
+  min-height: 0;
+  max-height: calc(100vh - 230px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.qa-log-history-controls {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.qa-load-older {
+  min-height: 32px;
+  padding: 0 var(--space-3);
+  border: 0;
+  color: var(--color-action-primary);
+  background: transparent;
+  font-size: 12px;
+}
+
+.qa-load-older:hover {
+  color: var(--color-text-primary);
+}
+
+.qa-log-list {
+  position: relative;
+  margin: 0;
+  padding: 0 var(--space-4) var(--space-6) 36px;
+  list-style: none;
+}
+
+.qa-log-list::before {
+  position: absolute;
+  top: 0;
+  bottom: var(--space-6);
+  left: 19px;
+  width: 1px;
+  background: var(--color-border-subtle);
+  content: "";
+}
+
+.qa-log-row {
+  position: relative;
+  min-width: 0;
+  padding: var(--space-3) 0 var(--space-4);
+  border-bottom: 1px solid var(--color-border-subtle);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 128px;
+}
+
+.qa-log-marker {
+  position: absolute;
+  top: 19px;
+  left: -22px;
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--color-bg-surface);
+  background: var(--color-text-muted);
+  box-shadow: 0 0 0 1px var(--color-border-strong);
+}
+
+.qa-log-row--log .qa-log-marker {
+  transform: rotate(45deg);
+  background: var(--color-agent-reasoning);
+}
+
+.qa-log-row--action .qa-log-marker,
+.qa-log-row--action_result .qa-log-marker {
+  background: var(--color-action-primary);
+}
+
+.qa-log-row--game_state .qa-log-marker {
+  border-radius: 999px;
+  background: var(--color-action-primary);
+}
+
+.qa-log-row--status .qa-log-marker {
+  border-radius: 999px;
+  background: var(--color-status-success);
+}
+
+.qa-log-row--error .qa-log-marker {
+  transform: rotate(45deg);
+  background: var(--color-status-critical);
+}
+
+.qa-log-meta {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+.qa-log-kind {
+  color: var(--color-text-secondary);
+  font-family: var(--font-sans);
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.qa-log-row--log .qa-log-kind {
+  color: var(--color-agent-reasoning);
+}
+
+.qa-log-row--action .qa-log-kind,
+.qa-log-row--action_result .qa-log-kind {
+  color: var(--color-action-primary);
+}
+
+.qa-log-row--error .qa-log-kind {
+  color: var(--color-status-critical);
+}
+
+.qa-log-message {
+  margin: var(--space-2) 0 0;
+  overflow-wrap: anywhere;
+  color: var(--color-text-primary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.qa-log-identifiers {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin: var(--space-2) 0 0;
+  overflow-wrap: anywhere;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 16px;
+}
+
+.qa-log-payload {
+  margin-top: var(--space-2);
+}
+
+.qa-log-payload summary {
+  width: fit-content;
+  min-height: 32px;
+  padding: 7px 0;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.qa-log-payload summary:hover {
+  color: var(--color-text-primary);
+}
+
+.qa-log-payload pre {
+  max-height: 320px;
+  margin: var(--space-1) 0 0;
+  overflow: auto;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  background: var(--color-bg-raised);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 17px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.qa-new-logs {
+  position: sticky;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  display: block;
+  min-height: 36px;
+  margin: 0 var(--space-4) var(--space-4) auto;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-action-primary);
+  border-radius: 999px;
+  color: var(--color-bg-canvas);
+  background: var(--color-action-primary);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.qa-new-logs:hover {
+  background: var(--color-text-primary);
+}
+
+.qa-log-empty {
+  display: grid;
+  min-height: 260px;
+  place-content: center;
+  padding: var(--space-6);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.qa-log-empty p {
+  margin: 0 0 var(--space-1);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+@media (max-width: 1023px) {
+  .qa-page--active .qa-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .qa-stream-panel {
+    min-height: 360px;
+  }
+
+  .qa-log-viewport {
+    max-height: 620px;
+  }
+}
