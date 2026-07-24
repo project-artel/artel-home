@@ -20,8 +20,9 @@ export const scenariosEn = {
     title: 'Scenario',
     hintReadOnly: 'Read-only. The conversation that produced this scenario is closed.',
     hintEditable:
-      'Click a step to edit it, drag to reorder. Edits are sent with your next message.',
-    unsentEdits: 'Unsent edits',
+      'Click a step to edit it, drag to reorder. Changes are saved automatically.',
+    saving: 'Saving…',
+    unsaved: 'Unsaved',
     titleLabel: 'Title',
     noTitle: 'No title',
     titlePlaceholder: 'Ask the agent for a scenario, or name one yourself',
@@ -79,8 +80,17 @@ export const scenariosEn = {
     invalidProjectId: 'This project cannot start a scenario: its address is not a project id.',
     startFailed: 'The scenario could not be started. Please try again.',
     badServerResponse: 'The server did not return a scenario id.',
-    bookmarkNote:
-      'A scenario is reached by its own address. Bookmark it, or keep the tab open — this project does not yet list the scenarios written for it.',
+    list: {
+      loading: 'Loading scenarios…',
+      unsupported:
+        'The server does not list scenarios yet, so a scenario is reached by its own address. Bookmark it, or keep the tab open.',
+      loadFailed: 'The scenario list could not be loaded.',
+      retry: 'Retry',
+      empty: 'No scenarios yet. Write one and the agent turns it into steps you can run.',
+      untitled: 'Untitled scenario',
+      updated: (date: string) => `Updated ${date}`,
+      created: (date: string) => `Created ${date}`,
+    },
   },
   approve: {
     title: 'Approve scenario',
@@ -122,8 +132,9 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     title: '시나리오',
     hintReadOnly: '읽기 전용입니다. 이 시나리오를 만든 대화가 종료되었습니다.',
     hintEditable:
-      '단계를 클릭해 편집하고, 드래그해 순서를 바꾸세요. 편집 내용은 다음 메시지와 함께 전송됩니다.',
-    unsentEdits: '전송되지 않은 편집',
+      '단계를 클릭해 편집하고, 드래그해 순서를 바꾸세요. 변경 사항은 자동으로 저장됩니다.',
+    saving: '저장 중…',
+    unsaved: '저장되지 않음',
     titleLabel: '제목',
     noTitle: '제목 없음',
     titlePlaceholder: '에이전트에게 시나리오를 요청하거나 직접 제목을 입력하세요',
@@ -180,8 +191,17 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     invalidProjectId: '이 프로젝트에서는 시나리오를 시작할 수 없습니다. 주소가 프로젝트 id가 아닙니다.',
     startFailed: '시나리오를 시작하지 못했습니다. 다시 시도해 주세요.',
     badServerResponse: '서버가 시나리오 id를 반환하지 않았습니다.',
-    bookmarkNote:
-      '시나리오는 고유 주소로만 접근할 수 있습니다. 북마크해 두거나 탭을 열어 두세요 — 이 프로젝트는 아직 작성된 시나리오 목록을 제공하지 않습니다.',
+    list: {
+      loading: '시나리오를 불러오는 중…',
+      unsupported:
+        '서버가 아직 시나리오 목록을 제공하지 않아, 시나리오는 고유 주소로만 접근할 수 있습니다. 북마크해 두거나 탭을 열어 두세요.',
+      loadFailed: '시나리오 목록을 불러오지 못했습니다.',
+      retry: '다시 시도',
+      empty: '아직 시나리오가 없습니다. 하나 작성하면 에이전트가 실행할 수 있는 단계로 만들어 줍니다.',
+      untitled: '제목 없는 시나리오',
+      updated: (date: string) => `수정 ${date}`,
+      created: (date: string) => `생성 ${date}`,
+    },
   },
   approve: {
     title: '시나리오 승인',

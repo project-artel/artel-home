@@ -7,6 +7,7 @@ import {
   parseStreamEvent,
   scenarioStreamUrl,
   sendScenarioMessage,
+  updateScenario,
 } from './scenarioApi'
 import { closureFromSendFailure, closureFromStreamFailure, type ChatClosure } from './chatAvailability'
 import {
@@ -15,6 +16,13 @@ import {
   type ChatMessage,
   type ScenarioDraft,
 } from './scenarioTypes'
+
+/**
+ * How long the canvas must sit still before an edit is autosaved. Drag-reorder
+ * and typing both fire many changes in a burst; waiting for a pause collapses
+ * them into one `PUT` instead of one per keystroke or per drag frame.
+ */
+const AUTOSAVE_DEBOUNCE_MS = 600
 
 type SessionStatus = 'loading' | 'ready' | 'missing' | 'error'
 
@@ -61,6 +69,9 @@ export function useScenarioSession(testScenarioId: number) {
   // A subscription is assumed live until the transport says otherwise; see the
   // `open` listener for why it cannot be the thing that proves it.
   const [connected, setConnected] = useState(true)
+  // True only while an autosave `PUT` is in flight — not during the debounce
+  // wait. `dirty` covers "there are unsaved edits"; this covers "saving now".
+  const [saving, setSaving] = useState(false)
 
   const savedRef = useRef(EMPTY_SCENARIO_DRAFT)
   useEffect(() => {
@@ -114,6 +125,46 @@ export function useScenarioSession(testScenarioId: number) {
       })
       .catch(() => undefined)
   }, [testScenarioId])
+
+  /**
+   * Autosaves canvas edits on their own, debounced.
+   *
+   * Reordering a step or editing a field no longer waits for a message: a `PUT`
+   * writes the current draft straight to the stored payload. Only genuine,
+   * still-open, diverged edits are saved — a draft equal to `saved` (a fresh
+   * load, or an agent revision the canvas adopted) has nothing to persist, so it
+   * never fires on data the server just handed us. Rapid edits collapse into one
+   * write `AUTOSAVE_DEBOUNCE_MS` after the last change.
+   */
+  useEffect(() => {
+    if (state.status !== 'ready' || closure !== null) return undefined
+    if (isScenarioDraftEqual(draft, state.saved)) return undefined
+
+    let cancelled = false
+    const timer = setTimeout(() => {
+      setSaving(true)
+      updateScenario(testScenarioId, draft)
+        .then((scenario) => {
+          // The stored payload becomes the new baseline, clearing `dirty`. Edits
+          // made while the write was in flight still differ, so this effect runs
+          // again and saves them. Guarded so a save that resolves after the
+          // scenario changed does not stamp a stale baseline onto the new one.
+          if (!cancelled) {
+            setState((previous) => ({ ...previous, saved: scenario.payload }))
+          }
+        })
+        .catch(() => {
+          // The draft stays dirty and the next edit retries. Approve/message
+          // also persist the draft, so a failed autosave is not a dead end.
+        })
+        .finally(() => setSaving(false))
+    }, AUTOSAVE_DEBOUNCE_MS)
+
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [draft, state.saved, state.status, closure, testScenarioId])
 
   // A closed conversation drops the stream. `EventSource` would otherwise keep
   // reconnecting to a session that can no longer produce anything, and the
@@ -217,10 +268,11 @@ export function useScenarioSession(testScenarioId: number) {
    * request resolves — the send being accepted is not the agent having
    * answered, and a thread that looked settled at that point would be lying.
    *
-   * The canvas travels with every message, changed or not. There is no endpoint
-   * that stores a draft, so this is the only way one reaches the agent — and
-   * sending it unconditionally keeps the agent anchored to the scenario on
-   * screen rather than to whatever its own history window still holds.
+   * The canvas travels with every message, changed or not. Autosave persists the
+   * draft to the DB, but the agent never reads it back — a message is the only
+   * thing that hands the draft to the agent, so sending it unconditionally keeps
+   * the agent anchored to the scenario on screen rather than to whatever its own
+   * history window still holds.
    */
   const send = useCallback(
     async (message: string) => {
@@ -292,8 +344,10 @@ export function useScenarioSession(testScenarioId: number) {
     messages: state.messages,
     saved: state.saved,
     draft,
-    /** Canvas edits that no message has carried to the agent yet. */
+    /** Canvas edits not yet persisted — autosave is pending, in flight, or failed. */
     dirty: !isScenarioDraftEqual(draft, state.saved),
+    /** An autosave `PUT` is in flight right now. */
+    saving,
     closure,
     connected,
     sending,

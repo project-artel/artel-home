@@ -148,6 +148,7 @@ function TestScenarioPage({
           draft={session.draft}
           onChange={session.editDraft}
           readOnly={session.closure !== null}
+          saving={session.saving}
         />
       </div>
 

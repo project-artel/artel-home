@@ -28,11 +28,13 @@ import {
 export function ScenarioCanvas({
   draft,
   dirty,
+  saving,
   onChange,
   readOnly,
 }: {
   draft: ScenarioDraft
   dirty: boolean
+  saving: boolean
   onChange: (draft: ScenarioDraft) => void
   readOnly: boolean
 }) {
@@ -86,8 +88,13 @@ export function ScenarioCanvas({
             {readOnly ? t.scenarios.canvas.hintReadOnly : t.scenarios.canvas.hintEditable}
           </p>
         </div>
-        {dirty && !readOnly && (
-          <span className="badge scenario-dirty">{t.scenarios.canvas.unsentEdits}</span>
+        {/* Autosave is quiet by default: only in-flight ("Saving…") or the brief
+            window where an edit is waiting to be saved ("Unsaved") is shown. */}
+        {!readOnly && saving && (
+          <span className="badge scenario-dirty">{t.scenarios.canvas.saving}</span>
+        )}
+        {!readOnly && !saving && dirty && (
+          <span className="badge scenario-dirty">{t.scenarios.canvas.unsaved}</span>
         )}
       </header>
 

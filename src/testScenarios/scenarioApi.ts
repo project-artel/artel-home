@@ -16,6 +16,7 @@ import {
   type ScenarioStep,
   type ScenarioStreamEvent,
   type TestScenario,
+  type TestScenarioSummary,
 } from './scenarioTypes'
 
 /*
@@ -130,6 +131,45 @@ function toItemArray(data: unknown): unknown[] {
   return Array.isArray(items) ? items : []
 }
 
+/**
+ * The summary row exists as long as it has an id; every other field degrades to
+ * an empty string, because a scenario the user cannot open again is a worse
+ * outcome than a row with a blank title or timestamp.
+ */
+function parseScenarioSummary(data: unknown): TestScenarioSummary | null {
+  const record = asRecord(data)
+  if (record === null) return null
+
+  if (typeof record.testScenarioId !== 'number') return null
+
+  return {
+    testScenarioId: record.testScenarioId,
+    title: asString(record.title),
+    createdAt: asString(record.createdAt),
+    updatedAt: asString(record.updatedAt),
+  }
+}
+
+/**
+ * Lists a project's scenarios: `GET /api/projects/{projectId}/test-scenario`.
+ * Until the server ships the endpoint, this call returns a 404
+ * `ProjectApiError` — the panel tells that apart from an empty list, so path
+ * and parsing changes stay inside this function. Once shipped, a 404 means
+ * "not a member", which the project screen has already turned away.
+ */
+export async function listTestScenarios(
+  projectId: number,
+  signal?: AbortSignal,
+): Promise<TestScenarioSummary[]> {
+  const response = await apiFetch(
+    `/api/projects/${encodeURIComponent(projectId)}/test-scenario`,
+    { signal },
+  )
+  return toItemArray(await readJson(response))
+    .map(parseScenarioSummary)
+    .filter((summary): summary is TestScenarioSummary => summary !== null)
+}
+
 export async function createTestScenario(projectId: number): Promise<number> {
   const response = await apiFetch(SCENARIO_ROOT, {
     method: 'POST',
@@ -235,6 +275,26 @@ export async function deleteTestScenario(testScenarioId: number): Promise<void> 
   if (!response.ok) {
     throw await toApiError(response)
   }
+}
+
+/**
+ * Persists canvas edits the user made without the agent — reordering steps or
+ * editing fields. Unlike `sendScenarioMessage`, this does not touch the agent;
+ * it writes the current draft straight to the scenario's `payload` (last write
+ * wins). The server returns the stored scenario so the caller can rebaseline
+ * `saved` to exactly what was persisted.
+ *
+ * A `404` means the scenario is gone or not this user's to edit.
+ */
+export async function updateScenario(
+  testScenarioId: number,
+  draft: ScenarioDraft,
+): Promise<TestScenario> {
+  const response = await apiFetch(scenarioPath(testScenarioId), {
+    method: 'PUT',
+    ...jsonRequest({ draft }),
+  })
+  return parseScenario(await readJson(response), response.status)
 }
 
 export function scenarioStreamUrl(testScenarioId: number): string {

@@ -64,6 +64,18 @@ export type TestScenario = {
   payload: ScenarioDraft
 }
 
+/**
+ * One row of the project's scenario list — the summary the list endpoint
+ * returns. Steps are not here; they come from the single read. Timestamps
+ * degrade to empty strings, which `formatDate` renders as a placeholder.
+ */
+export type TestScenarioSummary = {
+  testScenarioId: number
+  title: string
+  createdAt: string
+  updatedAt: string
+}
+
 /** The server ignores `type` today; it is sent because the contract declares it. */
 export const USER_MESSAGE_TYPE = 'USER_MESSAGE'
 
