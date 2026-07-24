@@ -1,4 +1,5 @@
 import { Link, Outlet } from 'react-router-dom'
+import { updateMyLocale } from '../auth/authApi'
 import { useAuth } from '../auth/useAuth'
 import { isLocale, LOCALE_LABELS, LOCALES } from '../i18n/locale'
 import { useI18n } from '../i18n/useI18n'
@@ -34,7 +35,12 @@ export function AppShell() {
             aria-label={t.common.shell.languageLabel}
             className="locale-select"
             onChange={(event) => {
-              if (isLocale(event.target.value)) setLocale(event.target.value)
+              if (!isLocale(event.target.value)) return
+              setLocale(event.target.value)
+              // Persist on the account so the choice follows the user to other
+              // browsers. The switch already happened locally, so a failed
+              // write is not worth interrupting the user over.
+              void updateMyLocale(event.target.value).catch(() => {})
             }}
             value={locale}
           >

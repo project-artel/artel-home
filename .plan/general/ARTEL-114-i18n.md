@@ -29,6 +29,15 @@ Lightweight, dependency-free i18n:
   the existing `.logout-button`, `aria-label` localized.
 - `GENRE_LABELS` moves into the projects dictionary.
 
+## Account sync (ARTEL-116)
+
+- The server stores the choice on `app_user.locale`; `GET /api/auth/me`
+  returns it and `PUT /api/auth/me/locale` updates it.
+- On sign-in the account value wins over the browser's remembered one,
+  applied once per user id so it never fights an in-flight local switch.
+- Switching in the shell persists via `updateMyLocale`; a failed write is
+  non-fatal (local switch stands, next sign-in falls back).
+
 ## Scope
 
 - Common: `App.tsx`, `AppShell.tsx`, `LoginPage.tsx`, `NotFoundPage.tsx`.
