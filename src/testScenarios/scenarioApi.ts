@@ -16,6 +16,7 @@ import {
   type ScenarioStep,
   type ScenarioStreamEvent,
   type TestScenario,
+  type TestScenarioSummary,
 } from './scenarioTypes'
 
 /*
@@ -121,6 +122,45 @@ function toItemArray(data: unknown): unknown[] {
 
   const items = asRecord(data)?.items
   return Array.isArray(items) ? items : []
+}
+
+/**
+ * The summary row exists as long as it has an id; every other field degrades to
+ * an empty string, because a scenario the user cannot open again is a worse
+ * outcome than a row with a blank title or timestamp.
+ */
+function parseScenarioSummary(data: unknown): TestScenarioSummary | null {
+  const record = asRecord(data)
+  if (record === null) return null
+
+  if (typeof record.testScenarioId !== 'number') return null
+
+  return {
+    testScenarioId: record.testScenarioId,
+    title: asString(record.title),
+    createdAt: asString(record.createdAt),
+    updatedAt: asString(record.updatedAt),
+  }
+}
+
+/**
+ * Lists a project's scenarios: `GET /api/projects/{projectId}/test-scenario`.
+ * Until the server ships the endpoint, this call returns a 404
+ * `ProjectApiError` — the panel tells that apart from an empty list, so path
+ * and parsing changes stay inside this function. Once shipped, a 404 means
+ * "not a member", which the project screen has already turned away.
+ */
+export async function listTestScenarios(
+  projectId: number,
+  signal?: AbortSignal,
+): Promise<TestScenarioSummary[]> {
+  const response = await apiFetch(
+    `/api/projects/${encodeURIComponent(projectId)}/test-scenario`,
+    { signal },
+  )
+  return toItemArray(await readJson(response))
+    .map(parseScenarioSummary)
+    .filter((summary): summary is TestScenarioSummary => summary !== null)
 }
 
 export async function createTestScenario(projectId: number): Promise<number> {
