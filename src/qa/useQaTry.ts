@@ -9,7 +9,6 @@ import {
 } from './qaApi'
 import {
   isTerminalQaStatus,
-  QA_TRY_STATUSES,
   type QaLog,
   type QaStreamState,
   type QaTry,
@@ -52,17 +51,14 @@ function mergeSorted(current: QaLog[], incoming: QaLog[]): QaLog[] {
 function statusFromLog(log: QaLog): { status: QaTryStatus; completedAt: string | null } | null {
   if (log.type !== 'STATUS') return null
   const payload = asRecord(log.payload)
-  const status = payload?.status
-  if (
-    typeof status !== 'string' ||
-    !QA_TRY_STATUSES.some((candidate) => candidate === status)
-  ) {
-    return null
-  }
-  return {
-    status: status as QaTryStatus,
-    completedAt: typeof payload?.completedAt === 'string' ? payload.completedAt : null,
-  }
+  const completedAt = typeof payload?.completedAt === 'string' ? payload.completedAt : null
+  // Terminal only. The Agent's STATUS is 2-scope: per-step frames reuse
+  // STARTED/COMPLETED/FAILED with result=null and must not move the Try status.
+  // A run ends via result (PASSED|FAILED) or an explicit CANCELLED.
+  if (payload?.status === 'CANCELLED') return { status: 'CANCELLED', completedAt }
+  if (payload?.result === 'PASSED') return { status: 'COMPLETED', completedAt }
+  if (payload?.result === 'FAILED') return { status: 'FAILED', completedAt }
+  return null
 }
 
 export function useQaTry(qaTryId: string) {
