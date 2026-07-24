@@ -27,11 +27,13 @@ import {
 export function ScenarioCanvas({
   draft,
   dirty,
+  saving,
   onChange,
   readOnly,
 }: {
   draft: ScenarioDraft
   dirty: boolean
+  saving: boolean
   onChange: (draft: ScenarioDraft) => void
   readOnly: boolean
 }) {
@@ -83,10 +85,15 @@ export function ScenarioCanvas({
           <p className="scenario-hint">
             {readOnly
               ? 'Read-only. The conversation that produced this scenario is closed.'
-              : 'Click a step to edit it, drag to reorder. Edits are sent with your next message.'}
+              : 'Click a step to edit it, drag to reorder. Changes are saved automatically.'}
           </p>
         </div>
-        {dirty && !readOnly && <span className="badge scenario-dirty">Unsent edits</span>}
+        {/* Autosave is quiet by default: only in-flight ("Saving…") or the brief
+            window where an edit is waiting to be saved ("Unsaved") is shown. */}
+        {!readOnly && saving && <span className="badge scenario-dirty">Saving…</span>}
+        {!readOnly && !saving && dirty && (
+          <span className="badge scenario-dirty">Unsaved</span>
+        )}
       </header>
 
       <div className="scenario-fields">
