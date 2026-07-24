@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Dialog } from '../design-system/primitives/Dialog'
+import { useI18n } from '../i18n/useI18n'
 import { ProjectApiError } from '../projects/projectApi'
 import { deleteTestScenario } from './scenarioApi'
 
@@ -19,6 +20,7 @@ export function DeleteScenarioDialog({
   onClose: () => void
   onDeleted: () => void
 }) {
+  const { t } = useI18n()
   const [failure, setFailure] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
@@ -32,20 +34,20 @@ export function DeleteScenarioDialog({
     } catch (error: unknown) {
       setFailure(
         error instanceof ProjectApiError && error.isNotFound
-          ? 'This scenario is no longer available.'
-          : 'The scenario could not be deleted. Please try again.',
+          ? t.scenarios.delete.gone
+          : t.scenarios.delete.failed,
       )
       setPending(false)
     }
   }
 
-  const name = scenarioTitle.length > 0 ? scenarioTitle : 'This untitled scenario'
+  const name = scenarioTitle.length > 0 ? scenarioTitle : t.scenarios.delete.untitledName
 
   return (
-    <Dialog title="Delete scenario" labelledBy="delete-scenario-title" onClose={onClose}>
+    <Dialog title={t.scenarios.delete.title} labelledBy="delete-scenario-title" onClose={onClose}>
       <p className="dialog-copy">
-        <strong>{name}</strong> and its conversation will be permanently removed.
-        This cannot be undone.
+        <strong>{name}</strong>
+        {t.scenarios.delete.copySuffix}
       </p>
 
       {failure !== null && (
@@ -62,7 +64,7 @@ export function DeleteScenarioDialog({
           onClick={onClose}
           type="button"
         >
-          Cancel
+          {t.scenarios.delete.cancel}
         </button>
         <button
           className="button button--danger"
@@ -70,7 +72,7 @@ export function DeleteScenarioDialog({
           onClick={() => void confirm()}
           type="button"
         >
-          {pending ? 'Deleting…' : 'Delete scenario'}
+          {pending ? t.scenarios.delete.pending : t.scenarios.delete.confirm}
         </button>
       </div>
     </Dialog>

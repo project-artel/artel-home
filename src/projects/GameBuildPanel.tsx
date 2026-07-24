@@ -1,6 +1,8 @@
 import { useId, useState } from 'react'
+import { apiErrorMessage } from './apiErrorMessage'
 import { formatDate, PLACEHOLDER } from './formatters'
 import { updateGameBuild } from './gameApi'
+import { useI18n } from '../i18n/useI18n'
 import { ProjectApiError } from './projectApi'
 import {
   BUILD_LABEL_MAX_LENGTH,
@@ -32,19 +34,16 @@ export function GameBuildPanel({
   projectId: string
 }) {
   const [announcement, setAnnouncement] = useState('')
+  const { t } = useI18n()
 
   return (
     <section className="panel" aria-labelledby="builds-title">
       <header className="panel-header">
-        <h2 id="builds-title">Game builds</h2>
+        <h2 id="builds-title">{t.projects.builds.title}</h2>
       </header>
 
       {builds.length === 0 ? (
-        <p className="panel-empty">
-          No build has reported in yet. A row appears here the first time a game
-          runs with a connected instance, using the version from Unity&apos;s
-          Player Settings.
-        </p>
+        <p className="panel-empty">{t.projects.builds.empty}</p>
       ) : (
         <ul className="build-list">
           {builds.map((build) => (
@@ -95,6 +94,7 @@ function GameBuildRow({
   const [syncedFrom, setSyncedFrom] = useState(build)
   const labelId = useId()
   const notesId = useId()
+  const { t } = useI18n()
 
   // A save replaces the server copy; the form follows it during render so the
   // inputs never show a value the server has already superseded. Adjusting
@@ -132,13 +132,13 @@ function GameBuildRow({
       })
       onSaved(updated)
       setEditing(false)
-      onAnnounce('Build updated.')
+      onAnnounce(t.projects.builds.updatedAnnouncement)
     } catch (error: unknown) {
       if (error instanceof ProjectApiError) {
         setFieldErrors(error.fields)
-        setFailure(Object.keys(error.fields).length > 0 ? null : error.message)
+        setFailure(Object.keys(error.fields).length > 0 ? null : apiErrorMessage(error, t))
       } else {
-        setFailure('The build could not be saved. Please try again.')
+        setFailure(t.projects.builds.saveFailed)
       }
     } finally {
       setSaving(false)
@@ -179,12 +179,15 @@ function GameBuildRow({
                     registration overwrites it from Player Settings, so an
                     editable version field would lose whatever was typed. */}
                 <p className="build-version-note">
-                  Version <span className="mono">{build.version}</span> is read from Unity&apos;s
-                  Player Settings and cannot be changed here.
+                  {t.projects.builds.versionNoteBefore}
+                  <span className="mono">{build.version}</span>
+                  {t.projects.builds.versionNoteAfter}
                 </p>
 
                 <div className="field">
-                  <label className="field-label" htmlFor={labelId}>Label</label>
+                  <label className="field-label" htmlFor={labelId}>
+                    {t.projects.builds.labelLabel}
+                  </label>
                   <input
                     aria-describedby={fieldErrors.label ? `${labelId}-error` : undefined}
                     aria-invalid={fieldErrors.label ? true : undefined}
@@ -195,14 +198,16 @@ function GameBuildRow({
                     onChange={(event) => setDraft({ ...draft, label: event.target.value })}
                     value={draft.label}
                   />
-                  <p className="field-hint">Clearing this field removes the label.</p>
+                  <p className="field-hint">{t.projects.builds.labelHint}</p>
                   {fieldErrors.label && (
                     <p className="field-error" id={`${labelId}-error`}>{fieldErrors.label}</p>
                   )}
                 </div>
 
                 <div className="field">
-                  <label className="field-label" htmlFor={notesId}>Notes</label>
+                  <label className="field-label" htmlFor={notesId}>
+                    {t.projects.builds.notesLabel}
+                  </label>
                   <textarea
                     aria-describedby={fieldErrors.notes ? `${notesId}-error` : undefined}
                     aria-invalid={fieldErrors.notes ? true : undefined}
@@ -214,7 +219,7 @@ function GameBuildRow({
                     rows={3}
                     value={draft.notes}
                   />
-                  <p className="field-hint">Clearing this field removes the notes.</p>
+                  <p className="field-hint">{t.projects.builds.notesHint}</p>
                   {fieldErrors.notes && (
                     <p className="field-error" id={`${notesId}-error`}>{fieldErrors.notes}</p>
                   )}
@@ -227,14 +232,14 @@ function GameBuildRow({
                     onClick={cancelEditing}
                     type="button"
                   >
-                    Cancel
+                    {t.projects.shared.cancel}
                   </button>
                   <button
                     className="button button--primary button--compact"
                     disabled={!dirty || saving}
                     type="submit"
                   >
-                    {saving ? 'Saving…' : 'Save'}
+                    {saving ? t.projects.shared.saving : t.projects.shared.save}
                   </button>
                 </div>
               </div>
@@ -242,23 +247,31 @@ function GameBuildRow({
           ) : (
             <>
               <dl className="detail-fields">
-                <dt>Version</dt>
+                <dt>{t.projects.builds.versionField}</dt>
                 <dd className="mono">{build.version}</dd>
 
-                <dt>Label</dt>
+                <dt>{t.projects.builds.labelLabel}</dt>
                 <dd>
-                  {hasLabel ? build.label : <span className="detail-empty">No label</span>}
+                  {hasLabel ? (
+                    build.label
+                  ) : (
+                    <span className="detail-empty">{t.projects.builds.noLabel}</span>
+                  )}
                 </dd>
 
-                <dt>Notes</dt>
+                <dt>{t.projects.builds.notesLabel}</dt>
                 <dd>
-                  {hasNotes ? build.notes : <span className="detail-empty">No notes</span>}
+                  {hasNotes ? (
+                    build.notes
+                  ) : (
+                    <span className="detail-empty">{t.projects.builds.noNotes}</span>
+                  )}
                 </dd>
 
-                <dt>First reported</dt>
+                <dt>{t.projects.builds.firstReportedField}</dt>
                 <dd>{formatDate(build.createdAt)}</dd>
 
-                <dt>Updated</dt>
+                <dt>{t.projects.builds.updatedField}</dt>
                 <dd>{formatDate(build.updatedAt)}</dd>
               </dl>
 
@@ -268,7 +281,7 @@ function GameBuildRow({
                   onClick={() => setEditing(true)}
                   type="button"
                 >
-                  Edit
+                  {t.projects.shared.edit}
                 </button>
               </div>
             </>

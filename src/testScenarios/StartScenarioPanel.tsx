@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useI18n } from '../i18n/useI18n'
 import { formatDate } from '../projects/formatters'
 import { ProjectApiError } from '../projects/projectApi'
-import { createTestScenario, listTestScenarios } from './scenarioApi'
+import { createTestScenario, listTestScenarios, SCENARIO_ID_MISSING } from './scenarioApi'
 import type { TestScenarioSummary } from './scenarioTypes'
 
 type ScenarioListState =
@@ -23,6 +24,7 @@ export function StartScenarioPanel({ projectId }: { projectId: string }) {
   const [list, setList] = useState<ScenarioListState>({ kind: 'loading' })
   const [reloadCount, setReloadCount] = useState(0)
   const navigate = useNavigate()
+  const { t } = useI18n()
 
   // The project API serialises the id as a string; the scenario API declares
   // it as a number. Converting here keeps a malformed id from being sent as
@@ -50,18 +52,16 @@ export function StartScenarioPanel({ projectId }: { projectId: string }) {
         setList({
           kind: 'failed',
           message:
-            error instanceof ProjectApiError
-              ? error.message
-              : 'The scenario list could not be loaded.',
+            error instanceof ProjectApiError ? error.message : t.scenarios.start.list.loadFailed,
         })
       })
 
     return () => controller.abort()
-  }, [numericProjectId, reloadCount])
+  }, [numericProjectId, reloadCount, t])
 
   async function start() {
     if (!Number.isInteger(numericProjectId)) {
-      setFailure('This project cannot start a scenario: its address is not a project id.')
+      setFailure(t.scenarios.start.invalidProjectId)
       return
     }
 
@@ -72,10 +72,14 @@ export function StartScenarioPanel({ projectId }: { projectId: string }) {
       const testScenarioId = await createTestScenario(numericProjectId)
       navigate(`/projects/${encodeURIComponent(projectId)}/test-scenarios/${testScenarioId}`)
     } catch (error: unknown) {
+      // Server-provided messages are shown as written; the client-detected
+      // contract break maps to localized copy through its code.
       setFailure(
         error instanceof ProjectApiError
-          ? error.message
-          : 'The scenario could not be started. Please try again.',
+          ? error.code === SCENARIO_ID_MISSING
+            ? t.scenarios.start.badServerResponse
+            : error.message
+          : t.scenarios.start.startFailed,
       )
       setStarting(false)
     }
@@ -85,11 +89,8 @@ export function StartScenarioPanel({ projectId }: { projectId: string }) {
     <section className="panel" aria-labelledby="test-scenarios-title">
       <header className="panel-header panel-header--split">
         <div>
-          <h2 id="test-scenarios-title">Test scenarios</h2>
-          <p className="scenario-hint">
-            Describe what should be tested and the agent writes the steps. You can edit them before
-            sending the next message.
-          </p>
+          <h2 id="test-scenarios-title">{t.scenarios.start.title}</h2>
+          <p className="scenario-hint">{t.scenarios.start.hint}</p>
         </div>
         <button
           className="button button--primary button--compact"
@@ -97,7 +98,7 @@ export function StartScenarioPanel({ projectId }: { projectId: string }) {
           onClick={start}
           type="button"
         >
-          {starting ? 'Starting…' : 'Write a scenario'}
+          {starting ? t.scenarios.start.starting : t.scenarios.start.startButton}
         </button>
       </header>
 
@@ -131,8 +132,10 @@ function ScenarioList({
   projectId: string
   state: ScenarioListState
 }) {
+  const { t } = useI18n()
+
   if (state.kind === 'loading') {
-    return <p className="panel-empty">Loading scenarios…</p>
+    return <p className="panel-empty">{t.scenarios.start.list.loading}</p>
   }
 
   if (state.kind === 'unsupported') {
@@ -141,8 +144,7 @@ function ScenarioList({
         {/* Said plainly rather than hidden: until the server lists scenarios,
             a user who closes the tab has no way back to the conversation, and
             finding that out afterwards is worse than being told now. */}
-        The server does not list scenarios yet, so a scenario is reached by its own address.
-        Bookmark it, or keep the tab open.
+        {t.scenarios.start.list.unsupported}
       </p>
     )
   }
@@ -157,18 +159,14 @@ function ScenarioList({
           onClick={onRetry}
           type="button"
         >
-          Retry
+          {t.scenarios.start.list.retry}
         </button>
       </div>
     )
   }
 
   if (state.scenarios.length === 0) {
-    return (
-      <p className="panel-empty">
-        No scenarios yet. Write one and the agent turns it into steps you can run.
-      </p>
-    )
+    return <p className="panel-empty">{t.scenarios.start.list.empty}</p>
   }
 
   return (
@@ -182,15 +180,15 @@ function ScenarioList({
               className="scenario-name"
               to={`/projects/${encodeURIComponent(projectId)}/test-scenarios/${scenario.testScenarioId}`}
             >
-              {scenario.title.length > 0 ? scenario.title : 'Untitled scenario'}
+              {scenario.title.length > 0 ? scenario.title : t.scenarios.start.list.untitled}
             </Link>
           </div>
           {/* The edit date orders the list for the user; creation only matters
               for a scenario never touched since. */}
           <p className="scenario-row-meta">
             {scenario.updatedAt.length > 0
-              ? `Updated ${formatDate(scenario.updatedAt)}`
-              : `Created ${formatDate(scenario.createdAt)}`}
+              ? t.scenarios.start.list.updated(formatDate(scenario.updatedAt))
+              : t.scenarios.start.list.created(formatDate(scenario.createdAt))}
           </p>
         </li>
       ))}

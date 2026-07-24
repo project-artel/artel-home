@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Dialog } from '../design-system/primitives/Dialog'
+import { useI18n } from '../i18n/useI18n'
 import { ProjectApiError } from '../projects/projectApi'
 import { approveTestScenario } from './scenarioApi'
 import type { ScenarioDraft } from './scenarioTypes'
@@ -23,6 +24,7 @@ export function ApproveScenarioDialog({
   onClose: () => void
   onApproved: () => void
 }) {
+  const { t } = useI18n()
   const [failure, setFailure] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
 
@@ -36,20 +38,16 @@ export function ApproveScenarioDialog({
     } catch (error: unknown) {
       setFailure(
         error instanceof ProjectApiError && error.isNotFound
-          ? 'This scenario is no longer available.'
-          : 'The scenario could not be approved. Please try again.',
+          ? t.scenarios.approve.gone
+          : t.scenarios.approve.failed,
       )
       setPending(false)
     }
   }
 
   return (
-    <Dialog title="Approve scenario" labelledBy="approve-scenario-title" onClose={onClose}>
-      <p className="dialog-copy">
-        The scenario on screen is saved as its final version. The conversation
-        that produced it is cleared and the agent session closes — that part
-        cannot be undone.
-      </p>
+    <Dialog title={t.scenarios.approve.title} labelledBy="approve-scenario-title" onClose={onClose}>
+      <p className="dialog-copy">{t.scenarios.approve.copy}</p>
 
       {failure !== null && (
         <div className="inline-error" role="alert">
@@ -65,7 +63,7 @@ export function ApproveScenarioDialog({
           onClick={onClose}
           type="button"
         >
-          Cancel
+          {t.scenarios.approve.cancel}
         </button>
         <button
           className="button button--primary"
@@ -73,7 +71,7 @@ export function ApproveScenarioDialog({
           onClick={() => void confirm()}
           type="button"
         >
-          {pending ? 'Approving…' : 'Approve scenario'}
+          {pending ? t.scenarios.approve.pending : t.scenarios.approve.confirm}
         </button>
       </div>
     </Dialog>

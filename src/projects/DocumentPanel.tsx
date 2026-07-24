@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react'
 import { createDownloadTicket, ProjectApiError } from './projectApi'
+import { apiErrorMessage } from './apiErrorMessage'
 import { formatBytes, formatDate } from './formatters'
+import { useI18n } from '../i18n/useI18n'
 import { DOCUMENT_ACCEPT, describeFileProblem, uploadDocument } from './uploadDocument'
 import type { ProjectDocument } from './projectTypes'
 
@@ -23,6 +25,7 @@ export function DocumentPanel({
   const [dragging, setDragging] = useState(false)
   const [announcement, setAnnouncement] = useState('')
   const fileInput = useRef<HTMLInputElement>(null)
+  const { t } = useI18n()
 
   const [current, ...history] = documents
 
@@ -30,7 +33,7 @@ export function DocumentPanel({
     const problem = describeFileProblem(file)
     if (problem !== null) {
       setPendingFile(null)
-      setUpload({ phase: 'failed', message: problem })
+      setUpload({ phase: 'failed', message: t.projects.documents.problems[problem] })
       return
     }
 
@@ -46,13 +49,13 @@ export function DocumentPanel({
       })
       setUpload({ phase: 'idle' })
       setPendingFile(null)
-      setAnnouncement(`Version ${document.version} uploaded.`)
+      setAnnouncement(t.projects.documents.uploadedAnnouncement(document.version))
       onUploaded(document)
     } catch (error: unknown) {
       const message =
         error instanceof ProjectApiError
-          ? error.message
-          : 'The upload did not finish. Please try again.'
+          ? apiErrorMessage(error, t)
+          : t.projects.documents.uploadFailed
       setUpload({ phase: 'failed', message })
     }
   }
@@ -62,7 +65,7 @@ export function DocumentPanel({
       const ticket = await createDownloadTicket(projectId, document.id)
       window.open(ticket.downloadUrl, '_blank', 'noopener,noreferrer')
     } catch {
-      setUpload({ phase: 'failed', message: 'The download link could not be created.' })
+      setUpload({ phase: 'failed', message: t.projects.documents.downloadFailed })
     }
   }
 
@@ -71,11 +74,11 @@ export function DocumentPanel({
   return (
     <section className="panel" aria-labelledby="documents-title">
       <header className="panel-header">
-        <h2 id="documents-title">Planning document</h2>
+        <h2 id="documents-title">{t.projects.documents.title}</h2>
       </header>
 
       {current === undefined ? (
-        <p className="panel-empty">No planning document has been uploaded yet.</p>
+        <p className="panel-empty">{t.projects.documents.empty}</p>
       ) : (
         <div className="document-current">
           <DocumentLine document={current} onDownload={download} isCurrent />
@@ -111,15 +114,17 @@ export function DocumentPanel({
           type="file"
         />
         <label className="button button--secondary" htmlFor="document-file">
-          {current === undefined ? 'Upload a document' : 'Upload a new version'}
+          {current === undefined
+            ? t.projects.documents.uploadFirst
+            : t.projects.documents.uploadNew}
         </label>
-        <p className="upload-hint">PDF, up to 50 MB. Drag a file here or choose one.</p>
+        <p className="upload-hint">{t.projects.documents.hint}</p>
       </div>
 
       {uploading && (
         <div className="upload-progress">
           <div
-            aria-label="Upload progress"
+            aria-label={t.projects.documents.progressLabel}
             aria-valuemax={100}
             aria-valuemin={0}
             aria-valuenow={upload.ratio === null ? undefined : Math.round(upload.ratio * 100)}
@@ -132,7 +137,9 @@ export function DocumentPanel({
             />
           </div>
           <p className="upload-status">
-            {upload.ratio === null ? 'Uploading…' : `Uploading… ${Math.round(upload.ratio * 100)}%`}
+            {upload.ratio === null
+              ? t.projects.documents.uploading
+              : t.projects.documents.uploadingPercent(Math.round(upload.ratio * 100))}
           </p>
         </div>
       )}
@@ -147,7 +154,7 @@ export function DocumentPanel({
               onClick={() => void start(pendingFile)}
               type="button"
             >
-              Retry
+              {t.projects.shared.retry}
             </button>
           )}
         </div>
@@ -157,7 +164,7 @@ export function DocumentPanel({
 
       {history.length > 0 && (
         <div className="document-history">
-          <h3 className="panel-subtitle">Earlier versions</h3>
+          <h3 className="panel-subtitle">{t.projects.documents.historyTitle}</h3>
           <ul className="document-list">
             {history.map((document) => (
               <li key={document.id}>
@@ -180,11 +187,13 @@ function DocumentLine({
   onDownload: (document: ProjectDocument) => void
   isCurrent: boolean
 }) {
+  const { t } = useI18n()
+
   return (
     <div className="document-line">
       <span className="document-meta">
         <span className="mono">v{document.version}</span>
-        {isCurrent && <span className="badge badge--current">Current</span>}
+        {isCurrent && <span className="badge badge--current">{t.projects.documents.current}</span>}
         <span className="document-name">{document.fileName}</span>
         <span className="document-detail">
           {formatBytes(document.sizeBytes)} · {formatDate(document.uploadedAt)}
@@ -196,7 +205,7 @@ function DocumentLine({
         onClick={() => onDownload(document)}
         type="button"
       >
-        Download
+        {t.projects.documents.download}
       </button>
     </div>
   )

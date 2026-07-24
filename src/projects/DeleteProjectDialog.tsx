@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Dialog } from '../design-system/primitives/Dialog'
+import { useI18n } from '../i18n/useI18n'
 import { deleteProject, ProjectApiError } from './projectApi'
 
 /**
@@ -20,6 +21,7 @@ export function DeleteProjectDialog({
 }) {
   const [failure, setFailure] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
+  const { t } = useI18n()
 
   async function confirm() {
     setPending(true)
@@ -31,18 +33,22 @@ export function DeleteProjectDialog({
     } catch (error: unknown) {
       setFailure(
         error instanceof ProjectApiError && error.isForbidden
-          ? 'Only an owner can delete this project.'
-          : 'The project could not be deleted. Please try again.',
+          ? t.projects.deleteDialog.forbidden
+          : t.projects.deleteDialog.deleteFailed,
       )
       setPending(false)
     }
   }
 
   return (
-    <Dialog title="Delete project" labelledBy="delete-project-title" onClose={onClose}>
+    <Dialog
+      title={t.projects.detail.deleteProject}
+      labelledBy="delete-project-title"
+      onClose={onClose}
+    >
       <p className="dialog-copy">
-        <strong>{projectName}</strong> and its planning documents will no longer be
-        reachable. This cannot be undone.
+        <strong>{projectName}</strong>
+        {t.projects.deleteDialog.confirmSuffix}
       </p>
 
       {failure !== null && (
@@ -59,7 +65,7 @@ export function DeleteProjectDialog({
           onClick={onClose}
           type="button"
         >
-          Cancel
+          {t.projects.shared.cancel}
         </button>
         <button
           className="button button--danger"
@@ -67,7 +73,7 @@ export function DeleteProjectDialog({
           onClick={() => void confirm()}
           type="button"
         >
-          {pending ? 'Deleting…' : 'Delete project'}
+          {pending ? t.projects.shared.deleting : t.projects.detail.deleteProject}
         </button>
       </div>
     </Dialog>

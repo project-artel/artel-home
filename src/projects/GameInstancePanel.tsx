@@ -6,6 +6,8 @@ import { DeleteGameInstanceDialog } from './DeleteGameInstanceDialog'
 import { formatDate } from './formatters'
 import { GameInstanceCreateDialog } from './GameInstanceCreateDialog'
 import { updateGameInstance } from './gameApi'
+import { useI18n } from '../i18n/useI18n'
+import { apiErrorMessage } from './apiErrorMessage'
 import { ProjectApiError } from './projectApi'
 import { SdkInstallGuide } from './SdkInstallGuide'
 import {
@@ -48,6 +50,7 @@ export function GameInstancePanel({
   const [guideFor, setGuideFor] = useState<GameInstance | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const [refreshFailure, setRefreshFailure] = useState<string | null>(null)
+  const { t } = useI18n()
 
   /**
    * The one question this panel cannot answer on its own is "has the game
@@ -58,12 +61,12 @@ export function GameInstancePanel({
     setRefreshing(true)
     setRefreshFailure(null)
     onRefresh()
-      .then(() => setAnnouncement('Instances and builds refreshed.'))
+      .then(() => setAnnouncement(t.projects.instances.refreshedAnnouncement))
       .catch((error: unknown) =>
         setRefreshFailure(
           error instanceof ProjectApiError
-            ? error.message
-            : 'The instance list could not be refreshed.',
+            ? apiErrorMessage(error, t)
+            : t.projects.instances.refreshFailed,
         ),
       )
       .finally(() => setRefreshing(false))
@@ -72,7 +75,7 @@ export function GameInstancePanel({
   return (
     <section className="panel" aria-labelledby="instances-title">
       <header className="panel-header panel-header--split">
-        <h2 id="instances-title">Game instances</h2>
+        <h2 id="instances-title">{t.projects.instances.title}</h2>
         <div className="panel-header-actions">
           <button
             className="button button--secondary button--compact"
@@ -80,14 +83,14 @@ export function GameInstancePanel({
             onClick={refresh}
             type="button"
           >
-            {refreshing ? 'Refreshing…' : 'Refresh'}
+            {refreshing ? t.projects.instances.refreshing : t.projects.instances.refresh}
           </button>
           <button
             className="button button--primary button--compact"
             onClick={() => setCreating(true)}
             type="button"
           >
-            인스턴스 추가
+            {t.projects.instances.add}
           </button>
         </div>
       </header>
@@ -101,17 +104,13 @@ export function GameInstancePanel({
 
       {instances.length === 0 ? (
         <div className="panel-empty-block">
-          <p className="panel-empty">
-            An instance is one installation of the Artel SDK — usually one
-            machine running one build. Add one to get an instance key, then
-            paste that key into Unity to connect the game.
-          </p>
+          <p className="panel-empty">{t.projects.instances.empty}</p>
           <button
             className="button button--secondary button--compact"
             onClick={() => setCreating(true)}
             type="button"
           >
-            인스턴스 추가
+            {t.projects.instances.add}
           </button>
         </div>
       ) : (
@@ -134,10 +133,7 @@ export function GameInstancePanel({
           last read said. Saying so is cheaper than a live indicator that is
           quietly wrong. */}
       {instances.length > 0 && (
-        <p className="panel-note">
-          Connection state is from the last read. Refresh re-reads instances and
-          builds — both change when a game starts.
-        </p>
+        <p className="panel-note">{t.projects.instances.note}</p>
       )}
 
       <p aria-live="polite" className="visually-hidden">{announcement}</p>
@@ -147,7 +143,7 @@ export function GameInstancePanel({
           onClose={() => setCreating(false)}
           onCreated={(instance) => {
             onCreated(instance)
-            setAnnouncement('Instance added.')
+            setAnnouncement(t.projects.instances.addedAnnouncement)
           }}
           projectId={projectId}
         />
@@ -161,7 +157,7 @@ export function GameInstancePanel({
           onDeleted={() => {
             onRemoved(deleting.id)
             setDeleting(null)
-            setAnnouncement('Instance deleted.')
+            setAnnouncement(t.projects.instances.deletedAnnouncement)
           }}
           projectId={projectId}
         />
@@ -171,9 +167,13 @@ export function GameInstancePanel({
         <Dialog
           labelledBy="instance-guide-title"
           onClose={() => setGuideFor(null)}
-          title="Set up the SDK"
+          title={t.projects.instances.guideTitle}
         >
-          <p className="dialog-copy">Steps for <strong>{guideFor.name}</strong>.</p>
+          <p className="dialog-copy">
+            {t.projects.instances.guideIntroBefore}
+            <strong>{guideFor.name}</strong>
+            {t.projects.instances.guideIntroAfter}
+          </p>
           <SdkInstallGuide instanceKey={guideFor.instanceKey} />
           <div className="dialog-actions">
             <button
@@ -181,7 +181,7 @@ export function GameInstancePanel({
               onClick={() => setGuideFor(null)}
               type="button"
             >
-              Close
+              {t.projects.shared.close}
             </button>
           </div>
         </Dialog>
@@ -216,6 +216,7 @@ function GameInstanceRow({
   const [failure, setFailure] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const nameId = useId()
+  const { t } = useI18n()
 
   const dirty = name !== instance.name
 
@@ -237,13 +238,13 @@ function GameInstanceRow({
       const updated = await updateGameInstance(projectId, instance.id, { name: name.trim() })
       onSaved(updated)
       setEditing(false)
-      onAnnounce('Instance saved.')
+      onAnnounce(t.projects.instances.savedAnnouncement)
     } catch (error: unknown) {
       if (error instanceof ProjectApiError) {
         setFieldErrors(error.fields)
-        setFailure(Object.keys(error.fields).length > 0 ? null : error.message)
+        setFailure(Object.keys(error.fields).length > 0 ? null : apiErrorMessage(error, t))
       } else {
-        setFailure('The instance could not be saved. Please try again.')
+        setFailure(t.projects.instances.saveFailed)
       }
     } finally {
       setSaving(false)
@@ -262,7 +263,7 @@ function GameInstanceRow({
       {editing ? (
         <form className="instance-edit" onSubmit={save} noValidate>
           <div className="field">
-            <label className="field-label" htmlFor={nameId}>Name</label>
+            <label className="field-label" htmlFor={nameId}>{t.projects.shared.nameLabel}</label>
             <input
               aria-describedby={fieldErrors.name ? `${nameId}-error` : undefined}
               aria-invalid={fieldErrors.name ? true : undefined}
@@ -285,14 +286,14 @@ function GameInstanceRow({
               onClick={cancelEditing}
               type="button"
             >
-              Cancel
+              {t.projects.shared.cancel}
             </button>
             <button
               className="button button--primary button--compact"
               disabled={!dirty || saving || name.trim().length === 0}
               type="submit"
             >
-              {saving ? 'Saving…' : 'Save'}
+              {saving ? t.projects.shared.saving : t.projects.shared.save}
             </button>
           </div>
         </form>
@@ -315,8 +316,8 @@ function GameInstanceRow({
           <div className="copy-line">
             <code className="mono copy-value">{instance.instanceKey}</code>
             <CopyButton
-              copiedMessage="Key copied."
-              label="Copy key"
+              copiedMessage={t.projects.instances.keyCopied}
+              label={t.projects.instances.copyKey}
               onResult={onAnnounce}
               text={instance.instanceKey}
             />
@@ -324,10 +325,10 @@ function GameInstanceRow({
 
           <p className="instance-meta">
             {instance.lastConnectedAt.length === 0
-              ? 'Never connected'
-              : `Last connected ${formatDate(instance.lastConnectedAt)}`}
+              ? t.projects.instances.neverConnected
+              : t.projects.instances.lastConnected(formatDate(instance.lastConnectedAt))}
             <span aria-hidden="true"> · </span>
-            Added {formatDate(instance.createdAt)}
+            {t.projects.instances.added(formatDate(instance.createdAt))}
           </p>
 
           <div className="instance-actions">
@@ -336,21 +337,21 @@ function GameInstanceRow({
               onClick={() => setEditing(true)}
               type="button"
             >
-              Edit
+              {t.projects.shared.edit}
             </button>
             <button
               className="button button--secondary button--compact"
               onClick={() => onShowGuide(instance)}
               type="button"
             >
-              설치 안내
+              {t.projects.instances.installGuide}
             </button>
             <button
               className="button button--danger-quiet button--compact"
               onClick={() => onDelete(instance)}
               type="button"
             >
-              Delete
+              {t.projects.instances.delete}
             </button>
           </div>
         </>
@@ -368,13 +369,15 @@ function GameInstanceRow({
  * flips the state.
  */
 function ConnectionState({ connected }: { connected: boolean }) {
+  const { t } = useI18n()
+
   return (
     <span className={connected ? 'instance-state instance-state--connected' : 'instance-state'}>
       <span
         aria-hidden="true"
         className={connected ? 'status-dot status-dot--connected' : 'status-dot'}
       />
-      {connected ? '연결됨' : '연결 안 됨'}
+      {connected ? t.projects.instances.connected : t.projects.instances.notConnected}
     </span>
   )
 }

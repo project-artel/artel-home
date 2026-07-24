@@ -1,8 +1,10 @@
+import { useEffect, useRef } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import './App.css'
 import { LoginPage } from './LoginPage'
 import { NotFoundPage } from './NotFoundPage'
 import { useAuth } from './auth/useAuth'
+import { useI18n } from './i18n/useI18n'
 import { GameInstanceDetailRoute } from './projects/GameInstanceDetailPage'
 import { ProjectDetailRoute } from './projects/ProjectDetailPage'
 import { ProjectListPage } from './projects/ProjectListPage'
@@ -11,12 +13,27 @@ import { TestScenarioRoute } from './testScenarios/TestScenarioPage'
 
 export function App() {
   const auth = useAuth()
+  const { t, setLocale } = useI18n()
+
+  // The account's stored language wins over this browser's remembered one, but
+  // only once per signed-in user: re-applying it on every render would fight a
+  // switch the user just made locally while the server write is in flight.
+  const localeSyncedFor = useRef<string | null>(null)
+  useEffect(() => {
+    if (auth.status !== 'authenticated') {
+      localeSyncedFor.current = null
+      return
+    }
+    if (localeSyncedFor.current === auth.user.id) return
+    localeSyncedFor.current = auth.user.id
+    if (auth.user.locale !== null) setLocale(auth.user.locale)
+  }, [auth, setLocale])
 
   if (auth.status === 'loading') {
     return (
       <main className="session-loading" aria-live="polite">
         <span className="loading-mark" aria-hidden="true" />
-        Checking your session…
+        {t.common.session.checking}
       </main>
     )
   }

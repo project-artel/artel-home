@@ -1,6 +1,8 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { Dialog } from '../design-system/primitives/Dialog'
 import { createGameInstance } from './gameApi'
+import { useI18n } from '../i18n/useI18n'
+import { apiErrorMessage } from './apiErrorMessage'
 import { ProjectApiError } from './projectApi'
 import { SdkInstallGuide } from './SdkInstallGuide'
 import {
@@ -39,6 +41,7 @@ export function GameInstanceCreateDialog({
   const nameId = useId()
   const platformId = useId()
   const guideIntro = useRef<HTMLParagraphElement>(null)
+  const { t } = useI18n()
 
   // `Dialog` moves focus inside only on mount. Swapping the form for the guide
   // destroys whatever had focus, which would drop focus to `<body>` and strand
@@ -70,9 +73,9 @@ export function GameInstanceCreateDialog({
         setFieldErrors(error.fields)
         // With per-field messages shown inline, a banner repeating them would
         // just say the same thing twice.
-        setFailure(Object.keys(error.fields).length > 0 ? null : error.message)
+        setFailure(Object.keys(error.fields).length > 0 ? null : apiErrorMessage(error, t))
       } else {
-        setFailure('The game instance could not be created. Please try again.')
+        setFailure(t.projects.instanceCreate.createFailed)
       }
       // No `finally`: a success leaves the dialog mounted on the guide view,
       // where a pending flag has nothing left to describe.
@@ -85,18 +88,18 @@ export function GameInstanceCreateDialog({
       <Dialog
         labelledBy="create-instance-title"
         onClose={onClose}
-        title="Set up the SDK"
+        title={t.projects.instances.guideTitle}
       >
         <p className="dialog-copy" ref={guideIntro} tabIndex={-1}>
-          <strong>{created.name}</strong> is ready. Follow these steps in Unity to
-          connect it.
+          <strong>{created.name}</strong>
+          {t.projects.instanceCreate.readySuffix}
         </p>
 
         <SdkInstallGuide instanceKey={created.instanceKey} />
 
         <div className="dialog-actions">
           <button className="button button--primary" onClick={onClose} type="button">
-            Done
+            {t.projects.shared.done}
           </button>
         </div>
       </Dialog>
@@ -104,7 +107,11 @@ export function GameInstanceCreateDialog({
   }
 
   return (
-    <Dialog labelledBy="create-instance-title" onClose={onClose} title="Add game instance">
+    <Dialog
+      labelledBy="create-instance-title"
+      onClose={onClose}
+      title={t.projects.instanceCreate.title}
+    >
       <form onSubmit={submit} noValidate>
         {failure !== null && (
           <div className="inline-error" role="alert">
@@ -116,7 +123,8 @@ export function GameInstanceCreateDialog({
         <div className="project-form">
           <div className="field">
             <label className="field-label" htmlFor={platformId}>
-              Platform <span className="field-required" aria-hidden="true">*</span>
+              {t.projects.instanceCreate.platformLabel}{' '}
+              <span className="field-required" aria-hidden="true">*</span>
             </label>
             <select
               className="field-input"
@@ -136,7 +144,9 @@ export function GameInstanceCreateDialog({
                   disabled option reads as broken; omitting them entirely makes
                   the user wonder whether they looked in the wrong place. */}
               {Object.entries(UNAVAILABLE_PLATFORM_LABELS).map(([platform, label]) => (
-                <option disabled key={platform} value={platform}>{label} (준비 중)</option>
+                <option disabled key={platform} value={platform}>
+                  {t.projects.instanceCreate.unavailablePlatform(label)}
+                </option>
               ))}
             </select>
             {fieldErrors.platform && <p className="field-error">{fieldErrors.platform}</p>}
@@ -144,7 +154,8 @@ export function GameInstanceCreateDialog({
 
           <div className="field">
             <label className="field-label" htmlFor={nameId}>
-              Name <span className="field-required" aria-hidden="true">*</span>
+              {t.projects.shared.nameLabel}{' '}
+              <span className="field-required" aria-hidden="true">*</span>
             </label>
             <input
               aria-describedby={fieldErrors.name ? `${nameId}-error` : undefined}
@@ -157,9 +168,7 @@ export function GameInstanceCreateDialog({
               required
               value={draft.name}
             />
-            <p className="field-hint">
-              Name the machine this build runs on, so you can tell instances apart later.
-            </p>
+            <p className="field-hint">{t.projects.instanceCreate.nameHint}</p>
             {fieldErrors.name && (
               <p className="field-error" id={`${nameId}-error`}>{fieldErrors.name}</p>
             )}
@@ -172,14 +181,14 @@ export function GameInstanceCreateDialog({
               onClick={onClose}
               type="button"
             >
-              Cancel
+              {t.projects.shared.cancel}
             </button>
             <button
               className="button button--primary"
               disabled={pending || draft.name.trim().length === 0}
               type="submit"
             >
-              {pending ? 'Creating…' : 'Add instance'}
+              {pending ? t.projects.shared.creating : t.projects.instanceCreate.create}
             </button>
           </div>
         </div>

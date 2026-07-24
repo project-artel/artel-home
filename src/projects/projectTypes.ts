@@ -20,18 +20,6 @@ export type Genre = (typeof GENRES)[number]
 /** `OTHER` is the escape hatch and the create-form default. */
 export const DEFAULT_GENRE: Genre = 'OTHER'
 
-export const GENRE_LABELS: Record<Genre, string> = {
-  ACTION: 'Action',
-  RPG: 'RPG',
-  PUZZLE: 'Puzzle',
-  SIMULATION: 'Simulation',
-  STRATEGY: 'Strategy',
-  SPORTS: 'Sports',
-  SHOOTER: 'Shooter',
-  CASUAL: 'Casual',
-  OTHER: 'Other',
-}
-
 export const NAME_MAX_LENGTH = 80
 export const DESCRIPTION_MAX_LENGTH = 2000
 

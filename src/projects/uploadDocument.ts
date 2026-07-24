@@ -12,17 +12,23 @@ export type UploadProgress = {
 }
 
 /**
+ * Machine-readable so this module stays free of user-facing text; the panel
+ * maps each code through the active locale's dictionary.
+ */
+export type FileProblem = 'notPdf' | 'emptyFile' | 'tooLarge'
+
+/**
  * Rejects a file the server would reject anyway, so the user hears about it
  * before waiting through an upload. The server's rules stay authoritative —
  * this is allowed to be stricter, never looser.
  */
-export function describeFileProblem(file: File): string | null {
+export function describeFileProblem(file: File): FileProblem | null {
   const isPdf =
     file.type === DOCUMENT_CONTENT_TYPE || file.name.toLowerCase().endsWith('.pdf')
 
-  if (!isPdf) return 'Only PDF files can be uploaded.'
-  if (file.size === 0) return 'That file is empty.'
-  if (file.size > DOCUMENT_MAX_BYTES) return 'That file is larger than 50 MB.'
+  if (!isPdf) return 'notPdf'
+  if (file.size === 0) return 'emptyFile'
+  if (file.size > DOCUMENT_MAX_BYTES) return 'tooLarge'
   return null
 }
 
@@ -68,6 +74,7 @@ function putToStorage(
         new ProjectApiError(
           request.status,
           'The file could not be uploaded to storage. Please try again.',
+          'CLIENT_STORAGE_PUT_FAILED',
         ),
       )
     })
@@ -80,6 +87,7 @@ function putToStorage(
         new ProjectApiError(
           0,
           'Storage could not be reached. The upload was not completed.',
+          'CLIENT_STORAGE_UNREACHABLE',
         ),
       )
     })

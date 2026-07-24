@@ -1,3 +1,5 @@
+import type { Locale } from '../i18n/locale'
+
 /** One OAuth account linked to a user. A user may link several over time. */
 export type LinkedIdentity = {
   provider: string
@@ -16,6 +18,11 @@ export type AuthUser = {
   id: string
   displayName: string
   email: string | null
+  /**
+   * The UI language stored on the account, or `null` when the user has never
+   * chosen one — the client then falls back to its own detection.
+   */
+  locale: Locale | null
   /** Sorted by the server with the most recently used provider first. */
   identities: LinkedIdentity[]
 }

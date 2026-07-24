@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useI18n } from '../i18n/useI18n'
 import { ProjectApiError } from '../projects/projectApi'
 import {
   getTestScenario,
@@ -58,6 +59,7 @@ function isAbort(error: unknown): boolean {
  * separated into two hooks without the screen having to reconcile them.
  */
 export function useScenarioSession(testScenarioId: number) {
+  const { t } = useI18n()
   const [state, setState] = useState<SessionState>(loadingState)
   const [draft, setDraft] = useState<ScenarioDraft>(EMPTY_SCENARIO_DRAFT)
   const [closure, setClosure] = useState<ChatClosure | null>(null)
@@ -312,9 +314,7 @@ export function useScenarioSession(testScenarioId: number) {
           setClosure(closed)
         } else {
           setSendFailure(
-            error instanceof ProjectApiError
-              ? error.message
-              : 'The message could not be sent. Please try again.',
+            error instanceof ProjectApiError ? error.message : t.scenarios.chat.sendFailed,
           )
         }
         return false
@@ -322,7 +322,7 @@ export function useScenarioSession(testScenarioId: number) {
         setSending(false)
       }
     },
-    [closure, draft, sending, testScenarioId],
+    [closure, draft, sending, testScenarioId, t],
   )
 
   const reload = useCallback(() => {

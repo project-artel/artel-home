@@ -1,24 +1,24 @@
 import { useEffect, useState } from 'react'
 import { getOAuthLoginUrl } from './auth/authApi'
 import { oauthProviders } from './auth/oauthProviders'
+import type { Messages } from './i18n/messages'
+import { useI18n } from './i18n/useI18n'
 
 /**
  * The orchestration server reports a failed callback as `?error=oauth` (the
  * provider exchange failed) or `?error=server` (the server could not issue a
  * session). Unknown codes fall back to the generic message so a new server
- * code never renders an empty alert.
+ * code never renders an empty alert. The code, not the text, is held in state
+ * so the message follows a locale switch.
  */
-const oauthErrorMessages: Record<string, string> = {
-  oauth: 'GitHub sign-in could not be completed. Please try again.',
-  server: 'We could not start your session. Please try again shortly.',
+function readOAuthErrorCode(): string | null {
+  return new URLSearchParams(window.location.search).get('error')
 }
 
-const genericOAuthErrorMessage = 'Sign-in could not be completed. Please try again.'
-
-function readOAuthError(): string | null {
-  const code = new URLSearchParams(window.location.search).get('error')
-  if (code === null) return null
-  return oauthErrorMessages[code] ?? genericOAuthErrorMessage
+function oauthErrorMessage(code: string, login: Messages['common']['login']): string {
+  if (code === 'oauth') return login.errorOauth
+  if (code === 'server') return login.errorServer
+  return login.errorGeneric
 }
 
 function ProviderIcon({ providerId }: { providerId: string }) {
@@ -34,41 +34,39 @@ function ProviderIcon({ providerId }: { providerId: string }) {
 }
 
 export function LoginPage({ serviceUnavailable = false }: { serviceUnavailable?: boolean }) {
-  const [oauthError] = useState(readOAuthError)
+  const [oauthErrorCode] = useState(readOAuthErrorCode)
+  const { t } = useI18n()
 
   useEffect(() => {
-    if (oauthError === null) return
+    if (oauthErrorCode === null) return
     const url = new URL(window.location.href)
     url.searchParams.delete('error')
     window.history.replaceState(null, '', url)
-  }, [oauthError])
+  }, [oauthErrorCode])
 
   return (
     <main className="login-layout">
       <section className="login-panel" aria-labelledby="login-title">
         <div className="login-brand" aria-hidden="true">A</div>
         <p className="eyebrow">ARTEL Replay Studio</p>
-        <h1 id="login-title">Sign in to your workspace</h1>
-        <p className="login-copy">
-          Continue with an approved account to inspect QA sessions, agent actions,
-          and replay evidence.
-        </p>
+        <h1 id="login-title">{t.common.login.title}</h1>
+        <p className="login-copy">{t.common.login.copy}</p>
 
-        {oauthError !== null && (
+        {oauthErrorCode !== null && (
           <div className="login-error" role="alert">
             <span aria-hidden="true">!</span>
-            {oauthError}
+            {oauthErrorMessage(oauthErrorCode, t.common.login)}
           </div>
         )}
 
         {serviceUnavailable && (
           <div className="login-error" role="alert">
             <span aria-hidden="true">!</span>
-            Authentication service is unavailable. You can retry sign-in shortly.
+            {t.common.login.serviceUnavailable}
           </div>
         )}
 
-        <div className="provider-list" aria-label="Social sign-in providers">
+        <div className="provider-list" aria-label={t.common.login.providerListLabel}>
           {oauthProviders.map((provider) => (
             <a
               className="provider-button"
@@ -76,12 +74,12 @@ export function LoginPage({ serviceUnavailable = false }: { serviceUnavailable?:
               key={provider.id}
             >
               <ProviderIcon providerId={provider.id} />
-              Continue with {provider.label}
+              {t.common.login.continueWith(provider.label)}
             </a>
           ))}
         </div>
 
-        <p className="login-note">Authentication is handled by the selected provider.</p>
+        <p className="login-note">{t.common.login.note}</p>
       </section>
     </main>
   )

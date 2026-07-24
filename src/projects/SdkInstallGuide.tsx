@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { CopyButton } from './CopyButton'
+import { useI18n } from '../i18n/useI18n'
 
 /**
  * The git URL Unity's Package Manager installs the SDK from. It is a constant
@@ -22,20 +23,25 @@ const SDK_PACKAGE_URL = 'https://github.com/project-artel/artel-sdk.git'
  */
 export function SdkInstallGuide({ instanceKey }: { instanceKey: string }) {
   const [announcement, setAnnouncement] = useState('')
+  const { t } = useI18n()
 
   return (
     <div className="install-guide">
       <ol className="guide-list">
         <li className="guide-step">
           <p className="guide-copy">
-            In Unity, open <strong>Window → Package Manager</strong> and choose{' '}
-            <strong>Add package from git URL</strong>.
+            {/* The Unity menu names are the editor's own UI and stay in English. */}
+            {t.projects.guide.step1Before}
+            <strong>Window → Package Manager</strong>
+            {t.projects.guide.step1Middle}
+            <strong>Add package from git URL</strong>
+            {t.projects.guide.step1After}
           </p>
           <div className="copy-line">
             <code className="mono copy-value">{SDK_PACKAGE_URL}</code>
             <CopyButton
-              copiedMessage="Package URL copied."
-              label="Copy URL"
+              copiedMessage={t.projects.guide.packageUrlCopied}
+              label={t.projects.guide.copyUrl}
               onResult={setAnnouncement}
               text={SDK_PACKAGE_URL}
             />
@@ -43,24 +49,24 @@ export function SdkInstallGuide({ instanceKey }: { instanceKey: string }) {
         </li>
 
         <li className="guide-step">
-          <p className="guide-copy">Create an empty GameObject in the scene.</p>
+          <p className="guide-copy">{t.projects.guide.step2}</p>
         </li>
 
         <li className="guide-step">
           <p className="guide-copy">
-            Add the <code className="mono">ArtelManager</code> component to it.
+            {t.projects.guide.step3Before}
+            <code className="mono">ArtelManager</code>
+            {t.projects.guide.step3After}
           </p>
         </li>
 
         <li className="guide-step">
-          <p className="guide-copy">
-            Run the game and paste this instance key into the Artel window.
-          </p>
+          <p className="guide-copy">{t.projects.guide.step4}</p>
           <div className="copy-line">
             <code className="mono copy-value">{instanceKey}</code>
             <CopyButton
-              copiedMessage="Key copied."
-              label="Copy key"
+              copiedMessage={t.projects.instances.keyCopied}
+              label={t.projects.instances.copyKey}
               onResult={setAnnouncement}
               text={instanceKey}
             />
@@ -70,10 +76,7 @@ export function SdkInstallGuide({ instanceKey }: { instanceKey: string }) {
 
       {/* The key is durable and has no re-issue endpoint, so it is worth saying
           plainly that closing this view does not lose it. */}
-      <p className="guide-note">
-        This key stays available on the instance row, so you can come back to it
-        after reinstalling the SDK.
-      </p>
+      <p className="guide-note">{t.projects.guide.note}</p>
 
       <p aria-live="polite" className="visually-hidden">{announcement}</p>
     </div>

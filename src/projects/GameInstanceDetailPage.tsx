@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { GameStreamView } from '../streaming/GameStreamView'
 import { listGameInstances } from './gameApi'
+import { useI18n } from '../i18n/useI18n'
 import { ProjectApiError } from './projectApi'
 import { describePlatform, type GameInstance } from './gameTypes'
 
@@ -43,6 +44,7 @@ function GameInstanceDetailPage({
 }) {
   const [status, setStatus] = useState<PageStatus>('loading')
   const [instance, setInstance] = useState<GameInstance | null>(null)
+  const { t } = useI18n()
 
   /*
    * There is no endpoint that reads a single instance — the contract exposes
@@ -70,7 +72,7 @@ function GameInstanceDetailPage({
   if (status === 'loading') {
     return (
       <section className="page" aria-busy="true">
-        <p className="panel-empty">Loading instance…</p>
+        <p className="panel-empty">{t.projects.instanceDetail.loading}</p>
       </section>
     )
   }
@@ -79,9 +81,9 @@ function GameInstanceDetailPage({
     return (
       <section className="page">
         <div className="panel-message" role="alert">
-          <p>This instance could not be loaded.</p>
+          <p>{t.projects.instanceDetail.loadFailed}</p>
           <Link className="button button--secondary" to={projectLink(projectId)}>
-            Back to the project
+            {t.projects.shared.backToProject}
           </Link>
         </div>
       </section>
@@ -94,12 +96,10 @@ function GameInstanceDetailPage({
     return (
       <section className="page">
         <div className="panel-message">
-          <h1>Instance not found</h1>
-          <p className="panel-message-copy">
-            It may have been deleted, or you may not have access to it.
-          </p>
+          <h1>{t.projects.instanceDetail.notFoundTitle}</h1>
+          <p className="panel-message-copy">{t.projects.shared.missingCopy}</p>
           <Link className="button button--secondary" to={projectLink(projectId)}>
-            Back to the project
+            {t.projects.shared.backToProject}
           </Link>
         </div>
       </section>
@@ -110,7 +110,9 @@ function GameInstanceDetailPage({
     <section className="page" aria-labelledby="instance-title">
       <header className="page-header">
         <div>
-          <Link className="back-link" to={projectLink(projectId)}>Back to the project</Link>
+          <Link className="back-link" to={projectLink(projectId)}>
+            {t.projects.shared.backToProject}
+          </Link>
           <h1 id="instance-title">{instance.name}</h1>
           <p className="page-subtitle">
             <span className="badge">{describePlatform(instance.platform)}</span>

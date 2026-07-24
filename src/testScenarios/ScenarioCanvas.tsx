@@ -1,4 +1,5 @@
 import { Fragment, useId, useState } from 'react'
+import { useI18n } from '../i18n/useI18n'
 import {
   createEmptyStep,
   withSequentialSteps,
@@ -37,6 +38,7 @@ export function ScenarioCanvas({
   onChange: (draft: ScenarioDraft) => void
   readOnly: boolean
 }) {
+  const { t } = useI18n()
   const titleId = useId()
   const descriptionId = useId()
   const [selected, setSelected] = useState<number | null>(null)
@@ -57,7 +59,7 @@ export function ScenarioCanvas({
     reordered.splice(to, 0, moved)
     replaceSteps(reordered)
     setSelected(to)
-    setAnnouncement(`Step moved to position ${to + 1} of ${reordered.length}.`)
+    setAnnouncement(t.scenarios.canvas.stepMoved(to + 1, reordered.length))
   }
 
   function addStep() {
@@ -66,13 +68,13 @@ export function ScenarioCanvas({
     // Selected on creation: an empty node says nothing about itself, so the
     // only useful next move is to fill it in.
     setSelected(steps.length - 1)
-    setAnnouncement(`Step ${steps.length} added.`)
+    setAnnouncement(t.scenarios.canvas.stepAdded(steps.length))
   }
 
   function removeStep(index: number) {
     replaceSteps(draft.steps.filter((_, at) => at !== index))
     setSelected(null)
-    setAnnouncement(`Step ${index + 1} removed.`)
+    setAnnouncement(t.scenarios.canvas.stepRemoved(index + 1))
   }
 
   const selectedStep = selected === null ? null : draft.steps[selected] ?? null
@@ -81,46 +83,50 @@ export function ScenarioCanvas({
     <section className="panel scenario-canvas" aria-labelledby="scenario-canvas-title">
       <header className="panel-header panel-header--split">
         <div>
-          <h2 id="scenario-canvas-title">Scenario</h2>
+          <h2 id="scenario-canvas-title">{t.scenarios.canvas.title}</h2>
           <p className="scenario-hint">
-            {readOnly
-              ? 'Read-only. The conversation that produced this scenario is closed.'
-              : 'Click a step to edit it, drag to reorder. Changes are saved automatically.'}
+            {readOnly ? t.scenarios.canvas.hintReadOnly : t.scenarios.canvas.hintEditable}
           </p>
         </div>
         {/* Autosave is quiet by default: only in-flight ("Saving…") or the brief
             window where an edit is waiting to be saved ("Unsaved") is shown. */}
-        {!readOnly && saving && <span className="badge scenario-dirty">Saving…</span>}
+        {!readOnly && saving && (
+          <span className="badge scenario-dirty">{t.scenarios.canvas.saving}</span>
+        )}
         {!readOnly && !saving && dirty && (
-          <span className="badge scenario-dirty">Unsaved</span>
+          <span className="badge scenario-dirty">{t.scenarios.canvas.unsaved}</span>
         )}
       </header>
 
       <div className="scenario-fields">
         <div className="field">
-          <label className="field-label" htmlFor={titleId}>Title</label>
+          <label className="field-label" htmlFor={titleId}>{t.scenarios.canvas.titleLabel}</label>
           {readOnly ? (
             <p className="scenario-readonly-value">
-              {draft.title.length > 0 ? draft.title : <span className="detail-empty">No title</span>}
+              {draft.title.length > 0
+                ? draft.title
+                : <span className="detail-empty">{t.scenarios.canvas.noTitle}</span>}
             </p>
           ) : (
             <input
               className="field-input"
               id={titleId}
               onChange={(event) => onChange({ ...draft, title: event.target.value })}
-              placeholder="Ask the agent for a scenario, or name one yourself"
+              placeholder={t.scenarios.canvas.titlePlaceholder}
               value={draft.title}
             />
           )}
         </div>
 
         <div className="field">
-          <label className="field-label" htmlFor={descriptionId}>Description</label>
+          <label className="field-label" htmlFor={descriptionId}>
+            {t.scenarios.canvas.descriptionLabel}
+          </label>
           {readOnly ? (
             <p className="scenario-readonly-value">
               {draft.description.length > 0
                 ? draft.description
-                : <span className="detail-empty">No description</span>}
+                : <span className="detail-empty">{t.scenarios.canvas.noDescription}</span>}
             </p>
           ) : (
             <textarea
@@ -135,9 +141,7 @@ export function ScenarioCanvas({
       </div>
 
       {draft.steps.length === 0 && readOnly ? (
-        <p className="panel-empty">
-          This scenario has no steps. The conversation closed before the agent produced one.
-        </p>
+        <p className="panel-empty">{t.scenarios.canvas.emptyClosed}</p>
       ) : (
         <ol className="scenario-flow">
           {draft.steps.map((step, index) => (
@@ -168,7 +172,7 @@ export function ScenarioCanvas({
             <li className="scenario-flow-item">
               <button className="scenario-node scenario-node--add" onClick={addStep} type="button">
                 <span aria-hidden="true" className="scenario-node-plus">+</span>
-                Add step
+                {t.scenarios.canvas.addStep}
               </button>
             </li>
           )}
@@ -176,10 +180,7 @@ export function ScenarioCanvas({
       )}
 
       {draft.steps.length === 0 && !readOnly && (
-        <p className="panel-empty">
-          No steps yet. Describe what you want tested in the conversation, or add the first step
-          yourself.
-        </p>
+        <p className="panel-empty">{t.scenarios.canvas.emptyOpen}</p>
       )}
 
       {selectedStep !== null && selected !== null && (
@@ -236,6 +237,7 @@ function StepNode({
   selected: boolean
   step: ScenarioStep
 }) {
+  const { t } = useI18n()
   const classes = ['scenario-flow-item']
   if (dragging) classes.push('scenario-flow-item--dragging')
   if (dropBefore) classes.push('scenario-flow-item--drop')
@@ -267,22 +269,18 @@ function StepNode({
       >
         <span className="mono scenario-node-step">{String(index + 1).padStart(2, '0')}</span>
         <span className="scenario-node-title">
-          {step.title.length > 0 ? step.title : 'Untitled step'}
+          {step.title.length > 0 ? step.title : t.scenarios.canvas.untitledStep}
         </span>
         <span className="scenario-node-action">
-          {step.action.length > 0 ? step.action : 'No action yet'}
+          {step.action.length > 0 ? step.action : t.scenarios.canvas.noActionYet}
         </span>
       </button>
     </li>
   )
 }
 
-const STEP_FIELDS = [
-  { key: 'title', label: 'Title', hint: 'What this step covers' },
-  { key: 'state', label: 'Starting state', hint: 'Where the game must be before the action' },
-  { key: 'action', label: 'Action', hint: 'What the agent performs' },
-  { key: 'expected', label: 'Expected result', hint: 'What proves the step passed' },
-] as const
+/** Labels and hints live in the locale dictionary under the same keys. */
+const STEP_FIELD_KEYS = ['title', 'state', 'action', 'expected'] as const
 
 /**
  * The selected step's four fields, in the order a tester reads them — starting
@@ -312,12 +310,14 @@ function StepEditor({
   readOnly: boolean
   step: ScenarioStep
 }) {
+  const { t } = useI18n()
   const fieldPrefix = useId()
+  const fields = t.scenarios.canvas.stepFields
 
   return (
     <div className="scenario-step-editor">
       <header className="scenario-step-editor-header">
-        <h3>Step {index + 1}</h3>
+        <h3>{t.scenarios.canvas.stepHeading(index + 1)}</h3>
         <div className="scenario-step-actions">
           {!readOnly && (
             <>
@@ -327,7 +327,7 @@ function StepEditor({
                 onClick={onMoveUp}
                 type="button"
               >
-                Move earlier
+                {t.scenarios.canvas.moveEarlier}
               </button>
               <button
                 className="button button--secondary button--compact"
@@ -335,14 +335,14 @@ function StepEditor({
                 onClick={onMoveDown}
                 type="button"
               >
-                Move later
+                {t.scenarios.canvas.moveLater}
               </button>
               <button
                 className="button button--danger-quiet button--compact"
                 onClick={onRemove}
                 type="button"
               >
-                Remove
+                {t.scenarios.canvas.remove}
               </button>
             </>
           )}
@@ -351,37 +351,37 @@ function StepEditor({
             onClick={onClose}
             type="button"
           >
-            Close
+            {t.scenarios.canvas.close}
           </button>
         </div>
       </header>
 
       {readOnly ? (
         <dl className="detail-fields">
-          {STEP_FIELDS.map((field) => (
-            <Fragment key={field.key}>
-              <dt>{field.label}</dt>
+          {STEP_FIELD_KEYS.map((key) => (
+            <Fragment key={key}>
+              <dt>{fields[key].label}</dt>
               <dd>
-                {step[field.key].length > 0
-                  ? step[field.key]
-                  : <span className="detail-empty">Not specified</span>}
+                {step[key].length > 0
+                  ? step[key]
+                  : <span className="detail-empty">{t.scenarios.canvas.notSpecified}</span>}
               </dd>
             </Fragment>
           ))}
         </dl>
       ) : (
-        STEP_FIELDS.map((field) => (
-          <div className="field" key={field.key}>
-            <label className="field-label" htmlFor={`${fieldPrefix}-${field.key}`}>
-              {field.label}
+        STEP_FIELD_KEYS.map((key) => (
+          <div className="field" key={key}>
+            <label className="field-label" htmlFor={`${fieldPrefix}-${key}`}>
+              {fields[key].label}
             </label>
             <input
               className="field-input"
-              id={`${fieldPrefix}-${field.key}`}
-              onChange={(event) => onChange({ ...step, [field.key]: event.target.value })}
-              value={step[field.key]}
+              id={`${fieldPrefix}-${key}`}
+              onChange={(event) => onChange({ ...step, [key]: event.target.value })}
+              value={step[key]}
             />
-            <p className="field-hint">{field.hint}</p>
+            <p className="field-hint">{fields[key].hint}</p>
           </div>
         ))
       )}
