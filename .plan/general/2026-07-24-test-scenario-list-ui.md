@@ -17,9 +17,10 @@
 
 ## Context / Constraints
 
-- 백엔드 목록 endpoint는 미구현. Notion 명세(수정 중):
+- 백엔드 목록 endpoint는 구현 중. 확정 DTO:
   `GET /api/projects/{projectId}/test-scenario` →
-  `{ items: [{ id, title, priority, status, version, lastRunStatus }] }`
+  `{ items: [{ testScenarioId, projectId, title, createdAt, updatedAt }] }`
+  (비참여자는 404)
 - 명세가 바뀔 수 있으므로 endpoint 경로와 DTO 파싱은 `scenarioApi.ts` 한 함수에
   격리한다. 파싱은 기존 스타일대로 관대하게(`asString`/`asNumber` fallback).
 - endpoint 부재로 인한 404는 빈 목록과 구분해 "서버가 아직 목록을 지원하지

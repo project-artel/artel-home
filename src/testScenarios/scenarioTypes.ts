@@ -65,15 +65,15 @@ export type TestScenario = {
 }
 
 /**
- * One row of the project's scenario list — the dashboard summary the list
- * endpoint returns. Steps are not here; they come from the single read.
+ * One row of the project's scenario list — the summary the list endpoint
+ * returns. Steps are not here; they come from the single read. Timestamps
+ * degrade to empty strings, which `formatDate` renders as a placeholder.
  */
 export type TestScenarioSummary = {
   testScenarioId: number
   title: string
-  priority: string
-  status: string
-  lastRunStatus: string
+  createdAt: string
+  updatedAt: string
 }
 
 /** The server ignores `type` today; it is sent because the contract declares it. */

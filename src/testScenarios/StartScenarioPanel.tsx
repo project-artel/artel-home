@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { formatDate } from '../projects/formatters'
 import { ProjectApiError } from '../projects/projectApi'
 import { createTestScenario, listTestScenarios } from './scenarioApi'
 import type { TestScenarioSummary } from './scenarioTypes'
@@ -175,25 +176,22 @@ function ScenarioList({
       {state.scenarios.map((scenario) => (
         <li className="scenario-row" key={scenario.testScenarioId}>
           <div className="scenario-row-main">
-            {/* The title is the way into the conversation; the badges describe
-                the row, so the identity is what navigates. */}
+            {/* The title is the way into the conversation, so the identity is
+                what navigates. */}
             <Link
               className="scenario-name"
               to={`/projects/${encodeURIComponent(projectId)}/test-scenarios/${scenario.testScenarioId}`}
             >
               {scenario.title.length > 0 ? scenario.title : 'Untitled scenario'}
             </Link>
-            {scenario.status.length > 0 && <span className="badge">{scenario.status}</span>}
           </div>
-          {(scenario.priority.length > 0 || scenario.lastRunStatus.length > 0) && (
-            <p className="scenario-row-meta">
-              {scenario.priority.length > 0 && <>Priority {scenario.priority}</>}
-              {scenario.priority.length > 0 && scenario.lastRunStatus.length > 0 && (
-                <span aria-hidden="true"> · </span>
-              )}
-              {scenario.lastRunStatus.length > 0 && <>Last run {scenario.lastRunStatus}</>}
-            </p>
-          )}
+          {/* The edit date orders the list for the user; creation only matters
+              for a scenario never touched since. */}
+          <p className="scenario-row-meta">
+            {scenario.updatedAt.length > 0
+              ? `Updated ${formatDate(scenario.updatedAt)}`
+              : `Created ${formatDate(scenario.createdAt)}`}
+          </p>
         </li>
       ))}
     </ul>

@@ -127,31 +127,28 @@ function toItemArray(data: unknown): unknown[] {
 /**
  * The summary row exists as long as it has an id; every other field degrades to
  * an empty string, because a scenario the user cannot open again is a worse
- * outcome than a row with a blank status.
+ * outcome than a row with a blank title or timestamp.
  */
 function parseScenarioSummary(data: unknown): TestScenarioSummary | null {
   const record = asRecord(data)
   if (record === null) return null
 
-  // The spec names the key `id`; `testScenarioId` is accepted because the
-  // single-read endpoint uses that name and the spec is still being revised.
-  const id = typeof record.id === 'number' ? record.id : record.testScenarioId
-  if (typeof id !== 'number') return null
+  if (typeof record.testScenarioId !== 'number') return null
 
   return {
-    testScenarioId: id,
+    testScenarioId: record.testScenarioId,
     title: asString(record.title),
-    priority: asString(record.priority),
-    status: asString(record.status),
-    lastRunStatus: asString(record.lastRunStatus),
+    createdAt: asString(record.createdAt),
+    updatedAt: asString(record.updatedAt),
   }
 }
 
 /**
- * Lists a project's scenarios, per the spec that is still marked 미구현 on the
- * server: `GET /api/projects/{projectId}/test-scenario`. Until the server ships
- * it, this call returns a 404 `ProjectApiError` — the panel tells that apart
- * from an empty list, so path and parsing changes stay inside this function.
+ * Lists a project's scenarios: `GET /api/projects/{projectId}/test-scenario`.
+ * Until the server ships the endpoint, this call returns a 404
+ * `ProjectApiError` — the panel tells that apart from an empty list, so path
+ * and parsing changes stay inside this function. Once shipped, a 404 means
+ * "not a member", which the project screen has already turned away.
  */
 export async function listTestScenarios(
   projectId: number,
