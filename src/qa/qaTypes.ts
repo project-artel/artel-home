@@ -57,7 +57,7 @@ export type QaLogPage = {
   hasMore: boolean
 }
 
-export type QaStreamState = 'connecting' | 'live' | 'degraded' | 'closed'
+export type QaStreamState = 'connecting' | 'live' | 'degraded' | 'offline' | 'closed'
 
 export function isTerminalQaStatus(status: QaTryStatus): boolean {
   return status === 'COMPLETED' || status === 'FAILED' || status === 'CANCELLED'

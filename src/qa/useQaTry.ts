@@ -22,7 +22,28 @@ function isAbort(error: unknown): boolean {
   return error instanceof DOMException && error.name === 'AbortError'
 }
 
+function isAscending(logs: QaLog[]): boolean {
+  for (let index = 1; index < logs.length; index += 1) {
+    if (compareDecimalIds(logs[index - 1].id, logs[index].id) >= 0) return false
+  }
+  return true
+}
+
 function mergeLogs(current: QaLog[], incoming: QaLog[]): QaLog[] {
+  if (incoming.length === 0) return current
+  if (current.length === 0 || !isAscending(incoming)) return mergeSorted(current, incoming)
+
+  // Hot paths: SSE appends a single newer log, history prepends an older page.
+  // Both stay sorted with an O(n) concat and skip the full Map rebuild + re-sort.
+  const first = current[0]
+  const last = current[current.length - 1]
+  if (compareDecimalIds(incoming[0].id, last.id) > 0) return current.concat(incoming)
+  if (compareDecimalIds(incoming[incoming.length - 1].id, first.id) < 0) return incoming.concat(current)
+
+  return mergeSorted(current, incoming)
+}
+
+function mergeSorted(current: QaLog[], incoming: QaLog[]): QaLog[] {
   const byId = new Map(current.map((log) => [log.id, log]))
   incoming.forEach((log) => byId.set(log.id, log))
   return [...byId.values()].sort((left, right) => compareDecimalIds(left.id, right.id))
@@ -56,6 +77,7 @@ export function useQaTry(qaTryId: string) {
   const [reloadToken, setReloadToken] = useState(0)
   const generationRef = useRef(0)
   const initialAfterIdRef = useRef<string | undefined>(undefined)
+  const historyControllerRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
     const generation = ++generationRef.current
@@ -81,7 +103,10 @@ export function useQaTry(qaTryId: string) {
         setLoadStatus(status === 404 ? 'missing' : 'error')
       })
 
-    return () => controller.abort()
+    return () => {
+      controller.abort()
+      historyControllerRef.current?.abort()
+    }
   }, [qaTryId, reloadToken])
 
   const streamEligible =
@@ -106,6 +131,13 @@ export function useQaTry(qaTryId: string) {
       const log = parseQaLogEvent(event.data)
       if (log === null || log.qaTryId !== qaTryId) return
 
+      // Advance the resume cursor so a remount/eligibility retoggle reopens from the
+      // newest seen log instead of replaying the whole session tail.
+      const seen = initialAfterIdRef.current
+      if (seen === undefined || compareDecimalIds(log.id, seen) > 0) {
+        initialAfterIdRef.current = log.id
+      }
+
       setLogs((current) => mergeLogs(current, [log]))
       const statusUpdate = statusFromLog(log)
       if (statusUpdate === null) return
@@ -117,7 +149,11 @@ export function useQaTry(qaTryId: string) {
     })
 
     source.addEventListener('error', () => {
-      if (generationRef.current === generation) setStreamState('degraded')
+      if (generationRef.current !== generation) return
+      // readyState CLOSED = terminal (e.g. 404, or a 401 whose cookie expired mid-stream,
+      // which never reaches apiFetch's unauthorizedHandler): the browser will not reconnect,
+      // so surface an offline state instead of claiming perpetual reconnection.
+      setStreamState(source.readyState === EventSource.CLOSED ? 'offline' : 'degraded')
     })
 
     return () => {
@@ -129,23 +165,27 @@ export function useQaTry(qaTryId: string) {
     if (historyLoading || !hasMore || nextBeforeId === null) return false
     const generation = generationRef.current
     const cursor = nextBeforeId
+    historyControllerRef.current?.abort()
+    const controller = new AbortController()
+    historyControllerRef.current = controller
     setHistoryLoading(true)
     setHistoryFailure(null)
 
     try {
-      const page = await listQaLogs(qaTryId, cursor)
+      const page = await listQaLogs(qaTryId, cursor, controller.signal)
       if (generationRef.current !== generation) return false
       setLogs((current) => mergeLogs(current, page.items))
       const cursorAdvanced = page.nextBeforeId !== cursor
       setHasMore(page.hasMore && cursorAdvanced)
       setNextBeforeId(cursorAdvanced ? page.nextBeforeId : null)
       return page.items.length > 0
-    } catch {
-      if (generationRef.current === generation) {
+    } catch (error: unknown) {
+      if (!isAbort(error) && generationRef.current === generation) {
         setHistoryFailure('Older logs could not be loaded. Try again.')
       }
       return false
     } finally {
+      if (historyControllerRef.current === controller) historyControllerRef.current = null
       if (generationRef.current === generation) setHistoryLoading(false)
     }
   }, [hasMore, historyLoading, nextBeforeId, qaTryId])

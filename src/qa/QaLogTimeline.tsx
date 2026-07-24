@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { compareDecimalIds } from './qaApi'
 import type { QaLog } from './qaTypes'
 
 const DATE_FORMAT = new Intl.DateTimeFormat(undefined, {
@@ -135,7 +136,17 @@ export function QaLogTimeline({
       if (nearLiveEdge) {
         viewport.scrollTop = viewport.scrollHeight
       } else {
-        window.requestAnimationFrame(() => setUnseenLogs((count) => count + 1))
+        // Count every log newer than the last-seen newest, not +1 per commit: several
+        // logs can land in one render and the pill must not undercount them.
+        const previousNewest = previousNewestRef.current
+        const arrived =
+          previousNewest === null
+            ? logs.length
+            : logs.reduce(
+                (count, log) => (compareDecimalIds(log.id, previousNewest) > 0 ? count + 1 : count),
+                0,
+              )
+        window.requestAnimationFrame(() => setUnseenLogs((count) => count + arrived))
       }
       previousNewestRef.current = newestId
     }
@@ -159,6 +170,10 @@ export function QaLogTimeline({
     const sentinel = sentinelRef.current
     if (sentinel === null || !hasMore || historyLoading || historyFailure !== null) return undefined
 
+    // Reset on re-subscribe: a stale `true` left from the previous observer would make
+    // the new observer's first callback early-return, stalling auto-load when a freshly
+    // loaded page is shorter than the viewport and the sentinel stays intersecting.
+    intersectingRef.current = false
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (!entry.isIntersecting) {
@@ -201,7 +216,14 @@ export function QaLogTimeline({
   }
 
   return (
-    <div className="qa-log-viewport" onScroll={updateLiveEdge} ref={viewportRef}>
+    <div
+      className="qa-log-viewport"
+      onScroll={updateLiveEdge}
+      ref={viewportRef}
+      tabIndex={0}
+      role="region"
+      aria-label="QA Try activity log"
+    >
       <div className="qa-log-history-controls">
         <div aria-hidden="true" ref={sentinelRef} />
         {historyLoading && <span role="status">Loading older logs…</span>}

@@ -81,13 +81,15 @@ function QaTryPage({ projectId, qaTryId }: { projectId: string; qaTryId: string 
 
   const active = !isTerminalQaStatus(session.qaTry.status)
   const streamLabel =
-    session.streamState === 'degraded'
-      ? 'Live log connection interrupted. Reconnecting…'
-      : session.streamState === 'connecting'
-        ? 'Connecting live logs…'
-        : session.streamState === 'live'
-          ? 'Live logs connected'
-          : 'Stored logs'
+    session.streamState === 'offline'
+      ? 'Live log connection lost. Reload to reconnect.'
+      : session.streamState === 'degraded'
+        ? 'Live log connection interrupted. Reconnecting…'
+        : session.streamState === 'connecting'
+          ? 'Connecting live logs…'
+          : session.streamState === 'live'
+            ? 'Live logs connected'
+            : 'Stored logs'
 
   return (
     <section className={`page qa-page ${active ? 'qa-page--active' : 'qa-page--terminal'}`} aria-labelledby="qa-try-title">

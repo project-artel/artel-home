@@ -1817,7 +1817,7 @@ a.instance-name:hover {
 }
 
 .qa-load-older {
-  min-height: 32px;
+  min-height: 44px;
   padding: 0 var(--space-3);
   border: 0;
   color: var(--color-action-primary);
@@ -1899,7 +1899,7 @@ a.instance-name:hover {
   gap: var(--space-2);
   color: var(--color-text-muted);
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 11px;
   line-height: 16px;
   font-variant-numeric: tabular-nums;
 }
@@ -1942,7 +1942,7 @@ a.instance-name:hover {
   overflow-wrap: anywhere;
   color: var(--color-text-muted);
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 11px;
   line-height: 16px;
 }
 
@@ -1984,8 +1984,10 @@ a.instance-name:hover {
   position: sticky;
   right: var(--space-4);
   bottom: var(--space-4);
-  display: block;
-  min-height: 36px;
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
   margin: 0 var(--space-4) var(--space-4) auto;
   padding: 0 var(--space-3);
   border: 1px solid var(--color-action-primary);
