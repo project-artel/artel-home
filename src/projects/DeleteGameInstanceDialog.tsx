@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Dialog } from '../design-system/primitives/Dialog'
 import { deleteGameInstance } from './gameApi'
+import { useI18n } from '../i18n/useI18n'
 import { ProjectApiError } from './projectApi'
 
 /**
@@ -25,6 +26,7 @@ export function DeleteGameInstanceDialog({
 }) {
   const [failure, setFailure] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
+  const { t } = useI18n()
 
   async function confirm() {
     setPending(true)
@@ -36,8 +38,8 @@ export function DeleteGameInstanceDialog({
     } catch (error: unknown) {
       setFailure(
         error instanceof ProjectApiError && error.isForbidden
-          ? 'You do not have permission to delete this instance.'
-          : 'The instance could not be deleted. Please try again.',
+          ? t.projects.instanceDelete.forbidden
+          : t.projects.instanceDelete.deleteFailed,
       )
       // No `finally`: a success unmounts this dialog, so clearing the pending
       // flag there would be a state update on a component that is already gone.
@@ -46,11 +48,14 @@ export function DeleteGameInstanceDialog({
   }
 
   return (
-    <Dialog labelledBy="delete-instance-title" onClose={onClose} title="Delete game instance">
+    <Dialog
+      labelledBy="delete-instance-title"
+      onClose={onClose}
+      title={t.projects.instanceDelete.title}
+    >
       <p className="dialog-copy">
-        <strong>{instanceName}</strong> will stop reporting and its instance key
-        will no longer work. Connecting that game again needs a new instance and
-        a new key. This cannot be undone.
+        <strong>{instanceName}</strong>
+        {t.projects.instanceDelete.confirmSuffix}
       </p>
 
       {failure !== null && (
@@ -67,7 +72,7 @@ export function DeleteGameInstanceDialog({
           onClick={onClose}
           type="button"
         >
-          Cancel
+          {t.projects.shared.cancel}
         </button>
         <button
           className="button button--danger"
@@ -75,7 +80,7 @@ export function DeleteGameInstanceDialog({
           onClick={() => void confirm()}
           type="button"
         >
-          {pending ? 'Deleting…' : 'Delete instance'}
+          {pending ? t.projects.shared.deleting : t.projects.instanceDelete.confirm}
         </button>
       </div>
     </Dialog>

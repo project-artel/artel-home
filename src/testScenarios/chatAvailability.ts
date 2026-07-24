@@ -19,14 +19,14 @@ import type { ScenarioFailure } from './scenarioTypes'
  * expensive to get wrong is the other one: an input that looks live, accepts a
  * message, and drops it. This module is the only place that decides, so
  * adopting the real signal is a change to `closureFrom*` and nothing else.
+ *
+ * The closure is machine-readable rather than a sentence: this module is not a
+ * component, so the rendering side maps `kind` through the locale dictionary.
+ * `detail` carries the server's own words, which are shown as written.
  */
-export type ChatClosure = {
-  /** Shown to the user in place of the composer. */
-  reason: string
-}
-
-const EXPIRED_SESSION_REASON =
-  'This conversation is closed. The agent session behind it is no longer available, so no new messages can be sent. The transcript and the scenario below stay readable.'
+export type ChatClosure =
+  | { kind: 'expired' }
+  | { kind: 'failure'; detail: string }
 
 /**
  * A relay failure. `502` is the documented one — the orchestration server could
@@ -39,7 +39,7 @@ const EXPIRED_SESSION_REASON =
  */
 export function closureFromSendFailure(error: unknown): ChatClosure | null {
   if (error instanceof ProjectApiError && error.status >= 500) {
-    return { reason: EXPIRED_SESSION_REASON }
+    return { kind: 'expired' }
   }
   return null
 }
@@ -53,10 +53,8 @@ export function closureFromStreamFailure(failure: ScenarioFailure): ChatClosure 
   const described = [failure.code, failure.detail].filter((part) => part.length > 0).join(' — ')
 
   if (described.length === 0) {
-    return { reason: EXPIRED_SESSION_REASON }
+    return { kind: 'expired' }
   }
 
-  return {
-    reason: `This conversation is closed: ${described}. The transcript and the scenario below stay readable.`,
-  }
+  return { kind: 'failure', detail: described }
 }

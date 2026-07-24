@@ -1,5 +1,7 @@
 import { Link, Outlet } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
+import { isLocale, LOCALE_LABELS, LOCALES } from '../i18n/locale'
+import { useI18n } from '../i18n/useI18n'
 
 /**
  * The signed-in chrome: brand, connection state, and the user menu. Everything
@@ -7,6 +9,7 @@ import { useAuth } from '../auth/useAuth'
  */
 export function AppShell() {
   const auth = useAuth()
+  const { locale, setLocale, t } = useI18n()
 
   if (auth.status !== 'authenticated') {
     // AuthProvider only ever mounts this subtree for an authenticated user; the
@@ -21,12 +24,26 @@ export function AppShell() {
   return (
     <div className="app-shell">
       <header className="top-bar">
-        <Link className="brand" to="/projects" aria-label="ARTEL Replay Studio home">
+        <Link className="brand" to="/projects" aria-label={t.common.shell.brandHomeLabel}>
           <span className="brand-mark" aria-hidden="true">A</span>
           <span>ARTEL</span>
           <span className="product-name">Replay Studio</span>
         </Link>
         <div className="top-bar-actions">
+          <select
+            aria-label={t.common.shell.languageLabel}
+            className="locale-select"
+            onChange={(event) => {
+              if (isLocale(event.target.value)) setLocale(event.target.value)
+            }}
+            value={locale}
+          >
+            {LOCALES.map((option) => (
+              <option key={option} value={option}>
+                {LOCALE_LABELS[option]}
+              </option>
+            ))}
+          </select>
           <div className="user-menu">
             {primaryIdentity?.avatarUrl ? (
               <img className="user-avatar" src={primaryIdentity.avatarUrl} alt="" />
@@ -37,7 +54,7 @@ export function AppShell() {
             )}
             <span className="user-name">{auth.user.displayName}</span>
             <button className="logout-button" type="button" onClick={() => void auth.logout()}>
-              Sign out
+              {t.common.shell.signOut}
             </button>
           </div>
         </div>

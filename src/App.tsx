@@ -3,6 +3,7 @@ import './App.css'
 import { LoginPage } from './LoginPage'
 import { NotFoundPage } from './NotFoundPage'
 import { useAuth } from './auth/useAuth'
+import { useI18n } from './i18n/useI18n'
 import { GameInstanceDetailRoute } from './projects/GameInstanceDetailPage'
 import { ProjectDetailRoute } from './projects/ProjectDetailPage'
 import { ProjectListPage } from './projects/ProjectListPage'
@@ -11,12 +12,13 @@ import { TestScenarioRoute } from './testScenarios/TestScenarioPage'
 
 export function App() {
   const auth = useAuth()
+  const { t } = useI18n()
 
   if (auth.status === 'loading') {
     return (
       <main className="session-loading" aria-live="polite">
         <span className="loading-mark" aria-hidden="true" />
-        Checking your session…
+        {t.common.session.checking}
       </main>
     )
   }

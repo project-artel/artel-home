@@ -1,3 +1,5 @@
+import { useI18n } from '../i18n/useI18n'
+
 /**
  * Copies one value the developer would otherwise have to retype into Unity.
  *
@@ -25,12 +27,14 @@ export function CopyButton({
   onResult: (message: string) => void
   text: string
 }) {
+  const { t } = useI18n()
+
   async function copy() {
     try {
       await navigator.clipboard.writeText(text)
       onResult(copiedMessage)
     } catch {
-      onResult('Copying was blocked by the browser. Select the value and copy it manually.')
+      onResult(t.projects.copy.blocked)
     }
   }
 

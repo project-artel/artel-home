@@ -30,6 +30,13 @@ import {
 
 const SCENARIO_ROOT = '/api/test-scenario'
 
+/**
+ * Client-side code for a create response that carries no scenario id. The
+ * message on the error is a developer-facing fallback; the panel that shows the
+ * failure recognises the code and renders the localized copy instead.
+ */
+export const SCENARIO_ID_MISSING = 'client/scenario-id-missing'
+
 function scenarioPath(testScenarioId: number, suffix = ''): string {
   return `${SCENARIO_ROOT}/${encodeURIComponent(testScenarioId)}${suffix}`
 }
@@ -132,7 +139,11 @@ export async function createTestScenario(projectId: number): Promise<number> {
   const testScenarioId = record === null ? null : record.testScenarioId
 
   if (typeof testScenarioId !== 'number') {
-    throw new ProjectApiError(response.status, 'The server did not return a scenario id.')
+    throw new ProjectApiError(
+      response.status,
+      'The server did not return a scenario id.',
+      SCENARIO_ID_MISSING,
+    )
   }
 
   return testScenarioId

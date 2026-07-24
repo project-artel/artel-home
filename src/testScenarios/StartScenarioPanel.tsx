@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useI18n } from '../i18n/useI18n'
 import { ProjectApiError } from '../projects/projectApi'
-import { createTestScenario } from './scenarioApi'
+import { createTestScenario, SCENARIO_ID_MISSING } from './scenarioApi'
 
 /**
  * The way into a scenario conversation.
@@ -14,6 +15,7 @@ export function StartScenarioPanel({ projectId }: { projectId: string }) {
   const [starting, setStarting] = useState(false)
   const [failure, setFailure] = useState<string | null>(null)
   const navigate = useNavigate()
+  const { t } = useI18n()
 
   async function start() {
     // The project API serialises the id as a string; the scenario API declares
@@ -21,7 +23,7 @@ export function StartScenarioPanel({ projectId }: { projectId: string }) {
     // `NaN`, which the server would reject with a message about the body.
     const numericProjectId = Number(projectId)
     if (!Number.isInteger(numericProjectId)) {
-      setFailure('This project cannot start a scenario: its address is not a project id.')
+      setFailure(t.scenarios.start.invalidProjectId)
       return
     }
 
@@ -32,10 +34,14 @@ export function StartScenarioPanel({ projectId }: { projectId: string }) {
       const testScenarioId = await createTestScenario(numericProjectId)
       navigate(`/projects/${encodeURIComponent(projectId)}/test-scenarios/${testScenarioId}`)
     } catch (error: unknown) {
+      // Server-provided messages are shown as written; the client-detected
+      // contract break maps to localized copy through its code.
       setFailure(
         error instanceof ProjectApiError
-          ? error.message
-          : 'The scenario could not be started. Please try again.',
+          ? error.code === SCENARIO_ID_MISSING
+            ? t.scenarios.start.badServerResponse
+            : error.message
+          : t.scenarios.start.startFailed,
       )
       setStarting(false)
     }
@@ -45,11 +51,8 @@ export function StartScenarioPanel({ projectId }: { projectId: string }) {
     <section className="panel" aria-labelledby="test-scenarios-title">
       <header className="panel-header panel-header--split">
         <div>
-          <h2 id="test-scenarios-title">Test scenarios</h2>
-          <p className="scenario-hint">
-            Describe what should be tested and the agent writes the steps. You can edit them before
-            sending the next message.
-          </p>
+          <h2 id="test-scenarios-title">{t.scenarios.start.title}</h2>
+          <p className="scenario-hint">{t.scenarios.start.hint}</p>
         </div>
         <button
           className="button button--primary button--compact"
@@ -57,7 +60,7 @@ export function StartScenarioPanel({ projectId }: { projectId: string }) {
           onClick={start}
           type="button"
         >
-          {starting ? 'Starting…' : 'Write a scenario'}
+          {starting ? t.scenarios.start.starting : t.scenarios.start.startButton}
         </button>
       </header>
 
@@ -72,8 +75,7 @@ export function StartScenarioPanel({ projectId }: { projectId: string }) {
         {/* Said plainly rather than hidden: a user who closes the tab has no way
             back to the conversation, and finding that out afterwards is worse
             than being told now. */}
-        A scenario is reached by its own address. Bookmark it, or keep the tab open — this project
-        does not yet list the scenarios written for it.
+        {t.scenarios.start.bookmarkNote}
       </p>
     </section>
   )

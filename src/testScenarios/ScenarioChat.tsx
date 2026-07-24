@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useI18n } from '../i18n/useI18n'
 import { formatDateTime } from '../projects/formatters'
 import type { ChatClosure } from './chatAvailability'
 import type { ChatMessage } from './scenarioTypes'
@@ -26,6 +27,7 @@ export function ScenarioChat({
   sendFailure: string | null
   sending: boolean
 }) {
+  const { t } = useI18n()
   const [input, setInput] = useState('')
   const threadRef = useRef<HTMLOListElement>(null)
 
@@ -64,14 +66,11 @@ export function ScenarioChat({
   return (
     <section className="panel scenario-chat" aria-labelledby="scenario-chat-title">
       <header className="panel-header">
-        <h2 id="scenario-chat-title">Conversation</h2>
+        <h2 id="scenario-chat-title">{t.scenarios.chat.title}</h2>
       </header>
 
       {messages.length === 0 && closure === null ? (
-        <p className="panel-empty">
-          Describe the behaviour you want covered — for example, “Write a scenario for finishing
-          the tutorial without taking damage.” The agent answers with a scenario you can edit.
-        </p>
+        <p className="panel-empty">{t.scenarios.chat.emptyCopy}</p>
       ) : (
         <ol className="chat-thread" ref={threadRef}>
           {messages.map((message) => (
@@ -80,13 +79,15 @@ export function ScenarioChat({
               key={message.id}
             >
               <p className="chat-author">
-                {message.role === 'USER' ? 'You' : 'Agent'}
+                {message.role === 'USER' ? t.scenarios.chat.you : t.scenarios.chat.agent}
                 {message.createdAt !== null && (
                   <span className="chat-time">{formatDateTime(message.createdAt)}</span>
                 )}
               </p>
               <p className="chat-body">{message.content}</p>
-              {message.pending && <p className="chat-status">Waiting for the agent…</p>}
+              {message.pending && (
+                <p className="chat-status">{t.scenarios.chat.waitingForAgent}</p>
+              )}
             </li>
           ))}
         </ol>
@@ -94,8 +95,12 @@ export function ScenarioChat({
 
       {closure !== null ? (
         <div className="chat-closed" role="status">
-          <p className="chat-closed-title">Chat unavailable</p>
-          <p className="chat-closed-copy">{closure.reason}</p>
+          <p className="chat-closed-title">{t.scenarios.chat.closedTitle}</p>
+          <p className="chat-closed-copy">
+            {closure.kind === 'expired'
+              ? t.scenarios.chat.closedExpired
+              : t.scenarios.chat.closedWithDetail(closure.detail)}
+          </p>
         </div>
       ) : (
         <form className="chat-composer" onSubmit={submit}>
@@ -107,7 +112,7 @@ export function ScenarioChat({
           )}
 
           <label className="visually-hidden" htmlFor="scenario-chat-input">
-            Message to the agent
+            {t.scenarios.chat.inputLabel}
           </label>
           <textarea
             className="field-input field-input--multiline"
@@ -116,28 +121,28 @@ export function ScenarioChat({
             id="scenario-chat-input"
             onChange={(event) => setInput(event.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Describe what should be tested"
+            placeholder={t.scenarios.chat.inputPlaceholder}
             rows={3}
             value={input}
           />
 
           <div className="chat-composer-actions">
             <p className="shortcut-hint" id="scenario-chat-hint">
-              Enter to send · Shift+Enter for a new line
+              {t.scenarios.chat.shortcutHint}
             </p>
             <button
               className="button button--primary button--compact"
               disabled={sending || input.trim().length === 0}
               type="submit"
             >
-              {sending ? 'Sending…' : 'Send'}
+              {sending ? t.scenarios.chat.sending : t.scenarios.chat.send}
             </button>
           </div>
         </form>
       )}
 
       <p aria-live="polite" className="visually-hidden">
-        {awaitingReply ? 'Waiting for the agent to reply.' : ''}
+        {awaitingReply ? t.scenarios.chat.awaitingReply : ''}
       </p>
     </section>
   )

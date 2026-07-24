@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useI18n } from '../i18n/useI18n'
 import { ApproveScenarioDialog } from './ApproveScenarioDialog'
 import { DeleteScenarioDialog } from './DeleteScenarioDialog'
 import { ScenarioCanvas } from './ScenarioCanvas'
@@ -43,6 +44,7 @@ function TestScenarioPage({
   const scenarioId = Number(testScenarioId)
   const session = useScenarioSession(scenarioId)
   const navigate = useNavigate()
+  const { t } = useI18n()
   // Approve finalizes and Delete discards; both end the scenario, so each opens
   // a confirmation first rather than acting on a single click.
   const [dialog, setDialog] = useState<'approve' | 'delete' | null>(null)
@@ -51,10 +53,10 @@ function TestScenarioPage({
     return (
       <section className="page">
         <div className="panel-message">
-          <h1>Scenario not found</h1>
-          <p className="panel-message-copy">That address does not name a scenario.</p>
+          <h1>{t.scenarios.page.notFoundTitle}</h1>
+          <p className="panel-message-copy">{t.scenarios.page.invalidAddress}</p>
           <Link className="button button--secondary" to={backLink(projectId)}>
-            Back to the project
+            {t.scenarios.page.backToProject}
           </Link>
         </div>
       </section>
@@ -64,7 +66,7 @@ function TestScenarioPage({
   if (session.status === 'loading') {
     return (
       <section className="page" aria-busy="true">
-        <p className="panel-empty">Loading scenario…</p>
+        <p className="panel-empty">{t.scenarios.page.loading}</p>
       </section>
     )
   }
@@ -73,12 +75,10 @@ function TestScenarioPage({
     return (
       <section className="page">
         <div className="panel-message">
-          <h1>Scenario not found</h1>
-          <p className="panel-message-copy">
-            It may have been deleted, or you may not have access to it.
-          </p>
+          <h1>{t.scenarios.page.notFoundTitle}</h1>
+          <p className="panel-message-copy">{t.scenarios.page.missingCopy}</p>
           <Link className="button button--secondary" to={backLink(projectId)}>
-            Back to the project
+            {t.scenarios.page.backToProject}
           </Link>
         </div>
       </section>
@@ -89,9 +89,9 @@ function TestScenarioPage({
     return (
       <section className="page">
         <div className="panel-message" role="alert">
-          <p>This scenario could not be loaded.</p>
+          <p>{t.scenarios.page.loadFailed}</p>
           <button className="button button--secondary" onClick={session.reload} type="button">
-            Retry
+            {t.scenarios.page.retry}
           </button>
         </div>
       </section>
@@ -102,12 +102,12 @@ function TestScenarioPage({
     <section className="page" aria-labelledby="scenario-title">
       <header className="page-header">
         <div>
-          <Link className="back-link" to={backLink(projectId)}>Back to the project</Link>
+          <Link className="back-link" to={backLink(projectId)}>{t.scenarios.page.backToProject}</Link>
           <h1 id="scenario-title">
-            {session.saved.title.length > 0 ? session.saved.title : 'Untitled scenario'}
+            {session.saved.title.length > 0 ? session.saved.title : t.scenarios.page.untitled}
           </h1>
           <p className="page-subtitle">
-            Scenario <span className="mono">#{scenarioId}</span>
+            {t.scenarios.page.scenarioLabel} <span className="mono">#{scenarioId}</span>
           </p>
         </div>
         <div className="page-header-actions">
@@ -115,21 +115,21 @@ function TestScenarioPage({
               expected case, and a permanent "connected" badge would be noise on
               a screen whose real subject is the conversation. */}
           {!session.connected && session.closure === null && (
-            <span className="badge scenario-reconnecting">Reconnecting…</span>
+            <span className="badge scenario-reconnecting">{t.scenarios.page.reconnecting}</span>
           )}
           <button
             className="button button--danger-quiet"
             onClick={() => setDialog('delete')}
             type="button"
           >
-            Delete
+            {t.scenarios.page.delete}
           </button>
           <button
             className="button button--primary"
             onClick={() => setDialog('approve')}
             type="button"
           >
-            Approve
+            {t.scenarios.page.approve}
           </button>
         </div>
       </header>

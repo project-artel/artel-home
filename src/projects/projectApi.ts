@@ -98,6 +98,11 @@ function asHeaders(value: unknown): Record<string, string> {
   return asFieldErrors(value)
 }
 
+/*
+ * Errors this module detects itself carry a `CLIENT_*` code so components can
+ * localize them via `apiErrorMessage`. The English message stays as a fallback
+ * for render sites that print `error.message` directly.
+ */
 const genericFailureMessage = 'The request could not be completed. Please try again.'
 
 /**
@@ -124,7 +129,9 @@ export async function toApiError(response: Response): Promise<ProjectApiError> {
   return new ProjectApiError(
     response.status,
     message.length > 0 ? message : genericFailureMessage,
-    code,
+    // A body with neither message nor code gets the client's generic wording,
+    // so the code follows it; a server-provided code is never overwritten.
+    code ?? (message.length > 0 ? null : 'CLIENT_GENERIC'),
     fields,
   )
 }
@@ -137,7 +144,11 @@ export async function readJson(response: Response): Promise<unknown> {
   try {
     return await response.json()
   } catch {
-    throw new ProjectApiError(response.status, 'The server returned an unreadable response.')
+    throw new ProjectApiError(
+      response.status,
+      'The server returned an unreadable response.',
+      'CLIENT_UNREADABLE_RESPONSE',
+    )
   }
 }
 
@@ -219,7 +230,11 @@ function parseDetail(data: unknown): ProjectDetail {
   const name = asNullableString(record?.name)
 
   if (record === null || id === null || name === null) {
-    throw new ProjectApiError(200, 'The server returned a project without an id or a name.')
+    throw new ProjectApiError(
+      200,
+      'The server returned a project without an id or a name.',
+      'CLIENT_MALFORMED_PROJECT',
+    )
   }
 
   return {
@@ -271,7 +286,11 @@ function parseUploadTicket(data: unknown): UploadTicket {
   const objectKey = asNullableString(record?.objectKey)
 
   if (uploadUrl === null || objectKey === null) {
-    throw new ProjectApiError(200, 'The server did not return a usable upload location.')
+    throw new ProjectApiError(
+      200,
+      'The server did not return a usable upload location.',
+      'CLIENT_MALFORMED_UPLOAD_TICKET',
+    )
   }
 
   return {
@@ -289,7 +308,11 @@ function parseDownloadTicket(data: unknown): DownloadTicket {
   const downloadUrl = asNullableString(record?.downloadUrl) ?? asNullableString(record?.url)
 
   if (downloadUrl === null) {
-    throw new ProjectApiError(200, 'The server did not return a download link.')
+    throw new ProjectApiError(
+      200,
+      'The server did not return a download link.',
+      'CLIENT_MALFORMED_DOWNLOAD_TICKET',
+    )
   }
 
   return { downloadUrl, expiresAt: asString(record?.expiresAt) }
@@ -371,7 +394,11 @@ export async function registerDocument(
 
   const document = parseDocument(await readJson(response))
   if (document === null) {
-    throw new ProjectApiError(201, 'The document was stored but the server described it oddly.')
+    throw new ProjectApiError(
+      201,
+      'The document was stored but the server described it oddly.',
+      'CLIENT_MALFORMED_DOCUMENT',
+    )
   }
   return document
 }

@@ -1,8 +1,8 @@
 import { useId, type ReactNode } from 'react'
+import { useI18n } from '../i18n/useI18n'
 import {
   DESCRIPTION_MAX_LENGTH,
   GENRES,
-  GENRE_LABELS,
   NAME_MAX_LENGTH,
   type Genre,
   type ProjectDraft,
@@ -32,12 +32,14 @@ export function ProjectForm({
   const nameId = useId()
   const descriptionId = useId()
   const genreId = useId()
+  const { t } = useI18n()
 
   return (
     <div className="project-form">
       <div className="field">
         <label className="field-label" htmlFor={nameId}>
-          Name <span className="field-required" aria-hidden="true">*</span>
+          {t.projects.shared.nameLabel}{' '}
+          <span className="field-required" aria-hidden="true">*</span>
         </label>
         <input
           aria-describedby={fieldErrors.name ? `${nameId}-error` : undefined}
@@ -56,7 +58,7 @@ export function ProjectForm({
       </div>
 
       <div className="field">
-        <label className="field-label" htmlFor={genreId}>Genre</label>
+        <label className="field-label" htmlFor={genreId}>{t.projects.form.genreLabel}</label>
         <select
           className="field-input"
           disabled={disabled}
@@ -65,14 +67,16 @@ export function ProjectForm({
           value={draft.genre}
         >
           {GENRES.map((genre) => (
-            <option key={genre} value={genre}>{GENRE_LABELS[genre]}</option>
+            <option key={genre} value={genre}>{t.projects.genreLabels[genre]}</option>
           ))}
         </select>
         {fieldErrors.genre && <p className="field-error">{fieldErrors.genre}</p>}
       </div>
 
       <div className="field">
-        <label className="field-label" htmlFor={descriptionId}>Description</label>
+        <label className="field-label" htmlFor={descriptionId}>
+          {t.projects.form.descriptionLabel}
+        </label>
         <textarea
           className="field-input field-input--multiline"
           disabled={disabled}
@@ -82,9 +86,7 @@ export function ProjectForm({
           rows={4}
           value={draft.description}
         />
-        <p className="field-hint">
-          Clearing this field removes the description.
-        </p>
+        <p className="field-hint">{t.projects.form.descriptionHint}</p>
         {fieldErrors.description && <p className="field-error">{fieldErrors.description}</p>}
       </div>
 

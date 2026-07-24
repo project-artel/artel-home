@@ -5,9 +5,11 @@ import { DocumentPanel } from './DocumentPanel'
 import { formatDate } from './formatters'
 import { GameBuildPanel } from './GameBuildPanel'
 import { GameInstancePanel } from './GameInstancePanel'
+import { useI18n } from '../i18n/useI18n'
+import { apiErrorMessage } from './apiErrorMessage'
 import { ProjectApiError, updateProject } from './projectApi'
 import { ProjectForm } from './ProjectForm'
-import { GENRE_LABELS, type ProjectDetail, type ProjectDraft } from './projectTypes'
+import type { ProjectDetail, ProjectDraft } from './projectTypes'
 import { StartScenarioPanel } from '../testScenarios/StartScenarioPanel'
 import type { GameBuild, GameInstance } from './gameTypes'
 import { useProject } from './useProject'
@@ -37,11 +39,12 @@ function ProjectDetailPage({ projectId }: { projectId: string }) {
     removeInstance,
     status,
   } = useProject(projectId)
+  const { t } = useI18n()
 
   if (status === 'loading') {
     return (
       <section className="page" aria-busy="true">
-        <p className="panel-empty">Loading project…</p>
+        <p className="panel-empty">{t.projects.detail.loading}</p>
       </section>
     )
   }
@@ -50,11 +53,11 @@ function ProjectDetailPage({ projectId }: { projectId: string }) {
     return (
       <section className="page">
         <div className="panel-message">
-          <h1>Project not found</h1>
-          <p className="panel-message-copy">
-            It may have been deleted, or you may not have access to it.
-          </p>
-          <Link className="button button--secondary" to="/projects">Back to projects</Link>
+          <h1>{t.projects.detail.notFoundTitle}</h1>
+          <p className="panel-message-copy">{t.projects.shared.missingCopy}</p>
+          <Link className="button button--secondary" to="/projects">
+            {t.projects.shared.backToProjects}
+          </Link>
         </div>
       </section>
     )
@@ -64,9 +67,9 @@ function ProjectDetailPage({ projectId }: { projectId: string }) {
     return (
       <section className="page">
         <div className="panel-message" role="alert">
-          <p>This project could not be loaded.</p>
+          <p>{t.projects.detail.loadFailed}</p>
           <button className="button button--secondary" onClick={reload} type="button">
-            Retry
+            {t.projects.shared.retry}
           </button>
         </div>
       </section>
@@ -132,6 +135,7 @@ function ProjectDetailView({
   const [editing, setEditing] = useState(false)
   const [syncedFrom, setSyncedFrom] = useState(project)
   const navigate = useNavigate()
+  const { t } = useI18n()
 
   // A save replaces the server copy; the form follows it during render so the
   // inputs never show a value the server has already superseded. Adjusting
@@ -170,13 +174,13 @@ function ProjectDetailView({
       })
       onSaved(updated)
       setEditing(false)
-      setAnnouncement('Project saved.')
+      setAnnouncement(t.projects.detail.savedAnnouncement)
     } catch (error: unknown) {
       if (error instanceof ProjectApiError) {
         setFieldErrors(error.fields)
-        setFailure(Object.keys(error.fields).length > 0 ? null : error.message)
+        setFailure(Object.keys(error.fields).length > 0 ? null : apiErrorMessage(error, t))
       } else {
-        setFailure('The project could not be saved. Please try again.')
+        setFailure(t.projects.detail.saveFailed)
       }
     } finally {
       setSaving(false)
@@ -187,12 +191,12 @@ function ProjectDetailView({
     <section className="page" aria-labelledby="project-title">
       <header className="page-header">
         <div>
-          <Link className="back-link" to="/projects">← Projects</Link>
+          <Link className="back-link" to="/projects">{t.projects.detail.backToList}</Link>
           <h1 id="project-title">{project.name}</h1>
           <p className="page-subtitle">
-            <span className="badge">{GENRE_LABELS[project.genre]}</span>
+            <span className="badge">{t.projects.genreLabels[project.genre]}</span>
             <span aria-hidden="true">·</span>
-            <span>Updated {formatDate(project.updatedAt)}</span>
+            <span>{t.projects.shared.updated(formatDate(project.updatedAt))}</span>
           </p>
         </div>
         {/* Members have no path to becoming an owner in this release, so a
@@ -203,7 +207,7 @@ function ProjectDetailView({
             onClick={() => setDeleting(true)}
             type="button"
           >
-            Delete project
+            {t.projects.detail.deleteProject}
           </button>
         )}
       </header>
@@ -211,7 +215,7 @@ function ProjectDetailView({
       <div className="detail-columns">
         <section className="panel" aria-labelledby="information-title">
           <header className="panel-header panel-header--split">
-            <h2 id="information-title">Information</h2>
+            <h2 id="information-title">{t.projects.detail.informationTitle}</h2>
             {/* Read first, edit on request. The project tab will gain more
                 panels, and a form left permanently open would make the whole
                 page read as a settings screen. */}
@@ -221,7 +225,7 @@ function ProjectDetailView({
                 onClick={() => setEditing(true)}
                 type="button"
               >
-                Edit
+                {t.projects.shared.edit}
               </button>
             )}
           </header>
@@ -248,36 +252,36 @@ function ProjectDetailView({
                     onClick={cancelEditing}
                     type="button"
                   >
-                    Cancel
+                    {t.projects.shared.cancel}
                   </button>
                   <button
                     className="button button--primary"
                     disabled={!dirty || saving || draft.name.trim().length === 0}
                     type="submit"
                   >
-                    {saving ? 'Saving…' : 'Save changes'}
+                    {saving ? t.projects.shared.saving : t.projects.shared.saveChanges}
                   </button>
                 </div>
               </ProjectForm>
             </form>
           ) : (
             <dl className="detail-fields">
-              <dt>Name</dt>
+              <dt>{t.projects.shared.nameLabel}</dt>
               <dd>{project.name}</dd>
 
-              <dt>Genre</dt>
-              <dd>{GENRE_LABELS[project.genre]}</dd>
+              <dt>{t.projects.form.genreLabel}</dt>
+              <dd>{t.projects.genreLabels[project.genre]}</dd>
 
-              <dt>Description</dt>
+              <dt>{t.projects.form.descriptionLabel}</dt>
               <dd>
                 {project.description !== null && project.description.length > 0 ? (
                   project.description
                 ) : (
-                  <span className="detail-empty">No description</span>
+                  <span className="detail-empty">{t.projects.detail.noDescription}</span>
                 )}
               </dd>
 
-              <dt>Created</dt>
+              <dt>{t.projects.detail.createdField}</dt>
               <dd>{formatDate(project.createdAt)}</dd>
             </dl>
           )}

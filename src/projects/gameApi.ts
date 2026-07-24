@@ -103,7 +103,11 @@ function parseBuild(data: unknown): GameBuild | null {
 function requireInstance(data: unknown, status: number): GameInstance {
   const instance = parseInstance(data)
   if (instance === null) {
-    throw new ProjectApiError(status, 'The server described the game instance oddly.')
+    throw new ProjectApiError(
+      status,
+      'The server described the game instance oddly.',
+      'CLIENT_MALFORMED_INSTANCE',
+    )
   }
   return instance
 }
@@ -111,7 +115,11 @@ function requireInstance(data: unknown, status: number): GameInstance {
 function requireBuild(data: unknown, status: number): GameBuild {
   const build = parseBuild(data)
   if (build === null) {
-    throw new ProjectApiError(status, 'The server described the build oddly.')
+    throw new ProjectApiError(
+      status,
+      'The server described the build oddly.',
+      'CLIENT_MALFORMED_BUILD',
+    )
   }
   return build
 }
