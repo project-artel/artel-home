@@ -8,6 +8,7 @@ import { useI18n } from './i18n/useI18n'
 import { GameInstanceDetailRoute } from './projects/GameInstanceDetailPage'
 import { ProjectDetailRoute } from './projects/ProjectDetailPage'
 import { ProjectListPage } from './projects/ProjectListPage'
+import { QaTryRoute } from './qa/QaTryPage'
 import { AppShell } from './shell/AppShell'
 import { TestScenarioRoute } from './testScenarios/TestScenarioPage'
 
@@ -58,6 +59,10 @@ export function App() {
           <Route
             path="/projects/:projectId/test-scenarios/:testScenarioId"
             element={<TestScenarioRoute />}
+          />
+          <Route
+            path="/projects/:projectId/qa-tries/:qaTryId"
+            element={<QaTryRoute />}
           />
           {/* The server's failed-callback redirect lands on /login. A user who
               is already signed in has nothing to do there, so send them on. */}
