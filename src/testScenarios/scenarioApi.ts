@@ -226,6 +226,26 @@ export async function deleteTestScenario(testScenarioId: number): Promise<void> 
   }
 }
 
+/**
+ * Persists canvas edits the user made without the agent — reordering steps or
+ * editing fields. Unlike `sendScenarioMessage`, this does not touch the agent;
+ * it writes the current draft straight to the scenario's `payload` (last write
+ * wins). The server returns the stored scenario so the caller can rebaseline
+ * `saved` to exactly what was persisted.
+ *
+ * A `404` means the scenario is gone or not this user's to edit.
+ */
+export async function updateScenario(
+  testScenarioId: number,
+  draft: ScenarioDraft,
+): Promise<TestScenario> {
+  const response = await apiFetch(scenarioPath(testScenarioId), {
+    method: 'PUT',
+    ...jsonRequest({ draft }),
+  })
+  return parseScenario(await readJson(response), response.status)
+}
+
 export function scenarioStreamUrl(testScenarioId: number): string {
   return orchestrationUrlFor(scenarioPath(testScenarioId, '/stream'))
 }
