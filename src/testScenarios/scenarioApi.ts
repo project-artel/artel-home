@@ -16,6 +16,7 @@ import {
   type ScenarioStep,
   type ScenarioStreamEvent,
   type TestScenario,
+  type TestScenarioSummary,
 } from './scenarioTypes'
 
 /*
@@ -121,6 +122,48 @@ function toItemArray(data: unknown): unknown[] {
 
   const items = asRecord(data)?.items
   return Array.isArray(items) ? items : []
+}
+
+/**
+ * The summary row exists as long as it has an id; every other field degrades to
+ * an empty string, because a scenario the user cannot open again is a worse
+ * outcome than a row with a blank status.
+ */
+function parseScenarioSummary(data: unknown): TestScenarioSummary | null {
+  const record = asRecord(data)
+  if (record === null) return null
+
+  // The spec names the key `id`; `testScenarioId` is accepted because the
+  // single-read endpoint uses that name and the spec is still being revised.
+  const id = typeof record.id === 'number' ? record.id : record.testScenarioId
+  if (typeof id !== 'number') return null
+
+  return {
+    testScenarioId: id,
+    title: asString(record.title),
+    priority: asString(record.priority),
+    status: asString(record.status),
+    lastRunStatus: asString(record.lastRunStatus),
+  }
+}
+
+/**
+ * Lists a project's scenarios, per the spec that is still marked 미구현 on the
+ * server: `GET /api/projects/{projectId}/test-scenario`. Until the server ships
+ * it, this call returns a 404 `ProjectApiError` — the panel tells that apart
+ * from an empty list, so path and parsing changes stay inside this function.
+ */
+export async function listTestScenarios(
+  projectId: number,
+  signal?: AbortSignal,
+): Promise<TestScenarioSummary[]> {
+  const response = await apiFetch(
+    `/api/projects/${encodeURIComponent(projectId)}/test-scenario`,
+    { signal },
+  )
+  return toItemArray(await readJson(response))
+    .map(parseScenarioSummary)
+    .filter((summary): summary is TestScenarioSummary => summary !== null)
 }
 
 export async function createTestScenario(projectId: number): Promise<number> {

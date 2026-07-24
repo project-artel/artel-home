@@ -64,6 +64,18 @@ export type TestScenario = {
   payload: ScenarioDraft
 }
 
+/**
+ * One row of the project's scenario list — the dashboard summary the list
+ * endpoint returns. Steps are not here; they come from the single read.
+ */
+export type TestScenarioSummary = {
+  testScenarioId: number
+  title: string
+  priority: string
+  status: string
+  lastRunStatus: string
+}
+
 /** The server ignores `type` today; it is sent because the contract declares it. */
 export const USER_MESSAGE_TYPE = 'USER_MESSAGE'
 
