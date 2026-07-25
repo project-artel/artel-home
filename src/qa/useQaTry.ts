@@ -48,17 +48,26 @@ function mergeSorted(current: QaLog[], incoming: QaLog[]): QaLog[] {
   return [...byId.values()].sort((left, right) => compareDecimalIds(left.id, right.id))
 }
 
+const TERMINAL_QA_STATUSES = ['COMPLETED', 'FAILED', 'CANCELLED'] as const
+
 function statusFromLog(log: QaLog): { status: QaTryStatus; completedAt: string | null } | null {
   if (log.type !== 'STATUS') return null
   const payload = asRecord(log.payload)
-  const completedAt = typeof payload?.completedAt === 'string' ? payload.completedAt : null
-  // Terminal only. The Agent's STATUS is 2-scope: per-step frames reuse
-  // STARTED/COMPLETED/FAILED with result=null and must not move the Try status.
-  // A run ends via result (PASSED|FAILED) or an explicit CANCELLED.
-  if (payload?.status === 'CANCELLED') return { status: 'CANCELLED', completedAt }
-  if (payload?.result === 'PASSED') return { status: 'COMPLETED', completedAt }
-  if (payload?.result === 'FAILED') return { status: 'FAILED', completedAt }
-  return null
+  const status = payload?.status
+  const completedAt = payload?.completedAt
+
+  // The status word alone is not enough: the Agent reuses COMPLETED/FAILED for a
+  // single step's verdict. `completedAt` is the run-scoped marker — the server
+  // stamps it only on a terminal transition, and it is absent on per-step frames
+  // and null on STARTING/RUNNING.
+  if (
+    typeof status !== 'string' ||
+    !TERMINAL_QA_STATUSES.some((candidate) => candidate === status) ||
+    typeof completedAt !== 'string'
+  ) {
+    return null
+  }
+  return { status: status as QaTryStatus, completedAt }
 }
 
 export function useQaTry(qaTryId: string) {

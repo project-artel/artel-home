@@ -85,8 +85,10 @@ export function parseQaLog(data: unknown): QaLog | null {
   return {
     id,
     qaTryId,
-    messageId: optionalId(record.messageId),
-    correlationId: optionalId(record.correlationId),
+    // Not decimal ids: Agent-originated frames carry UUIDs here, so running them
+    // through optionalId's digits-only test would blank every Agent row.
+    messageId: asNullableString(record.messageId),
+    correlationId: asNullableString(record.correlationId),
     direction,
     type,
     message: asString(record.message),
