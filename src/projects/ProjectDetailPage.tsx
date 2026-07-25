@@ -6,6 +6,7 @@ import { formatDate } from './formatters'
 import { GameBuildPanel } from './GameBuildPanel'
 import { GameInstancePanel } from './GameInstancePanel'
 import { useI18n } from '../i18n/useI18n'
+import { QaTryPanel } from '../qa/QaTryPanel'
 import { apiErrorMessage } from './apiErrorMessage'
 import { ProjectApiError, updateProject } from './projectApi'
 import { ProjectForm } from './ProjectForm'
@@ -311,6 +312,8 @@ function ProjectDetailView({
         <GameBuildPanel builds={builds} onSaved={onBuildSaved} projectId={project.id} />
 
         <StartScenarioPanel projectId={project.id} />
+
+        <QaTryPanel instances={instances} projectId={project.id} />
       </div>
 
       {deleting && (
