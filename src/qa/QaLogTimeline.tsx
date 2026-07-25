@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { compareDecimalIds } from './qaApi'
 import type { QaLog } from './qaTypes'
 
@@ -18,6 +18,7 @@ const TYPE_LABELS: Record<QaLog['type'], string> = {
   GAME_STATE: 'Game state',
   STATUS: 'Status',
   ERROR: 'Error',
+  CHAT: 'Chat',
 }
 
 const DIRECTION_LABELS: Record<QaLog['direction'], string> = {
@@ -26,6 +27,45 @@ const DIRECTION_LABELS: Record<QaLog['direction'], string> = {
   ORCHE_TO_SDK: 'Orchestration → SDK',
   SDK_TO_ORCHE: 'SDK → Orchestration',
   ORCHE_INTERNAL: 'Orchestration',
+  USER_TO_ORCHE: 'You → Orchestration',
+}
+
+/**
+ * One rendered row: a log, plus how many identical ones directly followed it.
+ *
+ * Repeats are collapsed rather than dropped — a game streaming its state emits
+ * the same row many times a second, and left alone that pushes the events worth
+ * reading off the screen. Only *consecutive* repeats fold, so the chronology is
+ * unchanged; the newest of the run is what the row shows.
+ */
+type TimelineRow = {
+  log: QaLog
+  repeats: number
+}
+
+function isSameEvent(left: QaLog, right: QaLog): boolean {
+  return (
+    left.type === right.type &&
+    left.direction === right.direction &&
+    left.message === right.message &&
+    // Payload equality is what separates a real repeat from a same-titled event
+    // carrying new evidence. Cheap enough: only adjacent rows are compared.
+    JSON.stringify(left.payload) === JSON.stringify(right.payload)
+  )
+}
+
+function collapseRepeats(logs: QaLog[]): TimelineRow[] {
+  const rows: TimelineRow[] = []
+  for (const log of logs) {
+    const previous = rows[rows.length - 1]
+    if (previous !== undefined && isSameEvent(previous.log, log)) {
+      // Keep the newest instance so its id and timestamp stay the row's identity.
+      rows[rows.length - 1] = { log, repeats: previous.repeats + 1 }
+      continue
+    }
+    rows.push({ log, repeats: 1 })
+  }
+  return rows
 }
 
 function formatTimestamp(value: string): string {
@@ -46,7 +86,7 @@ function payloadText(payload: unknown): string {
   }
 }
 
-function QaLogRow({ log }: { log: QaLog }) {
+function QaLogRow({ log, repeats }: { log: QaLog; repeats: number }) {
   const hasPayload = log.payload !== null && log.payload !== undefined
 
   return (
@@ -55,6 +95,10 @@ function QaLogRow({ log }: { log: QaLog }) {
       <article aria-labelledby={`qa-log-${log.id}-message`}>
         <header className="qa-log-meta">
           <span className="qa-log-kind">{TYPE_LABELS[log.type]}</span>
+          {repeats > 1 && (
+            /* Counted, not just styled: the number is the information. */
+            <span className="qa-log-repeat">×{repeats}</span>
+          )}
           <time dateTime={log.createdAt}>{formatTimestamp(log.createdAt)}</time>
           <span>{DIRECTION_LABELS[log.direction]}</span>
           <span className="mono" translate="no">#{log.id}</span>
@@ -113,6 +157,7 @@ export function QaLogTimeline({
   const [unseenLogs, setUnseenLogs] = useState(0)
   const oldestId = logs[0]?.id
   const newestId = logs.at(-1)?.id ?? null
+  const rows = useMemo(() => collapseRepeats(logs), [logs])
 
   useLayoutEffect(() => {
     const viewport = viewportRef.current
@@ -244,7 +289,9 @@ export function QaLogTimeline({
       </div>
 
       <ol className="qa-log-list">
-        {logs.map((log) => <QaLogRow key={log.id} log={log} />)}
+        {rows.map((row) => (
+          <QaLogRow key={row.log.id} log={row.log} repeats={row.repeats} />
+        ))}
       </ol>
 
       {!nearLiveEdge && unseenLogs > 0 && (

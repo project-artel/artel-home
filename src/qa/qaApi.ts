@@ -6,6 +6,7 @@ import {
   jsonRequest,
   ProjectApiError,
   readJson,
+  toApiError,
 } from '../projects/projectApi'
 import {
   QA_LOG_DIRECTIONS,
@@ -175,6 +176,20 @@ export async function listQaLogs(
 
   const response = await apiFetch(`${qaPath(qaTryId, '/logs')}?${params}`, { signal })
   return parseLogPage(await readJson(response), response.status)
+}
+
+/**
+ * Sends one operator message to the running Agent.
+ *
+ * Accepted, not answered — the reply arrives on the log stream as a `CHAT` row,
+ * so callers must not wait on this promise for one.
+ */
+export async function sendQaMessage(qaTryId: string, message: string): Promise<void> {
+  const response = await apiFetch(qaPath(qaTryId, '/messages'), {
+    method: 'POST',
+    ...jsonRequest({ message }),
+  })
+  if (!response.ok) throw await toApiError(response)
 }
 
 export function qaEventsUrl(qaTryId: string, afterId?: string): string {

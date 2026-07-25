@@ -1,6 +1,7 @@
 import { Link, useParams } from 'react-router-dom'
 import { GameStreamView } from '../streaming/GameStreamView'
 import { isDecimalId } from './qaApi'
+import { QaChatPanel } from './QaChatPanel'
 import { QaLogTimeline } from './QaLogTimeline'
 import { isTerminalQaStatus, type QaTryStatus } from './qaTypes'
 import { useQaTry } from './useQaTry'
@@ -115,6 +116,13 @@ function QaTryPage({ projectId, qaTryId }: { projectId: string; qaTryId: string 
         {active && (
           <section className="qa-stream-panel" aria-label="Live game">
             <GameStreamView instanceId={session.qaTry.gameInstanceId} />
+            {/* Under the game, not beside the log: what the operator says is
+                about what they are watching, and the timeline stays one column. */}
+            <QaChatPanel
+              disabled={session.qaTry.status !== 'RUNNING'}
+              logs={session.logs}
+              qaTryId={session.qaTry.id}
+            />
           </section>
         )}
 

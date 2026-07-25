@@ -2055,6 +2055,94 @@ a.instance-name:hover {
   min-height: 44px;
 }
 
+.qa-log-repeat {
+  padding: 0 6px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 999px;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.qa-chat {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  margin-top: var(--space-3);
+}
+
+.qa-chat-thread {
+  max-height: 280px;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.qa-chat-list {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  list-style: none;
+}
+
+.qa-chat-turn {
+  margin-bottom: var(--space-3);
+}
+
+.qa-chat-turn p {
+  margin: var(--space-1) 0 0;
+  overflow-wrap: anywhere;
+  color: var(--color-text-primary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.qa-chat-author {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Violet marks agent reasoning across the studio; the reply is that, in prose. */
+.qa-chat-turn--agent .qa-chat-author {
+  color: var(--color-agent-reasoning);
+}
+
+.qa-chat-turn--user .qa-chat-author {
+  color: var(--color-action-primary);
+}
+
+.qa-chat-pending {
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.qa-chat-composer {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.qa-chat-composer textarea {
+  min-width: 0;
+  flex: 1;
+  padding: var(--space-2);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  background: var(--color-bg-raised);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  resize: vertical;
+}
+
+.qa-chat-composer .button {
+  min-height: 44px;
+}
+
 .qa-try-list {
   margin: 0;
   padding: 0 var(--space-4) var(--space-4);

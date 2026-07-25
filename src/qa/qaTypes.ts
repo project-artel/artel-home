@@ -15,6 +15,7 @@ export const QA_LOG_TYPES = [
   'GAME_STATE',
   'STATUS',
   'ERROR',
+  'CHAT',
 ] as const
 
 export type QaLogType = (typeof QA_LOG_TYPES)[number]
@@ -25,6 +26,7 @@ export const QA_LOG_DIRECTIONS = [
   'ORCHE_TO_SDK',
   'SDK_TO_ORCHE',
   'ORCHE_INTERNAL',
+  'USER_TO_ORCHE',
 ] as const
 
 export type QaLogDirection = (typeof QA_LOG_DIRECTIONS)[number]
