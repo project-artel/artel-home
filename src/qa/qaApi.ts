@@ -3,6 +3,7 @@ import {
   asNullableString,
   asRecord,
   asString,
+  jsonRequest,
   ProjectApiError,
   readJson,
 } from '../projects/projectApi'
@@ -114,6 +115,49 @@ function parseLogPage(data: unknown, status: number): QaLogPage {
 
 function qaPath(qaTryId: string, suffix = ''): string {
   return `${QA_ROOT}/${encodeURIComponent(qaTryId)}${suffix}`
+}
+
+/**
+ * Starts a QA Try. Both ids must belong to the same project.
+ *
+ * The server answers `409` for the two preconditions a user can act on: the
+ * game instance has no SDK connected, and the instance already has a run in
+ * flight. Callers distinguish them with {@link isQaConflict}, since the two need
+ * different guidance.
+ */
+export async function createQaTry(
+  testScenarioId: string,
+  gameInstanceId: string,
+): Promise<QaTry> {
+  const response = await apiFetch(QA_ROOT, {
+    method: 'POST',
+    ...jsonRequest({ testScenarioId, gameInstanceId }),
+  })
+  return parseQaTry(await readJson(response), response.status)
+}
+
+export function isQaConflict(error: unknown): error is ProjectApiError {
+  return error instanceof ProjectApiError && error.status === 409
+}
+
+/** One project's runs, newest first. Malformed rows are dropped, not fatal. */
+export async function listQaTries(
+  projectId: string,
+  signal?: AbortSignal,
+): Promise<QaTry[]> {
+  const params = new URLSearchParams({ projectId, size: '20' })
+  const response = await apiFetch(`${QA_ROOT}?${params}`, { signal })
+  const data = await readJson(response)
+  if (!Array.isArray(data)) {
+    throw new ProjectApiError(response.status, 'The server returned an unreadable QA Try list.')
+  }
+  return data.flatMap((item) => {
+    try {
+      return [parseQaTry(item, response.status)]
+    } catch {
+      return []
+    }
+  })
 }
 
 export async function getQaTry(qaTryId: string, signal?: AbortSignal): Promise<QaTry> {

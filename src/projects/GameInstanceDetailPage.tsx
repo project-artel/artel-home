@@ -24,12 +24,11 @@ type PageStatus = 'loading' | 'ready' | 'missing' | 'error'
 /**
  * One game instance's live screen.
  *
- * Deliberately thin. The QA screen will sit *alongside* this route rather than
- * grow out of it — scenarios today have no run to watch, so whatever that
- * screen becomes will be built on something that does not exist yet, and this
- * page pretending to be its prototype would only be in the way. It answers one
- * question: is the SDK connected and rendering. The design investment belongs
- * in `GameStreamView`, which the QA screen mounts unchanged.
+ * Deliberately thin. QA runs are started and listed on the project page, where
+ * both halves of a run — the game and the scenario — are picked together; this
+ * page answers one question: is the SDK connected and rendering. The design
+ * investment belongs in `GameStreamView`, which the QA Try route mounts
+ * unchanged.
  *
  * The instance key stays on the project page. This screen is about what the
  * game is doing, and repeating a durable credential on a second surface is not
