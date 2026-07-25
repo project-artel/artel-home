@@ -1,4 +1,4 @@
-import { Fragment, useId, useState } from 'react'
+import { Fragment, useEffect, useId, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import {
   createEmptyStep,
@@ -31,12 +31,20 @@ export function ScenarioCanvas({
   saving,
   onChange,
   readOnly,
+  canUndo,
+  canRedo,
+  onUndo,
+  onRedo,
 }: {
   draft: ScenarioDraft
   dirty: boolean
   saving: boolean
   onChange: (draft: ScenarioDraft) => void
   readOnly: boolean
+  canUndo: boolean
+  canRedo: boolean
+  onUndo: () => void
+  onRedo: () => void
 }) {
   const { t } = useI18n()
   const titleId = useId()
@@ -45,6 +53,42 @@ export function ScenarioCanvas({
   const [dragging, setDragging] = useState<number | null>(null)
   const [dropTarget, setDropTarget] = useState<number | null>(null)
   const [announcement, setAnnouncement] = useState('')
+
+  /**
+   * Ctrl/Cmd+Z undoes, Ctrl/Cmd+Shift+Z (or Ctrl+Y) redoes — but only when focus
+   * is not in a text field. Inside an input the shortcut belongs to that field's
+   * own text undo; hijacking it to revert the whole scenario would surprise
+   * someone mid-edit. A closed scenario is read-only, so it takes no shortcut.
+   */
+  useEffect(() => {
+    if (readOnly) return undefined
+
+    function onKeyDown(event: KeyboardEvent) {
+      const mod = event.metaKey || event.ctrlKey
+      if (!mod) return
+
+      const target = event.target as HTMLElement | null
+      const inField =
+        target !== null &&
+        (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+      if (inField) return
+
+      const key = event.key.toLowerCase()
+      const wantsRedo = (key === 'z' && event.shiftKey) || key === 'y'
+      const wantsUndo = key === 'z' && !event.shiftKey
+      if (!wantsRedo && !wantsUndo) return
+
+      event.preventDefault()
+      if (wantsRedo) {
+        if (canRedo) onRedo()
+      } else if (canUndo) {
+        onUndo()
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [readOnly, canUndo, canRedo, onUndo, onRedo])
 
   function replaceSteps(steps: ScenarioStep[]) {
     onChange({ ...draft, steps: withSequentialSteps(steps) })
@@ -88,13 +132,35 @@ export function ScenarioCanvas({
             {readOnly ? t.scenarios.canvas.hintReadOnly : t.scenarios.canvas.hintEditable}
           </p>
         </div>
-        {/* Autosave is quiet by default: only in-flight ("Saving…") or the brief
-            window where an edit is waiting to be saved ("Unsaved") is shown. */}
-        {!readOnly && saving && (
-          <span className="badge scenario-dirty">{t.scenarios.canvas.saving}</span>
-        )}
-        {!readOnly && !saving && dirty && (
-          <span className="badge scenario-dirty">{t.scenarios.canvas.unsaved}</span>
+        {!readOnly && (
+          <div className="scenario-canvas-tools">
+            {/* Undo reverts to the previous saved version, Redo reapplies one.
+                In-session only (lost on reload); the shortcut hint is in the title. */}
+            <button
+              className="button button--secondary button--compact"
+              disabled={!canUndo}
+              onClick={onUndo}
+              title={t.scenarios.canvas.undoTitle}
+              type="button"
+            >
+              {t.scenarios.canvas.undo}
+            </button>
+            <button
+              className="button button--secondary button--compact"
+              disabled={!canRedo}
+              onClick={onRedo}
+              title={t.scenarios.canvas.redoTitle}
+              type="button"
+            >
+              {t.scenarios.canvas.redo}
+            </button>
+            {/* Autosave is quiet by default: only in-flight ("Saving…") or the
+                brief window where an edit waits to be saved ("Unsaved") shows. */}
+            {saving && <span className="badge scenario-dirty">{t.scenarios.canvas.saving}</span>}
+            {!saving && dirty && (
+              <span className="badge scenario-dirty">{t.scenarios.canvas.unsaved}</span>
+            )}
+          </div>
         )}
       </header>
 

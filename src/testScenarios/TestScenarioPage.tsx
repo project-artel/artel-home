@@ -144,9 +144,13 @@ function TestScenarioPage({
           sending={session.sending}
         />
         <ScenarioCanvas
+          canRedo={session.canRedo}
+          canUndo={session.canUndo}
           dirty={session.dirty}
           draft={session.draft}
           onChange={session.editDraft}
+          onRedo={session.redo}
+          onUndo={session.undo}
           readOnly={session.closure !== null}
           saving={session.saving}
         />
