@@ -21,31 +21,42 @@ const TYPE_LABELS: Record<QaLog['type'], string> = {
   CHAT: 'Chat',
 }
 
-const DIRECTION_LABELS: Record<QaLog['direction'], string> = {
-  AGENT_TO_ORCHE: 'Agent → Orchestration',
-  ORCHE_TO_AGENT: 'Orchestration → Agent',
-  ORCHE_TO_SDK: 'Orchestration → SDK',
-  SDK_TO_ORCHE: 'SDK → Orchestration',
-  ORCHE_INTERNAL: 'Orchestration',
-  USER_TO_ORCHE: 'You → Orchestration',
+/** Endpoints of each direction, so a relayed event can be shown as one path. */
+const DIRECTION_NODES: Record<QaLog['direction'], [string, string]> = {
+  AGENT_TO_ORCHE: ['Agent', 'Orchestration'],
+  ORCHE_TO_AGENT: ['Orchestration', 'Agent'],
+  ORCHE_TO_SDK: ['Orchestration', 'SDK'],
+  SDK_TO_ORCHE: ['SDK', 'Orchestration'],
+  ORCHE_INTERNAL: ['Orchestration', 'Orchestration'],
+  USER_TO_ORCHE: ['You', 'Orchestration'],
 }
 
 /**
- * One rendered row: a log, plus how many identical ones directly followed it.
+ * One rendered row: the newest log of a collapsed run, the path it travelled,
+ * and how many separate events were folded into it.
  *
- * Repeats are collapsed rather than dropped — a game streaming its state emits
- * the same row many times a second, and left alone that pushes the events worth
- * reading off the screen. Only *consecutive* repeats fold, so the chronology is
- * unchanged; the newest of the run is what the row shows.
+ * Three things are folded, all of them only when *consecutive*, so the
+ * chronology never changes:
+ *
+ * 1. Relay hops. One message crossing SDK → Orchestration → Agent is written
+ *    once per hop, which reads as three events when it is one. They are matched
+ *    by id, and the row shows the whole path instead.
+ * 2. Streamed state. A running game emits GAME_STATE continuously; each frame
+ *    differs slightly, so nothing that compares payloads would ever fold them.
+ *    Only the newest is worth reading — the rest are counted.
+ * 3. Exact repeats of anything else.
  */
 type TimelineRow = {
   log: QaLog
   repeats: number
+  path: QaLog['direction'][]
 }
+
+/** Types whose consecutive rows are folded even when their payloads differ. */
+const STREAMED_TYPES = new Set<QaLog['type']>(['GAME_STATE'])
 
 function isSameEvent(left: QaLog, right: QaLog): boolean {
   return (
-    left.type === right.type &&
     left.direction === right.direction &&
     left.message === right.message &&
     // Payload equality is what separates a real repeat from a same-titled event
@@ -54,18 +65,80 @@ function isSameEvent(left: QaLog, right: QaLog): boolean {
   )
 }
 
+/**
+ * Whether `right` is `left` arriving at its next hop.
+ *
+ * Relays either carry the id forward (GAME_STATE, ACTION_RESULT) or reference it
+ * as the correlation of a newly allocated one (an ACTION becoming an SDK call).
+ * Ids must be present to link: two rows that both lack one are not evidence of
+ * anything, so those fall back to comparing content.
+ */
+function isNextHop(left: QaLog, right: QaLog): boolean {
+  if (left.direction === right.direction) return false
+  const linked =
+    (left.messageId !== null && left.messageId === right.messageId) ||
+    (left.messageId !== null && left.messageId === right.correlationId) ||
+    (right.messageId !== null && right.messageId === left.correlationId)
+  if (linked) return true
+  // Relay copies written without ids (an operator message on its way to the
+  // Agent) carry the same text and payload instead.
+  return (
+    left.messageId === null &&
+    right.messageId === null &&
+    left.message === right.message &&
+    JSON.stringify(left.payload) === JSON.stringify(right.payload)
+  )
+}
+
 function collapseRepeats(logs: QaLog[]): TimelineRow[] {
   const rows: TimelineRow[] = []
+
   for (const log of logs) {
     const previous = rows[rows.length - 1]
-    if (previous !== undefined && isSameEvent(previous.log, log)) {
-      // Keep the newest instance so its id and timestamp stay the row's identity.
-      rows[rows.length - 1] = { log, repeats: previous.repeats + 1 }
+    if (previous === undefined || previous.log.type !== log.type) {
+      rows.push({ log, repeats: 1, path: [log.direction] })
       continue
     }
-    rows.push({ log, repeats: 1 })
+
+    if (isNextHop(previous.log, log)) {
+      // Same event, one hop later: keep the count, extend the path.
+      rows[rows.length - 1] = {
+        log,
+        repeats: previous.repeats,
+        path: [...previous.path, log.direction],
+      }
+      continue
+    }
+
+    const folds = STREAMED_TYPES.has(log.type)
+      ? previous.log.direction === log.direction
+      : isSameEvent(previous.log, log)
+
+    if (folds) {
+      // Keep the newest instance so its id and timestamp stay the row's identity.
+      rows[rows.length - 1] = {
+        log,
+        repeats: previous.repeats + 1,
+        path: previous.path,
+      }
+      continue
+    }
+
+    rows.push({ log, repeats: 1, path: [log.direction] })
   }
+
   return rows
+}
+
+/** "SDK → Orchestration → Agent" from the hops actually seen. */
+function formatPath(path: QaLog['direction'][]): string {
+  const nodes: string[] = []
+  for (const direction of path) {
+    const [from, to] = DIRECTION_NODES[direction]
+    if (nodes.length === 0) nodes.push(from)
+    if (nodes[nodes.length - 1] !== to) nodes.push(to)
+  }
+  return nodes.join(' → ')
 }
 
 function formatTimestamp(value: string): string {
@@ -86,7 +159,7 @@ function payloadText(payload: unknown): string {
   }
 }
 
-function QaLogRow({ log, repeats }: { log: QaLog; repeats: number }) {
+function QaLogRow({ log, path, repeats }: { log: QaLog; path: QaLog['direction'][]; repeats: number }) {
   const hasPayload = log.payload !== null && log.payload !== undefined
 
   return (
@@ -100,7 +173,7 @@ function QaLogRow({ log, repeats }: { log: QaLog; repeats: number }) {
             <span className="qa-log-repeat">×{repeats}</span>
           )}
           <time dateTime={log.createdAt}>{formatTimestamp(log.createdAt)}</time>
-          <span>{DIRECTION_LABELS[log.direction]}</span>
+          <span>{formatPath(path)}</span>
           <span className="mono" translate="no">#{log.id}</span>
         </header>
         <p className="qa-log-message" id={`qa-log-${log.id}-message`}>
@@ -290,7 +363,7 @@ export function QaLogTimeline({
 
       <ol className="qa-log-list">
         {rows.map((row) => (
-          <QaLogRow key={row.log.id} log={row.log} repeats={row.repeats} />
+          <QaLogRow key={row.log.id} log={row.log} path={row.path} repeats={row.repeats} />
         ))}
       </ol>
 

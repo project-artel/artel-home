@@ -42,6 +42,16 @@ export const qaEn = {
     sendFailed: 'The message could not be sent.',
     closed: 'This run has ended. The conversation is read-only.',
   },
+  cancel: {
+    action: 'End run',
+    title: 'End this QA run?',
+    copy: 'The run stops where it is. Steps it never reached stay unanswered, and it cannot be resumed.',
+    keepRunning: 'Keep running',
+    confirm: 'End run',
+    pending: 'Ending…',
+    failed: 'The run could not be ended.',
+    gone: 'This QA Try no longer exists.',
+  },
   errors: {
     missingSelection: 'Select a game and a scenario.',
     // The server answers 409 for both; the copy names the fix for each.
@@ -92,6 +102,16 @@ export const qaKo: Localized<typeof qaEn> = {
     awaitingReply: '에이전트의 답변을 기다리는 중입니다.',
     sendFailed: '메시지를 보내지 못했습니다.',
     closed: '종료된 실행입니다. 대화는 읽기 전용입니다.',
+  },
+  cancel: {
+    action: '실행 종료',
+    title: '이 QA 실행을 종료할까요?',
+    copy: '실행이 그 자리에서 멈춥니다. 도달하지 못한 스텝은 판정되지 않은 채로 남고, 다시 이어서 실행할 수 없습니다.',
+    keepRunning: '계속 실행',
+    confirm: '종료',
+    pending: '종료하는 중…',
+    failed: '실행을 종료하지 못했습니다.',
+    gone: '이 QA Try가 더 이상 존재하지 않습니다.',
   },
   errors: {
     missingSelection: '게임과 시나리오를 선택하세요.',

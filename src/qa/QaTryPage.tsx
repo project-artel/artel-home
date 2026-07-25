@@ -1,5 +1,8 @@
+import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { useI18n } from '../i18n/useI18n'
 import { GameStreamView } from '../streaming/GameStreamView'
+import { CancelQaTryDialog } from './CancelQaTryDialog'
 import { isDecimalId } from './qaApi'
 import { QaChatPanel } from './QaChatPanel'
 import { QaLogTimeline } from './QaLogTimeline'
@@ -42,6 +45,8 @@ function InvalidQaTry({ projectId }: { projectId: string }) {
 
 function QaTryPage({ projectId, qaTryId }: { projectId: string; qaTryId: string }) {
   const session = useQaTry(qaTryId)
+  const [cancelling, setCancelling] = useState(false)
+  const { t } = useI18n()
 
   if (session.loadStatus === 'loading') {
     return (
@@ -106,6 +111,17 @@ function QaTryPage({ projectId, qaTryId }: { projectId: string; qaTryId: string 
             <span>{active ? streamLabel : 'Execution ended · stored logs only'}</span>
           </p>
         </div>
+        {active && (
+          <div className="page-header-actions">
+            <button
+              className="button button--danger-quiet"
+              onClick={() => setCancelling(true)}
+              type="button"
+            >
+              {t.qa.cancel.action}
+            </button>
+          </div>
+        )}
       </header>
 
       <p className="sr-status" aria-live="polite">
@@ -144,6 +160,19 @@ function QaTryPage({ projectId, qaTryId }: { projectId: string; qaTryId: string 
           />
         </section>
       </div>
+
+      {cancelling && (
+        <CancelQaTryDialog
+          onCancelled={() => {
+            setCancelling(false)
+            // Re-read rather than patch local state: cancelling also closes the
+            // log stream, and `reload` is what settles both at once.
+            session.reload()
+          }}
+          onClose={() => setCancelling(false)}
+          qaTryId={session.qaTry.id}
+        />
+      )}
     </section>
   )
 }

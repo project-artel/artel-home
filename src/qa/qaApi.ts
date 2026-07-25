@@ -192,6 +192,12 @@ export async function sendQaMessage(qaTryId: string, message: string): Promise<v
   if (!response.ok) throw await toApiError(response)
 }
 
+/** Ends a running QA Try. A run that already ended answers 409. */
+export async function cancelQaTry(qaTryId: string): Promise<void> {
+  const response = await apiFetch(qaPath(qaTryId, '/cancel'), { method: 'POST' })
+  if (!response.ok) throw await toApiError(response)
+}
+
 export function qaEventsUrl(qaTryId: string, afterId?: string): string {
   const params = new URLSearchParams()
   if (afterId !== undefined) params.set('afterId', afterId)
