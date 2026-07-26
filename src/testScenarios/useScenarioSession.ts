@@ -24,6 +24,18 @@ import {
  */
 const AUTOSAVE_DEBOUNCE_MS = 600
 
+/**
+ * How many committed scenario states the undo stack keeps.
+ *
+ * Undo is client-only and in-memory: it does not survive a reload (neither does
+ * Google Docs'), and the work itself is never lost because autosave persists the
+ * current state regardless. The window is a backstop, not a tuned value — users
+ * undo a step or two, each entry is an already-committed state (drag bursts are
+ * collapsed into one by the autosave debounce, so the stack never floods), and
+ * anything past ~20 is "version history" territory this product does not keep.
+ */
+const UNDO_WINDOW = 20
+
 type SessionStatus = 'loading' | 'ready' | 'missing' | 'error'
 
 type SessionState = {
@@ -78,7 +90,26 @@ export function useScenarioSession(testScenarioId: number) {
     savedRef.current = state.saved
   }, [state.saved])
 
+  // The undo stack: committed scenario states (each `saved` transition) with a
+  // cursor into them. Kept in refs — moving through them is not itself render
+  // state; only whether undo/redo are available is. See the snapshot effect.
+  const undoStackRef = useRef<ScenarioDraft[]>([])
+  const undoCursorRef = useRef(-1)
+  const [undoAvail, setUndoAvail] = useState({ canUndo: false, canRedo: false })
+
+  const syncUndoAvail = useCallback(() => {
+    const cursor = undoCursorRef.current
+    setUndoAvail({
+      canUndo: cursor > 0,
+      canRedo: cursor >= 0 && cursor < undoStackRef.current.length - 1,
+    })
+  }, [])
+
   const applyLoaded = useCallback(([scenario, messages]: Awaited<ReturnType<typeof load>>) => {
+    // A full read is a fresh start: the prior scenario's undo history no longer
+    // applies. The snapshot effect records the loaded payload as the new base.
+    undoStackRef.current = []
+    undoCursorRef.current = -1
     setState({ status: 'ready', saved: scenario.payload, messages })
     // The canvas follows the server on a full read. Anything the user had typed
     // into it belongs to a screen that is being rebuilt from scratch.
@@ -339,6 +370,66 @@ export function useScenarioSession(testScenarioId: number) {
       })
   }, [testScenarioId, applyLoaded])
 
+  /**
+   * Records every committed scenario state onto the undo stack.
+   *
+   * The trigger is `saved` changing — the server baseline moves on an autosave
+   * `PUT`, an agent `result`, and a stream recovery, and nothing else. That is
+   * exactly the granularity we want: one entry per persisted commit, with the
+   * autosave debounce already collapsing a burst of drags into a single one, so
+   * no extra coalescing is needed and the stack never fills with noise.
+   *
+   * When an undo/redo lands, `saved` becomes the entry the cursor already points
+   * at, so the equality check skips it — that is how navigating the stack does
+   * not itself push a new entry. A genuinely new commit (cursor not already on
+   * it) drops any redo tail, appends, and trims to the window.
+   */
+  useEffect(() => {
+    if (state.status !== 'ready') return
+    const snapshot = state.saved
+    const stack = undoStackRef.current
+    const cursor = undoCursorRef.current
+    if (cursor >= 0 && isScenarioDraftEqual(stack[cursor], snapshot)) return
+
+    const kept = stack.slice(0, cursor + 1)
+    kept.push(snapshot)
+    const trimmed = kept.length > UNDO_WINDOW ? kept.slice(kept.length - UNDO_WINDOW) : kept
+    undoStackRef.current = trimmed
+    undoCursorRef.current = trimmed.length - 1
+    syncUndoAvail()
+  }, [state.saved, state.status, syncUndoAvail])
+
+  // A finalized scenario (approve/decline) ends editing, so its undo history is
+  // dropped. The canvas is read-only past this point and cannot undo anyway.
+  useEffect(() => {
+    if (closure === null) return
+    undoStackRef.current = []
+    undoCursorRef.current = -1
+    syncUndoAvail()
+  }, [closure, syncUndoAvail])
+
+  /**
+   * Moves the cursor to the adjacent committed state and puts it on the canvas.
+   *
+   * Persisting the reverted state is left to the normal autosave path: the draft
+   * now differs from `saved`, so the debounced `PUT` writes it, and the next
+   * agent request's `draft` is built from it — the reverted state becomes the
+   * one both sides agree on. The canvas reflects the undo immediately regardless.
+   */
+  const undo = useCallback(() => {
+    if (undoCursorRef.current <= 0) return
+    undoCursorRef.current -= 1
+    setDraft(undoStackRef.current[undoCursorRef.current])
+    syncUndoAvail()
+  }, [syncUndoAvail])
+
+  const redo = useCallback(() => {
+    if (undoCursorRef.current >= undoStackRef.current.length - 1) return
+    undoCursorRef.current += 1
+    setDraft(undoStackRef.current[undoCursorRef.current])
+    syncUndoAvail()
+  }, [syncUndoAvail])
+
   return {
     status: state.status,
     messages: state.messages,
@@ -356,5 +447,11 @@ export function useScenarioSession(testScenarioId: number) {
     editDraft: setDraft,
     send,
     reload,
+    undo,
+    redo,
+    /** Whether a previous committed state exists to revert to. */
+    canUndo: undoAvail.canUndo,
+    /** Whether an undone state can be reapplied. */
+    canRedo: undoAvail.canRedo,
   }
 }
