@@ -33,5 +33,5 @@ dist/
 # Local-only Jira credentials for the MCP server
 .jira.env
 
-# Local-only Notion token for the ntn CLI
+# Local-only Notion credentials for the ntn CLI
 .notion.env
