@@ -177,6 +177,10 @@ export const projectsEn = {
     step3Before: 'Add the ',
     step3After: ' component to it.',
     step4: 'Run the game and paste this instance key into the Artel window.',
+    previousStep: 'Back',
+    nextStep: 'Next',
+    /** Labels the step itself as well as the counter, so both read the same. */
+    stepPosition: (current: number, total: number) => `Step ${current} of ${total}`,
     /**
      * Alt text for the screenshots. Each one describes what the reader should
      * see, not that a screenshot exists, so a screen reader user gets the same
@@ -384,6 +388,9 @@ export const projectsKo: Localized<typeof projectsEn> = {
     step3Before: 'GameObject에 ',
     step3After: ' 컴포넌트를 추가하세요.',
     step4: '게임을 실행하고 이 인스턴스 키를 Artel 창에 붙여 넣으세요.',
+    previousStep: '이전',
+    nextStep: '다음',
+    stepPosition: (current: number, total: number) => `${total}단계 중 ${current}단계`,
     shot1GitUrlMenuAlt:
       'Package Manager의 더하기 메뉴가 열리고 Add package from git URL이 선택된 화면.',
     shot1GitUrlInputAlt: 'Add package from git URL 입력칸에 Artel SDK의 git URL을 입력한 화면.',

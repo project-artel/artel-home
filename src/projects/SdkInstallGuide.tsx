@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { CopyButton } from './CopyButton'
 import { useI18n } from '../i18n/useI18n'
 import addPackageFromGitUrlShot from '../assets/sdk-guide/step1-add-package-from-git-url.png'
@@ -56,82 +56,134 @@ function GuideShot({
  */
 export function SdkInstallGuide({ instanceKey }: { instanceKey: string }) {
   const [announcement, setAnnouncement] = useState('')
+  const [stepIndex, setStepIndex] = useState(0)
+  const stepRef = useRef<HTMLLIElement>(null)
   const { t } = useI18n()
+
+  /**
+   * Moving focus to the step is what makes the change perceivable without
+   * sight: the button the reader just pressed stays put and says nothing about
+   * what replaced the step behind it. Skipped on the first render, where
+   * nothing has been replaced and the dialog owns the focus.
+   */
+  const started = useRef(false)
+  useEffect(() => {
+    if (!started.current) {
+      started.current = true
+      return
+    }
+    stepRef.current?.focus()
+  }, [stepIndex])
+
+  const steps = [
+    <>
+      <p className="guide-copy">
+        {/* The Unity menu names are the editor's own UI and stay in English. */}
+        {t.projects.guide.step1Before}
+        <strong>Window → Package Manager</strong>
+        {t.projects.guide.step1Middle}
+        <strong>Add package from git URL</strong>
+        {t.projects.guide.step1After}
+      </p>
+      <div className="copy-line">
+        <code className="mono copy-value">{SDK_PACKAGE_URL}</code>
+        <CopyButton
+          copiedMessage={t.projects.guide.packageUrlCopied}
+          label={t.projects.guide.copyUrl}
+          onResult={setAnnouncement}
+          text={SDK_PACKAGE_URL}
+        />
+      </div>
+      <GuideShot
+        alt={t.projects.guide.shot1GitUrlMenuAlt}
+        height={498}
+        src={addPackageFromGitUrlShot}
+        width={820}
+      />
+      <GuideShot
+        alt={t.projects.guide.shot1GitUrlInputAlt}
+        height={518}
+        src={gitUrlInputShot}
+        width={1090}
+      />
+    </>,
+    <>
+      <p className="guide-copy">{t.projects.guide.step2}</p>
+      <GuideShot alt={t.projects.guide.shot2Alt} height={860} src={createEmptyShot} width={1210} />
+    </>,
+    <>
+      <p className="guide-copy">
+        {t.projects.guide.step3Before}
+        <code className="mono">ArtelManager</code>
+        {t.projects.guide.step3After}
+      </p>
+      <GuideShot
+        alt={t.projects.guide.shot3SearchAlt}
+        height={476}
+        src={addComponentShot}
+        width={910}
+      />
+      <GuideShot
+        alt={t.projects.guide.shot3InspectorAlt}
+        height={528}
+        src={inspectorShot}
+        width={618}
+      />
+    </>,
+    <>
+      <p className="guide-copy">{t.projects.guide.step4}</p>
+      <GuideShot alt={t.projects.guide.shot4Alt} height={274} src={artelPanelShot} width={442} />
+      <div className="copy-line">
+        <code className="mono copy-value">{instanceKey}</code>
+        <CopyButton
+          copiedMessage={t.projects.instances.keyCopied}
+          label={t.projects.instances.copyKey}
+          onResult={setAnnouncement}
+          text={instanceKey}
+        />
+      </div>
+    </>,
+  ]
+  const isFirst = stepIndex === 0
+  const isLast = stepIndex === steps.length - 1
 
   return (
     <div className="install-guide">
       <ol className="guide-list">
-        <li className="guide-step">
-          <p className="guide-copy">
-            {/* The Unity menu names are the editor's own UI and stay in English. */}
-            {t.projects.guide.step1Before}
-            <strong>Window → Package Manager</strong>
-            {t.projects.guide.step1Middle}
-            <strong>Add package from git URL</strong>
-            {t.projects.guide.step1After}
-          </p>
-          <div className="copy-line">
-            <code className="mono copy-value">{SDK_PACKAGE_URL}</code>
-            <CopyButton
-              copiedMessage={t.projects.guide.packageUrlCopied}
-              label={t.projects.guide.copyUrl}
-              onResult={setAnnouncement}
-              text={SDK_PACKAGE_URL}
-            />
-          </div>
-          <GuideShot
-            alt={t.projects.guide.shot1GitUrlMenuAlt}
-            height={498}
-            src={addPackageFromGitUrlShot}
-            width={820}
-          />
-          <GuideShot
-            alt={t.projects.guide.shot1GitUrlInputAlt}
-            height={518}
-            src={gitUrlInputShot}
-            width={1090}
-          />
-        </li>
-
-        <li className="guide-step">
-          <p className="guide-copy">{t.projects.guide.step2}</p>
-          <GuideShot alt={t.projects.guide.shot2Alt} height={860} src={createEmptyShot} width={1210} />
-        </li>
-
-        <li className="guide-step">
-          <p className="guide-copy">
-            {t.projects.guide.step3Before}
-            <code className="mono">ArtelManager</code>
-            {t.projects.guide.step3After}
-          </p>
-          <GuideShot
-            alt={t.projects.guide.shot3SearchAlt}
-            height={476}
-            src={addComponentShot}
-            width={910}
-          />
-          <GuideShot
-            alt={t.projects.guide.shot3InspectorAlt}
-            height={528}
-            src={inspectorShot}
-            width={618}
-          />
-        </li>
-
-        <li className="guide-step">
-          <p className="guide-copy">{t.projects.guide.step4}</p>
-          <GuideShot alt={t.projects.guide.shot4Alt} height={274} src={artelPanelShot} width={442} />
-          <div className="copy-line">
-            <code className="mono copy-value">{instanceKey}</code>
-            <CopyButton
-              copiedMessage={t.projects.instances.keyCopied}
-              label={t.projects.instances.copyKey}
-              onResult={setAnnouncement}
-              text={instanceKey}
-            />
-          </div>
+        {/* Only the current step is in the DOM, so `value` is what keeps the
+            marker counting 1 to 4 instead of restarting at 1 every time. */}
+        <li
+          aria-label={t.projects.guide.stepPosition(stepIndex + 1, steps.length)}
+          className="guide-step"
+          ref={stepRef}
+          tabIndex={-1}
+          value={stepIndex + 1}
+        >
+          {steps[stepIndex]}
         </li>
       </ol>
+
+      <div className="guide-nav">
+        <button
+          className="button button--secondary button--compact"
+          disabled={isFirst}
+          onClick={() => setStepIndex((current) => current - 1)}
+          type="button"
+        >
+          {t.projects.guide.previousStep}
+        </button>
+        <p className="guide-position">
+          {t.projects.guide.stepPosition(stepIndex + 1, steps.length)}
+        </p>
+        <button
+          className="button button--secondary button--compact"
+          disabled={isLast}
+          onClick={() => setStepIndex((current) => current + 1)}
+          type="button"
+        >
+          {t.projects.guide.nextStep}
+        </button>
+      </div>
 
       {/* The key is durable and has no re-issue endpoint, so it is worth saying
           plainly that closing this view does not lose it. */}
