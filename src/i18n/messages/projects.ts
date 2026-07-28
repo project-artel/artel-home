@@ -177,6 +177,22 @@ export const projectsEn = {
     step3Before: 'Add the ',
     step3After: ' component to it.',
     step4: 'Run the game and paste this instance key into the Artel window.',
+    /**
+     * Alt text for the screenshots. Each one describes what the reader should
+     * see, not that a screenshot exists, so a screen reader user gets the same
+     * step as everyone else.
+     */
+    shot1GitUrlMenuAlt:
+      'The plus menu in Package Manager open with Add package from git URL highlighted.',
+    shot1GitUrlInputAlt:
+      'The Artel SDK git URL typed into the Add package from git URL field.',
+    shot2Alt: 'The Hierarchy context menu open with Create Empty highlighted.',
+    shot3SearchAlt:
+      'The Add Component search in the Inspector with ArtelManager typed and the Artel Manager result highlighted.',
+    shot3InspectorAlt:
+      'The Inspector showing a GameObject named Artel with the Artel Manager component attached.',
+    shot4Alt:
+      'The running game with the Artel panel open, showing the instance key field and the register button.',
     note: 'This key stays available on the instance row, so you can come back to it after reinstalling the SDK.',
   },
   copy: {
@@ -368,6 +384,14 @@ export const projectsKo: Localized<typeof projectsEn> = {
     step3Before: 'GameObject에 ',
     step3After: ' 컴포넌트를 추가하세요.',
     step4: '게임을 실행하고 이 인스턴스 키를 Artel 창에 붙여 넣으세요.',
+    shot1GitUrlMenuAlt:
+      'Package Manager의 더하기 메뉴가 열리고 Add package from git URL이 선택된 화면.',
+    shot1GitUrlInputAlt: 'Add package from git URL 입력칸에 Artel SDK의 git URL을 입력한 화면.',
+    shot2Alt: 'Hierarchy 컨텍스트 메뉴가 열리고 Create Empty가 선택된 화면.',
+    shot3SearchAlt:
+      'Inspector의 Add Component 검색창에 ArtelManager를 입력해 Artel Manager 결과가 선택된 화면.',
+    shot3InspectorAlt: 'Artel이라는 GameObject에 Artel Manager 컴포넌트가 붙은 Inspector 화면.',
+    shot4Alt: '실행 중인 게임에 Artel 패널이 열려 인스턴스 키 입력칸과 등록 버튼이 보이는 화면.',
     note: '이 키는 인스턴스 행에서 계속 확인할 수 있으므로 SDK를 다시 설치한 뒤에도 다시 볼 수 있습니다.',
   },
   copy: {
