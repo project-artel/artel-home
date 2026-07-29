@@ -35,6 +35,7 @@ export function ScenarioComposition({
   const [selected, setSelected] = useState<string | null>(null)
   const [dragging, setDragging] = useState<string | null>(null)
   const [libOpen, setLibOpen] = useState(false)
+  const [showNew, setShowNew] = useState(false)
 
   if (comp.status === 'loading') {
     return <main className="edoc-wrap"><div className="edoc"><p className="empty-note">{c.loading}</p></div></main>
@@ -63,10 +64,6 @@ export function ScenarioComposition({
     const [moved] = next.splice(from, 1)
     next.splice(to, 0, moved)
     comp.reorder(next)
-  }
-  async function addNewCase() {
-    const created = await comp.createAndAdd({ title: c.newCaseTitle, category: '' })
-    if (created !== null) setSelected(created.id)
   }
   function removeFromScenario(id: string) {
     comp.removeFromScenario(id)
@@ -130,11 +127,24 @@ export function ScenarioComposition({
           </ol>
         )}
 
-        {editable && (
+        {editable && !showNew && (
           <div className="flow-add">
-            <button className="add-new" onClick={addNewCase} type="button">{c.addCase}</button>
+            <button className="add-new" onClick={() => setShowNew(true)} type="button">{c.addCase}</button>
             <button className="add-lib" onClick={() => setLibOpen((open) => !open)} type="button">{c.fromLib}</button>
           </div>
+        )}
+
+        {showNew && editable && (
+          <NewCaseForm
+            onCancel={() => setShowNew(false)}
+            onCreate={async (input) => {
+              const created = await comp.createAndAdd(input)
+              if (created === null) return false
+              setSelected(created.id)
+              setShowNew(false)
+              return true
+            }}
+          />
         )}
 
         {libOpen && editable && (
@@ -235,6 +245,69 @@ function CaseDetail({
       <p className="flow-label" style={{ margin: '12px 0 0' }}>
         {d.lastBuild}: <span className="mono">{testCase.lastVerifiedBuildId ?? d.none}</span>
       </p>
+    </section>
+  )
+}
+
+/**
+ * Defines a new reusable case. Category, title and expected are required (the
+ * server rejects blanks), so the create button stays disabled until they are
+ * filled — an empty create would 400 and silently do nothing.
+ */
+function NewCaseForm({
+  onCreate,
+  onCancel,
+}: {
+  onCreate: (input: { category: string; title: string; precondition: string | null; expected: string }) => Promise<boolean>
+  onCancel: () => void
+}) {
+  const { t } = useI18n()
+  const d = t.scenarios.composition.detail
+  const cr = t.scenarios.composition.create
+  const [category, setCategory] = useState('')
+  const [title, setTitle] = useState('')
+  const [precondition, setPrecondition] = useState('')
+  const [expected, setExpected] = useState('')
+  const [busy, setBusy] = useState(false)
+  const valid = category.trim().length > 0 && title.trim().length > 0 && expected.trim().length > 0
+
+  async function submit() {
+    if (!valid || busy) return
+    setBusy(true)
+    await onCreate({
+      category: category.trim(),
+      title: title.trim(),
+      precondition: precondition.trim().length > 0 ? precondition.trim() : null,
+      expected: expected.trim(),
+    })
+    setBusy(false)
+  }
+
+  return (
+    <section className="new-case-form">
+      <div className="detail-head"><h3>{cr.heading}</h3></div>
+      <div className="doc-grid">
+        <div className="card">
+          <p className="card-label"><span className="mk">▍</span>{cr.titleLabel}</p>
+          <input autoFocus className="cinput" onChange={(e) => setTitle(e.target.value)} placeholder={cr.titlePlaceholder} value={title} />
+        </div>
+        <div className="card">
+          <p className="card-label"><span className="mk">▍</span>{d.category}</p>
+          <input className="cinput" onChange={(e) => setCategory(e.target.value)} placeholder={cr.categoryPlaceholder} value={category} />
+        </div>
+        <div className="card full">
+          <p className="card-label"><span className="mk">▍</span>{d.precondition} <span className="sub">{d.preHint}</span></p>
+          <textarea className="rt2" onChange={(e) => setPrecondition(e.target.value)} rows={2} value={precondition} />
+        </div>
+        <div className="card full">
+          <p className="card-label"><span className="mk">▍</span>{d.expected} <span className="sub">{d.expHint}</span></p>
+          <textarea className="rt2" onChange={(e) => setExpected(e.target.value)} rows={2} value={expected} />
+        </div>
+      </div>
+      <div className="flow-add" style={{ marginTop: 12 }}>
+        <button className="add-new" disabled={!valid || busy} onClick={submit} type="button">{cr.submit}</button>
+        <button className="add-lib" onClick={onCancel} type="button">{cr.cancel}</button>
+      </div>
     </section>
   )
 }

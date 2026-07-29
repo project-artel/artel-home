@@ -140,6 +140,14 @@ export const scenariosEn = {
     newCaseTitle: 'New case',
     agentNote: 'The chat authors the scenario draft; it is not wired to these cases yet.',
     moved: (from: number, to: number) => `Moved from ${from} to ${to}.`,
+    create: {
+      heading: 'New test case',
+      titleLabel: 'Title',
+      titlePlaceholder: 'What does this case verify?',
+      categoryPlaceholder: 'e.g. Combat, Save, Shop',
+      submit: 'Create case',
+      cancel: 'Cancel',
+    },
     detail: {
       heading: 'Selected case',
       moveUp: 'Move earlier',
@@ -320,6 +328,14 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     newCaseTitle: '새 케이스',
     agentNote: '채팅은 시나리오 초안을 저작합니다. 아직 이 케이스들과는 연결되어 있지 않습니다.',
     moved: (from: number, to: number) => `${from}번째 → ${to}번째로 이동`,
+    create: {
+      heading: '새 테스트 케이스',
+      titleLabel: '제목',
+      titlePlaceholder: '이 케이스가 무엇을 검증하나요?',
+      categoryPlaceholder: '예: 전투, 세이브, 상점',
+      submit: '케이스 만들기',
+      cancel: '취소',
+    },
     detail: {
       heading: '선택한 케이스',
       moveUp: '앞으로',

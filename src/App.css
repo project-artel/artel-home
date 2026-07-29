@@ -2450,3 +2450,8 @@ a.instance-name:hover {
 .scenario-studio .st-chat .chat-composer-actions .button:hover:not(:disabled){ background:var(--st-action-strong); }
 .scenario-studio .st-chat .chat-composer-actions .button:disabled{ opacity:.4; }
 .scenario-studio .st-chat .inline-error{ font-size:12px; color:var(--st-broken); background:var(--st-broken-dim); border:1px solid #5a2921; border-radius:6px; padding:8px 10px; display:flex; gap:8px; align-items:center; }
+
+/* new-case form */
+.scenario-studio .new-case-form{ margin-top:16px; border:1px solid var(--st-border-strong); border-radius:8px; background:var(--st-surface); padding:14px 16px; }
+.scenario-studio .new-case-form .detail-head{ margin-bottom:12px; }
+.scenario-studio .new-case-form .card{ background:var(--st-raised); }
