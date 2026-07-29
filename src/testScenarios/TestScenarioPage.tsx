@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { ApproveScenarioDialog } from './ApproveScenarioDialog'
 import { DeleteScenarioDialog } from './DeleteScenarioDialog'
-import { ScenarioCanvas } from './ScenarioCanvas'
+import { ScenarioComposition } from './ScenarioComposition'
 import { ScenarioChat } from './ScenarioChat'
 import { useScenarioSession } from './useScenarioSession'
 
@@ -143,16 +143,10 @@ function TestScenarioPage({
           sendFailure={session.sendFailure}
           sending={session.sending}
         />
-        <ScenarioCanvas
-          canRedo={session.canRedo}
-          canUndo={session.canUndo}
-          dirty={session.dirty}
-          draft={session.draft}
-          onChange={session.editDraft}
-          onRedo={session.redo}
-          onUndo={session.undo}
+        <ScenarioComposition
+          projectId={projectId}
+          testScenarioId={scenarioId}
           readOnly={session.closure !== null}
-          saving={session.saving}
         />
       </div>
 
