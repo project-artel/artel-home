@@ -1166,6 +1166,46 @@ a.instance-name:hover {
   margin-top: var(--space-2);
 }
 
+/* The step keeps the focus ring the roving focus gives it, but not the dotted
+   outline a mouse click would otherwise draw around the whole step. */
+.guide-step:focus {
+  outline: none;
+}
+
+.guide-step:focus-visible {
+  outline: 2px solid var(--color-action-primary);
+  outline-offset: 4px;
+}
+
+.guide-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.guide-position {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+/* The captures are Retina and wider than the dialog, so they are always scaled
+   down to the column; the border keeps a screenshot whose own background is
+   graphite from bleeding into the panel behind it. */
+.guide-shot {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: var(--space-3);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+}
+
 .guide-note {
   margin: var(--space-5) 0 var(--space-4);
   color: var(--color-text-muted);
