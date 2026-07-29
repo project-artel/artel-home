@@ -2455,3 +2455,13 @@ a.instance-name:hover {
 .scenario-studio .new-case-form{ margin-top:16px; border:1px solid var(--st-border-strong); border-radius:8px; background:var(--st-surface); padding:14px 16px; }
 .scenario-studio .new-case-form .detail-head{ margin-bottom:12px; }
 .scenario-studio .new-case-form .card{ background:var(--st-raised); }
+
+/* library search */
+.scenario-studio .lib-search{ display:flex; align-items:center; gap:8px; padding:10px 14px 2px; }
+.scenario-studio .lib-search-icon{ color:var(--st-muted); font-size:15px; }
+.scenario-studio .lib-search-input{ flex:1; min-width:0; font:inherit; font-size:13px; color:var(--st-text); background:var(--st-raised); border:1px solid var(--st-border-strong); border-radius:6px; padding:7px 10px; }
+.scenario-studio .lib-search-input:focus{ outline:2px solid var(--st-action); outline-offset:-1px; border-color:var(--st-action); }
+.scenario-studio .lib-search-input::-webkit-search-cancel-button{ display:none; }
+.scenario-studio .lib-search-clear{ width:24px; height:24px; flex:none; display:grid; place-items:center; border-radius:6px; border:1px solid var(--st-border-strong); background:transparent; color:var(--st-muted); cursor:pointer; font-size:12px; }
+.scenario-studio .lib-search-clear:hover{ color:var(--st-text); background:var(--st-hover); }
+.scenario-studio .lib-list{ max-height:340px; }

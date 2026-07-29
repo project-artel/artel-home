@@ -35,6 +35,7 @@ export function CaseLibrary({
   const statusLabel = t.scenarios.composition.status
   const [cases, setCases] = useState<TestCase[]>([])
   const [filter, setFilter] = useState<Filter>('ALL')
+  const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -47,13 +48,34 @@ export function CaseLibrary({
     return () => controller.abort()
   }, [projectId, reloadKey])
 
-  const shown = filter === 'ALL' ? cases : cases.filter((testCase) => testCase.verificationStatus === filter)
+  const q = query.trim().toLowerCase()
+  const shown = cases.filter(
+    (testCase) =>
+      (filter === 'ALL' || testCase.verificationStatus === filter) &&
+      (q === '' ||
+        testCase.title.toLowerCase().includes(q) ||
+        testCase.category.toLowerCase().includes(q) ||
+        testCase.id.includes(q)),
+  )
 
   return (
     <section className="lib">
       <div className="lib-head">
         <h3>{l.title}</h3>
-        <span className="count-pill" style={{ marginLeft: 'auto' }}>{cases.length}</span>
+        <span className="count-pill" style={{ marginLeft: 'auto' }}>{shown.length}/{cases.length}</span>
+      </div>
+      <div className="lib-search">
+        <span className="lib-search-icon" aria-hidden="true">⌕</span>
+        <input
+          className="lib-search-input"
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder={l.searchPlaceholder}
+          type="search"
+          value={query}
+        />
+        {query.length > 0 && (
+          <button aria-label={l.clear} className="lib-search-clear" onClick={() => setQuery('')} type="button">✕</button>
+        )}
       </div>
       <div className="lib-filter">
         {(['ALL', ...VERIFICATION_STATUSES] as Filter[]).map((f) => (
@@ -66,7 +88,7 @@ export function CaseLibrary({
         {loading ? (
           <p className="empty-note">{l.loading}</p>
         ) : shown.length === 0 ? (
-          <p className="empty-note">{l.empty}</p>
+          <p className="empty-note">{cases.length === 0 ? l.empty : l.noMatch}</p>
         ) : (
           shown.map((testCase) => {
             const inside = inScenario.has(testCase.id)
