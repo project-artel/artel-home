@@ -16,18 +16,19 @@ type Filter = 'ALL' | VerificationStatus
  */
 export function CaseLibrary({
   projectId,
+  reloadKey,
   inScenario,
   onAdd,
   onRemove,
   onDelete,
-  onClose,
 }: {
   projectId: string
+  /** Bumped by the parent when a case is created, so the always-visible list re-fetches. */
+  reloadKey: number
   inScenario: Set<string>
   onAdd: (testCase: TestCase) => void
   onRemove: (caseId: string) => void
   onDelete: (caseId: string) => Promise<boolean>
-  onClose: () => void
 }) {
   const { t } = useI18n()
   const l = t.scenarios.composition.library
@@ -44,7 +45,7 @@ export function CaseLibrary({
       .catch(() => undefined)
       .finally(() => setLoading(false))
     return () => controller.abort()
-  }, [projectId])
+  }, [projectId, reloadKey])
 
   const shown = filter === 'ALL' ? cases : cases.filter((testCase) => testCase.verificationStatus === filter)
 
@@ -52,7 +53,7 @@ export function CaseLibrary({
     <section className="lib">
       <div className="lib-head">
         <h3>{l.title}</h3>
-        <button className="st-btn st-btn--danger close" onClick={onClose} type="button">{l.close}</button>
+        <span className="count-pill" style={{ marginLeft: 'auto' }}>{cases.length}</span>
       </div>
       <div className="lib-filter">
         {(['ALL', ...VERIFICATION_STATUSES] as Filter[]).map((f) => (

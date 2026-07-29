@@ -34,8 +34,8 @@ export function ScenarioComposition({
 
   const [selected, setSelected] = useState<string | null>(null)
   const [dragging, setDragging] = useState<string | null>(null)
-  const [libOpen, setLibOpen] = useState(false)
   const [showNew, setShowNew] = useState(false)
+  const [libReload, setLibReload] = useState(0)
 
   if (comp.status === 'loading') {
     return <main className="edoc-wrap"><div className="edoc"><p className="empty-note">{c.loading}</p></div></main>
@@ -130,7 +130,6 @@ export function ScenarioComposition({
         {editable && !showNew && (
           <div className="flow-add">
             <button className="add-new" onClick={() => setShowNew(true)} type="button">{c.addCase}</button>
-            <button className="add-lib" onClick={() => setLibOpen((open) => !open)} type="button">{c.fromLib}</button>
           </div>
         )}
 
@@ -142,19 +141,9 @@ export function ScenarioComposition({
               if (created === null) return false
               setSelected(created.id)
               setShowNew(false)
+              setLibReload((n) => n + 1)
               return true
             }}
-          />
-        )}
-
-        {libOpen && editable && (
-          <CaseLibrary
-            projectId={projectId}
-            inScenario={new Set(order)}
-            onAdd={(testCase) => comp.addExisting(testCase)}
-            onRemove={removeFromScenario}
-            onDelete={(id) => comp.deleteCase(id)}
-            onClose={() => setLibOpen(false)}
           />
         )}
 
@@ -168,6 +157,17 @@ export function ScenarioComposition({
             onMoveUp={() => move(selectedCase.id, -1)}
             onMoveDown={() => move(selectedCase.id, 1)}
             onRemove={() => removeFromScenario(selectedCase.id)}
+          />
+        )}
+
+        {editable && (
+          <CaseLibrary
+            projectId={projectId}
+            reloadKey={libReload}
+            inScenario={new Set(order)}
+            onAdd={(testCase) => comp.addExisting(testCase)}
+            onRemove={removeFromScenario}
+            onDelete={(id) => comp.deleteCase(id)}
           />
         )}
       </article>
