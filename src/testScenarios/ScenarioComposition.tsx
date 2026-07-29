@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import {
   VERIFICATION_STATUSES,
@@ -6,83 +6,59 @@ import {
   type VerificationStatus,
 } from '../testCases/testCaseTypes'
 import { CaseLibrary } from './CaseLibrary'
-import { useScenarioComposition } from './useScenarioComposition'
+import type { useScenarioComposition } from './useScenarioComposition'
+
+type Comp = ReturnType<typeof useScenarioComposition>
+
+/** Rollup status of a scenario from its cases (broken wins; all-verified is verified). */
+export function rollupStatus(cases: TestCase[]): VerificationStatus {
+  if (cases.some((c) => c.verificationStatus === 'BROKEN')) return 'BROKEN'
+  if (cases.length > 0 && cases.every((c) => c.verificationStatus === 'VERIFIED')) return 'VERIFIED'
+  return 'DRAFT'
+}
 
 /**
- * The scenario body in the 3-tier model: an ordered list of reusable TestCases.
- *
- * This replaces the old inline-step canvas. The three affordances the canvas had
- * are preserved through {@link useScenarioComposition}, just repointed at the
- * composition and case endpoints: undo/redo, debounced autosave, and drag
- * reorder. Cases are shared library entries, so a fourth affordance is added —
- * pulling an existing case in, or removing one without deleting it.
- *
- * The agent chat lives beside this but does not drive it yet: the agent still
- * authors the scenario's draft, not its cases. That gap is called out in the UI
- * rather than hidden.
+ * The scenario document: an editable title and the ordered case flow, with a
+ * detail card grid for the selected case and the reusable-case library. Styled
+ * to the studio mockup; the state comes from {@link useScenarioComposition},
+ * lifted to the page so the topbar shares its undo/redo and save state.
  */
 export function ScenarioComposition({
+  comp,
   projectId,
-  testScenarioId,
   readOnly,
 }: {
+  comp: Comp
   projectId: string
-  testScenarioId: number
   readOnly: boolean
 }) {
   const { t } = useI18n()
   const c = t.scenarios.composition
-  const comp = useScenarioComposition(projectId, testScenarioId)
+  const editable = !readOnly
 
   const [selected, setSelected] = useState<string | null>(null)
   const [dragging, setDragging] = useState<string | null>(null)
   const [libOpen, setLibOpen] = useState(false)
-  const [announcement, setAnnouncement] = useState('')
-
-  const editable = !readOnly
-
-  // Undo/redo keyboard shortcuts, outside text fields (their own text-undo wins).
-  useEffect(() => {
-    if (!editable) return undefined
-    function onKeyDown(event: KeyboardEvent) {
-      const mod = event.metaKey || event.ctrlKey
-      if (!mod) return
-      const target = event.target as HTMLElement | null
-      const inField =
-        target !== null &&
-        (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
-      if (inField) return
-      const key = event.key.toLowerCase()
-      const wantsRedo = (key === 'z' && event.shiftKey) || key === 'y'
-      const wantsUndo = key === 'z' && !event.shiftKey
-      if (!wantsRedo && !wantsUndo) return
-      event.preventDefault()
-      if (wantsRedo) {
-        if (comp.canRedo) comp.redo()
-      } else if (comp.canUndo) {
-        comp.undo()
-      }
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [editable, comp.canUndo, comp.canRedo, comp.undo, comp.redo])
 
   if (comp.status === 'loading') {
-    return <section className="panel scenario-composition"><p className="panel-empty">{c.loading}</p></section>
+    return <main className="edoc-wrap"><div className="edoc"><p className="empty-note">{c.loading}</p></div></main>
   }
-  if (comp.status === 'missing' || comp.status === 'error') {
-    return (
-      <section className="panel scenario-composition">
-        <div className="panel-message" role="alert">
-          <p>{c.loadFailed}</p>
-          <button className="button button--secondary" onClick={comp.reload} type="button">{c.retry}</button>
-        </div>
-      </section>
-    )
+  if (comp.status !== 'ready') {
+    return <main className="edoc-wrap"><div className="edoc"><p className="empty-note">{c.loadFailed}</p></div></main>
   }
 
   const order = comp.working.order
+  const cases = comp.cases
+  const status = rollupStatus(cases)
 
+  function dropOn(targetId: string) {
+    if (dragging === null || dragging === targetId) return
+    const next = [...order]
+    const [moved] = next.splice(next.indexOf(dragging), 1)
+    next.splice(next.indexOf(targetId), 0, moved)
+    comp.reorder(next)
+    setDragging(null)
+  }
   function move(id: string, delta: number) {
     const from = order.indexOf(id)
     const to = from + delta
@@ -91,192 +67,114 @@ export function ScenarioComposition({
     const [moved] = next.splice(from, 1)
     next.splice(to, 0, moved)
     comp.reorder(next)
-    setAnnouncement(c.moved(from + 1, to + 1))
   }
-
-  function dropOn(targetId: string) {
-    if (dragging === null || dragging === targetId) return
-    const next = [...order]
-    const from = next.indexOf(dragging)
-    const [moved] = next.splice(from, 1)
-    next.splice(next.indexOf(targetId), 0, moved)
-    comp.reorder(next)
-    setDragging(null)
-  }
-
   async function addNewCase() {
     const created = await comp.createAndAdd({ title: c.newCaseTitle, category: '' })
-    if (created !== null) {
-      setSelected(created.id)
-      setAnnouncement(c.detail.added)
-    }
+    if (created !== null) setSelected(created.id)
   }
-
   function removeFromScenario(id: string) {
     comp.removeFromScenario(id)
     if (selected === id) setSelected(null)
-    setAnnouncement(c.detail.removed)
   }
 
   const selectedCase =
     selected !== null && order.includes(selected) ? comp.working.caseById[selected] ?? null : null
 
   return (
-    <section className="panel scenario-composition" aria-labelledby="scenario-composition-title">
-      <header className="panel-header panel-header--split">
-        <div>
-          <h2 id="scenario-composition-title">{c.title}</h2>
-          <p className="scenario-hint">{editable ? c.hint : c.hintReadOnly}</p>
+    <main className="edoc-wrap">
+      <article className="edoc">
+        {readOnly && <div className="ro-banner">{c.hintReadOnly}</div>}
+
+        <div className="sc-head">
+          <input
+            aria-label={c.scenarioTitleLabel}
+            className="sc-title"
+            disabled={!editable}
+            onChange={(event) => comp.setTitle(event.target.value)}
+            placeholder={c.scenarioTitlePlaceholder}
+            value={comp.working.title}
+          />
+          <span className={`vpill ${status}`}><span className={`vdot ${status}`} />{c.status[status]}</span>
         </div>
+        <div className="sc-meta mono">{cases.length} {c.caseUnit}</div>
+
+        <p className="flow-label"><span className="n mono">#</span> {c.stepLabel}</p>
+
+        {order.length === 0 ? (
+          <p className="empty-note">{c.noCases}</p>
+        ) : (
+          <ol className="flow">
+            {order.map((id, index) => {
+              const testCase = comp.working.caseById[id]
+              if (testCase === undefined) return null
+              return (
+                <li key={id} style={{ listStyle: 'none' }}>
+                  <button
+                    className={'fnode' + (selected === id ? ' sel' : '') + (dragging === id ? ' dragging' : '')}
+                    draggable={editable}
+                    onClick={() => setSelected(selected === id ? null : id)}
+                    onDragEnd={() => setDragging(null)}
+                    onDragOver={(event) => { if (editable) event.preventDefault() }}
+                    onDragStart={() => setDragging(id)}
+                    onDrop={(event) => { if (editable) { event.preventDefault(); dropOn(id) } }}
+                    type="button"
+                  >
+                    <span className="handle" aria-hidden="true">⠿</span>
+                    <span className="fnode-num">{String(index + 1).padStart(2, '0')}</span>
+                    <span className="fnode-main">
+                      <span className="fnode-title">{testCase.title.length > 0 ? testCase.title : c.newCaseTitle}</span>
+                      {testCase.category.length > 0 && <span className="fnode-cat">{testCase.category}</span>}
+                    </span>
+                    <span className="fnode-id mono">{testCase.id}</span>
+                    <span className={`vdot ${testCase.verificationStatus}`} />
+                  </button>
+                </li>
+              )
+            })}
+          </ol>
+        )}
+
         {editable && (
-          <div className="scenario-canvas-tools">
-            <button
-              className="button button--secondary button--compact"
-              disabled={!comp.canUndo}
-              onClick={comp.undo}
-              title={c.undoTitle}
-              type="button"
-            >
-              {c.undo}
-            </button>
-            <button
-              className="button button--secondary button--compact"
-              disabled={!comp.canRedo}
-              onClick={comp.redo}
-              title={c.redoTitle}
-              type="button"
-            >
-              {c.redo}
-            </button>
-            {comp.saving && <span className="badge scenario-dirty">{c.saving}</span>}
-            {!comp.saving && comp.dirty && <span className="badge scenario-dirty">{c.unsaved}</span>}
+          <div className="flow-add">
+            <button className="add-new" onClick={addNewCase} type="button">{c.addCase}</button>
+            <button className="add-lib" onClick={() => setLibOpen((open) => !open)} type="button">{c.fromLib}</button>
           </div>
         )}
-      </header>
 
-      <div className="scenario-fields">
-        <div className="field">
-          <label className="field-label" htmlFor="scn-title">{c.scenarioTitleLabel}</label>
-          {editable ? (
-            <input
-              className="field-input"
-              id="scn-title"
-              onChange={(event) => comp.setTitle(event.target.value)}
-              placeholder={c.scenarioTitlePlaceholder}
-              value={comp.working.title}
-            />
-          ) : (
-            <p className="scenario-readonly-value">
-              {comp.working.title.length > 0 ? comp.working.title : <span className="detail-empty">{c.untitled}</span>}
-            </p>
-          )}
-        </div>
-      </div>
+        {libOpen && editable && (
+          <CaseLibrary
+            projectId={projectId}
+            inScenario={new Set(order)}
+            onAdd={(testCase) => comp.addExisting(testCase)}
+            onRemove={removeFromScenario}
+            onDelete={(id) => comp.deleteCase(id)}
+            onClose={() => setLibOpen(false)}
+          />
+        )}
 
-      <p className="scenario-flow-label"><span className="mono n">#</span> {c.stepLabel}</p>
-
-      {order.length === 0 ? (
-        <p className="panel-empty">{c.noCases}</p>
-      ) : (
-        <ol className="scenario-flow">
-          {order.map((id, index) => {
-            const testCase = comp.working.caseById[id]
-            if (testCase === undefined) return null
-            return (
-              <li
-                className={
-                  'scenario-flow-item scenario-case-item' +
-                  (dragging === id ? ' scenario-flow-item--dragging' : '')
-                }
-                draggable={editable}
-                key={id}
-                onDragEnd={() => setDragging(null)}
-                onDragOver={(event) => {
-                  if (!editable) return
-                  event.preventDefault()
-                }}
-                onDragStart={() => setDragging(id)}
-                onDrop={(event) => {
-                  if (!editable) return
-                  event.preventDefault()
-                  dropOn(id)
-                }}
-              >
-                <button
-                  aria-current={selected === id ? 'true' : undefined}
-                  className={selected === id ? 'scenario-node scenario-node--selected' : 'scenario-node'}
-                  onClick={() => setSelected(selected === id ? null : id)}
-                  type="button"
-                >
-                  <span className="mono scenario-node-step">{String(index + 1).padStart(2, '0')}</span>
-                  <span className="scenario-case-main">
-                    <span className="scenario-node-title">
-                      {testCase.title.length > 0 ? testCase.title : c.newCaseTitle}
-                    </span>
-                    {testCase.category.length > 0 && (
-                      <span className="scenario-case-category">{testCase.category}</span>
-                    )}
-                  </span>
-                  <span className="mono scenario-case-id">{testCase.id}</span>
-                  <StatusDot status={testCase.verificationStatus} />
-                </button>
-              </li>
-            )
-          })}
-        </ol>
-      )}
-
-      {editable && (
-        <div className="scenario-add-row">
-          <button className="button button--secondary" onClick={addNewCase} type="button">
-            {c.addCase}
-          </button>
-          <button className="button button--secondary" onClick={() => setLibOpen((open) => !open)} type="button">
-            {c.fromLib}
-          </button>
-        </div>
-      )}
-
-      {libOpen && editable && (
-        <CaseLibrary
-          projectId={projectId}
-          inScenario={new Set(order)}
-          onAdd={(testCase) => comp.addExisting(testCase)}
-          onRemove={(id) => removeFromScenario(id)}
-          onDelete={(id) => comp.deleteCase(id)}
-          onClose={() => setLibOpen(false)}
-        />
-      )}
-
-      {selectedCase !== null && (
-        <CaseDetail
-          testCase={selectedCase}
-          position={order.indexOf(selectedCase.id)}
-          total={order.length}
-          readOnly={!editable}
-          onEdit={(patch) => comp.editCase(selectedCase.id, patch)}
-          onMoveUp={() => move(selectedCase.id, -1)}
-          onMoveDown={() => move(selectedCase.id, 1)}
-          onRemove={() => removeFromScenario(selectedCase.id)}
-          onClose={() => setSelected(null)}
-        />
-      )}
-
-      <p className="scenario-agent-note">{c.agentNote}</p>
-      <p aria-live="polite" className="visually-hidden">{announcement}</p>
-    </section>
+        {selectedCase !== null && (
+          <CaseDetail
+            testCase={selectedCase}
+            position={order.indexOf(selectedCase.id)}
+            total={order.length}
+            readOnly={!editable}
+            onEdit={(patch) => comp.editCase(selectedCase.id, patch)}
+            onMoveUp={() => move(selectedCase.id, -1)}
+            onMoveDown={() => move(selectedCase.id, 1)}
+            onRemove={() => removeFromScenario(selectedCase.id)}
+          />
+        )}
+      </article>
+    </main>
   )
 }
 
-function StatusDot({ status }: { status: VerificationStatus }) {
-  return <span className={`vdot vdot--${status.toLowerCase()}`} aria-hidden="true" />
+function autogrow(el: HTMLTextAreaElement | null) {
+  if (el === null) return
+  el.style.height = 'auto'
+  el.style.height = `${el.scrollHeight + 2}px`
 }
 
-/**
- * The selected case's editable fields. A case is a shared library entry, so its
- * status and text edit here and autosave to the case itself; the up/down/remove
- * controls act on this scenario's ordering only.
- */
 function CaseDetail({
   testCase,
   position,
@@ -286,7 +184,6 @@ function CaseDetail({
   onMoveUp,
   onMoveDown,
   onRemove,
-  onClose,
 }: {
   testCase: TestCase
   position: number
@@ -296,84 +193,62 @@ function CaseDetail({
   onMoveUp: () => void
   onMoveDown: () => void
   onRemove: () => void
-  onClose: () => void
 }) {
   const { t } = useI18n()
   const d = t.scenarios.composition.detail
-  const status = t.scenarios.composition.status
-  const fieldPrefix = useId()
+  const statusLabel = t.scenarios.composition.status
+  const preRef = useRef<HTMLTextAreaElement>(null)
+  const expRef = useRef<HTMLTextAreaElement>(null)
+  useEffect(() => { autogrow(preRef.current); autogrow(expRef.current) }, [testCase.id])
 
   return (
-    <div className="scenario-step-editor">
-      <header className="scenario-step-editor-header">
+    <section className="detail">
+      <div className="detail-head">
         <h3>{d.heading} · {String(position + 1).padStart(2, '0')}</h3>
-        <div className="scenario-step-actions">
-          {!readOnly && (
-            <>
-              <button className="button button--secondary button--compact" disabled={position <= 0} onClick={onMoveUp} type="button">{d.moveUp}</button>
-              <button className="button button--secondary button--compact" disabled={position >= total - 1} onClick={onMoveDown} type="button">{d.moveDown}</button>
-              <button className="button button--danger-quiet button--compact" onClick={onRemove} type="button">{d.remove}</button>
-            </>
-          )}
-          <button className="button button--secondary button--compact" onClick={onClose} type="button">{d.close}</button>
+        <span className="mono" style={{ color: 'var(--st-muted)', fontSize: 12 }}>{testCase.id}</span>
+        {!readOnly && (
+          <div className="detail-tools">
+            <button className="iconbtn" disabled={position <= 0} onClick={onMoveUp} title={d.moveUp} type="button">↑</button>
+            <button className="iconbtn" disabled={position >= total - 1} onClick={onMoveDown} title={d.moveDown} type="button">↓</button>
+            <button className="iconbtn" onClick={onRemove} title={d.remove} type="button">✕</button>
+          </div>
+        )}
+      </div>
+
+      <div className="doc-grid">
+        <div className="card">
+          <p className="card-label"><span className="mk">▍</span>{d.category}</p>
+          <input className="cinput" disabled={readOnly} onChange={(e) => onEdit({ category: e.target.value })} value={testCase.category} />
         </div>
-      </header>
-
-      <div className="field">
-        <label className="field-label" htmlFor={`${fieldPrefix}-cat`}>{d.category}</label>
-        <input
-          className="field-input"
-          disabled={readOnly}
-          id={`${fieldPrefix}-cat`}
-          onChange={(event) => onEdit({ category: event.target.value })}
-          value={testCase.category}
-        />
-      </div>
-
-      <div className="field">
-        <span className="field-label">{d.status}</span>
-        <div className="status-choose">
-          {VERIFICATION_STATUSES.map((s) => (
-            <button
-              className={testCase.verificationStatus === s ? `status-choose-btn on ${s.toLowerCase()}` : 'status-choose-btn'}
-              disabled={readOnly}
-              key={s}
-              onClick={() => onEdit({ verificationStatus: s })}
-              type="button"
-            >
-              {status[s]}
-            </button>
-          ))}
+        <div className="card">
+          <p className="card-label"><span className="mk">▍</span>{d.status}</p>
+          <div className="status-choose">
+            {VERIFICATION_STATUSES.map((s) => (
+              <button
+                className={testCase.verificationStatus === s ? `on ${s}` : ''}
+                disabled={readOnly}
+                key={s}
+                onClick={() => onEdit({ verificationStatus: s })}
+                type="button"
+              >
+                {statusLabel[s]}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="card full">
+          <p className="card-label"><span className="mk">▍</span>{d.precondition} <span className="sub">{d.preHint}</span></p>
+          <textarea className="rt2" disabled={readOnly} onChange={(e) => { onEdit({ precondition: e.target.value }); autogrow(e.target) }} ref={preRef} value={testCase.precondition ?? ''} />
+        </div>
+        <div className="card full">
+          <p className="card-label"><span className="mk">▍</span>{d.expected} <span className="sub">{d.expHint}</span></p>
+          <textarea className="rt2" disabled={readOnly} onChange={(e) => { onEdit({ expected: e.target.value }); autogrow(e.target) }} ref={expRef} value={testCase.expected} />
         </div>
       </div>
 
-      <div className="field">
-        <label className="field-label" htmlFor={`${fieldPrefix}-pre`}>{d.precondition} <span className="field-sub">{d.preHint}</span></label>
-        <textarea
-          className="field-input field-input--multiline"
-          disabled={readOnly}
-          id={`${fieldPrefix}-pre`}
-          onChange={(event) => onEdit({ precondition: event.target.value })}
-          rows={2}
-          value={testCase.precondition ?? ''}
-        />
-      </div>
-
-      <div className="field">
-        <label className="field-label" htmlFor={`${fieldPrefix}-exp`}>{d.expected} <span className="field-sub">{d.expHint}</span></label>
-        <textarea
-          className="field-input field-input--multiline"
-          disabled={readOnly}
-          id={`${fieldPrefix}-exp`}
-          onChange={(event) => onEdit({ expected: event.target.value })}
-          rows={2}
-          value={testCase.expected}
-        />
-      </div>
-
-      <p className="field-hint">
+      <p className="flow-label" style={{ margin: '12px 0 0' }}>
         {d.lastBuild}: <span className="mono">{testCase.lastVerifiedBuildId ?? d.none}</span>
       </p>
-    </div>
+    </section>
   )
 }

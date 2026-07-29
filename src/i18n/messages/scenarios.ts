@@ -117,6 +117,8 @@ export const scenariosEn = {
   },
   composition: {
     title: 'Scenario body',
+    caseUnit: 'cases',
+    saved: 'Saved',
     hint: 'The ordered cases this scenario runs. Drag to reorder; edits autosave.',
     hintReadOnly: 'Read-only. This scenario is approved; its cases stay as a record.',
     loading: 'Loading cases…',
@@ -170,6 +172,12 @@ export const scenariosEn = {
       add: '＋ Add',
       delete: 'Delete',
     },
+  },
+  list: {
+    heading: 'Test scenarios',
+    new: 'New scenario',
+    empty: 'No scenarios yet.',
+    untitled: 'Untitled scenario',
   },
 } as const
 
@@ -288,6 +296,8 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
   },
   composition: {
     title: '시나리오 본문',
+    caseUnit: '케이스',
+    saved: '저장됨',
     hint: '이 시나리오가 실행하는 케이스 순서입니다. 드래그로 재정렬하고, 편집은 자동 저장됩니다.',
     hintReadOnly: '읽기 전용입니다. 승인된 시나리오라 케이스는 기록으로 남습니다.',
     loading: '케이스를 불러오는 중…',
@@ -341,5 +351,11 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
       add: '＋ 추가',
       delete: '삭제',
     },
+  },
+  list: {
+    heading: '테스트 시나리오',
+    new: '새 시나리오',
+    empty: '아직 시나리오가 없습니다.',
+    untitled: '제목 없는 시나리오',
   },
 }
