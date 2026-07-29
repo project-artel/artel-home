@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { type TestCase, type VerificationStatus } from '../testCases/testCaseTypes'
+import { CategoryChip } from '../testCases/CategoryChip'
 import { CaseLibrary } from './CaseLibrary'
 import type { useScenarioComposition } from './useScenarioComposition'
 
@@ -116,7 +117,7 @@ export function ScenarioComposition({
                     <span className="fnode-num">{String(index + 1).padStart(2, '0')}</span>
                     <span className="fnode-main">
                       <span className="fnode-title">{testCase.title.length > 0 ? testCase.title : c.newCaseTitle}</span>
-                      {testCase.category.length > 0 && <span className="fnode-cat">{testCase.category}</span>}
+                      <CategoryChip category={testCase.category} />
                     </span>
                     <span className="fnode-id mono">{testCase.id}</span>
                     <span className={`vdot ${testCase.verificationStatus}`} />

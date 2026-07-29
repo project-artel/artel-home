@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
+import { CategoryChip } from '../testCases/CategoryChip'
 import { listTestCases } from '../testCases/testCaseApi'
 import {
   VERIFICATION_STATUSES,
@@ -93,11 +94,14 @@ export function CaseLibrary({
           shown.map((testCase) => {
             const inside = inScenario.has(testCase.id)
             return (
-              <div className={inside ? 'librow' : 'librow dim'} key={testCase.id}>
+              <div className={inside ? 'librow' : 'librow dim'} key={testCase.id} data-status={testCase.verificationStatus}>
                 <span className={`vdot ${testCase.verificationStatus}`} />
-                <div>
-                  <div className="lib-title">{testCase.title.length > 0 ? testCase.title : testCase.id}</div>
-                  <div className="lib-sub">{testCase.category} · {statusLabel[testCase.verificationStatus]} · <span className="mono">{testCase.id}</span></div>
+                <div className="lib-main">
+                  <div className="lib-row1">
+                    <span className="lib-title">{testCase.title.length > 0 ? testCase.title : testCase.id}</span>
+                    <CategoryChip category={testCase.category} />
+                  </div>
+                  <div className="lib-sub"><span className="mono">{testCase.id}</span> · {statusLabel[testCase.verificationStatus]}</div>
                 </div>
                 <div className="lib-actions">
                   {inside ? (
