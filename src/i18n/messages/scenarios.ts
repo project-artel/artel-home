@@ -183,6 +183,9 @@ export const scenariosEn = {
       added: 'Added ✓',
       add: '＋ Add',
       delete: 'Delete',
+      cancel: 'Cancel',
+      confirmTitle: 'Delete this case?',
+      confirmCopy: 'It is removed from the whole project, not just this scenario, and from every scenario that uses it. This cannot be undone.',
     },
   },
   list: {
@@ -374,6 +377,9 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
       added: '적용됨 ✓',
       add: '＋ 추가',
       delete: '삭제',
+      cancel: '취소',
+      confirmTitle: '이 케이스를 삭제할까요?',
+      confirmCopy: '이 시나리오뿐 아니라 프로젝트 전체에서, 그리고 이 케이스를 쓰는 모든 시나리오에서 사라집니다. 되돌릴 수 없습니다.',
     },
   },
   list: {

@@ -2475,3 +2475,18 @@ a.instance-name:hover {
 .scenario-studio .lib-row1{ display:flex; align-items:center; gap:8px; min-width:0; }
 .scenario-studio .lib-row1 .lib-title{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .scenario-studio .lib-row1 .cat-chip{ flex:none; }
+
+/* delete confirm modal + danger affordances */
+.scenario-studio .st-btn--ghost{ border-color:var(--st-border-strong); color:var(--st-text-2); background:transparent; }
+.scenario-studio .st-btn--ghost:hover:not(:disabled){ background:var(--st-hover); color:var(--st-text); }
+.scenario-studio .st-btn--danger-solid{ background:var(--st-broken); color:#2a0f0b; border:0; font-weight:600; }
+.scenario-studio .st-btn--danger-solid:hover:not(:disabled){ background:#e0503c; }
+.scenario-studio .iconbtn--danger:hover:not(:disabled){ color:var(--st-broken); border-color:var(--st-broken); background:var(--st-broken-dim); }
+.scenario-studio .lib-actions{ gap:8px; }
+.scenario-studio .lib-actions .iconbtn{ margin-left:2px; }
+.scenario-studio .st-modal-overlay{ position:fixed; inset:0; background:rgba(4,7,10,.72); display:grid; place-items:center; z-index:60; padding:20px; }
+.scenario-studio .st-modal{ width:min(430px,92vw); background:var(--st-surface); border:1px solid var(--st-border-strong); border-radius:10px; padding:20px 22px; box-shadow:0 24px 70px -24px #000; }
+.scenario-studio .st-modal h3{ margin:0 0 10px; font-size:16px; font-weight:650; }
+.scenario-studio .st-modal-name{ margin:0 0 6px; font-size:13px; font-weight:600; color:var(--st-text); }
+.scenario-studio .st-modal-copy{ margin:0 0 18px; font-size:12.5px; color:var(--st-text-2); line-height:1.6; }
+.scenario-studio .st-modal-actions{ display:flex; justify-content:flex-end; gap:8px; }

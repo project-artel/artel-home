@@ -38,6 +38,17 @@ export function CaseLibrary({
   const [filter, setFilter] = useState<Filter>('ALL')
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(true)
+  const [pendingDelete, setPendingDelete] = useState<TestCase | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
+  async function confirmDelete() {
+    if (pendingDelete === null || deleting) return
+    setDeleting(true)
+    const ok = await onDelete(pendingDelete.id)
+    setDeleting(false)
+    if (ok) setCases((current) => current.filter((existing) => existing.id !== pendingDelete.id))
+    setPendingDelete(null)
+  }
 
   useEffect(() => {
     const controller = new AbortController()
@@ -60,6 +71,7 @@ export function CaseLibrary({
   )
 
   return (
+    <>
     <section className="lib">
       <div className="lib-head">
         <h3>{l.title}</h3>
@@ -110,12 +122,8 @@ export function CaseLibrary({
                     <button className="membtn out" onClick={() => onAdd(testCase)} type="button">{l.add}</button>
                   )}
                   <button
-                    className="iconbtn"
-                    onClick={() => {
-                      void onDelete(testCase.id).then((ok) => {
-                        if (ok) setCases((current) => current.filter((existing) => existing.id !== testCase.id))
-                      })
-                    }}
+                    className="iconbtn iconbtn--danger"
+                    onClick={() => setPendingDelete(testCase)}
                     title={l.delete}
                     type="button"
                   >
@@ -128,5 +136,20 @@ export function CaseLibrary({
         )}
       </div>
     </section>
+
+    {pendingDelete !== null && (
+      <div className="st-modal-overlay" onClick={() => !deleting && setPendingDelete(null)}>
+        <div aria-modal="true" className="st-modal" onClick={(event) => event.stopPropagation()} role="dialog">
+          <h3>{l.confirmTitle}</h3>
+          <p className="st-modal-name">{pendingDelete.title.length > 0 ? pendingDelete.title : pendingDelete.id}</p>
+          <p className="st-modal-copy">{l.confirmCopy}</p>
+          <div className="st-modal-actions">
+            <button className="st-btn st-btn--ghost" disabled={deleting} onClick={() => setPendingDelete(null)} type="button">{l.cancel}</button>
+            <button className="st-btn st-btn--danger-solid" disabled={deleting} onClick={confirmDelete} type="button">{l.delete}</button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   )
 }
