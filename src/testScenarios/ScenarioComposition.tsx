@@ -1,10 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
-import {
-  VERIFICATION_STATUSES,
-  type TestCase,
-  type VerificationStatus,
-} from '../testCases/testCaseTypes'
+import { type TestCase, type VerificationStatus } from '../testCases/testCaseTypes'
 import { CaseLibrary } from './CaseLibrary'
 import type { useScenarioComposition } from './useScenarioComposition'
 
@@ -221,20 +217,10 @@ function CaseDetail({
           <input className="cinput" disabled={readOnly} onChange={(e) => onEdit({ category: e.target.value })} value={testCase.category} />
         </div>
         <div className="card">
-          <p className="card-label"><span className="mk">▍</span>{d.status}</p>
-          <div className="status-choose">
-            {VERIFICATION_STATUSES.map((s) => (
-              <button
-                className={testCase.verificationStatus === s ? `on ${s}` : ''}
-                disabled={readOnly}
-                key={s}
-                onClick={() => onEdit({ verificationStatus: s })}
-                type="button"
-              >
-                {statusLabel[s]}
-              </button>
-            ))}
-          </div>
+          <p className="card-label"><span className="mk">▍</span>{d.status} <span className="sub">{d.statusHint}</span></p>
+          <span className={`vpill ${testCase.verificationStatus}`}>
+            <span className={`vdot ${testCase.verificationStatus}`} />{statusLabel[testCase.verificationStatus]}
+          </span>
         </div>
         <div className="card full">
           <p className="card-label"><span className="mk">▍</span>{d.precondition} <span className="sub">{d.preHint}</span></p>
