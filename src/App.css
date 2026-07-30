@@ -166,7 +166,7 @@
   place-items: center;
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md);
-  background: var(--color-text-primary);
+  background: var(--color-bg-raised);
 }
 
 .login-brand img {
@@ -264,7 +264,7 @@
   place-items: center;
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
-  background: var(--color-text-primary);
+  background: var(--color-bg-raised);
 }
 
 .brand-mark img {
