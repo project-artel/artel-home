@@ -2335,7 +2335,12 @@ a.instance-name:hover {
 .scenario-studio .st-btn--danger{ color:var(--st-broken); background:transparent; } .scenario-studio .st-btn--danger:hover:not(:disabled){ background:var(--st-broken-dim); }
 
 /* 3-col edit */
-.scenario-studio .st-edit{ min-height:0; display:grid; grid-template-columns:280px minmax(0,1fr) 360px; }
+.scenario-studio .st-edit{ min-height:0; overflow:hidden; display:grid; grid-template-columns:280px minmax(0,1fr) 360px; }
+/* each column scrolls independently within the fixed studio height; the page itself never scrolls */
+.scenario-studio .st-edit > .elist,
+.scenario-studio .st-edit > .edoc-wrap,
+.scenario-studio .st-edit > .st-chat{ min-height:0; height:100%; overflow:hidden; }
+.scenario-studio .st-edit > .edoc-wrap{ overflow-y:auto; }
 .scenario-studio .elist{ background:var(--st-surface); border-right:1px solid var(--st-border); display:flex; flex-direction:column; min-height:0; }
 .scenario-studio .elist-head{ display:flex; align-items:center; gap:8px; padding:13px 15px; border-bottom:1px solid var(--st-border); }
 .scenario-studio .elist-head h2{ margin:0; font-size:13px; font-weight:600; letter-spacing:.02em; text-transform:uppercase; color:var(--st-text-2); }
@@ -2686,3 +2691,11 @@ a.instance-name:hover {
 .scenario-studio .cp-info-fields dd{ margin:0; font-size:13px; color:var(--st-text); line-height:1.55; word-break:break-word; }
 .scenario-studio .cp-info-none{ color:var(--st-muted); }
 @media (max-width:720px){ .scenario-studio .cp-info{ display:none; } }
+
+/* run delete confirm modal */
+.run-del-overlay{ position:fixed; inset:0; background:rgba(4,7,10,.72); display:grid; place-items:center; z-index:60; padding:20px; }
+.run-del-modal{ width:min(420px,92vw); background:var(--color-bg-surface); border:1px solid var(--color-border-strong); border-radius:10px; padding:20px 22px; box-shadow:0 24px 70px -24px #000; }
+.run-del-modal h3{ margin:0 0 10px; font-size:16px; font-weight:650; }
+.run-del-name{ margin:0 0 6px; font-size:13px; font-weight:600; color:var(--color-text-primary); }
+.run-del-copy{ margin:0 0 18px; font-size:12.5px; color:var(--color-text-secondary); line-height:1.6; }
+.run-del-actions{ display:flex; justify-content:flex-end; gap:8px; }

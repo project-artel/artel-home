@@ -96,7 +96,7 @@ function RunEditPage({ projectId, runId }: { projectId: string; runId: string })
     <div className="scenario-studio">
       <header className="st-top">
         <Link className="st-back" to={`/projects/${encodeURIComponent(projectId)}`}>{t.scenarios.page.backToProject}</Link>
-        <div className="st-crumb"><span className="scn">{state.run.name}</span><span className="id mono">TestRun · #{runId}</span></div>
+        <div className="st-crumb"><span className="scn">{state.run.name}</span><span className="id mono">TestRun</span></div>
         <div className="st-spacer" />
         <div className="st-seg">
           <button className="on" type="button">{t.scenarios.map.editView}</button>

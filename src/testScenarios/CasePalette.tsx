@@ -237,7 +237,7 @@ export function CasePalette({
                   <span className={`vdot ${testCase.verificationStatus}`} />
                   <span className="cp-main">
                     <span className="cp-title">{testCase.title.length > 0 ? testCase.title : testCase.id}</span>
-                    <span className="cp-sub"><span className="mono">{testCase.id}</span> · {statusLabel[testCase.verificationStatus]}</span>
+                    <span className="cp-sub">{statusLabel[testCase.verificationStatus]}</span>
                   </span>
                   <CategoryChip category={testCase.category} />
                   {inside && (
@@ -270,10 +270,6 @@ export function CasePalette({
                     <dd>{info.precondition !== null && info.precondition.length > 0 ? info.precondition : <span className="cp-info-none">—</span>}</dd>
                     <dt>{p.infoExp}</dt>
                     <dd>{info.expected.length > 0 ? info.expected : <span className="cp-info-none">—</span>}</dd>
-                    <dt>{p.infoBuild}</dt>
-                    <dd className="mono">{info.lastVerifiedBuildId ?? '—'}</dd>
-                    <dt>{p.infoId}</dt>
-                    <dd className="mono">{info.id}</dd>
                   </dl>
                 </>
               )

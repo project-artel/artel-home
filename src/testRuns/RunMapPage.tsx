@@ -192,7 +192,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     >
       <header className="rm-top">
         <Link className="st-back" to={`/projects/${encodeURIComponent(projectId)}`}>{m.back}</Link>
-        <div className="st-crumb"><span className="scn">{run?.name}</span><span className="id mono">TestRun · #{runId} · {nodes.length} {m.scenarioUnit}</span></div>
+        <div className="st-crumb"><span className="scn">{run?.name}</span><span className="id mono">TestRun · {nodes.length} {m.scenarioUnit}</span></div>
         <div className="rm-spacer" />
         <div className="rm-seg">
           <button onClick={() => navigate(`/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(runId)}/edit`)} type="button">{m.editView}</button>
@@ -214,7 +214,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
 
         <div className="mentry" style={{ left: 24, top: entryY }}>
           <div className="lbl"><span className="d" />TestRun</div>
-          <div className="sub mono">#{runId} · {nodes.length} {m.scenarioUnit}</div>
+          <div className="sub mono">{nodes.length} {m.scenarioUnit}</div>
           <div className="sub">{run?.name}</div>
         </div>
 
@@ -230,7 +230,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
                 role="button" tabIndex={0}
               >
                 <div className="mname">{node.title}</div>
-                <div className="mmeta mono">#{node.id} · {node.total} {m.caseUnit} · {expanded ? m.collapse : m.expand}</div>
+                <div className="mmeta mono">{node.total} {m.caseUnit} · {expanded ? m.collapse : m.expand}</div>
                 <div className="vbar">
                   {node.total === 0 ? <i className="empty" style={{ flex: 1 }} /> :
                     bar.map((s) => <i className={s} key={s} style={{ flex: node.rollup[s] }} />)}

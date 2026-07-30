@@ -101,6 +101,12 @@ export async function setRunScenarios(
     .sort((left, right) => left.position - right.position)
 }
 
+/** `DELETE /api/projects/{projectId}/test-runs/{runId}` — removes the run (composition links go with it). */
+export async function deleteTestRun(projectId: string, runId: string): Promise<void> {
+  const response = await apiFetch(`${runsRoot(projectId)}/${encodeURIComponent(runId)}`, { method: 'DELETE' })
+  if (!response.ok) throw await toApiError(response)
+}
+
 /** `GET /api/projects/{projectId}/test-runs/{runId}/scenarios` — ordered slots. */
 export async function getRunScenarios(
   projectId: string,

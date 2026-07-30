@@ -156,7 +156,6 @@ export function ScenarioComposition({
                       <span className="fnode-title">{testCase.title.length > 0 ? testCase.title : c.newCaseTitle}</span>
                       <CategoryChip category={testCase.category} />
                     </span>
-                    <span className="fnode-id mono">{testCase.id}</span>
                     <span className={`vdot ${testCase.verificationStatus}`} />
                   </button>
                 </li>
@@ -254,7 +253,6 @@ function CaseDetail({
     <section className="detail">
       <div className="detail-head">
         <h3>{d.heading} · {String(position + 1).padStart(2, '0')}</h3>
-        <span className="mono" style={{ color: 'var(--st-muted)', fontSize: 12 }}>{testCase.id}</span>
         {!readOnly && (
           <div className="detail-tools">
             <button className="iconbtn" disabled={position <= 0} onClick={onMoveUp} title={d.moveUp} type="button">↑</button>
@@ -284,10 +282,6 @@ function CaseDetail({
           <textarea className="rt2" disabled={readOnly} onChange={(e) => { onEdit({ expected: e.target.value }); autogrow(e.target) }} ref={expRef} value={testCase.expected} />
         </div>
       </div>
-
-      <p className="flow-label" style={{ margin: '12px 0 0' }}>
-        {d.lastBuild}: <span className="mono">{testCase.lastVerifiedBuildId ?? d.none}</span>
-      </p>
     </section>
   )
 }

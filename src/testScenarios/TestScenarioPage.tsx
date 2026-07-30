@@ -89,7 +89,6 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
         <Link className="st-back" to={backLink(projectId)}>{t.scenarios.page.backToProject}</Link>
         <div className="st-crumb">
           <span className="scn">{title}</span>
-          <span className="id mono">#{scenarioId}</span>
         </div>
         <div className="st-spacer" />
         {fromRun !== null && (

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { formatDate } from '../projects/formatters'
 import { ProjectApiError } from '../projects/projectApi'
-import { createTestRun, listTestRuns, type TestRun } from './testRunApi'
+import { createTestRun, deleteTestRun, listTestRuns, type TestRun } from './testRunApi'
 
 type ListState =
   | { kind: 'loading' }
@@ -24,6 +24,23 @@ export function RunListPanel({ projectId }: { projectId: string }) {
   const [reload, setReload] = useState(0)
   const [creating, setCreating] = useState(false)
   const [failure, setFailure] = useState<string | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<TestRun | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
+  async function confirmDelete() {
+    if (pendingDelete === null || deleting) return
+    setDeleting(true)
+    try {
+      await deleteTestRun(projectId, pendingDelete.id)
+      setPendingDelete(null)
+      setReload((n) => n + 1)
+    } catch (error: unknown) {
+      setFailure(error instanceof ProjectApiError ? error.message : r.deleteFailed)
+      setPendingDelete(null)
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   useEffect(() => {
     const controller = new AbortController()
@@ -97,10 +114,27 @@ export function RunListPanel({ projectId }: { projectId: string }) {
                   )}
                 </div>
                 <p className="scenario-row-meta">{r.created(formatDate(run.createdAt))}</p>
+                <button className="button button--danger-quiet button--compact" onClick={() => setPendingDelete(run)} type="button">
+                  {r.delete}
+                </button>
               </li>
             ))}
           </ul>
         )
+      )}
+
+      {pendingDelete !== null && (
+        <div className="run-del-overlay" onClick={() => !deleting && setPendingDelete(null)}>
+          <div aria-modal="true" className="run-del-modal" onClick={(event) => event.stopPropagation()} role="dialog">
+            <h3>{r.deleteTitle}</h3>
+            <p className="run-del-name">{pendingDelete.name.length > 0 ? pendingDelete.name : r.untitled}</p>
+            <p className="run-del-copy">{r.deleteCopy}</p>
+            <div className="run-del-actions">
+              <button className="button button--secondary" disabled={deleting} onClick={() => setPendingDelete(null)} type="button">{r.cancel}</button>
+              <button className="button button--danger" disabled={deleting} onClick={confirmDelete} type="button">{deleting ? r.deleting : r.delete}</button>
+            </div>
+          </div>
+        </div>
       )}
     </section>
   )

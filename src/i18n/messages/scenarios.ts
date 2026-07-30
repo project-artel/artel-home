@@ -208,6 +208,12 @@ export const scenariosEn = {
     empty: 'No runs yet. Create one to start bundling scenarios.',
     untitled: 'Untitled run',
     created: (date: string) => `Created ${date}`,
+    delete: 'Delete',
+    deleting: 'Deleting…',
+    deleteFailed: 'The run could not be deleted. Please try again.',
+    deleteTitle: 'Delete this run?',
+    deleteCopy: 'The run and its scenario grouping are removed. The scenarios and cases themselves are not deleted.',
+    cancel: 'Cancel',
   },
   map: {
     loading: 'Loading run…',
@@ -249,8 +255,6 @@ export const scenariosEn = {
     applied: (n: number) => `${n} in scenario`,
     infoPre: 'Precondition',
     infoExp: 'Expected',
-    infoBuild: 'Last verified build',
-    infoId: 'ID',
   },
 } as const
 
@@ -460,6 +464,12 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     empty: '아직 런이 없습니다. 런을 만들어 시나리오를 묶어보세요.',
     untitled: '제목 없는 런',
     created: (date: string) => `${date} 생성`,
+    delete: '삭제',
+    deleting: '삭제 중…',
+    deleteFailed: '런을 삭제하지 못했습니다. 다시 시도해 주세요.',
+    deleteTitle: '이 런을 삭제할까요?',
+    deleteCopy: '런과 시나리오 묶음이 제거됩니다. 시나리오와 케이스 자체는 삭제되지 않습니다.',
+    cancel: '취소',
   },
   map: {
     loading: '런을 불러오는 중…',
@@ -501,7 +511,5 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     applied: (n: number) => `${n}개 적용중`,
     infoPre: '사전조건',
     infoExp: '기대효과',
-    infoBuild: '최근 검증 빌드',
-    infoId: 'ID',
   },
 }
