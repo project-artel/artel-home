@@ -47,7 +47,9 @@ export function LoginPage({ serviceUnavailable = false }: { serviceUnavailable?:
   return (
     <main className="login-layout">
       <section className="login-panel" aria-labelledby="login-title">
-        <div className="login-brand" aria-hidden="true">A</div>
+        <div className="login-brand" aria-hidden="true">
+          <img src="/artel-mark.svg" alt="" />
+        </div>
         <p className="eyebrow">ARTEL Replay Studio</p>
         <h1 id="login-title">{t.common.login.title}</h1>
         <p className="login-copy">{t.common.login.copy}</p>

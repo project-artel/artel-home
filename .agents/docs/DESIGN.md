@@ -41,7 +41,9 @@ Avoid generic KPI dashboards, repeated rounded cards, excessive glassmorphism, d
 | `text.primary` | `#F4F7FA` | Titles and critical values |
 | `text.secondary` | `#A7B0BC` | Body text and descriptions |
 | `text.muted` | `#707B88` | Metadata |
-| `action.primary` | `#24C7E8` | Agent actions and primary controls |
+| `brand.charcoal` | `#20232B` | Artel symbol body |
+| `brand.accent` | `#F04B3A` | Artel symbol accent |
+| `action.primary` | `#24C7E8` | Agent actions, selection, and focus |
 | `agent.reasoning` | `#8F7CF6` | Agent reasoning events |
 | `status.success` | `#48C78E` | Passed and healthy states |
 | `status.warning` | `#F2B84B` | Warnings and retries |

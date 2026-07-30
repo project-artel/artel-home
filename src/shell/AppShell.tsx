@@ -26,7 +26,9 @@ export function AppShell() {
     <div className="app-shell">
       <header className="top-bar">
         <Link className="brand" to="/projects" aria-label={t.common.shell.brandHomeLabel}>
-          <span className="brand-mark" aria-hidden="true">A</span>
+          <span className="brand-mark" aria-hidden="true">
+            <img src="/artel-mark.svg" alt="" />
+          </span>
           <span>ARTEL</span>
           <span className="product-name">Replay Studio</span>
         </Link>

@@ -137,15 +137,18 @@
 
 .login-brand {
   display: grid;
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
   margin-bottom: var(--space-6);
   place-items: center;
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md);
-  color: var(--color-action-primary);
-  background: var(--color-bg-raised);
-  font-weight: 650;
+  background: var(--color-text-primary);
+}
+
+.login-brand img {
+  width: 36px;
+  height: 36px;
 }
 
 .login-copy {
@@ -198,7 +201,7 @@
 }
 
 .provider-button:hover {
-  border-color: var(--color-action-primary);
+  border-color: var(--color-brand-accent);
   background: var(--color-bg-hover);
 }
 
@@ -238,8 +241,12 @@
   place-items: center;
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
-  color: var(--color-action-primary);
-  font-size: 12px;
+  background: var(--color-text-primary);
+}
+
+.brand-mark img {
+  width: 20px;
+  height: 20px;
 }
 
 .product-name {
@@ -301,7 +308,7 @@
 
 .eyebrow {
   margin: 0 0 var(--space-2);
-  color: var(--color-action-primary);
+  color: var(--color-brand-accent);
   font-size: 11px;
   font-weight: 650;
   letter-spacing: 0.1em;
@@ -345,11 +352,11 @@ h1 {
 
 .button--primary {
   color: var(--color-bg-canvas);
-  background: var(--color-action-primary);
+  background: var(--color-brand-accent);
 }
 
 .button--primary:hover {
-  background: var(--color-action-primary-strong);
+  background: var(--color-brand-accent-strong);
 }
 
 .button--secondary {
@@ -1518,7 +1525,7 @@ a.instance-name:hover {
 }
 
 /*
- * Selection is cyan, per the design system, and is also carried by
+ * Selection uses the action accent and is also carried by
  * `aria-current` and by the editor appearing below — never by colour alone.
  */
 .scenario-node--selected {
