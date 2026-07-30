@@ -10,6 +10,9 @@ import {
 
 type Filter = 'ALL' | VerificationStatus
 
+/** How many category chips show before the rest collapse behind a "＋N" toggle. */
+const MAX_CATEGORY_CHIPS = 6
+
 /**
  * A ⌘K command palette for the case library. Opened over the studio, it finds a
  * project's reusable cases by search + category + status and toggles them into
@@ -46,6 +49,7 @@ export function CasePalette({
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<Filter>('ALL')
   const [category, setCategory] = useState<string>('')
+  const [showAllCats, setShowAllCats] = useState(false)
   const [active, setActive] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
@@ -124,11 +128,21 @@ export function CasePalette({
               {f === 'ALL' ? p.statusAll : statusLabel[f]}
             </button>
           ))}
-          <select className="cp-cat" onChange={(event) => setCategory(event.target.value)} value={category}>
-            <option value="">{p.categoryAll}</option>
-            {categories.map((name) => <option key={name} value={name}>{name}</option>)}
-          </select>
         </div>
+
+        {categories.length > 0 && (
+          <div className="cp-cats">
+            <button className={category === '' ? 'fchip on' : 'fchip'} onClick={() => setCategory('')} type="button">{p.categoryAll}</button>
+            {(showAllCats ? categories : categories.slice(0, MAX_CATEGORY_CHIPS)).map((name) => (
+              <button className={category === name ? 'fchip on' : 'fchip'} key={name} onClick={() => setCategory(category === name ? '' : name)} type="button">{name}</button>
+            ))}
+            {categories.length > MAX_CATEGORY_CHIPS && (
+              <button className="fchip cp-more" onClick={() => setShowAllCats((v) => !v)} type="button">
+                {showAllCats ? p.less : `＋${categories.length - MAX_CATEGORY_CHIPS}`}
+              </button>
+            )}
+          </div>
+        )}
 
         <div className="cp-list" ref={listRef}>
           {shown.length === 0 ? (
@@ -138,7 +152,7 @@ export function CasePalette({
               const inside = inScenario.has(testCase.id)
               return (
                 <button
-                  className={'cp-row' + (index === active ? ' active' : '')}
+                  className={'cp-row' + (index === active ? ' active' : '') + (inside ? ' in' : '')}
                   data-index={index}
                   key={testCase.id}
                   onClick={() => toggle(testCase)}
@@ -151,7 +165,11 @@ export function CasePalette({
                     <span className="cp-sub"><span className="mono">{testCase.id}</span> · {statusLabel[testCase.verificationStatus]}</span>
                   </span>
                   <CategoryChip category={testCase.category} />
-                  {inside && <span className="cp-check" aria-hidden="true">✓</span>}
+                  {inside ? (
+                    <span className="cp-badge in"><span aria-hidden="true">✓</span> {p.inScenario}</span>
+                  ) : (
+                    <span className="cp-badge add">{p.addAction}</span>
+                  )}
                 </button>
               )
             })

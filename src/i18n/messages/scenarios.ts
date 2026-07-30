@@ -214,7 +214,10 @@ export const scenariosEn = {
   palette: {
     searchPlaceholder: 'Search cases — title, category, id…',
     statusAll: 'All',
-    categoryAll: 'All categories',
+    categoryAll: 'All',
+    less: 'less',
+    inScenario: 'In scenario',
+    addAction: 'Add',
     empty: 'No cases in this project yet.',
     noMatch: 'No cases match.',
     hintNav: 'navigate',
@@ -436,7 +439,10 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
   palette: {
     searchPlaceholder: '케이스 검색 — 제목·대분류·id…',
     statusAll: '전체',
-    categoryAll: '전체 대분류',
+    categoryAll: '전체',
+    less: '접기',
+    inScenario: '적용됨',
+    addAction: '추가',
     empty: '이 프로젝트에 케이스가 없습니다.',
     noMatch: '일치하는 케이스가 없습니다.',
     hintNav: '탐색',
