@@ -10,6 +10,7 @@ import { ProjectDetailRoute } from './projects/ProjectDetailPage'
 import { ProjectListPage } from './projects/ProjectListPage'
 import { QaTryRoute } from './qa/QaTryPage'
 import { AppShell } from './shell/AppShell'
+import { RunEditRoute } from './testRuns/RunEditPage'
 import { RunMapRoute } from './testRuns/RunMapPage'
 import { TestScenarioRoute } from './testScenarios/TestScenarioPage'
 
@@ -64,6 +65,10 @@ export function App() {
           <Route
             path="/projects/:projectId/test-runs/:runId"
             element={<RunMapRoute />}
+          />
+          <Route
+            path="/projects/:projectId/test-runs/:runId/edit"
+            element={<RunEditRoute />}
           />
           <Route
             path="/projects/:projectId/qa-tries/:qaTryId"

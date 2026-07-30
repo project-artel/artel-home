@@ -1,14 +1,17 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
+import { getRunScenarios, setRunScenarios } from '../testRuns/testRunApi'
 import { createTestScenario, listTestScenarios } from './scenarioApi'
 import type { TestScenarioSummary } from './scenarioTypes'
 
 /**
- * The project's scenarios, as the studio's left rail. Selecting one navigates to
- * its URL (the page is keyed by id, so it remounts on the new scenario). The
- * list has no case counts — the list endpoint does not carry them — so a row
- * shows the name and when it was last touched, not a rollup.
+ * The studio's left rail. When a `runId` is given the list is that run's
+ * scenarios (in newest-first order); otherwise it is the whole project's. A row
+ * navigates to the scenario, carrying the run so the Edit/Map toggle survives.
+ *
+ * Creating a scenario in a run context both makes it and appends it to the run,
+ * so a scenario made here is immediately part of the run being edited.
  */
 export function ScenarioList({
   projectId,
@@ -17,7 +20,7 @@ export function ScenarioList({
 }: {
   projectId: string
   activeId: number
-  /** Carried into each row's link so the Edit/Map toggle survives switching scenarios. */
+  /** When set, the rail is scoped to this run and new scenarios append to it. */
   runId?: string | null
 }) {
   const { t } = useI18n()
@@ -25,23 +28,27 @@ export function ScenarioList({
   const navigate = useNavigate()
   const [items, setItems] = useState<TestScenarioSummary[]>([])
   const [creating, setCreating] = useState(false)
+  const [reload, setReload] = useState(0)
 
   useEffect(() => {
     const controller = new AbortController()
-    listTestScenarios(Number(projectId), controller.signal)
-      // Newest first: the server does not guarantee an order, so sort by
-      // createdAt descending (id descending as a stable tiebreaker).
-      .then((list) =>
-        setItems(
-          [...list].sort(
-            (a, b) =>
-              (b.createdAt.localeCompare(a.createdAt)) || (b.testScenarioId - a.testScenarioId),
-          ),
-        ),
+    const sortNewest = (list: TestScenarioSummary[]) =>
+      [...list].sort(
+        (a, b) => b.createdAt.localeCompare(a.createdAt) || (b.testScenarioId - a.testScenarioId),
       )
-      .catch(() => undefined)
+
+    async function load() {
+      const all = await listTestScenarios(Number(projectId), controller.signal)
+      if (runId === null) return sortNewest(all)
+      // Run-scoped: keep only scenarios in this run's composition.
+      const runItems = await getRunScenarios(projectId, runId, controller.signal)
+      const runIds = new Set(runItems.map((item) => item.testScenarioId))
+      return sortNewest(all.filter((summary) => runIds.has(String(summary.testScenarioId))))
+    }
+
+    load().then(setItems).catch(() => undefined)
     return () => controller.abort()
-  }, [projectId, activeId])
+  }, [projectId, runId, activeId, reload])
 
   function open(id: number) {
     const suffix = runId !== null ? `?run=${encodeURIComponent(runId)}` : ''
@@ -53,6 +60,13 @@ export function ScenarioList({
     setCreating(true)
     try {
       const id = await createTestScenario(Number(projectId))
+      // In a run, the new scenario must join the run's composition to be visible
+      // and reachable within it — append after the existing ones.
+      if (runId !== null) {
+        const existing = await getRunScenarios(projectId, runId)
+        await setRunScenarios(projectId, runId, [...existing.map((i) => i.testScenarioId), String(id)])
+        setReload((n) => n + 1)
+      }
       open(id)
     } catch {
       // stay put; the topbar's own errors already cover a failed round trip

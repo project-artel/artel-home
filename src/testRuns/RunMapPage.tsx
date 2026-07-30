@@ -195,7 +195,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
         <div className="st-crumb"><span className="scn">{run?.name}</span><span className="id mono">TestRun · #{runId} · {nodes.length} {m.scenarioUnit}</span></div>
         <div className="rm-spacer" />
         <div className="rm-seg">
-          <button disabled={nodes.length === 0} onClick={() => nodes.length > 0 && openEdit(nodes[0].id)} type="button">{m.editView}</button>
+          <button onClick={() => navigate(`/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(runId)}/edit`)} type="button">{m.editView}</button>
           <button className="on" type="button">{m.mapView}</button>
         </div>
       </header>

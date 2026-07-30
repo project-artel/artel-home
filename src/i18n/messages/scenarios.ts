@@ -224,6 +224,14 @@ export const scenariosEn = {
     noCases: 'No cases',
     editView: 'Edit',
     mapView: 'Map',
+    mapLocked: 'Add a scenario to open the map',
+  },
+  runEdit: {
+    emptyTitle: 'This run has no scenarios yet',
+    emptyCopy: 'Create the first scenario to start building the run. The map opens once a scenario exists.',
+    createFirst: '＋ New scenario',
+    creating: 'Creating…',
+    mapLocked: 'Add a scenario to open the map',
   },
   palette: {
     searchPlaceholder: 'Search cases — title, category, id…',
@@ -464,6 +472,14 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     noCases: '케이스 없음',
     editView: '편집',
     mapView: '맵',
+    mapLocked: '시나리오를 추가하면 맵이 열립니다',
+  },
+  runEdit: {
+    emptyTitle: '이 런에는 아직 시나리오가 없습니다',
+    emptyCopy: '첫 시나리오를 만들어 런을 구성하세요. 시나리오가 생기면 맵이 열립니다.',
+    createFirst: '＋ 새 시나리오',
+    creating: '생성 중…',
+    mapLocked: '시나리오를 추가하면 맵이 열립니다',
   },
   palette: {
     searchPlaceholder: '케이스 검색 — 제목·대분류·id…',

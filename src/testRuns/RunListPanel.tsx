@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { formatDate } from '../projects/formatters'
 import { ProjectApiError } from '../projects/projectApi'
-import { listTestScenarios } from '../testScenarios/scenarioApi'
-import { createTestRun, getRunScenarios, listTestRuns, type TestRun } from './testRunApi'
+import { createTestRun, listTestRuns, type TestRun } from './testRunApi'
 
 type ListState =
   | { kind: 'loading' }
@@ -40,28 +39,10 @@ export function RunListPanel({ projectId }: { projectId: string }) {
     return () => controller.abort()
   }, [projectId, reload, r])
 
-  function toMap(runId: string) {
-    return `/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(runId)}`
-  }
-
-  // Opening a run lands in Edit (not the map): the scenario listed first — the
-  // most-recent by the scenario list's own order — opens directly, carrying the
-  // run context so the Edit/Map toggle appears. Falls back to the map when the
-  // run has no scenarios yet.
-  async function openRun(runId: string) {
-    try {
-      const items = await getRunScenarios(projectId, runId)
-      if (items.length === 0) { navigate(toMap(runId)); return }
-      const summaries = await listTestScenarios(Number(projectId))
-      const createdById = new Map(summaries.map((s) => [String(s.testScenarioId), s.createdAt]))
-      // "top of the list" = newest scenario in the run (list order is newest-first)
-      const first = [...items].sort(
-        (a, b) => (createdById.get(b.testScenarioId) ?? '').localeCompare(createdById.get(a.testScenarioId) ?? ''),
-      )[0]
-      navigate(`/projects/${encodeURIComponent(projectId)}/test-scenarios/${first.testScenarioId}?run=${encodeURIComponent(runId)}`)
-    } catch {
-      navigate(toMap(runId))
-    }
+  // Opening a run always lands in the run's edit entry, which decides between the
+  // empty-run shell and the newest scenario's studio (see RunEditPage).
+  function openRun(runId: string) {
+    navigate(`/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(runId)}/edit`)
   }
 
   async function create() {

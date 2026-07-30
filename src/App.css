@@ -2663,3 +2663,8 @@ a.instance-name:hover {
 .scenario-studio .cp-listwrap.at-top .cp-fade--top{ opacity:0; }
 .scenario-studio .cp-listwrap.at-bottom .cp-fade--bottom{ opacity:0; }
 .scenario-studio .cp-fade-hint{ color:var(--st-action); font-size:13px; }
+
+/* empty-run edit shell */
+.scenario-studio .run-empty{ display:flex; flex-direction:column; align-items:flex-start; gap:14px; padding-top:40px; }
+.scenario-studio .run-empty-title{ margin:0; font-size:20px; font-weight:650; letter-spacing:-.01em; }
+.scenario-studio .run-empty-copy{ margin:0; font-size:13.5px; color:var(--st-text-2); line-height:1.6; max-width:440px; }

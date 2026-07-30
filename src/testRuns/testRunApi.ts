@@ -74,6 +74,33 @@ export async function getTestRun(
   return parseTestRun(await readJson(response))
 }
 
+/**
+ * `PUT /api/projects/{projectId}/test-runs/{runId}/scenarios` — replaces the run's
+ * scenario composition wholesale. Order of `scenarioIds` becomes the position.
+ */
+export async function setRunScenarios(
+  projectId: string,
+  runId: string,
+  scenarioIds: string[],
+): Promise<RunScenarioItem[]> {
+  const response = await apiFetch(
+    `${runsRoot(projectId)}/${encodeURIComponent(runId)}/scenarios`,
+    { method: 'PUT', ...jsonRequest({ scenarioIds }) },
+  )
+  if (!response.ok) throw await toApiError(response)
+  const items = asRecord(await readJson(response))?.items
+  const list = Array.isArray(items) ? items : []
+  return list
+    .map((raw): RunScenarioItem | null => {
+      const record = asRecord(raw)
+      const testScenarioId = record === null ? '' : asString(record.testScenarioId)
+      if (testScenarioId.length === 0) return null
+      return { position: typeof record?.position === 'number' ? record.position : 0, testScenarioId }
+    })
+    .filter((item): item is RunScenarioItem => item !== null)
+    .sort((left, right) => left.position - right.position)
+}
+
 /** `GET /api/projects/{projectId}/test-runs/{runId}/scenarios` — ordered slots. */
 export async function getRunScenarios(
   projectId: string,
