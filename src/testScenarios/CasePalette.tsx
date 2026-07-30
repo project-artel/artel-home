@@ -56,6 +56,7 @@ export function CasePalette({
   const [catSearchOpen, setCatSearchOpen] = useState(false)
   const [catQuery, setCatQuery] = useState('')
   const [catAtEnd, setCatAtEnd] = useState(false)
+  const [listEdge, setListEdge] = useState({ top: true, bottom: false })
   const [active, setActive] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
@@ -149,6 +150,17 @@ export function CasePalette({
     el?.scrollIntoView({ block: 'nearest' })
   }, [active])
 
+  function updateListEdge(el: HTMLElement) {
+    setListEdge({
+      top: el.scrollTop <= 2,
+      bottom: el.scrollTop + el.clientHeight >= el.scrollHeight - 2,
+    })
+  }
+  // Recompute edges when the result set changes (filter/search shrinks the list).
+  useEffect(() => {
+    if (listRef.current !== null) updateListEdge(listRef.current)
+  }, [shown.length])
+
   function toggle(testCase: TestCase) {
     if (inScenario.has(testCase.id)) onRemove(testCase.id)
     else onAdd(testCase)
@@ -204,7 +216,9 @@ export function CasePalette({
           </div>
         )}
 
-        <div className="cp-list" ref={listRef}>
+        <div className={'cp-listwrap' + (listEdge.top ? ' at-top' : '') + (listEdge.bottom ? ' at-bottom' : '')}>
+        <div className="cp-fade cp-fade--top" aria-hidden="true"><span className="cp-fade-hint">▴</span></div>
+        <div className="cp-list" onScroll={(event) => updateListEdge(event.currentTarget)} ref={listRef}>
           {shown.length === 0 ? (
             <p className="cp-empty">{cases.length === 0 ? p.empty : p.noMatch}</p>
           ) : (
@@ -232,6 +246,8 @@ export function CasePalette({
               )
             })
           )}
+        </div>
+        <div className="cp-fade cp-fade--bottom" aria-hidden="true"><span className="cp-fade-hint">▾</span></div>
         </div>
 
         <div className="cp-foot">

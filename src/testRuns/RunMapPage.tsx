@@ -179,10 +179,16 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
         event.currentTarget.setPointerCapture(event.pointerId)
       }}
       onPointerMove={(event) => {
-        if (pan.current === null) return
-        setView((v) => ({ ...v, x: pan.current!.ox + (event.clientX - pan.current!.sx), y: pan.current!.oy + (event.clientY - pan.current!.sy) }))
+        // Capture the ref once: pointerup can null it out between reads (inside
+        // the setState updater), which crashed on `.ox`.
+        const start = pan.current
+        if (start === null) return
+        const dx = event.clientX - start.sx
+        const dy = event.clientY - start.sy
+        setView((v) => ({ ...v, x: start.ox + dx, y: start.oy + dy }))
       }}
       onPointerUp={() => { pan.current = null }}
+      onPointerCancel={() => { pan.current = null }}
     >
       <header className="rm-top">
         <Link className="st-back" to={`/projects/${encodeURIComponent(projectId)}`}>{m.back}</Link>

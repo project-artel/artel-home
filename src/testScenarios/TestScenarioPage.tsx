@@ -118,7 +118,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
       </header>
 
       <div className="st-edit">
-        <ScenarioList projectId={projectId} activeId={scenarioId} />
+        <ScenarioList projectId={projectId} activeId={scenarioId} runId={fromRun} />
         <ScenarioComposition comp={comp} projectId={projectId} readOnly={readOnly} initialCaseId={initialCase} />
         <aside className="st-chat">
           <ScenarioChat

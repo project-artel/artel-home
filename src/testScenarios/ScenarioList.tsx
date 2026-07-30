@@ -13,9 +13,12 @@ import type { TestScenarioSummary } from './scenarioTypes'
 export function ScenarioList({
   projectId,
   activeId,
+  runId = null,
 }: {
   projectId: string
   activeId: number
+  /** Carried into each row's link so the Edit/Map toggle survives switching scenarios. */
+  runId?: string | null
 }) {
   const { t } = useI18n()
   const s = t.scenarios.list
@@ -41,7 +44,8 @@ export function ScenarioList({
   }, [projectId, activeId])
 
   function open(id: number) {
-    navigate(`/projects/${encodeURIComponent(projectId)}/test-scenarios/${id}`)
+    const suffix = runId !== null ? `?run=${encodeURIComponent(runId)}` : ''
+    navigate(`/projects/${encodeURIComponent(projectId)}/test-scenarios/${id}${suffix}`)
   }
 
   async function create() {

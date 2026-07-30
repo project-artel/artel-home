@@ -2652,3 +2652,14 @@ a.instance-name:hover {
 .scenario-studio .cp-catpop-fade-hint{ color:var(--st-action); font-size:14px; animation:cp-bob 1.4s ease-in-out infinite; }
 @keyframes cp-bob{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(3px); } }
 @media (prefers-reduced-motion: reduce){ .scenario-studio .cp-catpop-fade-hint{ animation:none; } }
+
+/* palette case list: top+bottom scroll fades with chevron (no classic bar) */
+.scenario-studio .cp-listwrap{ position:relative; flex:1; min-height:0; display:flex; }
+.scenario-studio .cp-listwrap .cp-list{ flex:1; scrollbar-width:none; }
+.scenario-studio .cp-listwrap .cp-list::-webkit-scrollbar{ display:none; }
+.scenario-studio .cp-fade{ position:absolute; left:0; right:0; height:40px; pointer-events:none; display:flex; justify-content:center; z-index:2; transition:opacity 140ms; }
+.scenario-studio .cp-fade--top{ top:0; align-items:flex-start; padding-top:3px; background:linear-gradient(to top, transparent, var(--st-surface) 78%); }
+.scenario-studio .cp-fade--bottom{ bottom:0; align-items:flex-end; padding-bottom:3px; background:linear-gradient(to bottom, transparent, var(--st-surface) 78%); }
+.scenario-studio .cp-listwrap.at-top .cp-fade--top{ opacity:0; }
+.scenario-studio .cp-listwrap.at-bottom .cp-fade--bottom{ opacity:0; }
+.scenario-studio .cp-fade-hint{ color:var(--st-action); font-size:13px; }

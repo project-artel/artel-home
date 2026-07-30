@@ -438,7 +438,7 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
   runList: {
     title: '테스트 런',
     hint: '런은 시나리오(그리고 케이스)를 묶습니다. 런을 열면 맵에서 구성을 보고 편집할 수 있어요.',
-    newButton: '새 런',
+    newButton: '테스트런 생성',
     newName: '새 런',
     creating: '생성 중…',
     loading: '런을 불러오는 중…',
