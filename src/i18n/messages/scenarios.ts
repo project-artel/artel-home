@@ -194,6 +194,17 @@ export const scenariosEn = {
     empty: 'No scenarios yet.',
     untitled: 'Untitled scenario',
   },
+  map: {
+    loading: 'Loading run…',
+    missing: 'This run no longer exists, or you cannot access it.',
+    loadFailed: 'This run could not be loaded.',
+    back: 'Back to project',
+    empty: 'This run has no scenarios yet.',
+    fit: 'Fit',
+    openHint: 'Open editor →',
+    scenarioUnit: 'scenarios',
+    caseUnit: 'cases',
+  },
 } as const
 
 export const scenariosKo: Localized<typeof scenariosEn> = {
@@ -387,5 +398,16 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     new: '새 시나리오',
     empty: '아직 시나리오가 없습니다.',
     untitled: '제목 없는 시나리오',
+  },
+  map: {
+    loading: '런을 불러오는 중…',
+    missing: '이 런이 없거나 접근할 수 없습니다.',
+    loadFailed: '런을 불러오지 못했습니다.',
+    back: '프로젝트로',
+    empty: '이 런에는 아직 시나리오가 없습니다.',
+    fit: '전체 보기',
+    openHint: '편집 열기 →',
+    scenarioUnit: '시나리오',
+    caseUnit: '케이스',
   },
 }
