@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
+import { CategoryChip } from '../testCases/CategoryChip'
 import { getScenarioCases } from '../testScenarios/scenarioCaseApi'
 import { listTestScenarios } from '../testScenarios/scenarioApi'
 import type { VerificationStatus } from '../testCases/testCaseTypes'
@@ -15,11 +16,14 @@ import { getRunScenarios, getTestRun, type TestRun } from './testRunApi'
 
 type Rollup = Record<VerificationStatus, number>
 
+type CaseLite = { id: string; title: string; status: VerificationStatus; category: string }
+
 type ScenarioNode = {
   id: string
   title: string
   total: number
   rollup: Rollup
+  cases: CaseLite[]
 }
 
 const STATUSES: VerificationStatus[] = ['VERIFIED', 'DRAFT', 'BROKEN']
@@ -69,11 +73,18 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
             const cases = await getScenarioCases(Number(item.testScenarioId), signal).catch(() => [])
             const rollup: Rollup = { VERIFIED: 0, DRAFT: 0, BROKEN: 0 }
             for (const entry of cases) rollup[entry.case.verificationStatus] += 1
+            const title = titleById.get(item.testScenarioId) ?? ''
             return {
               id: item.testScenarioId,
-              title: titleById.get(item.testScenarioId) ?? `#${item.testScenarioId}`,
+              title: title.length > 0 ? title : `#${item.testScenarioId}`,
               total: cases.length,
               rollup,
+              cases: cases.map((entry) => ({
+                id: entry.case.id,
+                title: entry.case.title,
+                status: entry.case.verificationStatus,
+                category: entry.case.category,
+              })),
             }
           }),
         )
@@ -87,6 +98,11 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     })()
     return () => controller.abort()
   }, [projectId, runId])
+
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  function openEdit(scenarioId: string) {
+    navigate(`/projects/${encodeURIComponent(projectId)}/test-scenarios/${scenarioId}?run=${encodeURIComponent(runId)}`)
+  }
 
   // pan / zoom
   const mapRef = useRef<HTMLDivElement>(null)
@@ -183,24 +199,42 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
         {nodes.map((node, index) => {
           const st = nodeStatus(node)
           const bar = STATUSES.filter((s) => node.rollup[s] > 0)
+          const top = 40 + index * NODE_GAP
+          const expanded = expandedId === node.id
           return (
-            <button className="mnode" key={node.id} style={{ left: NODE_X, top: 40 + index * NODE_GAP }}
-              onClick={() => navigate(`/projects/${encodeURIComponent(projectId)}/test-scenarios/${node.id}`)}
-              type="button"
-            >
-              <div className="mname">{node.title}</div>
-              <div className="mmeta mono">#{node.id} · {node.total} {m.caseUnit}</div>
-              <div className="vbar">
-                {node.total === 0 ? <i className="empty" style={{ flex: 1 }} /> :
-                  bar.map((s) => <i className={s} key={s} style={{ flex: node.rollup[s] }} />)}
+            <Fragment key={node.id}>
+              <div className={'mnode' + (expanded ? ' expanded' : '')} style={{ left: NODE_X, top }}
+                onClick={() => setExpandedId(expanded ? null : node.id)}
+                role="button" tabIndex={0}
+              >
+                <div className="mname">{node.title}</div>
+                <div className="mmeta mono">#{node.id} · {node.total} {m.caseUnit} · {expanded ? m.collapse : m.expand}</div>
+                <div className="vbar">
+                  {node.total === 0 ? <i className="empty" style={{ flex: 1 }} /> :
+                    bar.map((s) => <i className={s} key={s} style={{ flex: node.rollup[s] }} />)}
+                </div>
+                <div className="mroll">
+                  {bar.length === 0 ? <span className="k">—</span> :
+                    bar.map((s) => <span className={`k ${s}`} key={s}><b>{node.rollup[s]}</b> {t.scenarios.composition.status[s]}</span>)}
+                </div>
+                <span className={`vdot ${st}`} style={{ position: 'absolute', top: 14, right: 14 }} />
+                <button className="mnode-open" onClick={(event) => { event.stopPropagation(); openEdit(node.id) }} type="button">{m.openHint}</button>
               </div>
-              <div className="mroll">
-                {bar.length === 0 ? <span className="k">—</span> :
-                  bar.map((s) => <span className={`k ${s}`} key={s}><b>{node.rollup[s]}</b> {t.scenarios.composition.status[s]}</span>)}
-              </div>
-              <span className={`vdot ${st}`} style={{ position: 'absolute', top: 14, right: 14 }} />
-              <span className="open-hint">{m.openHint}</span>
-            </button>
+
+              {expanded && node.cases.map((testCase, j) => (
+                <button className="cnode" key={testCase.id} style={{ left: NODE_X + 336, top: top + j * 46 }}
+                  onClick={() => openEdit(node.id)} type="button"
+                >
+                  <span className="cnode-num mono">{String(j + 1).padStart(2, '0')}</span>
+                  <span className="cnode-title">{testCase.title.length > 0 ? testCase.title : testCase.id}</span>
+                  <CategoryChip category={testCase.category} />
+                  <span className={`vdot ${testCase.status}`} />
+                </button>
+              ))}
+              {expanded && node.cases.length === 0 && (
+                <div className="cnode cnode--empty" style={{ left: NODE_X + 336, top }}>{m.noCases}</div>
+              )}
+            </Fragment>
           )
         })}
       </div>

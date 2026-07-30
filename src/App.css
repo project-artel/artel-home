@@ -2544,3 +2544,20 @@ a.instance-name:hover {
 .run-map .legend .lg{ font-size:11.5px; color:#b3bcc7; display:inline-flex; align-items:center; gap:6px; } .run-map .legend .lg::before{ content:""; width:9px; height:9px; border-radius:999px; }
 .run-map .legend .lg.VERIFIED::before{ background:var(--rm-green); } .run-map .legend .lg.DRAFT::before{ background:var(--rm-amber); } .run-map .legend .lg.BROKEN::before{ background:var(--rm-red); }
 .run-map .rm-empty{ position:absolute; inset:52px 0 0 0; display:grid; place-items:center; color:#7c8794; }
+
+/* run-map: expand cases + edit affordances + edit/map toggle */
+.run-map .mnode.expanded{ border-color:var(--rm-action); }
+.run-map .mnode-open{ position:absolute; right:14px; bottom:12px; font-size:11.5px; color:var(--rm-action); background:transparent; border:0; cursor:pointer; padding:2px 4px; }
+.run-map .mnode-open:hover{ text-decoration:underline; }
+.run-map .cnode{ position:absolute; width:252px; display:grid; grid-template-columns:auto 1fr auto auto; gap:8px; align-items:center; text-align:left; background:#10151b; border:1px solid #27313d; border-radius:8px; padding:8px 12px; cursor:pointer; color:inherit; font:inherit; box-shadow:0 4px 14px -10px rgba(0,0,0,.8); }
+.run-map .cnode:hover{ border-color:var(--rm-action); }
+.run-map .cnode-num{ font-size:12px; font-weight:700; color:var(--rm-action); font-family:"JetBrains Mono",ui-monospace,monospace; }
+.run-map .cnode-title{ font-size:12.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.run-map .cnode--empty{ color:#7c8794; font-size:12px; display:block; }
+.run-map .cat-chip{ display:inline-flex; align-items:center; font-size:10px; font-weight:600; padding:1px 7px; border-radius:999px; border:1px solid; white-space:nowrap; }
+
+/* Edit↔Map segmented toggle (studio topbar) */
+.scenario-studio .st-seg{ display:inline-flex; background:var(--st-raised); border:1px solid var(--st-border); border-radius:999px; padding:3px; gap:2px; }
+.scenario-studio .st-seg button{ font:inherit; font-size:12px; color:var(--st-text-2); background:transparent; border:0; padding:4px 12px; border-radius:999px; cursor:pointer; }
+.scenario-studio .st-seg button.on{ background:var(--st-action); color:#04222a; font-weight:600; }
+.scenario-studio .st-seg button:not(.on):hover{ color:var(--st-text); }

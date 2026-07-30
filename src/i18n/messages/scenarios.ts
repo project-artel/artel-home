@@ -204,6 +204,11 @@ export const scenariosEn = {
     openHint: 'Open editor →',
     scenarioUnit: 'scenarios',
     caseUnit: 'cases',
+    expand: 'click to see cases',
+    collapse: 'click to collapse',
+    noCases: 'No cases',
+    editView: 'Edit',
+    mapView: 'Map',
   },
 } as const
 
@@ -409,5 +414,10 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     openHint: '편집 열기 →',
     scenarioUnit: '시나리오',
     caseUnit: '케이스',
+    expand: '클릭하면 케이스 보기',
+    collapse: '클릭하면 접기',
+    noCases: '케이스 없음',
+    editView: '편집',
+    mapView: 'Map',
   },
 }

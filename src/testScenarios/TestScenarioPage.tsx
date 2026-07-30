@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { ApproveScenarioDialog } from './ApproveScenarioDialog'
 import { DeleteScenarioDialog } from './DeleteScenarioDialog'
@@ -38,6 +38,8 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
   const session = useScenarioSession(scenarioId)
   const comp = useScenarioComposition(projectId, scenarioId)
   const [dialog, setDialog] = useState<'approve' | 'delete' | null>(null)
+  const [searchParams] = useSearchParams()
+  const fromRun = searchParams.get('run')
 
   const readOnly = session.closure !== null
 
@@ -89,6 +91,12 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
           <span className="id mono">#{scenarioId}</span>
         </div>
         <div className="st-spacer" />
+        {fromRun !== null && (
+          <div className="st-seg">
+            <button className="on" type="button">{t.scenarios.map.editView}</button>
+            <button onClick={() => navigate(`/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(fromRun)}`)} type="button">{t.scenarios.map.mapView}</button>
+          </div>
+        )}
         {!session.connected && session.closure === null && (
           <span className="reconnect"><span className="d" style={{ width: 6, height: 6, borderRadius: 999, background: 'currentColor' }} />{t.scenarios.page.reconnecting}</span>
         )}
