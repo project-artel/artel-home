@@ -2599,3 +2599,6 @@ a.instance-name:hover {
 .scenario-studio .cp-check{ color:var(--st-action); font-weight:700; flex:none; }
 .scenario-studio .cp-empty{ padding:28px 12px; text-align:center; color:var(--st-muted); font-size:13px; }
 .scenario-studio .cp-foot{ display:flex; justify-content:space-between; gap:12px; padding:9px 16px; border-top:1px solid var(--st-border); font-size:11px; color:var(--st-muted); }
+
+/* shortcut key badge on the library button */
+.scenario-studio .add-lib .kbd{ font-family:var(--st-mono); font-size:10.5px; color:var(--st-muted); background:var(--st-canvas); border:1px solid var(--st-border-strong); border-radius:5px; padding:1px 6px; margin-left:2px; }

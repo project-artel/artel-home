@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { type TestCase, type VerificationStatus } from '../testCases/testCaseTypes'
+import { shortcutLabel } from '../shell/platform'
 import { CategoryChip } from '../testCases/CategoryChip'
 import { CasePalette } from './CasePalette'
 import type { useScenarioComposition } from './useScenarioComposition'
@@ -167,7 +168,9 @@ export function ScenarioComposition({
         {editable && !showNew && (
           <div className="flow-add">
             <button className="add-new" onClick={() => setShowNew(true)} type="button">{c.addCase}</button>
-            <button className="add-lib" onClick={() => setPaletteOpen(true)} type="button">{c.openLibrary}</button>
+            <button className="add-lib" onClick={() => setPaletteOpen(true)} type="button">
+              {c.openLibrary} <kbd className="kbd">{shortcutLabel('K')}</kbd>
+            </button>
           </div>
         )}
 
