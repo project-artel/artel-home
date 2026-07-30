@@ -2699,3 +2699,7 @@ a.instance-name:hover {
 .run-del-name{ margin:0 0 6px; font-size:13px; font-weight:600; color:var(--color-text-primary); }
 .run-del-copy{ margin:0 0 18px; font-size:12.5px; color:var(--color-text-secondary); line-height:1.6; }
 .run-del-actions{ display:flex; justify-content:flex-end; gap:8px; }
+
+/* run row delete icon (small, right-aligned) */
+.run-del-icon{ flex:none; width:28px; height:28px; display:grid; place-items:center; border-radius:6px; border:1px solid transparent; background:transparent; color:var(--color-text-muted); cursor:pointer; font-size:13px; }
+.run-del-icon:hover{ color:var(--color-status-critical); background:var(--color-status-critical-muted); border-color:var(--color-status-critical); }

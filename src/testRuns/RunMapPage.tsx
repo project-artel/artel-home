@@ -76,7 +76,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
             const title = titleById.get(item.testScenarioId) ?? ''
             return {
               id: item.testScenarioId,
-              title: title.length > 0 ? title : `#${item.testScenarioId}`,
+              title: title.length > 0 ? title : m.untitledScenario,
               total: cases.length,
               rollup,
               cases: cases.map((entry) => ({
@@ -257,7 +257,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
                         <button className="cnode" onClick={() => openCase(node.id, testCase.id)} type="button">
                           <span className="cnode-row">
                             <span className="cnode-num mono">{String(j + 1).padStart(2, '0')}</span>
-                            <span className="cnode-title">{testCase.title.length > 0 ? testCase.title : testCase.id}</span>
+                            <span className="cnode-title">{testCase.title.length > 0 ? testCase.title : m.untitledCase}</span>
                             <span className={`vdot ${testCase.status}`} />
                           </span>
                           <CategoryChip category={testCase.category} />

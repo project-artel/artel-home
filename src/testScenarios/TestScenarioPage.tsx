@@ -41,6 +41,12 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
   const [searchParams] = useSearchParams()
   const fromRun = searchParams.get('run')
   const initialCase = searchParams.get('case')
+  // Approve/delete return to where the scenario was opened from: the run's edit
+  // view when in a run, otherwise the project. Staying in the run is the point —
+  // the run's edit shell re-picks a scenario (or shows the empty state).
+  const afterExit = fromRun !== null
+    ? `/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(fromRun)}/edit`
+    : backLink(projectId)
 
   const readOnly = session.closure !== null
 
@@ -135,7 +141,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
       {dialog === 'approve' && (
         <ApproveScenarioDialog
           draft={session.draft}
-          onApproved={() => navigate(backLink(projectId), { replace: true })}
+          onApproved={() => navigate(afterExit, { replace: true })}
           onClose={() => setDialog(null)}
           testScenarioId={scenarioId}
         />
@@ -143,7 +149,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
       {dialog === 'delete' && (
         <DeleteScenarioDialog
           onClose={() => setDialog(null)}
-          onDeleted={() => navigate(backLink(projectId), { replace: true })}
+          onDeleted={() => navigate(afterExit, { replace: true })}
           scenarioTitle={comp.working.title}
           testScenarioId={scenarioId}
         />

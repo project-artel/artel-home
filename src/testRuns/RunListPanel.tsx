@@ -114,9 +114,7 @@ export function RunListPanel({ projectId }: { projectId: string }) {
                   )}
                 </div>
                 <p className="scenario-row-meta">{r.created(formatDate(run.createdAt))}</p>
-                <button className="button button--danger-quiet button--compact" onClick={() => setPendingDelete(run)} type="button">
-                  {r.delete}
-                </button>
+                <button className="run-del-icon" onClick={() => setPendingDelete(run)} aria-label={r.delete} title={r.delete} type="button">✕</button>
               </li>
             ))}
           </ul>
