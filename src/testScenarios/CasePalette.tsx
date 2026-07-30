@@ -11,7 +11,7 @@ import {
 type Filter = 'ALL' | VerificationStatus
 
 /** How many category chips show before the rest collapse behind a "＋N" toggle. */
-const MAX_CATEGORY_CHIPS = 6
+const MAX_CATEGORY_CHIPS = 7
 
 /**
  * A ⌘K command palette for the case library. Opened over the studio, it finds a
@@ -55,6 +55,7 @@ export function CasePalette({
   const [pinned, setPinned] = useState<string[]>([])
   const [catSearchOpen, setCatSearchOpen] = useState(false)
   const [catQuery, setCatQuery] = useState('')
+  const [catAtEnd, setCatAtEnd] = useState(false)
   const [active, setActive] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
@@ -118,8 +119,11 @@ export function CasePalette({
 
   const catSearchResults = useMemo(() => {
     const cq = catQuery.trim().toLowerCase()
-    return categories.filter((name) => cq === '' || name.toLowerCase().includes(cq))
-  }, [categories, catQuery])
+    const matched = categories.filter((name) => cq === '' || name.toLowerCase().includes(cq))
+    // Already-shown (chip) categories sink to the bottom, dimmed — they are not
+    // what the "＋" search is for (finding the ones not on the row).
+    return [...matched].sort((a, b) => Number(chipCats.includes(a)) - Number(chipCats.includes(b)))
+  }, [categories, catQuery, chipCats])
 
   const q = query.trim().toLowerCase()
   const shown = useMemo(
@@ -253,17 +257,28 @@ export function CasePalette({
                 />
                 <button className="cp-esc" onClick={() => { setCatSearchOpen(false); setCatQuery('') }} type="button">ESC</button>
               </div>
-              <div className="cp-catpop-list">
-                {catSearchResults.length === 0 ? (
-                  <p className="cp-catpop-empty">{p.noMatch}</p>
-                ) : (
-                  catSearchResults.map((name) => (
-                    <button className={'cp-catpop-row' + (chipCats.includes(name) ? ' shown' : '')} key={name} onClick={() => pickCategory(name)} type="button">
-                      <CategoryChip category={name} />
-                      <span className="cp-catpop-count">{catCounts.get(name) ?? 0}</span>
-                    </button>
-                  ))
-                )}
+              <div
+                className={'cp-catpop-scroll' + (catAtEnd ? ' at-end' : '')}
+                onScroll={(event) => {
+                  const el = event.currentTarget
+                  setCatAtEnd(el.scrollTop + el.clientHeight >= el.scrollHeight - 2)
+                }}
+              >
+                <div className="cp-catpop-list">
+                  {catSearchResults.length === 0 ? (
+                    <p className="cp-catpop-empty">{p.noMatch}</p>
+                  ) : (
+                    catSearchResults.map((name) => (
+                      <button className={'cp-catpop-row' + (chipCats.includes(name) ? ' shown' : '')} key={name} onClick={() => pickCategory(name)} type="button">
+                        <CategoryChip category={name} />
+                        <span className="cp-catpop-count">{catCounts.get(name) ?? 0}</span>
+                      </button>
+                    ))
+                  )}
+                </div>
+                <div className="cp-catpop-fade" aria-hidden="true">
+                  <span className="cp-catpop-fade-hint">▾</span>
+                </div>
               </div>
             </div>
           </div>
