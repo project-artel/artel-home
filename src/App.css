@@ -2703,3 +2703,9 @@ a.instance-name:hover {
 /* run row delete icon (small, right-aligned) */
 .run-del-icon{ flex:none; width:28px; height:28px; display:grid; place-items:center; border-radius:6px; border:1px solid transparent; background:transparent; color:var(--color-text-muted); cursor:pointer; font-size:13px; }
 .run-del-icon:hover{ color:var(--color-status-critical); background:var(--color-status-critical-muted); border-color:var(--color-status-critical); }
+
+/* run list row: horizontal, delete ✕ pinned far right */
+.run-row{ flex-direction:row; align-items:center; gap:var(--space-3); }
+.run-row .run-row-main{ flex:1 1 auto; flex-direction:column; align-items:flex-start; gap:2px; }
+.run-row .scenario-row-meta{ flex:none; white-space:nowrap; }
+.run-row .run-del-icon{ flex:none; margin-left:var(--space-2); }

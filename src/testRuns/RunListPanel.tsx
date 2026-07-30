@@ -104,8 +104,8 @@ export function RunListPanel({ projectId }: { projectId: string }) {
         ) : (
           <ul className="scenario-list">
             {state.runs.map((run) => (
-              <li className="scenario-row" key={run.id}>
-                <div className="scenario-row-main">
+              <li className="scenario-row run-row" key={run.id}>
+                <div className="scenario-row-main run-row-main">
                   <button className="scenario-name scenario-name--button" onClick={() => openRun(run.id)} type="button">
                     {run.name.length > 0 ? run.name : r.untitled}
                   </button>
