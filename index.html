@@ -3,9 +3,25 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#090c10" />
+    <meta name="theme-color" content="#ffffff" />
     <meta name="description" content="ARTEL Replay Studio" />
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link id="app-favicon" rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <script>
+      (() => {
+        const saved = localStorage.getItem('artel-theme')
+        const theme =
+          saved === 'light' || saved === 'dark'
+            ? saved
+            : matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light'
+        document.documentElement.dataset.theme = theme
+        document.querySelector('meta[name="theme-color"]').content =
+          theme === 'dark' ? '#090c10' : '#ffffff'
+        document.querySelector('#app-favicon').href =
+          theme === 'dark' ? '/favicon-dark.svg' : '/favicon.svg'
+      })()
+    </script>
     <title>ARTEL Replay Studio</title>
   </head>
   <body>

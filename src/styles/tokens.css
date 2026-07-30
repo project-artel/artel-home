@@ -1,4 +1,33 @@
 :root {
+  --color-bg-canvas: #f7f8fa;
+  --color-bg-surface: #ffffff;
+  --color-bg-raised: #f0f2f5;
+  --color-bg-hover: #e7eaee;
+  --color-border-subtle: #d9dee5;
+  --color-border-strong: #aeb7c2;
+  --color-text-primary: #20232b;
+  --color-text-secondary: #505966;
+  --color-text-muted: #6d7784;
+  --color-text-on-accent: #090c10;
+  --color-brand-charcoal: #20232b;
+  --color-brand-accent: #f04b3a;
+  --color-brand-accent-strong: #ff6757;
+  --color-action-primary: #24c7e8;
+  --color-action-primary-strong: #0ba8c7;
+  --color-agent-reasoning: #8f7cf6;
+  --color-status-offline: #707b88;
+  --color-status-critical: #ff634f;
+  --color-status-critical-muted: #fff0ed;
+  --color-status-critical-strong: #e04a37;
+  --color-status-success: #48c78e;
+  --color-status-success-muted: #e9f8f1;
+  --color-status-warning: #f2b84b;
+  --color-status-warning-muted: #fff7e5;
+  --color-overlay-scrim: rgb(32 35 43 / 48%);
+  --color-overlay-stream: rgb(32 35 43 / 84%);
+}
+
+:root[data-theme='dark'] {
   --color-bg-canvas: #090c10;
   --color-bg-surface: #10151b;
   --color-bg-raised: #171d25;
@@ -26,7 +55,9 @@
   /* Deeper than the dialog scrim because it sits over an arbitrary game frame,
      and a bright one drags status text under its contrast floor at 72%. */
   --color-overlay-stream: rgb(9 12 16 / 88%);
+}
 
+:root {
   --font-sans: Inter, "Pretendard Variable", Pretendard, sans-serif;
   --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
 

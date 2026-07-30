@@ -3,6 +3,7 @@ import { updateMyLocale } from '../auth/authApi'
 import { useAuth } from '../auth/useAuth'
 import { isLocale, LOCALE_LABELS, LOCALES } from '../i18n/locale'
 import { useI18n } from '../i18n/useI18n'
+import { ThemeToggle } from '../ThemeToggle'
 
 /**
  * The signed-in chrome: brand, connection state, and the user menu. Everything
@@ -33,6 +34,10 @@ export function AppShell() {
           <span className="product-name">Replay Studio</span>
         </Link>
         <div className="top-bar-actions">
+          <ThemeToggle
+            toDarkLabel={t.common.shell.switchToDark}
+            toLightLabel={t.common.shell.switchToLight}
+          />
           <select
             aria-label={t.common.shell.languageLabel}
             className="locale-select"
