@@ -11,7 +11,7 @@ import {
 type Filter = 'ALL' | VerificationStatus
 
 /** How many category chips show before the rest collapse behind a "＋N" toggle. */
-const MAX_CATEGORY_CHIPS = 3
+const MAX_CATEGORY_CHIPS = 7
 
 /**
  * A ⌘K command palette for the case library. Opened over the studio, it finds a
