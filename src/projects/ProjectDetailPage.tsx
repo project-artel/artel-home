@@ -11,7 +11,7 @@ import { apiErrorMessage } from './apiErrorMessage'
 import { ProjectApiError, updateProject } from './projectApi'
 import { ProjectForm } from './ProjectForm'
 import type { ProjectDetail, ProjectDraft } from './projectTypes'
-import { StartScenarioPanel } from '../testScenarios/StartScenarioPanel'
+import { RunListPanel } from '../testRuns/RunListPanel'
 import type { GameBuild, GameInstance } from './gameTypes'
 import { useProject } from './useProject'
 
@@ -311,7 +311,7 @@ function ProjectDetailView({
 
         <GameBuildPanel builds={builds} onSaved={onBuildSaved} projectId={project.id} />
 
-        <StartScenarioPanel projectId={project.id} />
+        <RunListPanel projectId={project.id} />
 
         <QaTryPanel instances={instances} projectId={project.id} />
       </div>

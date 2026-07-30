@@ -1,5 +1,5 @@
 import { apiFetch } from '../auth/authApi'
-import { asNullableString, asRecord, asString, readJson } from '../projects/projectApi'
+import { asNullableString, asRecord, asString, jsonRequest, readJson, toApiError } from '../projects/projectApi'
 
 /*
  * TestRun read API — the Map is read-only for now, so only the two GETs the
@@ -37,6 +37,32 @@ export function parseTestRun(data: unknown): TestRun | null {
     description: asNullableString(record.description),
     createdAt: asString(record.createdAt),
   }
+}
+
+function toItemArray(data: unknown): unknown[] {
+  if (Array.isArray(data)) return data
+  const items = asRecord(data)?.items
+  return Array.isArray(items) ? items : []
+}
+
+/** `GET /api/projects/{projectId}/test-runs` — the project's runs. */
+export async function listTestRuns(projectId: string, signal?: AbortSignal): Promise<TestRun[]> {
+  const response = await apiFetch(runsRoot(projectId), { signal })
+  return toItemArray(await readJson(response))
+    .map(parseTestRun)
+    .filter((run): run is TestRun => run !== null)
+}
+
+/** `POST /api/projects/{projectId}/test-runs` — create an empty run. */
+export async function createTestRun(
+  projectId: string,
+  body: { name?: string; description?: string } = {},
+): Promise<TestRun> {
+  const response = await apiFetch(runsRoot(projectId), { method: 'POST', ...jsonRequest(body) })
+  if (!response.ok) throw await toApiError(response)
+  const run = parseTestRun(await readJson(response))
+  if (run === null) throw new Error('The server did not return a run.')
+  return run
 }
 
 export async function getTestRun(

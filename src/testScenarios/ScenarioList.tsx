@@ -26,7 +26,16 @@ export function ScenarioList({
   useEffect(() => {
     const controller = new AbortController()
     listTestScenarios(Number(projectId), controller.signal)
-      .then(setItems)
+      // Newest first: the server does not guarantee an order, so sort by
+      // createdAt descending (id descending as a stable tiebreaker).
+      .then((list) =>
+        setItems(
+          [...list].sort(
+            (a, b) =>
+              (b.createdAt.localeCompare(a.createdAt)) || (b.testScenarioId - a.testScenarioId),
+          ),
+        ),
+      )
       .catch(() => undefined)
     return () => controller.abort()
   }, [projectId, activeId])

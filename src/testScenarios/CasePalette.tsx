@@ -107,10 +107,19 @@ export function CasePalette({
     setCatQuery('')
   }
 
+  const catCounts = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const testCase of cases) {
+      const key = testCase.category.trim()
+      if (key.length > 0) counts.set(key, (counts.get(key) ?? 0) + 1)
+    }
+    return counts
+  }, [cases])
+
   const catSearchResults = useMemo(() => {
     const cq = catQuery.trim().toLowerCase()
-    return categories.filter((name) => !chipCats.includes(name) && (cq === '' || name.toLowerCase().includes(cq)))
-  }, [categories, chipCats, catQuery])
+    return categories.filter((name) => cq === '' || name.toLowerCase().includes(cq))
+  }, [categories, catQuery])
 
   const q = query.trim().toLowerCase()
   const shown = useMemo(
@@ -183,35 +192,9 @@ export function CasePalette({
                 <button className={category === name ? 'fchip on' : 'fchip'} key={name} onClick={() => setCategory(category === name ? '' : name)} type="button">{name}</button>
               ))}
               {categories.length > chipCats.length && (
-                <div className="cp-catmore">
-                  <button className="fchip cp-more" onClick={() => setCatSearchOpen((v) => !v)} type="button">
-                    ＋{categories.length - chipCats.length}
-                  </button>
-                  {catSearchOpen && (
-                    <div className="cp-catpop">
-                      <input
-                        autoFocus
-                        className="cp-catpop-input"
-                        onChange={(event) => setCatQuery(event.target.value)}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Escape') { setCatSearchOpen(false); setCatQuery('') }
-                          if (event.key === 'Enter' && catSearchResults[0] !== undefined) pickCategory(catSearchResults[0])
-                        }}
-                        placeholder={p.categorySearch}
-                        value={catQuery}
-                      />
-                      <div className="cp-catpop-list">
-                        {catSearchResults.length === 0 ? (
-                          <p className="cp-catpop-empty">{p.noMatch}</p>
-                        ) : (
-                          catSearchResults.map((name) => (
-                            <button className="cp-catpop-row" key={name} onClick={() => pickCategory(name)} type="button">{name}</button>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <button className="fchip cp-more" onClick={() => setCatSearchOpen(true)} type="button">
+                  ＋{categories.length - chipCats.length}
+                </button>
               )}
             </div>
           </div>
@@ -251,6 +234,40 @@ export function CasePalette({
           <span>↑↓ {p.hintNav} · ↵ {p.hintToggle} · esc {p.hintClose}</span>
           <span>{shown.length} / {cases.length} · {p.applied(appliedCount)}</span>
         </div>
+
+        {catSearchOpen && (
+          <div className="cp-catpop-overlay" onClick={() => { setCatSearchOpen(false); setCatQuery('') }}>
+            <div className="cp-catpop" onClick={(event) => event.stopPropagation()}>
+              <div className="cp-catpop-head">
+                <span className="cp-catpop-icon" aria-hidden="true">⌕</span>
+                <input
+                  autoFocus
+                  className="cp-catpop-input"
+                  onChange={(event) => setCatQuery(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Escape') { setCatSearchOpen(false); setCatQuery('') }
+                    if (event.key === 'Enter' && catSearchResults[0] !== undefined) pickCategory(catSearchResults[0])
+                  }}
+                  placeholder={p.categorySearch}
+                  value={catQuery}
+                />
+                <button className="cp-esc" onClick={() => { setCatSearchOpen(false); setCatQuery('') }} type="button">ESC</button>
+              </div>
+              <div className="cp-catpop-list">
+                {catSearchResults.length === 0 ? (
+                  <p className="cp-catpop-empty">{p.noMatch}</p>
+                ) : (
+                  catSearchResults.map((name) => (
+                    <button className={'cp-catpop-row' + (chipCats.includes(name) ? ' shown' : '')} key={name} onClick={() => pickCategory(name)} type="button">
+                      <CategoryChip category={name} />
+                      <span className="cp-catpop-count">{catCounts.get(name) ?? 0}</span>
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
