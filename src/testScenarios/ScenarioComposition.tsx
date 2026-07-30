@@ -42,6 +42,12 @@ export function ScenarioComposition({
   const [libReload, setLibReload] = useState(0)
   const detailRef = useRef<HTMLDivElement>(null)
 
+  // Follow the deep-link: when the Map points at a case (?case=), select it —
+  // even for a re-click within the same scenario, where the page does not remount.
+  useEffect(() => {
+    if (initialCaseId !== null) setSelected(initialCaseId)
+  }, [initialCaseId])
+
   // Bring the selected case's detail into view — both a deep-link from the Map's
   // case node and a click in the flow scroll it into sight rather than leaving it
   // below the fold.
