@@ -247,6 +247,10 @@ export const scenariosEn = {
     hintToggle: 'add / remove',
     hintClose: 'close',
     applied: (n: number) => `${n} in scenario`,
+    infoPre: 'Precondition',
+    infoExp: 'Expected',
+    infoBuild: 'Last verified build',
+    infoId: 'ID',
   },
 } as const
 
@@ -495,5 +499,9 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     hintToggle: '추가/제거',
     hintClose: '닫기',
     applied: (n: number) => `${n}개 적용중`,
+    infoPre: '사전조건',
+    infoExp: '기대효과',
+    infoBuild: '최근 검증 빌드',
+    infoId: 'ID',
   },
 }

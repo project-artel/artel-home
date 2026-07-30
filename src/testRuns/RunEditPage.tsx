@@ -100,7 +100,9 @@ function RunEditPage({ projectId, runId }: { projectId: string; runId: string })
         <div className="st-spacer" />
         <div className="st-seg">
           <button className="on" type="button">{t.scenarios.map.editView}</button>
-          <button disabled title={e.mapLocked} type="button">{t.scenarios.map.mapView}</button>
+          <button className="locked" disabled title={e.mapLocked} type="button">
+            <span aria-hidden="true">🔒</span> {t.scenarios.map.mapView}
+          </button>
         </div>
       </header>
 

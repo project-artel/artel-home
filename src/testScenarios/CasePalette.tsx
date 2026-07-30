@@ -216,6 +216,7 @@ export function CasePalette({
           </div>
         )}
 
+        <div className="cp-body">
         <div className={'cp-listwrap' + (listEdge.top ? ' at-top' : '') + (listEdge.bottom ? ' at-bottom' : '')}>
         <div className="cp-fade cp-fade--top" aria-hidden="true"><span className="cp-fade-hint">▴</span></div>
         <div className="cp-list" onScroll={(event) => updateListEdge(event.currentTarget)} ref={listRef}>
@@ -248,6 +249,37 @@ export function CasePalette({
           )}
         </div>
         <div className="cp-fade cp-fade--bottom" aria-hidden="true"><span className="cp-fade-hint">▾</span></div>
+        </div>
+
+        {shown[active] !== undefined && (
+          <aside className="cp-info">
+            {(() => {
+              const info = shown[active]
+              return (
+                <>
+                  <div className="cp-info-head">
+                    <span className={`vdot ${info.verificationStatus}`} />
+                    <span className="cp-info-title">{info.title.length > 0 ? info.title : info.id}</span>
+                  </div>
+                  <div className="cp-info-tags">
+                    <CategoryChip category={info.category} />
+                    <span className={`vpill ${info.verificationStatus}`}><span className={`vdot ${info.verificationStatus}`} />{statusLabel[info.verificationStatus]}</span>
+                  </div>
+                  <dl className="cp-info-fields">
+                    <dt>{p.infoPre}</dt>
+                    <dd>{info.precondition !== null && info.precondition.length > 0 ? info.precondition : <span className="cp-info-none">—</span>}</dd>
+                    <dt>{p.infoExp}</dt>
+                    <dd>{info.expected.length > 0 ? info.expected : <span className="cp-info-none">—</span>}</dd>
+                    <dt>{p.infoBuild}</dt>
+                    <dd className="mono">{info.lastVerifiedBuildId ?? '—'}</dd>
+                    <dt>{p.infoId}</dt>
+                    <dd className="mono">{info.id}</dd>
+                  </dl>
+                </>
+              )
+            })()}
+          </aside>
+        )}
         </div>
 
         <div className="cp-foot">

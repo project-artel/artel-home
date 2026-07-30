@@ -2583,7 +2583,7 @@ a.instance-name:hover {
 
 /* ══ Case command palette (⌘K), scoped ═══════════════════════════════ */
 .scenario-studio .cp-overlay{ position:fixed; inset:0; background:rgba(4,7,10,.68); display:flex; justify-content:center; align-items:flex-start; padding-top:12vh; z-index:70; }
-.scenario-studio .cp{ width:min(640px,92vw); max-height:70vh; display:flex; flex-direction:column; background:var(--st-surface); border:1px solid var(--st-border-strong); border-radius:12px; box-shadow:0 30px 80px -24px #000; overflow:hidden; }
+.scenario-studio .cp{ width:min(860px,94vw); max-height:70vh; display:flex; flex-direction:column; background:var(--st-surface); border:1px solid var(--st-border-strong); border-radius:12px; box-shadow:0 30px 80px -24px #000; overflow:hidden; }
 .scenario-studio .cp-search{ display:flex; align-items:center; gap:10px; padding:14px 16px; border-bottom:1px solid var(--st-border); }
 .scenario-studio .cp-search-icon{ color:var(--st-muted); font-size:16px; }
 .scenario-studio .cp-input{ flex:1; min-width:0; font:inherit; font-size:15px; color:var(--st-text); background:transparent; border:0; outline:none; }
@@ -2668,3 +2668,21 @@ a.instance-name:hover {
 .scenario-studio .run-empty{ display:flex; flex-direction:column; align-items:flex-start; gap:14px; padding-top:40px; }
 .scenario-studio .run-empty-title{ margin:0; font-size:20px; font-weight:650; letter-spacing:-.01em; }
 .scenario-studio .run-empty-copy{ margin:0; font-size:13.5px; color:var(--st-text-2); line-height:1.6; max-width:440px; }
+
+/* locked Map tab in the empty-run shell */
+.scenario-studio .st-seg button.locked{ color:var(--st-muted); cursor:not-allowed; opacity:.7; display:inline-flex; align-items:center; gap:5px; }
+.scenario-studio .st-seg button.locked span{ font-size:10px; }
+
+/* palette: list + hover info panel (2 columns) */
+.scenario-studio .cp-body{ display:flex; min-height:0; flex:1; }
+.scenario-studio .cp-body .cp-listwrap{ flex:1 1 auto; min-width:0; }
+.scenario-studio .cp-info{ flex:none; width:290px; border-left:1px solid var(--st-border); padding:14px 16px; overflow-y:auto; background:var(--st-surface); }
+.scenario-studio .cp-info-head{ display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+.scenario-studio .cp-info-title{ font-size:14px; font-weight:650; line-height:1.3; }
+.scenario-studio .cp-info-tags{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
+.scenario-studio .cp-info-fields{ margin:0; display:grid; grid-template-columns:1fr; gap:3px 0; }
+.scenario-studio .cp-info-fields dt{ font-size:10.5px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--st-muted); margin-top:11px; }
+.scenario-studio .cp-info-fields dt:first-child{ margin-top:0; }
+.scenario-studio .cp-info-fields dd{ margin:0; font-size:13px; color:var(--st-text); line-height:1.55; word-break:break-word; }
+.scenario-studio .cp-info-none{ color:var(--st-muted); }
+@media (max-width:720px){ .scenario-studio .cp-info{ display:none; } }
