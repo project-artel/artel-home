@@ -40,6 +40,19 @@ export function ScenarioComposition({
   const [dragging, setDragging] = useState<string | null>(null)
   const [showNew, setShowNew] = useState(false)
   const [libReload, setLibReload] = useState(0)
+  const detailRef = useRef<HTMLDivElement>(null)
+
+  // Bring the selected case's detail into view — both a deep-link from the Map's
+  // case node and a click in the flow scroll it into sight rather than leaving it
+  // below the fold.
+  useEffect(() => {
+    if (comp.status !== 'ready' || selected === null) return undefined
+    const timer = window.setTimeout(
+      () => detailRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }),
+      60,
+    )
+    return () => window.clearTimeout(timer)
+  }, [comp.status, selected])
 
   if (comp.status === 'loading') {
     return <main className="edoc-wrap"><div className="edoc"><p className="empty-note">{c.loading}</p></div></main>
@@ -152,16 +165,18 @@ export function ScenarioComposition({
         )}
 
         {selectedCase !== null && (
-          <CaseDetail
-            testCase={selectedCase}
-            position={order.indexOf(selectedCase.id)}
-            total={order.length}
-            readOnly={!editable}
-            onEdit={(patch) => comp.editCase(selectedCase.id, patch)}
-            onMoveUp={() => move(selectedCase.id, -1)}
-            onMoveDown={() => move(selectedCase.id, 1)}
-            onRemove={() => removeFromScenario(selectedCase.id)}
-          />
+          <div ref={detailRef}>
+            <CaseDetail
+              testCase={selectedCase}
+              position={order.indexOf(selectedCase.id)}
+              total={order.length}
+              readOnly={!editable}
+              onEdit={(patch) => comp.editCase(selectedCase.id, patch)}
+              onMoveUp={() => move(selectedCase.id, -1)}
+              onMoveDown={() => move(selectedCase.id, 1)}
+              onRemove={() => removeFromScenario(selectedCase.id)}
+            />
+          </div>
         )}
 
         {editable && (

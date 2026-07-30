@@ -99,7 +99,15 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     return () => controller.abort()
   }, [projectId, runId])
 
-  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
+  function toggleExpand(id: string) {
+    setExpandedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
   function openEdit(scenarioId: string) {
     navigate(`/projects/${encodeURIComponent(projectId)}/test-scenarios/${scenarioId}?run=${encodeURIComponent(runId)}`)
   }
@@ -179,6 +187,11 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
       <header className="rm-top">
         <Link className="st-back" to={`/projects/${encodeURIComponent(projectId)}`}>{m.back}</Link>
         <div className="st-crumb"><span className="scn">{run?.name}</span><span className="id mono">TestRun · #{runId} · {nodes.length} {m.scenarioUnit}</span></div>
+        <div className="rm-spacer" />
+        <div className="rm-seg">
+          <button disabled={nodes.length === 0} onClick={() => nodes.length > 0 && openEdit(nodes[0].id)} type="button">{m.editView}</button>
+          <button className="on" type="button">{m.mapView}</button>
+        </div>
       </header>
 
       <div className="legend">
@@ -203,11 +216,11 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
           const st = nodeStatus(node)
           const bar = STATUSES.filter((s) => node.rollup[s] > 0)
           const top = 40 + index * NODE_GAP
-          const expanded = expandedId === node.id
+          const expanded = expandedIds.has(node.id)
           return (
             <Fragment key={node.id}>
               <div className={'mnode' + (expanded ? ' expanded' : '')} style={{ left: NODE_X, top }}
-                onClick={() => setExpandedId(expanded ? null : node.id)}
+                onClick={() => toggleExpand(node.id)}
                 role="button" tabIndex={0}
               >
                 <div className="mname">{node.title}</div>

@@ -418,6 +418,6 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     collapse: '클릭하면 접기',
     noCases: '케이스 없음',
     editView: '편집',
-    mapView: 'Map',
+    mapView: '맵',
   },
 }
