@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { type TestCase, type VerificationStatus } from '../testCases/testCaseTypes'
 import { CategoryChip } from '../testCases/CategoryChip'
-import { CaseLibrary } from './CaseLibrary'
+import { CasePalette } from './CasePalette'
 import type { useScenarioComposition } from './useScenarioComposition'
 
 type Comp = ReturnType<typeof useScenarioComposition>
@@ -40,7 +40,21 @@ export function ScenarioComposition({
   const [dragging, setDragging] = useState<string | null>(null)
   const [showNew, setShowNew] = useState(false)
   const [libReload, setLibReload] = useState(0)
+  const [paletteOpen, setPaletteOpen] = useState(false)
   const detailRef = useRef<HTMLDivElement>(null)
+
+  // ⌘K / Ctrl+K summons the case palette from anywhere in the studio.
+  useEffect(() => {
+    if (!editable) return undefined
+    function onKey(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        setPaletteOpen(true)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [editable])
 
   // Follow the deep-link: when the Map points at a case (?case=), select it —
   // even for a re-click within the same scenario, where the page does not remount.
@@ -153,6 +167,7 @@ export function ScenarioComposition({
         {editable && !showNew && (
           <div className="flow-add">
             <button className="add-new" onClick={() => setShowNew(true)} type="button">{c.addCase}</button>
+            <button className="add-lib" onClick={() => setPaletteOpen(true)} type="button">{c.openLibrary}</button>
           </div>
         )}
 
@@ -185,14 +200,14 @@ export function ScenarioComposition({
           </div>
         )}
 
-        {editable && (
-          <CaseLibrary
+        {paletteOpen && editable && (
+          <CasePalette
             projectId={projectId}
             reloadKey={libReload}
             inScenario={new Set(order)}
             onAdd={(testCase) => comp.addExisting(testCase)}
             onRemove={removeFromScenario}
-            onDelete={(id) => comp.deleteCase(id)}
+            onClose={() => setPaletteOpen(false)}
           />
         )}
       </article>
