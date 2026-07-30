@@ -174,7 +174,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
   return (
     <div className="run-map" ref={mapRef}
       onPointerDown={(event) => {
-        if ((event.target as HTMLElement).closest('.mnode, .controls, .legend, .rm-top')) return
+        if ((event.target as HTMLElement).closest('.mnode, .cflow, .controls, .legend, .rm-top')) return
         pan.current = { sx: event.clientX, sy: event.clientY, ox: view.x, oy: view.y }
         event.currentTarget.setPointerCapture(event.pointerId)
       }}
