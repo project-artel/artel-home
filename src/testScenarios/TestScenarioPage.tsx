@@ -40,6 +40,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
   const [dialog, setDialog] = useState<'approve' | 'delete' | null>(null)
   const [searchParams] = useSearchParams()
   const fromRun = searchParams.get('run')
+  const initialCase = searchParams.get('case')
 
   const readOnly = session.closure !== null
 
@@ -118,7 +119,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
 
       <div className="st-edit">
         <ScenarioList projectId={projectId} activeId={scenarioId} />
-        <ScenarioComposition comp={comp} projectId={projectId} readOnly={readOnly} />
+        <ScenarioComposition comp={comp} projectId={projectId} readOnly={readOnly} initialCaseId={initialCase} />
         <aside className="st-chat">
           <ScenarioChat
             awaitingReply={session.awaitingReply}

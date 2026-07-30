@@ -24,16 +24,19 @@ export function ScenarioComposition({
   comp,
   projectId,
   readOnly,
+  initialCaseId = null,
 }: {
   comp: Comp
   projectId: string
   readOnly: boolean
+  /** Pre-selected case (deep-link from the Map's case node), opens its detail. */
+  initialCaseId?: string | null
 }) {
   const { t } = useI18n()
   const c = t.scenarios.composition
   const editable = !readOnly
 
-  const [selected, setSelected] = useState<string | null>(null)
+  const [selected, setSelected] = useState<string | null>(initialCaseId)
   const [dragging, setDragging] = useState<string | null>(null)
   const [showNew, setShowNew] = useState(false)
   const [libReload, setLibReload] = useState(0)

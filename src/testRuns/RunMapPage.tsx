@@ -103,6 +103,9 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
   function openEdit(scenarioId: string) {
     navigate(`/projects/${encodeURIComponent(projectId)}/test-scenarios/${scenarioId}?run=${encodeURIComponent(runId)}`)
   }
+  function openCase(scenarioId: string, caseId: string) {
+    navigate(`/projects/${encodeURIComponent(projectId)}/test-scenarios/${scenarioId}?run=${encodeURIComponent(runId)}&case=${encodeURIComponent(caseId)}`)
+  }
 
   // pan / zoom
   const mapRef = useRef<HTMLDivElement>(null)
@@ -221,18 +224,29 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
                 <button className="mnode-open" onClick={(event) => { event.stopPropagation(); openEdit(node.id) }} type="button">{m.openHint}</button>
               </div>
 
-              {expanded && node.cases.map((testCase, j) => (
-                <button className="cnode" key={testCase.id} style={{ left: NODE_X + 336, top: top + j * 46 }}
-                  onClick={() => openEdit(node.id)} type="button"
-                >
-                  <span className="cnode-num mono">{String(j + 1).padStart(2, '0')}</span>
-                  <span className="cnode-title">{testCase.title.length > 0 ? testCase.title : testCase.id}</span>
-                  <CategoryChip category={testCase.category} />
-                  <span className={`vdot ${testCase.status}`} />
-                </button>
-              ))}
-              {expanded && node.cases.length === 0 && (
-                <div className="cnode cnode--empty" style={{ left: NODE_X + 336, top }}>{m.noCases}</div>
+              {expanded && (
+                <div className="cflow" style={{ left: NODE_X + 300, top: top + 42 }}>
+                  {node.cases.length === 0 ? (
+                    <>
+                      <span className="cflow-link" />
+                      <div className="cnode cnode--empty">{m.noCases}</div>
+                    </>
+                  ) : (
+                    node.cases.map((testCase, j) => (
+                      <Fragment key={testCase.id}>
+                        <span className="cflow-link" />
+                        <button className="cnode" onClick={() => openCase(node.id, testCase.id)} type="button">
+                          <span className="cnode-row">
+                            <span className="cnode-num mono">{String(j + 1).padStart(2, '0')}</span>
+                            <span className="cnode-title">{testCase.title.length > 0 ? testCase.title : testCase.id}</span>
+                            <span className={`vdot ${testCase.status}`} />
+                          </span>
+                          <CategoryChip category={testCase.category} />
+                        </button>
+                      </Fragment>
+                    ))
+                  )}
+                </div>
               )}
             </Fragment>
           )
