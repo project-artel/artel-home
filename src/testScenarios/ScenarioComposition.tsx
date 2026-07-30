@@ -207,7 +207,7 @@ export function ScenarioComposition({
           <CasePalette
             projectId={projectId}
             reloadKey={libReload}
-            inScenario={new Set(order)}
+            order={order}
             onAdd={(testCase) => comp.addExisting(testCase)}
             onRemove={removeFromScenario}
             onClose={() => setPaletteOpen(false)}

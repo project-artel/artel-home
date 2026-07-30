@@ -2613,7 +2613,11 @@ a.instance-name:hover {
 .scenario-studio .cp-row.in.active{ background:rgba(36,199,232,.14); }
 .scenario-studio .cp-row.in .cp-title{ color:var(--st-action); }
 
-.scenario-studio .cp-badge{ flex:none; font-size:11px; font-weight:600; border-radius:999px; padding:3px 10px; border:1px solid; display:inline-flex; align-items:center; gap:5px; }
-.scenario-studio .cp-badge.add{ color:var(--st-text-2); border-color:var(--st-border-strong); background:transparent; }
-.scenario-studio .cp-row.active .cp-badge.add{ color:var(--st-action); border-color:var(--st-action); }
-.scenario-studio .cp-badge.in{ color:var(--st-action); border-color:#16414c; background:#0c2b33; }
+
+/* palette: labeled filter rows + position badge (replaces cp-filters/cp-cats/cp-badge) */
+.scenario-studio .cp-filter-row{ display:flex; align-items:flex-start; gap:10px; padding:8px 16px; border-bottom:1px solid var(--st-border); }
+.scenario-studio .cp-filter-label{ flex:none; width:52px; padding-top:5px; font-size:10.5px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--st-muted); }
+.scenario-studio .cp-chips{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.scenario-studio .cp-chips .fchip{ display:inline-flex; align-items:center; gap:6px; }
+.scenario-studio .cp-more{ color:var(--st-action); border-color:#16414c; }
+.scenario-studio .cp-pos{ flex:none; width:24px; height:24px; display:grid; place-items:center; border-radius:999px; background:var(--st-action); color:#04222a; font-family:var(--st-mono); font-weight:700; font-size:12px; }

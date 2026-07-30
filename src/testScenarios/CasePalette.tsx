@@ -11,7 +11,7 @@ import {
 type Filter = 'ALL' | VerificationStatus
 
 /** How many category chips show before the rest collapse behind a "＋N" toggle. */
-const MAX_CATEGORY_CHIPS = 6
+const MAX_CATEGORY_CHIPS = 3
 
 /**
  * A ⌘K command palette for the case library. Opened over the studio, it finds a
@@ -29,14 +29,15 @@ const MAX_CATEGORY_CHIPS = 6
 export function CasePalette({
   projectId,
   reloadKey,
-  inScenario,
+  order,
   onAdd,
   onRemove,
   onClose,
 }: {
   projectId: string
   reloadKey: number
-  inScenario: Set<string>
+  /** The scenario's current case ids, in order — drives the position badge. */
+  order: string[]
   onAdd: (testCase: TestCase) => void
   onRemove: (caseId: string) => void
   onClose: () => void
@@ -53,6 +54,14 @@ export function CasePalette({
   const [active, setActive] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
+
+  // caseId → 1-based position in the scenario (undefined when not added).
+  const positionById = useMemo(() => {
+    const map = new Map<string, number>()
+    order.forEach((id, index) => map.set(id, index + 1))
+    return map
+  }, [order])
+  const inScenario = useMemo(() => new Set(order), [order])
 
   useEffect(() => {
     inputRef.current?.focus()
@@ -122,25 +131,31 @@ export function CasePalette({
           <button className="cp-esc" onClick={onClose} type="button">ESC</button>
         </div>
 
-        <div className="cp-filters">
-          {(['ALL', ...VERIFICATION_STATUSES] as Filter[]).map((f) => (
-            <button className={status === f ? 'fchip on' : 'fchip'} key={f} onClick={() => setStatus(f)} type="button">
-              {f === 'ALL' ? p.statusAll : statusLabel[f]}
-            </button>
-          ))}
+        <div className="cp-filter-row">
+          <span className="cp-filter-label">{p.statusLabel}</span>
+          <div className="cp-chips">
+            {(['ALL', ...VERIFICATION_STATUSES] as Filter[]).map((f) => (
+              <button className={status === f ? 'fchip on' : 'fchip'} key={f} onClick={() => setStatus(f)} type="button">
+                {f !== 'ALL' && <span className={`vdot ${f}`} />}{f === 'ALL' ? p.statusAll : statusLabel[f]}
+              </button>
+            ))}
+          </div>
         </div>
 
         {categories.length > 0 && (
-          <div className="cp-cats">
-            <button className={category === '' ? 'fchip on' : 'fchip'} onClick={() => setCategory('')} type="button">{p.categoryAll}</button>
-            {(showAllCats ? categories : categories.slice(0, MAX_CATEGORY_CHIPS)).map((name) => (
-              <button className={category === name ? 'fchip on' : 'fchip'} key={name} onClick={() => setCategory(category === name ? '' : name)} type="button">{name}</button>
-            ))}
-            {categories.length > MAX_CATEGORY_CHIPS && (
-              <button className="fchip cp-more" onClick={() => setShowAllCats((v) => !v)} type="button">
-                {showAllCats ? p.less : `＋${categories.length - MAX_CATEGORY_CHIPS}`}
-              </button>
-            )}
+          <div className="cp-filter-row">
+            <span className="cp-filter-label">{p.categoryLabel}</span>
+            <div className="cp-chips">
+              <button className={category === '' ? 'fchip on' : 'fchip'} onClick={() => setCategory('')} type="button">{p.categoryAll}</button>
+              {(showAllCats ? categories : categories.slice(0, MAX_CATEGORY_CHIPS)).map((name) => (
+                <button className={category === name ? 'fchip on' : 'fchip'} key={name} onClick={() => setCategory(category === name ? '' : name)} type="button">{name}</button>
+              ))}
+              {categories.length > MAX_CATEGORY_CHIPS && (
+                <button className="fchip cp-more" onClick={() => setShowAllCats((v) => !v)} type="button">
+                  {showAllCats ? p.less : `＋${categories.length - MAX_CATEGORY_CHIPS}`}
+                </button>
+              )}
+            </div>
           </div>
         )}
 
@@ -165,10 +180,8 @@ export function CasePalette({
                     <span className="cp-sub"><span className="mono">{testCase.id}</span> · {statusLabel[testCase.verificationStatus]}</span>
                   </span>
                   <CategoryChip category={testCase.category} />
-                  {inside ? (
-                    <span className="cp-badge in"><span aria-hidden="true">✓</span> {p.inScenario}</span>
-                  ) : (
-                    <span className="cp-badge add">{p.addAction}</span>
+                  {inside && (
+                    <span className="cp-pos" title={p.posTitle}>{positionById.get(testCase.id)}</span>
                   )}
                 </button>
               )
