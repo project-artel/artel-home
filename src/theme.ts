@@ -10,7 +10,7 @@ export function applyTheme(theme: Theme) {
   document.documentElement.dataset.theme = theme
   document.querySelector('meta[name="theme-color"]')?.setAttribute(
     'content',
-    theme === 'dark' ? '#090c10' : '#ffffff',
+    theme === 'dark' ? '#14161c' : '#F7F4EE',
   )
   document.querySelector<HTMLLinkElement>('#app-favicon')?.setAttribute(
     'href',

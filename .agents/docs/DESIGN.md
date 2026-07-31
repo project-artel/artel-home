@@ -15,48 +15,63 @@
 
 Combine the strengths of video editors, game-engine debuggers, and modern developer tools.
 
-- Dark-first, flat graphite surfaces
-- Cyan for agent actions and selection
+**Blueprint Paper** — cream paper, ink, and drafting marks. Light is the default; dark is an ink inversion. Shared with the public marketing site so the two read as one product.
+
+- Light-first, flat cream-paper surfaces. Dark inverts to ink.
+- Depth comes from 1px rules and background steps. **No box shadows.** A `0 0 0 1px` ring is a hairline, not a shadow, and is allowed.
+- Coral for the brand, agent actions, selection, and focus
 - Violet for agent reasoning
 - Green for success
 - Amber for uncertainty and retries
-- Coral for failures and critical evidence
-- Monospace only for timestamps, IDs, logs, and input events
-- Glow and gradients only for live or selected states
+- Coral-red for failures and critical evidence
+- `Space Grotesk` for headings, `Pretendard` for body, `IBM Plex Mono` only for timestamps, IDs, logs, and input events
 
-Avoid generic KPI dashboards, repeated rounded cards, excessive glassmorphism, decorative neon, genre-specific decoration, and color-only status communication.
+Avoid generic KPI dashboards, repeated rounded cards, excessive glassmorphism, decorative neon, glow, gradients, genre-specific decoration, and color-only status communication.
+
+Coral now carries both the brand and the action role. Cyan was the old action color and is gone — it does not sit on cream paper. Failure keeps its own coral-red (`status.critical`) so severity stays distinguishable from an ordinary action.
 
 ## Foundation tokens
 
 ### Color
 
-| Token | Value | Usage |
-|---|---:|---|
-| `bg.canvas` | `#090C10` | Application background |
-| `bg.surface` | `#10151B` | Sidebars and panels |
-| `bg.raised` | `#171D25` | Inspector and popovers |
-| `bg.hover` | `#1D2530` | Hovered surfaces |
-| `border.subtle` | `#27313D` | Default dividers |
-| `border.strong` | `#3B4857` | Emphasized boundaries |
-| `text.primary` | `#F4F7FA` | Titles and critical values |
-| `text.secondary` | `#A7B0BC` | Body text and descriptions |
-| `text.muted` | `#707B88` | Metadata |
-| `brand.charcoal` | `#20232B` | Artel symbol body |
-| `brand.accent` | `#F04B3A` | Artel symbol accent |
-| `action.primary` | `#24C7E8` | Agent actions, selection, and focus |
-| `agent.reasoning` | `#8F7CF6` | Agent reasoning events |
-| `status.success` | `#48C78E` | Passed and healthy states |
-| `status.warning` | `#F2B84B` | Warnings and retries |
-| `status.critical` | `#FF634F` | Failures and blockers |
+| Token | Light | Dark | Usage |
+|---|---:|---:|---|
+| `bg.canvas` | `#F7F4EE` | `#14161C` | Application background. Same value as the marketing site's `--paper` |
+| `bg.surface` | `#FDFBF7` | `#1A1D24` | Sidebars and panels |
+| `bg.raised` | `#F1EDE5` | `#22262F` | Inspector and popovers. Light equals the marketing site's `--paper-2` |
+| `bg.hover` | `#E8E3D8` | `#2B3038` | Hovered surfaces |
+| `border.subtle` | `#D8D4CB` | `#2C313C` | Default dividers |
+| `border.strong` | `#928C7D` | `#616B7A` | Emphasized boundaries |
+| `text.primary` | `#20232B` | `#F2EFE9` | Titles and critical values |
+| `text.secondary` | `#5A5F6B` | `#9AA1AD` | Body text and descriptions |
+| `text.muted` | `#6F6C62` | `#838C9A` | Metadata |
+| `text.on-accent` | `#14161C` | `#14161C` | Text on a filled accent or critical surface |
+| `brand.charcoal` | `#20232B` | `#20232B` | Artel symbol body |
+| `brand.accent` | `#F04B3A` | `#FF5C48` | Artel symbol accent, brand surfaces |
+| `action.primary` | `#F04B3A` | `#FF5C48` | Agent actions, selection, and focus |
+| `agent.reasoning` | `#8F7CF6` | `#8F7CF6` | Agent reasoning events |
+| `status.success` | `#48C78E` | `#48C78E` | Passed and healthy states |
+| `status.warning` | `#F2B84B` | `#F2B84B` | Warnings and retries |
+| `status.critical` | `#FF634F` | `#FF634F` | Failures and blockers |
 
 Always pair semantic colors with an icon, shape, or text label.
+
+Contrast rules that produced these values:
+
+- Dark `brand.accent` is `#FF5C48`, not `#F04B3A`. The original does not clear 4.5:1 on `#14161C`.
+- `text.on-accent` is ink, not white. White on `#F04B3A` is 3.64:1 and fails at the 13px button label size; ink is 4.97:1.
+- `text.muted` and `border.strong` are darker than the marketing site's `--ink-3` / `--rule`. Those two draw dots and dashes there; here they draw 11–12px metadata and panel boundaries. Same hue, lower lightness.
+- Every text pair clears 4.5:1 and every boundary clears 3:1 in both themes.
 
 ### Typography
 
 ```css
---font-sans: "Inter", "Pretendard Variable", Pretendard, sans-serif;
---font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+--font-display: "Space Grotesk", "Pretendard Variable", Pretendard, sans-serif;
+--font-sans: "Pretendard Variable", Pretendard, -apple-system, sans-serif;
+--font-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
 ```
+
+`h1`–`h3` use `--font-display`. Everything else uses `--font-sans`.
 
 | Style | Size / line height | Weight |
 |---|---:|---:|
@@ -74,7 +89,7 @@ Apply `font-variant-numeric: tabular-nums` to timestamps and frequently changing
 ### Spacing, radius, and motion
 
 - Spacing: `4, 8, 12, 16, 20, 24, 32, 40, 48px`
-- Radius: `3, 5, 8, 12px`; use `999px` only for pills and status dots
+- Radius: `3, 4, 6px`; use `999px` only for pills and status dots
 - Motion: fast `100ms`, normal `160ms`, slow `240ms`
 - Standard easing: `cubic-bezier(.2, 0, 0, 1)`
 - Never interpolate the timeline playhead or real-time numeric values.
@@ -143,13 +158,13 @@ Lane order:
 
 | Event | Color | Shape |
 |---|---|---|
-| Observation | Cyan | Circle |
+| Observation | Coral | Circle |
 | Reasoning | Violet | Diamond |
-| Action | Cyan | Tick |
+| Action | Coral | Tick |
 | Success | Green | Check |
 | Retry | Amber | Loop |
 | Failure | Coral | Triangle |
-| System | Gray | Square |
+| System | Warm gray | Square |
 
 ### `EventInspector`
 

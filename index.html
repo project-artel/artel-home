@@ -3,9 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#ffffff" />
+    <meta name="theme-color" content="#F7F4EE" />
     <meta name="description" content="ARTEL Replay Studio" />
     <link id="app-favicon" rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+    />
     <script>
       (() => {
         const saved = localStorage.getItem('artel-theme')
@@ -17,7 +26,7 @@
               : 'light'
         document.documentElement.dataset.theme = theme
         document.querySelector('meta[name="theme-color"]').content =
-          theme === 'dark' ? '#090c10' : '#ffffff'
+          theme === 'dark' ? '#14161c' : '#F7F4EE'
         document.querySelector('#app-favicon').href =
           theme === 'dark' ? '/favicon-dark.svg' : '/favicon.svg'
       })()

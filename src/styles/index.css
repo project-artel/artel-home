@@ -22,6 +22,17 @@ body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
+  /* 한국어를 어절 중간에서 끊지 않는다. */
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+/* 헤드라인은 display, 본문은 body 서체다. 크기·굵기는 각 컴포넌트가 정한다. */
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
 }
 
 button,
