@@ -16,11 +16,14 @@ import {
   type QaLogDirection,
   type QaLogPage,
   type QaLogType,
+  type QaModel,
+  type QaReasoningSelection,
   type QaTry,
   type QaTryStatus,
 } from './qaTypes'
 
 const QA_ROOT = '/api/qa-tries'
+const QA_MODELS_ROOT = '/api/qa-models'
 const DECIMAL_ID = /^\d+$/
 
 export function isDecimalId(value: unknown): value is string {
@@ -129,12 +132,77 @@ function qaPath(qaTryId: string, suffix = ''): string {
 export async function createQaTry(
   testScenarioId: string,
   gameInstanceId: string,
+  model: string,
+  reasoning: QaReasoningSelection | null,
 ): Promise<QaTry> {
   const response = await apiFetch(QA_ROOT, {
     method: 'POST',
-    ...jsonRequest({ testScenarioId, gameInstanceId }),
+    ...jsonRequest({ testScenarioId, gameInstanceId, model, reasoning }),
   })
   return parseQaTry(await readJson(response), response.status)
+}
+
+export async function listQaModels(signal?: AbortSignal): Promise<QaModel[]> {
+  const response = await apiFetch(QA_MODELS_ROOT, { signal })
+  const data: unknown = await readJson(response)
+  if (!Array.isArray(data)) {
+    throw new ProjectApiError(response.status, 'The server returned an unreadable model catalog.')
+  }
+  return data.flatMap((item) => {
+    const record = asRecord(item)
+    const reasoning = asRecord(record?.reasoning)
+    if (
+      record === null ||
+      typeof record.id !== 'string' ||
+      typeof record.label !== 'string' ||
+      typeof record.provider !== 'string' ||
+      typeof record.supportsVision !== 'boolean' ||
+      typeof record.multimodal !== 'boolean' ||
+      !Array.isArray(record.inputModalities) ||
+      !record.inputModalities.every((value) => typeof value === 'string')
+    ) {
+      return []
+    }
+
+    let parsedReasoning: QaModel['reasoning'] = null
+    if (
+      reasoning?.kind === 'effort' &&
+      Array.isArray(reasoning.efforts) &&
+      reasoning.efforts.length > 0 &&
+      reasoning.efforts.every((value) => typeof value === 'string')
+    ) {
+      parsedReasoning = {
+        kind: 'effort',
+        efforts: reasoning.efforts,
+        minTokens: null,
+        maxTokens: null,
+        step: null,
+      }
+    } else if (
+      reasoning?.kind === 'max_tokens' &&
+      typeof reasoning.minTokens === 'number' &&
+      typeof reasoning.maxTokens === 'number' &&
+      typeof reasoning.step === 'number'
+    ) {
+      parsedReasoning = {
+        kind: 'max_tokens',
+        efforts: null,
+        minTokens: reasoning.minTokens,
+        maxTokens: reasoning.maxTokens,
+        step: reasoning.step,
+      }
+    }
+
+    return [{
+      id: record.id,
+      label: record.label,
+      provider: record.provider,
+      supportsVision: record.supportsVision,
+      inputModalities: record.inputModalities,
+      multimodal: record.multimodal,
+      reasoning: parsedReasoning,
+    }]
+  })
 }
 
 export function isQaConflict(error: unknown): error is ProjectApiError {
