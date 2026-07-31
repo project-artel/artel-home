@@ -41,6 +41,36 @@ export type QaTry = {
   completedAt: string | null
 }
 
+export type QaReasoningCapability =
+  | {
+      kind: 'effort'
+      efforts: string[]
+      minTokens: null
+      maxTokens: null
+      step: null
+    }
+  | {
+      kind: 'max_tokens'
+      efforts: null
+      minTokens: number
+      maxTokens: number
+      step: number
+    }
+
+export type QaModel = {
+  id: string
+  label: string
+  provider: string
+  supportsVision: boolean
+  inputModalities: string[]
+  multimodal: boolean
+  reasoning: QaReasoningCapability | null
+}
+
+export type QaReasoningSelection =
+  | { effort: string }
+  | { maxTokens: number }
+
 export type QaLog = {
   id: string
   qaTryId: string
