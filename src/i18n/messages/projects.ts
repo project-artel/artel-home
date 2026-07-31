@@ -156,12 +156,8 @@ export const projectsEn = {
     step1After: '.',
     packageUrlCopied: 'Package URL copied.',
     copyUrl: 'Copy URL',
-    step2: 'Create an empty GameObject in the scene.',
-    /** Rendered around the `ArtelManager` component name. */
-    step3Before: 'Add the ',
-    step3After: ' component to it.',
-    step4: 'Run the game and choose Sign in in the Artel overlay. It opens your browser.',
-    step5:
+    step2: 'Run the game and choose Sign in in the Artel overlay. It opens your browser.',
+    step3:
       'Approve the SDK in the browser, then pick this project in the overlay. The instance registers itself from there.',
     previousStep: 'Back',
     nextStep: 'Next',
@@ -176,11 +172,6 @@ export const projectsEn = {
       'The plus menu in Package Manager open with Add package from git URL highlighted.',
     shot1GitUrlInputAlt:
       'The Artel SDK git URL typed into the Add package from git URL field.',
-    shot2Alt: 'The Hierarchy context menu open with Create Empty highlighted.',
-    shot3SearchAlt:
-      'The Add Component search in the Inspector with ArtelManager typed and the Artel Manager result highlighted.',
-    shot3InspectorAlt:
-      'The Inspector showing a GameObject named Artel with the Artel Manager component attached.',
     note: 'There is no key to keep. The SDK remembers the sign-in on that machine, and the instance is created by the first report.',
   },
   copy: {
@@ -354,11 +345,8 @@ export const projectsKo: Localized<typeof projectsEn> = {
     step1After: '을 선택하세요.',
     packageUrlCopied: '패키지 URL을 복사했습니다.',
     copyUrl: 'URL 복사',
-    step2: '씬에 빈 GameObject를 만드세요.',
-    step3Before: 'GameObject에 ',
-    step3After: ' 컴포넌트를 추가하세요.',
-    step4: '게임을 실행하고 Artel 오버레이에서 로그인을 선택하세요. 브라우저가 열립니다.',
-    step5:
+    step2: '게임을 실행하고 Artel 오버레이에서 로그인을 선택하세요. 브라우저가 열립니다.',
+    step3:
       '브라우저에서 SDK를 승인한 뒤 오버레이에서 이 프로젝트를 선택하세요. 인스턴스는 그 뒤에 자동으로 등록됩니다.',
     previousStep: '이전',
     nextStep: '다음',
@@ -366,10 +354,6 @@ export const projectsKo: Localized<typeof projectsEn> = {
     shot1GitUrlMenuAlt:
       'Package Manager의 더하기 메뉴가 열리고 Add package from git URL이 선택된 화면.',
     shot1GitUrlInputAlt: 'Add package from git URL 입력칸에 Artel SDK의 git URL을 입력한 화면.',
-    shot2Alt: 'Hierarchy 컨텍스트 메뉴가 열리고 Create Empty가 선택된 화면.',
-    shot3SearchAlt:
-      'Inspector의 Add Component 검색창에 ArtelManager를 입력해 Artel Manager 결과가 선택된 화면.',
-    shot3InspectorAlt: 'Artel이라는 GameObject에 Artel Manager 컴포넌트가 붙은 Inspector 화면.',
     note: '따로 보관할 키는 없습니다. SDK가 해당 머신의 로그인을 기억하며, 인스턴스는 첫 보고 시점에 만들어집니다.',
   },
   copy: {
