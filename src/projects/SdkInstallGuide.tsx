@@ -3,10 +3,7 @@ import { CopyButton } from './CopyButton'
 import { useI18n } from '../i18n/useI18n'
 import addPackageFromGitUrlShot from '../assets/sdk-guide/step1-add-package-from-git-url.png'
 import gitUrlInputShot from '../assets/sdk-guide/step1-git-url-input.png'
-import createEmptyShot from '../assets/sdk-guide/step2-create-empty.png'
-import addComponentShot from '../assets/sdk-guide/step3-add-component.png'
-import inspectorShot from '../assets/sdk-guide/step3-inspector.png'
-import artelPanelShot from '../assets/sdk-guide/step4-artel-panel.png'
+import artelPanelShot from '../assets/sdk-guide/step2-artel-panel.png'
 
 /**
  * The git URL Unity's Package Manager installs the SDK from. It is a constant
@@ -41,7 +38,7 @@ function GuideShot({
 }
 
 /**
- * The four steps that turn an issued instance key into a connected game.
+ * The two steps that turn an issued instance key into a connected game.
  *
  * Shown in two places — inside the create dialog straight after the key is
  * issued, and again from the `설치 안내` action on any instance row — from one
@@ -109,30 +106,7 @@ export function SdkInstallGuide({ instanceKey }: { instanceKey: string }) {
     </>,
     <>
       <p className="guide-copy">{t.projects.guide.step2}</p>
-      <GuideShot alt={t.projects.guide.shot2Alt} height={860} src={createEmptyShot} width={1210} />
-    </>,
-    <>
-      <p className="guide-copy">
-        {t.projects.guide.step3Before}
-        <code className="mono">ArtelManager</code>
-        {t.projects.guide.step3After}
-      </p>
-      <GuideShot
-        alt={t.projects.guide.shot3SearchAlt}
-        height={476}
-        src={addComponentShot}
-        width={910}
-      />
-      <GuideShot
-        alt={t.projects.guide.shot3InspectorAlt}
-        height={528}
-        src={inspectorShot}
-        width={618}
-      />
-    </>,
-    <>
-      <p className="guide-copy">{t.projects.guide.step4}</p>
-      <GuideShot alt={t.projects.guide.shot4Alt} height={274} src={artelPanelShot} width={442} />
+      <GuideShot alt={t.projects.guide.shot2Alt} height={274} src={artelPanelShot} width={442} />
       <div className="copy-line">
         <code className="mono copy-value">{instanceKey}</code>
         <CopyButton
@@ -151,7 +125,7 @@ export function SdkInstallGuide({ instanceKey }: { instanceKey: string }) {
     <div className="install-guide">
       <ol className="guide-list">
         {/* Only the current step is in the DOM, so `value` is what keeps the
-            marker counting 1 to 4 instead of restarting at 1 every time. */}
+            marker counting up instead of restarting at 1 every time. */}
         <li
           aria-label={t.projects.guide.stepPosition(stepIndex + 1, steps.length)}
           className="guide-step"
