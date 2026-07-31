@@ -14,7 +14,6 @@ import {
   type GameBuild,
   type GameBuildPatch,
   type GameInstance,
-  type GameInstanceDraft,
   type GameInstancePatch,
 } from './gameTypes'
 
@@ -67,7 +66,6 @@ function parseInstance(data: unknown): GameInstance | null {
     projectId: asString(record.projectId),
     name,
     platform: asString(record.platform, DEFAULT_GAME_PLATFORM),
-    instanceKey: asString(record.instanceKey),
     connected: asBoolean(record.connected),
     lastConnectedAt: asString(record.lastConnectedAt),
     createdAt: asString(record.createdAt),
@@ -143,23 +141,11 @@ export async function listGameInstances(
     .filter((instance): instance is GameInstance => instance !== null)
 }
 
-/**
- * The response carries the freshly issued `instanceKey` — the whole point of the
- * call, since it is what the developer pastes into Unity. The key is durable and
- * the list endpoint returns it on every row, so this is not a show-once value;
- * losing it costs a reload, not a new instance. There is no endpoint that
- * re-issues it, which is exactly why it must stay readable.
+/*
+ * There is no create call. An instance appears when the SDK signs in, the user
+ * picks this project, and the game reports for the first time; the server owns
+ * that registration end to end.
  */
-export async function createGameInstance(
-  projectId: string,
-  draft: GameInstanceDraft,
-): Promise<GameInstance> {
-  const response = await apiFetch(projectPath(projectId, '/game-instances'), {
-    method: 'POST',
-    ...jsonRequest(draft),
-  })
-  return requireInstance(await readJson(response), response.status)
-}
 
 export async function updateGameInstance(
   projectId: string,
@@ -174,9 +160,9 @@ export async function updateGameInstance(
 }
 
 /**
- * Returns `204`, so there is no body to read. Deleting an instance revokes its
- * key; the SDK install that used it stops reporting and cannot be re-linked
- * without a new instance.
+ * Returns `204`, so there is no body to read. The row disappears, but nothing
+ * is revoked: the same install reporting again registers a fresh instance, so
+ * this removes a record rather than cutting a game off for good.
  */
 export async function deleteGameInstance(projectId: string, instanceId: string): Promise<void> {
   const response = await apiFetch(instancePath(projectId, instanceId), { method: 'DELETE' })

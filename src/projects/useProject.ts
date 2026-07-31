@@ -132,16 +132,6 @@ export function useProject(projectId: string) {
     }))
   }, [])
 
-  /**
-   * Appended rather than prepended. The server's ordering is not part of the
-   * contract, and appending is the reading that stays correct if it turns out
-   * to be oldest-first; a reload is the authority either way. The user is
-   * looking at the install guide in the dialog at this moment, not at the list.
-   */
-  const applyNewInstance = useCallback((instance: GameInstance) => {
-    setState((previous) => ({ ...previous, instances: [...previous.instances, instance] }))
-  }, [])
-
   const removeInstance = useCallback((instanceId: string) => {
     setState((previous) => ({
       ...previous,
@@ -163,7 +153,6 @@ export function useProject(projectId: string) {
     applyProject,
     applyNewDocument,
     applyInstance,
-    applyNewInstance,
     removeInstance,
     applyBuild,
   }
