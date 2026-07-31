@@ -1,10 +1,8 @@
 import { useId, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Dialog } from '../design-system/primitives/Dialog'
-import { CopyButton } from './CopyButton'
 import { DeleteGameInstanceDialog } from './DeleteGameInstanceDialog'
 import { formatDate } from './formatters'
-import { GameInstanceCreateDialog } from './GameInstanceCreateDialog'
 import { updateGameInstance } from './gameApi'
 import { useI18n } from '../i18n/useI18n'
 import { apiErrorMessage } from './apiErrorMessage'
@@ -19,11 +17,14 @@ import {
 /**
  * The SDK installations belonging to this project.
  *
- * Rendered as dense rows rather than cards: a row is a name, a key, and a
- * status line, and a card grid would spend most of a 1440px viewport on
- * padding. There is no role gate — every project member may add, rename, and
- * delete instances, matching the document panel rather than the owner-gated
- * project delete.
+ * Rendered as dense rows rather than cards: a row is a name and a status line,
+ * and a card grid would spend most of a 1440px viewport on padding. There is no
+ * role gate — every project member may rename and delete instances, matching
+ * the document panel rather than the owner-gated project delete.
+ *
+ * Nothing here creates an instance. A row appears when the SDK signs in against
+ * this project and the game reports, so the panel's job is to show what has
+ * arrived and to explain how to make the first one arrive.
  *
  * Loading and load-failure are not handled here. `useProject` fetches all four
  * legs together so the whole screen has one status, one message, and one Retry;
@@ -31,23 +32,22 @@ import {
  */
 export function GameInstancePanel({
   instances,
-  onCreated,
   onRefresh,
   onRemoved,
   onSaved,
   projectId,
 }: {
   instances: GameInstance[]
-  onCreated: (instance: GameInstance) => void
   onRefresh: () => Promise<void>
   onRemoved: (instanceId: string) => void
   onSaved: (instance: GameInstance) => void
   projectId: string
 }) {
   const [announcement, setAnnouncement] = useState('')
-  const [creating, setCreating] = useState(false)
   const [deleting, setDeleting] = useState<GameInstance | null>(null)
-  const [guideFor, setGuideFor] = useState<GameInstance | null>(null)
+  // The guide is about the project, not about a row: with no key to paste there
+  // is nothing per-instance left in it.
+  const [showingGuide, setShowingGuide] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [refreshFailure, setRefreshFailure] = useState<string | null>(null)
   const { t } = useI18n()
@@ -87,10 +87,10 @@ export function GameInstancePanel({
           </button>
           <button
             className="button button--primary button--compact"
-            onClick={() => setCreating(true)}
+            onClick={() => setShowingGuide(true)}
             type="button"
           >
-            {t.projects.instances.add}
+            {t.projects.instances.installGuide}
           </button>
         </div>
       </header>
@@ -107,10 +107,10 @@ export function GameInstancePanel({
           <p className="panel-empty">{t.projects.instances.empty}</p>
           <button
             className="button button--secondary button--compact"
-            onClick={() => setCreating(true)}
+            onClick={() => setShowingGuide(true)}
             type="button"
           >
-            {t.projects.instances.add}
+            {t.projects.instances.installGuide}
           </button>
         </div>
       ) : (
@@ -122,7 +122,6 @@ export function GameInstancePanel({
               onAnnounce={setAnnouncement}
               onDelete={setDeleting}
               onSaved={onSaved}
-              onShowGuide={setGuideFor}
               projectId={projectId}
             />
           ))}
@@ -138,17 +137,6 @@ export function GameInstancePanel({
 
       <p aria-live="polite" className="visually-hidden">{announcement}</p>
 
-      {creating && (
-        <GameInstanceCreateDialog
-          onClose={() => setCreating(false)}
-          onCreated={(instance) => {
-            onCreated(instance)
-            setAnnouncement(t.projects.instances.addedAnnouncement)
-          }}
-          projectId={projectId}
-        />
-      )}
-
       {deleting !== null && (
         <DeleteGameInstanceDialog
           instanceId={deleting.id}
@@ -163,22 +151,18 @@ export function GameInstancePanel({
         />
       )}
 
-      {guideFor !== null && (
+      {showingGuide && (
         <Dialog
           labelledBy="instance-guide-title"
-          onClose={() => setGuideFor(null)}
+          onClose={() => setShowingGuide(false)}
           title={t.projects.instances.guideTitle}
         >
-          <p className="dialog-copy">
-            {t.projects.instances.guideIntroBefore}
-            <strong>{guideFor.name}</strong>
-            {t.projects.instances.guideIntroAfter}
-          </p>
-          <SdkInstallGuide instanceKey={guideFor.instanceKey} />
+          <p className="dialog-copy">{t.projects.instances.guideIntro}</p>
+          <SdkInstallGuide />
           <div className="dialog-actions">
             <button
               className="button button--secondary"
-              onClick={() => setGuideFor(null)}
+              onClick={() => setShowingGuide(false)}
               type="button"
             >
               {t.projects.shared.close}
@@ -200,14 +184,12 @@ function GameInstanceRow({
   onAnnounce,
   onDelete,
   onSaved,
-  onShowGuide,
   projectId,
 }: {
   instance: GameInstance
   onAnnounce: (message: string) => void
   onDelete: (instance: GameInstance) => void
   onSaved: (instance: GameInstance) => void
-  onShowGuide: (instance: GameInstance) => void
   projectId: string
 }) {
   const [editing, setEditing] = useState(false)
@@ -313,22 +295,12 @@ function GameInstanceRow({
             <ConnectionState connected={instance.connected} />
           </div>
 
-          <div className="copy-line">
-            <code className="mono copy-value">{instance.instanceKey}</code>
-            <CopyButton
-              copiedMessage={t.projects.instances.keyCopied}
-              label={t.projects.instances.copyKey}
-              onResult={onAnnounce}
-              text={instance.instanceKey}
-            />
-          </div>
-
           <p className="instance-meta">
             {instance.lastConnectedAt.length === 0
               ? t.projects.instances.neverConnected
               : t.projects.instances.lastConnected(formatDate(instance.lastConnectedAt))}
             <span aria-hidden="true"> · </span>
-            {t.projects.instances.added(formatDate(instance.createdAt))}
+            {t.projects.instances.registered(formatDate(instance.createdAt))}
           </p>
 
           <div className="instance-actions">
@@ -338,13 +310,6 @@ function GameInstanceRow({
               type="button"
             >
               {t.projects.shared.edit}
-            </button>
-            <button
-              className="button button--secondary button--compact"
-              onClick={() => onShowGuide(instance)}
-              type="button"
-            >
-              {t.projects.instances.installGuide}
             </button>
             <button
               className="button button--danger-quiet button--compact"

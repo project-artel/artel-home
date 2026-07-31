@@ -34,7 +34,18 @@ function ProviderIcon({ providerId }: { providerId: string }) {
   return <span className="provider-fallback-icon" aria-hidden="true">{providerId.slice(0, 1).toUpperCase()}</span>
 }
 
-export function LoginPage({ serviceUnavailable = false }: { serviceUnavailable?: boolean }) {
+/**
+ * `copy` overrides the standfirst for callers that bounced the user here in the
+ * middle of something else — the SDK relay page is the only one so far — so the
+ * screen can say what the sign-in is for instead of only that one is needed.
+ */
+export function LoginPage({
+  copy,
+  serviceUnavailable = false,
+}: {
+  copy?: string
+  serviceUnavailable?: boolean
+}) {
   const [oauthErrorCode] = useState(readOAuthErrorCode)
   const { t } = useI18n()
 
@@ -59,7 +70,7 @@ export function LoginPage({ serviceUnavailable = false }: { serviceUnavailable?:
         </div>
         <p className="eyebrow">ARTEL Replay Studio</p>
         <h1 id="login-title">{t.common.login.title}</h1>
-        <p className="login-copy">{t.common.login.copy}</p>
+        <p className="login-copy">{copy ?? t.common.login.copy}</p>
 
         {oauthErrorCode !== null && (
           <div className="login-error" role="alert">

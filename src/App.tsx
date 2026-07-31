@@ -4,6 +4,8 @@ import './App.css'
 import { LoginPage } from './LoginPage'
 import { NotFoundPage } from './NotFoundPage'
 import { useAuth } from './auth/useAuth'
+import { SdkLoginPage } from './auth/SdkLoginPage'
+import { resumeSdkLogin, SDK_LOGIN_PATH } from './auth/sdkLoginRequest'
 import { useI18n } from './i18n/useI18n'
 import { GameInstanceDetailRoute } from './projects/GameInstanceDetailPage'
 import { ProjectDetailRoute } from './projects/ProjectDetailPage'
@@ -29,6 +31,22 @@ export function App() {
     localeSyncedFor.current = auth.user.id
     if (auth.user.locale !== null) setLocale(auth.user.locale)
   }, [auth, setLocale])
+
+  // A sign-in started from the SDK relay page lands back here, at the console
+  // root, because that is the only address the server's OAuth handler redirects
+  // to. Replaying the parked request is what closes that gap.
+  useEffect(() => {
+    if (auth.status !== 'authenticated') return
+    if (window.location.pathname === SDK_LOGIN_PATH) return
+    resumeSdkLogin()
+  }, [auth.status])
+
+  // Matched ahead of the login boundary below: the SDK opens this page in a
+  // browser that may have no session, and the routed subtree only mounts once
+  // there is one.
+  if (window.location.pathname === SDK_LOGIN_PATH) {
+    return <SdkLoginPage />
+  }
 
   if (auth.status === 'loading') {
     return (
