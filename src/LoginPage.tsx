@@ -3,6 +3,7 @@ import { getOAuthLoginUrl } from './auth/authApi'
 import { oauthProviders } from './auth/oauthProviders'
 import type { Messages } from './i18n/messages'
 import { useI18n } from './i18n/useI18n'
+import { ThemeToggle } from './ThemeToggle'
 
 /**
  * The orchestration server reports a failed callback as `?error=oauth` (the
@@ -46,8 +47,16 @@ export function LoginPage({ serviceUnavailable = false }: { serviceUnavailable?:
 
   return (
     <main className="login-layout">
+      <div className="login-theme-toggle">
+        <ThemeToggle
+          toDarkLabel={t.common.shell.switchToDark}
+          toLightLabel={t.common.shell.switchToLight}
+        />
+      </div>
       <section className="login-panel" aria-labelledby="login-title">
-        <div className="login-brand" aria-hidden="true">A</div>
+        <div className="login-brand" aria-hidden="true">
+          <img src="/artel-mark.svg" alt="" />
+        </div>
         <p className="eyebrow">ARTEL Replay Studio</p>
         <h1 id="login-title">{t.common.login.title}</h1>
         <p className="login-copy">{t.common.login.copy}</p>
