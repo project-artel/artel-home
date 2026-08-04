@@ -3,10 +3,6 @@ import { CopyButton } from './CopyButton'
 import { useI18n } from '../i18n/useI18n'
 import addPackageFromGitUrlShot from '../assets/sdk-guide/step1-add-package-from-git-url.png'
 import gitUrlInputShot from '../assets/sdk-guide/step1-git-url-input.png'
-import createEmptyShot from '../assets/sdk-guide/step2-create-empty.png'
-import addComponentShot from '../assets/sdk-guide/step3-add-component.png'
-import inspectorShot from '../assets/sdk-guide/step3-inspector.png'
-import artelPanelShot from '../assets/sdk-guide/step4-artel-panel.png'
 
 /**
  * The git URL Unity's Package Manager installs the SDK from. It is a constant
@@ -41,20 +37,22 @@ function GuideShot({
 }
 
 /**
- * The four steps that turn an issued instance key into a connected game.
+ * The three steps that turn an empty Unity project into a connected game.
  *
- * Shown in two places — inside the create dialog straight after the key is
- * issued, and again from the `설치 안내` action on any instance row — from one
- * component, so closing the dialog cannot strand anyone and the two copies can
- * never drift apart.
+ * The last two are the sign-in: the SDK opens the browser, the browser approves
+ * it, and the instance is registered by the first report. Nothing is copied out
+ * of this screen any more, which is why the guide no longer needs to know which
+ * instance it is being shown for.
  *
- * Each step carries the screenshots for the editor state it describes, because
- * the Unity menu names alone do not say what the reader should be looking at.
+ * Only the install step carries screenshots, because the Package Manager menu
+ * names alone do not say what the reader should be looking at. The sign-in
+ * steps have none: the overlay is the SDK's own UI and a screenshot of it would
+ * go stale on the SDK's release cycle, not this one's.
  *
  * It owns its own `aria-live` region because it is used inside a dialog that
  * has no panel-level one to borrow.
  */
-export function SdkInstallGuide({ instanceKey }: { instanceKey: string }) {
+export function SdkInstallGuide() {
   const [announcement, setAnnouncement] = useState('')
   const [stepIndex, setStepIndex] = useState(0)
   const stepRef = useRef<HTMLLIElement>(null)
@@ -107,42 +105,8 @@ export function SdkInstallGuide({ instanceKey }: { instanceKey: string }) {
         width={1090}
       />
     </>,
-    <>
-      <p className="guide-copy">{t.projects.guide.step2}</p>
-      <GuideShot alt={t.projects.guide.shot2Alt} height={860} src={createEmptyShot} width={1210} />
-    </>,
-    <>
-      <p className="guide-copy">
-        {t.projects.guide.step3Before}
-        <code className="mono">ArtelManager</code>
-        {t.projects.guide.step3After}
-      </p>
-      <GuideShot
-        alt={t.projects.guide.shot3SearchAlt}
-        height={476}
-        src={addComponentShot}
-        width={910}
-      />
-      <GuideShot
-        alt={t.projects.guide.shot3InspectorAlt}
-        height={528}
-        src={inspectorShot}
-        width={618}
-      />
-    </>,
-    <>
-      <p className="guide-copy">{t.projects.guide.step4}</p>
-      <GuideShot alt={t.projects.guide.shot4Alt} height={274} src={artelPanelShot} width={442} />
-      <div className="copy-line">
-        <code className="mono copy-value">{instanceKey}</code>
-        <CopyButton
-          copiedMessage={t.projects.instances.keyCopied}
-          label={t.projects.instances.copyKey}
-          onResult={setAnnouncement}
-          text={instanceKey}
-        />
-      </div>
-    </>,
+    <p className="guide-copy">{t.projects.guide.step2}</p>,
+    <p className="guide-copy">{t.projects.guide.step3}</p>,
   ]
   const isFirst = stepIndex === 0
   const isLast = stepIndex === steps.length - 1
@@ -151,7 +115,7 @@ export function SdkInstallGuide({ instanceKey }: { instanceKey: string }) {
     <div className="install-guide">
       <ol className="guide-list">
         {/* Only the current step is in the DOM, so `value` is what keeps the
-            marker counting 1 to 4 instead of restarting at 1 every time. */}
+            marker counting up instead of restarting at 1 every time. */}
         <li
           aria-label={t.projects.guide.stepPosition(stepIndex + 1, steps.length)}
           className="guide-step"

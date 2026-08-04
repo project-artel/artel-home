@@ -29,7 +29,6 @@ function ProjectDetailPage({ projectId }: { projectId: string }) {
     applyBuild,
     applyInstance,
     applyNewDocument,
-    applyNewInstance,
     applyProject,
     builds,
     documents,
@@ -83,7 +82,6 @@ function ProjectDetailPage({ projectId }: { projectId: string }) {
       documents={documents}
       instances={instances}
       onBuildSaved={applyBuild}
-      onInstanceCreated={applyNewInstance}
       onInstanceRefresh={refreshGameState}
       onInstanceRemoved={removeInstance}
       onInstanceSaved={applyInstance}
@@ -109,7 +107,6 @@ function ProjectDetailView({
   builds,
   onSaved,
   onNewDocument,
-  onInstanceCreated,
   onInstanceRefresh,
   onInstanceRemoved,
   onInstanceSaved,
@@ -121,7 +118,6 @@ function ProjectDetailView({
   builds: GameBuild[]
   onSaved: (project: ProjectDetail) => void
   onNewDocument: Parameters<typeof DocumentPanel>[0]['onUploaded']
-  onInstanceCreated: (instance: GameInstance) => void
   onInstanceRefresh: () => Promise<void>
   onInstanceRemoved: (instanceId: string) => void
   onInstanceSaved: (instance: GameInstance) => void
@@ -302,7 +298,6 @@ function ProjectDetailView({
             width empty at 1440px. */}
         <GameInstancePanel
           instances={instances}
-          onCreated={onInstanceCreated}
           onRefresh={onInstanceRefresh}
           onRemoved={onInstanceRemoved}
           onSaved={onInstanceSaved}

@@ -2,11 +2,9 @@
  * Game instances (one SDK installation) and game builds (one version the SDK
  * has reported), agreed with the orchestration server in ARTEL-75.
  *
- * The split between `GAME_PLATFORMS` and `UNAVAILABLE_PLATFORM_LABELS` follows
- * the same reasoning as the genre enum in `projectTypes.ts`: the submittable
- * `<select>` is generated from the closed list, so a value the server does not
- * accept can never be submitted. The unavailable list exists only so the picker
- * can say *why* the other engines are missing instead of silently omitting them.
+ * Instances are no longer created from this client: the SDK signs in, the user
+ * picks a project, and the server registers the instance on first contact. So
+ * everything here is the response side — nothing is submitted but a rename.
  */
 export const GAME_PLATFORMS = ['UNITY'] as const
 
@@ -17,16 +15,6 @@ export const DEFAULT_GAME_PLATFORM: GamePlatform = 'UNITY'
 
 export const PLATFORM_LABELS: Record<GamePlatform, string> = {
   UNITY: 'Unity',
-}
-
-/**
- * Rendered as disabled options with an explicit `(준비 중)` suffix. A bare
- * `disabled` attribute would be exactly the dead UI this codebase rejects
- * elsewhere; the suffix is what makes the option informative rather than broken.
- */
-export const UNAVAILABLE_PLATFORM_LABELS: Record<string, string> = {
-  UNREAL: 'Unreal Engine',
-  GODOT: 'Godot',
 }
 
 /**
@@ -48,16 +36,9 @@ export type GameInstance = {
    * Kept as a plain string rather than `GamePlatform` because this is the
    * response side. If the server ever starts returning an engine this client
    * does not know about, showing the raw value is honest, whereas narrowing it
-   * to the union would relabel that instance "Unity" — a real bug. The request
-   * side stays closed; see `GameInstanceDraft`.
+   * to the union would relabel that instance "Unity" — a real bug.
    */
   platform: string
-  /**
-   * A durable credential the developer types into the Unity editor once. There
-   * is no rotation or re-issue endpoint, so this is re-readable rather than
-   * show-once: it has to still be here after the SDK is reinstalled.
-   */
-  instanceKey: string
   /**
    * A snapshot from the last load, not a subscription. Nothing polls it, so
    * the UI must not read as a live indicator.
@@ -82,12 +63,6 @@ export type GameBuild = {
   notes: string | null
   createdAt: string
   updatedAt: string
-}
-
-/** The request side is the closed union, so an unsupported engine cannot be sent. */
-export type GameInstanceDraft = {
-  name: string
-  platform: GamePlatform
 }
 
 export type GameInstancePatch = {

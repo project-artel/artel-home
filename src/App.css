@@ -30,6 +30,22 @@
   gap: var(--space-4);
 }
 
+.theme-toggle {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  background: var(--color-bg-raised);
+}
+
+.theme-toggle:hover {
+  background: var(--color-bg-hover);
+}
+
 .user-menu {
   gap: var(--space-2);
   padding-left: var(--space-4);
@@ -119,12 +135,19 @@
 }
 
 .login-layout {
+  position: relative;
   padding: var(--space-6);
   background-image:
     linear-gradient(var(--color-border-subtle) 1px, transparent 1px),
     linear-gradient(90deg, var(--color-border-subtle) 1px, transparent 1px);
   background-position: center;
   background-size: 40px 40px;
+}
+
+.login-theme-toggle {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
 }
 
 .login-panel {
@@ -137,15 +160,18 @@
 
 .login-brand {
   display: grid;
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
   margin-bottom: var(--space-6);
   place-items: center;
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md);
-  color: var(--color-action-primary);
   background: var(--color-bg-raised);
-  font-weight: 650;
+}
+
+.login-brand img {
+  width: 36px;
+  height: 36px;
 }
 
 .login-copy {
@@ -198,7 +224,7 @@
 }
 
 .provider-button:hover {
-  border-color: var(--color-action-primary);
+  border-color: var(--color-brand-accent);
   background: var(--color-bg-hover);
 }
 
@@ -238,8 +264,17 @@
   place-items: center;
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
-  color: var(--color-action-primary);
-  font-size: 12px;
+  background: var(--color-bg-raised);
+}
+
+.brand-mark img {
+  width: 20px;
+  height: 20px;
+}
+
+:root[data-theme='dark'] .brand-mark img,
+:root[data-theme='dark'] .login-brand img {
+  content: url('/artel-mark-dark.svg');
 }
 
 .brand-mark img {
@@ -342,7 +377,7 @@
 
 .eyebrow {
   margin: 0 0 var(--space-2);
-  color: var(--color-action-primary);
+  color: var(--color-brand-accent);
   font-size: 11px;
   font-weight: 650;
   letter-spacing: 0.1em;
@@ -385,12 +420,12 @@ h1 {
 }
 
 .button--primary {
-  color: var(--color-bg-canvas);
-  background: var(--color-action-primary);
+  color: var(--color-text-on-accent);
+  background: var(--color-brand-accent);
 }
 
 .button--primary:hover {
-  background: var(--color-action-primary-strong);
+  background: var(--color-brand-accent-strong);
 }
 
 .button--secondary {
@@ -772,7 +807,7 @@ h1 {
 }
 
 .button--danger {
-  color: var(--color-bg-canvas);
+  color: var(--color-text-on-accent);
   background: var(--color-status-critical);
 }
 
@@ -1559,7 +1594,7 @@ a.instance-name:hover {
 }
 
 /*
- * Selection is cyan, per the design system, and is also carried by
+ * Selection uses the action accent and is also carried by
  * `aria-current` and by the editor appearing below — never by colour alone.
  */
 .scenario-node--selected {
@@ -2082,7 +2117,7 @@ a.instance-name:hover {
   padding: 0 var(--space-3);
   border: 1px solid var(--color-action-primary);
   border-radius: 999px;
-  color: var(--color-bg-canvas);
+  color: var(--color-text-on-accent);
   background: var(--color-action-primary);
   font-size: 12px;
   font-weight: 650;
@@ -2143,6 +2178,50 @@ a.instance-name:hover {
 
 .qa-start-controls .button {
   min-height: 44px;
+}
+
+.qa-model-config {
+  min-width: 240px;
+  flex: 1 1 100%;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-raised);
+}
+
+.qa-model-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.qa-model-meta span:first-child {
+  color: var(--color-action-primary);
+  font-weight: 650;
+}
+
+.qa-reasoning-toggle,
+.qa-reasoning-slider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  color: var(--color-text-primary);
+  font-size: 12px;
+}
+
+.qa-reasoning-slider input {
+  min-width: 180px;
+  flex: 1;
+  accent-color: var(--color-agent-reasoning);
+}
+
+.qa-reasoning-unavailable {
+  margin: var(--space-3) 0 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
 }
 
 .qa-log-repeat {

@@ -145,6 +145,36 @@ export async function updateMyLocale(locale: Locale): Promise<void> {
   }
 }
 
+/**
+ * Issues the one-time code the SDK trades for its own token.
+ *
+ * The browser session is the only credential this call carries: `apiFetch`
+ * sends the cookie, and the SDK proves later that it is the process that
+ * started the flow by presenting the verifier behind `codeChallenge`. That is
+ * why the code may travel back over plain loopback HTTP — on its own it is
+ * useless to anyone who intercepts it.
+ */
+export async function createSdkLoginCode(codeChallenge: string): Promise<string> {
+  const response = await apiFetch('/api/auth/sdk/codes', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ codeChallenge }),
+  })
+
+  if (!response.ok) {
+    throw new Error('Unable to issue an SDK login code')
+  }
+
+  const data: unknown = await response.json()
+  const code = (data as Record<string, unknown> | null)?.code
+
+  if (typeof code !== 'string' || code.length === 0) {
+    throw new Error('The server did not return an SDK login code')
+  }
+
+  return code
+}
+
 export async function endSession(): Promise<void> {
   const response = await fetch(`${orchestrationUrl}/api/auth/logout`, {
     method: 'POST',
