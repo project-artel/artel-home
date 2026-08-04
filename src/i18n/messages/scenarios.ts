@@ -61,8 +61,8 @@ export const scenariosEn = {
     emptyCopy:
       'Describe the behaviour you want covered — for example, “Write a scenario for finishing the tutorial without taking damage.” The agent answers with a scenario you can edit.',
     you: 'You',
-    agent: 'Agent',
-    waitingForAgent: 'Waiting for the agent…',
+    agent: 'Artel',
+    waitingForAgent: 'Waiting for Artel…',
     closedTitle: 'Chat unavailable',
     closedExpired:
       'This conversation is closed. The agent session behind it is no longer available, so no new messages can be sent. The transcript and the scenario below stay readable.',
@@ -74,7 +74,7 @@ export const scenariosEn = {
     sending: 'Sending…',
     send: 'Send',
     sendFailed: 'The message could not be sent. Please try again.',
-    awaitingReply: 'Waiting for the agent to reply.',
+    awaitingReply: 'Waiting for Artel to reply.',
     autoApplyLabel: 'Apply automatically',
     proposalsTitle: 'Proposed scenarios',
     proposalNew: '🆕 Add',
@@ -84,6 +84,12 @@ export const scenariosEn = {
     drop: 'Dismiss',
     applyAll: 'Apply all',
     applying: 'Applying…',
+    expandLabel: 'View cases',
+    modalCases: (n: number) => `${n} test case${n === 1 ? '' : 's'} in this scenario (in order)`,
+    precondition: 'Precondition',
+    expected: 'Expected',
+    close: 'Close',
+    caseMissing: 'Case unavailable',
   },
   start: {
     title: 'Test scenarios',
@@ -249,6 +255,8 @@ export const scenariosEn = {
     createFirst: '＋ New scenario',
     creating: 'Creating…',
     mapLocked: 'Add a scenario to open the map',
+    authoredTitle: 'Scenarios are being added',
+    authoredCopy: 'Applied scenarios appear in the list on the left — open one to edit its cases. Keep chatting to add or revise more.',
   },
   palette: {
     searchPlaceholder: 'Search cases — title, category, id…',
@@ -328,8 +336,8 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     emptyCopy:
       '다루고 싶은 동작을 설명하세요 — 예: “피해를 입지 않고 튜토리얼을 끝내는 시나리오를 작성해 줘.” 에이전트가 편집할 수 있는 시나리오로 답합니다.',
     you: '나',
-    agent: '에이전트',
-    waitingForAgent: '에이전트를 기다리는 중…',
+    agent: 'Artel',
+    waitingForAgent: 'Artel의 응답을 기다리는 중…',
     closedTitle: '채팅을 사용할 수 없습니다',
     closedExpired:
       '이 대화는 종료되었습니다. 대화를 지원하던 에이전트 세션을 더 이상 사용할 수 없어 새 메시지를 보낼 수 없습니다. 대화 기록과 아래 시나리오는 계속 읽을 수 있습니다.',
@@ -341,7 +349,7 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     sending: '전송 중…',
     send: '전송',
     sendFailed: '메시지를 전송하지 못했습니다. 다시 시도해 주세요.',
-    awaitingReply: '에이전트의 답변을 기다리고 있습니다.',
+    awaitingReply: 'Artel의 응답을 기다리고 있습니다.',
     autoApplyLabel: '자동 적용',
     proposalsTitle: '제안된 시나리오',
     proposalNew: '🆕 추가',
@@ -351,6 +359,12 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     drop: '버리기',
     applyAll: '모두 적용',
     applying: '적용 중…',
+    expandLabel: '케이스 크게 보기',
+    modalCases: (n: number) => `이 시나리오에 담기는 테스트케이스 ${n}개 (실행 순서)`,
+    precondition: '사전조건',
+    expected: '기대결과',
+    close: '닫기',
+    caseMissing: '찾을 수 없는 케이스',
   },
   start: {
     title: '테스트 시나리오',
@@ -516,6 +530,8 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     createFirst: '＋ 새 시나리오',
     creating: '생성 중…',
     mapLocked: '시나리오를 추가하면 맵이 열립니다',
+    authoredTitle: '시나리오가 추가되고 있어요',
+    authoredCopy: '적용한 시나리오는 왼쪽 목록에 나타나요 — 열어서 케이스를 편집하세요. 계속 대화해 더 추가하거나 수정할 수 있어요.',
   },
   palette: {
     searchPlaceholder: '케이스 검색 — 제목·대분류·id…',

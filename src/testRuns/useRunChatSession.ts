@@ -117,11 +117,22 @@ export function useRunChatSession(
     })
     source.addEventListener('error', (event: Event) => {
       if (event instanceof MessageEvent) {
-        // A server `error` frame closes the session.
+        // A server `error` frame is a failed turn, not a dead session: clear the
+        // pending state and surface the reason as an assistant message so the user
+        // can just try again (do NOT close the chat).
         const parsed = parseRunStreamEvent(event.data)
         if (parsed !== null && parsed.type === 'error') {
-          setClosed(true)
           setAwaitingReply(false)
+          setMessages((previous) => [
+            ...previous.map((m) => ({ ...m, pending: false })),
+            {
+              id: `err-${previous.length}`,
+              role: 'ASSISTANT' as const,
+              content: parsed.detail.length > 0 ? parsed.detail : '요청을 처리하지 못했습니다. 다시 시도해 주세요.',
+              createdAt: null,
+              pending: false,
+            },
+          ])
         }
         return
       }
@@ -195,6 +206,7 @@ export function useRunChatSession(
     if (runId === null) return
     try {
       await closeRunChat(projectId, runId)
+      setClosed(true)
     } catch {
       // Best-effort teardown; the session expires on its own if this fails.
     }

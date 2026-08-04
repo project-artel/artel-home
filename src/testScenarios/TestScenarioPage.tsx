@@ -117,7 +117,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
         <ScenarioList projectId={projectId} activeId={scenarioId} runId={fromRun} />
         <ScenarioComposition comp={comp} projectId={projectId} readOnly={false} initialCaseId={initialCase} />
         <aside className="st-chat">
-          {fromRun !== null && <RunChat session={runChat} />}
+          {fromRun !== null && <RunChat projectId={projectId} session={runChat} />}
         </aside>
       </div>
 

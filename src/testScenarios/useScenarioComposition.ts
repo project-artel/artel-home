@@ -185,7 +185,7 @@ export function useScenarioComposition(projectId: string, testScenarioId: number
             next = { ...next, title: scenario.payload.title, payload: scenario.payload }
           }
 
-          for (const id of working.order) {
+          for (const id of new Set(working.order)) {
             const diff = caseFieldDiff(working.caseById[id], next.caseById[id])
             if (diff === null) continue
             const saved = await updateTestCase(projectId, id, diff)
@@ -252,19 +252,25 @@ export function useScenarioComposition(projectId: string, testScenarioId: number
     setWorking((current) => ({ ...current, order }))
   }, [])
 
+  /** Removes ALL occurrences of a case from the flow (library-level "take it out"). */
   const removeFromScenario = useCallback((caseId: string) => {
     setWorking((current) => ({ ...current, order: current.order.filter((id) => id !== caseId) }))
   }, [])
 
+  /** Removes ONE flow position (a case may legitimately repeat, e.g. shop → … → shop). */
+  const removeAt = useCallback((index: number) => {
+    setWorking((current) => ({ ...current, order: current.order.filter((_, i) => i !== index) }))
+  }, [])
+
+  // A case may appear more than once in a flow — the same feature revisited (shop,
+  // then later shop again). The order carries repeats; the case library keeps one
+  // shared entry per case. So this appends without de-duping.
   const addExisting = useCallback((testCase: TestCase) => {
-    setWorking((current) => {
-      if (current.order.includes(testCase.id)) return current
-      return {
-        ...current,
-        order: [...current.order, testCase.id],
-        caseById: { ...current.caseById, [testCase.id]: testCase },
-      }
-    })
+    setWorking((current) => ({
+      ...current,
+      order: [...current.order, testCase.id],
+      caseById: { ...current.caseById, [testCase.id]: testCase },
+    }))
   }, [])
 
   /**
@@ -338,6 +344,7 @@ export function useScenarioComposition(projectId: string, testScenarioId: number
     editCase,
     reorder,
     removeFromScenario,
+    removeAt,
     addExisting,
     createAndAdd,
     deleteCase,

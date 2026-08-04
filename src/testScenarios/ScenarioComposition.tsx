@@ -17,9 +17,12 @@ export function rollupStatus(cases: TestCase[]): VerificationStatus {
 
 /**
  * The scenario document: an editable title and the ordered case flow, with a
- * detail card grid for the selected case and the reusable-case library. Styled
- * to the studio mockup; the state comes from {@link useScenarioComposition},
- * lifted to the page so the topbar shares its undo/redo and save state.
+ * detail card grid for the selected case and the reusable-case library.
+ *
+ * The flow is identified by **position, not case id**: a case may appear more
+ * than once in one flow (a feature revisited — shop → … → shop), so selection,
+ * drag, move and remove all act on the index. Editing a case's fields still
+ * flows through its id, since the same reusable case backs every occurrence.
  */
 export function ScenarioComposition({
   comp,
@@ -37,8 +40,8 @@ export function ScenarioComposition({
   const c = t.scenarios.composition
   const editable = !readOnly
 
-  const [selected, setSelected] = useState<string | null>(initialCaseId)
-  const [dragging, setDragging] = useState<string | null>(null)
+  const [selected, setSelected] = useState<number | null>(null)
+  const [dragging, setDragging] = useState<number | null>(null)
   const [showNew, setShowNew] = useState(false)
   const [libReload, setLibReload] = useState(0)
   const [paletteOpen, setPaletteOpen] = useState(false)
@@ -57,15 +60,18 @@ export function ScenarioComposition({
     return () => window.removeEventListener('keydown', onKey)
   }, [editable])
 
-  // Follow the deep-link: when the Map points at a case (?case=), select it —
-  // even for a re-click within the same scenario, where the page does not remount.
+  // Follow the deep-link: when the Map points at a case (?case=), select its first
+  // occurrence in the flow once the composition is loaded.
   useEffect(() => {
-    if (initialCaseId !== null) setSelected(initialCaseId)
-  }, [initialCaseId])
+    if (initialCaseId === null || comp.status !== 'ready') return
+    const idx = comp.working.order.indexOf(initialCaseId)
+    if (idx >= 0) setSelected(idx)
+    // Deep-link is a one-shot on the ?case= param; order is read at fire time.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialCaseId, comp.status])
 
-  // Bring the selected case's detail into view — both a deep-link from the Map's
-  // case node and a click in the flow scroll it into sight rather than leaving it
-  // below the fold.
+  // Bring the selected case's detail into view — a deep-link and a flow click both
+  // scroll it into sight rather than leaving it below the fold.
   useEffect(() => {
     if (comp.status !== 'ready' || selected === null) return undefined
     const timer = window.setTimeout(
@@ -86,30 +92,37 @@ export function ScenarioComposition({
   const cases = comp.cases
   const status = rollupStatus(cases)
 
-  function dropOn(targetId: string) {
-    if (dragging === null || dragging === targetId) return
+  function dropOn(targetIndex: number) {
+    if (dragging === null || dragging === targetIndex) return
     const next = [...order]
-    const [moved] = next.splice(next.indexOf(dragging), 1)
-    next.splice(next.indexOf(targetId), 0, moved)
+    const [moved] = next.splice(dragging, 1)
+    next.splice(targetIndex, 0, moved)
     comp.reorder(next)
     setDragging(null)
+    setSelected(null)
   }
-  function move(id: string, delta: number) {
-    const from = order.indexOf(id)
-    const to = from + delta
-    if (from < 0 || to < 0 || to >= order.length) return
+  function move(fromIndex: number, delta: number) {
+    const to = fromIndex + delta
+    if (to < 0 || to >= order.length) return
     const next = [...order]
-    const [moved] = next.splice(from, 1)
+    const [moved] = next.splice(fromIndex, 1)
     next.splice(to, 0, moved)
     comp.reorder(next)
+    setSelected(to)
   }
-  function removeFromScenario(id: string) {
-    comp.removeFromScenario(id)
-    if (selected === id) setSelected(null)
+  function removeAt(index: number) {
+    comp.removeAt(index)
+    setSelected((s) => (s === null ? null : s === index ? null : s > index ? s - 1 : s))
+  }
+  function removeAllOf(caseId: string) {
+    comp.removeFromScenario(caseId)
+    setSelected(null)
   }
 
   const selectedCase =
-    selected !== null && order.includes(selected) ? comp.working.caseById[selected] ?? null : null
+    selected !== null && selected < order.length
+      ? comp.working.caseById[order[selected]] ?? null
+      : null
 
   return (
     <main className="edoc-wrap">
@@ -139,15 +152,15 @@ export function ScenarioComposition({
               const testCase = comp.working.caseById[id]
               if (testCase === undefined) return null
               return (
-                <li key={id} style={{ listStyle: 'none' }}>
+                <li key={`${id}-${index}`} style={{ listStyle: 'none' }}>
                   <button
-                    className={'fnode' + (selected === id ? ' sel' : '') + (dragging === id ? ' dragging' : '')}
+                    className={'fnode' + (selected === index ? ' sel' : '') + (dragging === index ? ' dragging' : '')}
                     draggable={editable}
-                    onClick={() => setSelected(selected === id ? null : id)}
+                    onClick={() => setSelected(selected === index ? null : index)}
                     onDragEnd={() => setDragging(null)}
                     onDragOver={(event) => { if (editable) event.preventDefault() }}
-                    onDragStart={() => setDragging(id)}
-                    onDrop={(event) => { if (editable) { event.preventDefault(); dropOn(id) } }}
+                    onDragStart={() => setDragging(index)}
+                    onDrop={(event) => { if (editable) { event.preventDefault(); dropOn(index) } }}
                     type="button"
                   >
                     <span className="handle" aria-hidden="true">⠿</span>
@@ -179,7 +192,7 @@ export function ScenarioComposition({
             onCreate={async (input) => {
               const created = await comp.createAndAdd(input)
               if (created === null) return false
-              setSelected(created.id)
+              setSelected(order.length)
               setShowNew(false)
               setLibReload((n) => n + 1)
               return true
@@ -187,17 +200,17 @@ export function ScenarioComposition({
           />
         )}
 
-        {selectedCase !== null && (
+        {selectedCase !== null && selected !== null && (
           <div ref={detailRef}>
             <CaseDetail
               testCase={selectedCase}
-              position={order.indexOf(selectedCase.id)}
+              position={selected}
               total={order.length}
               readOnly={!editable}
               onEdit={(patch) => comp.editCase(selectedCase.id, patch)}
-              onMoveUp={() => move(selectedCase.id, -1)}
-              onMoveDown={() => move(selectedCase.id, 1)}
-              onRemove={() => removeFromScenario(selectedCase.id)}
+              onMoveUp={() => move(selected, -1)}
+              onMoveDown={() => move(selected, 1)}
+              onRemove={() => removeAt(selected)}
             />
           </div>
         )}
@@ -208,7 +221,7 @@ export function ScenarioComposition({
             reloadKey={libReload}
             order={order}
             onAdd={(testCase) => comp.addExisting(testCase)}
-            onRemove={removeFromScenario}
+            onRemove={removeAllOf}
             onClose={() => setPaletteOpen(false)}
           />
         )}
