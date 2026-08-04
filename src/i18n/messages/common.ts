@@ -9,6 +9,8 @@ export const commonEn = {
     brandHomeLabel: 'ARTEL Replay Studio home',
     signOut: 'Sign out',
     languageLabel: 'Language',
+    switchToDark: 'Switch to dark theme',
+    switchToLight: 'Switch to light theme',
   },
   session: {
     checking: 'Checking your session…',
@@ -36,6 +38,8 @@ export const commonKo: Localized<typeof commonEn> = {
     brandHomeLabel: 'ARTEL Replay Studio 홈',
     signOut: '로그아웃',
     languageLabel: '언어',
+    switchToDark: '다크 테마로 전환',
+    switchToLight: '라이트 테마로 전환',
   },
   session: {
     checking: '세션을 확인하는 중…',

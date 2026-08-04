@@ -3,6 +3,7 @@ import { getOAuthLoginUrl } from './auth/authApi'
 import { oauthProviders } from './auth/oauthProviders'
 import type { Messages } from './i18n/messages'
 import { useI18n } from './i18n/useI18n'
+import { ThemeToggle } from './ThemeToggle'
 
 /**
  * The orchestration server reports a failed callback as `?error=oauth` (the
@@ -33,7 +34,18 @@ function ProviderIcon({ providerId }: { providerId: string }) {
   return <span className="provider-fallback-icon" aria-hidden="true">{providerId.slice(0, 1).toUpperCase()}</span>
 }
 
-export function LoginPage({ serviceUnavailable = false }: { serviceUnavailable?: boolean }) {
+/**
+ * `copy` overrides the standfirst for callers that bounced the user here in the
+ * middle of something else — the SDK relay page is the only one so far — so the
+ * screen can say what the sign-in is for instead of only that one is needed.
+ */
+export function LoginPage({
+  copy,
+  serviceUnavailable = false,
+}: {
+  copy?: string
+  serviceUnavailable?: boolean
+}) {
   const [oauthErrorCode] = useState(readOAuthErrorCode)
   const { t } = useI18n()
 
@@ -46,11 +58,19 @@ export function LoginPage({ serviceUnavailable = false }: { serviceUnavailable?:
 
   return (
     <main className="login-layout">
+      <div className="login-theme-toggle">
+        <ThemeToggle
+          toDarkLabel={t.common.shell.switchToDark}
+          toLightLabel={t.common.shell.switchToLight}
+        />
+      </div>
       <section className="login-panel" aria-labelledby="login-title">
-        <div className="login-brand" aria-hidden="true">A</div>
+        <div className="login-brand" aria-hidden="true">
+          <img src="/artel-mark.svg" alt="" />
+        </div>
         <p className="eyebrow">ARTEL Replay Studio</p>
         <h1 id="login-title">{t.common.login.title}</h1>
-        <p className="login-copy">{t.common.login.copy}</p>
+        <p className="login-copy">{copy ?? t.common.login.copy}</p>
 
         {oauthErrorCode !== null && (
           <div className="login-error" role="alert">
