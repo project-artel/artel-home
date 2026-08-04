@@ -6,12 +6,11 @@ import { approveTestScenario } from './scenarioApi'
 import type { ScenarioDraft } from './scenarioTypes'
 
 /**
- * Confirms finalizing a scenario. Approval keeps the scenario but clears the
- * conversation that produced it and closes the agent session, so the one
- * irreversible part — the chat — is spelled out before the user commits.
- *
- * The draft on screen is sent as the final version, so approving is also how
- * unsent canvas edits are saved for good.
+ * Confirms finalizing a scenario. Approval keeps the scenario and its
+ * conversation. In the run-scoped chat (ARTEL-206 Step 6) a scenario's content
+ * is its case composition (saved continuously), so approval no longer carries a
+ * step draft — `draft` is optional and, when omitted, the server just finalizes
+ * without overwriting the payload.
  */
 export function ApproveScenarioDialog({
   testScenarioId,
@@ -20,7 +19,7 @@ export function ApproveScenarioDialog({
   onApproved,
 }: {
   testScenarioId: number
-  draft: ScenarioDraft
+  draft?: ScenarioDraft
   onClose: () => void
   onApproved: () => void
 }) {

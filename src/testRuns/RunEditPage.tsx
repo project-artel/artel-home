@@ -5,6 +5,8 @@ import { listTestScenarios } from '../testScenarios/scenarioApi'
 import { ScenarioList } from '../testScenarios/ScenarioList'
 import { getRunScenarios, getTestRun, setRunScenarios, type TestRun } from './testRunApi'
 import { createTestScenario } from '../testScenarios/scenarioApi'
+import { RunChat } from './RunChat'
+import { useRunChatSession } from './useRunChatSession'
 
 /**
  * A run's edit entry point (`/test-runs/:runId/edit`).
@@ -35,6 +37,10 @@ function RunEditPage({ projectId, runId }: { projectId: string; runId: string })
     | { kind: 'missing' }
   >({ kind: 'loading' })
   const [creating, setCreating] = useState(false)
+  // Bumped after the chat applies a proposal, so an empty run re-checks its
+  // scenarios and hands off to the studio once the first one is authored.
+  const [reloadKey, setReloadKey] = useState(0)
+  const runChat = useRunChatSession(projectId, runId, () => setReloadKey((k) => k + 1))
 
   useEffect(() => {
     const controller = new AbortController()
@@ -60,7 +66,7 @@ function RunEditPage({ projectId, runId }: { projectId: string; runId: string })
       }
     })()
     return () => controller.abort()
-  }, [projectId, runId])
+  }, [projectId, runId, reloadKey])
 
   async function createFirst() {
     if (creating) return
@@ -117,7 +123,9 @@ function RunEditPage({ projectId, runId }: { projectId: string; runId: string })
             </button>
           </div>
         </main>
-        <aside className="st-chat" />
+        <aside className="st-chat">
+          <RunChat session={runChat} />
+        </aside>
       </div>
     </div>
   )

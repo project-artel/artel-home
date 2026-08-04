@@ -252,11 +252,11 @@ export async function sendScenarioMessage(
  */
 export async function approveTestScenario(
   testScenarioId: number,
-  draft: ScenarioDraft,
+  draft?: ScenarioDraft,
 ): Promise<void> {
   const response = await apiFetch(scenarioPath(testScenarioId, '/approve'), {
     method: 'POST',
-    ...jsonRequest({ draft }),
+    ...jsonRequest(draft === undefined ? {} : { draft }),
   })
 
   if (!response.ok) {

@@ -2456,6 +2456,23 @@ a.instance-name:hover {
 .scenario-studio .st-chat .chat-composer-actions .button:disabled{ opacity:.4; }
 .scenario-studio .st-chat .inline-error{ font-size:12px; color:var(--st-broken); background:var(--st-broken-dim); border:1px solid #5a2921; border-radius:6px; padding:8px 10px; display:flex; gap:8px; align-items:center; }
 
+/* run-scoped chat: auto-apply toggle + proposal cards (ARTEL-206 Step 6) */
+.scenario-studio .st-chat .panel-header{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.run-chat-toggle{ display:flex; align-items:center; gap:6px; font-size:11px; color:var(--st-muted); text-transform:none; letter-spacing:normal; cursor:pointer; }
+.run-chat-toggle input{ accent-color:var(--st-action); }
+.run-chat-proposals{ flex:none; border-top:1px solid var(--st-border); padding:12px; display:flex; flex-direction:column; gap:10px; max-height:45%; overflow-y:auto; }
+.run-chat-proposals-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.run-chat-proposals-title{ font-size:11px; font-weight:600; letter-spacing:.02em; text-transform:uppercase; color:var(--st-text-2); margin:0; }
+.run-chat-cards{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+.run-chat-card{ border:1px solid var(--st-border-strong); border-left-width:3px; border-radius:8px; background:var(--st-raised); padding:10px 12px; }
+.run-chat-card--new{ border-left-color:var(--st-action); }
+.run-chat-card--edit{ border-left-color:var(--st-verified); }
+.run-chat-card-kind{ font-size:11px; color:var(--st-muted); margin:0 0 4px; }
+.run-chat-card-title{ font-size:13px; font-weight:600; color:var(--st-text); margin:0 0 3px; }
+.run-chat-card-desc{ font-size:12px; line-height:1.5; color:var(--st-text-2); margin:0 0 6px; }
+.run-chat-card-cases{ font-size:11px; color:var(--st-muted); font-family:var(--st-mono); margin:0 0 8px; }
+.run-chat-card-actions{ display:flex; justify-content:flex-end; gap:8px; }
+
 /* new-case form */
 .scenario-studio .new-case-form{ margin-top:16px; border:1px solid var(--st-border-strong); border-radius:8px; background:var(--st-surface); padding:14px 16px; }
 .scenario-studio .new-case-form .detail-head{ margin-bottom:12px; }
