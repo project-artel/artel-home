@@ -1,25 +1,21 @@
-import { useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
+import { RunChat } from '../testRuns/RunChat'
+import { useRunChatSession } from '../testRuns/useRunChatSession'
 import { ApproveScenarioDialog } from './ApproveScenarioDialog'
 import { DeleteScenarioDialog } from './DeleteScenarioDialog'
-import { ScenarioCanvas } from './ScenarioCanvas'
-import { ScenarioChat } from './ScenarioChat'
-import { useScenarioSession } from './useScenarioSession'
+import { ScenarioComposition } from './ScenarioComposition'
+import { ScenarioList } from './ScenarioList'
+import { useScenarioComposition } from './useScenarioComposition'
 
 /**
  * Keyed by the scenario id so opening another scenario remounts rather than
- * reusing the previous conversation's stream and canvas.
+ * reusing the previous composition.
  */
 export function TestScenarioRoute() {
   const { projectId = '', testScenarioId = '' } = useParams()
-  return (
-    <TestScenarioPage
-      key={testScenarioId}
-      projectId={projectId}
-      testScenarioId={testScenarioId}
-    />
-  )
+  return <TestScenarioPage key={testScenarioId} projectId={projectId} testScenarioId={testScenarioId} />
 }
 
 function backLink(projectId: string) {
@@ -27,152 +23,119 @@ function backLink(projectId: string) {
 }
 
 /**
- * One scenario: the conversation on the left, the scenario it produces on the
- * right.
+ * The scenario studio: a scenario's ordered cases in the centre, the project's
+ * scenarios on the left, and the run's authoring conversation on the right.
  *
- * The id lives in the URL because it is the only way back. The server has no
- * endpoint that lists a project's scenarios, so a reload or a bookmark is what
- * makes a scenario reachable a second time.
+ * The case body is {@link useScenarioComposition}. The chat is RUN-scoped
+ * ({@link useRunChatSession}, ARTEL-206 Step 6): one conversation spans the whole
+ * run, adds and edits scenarios, and its proposals are applied into this run —
+ * so it shows only when the studio was opened from a run (`?run=`). Applying a
+ * proposal reloads the composition so committed changes appear.
  */
-function TestScenarioPage({
-  projectId,
-  testScenarioId,
-}: {
-  projectId: string
-  testScenarioId: string
-}) {
+function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; testScenarioId: string }) {
   const scenarioId = Number(testScenarioId)
-  const session = useScenarioSession(scenarioId)
-  const navigate = useNavigate()
   const { t } = useI18n()
-  // Approve finalizes and Delete discards; both end the scenario, so each opens
-  // a confirmation first rather than acting on a single click.
+  const navigate = useNavigate()
+  const comp = useScenarioComposition(projectId, scenarioId)
+  const [searchParams] = useSearchParams()
+  const fromRun = searchParams.get('run')
+  const initialCase = searchParams.get('case')
+  const runChat = useRunChatSession(projectId, fromRun, comp.reload)
   const [dialog, setDialog] = useState<'approve' | 'delete' | null>(null)
+  // Approve/delete return to where the scenario was opened from: the run's edit
+  // view when in a run, otherwise the project. Staying in the run is the point —
+  // the run's edit shell re-picks a scenario (or shows the empty state).
+  const afterExit = fromRun !== null
+    ? `/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(fromRun)}/edit`
+    : backLink(projectId)
+
+  // Page-level undo/redo shortcuts (outside text fields, their own text-undo wins).
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      const mod = event.metaKey || event.ctrlKey
+      if (!mod) return
+      const target = event.target as HTMLElement | null
+      if (target !== null && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return
+      const key = event.key.toLowerCase()
+      if (key === 'z' && !event.shiftKey) { event.preventDefault(); if (comp.canUndo) comp.undo() }
+      else if ((key === 'z' && event.shiftKey) || key === 'y') { event.preventDefault(); if (comp.canRedo) comp.redo() }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [comp.canUndo, comp.canRedo, comp.undo, comp.redo])
 
   if (!Number.isInteger(scenarioId) || scenarioId <= 0) {
     return (
-      <section className="page">
-        <div className="panel-message">
-          <h1>{t.scenarios.page.notFoundTitle}</h1>
-          <p className="panel-message-copy">{t.scenarios.page.invalidAddress}</p>
-          <Link className="button button--secondary" to={backLink(projectId)}>
-            {t.scenarios.page.backToProject}
-          </Link>
-        </div>
-      </section>
+      <section className="page"><div className="panel-message">
+        <h1>{t.scenarios.page.notFoundTitle}</h1>
+        <p className="panel-message-copy">{t.scenarios.page.invalidAddress}</p>
+        <Link className="button button--secondary" to={backLink(projectId)}>{t.scenarios.page.backToProject}</Link>
+      </div></section>
+    )
+  }
+  if (comp.status === 'missing') {
+    return (
+      <section className="page"><div className="panel-message">
+        <h1>{t.scenarios.page.notFoundTitle}</h1>
+        <p className="panel-message-copy">{t.scenarios.page.missingCopy}</p>
+        <Link className="button button--secondary" to={backLink(projectId)}>{t.scenarios.page.backToProject}</Link>
+      </div></section>
     )
   }
 
-  if (session.status === 'loading') {
-    return (
-      <section className="page" aria-busy="true">
-        <p className="panel-empty">{t.scenarios.page.loading}</p>
-      </section>
-    )
-  }
-
-  if (session.status === 'missing') {
-    return (
-      <section className="page">
-        <div className="panel-message">
-          <h1>{t.scenarios.page.notFoundTitle}</h1>
-          <p className="panel-message-copy">{t.scenarios.page.missingCopy}</p>
-          <Link className="button button--secondary" to={backLink(projectId)}>
-            {t.scenarios.page.backToProject}
-          </Link>
-        </div>
-      </section>
-    )
-  }
-
-  if (session.status === 'error') {
-    return (
-      <section className="page">
-        <div className="panel-message" role="alert">
-          <p>{t.scenarios.page.loadFailed}</p>
-          <button className="button button--secondary" onClick={session.reload} type="button">
-            {t.scenarios.page.retry}
-          </button>
-        </div>
-      </section>
-    )
-  }
+  const saveState = comp.saving ? 'saving' : comp.dirty ? 'unsaved' : 'saved'
+  const cc = t.scenarios.composition
+  const title = comp.working.title.length > 0 ? comp.working.title : t.scenarios.page.untitled
 
   return (
-    <section className="page" aria-labelledby="scenario-title">
-      <header className="page-header">
-        <div>
-          <Link className="back-link" to={backLink(projectId)}>{t.scenarios.page.backToProject}</Link>
-          <h1 id="scenario-title">
-            {session.saved.title.length > 0 ? session.saved.title : t.scenarios.page.untitled}
-          </h1>
-          <p className="page-subtitle">
-            {t.scenarios.page.scenarioLabel} <span className="mono">#{scenarioId}</span>
-          </p>
+    <div className="scenario-studio">
+      <header className="st-top">
+        <Link className="st-back" to={backLink(projectId)}>{t.scenarios.page.backToProject}</Link>
+        <div className="st-crumb">
+          <span className="scn">{title}</span>
         </div>
-        <div className="page-header-actions">
-          {/* Only the interrupted state is announced. A healthy stream is the
-              expected case, and a permanent "connected" badge would be noise on
-              a screen whose real subject is the conversation. */}
-          {!session.connected && session.closure === null && (
-            <span className="badge scenario-reconnecting">{t.scenarios.page.reconnecting}</span>
-          )}
-          <button
-            className="button button--danger-quiet"
-            onClick={() => setDialog('delete')}
-            type="button"
-          >
-            {t.scenarios.page.delete}
-          </button>
-          <button
-            className="button button--primary"
-            onClick={() => setDialog('approve')}
-            type="button"
-          >
-            {t.scenarios.page.approve}
-          </button>
+        <div className="st-spacer" />
+        {fromRun !== null && (
+          <div className="st-seg">
+            <button className="on" type="button">{t.scenarios.map.editView}</button>
+            <button onClick={() => navigate(`/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(fromRun)}`)} type="button">{t.scenarios.map.mapView}</button>
+          </div>
+        )}
+        <div className="st-icons">
+          <button className="iconbtn" disabled={!comp.canUndo} onClick={comp.undo} title={cc.undoTitle} type="button">↶</button>
+          <button className="iconbtn" disabled={!comp.canRedo} onClick={comp.redo} title={cc.redoTitle} type="button">↷</button>
         </div>
+        <span className={`savebadge ${saveState}`}>
+          {saveState !== 'saved' && <span className="d" />}
+          {saveState === 'saving' ? cc.saving : saveState === 'unsaved' ? cc.unsaved : cc.saved}
+        </span>
+        <button className="st-btn st-btn--danger" onClick={() => setDialog('delete')} type="button">{t.scenarios.page.delete}</button>
+        <button className="st-btn st-btn--primary" onClick={() => setDialog('approve')} type="button">{t.scenarios.page.approve}</button>
       </header>
 
-      <div className="scenario-workspace">
-        <ScenarioChat
-          awaitingReply={session.awaitingReply}
-          closure={session.closure}
-          messages={session.messages}
-          onSend={session.send}
-          sendFailure={session.sendFailure}
-          sending={session.sending}
-        />
-        <ScenarioCanvas
-          canRedo={session.canRedo}
-          canUndo={session.canUndo}
-          dirty={session.dirty}
-          draft={session.draft}
-          onChange={session.editDraft}
-          onRedo={session.redo}
-          onUndo={session.undo}
-          readOnly={session.closure !== null}
-          saving={session.saving}
-        />
+      <div className="st-edit">
+        <ScenarioList projectId={projectId} activeId={scenarioId} runId={fromRun} />
+        <ScenarioComposition comp={comp} projectId={projectId} readOnly={false} initialCaseId={initialCase} />
+        <aside className="st-chat">
+          {fromRun !== null && <RunChat projectId={projectId} session={runChat} />}
+        </aside>
       </div>
 
       {dialog === 'approve' && (
         <ApproveScenarioDialog
-          draft={session.draft}
-          onApproved={() => navigate(backLink(projectId), { replace: true })}
+          onApproved={() => navigate(afterExit, { replace: true })}
           onClose={() => setDialog(null)}
           testScenarioId={scenarioId}
         />
       )}
-
       {dialog === 'delete' && (
         <DeleteScenarioDialog
           onClose={() => setDialog(null)}
-          onDeleted={() => navigate(backLink(projectId), { replace: true })}
-          scenarioTitle={session.saved.title}
+          onDeleted={() => navigate(afterExit, { replace: true })}
+          scenarioTitle={comp.working.title}
           testScenarioId={scenarioId}
         />
       )}
-    </section>
+    </div>
   )
 }

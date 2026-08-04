@@ -4,8 +4,7 @@ import { useI18n } from '../i18n/useI18n'
 import { formatDate } from '../projects/formatters'
 import type { GameInstance } from '../projects/gameTypes'
 import { ProjectApiError } from '../projects/projectApi'
-import { listTestScenarios } from '../testScenarios/scenarioApi'
-import type { TestScenarioSummary } from '../testScenarios/scenarioTypes'
+import { getRunScenarios, listTestRuns, type TestRun } from '../testRuns/testRunApi'
 import { createQaTry, isQaConflict, listQaModels, listQaTries } from './qaApi'
 import type { QaModel, QaReasoningSelection, QaTry } from './qaTypes'
 
@@ -33,12 +32,12 @@ export function QaTryPanel({
   instances: GameInstance[]
   projectId: string
 }) {
-  const [scenarios, setScenarios] = useState<TestScenarioSummary[]>([])
+  const [runs, setRuns] = useState<TestRun[]>([])
   const [tries, setTries] = useState<QaTry[]>([])
   const [models, setModels] = useState<QaModel[]>([])
   const [state, setState] = useState<LoadState>('loading')
   const [instanceId, setInstanceId] = useState('')
-  const [scenarioId, setScenarioId] = useState('')
+  const [runId, setRunId] = useState('')
   const [modelId, setModelId] = useState('')
   const [reasoningEnabled, setReasoningEnabled] = useState(false)
   const [reasoningValue, setReasoningValue] = useState(0)
@@ -48,7 +47,7 @@ export function QaTryPanel({
   const navigate = useNavigate()
   const { t } = useI18n()
   const gameSelectId = useId()
-  const scenarioSelectId = useId()
+  const runSelectId = useId()
   const modelSelectId = useId()
   const reasoningControlId = useId()
 
@@ -60,12 +59,12 @@ export function QaTryPanel({
     const controller = new AbortController()
 
     Promise.all([
-      listTestScenarios(numericProjectId, controller.signal),
+      listTestRuns(projectId, controller.signal),
       listQaTries(projectId, controller.signal),
       listQaModels(controller.signal),
     ])
-      .then(([loadedScenarios, loadedTries, loadedModels]) => {
-        setScenarios(loadedScenarios)
+      .then(([loadedRuns, loadedTries, loadedModels]) => {
+        setRuns(loadedRuns)
         setTries(loadedTries)
         setModels(loadedModels)
         setModelId((current) => current || loadedModels[0]?.id || '')
@@ -85,7 +84,7 @@ export function QaTryPanel({
   }, [])
 
   async function run() {
-    if (instanceId === '' || scenarioId === '' || modelId === '') {
+    if (instanceId === '' || runId === '' || modelId === '') {
       setFailure(t.qa.errors.missingSelection)
       return
     }
@@ -94,8 +93,17 @@ export function QaTryPanel({
     setFailure(null)
 
     try {
+      // TR 단위 실행(런의 모든 시나리오 순차 실행)은 향후 과제. 백엔드가 아직 시나리오 단위라,
+      // 지금은 선택한 런의 첫 시나리오로 실행한다.
+      const items = await getRunScenarios(projectId, runId)
+      const firstScenarioId = [...items].sort((a, b) => a.position - b.position)[0]?.testScenarioId
+      if (firstScenarioId === undefined) {
+        setFailure(t.qa.errors.emptyRun)
+        setStarting(false)
+        return
+      }
       const qaTry = await createQaTry(
-        scenarioId,
+        firstScenarioId,
         instanceId,
         modelId,
         selectedReasoning,
@@ -118,7 +126,7 @@ export function QaTryPanel({
   }
 
   const ready = state === 'ready'
-  const runnable = ready && instances.length > 0 && scenarios.length > 0 && models.length > 0
+  const runnable = ready && instances.length > 0 && runs.length > 0 && models.length > 0
   const selectedModel = models.find((model) => model.id === modelId) ?? null
   const reasoning = selectedModel?.reasoning ?? null
   const selectedReasoning: QaReasoningSelection | null =
@@ -169,20 +177,20 @@ export function QaTryPanel({
             </select>
           </label>
 
-          <label className="qa-start-field" htmlFor={scenarioSelectId}>
-            <span>{t.qa.panel.scenarioLabel}</span>
+          <label className="qa-start-field" htmlFor={runSelectId}>
+            <span>{t.qa.panel.runLabel}</span>
             <select
-              disabled={scenarios.length === 0}
-              id={scenarioSelectId}
-              onChange={(event) => setScenarioId(event.target.value)}
-              value={scenarioId}
+              disabled={runs.length === 0}
+              id={runSelectId}
+              onChange={(event) => setRunId(event.target.value)}
+              value={runId}
             >
               <option value="">
-                {scenarios.length === 0 ? t.qa.panel.noScenarios : t.qa.panel.scenarioPlaceholder}
+                {runs.length === 0 ? t.qa.panel.noRuns : t.qa.panel.runPlaceholder}
               </option>
-              {scenarios.map((scenario) => (
-                <option key={scenario.testScenarioId} value={String(scenario.testScenarioId)}>
-                  {scenario.title.length > 0 ? scenario.title : t.qa.panel.untitledScenario}
+              {runs.map((run) => (
+                <option key={run.id} value={run.id}>
+                  {run.name}
                 </option>
               ))}
             </select>
