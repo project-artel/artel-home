@@ -68,26 +68,34 @@ function refreshSession(): Promise<boolean> {
 }
 
 /**
- * Performs a credentialed call against the orchestration server. Every
- * authenticated request must go through here so session expiry is handled in
- * one place. `getCurrentUser` deliberately bypasses it: a 401 there means
- * "not signed in yet", not "the session just expired".
+ * Sends the request and, on a 401, retries once behind a refresh. Only once:
+ * if the retry is rejected as well, the refresh cookie is gone or expired too,
+ * and retrying again would loop against a session that is genuinely over.
  *
- * A 401 is retried once behind a refresh. Only once: if the retry is rejected
- * as well, the refresh cookie is gone or expired too, and retrying again would
- * loop against a session that is genuinely over.
+ * This is what lets a reload after the 15-minute access token expired (but
+ * with a still-valid refresh cookie) proceed instead of bouncing to login.
  */
-export async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
-  const send = () => fetch(`${orchestrationUrl}${path}`, {
-    ...init,
-    credentials: 'include',
-  })
-
+async function sendWithRefresh(send: () => Promise<Response>): Promise<Response> {
   let response = await send()
 
   if (response.status === 401 && await refreshSession()) {
     response = await send()
   }
+
+  return response
+}
+
+/**
+ * Performs a credentialed call against the orchestration server. Every
+ * authenticated request must go through here so session expiry is handled in
+ * one place. `getCurrentUser` deliberately bypasses it: a 401 there means
+ * "not signed in yet", not "the session just expired".
+ */
+export async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
+  const response = await sendWithRefresh(() => fetch(`${orchestrationUrl}${path}`, {
+    ...init,
+    credentials: 'include',
+  }))
 
   if (response.status === 401) {
     unauthorizedHandler?.()
@@ -148,18 +156,10 @@ function parseAuthUser(data: unknown): AuthUser {
 }
 
 export async function getCurrentUser(signal?: AbortSignal): Promise<AuthUser | null> {
-  const send = () => fetch(`${orchestrationUrl}/api/auth/me`, {
+  const response = await sendWithRefresh(() => fetch(`${orchestrationUrl}/api/auth/me`, {
     credentials: 'include',
     signal,
-  })
-
-  let response = await send()
-
-  // A reload after the 15-minute access token expired still has a valid refresh
-  // cookie. Without this the app would send the user back to login every time.
-  if (response.status === 401 && await refreshSession()) {
-    response = await send()
-  }
+  }))
 
   if (response.status === 401) {
     return null
