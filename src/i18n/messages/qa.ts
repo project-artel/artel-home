@@ -11,9 +11,12 @@ export const qaEn = {
   },
   panel: {
     title: 'QA runs',
-    hint: 'Run a scenario against a game. The game must be connected.',
+    hint: 'Run a test run against a game. The game must be connected.',
     gameLabel: 'Game',
     gamePlaceholder: 'Select a game',
+    runLabel: 'Test run',
+    runPlaceholder: 'Select a test run',
+    noRuns: 'Create a test run first.',
     scenarioLabel: 'Scenario',
     scenarioPlaceholder: 'Select a scenario',
     modelLabel: 'Model',
@@ -61,7 +64,8 @@ export const qaEn = {
     gone: 'This QA Try no longer exists.',
   },
   errors: {
-    missingSelection: 'Select a game and a scenario.',
+    missingSelection: 'Select a game and a test run.',
+    emptyRun: 'This run has no scenarios yet. Add one before running.',
     // The server answers 409 for both; the copy names the fix for each.
     sdkDisconnected:
       'That game is not connected. Start it with its instance key, then run QA again.',
@@ -80,9 +84,12 @@ export const qaKo: Localized<typeof qaEn> = {
   },
   panel: {
     title: 'QA 실행',
-    hint: '시나리오를 게임으로 실행합니다. 게임이 연결되어 있어야 합니다.',
+    hint: '테스트 런을 게임으로 실행합니다. 게임이 연결되어 있어야 합니다.',
     gameLabel: '게임',
     gamePlaceholder: '게임을 선택하세요',
+    runLabel: '테스트 런',
+    runPlaceholder: '테스트 런을 선택하세요',
+    noRuns: '테스트 런을 먼저 만드세요.',
     scenarioLabel: '시나리오',
     scenarioPlaceholder: '시나리오를 선택하세요',
     modelLabel: '모델',
@@ -130,7 +137,8 @@ export const qaKo: Localized<typeof qaEn> = {
     gone: '이 QA Try가 더 이상 존재하지 않습니다.',
   },
   errors: {
-    missingSelection: '게임과 시나리오를 선택하세요.',
+    missingSelection: '게임과 테스트 런을 선택하세요.',
+    emptyRun: '이 런에는 시나리오가 없습니다. 먼저 추가하세요.',
     sdkDisconnected: '그 게임이 연결되어 있지 않습니다. 인스턴스 키로 실행한 뒤 다시 시도하세요.',
     alreadyRunning: '그 게임에는 이미 진행 중인 QA가 있습니다. 먼저 열어보거나 종료하세요.',
     startFailed: 'QA를 시작하지 못했습니다.',
