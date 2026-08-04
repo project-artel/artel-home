@@ -242,6 +242,23 @@
   font-size: 12px;
 }
 
+.brand-mark img {
+  width: 20px;
+  height: 20px;
+}
+
+.login-brand img {
+  width: 36px;
+}
+
+/* Theme-specific logo: light mark (charcoal/orange) by default, white/orange in
+   dark. The favicon swaps in theme.ts; the on-page marks swap here (data-theme is
+   always set by the index.html boot script, so no media-query variant is needed). */
+:root[data-theme='dark'] .brand-mark img,
+:root[data-theme='dark'] .login-brand img {
+  content: url('/artel-mark-dark.svg');
+}
+
 .product-name {
   padding-left: var(--space-2);
   border-left: 1px solid var(--color-border-subtle);
