@@ -39,6 +39,34 @@ export const qaEn = {
     startedAt: (when: string) => `Started ${when}`,
     openRun: 'QA Try',
   },
+  steps: {
+    title: 'Scenario steps',
+    // "Reported", not "done": a step the agent skipped is neither.
+    summary: (reported: number, total: number, passed: number, failed: number) =>
+      `${reported} of ${total} judged · ${passed} passed · ${failed} failed`,
+    untitled: (step: number) => `Step ${step}`,
+    short: (step: number) => `Step ${step}`,
+    empty: 'This run has no steps to track.',
+    /** Why a step is clickable, and why the rest are not. */
+    jumpHint: 'Select a judged step to open the log entry that judged it.',
+    jump: (step: number) => `Go to the log for step ${step}`,
+    stateLabels: {
+      passed: 'Passed',
+      failed: 'Failed',
+      running: 'In progress',
+      pending: 'Waiting',
+      unreported: 'No verdict',
+      unknown: 'Not loaded',
+    },
+    /** Said once, not per log: the strip is a summary surface. */
+    stateNotes: {
+      // The protocol has no step-start frame, so this is read from how far the
+      // verdicts have got. Saying so keeps it from reading as a report.
+      running: 'Inferred from the last judged step. The agent does not announce a step starting.',
+      unreported: 'The run moved past this step without recording a verdict.',
+      unknown: 'Its verdict may be in logs that are not loaded. Load older logs to find out.',
+    },
+  },
   chat: {
     title: 'Talk to the agent',
     hint: 'What you say here steers the next step.',
@@ -111,6 +139,29 @@ export const qaKo: Localized<typeof qaEn> = {
     empty: '아직 QA 실행이 없습니다.',
     startedAt: (when: string) => `${when} 시작`,
     openRun: 'QA Try',
+  },
+  steps: {
+    title: '시나리오 스텝',
+    summary: (reported: number, total: number, passed: number, failed: number) =>
+      `${total}개 중 ${reported}개 판정 · 통과 ${passed} · 실패 ${failed}`,
+    untitled: (step: number) => `스텝 ${step}`,
+    short: (step: number) => `스텝 ${step}`,
+    empty: '이 실행에는 추적할 스텝이 없습니다.',
+    jumpHint: '판정된 스텝을 선택하면 그 판정을 남긴 로그로 이동합니다.',
+    jump: (step: number) => `스텝 ${step}의 로그로 이동`,
+    stateLabels: {
+      passed: '통과',
+      failed: '실패',
+      running: '진행 중',
+      pending: '대기',
+      unreported: '판정 없음',
+      unknown: '확인 안 됨',
+    },
+    stateNotes: {
+      running: '마지막 판정을 기준으로 추정한 위치입니다. 에이전트는 스텝 시작을 알리지 않습니다.',
+      unreported: '이 스텝을 판정하지 않은 채 실행이 지나갔습니다.',
+      unknown: '아직 불러오지 않은 로그에 판정이 있을 수 있습니다. 이전 로그를 불러오세요.',
+    },
   },
   chat: {
     title: '에이전트에게 말하기',

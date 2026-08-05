@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { GameStreamView } from '../streaming/GameStreamView'
@@ -6,9 +6,12 @@ import { CancelQaTryDialog } from './CancelQaTryDialog'
 import { isDecimalId } from './qaApi'
 import { QaTryIssuePanel } from '../issues/QaTryIssuePanel'
 import { QaChatPanel } from './QaChatPanel'
-import { QaLogTimeline } from './QaLogTimeline'
+import { QaLogTimeline, type QaLogFocusRequest } from './QaLogTimeline'
+import { deriveQaProgress } from './qaProgress'
+import { QaStepStrip } from './QaStepStrip'
 import { isTerminalQaStatus, type QaTryStatus } from './qaTypes'
 import { useQaTry } from './useQaTry'
+import { useScenarioSteps } from './useScenarioSteps'
 
 const STATUS_LABELS: Record<QaTryStatus, string> = {
   STARTING: 'Starting',
@@ -47,7 +50,27 @@ function InvalidQaTry({ projectId }: { projectId: string }) {
 function QaTryPage({ projectId, qaTryId }: { projectId: string; qaTryId: string }) {
   const session = useQaTry(qaTryId)
   const [cancelling, setCancelling] = useState(false)
+  const [focusRequest, setFocusRequest] = useState<QaLogFocusRequest | null>(null)
   const { t } = useI18n()
+  const scenarioSteps = useScenarioSteps(session.qaTry?.testScenarioId ?? null)
+
+  // Derived above the early returns: hooks cannot be reached conditionally, and
+  // the strip is cheap enough to recompute whenever a log lands.
+  const progress = useMemo(
+    () =>
+      deriveQaProgress({
+        scenarioSteps,
+        logs: session.logs,
+        status: session.qaTry?.status ?? 'STARTING',
+        historyComplete: !session.hasMore,
+      }),
+    [scenarioSteps, session.hasMore, session.logs, session.qaTry?.status],
+  )
+
+  const jumpToLog = useCallback((logId: string) => {
+    setFocusRequest((current) => ({ logId, token: (current?.token ?? 0) + 1 }))
+  }, [])
+  const clearFocusRequest = useCallback(() => setFocusRequest(null), [])
 
   if (session.loadStatus === 'loading') {
     return (
@@ -129,6 +152,8 @@ function QaTryPage({ projectId, qaTryId }: { projectId: string; qaTryId: string 
         {active ? streamLabel : `QA Try ${STATUS_LABELS[session.qaTry.status]}.`}
       </p>
 
+      <QaStepStrip onJump={jumpToLog} progress={progress} />
+
       <div className="qa-workspace">
         {active && (
           <section className="qa-stream-panel" aria-label="Live game">
@@ -152,12 +177,14 @@ function QaTryPage({ projectId, qaTryId }: { projectId: string; qaTryId: string 
             <span className="qa-log-count">{session.logs.length} loaded</span>
           </header>
           <QaLogTimeline
+            focusRequest={focusRequest}
             hasMore={session.hasMore}
             historyFailure={session.historyFailure}
             historyLoading={session.historyLoading}
             live={active}
             loadOlder={session.loadOlder}
             logs={session.logs}
+            onFocusResolved={clearFocusRequest}
           />
         </section>
       </div>
