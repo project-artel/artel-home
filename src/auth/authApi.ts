@@ -28,9 +28,10 @@ export class UnauthorizedError extends Error {
 let unauthorizedHandler: (() => void) | null = null
 
 /**
- * Registers the single listener notified when any authenticated call is
- * rejected with 401. Access tokens expire after 15 minutes, so expiry during
- * an active session is routine and must return the app to the login boundary.
+ * Registers the single listener notified when a call is rejected with 401 that
+ * refreshing could not rescue. Access tokens expire after 15 minutes, but the
+ * refresh cookie renews them silently, so reaching this handler means the
+ * session itself is over and the app must return to the login boundary.
  */
 export function setUnauthorizedHandler(handler: () => void): () => void {
   unauthorizedHandler = handler
@@ -41,6 +42,49 @@ export function setUnauthorizedHandler(handler: () => void): () => void {
   }
 }
 
+let refreshInFlight: Promise<boolean> | null = null
+
+/**
+ * Trades the refresh cookie for a fresh access cookie. Resolves to whether a
+ * retry is worth attempting; the cookies themselves never reach this code.
+ *
+ * A page renders several panels at once, so an expired access token produces a
+ * burst of simultaneous 401s. They share one call: without that, each panel
+ * would refresh on its own and the later responses would race to overwrite the
+ * cookie the earlier ones just installed.
+ */
+function refreshSession(): Promise<boolean> {
+  refreshInFlight ??= fetch(`${orchestrationUrl}/api/auth/refresh`, {
+    method: 'POST',
+    credentials: 'include',
+  })
+    .then((response) => response.ok)
+    .catch(() => false)
+    .finally(() => {
+      refreshInFlight = null
+    })
+
+  return refreshInFlight
+}
+
+/**
+ * Sends the request and, on a 401, retries once behind a refresh. Only once:
+ * if the retry is rejected as well, the refresh cookie is gone or expired too,
+ * and retrying again would loop against a session that is genuinely over.
+ *
+ * This is what lets a reload after the 15-minute access token expired (but
+ * with a still-valid refresh cookie) proceed instead of bouncing to login.
+ */
+async function sendWithRefresh(send: () => Promise<Response>): Promise<Response> {
+  let response = await send()
+
+  if (response.status === 401 && await refreshSession()) {
+    response = await send()
+  }
+
+  return response
+}
+
 /**
  * Performs a credentialed call against the orchestration server. Every
  * authenticated request must go through here so session expiry is handled in
@@ -48,10 +92,10 @@ export function setUnauthorizedHandler(handler: () => void): () => void {
  * "not signed in yet", not "the session just expired".
  */
 export async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
-  const response = await fetch(`${orchestrationUrl}${path}`, {
+  const response = await sendWithRefresh(() => fetch(`${orchestrationUrl}${path}`, {
     ...init,
     credentials: 'include',
-  })
+  }))
 
   if (response.status === 401) {
     unauthorizedHandler?.()
@@ -112,10 +156,10 @@ function parseAuthUser(data: unknown): AuthUser {
 }
 
 export async function getCurrentUser(signal?: AbortSignal): Promise<AuthUser | null> {
-  const response = await fetch(`${orchestrationUrl}/api/auth/me`, {
+  const response = await sendWithRefresh(() => fetch(`${orchestrationUrl}/api/auth/me`, {
     credentials: 'include',
     signal,
-  })
+  }))
 
   if (response.status === 401) {
     return null
