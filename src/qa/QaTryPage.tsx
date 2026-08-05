@@ -4,6 +4,7 @@ import { useI18n } from '../i18n/useI18n'
 import { GameStreamView } from '../streaming/GameStreamView'
 import { CancelQaTryDialog } from './CancelQaTryDialog'
 import { isDecimalId } from './qaApi'
+import { QaTryIssuePanel } from '../issues/QaTryIssuePanel'
 import { QaChatPanel } from './QaChatPanel'
 import { QaLogTimeline } from './QaLogTimeline'
 import { isTerminalQaStatus, type QaTryStatus } from './qaTypes'
@@ -160,6 +161,10 @@ function QaTryPage({ projectId, qaTryId }: { projectId: string; qaTryId: string 
           />
         </section>
       </div>
+
+      {/* Below the workspace, not inside it: the timeline is what happened, and
+          this is what came out of it. */}
+      <QaTryIssuePanel qaTryId={session.qaTry.id} />
 
       {cancelling && (
         <CancelQaTryDialog

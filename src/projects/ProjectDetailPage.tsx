@@ -196,17 +196,27 @@ function ProjectDetailView({
             <span>{t.projects.shared.updated(formatDate(project.updatedAt))}</span>
           </p>
         </div>
-        {/* Members have no path to becoming an owner in this release, so a
-            disabled control would be permanently dead UI. */}
-        {project.myRole === 'OWNER' && (
-          <button
-            className="button button--danger-quiet"
-            onClick={() => setDeleting(true)}
-            type="button"
-          >
-            {t.projects.detail.deleteProject}
-          </button>
-        )}
+        {/* One actions group, not loose children: `.page-header` spaces its
+            children apart, so a second sibling would leave this link floating in
+            the middle of the header. */}
+        <div className="page-header-actions">
+          {/* The way from "a run finished" to "here is what it found". Without
+              an entry point here the issue list is reachable only by URL. */}
+          <Link className="button button--secondary" to={`/projects/${project.id}/issues`}>
+            {t.issues.page.projectLink}
+          </Link>
+          {/* Members have no path to becoming an owner in this release, so a
+              disabled control would be permanently dead UI. */}
+          {project.myRole === 'OWNER' && (
+            <button
+              className="button button--danger-quiet"
+              onClick={() => setDeleting(true)}
+              type="button"
+            >
+              {t.projects.detail.deleteProject}
+            </button>
+          )}
+        </div>
       </header>
 
       <div className="detail-columns">

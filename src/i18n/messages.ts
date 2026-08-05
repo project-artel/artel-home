@@ -1,4 +1,5 @@
 import { commonEn, commonKo } from './messages/common'
+import { issuesEn, issuesKo } from './messages/issues'
 import { projectsEn, projectsKo } from './messages/projects'
 import { qaEn, qaKo } from './messages/qa'
 import { scenariosEn, scenariosKo } from './messages/scenarios'
@@ -16,8 +17,8 @@ export type Localized<T> = {
 }
 
 export const messages = {
-  en: { common: commonEn, projects: projectsEn, qa: qaEn, scenarios: scenariosEn },
-  ko: { common: commonKo, projects: projectsKo, qa: qaKo, scenarios: scenariosKo },
+  en: { common: commonEn, issues: issuesEn, projects: projectsEn, qa: qaEn, scenarios: scenariosEn },
+  ko: { common: commonKo, issues: issuesKo, projects: projectsKo, qa: qaKo, scenarios: scenariosKo },
 }
 
 /**

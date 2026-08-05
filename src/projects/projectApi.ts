@@ -69,6 +69,16 @@ export function asNullableString(value: unknown): string | null {
   return typeof value === 'string' ? value : null
 }
 
+/**
+ * Narrows a server string to one of the values this build knows.
+ *
+ * Every domain that mirrors a server enum needs this, so it lives with the other
+ * defensive parsers rather than being re-declared beside each one.
+ */
+export function isOneOf<T extends string>(value: unknown, values: readonly T[]): value is T {
+  return typeof value === 'string' && values.some((candidate) => candidate === value)
+}
+
 /** Non-negative integers only; anything else degrades to `fallback`. */
 function asCount(value: unknown, fallback = 0): number {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0

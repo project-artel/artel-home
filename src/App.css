@@ -2869,3 +2869,134 @@ a.instance-name:hover {
   color: var(--color-text-muted);
   font-size: 12px;
 }
+
+/* --- Issues -------------------------------------------------------------- */
+/* Rows, not cards: a defect list is read by scanning down one column, and the
+   design system asks for density without decoration. Depth comes from 1px rules
+   and a background step, never a shadow. */
+
+.issue-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+.issue-filter {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+.issue-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.issue-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+/* Handled issues stay legible but stop competing with what is still open. */
+.issue-row--resolved .issue-row-title {
+  color: var(--color-text-secondary);
+}
+.issue-row-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+.issue-row-title {
+  flex: 1;
+  min-width: 200px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.issue-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.issue-row-link {
+  color: var(--color-action-primary);
+}
+.issue-row-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+.issue-row-error {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-status-critical-strong);
+}
+/* Severity is said in words first; the colour only repeats it, per DESIGN.md. */
+.severity-tag {
+  padding: 2px var(--space-2);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.severity-tag--blocker,
+.severity-tag--critical {
+  border-color: var(--color-status-critical);
+  background: var(--color-status-critical-muted);
+  color: var(--color-status-critical-strong);
+}
+.severity-tag--major {
+  border-color: var(--color-status-warning);
+  background: var(--color-status-warning-muted);
+}
+.severity-tag--minor,
+.severity-tag--trivial {
+  color: var(--color-text-muted);
+}
+.issue-status {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+.issue-status--resolved {
+  color: var(--color-status-success);
+}
+.issue-detail {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-raised);
+  font-size: 13px;
+}
+.issue-detail dt {
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+.issue-detail dd {
+  margin: 0;
+}
+.issue-repro {
+  margin: 0;
+  padding-left: var(--space-5);
+}
+/* The raw payload can be long and can contain a single very long line, so it
+   scrolls inside itself rather than widening the page. */
+.issue-raw {
+  max-height: 220px;
+  margin: 0;
+  overflow: auto;
+  font-size: 11px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.qa-issue-panel {
+  margin-top: var(--space-5);
+}

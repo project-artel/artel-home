@@ -7,6 +7,7 @@ import { useAuth } from './auth/useAuth'
 import { SdkLoginPage } from './auth/SdkLoginPage'
 import { resumeSdkLogin, SDK_LOGIN_PATH } from './auth/sdkLoginRequest'
 import { useI18n } from './i18n/useI18n'
+import { IssueListRoute } from './issues/IssueListPage'
 import { GameInstanceDetailRoute } from './projects/GameInstanceDetailPage'
 import { ProjectDetailRoute } from './projects/ProjectDetailPage'
 import { ProjectListPage } from './projects/ProjectListPage'
@@ -92,6 +93,7 @@ export function App() {
             path="/projects/:projectId/qa-tries/:qaTryId"
             element={<QaTryRoute />}
           />
+          <Route path="/projects/:projectId/issues" element={<IssueListRoute />} />
           {/* The server's failed-callback redirect lands on /login. A user who
               is already signed in has nothing to do there, so send them on. */}
           <Route path="/login" element={<Navigate replace to="/projects" />} />

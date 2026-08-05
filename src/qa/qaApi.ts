@@ -3,6 +3,7 @@ import {
   asNullableString,
   asRecord,
   asString,
+  isOneOf,
   jsonRequest,
   ProjectApiError,
   readJson,
@@ -39,10 +40,6 @@ function requiredId(value: unknown, field: string, status: number): string {
 
 function optionalId(value: unknown): string | null {
   return isDecimalId(value) ? value : null
-}
-
-function isOneOf<T extends string>(value: unknown, values: readonly T[]): value is T {
-  return typeof value === 'string' && values.some((candidate) => candidate === value)
 }
 
 function parseStatus(value: unknown, status: number): QaTryStatus {
