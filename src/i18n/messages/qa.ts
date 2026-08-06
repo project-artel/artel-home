@@ -3,11 +3,30 @@ import type { Localized } from '../messages'
 /** Strings for `src/qa/*`. See `common.ts` for the typing convention. */
 export const qaEn = {
   statusLabels: {
+    PENDING: 'Waiting',
     STARTING: 'Starting',
     RUNNING: 'Running',
     COMPLETED: 'Completed',
     FAILED: 'Failed',
     CANCELLED: 'Cancelled',
+  },
+  run: {
+    back: '← Back to the project',
+    title: 'QA run',
+    invalidTitle: 'QA run not found',
+    invalidCopy: 'The QA run address is not valid.',
+    missingTitle: 'QA run not found',
+    missingCopy: 'It may have been removed, or you may not have access to it.',
+    loading: 'Loading QA run…',
+    loadError: 'This QA run could not be loaded.',
+    retry: 'Retry',
+    liveNote: 'Running · scenarios execute in order',
+    endedNote: 'Execution ended',
+    progress: (done: number, total: number) => `${done} of ${total} scenarios finished`,
+    scenariosTitle: 'Scenarios',
+    scenariosHint: 'Each scenario runs in turn. Open one for its live log and game.',
+    scenarioLabel: (position: number) => `Scenario ${position}`,
+    openScenario: 'Open scenario',
   },
   panel: {
     title: 'QA runs',
@@ -104,11 +123,30 @@ export const qaEn = {
 
 export const qaKo: Localized<typeof qaEn> = {
   statusLabels: {
+    PENDING: '대기 중',
     STARTING: '시작 중',
     RUNNING: '실행 중',
     COMPLETED: '완료',
     FAILED: '실패',
     CANCELLED: '취소됨',
+  },
+  run: {
+    back: '← 프로젝트로 돌아가기',
+    title: 'QA 런',
+    invalidTitle: 'QA 런을 찾을 수 없습니다',
+    invalidCopy: 'QA 런 주소가 올바르지 않습니다.',
+    missingTitle: 'QA 런을 찾을 수 없습니다',
+    missingCopy: '삭제되었거나 접근 권한이 없을 수 있습니다.',
+    loading: 'QA 런을 불러오는 중…',
+    loadError: '이 QA 런을 불러오지 못했습니다.',
+    retry: '다시 시도',
+    liveNote: '실행 중 · 시나리오가 순서대로 실행됩니다',
+    endedNote: '실행 종료',
+    progress: (done: number, total: number) => `시나리오 ${total}개 중 ${done}개 완료`,
+    scenariosTitle: '시나리오',
+    scenariosHint: '시나리오가 차례로 실행됩니다. 하나를 열면 실시간 로그와 게임을 볼 수 있습니다.',
+    scenarioLabel: (position: number) => `시나리오 ${position}`,
+    openScenario: '시나리오 열기',
   },
   panel: {
     title: 'QA 실행',

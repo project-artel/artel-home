@@ -12,6 +12,7 @@ import {
 import {
   QA_LOG_DIRECTIONS,
   QA_LOG_TYPES,
+  QA_RUN_STATUSES,
   QA_TRY_STATUSES,
   type QaLog,
   type QaLogDirection,
@@ -19,11 +20,14 @@ import {
   type QaLogType,
   type QaModel,
   type QaReasoningSelection,
+  type QaRun,
+  type QaRunStatus,
   type QaTry,
   type QaTryStatus,
 } from './qaTypes'
 
 const QA_ROOT = '/api/qa-tries'
+const QA_RUNS_ROOT = '/api/qa-runs'
 const QA_MODELS_ROOT = '/api/qa-models'
 const DECIMAL_ID = /^\d+$/
 
@@ -45,6 +49,13 @@ function optionalId(value: unknown): string | null {
 function parseStatus(value: unknown, status: number): QaTryStatus {
   if (!isOneOf(value, QA_TRY_STATUSES)) {
     throw new ProjectApiError(status, 'The server returned an unknown QA Try status.')
+  }
+  return value
+}
+
+function parseRunStatus(value: unknown, status: number): QaRunStatus {
+  if (!isOneOf(value, QA_RUN_STATUSES)) {
+    throw new ProjectApiError(status, 'The server returned an unknown QA run status.')
   }
   return value
 }
@@ -71,6 +82,26 @@ export function parseQaTry(data: unknown, status = 200): QaTry {
     status: parseStatus(record.status, status),
     startedAt: asNullableString(record.startedAt),
     completedAt: asNullableString(record.completedAt),
+  }
+}
+
+export function parseQaRun(data: unknown, status = 200): QaRun {
+  const record = asRecord(data)
+  if (record === null) {
+    throw new ProjectApiError(status, 'The server returned an unreadable QA run.')
+  }
+  // Malformed child rows are not tolerated the way a list tolerates them: a run's
+  // scenario set is the whole point of this view, so a bad row is a bad response.
+  const rawTries = Array.isArray(record.tries) ? record.tries : []
+  return {
+    id: requiredId(record.id, 'QA run id', status),
+    testRunId: requiredId(record.testRunId, 'test run id', status),
+    gameInstanceId: requiredId(record.gameInstanceId, 'game instance id', status),
+    startedBy: requiredId(record.startedBy, 'started by', status),
+    status: parseRunStatus(record.status, status),
+    startedAt: asNullableString(record.startedAt),
+    completedAt: asNullableString(record.completedAt),
+    tries: rawTries.map((item) => parseQaTry(item, status)),
   }
 }
 
@@ -137,6 +168,38 @@ export async function createQaTry(
     ...jsonRequest({ testScenarioId, gameInstanceId, model, reasoning }),
   })
   return parseQaTry(await readJson(response), response.status)
+}
+
+/**
+ * Starts a run-scoped QA execution (ARTEL-259): one session runs every scenario
+ * in the test run in order, resetting the game between them. Returns the run with
+ * its per-scenario tries — the first is RUNNING, the rest PENDING until their turn.
+ *
+ * Same `409` preconditions as {@link createQaTry} (SDK not connected, or the game
+ * already has a run in flight), plus one more the server owns: a run with no
+ * scenarios. Callers split them with {@link isQaConflict} + the message.
+ */
+export async function createQaRun(
+  testRunId: string,
+  gameInstanceId: string,
+  model: string,
+  reasoning: QaReasoningSelection | null,
+): Promise<QaRun> {
+  const response = await apiFetch(QA_RUNS_ROOT, {
+    method: 'POST',
+    ...jsonRequest({ testRunId, gameInstanceId, model, reasoning }),
+  })
+  return parseQaRun(await readJson(response), response.status)
+}
+
+/**
+ * One run + its per-scenario tries. The run view polls this to follow scenarios
+ * through PENDING → RUNNING → terminal; the live, per-scenario detail is still the
+ * try's own SSE at `/qa-tries/:id`.
+ */
+export async function getQaRun(qaRunId: string, signal?: AbortSignal): Promise<QaRun> {
+  const response = await apiFetch(`${QA_RUNS_ROOT}/${encodeURIComponent(qaRunId)}`, { signal })
+  return parseQaRun(await readJson(response), response.status)
 }
 
 export async function listQaModels(signal?: AbortSignal): Promise<QaModel[]> {

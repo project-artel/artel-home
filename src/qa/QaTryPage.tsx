@@ -14,6 +14,7 @@ import { useQaTry } from './useQaTry'
 import { useScenarioSteps } from './useScenarioSteps'
 
 const STATUS_LABELS: Record<QaTryStatus, string> = {
+  PENDING: 'Waiting',
   STARTING: 'Starting',
   RUNNING: 'Running',
   COMPLETED: 'Completed',

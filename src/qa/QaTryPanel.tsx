@@ -4,8 +4,8 @@ import { useI18n } from '../i18n/useI18n'
 import { formatDate } from '../projects/formatters'
 import type { GameInstance } from '../projects/gameTypes'
 import { ProjectApiError } from '../projects/projectApi'
-import { getRunScenarios, listTestRuns, type TestRun } from '../testRuns/testRunApi'
-import { createQaTry, isQaConflict, listQaModels, listQaTries } from './qaApi'
+import { listTestRuns, type TestRun } from '../testRuns/testRunApi'
+import { createQaRun, isQaConflict, listQaModels, listQaTries } from './qaApi'
 import type { QaModel, QaReasoningSelection, QaTry } from './qaTypes'
 
 type LoadState = 'loading' | 'ready' | 'failed'
@@ -16,6 +16,13 @@ type LoadState = 'loading' | 'ready' | 'failed'
  * distinguishes them rather than the whole sentence, which is prose and moves.
  */
 const SDK_DISCONNECTED = /sdk/i
+
+/**
+ * The third 409: a run with no scenarios to execute. Named by the one word its
+ * message carries and the other two ({@link SDK_DISCONNECTED}, already-running)
+ * do not, so the copy can point at the actual fix.
+ */
+const EMPTY_RUN = /scenario/i
 
 /**
  * Starting a QA run, and the list of runs already started.
@@ -93,30 +100,21 @@ export function QaTryPanel({
     setFailure(null)
 
     try {
-      // TR 단위 실행(런의 모든 시나리오 순차 실행)은 향후 과제. 백엔드가 아직 시나리오 단위라,
-      // 지금은 선택한 런의 첫 시나리오로 실행한다.
-      const items = await getRunScenarios(projectId, runId)
-      const firstScenarioId = [...items].sort((a, b) => a.position - b.position)[0]?.testScenarioId
-      if (firstScenarioId === undefined) {
-        setFailure(t.qa.errors.emptyRun)
-        setStarting(false)
-        return
-      }
-      const qaTry = await createQaTry(
-        firstScenarioId,
-        instanceId,
-        modelId,
-        selectedReasoning,
-      )
+      // 런(TR) 단위 실행: 선택한 런의 시나리오들을 한 세션이 순차 실행한다(ARTEL-259).
+      // 시나리오 결정·순서·빈-런 판정은 모두 서버가 하므로, 런 화면으로 이동만 하면 된다.
+      const qaRun = await createQaRun(runId, instanceId, modelId, selectedReasoning)
       navigate(
-        `/projects/${encodeURIComponent(projectId)}/qa-tries/${encodeURIComponent(qaTry.id)}`,
+        `/projects/${encodeURIComponent(projectId)}/qa-runs/${encodeURIComponent(qaRun.id)}`,
       )
     } catch (error: unknown) {
       if (isQaConflict(error)) {
+        // 세 가지가 모두 409다. 메시지의 한 단어로 실제 해결책을 가리키는 문구를 고른다.
         setFailure(
           SDK_DISCONNECTED.test(error.message)
             ? t.qa.errors.sdkDisconnected
-            : t.qa.errors.alreadyRunning,
+            : EMPTY_RUN.test(error.message)
+              ? t.qa.errors.emptyRun
+              : t.qa.errors.alreadyRunning,
         )
       } else {
         setFailure(error instanceof ProjectApiError ? error.message : t.qa.errors.startFailed)

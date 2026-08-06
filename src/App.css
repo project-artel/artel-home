@@ -1769,6 +1769,11 @@ a.instance-name:hover {
   content: "";
 }
 
+/* Waiting its turn in a run — quieter than the active blue, on purpose. */
+.qa-status--pending {
+  color: var(--color-text-muted);
+}
+
 .qa-status--starting,
 .qa-status--running {
   color: var(--color-action-primary);
