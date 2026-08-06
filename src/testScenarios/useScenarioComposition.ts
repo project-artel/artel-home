@@ -7,11 +7,12 @@ import {
 } from '../testCases/testCaseApi'
 import {
   DEFAULT_VERIFICATION_STATUS,
+  type CaseStep,
   type TestCase,
   type TestCaseInput,
   type VerificationStatus,
 } from '../testCases/testCaseTypes'
-import { getScenarioCases, setScenarioCases } from './scenarioCaseApi'
+import { getScenarioCases, setScenarioCasesWithSteps } from './scenarioCaseApi'
 import { getTestScenario, updateScenario } from './scenarioApi'
 import { EMPTY_SCENARIO_DRAFT, type ScenarioDraft } from './scenarioTypes'
 
@@ -37,17 +38,26 @@ const UNDO_WINDOW = 20
 
 type CompositionStatus = 'loading' | 'ready' | 'missing' | 'error'
 
-/** The editable state: case order, the cases by id, and the scenario title. */
+/**
+ * The editable state: case order, the cases by id, the scenario title, and the
+ * authored Steps per position.
+ *
+ * `stepsByPosition` is aligned to `order` by index — position i's Steps are
+ * `stepsByPosition[i]`. Steps belong to the position, not the shared case (a case
+ * can repeat with different Steps), so every order mutation must move both arrays
+ * in lockstep.
+ */
 export type Composition = {
   title: string
   order: string[]
   caseById: Record<string, TestCase>
+  stepsByPosition: CaseStep[][]
 }
 
 /** The server baseline also keeps the scenario payload, so a title save preserves it. */
 type Baseline = Composition & { payload: ScenarioDraft }
 
-const EMPTY_COMPOSITION: Composition = { title: '', order: [], caseById: {} }
+const EMPTY_COMPOSITION: Composition = { title: '', order: [], caseById: {}, stepsByPosition: [] }
 
 function isAbort(error: unknown): boolean {
   return error instanceof DOMException && error.name === 'AbortError'
@@ -108,8 +118,9 @@ export function useScenarioComposition(projectId: string, testScenarioId: number
       const order = items.map((item) => item.case.id)
       const caseById: Record<string, TestCase> = {}
       for (const item of items) caseById[item.case.id] = item.case
+      const stepsByPosition = items.map((item) => item.steps)
       const title = scenario.payload.title
-      const composition: Composition = { title, order, caseById }
+      const composition: Composition = { title, order, caseById, stepsByPosition }
 
       undoStackRef.current = [composition]
       undoCursorRef.current = 0
@@ -145,6 +156,7 @@ export function useScenarioComposition(projectId: string, testScenarioId: number
       title: baselineRef.current.title,
       order: baselineRef.current.order,
       caseById: baselineRef.current.caseById,
+      stepsByPosition: baselineRef.current.stepsByPosition,
     }
     const stack = undoStackRef.current
     const cursor = undoCursorRef.current
@@ -168,7 +180,9 @@ export function useScenarioComposition(projectId: string, testScenarioId: number
   useEffect(() => {
     if (status !== 'ready') return undefined
     const base = baselineRef.current
-    const baseComposition: Composition = { title: base.title, order: base.order, caseById: base.caseById }
+    const baseComposition: Composition = {
+      title: base.title, order: base.order, caseById: base.caseById, stepsByPosition: base.stepsByPosition,
+    }
     if (compositionEqual(working, baseComposition)) return undefined
 
     let cancelled = false
@@ -193,15 +207,22 @@ export function useScenarioComposition(projectId: string, testScenarioId: number
             next = { ...next, caseById: { ...next.caseById, [id]: saved } }
           }
 
-          const orderChanged =
-            JSON.stringify(working.order) !== JSON.stringify(next.order)
-          if (orderChanged) {
-            const items = await setScenarioCases(testScenarioId, working.order)
+          // 순서 또는 자리별 Step이 바뀌면 items[]로 한 번에 저장한다(caseId + 그 자리 steps).
+          const compositionChanged =
+            JSON.stringify(working.order) !== JSON.stringify(next.order) ||
+            JSON.stringify(working.stepsByPosition) !== JSON.stringify(next.stepsByPosition)
+          if (compositionChanged) {
+            const payloadItems = working.order.map((id, index) => ({
+              caseId: id,
+              steps: working.stepsByPosition[index] ?? [],
+            }))
+            const items = await setScenarioCasesWithSteps(testScenarioId, payloadItems)
             if (cancelled) return
             const order = items.map((item) => item.case.id)
+            const stepsByPosition = items.map((item) => item.steps)
             const caseById = { ...next.caseById }
             for (const item of items) caseById[item.case.id] = item.case
-            next = { ...next, order, caseById }
+            next = { ...next, order, stepsByPosition, caseById }
           }
 
           adoptBaseline(next)
@@ -248,18 +269,53 @@ export function useScenarioComposition(projectId: string, testScenarioId: number
     })
   }, [])
 
-  const reorder = useCallback((order: string[]) => {
-    setWorking((current) => ({ ...current, order }))
+  /** 자리를 [from]→[to]로 옮긴다. order와 stepsByPosition을 같은 splice로 함께 이동(lockstep). */
+  const moveAt = useCallback((from: number, to: number) => {
+    setWorking((current) => {
+      const n = current.order.length
+      if (from === to || from < 0 || to < 0 || from >= n || to >= n) return current
+      const order = [...current.order]
+      const steps = [...current.stepsByPosition]
+      const [movedId] = order.splice(from, 1)
+      const [movedSteps] = steps.splice(from, 1)
+      order.splice(to, 0, movedId)
+      steps.splice(to, 0, movedSteps ?? [])
+      return { ...current, order, stepsByPosition: steps }
+    })
+  }, [])
+
+  /** 한 자리(index)의 저작 Step 전체를 교체한다(추가/수정/삭제는 UI가 새 배열을 만들어 준다). */
+  const editStepsAt = useCallback((index: number, steps: CaseStep[]) => {
+    setWorking((current) => {
+      if (index < 0 || index >= current.order.length) return current
+      return {
+        ...current,
+        stepsByPosition: current.stepsByPosition.map((existing, i) => (i === index ? steps : existing)),
+      }
+    })
   }, [])
 
   /** Removes ALL occurrences of a case from the flow (library-level "take it out"). */
   const removeFromScenario = useCallback((caseId: string) => {
-    setWorking((current) => ({ ...current, order: current.order.filter((id) => id !== caseId) }))
+    setWorking((current) => {
+      const order: string[] = []
+      const stepsByPosition: CaseStep[][] = []
+      current.order.forEach((id, index) => {
+        if (id === caseId) return
+        order.push(id)
+        stepsByPosition.push(current.stepsByPosition[index] ?? [])
+      })
+      return { ...current, order, stepsByPosition }
+    })
   }, [])
 
   /** Removes ONE flow position (a case may legitimately repeat, e.g. shop → … → shop). */
   const removeAt = useCallback((index: number) => {
-    setWorking((current) => ({ ...current, order: current.order.filter((_, i) => i !== index) }))
+    setWorking((current) => ({
+      ...current,
+      order: current.order.filter((_, i) => i !== index),
+      stepsByPosition: current.stepsByPosition.filter((_, i) => i !== index),
+    }))
   }, [])
 
   // A case may appear more than once in a flow — the same feature revisited (shop,
@@ -270,6 +326,7 @@ export function useScenarioComposition(projectId: string, testScenarioId: number
       ...current,
       order: [...current.order, testCase.id],
       caseById: { ...current.caseById, [testCase.id]: testCase },
+      stepsByPosition: [...current.stepsByPosition, []],
     }))
   }, [])
 
@@ -292,6 +349,7 @@ export function useScenarioComposition(projectId: string, testScenarioId: number
           ...current,
           order: [...current.order, created.id],
           caseById: { ...current.caseById, [created.id]: created },
+          stepsByPosition: [...current.stepsByPosition, []],
         }))
         return created
       } catch {
@@ -309,7 +367,14 @@ export function useScenarioComposition(projectId: string, testScenarioId: number
         setWorking((current) => {
           const caseById = { ...current.caseById }
           delete caseById[caseId]
-          return { ...current, order: current.order.filter((id) => id !== caseId), caseById }
+          const order: string[] = []
+          const stepsByPosition: CaseStep[][] = []
+          current.order.forEach((id, index) => {
+            if (id === caseId) return
+            order.push(id)
+            stepsByPosition.push(current.stepsByPosition[index] ?? [])
+          })
+          return { ...current, order, stepsByPosition, caseById }
         })
         return true
       } catch {
@@ -330,6 +395,7 @@ export function useScenarioComposition(projectId: string, testScenarioId: number
     title: baselineRef.current.title,
     order: baselineRef.current.order,
     caseById: baselineRef.current.caseById,
+    stepsByPosition: baselineRef.current.stepsByPosition,
   }
 
   return {
@@ -342,7 +408,8 @@ export function useScenarioComposition(projectId: string, testScenarioId: number
     saving,
     setTitle,
     editCase,
-    reorder,
+    moveAt,
+    editStepsAt,
     removeFromScenario,
     removeAt,
     addExisting,

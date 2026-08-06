@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
-import { type TestCase, type VerificationStatus } from '../testCases/testCaseTypes'
+import { CASE_STEP_KINDS, type CaseStep, type CaseStepKind, type TestCase, type VerificationStatus } from '../testCases/testCaseTypes'
 import { shortcutLabel } from '../shell/platform'
 import { CategoryChip } from '../testCases/CategoryChip'
 import { CasePalette } from './CasePalette'
@@ -94,20 +94,15 @@ export function ScenarioComposition({
 
   function dropOn(targetIndex: number) {
     if (dragging === null || dragging === targetIndex) return
-    const next = [...order]
-    const [moved] = next.splice(dragging, 1)
-    next.splice(targetIndex, 0, moved)
-    comp.reorder(next)
+    // order와 자리별 Step을 함께 이동한다(lockstep) — 훅의 moveAt이 둘을 같은 splice로 옮긴다.
+    comp.moveAt(dragging, targetIndex)
     setDragging(null)
     setSelected(null)
   }
   function move(fromIndex: number, delta: number) {
     const to = fromIndex + delta
     if (to < 0 || to >= order.length) return
-    const next = [...order]
-    const [moved] = next.splice(fromIndex, 1)
-    next.splice(to, 0, moved)
-    comp.reorder(next)
+    comp.moveAt(fromIndex, to)
     setSelected(to)
   }
   function removeAt(index: number) {
@@ -207,7 +202,9 @@ export function ScenarioComposition({
               position={selected}
               total={order.length}
               readOnly={!editable}
+              steps={comp.working.stepsByPosition[selected] ?? []}
               onEdit={(patch) => comp.editCase(selectedCase.id, patch)}
+              onEditSteps={(steps) => comp.editStepsAt(selected, steps)}
               onMoveUp={() => move(selected, -1)}
               onMoveDown={() => move(selected, 1)}
               onRemove={() => removeAt(selected)}
@@ -241,7 +238,9 @@ function CaseDetail({
   position,
   total,
   readOnly,
+  steps,
   onEdit,
+  onEditSteps,
   onMoveUp,
   onMoveDown,
   onRemove,
@@ -250,7 +249,9 @@ function CaseDetail({
   position: number
   total: number
   readOnly: boolean
+  steps: CaseStep[]
   onEdit: (patch: Partial<TestCase>) => void
+  onEditSteps: (steps: CaseStep[]) => void
   onMoveUp: () => void
   onMoveDown: () => void
   onRemove: () => void
@@ -295,6 +296,92 @@ function CaseDetail({
           <textarea className="rt2" disabled={readOnly} onChange={(e) => { onEdit({ expected: e.target.value }); autogrow(e.target) }} ref={expRef} value={testCase.expected} />
         </div>
       </div>
+
+      <StepGroups steps={steps} readOnly={readOnly} onChange={onEditSteps} />
+    </section>
+  )
+}
+
+/**
+ * 저작 Step 편집기(ARTEL-280). kind별 3그룹(도달/실행/검증)으로 표기 — 실행 모델(사전조건
+ * 도달 → 실행 → 검증)과 1:1이라 검토가 명확하다. Step은 그 자리(순서) 전용이며 실행 시 advisory다.
+ *
+ * 그룹이 kind를 정하므로 kind 드롭다운은 없다. 편집하지 않는 필드(input/id/assert)는 보존한다 —
+ * Agent/CSV가 채운 값을 UI가 지우지 않게.
+ */
+function StepGroups({
+  steps,
+  readOnly,
+  onChange,
+}: {
+  steps: CaseStep[]
+  readOnly: boolean
+  onChange: (steps: CaseStep[]) => void
+}) {
+  const { t } = useI18n()
+  const s = t.scenarios.composition.steps
+
+  const patchAt = (index: number, patch: Partial<CaseStep>) =>
+    onChange(steps.map((step, i) => (i === index ? { ...step, ...patch } : step)))
+  const removeAt = (index: number) => onChange(steps.filter((_, i) => i !== index))
+  const add = (kind: CaseStepKind) =>
+    onChange([
+      ...steps,
+      // setup은 판정하지 않는다(fast-forward) → assert=false. 나머진 판정.
+      { id: '', kind, assert: kind !== 'setup', intent: '', hint: null, input: null, observe: null },
+    ])
+
+  return (
+    <section className="steps">
+      <div className="steps-head">
+        <span className="steps-title">{s.title}</span>
+        <span className="steps-caveat">{s.sequenceCaveat}</span>
+      </div>
+      {CASE_STEP_KINDS.map((kind) => {
+        // 이 kind의 스텝만, 원래 인덱스와 함께(편집·삭제는 전역 인덱스로 한다).
+        const rows = steps.map((step, index) => ({ step, index })).filter((r) => r.step.kind === kind)
+        const verify = kind === 'verify'
+        return (
+          <div className={`step-group step-${kind}`} key={kind}>
+            <div className="step-group-head">
+              <span className="step-kind">{s.kinds[kind]}</span>
+              <span className="step-kind-sub">{s.kindHints[kind]}</span>
+              {!readOnly && (
+                <button className="step-add" onClick={() => add(kind)} type="button">+ {s.add}</button>
+              )}
+            </div>
+            {rows.length === 0 ? (
+              <p className="step-empty">{s.empty}</p>
+            ) : (
+              rows.map(({ step, index }) => (
+                <div className="step-row" key={index}>
+                  <input
+                    aria-label={s.intentLabel}
+                    className="step-intent"
+                    disabled={readOnly}
+                    onChange={(e) => patchAt(index, { intent: e.target.value })}
+                    placeholder={s.intentPlaceholder}
+                    value={step.intent}
+                  />
+                  <input
+                    aria-label={verify ? s.observeLabel : s.hintLabel}
+                    className="step-aux"
+                    disabled={readOnly}
+                    onChange={(e) =>
+                      patchAt(index, verify ? { observe: e.target.value || null } : { hint: e.target.value || null })
+                    }
+                    placeholder={verify ? s.observePlaceholder : s.hintPlaceholder}
+                    value={(verify ? step.observe : step.hint) ?? ''}
+                  />
+                  {!readOnly && (
+                    <button className="step-del" onClick={() => removeAt(index)} title={s.remove} type="button">✕</button>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        )
+      })}
     </section>
   )
 }
