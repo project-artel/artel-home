@@ -50,9 +50,10 @@ export type TestCaseInput = {
 
 /**
  * 저작 Step의 종류(ARTEL-254/269). `setup`은 사전조건 도달(판정 없이 fast-forward),
- * `guide`는 실행, `verify`는 검증. 서버가 새 종류를 보내면 파싱 단계에서 `guide`로 접는다.
+ * `guide`는 실행. 검증은 별도 step으로 만들지 않고 케이스의 `expected`로 흡수한다(기획).
+ * 서버가 다른 종류(구 `verify` 포함)를 보내면 파싱 단계에서 `guide`로 접는다.
  */
-export const CASE_STEP_KINDS = ['setup', 'guide', 'verify'] as const
+export const CASE_STEP_KINDS = ['setup', 'guide'] as const
 export type CaseStepKind = (typeof CASE_STEP_KINDS)[number]
 
 /**

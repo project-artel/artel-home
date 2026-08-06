@@ -340,7 +340,6 @@ function StepGroups({
       {CASE_STEP_KINDS.map((kind) => {
         // 이 kind의 스텝만, 원래 인덱스와 함께(편집·삭제는 전역 인덱스로 한다).
         const rows = steps.map((step, index) => ({ step, index })).filter((r) => r.step.kind === kind)
-        const verify = kind === 'verify'
         return (
           <div className={`step-group step-${kind}`} key={kind}>
             <div className="step-group-head">
@@ -364,14 +363,12 @@ function StepGroups({
                     value={step.intent}
                   />
                   <input
-                    aria-label={verify ? s.observeLabel : s.hintLabel}
+                    aria-label={s.hintLabel}
                     className="step-aux"
                     disabled={readOnly}
-                    onChange={(e) =>
-                      patchAt(index, verify ? { observe: e.target.value || null } : { hint: e.target.value || null })
-                    }
-                    placeholder={verify ? s.observePlaceholder : s.hintPlaceholder}
-                    value={(verify ? step.observe : step.hint) ?? ''}
+                    onChange={(e) => patchAt(index, { hint: e.target.value || null })}
+                    placeholder={s.hintPlaceholder}
+                    value={step.hint ?? ''}
                   />
                   {!readOnly && (
                     <button className="step-del" onClick={() => removeAt(index)} title={s.remove} type="button">✕</button>

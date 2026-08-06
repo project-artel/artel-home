@@ -192,13 +192,10 @@ export const scenariosEn = {
       intentPlaceholder: 'What the agent should do, in words',
       hintLabel: 'Hint',
       hintPlaceholder: 'hint (a key or control to try) — optional',
-      observeLabel: 'Observe',
-      observePlaceholder: 'what to look at — optional',
-      kinds: { setup: 'Reach', guide: 'Do', verify: 'Verify' },
+      kinds: { setup: 'Reach', guide: 'Do' },
       kindHints: {
         setup: 'reach this state first · not judged',
-        guide: 'carry out the case',
-        verify: 'check against the expected result',
+        guide: 'carry out the case · verified against the expected result',
       },
     },
     status: {
@@ -486,13 +483,10 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
       intentPlaceholder: '에이전트가 할 일을 자연어로',
       hintLabel: '힌트',
       hintPlaceholder: '힌트(눌러 볼 키/컨트롤) — 선택',
-      observeLabel: '관찰',
-      observePlaceholder: '무엇을 볼지 — 선택',
-      kinds: { setup: '도달', guide: '실행', verify: '검증' },
+      kinds: { setup: '도달', guide: '실행' },
       kindHints: {
         setup: '이 상태에 먼저 도달 · 판정 안 함',
-        guide: '케이스를 실행',
-        verify: '기대결과와 대조',
+        guide: '케이스를 실행 · 검증은 기대결과로',
       },
     },
     status: {
