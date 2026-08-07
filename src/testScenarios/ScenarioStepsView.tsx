@@ -20,7 +20,6 @@ export function ScenarioStepsView({ draft }: { draft: ScenarioDraft }) {
       <div className="edoc st-steps">
         <header className="st-steps-head">
           <h1 className="st-steps-title">{draft.title.length > 0 ? draft.title : t.scenarios.page.untitled}</h1>
-          {draft.description.length > 0 && <p className="st-steps-desc">{draft.description}</p>}
         </header>
 
         {draft.steps.length === 0 ? (
