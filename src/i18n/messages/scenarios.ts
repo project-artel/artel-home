@@ -266,6 +266,8 @@ export const scenariosEn = {
     noAction: '(no action)',
     verify: 'verify',
     caseSteps: (n: number) => `${n} step${n === 1 ? '' : 's'}`,
+    renameHint: 'Click to rename this scenario',
+    renameLabel: 'Scenario name',
   },
   palette: {
     searchPlaceholder: 'Search cases — title, category, id…',
@@ -550,6 +552,8 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     noAction: '(행위 없음)',
     verify: '검증',
     caseSteps: (n: number) => `${n}개 스텝`,
+    renameHint: '클릭해서 시나리오 이름 변경',
+    renameLabel: '시나리오 이름',
   },
   palette: {
     searchPlaceholder: '케이스 검색 — 제목·대분류·id…',

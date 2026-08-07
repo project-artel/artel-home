@@ -2613,7 +2613,8 @@ a.instance-name:hover {
 /* TR 이름 인라인 편집 크럼 (ARTEL-285) */
 .scenario-studio .st-crumb .scn--editable{ display:inline-flex; align-items:center; gap:6px; max-width:340px; background:none; border:1px solid transparent; border-radius:6px; padding:2px 6px; margin:-2px -6px; cursor:text; font:inherit; }
 .scenario-studio .st-crumb .scn--editable .scn-text{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600; font-size:15px; color:var(--st-text); }
-.scenario-studio .st-crumb .scn--editable .scn-pencil{ opacity:0; font-size:12px; color:var(--st-muted); transition:opacity .12s ease; }
+/* 편집 이모티콘은 상시 노출(ARTEL-285): 흐리게 항상 보이고, hover/focus에서 진하게. */
+.scenario-studio .st-crumb .scn--editable .scn-pencil{ opacity:.55; font-size:12px; color:var(--st-muted); transition:opacity .12s ease; }
 .scenario-studio .st-crumb .scn--editable:hover{ border-color:var(--st-border); background:var(--st-surface-2, rgba(127,127,127,0.08)); }
 .scenario-studio .st-crumb .scn--editable:hover .scn-pencil,
 .scenario-studio .st-crumb .scn--editable:focus-visible .scn-pencil{ opacity:1; }

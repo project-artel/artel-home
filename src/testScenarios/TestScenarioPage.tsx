@@ -9,6 +9,7 @@ import { ApproveScenarioDialog } from './ApproveScenarioDialog'
 import { DeleteScenarioDialog } from './DeleteScenarioDialog'
 import { getTestScenario } from './scenarioApi'
 import { ScenarioList } from './ScenarioList'
+import { ScenarioNameCrumb } from './ScenarioNameCrumb'
 import { ScenarioStepsView } from './ScenarioStepsView'
 import { EMPTY_SCENARIO_DRAFT, type ScenarioDraft } from './scenarioTypes'
 
@@ -122,7 +123,11 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
               <span className="st-crumb-sep" aria-hidden="true">/</span>
             </>
           )}
-          <span className="scn">{title}</span>
+          {status === 'ready' ? (
+            <ScenarioNameCrumb testScenarioId={scenarioId} draft={draft} onRenamed={setDraft} />
+          ) : (
+            <span className="scn">{title}</span>
+          )}
         </div>
         <div className="st-spacer" />
         {fromRun !== null && (
