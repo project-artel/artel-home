@@ -2610,6 +2610,15 @@ a.instance-name:hover {
 .scenario-studio .st-back:hover{ background:var(--st-hover); color:var(--st-text); }
 .scenario-studio .st-crumb{ display:flex; align-items:baseline; gap:8px; min-width:0; }
 .scenario-studio .st-crumb .scn{ font-weight:600; font-size:15px; color:var(--st-text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+/* TR 이름 인라인 편집 크럼 (ARTEL-285) */
+.scenario-studio .st-crumb .scn--editable{ display:inline-flex; align-items:center; gap:6px; max-width:340px; background:none; border:1px solid transparent; border-radius:6px; padding:2px 6px; margin:-2px -6px; cursor:text; font:inherit; }
+.scenario-studio .st-crumb .scn--editable .scn-text{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600; font-size:15px; color:var(--st-text); }
+.scenario-studio .st-crumb .scn--editable .scn-pencil{ opacity:0; font-size:12px; color:var(--st-muted); transition:opacity .12s ease; }
+.scenario-studio .st-crumb .scn--editable:hover{ border-color:var(--st-border); background:var(--st-surface-2, rgba(127,127,127,0.08)); }
+.scenario-studio .st-crumb .scn--editable:hover .scn-pencil,
+.scenario-studio .st-crumb .scn--editable:focus-visible .scn-pencil{ opacity:1; }
+.scenario-studio .st-crumb .st-crumb-edit{ font-weight:600; font-size:15px; color:var(--st-text); background:var(--st-surface); border:1px solid var(--color-action-primary,#4c8bf5); border-radius:6px; padding:2px 6px; margin:-2px -6px; min-width:180px; max-width:340px; outline:none; }
+.scenario-studio .st-crumb .st-crumb-sep{ color:var(--st-muted); margin:0 2px; }
 .scenario-studio .st-crumb .id{ color:var(--st-muted); font-weight:400; font-size:12px; white-space:nowrap; }
 .scenario-studio .st-spacer{ flex:1; }
 .scenario-studio .st-icons{ display:inline-flex; gap:2px; }

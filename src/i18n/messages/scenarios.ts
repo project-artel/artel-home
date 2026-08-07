@@ -257,6 +257,9 @@ export const scenariosEn = {
     mapLocked: 'Add a scenario to open the map',
     authoredTitle: 'Scenarios are being added',
     authoredCopy: 'Applied scenarios appear in the list on the left — open one to edit its cases. Keep chatting to add or revise more.',
+    renameHint: 'Click to rename this run',
+    renameLabel: 'Run name',
+    untitled: 'Untitled run',
   },
   palette: {
     searchPlaceholder: 'Search cases — title, category, id…',
@@ -532,6 +535,9 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     mapLocked: '시나리오를 추가하면 맵이 열립니다',
     authoredTitle: '시나리오가 추가되고 있어요',
     authoredCopy: '적용한 시나리오는 왼쪽 목록에 나타나요 — 열어서 케이스를 편집하세요. 계속 대화해 더 추가하거나 수정할 수 있어요.',
+    renameHint: '클릭해서 런 이름 변경',
+    renameLabel: '런 이름',
+    untitled: '이름 없는 런',
   },
   palette: {
     searchPlaceholder: '케이스 검색 — 제목·대분류·id…',

@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { RunChat } from '../testRuns/RunChat'
+import { RunNameCrumb } from '../testRuns/RunNameCrumb'
+import { getTestRun } from '../testRuns/testRunApi'
 import { useRunChatSession } from '../testRuns/useRunChatSession'
 import { ApproveScenarioDialog } from './ApproveScenarioDialog'
 import { DeleteScenarioDialog } from './DeleteScenarioDialog'
@@ -41,6 +43,17 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
   const fromRun = searchParams.get('run')
   const initialCase = searchParams.get('case')
   const runChat = useRunChatSession(projectId, fromRun, comp.reload)
+  // The run's name for the crumb, when the studio was opened from a run. Fetched
+  // here because the studio only carries the run id (?run=), not its name.
+  const [runName, setRunName] = useState('')
+  useEffect(() => {
+    if (fromRun === null) return
+    const controller = new AbortController()
+    getTestRun(projectId, fromRun, controller.signal)
+      .then((run) => { if (run !== null) setRunName(run.name) })
+      .catch(() => { /* leave the crumb blank on failure */ })
+    return () => controller.abort()
+  }, [projectId, fromRun])
   const [dialog, setDialog] = useState<'approve' | 'delete' | null>(null)
   // Approve/delete return to where the scenario was opened from: the run's edit
   // view when in a run, otherwise the project. Staying in the run is the point —
@@ -92,6 +105,17 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
       <header className="st-top">
         <Link className="st-back" to={backLink(projectId)}>{t.scenarios.page.backToProject}</Link>
         <div className="st-crumb">
+          {fromRun !== null && (
+            <>
+              <RunNameCrumb
+                projectId={projectId}
+                runId={fromRun}
+                name={runName}
+                onRenamed={(run) => setRunName(run.name)}
+              />
+              <span className="st-crumb-sep" aria-hidden="true">/</span>
+            </>
+          )}
           <span className="scn">{title}</span>
         </div>
         <div className="st-spacer" />
