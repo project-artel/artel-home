@@ -49,16 +49,32 @@ export function ScenarioNameCrumb({
   }
 
   if (renaming) {
+    // A borderless, full-width textarea that soft-wraps to the page rather than a
+    // fixed box that clips a long title — edited like text on the page. Enter
+    // commits (no hard newlines in a title), Esc cancels, blur commits. Auto-grows
+    // to fit its content.
     return (
-      <input
-        className="st-crumb-edit"
+      <textarea
+        className="st-title-edit"
         autoFocus
+        rows={1}
         defaultValue={current}
         disabled={saving}
         aria-label={e.renameLabel}
+        ref={(el) => {
+          if (el === null) return
+          el.style.height = 'auto'
+          el.style.height = `${el.scrollHeight}px`
+          el.setSelectionRange(el.value.length, el.value.length)
+        }}
+        onInput={(ev) => {
+          const el = ev.currentTarget
+          el.style.height = 'auto'
+          el.style.height = `${el.scrollHeight}px`
+        }}
         onBlur={(ev) => void commit(ev.currentTarget.value)}
         onKeyDown={(ev) => {
-          if (ev.key === 'Enter') ev.currentTarget.blur()
+          if (ev.key === 'Enter') { ev.preventDefault(); ev.currentTarget.blur() }
           else if (ev.key === 'Escape') { cancel.current = true; ev.currentTarget.blur() }
         }}
       />
