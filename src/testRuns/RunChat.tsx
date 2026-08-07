@@ -5,6 +5,14 @@ import { groupStepsByCase } from '../testScenarios/scenarioTypes'
 import type { ScenarioProposal } from './runChatApi'
 import type { RunChatSession } from './useRunChatSession'
 
+/** 표시용 텍스트 정리: 줄바꿈·중복 공백을 한 칸으로, 앞의 대시·불릿·번호 접두 제거. */
+function cleanText(value: string | null | undefined): string {
+  return (value ?? '')
+    .replace(/\s+/g, ' ')
+    .replace(/^[-–—•*\s]+/, '')
+    .trim()
+}
+
 /**
  * The run-scoped authoring conversation (ARTEL-206 Step 6).
  *
@@ -292,33 +300,43 @@ function ProposalStepsModal({
           </button>
         </div>
         <p className="run-chat-modal-meta">{c.modalCases(proposal.steps.length)}</p>
-        <ul className="run-chat-tc-list">
-          {groups.map((group, gi) => (
-            <li className="run-chat-tc" key={gi}>
-              <div className="run-chat-tc-h">
-                {group.caseId === null ? (
-                  <span className="run-chat-tc-title">{group.steps[0]?.action || sv.noAction}</span>
-                ) : (
-                  <>
-                    <span className="run-chat-cat">TC #{group.caseId}</span>
-                    <span className="run-chat-tc-title">{sv.caseSteps(group.steps.length)}</span>
-                  </>
-                )}
-              </div>
-              {group.caseId !== null && (
-                <ol className="run-chat-tc-steps">
-                  {group.steps.map((step, si) => (
-                    <li className="run-chat-tc-row" key={si}>
-                      <span className="run-chat-tc-vl">
-                        {group.indices[si] + 1}. {step.action || sv.noAction}
-                        {si === group.steps.length - 1 && ` · ${sv.verify}`}
-                      </span>
-                    </li>
-                  ))}
+        <ul className="rc-steps">
+          {groups.map((group, gi) =>
+            group.caseId === null ? (
+              group.steps.map((step, si) => (
+                <li key={`p-${gi}-${si}`} className="rc-step rc-step--plain">
+                  <span className="rc-step-no">{group.indices[si] + 1}</span>
+                  <span className="rc-step-body">
+                    <span className="rc-step-action">{cleanText(step.action) || sv.noAction}</span>
+                    {cleanText(step.hint) && <span className="rc-step-hint">{cleanText(step.hint)}</span>}
+                  </span>
+                </li>
+              ))
+            ) : (
+              <li key={`c-${gi}`} className="rc-tc">
+                <div className="rc-tc-head">
+                  <span className="rc-tc-badge">TC</span>
+                  <span className="rc-tc-id">#{group.caseId}</span>
+                  <span className="rc-tc-count">{sv.caseSteps(group.steps.length)}</span>
+                </div>
+                <ol className="rc-tc-steps">
+                  {group.steps.map((step, si) => {
+                    const verify = si === group.steps.length - 1
+                    return (
+                      <li key={si} className={`rc-step${verify ? ' rc-step--verify' : ''}`}>
+                        <span className="rc-step-no">{group.indices[si] + 1}</span>
+                        <span className="rc-step-body">
+                          <span className="rc-step-action">{cleanText(step.action) || sv.noAction}</span>
+                          {verify && <span className="rc-step-badge">{sv.verify}</span>}
+                          {cleanText(step.hint) && <span className="rc-step-hint">{cleanText(step.hint)}</span>}
+                        </span>
+                      </li>
+                    )
+                  })}
                 </ol>
-              )}
-            </li>
-          ))}
+              </li>
+            ),
+          )}
         </ul>
       </div>
     </div>

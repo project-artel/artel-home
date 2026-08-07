@@ -2828,6 +2828,22 @@ a.instance-name:hover {
 .run-chat-modal-close:hover{ background:var(--color-bg-hover); color:var(--color-text-primary); }
 .run-chat-modal-meta{ font-size:11px; color:var(--color-text-muted); font-family:var(--st-mono); padding:12px 20px 0; margin:0; }
 .run-chat-tc-list{ list-style:none; margin:0; padding:10px 20px 20px; display:flex; flex-direction:column; gap:10px; }
+/* 카드 전체보기 — steps 가시성 개선 (ARTEL-285): 번호 칩·검증 배지·TC 박스 */
+.rc-steps{ list-style:none; margin:0; padding:10px 20px 20px; display:flex; flex-direction:column; gap:8px; }
+.rc-tc{ border:1px solid var(--color-border-subtle); border-radius:10px; background:var(--color-bg-raised); padding:10px 12px; }
+.rc-tc-head{ display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.rc-tc-badge{ font-size:10px; font-weight:800; color:#fff; background:var(--color-action-primary,#4c8bf5); border-radius:4px; padding:1px 6px; letter-spacing:.05em; }
+.rc-tc-id{ font-size:13px; font-weight:700; color:var(--color-text-primary); font-variant-numeric:tabular-nums; }
+.rc-tc-count{ font-size:11px; color:var(--color-text-muted); }
+.rc-tc-steps{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px; }
+.rc-step{ display:flex; align-items:flex-start; gap:8px; }
+.rc-step--plain{ padding:6px 8px; border-radius:8px; background:var(--color-bg-subtle, rgba(127,127,127,0.06)); }
+.rc-step-no{ flex:none; width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:var(--color-text-secondary); background:var(--color-bg-subtle, rgba(127,127,127,0.12)); border-radius:6px; font-variant-numeric:tabular-nums; }
+.rc-step-body{ display:flex; flex-wrap:wrap; align-items:baseline; gap:6px; line-height:1.5; }
+.rc-step-action{ font-size:13px; color:var(--color-text-primary); }
+.rc-step--verify .rc-step-action{ font-weight:650; }
+.rc-step-badge{ flex:none; font-size:10px; font-weight:700; color:var(--color-action-primary,#4c8bf5); border:1px solid var(--color-action-primary,#4c8bf5); border-radius:4px; padding:0 5px; text-transform:uppercase; letter-spacing:.04em; }
+.rc-step-hint{ font-size:11px; color:var(--color-text-muted); }
 .run-chat-tc{ border:1px solid var(--color-border-subtle); border-radius:8px; background:var(--color-bg-raised); padding:12px 14px; }
 .run-chat-tc-missing{ margin:0; font-size:12px; color:var(--color-text-muted); }
 .run-chat-tc-h{ display:flex; align-items:center; gap:8px; margin:0 0 6px; }
