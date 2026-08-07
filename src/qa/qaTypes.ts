@@ -41,6 +41,20 @@ export type QaTry = {
   completedAt: string | null
 }
 
+/**
+ * A QA_Run (TR 단위 실행): the run's scenarios run in order, each as its own
+ * `QaTry`. `status` is the run's own lifecycle; `tries` is one entry per scenario.
+ */
+export type QaRun = {
+  id: string
+  testRunId: string
+  gameInstanceId: string
+  status: QaTryStatus
+  startedAt: string | null
+  completedAt: string | null
+  tries: QaTry[]
+}
+
 export type QaReasoningCapability =
   | {
       kind: 'effort'

@@ -100,6 +100,19 @@ export const qaEn = {
     alreadyRunning: 'That game already has a QA run in progress. Open or finish it first.',
     startFailed: 'The QA run could not be started.',
   },
+  run: {
+    title: 'QA run',
+    subtitle: 'The run executes its scenarios in order.',
+    progress: (done: number, total: number) => `${done} / ${total} scenarios finished`,
+    scenario: (n: number) => `Scenario ${n}`,
+    openTry: 'Open',
+    cancel: 'Cancel run',
+    cancelling: 'Cancelling…',
+    cancelFailed: 'Could not cancel the run.',
+    back: 'Back to project',
+    loading: 'Loading…',
+    notFound: 'This QA run does not exist.',
+  },
 } as const
 
 export const qaKo: Localized<typeof qaEn> = {
@@ -193,5 +206,18 @@ export const qaKo: Localized<typeof qaEn> = {
     sdkDisconnected: '그 게임이 연결되어 있지 않습니다. 인스턴스 키로 실행한 뒤 다시 시도하세요.',
     alreadyRunning: '그 게임에는 이미 진행 중인 QA가 있습니다. 먼저 열어보거나 종료하세요.',
     startFailed: 'QA를 시작하지 못했습니다.',
+  },
+  run: {
+    title: 'QA 실행',
+    subtitle: '런의 시나리오를 순서대로 실행합니다.',
+    progress: (done: number, total: number) => `시나리오 ${done} / ${total} 완료`,
+    scenario: (n: number) => `시나리오 ${n}`,
+    openTry: '열기',
+    cancel: '런 종료',
+    cancelling: '종료하는 중…',
+    cancelFailed: '런을 종료하지 못했습니다.',
+    back: '프로젝트로',
+    loading: '불러오는 중…',
+    notFound: '이 QA 실행이 존재하지 않습니다.',
   },
 }
