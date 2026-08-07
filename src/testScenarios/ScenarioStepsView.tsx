@@ -1,4 +1,5 @@
 import { useI18n } from '../i18n/useI18n'
+import { ScenarioNameCrumb } from './ScenarioNameCrumb'
 import { groupStepsByCase, type ScenarioDraft } from './scenarioTypes'
 
 /**
@@ -10,7 +11,15 @@ import { groupStepsByCase, type ScenarioDraft } from './scenarioTypes'
  * plain actions rendered on their own. Manual editing (reorder/add, TC picker) is a
  * later track — for now the studio displays what the chat authored.
  */
-export function ScenarioStepsView({ draft }: { draft: ScenarioDraft }) {
+export function ScenarioStepsView({
+  draft,
+  testScenarioId,
+  onRenamed,
+}: {
+  draft: ScenarioDraft
+  testScenarioId: number
+  onRenamed?: (draft: ScenarioDraft) => void
+}) {
   const { t } = useI18n()
   const e = t.scenarios.stepsView
   const groups = groupStepsByCase(draft.steps)
@@ -19,7 +28,9 @@ export function ScenarioStepsView({ draft }: { draft: ScenarioDraft }) {
     <main className="edoc-wrap">
       <div className="edoc st-steps">
         <header className="st-steps-head">
-          <h1 className="st-steps-title">{draft.title.length > 0 ? draft.title : t.scenarios.page.untitled}</h1>
+          <h1 className="st-steps-title">
+            <ScenarioNameCrumb testScenarioId={testScenarioId} draft={draft} onRenamed={onRenamed} />
+          </h1>
         </header>
 
         {draft.steps.length === 0 ? (

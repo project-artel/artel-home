@@ -9,7 +9,6 @@ import { ApproveScenarioDialog } from './ApproveScenarioDialog'
 import { DeleteScenarioDialog } from './DeleteScenarioDialog'
 import { getTestScenario } from './scenarioApi'
 import { ScenarioList } from './ScenarioList'
-import { ScenarioNameCrumb } from './ScenarioNameCrumb'
 import { ScenarioStepsView } from './ScenarioStepsView'
 import { EMPTY_SCENARIO_DRAFT, type ScenarioDraft } from './scenarioTypes'
 
@@ -123,11 +122,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
               <span className="st-crumb-sep" aria-hidden="true">/</span>
             </>
           )}
-          {status === 'ready' ? (
-            <ScenarioNameCrumb testScenarioId={scenarioId} draft={draft} onRenamed={setDraft} />
-          ) : (
-            <span className="scn">{title}</span>
-          )}
+          <span className="scn">{title}</span>
         </div>
         <div className="st-spacer" />
         {fromRun !== null && (
@@ -142,7 +137,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
 
       <div className="st-edit">
         <ScenarioList projectId={projectId} activeId={scenarioId} runId={fromRun} />
-        {status === 'ready' ? <ScenarioStepsView draft={draft} /> : <main className="edoc-wrap"><div className="edoc" /></main>}
+        {status === 'ready' ? <ScenarioStepsView draft={draft} testScenarioId={scenarioId} onRenamed={setDraft} /> : <main className="edoc-wrap"><div className="edoc" /></main>}
         <aside className="st-chat">
           {fromRun !== null && <RunChat session={runChat} />}
         </aside>
