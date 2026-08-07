@@ -1,4 +1,7 @@
 export const QA_TRY_STATUSES = [
+  // PENDING: a run-unit scenario waiting its turn (qa_run executes scenarios in
+  // order; the ones not yet started sit PENDING). Not terminal.
+  'PENDING',
   'STARTING',
   'RUNNING',
   'COMPLETED',

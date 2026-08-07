@@ -3,6 +3,7 @@ import type { Localized } from '../messages'
 /** Strings for `src/qa/*`. See `common.ts` for the typing convention. */
 export const qaEn = {
   statusLabels: {
+    PENDING: 'Waiting',
     STARTING: 'Starting',
     RUNNING: 'Running',
     COMPLETED: 'Completed',
@@ -117,6 +118,7 @@ export const qaEn = {
 
 export const qaKo: Localized<typeof qaEn> = {
   statusLabels: {
+    PENDING: '대기 중',
     STARTING: '시작 중',
     RUNNING: '실행 중',
     COMPLETED: '완료',
