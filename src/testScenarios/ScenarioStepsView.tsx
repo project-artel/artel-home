@@ -22,7 +22,12 @@ export function ScenarioStepsView({
 }) {
   const { t } = useI18n()
   const e = t.scenarios.stepsView
-  const groups = groupStepsByCase(draft.steps)
+  // 내부 case_id는 노출 금지 — TC는 등장 순서(1,2,…)로만 표시.
+  let tcSeq = 0
+  const groups = groupStepsByCase(draft.steps).map((group) => ({
+    group,
+    tcNo: group.caseId === null ? 0 : ++tcSeq,
+  }))
 
   return (
     <main className="edoc-wrap">
@@ -37,7 +42,7 @@ export function ScenarioStepsView({
           <p className="st-steps-empty">{e.empty}</p>
         ) : (
           <ol className="st-steps-list">
-            {groups.map((group, gi) =>
+            {groups.map(({ group, tcNo }, gi) =>
               group.caseId === null ? (
                 group.steps.map((step, si) => (
                   <li key={`a-${group.indices[si]}`} className="st-step st-step--plain">
@@ -49,8 +54,7 @@ export function ScenarioStepsView({
               ) : (
                 <li key={`c-${gi}`} className="st-tc">
                   <div className="st-tc-head">
-                    <span className="st-tc-badge">TC</span>
-                    <span className="st-tc-id">#{group.caseId}</span>
+                    <span className="st-tc-badge">TC {tcNo}</span>
                     <span className="st-tc-meta">{e.caseSteps(group.steps.length)}</span>
                   </div>
                   <ol className="st-tc-steps">
