@@ -269,7 +269,12 @@ function ProposalStepsModal({
   const c = t.scenarios.chat
   const sv = t.scenarios.stepsView
   const isEdit = proposal.scenarioId !== null
-  const groups = groupStepsByCase(proposal.steps)
+  // 내부 case_id는 노출 금지 — TC는 등장 순서(1,2,…)로만 표시한다.
+  let tcSeq = 0
+  const groups = groupStepsByCase(proposal.steps).map((group) => ({
+    group,
+    tcNo: group.caseId === null ? 0 : ++tcSeq,
+  }))
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -301,7 +306,7 @@ function ProposalStepsModal({
         </div>
         <p className="run-chat-modal-meta">{c.modalCases(proposal.steps.length)}</p>
         <ul className="rc-steps">
-          {groups.map((group, gi) =>
+          {groups.map(({ group, tcNo }, gi) =>
             group.caseId === null ? (
               group.steps.map((step, si) => (
                 <li key={`p-${gi}-${si}`} className="rc-step rc-step--plain">
@@ -315,8 +320,7 @@ function ProposalStepsModal({
             ) : (
               <li key={`c-${gi}`} className="rc-tc">
                 <div className="rc-tc-head">
-                  <span className="rc-tc-badge">TC</span>
-                  <span className="rc-tc-id">#{group.caseId}</span>
+                  <span className="rc-tc-badge">TC {tcNo}</span>
                   <span className="rc-tc-count">{sv.caseSteps(group.steps.length)}</span>
                 </div>
                 <ol className="rc-tc-steps">

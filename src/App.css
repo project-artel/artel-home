@@ -2798,7 +2798,9 @@ a.instance-name:hover {
 .run-chat-card{ border:1px solid var(--st-border-strong); border-left-width:3px; border-radius:8px; background:var(--st-raised); padding:10px 12px; }
 .run-chat-card--new{ border-left-color:var(--st-action); }
 .run-chat-card--edit{ border-left-color:var(--st-verified); }
-.run-chat-card-kind{ font-size:11px; color:var(--st-muted); margin:0 0 4px; }
+.run-chat-card-kind{ display:inline-block; font-size:11px; font-weight:700; letter-spacing:.02em; padding:2px 9px; border-radius:999px; margin:0 0 4px; color:#fff; }
+.run-chat-card--new .run-chat-card-kind{ background:var(--st-action); }
+.run-chat-card--edit .run-chat-card-kind{ background:var(--st-verified); }
 .run-chat-card-title{ font-size:13px; font-weight:600; color:var(--st-text); margin:0 0 3px; }
 .run-chat-card-desc{ font-size:12px; line-height:1.5; color:var(--st-text-2); margin:0 0 6px; }
 .run-chat-card-cases{ font-size:11px; color:var(--st-muted); font-family:var(--st-mono); margin:0 0 8px; }
