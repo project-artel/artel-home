@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { RunChat } from '../testRuns/RunChat'
@@ -7,13 +7,14 @@ import { getTestRun } from '../testRuns/testRunApi'
 import { useRunChatSession } from '../testRuns/useRunChatSession'
 import { ApproveScenarioDialog } from './ApproveScenarioDialog'
 import { DeleteScenarioDialog } from './DeleteScenarioDialog'
-import { ScenarioComposition } from './ScenarioComposition'
+import { getTestScenario } from './scenarioApi'
 import { ScenarioList } from './ScenarioList'
-import { useScenarioComposition } from './useScenarioComposition'
+import { ScenarioStepsView } from './ScenarioStepsView'
+import { EMPTY_SCENARIO_DRAFT, type ScenarioDraft } from './scenarioTypes'
 
 /**
  * Keyed by the scenario id so opening another scenario remounts rather than
- * reusing the previous composition.
+ * reusing the previous one.
  */
 export function TestScenarioRoute() {
   const { projectId = '', testScenarioId = '' } = useParams()
@@ -25,24 +26,46 @@ function backLink(projectId: string) {
 }
 
 /**
- * The scenario studio: a scenario's ordered cases in the centre, the project's
- * scenarios on the left, and the run's authoring conversation on the right.
+ * The scenario studio (재설계 2026-08-08): a scenario's ordered STEPS in the
+ * centre, the project's scenarios on the left, and the run's authoring
+ * conversation on the right.
  *
- * The case body is {@link useScenarioComposition}. The chat is RUN-scoped
- * ({@link useRunChatSession}, ARTEL-206 Step 6): one conversation spans the whole
- * run, adds and edits scenarios, and its proposals are applied into this run —
- * so it shows only when the studio was opened from a run (`?run=`). Applying a
- * proposal reloads the composition so committed changes appear.
+ * A scenario body is now `payload.steps` — read here with {@link getTestScenario}
+ * and shown read-only ({@link ScenarioStepsView}); manual step editing is a later
+ * track. The chat is RUN-scoped ({@link useRunChatSession}): one conversation
+ * spans the whole run and its proposals are applied into it, so it shows only when
+ * the studio was opened from a run (`?run=`). Applying a proposal reloads the
+ * scenario so committed steps appear.
  */
 function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; testScenarioId: string }) {
   const scenarioId = Number(testScenarioId)
+  const validId = Number.isInteger(scenarioId) && scenarioId > 0
   const { t } = useI18n()
   const navigate = useNavigate()
-  const comp = useScenarioComposition(projectId, scenarioId)
   const [searchParams] = useSearchParams()
   const fromRun = searchParams.get('run')
-  const initialCase = searchParams.get('case')
-  const runChat = useRunChatSession(projectId, fromRun, comp.reload)
+
+  const [status, setStatus] = useState<'loading' | 'ready' | 'missing'>('loading')
+  const [draft, setDraft] = useState<ScenarioDraft>(EMPTY_SCENARIO_DRAFT)
+  const [reloadKey, setReloadKey] = useState(0)
+  const reload = useCallback(() => setReloadKey((key) => key + 1), [])
+
+  useEffect(() => {
+    if (!validId) return
+    const controller = new AbortController()
+    setStatus('loading')
+    getTestScenario(scenarioId, controller.signal)
+      .then((scenario) => { setDraft(scenario.payload); setStatus('ready') })
+      .catch((error) => {
+        if (error instanceof DOMException && error.name === 'AbortError') return
+        setStatus('missing')
+      })
+    return () => controller.abort()
+  }, [scenarioId, validId, reloadKey])
+
+  // Applying a chat proposal reloads the scenario so committed steps appear.
+  const runChat = useRunChatSession(projectId, fromRun, reload)
+
   // The run's name for the crumb, when the studio was opened from a run. Fetched
   // here because the studio only carries the run id (?run=), not its name.
   const [runName, setRunName] = useState('')
@@ -54,30 +77,15 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
       .catch(() => { /* leave the crumb blank on failure */ })
     return () => controller.abort()
   }, [projectId, fromRun])
+
   const [dialog, setDialog] = useState<'approve' | 'delete' | null>(null)
   // Approve/delete return to where the scenario was opened from: the run's edit
-  // view when in a run, otherwise the project. Staying in the run is the point —
-  // the run's edit shell re-picks a scenario (or shows the empty state).
+  // view when in a run, otherwise the project.
   const afterExit = fromRun !== null
     ? `/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(fromRun)}/edit`
     : backLink(projectId)
 
-  // Page-level undo/redo shortcuts (outside text fields, their own text-undo wins).
-  useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
-      const mod = event.metaKey || event.ctrlKey
-      if (!mod) return
-      const target = event.target as HTMLElement | null
-      if (target !== null && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return
-      const key = event.key.toLowerCase()
-      if (key === 'z' && !event.shiftKey) { event.preventDefault(); if (comp.canUndo) comp.undo() }
-      else if ((key === 'z' && event.shiftKey) || key === 'y') { event.preventDefault(); if (comp.canRedo) comp.redo() }
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [comp.canUndo, comp.canRedo, comp.undo, comp.redo])
-
-  if (!Number.isInteger(scenarioId) || scenarioId <= 0) {
+  if (!validId) {
     return (
       <section className="page"><div className="panel-message">
         <h1>{t.scenarios.page.notFoundTitle}</h1>
@@ -86,7 +94,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
       </div></section>
     )
   }
-  if (comp.status === 'missing') {
+  if (status === 'missing') {
     return (
       <section className="page"><div className="panel-message">
         <h1>{t.scenarios.page.notFoundTitle}</h1>
@@ -96,9 +104,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
     )
   }
 
-  const saveState = comp.saving ? 'saving' : comp.dirty ? 'unsaved' : 'saved'
-  const cc = t.scenarios.composition
-  const title = comp.working.title.length > 0 ? comp.working.title : t.scenarios.page.untitled
+  const title = draft.title.length > 0 ? draft.title : t.scenarios.page.untitled
 
   return (
     <div className="scenario-studio">
@@ -125,23 +131,15 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
             <button onClick={() => navigate(`/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(fromRun)}`)} type="button">{t.scenarios.map.mapView}</button>
           </div>
         )}
-        <div className="st-icons">
-          <button className="iconbtn" disabled={!comp.canUndo} onClick={comp.undo} title={cc.undoTitle} type="button">↶</button>
-          <button className="iconbtn" disabled={!comp.canRedo} onClick={comp.redo} title={cc.redoTitle} type="button">↷</button>
-        </div>
-        <span className={`savebadge ${saveState}`}>
-          {saveState !== 'saved' && <span className="d" />}
-          {saveState === 'saving' ? cc.saving : saveState === 'unsaved' ? cc.unsaved : cc.saved}
-        </span>
         <button className="st-btn st-btn--danger" onClick={() => setDialog('delete')} type="button">{t.scenarios.page.delete}</button>
         <button className="st-btn st-btn--primary" onClick={() => setDialog('approve')} type="button">{t.scenarios.page.approve}</button>
       </header>
 
       <div className="st-edit">
         <ScenarioList projectId={projectId} activeId={scenarioId} runId={fromRun} />
-        <ScenarioComposition comp={comp} projectId={projectId} readOnly={false} initialCaseId={initialCase} />
+        {status === 'ready' ? <ScenarioStepsView draft={draft} /> : <main className="edoc-wrap"><div className="edoc" /></main>}
         <aside className="st-chat">
-          {fromRun !== null && <RunChat projectId={projectId} session={runChat} />}
+          {fromRun !== null && <RunChat session={runChat} />}
         </aside>
       </div>
 
@@ -156,7 +154,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
         <DeleteScenarioDialog
           onClose={() => setDialog(null)}
           onDeleted={() => navigate(afterExit, { replace: true })}
-          scenarioTitle={comp.working.title}
+          scenarioTitle={draft.title}
           testScenarioId={scenarioId}
         />
       )}

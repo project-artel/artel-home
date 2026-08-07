@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { formatDateTime } from '../projects/formatters'
-import { listTestCases } from '../testCases/testCaseApi'
-import type { TestCase } from '../testCases/testCaseTypes'
+import { groupStepsByCase } from '../testScenarios/scenarioTypes'
 import type { ScenarioProposal } from './runChatApi'
 import type { RunChatSession } from './useRunChatSession'
 
@@ -17,12 +16,11 @@ import type { RunChatSession } from './useRunChatSession'
  * of — resolved from the project's case library by id, so the user sees exactly
  * what will be applied before committing.
  */
-export function RunChat({ projectId, session }: { projectId: string; session: RunChatSession }) {
+export function RunChat({ session }: { session: RunChatSession }) {
   const { t } = useI18n()
   const c = t.scenarios.chat
   const [input, setInput] = useState('')
   const [expanded, setExpanded] = useState<ScenarioProposal | null>(null)
-  const [caseById, setCaseById] = useState<Map<string, TestCase>>(new Map())
   const threadRef = useRef<HTMLOListElement>(null)
 
   useEffect(() => {
@@ -30,17 +28,6 @@ export function RunChat({ projectId, session }: { projectId: string; session: Ru
     if (thread === null) return
     thread.scrollTop = thread.scrollHeight
   }, [session.messages.length, session.awaitingReply, session.proposals.length])
-
-  // Resolve proposal case ids → case details from the project's library (same
-  // source as the case palette). Loaded once per project; ids are numeric on the
-  // wire and string on TestCase, so the modal converts when it looks them up.
-  useEffect(() => {
-    const controller = new AbortController()
-    listTestCases(projectId, {}, controller.signal)
-      .then((cases) => setCaseById(new Map(cases.map((tc) => [tc.id, tc]))))
-      .catch(() => undefined)
-    return () => controller.abort()
-  }, [projectId])
 
   async function submit(event: React.FormEvent) {
     event.preventDefault()
@@ -184,9 +171,8 @@ export function RunChat({ projectId, session }: { projectId: string; session: Ru
       </p>
 
       {expanded !== null && (
-        <ProposalCasesModal
+        <ProposalStepsModal
           proposal={expanded}
-          caseById={caseById}
           onClose={() => setExpanded(null)}
         />
       )}
@@ -240,7 +226,7 @@ function ProposalCard({
       {proposal.description.length > 0 && (
         <p className="run-chat-card-desc">{proposal.description}</p>
       )}
-      <p className="run-chat-card-cases">{caseCount(proposal.caseIds.length)}</p>
+      <p className="run-chat-card-cases">{caseCount(proposal.steps.length)}</p>
       <div className="run-chat-card-actions">
         <button
           className="button button--secondary button--compact"
@@ -263,20 +249,19 @@ function ProposalCard({
   )
 }
 
-/** Modal listing the TestCases a proposal is composed of, in order. */
-function ProposalCasesModal({
+/** Modal listing a proposal's ordered steps, grouped into TC boxes (재설계). */
+function ProposalStepsModal({
   proposal,
-  caseById,
   onClose,
 }: {
   proposal: ScenarioProposal
-  caseById: Map<string, TestCase>
   onClose: () => void
 }) {
   const { t } = useI18n()
   const c = t.scenarios.chat
+  const sv = t.scenarios.stepsView
   const isEdit = proposal.scenarioId !== null
-  const cases = proposal.caseIds.map((id) => caseById.get(String(id)) ?? null)
+  const groups = groupStepsByCase(proposal.steps)
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -306,31 +291,31 @@ function ProposalCasesModal({
             ✕
           </button>
         </div>
-        <p className="run-chat-modal-meta">{c.modalCases(proposal.caseIds.length)}</p>
+        <p className="run-chat-modal-meta">{c.modalCases(proposal.steps.length)}</p>
         <ul className="run-chat-tc-list">
-          {cases.map((tc, index) => (
-            <li className="run-chat-tc" key={index}>
-              {tc === null ? (
-                <p className="run-chat-tc-missing">{c.caseMissing}</p>
-              ) : (
-                <>
-                  <div className="run-chat-tc-h">
-                    <span className={`run-chat-cat run-chat-cat--${tc.category}`}>{tc.category}</span>
-                    <span className="run-chat-tc-title">
-                      {index + 1}. {tc.title}
-                    </span>
-                  </div>
-                  {tc.precondition !== null && tc.precondition.length > 0 && (
-                    <div className="run-chat-tc-row">
-                      <span className="run-chat-tc-lb">{c.precondition}</span>
-                      <span className="run-chat-tc-vl">{tc.precondition}</span>
-                    </div>
-                  )}
-                  <div className="run-chat-tc-row">
-                    <span className="run-chat-tc-lb">{c.expected}</span>
-                    <span className="run-chat-tc-vl">{tc.expected}</span>
-                  </div>
-                </>
+          {groups.map((group, gi) => (
+            <li className="run-chat-tc" key={gi}>
+              <div className="run-chat-tc-h">
+                {group.caseId === null ? (
+                  <span className="run-chat-tc-title">{group.steps[0]?.action || sv.noAction}</span>
+                ) : (
+                  <>
+                    <span className="run-chat-cat">TC #{group.caseId}</span>
+                    <span className="run-chat-tc-title">{sv.caseSteps(group.steps.length)}</span>
+                  </>
+                )}
+              </div>
+              {group.caseId !== null && (
+                <ol className="run-chat-tc-steps">
+                  {group.steps.map((step, si) => (
+                    <li className="run-chat-tc-row" key={si}>
+                      <span className="run-chat-tc-vl">
+                        {group.indices[si] + 1}. {step.action || sv.noAction}
+                        {si === group.steps.length - 1 && ` · ${sv.verify}`}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
               )}
             </li>
           ))}

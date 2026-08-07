@@ -168,7 +168,7 @@ export function deriveQaProgress({
       else failed += 1
       steps.push({
         step,
-        title: scenarioSteps[step - 1]?.title ?? '',
+        title: scenarioSteps[step - 1]?.action ?? '',
         state: verdict.passed ? 'passed' : 'failed',
         verdict: verdict.message.length > 0 ? verdict.message : null,
         verdictLogId: verdict.logId,
@@ -194,7 +194,7 @@ export function deriveQaProgress({
 
     steps.push({
       step,
-      title: scenarioSteps[step - 1]?.title ?? '',
+      title: scenarioSteps[step - 1]?.action ?? '',
       state,
       verdict: null,
       verdictLogId: null,

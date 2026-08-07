@@ -50,19 +50,24 @@ function asRole(value: unknown): ScenarioRole {
   return value === 'ASSISTANT' ? 'ASSISTANT' : 'USER'
 }
 
-function parseStep(data: unknown, index: number): ScenarioStep | null {
+function asNullableNumber(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+function asNullableText(value: unknown): string | null {
+  return typeof value === 'string' && value.length > 0 ? value : null
+}
+
+function parseStep(data: unknown): ScenarioStep | null {
   const record = asRecord(data)
   if (record === null) return null
 
-  // `step` degrades to list position: it is only an ordering key, and dropping
-  // a step because the server omitted its number would silently shorten the
-  // scenario the user is reviewing.
+  // Field names mirror the wire (재설계): action + optional case_id/hint/input.
   return {
-    step: asNumber(record.step, index + 1),
-    title: asString(record.title),
-    state: asString(record.state),
     action: asString(record.action),
-    expected: asString(record.expected),
+    case_id: asNullableNumber(record.case_id),
+    hint: asNullableText(record.hint),
+    input: asNullableText(record.input),
   }
 }
 
@@ -72,18 +77,20 @@ function parseStep(data: unknown, index: number): ScenarioStep | null {
  * `ScenarioDraft` at creation, so "nothing here yet" is a normal state, not an
  * error — it is what every scenario looks like before the first agent reply.
  */
+/** Parses a raw `steps` array (from a payload or a chat proposal) into steps. */
+export function parseSteps(data: unknown): ScenarioStep[] {
+  const steps = Array.isArray(data) ? data : []
+  return steps.map(parseStep).filter((step): step is ScenarioStep => step !== null)
+}
+
 export function parseScenarioDraft(data: unknown): ScenarioDraft {
   const record = asRecord(data)
   if (record === null) return EMPTY_SCENARIO_DRAFT
 
-  const steps = Array.isArray(record.steps) ? record.steps : []
-
   return {
     title: asString(record.title),
     description: asString(record.description),
-    steps: steps
-      .map(parseStep)
-      .filter((step): step is ScenarioStep => step !== null),
+    steps: parseSteps(record.steps),
   }
 }
 

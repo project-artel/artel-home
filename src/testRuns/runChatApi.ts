@@ -6,7 +6,8 @@ import {
   readJson,
   toApiError,
 } from '../projects/projectApi'
-import type { ChatMessage, ScenarioRole } from '../testScenarios/scenarioTypes'
+import { parseSteps } from '../testScenarios/scenarioApi'
+import type { ChatMessage, ScenarioRole, ScenarioStep } from '../testScenarios/scenarioTypes'
 
 /*
  * Run-scoped authoring chat (ARTEL-206 Step 6). The conversation belongs to a
@@ -23,16 +24,16 @@ function chatPath(projectId: string, runId: string, suffix: string): string {
 }
 
 /**
- * One scenario the agent proposes for the run. `scenarioId` null = a brand-new
- * scenario to add; a number = an edit of that existing scenario. `caseIds` are
- * the ids of existing TestCases the scenario is built from. Ids ride as JSON
- * numbers on the wire (DB serials) and are sent back unchanged on commit.
+ * One scenario the agent proposes for the run (재설계 2026-08-08). `scenarioId`
+ * null = a brand-new scenario to add; a number = an edit of that existing
+ * scenario. `steps` is the scenario body — ordered actions, each with an optional
+ * `case_id` mapping it to the TestCase it verifies. Sent back unchanged on commit.
  */
 export type ScenarioProposal = {
   scenarioId: number | null
   title: string
   description: string
-  caseIds: number[]
+  steps: ScenarioStep[]
 }
 
 export type RunChatResult = {
@@ -118,20 +119,13 @@ export async function commitRunScenarios(
         scenario_id: s.scenarioId,
         title: s.title,
         description: s.description,
-        case_ids: s.caseIds,
+        steps: s.steps,
       })),
     }),
   })
   if (!response.ok) {
     throw await toApiError(response)
   }
-}
-
-function asNumberArray(value: unknown): number[] {
-  if (!Array.isArray(value)) return []
-  return value
-    .map((v) => (typeof v === 'number' ? v : typeof v === 'string' ? Number(v) : NaN))
-    .filter((v) => Number.isFinite(v))
 }
 
 function parseProposal(value: unknown): ScenarioProposal {
@@ -143,7 +137,7 @@ function parseProposal(value: unknown): ScenarioProposal {
     scenarioId: scenarioId !== null && Number.isFinite(scenarioId) ? scenarioId : null,
     title: asString(record.title),
     description: asString(record.description),
-    caseIds: asNumberArray(record.case_ids),
+    steps: parseSteps(record.steps),
   }
 }
 

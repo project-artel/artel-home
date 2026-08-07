@@ -6,12 +6,21 @@
  * it is declared once and shared.
  */
 
+/**
+ * One scenario step = one action (재설계 2026-08-08, ARTEL-285).
+ *
+ * Field names mirror the wire exactly (`draft` is sent to the server verbatim and
+ * the stored `payload` is read back verbatim), so `case_id` stays snake_case.
+ * A step carrying a `case_id` belongs to that TestCase's verification region — a
+ * run of consecutive steps sharing one `case_id` is one TC, its last step the
+ * check. A step with `case_id: null` is a plain action with no verdict.
+ * `hint`/`input` are advisory notes for whoever runs it.
+ */
 export type ScenarioStep = {
-  step: number
-  title: string
-  state: string
   action: string
-  expected: string
+  case_id: number | null
+  hint: string | null
+  input: string | null
 }
 
 export type ScenarioDraft = {
@@ -83,17 +92,33 @@ export function isScenarioDraftEqual(left: ScenarioDraft, right: ScenarioDraft):
   return JSON.stringify(left) === JSON.stringify(right)
 }
 
-/**
- * Renumbers `step` to match list order.
- *
- * `step` is the canvas's ordering key, so an inserted, removed, or moved step
- * would otherwise leave the server holding numbers that contradict the sequence
- * the user arranged.
- */
-export function withSequentialSteps(steps: ScenarioStep[]): ScenarioStep[] {
-  return steps.map((step, index) => ({ ...step, step: index + 1 }))
+export function createEmptyStep(): ScenarioStep {
+  return { action: '', case_id: null, hint: null, input: null }
 }
 
-export function createEmptyStep(): ScenarioStep {
-  return { step: 0, title: '', state: '', action: '', expected: '' }
+/**
+ * One TC verification region within a scenario: a run of consecutive steps that
+ * share a `case_id`. Steps with no `case_id` are returned as their own single-step
+ * groups with `caseId: null` (plain actions, no verdict). This is how the studio
+ * renders steps grouped into TC boxes, and it is derived from step order alone.
+ */
+export type StepGroup = {
+  caseId: number | null
+  /** Indices into the scenario's `steps` array (0-based), in order. */
+  indices: number[]
+  steps: ScenarioStep[]
+}
+
+export function groupStepsByCase(steps: ScenarioStep[]): StepGroup[] {
+  const groups: StepGroup[] = []
+  steps.forEach((step, index) => {
+    const last = groups[groups.length - 1]
+    if (step.case_id !== null && last && last.caseId === step.case_id) {
+      last.indices.push(index)
+      last.steps.push(step)
+    } else {
+      groups.push({ caseId: step.case_id, indices: [index], steps: [step] })
+    }
+  })
+  return groups
 }

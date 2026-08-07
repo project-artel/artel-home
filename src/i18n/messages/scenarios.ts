@@ -261,6 +261,12 @@ export const scenariosEn = {
     renameLabel: 'Run name',
     untitled: 'Untitled run',
   },
+  stepsView: {
+    empty: 'No steps yet. Ask the assistant to author this scenario.',
+    noAction: '(no action)',
+    verify: 'verify',
+    caseSteps: (n: number) => `${n} step${n === 1 ? '' : 's'}`,
+  },
   palette: {
     searchPlaceholder: 'Search cases — title, category, id…',
     statusLabel: 'Status',
@@ -538,6 +544,12 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     renameHint: '클릭해서 런 이름 변경',
     renameLabel: '런 이름',
     untitled: '이름 없는 런',
+  },
+  stepsView: {
+    empty: '아직 스텝이 없어요. 어시스턴트에게 이 시나리오를 작성해 달라고 해보세요.',
+    noAction: '(행위 없음)',
+    verify: '검증',
+    caseSteps: (n: number) => `${n}개 스텝`,
   },
   palette: {
     searchPlaceholder: '케이스 검색 — 제목·대분류·id…',

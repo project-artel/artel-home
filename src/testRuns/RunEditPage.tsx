@@ -153,7 +153,7 @@ function RunEditPage({ projectId, runId }: { projectId: string; runId: string })
           </div>
         </main>
         <aside className="st-chat">
-          <RunChat projectId={projectId} session={runChat} />
+          <RunChat session={runChat} />
         </aside>
       </div>
     </div>
