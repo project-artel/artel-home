@@ -9,7 +9,7 @@ import { ApproveScenarioDialog } from './ApproveScenarioDialog'
 import { DeleteScenarioDialog } from './DeleteScenarioDialog'
 import { getTestScenario } from './scenarioApi'
 import { ScenarioList } from './ScenarioList'
-import { ScenarioStepsView } from './ScenarioStepsView'
+import { ScenarioStepEditor } from './ScenarioStepEditor'
 import { EMPTY_SCENARIO_DRAFT, type ScenarioDraft } from './scenarioTypes'
 
 /**
@@ -31,8 +31,8 @@ function backLink(projectId: string) {
  * conversation on the right.
  *
  * A scenario body is now `payload.steps` — read here with {@link getTestScenario}
- * and shown read-only ({@link ScenarioStepsView}); manual step editing is a later
- * track. The chat is RUN-scoped ({@link useRunChatSession}): one conversation
+ * and edited in {@link ScenarioStepEditor} (add/edit/reorder/undo·redo/save). The
+ * chat is RUN-scoped ({@link useRunChatSession}): one conversation
  * spans the whole run and its proposals are applied into it, so it shows only when
  * the studio was opened from a run (`?run=`). Applying a proposal reloads the
  * scenario so committed steps appear.
@@ -137,7 +137,16 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
 
       <div className="st-edit">
         <ScenarioList projectId={projectId} activeId={scenarioId} runId={fromRun} />
-        {status === 'ready' ? <ScenarioStepsView draft={draft} testScenarioId={scenarioId} onRenamed={setDraft} /> : <main className="edoc-wrap"><div className="edoc" /></main>}
+        {status === 'ready' ? (
+          <ScenarioStepEditor
+            key={`${scenarioId}:${reloadKey}`}
+            testScenarioId={scenarioId}
+            initialDraft={draft}
+            onSaved={setDraft}
+          />
+        ) : (
+          <main className="edoc-wrap"><div className="edoc" /></main>
+        )}
         <aside className="st-chat">
           {fromRun !== null && <RunChat session={runChat} />}
         </aside>
