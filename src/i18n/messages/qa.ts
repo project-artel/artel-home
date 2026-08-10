@@ -51,6 +51,11 @@ export const qaEn = {
     /** Why a step is clickable, and why the rest are not. */
     jumpHint: 'Select a judged step to open the log entry that judged it.',
     jump: (step: number) => `Go to the log for step ${step}`,
+    caseLabel: (n: number) => `TC ${n}`,
+    verification: 'Verification',
+    casesSummary: (passed: number, failed: number, total: number) =>
+      `${total} checks · ${passed} passed · ${failed} failed`,
+    stepsHeading: 'Steps',
     stateLabels: {
       passed: 'Passed',
       failed: 'Failed',
@@ -173,6 +178,11 @@ export const qaKo: Localized<typeof qaEn> = {
     empty: '이 실행에는 추적할 스텝이 없습니다.',
     jumpHint: '판정된 스텝을 선택하면 그 판정을 남긴 로그로 이동합니다.',
     jump: (step: number) => `스텝 ${step}의 로그로 이동`,
+    caseLabel: (n: number) => `TC ${n}`,
+    verification: '검증',
+    casesSummary: (passed: number, failed: number, total: number) =>
+      `검증 ${total}개 · 통과 ${passed} · 실패 ${failed}`,
+    stepsHeading: '스텝',
     stateLabels: {
       passed: '통과',
       failed: '실패',

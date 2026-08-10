@@ -5,10 +5,10 @@ import { GameStreamView } from '../streaming/GameStreamView'
 import { QaTryIssuePanel } from '../issues/QaTryIssuePanel'
 import { listTestScenarios } from '../testScenarios/scenarioApi'
 import { cancelQaRun, getQaRun, isDecimalId } from './qaApi'
+import { QaCaseProgress } from './QaCaseProgress'
 import { QaChatPanel } from './QaChatPanel'
 import { QaLogTimeline, type QaLogFocusRequest } from './QaLogTimeline'
 import { deriveQaProgress } from './qaProgress'
-import { QaStepStrip } from './QaStepStrip'
 import { isTerminalQaStatus, type QaLog, type QaRun, type QaTry } from './qaTypes'
 import { useQaTry } from './useQaTry'
 import { useScenarioSteps } from './useScenarioSteps'
@@ -252,7 +252,7 @@ function FocusedTry({ tryId }: { tryId: string }) {
         </section>
 
         <aside className="qa-focus-progress">
-          <QaStepStrip onJump={jumpToLog} progress={progress} />
+          <QaCaseProgress onJump={jumpToLog} progress={progress} scenarioSteps={scenarioSteps} />
         </aside>
       </div>
 
