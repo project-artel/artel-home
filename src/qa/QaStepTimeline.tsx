@@ -72,14 +72,18 @@ export function QaStepTimeline({
             // steps stops shrinking and the track scrolls instead.
             style={{ flexGrow: Math.max(1, block.rows.length) }}
           >
-            {block.kind === 'tc' && (
-              <div className="qa-tl-cap">
-                <span className="qa-tl-cap-no">{s.caseLabel(block.no)}</span>
-                <span className={`qa-tl-cap-verdict qa-tl-cap-verdict--${block.verdict}`}>
-                  <span aria-hidden="true">{STATE_GLYPHS[block.verdict]}</span>
-                </span>
-              </div>
-            )}
+            <div className={`qa-tl-cap${block.kind === 'tc' ? '' : ' qa-tl-cap--plain'}`}>
+              {block.kind === 'tc' ? (
+                <>
+                  <span className="qa-tl-cap-no">{s.caseLabel(block.no)}</span>
+                  <span className={`qa-tl-cap-verdict qa-tl-cap-verdict--${block.verdict}`}>
+                    <span aria-hidden="true">{STATE_GLYPHS[block.verdict]}</span>{s.stateLabels[block.verdict]}
+                  </span>
+                </>
+              ) : (
+                <span className="qa-tl-cap-label">{s.stepsHeading}</span>
+              )}
+            </div>
             <div className="qa-tl-cells">
               {block.rows.map((step, k) => {
                 const isVerify = block.kind === 'tc' && k === block.rows.length - 1
@@ -87,8 +91,11 @@ export function QaStepTimeline({
                 const label = `${step.step}. ${title} — ${s.stateLabels[step.state]}`
                 const cell = (
                   <>
-                    <span className="qa-tl-cell-no">{step.step}</span>
-                    <span aria-hidden="true" className="qa-tl-cell-glyph">{STATE_GLYPHS[step.state]}</span>
+                    <span className="qa-tl-cell-head">
+                      <span aria-hidden="true" className="qa-tl-cell-glyph">{STATE_GLYPHS[step.state]}</span>
+                      <span className="qa-tl-cell-no">{step.step}</span>
+                    </span>
+                    <span className="qa-tl-cell-name">{title}</span>
                   </>
                 )
                 const className = `qa-tl-cell qa-tl-cell--${step.state}${isVerify ? ' qa-tl-cell--verify' : ''}`

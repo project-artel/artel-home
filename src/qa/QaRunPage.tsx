@@ -202,6 +202,7 @@ function FocusedTry({ tryId }: { tryId: string }) {
   const scenarioSteps = useScenarioSteps(session.qaTry?.testScenarioId ?? null)
   const [logView, setLogView] = useState<'flow' | 'raw' | 'issues'>('flow')
   const [focusRequest, setFocusRequest] = useState<QaLogFocusRequest | null>(null)
+  const [chatOpen, setChatOpen] = useState(false)
 
   const progress = useMemo(
     () =>
@@ -243,14 +244,6 @@ function FocusedTry({ tryId }: { tryId: string }) {
         </section>
 
         <QaStepTimeline onJump={jumpToLog} progress={progress} scenarioSteps={scenarioSteps} />
-
-        {active && (
-          <QaChatPanel
-            disabled={session.qaTry.status !== 'RUNNING'}
-            logs={session.logs}
-            qaTryId={session.qaTry.id}
-          />
-        )}
       </div>
 
       <aside className="qa-focus-logs-col" aria-label={t.qa.run.logsTitle}>
@@ -279,6 +272,30 @@ function FocusedTry({ tryId }: { tryId: string }) {
           )}
         </div>
       </aside>
+
+      {active && (
+        <div className="qa-chat-dock">
+          {chatOpen && (
+            <div className="qa-chat-pop" role="dialog" aria-label={t.qa.run.chat}>
+              <QaChatPanel
+                disabled={session.qaTry.status !== 'RUNNING'}
+                logs={session.logs}
+                qaTryId={session.qaTry.id}
+              />
+            </div>
+          )}
+          <button
+            className={`qa-chat-fab${chatOpen ? ' qa-chat-fab--on' : ''}`}
+            onClick={() => setChatOpen((open) => !open)}
+            aria-expanded={chatOpen}
+            aria-label={t.qa.run.chat}
+            title={t.qa.run.chat}
+            type="button"
+          >
+            {chatOpen ? '✕' : '💬'}
+          </button>
+        </div>
+      )}
     </div>
   )
 }

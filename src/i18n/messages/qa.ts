@@ -130,6 +130,7 @@ export const qaEn = {
     logAction: 'Action steps',
     logGeneral: 'Run log',
     tabIssues: 'Issues',
+    chat: 'Chat',
   },
 } as const
 
@@ -255,5 +256,6 @@ export const qaKo: Localized<typeof qaEn> = {
     logAction: '행동 스텝',
     logGeneral: '실행 로그',
     tabIssues: '이슈',
+    chat: '채팅',
   },
 }
