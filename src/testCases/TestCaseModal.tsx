@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
+import { CategoryChip } from './CategoryChip'
 import { getTestCase } from './testCaseApi'
 import type { TestCase } from './testCaseTypes'
 
 /**
  * Read-only view of a single TestCase's content (ARTEL-289 #3), opened from a
- * step's TC badge. Shows what the case verifies (scene/category, precondition,
- * expected) — never the internal id (the caller passes a human `label` like
- * "TC 2"). Fetched on open by `caseId`, which stays out of the UI.
+ * step's TC badge. Shows what the case verifies — scene (coloured category),
+ * verification status, precondition and expected — never the internal id (the
+ * caller passes a human `label` like "TC 2"). Fetched on open by `caseId`, which
+ * stays out of the UI.
  */
 export function TestCaseModal({
   projectId,
@@ -22,6 +24,7 @@ export function TestCaseModal({
 }) {
   const { t } = useI18n()
   const m = t.scenarios.tcModal
+  const statusLabel = t.scenarios.composition.status
   const [testCase, setTestCase] = useState<TestCase | null>(null)
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading')
 
@@ -57,12 +60,21 @@ export function TestCaseModal({
         {state === 'ready' && testCase !== null && (
           <div className="tc-modal-body">
             <h3 id="tc-modal-title" className="tc-modal-title">{testCase.title || m.untitled}</h3>
-            {testCase.category && <span className="tc-modal-cat">{testCase.category}</span>}
+            <div className="tc-modal-tags">
+              <CategoryChip category={testCase.category} />
+              <span className={`vpill ${testCase.verificationStatus}`}>
+                <span className={`vdot ${testCase.verificationStatus}`} />{statusLabel[testCase.verificationStatus]}
+              </span>
+            </div>
             <dl className="tc-modal-fields">
-              <dt>{m.precondition}</dt>
-              <dd>{testCase.precondition && testCase.precondition.length > 0 ? testCase.precondition : '—'}</dd>
-              <dt>{m.expected}</dt>
-              <dd>{testCase.expected || '—'}</dd>
+              <div className="tc-field">
+                <dt className="tc-field-label">{m.precondition}</dt>
+                <dd className="tc-field-val">{testCase.precondition && testCase.precondition.length > 0 ? testCase.precondition : '—'}</dd>
+              </div>
+              <div className="tc-field">
+                <dt className="tc-field-label">{m.expected}</dt>
+                <dd className="tc-field-val">{testCase.expected || '—'}</dd>
+              </div>
             </dl>
           </div>
         )}

@@ -3347,3 +3347,41 @@ a.instance-name:hover {
 
 /* 전체 TC 명세 ⌘K 조회 (ARTEL-289 #4)는 이전 CasePalette의 cp-* 스타일을 재사용한다. */
 .scenario-studio .st-btn .kbd{ font-family:var(--st-mono); font-size:10.5px; color:var(--st-muted); background:var(--st-canvas); border:1px solid var(--st-border-strong); border-radius:5px; padding:1px 5px; margin-left:5px; }
+
+/* CategoryChip 테마 대응 (ARTEL-289): 라이트=밝은 틴트+짙은 글자, 다크=잉크 반전.
+   hue만 인라인(--cat-hue), 명도/채도는 여기서 테마별로. */
+.scenario-studio .cat-chip, .run-map .cat-chip{
+  background:hsl(var(--cat-hue,220) 60% 91%);
+  color:hsl(var(--cat-hue,220) 42% 29%);
+  border-color:hsl(var(--cat-hue,220) 44% 73%);
+}
+:root[data-theme='dark'] .scenario-studio .cat-chip, :root[data-theme='dark'] .run-map .cat-chip{
+  background:hsl(var(--cat-hue,220) 45% 16%);
+  color:hsl(var(--cat-hue,220) 70% 72%);
+  border-color:hsl(var(--cat-hue,220) 40% 32%);
+}
+
+/* Step 편집기 가시성 강화 (ARTEL-289) */
+.scenario-studio .st-editor{ max-width:900px; }
+.scenario-studio .st-editor-list{ gap:10px; }
+.scenario-studio .st-erow{ padding:12px 14px; border-radius:12px; border-color:var(--st-border-strong); transition:border-color .12s ease, background .12s ease, box-shadow .12s ease; }
+.scenario-studio .st-erow:hover{ border-color:var(--st-action); box-shadow:0 1px 0 var(--st-border-strong); }
+.scenario-studio .st-erow--tc{ border-left:3px solid var(--st-action); background:color-mix(in srgb, var(--st-action) 6%, var(--st-surface)); }
+.scenario-studio .st-erow-no{ width:26px; height:26px; font-size:12.5px; color:var(--st-action); background:color-mix(in srgb, var(--st-action) 14%, transparent); }
+.scenario-studio .st-erow-action{ font-size:15px; line-height:1.6; }
+.scenario-studio .st-erow-hint{ font-size:12.5px; }
+.scenario-studio .st-erow-drag{ font-size:16px; opacity:.5; }
+.scenario-studio .st-erow:hover .st-erow-drag{ opacity:.9; }
+.scenario-studio .st-tc-badge{ font-size:11px; padding:2px 8px; letter-spacing:.06em; }
+
+/* Step→TC 상세 모달 가시성 강화 (ARTEL-289 #3) */
+.tc-modal{ width:min(560px,100%); }
+.tc-modal-head{ padding:15px 18px; }
+.tc-modal-body{ padding:18px; gap:12px; }
+.tc-modal-title{ font-size:18px; line-height:1.35; }
+.tc-modal-tags{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.tc-modal-fields{ margin:4px 0 0; grid-template-columns:1fr; gap:0; }
+.tc-modal-fields .tc-field{ padding:12px 14px; border:1px solid var(--color-border-subtle); border-radius:10px; background:var(--color-bg-surface); margin-bottom:10px; }
+.tc-modal-fields .tc-field:last-child{ margin-bottom:0; }
+.tc-modal-fields .tc-field-label{ display:block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--color-text-muted); margin-bottom:5px; }
+.tc-modal-fields .tc-field-val{ font-size:13.5px; color:var(--color-text-primary); line-height:1.6; white-space:pre-wrap; }
