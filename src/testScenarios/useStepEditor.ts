@@ -5,18 +5,21 @@ import { isScenarioDraftEqual, type ScenarioDraft, type ScenarioStep } from './s
 /**
  * Editable working copy of a scenario's steps, with undo/redo and autosave.
  *
- * The steps are edited in place (add/edit/remove/reorder) against a working draft;
- * every mutation pushes the previous draft on the undo stack (재도입, ARTEL-289 —
- * the old composition studio had undo/redo + autosave before the redesign).
+ * Steps are edited in place (add/edit/remove/reorder) against a live `working`
+ * draft. Persistence is **automatic and debounced** ({@link AUTOSAVE_DEBOUNCE_MS}):
+ * a change makes the draft `dirty`, and after the quiet window it is written to the
+ * scenario's `payload` via {@link updateScenario}.
  *
- * Persistence is **automatic and debounced** ({@link AUTOSAVE_DEBOUNCE_MS}): a
- * change makes the draft `dirty`, and after the quiet window it is written to the
- * scenario's `payload` via {@link updateScenario}. Autosave never touches the
- * undo/redo stacks — so undo can walk back *through* already-saved states (and the
- * next autosave persists the reverted state). That matters because undo must be
- * able to revert an agent-applied change too, not only unsaved keystrokes.
+ * Undo granularity is the **autosave commit, not the keystroke** (재도입, ARTEL-289
+ * — matching the old composition studio). Keystrokes never touch the history; each
+ * successful autosave pushes one snapshot. So one undo walks back a whole burst of
+ * edits (everything since the last save), not a single character. Undo can walk
+ * back through already-saved states — and the next autosave persists the reverted
+ * state — because undo must also be able to revert an agent-applied proposal, not
+ * only unsaved keystrokes.
  */
 const AUTOSAVE_DEBOUNCE_MS = 600
+const UNDO_WINDOW = 30
 
 export type StepEditor = {
   working: ScenarioDraft
@@ -37,32 +40,51 @@ export type StepEditor = {
   /** Seed the editor from a freshly loaded draft, clearing history (initial load). */
   reset: (draft: ScenarioDraft) => void
   /**
-   * Adopt a draft applied out-of-band (a chat proposal) as the new working state,
-   * recording the pre-apply draft on the undo stack so the apply can be undone.
+   * Adopt a draft applied out-of-band (a chat proposal) as a new committed state,
+   * recording it on the history so the apply can be undone.
    */
   rebase: (draft: ScenarioDraft) => void
 }
 
 export function useStepEditor(testScenarioId: number, initial: ScenarioDraft): StepEditor {
   const [working, setWorking] = useState<ScenarioDraft>(initial)
-  const [past, setPast] = useState<ScenarioDraft[]>([])
-  const [future, setFuture] = useState<ScenarioDraft[]>([])
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+
   // The last-persisted draft; `dirty` is working ≠ this. A ref so mutations don't
-  // depend on it. `savedTick` forces `dirty`/effects to recompute when autosave
-  // advances the baseline without `working` changing.
+  // depend on it. `savedTick` re-reads it after autosave advances it silently.
   const baseline = useRef<ScenarioDraft>(initial)
   const [savedTick, setSavedTick] = useState(0)
 
-  // Every edit routes through here: snapshot the current draft onto the undo
-  // stack, drop the redo stack (a new edit forks history), apply the change.
+  // History of committed states (one per autosave / apply), with a cursor. Refs
+  // so recording inside effects never re-triggers renders on its own; `avail`
+  // mirrors the derived button state.
+  const historyRef = useRef<ScenarioDraft[]>([initial])
+  const cursorRef = useRef(0)
+  const [avail, setAvail] = useState({ canUndo: false, canRedo: false })
+  const syncAvail = useCallback(() => {
+    const cursor = cursorRef.current
+    setAvail({ canUndo: cursor > 0, canRedo: cursor < historyRef.current.length - 1 })
+  }, [])
+
+  // Records a committed draft as the next history entry, dropping any redo tail.
+  const recordCommit = useCallback((draft: ScenarioDraft) => {
+    const history = historyRef.current
+    const cursor = cursorRef.current
+    if (cursor >= 0 && isScenarioDraftEqual(history[cursor], draft)) return
+    const kept = history.slice(0, cursor + 1)
+    kept.push(draft)
+    const trimmed = kept.length > UNDO_WINDOW ? kept.slice(kept.length - UNDO_WINDOW) : kept
+    historyRef.current = trimmed
+    cursorRef.current = trimmed.length - 1
+    syncAvail()
+  }, [syncAvail])
+
+  // Every edit routes through here: apply the change to the working draft. Undo
+  // history is NOT touched — it advances only on commit (autosave), so undo is
+  // per-save, not per-keystroke.
   const mutate = useCallback((next: (draft: ScenarioDraft) => ScenarioDraft) => {
-    setWorking((current) => {
-      setPast((stack) => [...stack, current])
-      setFuture([])
-      return next(current)
-    })
+    setWorking((current) => next(current))
   }, [])
 
   const setTitle = useCallback(
@@ -104,39 +126,13 @@ export function useStepEditor(testScenarioId: number, initial: ScenarioDraft): S
     [mutate],
   )
 
-  const undo = useCallback(() => {
-    setPast((stack) => {
-      if (stack.length === 0) return stack
-      const previous = stack[stack.length - 1]
-      setWorking((current) => {
-        setFuture((f) => [current, ...f])
-        return previous
-      })
-      return stack.slice(0, -1)
-    })
-  }, [])
-
-  const redo = useCallback(() => {
-    setFuture((stack) => {
-      if (stack.length === 0) return stack
-      const nextDraft = stack[0]
-      setWorking((current) => {
-        setPast((p) => [...p, current])
-        return nextDraft
-      })
-      return stack.slice(1)
-    })
-  }, [])
-
   const dirty = useMemo(
     () => !isScenarioDraftEqual(working, baseline.current),
-    // savedTick: baseline.current is a ref, so re-read it after autosave lands too.
     [working, savedTick],
   )
 
-  // Persists the given draft and, on success, advances the baseline to it — but
-  // leaves working/past/future untouched, so a save never disturbs the edit state
-  // or the undo history.
+  // Persists a draft and, on success, advances the baseline and records the
+  // commit on the history. Leaves `working` untouched.
   const persist = useCallback(
     async (draft: ScenarioDraft): Promise<boolean> => {
       setSaving(true)
@@ -144,6 +140,7 @@ export function useStepEditor(testScenarioId: number, initial: ScenarioDraft): S
       try {
         await updateScenario(testScenarioId, draft)
         baseline.current = draft
+        recordCommit(draft)
         setSavedTick((n) => n + 1)
         return true
       } catch {
@@ -153,12 +150,12 @@ export function useStepEditor(testScenarioId: number, initial: ScenarioDraft): S
         setSaving(false)
       }
     },
-    [testScenarioId],
+    [testScenarioId, recordCommit],
   )
 
   // Autosave: when the draft diverges from the baseline, persist it after a quiet
-  // window. Re-running (a new keystroke) clears the pending timer, so a burst
-  // collapses into one write.
+  // window; a fresh keystroke clears the pending timer, collapsing a burst into
+  // one write (and thus one undo entry).
   useEffect(() => {
     if (!dirty) return undefined
     const snapshot = working
@@ -168,31 +165,43 @@ export function useStepEditor(testScenarioId: number, initial: ScenarioDraft): S
 
   const flush = useCallback(() => persist(working), [persist, working])
 
+  const undo = useCallback(() => {
+    if (cursorRef.current <= 0) return
+    cursorRef.current -= 1
+    setWorking(historyRef.current[cursorRef.current])
+    syncAvail()
+  }, [syncAvail])
+
+  const redo = useCallback(() => {
+    if (cursorRef.current >= historyRef.current.length - 1) return
+    cursorRef.current += 1
+    setWorking(historyRef.current[cursorRef.current])
+    syncAvail()
+  }, [syncAvail])
+
   const reset = useCallback((draft: ScenarioDraft) => {
     baseline.current = draft
+    historyRef.current = [draft]
+    cursorRef.current = 0
     setWorking(draft)
-    setPast([])
-    setFuture([])
+    syncAvail()
     setSavedTick((n) => n + 1)
-  }, [])
+  }, [syncAvail])
 
   const rebase = useCallback((draft: ScenarioDraft) => {
-    setWorking((current) => {
-      setPast((stack) => [...stack, current])
-      setFuture([])
-      return draft
-    })
     baseline.current = draft
+    recordCommit(draft)
+    setWorking(draft)
     setSavedTick((n) => n + 1)
-  }, [])
+  }, [recordCommit])
 
   return {
     working,
     dirty,
     saving,
     saveError,
-    canUndo: past.length > 0,
-    canRedo: future.length > 0,
+    canUndo: avail.canUndo,
+    canRedo: avail.canRedo,
     setTitle,
     updateStep,
     addStep,
