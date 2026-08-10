@@ -288,6 +288,7 @@ export const scenariosEn = {
     saveFailed: 'Could not save. Try again.',
     viewCase: 'View linked test case',
     drag: 'Drag to reorder',
+    viewSpec: 'Test cases',
   },
   tcModal: {
     close: 'Close',
@@ -296,6 +297,18 @@ export const scenariosEn = {
     untitled: 'Untitled case',
     precondition: 'Precondition',
     expected: 'Expected',
+  },
+  specViewer: {
+    title: 'Test case spec',
+    count: (n: number) => `${n} case${n === 1 ? '' : 's'}`,
+    search: 'Search — title, category, expected…',
+    loading: 'Loading…',
+    error: 'Could not load the test cases.',
+    empty: 'No matching test cases.',
+    untitled: 'Untitled case',
+    precondition: 'Precondition',
+    expected: 'Expected',
+    close: 'Close',
   },
   palette: {
     searchPlaceholder: 'Search cases — title, category, id…',
@@ -602,6 +615,7 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     saveFailed: '저장하지 못했습니다. 다시 시도하세요.',
     viewCase: '연결된 테스트 케이스 보기',
     drag: '드래그하여 순서 변경',
+    viewSpec: '테스트 케이스',
   },
   tcModal: {
     close: '닫기',
@@ -610,6 +624,18 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     untitled: '이름 없는 케이스',
     precondition: '사전조건',
     expected: '기대결과',
+  },
+  specViewer: {
+    title: '테스트 케이스 명세',
+    count: (n: number) => `${n}개`,
+    search: '검색 — 제목·대분류·기대결과…',
+    loading: '불러오는 중…',
+    error: '테스트 케이스를 불러오지 못했습니다.',
+    empty: '일치하는 테스트 케이스가 없습니다.',
+    untitled: '이름 없는 케이스',
+    precondition: '사전조건',
+    expected: '기대결과',
+    close: '닫기',
   },
   palette: {
     searchPlaceholder: '케이스 검색 — 제목·대분류·id…',

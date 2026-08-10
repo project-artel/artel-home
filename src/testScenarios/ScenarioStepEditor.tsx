@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { TestCaseModal } from '../testCases/TestCaseModal'
+import { TestCaseSpecModal } from '../testCases/TestCaseSpecModal'
 import { groupStepsByCase, type ScenarioDraft } from './scenarioTypes'
 import { useStepEditor } from './useStepEditor'
 
 /**
  * Editable steps of a scenario (ARTEL-289): add / edit / remove / reorder, with
  * undo/redo and save. Steps are shown as a flat ordered list; a step bound to a
- * TestCase carries a TC badge (내부 case_id는 노출하지 않고 등장 순번만). Linking
- * a step to a TC and drag-reorder land in follow-ups; this is the editing core.
+ * TestCase carries a TC badge (내부 case_id는 노출하지 않고 등장 순번만). Steps can
+ * be dragged to reorder, and the toolbar opens the full project TC spec (read-only).
  */
 export function ScenarioStepEditor({
   projectId,
@@ -28,6 +29,8 @@ export function ScenarioStepEditor({
   // The TestCase a badge points at, opened read-only. `label` is the human "TC N",
   // never the internal case_id.
   const [tcView, setTcView] = useState<{ caseId: number; label: string } | null>(null)
+  // The full project TC spec browser (read-only), opened from the toolbar.
+  const [specOpen, setSpecOpen] = useState(false)
   // Drag-reorder: index being dragged, and the row it is hovering over.
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [overIndex, setOverIndex] = useState<number | null>(null)
@@ -79,6 +82,7 @@ export function ScenarioStepEditor({
             onChange={(ev) => editor.setTitle(ev.target.value)}
           />
           <div className="st-editor-tools">
+            <button className="st-btn" type="button" onClick={() => setSpecOpen(true)}>{e.viewSpec}</button>
             <button className="iconbtn" type="button" disabled={!editor.canUndo} onClick={editor.undo} title={e.undo}>↶</button>
             <button className="iconbtn" type="button" disabled={!editor.canRedo} onClick={editor.redo} title={e.redo}>↷</button>
             <span className={`savebadge ${saveState}`}>
@@ -165,6 +169,7 @@ export function ScenarioStepEditor({
           onClose={() => setTcView(null)}
         />
       )}
+      {specOpen && <TestCaseSpecModal projectId={projectId} onClose={() => setSpecOpen(false)} />}
     </main>
   )
 }
