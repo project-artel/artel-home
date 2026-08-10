@@ -3324,3 +3324,18 @@ a.instance-name:hover {
 .qa-run-status--completed{ background:var(--st-verified,#2e9e6b); color:#fff; }
 .qa-run-status--failed{ background:var(--color-status-danger,#d64545); color:#fff; }
 .qa-run-status--cancelled{ background:var(--color-text-muted,#888); color:#fff; }
+
+/* Step→TC 내용 모달 + 클릭 배지 (ARTEL-289 #3) */
+.scenario-studio .st-tc-badge--btn{ cursor:pointer; border:none; }
+.scenario-studio .st-tc-badge--btn:hover{ filter:brightness(1.08); }
+.tc-modal-scrim{ position:fixed; inset:0; z-index:60; display:grid; place-items:center; background:rgba(0,0,0,0.45); padding:20px; }
+.tc-modal{ width:min(520px,100%); max-height:80vh; overflow:auto; background:var(--color-bg-raised,#fff); color:var(--color-text-primary); border:1px solid var(--color-border-subtle); border-radius:12px; box-shadow:0 12px 40px rgba(0,0,0,0.25); }
+.tc-modal-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:14px 16px; border-bottom:1px solid var(--color-border-subtle); }
+.tc-modal-close{ background:none; border:none; font-size:15px; color:var(--color-text-muted); cursor:pointer; padding:4px; }
+.tc-modal-note{ margin:0; padding:18px 16px; color:var(--color-text-muted); font-size:13px; }
+.tc-modal-body{ padding:16px; display:flex; flex-direction:column; gap:8px; }
+.tc-modal-title{ margin:0; font-size:16px; font-weight:700; color:var(--color-text-primary); }
+.tc-modal-cat{ align-self:flex-start; font-size:11px; font-weight:600; color:var(--color-text-secondary); background:var(--color-bg-subtle,rgba(127,127,127,0.12)); border-radius:999px; padding:2px 9px; }
+.tc-modal-fields{ margin:6px 0 0; display:grid; grid-template-columns:auto 1fr; gap:6px 12px; }
+.tc-modal-fields dt{ font-size:11px; font-weight:700; color:var(--color-text-muted); }
+.tc-modal-fields dd{ margin:0; font-size:13px; color:var(--color-text-primary); line-height:1.5; }

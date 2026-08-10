@@ -286,6 +286,15 @@ export const scenariosEn = {
     unsaved: 'Unsaved',
     saved: 'Saved',
     saveFailed: 'Could not save. Try again.',
+    viewCase: 'View linked test case',
+  },
+  tcModal: {
+    close: 'Close',
+    loading: 'Loading…',
+    error: 'Could not load this test case.',
+    untitled: 'Untitled case',
+    precondition: 'Precondition',
+    expected: 'Expected',
   },
   palette: {
     searchPlaceholder: 'Search cases — title, category, id…',
@@ -590,6 +599,15 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     unsaved: '저장 안 됨',
     saved: '저장됨',
     saveFailed: '저장하지 못했습니다. 다시 시도하세요.',
+    viewCase: '연결된 테스트 케이스 보기',
+  },
+  tcModal: {
+    close: '닫기',
+    loading: '불러오는 중…',
+    error: '이 테스트 케이스를 불러오지 못했습니다.',
+    untitled: '이름 없는 케이스',
+    precondition: '사전조건',
+    expected: '기대결과',
   },
   palette: {
     searchPlaceholder: '케이스 검색 — 제목·대분류·id…',

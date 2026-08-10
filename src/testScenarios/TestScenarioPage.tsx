@@ -140,6 +140,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
         {status === 'ready' ? (
           <ScenarioStepEditor
             key={`${scenarioId}:${reloadKey}`}
+            projectId={projectId}
             testScenarioId={scenarioId}
             initialDraft={draft}
             onSaved={setDraft}

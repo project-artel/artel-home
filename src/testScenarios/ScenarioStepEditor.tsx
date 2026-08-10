@@ -1,5 +1,6 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
+import { TestCaseModal } from '../testCases/TestCaseModal'
 import { groupStepsByCase, type ScenarioDraft } from './scenarioTypes'
 import { useStepEditor } from './useStepEditor'
 
@@ -10,10 +11,12 @@ import { useStepEditor } from './useStepEditor'
  * a step to a TC and drag-reorder land in follow-ups; this is the editing core.
  */
 export function ScenarioStepEditor({
+  projectId,
   testScenarioId,
   initialDraft,
   onSaved,
 }: {
+  projectId: string
   testScenarioId: number
   initialDraft: ScenarioDraft
   onSaved?: (draft: ScenarioDraft) => void
@@ -22,6 +25,9 @@ export function ScenarioStepEditor({
   const e = t.scenarios.stepsEditor
   const editor = useStepEditor(testScenarioId, initialDraft)
   const { working } = editor
+  // The TestCase a badge points at, opened read-only. `label` is the human "TC N",
+  // never the internal case_id.
+  const [tcView, setTcView] = useState<{ caseId: number; label: string } | null>(null)
 
   // Ctrl/Cmd+Z / Shift+Z outside text fields drive the history.
   useEffect(() => {
@@ -98,7 +104,16 @@ export function ScenarioStepEditor({
                     }}
                   />
                   <div className="st-erow-meta">
-                    {tcNo !== undefined && <span className="st-tc-badge">TC {tcNo}</span>}
+                    {tcNo !== undefined && step.case_id !== null && (
+                      <button
+                        className="st-tc-badge st-tc-badge--btn"
+                        type="button"
+                        title={e.viewCase}
+                        onClick={() => setTcView({ caseId: step.case_id as number, label: `TC ${tcNo}` })}
+                      >
+                        TC {tcNo}
+                      </button>
+                    )}
                     <input
                       className="st-erow-hint"
                       value={step.hint ?? ''}
@@ -120,6 +135,14 @@ export function ScenarioStepEditor({
 
         <button className="st-editor-add" type="button" onClick={editor.addStep}>＋ {e.addStep}</button>
       </div>
+      {tcView !== null && (
+        <TestCaseModal
+          projectId={projectId}
+          caseId={tcView.caseId}
+          label={tcView.label}
+          onClose={() => setTcView(null)}
+        />
+      )}
     </main>
   )
 }
