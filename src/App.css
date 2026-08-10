@@ -3364,8 +3364,8 @@ a.instance-name:hover {
 /* Step 편집기 가시성 강화 (ARTEL-289) */
 .scenario-studio .st-editor{ max-width:900px; }
 .scenario-studio .st-editor-list{ gap:10px; }
-.scenario-studio .st-erow{ padding:12px 14px; border-radius:12px; border-color:var(--st-border-strong); transition:border-color .12s ease, background .12s ease, box-shadow .12s ease; }
-.scenario-studio .st-erow:hover{ border-color:var(--st-action); box-shadow:0 1px 0 var(--st-border-strong); }
+.scenario-studio .st-erow{ padding:12px 14px; border-radius:12px; border-color:color-mix(in srgb, var(--st-border) 55%, transparent); background:transparent; transition:border-color .12s ease, background .12s ease; }
+.scenario-studio .st-erow:hover{ border-color:var(--st-border); background:var(--st-surface); }
 .scenario-studio .st-erow--tc{ border-left:3px solid var(--st-action); }
 .scenario-studio .st-erow-no{ width:26px; height:26px; font-size:12.5px; color:var(--st-action); background:color-mix(in srgb, var(--st-action) 14%, transparent); }
 .scenario-studio .st-erow-action{ font-size:15px; line-height:1.6; }
