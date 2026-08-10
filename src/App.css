@@ -3339,3 +3339,8 @@ a.instance-name:hover {
 .tc-modal-fields{ margin:6px 0 0; display:grid; grid-template-columns:auto 1fr; gap:6px 12px; }
 .tc-modal-fields dt{ font-size:11px; font-weight:700; color:var(--color-text-muted); }
 .tc-modal-fields dd{ margin:0; font-size:13px; color:var(--color-text-primary); line-height:1.5; }
+
+/* Step 드래그앤드롭 (ARTEL-289 #5) */
+.scenario-studio .st-erow-drag{ flex:none; margin-top:2px; cursor:grab; color:var(--st-muted); font-size:14px; user-select:none; padding:0 2px; }
+.scenario-studio .st-erow-drag:active{ cursor:grabbing; }
+.scenario-studio .st-erow--over{ border-color:var(--color-action-primary,#4c8bf5); box-shadow:0 -2px 0 var(--color-action-primary,#4c8bf5) inset; }

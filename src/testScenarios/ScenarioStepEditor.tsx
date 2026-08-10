@@ -28,6 +28,15 @@ export function ScenarioStepEditor({
   // The TestCase a badge points at, opened read-only. `label` is the human "TC N",
   // never the internal case_id.
   const [tcView, setTcView] = useState<{ caseId: number; label: string } | null>(null)
+  // Drag-reorder: index being dragged, and the row it is hovering over.
+  const [dragIndex, setDragIndex] = useState<number | null>(null)
+  const [overIndex, setOverIndex] = useState<number | null>(null)
+
+  function onDrop(target: number) {
+    if (dragIndex !== null && dragIndex !== target) editor.moveStep(dragIndex, target)
+    setDragIndex(null)
+    setOverIndex(null)
+  }
 
   // Ctrl/Cmd+Z / Shift+Z outside text fields drive the history.
   useEffect(() => {
@@ -88,7 +97,20 @@ export function ScenarioStepEditor({
           {working.steps.map((step, index) => {
             const tcNo = tcNoByIndex.get(index)
             return (
-              <li key={index} className={`st-erow${step.case_id !== null ? ' st-erow--tc' : ''}`}>
+              <li
+                key={index}
+                className={`st-erow${step.case_id !== null ? ' st-erow--tc' : ''}${overIndex === index && dragIndex !== null ? ' st-erow--over' : ''}`}
+                onDragOver={(ev) => { ev.preventDefault(); setOverIndex(index) }}
+                onDrop={() => onDrop(index)}
+              >
+                <span
+                  className="st-erow-drag"
+                  draggable
+                  title={e.drag}
+                  aria-label={e.drag}
+                  onDragStart={() => setDragIndex(index)}
+                  onDragEnd={() => { setDragIndex(null); setOverIndex(null) }}
+                >⠿</span>
                 <span className="st-erow-no">{index + 1}</span>
                 <div className="st-erow-body">
                   <textarea

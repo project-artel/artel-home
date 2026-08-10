@@ -287,6 +287,7 @@ export const scenariosEn = {
     saved: 'Saved',
     saveFailed: 'Could not save. Try again.',
     viewCase: 'View linked test case',
+    drag: 'Drag to reorder',
   },
   tcModal: {
     close: 'Close',
@@ -600,6 +601,7 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     saved: '저장됨',
     saveFailed: '저장하지 못했습니다. 다시 시도하세요.',
     viewCase: '연결된 테스트 케이스 보기',
+    drag: '드래그하여 순서 변경',
   },
   tcModal: {
     close: '닫기',
