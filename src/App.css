@@ -3394,8 +3394,18 @@ a.instance-name:hover {
 .run-map .st-tc-badge{ flex:none; font-size:10px; font-weight:800; color:#fff; background:var(--rm-action); border-radius:4px; padding:1px 6px; letter-spacing:.05em; }
 
 /* ===== QA 실행 콘솔 (ARTEL-290) — 전체화면 3분할 ===== */
-.workspace:has(.qa-console){ padding:0; place-items:stretch; background:none; }
-.qa-console{ height:100%; min-height:0; display:flex; flex-direction:column; background:var(--color-bg-canvas); color:var(--color-text-primary); }
+.workspace:has(.qa-console){ padding:0; place-items:stretch; background:none; min-height:0; }
+/* overflow:hidden이 핵심: app-shell이 min-height:100vh라 이게 없으면 긴 컬럼이
+   페이지 전체를 늘린다. 이걸로 콘솔이 뷰포트에 고정되고 각 컬럼이 스스로 스크롤. */
+.qa-console{ height:100%; min-height:0; overflow:hidden; display:flex; flex-direction:column; background:var(--color-bg-canvas); color:var(--color-text-primary); }
+
+/* 스크롤바: 클래식 대신 웹 톤의 얇고 둥근 오버레이 (콘솔 내부 한정) */
+.qa-console *{ scrollbar-width:thin; scrollbar-color:color-mix(in srgb, var(--color-text-muted) 45%, transparent) transparent; }
+.qa-console *::-webkit-scrollbar{ width:10px; height:10px; }
+.qa-console *::-webkit-scrollbar-track{ background:transparent; }
+.qa-console *::-webkit-scrollbar-thumb{ background:color-mix(in srgb, var(--color-text-muted) 38%, transparent); border-radius:999px; border:2px solid transparent; background-clip:padding-box; }
+.qa-console *::-webkit-scrollbar-thumb:hover{ background:color-mix(in srgb, var(--color-text-muted) 62%, transparent); background-clip:padding-box; }
+.qa-console *::-webkit-scrollbar-corner{ background:transparent; }
 
 .qa-console-top{ flex:none; height:52px; display:flex; align-items:center; gap:14px; padding:0 16px; border-bottom:1px solid var(--color-border-subtle); background:var(--color-bg-surface); }
 .qa-console-top .st-back{ color:var(--color-text-secondary); text-decoration:none; font-size:13px; padding:6px 8px; border-radius:6px; }
@@ -3450,8 +3460,10 @@ a.instance-name:hover {
 .qa-timeline-title{ font-size:13px; font-weight:700; }
 .qa-timeline-tc{ font-size:12px; font-weight:600; color:var(--color-text-secondary); }
 .qa-timeline-steps{ margin-left:auto; font-size:11.5px; color:var(--color-text-muted); font-variant-numeric:tabular-nums; }
-.qa-timeline-track{ display:flex; gap:6px; align-items:stretch; overflow-x:auto; padding-bottom:2px; }
-.qa-tl-block{ display:flex; flex-direction:column; gap:5px; min-width:0; }
+.qa-timeline-track{ display:flex; gap:8px; align-items:stretch; overflow-x:auto; padding-bottom:6px; }
+/* 셀은 고정폭 — 스텝이 6개든 60개든 크기가 일정하고, 많아지면 트랙이 가로 스크롤.
+   적을 때 폭에 맞춰 늘어나 "현재 상황에 fit"되던 문제 제거. */
+.qa-tl-block{ display:flex; flex-direction:column; gap:5px; flex:0 0 auto; }
 .qa-tl-block--tc{ border:1px solid var(--color-border-subtle); border-top-width:3px; border-radius:8px; padding:5px 6px; }
 .qa-tl-block--passed{ border-top-color:var(--color-status-success,#3a9a5c); }
 .qa-tl-block--failed{ border-top-color:var(--color-status-critical,#d64545); }
@@ -3465,7 +3477,7 @@ a.instance-name:hover {
 .qa-tl-cap-verdict--running{ color:var(--color-action-primary,#4c8bf5); }
 .qa-tl-cap-verdict--pending,.qa-tl-cap-verdict--unreported,.qa-tl-cap-verdict--unknown{ color:var(--color-text-muted); }
 .qa-tl-cells{ display:flex; gap:3px; }
-.qa-tl-cell{ flex:1 1 0; min-width:30px; height:36px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; border-radius:6px; border:1px solid var(--color-border-subtle); background:var(--color-bg-raised); color:var(--color-text-secondary); font:inherit; }
+.qa-tl-cell{ flex:0 0 auto; width:40px; height:42px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; border-radius:6px; border:1px solid var(--color-border-subtle); background:var(--color-bg-raised); color:var(--color-text-secondary); font:inherit; }
 button.qa-tl-cell--linked{ cursor:pointer; }
 button.qa-tl-cell--linked:hover{ filter:brightness(1.06); }
 .qa-tl-cell-no{ font-size:10px; font-variant-numeric:tabular-nums; }

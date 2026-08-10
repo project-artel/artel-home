@@ -67,7 +67,6 @@ export function QaStepTimeline({
           <div
             key={block.key}
             className={`qa-tl-block${block.kind === 'tc' ? ` qa-tl-block--tc qa-tl-block--${block.verdict}` : ' qa-tl-block--plain'}`}
-            style={{ flexGrow: Math.max(1, block.rows.length) }}
           >
             {block.kind === 'tc' && (
               <div className="qa-tl-cap">
