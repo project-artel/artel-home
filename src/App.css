@@ -3394,10 +3394,11 @@ a.instance-name:hover {
 .run-map .st-tc-badge{ flex:none; font-size:10px; font-weight:800; color:#fff; background:var(--rm-action); border-radius:4px; padding:1px 6px; letter-spacing:.05em; }
 
 /* ===== QA 실행 콘솔 (ARTEL-290) — 전체화면 3분할 ===== */
-.workspace:has(.qa-console){ padding:0; place-items:stretch; background:none; min-height:0; }
-/* overflow:hidden이 핵심: app-shell이 min-height:100vh라 이게 없으면 긴 컬럼이
-   페이지 전체를 늘린다. 이걸로 콘솔이 뷰포트에 고정되고 각 컬럼이 스스로 스크롤. */
-.qa-console{ height:100%; min-height:0; overflow:hidden; display:flex; flex-direction:column; background:var(--color-bg-canvas); color:var(--color-text-primary); }
+/* app-shell 그리드행이 48px(top-bar) + 1fr(workspace)라, 콘솔을 뷰포트에서 top-bar를
+   뺀 높이로 '확정'해야 한다. height:100%는 min-height:100vh 부모에선 내용만큼 늘어나
+   스크롤 분리가 안 됐다. 아래처럼 고정하면 콘솔은 화면에 고정되고 각 컬럼이 자체 스크롤. */
+.workspace:has(.qa-console){ padding:0; place-items:stretch; background:none; min-height:0; overflow:hidden; }
+.qa-console{ height:calc(100dvh - 48px); min-height:0; overflow:hidden; display:flex; flex-direction:column; background:var(--color-bg-canvas); color:var(--color-text-primary); }
 
 /* 스크롤바: 클래식 대신 웹 톤의 얇고 둥근 오버레이 (콘솔 내부 한정) */
 .qa-console *{ scrollbar-width:thin; scrollbar-color:color-mix(in srgb, var(--color-text-muted) 45%, transparent) transparent; }
@@ -3455,16 +3456,17 @@ a.instance-name:hover {
 .qa-focus-logs-body .qa-issue-panel{ flex:1; min-height:0; overflow-y:auto; border:0; }
 
 /* 가로 스텝/TC 타임라인 (재생바) */
-.qa-timeline{ flex:none; border:1px solid var(--color-border-subtle); border-radius:12px; background:var(--color-bg-surface); padding:10px 12px; }
-.qa-timeline-head{ display:flex; align-items:baseline; gap:12px; margin-bottom:8px; }
+.qa-timeline{ flex:none; border:1px solid var(--color-border-subtle); border-radius:12px; background:var(--color-bg-surface); padding:12px 14px; }
+.qa-timeline-head{ display:flex; align-items:baseline; gap:12px; margin-bottom:10px; }
 .qa-timeline-title{ font-size:13px; font-weight:700; }
 .qa-timeline-tc{ font-size:12px; font-weight:600; color:var(--color-text-secondary); }
 .qa-timeline-steps{ margin-left:auto; font-size:11.5px; color:var(--color-text-muted); font-variant-numeric:tabular-nums; }
 .qa-timeline-track{ display:flex; gap:8px; align-items:stretch; overflow-x:auto; padding-bottom:6px; }
-/* 셀은 고정폭 — 스텝이 6개든 60개든 크기가 일정하고, 많아지면 트랙이 가로 스크롤.
-   적을 때 폭에 맞춰 늘어나 "현재 상황에 fit"되던 문제 제거. */
-.qa-tl-block{ display:flex; flex-direction:column; gap:5px; flex:0 0 auto; }
-.qa-tl-block--tc{ border:1px solid var(--color-border-subtle); border-top-width:3px; border-radius:8px; padding:5px 6px; }
+/* 섹터를 꽉 채운다: 블록은 스텝 수에 비례해 폭을 나눠 갖고(flexGrow=count), 셀은
+   그 폭 안에서 늘어난다(flex:1). 스텝이 많아 셀이 min-width에 도달하면 더는 줄지
+   않고 트랙이 가로 스크롤된다. */
+.qa-tl-block{ display:flex; flex-direction:column; gap:6px; flex:1 1 0; min-width:0; }
+.qa-tl-block--tc{ border:1px solid var(--color-border-subtle); border-top-width:3px; border-radius:8px; padding:6px 7px; }
 .qa-tl-block--passed{ border-top-color:var(--color-status-success,#3a9a5c); }
 .qa-tl-block--failed{ border-top-color:var(--color-status-critical,#d64545); }
 .qa-tl-block--running{ border-top-color:var(--color-action-primary,#4c8bf5); }
@@ -3476,8 +3478,8 @@ a.instance-name:hover {
 .qa-tl-cap-verdict--failed{ color:var(--color-status-critical,#d64545); }
 .qa-tl-cap-verdict--running{ color:var(--color-action-primary,#4c8bf5); }
 .qa-tl-cap-verdict--pending,.qa-tl-cap-verdict--unreported,.qa-tl-cap-verdict--unknown{ color:var(--color-text-muted); }
-.qa-tl-cells{ display:flex; gap:3px; }
-.qa-tl-cell{ flex:0 0 auto; width:40px; height:42px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; border-radius:6px; border:1px solid var(--color-border-subtle); background:var(--color-bg-raised); color:var(--color-text-secondary); font:inherit; }
+.qa-tl-cells{ display:flex; gap:4px; }
+.qa-tl-cell{ flex:1 1 0; min-width:34px; height:52px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; border-radius:7px; border:1px solid var(--color-border-subtle); background:var(--color-bg-raised); color:var(--color-text-secondary); font:inherit; }
 button.qa-tl-cell--linked{ cursor:pointer; }
 button.qa-tl-cell--linked:hover{ filter:brightness(1.06); }
 .qa-tl-cell-no{ font-size:10px; font-variant-numeric:tabular-nums; }

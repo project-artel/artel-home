@@ -67,6 +67,10 @@ export function QaStepTimeline({
           <div
             key={block.key}
             className={`qa-tl-block${block.kind === 'tc' ? ` qa-tl-block--tc qa-tl-block--${block.verdict}` : ' qa-tl-block--plain'}`}
+            // Each block claims width in proportion to its step count, so the whole
+            // track fills the sector; cells keep a min-width so a run with many
+            // steps stops shrinking and the track scrolls instead.
+            style={{ flexGrow: Math.max(1, block.rows.length) }}
           >
             {block.kind === 'tc' && (
               <div className="qa-tl-cap">
