@@ -1,36 +1,33 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { TestCaseModal } from '../testCases/TestCaseModal'
-import { TestCaseSpecModal } from '../testCases/TestCaseSpecModal'
-import { groupStepsByCase, type ScenarioDraft } from './scenarioTypes'
-import { useStepEditor } from './useStepEditor'
+import { groupStepsByCase } from './scenarioTypes'
+import type { StepEditor } from './useStepEditor'
 
 /**
- * Editable steps of a scenario (ARTEL-289): add / edit / remove / reorder, with
- * undo/redo and save. Steps are shown as a flat ordered list; a step bound to a
- * TestCase carries a TC badge (내부 case_id는 노출하지 않고 등장 순번만). Steps can
- * be dragged to reorder, and the toolbar opens the full project TC spec (read-only).
+ * Editable steps of a scenario (ARTEL-289): add / edit / remove / reorder. Steps
+ * are a flat ordered list; a step bound to a TestCase carries a TC badge (내부
+ * case_id는 노출하지 않고 등장 순번만) that opens the case read-only, and rows can
+ * be dragged to reorder.
+ *
+ * This is a controlled view: undo/redo, autosave state, and the ⌘K TC spec live
+ * on the studio header ({@link TestScenarioPage}), because they are run-scoped —
+ * one agent authors many scenarios, so those controls do not belong inside a
+ * single scenario's body.
  */
 export function ScenarioStepEditor({
   projectId,
-  testScenarioId,
-  initialDraft,
-  onSaved,
+  editor,
 }: {
   projectId: string
-  testScenarioId: number
-  initialDraft: ScenarioDraft
-  onSaved?: (draft: ScenarioDraft) => void
+  editor: StepEditor
 }) {
   const { t } = useI18n()
   const e = t.scenarios.stepsEditor
-  const editor = useStepEditor(testScenarioId, initialDraft)
   const { working } = editor
   // The TestCase a badge points at, opened read-only. `label` is the human "TC N",
   // never the internal case_id.
   const [tcView, setTcView] = useState<{ caseId: number; label: string } | null>(null)
-  // The full project TC spec browser (read-only), opened from the toolbar.
-  const [specOpen, setSpecOpen] = useState(false)
   // Drag-reorder: index being dragged, and the row it is hovering over.
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [overIndex, setOverIndex] = useState<number | null>(null)
@@ -41,20 +38,6 @@ export function ScenarioStepEditor({
     setOverIndex(null)
   }
 
-  // Ctrl/Cmd+Z / Shift+Z outside text fields drive the history.
-  useEffect(() => {
-    function onKey(event: KeyboardEvent) {
-      if (!(event.metaKey || event.ctrlKey)) return
-      const target = event.target as HTMLElement | null
-      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return
-      const key = event.key.toLowerCase()
-      if (key === 'z' && !event.shiftKey) { event.preventDefault(); editor.undo() }
-      else if ((key === 'z' && event.shiftKey) || key === 'y') { event.preventDefault(); editor.redo() }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [editor])
-
   // Per-step TC ordinal (내부 id 대신 순번). Consecutive same case_id = one TC.
   const tcNoByIndex = new Map<number, number>()
   let tcSeq = 0
@@ -62,12 +45,6 @@ export function ScenarioStepEditor({
     if (group.caseId === null) continue
     tcSeq += 1
     for (const index of group.indices) tcNoByIndex.set(index, tcSeq)
-  }
-
-  const saveState = editor.saving ? 'saving' : editor.dirty ? 'unsaved' : 'saved'
-
-  async function onSave() {
-    if (await editor.save()) onSaved?.(editor.working)
   }
 
   return (
@@ -81,18 +58,6 @@ export function ScenarioStepEditor({
             aria-label={e.titleLabel}
             onChange={(ev) => editor.setTitle(ev.target.value)}
           />
-          <div className="st-editor-tools">
-            <button className="st-btn" type="button" onClick={() => setSpecOpen(true)}>{e.viewSpec}</button>
-            <button className="iconbtn" type="button" disabled={!editor.canUndo} onClick={editor.undo} title={e.undo}>↶</button>
-            <button className="iconbtn" type="button" disabled={!editor.canRedo} onClick={editor.redo} title={e.redo}>↷</button>
-            <span className={`savebadge ${saveState}`}>
-              {saveState !== 'saved' && <span className="d" />}
-              {saveState === 'saving' ? e.saving : saveState === 'unsaved' ? e.unsaved : e.saved}
-            </span>
-            <button className="st-btn st-btn--primary" type="button" disabled={!editor.dirty || editor.saving} onClick={() => void onSave()}>
-              {e.save}
-            </button>
-          </div>
         </header>
 
         {editor.saveError !== null && <p className="st-editor-error">{e.saveFailed}</p>}
@@ -169,7 +134,6 @@ export function ScenarioStepEditor({
           onClose={() => setTcView(null)}
         />
       )}
-      {specOpen && <TestCaseSpecModal projectId={projectId} onClose={() => setSpecOpen(false)} />}
     </main>
   )
 }

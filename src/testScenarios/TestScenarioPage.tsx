@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
+import { shortcutLabel } from '../shell/platform'
+import { TestCaseSpecModal } from '../testCases/TestCaseSpecModal'
 import { RunChat } from '../testRuns/RunChat'
 import { RunNameCrumb } from '../testRuns/RunNameCrumb'
 import { getTestRun } from '../testRuns/testRunApi'
@@ -10,7 +12,8 @@ import { DeleteScenarioDialog } from './DeleteScenarioDialog'
 import { getTestScenario } from './scenarioApi'
 import { ScenarioList } from './ScenarioList'
 import { ScenarioStepEditor } from './ScenarioStepEditor'
-import { EMPTY_SCENARIO_DRAFT, type ScenarioDraft } from './scenarioTypes'
+import { EMPTY_SCENARIO_DRAFT } from './scenarioTypes'
+import { useStepEditor } from './useStepEditor'
 
 /**
  * Keyed by the scenario id so opening another scenario remounts rather than
@@ -30,12 +33,13 @@ function backLink(projectId: string) {
  * centre, the project's scenarios on the left, and the run's authoring
  * conversation on the right.
  *
- * A scenario body is now `payload.steps` — read here with {@link getTestScenario}
- * and edited in {@link ScenarioStepEditor} (add/edit/reorder/undo·redo/save). The
- * chat is RUN-scoped ({@link useRunChatSession}): one conversation
- * spans the whole run and its proposals are applied into it, so it shows only when
- * the studio was opened from a run (`?run=`). Applying a proposal reloads the
- * scenario so committed steps appear.
+ * The scenario body is `payload.steps`, edited in {@link ScenarioStepEditor} with
+ * autosave. Undo/redo, the save indicator and the ⌘K TC spec live on the header
+ * here — not inside the step editor — because they are run-scoped: one agent
+ * authors many scenarios, so undo must reach across (including an agent-applied
+ * proposal), which a per-scenario control cannot express. The chat is RUN-scoped
+ * ({@link useRunChatSession}); applying a proposal rebases the editor so the
+ * committed steps appear and the apply itself stays undoable.
  */
 function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; testScenarioId: string }) {
   const scenarioId = Number(testScenarioId)
@@ -45,26 +49,35 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
   const [searchParams] = useSearchParams()
   const fromRun = searchParams.get('run')
 
+  const editor = useStepEditor(scenarioId, EMPTY_SCENARIO_DRAFT)
   const [status, setStatus] = useState<'loading' | 'ready' | 'missing'>('loading')
-  const [draft, setDraft] = useState<ScenarioDraft>(EMPTY_SCENARIO_DRAFT)
-  const [reloadKey, setReloadKey] = useState(0)
-  const reload = useCallback(() => setReloadKey((key) => key + 1), [])
+  const [specOpen, setSpecOpen] = useState(false)
 
+  // Initial load seeds the editor (clearing history). `editor.reset` is stable, so
+  // this runs once per scenario (the page remounts on scenarioId via the route).
+  const { reset } = editor
   useEffect(() => {
     if (!validId) return
     const controller = new AbortController()
     setStatus('loading')
     getTestScenario(scenarioId, controller.signal)
-      .then((scenario) => { setDraft(scenario.payload); setStatus('ready') })
+      .then((scenario) => { reset(scenario.payload); setStatus('ready') })
       .catch((error) => {
         if (error instanceof DOMException && error.name === 'AbortError') return
         setStatus('missing')
       })
     return () => controller.abort()
-  }, [scenarioId, validId, reloadKey])
+  }, [scenarioId, validId, reset])
 
-  // Applying a chat proposal reloads the scenario so committed steps appear.
-  const runChat = useRunChatSession(projectId, fromRun, reload)
+  // Applying a chat proposal re-fetches the scenario and rebases the editor onto
+  // it — the committed steps appear, and the apply is recorded on the undo stack.
+  const { rebase } = editor
+  const onProposalApplied = useCallback(() => {
+    getTestScenario(scenarioId)
+      .then((scenario) => rebase(scenario.payload))
+      .catch(() => { /* leave the current draft on a reload failure */ })
+  }, [scenarioId, rebase])
+  const runChat = useRunChatSession(projectId, fromRun, onProposalApplied)
 
   // The run's name for the crumb, when the studio was opened from a run. Fetched
   // here because the studio only carries the run id (?run=), not its name.
@@ -77,6 +90,25 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
       .catch(() => { /* leave the crumb blank on failure */ })
     return () => controller.abort()
   }, [projectId, fromRun])
+
+  // Header shortcuts (outside text fields, where the browser's own text-undo wins):
+  // ⌘/Ctrl+Z undo, ⇧+Z (or Ctrl+Y) redo, ⌘/Ctrl+K opens the TC spec.
+  const { undo, redo } = editor
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (!(event.metaKey || event.ctrlKey)) return
+      const target = event.target as HTMLElement | null
+      const inField = target !== null
+        && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+      const key = event.key.toLowerCase()
+      if (key === 'k') { event.preventDefault(); setSpecOpen(true); return }
+      if (inField) return
+      if (key === 'z' && !event.shiftKey) { event.preventDefault(); undo() }
+      else if ((key === 'z' && event.shiftKey) || key === 'y') { event.preventDefault(); redo() }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [undo, redo])
 
   const [dialog, setDialog] = useState<'approve' | 'delete' | null>(null)
   // Approve/delete return to where the scenario was opened from: the run's edit
@@ -104,7 +136,9 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
     )
   }
 
-  const title = draft.title.length > 0 ? draft.title : t.scenarios.page.untitled
+  const e = t.scenarios.stepsEditor
+  const saveState = editor.saving ? 'saving' : editor.dirty ? 'unsaved' : 'saved'
+  const title = editor.working.title.length > 0 ? editor.working.title : t.scenarios.page.untitled
 
   return (
     <div className="scenario-studio">
@@ -125,6 +159,17 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
           <span className="scn">{title}</span>
         </div>
         <div className="st-spacer" />
+        <button className="st-btn st-btn--ghost" type="button" onClick={() => setSpecOpen(true)} title={e.viewSpec}>
+          {e.viewSpec} <kbd className="kbd">{shortcutLabel('K')}</kbd>
+        </button>
+        <div className="st-icons">
+          <button className="iconbtn" type="button" disabled={!editor.canUndo} onClick={editor.undo} title={e.undo}>↶</button>
+          <button className="iconbtn" type="button" disabled={!editor.canRedo} onClick={editor.redo} title={e.redo}>↷</button>
+        </div>
+        <span className={`savebadge ${saveState}`}>
+          {saveState !== 'saved' && <span className="d" />}
+          {saveState === 'saving' ? e.saving : saveState === 'unsaved' ? e.unsaved : e.saved}
+        </span>
         {fromRun !== null && (
           <div className="st-seg">
             <button className="on" type="button">{t.scenarios.map.editView}</button>
@@ -138,13 +183,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
       <div className="st-edit">
         <ScenarioList projectId={projectId} activeId={scenarioId} runId={fromRun} />
         {status === 'ready' ? (
-          <ScenarioStepEditor
-            key={`${scenarioId}:${reloadKey}`}
-            projectId={projectId}
-            testScenarioId={scenarioId}
-            initialDraft={draft}
-            onSaved={setDraft}
-          />
+          <ScenarioStepEditor projectId={projectId} editor={editor} />
         ) : (
           <main className="edoc-wrap"><div className="edoc" /></main>
         )}
@@ -152,6 +191,8 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
           {fromRun !== null && <RunChat session={runChat} />}
         </aside>
       </div>
+
+      {specOpen && <TestCaseSpecModal projectId={projectId} onClose={() => setSpecOpen(false)} />}
 
       {dialog === 'approve' && (
         <ApproveScenarioDialog
@@ -164,7 +205,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
         <DeleteScenarioDialog
           onClose={() => setDialog(null)}
           onDeleted={() => navigate(afterExit, { replace: true })}
-          scenarioTitle={draft.title}
+          scenarioTitle={editor.working.title}
           testScenarioId={scenarioId}
         />
       )}
