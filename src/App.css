@@ -3392,3 +3392,54 @@ a.instance-name:hover {
 .run-map .cnode--tc{ border-left:3px solid var(--rm-action); }
 .run-map .cnode-title{ white-space:normal; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; line-height:1.45; }
 .run-map .st-tc-badge{ flex:none; font-size:10px; font-weight:800; color:#fff; background:var(--rm-action); border-radius:4px; padding:1px 6px; letter-spacing:.05em; }
+
+/* ===== QA 실행 콘솔 (ARTEL-290) ===== */
+.qa-console{ display:flex; flex-direction:column; gap:16px; }
+.qa-console-head{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+.qa-console-head .st-back{ flex:none; }
+.qa-console-title{ display:flex; align-items:center; gap:10px; }
+.qa-console-title h1{ margin:0; font-size:20px; }
+.qa-console-progress{ color:var(--color-text-muted); font-size:13px; font-variant-numeric:tabular-nums; }
+.qa-console-head-actions{ margin-left:auto; display:flex; align-items:center; gap:8px; }
+.qa-follow{ font:inherit; font-size:12.5px; cursor:pointer; border-radius:999px; padding:5px 12px; border:1px solid var(--color-border-strong); background:transparent; color:var(--color-text-secondary); }
+.qa-follow--on{ border-color:var(--color-status-success,#3a9a5c); color:var(--color-status-success,#3a9a5c); background:color-mix(in srgb, var(--color-status-success,#3a9a5c) 12%, transparent); cursor:default; }
+
+.qa-console-body{ display:grid; grid-template-columns:264px minmax(0,1fr); gap:16px; align-items:start; }
+.qa-console-rail{ position:sticky; top:12px; border:1px solid var(--color-border-subtle); border-radius:12px; background:var(--color-bg-surface); overflow:hidden; }
+.qa-console-rail-head{ margin:0; padding:12px 14px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--color-text-muted); border-bottom:1px solid var(--color-border-subtle); }
+.qa-console-rail-list{ list-style:none; margin:0; padding:6px; display:flex; flex-direction:column; gap:2px; }
+.qa-rail-item{ display:grid; grid-template-columns:auto auto 1fr auto; align-items:center; gap:9px; width:100%; text-align:left; font:inherit; cursor:pointer; background:transparent; border:1px solid transparent; border-radius:8px; padding:9px 10px; color:var(--color-text-primary); }
+.qa-rail-item:hover{ background:var(--color-bg-hover); }
+.qa-rail-item--focused{ background:var(--color-bg-raised); border-color:var(--color-border-strong); }
+.qa-rail-item--active{ box-shadow:inset 2px 0 0 var(--color-action-primary,#4c8bf5); }
+.qa-rail-no{ font-size:11px; font-weight:700; color:var(--color-text-muted); font-variant-numeric:tabular-nums; min-width:14px; }
+.qa-rail-title{ font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.qa-rail-dot{ width:9px; height:9px; border-radius:999px; flex:none; background:var(--color-text-muted); }
+.qa-rail-dot--running,.qa-rail-dot--starting{ background:var(--color-action-primary,#4c8bf5); box-shadow:0 0 0 3px color-mix(in srgb, var(--color-action-primary,#4c8bf5) 22%, transparent); }
+.qa-rail-dot--completed{ background:var(--color-status-success,#3a9a5c); }
+.qa-rail-dot--failed{ background:var(--color-status-critical,#d64545); }
+.qa-rail-dot--cancelled{ background:var(--color-text-muted); }
+.qa-rail-dot--pending{ background:transparent; border:1.5px solid var(--color-border-strong); }
+.qa-rail-item .qa-run-status{ font-size:10px; }
+
+.qa-console-focus{ min-width:0; }
+.qa-focus{ display:flex; flex-direction:column; gap:16px; }
+.qa-focus-stage{ display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:16px; align-items:start; }
+.qa-focus-game{ position:relative; border:1px solid var(--color-border-subtle); border-radius:12px; overflow:hidden; background:#000; min-height:440px; display:flex; }
+.qa-focus-game > *{ width:100%; }
+.qa-focus-game video{ width:100%; height:100%; object-fit:contain; display:block; }
+.qa-focus-game-ended{ margin:auto; color:var(--color-text-muted); font-size:13px; padding:40px; }
+.qa-focus-progress{ min-width:0; border:1px solid var(--color-border-subtle); border-radius:12px; background:var(--color-bg-surface); padding:14px; max-height:520px; overflow:auto; }
+
+.qa-focus-logs{ border:1px solid var(--color-border-subtle); border-radius:12px; background:var(--color-bg-surface); }
+.qa-focus-logs-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 16px; border-bottom:1px solid var(--color-border-subtle); }
+.qa-focus-logs-head h2{ margin:0; font-size:14px; }
+.qa-log-tabs{ display:inline-flex; border:1px solid var(--color-border-strong); border-radius:8px; overflow:hidden; }
+.qa-log-tabs button{ font:inherit; font-size:12px; padding:5px 14px; border:0; background:transparent; color:var(--color-text-secondary); cursor:pointer; }
+.qa-log-tabs button.on{ background:var(--color-action-primary,#4c8bf5); color:var(--color-text-on-accent,#fff); font-weight:600; }
+
+@media (max-width:1100px){
+  .qa-console-body{ grid-template-columns:1fr; }
+  .qa-console-rail{ position:static; }
+  .qa-focus-stage{ grid-template-columns:1fr; }
+}

@@ -1,10 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
+import { GameStreamView } from '../streaming/GameStreamView'
+import { QaTryIssuePanel } from '../issues/QaTryIssuePanel'
+import { listTestScenarios } from '../testScenarios/scenarioApi'
 import { cancelQaRun, getQaRun, isDecimalId } from './qaApi'
+import { QaChatPanel } from './QaChatPanel'
+import { QaLogTimeline, type QaLogFocusRequest } from './QaLogTimeline'
 import { deriveQaProgress } from './qaProgress'
 import { QaStepStrip } from './QaStepStrip'
-import { isTerminalQaStatus, type QaRun } from './qaTypes'
+import { isTerminalQaStatus, type QaLog, type QaRun, type QaTry } from './qaTypes'
 import { useQaTry } from './useQaTry'
 import { useScenarioSteps } from './useScenarioSteps'
 
@@ -30,33 +35,16 @@ function QaRunMissing({ projectId }: { projectId: string }) {
   )
 }
 
-/**
- * Live step progress of one scenario in the run — the currently-active try.
- * Its own SSE session (useQaTry), so it is mounted only for the active scenario;
- * keying it by `tryId` in the parent makes it re-mount when the run advances to
- * the next scenario, which is what makes the hand-off visible.
- */
-function ActiveScenarioProgress({ tryId }: { tryId: string }) {
-  const session = useQaTry(tryId)
-  const scenarioSteps = useScenarioSteps(session.qaTry?.testScenarioId ?? null)
-  const progress = useMemo(
-    () =>
-      deriveQaProgress({
-        scenarioSteps,
-        logs: session.logs,
-        status: session.qaTry?.status ?? 'STARTING',
-        historyComplete: !session.hasMore,
-      }),
-    [scenarioSteps, session.hasMore, session.logs, session.qaTry?.status],
-  )
-  return <QaStepStrip onJump={() => {}} progress={progress} />
-}
+// Only these carry meaning for the compact "Flow" view; the rest (raw LOG lines,
+// per-frame GAME_STATE) are noise there and stay in the Raw tab.
+const FLOW_TYPES = new Set<QaLog['type']>(['ACTION', 'ACTION_RESULT', 'STATUS', 'ERROR', 'CHAT'])
 
 /**
- * A QA_Run overview (TR 단위): the run's scenarios execute in order, one per
- * `QaTry`. Polls until the run is terminal. Each scenario shows its status, and
- * the one currently running expands to a live step strip; when it finishes the
- * strip moves to the next scenario — the auto-advance made visible (ARTEL-286).
+ * The QA run console (ARTEL-290): one run-scoped page for the whole execution.
+ * A left rail lists every scenario in the run with its status; the centre shows
+ * the focused scenario's live game and step progress; the log sits full-width
+ * below with a Flow/Raw split. The console follows the active scenario as the run
+ * advances — no refresh — and lets the operator click back to a finished one.
  */
 function QaRunPage({ projectId, qaRunId }: { projectId: string; qaRunId: string }) {
   const { t } = useI18n()
@@ -64,12 +52,12 @@ function QaRunPage({ projectId, qaRunId }: { projectId: string; qaRunId: string 
   const [state, setState] = useState<'loading' | 'ready' | 'missing'>('loading')
   const [cancelling, setCancelling] = useState(false)
   const [cancelError, setCancelError] = useState<string | null>(null)
+  const [titleById, setTitleById] = useState<Map<string, string>>(new Map())
   const stop = useRef(false)
 
   useEffect(() => {
     stop.current = false
     let timer: ReturnType<typeof setTimeout> | null = null
-
     async function tick() {
       try {
         const next = await getQaRun(qaRunId)
@@ -82,13 +70,21 @@ function QaRunPage({ projectId, qaRunId }: { projectId: string; qaRunId: string 
         setState((prev) => (prev === 'ready' ? 'ready' : 'missing'))
       }
     }
-
     void tick()
     return () => {
       stop.current = true
       if (timer !== null) clearTimeout(timer)
     }
   }, [qaRunId])
+
+  // Scenario titles for the rail — QaTry only carries testScenarioId.
+  useEffect(() => {
+    const controller = new AbortController()
+    listTestScenarios(Number(projectId), controller.signal)
+      .then((list) => setTitleById(new Map(list.map((s) => [String(s.testScenarioId), s.title]))))
+      .catch(() => { /* rail falls back to ordinals */ })
+    return () => controller.abort()
+  }, [projectId])
 
   const onCancel = useCallback(async () => {
     setCancelling(true)
@@ -102,6 +98,17 @@ function QaRunPage({ projectId, qaRunId }: { projectId: string; qaRunId: string 
     }
   }, [qaRunId, t.qa.run.cancelFailed])
 
+  // Auto-advance: follow the active scenario unless the operator has pinned one.
+  const activeTryId = run?.tries.find((entry) => !isTerminalQaStatus(entry.status))?.id ?? null
+  const lastTryId = run?.tries.at(-1)?.id ?? null
+  const [following, setFollowing] = useState(true)
+  const [pinnedTryId, setPinnedTryId] = useState<string | null>(null)
+  const focusedTryId = following ? (activeTryId ?? lastTryId) : pinnedTryId
+  function focusTry(id: string) {
+    setPinnedTryId(id)
+    setFollowing(false)
+  }
+
   if (state === 'loading') {
     return <section className="page"><div className="panel-message"><p>{t.qa.run.loading}</p></div></section>
   }
@@ -111,57 +118,165 @@ function QaRunPage({ projectId, qaRunId }: { projectId: string; qaRunId: string 
 
   const done = run.tries.filter((entry) => isTerminalQaStatus(entry.status)).length
   const active = !isTerminalQaStatus(run.status)
-  // The scenario currently under way (or the next to start): the first that has
-  // not settled. Its live strip is shown inline; the rest show their status.
-  const activeTryId = run.tries.find((entry) => !isTerminalQaStatus(entry.status))?.id ?? null
+  const focusedTry = run.tries.find((entry) => entry.id === focusedTryId) ?? null
+
+  function scenarioTitle(entry: QaTry, index: number): string {
+    const title = titleById.get(entry.testScenarioId)
+    return title !== undefined && title.length > 0 ? title : t.qa.run.scenario(index + 1)
+  }
 
   return (
-    <section className="page qa-run">
-      <header className="qa-run-head">
+    <section className="page qa-console">
+      <header className="qa-console-head">
         <Link className="st-back" to={projectLink(projectId)}>{t.qa.run.back}</Link>
-        <div className="qa-run-title">
+        <div className="qa-console-title">
           <h1>{t.qa.run.title}</h1>
           <span className={`qa-run-status qa-run-status--${run.status.toLowerCase()}`}>
             {t.qa.statusLabels[run.status]}
           </span>
         </div>
-        <p className="qa-run-sub">{t.qa.run.subtitle}</p>
-        <p className="qa-run-progress">{t.qa.run.progress(done, run.tries.length)}</p>
-        {active && (
-          <button className="button button--secondary button--compact" disabled={cancelling} onClick={() => void onCancel()} type="button">
-            {cancelling ? t.qa.run.cancelling : t.qa.run.cancel}
+        <span className="qa-console-progress">{t.qa.run.progress(done, run.tries.length)}</span>
+        <div className="qa-console-head-actions">
+          <button
+            className={`qa-follow${following ? ' qa-follow--on' : ''}`}
+            onClick={() => setFollowing(true)}
+            disabled={following}
+            type="button"
+          >
+            {following ? t.qa.run.following : t.qa.run.follow}
           </button>
-        )}
+          {active && (
+            <button className="button button--secondary button--compact" disabled={cancelling} onClick={() => void onCancel()} type="button">
+              {cancelling ? t.qa.run.cancelling : t.qa.run.cancel}
+            </button>
+          )}
+        </div>
         {cancelError !== null && <p className="qa-run-error">{cancelError}</p>}
       </header>
 
-      <ol className="qa-run-list">
-        {run.tries.map((entry, index) => {
-          const isActive = entry.id === activeTryId
-          return (
-            <li key={entry.id} className={`qa-run-item${isActive ? ' qa-run-item--active' : ''}`}>
-              <div className="qa-run-row">
-                <span className="qa-run-no">{index + 1}</span>
-                <span className="qa-run-scenario">{t.qa.run.scenario(index + 1)}</span>
-                <span className={`qa-run-status qa-run-status--${entry.status.toLowerCase()}`}>
-                  {t.qa.statusLabels[entry.status]}
-                </span>
-                <Link
-                  className="button button--secondary button--compact"
-                  to={`/projects/${encodeURIComponent(projectId)}/qa-tries/${encodeURIComponent(entry.id)}`}
-                >
-                  {t.qa.run.openTry}
-                </Link>
-              </div>
-              {isActive && (
-                <div className="qa-run-active-detail">
-                  <ActiveScenarioProgress key={entry.id} tryId={entry.id} />
-                </div>
-              )}
-            </li>
-          )
-        })}
-      </ol>
+      <div className="qa-console-body">
+        <nav className="qa-console-rail" aria-label={t.qa.run.scenariosHeading}>
+          <p className="qa-console-rail-head">{t.qa.run.scenariosHeading}</p>
+          <ol className="qa-console-rail-list">
+            {run.tries.map((entry, index) => {
+              const isFocused = entry.id === focusedTryId
+              const isActive = entry.id === activeTryId
+              return (
+                <li key={entry.id}>
+                  <button
+                    className={`qa-rail-item${isFocused ? ' qa-rail-item--focused' : ''}${isActive ? ' qa-rail-item--active' : ''}`}
+                    onClick={() => focusTry(entry.id)}
+                    type="button"
+                  >
+                    <span className={`qa-rail-dot qa-rail-dot--${entry.status.toLowerCase()}`} aria-hidden="true" />
+                    <span className="qa-rail-no">{index + 1}</span>
+                    <span className="qa-rail-title">{scenarioTitle(entry, index)}</span>
+                    <span className={`qa-run-status qa-run-status--${entry.status.toLowerCase()}`}>
+                      {t.qa.statusLabels[entry.status]}
+                    </span>
+                  </button>
+                </li>
+              )
+            })}
+          </ol>
+        </nav>
+
+        <div className="qa-console-focus">
+          {focusedTry !== null ? (
+            <FocusedTry key={focusedTry.id} tryId={focusedTry.id} />
+          ) : (
+            <p className="panel-empty">{t.qa.run.selectScenario}</p>
+          )}
+        </div>
+      </div>
     </section>
+  )
+}
+
+/**
+ * The focused scenario's detail, embedded in the console. Keyed by tryId in the
+ * parent so advancing to the next scenario swaps the whole session cleanly (its
+ * own SSE, game stream, logs) with no page refresh.
+ */
+function FocusedTry({ tryId }: { tryId: string }) {
+  const { t } = useI18n()
+  const session = useQaTry(tryId)
+  const scenarioSteps = useScenarioSteps(session.qaTry?.testScenarioId ?? null)
+  const [logView, setLogView] = useState<'flow' | 'raw'>('flow')
+  const [focusRequest, setFocusRequest] = useState<QaLogFocusRequest | null>(null)
+
+  const progress = useMemo(
+    () =>
+      deriveQaProgress({
+        scenarioSteps,
+        logs: session.logs,
+        status: session.qaTry?.status ?? 'STARTING',
+        historyComplete: !session.hasMore,
+      }),
+    [scenarioSteps, session.hasMore, session.logs, session.qaTry?.status],
+  )
+
+  const jumpToLog = useCallback((logId: string) => {
+    setLogView('raw')
+    setFocusRequest((current) => ({ logId, token: (current?.token ?? 0) + 1 }))
+  }, [])
+  const clearFocusRequest = useCallback(() => setFocusRequest(null), [])
+
+  const shownLogs = useMemo(
+    () => (logView === 'flow' ? session.logs.filter((log) => FLOW_TYPES.has(log.type)) : session.logs),
+    [logView, session.logs],
+  )
+
+  if (session.qaTry === null) {
+    return <p className="panel-empty">{t.qa.run.loading}</p>
+  }
+
+  const active = !isTerminalQaStatus(session.qaTry.status)
+
+  return (
+    <div className="qa-focus">
+      <div className="qa-focus-stage">
+        <section className="qa-focus-game" aria-label={active ? t.qa.run.liveGame : t.qa.run.endedGame}>
+          {active ? (
+            <GameStreamView instanceId={session.qaTry.gameInstanceId} />
+          ) : (
+            <div className="qa-focus-game-ended">{t.qa.run.endedGame}</div>
+          )}
+          {active && (
+            <QaChatPanel
+              disabled={session.qaTry.status !== 'RUNNING'}
+              logs={session.logs}
+              qaTryId={session.qaTry.id}
+            />
+          )}
+        </section>
+
+        <aside className="qa-focus-progress">
+          <QaStepStrip onJump={jumpToLog} progress={progress} />
+        </aside>
+      </div>
+
+      <section className="qa-focus-logs" aria-labelledby="qa-focus-log-title">
+        <header className="qa-focus-logs-head">
+          <h2 id="qa-focus-log-title">{t.qa.run.logsTitle}</h2>
+          <div className="qa-log-tabs" role="tablist">
+            <button className={logView === 'flow' ? 'on' : ''} onClick={() => setLogView('flow')} role="tab" aria-selected={logView === 'flow'} type="button">{t.qa.run.logsFlow}</button>
+            <button className={logView === 'raw' ? 'on' : ''} onClick={() => setLogView('raw')} role="tab" aria-selected={logView === 'raw'} type="button">{t.qa.run.logsRaw}</button>
+          </div>
+        </header>
+        <QaLogTimeline
+          focusRequest={focusRequest}
+          hasMore={session.hasMore}
+          historyFailure={session.historyFailure}
+          historyLoading={session.historyLoading}
+          live={active}
+          loadOlder={session.loadOlder}
+          logs={shownLogs}
+          onFocusResolved={clearFocusRequest}
+        />
+      </section>
+
+      <QaTryIssuePanel qaTryId={session.qaTry.id} />
+    </div>
   )
 }
