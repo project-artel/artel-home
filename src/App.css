@@ -3496,8 +3496,17 @@ button.qa-tl-cell--linked:hover{ filter:brightness(1.06); }
 .qa-chat-fab:hover{ filter:brightness(1.06); transform:translateY(-1px); }
 .qa-chat-fab:active{ transform:translateY(0); }
 .qa-chat-fab--on{ background:var(--color-bg-raised); color:var(--color-text-primary); border:1px solid var(--color-border-strong); box-shadow:0 6px 18px -8px rgba(0,0,0,.5); }
-.qa-chat-pop{ width:min(380px,80vw); max-height:min(520px,70vh); overflow:hidden; display:flex; flex-direction:column; border:1px solid var(--color-border-subtle); border-radius:12px; background:var(--color-bg-surface); box-shadow:0 20px 60px -20px rgba(0,0,0,.55); }
-.qa-chat-pop > *{ min-height:0; }
+.qa-chat-pop{ width:min(380px,86vw); height:min(520px,64vh); overflow:hidden; display:flex; flex-direction:column; border:1px solid var(--color-border-subtle); border-radius:14px; background:var(--color-bg-surface); box-shadow:0 20px 60px -20px rgba(0,0,0,.55); }
+/* 팝업 안에서는 패널 자체 크롬(테두리·배경·큰 헤더)을 벗기고 팝업 골격에 맞춘다 */
+.qa-chat-pop .qa-chat{ flex:1; min-height:0; height:100%; margin:0; padding:14px; gap:10px; border:0; border-radius:0; background:transparent; }
+.qa-chat-pop .qa-chat .panel-header{ margin:0; display:flex; flex-direction:column; gap:3px; }
+.qa-chat-pop .qa-chat .panel-header h2{ margin:0; font-size:14px; }
+.qa-chat-pop .qa-chat .scenario-hint{ margin:0; font-size:12px; color:var(--color-text-muted); }
+.qa-chat-pop .qa-chat-thread{ flex:1; min-height:0; max-height:none; border:1px solid var(--color-border-subtle); border-radius:10px; background:var(--color-bg-canvas); }
+.qa-chat-pop .qa-chat-thread .panel-empty{ padding:14px; }
+.qa-chat-pop .qa-chat-composer{ display:flex; flex-direction:column; gap:8px; }
+.qa-chat-pop .qa-chat-composer textarea{ width:100%; box-sizing:border-box; }
+.qa-chat-pop > .qa-chat > .panel-empty{ margin:0; padding:10px 12px; border:1px dashed var(--color-border-strong); border-radius:8px; font-size:12px; }
 .qa-tl-cell--passed{ background:var(--color-status-success-subtle,color-mix(in srgb,var(--color-status-success,#3a9a5c) 16%,transparent)); border-color:var(--color-status-success,#3a9a5c); color:var(--color-status-success,#3a9a5c); }
 .qa-tl-cell--failed{ background:var(--color-status-critical-subtle,color-mix(in srgb,var(--color-status-critical,#d64545) 16%,transparent)); border-color:var(--color-status-critical,#d64545); color:var(--color-status-critical,#d64545); }
 .qa-tl-cell--running{ background:color-mix(in srgb,var(--color-action-primary,#4c8bf5) 16%,transparent); border-color:var(--color-action-primary,#4c8bf5); color:var(--color-action-primary,#4c8bf5); }
