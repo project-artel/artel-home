@@ -273,29 +273,57 @@ function FocusedTry({ tryId }: { tryId: string }) {
         </div>
       </aside>
 
-      {active && (
-        <div className="qa-chat-dock">
-          {chatOpen && (
-            <div className="qa-chat-pop" role="dialog" aria-label={t.qa.run.chat}>
-              <QaChatPanel
-                disabled={session.qaTry.status !== 'RUNNING'}
-                logs={session.logs}
-                qaTryId={session.qaTry.id}
-              />
-            </div>
-          )}
-          <button
-            className={`qa-chat-fab${chatOpen ? ' qa-chat-fab--on' : ''}`}
-            onClick={() => setChatOpen((open) => !open)}
-            aria-expanded={chatOpen}
-            aria-label={t.qa.run.chat}
-            title={t.qa.run.chat}
-            type="button"
-          >
-            {chatOpen ? '✕' : '💬'}
-          </button>
-        </div>
-      )}
+      <div className="qa-chat-dock">
+        {chatOpen && (
+          <div className="qa-chat-pop" role="dialog" aria-label={t.qa.run.chat}>
+            <QaChatPanel
+              disabled={session.qaTry.status !== 'RUNNING'}
+              logs={session.logs}
+              qaTryId={session.qaTry.id}
+            />
+          </div>
+        )}
+        <button
+          className={`qa-chat-fab${chatOpen ? ' qa-chat-fab--on' : ''}`}
+          onClick={() => setChatOpen((open) => !open)}
+          aria-expanded={chatOpen}
+          aria-label={t.qa.run.chat}
+          title={t.qa.run.chat}
+          type="button"
+        >
+          {chatOpen ? <ChatCloseIcon /> : <ArtelChatIcon />}
+        </button>
+      </div>
     </div>
+  )
+}
+
+/**
+ * Chat mark in the ARTEL house style: a monoline speech bubble (same stroke
+ * weight / butt-cap, miter-join geometry as the brand mark) with three "typing"
+ * dots. Drawn in currentColor so the FAB controls ink vs paper per state.
+ */
+function ArtelChatIcon() {
+  return (
+    <svg viewBox="0 0 64 64" width="26" height="26" fill="none" aria-hidden="true">
+      <path
+        d="M14 40 L14 16 L50 16 L50 40 L28 40 L18 50 L18 40 Z"
+        stroke="currentColor"
+        strokeWidth="7"
+        strokeLinejoin="miter"
+        strokeLinecap="butt"
+      />
+      <circle cx="24" cy="28" r="3.1" fill="currentColor" />
+      <circle cx="32" cy="28" r="3.1" fill="currentColor" />
+      <circle cx="40" cy="28" r="3.1" fill="currentColor" />
+    </svg>
+  )
+}
+
+function ChatCloseIcon() {
+  return (
+    <svg viewBox="0 0 64 64" width="22" height="22" fill="none" aria-hidden="true">
+      <path d="M18 18 L46 46 M46 18 L18 46" stroke="currentColor" strokeWidth="7" strokeLinecap="butt" />
+    </svg>
   )
 }
