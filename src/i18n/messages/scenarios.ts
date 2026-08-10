@@ -248,6 +248,11 @@ export const scenariosEn = {
     mapLocked: 'Add a scenario to open the map',
     untitledScenario: 'Untitled scenario',
     untitledCase: 'Untitled case',
+    stepUnit: 'steps',
+    tcUnit: 'TC',
+    expandSteps: 'click to see steps',
+    noSteps: 'No steps yet',
+    untitledStep: 'Empty step',
   },
   runEdit: {
     emptyTitle: 'This run has no scenarios yet',
@@ -575,6 +580,11 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     mapLocked: '시나리오를 추가하면 맵이 열립니다',
     untitledScenario: '제목 없는 시나리오',
     untitledCase: '제목 없는 케이스',
+    stepUnit: '스텝',
+    tcUnit: 'TC',
+    expandSteps: '클릭하면 스텝 보기',
+    noSteps: '아직 스텝이 없음',
+    untitledStep: '빈 스텝',
   },
   runEdit: {
     emptyTitle: '이 런에는 아직 시나리오가 없습니다',

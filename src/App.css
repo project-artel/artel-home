@@ -3366,7 +3366,7 @@ a.instance-name:hover {
 .scenario-studio .st-editor-list{ gap:10px; }
 .scenario-studio .st-erow{ padding:12px 14px; border-radius:12px; border-color:var(--st-border-strong); transition:border-color .12s ease, background .12s ease, box-shadow .12s ease; }
 .scenario-studio .st-erow:hover{ border-color:var(--st-action); box-shadow:0 1px 0 var(--st-border-strong); }
-.scenario-studio .st-erow--tc{ border-left:3px solid var(--st-action); background:color-mix(in srgb, var(--st-action) 6%, var(--st-surface)); }
+.scenario-studio .st-erow--tc{ border-left:3px solid var(--st-action); }
 .scenario-studio .st-erow-no{ width:26px; height:26px; font-size:12.5px; color:var(--st-action); background:color-mix(in srgb, var(--st-action) 14%, transparent); }
 .scenario-studio .st-erow-action{ font-size:15px; line-height:1.6; }
 .scenario-studio .st-erow-hint{ font-size:12.5px; }
@@ -3385,3 +3385,10 @@ a.instance-name:hover {
 .tc-modal-fields .tc-field:last-child{ margin-bottom:0; }
 .tc-modal-fields .tc-field-label{ display:block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--color-text-muted); margin-bottom:5px; }
 .tc-modal-fields .tc-field-val{ font-size:13.5px; color:var(--color-text-primary); line-height:1.6; white-space:pre-wrap; }
+
+/* run-map을 Step 모델로 (ARTEL-289): 검증 롤업 제거로 노드 축소 + Step 노드 TC 표기 */
+.run-map .mnode{ min-height:76px; }
+.run-map .mmeta{ margin-bottom:8px; }
+.run-map .cnode--tc{ border-left:3px solid var(--rm-action); }
+.run-map .cnode-title{ white-space:normal; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; line-height:1.45; }
+.run-map .st-tc-badge{ flex:none; font-size:10px; font-weight:800; color:#fff; background:var(--rm-action); border-radius:4px; padding:1px 6px; letter-spacing:.05em; }
