@@ -129,6 +129,7 @@ export const qaEn = {
     selectScenario: 'Select a scenario to inspect its run.',
     logAction: 'Action steps',
     logGeneral: 'Run log',
+    tabIssues: 'Issues',
   },
 } as const
 
@@ -253,5 +254,6 @@ export const qaKo: Localized<typeof qaEn> = {
     selectScenario: '시나리오를 선택하면 해당 실행을 봅니다.',
     logAction: '행동 스텝',
     logGeneral: '실행 로그',
+    tabIssues: '이슈',
   },
 }

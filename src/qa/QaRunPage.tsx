@@ -5,9 +5,9 @@ import { GameStreamView } from '../streaming/GameStreamView'
 import { QaTryIssuePanel } from '../issues/QaTryIssuePanel'
 import { listTestScenarios } from '../testScenarios/scenarioApi'
 import { cancelQaRun, getQaRun, isDecimalId } from './qaApi'
-import { QaCaseProgress } from './QaCaseProgress'
 import { QaChatPanel } from './QaChatPanel'
 import { QaLogTimeline, type QaLogFocusRequest } from './QaLogTimeline'
+import { QaStepTimeline } from './QaStepTimeline'
 import { deriveQaProgress } from './qaProgress'
 import { isTerminalQaStatus, type QaLog, type QaRun, type QaTry } from './qaTypes'
 import { useQaTry } from './useQaTry'
@@ -126,17 +126,17 @@ function QaRunPage({ projectId, qaRunId }: { projectId: string; qaRunId: string 
   }
 
   return (
-    <section className="page qa-console">
-      <header className="qa-console-head">
+    <section className="qa-console">
+      <header className="qa-console-top">
         <Link className="st-back" to={projectLink(projectId)}>{t.qa.run.back}</Link>
         <div className="qa-console-title">
-          <h1>{t.qa.run.title}</h1>
+          <strong>{t.qa.run.title}</strong>
           <span className={`qa-run-status qa-run-status--${run.status.toLowerCase()}`}>
             {t.qa.statusLabels[run.status]}
           </span>
+          <span className="qa-console-progress">{t.qa.run.progress(done, run.tries.length)}</span>
         </div>
-        <span className="qa-console-progress">{t.qa.run.progress(done, run.tries.length)}</span>
-        <div className="qa-console-head-actions">
+        <div className="qa-console-top-actions">
           <button
             className={`qa-follow${following ? ' qa-follow--on' : ''}`}
             onClick={() => setFollowing(true)}
@@ -150,11 +150,11 @@ function QaRunPage({ projectId, qaRunId }: { projectId: string; qaRunId: string 
               {cancelling ? t.qa.run.cancelling : t.qa.run.cancel}
             </button>
           )}
+          {cancelError !== null && <span className="qa-run-error">{cancelError}</span>}
         </div>
-        {cancelError !== null && <p className="qa-run-error">{cancelError}</p>}
       </header>
 
-      <div className="qa-console-body">
+      <div className="qa-console-grid">
         <nav className="qa-console-rail" aria-label={t.qa.run.scenariosHeading}>
           <p className="qa-console-rail-head">{t.qa.run.scenariosHeading}</p>
           <ol className="qa-console-rail-list">
@@ -181,13 +181,11 @@ function QaRunPage({ projectId, qaRunId }: { projectId: string; qaRunId: string 
           </ol>
         </nav>
 
-        <div className="qa-console-focus">
-          {focusedTry !== null ? (
-            <FocusedTry key={focusedTry.id} tryId={focusedTry.id} />
-          ) : (
-            <p className="panel-empty">{t.qa.run.selectScenario}</p>
-          )}
-        </div>
+        {focusedTry !== null ? (
+          <FocusedTry key={focusedTry.id} tryId={focusedTry.id} />
+        ) : (
+          <div className="qa-focus qa-focus--empty"><p className="panel-empty">{t.qa.run.selectScenario}</p></div>
+        )}
       </div>
     </section>
   )
@@ -202,7 +200,7 @@ function FocusedTry({ tryId }: { tryId: string }) {
   const { t } = useI18n()
   const session = useQaTry(tryId)
   const scenarioSteps = useScenarioSteps(session.qaTry?.testScenarioId ?? null)
-  const [logView, setLogView] = useState<'flow' | 'raw'>('flow')
+  const [logView, setLogView] = useState<'flow' | 'raw' | 'issues'>('flow')
   const [focusRequest, setFocusRequest] = useState<QaLogFocusRequest | null>(null)
 
   const progress = useMemo(
@@ -235,49 +233,52 @@ function FocusedTry({ tryId }: { tryId: string }) {
 
   return (
     <div className="qa-focus">
-      <div className="qa-focus-stage">
+      <div className="qa-focus-center">
         <section className="qa-focus-game" aria-label={active ? t.qa.run.liveGame : t.qa.run.endedGame}>
           {active ? (
             <GameStreamView instanceId={session.qaTry.gameInstanceId} />
           ) : (
             <div className="qa-focus-game-ended">{t.qa.run.endedGame}</div>
           )}
-          {active && (
-            <QaChatPanel
-              disabled={session.qaTry.status !== 'RUNNING'}
-              logs={session.logs}
-              qaTryId={session.qaTry.id}
-            />
-          )}
         </section>
 
-        <aside className="qa-focus-progress">
-          <QaCaseProgress onJump={jumpToLog} progress={progress} scenarioSteps={scenarioSteps} />
-        </aside>
+        <QaStepTimeline onJump={jumpToLog} progress={progress} scenarioSteps={scenarioSteps} />
+
+        {active && (
+          <QaChatPanel
+            disabled={session.qaTry.status !== 'RUNNING'}
+            logs={session.logs}
+            qaTryId={session.qaTry.id}
+          />
+        )}
       </div>
 
-      <section className="qa-focus-logs" aria-labelledby="qa-focus-log-title">
+      <aside className="qa-focus-logs-col" aria-label={t.qa.run.logsTitle}>
         <header className="qa-focus-logs-head">
-          <h2 id="qa-focus-log-title">{t.qa.run.logsTitle}</h2>
           <div className="qa-log-tabs" role="tablist">
             <button className={logView === 'flow' ? 'on' : ''} onClick={() => setLogView('flow')} role="tab" aria-selected={logView === 'flow'} type="button">{t.qa.run.logsFlow}</button>
             <button className={logView === 'raw' ? 'on' : ''} onClick={() => setLogView('raw')} role="tab" aria-selected={logView === 'raw'} type="button">{t.qa.run.logsRaw}</button>
+            <button className={logView === 'issues' ? 'on' : ''} onClick={() => setLogView('issues')} role="tab" aria-selected={logView === 'issues'} type="button">{t.qa.run.tabIssues}</button>
           </div>
         </header>
-        <QaLogTimeline
-          focusRequest={focusRequest}
-          hasMore={session.hasMore}
-          historyFailure={session.historyFailure}
-          historyLoading={session.historyLoading}
-          live={active}
-          loadOlder={session.loadOlder}
-          logs={shownLogs}
-          onFocusResolved={clearFocusRequest}
-          scenarioSteps={scenarioSteps}
-        />
-      </section>
-
-      <QaTryIssuePanel qaTryId={session.qaTry.id} />
+        <div className="qa-focus-logs-body">
+          {logView === 'issues' ? (
+            <QaTryIssuePanel qaTryId={session.qaTry.id} />
+          ) : (
+            <QaLogTimeline
+              focusRequest={focusRequest}
+              hasMore={session.hasMore}
+              historyFailure={session.historyFailure}
+              historyLoading={session.historyLoading}
+              live={active}
+              loadOlder={session.loadOlder}
+              logs={shownLogs}
+              onFocusResolved={clearFocusRequest}
+              scenarioSteps={scenarioSteps}
+            />
+          )}
+        </div>
+      </aside>
     </div>
   )
 }
