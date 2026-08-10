@@ -273,6 +273,7 @@ function FocusedTry({ tryId }: { tryId: string }) {
           loadOlder={session.loadOlder}
           logs={shownLogs}
           onFocusResolved={clearFocusRequest}
+          scenarioSteps={scenarioSteps}
         />
       </section>
 

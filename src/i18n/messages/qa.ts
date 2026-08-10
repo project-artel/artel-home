@@ -127,6 +127,8 @@ export const qaEn = {
     liveGame: 'Live game',
     endedGame: 'Execution ended · stored logs',
     selectScenario: 'Select a scenario to inspect its run.',
+    logAction: 'Action steps',
+    logGeneral: 'Run log',
   },
 } as const
 
@@ -249,5 +251,7 @@ export const qaKo: Localized<typeof qaEn> = {
     liveGame: '실시간 게임',
     endedGame: '실행 종료 · 저장된 로그',
     selectScenario: '시나리오를 선택하면 해당 실행을 봅니다.',
+    logAction: '행동 스텝',
+    logGeneral: '실행 로그',
   },
 }
