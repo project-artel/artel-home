@@ -21,6 +21,24 @@ export type ScenarioStep = {
   case_id: number | null
   hint: string | null
   input: string | null
+  /**
+   * Whether this step is expected to pass or to fail (ARTEL-302).
+   *
+   * The QA agent grades its own steps, so a lenient model scores well and
+   * answering "everything passed" scores full marks. Labelling steps by hand
+   * ends that game: with an expected failure in the scenario, that strategy
+   * becomes the worst score rather than the best.
+   *
+   * `null` means "not graded" — it is NOT "expected to pass". Defaulting to
+   * `true` would count every unlabelled step as a pass the agent got right, and
+   * that error is silent: the number just looks better. Scenarios written before
+   * this field are all `null` and are never backfilled — an answer key a machine
+   * guessed at is worse than none.
+   *
+   * The label never reaches the agent. The server strips it from both the
+   * execution contract and the chat context.
+   */
+  expected_passed: boolean | null
 }
 
 export type ScenarioDraft = {
@@ -93,7 +111,33 @@ export function isScenarioDraftEqual(left: ScenarioDraft, right: ScenarioDraft):
 }
 
 export function createEmptyStep(): ScenarioStep {
-  return { action: '', case_id: null, hint: null, input: null }
+  // `expected_passed: null` is the default on purpose — see the field's own note.
+  // A new step is unlabelled until a human decides, not "expected to pass".
+  return { action: '', case_id: null, hint: null, input: null, expected_passed: null }
+}
+
+/**
+ * How many steps this scenario expects to FAIL.
+ *
+ * Surfaced to the author because a scenario with zero of them cannot catch a
+ * lenient model: every label agrees with "everything passed", so the scenario
+ * scores a generous model and a careful one identically. Labelling costs the
+ * author time, and this count is how they see whether that time bought anything.
+ */
+export function countExpectedFailures(steps: ScenarioStep[]): number {
+  return steps.filter((step) => step.expected_passed === false).length
+}
+
+/**
+ * Index of the first step expected to fail, or `-1`.
+ *
+ * A step that is supposed to fail may well stop the run there, which leaves
+ * every later step unreachable — reported by nobody and graded as unreported.
+ * That is not a bug, but an author who does not know it will read the resulting
+ * coverage as the model's fault rather than the scenario's shape.
+ */
+export function firstExpectedFailureIndex(steps: ScenarioStep[]): number {
+  return steps.findIndex((step) => step.expected_passed === false)
 }
 
 /**

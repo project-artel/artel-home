@@ -294,6 +294,18 @@ export const scenariosEn = {
     viewCase: 'View linked test case',
     drag: 'Drag to reorder',
     viewSpec: 'Test cases',
+    expectedLabel: 'Expected verdict',
+    expectedPass: 'Should pass',
+    expectedFail: 'Should fail',
+    expectedUnset: 'Not graded',
+    expectedPassShort: 'Pass',
+    expectedFailShort: 'Fail',
+    expectedUnsetShort: '—',
+    expectedFailCount: (n: number) => `${n} step${n === 1 ? '' : 's'} expected to fail`,
+    expectedNoneWarning:
+      'No step is expected to fail, so this scenario scores a lenient agent the same as a careful one. Mark at least one step "Should fail".',
+    expectedUnreachable: (n: number) =>
+      `Step ${n} is expected to fail, which may end the run there. Later steps can go unreached, and unreached steps are graded as unreported rather than wrong.`,
   },
   tcModal: {
     close: 'Close',
@@ -626,6 +638,18 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     viewCase: '연결된 테스트 케이스 보기',
     drag: '드래그하여 순서 변경',
     viewSpec: '테스트 케이스',
+    expectedLabel: '기대 판정',
+    expectedPass: '통과 기대',
+    expectedFail: '실패 기대',
+    expectedUnset: '미지정',
+    expectedPassShort: '통과',
+    expectedFailShort: '실패',
+    expectedUnsetShort: '—',
+    expectedFailCount: (n: number) => `실패 기대 스텝 ${n}개`,
+    expectedNoneWarning:
+      '실패 기대 스텝이 없어, 이 시나리오는 관대한 에이전트와 꼼꼼한 에이전트를 같은 점수로 봅니다. 최소 한 스텝을 “실패 기대”로 지정하세요.',
+    expectedUnreachable: (n: number) =>
+      `${n}번 스텝이 실패 기대라 실행이 거기서 끝날 수 있습니다. 뒤 스텝은 도달하지 못할 수 있고, 도달하지 못한 스텝은 틀린 것이 아니라 미보고로 채점됩니다.`,
   },
   tcModal: {
     close: '닫기',

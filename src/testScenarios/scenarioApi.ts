@@ -68,6 +68,10 @@ function parseStep(data: unknown): ScenarioStep | null {
     case_id: asNullableNumber(record.case_id),
     hint: asNullableText(record.hint),
     input: asNullableText(record.input),
+    // Anything that is not exactly a boolean reads as "not graded" (ARTEL-302).
+    // Scenarios written before the label exists have no key at all, and a missing
+    // answer must never decay into "expected to pass".
+    expected_passed: typeof record.expected_passed === 'boolean' ? record.expected_passed : null,
   }
 }
 

@@ -3374,6 +3374,26 @@ a.instance-name:hover {
 .scenario-studio .st-erow:hover .st-erow-drag{ opacity:.9; }
 .scenario-studio .st-tc-badge{ font-size:11px; padding:2px 8px; letter-spacing:.06em; }
 
+/* 스텝 기대 판정 3상태 컨트롤 (ARTEL-302)
+   미지정이 기본이라 시각적으로도 가장 조용하다 — 색이 붙은 상태는 사람이 실제로 판단한
+   스텝뿐이어야, 화면을 훑을 때 라벨이 달린 곳이 바로 보인다. */
+.scenario-studio .st-erow-expected{ flex:none; display:inline-flex; align-items:center; gap:2px; padding:2px; border:1px solid var(--color-border-subtle,var(--st-border)); border-radius:7px; }
+.scenario-studio .st-exp{ font-family:inherit; font-size:11px; font-weight:600; line-height:1; padding:4px 7px; border:none; border-radius:5px; background:none; color:var(--st-muted); cursor:pointer; }
+.scenario-studio .st-exp:hover{ color:var(--st-text); background:var(--st-surface-2,rgba(127,127,127,0.06)); }
+/* 키보드 포커스는 지우지 않는다 — radiogroup이라 화살표로 옮겨 다니는 것이 정상 사용이다. */
+.scenario-studio .st-exp:focus-visible{ outline:2px solid var(--color-action-primary,#4c8bf5); outline-offset:1px; }
+.scenario-studio .st-exp--on{ color:var(--color-text-inverse,#fff); }
+.scenario-studio .st-exp--unset.st-exp--on{ color:var(--st-text); background:var(--st-surface-2,rgba(127,127,127,0.12)); }
+.scenario-studio .st-exp--pass.st-exp--on{ background:var(--color-status-success,#2f9e5f); }
+.scenario-studio .st-exp--fail.st-exp--on{ background:var(--color-status-danger,#d64545); }
+
+/* 시나리오 단위 롤업. 실패 기대가 0인 것은 오류가 아니라 "이 시나리오로는 관대한 모델을
+   못 걸러낸다"는 사실이라, 경고색이 아니라 주의 정도로만 둔다. */
+.scenario-studio .st-editor-expected{ margin-top:14px; padding-top:12px; border-top:1px solid var(--color-border-subtle,var(--st-border)); display:flex; flex-direction:column; gap:6px; }
+.scenario-studio .st-editor-expected-count{ font-size:12px; font-weight:600; color:var(--st-text); }
+.scenario-studio .st-editor-expected-count--none{ color:var(--color-status-warning,#b8860b); }
+.scenario-studio .st-editor-expected-note{ margin:0; font-size:12px; line-height:1.5; color:var(--st-muted); }
+
 /* Step→TC 상세 모달 가시성 강화 (ARTEL-289 #3) */
 .tc-modal{ width:min(560px,100%); }
 .tc-modal-head{ padding:15px 18px; }
