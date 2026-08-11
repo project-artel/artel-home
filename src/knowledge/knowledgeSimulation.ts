@@ -13,11 +13,13 @@ import { NODE_RADIUS, type PlacedEdge, type PlacedNode } from './knowledgeLayout
  * someone is dragging it. Three consequences follow, and each of them is a rule
  * below:
  *
- *   - Nothing moves until the reader moves it. On mount every node sits exactly
- *     where the deterministic pass put it, and the loop is not running.
- *   - Every node is pulled back toward its home. Let go of a node you dragged
- *     across the canvas and the picture eases back to the one that is
- *     reproducible, instead of keeping an arrangement nobody can get again.
+ *   - The deterministic pass is the **seed**, not the answer. Starting from it
+ *     rather than from random points is what keeps the drawing from rearranging
+ *     itself into something unrecognisable on every visit.
+ *   - Where things end up is decided by the forces: relations pull, everything
+ *     repels, and a weak pull to the middle keeps unrelated components on the
+ *     canvas. A node the reader drops stays where they dropped it — moving
+ *     something is meant to change the shape, not to be undone.
  *   - The energy decays and the loop stops. A graph that keeps ticking forever
  *     is a graph that keeps burning a core while nobody is looking at it.
  *
@@ -40,8 +42,17 @@ const FRICTION = 0.78
 /** How hard an edge pulls its two ends toward the distance the layout gave them. */
 const LINK_STRENGTH = 0.06
 
-/** How hard a node is pulled back to where the deterministic layout put it. */
-const HOME_STRENGTH = 0.035
+/**
+ * How hard everything drifts toward the middle of the drawing.
+ *
+ * This replaces a pull back to the layout's own placement. That pull made a
+ * released node slide back to where it started, which is not what a graph like
+ * this should feel like — a reader who moves something expects it to stay moved,
+ * and to have changed the shape by moving it. What is still needed is something
+ * to stop a component with no relation to the rest from wandering off the
+ * canvas, and a weak centring force is that and nothing more.
+ */
+const CENTRE_STRENGTH = 0.0035
 
 /** How hard two nodes push apart once they are closer than [MIN_SEPARATION]. */
 const REPEL_STRENGTH = 0.5
@@ -62,6 +73,8 @@ export type Body = {
 
 export type Simulation = {
   bodies: Map<string, Body>
+  /** Fixed point the weak centring force pulls toward. */
+  centre: { centreX: number; centreY: number }
   /** Rest lengths, taken from the layout so the relaxed picture keeps its scale. */
   links: { from: string; to: string; rest: number }[]
   alpha: number
@@ -96,7 +109,20 @@ export function createSimulation(
     })
   }
 
-  return { bodies, links, alpha: 0 }
+  let sumX = 0
+  let sumY = 0
+  for (const body of bodies.values()) {
+    sumX += body.homeX
+    sumY += body.homeY
+  }
+  const count = Math.max(bodies.size, 1)
+
+  return {
+    bodies,
+    links,
+    centre: { centreX: sumX / count, centreY: sumY / count },
+    alpha: 0,
+  }
 }
 
 /**
@@ -156,6 +182,11 @@ export function step(simulation: Simulation, pinned: string | null): boolean {
     }
   }
 
+  // The centre the drawing gathers around: where the seed placed everything,
+  // averaged. Taken from the homes rather than the live positions so dragging a
+  // node does not drag the centre along behind it.
+  const { centreX, centreY } = simulation.centre
+
   for (const [id, body] of bodies) {
     if (id === pinned) {
       // Held by the pointer: no drift, and no stored momentum to fling it when
@@ -165,8 +196,8 @@ export function step(simulation: Simulation, pinned: string | null): boolean {
       continue
     }
 
-    body.vx += (body.homeX - body.x) * HOME_STRENGTH * alpha
-    body.vy += (body.homeY - body.y) * HOME_STRENGTH * alpha
+    body.vx += (centreX - body.x) * CENTRE_STRENGTH * alpha
+    body.vy += (centreY - body.y) * CENTRE_STRENGTH * alpha
 
     body.vx *= FRICTION
     body.vy *= FRICTION

@@ -63,7 +63,10 @@ describe('knowledge simulation', () => {
     assert.ok(simulation.alpha < REST_ALPHA)
   })
 
-  it('brings a dragged node back toward where the layout put it', () => {
+  it('leaves a dropped node near where it was dropped', () => {
+    // The opposite of snapping back. A reader who drags something has changed
+    // the shape of the graph, and undoing that on release would make the
+    // gesture pointless — the seed is a starting point, not a place to return to.
     const simulation = createSimulation([node('1', 0, 0), node('2', 200, 0)], [])
     hold(simulation, '1', 400, 400)
     wake(simulation)
@@ -71,9 +74,10 @@ describe('knowledge simulation', () => {
 
     const at = positions(simulation).get('1')
     assert.ok(at !== undefined)
-    // Not asserting it lands exactly home: the point is that letting go pulls it
-    // back rather than leaving it where the pointer dropped it.
-    assert.ok(Math.hypot(at.x, at.y) < Math.hypot(400, 400) / 2)
+    // The weak centring force still applies, so this is "near", not "exactly".
+    // What it must not be is back at the origin it started from.
+    assert.ok(Math.hypot(at.x - 400, at.y - 400) < 160, `drifted to ${at.x},${at.y}`)
+    assert.ok(Math.hypot(at.x, at.y) > 200, 'it must not have snapped home')
   })
 
   it('leaves the held node exactly under the pointer', () => {

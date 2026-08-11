@@ -35,8 +35,9 @@ export function useKnowledgeDrag(graph: KnowledgeGraph): {
   layout: GraphLayout
   drag: DragHandlers
 } {
-  // The picture at rest. Recomputed only when the graph itself changes, and it
-  // is what the simulation is seeded from and pulled back toward.
+  // The seed. Deterministic, so the forces always start from the same place and
+  // the drawing does not reshuffle itself on every visit — but it is a starting
+  // point, not where things end up.
   const home = useMemo(() => layoutKnowledgeGraph(graph), [graph])
 
   const simulation = useRef<Simulation | null>(null)
@@ -66,6 +67,7 @@ export function useKnowledgeDrag(graph: KnowledgeGraph): {
 
   useEffect(() => stop, [stop])
 
+
   /**
    * Run until the drawing is at rest, or until the pointer lets go of it.
    *
@@ -85,12 +87,11 @@ export function useKnowledgeDrag(graph: KnowledgeGraph): {
           return
         }
 
-        // Settled. The override is dropped rather than kept at its final value,
-        // so the drawing goes back to being the deterministic one instead of a
-        // copy that happens to match it.
+        // Settled. The positions are kept — where the forces left things *is*
+        // the picture now. Dropping them here would snap the drawing back to the
+        // seed and undo the reader's drag, which is the one thing a graph you can
+        // push around must not do.
         frame.current = null
-        simulation.current = null
-        setMoved(null)
       }
 
       frame.current = requestAnimationFrame(run)
@@ -98,23 +99,31 @@ export function useKnowledgeDrag(graph: KnowledgeGraph): {
     [home],
   )
 
+  // Relax once when the graph arrives, so what a reader first sees is already
+  // the shape the forces agree on rather than the seed. Nothing is running
+  // afterwards: the energy decays, the loop ends, and the page goes quiet.
+  useEffect(() => {
+    const current = createSimulation(home.nodes, home.edges)
+    simulation.current = current
+    builtFor.current = home
+    wake(current)
+    start(current)
+  }, [home, start])
+
   const onDragStart = useCallback(
     (nodeId: string, x: number, y: number) => {
-      // Rebuilt whenever the graph changed under it — the bodies carry the old
-      // homes, and pulling toward those would drag the picture somewhere it no
-      // longer belongs.
-      if (builtFor.current !== home) {
-        simulation.current = createSimulation(home.nodes, home.edges)
-        builtFor.current = home
-      }
-      simulation.current ??= createSimulation(home.nodes, home.edges)
+      // The relaxation effect owns the simulation and rebuilds it whenever the
+      // graph changes, so by the time a pointer lands there is always one and it
+      // always belongs to the graph on screen.
+      const current = simulation.current
+      if (current === null) return
       dragged.current = nodeId
       setDragging(nodeId)
-      hold(simulation.current, nodeId, x, y)
-      wake(simulation.current)
-      start(simulation.current)
+      hold(current, nodeId, x, y)
+      wake(current)
+      start(current)
     },
-    [home, start],
+    [start],
   )
 
   const onDragMove = useCallback(
