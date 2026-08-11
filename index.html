@@ -16,19 +16,36 @@
       href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
     />
     <script>
-      (() => {
-        const saved = localStorage.getItem('artel-theme')
+      // The theme lives in a cookie on the parent domain so console and admin
+      // agree from the first paint; localStorage is per-origin and could not
+      // cross that hop. Kept inline and duplicated from src/theme.ts because a
+      // module import would be deferred, and the first paint is the point.
+      ;(() => {
+        const cookieMatch = document.cookie.match(/(?:^|;\s*)artel-theme=(light|dark)(?:;|$)/)
+        const legacy = cookieMatch ? null : localStorage.getItem('artel-theme')
         const theme =
-          saved === 'light' || saved === 'dark'
-            ? saved
+          cookieMatch?.[1] ??
+          (legacy === 'light' || legacy === 'dark'
+            ? legacy
             : matchMedia('(prefers-color-scheme: dark)').matches
               ? 'dark'
-              : 'light'
+              : 'light')
         document.documentElement.dataset.theme = theme
         document.querySelector('meta[name="theme-color"]').content =
           theme === 'dark' ? '#14161c' : '#F7F4EE'
         document.querySelector('#app-favicon').href =
           theme === 'dark' ? '/favicon-dark.svg' : '/favicon.svg'
+
+        // Rewriting on every load migrates the old localStorage value and keeps
+        // the expiry rolling for anyone who visits regularly.
+        const shared = location.hostname === 'artel.kr' || location.hostname.endsWith('.artel.kr')
+        document.cookie =
+          'artel-theme=' +
+          theme +
+          '; Path=/; Max-Age=31536000; SameSite=Lax' +
+          (shared ? '; Domain=.artel.kr' : '') +
+          (location.protocol === 'https:' ? '; Secure' : '')
+        if (legacy) localStorage.removeItem('artel-theme')
       })()
     </script>
     <title>ARTEL Replay Studio</title>
