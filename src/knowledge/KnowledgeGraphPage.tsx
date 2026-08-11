@@ -6,8 +6,9 @@ import { isDecimalId } from '../qa/qaApi'
 import { KnowledgeGraphCanvas, type Selection } from './KnowledgeGraphCanvas'
 import { KnowledgeInspector } from './KnowledgeInspector'
 import { KnowledgeLegend } from './KnowledgeLegend'
-import { LABEL_NODE_LIMIT, layoutKnowledgeGraph } from './knowledgeLayout'
+import { LABEL_NODE_LIMIT } from './knowledgeLayout'
 import type { KnowledgeGraph } from './knowledgeTypes'
+import { useKnowledgeDrag } from './useKnowledgeDrag'
 import { useKnowledgeGraph } from './useKnowledgeGraph'
 
 export function KnowledgeGraphRoute() {
@@ -81,7 +82,11 @@ function KnowledgeGraphView({ graph, projectId }: { graph: KnowledgeGraph; proje
 
   // The layout is the expensive part and depends on nothing but the response, so
   // selecting a node must not recompute it.
-  const layout = useMemo(() => layoutKnowledgeGraph(graph), [graph])
+  // The drawing can be pushed around, so the layout comes from the drag hook
+  // rather than straight from the pure pass: at rest it is exactly the
+  // deterministic one, and while a node is held it is that layout re-drawn from
+  // the live positions.
+  const { layout, drag } = useKnowledgeDrag(graph)
   const nodesById = useMemo(
     () => new Map(graph.nodes.map((node) => [node.id, node])),
     [graph.nodes],
@@ -146,6 +151,7 @@ function KnowledgeGraphView({ graph, projectId }: { graph: KnowledgeGraph; proje
 
           <div className="kg-canvas-frame">
             <KnowledgeGraphCanvas
+              drag={drag}
               layout={layout}
               onSelectEdge={(id) => setSelection({ kind: 'edge', id })}
               onSelectNode={(id) => setSelection({ kind: 'node', id })}

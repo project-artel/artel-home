@@ -3754,7 +3754,22 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
 /* Nodes. Shape says where the item came from; the tag only tints it, and the
    inspector spells both out in words. */
 .kg-node {
-  cursor: pointer;
+  cursor: grab;
+  /* A drag on an SVG shape otherwise starts the browser's own image drag, which
+     steals the pointer stream and leaves the node stuck where the gesture began. */
+  touch-action: none;
+}
+.kg-node.is-held {
+  cursor: grabbing;
+}
+/* While a node is held the cursor stays "grabbing" everywhere, so the gesture
+   reads as one continuous thing even when the pointer runs off the node. */
+.kg-canvas--dragging,
+.kg-canvas--dragging .kg-node {
+  cursor: grabbing;
+}
+.kg-node.is-held .kg-node-mark {
+  stroke-width: 2.5;
 }
 .kg-node-mark {
   fill: var(--color-text-muted);

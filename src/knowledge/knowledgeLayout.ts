@@ -101,6 +101,24 @@ export type GraphLayout = {
   isolatedCount: number
 }
 
+type Extent = { minX: number; minY: number; maxX: number; maxY: number }
+
+/** Bounding box of a set of points, or null when there are none. */
+function extentOf(points: readonly { x: number; y: number }[]): Extent | null {
+  if (points.length === 0) return null
+  let minX = Infinity
+  let minY = Infinity
+  let maxX = -Infinity
+  let maxY = -Infinity
+  for (const point of points) {
+    minX = Math.min(minX, point.x)
+    minY = Math.min(minY, point.y)
+    maxX = Math.max(maxX, point.x)
+    maxY = Math.max(maxY, point.y)
+  }
+  return { minX, minY, maxX, maxY }
+}
+
 function round(value: number): number {
   return Math.round(value * 100) / 100
 }
@@ -319,7 +337,24 @@ function selfEdgePath(
  * leave the two lying exactly on top of one another, and the user would see one
  * relation where there are two facing opposite ways.
  */
-export function layoutKnowledgeGraph(graph: KnowledgeGraph): GraphLayout {
+/**
+ * Positions to use instead of the computed ones, as `node id -> point`.
+ *
+ * This is how dragging works without a second copy of the edge geometry. The
+ * deterministic pass still decides where everything belongs; the override only
+ * says where a node is *right now*, and every curve, arrowhead and self loop is
+ * rebuilt from those points by the same code that drew them at rest. Without it
+ * a dragged node would slide out from under its own edges.
+ *
+ * A node the map does not mention keeps its computed place, so a drag of one
+ * node costs one entry.
+ */
+export type PositionOverride = ReadonlyMap<string, { x: number; y: number }>
+
+export function layoutKnowledgeGraph(
+  graph: KnowledgeGraph,
+  override?: PositionOverride,
+): GraphLayout {
   const indexById = new Map<string, number>()
   graph.nodes.forEach((node, index) => indexById.set(node.id, index))
 
@@ -395,6 +430,22 @@ export function layoutKnowledgeGraph(graph: KnowledgeGraph): GraphLayout {
 
   pack(boxes)
 
+  // The frame is measured before the override is applied, and never after.
+  //
+  // Everything below reads `positions`, the view box included, so letting a drag
+  // reach it would resize the frame on every pointer move — the whole drawing
+  // would slide under the cursor and the node would never catch up to it. The
+  // frame belongs to the deterministic picture; the drag only moves things
+  // inside it.
+  const homeExtent = extentOf([...positions.values()])
+
+  if (override !== undefined) {
+    graph.nodes.forEach((node, index) => {
+      const at = override.get(node.id)
+      if (at !== undefined) positions.set(index, at)
+    })
+  }
+
   const componentOf = new Map<number, number>()
   clusters.forEach((cluster, order) => {
     for (const member of cluster.members) componentOf.set(member, order)
@@ -460,7 +511,7 @@ export function layoutKnowledgeGraph(graph: KnowledgeGraph): GraphLayout {
   }
   const edges = placedEdges.filter((edge): edge is PlacedEdge => edge !== null)
 
-  return { ...bounds(nodes, edges), nodes, edges, clusterCount: clusters.length, isolatedCount: degree.filter((count) => count === 0).length }
+  return { ...bounds(nodes, edges, homeExtent), nodes, edges, clusterCount: clusters.length, isolatedCount: degree.filter((count) => count === 0).length }
 }
 
 /**
@@ -473,6 +524,7 @@ export function layoutKnowledgeGraph(graph: KnowledgeGraph): GraphLayout {
 function bounds(
   nodes: PlacedNode[],
   edges: PlacedEdge[],
+  home: Extent | null,
 ): { viewBox: string; width: number; height: number } {
   if (nodes.length === 0) return { viewBox: '0 0 100 100', width: 100, height: 100 }
 
@@ -481,11 +533,22 @@ function bounds(
   let maxX = -Infinity
   let maxY = -Infinity
 
-  for (const node of nodes) {
-    minX = Math.min(minX, node.x)
-    minY = Math.min(minY, node.y)
-    maxX = Math.max(maxX, node.x)
-    maxY = Math.max(maxY, node.y)
+  // Node extents come from where the deterministic pass put them, so a drag
+  // cannot resize the frame. Edge extents below still use the drawn geometry:
+  // a curve reaching past its ends must not be clipped, and that excursion is
+  // small and bounded, unlike a node the pointer has carried across the canvas.
+  if (home !== null) {
+    minX = home.minX
+    minY = home.minY
+    maxX = home.maxX
+    maxY = home.maxY
+  } else {
+    for (const node of nodes) {
+      minX = Math.min(minX, node.x)
+      minY = Math.min(minY, node.y)
+      maxX = Math.max(maxX, node.x)
+      maxY = Math.max(maxY, node.y)
+    }
   }
   for (const edge of edges) {
     minX = Math.min(minX, edge.midX)

@@ -1,5 +1,6 @@
-import { useMemo } from 'react'
+import { useCallback, useMemo, useRef } from 'react'
 import { useI18n } from '../i18n/useI18n'
+import type { DragHandlers } from './useKnowledgeDrag'
 import { itemTitle, nodeShape, tagClass, truncate } from './knowledgeLabels'
 import { placeLabels, type LabelPlacement } from './knowledgeLabelPlacement'
 import {
@@ -32,6 +33,7 @@ type CanvasProps = {
   selection: Selection
   onSelectNode: (nodeId: string) => void
   onSelectEdge: (edgeId: string) => void
+  drag: DragHandlers
 }
 
 /** Relation styles that need an arrow definition, plus the fallback bucket. */
@@ -58,9 +60,26 @@ export function KnowledgeGraphCanvas({
   selection,
   onSelectNode,
   onSelectEdge,
+  drag,
 }: CanvasProps) {
   const { t } = useI18n()
   const showLabels = layout.nodes.length <= LABEL_NODE_LIMIT
+  const svg = useRef<SVGSVGElement>(null)
+
+  /**
+   * Pointer position in the drawing's own units.
+   *
+   * The view box is scaled to fit, so client pixels and user units are not the
+   * same thing and a node dragged with raw client deltas would slide away from
+   * the cursor at any zoom but one.
+   */
+  const toUserSpace = useCallback((event: { clientX: number; clientY: number }) => {
+    const element = svg.current
+    const matrix = element?.getScreenCTM()
+    if (element === null || matrix === null || matrix === undefined) return null
+    const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(matrix.inverse())
+    return { x: point.x, y: point.y }
+  }, [])
 
   // Which nodes the current selection touches. Used to keep the rest of the
   // drawing present but quiet, rather than hiding it — the surroundings are part
@@ -106,8 +125,21 @@ export function KnowledgeGraphCanvas({
   return (
     <svg
       aria-hidden="true"
-      className={`kg-canvas${selection === null ? '' : ' kg-canvas--focused'}`}
+      className={`kg-canvas${selection === null ? '' : ' kg-canvas--focused'}${
+        drag.dragging === null ? '' : ' kg-canvas--dragging'
+      }`}
+      onPointerMove={(event) => {
+        if (drag.dragging === null) return
+        const at = toUserSpace(event)
+        if (at !== null) drag.onDragMove(at.x, at.y)
+      }}
+      // Both endings matter. `up` is the ordinary one; `cancel` is the browser
+      // taking the gesture away (a scroll gesture, a lost window), and without it
+      // the node stays welded to a pointer that is no longer sending events.
+      onPointerCancel={drag.onDragEnd}
+      onPointerUp={drag.onDragEnd}
       preserveAspectRatio="xMidYMid meet"
+      ref={svg}
       viewBox={layout.viewBox}
     >
       <defs>
@@ -144,8 +176,17 @@ export function KnowledgeGraphCanvas({
         {layout.nodes.map((placed) => (
           <NodeMark
             dimmed={selection !== null && !related.has(placed.node.id)}
+            held={drag.dragging === placed.node.id}
             key={placed.node.id}
             label={labels.get(placed.node.id) ?? null}
+            onDragStart={(event) => {
+              const at = toUserSpace(event)
+              if (at === null) return
+              // The capture is what lets the pointer leave the SVG mid-drag and
+              // still be followed; without it the node stops at the edge.
+              event.currentTarget.setPointerCapture(event.pointerId)
+              drag.onDragStart(placed.node.id, at.x, at.y)
+            }}
             onSelect={() => onSelectNode(placed.node.id)}
             placed={placed}
             selected={selection?.kind === 'node' && selection.id === placed.node.id}
@@ -203,24 +244,37 @@ function NodeMark({
   placed,
   selected,
   dimmed,
+  held,
   label,
   onSelect,
+  onDragStart,
 }: {
   placed: PlacedNode
   selected: boolean
   dimmed: boolean
+  held: boolean
   label: LabelPlacement | null
   onSelect: () => void
+  onDragStart: (event: React.PointerEvent<SVGGElement>) => void
 }) {
   const shape = nodeShape(placed.node.source)
   const classes = ['kg-node', `kg-node--tag-${tagClass(placed.node.tag)}`, `kg-node--${shape}`]
   if (selected) classes.push('is-selected')
   if (dimmed) classes.push('is-dimmed')
+  if (held) classes.push('is-held')
 
   const side = NODE_RADIUS * 1.7
 
   return (
-    <g className={classes.join(' ')} onClick={onSelect} transform={`translate(${placed.x} ${placed.y})`}>
+    <g
+      className={classes.join(' ')}
+      // Click still selects. A drag is a pointer gesture and a click is what the
+      // browser reports when that gesture went nowhere, so the two coexist
+      // without a distance threshold of our own.
+      onClick={onSelect}
+      onPointerDown={onDragStart}
+      transform={`translate(${placed.x} ${placed.y})`}
+    >
       {shape === 'circle' && <circle className="kg-node-mark" r={NODE_RADIUS} />}
       {shape === 'square' && (
         <rect className="kg-node-mark" height={side} rx="2" width={side} x={-side / 2} y={-side / 2} />
