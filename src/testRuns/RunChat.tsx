@@ -1,10 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { formatDateTime } from '../projects/formatters'
-import { listTestCases } from '../testCases/testCaseApi'
-import type { TestCase } from '../testCases/testCaseTypes'
+import { groupStepsByCase } from '../testScenarios/scenarioTypes'
 import type { ScenarioProposal } from './runChatApi'
 import type { RunChatSession } from './useRunChatSession'
+
+/** 표시용 텍스트 정리: 줄바꿈·중복 공백을 한 칸으로, 앞의 대시·불릿·번호 접두 제거. */
+function cleanText(value: string | null | undefined): string {
+  return (value ?? '')
+    .replace(/\s+/g, ' ')
+    .replace(/^[-–—•*\s]+/, '')
+    .trim()
+}
 
 /**
  * The run-scoped authoring conversation (ARTEL-206 Step 6).
@@ -17,12 +24,11 @@ import type { RunChatSession } from './useRunChatSession'
  * of — resolved from the project's case library by id, so the user sees exactly
  * what will be applied before committing.
  */
-export function RunChat({ projectId, session }: { projectId: string; session: RunChatSession }) {
+export function RunChat({ session }: { session: RunChatSession }) {
   const { t } = useI18n()
   const c = t.scenarios.chat
   const [input, setInput] = useState('')
   const [expanded, setExpanded] = useState<ScenarioProposal | null>(null)
-  const [caseById, setCaseById] = useState<Map<string, TestCase>>(new Map())
   const threadRef = useRef<HTMLOListElement>(null)
 
   useEffect(() => {
@@ -30,17 +36,6 @@ export function RunChat({ projectId, session }: { projectId: string; session: Ru
     if (thread === null) return
     thread.scrollTop = thread.scrollHeight
   }, [session.messages.length, session.awaitingReply, session.proposals.length])
-
-  // Resolve proposal case ids → case details from the project's library (same
-  // source as the case palette). Loaded once per project; ids are numeric on the
-  // wire and string on TestCase, so the modal converts when it looks them up.
-  useEffect(() => {
-    const controller = new AbortController()
-    listTestCases(projectId, {}, controller.signal)
-      .then((cases) => setCaseById(new Map(cases.map((tc) => [tc.id, tc]))))
-      .catch(() => undefined)
-    return () => controller.abort()
-  }, [projectId])
 
   async function submit(event: React.FormEvent) {
     event.preventDefault()
@@ -184,9 +179,8 @@ export function RunChat({ projectId, session }: { projectId: string; session: Ru
       </p>
 
       {expanded !== null && (
-        <ProposalCasesModal
+        <ProposalStepsModal
           proposal={expanded}
-          caseById={caseById}
           onClose={() => setExpanded(null)}
         />
       )}
@@ -240,7 +234,7 @@ function ProposalCard({
       {proposal.description.length > 0 && (
         <p className="run-chat-card-desc">{proposal.description}</p>
       )}
-      <p className="run-chat-card-cases">{caseCount(proposal.caseIds.length)}</p>
+      <p className="run-chat-card-cases">{caseCount(proposal.steps.length)}</p>
       <div className="run-chat-card-actions">
         <button
           className="button button--secondary button--compact"
@@ -263,20 +257,24 @@ function ProposalCard({
   )
 }
 
-/** Modal listing the TestCases a proposal is composed of, in order. */
-function ProposalCasesModal({
+/** Modal listing a proposal's ordered steps, grouped into TC boxes (재설계). */
+function ProposalStepsModal({
   proposal,
-  caseById,
   onClose,
 }: {
   proposal: ScenarioProposal
-  caseById: Map<string, TestCase>
   onClose: () => void
 }) {
   const { t } = useI18n()
   const c = t.scenarios.chat
+  const sv = t.scenarios.stepsView
   const isEdit = proposal.scenarioId !== null
-  const cases = proposal.caseIds.map((id) => caseById.get(String(id)) ?? null)
+  // 내부 case_id는 노출 금지 — TC는 등장 순서(1,2,…)로만 표시한다.
+  let tcSeq = 0
+  const groups = groupStepsByCase(proposal.steps).map((group) => ({
+    group,
+    tcNo: group.caseId === null ? 0 : ++tcSeq,
+  }))
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -306,34 +304,43 @@ function ProposalCasesModal({
             ✕
           </button>
         </div>
-        <p className="run-chat-modal-meta">{c.modalCases(proposal.caseIds.length)}</p>
-        <ul className="run-chat-tc-list">
-          {cases.map((tc, index) => (
-            <li className="run-chat-tc" key={index}>
-              {tc === null ? (
-                <p className="run-chat-tc-missing">{c.caseMissing}</p>
-              ) : (
-                <>
-                  <div className="run-chat-tc-h">
-                    <span className={`run-chat-cat run-chat-cat--${tc.category}`}>{tc.category}</span>
-                    <span className="run-chat-tc-title">
-                      {index + 1}. {tc.title}
-                    </span>
-                  </div>
-                  {tc.precondition !== null && tc.precondition.length > 0 && (
-                    <div className="run-chat-tc-row">
-                      <span className="run-chat-tc-lb">{c.precondition}</span>
-                      <span className="run-chat-tc-vl">{tc.precondition}</span>
-                    </div>
-                  )}
-                  <div className="run-chat-tc-row">
-                    <span className="run-chat-tc-lb">{c.expected}</span>
-                    <span className="run-chat-tc-vl">{tc.expected}</span>
-                  </div>
-                </>
-              )}
-            </li>
-          ))}
+        <p className="run-chat-modal-meta">{c.modalCases(proposal.steps.length)}</p>
+        <ul className="rc-steps">
+          {groups.map(({ group, tcNo }, gi) =>
+            group.caseId === null ? (
+              group.steps.map((step, si) => (
+                <li key={`p-${gi}-${si}`} className="rc-step rc-step--plain">
+                  <span className="rc-step-no">{group.indices[si] + 1}</span>
+                  <span className="rc-step-body">
+                    <span className="rc-step-action">{cleanText(step.action) || sv.noAction}</span>
+                    {cleanText(step.hint) && <span className="rc-step-hint">{cleanText(step.hint)}</span>}
+                  </span>
+                </li>
+              ))
+            ) : (
+              <li key={`c-${gi}`} className="rc-tc">
+                <div className="rc-tc-head">
+                  <span className="rc-tc-badge">TC {tcNo}</span>
+                  <span className="rc-tc-count">{sv.caseSteps(group.steps.length)}</span>
+                </div>
+                <ol className="rc-tc-steps">
+                  {group.steps.map((step, si) => {
+                    const verify = si === group.steps.length - 1
+                    return (
+                      <li key={si} className={`rc-step${verify ? ' rc-step--verify' : ''}`}>
+                        <span className="rc-step-no">{group.indices[si] + 1}</span>
+                        <span className="rc-step-body">
+                          <span className="rc-step-action">{cleanText(step.action) || sv.noAction}</span>
+                          {verify && <span className="rc-step-badge">{sv.verify}</span>}
+                          {cleanText(step.hint) && <span className="rc-step-hint">{cleanText(step.hint)}</span>}
+                        </span>
+                      </li>
+                    )
+                  })}
+                </ol>
+              </li>
+            ),
+          )}
         </ul>
       </div>
     </div>

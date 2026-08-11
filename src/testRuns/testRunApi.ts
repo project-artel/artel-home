@@ -74,6 +74,22 @@ export async function getTestRun(
   return parseTestRun(await readJson(response))
 }
 
+/** `PUT /api/projects/{projectId}/test-runs/{runId}` — rename/update a run (name/description). */
+export async function updateTestRun(
+  projectId: string,
+  runId: string,
+  body: { name?: string; description?: string },
+): Promise<TestRun> {
+  const response = await apiFetch(
+    `${runsRoot(projectId)}/${encodeURIComponent(runId)}`,
+    { method: 'PUT', ...jsonRequest(body) },
+  )
+  if (!response.ok) throw await toApiError(response)
+  const run = parseTestRun(await readJson(response))
+  if (run === null) throw new Error('The server did not return a run.')
+  return run
+}
+
 /**
  * `PUT /api/projects/{projectId}/test-runs/{runId}/scenarios` — replaces the run's
  * scenario composition wholesale. Order of `scenarioIds` becomes the position.

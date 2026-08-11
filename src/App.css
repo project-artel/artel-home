@@ -2610,6 +2610,68 @@ a.instance-name:hover {
 .scenario-studio .st-back:hover{ background:var(--st-hover); color:var(--st-text); }
 .scenario-studio .st-crumb{ display:flex; align-items:baseline; gap:8px; min-width:0; }
 .scenario-studio .st-crumb .scn{ font-weight:600; font-size:15px; color:var(--st-text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+/* TR 이름 인라인 편집 크럼 (ARTEL-285) */
+.scenario-studio .st-crumb .scn--editable{ display:inline-flex; align-items:center; gap:6px; max-width:340px; background:none; border:1px solid transparent; border-radius:6px; padding:2px 6px; margin:-2px -6px; cursor:text; font:inherit; }
+.scenario-studio .st-crumb .scn--editable .scn-text{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600; font-size:15px; color:var(--st-text); }
+/* 편집 이모티콘은 상시 노출(ARTEL-285): 흐리게 항상 보이고, hover/focus에서 진하게. */
+.scenario-studio .st-crumb .scn--editable .scn-pencil{ opacity:.55; font-size:12px; color:var(--st-muted); transition:opacity .12s ease; }
+.scenario-studio .st-crumb .scn--editable:hover{ border-color:var(--st-border); background:var(--st-surface-2, rgba(127,127,127,0.08)); }
+.scenario-studio .st-crumb .scn--editable:hover .scn-pencil,
+.scenario-studio .st-crumb .scn--editable:focus-visible .scn-pencil{ opacity:1; }
+.scenario-studio .st-crumb .st-crumb-edit{ font-weight:600; font-size:15px; color:var(--st-text); background:var(--st-surface); border:1px solid var(--color-action-primary,#4c8bf5); border-radius:6px; padding:2px 6px; margin:-2px -6px; min-width:180px; max-width:340px; outline:none; }
+.scenario-studio .st-crumb .st-crumb-sep{ color:var(--st-muted); margin:0 2px; }
+/* 시나리오 Step 표시 (재설계, ARTEL-285) */
+.scenario-studio .st-steps{ padding:24px 28px; max-width:820px; margin:0 auto; }
+.scenario-studio .st-steps-head{ margin-bottom:18px; }
+.scenario-studio .st-steps-title{ font-size:22px; font-weight:700; color:var(--st-text); margin:0 0 6px; }
+/* 중앙 상단 제목에서 시나리오 이름 인라인 편집 (ARTEL-285), 편집 이모티콘 상시 노출.
+   긴 제목은 잘리지 않고 페이지 폭에 맞춰 줄바꿈 — 박스가 아니라 페이지에 글 쓰듯. */
+.scenario-studio .st-steps-head .scn--editable{ display:inline-flex; align-items:flex-start; gap:8px; max-width:100%; text-align:left; background:none; border:1px solid transparent; border-radius:8px; padding:2px 8px; margin:-2px -8px; cursor:text; font:inherit; }
+.scenario-studio .st-steps-head .scn--editable .scn-text{ font-size:22px; font-weight:700; line-height:1.3; color:var(--st-text); white-space:normal; overflow-wrap:anywhere; }
+.scenario-studio .st-steps-head .scn--editable .scn-pencil{ flex:none; margin-top:5px; opacity:.5; font-size:14px; color:var(--st-muted); transition:opacity .12s ease; }
+.scenario-studio .st-steps-head .scn--editable:hover{ border-color:var(--st-border); background:var(--st-surface-2, rgba(127,127,127,0.06)); }
+.scenario-studio .st-steps-head .scn--editable:hover .scn-pencil,
+.scenario-studio .st-steps-head .scn--editable:focus-visible .scn-pencil{ opacity:1; }
+.scenario-studio .st-steps-head .st-title-edit{ display:block; box-sizing:border-box; width:100%; font-family:inherit; font-size:22px; font-weight:700; line-height:1.3; color:var(--st-text); background:none; border:none; border-bottom:2px solid var(--color-action-primary,#4c8bf5); border-radius:0; padding:2px 0; margin:0; resize:none; overflow:hidden; outline:none; }
+/* 시나리오 Step 편집기 (ARTEL-289) */
+.scenario-studio .st-editor{ padding:24px 28px; max-width:860px; margin:0 auto; }
+.scenario-studio .st-editor-head{ display:flex; align-items:flex-start; gap:12px; margin-bottom:16px; }
+.scenario-studio .st-editor-title{ flex:1; box-sizing:border-box; font-family:inherit; font-size:22px; font-weight:700; line-height:1.3; color:var(--st-text); background:none; border:none; border-bottom:2px solid transparent; padding:2px 0; outline:none; }
+.scenario-studio .st-editor-title:hover{ border-bottom-color:var(--st-border); }
+.scenario-studio .st-editor-title:focus{ border-bottom-color:var(--color-action-primary,#4c8bf5); }
+.scenario-studio .st-editor-tools{ flex:none; display:flex; align-items:center; gap:8px; }
+.scenario-studio .st-editor-error{ margin:0 0 10px; color:var(--color-status-danger,#d64545); font-size:12px; }
+.scenario-studio .st-editor-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+.scenario-studio .st-erow{ display:flex; align-items:flex-start; gap:10px; padding:10px 12px; border:1px solid var(--st-border); border-radius:10px; background:var(--st-surface); }
+.scenario-studio .st-erow--tc{ border-left:3px solid var(--color-action-primary,#4c8bf5); }
+.scenario-studio .st-erow-no{ flex:none; width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:var(--st-muted); background:var(--st-surface-2,rgba(127,127,127,0.12)); border-radius:6px; font-variant-numeric:tabular-nums; margin-top:2px; }
+.scenario-studio .st-erow-body{ flex:1; display:flex; flex-direction:column; gap:6px; min-width:0; }
+.scenario-studio .st-erow-action{ box-sizing:border-box; width:100%; font-family:inherit; font-size:14px; line-height:1.5; color:var(--st-text); background:var(--st-bg,transparent); border:1px solid var(--st-border); border-radius:6px; padding:6px 8px; resize:none; overflow:hidden; outline:none; }
+.scenario-studio .st-erow-action:focus{ border-color:var(--color-action-primary,#4c8bf5); }
+.scenario-studio .st-erow-meta{ display:flex; align-items:center; gap:8px; }
+.scenario-studio .st-erow-hint{ flex:1; font-family:inherit; font-size:12px; color:var(--st-muted); background:none; border:none; border-bottom:1px dashed var(--st-border); padding:2px 0; outline:none; }
+.scenario-studio .st-erow-hint:focus{ border-bottom-color:var(--color-action-primary,#4c8bf5); color:var(--st-text); }
+.scenario-studio .st-erow-actions{ flex:none; display:flex; gap:2px; }
+.scenario-studio .iconbtn--danger:hover{ color:var(--color-status-danger,#d64545); }
+.scenario-studio .st-editor-add{ margin-top:12px; font-size:13px; font-weight:600; color:var(--color-action-primary,#4c8bf5); background:none; border:1px dashed var(--st-border); border-radius:8px; padding:8px 12px; cursor:pointer; width:100%; }
+.scenario-studio .st-editor-add:hover{ border-color:var(--color-action-primary,#4c8bf5); background:var(--st-surface-2,rgba(127,127,127,0.05)); }
+.scenario-studio .st-steps-desc{ color:var(--st-muted); font-size:14px; margin:0; }
+.scenario-studio .st-steps-empty{ color:var(--st-muted); font-size:14px; padding:32px 0; text-align:center; }
+.scenario-studio .st-steps-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+.scenario-studio .st-step{ display:flex; align-items:baseline; gap:10px; padding:8px 10px; border-radius:8px; }
+.scenario-studio .st-step--plain{ background:var(--st-surface-2, rgba(127,127,127,0.05)); }
+.scenario-studio .st-step-no{ flex:none; min-width:22px; font-variant-numeric:tabular-nums; font-size:12px; color:var(--st-muted); font-weight:600; }
+.scenario-studio .st-step-action{ color:var(--st-text); font-size:14px; }
+.scenario-studio .st-step-hint{ color:var(--st-muted); font-size:12px; margin-left:4px; }
+.scenario-studio .st-step-tag{ flex:none; font-size:11px; font-weight:700; color:var(--color-action-primary,#4c8bf5); text-transform:uppercase; letter-spacing:.04em; }
+.scenario-studio .st-step--verify .st-step-action{ font-weight:600; }
+.scenario-studio .st-tc{ border:1px solid var(--st-border); border-radius:10px; padding:10px 12px; background:var(--st-surface); }
+.scenario-studio .st-tc-head{ display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+.scenario-studio .st-tc-badge{ font-size:10px; font-weight:800; color:#fff; background:var(--color-action-primary,#4c8bf5); border-radius:4px; padding:1px 5px; letter-spacing:.05em; }
+.scenario-studio .st-tc-id{ font-size:13px; font-weight:700; color:var(--st-text); }
+.scenario-studio .st-tc-meta{ font-size:12px; color:var(--st-muted); }
+.scenario-studio .st-tc-steps{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px; }
+.run-chat-tc-steps{ list-style:none; margin:4px 0 0; padding:0; display:flex; flex-direction:column; gap:2px; }
 .scenario-studio .st-crumb .id{ color:var(--st-muted); font-weight:400; font-size:12px; white-space:nowrap; }
 .scenario-studio .st-spacer{ flex:1; }
 .scenario-studio .st-icons{ display:inline-flex; gap:2px; }
@@ -2758,7 +2820,9 @@ a.instance-name:hover {
 .run-chat-card{ border:1px solid var(--st-border-strong); border-left-width:3px; border-radius:8px; background:var(--st-raised); padding:10px 12px; }
 .run-chat-card--new{ border-left-color:var(--st-action); }
 .run-chat-card--edit{ border-left-color:var(--st-verified); }
-.run-chat-card-kind{ font-size:11px; color:var(--st-muted); margin:0 0 4px; }
+.run-chat-card-kind{ display:inline-block; font-size:11px; font-weight:700; letter-spacing:.02em; padding:2px 9px; border-radius:999px; margin:0 0 4px; color:#fff; }
+.run-chat-card--new .run-chat-card-kind{ background:var(--st-action); }
+.run-chat-card--edit .run-chat-card-kind{ background:var(--st-verified); }
 .run-chat-card-title{ font-size:13px; font-weight:600; color:var(--st-text); margin:0 0 3px; }
 .run-chat-card-desc{ font-size:12px; line-height:1.5; color:var(--st-text-2); margin:0 0 6px; }
 .run-chat-card-cases{ font-size:11px; color:var(--st-muted); font-family:var(--st-mono); margin:0 0 8px; }
@@ -2788,6 +2852,22 @@ a.instance-name:hover {
 .run-chat-modal-close:hover{ background:var(--color-bg-hover); color:var(--color-text-primary); }
 .run-chat-modal-meta{ font-size:11px; color:var(--color-text-muted); font-family:var(--st-mono); padding:12px 20px 0; margin:0; }
 .run-chat-tc-list{ list-style:none; margin:0; padding:10px 20px 20px; display:flex; flex-direction:column; gap:10px; }
+/* 카드 전체보기 — steps 가시성 개선 (ARTEL-285): 번호 칩·검증 배지·TC 박스 */
+.rc-steps{ list-style:none; margin:0; padding:10px 20px 20px; display:flex; flex-direction:column; gap:8px; }
+.rc-tc{ border:1px solid var(--color-border-subtle); border-radius:10px; background:var(--color-bg-raised); padding:10px 12px; }
+.rc-tc-head{ display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+.rc-tc-badge{ font-size:10px; font-weight:800; color:#fff; background:var(--color-action-primary,#4c8bf5); border-radius:4px; padding:1px 6px; letter-spacing:.05em; }
+.rc-tc-id{ font-size:13px; font-weight:700; color:var(--color-text-primary); font-variant-numeric:tabular-nums; }
+.rc-tc-count{ font-size:11px; color:var(--color-text-muted); }
+.rc-tc-steps{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px; }
+.rc-step{ display:flex; align-items:flex-start; gap:8px; }
+.rc-step--plain{ padding:6px 8px; border-radius:8px; background:var(--color-bg-subtle, rgba(127,127,127,0.06)); }
+.rc-step-no{ flex:none; width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:var(--color-text-secondary); background:var(--color-bg-subtle, rgba(127,127,127,0.12)); border-radius:6px; font-variant-numeric:tabular-nums; }
+.rc-step-body{ display:flex; flex-wrap:wrap; align-items:baseline; gap:6px; line-height:1.5; }
+.rc-step-action{ font-size:13px; color:var(--color-text-primary); }
+.rc-step--verify .rc-step-action{ font-weight:650; }
+.rc-step-badge{ flex:none; font-size:10px; font-weight:700; color:var(--color-action-primary,#4c8bf5); border:1px solid var(--color-action-primary,#4c8bf5); border-radius:4px; padding:0 5px; text-transform:uppercase; letter-spacing:.04em; }
+.rc-step-hint{ font-size:11px; color:var(--color-text-muted); }
 .run-chat-tc{ border:1px solid var(--color-border-subtle); border-radius:8px; background:var(--color-bg-raised); padding:12px 14px; }
 .run-chat-tc-missing{ margin:0; font-size:12px; color:var(--color-text-muted); }
 .run-chat-tc-h{ display:flex; align-items:center; gap:8px; margin:0 0 6px; }
@@ -3223,3 +3303,269 @@ a.instance-name:hover {
 .qa-issue-panel {
   margin-top: var(--space-5);
 }
+
+/* QA 런(TR 단위) 진행 화면 (ARTEL-286) */
+.qa-run{ max-width:760px; }
+.qa-run-head{ display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
+.qa-run-title{ display:flex; align-items:center; gap:10px; }
+.qa-run-title h1{ margin:0; font-size:20px; }
+.qa-run-sub{ margin:0; color:var(--color-text-muted); font-size:13px; }
+.qa-run-progress{ margin:2px 0 0; font-size:13px; color:var(--color-text-secondary); font-variant-numeric:tabular-nums; }
+.qa-run-error{ margin:4px 0 0; color:var(--color-status-danger,#d64545); font-size:12px; }
+.qa-run-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+.qa-run-item{ border:1px solid var(--color-border-subtle); border-radius:10px; background:var(--color-bg-raised); overflow:hidden; }
+.qa-run-item--active{ border-color:var(--st-action,#4c8bf5); box-shadow:0 0 0 1px var(--st-action,#4c8bf5) inset; }
+.qa-run-row{ display:flex; align-items:center; gap:12px; padding:10px 12px; }
+.qa-run-active-detail{ padding:6px 12px 12px; border-top:1px solid var(--color-border-subtle); }
+.qa-run-no{ flex:none; width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:var(--color-text-secondary); background:var(--color-bg-subtle,rgba(127,127,127,0.12)); border-radius:6px; font-variant-numeric:tabular-nums; }
+.qa-run-scenario{ flex:1; font-size:14px; color:var(--color-text-primary); }
+.qa-run-status{ font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; letter-spacing:.02em; background:var(--color-bg-subtle,rgba(127,127,127,0.14)); color:var(--color-text-secondary); }
+.qa-run-status--running,.qa-run-status--starting{ background:var(--st-action,#4c8bf5); color:#fff; }
+.qa-run-status--completed{ background:var(--st-verified,#2e9e6b); color:#fff; }
+.qa-run-status--failed{ background:var(--color-status-danger,#d64545); color:#fff; }
+.qa-run-status--cancelled{ background:var(--color-text-muted,#888); color:#fff; }
+
+/* Step→TC 내용 모달 + 클릭 배지 (ARTEL-289 #3) */
+.scenario-studio .st-tc-badge--btn{ cursor:pointer; border:none; }
+.scenario-studio .st-tc-badge--btn:hover{ filter:brightness(1.08); }
+.tc-modal-scrim{ position:fixed; inset:0; z-index:60; display:grid; place-items:center; background:rgba(0,0,0,0.45); padding:20px; }
+.tc-modal{ width:min(520px,100%); max-height:80vh; overflow:auto; background:var(--color-bg-raised,#fff); color:var(--color-text-primary); border:1px solid var(--color-border-subtle); border-radius:12px; box-shadow:0 12px 40px rgba(0,0,0,0.25); }
+.tc-modal-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:14px 16px; border-bottom:1px solid var(--color-border-subtle); }
+.tc-modal-close{ background:none; border:none; font-size:15px; color:var(--color-text-muted); cursor:pointer; padding:4px; }
+.tc-modal-note{ margin:0; padding:18px 16px; color:var(--color-text-muted); font-size:13px; }
+.tc-modal-body{ padding:16px; display:flex; flex-direction:column; gap:8px; }
+.tc-modal-title{ margin:0; font-size:16px; font-weight:700; color:var(--color-text-primary); }
+.tc-modal-cat{ align-self:flex-start; font-size:11px; font-weight:600; color:var(--color-text-secondary); background:var(--color-bg-subtle,rgba(127,127,127,0.12)); border-radius:999px; padding:2px 9px; }
+.tc-modal-fields{ margin:6px 0 0; display:grid; grid-template-columns:auto 1fr; gap:6px 12px; }
+.tc-modal-fields dt{ font-size:11px; font-weight:700; color:var(--color-text-muted); }
+.tc-modal-fields dd{ margin:0; font-size:13px; color:var(--color-text-primary); line-height:1.5; }
+
+/* Step 드래그앤드롭 (ARTEL-289 #5) */
+.scenario-studio .st-erow-drag{ flex:none; margin-top:2px; cursor:grab; color:var(--st-muted); font-size:14px; user-select:none; padding:0 2px; }
+.scenario-studio .st-erow-drag:active{ cursor:grabbing; }
+.scenario-studio .st-erow--over{ border-color:var(--color-action-primary,#4c8bf5); box-shadow:0 -2px 0 var(--color-action-primary,#4c8bf5) inset; }
+
+/* 전체 TC 명세 ⌘K 조회 (ARTEL-289 #4)는 이전 CasePalette의 cp-* 스타일을 재사용한다. */
+.scenario-studio .st-btn .kbd{ font-family:var(--st-mono); font-size:10.5px; color:var(--st-muted); background:var(--st-canvas); border:1px solid var(--st-border-strong); border-radius:5px; padding:1px 5px; margin-left:5px; }
+
+/* CategoryChip 테마 대응 (ARTEL-289): 라이트=밝은 틴트+짙은 글자, 다크=잉크 반전.
+   hue만 인라인(--cat-hue), 명도/채도는 여기서 테마별로. */
+.scenario-studio .cat-chip, .run-map .cat-chip{
+  background:hsl(var(--cat-hue,220) 60% 91%);
+  color:hsl(var(--cat-hue,220) 42% 29%);
+  border-color:hsl(var(--cat-hue,220) 44% 73%);
+}
+:root[data-theme='dark'] .scenario-studio .cat-chip, :root[data-theme='dark'] .run-map .cat-chip{
+  background:hsl(var(--cat-hue,220) 45% 16%);
+  color:hsl(var(--cat-hue,220) 70% 72%);
+  border-color:hsl(var(--cat-hue,220) 40% 32%);
+}
+
+/* Step 편집기 가시성 강화 (ARTEL-289) */
+.scenario-studio .st-editor{ max-width:900px; }
+.scenario-studio .st-editor-list{ gap:10px; }
+.scenario-studio .st-erow{ padding:12px 14px; border-radius:12px; border-color:color-mix(in srgb, var(--st-border) 55%, transparent); background:transparent; transition:border-color .12s ease, background .12s ease; }
+.scenario-studio .st-erow:hover{ border-color:var(--st-border); background:var(--st-surface); }
+.scenario-studio .st-erow--tc{ border-left:3px solid var(--st-action); }
+.scenario-studio .st-erow-no{ width:26px; height:26px; font-size:12.5px; color:var(--st-action); background:color-mix(in srgb, var(--st-action) 14%, transparent); }
+.scenario-studio .st-erow-action{ font-size:15px; line-height:1.6; }
+.scenario-studio .st-erow-hint{ font-size:12.5px; }
+.scenario-studio .st-erow-drag{ font-size:16px; opacity:.5; }
+.scenario-studio .st-erow:hover .st-erow-drag{ opacity:.9; }
+.scenario-studio .st-tc-badge{ font-size:11px; padding:2px 8px; letter-spacing:.06em; }
+
+/* Step→TC 상세 모달 가시성 강화 (ARTEL-289 #3) */
+.tc-modal{ width:min(560px,100%); }
+.tc-modal-head{ padding:15px 18px; }
+.tc-modal-body{ padding:18px; gap:12px; }
+.tc-modal-title{ font-size:18px; line-height:1.35; }
+.tc-modal-tags{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.tc-modal-fields{ margin:4px 0 0; grid-template-columns:1fr; gap:0; }
+.tc-modal-fields .tc-field{ padding:12px 14px; border:1px solid var(--color-border-subtle); border-radius:10px; background:var(--color-bg-surface); margin-bottom:10px; }
+.tc-modal-fields .tc-field:last-child{ margin-bottom:0; }
+.tc-modal-fields .tc-field-label{ display:block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--color-text-muted); margin-bottom:5px; }
+.tc-modal-fields .tc-field-val{ font-size:13.5px; color:var(--color-text-primary); line-height:1.6; white-space:pre-wrap; }
+
+/* run-map을 Step 모델로 (ARTEL-289): 검증 롤업 제거로 노드 축소 + Step 노드 TC 표기 */
+.run-map .mnode{ min-height:76px; }
+.run-map .mmeta{ margin-bottom:8px; }
+.run-map .cnode--tc{ border-left:3px solid var(--rm-action); }
+.run-map .cnode-title{ white-space:normal; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; line-height:1.45; }
+.run-map .st-tc-badge{ flex:none; font-size:10px; font-weight:800; color:#fff; background:var(--rm-action); border-radius:4px; padding:1px 6px; letter-spacing:.05em; }
+
+/* ===== QA 실행 콘솔 (ARTEL-290) — 전체화면 3분할 ===== */
+/* app-shell 그리드행이 48px(top-bar) + 1fr(workspace)라, 콘솔을 뷰포트에서 top-bar를
+   뺀 높이로 '확정'해야 한다. height:100%는 min-height:100vh 부모에선 내용만큼 늘어나
+   스크롤 분리가 안 됐다. 아래처럼 고정하면 콘솔은 화면에 고정되고 각 컬럼이 자체 스크롤. */
+.workspace:has(.qa-console){ padding:0; place-items:stretch; background:none; min-height:0; overflow:hidden; }
+.qa-console{ height:calc(100dvh - 48px); min-height:0; overflow:hidden; display:flex; flex-direction:column; background:var(--color-bg-canvas); color:var(--color-text-primary); }
+
+/* 스크롤바: 클래식 대신 웹 톤의 얇고 둥근 오버레이 (콘솔 내부 한정) */
+.qa-console *{ scrollbar-width:thin; scrollbar-color:color-mix(in srgb, var(--color-text-muted) 34%, transparent) transparent; }
+.qa-console *::-webkit-scrollbar{ width:8px; height:8px; }
+.qa-console *::-webkit-scrollbar-track{ background:transparent; }
+.qa-console *::-webkit-scrollbar-thumb{ background:color-mix(in srgb, var(--color-text-muted) 28%, transparent); border-radius:999px; border:2px solid transparent; background-clip:padding-box; }
+.qa-console *::-webkit-scrollbar-thumb:hover{ background:color-mix(in srgb, var(--color-text-muted) 52%, transparent); background-clip:padding-box; }
+.qa-console *::-webkit-scrollbar-corner{ background:transparent; }
+.qa-console{ position:relative; }
+.qa-focus-logs-body .qa-log-viewport{ scrollbar-gutter:auto; }
+
+.qa-console-top{ flex:none; height:52px; display:flex; align-items:center; gap:14px; padding:0 16px; border-bottom:1px solid var(--color-border-subtle); background:var(--color-bg-surface); }
+.qa-console-top .st-back{ color:var(--color-text-secondary); text-decoration:none; font-size:13px; padding:6px 8px; border-radius:6px; }
+.qa-console-top .st-back:hover{ background:var(--color-bg-hover); color:var(--color-text-primary); }
+.qa-console-title{ display:flex; align-items:center; gap:10px; min-width:0; }
+.qa-console-title strong{ font-size:15px; font-weight:650; }
+.qa-console-progress{ color:var(--color-text-muted); font-size:12px; font-variant-numeric:tabular-nums; }
+.qa-console-top-actions{ margin-left:auto; display:flex; align-items:center; gap:8px; }
+.qa-follow{ font:inherit; font-size:12.5px; cursor:pointer; border-radius:999px; padding:5px 12px; border:1px solid var(--color-border-strong); background:transparent; color:var(--color-text-secondary); }
+.qa-follow--on{ border-color:var(--color-status-success,#3a9a5c); color:var(--color-status-success,#3a9a5c); background:color-mix(in srgb, var(--color-status-success,#3a9a5c) 12%, transparent); cursor:default; }
+
+.qa-console-grid{ flex:1; min-height:0; display:grid; grid-template-columns:248px minmax(0,1fr); }
+
+.qa-console-rail{ min-height:0; overflow-y:auto; border-right:1px solid var(--color-border-subtle); background:var(--color-bg-surface); }
+.qa-console-rail-head{ margin:0; padding:12px 14px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--color-text-muted); border-bottom:1px solid var(--color-border-subtle); position:sticky; top:0; background:var(--color-bg-surface); }
+.qa-console-rail-list{ list-style:none; margin:0; padding:6px; display:flex; flex-direction:column; gap:2px; }
+.qa-rail-item{ display:grid; grid-template-columns:auto auto 1fr auto; align-items:center; gap:9px; width:100%; text-align:left; font:inherit; cursor:pointer; background:transparent; border:1px solid transparent; border-radius:8px; padding:9px 10px; color:var(--color-text-primary); }
+.qa-rail-item:hover{ background:var(--color-bg-hover); }
+.qa-rail-item--focused{ background:var(--color-bg-raised); border-color:var(--color-border-strong); }
+.qa-rail-item--active{ box-shadow:inset 2px 0 0 var(--color-action-primary,#4c8bf5); }
+.qa-rail-no{ font-size:11px; font-weight:700; color:var(--color-text-muted); font-variant-numeric:tabular-nums; min-width:14px; }
+.qa-rail-title{ font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.qa-rail-dot{ width:9px; height:9px; border-radius:999px; flex:none; background:var(--color-text-muted); }
+.qa-rail-dot--running,.qa-rail-dot--starting{ background:var(--color-action-primary,#4c8bf5); box-shadow:0 0 0 3px color-mix(in srgb, var(--color-action-primary,#4c8bf5) 22%, transparent); }
+.qa-rail-dot--completed{ background:var(--color-status-success,#3a9a5c); }
+.qa-rail-dot--failed{ background:var(--color-status-critical,#d64545); }
+.qa-rail-dot--cancelled{ background:var(--color-text-muted); }
+.qa-rail-dot--pending{ background:transparent; border:1.5px solid var(--color-border-strong); }
+.qa-rail-item .qa-run-status{ font-size:10px; }
+
+/* 포커스 영역: 중앙(게임+타임라인) | 우측(로그) */
+.qa-focus{ min-width:0; min-height:0; display:grid; grid-template-columns:minmax(0,1fr) 420px; }
+.qa-focus--empty{ display:grid; place-items:center; }
+.qa-focus-center{ min-width:0; min-height:0; display:flex; flex-direction:column; gap:12px; padding:14px; }
+.qa-focus-game{ position:relative; flex:1; min-height:0; border:1px solid var(--color-border-subtle); border-radius:12px; overflow:hidden; background:#000; display:flex; }
+.qa-focus-game > *{ width:100%; }
+.qa-focus-game video{ width:100%; height:100%; object-fit:contain; display:block; }
+.qa-focus-game-ended{ margin:auto; color:var(--color-text-muted); font-size:13px; padding:40px; }
+
+.qa-focus-logs-col{ min-width:0; min-height:0; display:flex; flex-direction:column; border-left:1px solid var(--color-border-subtle); background:var(--color-bg-surface); }
+.qa-focus-logs-head{ flex:none; display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid var(--color-border-subtle); }
+.qa-log-tabs{ display:inline-flex; border:1px solid var(--color-border-strong); border-radius:8px; overflow:hidden; }
+.qa-log-tabs button{ font:inherit; font-size:12px; padding:5px 14px; border:0; background:transparent; color:var(--color-text-secondary); cursor:pointer; }
+.qa-log-tabs button.on{ background:var(--color-action-primary,#4c8bf5); color:var(--color-text-on-accent,#fff); font-weight:600; }
+.qa-focus-logs-body{ flex:1; min-height:0; display:flex; flex-direction:column; }
+.qa-focus-logs-body .qa-log-viewport{ flex:1; min-height:0; max-height:none; }
+.qa-focus-logs-body .qa-issue-panel{ flex:1; min-height:0; overflow-y:auto; border:0; }
+
+/* 가로 스텝/TC 타임라인 (재생바) */
+.qa-timeline{ flex:none; border:1px solid var(--color-border-subtle); border-radius:12px; background:var(--color-bg-surface); padding:12px 14px; }
+.qa-timeline-head{ display:flex; align-items:baseline; gap:12px; margin-bottom:10px; }
+.qa-timeline-title{ font-size:13px; font-weight:700; }
+.qa-timeline-tc{ font-size:12px; font-weight:600; color:var(--color-text-secondary); }
+.qa-timeline-steps{ margin-left:auto; font-size:11.5px; color:var(--color-text-muted); font-variant-numeric:tabular-nums; }
+.qa-timeline-track{ display:flex; gap:8px; align-items:stretch; overflow-x:auto; padding-bottom:6px; }
+/* 섹터를 꽉 채운다: 블록은 스텝 수에 비례해 폭을 나눠 갖고(flexGrow=count), 셀은
+   그 폭 안에서 늘어난다(flex:1). 스텝이 많아 셀이 min-width에 도달하면 더는 줄지
+   않고 트랙이 가로 스크롤된다. */
+/* TC 블록과 일반 블록을 같은 골격으로: 둘 다 테두리+패딩+동일 높이 캡 → 크기 통일 */
+.qa-tl-block{ display:flex; flex-direction:column; gap:6px; flex:1 1 0; min-width:0; border:1px solid var(--color-border-subtle); border-top-width:3px; border-top-color:var(--color-border-strong); border-radius:8px; padding:6px 7px; }
+.qa-tl-block--passed{ border-top-color:var(--color-status-success,#3a9a5c); }
+.qa-tl-block--failed{ border-top-color:var(--color-status-critical,#d64545); }
+.qa-tl-block--running{ border-top-color:var(--color-action-primary,#4c8bf5); }
+.qa-tl-block--pending,.qa-tl-block--unreported,.qa-tl-block--unknown{ border-top-color:var(--color-border-strong); }
+.qa-tl-cap{ display:flex; align-items:center; gap:6px; height:20px; }
+.qa-tl-cap-no{ font-size:10px; font-weight:800; letter-spacing:.04em; color:#fff; background:var(--color-action-primary,#4c8bf5); border-radius:4px; padding:1px 6px; }
+.qa-tl-cap-label{ font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--color-text-muted); }
+.qa-tl-cap-verdict{ margin-left:auto; display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:800; }
+.qa-tl-cap-verdict--passed{ color:var(--color-status-success,#3a9a5c); }
+.qa-tl-cap-verdict--failed{ color:var(--color-status-critical,#d64545); }
+.qa-tl-cap-verdict--running{ color:var(--color-action-primary,#4c8bf5); }
+.qa-tl-cap-verdict--pending,.qa-tl-cap-verdict--unreported,.qa-tl-cap-verdict--unknown{ color:var(--color-text-muted); }
+.qa-tl-cells{ display:flex; gap:4px; }
+.qa-tl-cell{ flex:1 1 0; min-width:44px; height:56px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding:4px 5px; border-radius:7px; border:1px solid var(--color-border-subtle); background:var(--color-bg-raised); color:var(--color-text-secondary); font:inherit; overflow:hidden; }
+button.qa-tl-cell--linked{ cursor:pointer; }
+button.qa-tl-cell--linked:hover{ filter:brightness(1.06); }
+.qa-tl-cell-head{ display:flex; align-items:center; gap:5px; }
+.qa-tl-cell-glyph{ font-size:14px; line-height:1; }
+.qa-tl-cell-no{ font-size:10px; font-variant-numeric:tabular-nums; opacity:.8; }
+.qa-tl-cell-name{ max-width:100%; font-size:10.5px; line-height:1.25; text-align:center; color:var(--color-text-secondary); overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+
+/* 런타임 챗봇 토글 (좌하단 플로팅) */
+.qa-chat-dock{ position:absolute; left:16px; bottom:16px; z-index:30; display:flex; flex-direction:column; align-items:flex-start; gap:10px; }
+.qa-chat-fab{ width:52px; height:52px; border-radius:999px; border:0; background:var(--color-brand-accent,#f04b3a); color:#fbf7f0; cursor:pointer; box-shadow:0 8px 22px -6px color-mix(in srgb, var(--color-brand-accent,#f04b3a) 55%, transparent); display:grid; place-items:center; transition:transform .12s ease, filter .12s ease; }
+.qa-chat-fab:hover{ filter:brightness(1.06); transform:translateY(-1px); }
+.qa-chat-fab:active{ transform:translateY(0); }
+.qa-chat-fab--on{ background:var(--color-bg-raised); color:var(--color-text-primary); border:1px solid var(--color-border-strong); box-shadow:0 6px 18px -8px rgba(0,0,0,.5); }
+.qa-chat-pop{ width:min(380px,86vw); height:min(520px,64vh); overflow:hidden; display:flex; flex-direction:column; border:1px solid var(--color-border-subtle); border-radius:14px; background:var(--color-bg-surface); box-shadow:0 20px 60px -20px rgba(0,0,0,.55); }
+/* 팝업 안에서는 패널 자체 크롬(테두리·배경·큰 헤더)을 벗기고 팝업 골격에 맞춘다 */
+.qa-chat-pop .qa-chat{ flex:1; min-height:0; height:100%; margin:0; padding:14px; gap:10px; border:0; border-radius:0; background:transparent; }
+.qa-chat-pop .qa-chat .panel-header{ margin:0; display:flex; flex-direction:column; gap:3px; }
+.qa-chat-pop .qa-chat .panel-header h2{ margin:0; font-size:14px; }
+.qa-chat-pop .qa-chat .scenario-hint{ margin:0; font-size:12px; color:var(--color-text-muted); }
+.qa-chat-pop .qa-chat-thread{ flex:1; min-height:0; max-height:none; border:1px solid var(--color-border-subtle); border-radius:10px; background:var(--color-bg-canvas); }
+.qa-chat-pop .qa-chat-thread .panel-empty{ padding:14px; }
+.qa-chat-pop .qa-chat-composer{ display:flex; flex-direction:column; gap:8px; }
+.qa-chat-pop .qa-chat-composer textarea{ width:100%; box-sizing:border-box; }
+.qa-chat-pop > .qa-chat > .panel-empty{ margin:0; padding:10px 12px; border:1px dashed var(--color-border-strong); border-radius:8px; font-size:12px; }
+.qa-tl-cell--passed{ background:var(--color-status-success-subtle,color-mix(in srgb,var(--color-status-success,#3a9a5c) 16%,transparent)); border-color:var(--color-status-success,#3a9a5c); color:var(--color-status-success,#3a9a5c); }
+.qa-tl-cell--failed{ background:var(--color-status-critical-subtle,color-mix(in srgb,var(--color-status-critical,#d64545) 16%,transparent)); border-color:var(--color-status-critical,#d64545); color:var(--color-status-critical,#d64545); }
+.qa-tl-cell--running{ background:color-mix(in srgb,var(--color-action-primary,#4c8bf5) 16%,transparent); border-color:var(--color-action-primary,#4c8bf5); color:var(--color-action-primary,#4c8bf5); }
+.qa-tl-cell--verify{ outline:2px solid color-mix(in srgb,var(--color-text-primary) 30%,transparent); outline-offset:-1px; }
+
+@media (max-width:1180px){
+  .qa-focus{ grid-template-columns:1fr; grid-template-rows:minmax(0,1fr) minmax(0,45%); }
+  .qa-focus-logs-col{ border-left:0; border-top:1px solid var(--color-border-subtle); }
+}
+@media (max-width:820px){
+  .qa-console-grid{ grid-template-columns:1fr; grid-template-rows:auto minmax(0,1fr); }
+  .qa-console-rail{ border-right:0; border-bottom:1px solid var(--color-border-subtle); max-height:160px; }
+}
+
+/* QA 2단 판정 패널 (ARTEL-290 #4) */
+.qa-tiers-head{ margin-bottom:12px; }
+.qa-tiers-head h2{ margin:0 0 4px; font-size:14px; }
+.qa-tiers-summary{ margin:0; font-size:12px; color:var(--color-text-muted); font-variant-numeric:tabular-nums; }
+.qa-tiers-summary--tc{ color:var(--color-text-secondary); font-weight:600; }
+.qa-tiers-list{ display:flex; flex-direction:column; gap:10px; }
+
+.qa-tc{ border:1px solid var(--color-border-subtle); border-left-width:3px; border-radius:10px; background:var(--color-bg-raised); overflow:hidden; }
+.qa-tc--passed{ border-left-color:var(--color-status-success,#3a9a5c); }
+.qa-tc--failed{ border-left-color:var(--color-status-critical,#d64545); }
+.qa-tc--running{ border-left-color:var(--color-action-primary,#4c8bf5); }
+.qa-tc--pending,.qa-tc--unreported,.qa-tc--unknown{ border-left-color:var(--color-border-strong); }
+.qa-tc-head{ display:flex; align-items:center; gap:8px; padding:9px 12px; border-bottom:1px solid var(--color-border-subtle); }
+.qa-tc-badge{ font-size:10.5px; font-weight:800; letter-spacing:.05em; color:#fff; background:var(--color-action-primary,#4c8bf5); border-radius:4px; padding:2px 7px; }
+.qa-tc-verdict{ margin-left:auto; display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:700; }
+.qa-tc-verdict--passed{ color:var(--color-status-success,#3a9a5c); }
+.qa-tc-verdict--failed{ color:var(--color-status-critical,#d64545); }
+.qa-tc-verdict--running{ color:var(--color-action-primary,#4c8bf5); }
+.qa-tc-verdict--pending,.qa-tc-verdict--unreported,.qa-tc-verdict--unknown{ color:var(--color-text-muted); }
+.qa-tc-steps,.qa-plain-steps{ list-style:none; margin:0; padding:4px 6px; display:flex; flex-direction:column; gap:1px; }
+.qa-plain-steps{ padding:4px 0; }
+
+.qa-row{ border-radius:7px; }
+.qa-row-body{ display:grid; grid-template-columns:16px 20px 1fr auto auto; align-items:center; gap:8px; width:100%; text-align:left; font:inherit; padding:6px 8px; background:transparent; border:0; color:var(--color-text-primary); }
+button.qa-row-body--linked{ cursor:pointer; border-radius:7px; }
+button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
+.qa-row-glyph{ text-align:center; font-size:13px; }
+.qa-row--passed .qa-row-glyph{ color:var(--color-status-success,#3a9a5c); }
+.qa-row--failed .qa-row-glyph{ color:var(--color-status-critical,#d64545); }
+.qa-row--running .qa-row-glyph{ color:var(--color-action-primary,#4c8bf5); }
+.qa-row--pending .qa-row-glyph,.qa-row--unreported .qa-row-glyph,.qa-row--unknown .qa-row-glyph{ color:var(--color-text-muted); }
+.qa-row-no{ font-size:11px; color:var(--color-text-muted); font-variant-numeric:tabular-nums; text-align:right; }
+.qa-row-title{ font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.qa-row-tag{ font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--color-text-secondary); background:var(--color-bg-subtle,rgba(127,127,127,0.14)); border-radius:4px; padding:1px 5px; }
+.qa-row-state{ font-size:11px; color:var(--color-text-muted); white-space:nowrap; }
+.qa-row--verify .qa-row-title{ font-weight:600; }
+
+/* QA 콘솔 이슈 패널 (ARTEL-290 #10) */
+.qa-focus-issues{ border:1px solid var(--color-border-subtle); border-radius:12px; background:var(--color-bg-surface); padding:14px 16px; }
+.qa-focus-issues .panel-header{ margin-bottom:10px; }
+.qa-issue-title{ display:flex; align-items:center; gap:8px; }
+.qa-issue-title h2{ margin:0; font-size:14px; }
+.qa-issue-count{ font-size:11px; font-weight:800; color:#fff; background:var(--color-status-critical,#d64545); border-radius:999px; padding:1px 8px; font-variant-numeric:tabular-nums; }
+
+/* QA 로그 TC 구간 헤더 (ARTEL-290 #6) — 스크롤 시 상단 고정 */
+.qa-log-section{ position:sticky; top:0; z-index:2; display:flex; align-items:center; gap:8px; margin:6px 0 2px; padding:5px 10px; background:var(--color-bg-raised); border:1px solid var(--color-border-subtle); border-radius:7px; backdrop-filter:saturate(1.1); }
+.qa-log-section:first-child{ margin-top:0; }
+.qa-log-section-label{ font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--color-text-muted); }

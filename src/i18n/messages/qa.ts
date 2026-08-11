@@ -3,6 +3,7 @@ import type { Localized } from '../messages'
 /** Strings for `src/qa/*`. See `common.ts` for the typing convention. */
 export const qaEn = {
   statusLabels: {
+    PENDING: 'Waiting',
     STARTING: 'Starting',
     RUNNING: 'Running',
     COMPLETED: 'Completed',
@@ -50,6 +51,11 @@ export const qaEn = {
     /** Why a step is clickable, and why the rest are not. */
     jumpHint: 'Select a judged step to open the log entry that judged it.',
     jump: (step: number) => `Go to the log for step ${step}`,
+    caseLabel: (n: number) => `TC ${n}`,
+    verification: 'Verification',
+    casesSummary: (passed: number, failed: number, total: number) =>
+      `${total} checks · ${passed} passed · ${failed} failed`,
+    stepsHeading: 'Steps',
     stateLabels: {
       passed: 'Passed',
       failed: 'Failed',
@@ -100,10 +106,37 @@ export const qaEn = {
     alreadyRunning: 'That game already has a QA run in progress. Open or finish it first.',
     startFailed: 'The QA run could not be started.',
   },
+  run: {
+    title: 'QA run',
+    subtitle: 'The run executes its scenarios in order.',
+    progress: (done: number, total: number) => `${done} / ${total} scenarios finished`,
+    scenario: (n: number) => `Scenario ${n}`,
+    openTry: 'Open',
+    cancel: 'Cancel run',
+    cancelling: 'Cancelling…',
+    cancelFailed: 'Could not cancel the run.',
+    back: 'Back to project',
+    loading: 'Loading…',
+    notFound: 'This QA run does not exist.',
+    scenariosHeading: 'Scenarios',
+    follow: 'Follow live',
+    following: 'Following live',
+    logsTitle: 'Activity log',
+    logsFlow: 'Flow',
+    logsRaw: 'Raw',
+    liveGame: 'Live game',
+    endedGame: 'Execution ended · stored logs',
+    selectScenario: 'Select a scenario to inspect its run.',
+    logAction: 'Action steps',
+    logGeneral: 'Run log',
+    tabIssues: 'Issues',
+    chat: 'Chat',
+  },
 } as const
 
 export const qaKo: Localized<typeof qaEn> = {
   statusLabels: {
+    PENDING: '대기 중',
     STARTING: '시작 중',
     RUNNING: '실행 중',
     COMPLETED: '완료',
@@ -149,6 +182,11 @@ export const qaKo: Localized<typeof qaEn> = {
     empty: '이 실행에는 추적할 스텝이 없습니다.',
     jumpHint: '판정된 스텝을 선택하면 그 판정을 남긴 로그로 이동합니다.',
     jump: (step: number) => `스텝 ${step}의 로그로 이동`,
+    caseLabel: (n: number) => `TC ${n}`,
+    verification: '검증',
+    casesSummary: (passed: number, failed: number, total: number) =>
+      `검증 ${total}개 · 통과 ${passed} · 실패 ${failed}`,
+    stepsHeading: '스텝',
     stateLabels: {
       passed: '통과',
       failed: '실패',
@@ -193,5 +231,31 @@ export const qaKo: Localized<typeof qaEn> = {
     sdkDisconnected: '그 게임이 연결되어 있지 않습니다. 인스턴스 키로 실행한 뒤 다시 시도하세요.',
     alreadyRunning: '그 게임에는 이미 진행 중인 QA가 있습니다. 먼저 열어보거나 종료하세요.',
     startFailed: 'QA를 시작하지 못했습니다.',
+  },
+  run: {
+    title: 'QA 실행',
+    subtitle: '런의 시나리오를 순서대로 실행합니다.',
+    progress: (done: number, total: number) => `시나리오 ${done} / ${total} 완료`,
+    scenario: (n: number) => `시나리오 ${n}`,
+    openTry: '열기',
+    cancel: '런 종료',
+    cancelling: '종료하는 중…',
+    cancelFailed: '런을 종료하지 못했습니다.',
+    back: '프로젝트로',
+    loading: '불러오는 중…',
+    notFound: '이 QA 실행이 존재하지 않습니다.',
+    scenariosHeading: '시나리오',
+    follow: '실시간 따라가기',
+    following: '실시간 따라가는 중',
+    logsTitle: '활동 로그',
+    logsFlow: '흐름',
+    logsRaw: 'Raw',
+    liveGame: '실시간 게임',
+    endedGame: '실행 종료 · 저장된 로그',
+    selectScenario: '시나리오를 선택하면 해당 실행을 봅니다.',
+    logAction: '행동 스텝',
+    logGeneral: '실행 로그',
+    tabIssues: '이슈',
+    chat: '채팅',
   },
 }

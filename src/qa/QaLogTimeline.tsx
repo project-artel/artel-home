@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
+import { groupStepsByCase, type ScenarioStep } from '../testScenarios/scenarioTypes'
 import { compareDecimalIds } from './qaApi'
 import { stepOf } from './qaProgress'
 import type { QaLog } from './qaTypes'
@@ -356,6 +357,18 @@ type AnchorSnapshot = {
   top: number
 }
 
+/**
+ * A section boundary inserted between rows: the run entered a different TC region
+ * (or the plain action/general area). Display-only — it carries no `data-log-id`,
+ * so focus/fold/scroll logic (which queries by that) is untouched.
+ */
+type SectionKey = { kind: 'tc'; tcNo: number } | { kind: 'action' } | { kind: 'general' }
+type ListItem = { kind: 'header'; id: string; section: SectionKey } | { kind: 'row'; row: TimelineRow }
+
+function sectionId(section: SectionKey): string {
+  return section.kind === 'tc' ? `tc:${section.tcNo}` : section.kind
+}
+
 export function QaLogTimeline({
   focusRequest,
   hasMore,
@@ -365,6 +378,7 @@ export function QaLogTimeline({
   loadOlder,
   logs,
   onFocusResolved,
+  scenarioSteps = [],
 }: {
   focusRequest: QaLogFocusRequest | null
   hasMore: boolean
@@ -374,7 +388,10 @@ export function QaLogTimeline({
   loadOlder: () => Promise<boolean>
   logs: QaLog[]
   onFocusResolved: () => void
+  /** Scenario steps, so consecutive logs can be grouped under their TC region (#6). */
+  scenarioSteps?: ScenarioStep[]
 }) {
+  const { t } = useI18n()
   const viewportRef = useRef<HTMLDivElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const initialScrollDoneRef = useRef(false)
@@ -391,6 +408,42 @@ export function QaLogTimeline({
   const newestId = logs.at(-1)?.id ?? null
   const rows = useMemo(() => collapseRepeats(logs), [logs])
   const foldTargets = useMemo(() => foldedTargets(rows), [rows])
+
+  // step (1-based) → its TC region ordinal, or null for a case-less action step.
+  const regionByStep = useMemo(() => {
+    const map = new Map<number, number | null>()
+    let tcSeq = 0
+    for (const group of groupStepsByCase(scenarioSteps)) {
+      const tcNo = group.caseId !== null ? (tcSeq += 1) : null
+      for (const index of group.indices) map.set(index + 1, tcNo)
+    }
+    return map
+  }, [scenarioSteps])
+
+  // Interleave TC-region headers between rows (#6). A log without its own step
+  // (GAME_STATE, generic LOG) inherits the last region seen, so the noise between
+  // two verdicts clusters under the region that was active. Headers appear only
+  // when scenario steps are known; otherwise the list is exactly `rows`.
+  const listItems = useMemo<ListItem[]>(() => {
+    if (regionByStep.size === 0) return rows.map((row) => ({ kind: 'row', row }))
+    const items: ListItem[] = []
+    let lastKey: string | null = null
+    let carried: SectionKey = { kind: 'general' }
+    for (const row of rows) {
+      const step = stepOf(newestOf(row))
+      if (step !== null && regionByStep.has(step)) {
+        const tcNo = regionByStep.get(step) ?? null
+        carried = tcNo !== null ? { kind: 'tc', tcNo } : { kind: 'action' }
+      }
+      const key = sectionId(carried)
+      if (key !== lastKey) {
+        items.push({ kind: 'header', id: `sec:${key}:${newestOf(row).id}`, section: carried })
+        lastKey = key
+      }
+      items.push({ kind: 'row', row })
+    }
+    return items
+  }, [rows, regionByStep])
 
   useLayoutEffect(() => {
     const viewport = viewportRef.current
@@ -598,15 +651,28 @@ export function QaLogTimeline({
       </div>
 
       <ol className="qa-log-list">
-        {rows.map((row) => {
-          const anchor = anchorOf(row)
+        {listItems.map((item) => {
+          if (item.kind === 'header') {
+            return (
+              <li className="qa-log-section" key={item.id}>
+                {item.section.kind === 'tc' ? (
+                  <span className="qa-tc-badge">{t.qa.steps.caseLabel(item.section.tcNo)}</span>
+                ) : (
+                  <span className="qa-log-section-label">
+                    {item.section.kind === 'action' ? t.qa.run.logAction : t.qa.run.logGeneral}
+                  </span>
+                )}
+              </li>
+            )
+          }
+          const anchor = anchorOf(item.row)
           return (
             <QaLogRow
               expanded={expandedRows.has(anchor)}
               focusedLogId={focusedLogId}
-              key={newestOf(row).id}
+              key={newestOf(item.row).id}
               onToggle={() => toggleRow(anchor)}
-              row={row}
+              row={item.row}
             />
           )
         })}

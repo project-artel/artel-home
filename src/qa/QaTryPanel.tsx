@@ -4,8 +4,8 @@ import { useI18n } from '../i18n/useI18n'
 import { formatDate } from '../projects/formatters'
 import type { GameInstance } from '../projects/gameTypes'
 import { ProjectApiError } from '../projects/projectApi'
-import { getRunScenarios, listTestRuns, type TestRun } from '../testRuns/testRunApi'
-import { createQaTry, isQaConflict, listQaModels, listQaTries } from './qaApi'
+import { listTestRuns, type TestRun } from '../testRuns/testRunApi'
+import { createQaRun, isQaConflict, listQaModels, listQaTries } from './qaApi'
 import type { QaModel, QaReasoningSelection, QaTry } from './qaTypes'
 
 type LoadState = 'loading' | 'ready' | 'failed'
@@ -93,23 +93,11 @@ export function QaTryPanel({
     setFailure(null)
 
     try {
-      // TR 단위 실행(런의 모든 시나리오 순차 실행)은 향후 과제. 백엔드가 아직 시나리오 단위라,
-      // 지금은 선택한 런의 첫 시나리오로 실행한다.
-      const items = await getRunScenarios(projectId, runId)
-      const firstScenarioId = [...items].sort((a, b) => a.position - b.position)[0]?.testScenarioId
-      if (firstScenarioId === undefined) {
-        setFailure(t.qa.errors.emptyRun)
-        setStarting(false)
-        return
-      }
-      const qaTry = await createQaTry(
-        firstScenarioId,
-        instanceId,
-        modelId,
-        selectedReasoning,
-      )
+      // TR 단위 실행: 런의 모든 시나리오를 순차 실행한다(사이 게임 리셋). 시나리오 없는 런은
+      // 백엔드가 409로 거부한다.
+      const run = await createQaRun(runId, instanceId, modelId, selectedReasoning)
       navigate(
-        `/projects/${encodeURIComponent(projectId)}/qa-tries/${encodeURIComponent(qaTry.id)}`,
+        `/projects/${encodeURIComponent(projectId)}/qa-runs/${encodeURIComponent(run.id)}`,
       )
     } catch (error: unknown) {
       if (isQaConflict(error)) {

@@ -1,45 +1,25 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
-import { CategoryChip } from '../testCases/CategoryChip'
-import { listTestCases } from '../testCases/testCaseApi'
-import {
-  VERIFICATION_STATUSES,
-  type TestCase,
-  type VerificationStatus,
-} from '../testCases/testCaseTypes'
+import { CategoryChip } from './CategoryChip'
+import { listTestCases } from './testCaseApi'
+import { VERIFICATION_STATUSES, type TestCase, type VerificationStatus } from './testCaseTypes'
 
 type Filter = 'ALL' | VerificationStatus
 
-/** How many category chips show before the rest collapse behind a "＋N" toggle. */
+/** How many category chips show before the rest collapse behind a "＋N" search. */
 const MAX_CATEGORY_CHIPS = 7
 
 /**
- * A ⌘K command palette for the case library. Opened over the studio, it finds a
- * project's reusable cases by search + category + status and toggles them into
- * the scenario with the keyboard (↑↓ to move, Enter to add/remove, Esc to close).
- *
- * It replaces the always-open bottom library: with long scenarios the library
- * used to sit far below the fold, so it is summoned as an overlay instead —
- * independent of scroll position, and never pushing the flow down.
- *
- * Category is a free-text field that can grow without bound, so it is filtered
- * through a native `<select>` populated with the distinct values (most frequent
- * first) rather than a wall of chips.
+ * Read-only ⌘K browser of every TestCase in the project (ARTEL-289 #4). Reuses the
+ * pre-Step-model command palette design (씬별 대분류 chips + verification-status
+ * filter + detail panel) — 조회 전용이라 시나리오에 담고 빼는 토글은 없다. Internal
+ * ids stay hidden (rows number by position). Keyboard: ↑↓ move, Esc close.
  */
-export function CasePalette({
+export function TestCaseSpecModal({
   projectId,
-  reloadKey,
-  order,
-  onAdd,
-  onRemove,
   onClose,
 }: {
   projectId: string
-  reloadKey: number
-  /** The scenario's current case ids, in order — drives the position badge. */
-  order: string[]
-  onAdd: (testCase: TestCase) => void
-  onRemove: (caseId: string) => void
   onClose: () => void
 }) {
   const { t } = useI18n()
@@ -47,11 +27,10 @@ export function CasePalette({
   const statusLabel = t.scenarios.composition.status
 
   const [cases, setCases] = useState<TestCase[]>([])
+  const [loadFailed, setLoadFailed] = useState(false)
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<Filter>('ALL')
   const [category, setCategory] = useState<string>('')
-  // Categories pulled to the front of the chip row by picking them from the
-  // "＋" search — most-recent first, so a searched-for category leads the row.
   const [pinned, setPinned] = useState<string[]>([])
   const [catSearchOpen, setCatSearchOpen] = useState(false)
   const [catQuery, setCatQuery] = useState('')
@@ -61,34 +40,33 @@ export function CasePalette({
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
-  // caseId → 1-based position in the scenario (undefined when not added).
-  const positionById = useMemo(() => {
-    const map = new Map<string, number>()
-    order.forEach((id, index) => map.set(id, index + 1))
-    return map
-  }, [order])
-  const inScenario = useMemo(() => new Set(order), [order])
-
   useEffect(() => {
     inputRef.current?.focus()
     const controller = new AbortController()
-    listTestCases(projectId, {}, controller.signal).then(setCases).catch(() => undefined)
+    listTestCases(projectId, {}, controller.signal)
+      .then(setCases)
+      .catch((error) => {
+        if (error instanceof DOMException && error.name === 'AbortError') return
+        setLoadFailed(true)
+      })
     return () => controller.abort()
-  }, [projectId, reloadKey])
+  }, [projectId])
 
-  // Distinct categories, most-frequent first — the scalable filter source.
-  const categories = useMemo(() => {
+  // Distinct categories (scenes), most-frequent first — the scalable filter source.
+  const catCounts = useMemo(() => {
     const counts = new Map<string, number>()
     for (const testCase of cases) {
       const key = testCase.category.trim()
       if (key.length > 0) counts.set(key, (counts.get(key) ?? 0) + 1)
     }
-    return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([name]) => name)
+    return counts
   }, [cases])
+  const categories = useMemo(
+    () => [...catCounts.entries()].sort((a, b) => b[1] - a[1]).map(([name]) => name),
+    [catCounts],
+  )
 
-  // The chip row: pinned (most-recently searched) first, then frequency order,
-  // capped at MAX_CATEGORY_CHIPS. Picking from "＋" search pins to the front and
-  // pushes the last-shown chip out, so the count stays fixed.
+  // The chip row: pinned (recently searched) first, then frequency order, capped.
   const chipCats = useMemo(() => {
     const seen = new Set<string>()
     const out: string[] = []
@@ -109,20 +87,9 @@ export function CasePalette({
     setCatQuery('')
   }
 
-  const catCounts = useMemo(() => {
-    const counts = new Map<string, number>()
-    for (const testCase of cases) {
-      const key = testCase.category.trim()
-      if (key.length > 0) counts.set(key, (counts.get(key) ?? 0) + 1)
-    }
-    return counts
-  }, [cases])
-
   const catSearchResults = useMemo(() => {
     const cq = catQuery.trim().toLowerCase()
     const matched = categories.filter((name) => cq === '' || name.toLowerCase().includes(cq))
-    // Already-shown (chip) categories sink to the bottom, dimmed — they are not
-    // what the "＋" search is for (finding the ones not on the row).
     return [...matched].sort((a, b) => Number(chipCats.includes(a)) - Number(chipCats.includes(b)))
   }, [categories, catQuery, chipCats])
 
@@ -136,7 +103,8 @@ export function CasePalette({
           (q === '' ||
             testCase.title.toLowerCase().includes(q) ||
             testCase.category.toLowerCase().includes(q) ||
-            testCase.id.includes(q)),
+            (testCase.precondition ?? '').toLowerCase().includes(q) ||
+            testCase.expected.toLowerCase().includes(q)),
       ),
     [cases, status, category, q],
   )
@@ -156,28 +124,15 @@ export function CasePalette({
       bottom: el.scrollTop + el.clientHeight >= el.scrollHeight - 2,
     })
   }
-  // Recompute edges when the result set changes (filter/search shrinks the list).
   useEffect(() => {
     if (listRef.current !== null) updateListEdge(listRef.current)
   }, [shown.length])
 
-  function toggle(testCase: TestCase) {
-    if (inScenario.has(testCase.id)) onRemove(testCase.id)
-    else onAdd(testCase)
-  }
-
   function onKeyDown(event: React.KeyboardEvent) {
     if (event.key === 'Escape') { event.preventDefault(); onClose(); return }
     if (event.key === 'ArrowDown') { event.preventDefault(); setActive((i) => Math.min(i + 1, shown.length - 1)); return }
-    if (event.key === 'ArrowUp') { event.preventDefault(); setActive((i) => Math.max(i - 1, 0)); return }
-    if (event.key === 'Enter') {
-      event.preventDefault()
-      const testCase = shown[active]
-      if (testCase !== undefined) toggle(testCase)
-    }
+    if (event.key === 'ArrowUp') { event.preventDefault(); setActive((i) => Math.max(i - 1, 0)) }
   }
-
-  const appliedCount = cases.filter((testCase) => inScenario.has(testCase.id)).length
 
   return (
     <div className="cp-overlay" onClick={onClose}>
@@ -217,70 +172,64 @@ export function CasePalette({
         )}
 
         <div className="cp-body">
-        <div className={'cp-listwrap' + (listEdge.top ? ' at-top' : '') + (listEdge.bottom ? ' at-bottom' : '')}>
-        <div className="cp-fade cp-fade--top" aria-hidden="true"><span className="cp-fade-hint">▴</span></div>
-        <div className="cp-list" onScroll={(event) => updateListEdge(event.currentTarget)} ref={listRef}>
-          {shown.length === 0 ? (
-            <p className="cp-empty">{cases.length === 0 ? p.empty : p.noMatch}</p>
-          ) : (
-            shown.map((testCase, index) => {
-              const inside = inScenario.has(testCase.id)
-              return (
-                <button
-                  className={'cp-row' + (index === active ? ' active' : '') + (inside ? ' in' : '')}
-                  data-index={index}
-                  key={testCase.id}
-                  onClick={() => toggle(testCase)}
-                  onMouseEnter={() => setActive(index)}
-                  type="button"
-                >
-                  <span className={`vdot ${testCase.verificationStatus}`} />
-                  <span className="cp-main">
-                    <span className="cp-title">{testCase.title.length > 0 ? testCase.title : testCase.id}</span>
-                    <span className="cp-sub">{statusLabel[testCase.verificationStatus]}</span>
-                  </span>
-                  <CategoryChip category={testCase.category} />
-                  {inside && (
-                    <span className="cp-pos" title={p.posTitle}>{positionById.get(testCase.id)}</span>
-                  )}
-                </button>
-              )
-            })
-          )}
-        </div>
-        <div className="cp-fade cp-fade--bottom" aria-hidden="true"><span className="cp-fade-hint">▾</span></div>
-        </div>
+          <div className={'cp-listwrap' + (listEdge.top ? ' at-top' : '') + (listEdge.bottom ? ' at-bottom' : '')}>
+            <div className="cp-fade cp-fade--top" aria-hidden="true"><span className="cp-fade-hint">▴</span></div>
+            <div className="cp-list" onScroll={(event) => updateListEdge(event.currentTarget)} ref={listRef}>
+              {shown.length === 0 ? (
+                <p className="cp-empty">{loadFailed ? p.noMatch : cases.length === 0 ? p.empty : p.noMatch}</p>
+              ) : (
+                shown.map((testCase, index) => (
+                  <button
+                    className={'cp-row' + (index === active ? ' active' : '')}
+                    data-index={index}
+                    key={testCase.id}
+                    onClick={() => setActive(index)}
+                    onMouseEnter={() => setActive(index)}
+                    type="button"
+                  >
+                    <span className={`vdot ${testCase.verificationStatus}`} />
+                    <span className="cp-main">
+                      <span className="cp-title">{testCase.title.length > 0 ? testCase.title : `TC ${index + 1}`}</span>
+                      <span className="cp-sub">{statusLabel[testCase.verificationStatus]}</span>
+                    </span>
+                    <CategoryChip category={testCase.category} />
+                  </button>
+                ))
+              )}
+            </div>
+            <div className="cp-fade cp-fade--bottom" aria-hidden="true"><span className="cp-fade-hint">▾</span></div>
+          </div>
 
-        {shown[active] !== undefined && (
-          <aside className="cp-info">
-            {(() => {
-              const info = shown[active]
-              return (
-                <>
-                  <div className="cp-info-head">
-                    <span className={`vdot ${info.verificationStatus}`} />
-                    <span className="cp-info-title">{info.title.length > 0 ? info.title : info.id}</span>
-                  </div>
-                  <div className="cp-info-tags">
-                    <CategoryChip category={info.category} />
-                    <span className={`vpill ${info.verificationStatus}`}><span className={`vdot ${info.verificationStatus}`} />{statusLabel[info.verificationStatus]}</span>
-                  </div>
-                  <dl className="cp-info-fields">
-                    <dt>{p.infoPre}</dt>
-                    <dd>{info.precondition !== null && info.precondition.length > 0 ? info.precondition : <span className="cp-info-none">—</span>}</dd>
-                    <dt>{p.infoExp}</dt>
-                    <dd>{info.expected.length > 0 ? info.expected : <span className="cp-info-none">—</span>}</dd>
-                  </dl>
-                </>
-              )
-            })()}
-          </aside>
-        )}
+          {shown[active] !== undefined && (
+            <aside className="cp-info">
+              {(() => {
+                const info = shown[active]
+                return (
+                  <>
+                    <div className="cp-info-head">
+                      <span className={`vdot ${info.verificationStatus}`} />
+                      <span className="cp-info-title">{info.title.length > 0 ? info.title : `TC ${active + 1}`}</span>
+                    </div>
+                    <div className="cp-info-tags">
+                      <CategoryChip category={info.category} />
+                      <span className={`vpill ${info.verificationStatus}`}><span className={`vdot ${info.verificationStatus}`} />{statusLabel[info.verificationStatus]}</span>
+                    </div>
+                    <dl className="cp-info-fields">
+                      <dt>{p.infoPre}</dt>
+                      <dd>{info.precondition !== null && info.precondition.length > 0 ? info.precondition : <span className="cp-info-none">—</span>}</dd>
+                      <dt>{p.infoExp}</dt>
+                      <dd>{info.expected.length > 0 ? info.expected : <span className="cp-info-none">—</span>}</dd>
+                    </dl>
+                  </>
+                )
+              })()}
+            </aside>
+          )}
         </div>
 
         <div className="cp-foot">
-          <span>↑↓ {p.hintNav} · ↵ {p.hintToggle} · esc {p.hintClose}</span>
-          <span>{shown.length} / {cases.length} · {p.applied(appliedCount)}</span>
+          <span>↑↓ {p.hintNav} · esc {p.hintClose}</span>
+          <span>{shown.length} / {cases.length}</span>
         </div>
 
         {catSearchOpen && (

@@ -1,43 +1,35 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
-import { CategoryChip } from '../testCases/CategoryChip'
-import { getScenarioCases } from '../testScenarios/scenarioCaseApi'
-import { listTestScenarios } from '../testScenarios/scenarioApi'
-import type { VerificationStatus } from '../testCases/testCaseTypes'
+import { getTestScenario } from '../testScenarios/scenarioApi'
+import { groupStepsByCase } from '../testScenarios/scenarioTypes'
 import { getRunScenarios, getTestRun, type TestRun } from './testRunApi'
 
 /**
  * The TestRun map — a read-only visualisation of a run and the scenarios it
- * bundles. Each scenario is a node summarising its cases' verification status;
- * clicking one opens that scenario's editor. There is no editing here (no
- * repositioning, no run composition changes, no chat) — this is the "read" view.
+ * bundles. Each scenario is a node summarising its STEP model (step count + how
+ * many TC verification regions); expanding one shows the ordered steps, with a
+ * "TC n" badge on the steps that make up each verification region. Clicking opens
+ * that scenario's editor. Read-only: no repositioning, no run composition changes,
+ * no chat.
  */
 
-type Rollup = Record<VerificationStatus, number>
-
-type CaseLite = { id: string; title: string; status: VerificationStatus; category: string }
+/** One step, flattened for the map: its action and the TC region ordinal (if any). */
+type StepLite = { action: string; tcNo: number | null }
 
 type ScenarioNode = {
   id: string
   title: string
-  total: number
-  rollup: Rollup
-  cases: CaseLite[]
+  stepCount: number
+  tcCount: number
+  steps: StepLite[]
 }
 
-const STATUSES: VerificationStatus[] = ['VERIFIED', 'DRAFT', 'BROKEN']
 const MIN_SCALE = 0.4
 const MAX_SCALE = 1.6
 
 function clamp(value: number, lo: number, hi: number): number {
   return Math.min(hi, Math.max(lo, value))
-}
-
-function nodeStatus(node: ScenarioNode): VerificationStatus {
-  if (node.rollup.BROKEN > 0) return 'BROKEN'
-  if (node.total > 0 && node.rollup.VERIFIED === node.total) return 'VERIFIED'
-  return 'DRAFT'
 }
 
 export function RunMapRoute() {
@@ -58,32 +50,35 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     const signal = controller.signal
     ;(async () => {
       try {
-        const [runData, items, summaries] = await Promise.all([
+        const [runData, items] = await Promise.all([
           getTestRun(projectId, runId, signal),
           getRunScenarios(projectId, runId, signal),
-          listTestScenarios(Number(projectId), signal),
         ])
         if (runData === null) {
           setStatus('missing')
           return
         }
-        const titleById = new Map(summaries.map((s) => [String(s.testScenarioId), s.title]))
         const built = await Promise.all(
           items.map(async (item): Promise<ScenarioNode> => {
-            const cases = await getScenarioCases(Number(item.testScenarioId), signal).catch(() => [])
-            const rollup: Rollup = { VERIFIED: 0, DRAFT: 0, BROKEN: 0 }
-            for (const entry of cases) rollup[entry.case.verificationStatus] += 1
-            const title = titleById.get(item.testScenarioId) ?? ''
+            const scenario = await getTestScenario(Number(item.testScenarioId), signal).catch(() => null)
+            const steps = scenario?.payload.steps ?? []
+            // TC region ordinals: consecutive same case_id = one region (as in the editor).
+            const tcNoByIndex = new Map<number, number>()
+            let seq = 0
+            for (const group of groupStepsByCase(steps)) {
+              if (group.caseId === null) continue
+              seq += 1
+              for (const idx of group.indices) tcNoByIndex.set(idx, seq)
+            }
+            const title = scenario?.payload.title ?? ''
             return {
               id: item.testScenarioId,
               title: title.length > 0 ? title : m.untitledScenario,
-              total: cases.length,
-              rollup,
-              cases: cases.map((entry) => ({
-                id: entry.case.id,
-                title: entry.case.title,
-                status: entry.case.verificationStatus,
-                category: entry.case.category,
+              stepCount: steps.length,
+              tcCount: seq,
+              steps: steps.map((step, index) => ({
+                action: step.action,
+                tcNo: tcNoByIndex.get(index) ?? null,
               })),
             }
           }),
@@ -110,9 +105,6 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
   }
   function openEdit(scenarioId: string) {
     navigate(`/projects/${encodeURIComponent(projectId)}/test-scenarios/${scenarioId}?run=${encodeURIComponent(runId)}`)
-  }
-  function openCase(scenarioId: string, caseId: string) {
-    navigate(`/projects/${encodeURIComponent(projectId)}/test-scenarios/${scenarioId}?run=${encodeURIComponent(runId)}&case=${encodeURIComponent(caseId)}`)
   }
 
   // pan / zoom
@@ -200,10 +192,6 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
         </div>
       </header>
 
-      <div className="legend">
-        {STATUSES.map((s) => <span className={`lg ${s}`} key={s}>{t.scenarios.composition.status[s]}</span>)}
-      </div>
-
       <div className="world" style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.k})` }}>
         <svg className="edges" width="1200" height={Math.max(600, nodes.length * NODE_GAP + 120)}>
           {nodes.map((_, index) => {
@@ -219,8 +207,6 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
         </div>
 
         {nodes.map((node, index) => {
-          const st = nodeStatus(node)
-          const bar = STATUSES.filter((s) => node.rollup[s] > 0)
           const top = 40 + index * NODE_GAP
           const expanded = expandedIds.has(node.id)
           return (
@@ -230,37 +216,29 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
                 role="button" tabIndex={0}
               >
                 <div className="mname">{node.title}</div>
-                <div className="mmeta mono">{node.total} {m.caseUnit} · {expanded ? m.collapse : m.expand}</div>
-                <div className="vbar">
-                  {node.total === 0 ? <i className="empty" style={{ flex: 1 }} /> :
-                    bar.map((s) => <i className={s} key={s} style={{ flex: node.rollup[s] }} />)}
+                <div className="mmeta mono">
+                  {node.stepCount} {m.stepUnit}{node.tcCount > 0 ? ` · ${node.tcCount} ${m.tcUnit}` : ''} · {expanded ? m.collapse : m.expandSteps}
                 </div>
-                <div className="mroll">
-                  {bar.length === 0 ? <span className="k">—</span> :
-                    bar.map((s) => <span className={`k ${s}`} key={s}><b>{node.rollup[s]}</b> {t.scenarios.composition.status[s]}</span>)}
-                </div>
-                <span className={`vdot ${st}`} style={{ position: 'absolute', top: 14, right: 14 }} />
                 <button className="mnode-open" onClick={(event) => { event.stopPropagation(); openEdit(node.id) }} type="button">{m.openHint}</button>
               </div>
 
               {expanded && (
                 <div className="cflow" style={{ left: NODE_X + 300, top: top + 42 }}>
-                  {node.cases.length === 0 ? (
+                  {node.steps.length === 0 ? (
                     <>
                       <span className="cflow-link" />
-                      <div className="cnode cnode--empty">{m.noCases}</div>
+                      <div className="cnode cnode--empty">{m.noSteps}</div>
                     </>
                   ) : (
-                    node.cases.map((testCase, j) => (
-                      <Fragment key={testCase.id}>
+                    node.steps.map((step, j) => (
+                      <Fragment key={j}>
                         <span className="cflow-link" />
-                        <button className="cnode" onClick={() => openCase(node.id, testCase.id)} type="button">
+                        <button className={'cnode' + (step.tcNo !== null ? ' cnode--tc' : '')} onClick={() => openEdit(node.id)} type="button">
                           <span className="cnode-row">
                             <span className="cnode-num mono">{String(j + 1).padStart(2, '0')}</span>
-                            <span className="cnode-title">{testCase.title.length > 0 ? testCase.title : m.untitledCase}</span>
-                            <span className={`vdot ${testCase.status}`} />
+                            <span className="cnode-title">{step.action.length > 0 ? step.action : m.untitledStep}</span>
+                            {step.tcNo !== null && <span className="st-tc-badge">{m.tcUnit} {step.tcNo}</span>}
                           </span>
-                          <CategoryChip category={testCase.category} />
                         </button>
                       </Fragment>
                     ))

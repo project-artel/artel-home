@@ -107,10 +107,19 @@ function collectVerdicts(logs: QaLog[]): {
     const summary = asRecord(payload.summary)
     if (summary === null) continue
     summarySeen = true
-    summaryTotal = asStepNumber(summary.total) ?? summaryTotal
-    if (!Array.isArray(summary.steps)) continue
+    // 2단 판정(재설계): summary.steps = {total, passed, failed, items:[...]}.
+    // 구 평면 구조(summary.total, summary.steps=[...])도 방어적으로 지원.
+    const stepsTier = asRecord(summary.steps)
+    summaryTotal =
+      asStepNumber(stepsTier?.total) ?? asStepNumber(summary.total) ?? summaryTotal
+    const stepItems = stepsTier
+      ? stepsTier.items
+      : Array.isArray(summary.steps)
+        ? summary.steps
+        : null
+    if (!Array.isArray(stepItems)) continue
 
-    for (const entry of summary.steps) {
+    for (const entry of stepItems) {
       const record = asRecord(entry)
       const step = asStepNumber(record?.step)
       if (record === null || step === null || typeof record.passed !== 'boolean') continue
@@ -168,7 +177,7 @@ export function deriveQaProgress({
       else failed += 1
       steps.push({
         step,
-        title: scenarioSteps[step - 1]?.title ?? '',
+        title: scenarioSteps[step - 1]?.action ?? '',
         state: verdict.passed ? 'passed' : 'failed',
         verdict: verdict.message.length > 0 ? verdict.message : null,
         verdictLogId: verdict.logId,
@@ -194,7 +203,7 @@ export function deriveQaProgress({
 
     steps.push({
       step,
-      title: scenarioSteps[step - 1]?.title ?? '',
+      title: scenarioSteps[step - 1]?.action ?? '',
       state,
       verdict: null,
       verdictLogId: null,

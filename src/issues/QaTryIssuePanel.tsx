@@ -16,10 +16,17 @@ export function QaTryIssuePanel({ qaTryId }: { qaTryId: string }) {
   const issues = useQaTryIssues(qaTryId, reloadToken)
   const reload = () => setReloadToken((token) => token + 1)
 
+  const count = issues.items.length
+
   return (
-    <section className="panel qa-issue-panel" aria-labelledby="qa-issues-title">
+    <section className="panel qa-issue-panel qa-focus-issues" aria-labelledby="qa-issues-title">
       <header className="panel-header panel-header--split">
-        <h2 id="qa-issues-title">{t.issues.panel.title}</h2>
+        <div className="qa-issue-title">
+          <h2 id="qa-issues-title">{t.issues.panel.title}</h2>
+          {issues.status === 'ready' && count > 0 && (
+            <span className="qa-issue-count">{count}{issues.hasMore ? '+' : ''}</span>
+          )}
+        </div>
         <button className="button button--secondary button--compact" onClick={reload} type="button">
           {t.issues.panel.refresh}
         </button>

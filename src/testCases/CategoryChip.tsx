@@ -13,14 +13,15 @@ function categoryHue(category: string): number {
   return hash
 }
 
-/** A small colour-coded tag for a case's category. Renders nothing when blank. */
+/**
+ * A small colour-coded tag for a case's category. Renders nothing when blank.
+ *
+ * Only the hue is set inline (`--cat-hue`); the lightness/saturation live in CSS so
+ * the chip can read correctly in both themes — a dark tint reversed for light mode
+ * rather than the same dark swatch on paper.
+ */
 export function CategoryChip({ category, className = 'cat-chip' }: { category: string; className?: string }) {
   if (category.trim().length === 0) return null
-  const hue = categoryHue(category)
-  const style: CSSProperties = {
-    background: `hsl(${hue} 45% 16%)`,
-    color: `hsl(${hue} 70% 72%)`,
-    borderColor: `hsl(${hue} 40% 32%)`,
-  }
+  const style = { '--cat-hue': String(categoryHue(category)) } as CSSProperties
   return <span className={className} style={style}>{category}</span>
 }

@@ -11,6 +11,7 @@ import { IssueListRoute } from './issues/IssueListPage'
 import { GameInstanceDetailRoute } from './projects/GameInstanceDetailPage'
 import { ProjectDetailRoute } from './projects/ProjectDetailPage'
 import { ProjectListPage } from './projects/ProjectListPage'
+import { QaRunRoute } from './qa/QaRunPage'
 import { QaTryRoute } from './qa/QaTryPage'
 import { AppShell } from './shell/AppShell'
 import { RunEditRoute } from './testRuns/RunEditPage'
@@ -88,6 +89,10 @@ export function App() {
           <Route
             path="/projects/:projectId/test-runs/:runId/edit"
             element={<RunEditRoute />}
+          />
+          <Route
+            path="/projects/:projectId/qa-runs/:qaRunId"
+            element={<QaRunRoute />}
           />
           <Route
             path="/projects/:projectId/qa-tries/:qaTryId"

@@ -6,6 +6,7 @@ import { ScenarioList } from '../testScenarios/ScenarioList'
 import { getRunScenarios, getTestRun, setRunScenarios, type TestRun } from './testRunApi'
 import { createTestScenario } from '../testScenarios/scenarioApi'
 import { RunChat } from './RunChat'
+import { RunNameCrumb } from './RunNameCrumb'
 import { useRunChatSession } from './useRunChatSession'
 
 /**
@@ -113,7 +114,15 @@ function RunEditPage({ projectId, runId }: { projectId: string; runId: string })
     <div className="scenario-studio">
       <header className="st-top">
         <Link className="st-back" to={`/projects/${encodeURIComponent(projectId)}`}>{t.scenarios.page.backToProject}</Link>
-        <div className="st-crumb"><span className="scn">{state.run.name}</span><span className="id mono">TestRun</span></div>
+        <div className="st-crumb">
+          <RunNameCrumb
+            projectId={projectId}
+            runId={runId}
+            name={state.run.name}
+            onRenamed={(run) => setState((prev) => (prev.kind === 'ready' ? { ...prev, run } : prev))}
+          />
+          <span className="id mono">TestRun</span>
+        </div>
         <div className="st-spacer" />
         <div className="st-seg">
           <button className="on" type="button">{t.scenarios.map.editView}</button>
@@ -144,7 +153,7 @@ function RunEditPage({ projectId, runId }: { projectId: string; runId: string })
           </div>
         </main>
         <aside className="st-chat">
-          <RunChat projectId={projectId} session={runChat} />
+          <RunChat session={runChat} />
         </aside>
       </div>
     </div>

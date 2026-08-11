@@ -19,11 +19,13 @@ import {
   type QaLogType,
   type QaModel,
   type QaReasoningSelection,
+  type QaRun,
   type QaTry,
   type QaTryStatus,
 } from './qaTypes'
 
 const QA_ROOT = '/api/qa-tries'
+const QA_RUNS_ROOT = '/api/qa-runs'
 const QA_MODELS_ROOT = '/api/qa-models'
 const DECIMAL_ID = /^\d+$/
 
@@ -137,6 +139,55 @@ export async function createQaTry(
     ...jsonRequest({ testScenarioId, gameInstanceId, model, reasoning }),
   })
   return parseQaTry(await readJson(response), response.status)
+}
+
+/** Parses a QA_Run: the run's own status plus one resolved `QaTry` per scenario. */
+export function parseQaRun(data: unknown, status = 200): QaRun {
+  const record = asRecord(data)
+  if (record === null) {
+    throw new ProjectApiError(status, 'The server returned an unreadable QA Run.')
+  }
+  const tries = Array.isArray(record.tries)
+    ? record.tries.map((entry) => parseQaTry(entry, status))
+    : []
+  return {
+    id: requiredId(record.id, 'QA Run id', status),
+    testRunId: requiredId(record.testRunId, 'test run id', status),
+    gameInstanceId: requiredId(record.gameInstanceId, 'game instance id', status),
+    status: parseStatus(record.status, status),
+    startedAt: asNullableString(record.startedAt),
+    completedAt: asNullableString(record.completedAt),
+    tries,
+  }
+}
+
+/** `POST /api/qa-runs` — start a TR-unit run (all its scenarios, in order). */
+export async function createQaRun(
+  testRunId: string,
+  gameInstanceId: string,
+  model: string,
+  reasoning: QaReasoningSelection | null,
+): Promise<QaRun> {
+  const response = await apiFetch(QA_RUNS_ROOT, {
+    method: 'POST',
+    ...jsonRequest({ testRunId, gameInstanceId, model, reasoning }),
+  })
+  return parseQaRun(await readJson(response), response.status)
+}
+
+/** `GET /api/qa-runs/{id}` — the run overview: status + each scenario's try. */
+export async function getQaRun(qaRunId: string, signal?: AbortSignal): Promise<QaRun> {
+  const response = await apiFetch(`${QA_RUNS_ROOT}/${encodeURIComponent(qaRunId)}`, { signal })
+  return parseQaRun(await readJson(response), response.status)
+}
+
+/** `POST /api/qa-runs/{id}/cancel` — cancel the whole run. */
+export async function cancelQaRun(qaRunId: string): Promise<void> {
+  const response = await apiFetch(
+    `${QA_RUNS_ROOT}/${encodeURIComponent(qaRunId)}/cancel`,
+    { method: 'POST' },
+  )
+  if (!response.ok) throw await toApiError(response)
 }
 
 export async function listQaModels(signal?: AbortSignal): Promise<QaModel[]> {
