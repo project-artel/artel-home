@@ -429,7 +429,7 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     fromLib: '＋ 라이브러리에서 추가',
     openLibrary: '라이브러리',
     newCaseTitle: '새 케이스',
-    agentNote: '채팅은 시나리오 초안을 저작합니다. 아직 이 케이스들과는 연결되어 있지 않습니다.',
+    agentNote: '채팅은 시나리오 초안을 작성합니다. 아직 이 케이스들과는 연결되어 있지 않습니다.',
     moved: (from: number, to: number) => `${from}번째 → ${to}번째로 이동`,
     create: {
       heading: '새 테스트 케이스',
