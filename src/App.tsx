@@ -8,6 +8,7 @@ import { SdkLoginPage } from './auth/SdkLoginPage'
 import { resumeSdkLogin, SDK_LOGIN_PATH } from './auth/sdkLoginRequest'
 import { useI18n } from './i18n/useI18n'
 import { IssueListRoute } from './issues/IssueListPage'
+import { KnowledgeGraphRoute } from './knowledge/KnowledgeGraphPage'
 import { GameInstanceDetailRoute } from './projects/GameInstanceDetailPage'
 import { ProjectDetailRoute } from './projects/ProjectDetailPage'
 import { ProjectListPage } from './projects/ProjectListPage'
@@ -99,6 +100,7 @@ export function App() {
             element={<QaTryRoute />}
           />
           <Route path="/projects/:projectId/issues" element={<IssueListRoute />} />
+          <Route path="/projects/:projectId/knowledge" element={<KnowledgeGraphRoute />} />
           {/* The server's failed-callback redirect lands on /login. A user who
               is already signed in has nothing to do there, so send them on. */}
           <Route path="/login" element={<Navigate replace to="/projects" />} />

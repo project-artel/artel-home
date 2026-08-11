@@ -205,6 +205,11 @@ function ProjectDetailView({
           <Link className="button button--secondary" to={`/projects/${project.id}/issues`}>
             {t.issues.page.projectLink}
           </Link>
+          {/* Same reason as the link above: without an entry point here, the
+              knowledge the agent has accumulated is reachable only by URL. */}
+          <Link className="button button--secondary" to={`/projects/${project.id}/knowledge`}>
+            {t.knowledge.page.projectLink}
+          </Link>
           {/* Members have no path to becoming an owner in this release, so a
               disabled control would be permanently dead UI. */}
           {project.myRole === 'OWNER' && (

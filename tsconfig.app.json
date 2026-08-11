@@ -12,6 +12,10 @@
     "forceConsistentCasingInFileNames": true,
     "module": "ESNext",
     "moduleResolution": "Bundler",
+    // `*.test.ts` runs on `node --test`, which resolves ESM specifiers itself and
+    // therefore needs the extension written out. Permissive only: application
+    // code keeps importing without one, and Vite resolves both.
+    "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
