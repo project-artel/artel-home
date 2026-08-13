@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { SceneChip } from './SceneChip'
+import { SpecGradeChip } from './SpecGradeChip'
 import { getTestCase } from './testCaseApi'
-import { specGradeTone, type TestCase } from './testCaseTypes'
+import type { TestCase } from './testCaseTypes'
 
 /**
  * Read-only view of a single TestCase's content (ARTEL-289 #3), opened from a
@@ -32,15 +33,6 @@ export function TestCaseModal({
   const statusLabel = t.scenarios.composition.status
   const [testCase, setTestCase] = useState<TestCase | null>(null)
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading')
-
-  // A grade we have no label or tone for still renders — as its raw value in a
-  // plain chip. The spec side owns this vocabulary and may add to it.
-  const grade = testCase?.status !== undefined && testCase?.status !== null && testCase.status.length > 0
-    ? testCase.status
-    : null
-  const gradeTone = grade !== null ? specGradeTone(grade) : null
-  const gradeLabels: Record<string, string> = m.specGrades
-  const gradeLabel = grade !== null ? (gradeLabels[grade.toLowerCase()] ?? grade) : ''
 
   useEffect(() => {
     const controller = new AbortController()
@@ -81,13 +73,9 @@ export function TestCaseModal({
               </span>
               {/* The spec author's own grade, kept beside ours rather than merged:
                   "the spec is settled" and "we have verified it" are different claims.
-                  Only the grade is toned — `verificationStatus` above owns the colour
-                  for OUR verdict, and two coloured pills would read as one axis. */}
-              {grade !== null && (
-                <span className={`tc-spec-status${gradeTone !== null ? ` grade-${gradeTone}` : ''}`}>
-                  {m.specStatus}: {gradeLabel}
-                </span>
-              )}
+                  Shown even when settled — this card is where that question gets
+                  asked directly, so the boring answer still belongs. */}
+              <SpecGradeChip status={testCase.status} />
             </div>
             <dl className="tc-modal-fields">
               <div className="tc-field">

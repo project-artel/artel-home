@@ -3362,7 +3362,8 @@ a.instance-name:hover {
    등급을 모르면(우리가 소유하지 않는 어휘라 새 값이 올 수 있다) 이 기본 모양으로 그대로 나온다. */
 .tc-spec-status{
   display:inline-flex; align-items:center; font-size:10.5px; font-weight:600;
-  padding:1px 8px; border-radius:999px; white-space:nowrap; line-height:1.6;
+  /* flex:none — 케이스 라이브러리 행이 flex 컨테이너라, 없으면 제목이 길 때 칩이 눌려 찌그러진다. */
+  flex:none; padding:1px 8px; border-radius:999px; white-space:nowrap; line-height:1.6;
   background:var(--st-canvas); color:var(--st-muted); border:1px solid var(--st-border);
 }
 /* 확정 아래 등급만 색을 얻는다. 채우지 않고 글자·테두리만 물들이는 것은 옆의 vpill(우리 QA 판정)과

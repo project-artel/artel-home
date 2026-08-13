@@ -302,24 +302,29 @@ export const scenariosEn = {
     untitled: 'Untitled case',
     precondition: 'Precondition',
     expected: 'Expected',
-    specStatus: 'Spec',
-    /**
-     * The spec author's grades. A grade we have no entry for falls back to the
-     * raw value — we do not own this vocabulary, so a new one must show up as
-     * itself rather than disappear.
-     */
-    specGrades: {
-      ready: 'Ready',
-      candidate: 'Candidate',
-      review: 'Needs review',
-      unsupported: 'Not runnable',
-    },
     /**
      * Reason codes are shown verbatim, not translated: they come from the spec
      * generator, and a half-finished translation table would quietly mislabel
      * the codes it has not caught up with.
      */
     evidenceGaps: 'Why the spec is unsettled',
+  },
+  /**
+   * The spec author's grade, shown by `SpecGradeChip` wherever a case appears.
+   * Sits outside `tcModal` because two screens share it — the detail card and
+   * the case library.
+   *
+   * A grade with no entry in `grades` falls back to its raw value: we do not
+   * own this vocabulary, so a new one must show up as itself rather than vanish.
+   */
+  specGrade: {
+    label: 'Spec',
+    grades: {
+      ready: 'Ready',
+      candidate: 'Candidate',
+      review: 'Needs review',
+      unsupported: 'Not runnable',
+    },
   },
   specViewer: {
     title: 'Test case spec',
@@ -652,14 +657,16 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     untitled: '이름 없는 케이스',
     precondition: '사전조건',
     expected: '기대결과',
-    specStatus: '명세 상태',
-    specGrades: {
+    evidenceGaps: '명세가 확정되지 못한 이유',
+  },
+  specGrade: {
+    label: '명세 상태',
+    grades: {
       ready: '확정',
       candidate: '미확정',
       review: '검토 대기',
       unsupported: '실행 불가',
     },
-    evidenceGaps: '명세가 확정되지 못한 이유',
   },
   specViewer: {
     title: '테스트 케이스 명세',
