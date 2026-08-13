@@ -57,7 +57,19 @@ export function parseTestCase(data: unknown): TestCase | null {
     verificationStatus: asVerificationStatus(record.verificationStatus),
     lastVerifiedBuildId: asNullableString(record.lastVerifiedBuildId),
     createdAt: asString(record.createdAt),
+    evidenceGaps: asStringArray(record.evidenceGaps),
   }
+}
+
+/**
+ * Reason codes, tolerated the way every other field here is: a missing field or
+ * an odd shape becomes an empty list rather than a dropped case. Only the
+ * single-case endpoint sends this one, so every list row parses to `[]` — that
+ * is the expected outcome, not a degraded one.
+ */
+function asStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return value.filter((entry): entry is string => typeof entry === 'string' && entry.length > 0)
 }
 
 /** Accepts a bare array or an `{ items: [...] }` envelope, as the project lists do. */

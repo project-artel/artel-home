@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { SceneChip } from './SceneChip'
 import { getTestCase } from './testCaseApi'
-import type { TestCase } from './testCaseTypes'
+import { specGradeTone, type TestCase } from './testCaseTypes'
 
 /**
  * Read-only view of a single TestCase's content (ARTEL-289 #3), opened from a
@@ -10,6 +10,11 @@ import type { TestCase } from './testCaseTypes'
  * precondition and the expected value — never the internal id (the
  * caller passes a human `label` like "TC 2"). Fetched on open by `caseId`, which
  * stays out of the UI.
+ *
+ * This card is the only place the spec's grade is shown, and the only place it
+ * is used at all: the authoring agent deliberately never sees it (a grade is the
+ * spec author's self-assessment, so treating it as evidence would just be one
+ * model believing another's opinion). Invisible here means unused everywhere.
  */
 export function TestCaseModal({
   projectId,
@@ -27,6 +32,15 @@ export function TestCaseModal({
   const statusLabel = t.scenarios.composition.status
   const [testCase, setTestCase] = useState<TestCase | null>(null)
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading')
+
+  // A grade we have no label or tone for still renders — as its raw value in a
+  // plain chip. The spec side owns this vocabulary and may add to it.
+  const grade = testCase?.status !== undefined && testCase?.status !== null && testCase.status.length > 0
+    ? testCase.status
+    : null
+  const gradeTone = grade !== null ? specGradeTone(grade) : null
+  const gradeLabels: Record<string, string> = m.specGrades
+  const gradeLabel = grade !== null ? (gradeLabels[grade.toLowerCase()] ?? grade) : ''
 
   useEffect(() => {
     const controller = new AbortController()
@@ -65,10 +79,14 @@ export function TestCaseModal({
               <span className={`vpill ${testCase.verificationStatus}`}>
                 <span className={`vdot ${testCase.verificationStatus}`} />{statusLabel[testCase.verificationStatus]}
               </span>
-              {/* The spec author's own status, kept beside ours rather than merged:
-                  "the spec is ready" and "we have verified it" are different claims. */}
-              {testCase.status !== null && testCase.status.length > 0 && (
-                <span className="tc-spec-status">{m.specStatus}: {testCase.status}</span>
+              {/* The spec author's own grade, kept beside ours rather than merged:
+                  "the spec is settled" and "we have verified it" are different claims.
+                  Only the grade is toned — `verificationStatus` above owns the colour
+                  for OUR verdict, and two coloured pills would read as one axis. */}
+              {grade !== null && (
+                <span className={`tc-spec-status${gradeTone !== null ? ` grade-${gradeTone}` : ''}`}>
+                  {m.specStatus}: {gradeLabel}
+                </span>
               )}
             </div>
             <dl className="tc-modal-fields">
@@ -80,6 +98,21 @@ export function TestCaseModal({
                 <dt className="tc-field-label">{m.expected}</dt>
                 <dd className="tc-field-val">{testCase.expectedValue || '—'}</dd>
               </div>
+              {/* Only when there is something to say. An empty "reasons" row would
+                  read as "we looked and found none", which is a different claim
+                  from the spec never having sent any. */}
+              {testCase.evidenceGaps.length > 0 && (
+                <div className="tc-field">
+                  <dt className="tc-field-label">{m.evidenceGaps}</dt>
+                  <dd className="tc-field-val">
+                    <ul className="tc-gap-list">
+                      {testCase.evidenceGaps.map((gap, index) => (
+                        <li key={`${gap}-${index}`} className="tc-gap">{gap}</li>
+                      ))}
+                    </ul>
+                  </dd>
+                </div>
+              )}
             </dl>
           </div>
         )}

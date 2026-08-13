@@ -3357,12 +3357,32 @@ a.instance-name:hover {
   color:hsl(var(--cat-hue,220) 42% 29%);
   border-color:hsl(var(--cat-hue,220) 44% 73%);
 }
-/* 명세 쪽 상태(spec.status). 우리 QA 판정인 vpill과 나란히 서지만 색을 쓰지 않는다 —
-   판정이 아니라 출처 정보라, 색을 주면 두 상태가 같은 무게로 읽힌다. */
+/* 명세 쪽 등급(spec.status). 기본은 무채색이고, 이게 곧 `ready`의 모습이다 — 확정된 문구는
+   볼 것이 없어야 하고, 이 칩을 붙이는 이유는 확정되지 '않은' 케이스 쪽에 있다.
+   등급을 모르면(우리가 소유하지 않는 어휘라 새 값이 올 수 있다) 이 기본 모양으로 그대로 나온다. */
 .tc-spec-status{
   display:inline-flex; align-items:center; font-size:10.5px; font-weight:600;
   padding:1px 8px; border-radius:999px; white-space:nowrap; line-height:1.6;
   background:var(--st-canvas); color:var(--st-muted); border:1px solid var(--st-border);
+}
+/* 확정 아래 등급만 색을 얻는다. 채우지 않고 글자·테두리만 물들이는 것은 옆의 vpill(우리 QA 판정)과
+   무게를 맞추지 않기 위해서다 — 채운 알약이 둘이면 다른 두 축이 한 축으로 읽힌다. */
+.tc-spec-status.grade-provisional{
+  color:var(--color-status-warning); border-color:var(--color-status-warning);
+  background:color-mix(in srgb, var(--color-status-warning) 9%, transparent);
+}
+.tc-spec-status.grade-blocked{
+  color:var(--color-status-critical); border-color:var(--color-status-critical);
+  background:color-mix(in srgb, var(--color-status-critical) 9%, transparent);
+}
+
+/* 근거 부족 사유. 명세 생성기가 주는 이유 코드 그대로라 본문 글꼴과 섞이지 않게 mono로 둔다 —
+   번역하지 않는 값이라는 것이 눈에 보이는 편이 낫다. */
+.tc-gap-list{ margin:0; padding:0; list-style:none; display:flex; flex-wrap:wrap; gap:6px; }
+.tc-gap{
+  font-family:var(--font-mono, monospace); font-size:11px; line-height:1.5;
+  padding:1px 7px; border-radius:6px;
+  background:var(--st-canvas); color:var(--st-text-2); border:1px solid var(--st-border);
 }
 
 :root[data-theme='dark'] .scenario-studio .cat-chip, :root[data-theme='dark'] .run-map .cat-chip{

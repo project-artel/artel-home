@@ -45,6 +45,46 @@ export type TestCase = {
   /** The last game build a run verified this case against, or `null` if never. */
   lastVerifiedBuildId: string | null
   createdAt: string
+  /**
+   * Why the spec side graded this case the way it did — reason codes from
+   * `metadata.source.evidence_gaps`, empty when there is nothing to say.
+   *
+   * Only the single-case endpoint sends these; a list response omits the field
+   * entirely and it parses to `[]`. That is deliberate on the server side: a
+   * project can hold a thousand cases, and a reason a reviewer reads one at a
+   * time does not belong on every row of every list.
+   */
+  evidenceGaps: string[]
+}
+
+/**
+ * How loudly to draw a spec grade. The grade is the spec author's own judgement
+ * of its wording, so `ready` should read as "nothing to see" and everything
+ * below it should catch the eye — the point of showing the grade at all is the
+ * cases that are NOT settled.
+ */
+export type SpecGradeTone = 'settled' | 'provisional' | 'blocked'
+
+/**
+ * The grades the spec side defines (agent-server ARTEL-327):
+ * `ready` wording is settled · `candidate` not settled yet · `review` waiting on
+ * a person · `unsupported` could not be grounded in the build, so it cannot run.
+ *
+ * A table rather than a chain of comparisons, because we do NOT own this
+ * vocabulary. Today the spec side plans to send only `ready` and `candidate`,
+ * but that is undecided, and a value we have not seen must render as an ordinary
+ * chip instead of breaking the card. Adding a grade later is one line here.
+ */
+const SPEC_GRADE_TONES: Record<string, SpecGradeTone> = {
+  ready: 'settled',
+  candidate: 'provisional',
+  review: 'provisional',
+  unsupported: 'blocked',
+}
+
+/** The tone for a grade, or `null` for one we do not know — draw those neutrally. */
+export function specGradeTone(status: string): SpecGradeTone | null {
+  return SPEC_GRADE_TONES[status.toLowerCase()] ?? null
 }
 
 /**
