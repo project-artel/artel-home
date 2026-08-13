@@ -9,10 +9,15 @@ import {
 } from './streamTypes'
 
 /**
- * The lease is 15s at the SDK, so renewing at 10s survives one lost renew
- * before the game tears the peer down. The timer that matters lives in the SDK
- * on purpose — a closed laptop lid stops these renews without anyone being able
- * to send a `STOP`.
+ * How much slack a lost renew has is the server's call, not this constant's:
+ * `artel.stream.lease-seconds` (90s by default) is what both its receive
+ * timeout and the SDK's dead-man timer count against. This interval is only
+ * the foreground cadence — a tab hidden long enough has it clamped to roughly
+ * one fire a minute, and that clamped rate is what the server value is sized
+ * for.
+ *
+ * The timer that matters lives in the SDK on purpose — a closed laptop lid
+ * stops these renews without anyone being able to send a `STOP`.
  */
 const RENEW_INTERVAL_MS = 10_000
 
