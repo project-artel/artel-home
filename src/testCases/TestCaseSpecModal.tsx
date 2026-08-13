@@ -43,7 +43,7 @@ export function TestCaseSpecModal({
   useEffect(() => {
     inputRef.current?.focus()
     const controller = new AbortController()
-    listTestCases(projectId, {}, controller.signal)
+    listTestCases(projectId, controller.signal)
       .then(setCases)
       .catch((error) => {
         if (error instanceof DOMException && error.name === 'AbortError') return
