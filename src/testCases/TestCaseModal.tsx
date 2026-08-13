@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
-import { CategoryChip } from './CategoryChip'
+import { SceneChip } from './SceneChip'
 import { getTestCase } from './testCaseApi'
 import type { TestCase } from './testCaseTypes'
 
 /**
  * Read-only view of a single TestCase's content (ARTEL-289 #3), opened from a
- * step's TC badge. Shows what the case verifies — scene (coloured category),
- * verification status, precondition and expected — never the internal id (the
+ * step's TC badge. Shows what the case verifies — the screen, both statuses, the
+ * precondition and the expected value — never the internal id (the
  * caller passes a human `label` like "TC 2"). Fetched on open by `caseId`, which
  * stays out of the UI.
  */
@@ -59,12 +59,17 @@ export function TestCaseModal({
         {state === 'error' && <p className="tc-modal-note">{m.error}</p>}
         {state === 'ready' && testCase !== null && (
           <div className="tc-modal-body">
-            <h3 id="tc-modal-title" className="tc-modal-title">{testCase.title || m.untitled}</h3>
+            <h3 id="tc-modal-title" className="tc-modal-title">{testCase.step || m.untitled}</h3>
             <div className="tc-modal-tags">
-              <CategoryChip category={testCase.category} />
+              <SceneChip scene={testCase.scene} />
               <span className={`vpill ${testCase.verificationStatus}`}>
                 <span className={`vdot ${testCase.verificationStatus}`} />{statusLabel[testCase.verificationStatus]}
               </span>
+              {/* The spec author's own status, kept beside ours rather than merged:
+                  "the spec is ready" and "we have verified it" are different claims. */}
+              {testCase.status !== null && testCase.status.length > 0 && (
+                <span className="tc-spec-status">{m.specStatus}: {testCase.status}</span>
+              )}
             </div>
             <dl className="tc-modal-fields">
               <div className="tc-field">
@@ -73,7 +78,7 @@ export function TestCaseModal({
               </div>
               <div className="tc-field">
                 <dt className="tc-field-label">{m.expected}</dt>
-                <dd className="tc-field-val">{testCase.expected || '—'}</dd>
+                <dd className="tc-field-val">{testCase.expectedValue || '—'}</dd>
               </div>
             </dl>
           </div>
