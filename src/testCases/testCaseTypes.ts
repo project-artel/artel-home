@@ -25,10 +25,22 @@ export function asVerificationStatus(value: unknown): VerificationStatus {
 export type TestCase = {
   id: string
   projectId: string
-  category: string
-  title: string
+  /** The screen this case verifies, as the spec named it. */
+  scene: string
+  /** What the tester does — the spec's test step. */
+  step: string
   precondition: string | null
-  expected: string
+  expectedValue: string
+  /**
+   * The status the spec's author set ("ready" and so on), or `null` for a case
+   * that predates the field or was written by hand here.
+   *
+   * Deliberately separate from `verificationStatus`: that one is what OUR QA run
+   * concluded, this one is what the spec side declared. Folding them into one
+   * field would lose the difference between "the spec is ready" and "we have
+   * verified it", which is exactly the pair a reviewer needs to see.
+   */
+  status: string | null
   verificationStatus: VerificationStatus
   /** The last game build a run verified this case against, or `null` if never. */
   lastVerifiedBuildId: string | null
@@ -37,14 +49,14 @@ export type TestCase = {
 
 /**
  * The mutable fields of a case. Every field is optional so a partial edit — a
- * status flip, a renamed title — sends only what changed, matching the server's
+ * status flip, a reworded step — sends only what changed, matching the server's
  * "apply the fields you were given" update.
  */
 export type TestCaseInput = {
-  category?: string
-  title?: string
+  scene?: string
+  step?: string
   precondition?: string | null
-  expected?: string
+  expectedValue?: string
   verificationStatus?: VerificationStatus
 }
 

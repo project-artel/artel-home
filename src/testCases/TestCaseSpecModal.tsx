@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
-import { CategoryChip } from './CategoryChip'
+import { SceneChip } from './SceneChip'
 import { listTestCases } from './testCaseApi'
 import { VERIFICATION_STATUSES, type TestCase, type VerificationStatus } from './testCaseTypes'
 
 type Filter = 'ALL' | VerificationStatus
 
-/** How many category chips show before the rest collapse behind a "＋N" search. */
-const MAX_CATEGORY_CHIPS = 7
+/** How many scene chips show before the rest collapse behind a "＋N" search. */
+const MAX_SCENE_CHIPS = 7
 
 /**
  * Read-only ⌘K browser of every TestCase in the project (ARTEL-289 #4). Reuses the
- * pre-Step-model command palette design (씬별 대분류 chips + verification-status
+ * pre-Step-model command palette design (씬 chips + verification-status
  * filter + detail panel) — 조회 전용이라 시나리오에 담고 빼는 토글은 없다. Internal
  * ids stay hidden (rows number by position). Keyboard: ↑↓ move, Esc close.
  */
@@ -30,11 +30,11 @@ export function TestCaseSpecModal({
   const [loadFailed, setLoadFailed] = useState(false)
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<Filter>('ALL')
-  const [category, setCategory] = useState<string>('')
+  const [scene, setScene] = useState<string>('')
   const [pinned, setPinned] = useState<string[]>([])
-  const [catSearchOpen, setCatSearchOpen] = useState(false)
-  const [catQuery, setCatQuery] = useState('')
-  const [catAtEnd, setCatAtEnd] = useState(false)
+  const [sceneSearchOpen, setSceneSearchOpen] = useState(false)
+  const [sceneQuery, setSceneQuery] = useState('')
+  const [sceneAtEnd, setSceneAtEnd] = useState(false)
   const [listEdge, setListEdge] = useState({ top: true, bottom: false })
   const [active, setActive] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -52,46 +52,46 @@ export function TestCaseSpecModal({
     return () => controller.abort()
   }, [projectId])
 
-  // Distinct categories (scenes), most-frequent first — the scalable filter source.
-  const catCounts = useMemo(() => {
+  // Distinct scenes, most-frequent first — the scalable filter source.
+  const sceneCounts = useMemo(() => {
     const counts = new Map<string, number>()
     for (const testCase of cases) {
-      const key = testCase.category.trim()
+      const key = testCase.scene.trim()
       if (key.length > 0) counts.set(key, (counts.get(key) ?? 0) + 1)
     }
     return counts
   }, [cases])
-  const categories = useMemo(
-    () => [...catCounts.entries()].sort((a, b) => b[1] - a[1]).map(([name]) => name),
-    [catCounts],
+  const scenes = useMemo(
+    () => [...sceneCounts.entries()].sort((a, b) => b[1] - a[1]).map(([name]) => name),
+    [sceneCounts],
   )
 
   // The chip row: pinned (recently searched) first, then frequency order, capped.
-  const chipCats = useMemo(() => {
+  const chipScenes = useMemo(() => {
     const seen = new Set<string>()
     const out: string[] = []
     for (const name of pinned) {
-      if (categories.includes(name) && !seen.has(name)) { seen.add(name); out.push(name) }
+      if (scenes.includes(name) && !seen.has(name)) { seen.add(name); out.push(name) }
     }
-    for (const name of categories) {
-      if (out.length >= MAX_CATEGORY_CHIPS) break
+    for (const name of scenes) {
+      if (out.length >= MAX_SCENE_CHIPS) break
       if (!seen.has(name)) { seen.add(name); out.push(name) }
     }
-    return out.slice(0, MAX_CATEGORY_CHIPS)
-  }, [pinned, categories])
+    return out.slice(0, MAX_SCENE_CHIPS)
+  }, [pinned, scenes])
 
-  function pickCategory(name: string) {
+  function pickScene(name: string) {
     setPinned((prev) => [name, ...prev.filter((n) => n !== name)])
-    setCategory(name)
-    setCatSearchOpen(false)
-    setCatQuery('')
+    setScene(name)
+    setSceneSearchOpen(false)
+    setSceneQuery('')
   }
 
-  const catSearchResults = useMemo(() => {
-    const cq = catQuery.trim().toLowerCase()
-    const matched = categories.filter((name) => cq === '' || name.toLowerCase().includes(cq))
-    return [...matched].sort((a, b) => Number(chipCats.includes(a)) - Number(chipCats.includes(b)))
-  }, [categories, catQuery, chipCats])
+  const sceneSearchResults = useMemo(() => {
+    const sq = sceneQuery.trim().toLowerCase()
+    const matched = scenes.filter((name) => sq === '' || name.toLowerCase().includes(sq))
+    return [...matched].sort((a, b) => Number(chipScenes.includes(a)) - Number(chipScenes.includes(b)))
+  }, [scenes, sceneQuery, chipScenes])
 
   const q = query.trim().toLowerCase()
   const shown = useMemo(
@@ -99,14 +99,14 @@ export function TestCaseSpecModal({
       cases.filter(
         (testCase) =>
           (status === 'ALL' || testCase.verificationStatus === status) &&
-          (category === '' || testCase.category === category) &&
+          (scene === '' || testCase.scene === scene) &&
           (q === '' ||
-            testCase.title.toLowerCase().includes(q) ||
-            testCase.category.toLowerCase().includes(q) ||
+            testCase.step.toLowerCase().includes(q) ||
+            testCase.scene.toLowerCase().includes(q) ||
             (testCase.precondition ?? '').toLowerCase().includes(q) ||
-            testCase.expected.toLowerCase().includes(q)),
+            testCase.expectedValue.toLowerCase().includes(q)),
       ),
-    [cases, status, category, q],
+    [cases, status, scene, q],
   )
 
   useEffect(() => {
@@ -154,17 +154,17 @@ export function TestCaseSpecModal({
           </div>
         </div>
 
-        {categories.length > 0 && (
+        {scenes.length > 0 && (
           <div className="cp-filter-row">
-            <span className="cp-filter-label">{p.categoryLabel}</span>
+            <span className="cp-filter-label">{p.sceneLabel}</span>
             <div className="cp-chips">
-              <button className={category === '' ? 'fchip on' : 'fchip'} onClick={() => setCategory('')} type="button">{p.categoryAll}</button>
-              {chipCats.map((name) => (
-                <button className={category === name ? 'fchip on' : 'fchip'} key={name} onClick={() => setCategory(category === name ? '' : name)} type="button">{name}</button>
+              <button className={scene === '' ? 'fchip on' : 'fchip'} onClick={() => setScene('')} type="button">{p.sceneAll}</button>
+              {chipScenes.map((name) => (
+                <button className={scene === name ? 'fchip on' : 'fchip'} key={name} onClick={() => setScene(scene === name ? '' : name)} type="button">{name}</button>
               ))}
-              {categories.length > chipCats.length && (
-                <button className="fchip cp-more" onClick={() => setCatSearchOpen(true)} type="button">
-                  ＋{categories.length - chipCats.length}
+              {scenes.length > chipScenes.length && (
+                <button className="fchip cp-more" onClick={() => setSceneSearchOpen(true)} type="button">
+                  ＋{scenes.length - chipScenes.length}
                 </button>
               )}
             </div>
@@ -189,10 +189,10 @@ export function TestCaseSpecModal({
                   >
                     <span className={`vdot ${testCase.verificationStatus}`} />
                     <span className="cp-main">
-                      <span className="cp-title">{testCase.title.length > 0 ? testCase.title : `TC ${index + 1}`}</span>
+                      <span className="cp-title">{testCase.step.length > 0 ? testCase.step : `TC ${index + 1}`}</span>
                       <span className="cp-sub">{statusLabel[testCase.verificationStatus]}</span>
                     </span>
-                    <CategoryChip category={testCase.category} />
+                    <SceneChip scene={testCase.scene} />
                   </button>
                 ))
               )}
@@ -208,17 +208,17 @@ export function TestCaseSpecModal({
                   <>
                     <div className="cp-info-head">
                       <span className={`vdot ${info.verificationStatus}`} />
-                      <span className="cp-info-title">{info.title.length > 0 ? info.title : `TC ${active + 1}`}</span>
+                      <span className="cp-info-title">{info.step.length > 0 ? info.step : `TC ${active + 1}`}</span>
                     </div>
                     <div className="cp-info-tags">
-                      <CategoryChip category={info.category} />
+                      <SceneChip scene={info.scene} />
                       <span className={`vpill ${info.verificationStatus}`}><span className={`vdot ${info.verificationStatus}`} />{statusLabel[info.verificationStatus]}</span>
                     </div>
                     <dl className="cp-info-fields">
                       <dt>{p.infoPre}</dt>
                       <dd>{info.precondition !== null && info.precondition.length > 0 ? info.precondition : <span className="cp-info-none">—</span>}</dd>
                       <dt>{p.infoExp}</dt>
-                      <dd>{info.expected.length > 0 ? info.expected : <span className="cp-info-none">—</span>}</dd>
+                      <dd>{info.expectedValue.length > 0 ? info.expectedValue : <span className="cp-info-none">—</span>}</dd>
                     </dl>
                   </>
                 )
@@ -232,39 +232,39 @@ export function TestCaseSpecModal({
           <span>{shown.length} / {cases.length}</span>
         </div>
 
-        {catSearchOpen && (
-          <div className="cp-catpop-overlay" onClick={() => { setCatSearchOpen(false); setCatQuery('') }}>
+        {sceneSearchOpen && (
+          <div className="cp-catpop-overlay" onClick={() => { setSceneSearchOpen(false); setSceneQuery('') }}>
             <div className="cp-catpop" onClick={(event) => event.stopPropagation()}>
               <div className="cp-catpop-head">
                 <span className="cp-catpop-icon" aria-hidden="true">⌕</span>
                 <input
                   autoFocus
                   className="cp-catpop-input"
-                  onChange={(event) => setCatQuery(event.target.value)}
+                  onChange={(event) => setSceneQuery(event.target.value)}
                   onKeyDown={(event) => {
-                    if (event.key === 'Escape') { setCatSearchOpen(false); setCatQuery('') }
-                    if (event.key === 'Enter' && catSearchResults[0] !== undefined) pickCategory(catSearchResults[0])
+                    if (event.key === 'Escape') { setSceneSearchOpen(false); setSceneQuery('') }
+                    if (event.key === 'Enter' && sceneSearchResults[0] !== undefined) pickScene(sceneSearchResults[0])
                   }}
-                  placeholder={p.categorySearch}
-                  value={catQuery}
+                  placeholder={p.sceneSearch}
+                  value={sceneQuery}
                 />
-                <button className="cp-esc" onClick={() => { setCatSearchOpen(false); setCatQuery('') }} type="button">ESC</button>
+                <button className="cp-esc" onClick={() => { setSceneSearchOpen(false); setSceneQuery('') }} type="button">ESC</button>
               </div>
               <div
-                className={'cp-catpop-scroll' + (catAtEnd ? ' at-end' : '')}
+                className={'cp-catpop-scroll' + (sceneAtEnd ? ' at-end' : '')}
                 onScroll={(event) => {
                   const el = event.currentTarget
-                  setCatAtEnd(el.scrollTop + el.clientHeight >= el.scrollHeight - 2)
+                  setSceneAtEnd(el.scrollTop + el.clientHeight >= el.scrollHeight - 2)
                 }}
               >
                 <div className="cp-catpop-list">
-                  {catSearchResults.length === 0 ? (
+                  {sceneSearchResults.length === 0 ? (
                     <p className="cp-catpop-empty">{p.noMatch}</p>
                   ) : (
-                    catSearchResults.map((name) => (
-                      <button className={'cp-catpop-row' + (chipCats.includes(name) ? ' shown' : '')} key={name} onClick={() => pickCategory(name)} type="button">
-                        <CategoryChip category={name} />
-                        <span className="cp-catpop-count">{catCounts.get(name) ?? 0}</span>
+                    sceneSearchResults.map((name) => (
+                      <button className={'cp-catpop-row' + (chipScenes.includes(name) ? ' shown' : '')} key={name} onClick={() => pickScene(name)} type="button">
+                        <SceneChip scene={name} />
+                        <span className="cp-catpop-count">{sceneCounts.get(name) ?? 0}</span>
                       </button>
                     ))
                   )}

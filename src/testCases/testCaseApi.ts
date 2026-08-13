@@ -32,7 +32,12 @@ function casePath(projectId: string, caseId: string): string {
 /**
  * A case row exists as long as it has an id; every other field degrades to a
  * safe default. A case the user can still reference is a better outcome than a
- * dropped row, so a blank category or expected is tolerated rather than fatal.
+ * dropped row, so a blank scene or expected value is tolerated rather than fatal.
+ *
+ * That tolerance is why a field rename here is dangerous: reading a name the
+ * server no longer sends yields an empty string, not an error, so the list would
+ * render every row blank with nothing in the console. The names below have to
+ * track the server's response exactly (ARTEL-329).
  */
 export function parseTestCase(data: unknown): TestCase | null {
   const record = asRecord(data)
@@ -44,10 +49,11 @@ export function parseTestCase(data: unknown): TestCase | null {
   return {
     id,
     projectId: asString(record.projectId),
-    category: asString(record.category),
-    title: asString(record.title),
+    scene: asString(record.scene),
+    step: asString(record.step),
     precondition: asNullableString(record.precondition),
-    expected: asString(record.expected),
+    expectedValue: asString(record.expectedValue),
+    status: asNullableString(record.status),
     verificationStatus: asVerificationStatus(record.verificationStatus),
     lastVerifiedBuildId: asNullableString(record.lastVerifiedBuildId),
     createdAt: asString(record.createdAt),
@@ -63,7 +69,8 @@ function toItemArray(data: unknown): unknown[] {
 }
 
 export type TestCaseFilter = {
-  category?: string
+  scene?: string
+  /** Filters on `verificationStatus` (our run's verdict), not the spec's `status`. */
   status?: string
 }
 
@@ -74,7 +81,7 @@ export async function listTestCases(
   signal?: AbortSignal,
 ): Promise<TestCase[]> {
   const params = new URLSearchParams()
-  if (filter.category) params.set('category', filter.category)
+  if (filter.scene) params.set('scene', filter.scene)
   if (filter.status) params.set('status', filter.status)
   const query = params.toString()
 
