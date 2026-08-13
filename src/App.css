@@ -3569,3 +3569,666 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
 .qa-log-section{ position:sticky; top:0; z-index:2; display:flex; align-items:center; gap:8px; margin:6px 0 2px; padding:5px 10px; background:var(--color-bg-raised); border:1px solid var(--color-border-subtle); border-radius:7px; backdrop-filter:saturate(1.1); }
 .qa-log-section:first-child{ margin-top:0; }
 .qa-log-section-label{ font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--color-text-muted); }
+
+/* ── Project workspace ───────────────────────────────────────────────────────
+   The project's own shell: a left rail of sections, one section beside it.
+   Depth is 1px rules and background steps only — no shadows, per DESIGN.md. */
+
+/* The rail must reach the bottom of the viewport and scroll on its own, so the
+   workspace opts out of the centred, padded page frame the shell gives pages. */
+.workspace:has(.project-workspace) {
+  padding: 0;
+  place-items: stretch;
+  background: none;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* The height is fixed to the viewport minus the top bar rather than left at
+   100%: the shell's row is `1fr` inside a `min-height:100vh` grid, so a
+   percentage height grows with the content and the rail would scroll away with
+   it instead of staying put while the section beside it scrolls. Same reason
+   the QA console pins its own height. */
+.project-workspace {
+  display: grid;
+  grid-template-columns: 216px minmax(0, 1fr);
+  height: calc(100dvh - 48px);
+  min-height: 0;
+  background: var(--color-bg-canvas);
+}
+
+.project-nav {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  padding: var(--space-3) var(--space-2) var(--space-4);
+  border-right: 1px solid var(--color-border-subtle);
+  background: var(--color-bg-surface);
+  overflow-y: auto;
+}
+
+.project-nav-head {
+  padding: var(--space-1) var(--space-3) var(--space-3);
+  margin-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.project-nav-eyebrow {
+  margin: 0 0 var(--space-1);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+
+.project-nav-identity {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.project-nav-name {
+  overflow: hidden;
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-nav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.project-nav-foot {
+  margin-top: auto;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.nav-item {
+  display: flex;
+  min-height: 34px;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.nav-item:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+/* An inset ring, not a shadow: it marks the active edge without adding depth. */
+.nav-item--active {
+  color: var(--color-text-primary);
+  background: var(--color-bg-raised);
+  box-shadow: inset 2px 0 0 var(--color-action-primary);
+}
+
+.nav-icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+.nav-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nav-count {
+  padding: 0 var(--space-2);
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  background: var(--color-bg-raised);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.nav-count--alert {
+  color: var(--color-status-critical-strong);
+  background: var(--color-status-critical-muted);
+}
+
+.workspace-body {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  width: min(100%, 1240px);
+  margin: 0 auto;
+  padding: var(--space-5) var(--space-6) var(--space-3);
+}
+
+.section-heading {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.section-heading h1 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 650;
+}
+
+.section-project-link {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.section-project-link:hover {
+  color: var(--color-action-primary);
+}
+
+.section-updated {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.section-content {
+  width: min(100%, 1240px);
+  margin: 0 auto;
+  padding: 0 var(--space-6) var(--space-12);
+}
+
+.section-single {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Two equal columns at desktop widths; the QA and settings sections both put
+   a primary panel beside a stack of supporting ones. */
+.section-columns {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+}
+
+.section-stack {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.section-intro {
+  margin: 0 0 var(--space-4);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.section-more {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.section-more:hover {
+  color: var(--color-action-primary);
+}
+
+/* A panel whose rows run edge to edge: the padding moves onto the rows so a
+   hover highlight reaches the panel border instead of floating inside it. */
+.panel--flush {
+  padding: 0;
+  overflow: hidden;
+}
+
+.panel--danger {
+  border-color: var(--color-status-critical);
+}
+
+.panel--danger .panel-header h2 {
+  color: var(--color-status-critical-strong);
+}
+
+.panel-empty--inset {
+  padding: var(--space-4) var(--space-5);
+}
+
+.inline-error--inset {
+  margin: var(--space-4) var(--space-5);
+}
+
+/* ── Dashboard ───────────────────────────────────────────────────────────── */
+
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.stat-row {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.stat-tile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
+  text-decoration: none;
+}
+
+.stat-tile:hover {
+  border-color: var(--color-border-strong);
+}
+
+.stat-body {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stat-label {
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.stat-value {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.stat-sub {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  text-align: right;
+}
+
+.stat-sub--critical {
+  padding: 2px var(--space-2);
+  border-radius: 999px;
+  color: var(--color-status-critical-strong);
+  background: var(--color-status-critical-muted);
+  font-weight: 600;
+}
+
+.stat-sub--warning {
+  padding: 2px var(--space-2);
+  border-radius: 999px;
+  color: var(--color-status-warning);
+  background: var(--color-status-warning-muted);
+  font-weight: 600;
+}
+
+/* 5:3 rather than 1:1 — the left column carries lists, the right one facts. */
+.dashboard-columns {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: 5fr 3fr;
+  align-items: start;
+}
+
+.dashboard-main,
+.dashboard-side {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.summary-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.summary-head h2 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.summary-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.summary-row {
+  display: grid;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-5);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.summary-row:last-child {
+  border-bottom: 0;
+}
+
+.summary-row:hover {
+  background: var(--color-bg-hover);
+}
+
+.summary-row--qa {
+  grid-template-columns: auto auto minmax(0, 1fr);
+}
+
+.summary-row--issue {
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+}
+
+.summary-title {
+  overflow: hidden;
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.summary-meta {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.run-card-grid {
+  display: grid;
+  gap: var(--space-2);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: var(--space-3) var(--space-5);
+}
+
+.run-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+}
+
+.run-card:hover {
+  border-color: var(--color-border-strong);
+}
+
+.run-card-name {
+  overflow: hidden;
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.run-card-meta {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mini-panel {
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
+}
+
+.mini-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.mini-panel-head h2 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.mini-fields {
+  display: grid;
+  gap: var(--space-2) var(--space-3);
+  grid-template-columns: 64px minmax(0, 1fr);
+  margin: 0;
+  font-size: 12px;
+}
+
+.mini-fields dt {
+  color: var(--color-text-muted);
+}
+
+.mini-fields dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-text-primary);
+}
+
+.mini-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mini-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 12px;
+}
+
+.mini-name {
+  flex: 1;
+  overflow: hidden;
+  color: var(--color-text-primary);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mini-meta {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mini-empty {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+/* ── Section tables and filters ──────────────────────────────────────────── */
+
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.filter-chip {
+  min-height: 32px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 999px;
+  color: var(--color-text-secondary);
+  background: transparent;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.filter-chip:hover {
+  background: var(--color-bg-hover);
+}
+
+.filter-chip--on {
+  border-color: var(--color-border-strong);
+  color: var(--color-text-primary);
+  background: var(--color-bg-raised);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.data-table th {
+  padding: var(--space-2) var(--space-5);
+  border-bottom: 1px solid var(--color-border-subtle);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-align: left;
+}
+
+.data-table td {
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.data-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.data-table tbody tr:hover {
+  background: var(--color-bg-hover);
+}
+
+.table-link {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.table-link:hover {
+  color: var(--color-action-primary);
+}
+
+.table-meta {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.table-secondary {
+  overflow: hidden;
+  max-width: 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qa-recent-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.qa-recent-header .panel-subtitle {
+  margin-bottom: var(--space-2);
+}
+
+/* Below 1100px the rail still fits, but two content columns do not. */
+@media (max-width: 1100px) {
+  .stat-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-columns,
+  .section-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .run-card-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* The rail becomes a horizontal strip rather than eating half a narrow screen. */
+@media (max-width: 720px) {
+  .project-workspace {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    /* The strip takes its own height off the top, so the section below it can
+       still own the rest of the viewport. */
+    height: calc(100dvh - 48px);
+  }
+
+  .project-nav {
+    border-right: 0;
+    border-bottom: 1px solid var(--color-border-subtle);
+    overflow-x: auto;
+  }
+
+  .project-nav-list {
+    flex-direction: row;
+    gap: var(--space-1);
+  }
+
+  .project-nav-foot {
+    margin-top: var(--space-2);
+  }
+
+  .nav-count {
+    display: none;
+  }
+}

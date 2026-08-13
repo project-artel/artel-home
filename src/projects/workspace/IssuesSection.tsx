@@ -1,45 +1,31 @@
 import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
-import { useI18n } from '../i18n/useI18n'
-import { isDecimalId } from '../qa/qaApi'
-import { NotFoundPage } from '../NotFoundPage'
-import { IssueList } from './IssueList'
-import { ISSUE_SEVERITIES, ISSUE_STATUSES, type IssueFilters } from './issueTypes'
-import { useProjectIssues } from './useIssues'
-
-export function IssueListRoute() {
-  const { projectId } = useParams()
-  if (!isDecimalId(projectId)) return <NotFoundPage />
-  return <IssueListPage projectId={projectId} />
-}
+import { useI18n } from '../../i18n/useI18n'
+import { IssueList } from '../../issues/IssueList'
+import { ISSUE_SEVERITIES, ISSUE_STATUSES, type IssueFilters } from '../../issues/issueTypes'
+import { useProjectIssues } from '../../issues/useIssues'
+import { useWorkspace } from './workspaceContext'
 
 /**
- * Every defect this project's runs have found, in one place.
+ * Every defect this project's runs have found.
  *
- * The default filter is unresolved, because the question this page exists to
+ * The default filter is unresolved, because the question this section exists to
  * answer is "what is still wrong" — the resolved ones are history and are one
- * select away.
+ * select away. Its own paged read stays here rather than moving to the
+ * workspace: the filters change what is asked for, and the dashboard only ever
+ * needs the unresolved head of the list.
  */
-function IssueListPage({ projectId }: { projectId: string }) {
+export function IssuesSection() {
   const { t } = useI18n()
+  const { projectId } = useWorkspace()
   const [filters, setFilters] = useState<IssueFilters>({ status: 'OPEN', severity: 'ALL' })
   const [reloadToken, setReloadToken] = useState(0)
   const issues = useProjectIssues(projectId, filters, reloadToken)
 
   return (
-    <section className="page" aria-labelledby="issues-title">
-      <header className="page-header">
-        <Link className="back-link" to={`/projects/${projectId}`}>
-          {t.issues.page.backToProject}
-        </Link>
-        <h1 id="issues-title">{t.issues.page.title}</h1>
-        <p className="page-subtitle">{t.issues.page.subtitle}</p>
-      </header>
+    <div className="section-single">
+      <section className="panel" aria-label={t.issues.page.title}>
+        <p className="section-intro">{t.issues.page.subtitle}</p>
 
-      {/* No `aria-labelledby` of its own: the page heading above already names
-          this content, and pointing at a heading outside the section is worse
-          than leaving it to the page. */}
-      <section className="panel">
         <div className="issue-filters">
           <label className="issue-filter">
             <span>{t.issues.filters.status}</span>
@@ -94,6 +80,6 @@ function IssueListPage({ projectId }: { projectId: string }) {
           status={issues.status}
         />
       </section>
-    </section>
+    </div>
   )
 }
