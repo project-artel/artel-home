@@ -39,6 +39,7 @@ export const qaEn = {
     empty: 'No QA runs yet.',
     startedAt: (when: string) => `Started ${when}`,
     openRun: 'QA Try',
+    recentTitle: 'Recent runs',
   },
   steps: {
     title: 'Scenario steps',
@@ -96,6 +97,18 @@ export const qaEn = {
     pending: 'Ending…',
     failed: 'The run could not be ended.',
     gone: 'This QA Try no longer exists.',
+  },
+  /** The QA history section: every run this project has started. */
+  history: {
+    filterLabel: 'Filter by status',
+    all: 'All',
+    emptyFiltered: 'No runs match this filter.',
+    runColumn: 'Run',
+    statusColumn: 'Status',
+    startedColumn: 'Started',
+    gameColumn: 'Game',
+    unknownGame: 'Instance removed',
+    notStarted: 'Not started',
   },
   errors: {
     missingSelection: 'Select a game and a test run.',
@@ -172,6 +185,7 @@ export const qaKo: Localized<typeof qaEn> = {
     empty: '아직 QA 실행이 없습니다.',
     startedAt: (when: string) => `${when} 시작`,
     openRun: 'QA Try',
+    recentTitle: '최근 실행',
   },
   steps: {
     title: '시나리오 스텝',
@@ -224,6 +238,17 @@ export const qaKo: Localized<typeof qaEn> = {
     pending: '종료하는 중…',
     failed: '실행을 종료하지 못했습니다.',
     gone: '이 QA Try가 더 이상 존재하지 않습니다.',
+  },
+  history: {
+    filterLabel: '상태로 거르기',
+    all: '전체',
+    emptyFiltered: '이 조건에 맞는 실행이 없습니다.',
+    runColumn: '실행',
+    statusColumn: '상태',
+    startedColumn: '시작',
+    gameColumn: '게임',
+    unknownGame: '삭제된 인스턴스',
+    notStarted: '시작 전',
   },
   errors: {
     missingSelection: '게임과 테스트 런을 선택하세요.',

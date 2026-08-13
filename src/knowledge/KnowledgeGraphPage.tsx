@@ -1,8 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
-import { NotFoundPage } from '../NotFoundPage'
-import { isDecimalId } from '../qa/qaApi'
+import { useWorkspace } from '../projects/workspace/workspaceContext'
 import { KnowledgeGraphCanvas, type Selection } from './KnowledgeGraphCanvas'
 import { KnowledgeInspector } from './KnowledgeInspector'
 import { KnowledgeLegend } from './KnowledgeLegend'
@@ -11,46 +9,39 @@ import type { KnowledgeGraph } from './knowledgeTypes'
 import { useKnowledgeDrag } from './useKnowledgeDrag'
 import { useKnowledgeGraph } from './useKnowledgeGraph'
 
-export function KnowledgeGraphRoute() {
-  const { projectId } = useParams()
-  if (!isDecimalId(projectId)) return <NotFoundPage />
-  return <KnowledgeGraphPage key={projectId} projectId={projectId} />
-}
-
 /**
  * The project's knowledge base, drawn.
  *
- * Until this page existed the only way to see what the QA agent had learned —
- * and what it had decided contradicts what — was to read the database. The
- * screen answers two questions: what is in there, and why is this related to
- * that. The second one lives entirely in an edge's `note`, so selecting a
- * relation puts that sentence in front of the reader.
+ * Until this screen existed the only way to see what the QA agent had learned —
+ * and what it had decided contradicts what — was to read the database. It
+ * answers two questions: what is in there, and why is this related to that. The
+ * second one lives entirely in an edge's `note`, so selecting a relation puts
+ * that sentence in front of the reader.
+ *
+ * A rail section rather than a page of its own: the graph is one of the
+ * questions asked about a project, and the rail is where those now live. Its
+ * read stays here — the workspace loads what every section needs, and a graph
+ * is needed by this one alone.
  */
-function KnowledgeGraphPage({ projectId }: { projectId: string }) {
+export function KnowledgeSection() {
   const { t } = useI18n()
+  const { projectId } = useWorkspace()
   const { graph, status, reload } = useKnowledgeGraph(projectId)
 
   return (
-    <section className="page kg-page" aria-labelledby="knowledge-title">
-      <header className="page-header">
-        <div>
-          <Link className="back-link" to={`/projects/${encodeURIComponent(projectId)}`}>
-            {t.knowledge.page.backToProject}
-          </Link>
-          <h1 id="knowledge-title">{t.knowledge.page.title}</h1>
-          <p className="page-subtitle">{t.knowledge.page.subtitle}</p>
-        </div>
-        <div className="page-header-actions">
-          <button
-            className="button button--secondary"
-            disabled={status === 'loading'}
-            onClick={reload}
-            type="button"
-          >
-            {t.knowledge.page.refresh}
-          </button>
-        </div>
-      </header>
+    <div className="kg-section">
+      <p className="section-intro">{t.knowledge.page.subtitle}</p>
+
+      <div className="kg-section-actions">
+        <button
+          className="button button--secondary"
+          disabled={status === 'loading'}
+          onClick={reload}
+          type="button"
+        >
+          {t.knowledge.page.refresh}
+        </button>
+      </div>
 
       {status === 'loading' && (
         <section className="panel">
@@ -72,7 +63,7 @@ function KnowledgeGraphPage({ projectId }: { projectId: string }) {
       )}
 
       {status === 'ready' && graph !== null && <KnowledgeGraphView graph={graph} projectId={projectId} />}
-    </section>
+    </div>
   )
 }
 
