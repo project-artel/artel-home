@@ -91,6 +91,11 @@ export const performanceEn = {
     title: 'Build performance trend',
     subtitle:
       'Compared by hitches per minute so runs of different length stay comparable. Editor runs are excluded by the server.',
+    overviewTitle: 'Performance by build',
+    overviewSubtitle: 'Select a reported build to inspect its QA run trend and measurement confidence.',
+    selectLabel: 'Build',
+    noBuildsTitle: 'No builds to inspect',
+    noBuildsBody: 'A build appears after a connected game reports its Unity version.',
     loading: 'Loading the build trend…',
     loadFailed: 'The build trend could not be loaded.',
     emptyTitle: 'Nothing to compare',
@@ -205,6 +210,11 @@ export const performanceKo: Localized<typeof performanceEn> = {
     title: '빌드 성능 추세',
     subtitle:
       '런 길이가 달라도 비교되도록 분당 hitch 수로 봅니다. 에디터 런은 서버가 제외합니다.',
+    overviewTitle: '빌드별 성능',
+    overviewSubtitle: '보고된 빌드를 선택해 QA 런 추세와 측정 신뢰도를 확인합니다.',
+    selectLabel: '빌드',
+    noBuildsTitle: '확인할 빌드 없음',
+    noBuildsBody: '연결된 게임이 Unity 버전을 보고하면 빌드가 나타납니다.',
     loading: '빌드 추세를 불러오는 중…',
     loadFailed: '빌드 추세를 불러오지 못했습니다.',
     emptyTitle: '비교할 런 없음',

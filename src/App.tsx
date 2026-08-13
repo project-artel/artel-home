@@ -9,6 +9,7 @@ import { resumeSdkLogin, SDK_LOGIN_PATH } from './auth/sdkLoginRequest'
 import { useI18n } from './i18n/useI18n'
 import { KnowledgeSection } from './knowledge/KnowledgeGraphPage'
 import { BuildPerformanceRoute } from './performance/BuildPerformancePage'
+import { PerformanceSection } from './performance/PerformanceSection'
 import { RunPerformanceRoute } from './performance/RunPerformancePage'
 import { GameInstanceDetailRoute } from './projects/GameInstanceDetailPage'
 import { ProjectListPage } from './projects/ProjectListPage'
@@ -91,6 +92,7 @@ export function App() {
             <Route path="test-runs" element={<TestRunsSection />} />
             <Route path="qa" element={<QaSection />} />
             <Route path="qa-history" element={<QaHistorySection />} />
+            <Route path="performance" element={<PerformanceSection />} />
             <Route path="issues" element={<IssuesSection />} />
             <Route path="knowledge" element={<KnowledgeSection />} />
             <Route path="settings" element={<SettingsSection />} />

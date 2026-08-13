@@ -22,6 +22,18 @@ import {
  */
 export function BuildPerformanceRoute() {
   const { projectId = '', buildId = '' } = useParams()
+  return <BuildPerformanceReport buildId={buildId} projectId={projectId} />
+}
+
+export function BuildPerformanceReport({
+  buildId,
+  projectId,
+  showHeader = true,
+}: {
+  buildId: string
+  projectId: string
+  showHeader?: boolean
+}) {
   const { t } = useI18n()
   const copy = t.performance.build
 
@@ -66,7 +78,7 @@ export function BuildPerformanceRoute() {
 
   return (
     <section className="page performance-page">
-      <header className="performance-page-head">
+      {showHeader && <header className="performance-page-head">
         <div>
           <Link className="back-link" to={`/projects/${encodeURIComponent(projectId)}/qa`}>
             {copy.back}
@@ -75,7 +87,7 @@ export function BuildPerformanceRoute() {
           <h1>{copy.title}</h1>
           <p>{copy.subtitle}</p>
         </div>
-      </header>
+      </header>}
 
       {runs.length === 0 ? (
         <div className="performance-empty">

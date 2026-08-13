@@ -36,6 +36,7 @@ ARTEL-379의 확정 Notion 계약만 사용해 QA 런 상세와 빌드 추세 �
 - [x] **Step 5: Entry points and copy** — 기존 QA 런·빌드 패널에 최소 링크만 추가하고 한·영 번역 및 semantic CSS를 추가한다. 기존 패널 재구성은 하지 않는다.
 - [x] **Step 6: Tests** — 페이지별 로직을 유지하고 범용 chart engine은 만들지 않는다. 재사용 순수 함수는 null 연속구간 분리·runs 정렬·format에 한정한다. 평균/p95/max/CPU/memory null 단절, focus-loss 사유, null과 0 구분, budget 유무, hitch 버킷, 저신뢰 선 분리, 빈·단일 데이터, 포인트 무재정렬·무재샘플링을 테스트한다. 표·legend·marker·키보드·색상 외 구분도 브라우저에서 확인한다.
 - [x] **Step 7: Review and delivery** — lint, typecheck, test, build와 1024px·1440px 브라우저 검증 후 전체 diff와 pair review를 통과시킨다. worktree 브랜치에서 한글 Conventional Commit + `Jira: ARTEL-379` footer로 커밋한다. `pull-request.md` 형식, base develop, `--assignee @me`, enhancement label로 PR을 만들고 mock 검증과 실서버 미검증을 분리 기록한다.
+- [x] **Step 8: Project performance entry** — 프로젝트 좌측 메뉴에 `/performance`를 추가하고, 보고된 빌드를 선택해 같은 빌드 추세 리포트를 보는 통합 화면을 제공한다. 선택 빌드는 `?build=`에 보존하며 기존 QA 런·빌드 상세 deep link는 호환 유지한다.
 
 ## Validation
 
