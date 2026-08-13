@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { SceneChip } from './SceneChip'
+import { SpecGradeChip } from './SpecGradeChip'
 import { getTestCase } from './testCaseApi'
 import type { TestCase } from './testCaseTypes'
 
@@ -10,6 +11,11 @@ import type { TestCase } from './testCaseTypes'
  * precondition and the expected value — never the internal id (the
  * caller passes a human `label` like "TC 2"). Fetched on open by `caseId`, which
  * stays out of the UI.
+ *
+ * This card is the only place the spec's grade is shown, and the only place it
+ * is used at all: the authoring agent deliberately never sees it (a grade is the
+ * spec author's self-assessment, so treating it as evidence would just be one
+ * model believing another's opinion). Invisible here means unused everywhere.
  */
 export function TestCaseModal({
   projectId,
@@ -65,11 +71,11 @@ export function TestCaseModal({
               <span className={`vpill ${testCase.verificationStatus}`}>
                 <span className={`vdot ${testCase.verificationStatus}`} />{statusLabel[testCase.verificationStatus]}
               </span>
-              {/* The spec author's own status, kept beside ours rather than merged:
-                  "the spec is ready" and "we have verified it" are different claims. */}
-              {testCase.status !== null && testCase.status.length > 0 && (
-                <span className="tc-spec-status">{m.specStatus}: {testCase.status}</span>
-              )}
+              {/* The spec author's own grade, kept beside ours rather than merged:
+                  "the spec is settled" and "we have verified it" are different claims.
+                  Shown even when settled — this card is where that question gets
+                  asked directly, so the boring answer still belongs. */}
+              <SpecGradeChip status={testCase.status} />
             </div>
             <dl className="tc-modal-fields">
               <div className="tc-field">
@@ -80,6 +86,21 @@ export function TestCaseModal({
                 <dt className="tc-field-label">{m.expected}</dt>
                 <dd className="tc-field-val">{testCase.expectedValue || '—'}</dd>
               </div>
+              {/* Only when there is something to say. An empty "reasons" row would
+                  read as "we looked and found none", which is a different claim
+                  from the spec never having sent any. */}
+              {testCase.evidenceGaps.length > 0 && (
+                <div className="tc-field">
+                  <dt className="tc-field-label">{m.evidenceGaps}</dt>
+                  <dd className="tc-field-val">
+                    <ul className="tc-gap-list">
+                      {testCase.evidenceGaps.map((gap, index) => (
+                        <li key={`${gap}-${index}`} className="tc-gap">{gap}</li>
+                      ))}
+                    </ul>
+                  </dd>
+                </div>
+              )}
             </dl>
           </div>
         )}

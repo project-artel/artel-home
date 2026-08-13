@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { SceneChip } from './SceneChip'
+import { SpecGradeChip } from './SpecGradeChip'
 import { listTestCases } from './testCaseApi'
 import { VERIFICATION_STATUSES, type TestCase, type VerificationStatus } from './testCaseTypes'
 
@@ -43,7 +44,7 @@ export function TestCaseSpecModal({
   useEffect(() => {
     inputRef.current?.focus()
     const controller = new AbortController()
-    listTestCases(projectId, {}, controller.signal)
+    listTestCases(projectId, controller.signal)
       .then(setCases)
       .catch((error) => {
         if (error instanceof DOMException && error.name === 'AbortError') return
@@ -192,6 +193,10 @@ export function TestCaseSpecModal({
                       <span className="cp-title">{testCase.step.length > 0 ? testCase.step : `TC ${index + 1}`}</span>
                       <span className="cp-sub">{statusLabel[testCase.verificationStatus]}</span>
                     </span>
+                    {/* Settled grades stay off the rows. A list where every row reads
+                        "확정" carries no information; the badge earns its space only
+                        on the cases that are not settled. */}
+                    <SpecGradeChip status={testCase.status} quietWhenSettled />
                     <SceneChip scene={testCase.scene} />
                   </button>
                 ))
@@ -213,6 +218,11 @@ export function TestCaseSpecModal({
                     <div className="cp-info-tags">
                       <SceneChip scene={info.scene} />
                       <span className={`vpill ${info.verificationStatus}`}><span className={`vdot ${info.verificationStatus}`} />{statusLabel[info.verificationStatus]}</span>
+                      {/* Always here, settled or not — the pane is the answer to
+                          "what is this case?", so the grade belongs in it.
+                          `evidenceGaps` does NOT: the list response omits it by
+                          design, and this pane reads from the list. */}
+                      <SpecGradeChip status={info.status} />
                     </div>
                     <dl className="cp-info-fields">
                       <dt>{p.infoPre}</dt>

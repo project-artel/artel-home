@@ -57,7 +57,19 @@ export function parseTestCase(data: unknown): TestCase | null {
     verificationStatus: asVerificationStatus(record.verificationStatus),
     lastVerifiedBuildId: asNullableString(record.lastVerifiedBuildId),
     createdAt: asString(record.createdAt),
+    evidenceGaps: asStringArray(record.evidenceGaps),
   }
+}
+
+/**
+ * Reason codes, tolerated the way every other field here is: a missing field or
+ * an odd shape becomes an empty list rather than a dropped case. Only the
+ * single-case endpoint sends this one, so every list row parses to `[]` — that
+ * is the expected outcome, not a degraded one.
+ */
+function asStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return value.filter((entry): entry is string => typeof entry === 'string' && entry.length > 0)
 }
 
 /** Accepts a bare array or an `{ items: [...] }` envelope, as the project lists do. */
@@ -68,27 +80,21 @@ function toItemArray(data: unknown): unknown[] {
   return Array.isArray(items) ? items : []
 }
 
-export type TestCaseFilter = {
-  scene?: string
-  /** Filters on `verificationStatus` (our run's verdict), not the spec's `status`. */
-  status?: string
-}
-
-/** `GET /api/projects/{projectId}/test-cases` — the project's reusable cases. */
+/**
+ * `GET /api/projects/{projectId}/test-cases` — every reusable case in the
+ * project, newest first.
+ *
+ * There is no filter argument. This used to accept scene/status and turn them
+ * into query parameters, but nothing ever passed them: the one screen that
+ * calls this asks for everything and narrows in the browser. The server dropped
+ * the parameters to match (ARTEL-329), so sending them would have been a
+ * request the server quietly ignores — the worst kind of filter.
+ */
 export async function listTestCases(
   projectId: string,
-  filter: TestCaseFilter = {},
   signal?: AbortSignal,
 ): Promise<TestCase[]> {
-  const params = new URLSearchParams()
-  if (filter.scene) params.set('scene', filter.scene)
-  if (filter.status) params.set('status', filter.status)
-  const query = params.toString()
-
-  const response = await apiFetch(
-    `${casesRoot(projectId)}${query.length > 0 ? `?${query}` : ''}`,
-    { signal },
-  )
+  const response = await apiFetch(casesRoot(projectId), { signal })
   return toItemArray(await readJson(response))
     .map(parseTestCase)
     .filter((testCase): testCase is TestCase => testCase !== null)
