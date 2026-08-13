@@ -7,6 +7,7 @@ import { useAuth } from './auth/useAuth'
 import { SdkLoginPage } from './auth/SdkLoginPage'
 import { resumeSdkLogin, SDK_LOGIN_PATH } from './auth/sdkLoginRequest'
 import { useI18n } from './i18n/useI18n'
+import { KnowledgeSection } from './knowledge/KnowledgeGraphPage'
 import { GameInstanceDetailRoute } from './projects/GameInstanceDetailPage'
 import { ProjectListPage } from './projects/ProjectListPage'
 import { DashboardSection } from './projects/workspace/DashboardSection'
@@ -89,6 +90,7 @@ export function App() {
             <Route path="qa" element={<QaSection />} />
             <Route path="qa-history" element={<QaHistorySection />} />
             <Route path="issues" element={<IssuesSection />} />
+            <Route path="knowledge" element={<KnowledgeSection />} />
             <Route path="settings" element={<SettingsSection />} />
           </Route>
           {/* The working screens stay outside the rail: a timeline, a run map,

@@ -17,6 +17,7 @@ export const WORKSPACE_SECTIONS = [
   { id: 'qa', path: 'qa' },
   { id: 'qaHistory', path: 'qa-history' },
   { id: 'issues', path: 'issues' },
+  { id: 'knowledge', path: 'knowledge' },
 ] as const
 
 export type WorkspaceSectionId =

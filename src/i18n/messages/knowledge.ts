@@ -1,0 +1,221 @@
+import type { Localized } from '../messages'
+
+/** Strings for `src/knowledge/*`. See `common.ts` for the typing convention. */
+export const knowledgeEn = {
+  page: {
+    title: 'Knowledge graph',
+    subtitle: 'What this project knows, and how the QA agent says those items relate.',
+    backToProject: '← Back to the project',
+    projectLink: 'Knowledge',
+    refresh: 'Refresh',
+  },
+  states: {
+    loading: 'Loading the knowledge graph…',
+    loadFailed: 'The knowledge graph could not be loaded.',
+    retry: 'Retry',
+  },
+  empty: {
+    // Two different facts. "Nothing has been learned" sends you to the runs and
+    // the uploaded documents; "nothing has been related" sends you nowhere —
+    // the items are there, the agent simply has not linked them.
+    noItemsTitle: 'This project has no knowledge yet',
+    noItemsCopy:
+      'Knowledge appears once a document has been parsed or a QA run has observed something worth keeping.',
+    noEdgesTitle: 'No relations have been recorded',
+    noEdgesCopy: (count: number) =>
+      `${count} item${count === 1 ? ' is' : 's are'} stored, but nothing links them yet. Relations are written while a QA run reasons about what it already knows.`,
+  },
+  truncated: {
+    title: 'This is part of the graph, not all of it',
+    copy: (limit: number) =>
+      `The server returned at most ${limit} items. Relations that touch an item left out are missing from this drawing too, so a gap here is not evidence that a relation does not exist.`,
+  },
+  summary: {
+    items: (count: number) => `${count} item${count === 1 ? '' : 's'}`,
+    relations: (count: number) => `${count} relation${count === 1 ? '' : 's'}`,
+    clusters: (count: number) => `${count} connected group${count === 1 ? '' : 's'}`,
+    isolated: (count: number) => `${count} unlinked`,
+  },
+  legend: {
+    relationTitle: 'Relations',
+    sourceTitle: 'Where an item came from',
+    labelNote: 'Labels are hidden while the graph is this large. Pick an item to read it.',
+    graphLabel: 'Knowledge graph drawing',
+    graphDescription:
+      'A node per knowledge item and a line per relation. The list below the inspector is the readable equivalent.',
+  },
+  relations: {
+    LEADS_TO: 'Leads to',
+    REFINES: 'Refines',
+    DEPENDS_ON: 'Depends on',
+    REPLACES: 'Replaces',
+    CONTRADICTS: 'Contradicts',
+    UNKNOWN: 'Unrecognised relation',
+    unnamed: 'Relation with no name',
+  },
+  relationShapes: {
+    LEADS_TO: 'solid line, single arrow',
+    REFINES: 'dashed line',
+    DEPENDS_ON: 'dotted line',
+    REPLACES: 'dash-dot line',
+    CONTRADICTS: 'thick line crossed with ✕, arrows at both ends',
+    UNKNOWN: 'thin grey dashes',
+  },
+  tags: {
+    CONTROL: 'Control',
+    INFO: 'Info',
+    MISC: 'Misc',
+    RULE: 'Rule',
+    OBJECTIVE: 'Objective',
+    UI: 'UI',
+  },
+  sources: {
+    DOCS: 'From a document',
+    QA: 'Observed in a run',
+  },
+  sourceShapes: {
+    DOCS: 'square',
+    QA: 'circle',
+    OTHER: 'diamond',
+  },
+  inspector: {
+    title: 'Inspector',
+    hint: 'Select an item or a relation to read it. Everything in the drawing is in the list below.',
+    itemHeading: 'Knowledge item',
+    edgeHeading: 'Relation',
+    summaryLabel: 'Summary',
+    noSummary: 'This item has no summary.',
+    tagLabel: 'Tag',
+    sourceLabel: 'Source',
+    versionLabel: 'Version',
+    unknownVersion: 'Not recorded',
+    createdByLabel: 'Created by run',
+    createdByDocument: 'Extracted from a document, not a run',
+    createdAtLabel: 'Created',
+    openQaTry: 'Open the run',
+    relationsHeading: (count: number) => `Relations (${count})`,
+    noRelations: 'Nothing is linked to this item yet.',
+    directionOut: 'to',
+    directionIn: 'from',
+    directionSelf: 'to itself',
+    noteLabel: 'Why this relation was recorded',
+    noNote:
+      'No reason was recorded. The relation exists, but nothing was written down about why.',
+    fromLabel: 'From',
+    toLabel: 'To',
+    rawRelation: 'Server value',
+    clear: 'Clear selection',
+  },
+  list: {
+    heading: (count: number) => `All items (${count})`,
+    untitled: 'Untitled item',
+    select: 'Select this item',
+  },
+}
+
+export const knowledgeKo: Localized<typeof knowledgeEn> = {
+  page: {
+    title: '지식 그래프',
+    subtitle: '이 프로젝트가 아는 것과, QA 에이전트가 그 항목들 사이에 걸어 둔 관계입니다.',
+    backToProject: '← 프로젝트로',
+    projectLink: '지식창고',
+    refresh: '새로고침',
+  },
+  states: {
+    loading: '지식 그래프를 불러오는 중…',
+    loadFailed: '지식 그래프를 불러오지 못했습니다.',
+    retry: '다시 시도',
+  },
+  empty: {
+    noItemsTitle: '아직 쌓인 지식이 없습니다',
+    noItemsCopy: '문서가 분석되거나 QA 런이 남길 만한 것을 관측하면 지식이 생깁니다.',
+    noEdgesTitle: '기록된 관계가 없습니다',
+    noEdgesCopy: (count: number) =>
+      `항목 ${count}개가 있지만 아직 아무것도 이어져 있지 않습니다. 관계는 QA 런이 이미 아는 것을 두고 추론할 때 기록됩니다.`,
+  },
+  truncated: {
+    title: '그래프의 일부입니다. 전부가 아닙니다',
+    copy: (limit: number) =>
+      `서버가 항목을 최대 ${limit}개까지만 돌려줬습니다. 빠진 항목에 걸린 관계도 함께 빠져 있으므로, 여기 없다는 것이 그 관계가 없다는 증거는 아닙니다.`,
+  },
+  summary: {
+    items: (count: number) => `항목 ${count}개`,
+    relations: (count: number) => `관계 ${count}개`,
+    clusters: (count: number) => `연결 덩어리 ${count}개`,
+    isolated: (count: number) => `고립 ${count}개`,
+  },
+  legend: {
+    relationTitle: '관계',
+    sourceTitle: '항목의 출처',
+    labelNote: '그래프가 커서 이름표를 숨겼습니다. 항목을 고르면 내용이 보입니다.',
+    graphLabel: '지식 그래프 그림',
+    graphDescription:
+      '지식 항목 하나가 노드, 관계 하나가 선입니다. 인스펙터 아래 목록이 같은 내용을 글로 담고 있습니다.',
+  },
+  relations: {
+    LEADS_TO: '이어짐',
+    REFINES: '구체화',
+    DEPENDS_ON: '의존',
+    REPLACES: '대체',
+    CONTRADICTS: '모순',
+    UNKNOWN: '알 수 없는 관계',
+    unnamed: '이름 없는 관계',
+  },
+  relationShapes: {
+    LEADS_TO: '실선, 화살표 하나',
+    REFINES: '파선',
+    DEPENDS_ON: '점선',
+    REPLACES: '일점쇄선',
+    CONTRADICTS: '굵은 선에 ✕ 표시, 양쪽 화살표',
+    UNKNOWN: '가는 회색 파선',
+  },
+  tags: {
+    CONTROL: '조작',
+    INFO: '정보',
+    MISC: '기타',
+    RULE: '규칙',
+    OBJECTIVE: '목표',
+    UI: 'UI',
+  },
+  sources: {
+    DOCS: '문서에서 추출',
+    QA: '런에서 관측',
+  },
+  sourceShapes: {
+    DOCS: '사각형',
+    QA: '원',
+    OTHER: '마름모',
+  },
+  inspector: {
+    title: '인스펙터',
+    hint: '항목이나 관계를 고르면 내용이 나옵니다. 그림 안의 모든 것이 아래 목록에도 있습니다.',
+    itemHeading: '지식 항목',
+    edgeHeading: '관계',
+    summaryLabel: '요약',
+    noSummary: '요약이 없는 항목입니다.',
+    tagLabel: '태그',
+    sourceLabel: '출처',
+    versionLabel: '버전',
+    unknownVersion: '기록 없음',
+    createdByLabel: '만든 런',
+    createdByDocument: '런이 아니라 문서에서 추출된 항목입니다',
+    createdAtLabel: '생성',
+    openQaTry: '런 열기',
+    relationsHeading: (count: number) => `관계 (${count})`,
+    noRelations: '이 항목에 걸린 관계가 아직 없습니다.',
+    directionOut: '→',
+    directionIn: '←',
+    directionSelf: '자기 자신',
+    noteLabel: '이 관계를 기록한 이유',
+    noNote: '이유가 적혀 있지 않습니다. 관계는 있지만 왜인지는 아무도 남기지 않았습니다.',
+    fromLabel: '출발',
+    toLabel: '도착',
+    rawRelation: '서버 값',
+    clear: '선택 해제',
+  },
+  list: {
+    heading: (count: number) => `전체 항목 (${count})`,
+    untitled: '이름 없는 항목',
+    select: '이 항목 선택',
+  },
+}

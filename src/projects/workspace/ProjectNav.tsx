@@ -13,6 +13,8 @@ const ICON_PATHS: Record<WorkspaceSectionId, string[]> = {
   qa: ['M8.8 2L4 9h3.4l-.9 5L12 7H8.4z'],
   qaHistory: ['M3 4.2h10', 'M3 8h10', 'M3 11.8h6.5'],
   issues: ['M4 14V2.7', 'M4 3h8l-1.8 2.8L12 8.6H4'],
+  // Three nodes and the lines between them: the graph's own shape, small.
+  knowledge: ['M4 4.6l4.4 2.2', 'M8.4 6.8L12 11.4', 'M4 4.6l1.6 6.8', 'M5.6 11.4h6.4'],
   settings: ['M8 1.8v2M8 12.2v2M1.8 8h2M12.2 8h2M3.6 3.6l1.4 1.4M11 11l1.4 1.4M12.4 3.6L11 5M5 11l-1.4 1.4'],
 }
 

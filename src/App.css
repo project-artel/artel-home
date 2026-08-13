@@ -4232,3 +4232,553 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
     display: none;
   }
 }
+
+/* --- Knowledge graph ----------------------------------------------------- */
+/* A drawing plus an inspector, on the same cream paper as everything else.
+   Relation kind is carried by the line's *pattern* and, for a contradiction, by
+   a glyph on the line — colour only repeats what the shape already says, which
+   is what DESIGN.md asks for and what a colour-blind reader depends on. */
+
+/* Wider than the standard section: the whole graph has to fit one screen, and
+   at 1240px a mid-sized cluster is already squeezed. */
+.section-content:has(.kg-section) {
+  width: min(100%, 1440px);
+}
+.kg-section-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 var(--space-3);
+}
+.kg-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-4);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+/* Truncation is a standing condition, not a notification: it stays on screen
+   for as long as the partial picture it describes. */
+.kg-banner {
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-status-warning);
+  border-radius: var(--radius-md);
+  background: var(--color-status-warning-muted);
+}
+.kg-banner-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.kg-banner-copy {
+  margin: var(--space-1) 0 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--color-text-secondary);
+}
+.kg-workspace {
+  display: grid;
+  gap: var(--space-5);
+  grid-template-columns: minmax(0, 1fr) 360px;
+  align-items: start;
+}
+@media (max-width: 1023px) {
+  .kg-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.kg-canvas-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+/* "Knowledge exists but nothing links it" is a normal state with its own copy.
+   Quiet, because nothing is wrong — the agent simply has not related anything. */
+.kg-notice {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-raised);
+}
+.kg-notice-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.kg-notice-copy {
+  margin: var(--space-1) 0 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--color-text-secondary);
+}
+.kg-canvas-frame {
+  height: clamp(400px, 62vh, 760px);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-canvas);
+}
+.kg-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.kg-canvas-note {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+/* Edges. The invisible hit path is what makes a 1.6px line clickable. */
+.kg-edge-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 16;
+  cursor: pointer;
+}
+.kg-edge-line {
+  fill: none;
+  stroke: var(--color-text-secondary);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+.kg-arrow {
+  fill: var(--color-text-secondary);
+}
+.kg-edge--REFINES .kg-edge-line,
+.kg-legend-line .kg-edge--REFINES {
+  stroke: var(--color-agent-reasoning);
+  stroke-dasharray: 7 4;
+}
+.kg-arrow--REFINES {
+  fill: var(--color-agent-reasoning);
+}
+.kg-edge--DEPENDS_ON .kg-edge-line,
+.kg-legend-line .kg-edge--DEPENDS_ON {
+  stroke: var(--color-text-muted);
+  stroke-dasharray: 1.5 4.5;
+}
+.kg-arrow--DEPENDS_ON {
+  fill: var(--color-text-muted);
+}
+.kg-edge--REPLACES .kg-edge-line,
+.kg-legend-line .kg-edge--REPLACES {
+  stroke: var(--color-action-primary);
+  stroke-dasharray: 11 4 2 4;
+}
+.kg-arrow--REPLACES {
+  fill: var(--color-action-primary);
+}
+/* A contradiction is the one relation that disagrees with its own endpoints, so
+   it is the heaviest line on the page, gets a head at both ends because it has
+   no direction, and carries a ✕ that survives any colour vision. */
+.kg-edge--CONTRADICTS .kg-edge-line,
+.kg-legend-line .kg-edge--CONTRADICTS {
+  stroke: var(--color-status-critical-strong);
+  stroke-width: 2.8;
+}
+.kg-arrow--CONTRADICTS {
+  fill: var(--color-status-critical-strong);
+}
+/* A relation this build has never heard of. Drawn faintly and named verbatim in
+   the legend, rather than being dressed up as one of the five it does know. */
+.kg-edge--UNKNOWN .kg-edge-line,
+.kg-legend-line .kg-edge--UNKNOWN {
+  stroke: var(--color-border-strong);
+  stroke-dasharray: 3 3;
+  stroke-width: 1.2;
+}
+.kg-arrow--UNKNOWN {
+  fill: var(--color-border-strong);
+}
+.kg-edge-glyph {
+  pointer-events: none;
+}
+.kg-edge-glyph-disc {
+  fill: var(--color-bg-canvas);
+  stroke: var(--color-status-critical-strong);
+  stroke-width: 1.4;
+}
+.kg-edge-glyph-mark {
+  fill: none;
+  stroke: var(--color-status-critical-strong);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.kg-edge.is-selected .kg-edge-line {
+  stroke: var(--color-action-primary);
+  stroke-width: 3.2;
+}
+.kg-edge.is-dimmed {
+  opacity: 0.22;
+}
+
+/* Nodes. Shape says where the item came from; the tag only tints it, and the
+   inspector spells both out in words. */
+.kg-node {
+  cursor: grab;
+  /* A drag on an SVG shape otherwise starts the browser's own image drag, which
+     steals the pointer stream and leaves the node stuck where the gesture began. */
+  touch-action: none;
+}
+.kg-node.is-held {
+  cursor: grabbing;
+}
+/* While a node is held the cursor stays "grabbing" everywhere, so the gesture
+   reads as one continuous thing even when the pointer runs off the node. */
+.kg-canvas--dragging,
+.kg-canvas--dragging .kg-node {
+  cursor: grabbing;
+}
+.kg-node.is-held .kg-node-mark {
+  stroke-width: 2.5;
+}
+.kg-node-mark {
+  fill: var(--color-text-muted);
+  fill-opacity: 0.18;
+  stroke: var(--color-text-muted);
+  stroke-width: 1.8;
+}
+.kg-node--tag-CONTROL .kg-node-mark {
+  fill: var(--color-action-primary);
+  stroke: var(--color-action-primary);
+}
+.kg-node--tag-INFO .kg-node-mark {
+  fill: var(--color-agent-reasoning);
+  stroke: var(--color-agent-reasoning);
+}
+.kg-node--tag-RULE .kg-node-mark {
+  fill: var(--color-status-warning);
+  stroke: var(--color-status-warning);
+}
+.kg-node--tag-OBJECTIVE .kg-node-mark {
+  fill: var(--color-status-success);
+  stroke: var(--color-status-success);
+}
+.kg-node--tag-UI .kg-node-mark {
+  fill: var(--color-border-strong);
+  stroke: var(--color-border-strong);
+}
+.kg-node.is-selected .kg-node-mark {
+  stroke: var(--color-action-primary);
+  stroke-width: 3.4;
+  fill-opacity: 0.34;
+}
+.kg-node.is-dimmed {
+  opacity: 0.24;
+}
+.kg-node-label {
+  fill: var(--color-text-secondary);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  pointer-events: none;
+}
+.kg-node.is-selected .kg-node-label {
+  fill: var(--color-text-primary);
+  font-weight: 600;
+}
+
+/* Legend. Every row draws the pattern and then names it, so the drawing is
+   still readable when the colours are not distinguishable. */
+.kg-legend {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-subtle);
+}
+.kg-legend-group h3 {
+  margin: 0 0 var(--space-2);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+.kg-legend-group ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.kg-legend-group li {
+  display: grid;
+  grid-template-columns: 44px minmax(0, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 12px;
+}
+.kg-legend-line {
+  width: 44px;
+  height: 12px;
+  overflow: visible;
+}
+.kg-legend-mark {
+  fill: var(--color-text-muted);
+  fill-opacity: 0.18;
+  stroke: var(--color-text-muted);
+  stroke-width: 1.6;
+}
+.kg-legend-name {
+  color: var(--color-text-primary);
+}
+.kg-legend-shape {
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+/* Inspector. Also the keyboard and screen-reader route into the drawing, which
+   is `aria-hidden` — so nothing selectable there is missing here. */
+.kg-inspector-panel {
+  position: sticky;
+  top: 0;
+  max-height: calc(100vh - var(--space-12));
+  overflow: hidden;
+  padding: 0;
+}
+@media (max-width: 1023px) {
+  .kg-inspector-panel {
+    position: static;
+    max-height: none;
+  }
+}
+.kg-inspector {
+  display: flex;
+  flex-direction: column;
+  max-height: inherit;
+}
+.kg-inspector-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+.kg-inspector-header h2 {
+  margin: 0;
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+}
+/* The selection takes what it needs up to about half the column; the item list
+   below it gets the rest and scrolls, so a long summary never pushes the list
+   off the panel entirely. */
+.kg-inspector-selection {
+  flex: 0 1 auto;
+  max-height: 55%;
+  padding: var(--space-5);
+  border-bottom: 1px solid var(--color-border-subtle);
+  overflow-y: auto;
+}
+.kg-inspector-subtitle {
+  margin: 0 0 var(--space-2);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+.kg-inspector-hint {
+  margin: var(--space-3) 0 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+.kg-detail {
+  margin-top: var(--space-4);
+}
+.kg-detail-kind {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+.kg-detail-summary {
+  margin: var(--space-2) 0 0;
+  font-size: 14px;
+  line-height: 21px;
+  color: var(--color-text-primary);
+}
+.kg-detail-relation {
+  margin: var(--space-2) 0 0;
+  font-size: 16px;
+  font-weight: 650;
+  color: var(--color-text-primary);
+}
+.kg-detail-relation.kg-relation--CONTRADICTS {
+  color: var(--color-status-critical-strong);
+}
+.kg-detail-raw {
+  margin: var(--space-1) 0 0;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+.kg-detail-fields {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--space-2) var(--space-4);
+  margin: var(--space-4) 0 0;
+  font-size: 12px;
+}
+.kg-detail-fields dt {
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+.kg-detail-fields dd {
+  margin: 0;
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+.kg-detail-subtitle {
+  margin: var(--space-5) 0 var(--space-2);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+/* The note is the only stated reason a relation exists, so it is set as prose
+   and given the raised surface rather than being one more metadata row. */
+.kg-detail-note {
+  margin: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-raised);
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--color-text-primary);
+}
+.kg-detail-link {
+  color: var(--color-action-primary);
+}
+.kg-relation-list,
+.kg-item-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.kg-relation,
+.kg-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: var(--space-2);
+  border: 1px solid transparent;
+  border-left: 3px solid var(--color-text-secondary);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.kg-relation:hover,
+.kg-item:hover {
+  background: var(--color-bg-hover);
+}
+.kg-relation--REFINES {
+  border-left-color: var(--color-agent-reasoning);
+}
+.kg-relation--DEPENDS_ON {
+  border-left-color: var(--color-text-muted);
+}
+.kg-relation--REPLACES {
+  border-left-color: var(--color-action-primary);
+}
+.kg-relation--CONTRADICTS {
+  border-left-color: var(--color-status-critical-strong);
+}
+.kg-relation--UNKNOWN {
+  border-left-color: var(--color-border-strong);
+}
+.kg-relation-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.kg-relation-target {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+.kg-endpoint {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  color: var(--color-action-primary);
+  text-align: left;
+  cursor: pointer;
+}
+.kg-item-list-section {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  padding: var(--space-5);
+  overflow: hidden;
+}
+.kg-item-list {
+  min-height: 0;
+  overflow-y: auto;
+}
+.kg-item {
+  border-left-color: var(--color-border-subtle);
+}
+.kg-item.is-selected {
+  border-color: var(--color-action-primary);
+  border-left-color: var(--color-action-primary);
+  background: var(--color-bg-hover);
+}
+.kg-item-title {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--color-text-primary);
+}
+.kg-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+/* The tag as words. The node's tint repeats it; this is the copy that carries it. */
+.kg-tag {
+  padding: 1px var(--space-2);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+.kg-tag--CONTROL {
+  border-color: var(--color-action-primary);
+  color: var(--color-action-primary);
+}
+.kg-tag--INFO {
+  border-color: var(--color-agent-reasoning);
+  color: var(--color-agent-reasoning);
+}
+.kg-tag--RULE {
+  border-color: var(--color-status-warning);
+}
+.kg-tag--OBJECTIVE {
+  border-color: var(--color-status-success);
+}
+.kg-tag--UI {
+  border-color: var(--color-border-strong);
+}

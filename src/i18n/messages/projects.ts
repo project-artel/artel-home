@@ -214,6 +214,7 @@ export const projectsEn = {
       qa: 'Run QA',
       qaHistory: 'QA history',
       issues: 'Issues',
+      knowledge: 'Knowledge graph',
       settings: 'Settings',
     },
     stats: {
@@ -423,6 +424,7 @@ export const projectsKo: Localized<typeof projectsEn> = {
       qa: 'QA 실행',
       qaHistory: 'QA 히스토리',
       issues: '이슈',
+      knowledge: '지식 그래프',
       settings: '설정',
     },
     stats: {
