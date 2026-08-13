@@ -1,6 +1,7 @@
 import { commonEn, commonKo } from './messages/common'
 import { issuesEn, issuesKo } from './messages/issues'
 import { knowledgeEn, knowledgeKo } from './messages/knowledge'
+import { performanceEn, performanceKo } from './messages/performance'
 import { projectsEn, projectsKo } from './messages/projects'
 import { qaEn, qaKo } from './messages/qa'
 import { scenariosEn, scenariosKo } from './messages/scenarios'
@@ -22,6 +23,7 @@ export const messages = {
     common: commonEn,
     issues: issuesEn,
     knowledge: knowledgeEn,
+    performance: performanceEn,
     projects: projectsEn,
     qa: qaEn,
     scenarios: scenariosEn,
@@ -30,6 +32,7 @@ export const messages = {
     common: commonKo,
     issues: issuesKo,
     knowledge: knowledgeKo,
+    performance: performanceKo,
     projects: projectsKo,
     qa: qaKo,
     scenarios: scenariosKo,

@@ -277,8 +277,11 @@ function GameBuildRow({
               </dl>
 
               <div className="form-actions">
-                <Link className="button button--secondary button--compact" to={`/projects/${encodeURIComponent(projectId)}/game-builds/${encodeURIComponent(build.id)}/performance`}>
-                  성능 추세
+                <Link
+                  className="button button--secondary button--compact"
+                  to={`/projects/${encodeURIComponent(projectId)}/game-builds/${encodeURIComponent(build.id)}/performance`}
+                >
+                  {t.performance.entry.build}
                 </Link>
                 <button
                   className="button button--secondary button--compact"
