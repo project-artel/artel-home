@@ -42,15 +42,28 @@ export function BuildPerformanceReport({
 
   useEffect(() => {
     const controller = new AbortController()
+    const requestKey = `${projectId}:${buildId}`
+    const timeout = window.setTimeout(() => {
+      setFailedFor(requestKey)
+      controller.abort()
+    }, 10_000)
 
     getBuildPerformance(projectId, buildId, controller.signal)
-      .then(setData)
+      .then((response) => {
+        window.clearTimeout(timeout)
+        setFailedFor(null)
+        setData(response)
+      })
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === 'AbortError') return
-        setFailedFor(`${projectId}:${buildId}`)
+        window.clearTimeout(timeout)
+        setFailedFor(requestKey)
       })
 
-    return () => controller.abort()
+    return () => {
+      window.clearTimeout(timeout)
+      controller.abort()
+    }
   }, [buildId, projectId])
 
   const runs = useMemo(() => sortByStartedAt(data?.runs ?? []), [data])
