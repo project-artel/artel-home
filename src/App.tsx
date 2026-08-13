@@ -8,6 +8,8 @@ import { SdkLoginPage } from './auth/SdkLoginPage'
 import { resumeSdkLogin, SDK_LOGIN_PATH } from './auth/sdkLoginRequest'
 import { useI18n } from './i18n/useI18n'
 import { KnowledgeSection } from './knowledge/KnowledgeGraphPage'
+import { BuildPerformanceRoute } from './performance/BuildPerformancePage'
+import { RunPerformanceRoute } from './performance/RunPerformancePage'
 import { GameInstanceDetailRoute } from './projects/GameInstanceDetailPage'
 import { ProjectListPage } from './projects/ProjectListPage'
 import { DashboardSection } from './projects/workspace/DashboardSection'
@@ -115,6 +117,8 @@ export function App() {
             path="/projects/:projectId/qa-runs/:qaRunId"
             element={<QaRunRoute />}
           />
+          <Route path="/projects/:projectId/qa-runs/:qaRunId/performance" element={<RunPerformanceRoute />} />
+          <Route path="/projects/:projectId/game-builds/:buildId/performance" element={<BuildPerformanceRoute />} />
           <Route
             path="/projects/:projectId/qa-tries/:qaTryId"
             element={<QaTryRoute />}

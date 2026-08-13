@@ -137,6 +137,9 @@ function QaRunPage({ projectId, qaRunId }: { projectId: string; qaRunId: string 
           <span className="qa-console-progress">{t.qa.run.progress(done, run.tries.length)}</span>
         </div>
         <div className="qa-console-top-actions">
+          <Link className="button button--secondary button--compact" to={`/projects/${encodeURIComponent(projectId)}/qa-runs/${encodeURIComponent(qaRunId)}/performance`}>
+            성능 지표
+          </Link>
           <button
             className={`qa-follow${following ? ' qa-follow--on' : ''}`}
             onClick={() => setFollowing(true)}
