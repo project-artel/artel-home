@@ -7,10 +7,16 @@ import { useAuth } from './auth/useAuth'
 import { SdkLoginPage } from './auth/SdkLoginPage'
 import { resumeSdkLogin, SDK_LOGIN_PATH } from './auth/sdkLoginRequest'
 import { useI18n } from './i18n/useI18n'
-import { IssueListRoute } from './issues/IssueListPage'
 import { GameInstanceDetailRoute } from './projects/GameInstanceDetailPage'
-import { ProjectDetailRoute } from './projects/ProjectDetailPage'
 import { ProjectListPage } from './projects/ProjectListPage'
+import { DashboardSection } from './projects/workspace/DashboardSection'
+import { DocumentsSection } from './projects/workspace/DocumentsSection'
+import { IssuesSection } from './projects/workspace/IssuesSection'
+import { ProjectWorkspaceRoute } from './projects/workspace/ProjectWorkspace'
+import { QaHistorySection } from './projects/workspace/QaHistorySection'
+import { QaSection } from './projects/workspace/QaSection'
+import { SettingsSection } from './projects/workspace/SettingsSection'
+import { TestRunsSection } from './projects/workspace/TestRunsSection'
 import { QaRunRoute } from './qa/QaRunPage'
 import { QaTryRoute } from './qa/QaTryPage'
 import { AppShell } from './shell/AppShell'
@@ -73,7 +79,20 @@ export function App() {
         <Route element={<AppShell />}>
           <Route path="/" element={<Navigate replace to="/projects" />} />
           <Route path="/projects" element={<ProjectListPage />} />
-          <Route path="/projects/:projectId" element={<ProjectDetailRoute />} />
+          {/* One project, split by question asked. The layout loads the
+              project once and keeps it mounted, so moving between sections
+              costs a re-render and no request. */}
+          <Route element={<ProjectWorkspaceRoute />} path="/projects/:projectId">
+            <Route index element={<DashboardSection />} />
+            <Route path="documents" element={<DocumentsSection />} />
+            <Route path="test-runs" element={<TestRunsSection />} />
+            <Route path="qa" element={<QaSection />} />
+            <Route path="qa-history" element={<QaHistorySection />} />
+            <Route path="issues" element={<IssuesSection />} />
+            <Route path="settings" element={<SettingsSection />} />
+          </Route>
+          {/* The working screens stay outside the rail: a timeline, a run map,
+              and a QA console each want the whole width. */}
           <Route
             path="/projects/:projectId/instances/:instanceId"
             element={<GameInstanceDetailRoute />}
@@ -98,7 +117,6 @@ export function App() {
             path="/projects/:projectId/qa-tries/:qaTryId"
             element={<QaTryRoute />}
           />
-          <Route path="/projects/:projectId/issues" element={<IssueListRoute />} />
           {/* The server's failed-callback redirect lands on /login. A user who
               is already signed in has nothing to do there, so send them on. */}
           <Route path="/login" element={<Navigate replace to="/projects" />} />

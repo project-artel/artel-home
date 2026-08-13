@@ -1,14 +1,17 @@
-import { useCallback, useEffect, useId, useState } from 'react'
+import { useId, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { formatDate } from '../projects/formatters'
 import type { GameInstance } from '../projects/gameTypes'
 import { ProjectApiError } from '../projects/projectApi'
-import { listTestRuns, type TestRun } from '../testRuns/testRunApi'
-import { createQaRun, isQaConflict, listQaModels, listQaTries } from './qaApi'
+import { sectionHref } from '../projects/workspace/sections'
+import type { ExtrasStatus } from '../projects/workspace/workspaceContext'
+import type { TestRun } from '../testRuns/testRunApi'
+import { createQaRun, isQaConflict } from './qaApi'
 import type { QaModel, QaReasoningSelection, QaTry } from './qaTypes'
 
-type LoadState = 'loading' | 'ready' | 'failed'
+/** How many recent runs the panel shows before deferring to the history section. */
+const RECENT_LIMIT = 5
 
 /**
  * Both preconditions answer 409 and share one error code, so the server's
@@ -18,32 +21,38 @@ type LoadState = 'loading' | 'ready' | 'failed'
 const SDK_DISCONNECTED = /sdk/i
 
 /**
- * Starting a QA run, and the list of runs already started.
+ * Starting a QA run, and the handful most recently started.
  *
  * A run is a scenario *and* a game, so both are picked here rather than one
  * being implied by the screen the user happens to be on. The list is what makes
  * a finished run reachable a second time — its URL is otherwise the only way
- * back.
+ * back — but only the newest few belong next to the form: the full record is
+ * the history section, which this panel links to.
  */
 export function QaTryPanel({
   instances,
+  models,
+  onReload,
   projectId,
+  runs,
+  status,
+  tries,
 }: {
   instances: GameInstance[]
+  models: QaModel[]
+  onReload: () => void
   projectId: string
+  runs: TestRun[]
+  status: ExtrasStatus
+  tries: QaTry[]
 }) {
-  const [runs, setRuns] = useState<TestRun[]>([])
-  const [tries, setTries] = useState<QaTry[]>([])
-  const [models, setModels] = useState<QaModel[]>([])
-  const [state, setState] = useState<LoadState>('loading')
   const [instanceId, setInstanceId] = useState('')
   const [runId, setRunId] = useState('')
-  const [modelId, setModelId] = useState('')
+  const [selectedModelId, setSelectedModelId] = useState('')
   const [reasoningEnabled, setReasoningEnabled] = useState(false)
   const [reasoningValue, setReasoningValue] = useState(0)
   const [starting, setStarting] = useState(false)
   const [failure, setFailure] = useState<string | null>(null)
-  const [reloadCount, setReloadCount] = useState(0)
   const navigate = useNavigate()
   const { t } = useI18n()
   const gameSelectId = useId()
@@ -51,37 +60,10 @@ export function QaTryPanel({
   const modelSelectId = useId()
   const reasoningControlId = useId()
 
-  const numericProjectId = Number(projectId)
-
-  useEffect(() => {
-    if (!Number.isInteger(numericProjectId)) return undefined
-
-    const controller = new AbortController()
-
-    Promise.all([
-      listTestRuns(projectId, controller.signal),
-      listQaTries(projectId, controller.signal),
-      listQaModels(controller.signal),
-    ])
-      .then(([loadedRuns, loadedTries, loadedModels]) => {
-        setRuns(loadedRuns)
-        setTries(loadedTries)
-        setModels(loadedModels)
-        setModelId((current) => current || loadedModels[0]?.id || '')
-        setState('ready')
-      })
-      .catch(() => {
-        if (controller.signal.aborted) return
-        setState('failed')
-      })
-
-    return () => controller.abort()
-  }, [numericProjectId, projectId, reloadCount])
-
-  const reload = useCallback(() => {
-    setState('loading')
-    setReloadCount((count) => count + 1)
-  }, [])
+  // The first model is the default, but the list arrives after the first
+  // render. Deriving the effective id keeps that out of an effect, which would
+  // otherwise paint one frame with an empty select.
+  const modelId = selectedModelId || models[0]?.id || ''
 
   async function run() {
     if (instanceId === '' || runId === '' || modelId === '') {
@@ -113,7 +95,7 @@ export function QaTryPanel({
     }
   }
 
-  const ready = state === 'ready'
+  const ready = status === 'ready'
   const runnable = ready && instances.length > 0 && runs.length > 0 && models.length > 0
   const selectedModel = models.find((model) => model.id === modelId) ?? null
   const reasoning = selectedModel?.reasoning ?? null
@@ -126,7 +108,7 @@ export function QaTryPanel({
 
   function selectModel(nextId: string) {
     const next = models.find((model) => model.id === nextId)
-    setModelId(nextId)
+    setSelectedModelId(nextId)
     setReasoningEnabled(false)
     setReasoningValue(
       next?.reasoning?.kind === 'effort'
@@ -265,15 +247,15 @@ export function QaTryPanel({
         </div>
       )}
 
-      {state === 'loading' && <p className="panel-empty">{t.qa.panel.loading}</p>}
+      {status === 'loading' && <p className="panel-empty">{t.qa.panel.loading}</p>}
 
-      {state === 'failed' && (
+      {status === 'failed' && (
         <div className="inline-error" role="alert">
           <span aria-hidden="true">!</span>
           {t.qa.panel.loadFailed}
           <button
             className="button button--secondary button--compact"
-            onClick={reload}
+            onClick={onReload}
             type="button"
           >
             {t.qa.panel.retry}
@@ -281,11 +263,22 @@ export function QaTryPanel({
         </div>
       )}
 
+      {ready && (
+        <div className="qa-recent-header">
+          <h3 className="panel-subtitle">{t.qa.panel.recentTitle}</h3>
+          {tries.length > RECENT_LIMIT && (
+            <Link className="section-more" to={sectionHref(projectId, 'qa-history')}>
+              {t.projects.workspace.seeAll}
+            </Link>
+          )}
+        </div>
+      )}
+
       {ready && tries.length === 0 && <p className="panel-empty">{t.qa.panel.empty}</p>}
 
       {ready && tries.length > 0 && (
         <ul className="qa-try-list">
-          {tries.map((qaTry) => (
+          {tries.slice(0, RECENT_LIMIT).map((qaTry) => (
             <li className="qa-try-row" key={qaTry.id}>
               <Link
                 className="qa-try-link"
