@@ -1,4 +1,5 @@
 import { useId, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { apiErrorMessage } from './apiErrorMessage'
 import { formatDate, PLACEHOLDER } from './formatters'
 import { updateGameBuild } from './gameApi'
@@ -276,6 +277,12 @@ function GameBuildRow({
               </dl>
 
               <div className="form-actions">
+                <Link
+                  className="button button--secondary button--compact"
+                  to={`/projects/${encodeURIComponent(projectId)}/game-builds/${encodeURIComponent(build.id)}/performance`}
+                >
+                  {t.performance.entry.build}
+                </Link>
                 <button
                   className="button button--secondary button--compact"
                   onClick={() => setEditing(true)}
