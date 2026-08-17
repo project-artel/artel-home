@@ -4,6 +4,8 @@ import { useI18n } from '../i18n/useI18n'
 import { formatDateTime } from '../projects/formatters'
 import { groupStepsByCase } from '../testScenarios/scenarioTypes'
 import type { ScenarioProposal } from './runChatApi'
+import { getCoverage } from '../testCases/testCaseApi'
+import type { TestCaseCoverage } from '../testCases/testCaseTypes'
 import type { RunChatSession } from './useRunChatSession'
 
 /** 표시용 텍스트 정리: 줄바꿈·중복 공백을 한 칸으로, 앞의 대시·불릿·번호 접두 제거. */
@@ -27,12 +29,31 @@ function cleanText(value: string | null | undefined): string {
  */
 export function RunChat({ session }: { session: RunChatSession }) {
   const { t } = useI18n()
+  const u = t.projects.workspace.uncovered
+  const stats = t.projects.workspace.stats
   const c = t.scenarios.chat
   // 대시보드에서 넘어온 요청문으로 시작한다(ARTEL-405). **보내지는 않는다** — 제안은 제안이고
   // 무엇을 보낼지는 사람이 정한다. 처음 한 번만 씨앗으로 쓰므로 이후 타이핑을 덮지 않는다.
   const [searchParams] = useSearchParams()
   const [input, setInput] = useState(() => searchParams.get('draft') ?? '')
   const [expanded, setExpanded] = useState<ScenarioProposal | null>(null)
+  const [coverage, setCoverage] = useState<TestCaseCoverage | null>(null)
+
+  // 저작하는 자리에서 남은 수를 본다(ARTEL-405). 대시보드에도 같은 값이 있지만 이쪽이 실제로
+  // 무언가를 할 자리다 — 입력창이 바로 아래라 페이지를 옮기지 않고 그대로 이어서 요청한다.
+  //
+  // 턴이 오갈 때마다 다시 읽는다. 시나리오를 하나 만들면 남은 수가 바로 달라지는데, 그 숫자만
+  // 옛것으로 남으면 사용자는 방금 한 일이 반영되지 않았다고 읽는다.
+  useEffect(() => {
+    if (!session.active) return
+    const controller = new AbortController()
+    getCoverage(session.projectId, controller.signal)
+      .then(setCoverage)
+      .catch(() => {
+        // 커버리지를 못 읽는 것이 대화를 막을 이유는 없다. 줄이 사라질 뿐이다.
+      })
+    return () => controller.abort()
+  }, [session.active, session.projectId, session.messages.length])
   const threadRef = useRef<HTMLOListElement>(null)
 
   useEffect(() => {
@@ -141,6 +162,22 @@ export function RunChat({ session }: { session: RunChatSession }) {
         </div>
       ) : (
         <form className="chat-composer" onSubmit={submit}>
+          {/* 남은 케이스와 이어서 요청하는 버튼. 누르면 입력창을 채우고 **보내지는 않는다** —
+              제안은 제안이고 무엇을 보낼지는 사람이 정한다. 여기서는 대시보드와 달리 입력창이
+              같은 컴포넌트라 URL로 실어 나를 필요가 없다. */}
+          {coverage !== null && coverage.unauthored > 0 && (
+            <div className="chat-coverage">
+              <span className="chat-coverage-count">{stats.uncoveredLeft(coverage.unauthored)}</span>
+              <button
+                className="button button--ghost button--compact"
+                onClick={() => setInput(topSceneRequest(coverage, u.requestFor))}
+                type="button"
+              >
+                {u.draftRequest}
+              </button>
+            </div>
+          )}
+
           {session.sendFailure !== null && (
             <div className="inline-error" role="alert">
               <span aria-hidden="true">!</span>
@@ -349,4 +386,20 @@ function ProposalStepsModal({
       </div>
     </div>
   )
+}
+
+
+/**
+ * 가장 많이 남은 씬으로 요청문을 만든다.
+ *
+ * 씬을 고르는 이유는 "68건 남았다"가 행동으로 옮겨지지 않기 때문이다 — 한 화면에서 이어지는
+ * 케이스들이 시나리오 하나가 되고, 건수만으로는 무엇을 쓸지 정할 수 없다. 목록을 늘어놓지 않고
+ * 하나만 내는 것도 같은 이유다: 고를 것이 여럿이면 "다음에 뭘 하지"가 그대로 남는다.
+ */
+function topSceneRequest(
+  coverage: TestCaseCoverage,
+  requestFor: (scene: string, count: number) => string,
+): string {
+  const top = coverage.uncoveredScenes[0]
+  return top === undefined ? '' : requestFor(top.scene, top.count)
 }

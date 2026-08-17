@@ -4885,3 +4885,18 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
 .kg-tag--UI {
   border-color: var(--color-border-strong);
 }
+
+/* 저작 화면의 남은 케이스 줄(ARTEL-405). 입력창 바로 위에 붙어 "이어서 뭘 할까"를 그 자리에서
+   답한다 — 대시보드에도 같은 값이 있지만 여기가 실제로 무언가를 할 자리다. */
+.chat-coverage {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding-bottom: var(--space-2);
+}
+
+.chat-coverage-count {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
