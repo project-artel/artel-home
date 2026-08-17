@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { formatDate } from '../projects/formatters'
 import { ProjectApiError } from '../projects/projectApi'
@@ -33,6 +33,10 @@ export function RunListPanel({
   const { t } = useI18n()
   const r = t.scenarios.runList
   const navigate = useNavigate()
+  // 대시보드의 "이 케이스로 시나리오 만들기"가 실어 보낸 요청문. 런을 여는 길에 함께 넘겨
+  // 입력창까지 도달시킨다 — 여기서 잃으면 버튼이 목적지 없는 링크가 된다.
+  const [searchParams] = useSearchParams()
+  const draft = searchParams.get('draft')
   const [creating, setCreating] = useState(false)
   const [failure, setFailure] = useState<string | null>(null)
   const [pendingDelete, setPendingDelete] = useState<TestRun | null>(null)
@@ -56,7 +60,8 @@ export function RunListPanel({
   // Opening a run always lands in the run's edit entry, which decides between the
   // empty-run shell and the newest scenario's studio (see RunEditPage).
   function openRun(runId: string) {
-    navigate(`/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(runId)}/edit`)
+    const base = `/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(runId)}/edit`
+    navigate(draft === null ? base : `${base}?draft=${encodeURIComponent(draft)}`)
   }
 
   async function create() {

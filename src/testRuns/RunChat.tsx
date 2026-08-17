@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { formatDateTime } from '../projects/formatters'
 import { groupStepsByCase } from '../testScenarios/scenarioTypes'
@@ -27,7 +28,10 @@ function cleanText(value: string | null | undefined): string {
 export function RunChat({ session }: { session: RunChatSession }) {
   const { t } = useI18n()
   const c = t.scenarios.chat
-  const [input, setInput] = useState('')
+  // 대시보드에서 넘어온 요청문으로 시작한다(ARTEL-405). **보내지는 않는다** — 제안은 제안이고
+  // 무엇을 보낼지는 사람이 정한다. 처음 한 번만 씨앗으로 쓰므로 이후 타이핑을 덮지 않는다.
+  const [searchParams] = useSearchParams()
+  const [input, setInput] = useState(() => searchParams.get('draft') ?? '')
   const [expanded, setExpanded] = useState<ScenarioProposal | null>(null)
   const threadRef = useRef<HTMLOListElement>(null)
 

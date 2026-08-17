@@ -3,6 +3,8 @@ import { useI18n } from '../../i18n/useI18n'
 import { ISSUE_SEVERITIES, type Issue } from '../../issues/issueTypes'
 import { SeverityTag } from '../../issues/SeverityTag'
 import type { QaTry } from '../../qa/qaTypes'
+import { SceneChip } from '../../testCases/SceneChip'
+import type { TestCaseCoverage } from '../../testCases/testCaseTypes'
 import { formatDate } from '../formatters'
 import { QaStatusPill } from './QaStatusPill'
 import { sectionHref } from './sections'
@@ -24,6 +26,7 @@ export function DashboardSection() {
   const { t } = useI18n()
   const {
     builds,
+    coverage,
     documents,
     extrasStatus,
     instances,
@@ -77,6 +80,19 @@ export function DashboardSection() {
           }
           tone={worst === null ? undefined : 'warning'}
           value={settled ? String(openIssues.length) : '—'}
+        />
+        <StatTile
+          href={sectionHref(projectId, 'test-runs')}
+          label={w.stats.coverage}
+          sub={
+            coverage.total === 0
+              ? w.stats.noCases
+              : coverage.unauthored === 0
+                ? w.stats.allCovered
+                : w.stats.uncoveredLeft(coverage.unauthored)
+          }
+          tone={coverage.total > 0 && coverage.unauthored > 0 ? 'warning' : undefined}
+          value={settled ? `${coverage.authored}/${coverage.total}` : '—'}
         />
         <StatTile
           href={sectionHref(projectId, 'qa')}
@@ -143,6 +159,8 @@ export function DashboardSection() {
               </ul>
             )}
           </SummaryPanel>
+
+          <UncoveredPanel coverage={coverage} projectId={projectId} settled={settled} />
 
           <SummaryPanel href={sectionHref(projectId, 'test-runs')} title={w.nav.testRuns}>
             {!settled ? (
@@ -263,6 +281,69 @@ export function DashboardSection() {
         </div>
       </div>
     </div>
+  )
+}
+
+/**
+ * What no scenario has reached yet, by scene.
+ *
+ * Scenes rather than ids: a case number means nothing to the person reading and
+ * is not shown anywhere else in the product. The count beside each scene is what
+ * turns "68 left" into something to actually do next.
+ *
+ * The verification line sits under the heading rather than merged into the same
+ * number, because "authored but never run" and "ran and broke" are different work.
+ *
+ * Each scene links into a fresh run with the request pre-filled — not sent. The
+ * proposal is the user's to edit, and an auto-sent message would be the product
+ * deciding what they asked for.
+ */
+function UncoveredPanel({
+  coverage,
+  projectId,
+  settled,
+}: {
+  coverage: TestCaseCoverage
+  projectId: string
+  settled: boolean
+}) {
+  const { t } = useI18n()
+  const u = t.projects.workspace.uncovered
+
+  return (
+    <section className="panel panel--flush">
+      <header className="summary-head">
+        <h2>{u.title}</h2>
+        {coverage.total > 0 && (
+          <span className="summary-meta">
+            {u.verification(coverage.verified, coverage.draft, coverage.broken)}
+          </span>
+        )}
+      </header>
+      {!settled ? (
+        <p className="panel-empty panel-empty--inset">{t.qa.panel.loading}</p>
+      ) : coverage.uncoveredScenes.length === 0 ? (
+        <p className="panel-empty panel-empty--inset">{u.empty}</p>
+      ) : (
+        <ul className="summary-list">
+          {coverage.uncoveredScenes.map((entry) => (
+            <li className="summary-row summary-row--uncovered" key={entry.scene}>
+              <SceneChip scene={entry.scene} />
+              <span className="summary-meta">{u.sceneCount(entry.count)}</span>
+              <Link
+                className="table-link"
+                to={{
+                  pathname: `/projects/${encodeURIComponent(projectId)}/test-runs`,
+                  search: `?draft=${encodeURIComponent(u.requestFor(entry.scene, entry.count))}`,
+                }}
+              >
+                {u.draftRequest}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   )
 }
 

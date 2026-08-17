@@ -49,6 +49,7 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
   const { pathname } = useLocation()
 
   const {
+    coverage,
     extrasStatus,
     models,
     openIssues,
@@ -73,6 +74,7 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
             tries,
             models,
             openIssues,
+            coverage,
             extrasStatus,
             reloadExtras,
             refreshRuns,
@@ -90,6 +92,7 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
       applyNewDocument,
       applyProject,
       builds,
+      coverage,
       documents,
       extrasStatus,
       instances,

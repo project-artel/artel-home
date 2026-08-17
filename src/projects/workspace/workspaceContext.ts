@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react'
 import type { Issue } from '../../issues/issueTypes'
 import type { QaModel, QaTry } from '../../qa/qaTypes'
+import type { TestCaseCoverage } from '../../testCases/testCaseTypes'
 import type { TestRun } from '../../testRuns/testRunApi'
 import type { GameBuild, GameInstance } from '../gameTypes'
 import type { ProjectDetail, ProjectDocument } from '../projectTypes'
@@ -32,6 +33,12 @@ export type WorkspaceValue = {
   models: QaModel[]
   /** Unresolved issues, newest first, for the dashboard summary and its count. */
   openIssues: Issue[]
+  /**
+   * How much of the project's cases the scenarios reach (ARTEL-405). Read here
+   * with the rest so the dashboard does not add a fifth staggered spinner, and
+   * re-read after a run changes so the number never lags what the user just did.
+   */
+  coverage: TestCaseCoverage
   extrasStatus: ExtrasStatus
 
   /** Re-runs the four secondary reads after a failure. */

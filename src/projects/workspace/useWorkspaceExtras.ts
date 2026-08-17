@@ -3,6 +3,8 @@ import { listProjectIssues } from '../../issues/issueApi'
 import type { Issue } from '../../issues/issueTypes'
 import { listQaModels, listQaTries } from '../../qa/qaApi'
 import type { QaModel, QaTry } from '../../qa/qaTypes'
+import { getCoverage } from '../../testCases/testCaseApi'
+import type { TestCaseCoverage } from '../../testCases/testCaseTypes'
 import { listTestRuns, type TestRun } from '../../testRuns/testRunApi'
 import type { ExtrasStatus } from './workspaceContext'
 
@@ -11,9 +13,26 @@ type Extras = {
   tries: QaTry[]
   models: QaModel[]
   openIssues: Issue[]
+  coverage: TestCaseCoverage
 }
 
-const empty: Extras = { runs: [], tries: [], models: [], openIssues: [] }
+const emptyCoverage: TestCaseCoverage = {
+  total: 0,
+  authored: 0,
+  unauthored: 0,
+  verified: 0,
+  draft: 0,
+  broken: 0,
+  uncoveredScenes: [],
+}
+
+const empty: Extras = {
+  runs: [],
+  tries: [],
+  models: [],
+  openIssues: [],
+  coverage: emptyCoverage,
+}
 
 /**
  * The four reads no single section owns.
@@ -39,9 +58,10 @@ export function useWorkspaceExtras(projectId: string) {
       listQaTries(projectId, controller.signal),
       listQaModels(controller.signal),
       listProjectIssues(projectId, { status: 'OPEN' }, undefined, controller.signal),
+      getCoverage(projectId, controller.signal),
     ])
-      .then(([runs, tries, models, issues]) => {
-        setExtras({ runs, tries, models, openIssues: issues.items })
+      .then(([runs, tries, models, issues, coverage]) => {
+        setExtras({ runs, tries, models, openIssues: issues.items, coverage })
         setStatus('ready')
       })
       .catch(() => {
@@ -64,8 +84,10 @@ export function useWorkspaceExtras(projectId: string) {
    */
   const refreshRuns = useCallback(
     () =>
-      listTestRuns(projectId).then((runs) => {
-        setExtras((previous) => ({ ...previous, runs }))
+      // 커버리지를 함께 읽는다. 시나리오를 만들거나 지우면 미커버 수가 바로 달라지는데, 그
+      // 숫자만 옛것으로 남으면 사용자는 방금 한 일이 반영되지 않았다고 읽는다.
+      Promise.all([listTestRuns(projectId), getCoverage(projectId)]).then(([runs, coverage]) => {
+        setExtras((previous) => ({ ...previous, runs, coverage }))
       }),
     [projectId],
   )

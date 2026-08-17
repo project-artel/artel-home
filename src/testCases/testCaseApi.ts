@@ -10,7 +10,9 @@ import {
 import {
   asVerificationStatus,
   type TestCase,
+  type TestCaseCoverage,
   type TestCaseInput,
+  type UncoveredScene,
 } from './testCaseTypes'
 
 /*
@@ -150,4 +152,43 @@ export async function updateTestCase(
 export async function deleteTestCase(projectId: string, caseId: string): Promise<void> {
   const response = await apiFetch(casePath(projectId, caseId), { method: 'DELETE' })
   if (!response.ok) throw await toApiError(response)
+}
+
+
+/**
+ * `GET /api/projects/{projectId}/test-cases/coverage` — how much of the project
+ * the scenarios reach.
+ *
+ * Everything degrades to zero rather than throwing. A missing count would other-
+ * wise blank the dashboard tile it sits in, and a project with no cases yet is a
+ * perfectly ordinary state that reads the same way.
+ */
+export async function getCoverage(
+  projectId: string,
+  signal?: AbortSignal,
+): Promise<TestCaseCoverage> {
+  const response = await apiFetch(`${casesRoot(projectId)}/coverage`, { signal })
+  const record = asRecord(await readJson(response)) ?? {}
+  return {
+    total: asCount(record.total),
+    authored: asCount(record.authored),
+    unauthored: asCount(record.unauthored),
+    verified: asCount(record.verified),
+    draft: asCount(record.draft),
+    broken: asCount(record.broken),
+    uncoveredScenes: asScenes(record.uncoveredScenes),
+  }
+}
+
+function asCount(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0
+}
+
+function asScenes(value: unknown): UncoveredScene[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .map((entry) => asRecord(entry))
+    .filter((entry): entry is Record<string, unknown> => entry !== null)
+    .map((entry) => ({ scene: asString(entry.scene), count: asCount(entry.count) }))
+    .filter((entry) => entry.scene.length > 0)
 }
