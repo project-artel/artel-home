@@ -75,6 +75,18 @@ export const scenariosEn = {
     send: 'Send',
     sendFailed: 'The message could not be sent. Please try again.',
     awaitingReply: 'Waiting for Artel to reply.',
+    /*
+     * Stage labels (ARTEL-419). Each one says only what the server actually saw.
+     * `writing` is the exception and is worded for it: what is known is that the
+     * cases were handed over, not that a scenario is being composed right now.
+     */
+    stageSent: 'Request sent',
+    stageLookingUpCases: 'Looking up cases',
+    stageWriting: 'Cases handed over',
+    stageChecking: 'Checking coverage',
+    stageRepairing: 'Asking for the missing part again',
+    stageElapsed: (seconds: number) => `${seconds}s`,
+    stageLabel: 'Authoring progress',
     autoApplyLabel: 'Apply automatically',
     proposalsTitle: 'Proposed scenarios',
     proposalNew: '🆕 Add',
@@ -430,6 +442,17 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     send: '전송',
     sendFailed: '메시지를 전송하지 못했습니다. 다시 시도해 주세요.',
     awaitingReply: 'Artel의 응답을 기다리고 있습니다.',
+    /*
+     * 단계 문구(ARTEL-419). 서버가 실제로 본 것까지만 말한다. `writing`이 유일한 추론이라
+     * 문구도 거기에 맞췄다 — 아는 것은 케이스를 넘겼다는 사실이지, 지금 쓰고 있다는 것이 아니다.
+     */
+    stageSent: '요청 보냄',
+    stageLookingUpCases: '케이스 확인 중',
+    stageWriting: '케이스 넘김',
+    stageChecking: '검수 중',
+    stageRepairing: '빠진 부분 다시 요청',
+    stageElapsed: (seconds: number) => `${seconds}초`,
+    stageLabel: '저작 진행 단계',
     autoApplyLabel: '자동 적용',
     proposalsTitle: '제안된 시나리오',
     proposalNew: '🆕 추가',

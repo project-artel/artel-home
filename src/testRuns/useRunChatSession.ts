@@ -7,6 +7,8 @@ import {
   parseRunStreamEvent,
   runChatStreamUrl,
   sendRunChatMessage,
+  TERMINAL_STAGES,
+  type AuthoringStage,
   type ScenarioProposal,
 } from './runChatApi'
 
@@ -62,6 +64,14 @@ export function useRunChatSession(
   const [applying, setApplying] = useState(false)
   const [autoApply, setAutoApplyState] = useState(readAutoApply)
 
+  // Stages of the turn in flight (ARTEL-419), in arrival order. Empty = nothing to
+  // show: either no turn is running or the one that was has reached its end.
+  const [stages, setStages] = useState<AuthoringStage[]>([])
+  // When the current turn was sent, so the wait can be counted out loud. Elapsed
+  // time is what separates "slow" from "stuck" while the server has nothing new
+  // to report — and having nothing to report is the normal case between stages.
+  const [turnStartedAt, setTurnStartedAt] = useState<number | null>(null)
+
   // The autoApply value sent with the in-flight message decides how its result is
   // handled, even if the user toggles before the reply lands.
   const inFlightAutoApply = useRef(autoApply)
@@ -105,6 +115,13 @@ export function useRunChatSession(
           pending: false,
         },
       ])
+      // In card-review mode the result IS the end of the turn — no audit runs, so
+      // no terminal stage will arrive and the indicator has to close itself here.
+      // Under auto-apply, checking/saved still follow: leave it up.
+      if (!inFlightAutoApply.current) {
+        setStages([])
+        setTurnStartedAt(null)
+      }
       if (parsed.scenarios.length > 0) {
         if (inFlightAutoApply.current) {
           // Server already reconciled these; reflect them in the composition/rail.
@@ -115,6 +132,42 @@ export function useRunChatSession(
         }
       }
     })
+    source.addEventListener('progress', (event: Event) => {
+      if (!(event instanceof MessageEvent)) return
+      const parsed = parseRunStreamEvent(event.data)
+      if (parsed === null || parsed.type !== 'progress') return
+      const { stage } = parsed
+      if (TERMINAL_STAGES.includes(stage)) {
+        // The turn is over. What happened is already in the thread (the agent's
+        // reply, or the notice explaining the refusal) — keeping a spent stepper
+        // on screen would just be one more thing to read.
+        setStages([])
+        setTurnStartedAt(null)
+        return
+      }
+      // A repair turn was sent back to the agent, so another reply is coming. The
+      // `result` that triggered it already cleared the waiting state; restore it,
+      // or the wait that follows looks like nothing is happening.
+      if (stage === 'repairing') setAwaitingReply(true)
+      setStages((previous) =>
+        previous[previous.length - 1] === stage ? previous : [...previous, stage],
+      )
+    })
+    source.addEventListener('notice', (event: Event) => {
+      if (!(event instanceof MessageEvent)) return
+      const parsed = parseRunStreamEvent(event.data)
+      if (parsed === null || parsed.type !== 'notice' || parsed.message.length === 0) return
+      setMessages((previous) => [
+        ...previous,
+        {
+          id: `notice-${previous.length}`,
+          role: 'ASSISTANT' as const,
+          content: parsed.message,
+          createdAt: null,
+          pending: false,
+        },
+      ])
+    })
     source.addEventListener('error', (event: Event) => {
       if (event instanceof MessageEvent) {
         // A server `error` frame is a failed turn, not a dead session: clear the
@@ -123,6 +176,8 @@ export function useRunChatSession(
         const parsed = parseRunStreamEvent(event.data)
         if (parsed !== null && parsed.type === 'error') {
           setAwaitingReply(false)
+          setStages([])
+          setTurnStartedAt(null)
           setMessages((previous) => [
             ...previous.map((m) => ({ ...m, pending: false })),
             {
@@ -164,6 +219,9 @@ export function useRunChatSession(
         },
       ])
       setAwaitingReply(true)
+      // A new turn starts its own history; the previous turn's stages are done.
+      setStages([])
+      setTurnStartedAt(Date.now())
       try {
         await sendRunChatMessage(projectId, runId, trimmed, autoApply)
         return true
@@ -171,6 +229,8 @@ export function useRunChatSession(
         // Drop the optimistic pending message and surface the failure.
         setMessages((previous) => previous.filter((m) => !m.pending))
         setAwaitingReply(false)
+        setStages([])
+        setTurnStartedAt(null)
         setSendFailure('send-failed')
         return false
       } finally {
@@ -226,6 +286,8 @@ export function useRunChatSession(
     closed,
     applying,
     autoApply,
+    stages,
+    turnStartedAt,
     setAutoApply,
     send,
     applyProposals,

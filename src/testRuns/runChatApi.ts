@@ -48,7 +48,42 @@ export type RunChatFailure = {
   detail: string
 }
 
-export type RunChatStreamEvent = RunChatResult | RunChatFailure
+/**
+ * Where the current authoring turn is (ARTEL-419). Only stages the server
+ * actually observed are sent, so the middle two can be absent — a turn that
+ * calls no tool is normal. `repairing` is not an ending: another result follows.
+ */
+export const AUTHORING_STAGES = [
+  'sent',
+  'looking_up_cases',
+  'writing',
+  'checking',
+  'saved',
+  'repairing',
+  'blocked',
+] as const
+
+export type AuthoringStage = (typeof AUTHORING_STAGES)[number]
+
+/** Stages after which nothing more arrives for this turn. */
+export const TERMINAL_STAGES: readonly AuthoringStage[] = ['saved', 'blocked']
+
+export type RunChatProgress = {
+  type: 'progress'
+  stage: AuthoringStage
+}
+
+/** An ASSISTANT line the *server* wrote (repair notice, audit refusal, remaining count). */
+export type RunChatNotice = {
+  type: 'notice'
+  message: string
+}
+
+export type RunChatStreamEvent =
+  | RunChatResult
+  | RunChatFailure
+  | RunChatProgress
+  | RunChatNotice
 
 /** Absolute URL for the SSE stream (EventSource can't go through `apiFetch`). */
 export function runChatStreamUrl(projectId: string, runId: string): string {
@@ -141,10 +176,19 @@ function parseProposal(value: unknown): ScenarioProposal {
   }
 }
 
+function isAuthoringStage(value: unknown): value is AuthoringStage {
+  return AUTHORING_STAGES.includes(value as AuthoringStage)
+}
+
 /**
  * Parses one SSE frame. `result` carries the message + a scenarios[] proposal
- * array; `error` carries code/detail. Unknown frames (e.g. an internal
+ * array; `error` carries code/detail; `progress` a stage; `notice` a
+ * server-written assistant line. Unknown frames (e.g. an internal
  * `test_case_search` that leaked) degrade to null and are dropped, never thrown.
+ *
+ * An unrecognised stage degrades to null too. A server that learns a new stage
+ * should not make this client render an empty step — silence is the honest
+ * fallback, and the terminal stages it does know still close the indicator.
  */
 export function parseRunStreamEvent(data: string): RunChatStreamEvent | null {
   let parsed: unknown
@@ -164,6 +208,12 @@ export function parseRunStreamEvent(data: string): RunChatStreamEvent | null {
   }
   if (record.type === 'error') {
     return { type: 'error', code: asString(record.code), detail: asString(record.detail) }
+  }
+  if (record.type === 'progress') {
+    return isAuthoringStage(record.stage) ? { type: 'progress', stage: record.stage } : null
+  }
+  if (record.type === 'notice') {
+    return { type: 'notice', message: asString(record.message) }
   }
   return null
 }

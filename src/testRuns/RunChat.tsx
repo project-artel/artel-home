@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { formatDateTime } from '../projects/formatters'
 import { groupStepsByCase } from '../testScenarios/scenarioTypes'
-import type { ScenarioProposal } from './runChatApi'
+import type { AuthoringStage, ScenarioProposal } from './runChatApi'
 import { getCoverage } from '../testCases/testCaseApi'
 import type { TestCaseCoverage } from '../testCases/testCaseTypes'
 import type { RunChatSession } from './useRunChatSession'
@@ -14,6 +14,75 @@ function cleanText(value: string | null | undefined): string {
     .replace(/\s+/g, ' ')
     .replace(/^[-–—•*\s]+/, '')
     .trim()
+}
+
+/**
+ * How long the turn in flight has been running (ARTEL-419).
+ *
+ * The counter matters most where there is nothing else to show. Between "sent"
+ * and the agent's first tool call the server observes nothing at all, and that
+ * silence is exactly where a slow turn and a dead one look alike — the clock is
+ * the only thing that tells them apart. Returns null when no turn is running.
+ */
+function useElapsedSeconds(startedAt: number | null): number | null {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    if (startedAt === null) return
+    const timer = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [startedAt])
+  if (startedAt === null) return null
+  // `now` is still the previous turn's tick for up to a second after a new turn
+  // starts, which would read as a negative age. Clamping shows 0s until it catches
+  // up — the honest reading, since the turn really did just begin.
+  return Math.max(0, Math.floor((now - startedAt) / 1000))
+}
+
+/**
+ * The stages this turn has passed through (ARTEL-419).
+ *
+ * Only stages the server actually sent are drawn. A fixed set of slots would be
+ * easier to read but would have to guess at the ones that did not happen, and a
+ * turn that calls no tool is normal — colouring "케이스 확인" as done in that
+ * turn claims something nobody observed.
+ *
+ * The last entry is the live one and carries the clock; everything before it is
+ * settled and steps back visually.
+ */
+function AuthoringProgress({
+  stages,
+  labels,
+  elapsed,
+  ariaLabel,
+  formatElapsed,
+}: {
+  stages: AuthoringStage[]
+  labels: Partial<Record<AuthoringStage, string>>
+  elapsed: number | null
+  ariaLabel: string
+  formatElapsed: (seconds: number) => string
+}) {
+  const shown = stages.filter((stage) => labels[stage] !== undefined)
+  if (shown.length === 0) return null
+  return (
+    <ol className="authoring-progress" aria-label={ariaLabel} role="status">
+      {shown.map((stage, index) => {
+        const live = index === shown.length - 1
+        return (
+          <li
+            className={live ? 'authoring-progress-step is-live' : 'authoring-progress-step'}
+            key={`${stage}-${index}`}
+          >
+            <span className="authoring-progress-dot" aria-hidden="true" />
+            <span className="authoring-progress-label">{labels[stage]}</span>
+            {live && elapsed !== null && (
+              <span className="authoring-progress-elapsed">{formatElapsed(elapsed)}</span>
+            )}
+          </li>
+        )
+      })}
+    </ol>
+  )
 }
 
 /**
@@ -37,6 +106,16 @@ export function RunChat({ session }: { session: RunChatSession }) {
   const [input, setInput] = useState(() => searchParams.get('draft') ?? '')
   const [expanded, setExpanded] = useState<ScenarioProposal | null>(null)
   const [coverage, setCoverage] = useState<TestCaseCoverage | null>(null)
+  const elapsed = useElapsedSeconds(session.turnStartedAt)
+  // 종착 단계(saved/blocked)는 여기에 없다. 그때는 훅이 목록을 비워 표시가 사라지고, 무슨 일이
+  // 있었는지는 대화에 남은 문장이 말한다 — 다 끝난 눈금은 읽을거리만 하나 늘린다.
+  const stageLabels: Partial<Record<AuthoringStage, string>> = {
+    sent: c.stageSent,
+    looking_up_cases: c.stageLookingUpCases,
+    writing: c.stageWriting,
+    checking: c.stageChecking,
+    repairing: c.stageRepairing,
+  }
 
   // 제안을 낼 조건. 턴이 한 번은 끝났고(에이전트가 답한 적이 있고), 지금 답을 기다리는 중이
   // 아니며, 아직 안 담긴 케이스가 있을 때만이다. 셋 중 하나라도 아니면 낼 말이 없다.
@@ -150,6 +229,16 @@ export function RunChat({ session }: { session: RunChatSession }) {
                 <span></span>
                 <span></span>
               </div>
+              {/* 어디까지 왔는지(ARTEL-419). 점 세 개는 "살아 있다"만 말하고 어디쯤인지는
+                  말하지 못한다 — 20초 걸리는 턴과 100초 걸리는 턴, 영영 오지 않는 턴이
+                  화면에서 같아 보이던 이유다. */}
+              <AuthoringProgress
+                ariaLabel={c.stageLabel}
+                elapsed={elapsed}
+                formatElapsed={c.stageElapsed}
+                labels={stageLabels}
+                stages={session.stages}
+              />
             </li>
           )}
         </ol>
