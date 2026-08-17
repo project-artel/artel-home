@@ -3,7 +3,6 @@ import { useI18n } from '../../i18n/useI18n'
 import { ISSUE_SEVERITIES, type Issue } from '../../issues/issueTypes'
 import { SeverityTag } from '../../issues/SeverityTag'
 import type { QaTry } from '../../qa/qaTypes'
-import { SceneChip } from '../../testCases/SceneChip'
 import type { TestCaseCoverage } from '../../testCases/testCaseTypes'
 import { formatDate } from '../formatters'
 import { QaStatusPill } from './QaStatusPill'
@@ -328,7 +327,10 @@ function UncoveredPanel({
         <ul className="summary-list">
           {coverage.uncoveredScenes.map((entry) => (
             <li className="summary-row summary-row--uncovered" key={entry.scene}>
-              <SceneChip scene={entry.scene} />
+              {/* 칩이 아니라 글자다. SceneChip의 `cat-chip`은 .scenario-studio / .run-map
+                  안에서만 스타일이 있어서 여기서는 아무것도 하지 않는다 — 쓰면 코드가
+                  거짓말을 한다. 이 행은 옆의 다른 요약 행들과 같은 글자 스타일로 맞춘다. */}
+              <span className="summary-title">{entry.scene}</span>
               <span className="summary-meta">{u.sceneCount(entry.count)}</span>
               <Link
                 className="table-link"
