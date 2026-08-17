@@ -4886,17 +4886,67 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   border-color: var(--color-border-strong);
 }
 
-/* 저작 화면의 남은 케이스 줄(ARTEL-405). 입력창 바로 위에 붙어 "이어서 뭘 할까"를 그 자리에서
-   답한다 — 대시보드에도 같은 값이 있지만 여기가 실제로 무언가를 할 자리다. */
-.chat-coverage {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  padding-bottom: var(--space-2);
+/* 대화 헤더의 남은 케이스 표시(ARTEL-405).
+   눌리지 않는 값이라 버튼과 다른 무게로 두되, 흐린 글자만으로는 읽히지 않아 배경을 준다.
+   숫자에 무게를 싣고 라벨과 분모는 낮춘다 — 사람이 보는 것은 "몇 건 남았나" 하나다. */
+.run-chat-coverage {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-left: auto;
+  margin-right: var(--space-3);
+  padding: 2px 9px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 999px;
+  background: var(--color-bg-surface);
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+  white-space: nowrap;
 }
 
-.chat-coverage-count {
+.run-chat-coverage strong {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.run-chat-coverage-total {
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+/* 남은 것이 있을 때만 색이 붙는다. 전부 덮였으면 볼 것이 없으니 조용한 편이 맞다. */
+.run-chat-coverage--open {
+  border-color: color-mix(in srgb, var(--color-status-warning) 45%, transparent);
+  background: color-mix(in srgb, var(--color-status-warning) 10%, transparent);
+}
+
+.run-chat-coverage--open strong {
+  color: var(--color-status-warning);
+}
+
+/* 턴이 끝난 뒤 대화 아래에 붙는 제안 칩(ARTEL-405). 입력창 위 고정 자리가 아니라 여기인 것은,
+   놓여 있는 버튼은 제안이 아니라 도구 모음으로 읽히기 때문이다. */
+.chat-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: 0 var(--space-3) var(--space-2);
+}
+
+.chat-suggestion {
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 999px;
+  background: var(--color-bg-surface);
   color: var(--color-text-secondary);
+  cursor: pointer;
+  font: inherit;
   font-size: 12px;
+  padding: 4px 12px;
+  transition: border-color .12s ease, color .12s ease;
+}
+
+.chat-suggestion:hover {
+  border-color: var(--color-action-primary);
+  color: var(--color-action-primary);
 }

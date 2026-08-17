@@ -243,6 +243,10 @@ export const projectsEn = {
       sceneCount: (count: number) => `${count} cases`,
       /** Fills the composer rather than sending — the proposal is the user's to edit. */
       draftRequest: 'Write a scenario for these',
+      /** The post-turn suggestion chip. Names the gap so the offer is concrete. */
+      suggestScene: (scene: string, count: number) => `Next: ${scene} — ${count} still uncovered`,
+      /** Passive marker in the chat header: where the project stands, no action attached. */
+      remainingLabel: 'Uncovered',
       requestFor: (scene: string, count: number) =>
         `Write a scenario covering the ${count} cases still uncovered in ${scene}.`,
       /** The verification axis, kept beside the authoring one rather than merged. */
@@ -470,6 +474,8 @@ export const projectsKo: Localized<typeof projectsEn> = {
       empty: '모든 케이스가 어떤 시나리오엔가 담겨 있습니다.',
       sceneCount: (count: number) => `${count}건`,
       draftRequest: '이 케이스로 시나리오 만들기',
+      suggestScene: (scene: string, count: number) => `다음은 ${scene} — 아직 ${count}건 남음`,
+      remainingLabel: '미커버',
       requestFor: (scene: string, count: number) =>
         `${scene}에서 아직 시나리오에 담기지 않은 ${count}건을 검증하는 시나리오를 만들어줘.`,
       verification: (verified: number, draft: number, broken: number) =>

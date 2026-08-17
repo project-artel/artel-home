@@ -30,7 +30,6 @@ function cleanText(value: string | null | undefined): string {
 export function RunChat({ session }: { session: RunChatSession }) {
   const { t } = useI18n()
   const u = t.projects.workspace.uncovered
-  const stats = t.projects.workspace.stats
   const c = t.scenarios.chat
   // 대시보드에서 넘어온 요청문으로 시작한다(ARTEL-405). **보내지는 않는다** — 제안은 제안이고
   // 무엇을 보낼지는 사람이 정한다. 처음 한 번만 씨앗으로 쓰므로 이후 타이핑을 덮지 않는다.
@@ -38,6 +37,19 @@ export function RunChat({ session }: { session: RunChatSession }) {
   const [input, setInput] = useState(() => searchParams.get('draft') ?? '')
   const [expanded, setExpanded] = useState<ScenarioProposal | null>(null)
   const [coverage, setCoverage] = useState<TestCaseCoverage | null>(null)
+
+  // 제안을 낼 조건. 턴이 한 번은 끝났고(에이전트가 답한 적이 있고), 지금 답을 기다리는 중이
+  // 아니며, 아직 안 담긴 케이스가 있을 때만이다. 셋 중 하나라도 아니면 낼 말이 없다.
+  const answered = session.messages.some((message) => message.role !== 'USER')
+  const idle = !session.awaitingReply && !session.sending
+  const topScene = coverage?.uncoveredScenes[0]
+  const suggestion =
+    answered && idle && topScene !== undefined
+      ? {
+          label: u.suggestScene(topScene.scene, topScene.count),
+          request: u.requestFor(topScene.scene, topScene.count),
+        }
+      : null
 
   // 저작하는 자리에서 남은 수를 본다(ARTEL-405). 대시보드에도 같은 값이 있지만 이쪽이 실제로
   // 무언가를 할 자리다 — 입력창이 바로 아래라 페이지를 옮기지 않고 그대로 이어서 요청한다.
@@ -80,6 +92,24 @@ export function RunChat({ session }: { session: RunChatSession }) {
     <section className="panel scenario-chat" aria-labelledby="run-chat-title">
       <header className="panel-header">
         <h2 id="run-chat-title">{c.title}</h2>
+        {/* 남은 케이스는 늘 보이되 아무것도 시키지 않는다 — 제안은 대화 끝의 칩이 하고, 이쪽은
+            "지금 어디까지 왔나"만 말한다. 버튼과 나란히 두면 둘 다 도구처럼 읽힌다.
+            폴링하지 않는다. 이 값은 이 페이지에서 일어난 일로만 바뀌고(턴이 끝나 저작이
+            저장될 때), 그 시점에 이미 다시 읽는다. */}
+        {coverage !== null && coverage.total > 0 && (
+          <span
+            className={
+              coverage.unauthored > 0
+                ? 'run-chat-coverage run-chat-coverage--open'
+                : 'run-chat-coverage'
+            }
+            title={u.title}
+          >
+            {u.remainingLabel}
+            <strong>{coverage.unauthored}</strong>
+            <span className="run-chat-coverage-total">/{coverage.total}</span>
+          </span>
+        )}
         <label className="run-chat-toggle">
           <input
             type="checkbox"
@@ -119,6 +149,21 @@ export function RunChat({ session }: { session: RunChatSession }) {
             </li>
           )}
         </ol>
+      )}
+
+      {/* 턴이 끝난 뒤에 나오는 제안(ARTEL-405). 대화가 시작도 안 했는데 버튼이 놓여 있으면
+          그건 제안이 아니라 도구 모음이고, 사용자는 무엇을 하라는 말인지 모른 채 지나친다.
+          답이 오는 중에는 감춘다 — 아직 끝나지 않은 턴에 다음 할 일을 권하는 것은 이르다. */}
+      {suggestion !== null && (
+        <div className="chat-suggestions">
+          <button
+            className="chat-suggestion"
+            onClick={() => setInput(suggestion.request)}
+            type="button"
+          >
+            {suggestion.label}
+          </button>
+        </div>
       )}
 
       {session.proposals.length > 0 && (
@@ -162,22 +207,6 @@ export function RunChat({ session }: { session: RunChatSession }) {
         </div>
       ) : (
         <form className="chat-composer" onSubmit={submit}>
-          {/* 남은 케이스와 이어서 요청하는 버튼. 누르면 입력창을 채우고 **보내지는 않는다** —
-              제안은 제안이고 무엇을 보낼지는 사람이 정한다. 여기서는 대시보드와 달리 입력창이
-              같은 컴포넌트라 URL로 실어 나를 필요가 없다. */}
-          {coverage !== null && coverage.unauthored > 0 && (
-            <div className="chat-coverage">
-              <span className="chat-coverage-count">{stats.uncoveredLeft(coverage.unauthored)}</span>
-              <button
-                className="button button--ghost button--compact"
-                onClick={() => setInput(topSceneRequest(coverage, u.requestFor))}
-                type="button"
-              >
-                {u.draftRequest}
-              </button>
-            </div>
-          )}
-
           {session.sendFailure !== null && (
             <div className="inline-error" role="alert">
               <span aria-hidden="true">!</span>
@@ -386,20 +415,4 @@ function ProposalStepsModal({
       </div>
     </div>
   )
-}
-
-
-/**
- * 가장 많이 남은 씬으로 요청문을 만든다.
- *
- * 씬을 고르는 이유는 "68건 남았다"가 행동으로 옮겨지지 않기 때문이다 — 한 화면에서 이어지는
- * 케이스들이 시나리오 하나가 되고, 건수만으로는 무엇을 쓸지 정할 수 없다. 목록을 늘어놓지 않고
- * 하나만 내는 것도 같은 이유다: 고를 것이 여럿이면 "다음에 뭘 하지"가 그대로 남는다.
- */
-function topSceneRequest(
-  coverage: TestCaseCoverage,
-  requestFor: (scene: string, count: number) => string,
-): string {
-  const top = coverage.uncoveredScenes[0]
-  return top === undefined ? '' : requestFor(top.scene, top.count)
 }
