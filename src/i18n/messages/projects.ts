@@ -247,6 +247,10 @@ export const projectsEn = {
       suggestScene: (scene: string, count: number) => `Next: ${scene} — ${count} still uncovered`,
       /** Passive marker in the chat header: where the project stands, no action attached. */
       remainingLabel: 'Uncovered',
+      /** The other chip: asks rather than tells. Lands on the agent's coverage tool. */
+      askRemaining: 'What is left?',
+      askRemainingRequest:
+        'Which cases are still not covered by any scenario? Name the scenes and what each case checks.',
       requestFor: (scene: string, count: number) =>
         `Write a scenario covering the ${count} cases still uncovered in ${scene}.`,
       /** The verification axis, kept beside the authoring one rather than merged. */
@@ -476,6 +480,9 @@ export const projectsKo: Localized<typeof projectsEn> = {
       draftRequest: '이 케이스로 시나리오 만들기',
       suggestScene: (scene: string, count: number) => `다음은 ${scene} — 아직 ${count}건 남음`,
       remainingLabel: '미커버',
+      askRemaining: '뭐가 남았는지 보기',
+      askRemainingRequest:
+        '아직 어떤 시나리오에도 담기지 않은 케이스가 뭐가 남았어? 어느 화면에 몇 건인지, 각 케이스가 뭘 확인하는지 알려줘.',
       requestFor: (scene: string, count: number) =>
         `${scene}에서 아직 시나리오에 담기지 않은 ${count}건을 검증하는 시나리오를 만들어줘.`,
       verification: (verified: number, draft: number, broken: number) =>

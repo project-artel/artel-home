@@ -43,13 +43,17 @@ export function RunChat({ session }: { session: RunChatSession }) {
   const answered = session.messages.some((message) => message.role !== 'USER')
   const idle = !session.awaitingReply && !session.sending
   const topScene = coverage?.uncoveredScenes[0]
-  const suggestion =
+  // 두 칩은 종류가 다르다. 하나는 시키고, 하나는 묻는다 — 같은 것 여럿 중에 고르라는 메뉴가
+  // 아니라서 둘을 나란히 둘 수 있다. 묻는 쪽은 에이전트의 list_uncovered_cases로 이어져
+  // 씬과 케이스 문구로 답이 온다.
+  const suggestions =
     answered && idle && topScene !== undefined
-      ? {
-          label: u.suggestScene(topScene.scene, topScene.count),
-          request: u.requestFor(topScene.scene, topScene.count),
-        }
-      : null
+      ? [
+          { key: 'author', label: u.suggestScene(topScene.scene, topScene.count),
+            request: u.requestFor(topScene.scene, topScene.count) },
+          { key: 'ask', label: u.askRemaining, request: u.askRemainingRequest },
+        ]
+      : []
 
   // 저작하는 자리에서 남은 수를 본다(ARTEL-405). 대시보드에도 같은 값이 있지만 이쪽이 실제로
   // 무언가를 할 자리다 — 입력창이 바로 아래라 페이지를 옮기지 않고 그대로 이어서 요청한다.
@@ -154,15 +158,18 @@ export function RunChat({ session }: { session: RunChatSession }) {
       {/* 턴이 끝난 뒤에 나오는 제안(ARTEL-405). 대화가 시작도 안 했는데 버튼이 놓여 있으면
           그건 제안이 아니라 도구 모음이고, 사용자는 무엇을 하라는 말인지 모른 채 지나친다.
           답이 오는 중에는 감춘다 — 아직 끝나지 않은 턴에 다음 할 일을 권하는 것은 이르다. */}
-      {suggestion !== null && (
+      {suggestions.length > 0 && (
         <div className="chat-suggestions">
-          <button
-            className="chat-suggestion"
-            onClick={() => setInput(suggestion.request)}
-            type="button"
-          >
-            {suggestion.label}
-          </button>
+          {suggestions.map((suggestion) => (
+            <button
+              className="chat-suggestion"
+              key={suggestion.key}
+              onClick={() => setInput(suggestion.request)}
+              type="button"
+            >
+              {suggestion.label}
+            </button>
+          ))}
         </div>
       )}
 
