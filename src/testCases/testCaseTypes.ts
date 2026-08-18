@@ -105,3 +105,34 @@ export type ScenarioCaseItem = {
   position: number
   case: TestCase
 }
+
+
+/**
+ * How much of a project's cases the scenarios actually reach
+ * (`GET /api/projects/{projectId}/test-cases/coverage`).
+ *
+ * Two axes, deliberately not merged. `authored` counts cases some scenario
+ * references; `verified`/`draft`/`broken` is what OUR QA runs concluded. A case
+ * that is authored but never run and one that ran and broke need different work
+ * from the person reading, and one combined number hides which is which.
+ *
+ * `unauthored` is `total - authored`, and the server sends it anyway so this
+ * side never does the subtraction — a number computed in two places eventually
+ * disagrees with itself, and then neither can be trusted.
+ */
+export type TestCaseCoverage = {
+  total: number
+  authored: number
+  unauthored: number
+  verified: number
+  draft: number
+  broken: number
+  /** Scenes with cases nothing has reached yet, largest first. */
+  uncoveredScenes: UncoveredScene[]
+}
+
+/** One scene and how many of its cases no scenario has reached. */
+export type UncoveredScene = {
+  scene: string
+  count: number
+}

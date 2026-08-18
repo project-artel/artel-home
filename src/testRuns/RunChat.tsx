@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { formatDateTime } from '../projects/formatters'
 import { groupStepsByCase } from '../testScenarios/scenarioTypes'
 import type { ScenarioProposal } from './runChatApi'
+import { getCoverage } from '../testCases/testCaseApi'
+import type { TestCaseCoverage } from '../testCases/testCaseTypes'
 import type { RunChatSession } from './useRunChatSession'
 
 /** 표시용 텍스트 정리: 줄바꿈·중복 공백을 한 칸으로, 앞의 대시·불릿·번호 접두 제거. */
@@ -26,9 +29,47 @@ function cleanText(value: string | null | undefined): string {
  */
 export function RunChat({ session }: { session: RunChatSession }) {
   const { t } = useI18n()
+  const u = t.projects.workspace.uncovered
   const c = t.scenarios.chat
-  const [input, setInput] = useState('')
+  // 대시보드에서 넘어온 요청문으로 시작한다(ARTEL-405). **보내지는 않는다** — 제안은 제안이고
+  // 무엇을 보낼지는 사람이 정한다. 처음 한 번만 씨앗으로 쓰므로 이후 타이핑을 덮지 않는다.
+  const [searchParams] = useSearchParams()
+  const [input, setInput] = useState(() => searchParams.get('draft') ?? '')
   const [expanded, setExpanded] = useState<ScenarioProposal | null>(null)
+  const [coverage, setCoverage] = useState<TestCaseCoverage | null>(null)
+
+  // 제안을 낼 조건. 턴이 한 번은 끝났고(에이전트가 답한 적이 있고), 지금 답을 기다리는 중이
+  // 아니며, 아직 안 담긴 케이스가 있을 때만이다. 셋 중 하나라도 아니면 낼 말이 없다.
+  const answered = session.messages.some((message) => message.role !== 'USER')
+  const idle = !session.awaitingReply && !session.sending
+  const topScene = coverage?.uncoveredScenes[0]
+  // 두 칩은 종류가 다르다. 하나는 시키고, 하나는 묻는다 — 같은 것 여럿 중에 고르라는 메뉴가
+  // 아니라서 둘을 나란히 둘 수 있다. 묻는 쪽은 에이전트의 list_uncovered_cases로 이어져
+  // 씬과 케이스 문구로 답이 온다.
+  const suggestions =
+    answered && idle && topScene !== undefined
+      ? [
+          { key: 'author', label: u.suggestScene(topScene.scene, topScene.count),
+            request: u.requestFor(topScene.scene, topScene.count) },
+          { key: 'ask', label: u.askRemaining, request: u.askRemainingRequest },
+        ]
+      : []
+
+  // 저작하는 자리에서 남은 수를 본다(ARTEL-405). 대시보드에도 같은 값이 있지만 이쪽이 실제로
+  // 무언가를 할 자리다 — 입력창이 바로 아래라 페이지를 옮기지 않고 그대로 이어서 요청한다.
+  //
+  // 턴이 오갈 때마다 다시 읽는다. 시나리오를 하나 만들면 남은 수가 바로 달라지는데, 그 숫자만
+  // 옛것으로 남으면 사용자는 방금 한 일이 반영되지 않았다고 읽는다.
+  useEffect(() => {
+    if (!session.active) return
+    const controller = new AbortController()
+    getCoverage(session.projectId, controller.signal)
+      .then(setCoverage)
+      .catch(() => {
+        // 커버리지를 못 읽는 것이 대화를 막을 이유는 없다. 줄이 사라질 뿐이다.
+      })
+    return () => controller.abort()
+  }, [session.active, session.projectId, session.messages.length])
   const threadRef = useRef<HTMLOListElement>(null)
 
   useEffect(() => {
@@ -55,6 +96,24 @@ export function RunChat({ session }: { session: RunChatSession }) {
     <section className="panel scenario-chat" aria-labelledby="run-chat-title">
       <header className="panel-header">
         <h2 id="run-chat-title">{c.title}</h2>
+        {/* 남은 케이스는 늘 보이되 아무것도 시키지 않는다 — 제안은 대화 끝의 칩이 하고, 이쪽은
+            "지금 어디까지 왔나"만 말한다. 버튼과 나란히 두면 둘 다 도구처럼 읽힌다.
+            폴링하지 않는다. 이 값은 이 페이지에서 일어난 일로만 바뀌고(턴이 끝나 저작이
+            저장될 때), 그 시점에 이미 다시 읽는다. */}
+        {coverage !== null && coverage.total > 0 && (
+          <span
+            className={
+              coverage.unauthored > 0
+                ? 'run-chat-coverage run-chat-coverage--open'
+                : 'run-chat-coverage'
+            }
+            title={u.title}
+          >
+            {u.remainingLabel}
+            <strong>{coverage.unauthored}</strong>
+            <span className="run-chat-coverage-total">/{coverage.total}</span>
+          </span>
+        )}
         <label className="run-chat-toggle">
           <input
             type="checkbox"
@@ -94,6 +153,24 @@ export function RunChat({ session }: { session: RunChatSession }) {
             </li>
           )}
         </ol>
+      )}
+
+      {/* 턴이 끝난 뒤에 나오는 제안(ARTEL-405). 대화가 시작도 안 했는데 버튼이 놓여 있으면
+          그건 제안이 아니라 도구 모음이고, 사용자는 무엇을 하라는 말인지 모른 채 지나친다.
+          답이 오는 중에는 감춘다 — 아직 끝나지 않은 턴에 다음 할 일을 권하는 것은 이르다. */}
+      {suggestions.length > 0 && (
+        <div className="chat-suggestions">
+          {suggestions.map((suggestion) => (
+            <button
+              className="chat-suggestion"
+              key={suggestion.key}
+              onClick={() => setInput(suggestion.request)}
+              type="button"
+            >
+              {suggestion.label}
+            </button>
+          ))}
+        </div>
       )}
 
       {session.proposals.length > 0 && (

@@ -226,6 +226,36 @@ export const projectsEn = {
       noFailures: 'No failures',
       allClear: 'All clear',
       connected: (connected: number, total: number) => `${connected} of ${total} connected`,
+      /** The authoring axis: how many cases some scenario reaches. */
+      coverage: 'Case coverage',
+      coverageOf: (authored: number, total: number) => `${authored} of ${total} in a scenario`,
+      uncoveredLeft: (count: number) => `${count} not covered yet`,
+      allCovered: 'Every case is covered',
+      noCases: 'No cases yet',
+    },
+    /**
+     * The uncovered panel. Scenes rather than ids: a case number is not something
+     * the user knows, and it is not shown anywhere else either.
+     */
+    uncovered: {
+      title: 'Cases no scenario reaches',
+      empty: 'Every case is carried by some scenario.',
+      sceneCount: (count: number) => `${count} cases`,
+      /** Fills the composer rather than sending — the proposal is the user's to edit. */
+      draftRequest: 'Write a scenario for these',
+      /** The post-turn suggestion chip. Names the gap so the offer is concrete. */
+      suggestScene: (scene: string, count: number) => `Next: ${scene} — ${count} still uncovered`,
+      /** Passive marker in the chat header: where the project stands, no action attached. */
+      remainingLabel: 'Uncovered',
+      /** The other chip: asks rather than tells. Lands on the agent's coverage tool. */
+      askRemaining: 'What is left?',
+      askRemainingRequest:
+        'Which cases are still not covered by any scenario? Name the scenes and what each case checks.',
+      requestFor: (scene: string, count: number) =>
+        `Write a scenario covering the ${count} cases still uncovered in ${scene}.`,
+      /** The verification axis, kept beside the authoring one rather than merged. */
+      verification: (verified: number, draft: number, broken: number) =>
+        `${verified} verified · ${draft} not run · ${broken} broken`,
     },
   },
 } as const
@@ -437,6 +467,26 @@ export const projectsKo: Localized<typeof projectsEn> = {
       noFailures: '실패 없음',
       allClear: '모두 처리됨',
       connected: (connected: number, total: number) => `${total}개 중 ${connected}개 연결됨`,
+      coverage: '케이스 커버리지',
+      coverageOf: (authored: number, total: number) => `${total}건 중 ${authored}건이 시나리오에 있음`,
+      uncoveredLeft: (count: number) => `${count}건이 아직 안 담김`,
+      allCovered: '모든 케이스가 담겼습니다',
+      noCases: '케이스가 아직 없습니다',
+    },
+    uncovered: {
+      title: '어떤 시나리오에도 담기지 않은 케이스',
+      empty: '모든 케이스가 어떤 시나리오엔가 담겨 있습니다.',
+      sceneCount: (count: number) => `${count}건`,
+      draftRequest: '이 케이스로 시나리오 만들기',
+      suggestScene: (scene: string, count: number) => `다음은 ${scene} — 아직 ${count}건 남음`,
+      remainingLabel: '미커버',
+      askRemaining: '뭐가 남았는지 보기',
+      askRemainingRequest:
+        '아직 어떤 시나리오에도 담기지 않은 케이스가 뭐가 남았어? 어느 화면에 몇 건인지, 각 케이스가 뭘 확인하는지 알려줘.',
+      requestFor: (scene: string, count: number) =>
+        `${scene}에서 아직 시나리오에 담기지 않은 ${count}건을 검증하는 시나리오를 만들어줘.`,
+      verification: (verified: number, draft: number, broken: number) =>
+        `검증됨 ${verified} · 미실행 ${draft} · 깨짐 ${broken}`,
     },
   },
 }
