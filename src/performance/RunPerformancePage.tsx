@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
+import { MetricGroupList } from './MetricGroupPanel'
 import { PerformanceChart, type ChartSeries } from './PerformanceChart'
 import { getRunPerformance } from './performanceApi'
 import {
@@ -107,12 +108,30 @@ export function RunPerformanceRoute() {
 
           <FrameChartPanel points={data.series.points} summary={summary} />
           <ProcessChartPanels points={data.series.points} summary={summary} />
+          <MetricGroupPanel groups={summary.groups} />
           <BucketTable points={data.series.points} />
         </>
       )}
 
       <DevicePanel device={device} />
     </section>
+  )
+}
+
+/**
+ * Groups live in their own panel rather than folded into the summary tiles.
+ *
+ * A tile states a number; a group has to state whether there is a number at all
+ * and why not. Mixing the two would make an unsupported group look like a zero.
+ */
+function MetricGroupPanel({ groups }: { groups: PerformanceSummary['groups'] }) {
+  const { t } = useI18n()
+  const copy = t.performance.groups
+
+  return (
+    <Panel subtitle={copy.subtitle} title={copy.title}>
+      <MetricGroupList groups={groups} />
+    </Panel>
   )
 }
 

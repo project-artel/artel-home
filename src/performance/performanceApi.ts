@@ -1,12 +1,15 @@
 import { apiFetch } from '../auth/authApi'
 import { ProjectApiError, readJson } from '../projects/projectApi'
-import { mockBuildPerformance, mockRunPerformance } from './performanceMock'
 import type {
   BuildPerformance,
   BuildPerformanceRun,
+  MetricGroupAvailability,
+  MetricGroups,
+  MetricValues,
   PerformanceDevice,
   PerformancePoint,
   PerformanceSummary,
+  PointMetricGroups,
   RunPerformance,
 } from './performanceTypes'
 
@@ -15,12 +18,13 @@ import type {
  *
  * The screens draw conclusions about whether a build regressed, so a payload
  * that drifts from the contract has to surface as an error rather than as a
- * plausible-looking chart. Every metric field is therefore checked, and the
- * development mock goes through the same parser as the server.
+ * plausible-looking chart. Every fixed field is therefore checked.
+ *
+ * Strictness stops at the `groups` envelope. Inside a group the contract says a
+ * client ignores keys it does not know, because the server deploys before the
+ * screen does — a parser that threw on an unknown group would break the site on
+ * every server release. So: the envelope is strict, group interiors are lenient.
  */
-
-/** Development-only. A production build never reaches the mock branch. */
-const useMock = import.meta.env.DEV && import.meta.env.VITE_PERFORMANCE_API === 'mock'
 
 type JsonRecord = Record<string, unknown>
 
@@ -77,6 +81,78 @@ function optionalBoolean(value: unknown): boolean | null {
   return typeof value === 'boolean' ? value : null
 }
 
+/**
+ * A group's metric tree, taken as it comes.
+ *
+ * Non-finite numbers and values that are neither number nor object are dropped
+ * rather than raised: an unknown group is by definition something this build was
+ * never written against, so there is no contract here to violate.
+ */
+function readMetrics(value: unknown): MetricValues {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return {}
+
+  const out: MetricValues = {}
+  for (const [key, entry] of Object.entries(value)) {
+    if (typeof entry === 'number') {
+      if (Number.isFinite(entry)) out[key] = entry
+    } else if (typeof entry === 'object' && entry !== null && !Array.isArray(entry)) {
+      out[key] = readMetrics(entry)
+    }
+  }
+
+  return out
+}
+
+const AVAILABILITIES: MetricGroupAvailability[] = ['MEASURED', 'UNSUPPORTED', 'NOT_REPORTED']
+
+/**
+ * `availability` is the one field inside a group that is checked.
+ *
+ * It is the group's own envelope: the screen decides what to draw from it, and an
+ * unrecognised value would silently become "nothing to show" — which reads the
+ * same as a measured-empty group. An unknown state degrades to `NOT_REPORTED`
+ * rather than throwing, so a future fourth state does not break the page.
+ */
+function readAvailability(value: unknown): MetricGroupAvailability {
+  return AVAILABILITIES.find((state) => state === value) ?? 'NOT_REPORTED'
+}
+
+function parseGroups(value: unknown, field: string): MetricGroups {
+  if (value === undefined || value === null) return {}
+
+  const groups = record(value, field)
+  const out: MetricGroups = {}
+  for (const [name, raw] of Object.entries(groups)) {
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) continue
+    const group = raw as JsonRecord
+    const availability = readAvailability(group.availability)
+    out[name] = {
+      availability,
+      sampleRatio: typeof group.sampleRatio === 'number' && Number.isFinite(group.sampleRatio)
+        ? group.sampleRatio
+        : 0,
+      // Values only mean something under MEASURED. Carrying them otherwise would
+      // let an unsupported group render as if it had been read.
+      metrics: availability === 'MEASURED' ? readMetrics(group.metrics) : null,
+      source: typeof group.source === 'string' ? group.source : null,
+    }
+  }
+
+  return out
+}
+
+function parsePointGroups(value: unknown): PointMetricGroups {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return {}
+
+  const out: PointMetricGroups = {}
+  for (const [name, raw] of Object.entries(value)) {
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) continue
+    out[name] = { metrics: readMetrics((raw as JsonRecord).metrics) }
+  }
+
+  return out
+}
+
 function parsePoint(value: unknown, index: number): PerformancePoint {
   const key = `series.points[${index}]`
   const point = record(value, key)
@@ -90,6 +166,7 @@ function parsePoint(value: unknown, index: number): PerformancePoint {
     cpuPercent: nullableNumber(point.cpuPercent, `${key}.cpuPercent`),
     workingSetBytes: nullableNumber(point.workingSetBytes, `${key}.workingSetBytes`),
     isFocused: boolean(point.isFocused, `${key}.isFocused`),
+    groups: parsePointGroups(point.groups),
   }
 }
 
@@ -121,6 +198,7 @@ function parseSummary(value: unknown): PerformanceSummary | null {
     },
     dischargingRatio: number(summary.dischargingRatio, 'summary.dischargingRatio'),
     processSampleRatio: number(summary.processSampleRatio, 'summary.processSampleRatio'),
+    groups: parseGroups(summary.groups, 'summary.groups'),
   }
 }
 
@@ -187,6 +265,7 @@ function parseBuildRun(value: unknown, index: number): BuildPerformanceRun {
     coverageRatio: number(run.coverageRatio, `${key}.coverageRatio`),
     dischargingRatio: number(run.dischargingRatio, `${key}.dischargingRatio`),
     processSampleRatio: number(run.processSampleRatio, `${key}.processSampleRatio`),
+    groups: parseGroups(run.groups, `${key}.groups`),
   }
 }
 
@@ -207,9 +286,8 @@ export async function getRunPerformance(
   signal?: AbortSignal,
 ): Promise<RunPerformance> {
   const path = `/api/qa-runs/${encodeURIComponent(runId)}/performance`
-  const value = useMock ? mockRunPerformance(runId) : await readJson(await apiFetch(path, { signal }))
 
-  return parseRunPerformance(value)
+  return parseRunPerformance(await readJson(await apiFetch(path, { signal })))
 }
 
 export async function getBuildPerformance(
@@ -218,9 +296,6 @@ export async function getBuildPerformance(
   signal?: AbortSignal,
 ): Promise<BuildPerformance> {
   const path = `/api/projects/${encodeURIComponent(projectId)}/game-builds/${encodeURIComponent(buildId)}/performance`
-  const value = useMock
-    ? mockBuildPerformance(projectId, buildId)
-    : await readJson(await apiFetch(path, { signal }))
 
-  return parseBuildPerformance(value)
+  return parseBuildPerformance(await readJson(await apiFetch(path, { signal })))
 }

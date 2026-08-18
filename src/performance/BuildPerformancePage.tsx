@@ -224,6 +224,7 @@ function RunTable({ projectId, runs }: { projectId: string; runs: BuildPerforman
             <th scope="col">{copy.columnHitches}</th>
             <th scope="col">{copy.columnFrame}</th>
             <th scope="col">{copy.columnBudget}</th>
+            <th scope="col">{copy.columnRenderSource}</th>
             <th scope="col">{copy.columnConfidence}</th>
             <th scope="col">{copy.columnRun}</th>
           </tr>
@@ -241,6 +242,7 @@ function RunTable({ projectId, runs }: { projectId: string; runs: BuildPerforman
                   ? copy.budgetUnknown
                   : copy.budgetValue(run.budgetMs.toFixed(2))}
               </td>
+              <td>{renderSourceLabel(run, t.performance.groups)}</td>
               <td>{confidenceLabel(run, copy)}</td>
               <td>
                 <Link
@@ -255,6 +257,25 @@ function RunTable({ projectId, runs }: { projectId: string; runs: BuildPerforman
       </table>
     </div>
   )
+}
+
+/**
+ * Render counters are listed per run and never joined into a trend line.
+ *
+ * Editor `UnityStats` and standalone `ProfilerRecorder` report the same names for
+ * different things, so a single line across both would compare two measurements
+ * that were never the same measurement. Showing the source per row makes the
+ * incomparability visible instead of averaging it away.
+ */
+function renderSourceLabel(
+  run: BuildPerformanceRun,
+  copy: { sources: Record<string, string | undefined>; availability: Record<string, string> },
+): string {
+  const group = run.groups.renderCounters
+  if (group === undefined) return '—'
+  if (group.source !== null) return copy.sources[group.source] ?? group.source
+
+  return copy.availability[group.availability]
 }
 
 function confidenceLabel(

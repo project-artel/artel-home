@@ -1,13 +1,16 @@
-import type { BuildPerformance, RunPerformance } from './performanceTypes'
+
 
 /**
- * Development fixtures for the performance screens.
+ * Test fixtures for the performance screens.
  *
- * These exist to reproduce the boundaries the contract allows but a healthy
- * server rarely produces, so the screens can be checked against them before
- * the real API lands. They are shaped as raw JSON and go through the same
- * strict parser as a server response — a fixture that drifts from the contract
- * fails the test suite rather than quietly teaching the UI a wrong shape.
+ * These reproduce the boundaries the contract allows but a healthy server rarely
+ * produces. The screens used to read them at runtime behind a `VITE_PERFORMANCE_API`
+ * flag; the server has shipped, so that branch is gone and this file is now the
+ * boundary list the tests hold the parser and the panels to.
+ *
+ * They are shaped as raw JSON and go through the same parser as a server response —
+ * a fixture that drifts from the contract fails the test suite rather than quietly
+ * teaching the UI a wrong shape.
  *
  * Which boundary comes back is chosen by the last digit of the id.
  */
@@ -55,7 +58,12 @@ const POINTS = [
   [6000, 17.4, 20.1, 25, 0, null, null, true],
 ] as const
 
-export function mockRunPerformance(runId: string): RunPerformance {
+/**
+ * Returns wire-shaped JSON, not a parsed value. Typing it as `RunPerformance`
+ * would let a fixture satisfy the compiler while drifting from what the server
+ * actually sends — the parser is what must accept it.
+ */
+export function mockRunPerformance(runId: string): unknown {
   const noSamples = runId.endsWith('0')
   const noProcess = runId.endsWith('1')
   const noBudget = runId.endsWith('2')
@@ -87,6 +95,34 @@ export function mockRunPerformance(runId: string): RunPerformance {
           cpuPercentMax: noProcess ? null : 48,
           workingSetBytesMax: noProcess ? null : 846_000_000,
           gcCollections: { gen0: 12, gen1: 2, gen2: 0 },
+          groups: {
+            // Measured, with a nested counter branch and a gauge pair.
+            gc: {
+              availability: 'MEASURED',
+              sampleRatio: 0.97,
+              metrics: {
+                allocatedInFrameBytesMean: 41234,
+                allocatedInFrameBytesMax: 2097152,
+                gcUsedBytesMax: 268435456,
+                collections: { gen0: 12, gen1: 2, gen2: 0 },
+              },
+            },
+            // Declared by the SDK, but this platform had no counters. Not the same as below.
+            renderCounters: {
+              availability: 'UNSUPPORTED',
+              sampleRatio: 0,
+              metrics: null,
+              source: 'PROFILER_RECORDER',
+            },
+            // This SDK build does not collect the group at all.
+            sdkOverhead: { availability: 'NOT_REPORTED', sampleRatio: 0, metrics: null },
+            // A group this build has never heard of. The screen must not break on it.
+            somethingNewer: {
+              availability: 'MEASURED',
+              sampleRatio: 1,
+              metrics: { whateverMean: 3.5 },
+            },
+          },
           dischargingRatio: 0.35,
           processSampleRatio: noProcess ? 0 : 0.67,
         },
@@ -125,7 +161,7 @@ export function mockRunPerformance(runId: string): RunPerformance {
  * samples. Run 1202 has low coverage. The budgets differ on purpose — the same
  * absolute frame time is healthy under 33.33 ms and broken under 6.94 ms.
  */
-export function mockBuildPerformance(projectId: string, buildId: string): BuildPerformance {
+export function mockBuildPerformance(projectId: string, buildId: string): unknown {
   const runCount = buildId.endsWith('0') ? 0 : buildId.endsWith('1') ? 1 : 5
   const budgets = [33.33, 6.94, 16.67, null, 16.67]
   const hitchesPerMinute = [1.2, 2.1, 1.8, 4.7, 3.5]
@@ -149,6 +185,16 @@ export function mockBuildPerformance(projectId: string, buildId: string): BuildP
       coverageRatio: index === 2 ? 0.61 : 0.96,
       dischargingRatio: index === 3 ? 0.48 : 0,
       processSampleRatio: index === 3 ? 0 : 1,
+      // Runs alternate render-counter source. Nothing may draw one line across both.
+      groups: {
+        renderCounters: {
+          availability: 'MEASURED',
+          sampleRatio: 1,
+          metrics: { drawCallsMean: 800 + index * 40 },
+          source: index % 2 === 0 ? 'PROFILER_RECORDER' : 'EDITOR_UNITY_STATS',
+        },
+        gc: { availability: 'NOT_REPORTED', sampleRatio: 0, metrics: null },
+      },
     })),
   }
 }
