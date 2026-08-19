@@ -4,6 +4,58 @@ import type { Localized } from '../messages'
 export const performanceEn = {
   /** Rendered wherever the contract sends `null`, which means "not measured". */
   unmeasured: 'Not measured',
+  /**
+   * Metric groups. `availability` carries the third state on top of null/0, and
+   * the two "no values" cases must not read the same to the user.
+   */
+  groups: {
+    title: 'Metric groups',
+    subtitle: 'What the SDK reported for this run, group by group',
+    noneReported: 'This run reported no metric groups.',
+    measuredButEmpty: 'The group was reported but carried no values.',
+    coverage: (percent: string) => `Present in ${percent}% of samples`,
+    source: (source: string) => `Source · ${source}`,
+    availability: {
+      MEASURED: 'Measured',
+      UNSUPPORTED: 'Counters unavailable',
+      NOT_REPORTED: 'Not collected by this SDK',
+    },
+    availabilityDetail: {
+      MEASURED: '',
+      UNSUPPORTED: 'The SDK tried to read this group and this platform or build has no counters for it.',
+      NOT_REPORTED: 'This SDK build does not collect the group at all. A newer SDK may.',
+    },
+    /** Titles for the groups this build knows. An unknown group renders under its wire name. */
+    names: {
+      gc: 'GC pressure',
+      renderCounters: 'Render counters',
+      sdkOverhead: 'SDK overhead',
+      editorRender: 'Editor render stats',
+      frameTiming: 'CPU / GPU frame timing',
+    } as Record<string, string | undefined>,
+    sources: {
+      PROFILER_RECORDER: 'Standalone ProfilerRecorder',
+      EDITOR_UNITY_STATS: 'Editor UnityStats',
+    } as Record<string, string | undefined>,
+    /** Labels for leaves this build knows. An unknown leaf renders under its path. */
+    metrics: {
+      'allocatedInFrameBytesMean': 'Allocated per frame (mean, bytes)',
+      'allocatedInFrameBytesMax': 'Allocated per frame (max, bytes)',
+      'allocationCountInFrameMean': 'Allocations per frame (mean)',
+      'gcUsedBytesMax': 'GC used (max, bytes)',
+      'gcReservedBytesMax': 'GC reserved (max, bytes)',
+      'collections.gen0': 'Gen 0 collections',
+      'collections.gen1': 'Gen 1 collections',
+      'collections.gen2': 'Gen 2 collections',
+      'hitchesCoincidingWithCollection': 'Hitches during a collection',
+      'drawCallsMean': 'Draw calls (mean)',
+      'batchesMean': 'Batches (mean)',
+      'setPassCallsMean': 'SetPass calls (mean)',
+      'trianglesMean': 'Triangles (mean)',
+      'verticesMean': 'Vertices (mean)',
+    } as Record<string, string | undefined>,
+  },
+
   /** Links into these screens from the QA run console and the build panel. */
   entry: {
     run: 'Performance',
@@ -108,6 +160,7 @@ export const performanceEn = {
     columnHitches: 'Hitches / min',
     columnFrame: 'Mean / p95',
     columnBudget: 'Budget',
+    columnRenderSource: 'Render source',
     columnConfidence: 'Confidence',
     columnRun: 'Run',
     detailLink: 'Detail',
@@ -125,6 +178,52 @@ export const performanceEn = {
 
 export const performanceKo: Localized<typeof performanceEn> = {
   unmeasured: '측정 안 됨',
+  groups: {
+    title: '지표군',
+    subtitle: '이 런에서 SDK가 보고한 지표군',
+    noneReported: '이 런은 지표군을 보고하지 않았습니다.',
+    measuredButEmpty: '군은 보고됐지만 값이 없었습니다.',
+    coverage: (percent: string) => `표본의 ${percent}%에 존재`,
+    source: (source: string) => `출처 · ${source}`,
+    availability: {
+      MEASURED: '측정됨',
+      UNSUPPORTED: '카운터 없음',
+      NOT_REPORTED: '이 SDK가 수집하지 않음',
+    },
+    availabilityDetail: {
+      MEASURED: '',
+      UNSUPPORTED: 'SDK가 이 군을 재려 했으나 이 플랫폼·빌드에 해당 카운터가 없습니다.',
+      NOT_REPORTED: '이 SDK 빌드는 이 군을 수집하지 않습니다. 상위 버전에서는 올 수 있습니다.',
+    },
+    names: {
+      gc: 'GC 압력',
+      renderCounters: '렌더 카운터',
+      sdkOverhead: 'SDK 오버헤드',
+      editorRender: '에디터 렌더 통계',
+      frameTiming: 'CPU / GPU 프레임타임',
+    } as Record<string, string | undefined>,
+    sources: {
+      PROFILER_RECORDER: 'Standalone ProfilerRecorder',
+      EDITOR_UNITY_STATS: 'Editor UnityStats',
+    } as Record<string, string | undefined>,
+    metrics: {
+      'allocatedInFrameBytesMean': '프레임당 할당 (평균, 바이트)',
+      'allocatedInFrameBytesMax': '프레임당 할당 (최대, 바이트)',
+      'allocationCountInFrameMean': '프레임당 할당 횟수 (평균)',
+      'gcUsedBytesMax': 'GC 사용 (최대, 바이트)',
+      'gcReservedBytesMax': 'GC 예약 (최대, 바이트)',
+      'collections.gen0': 'Gen 0 수집 횟수',
+      'collections.gen1': 'Gen 1 수집 횟수',
+      'collections.gen2': 'Gen 2 수집 횟수',
+      'hitchesCoincidingWithCollection': 'GC와 겹친 hitch',
+      'drawCallsMean': 'Draw call (평균)',
+      'batchesMean': 'Batch (평균)',
+      'setPassCallsMean': 'SetPass call (평균)',
+      'trianglesMean': '삼각형 (평균)',
+      'verticesMean': '정점 (평균)',
+    } as Record<string, string | undefined>,
+  },
+
   entry: {
     run: '성능 지표',
     build: '성능 추세',
@@ -227,6 +326,7 @@ export const performanceKo: Localized<typeof performanceEn> = {
     columnHitches: 'Hitch / 분',
     columnFrame: '평균 / p95',
     columnBudget: '예산',
+    columnRenderSource: '렌더 출처',
     columnConfidence: '신뢰도',
     columnRun: '런',
     detailLink: '상세',

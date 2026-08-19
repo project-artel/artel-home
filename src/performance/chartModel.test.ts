@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { findGapRanges, sortByStartedAt, splitMeasuredSegments, splitTrustedSegments } from './chartModel'
 import { parseBuildPerformance, parseRunPerformance } from './performanceApi'
-import { mockBuildPerformance, mockRunPerformance } from './performanceMock'
+import { mockBuildPerformance, mockRunPerformance } from './performanceFixtures'
 import {
   budgetRatio,
   isFrameRateUncapped,
