@@ -290,6 +290,11 @@ export const scenariosEn = {
     // The gap block: a place the scene spec could not fill, shown instead of a step.
     gapTitle: 'Route unknown — a step is needed here',
     gapAddStep: 'Add step',
+    gapFillTitle: 'Write the steps for this stretch',
+    gapFillConfirm: 'Replace the notice',
+    gapFillCancel: 'Cancel',
+    humanStep: 'from you',
+    humanStepHelp: 'Written from what you said, not from the scene spec. Correct it here if it is wrong.',
     gapDetail: 'Why this is unknown',
     titleLabel: 'Scenario title',
     actionLabel: 'Step action',
@@ -660,6 +665,11 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     // 명세가 메우지 못한 자리. 스텝 대신 이 블록이 그 자리에 놓인다.
     gapTitle: '경로 미정 — 스텝이 필요합니다',
     gapAddStep: '스텝 추가',
+    gapFillTitle: '이 구간의 스텝을 적습니다',
+    gapFillConfirm: '이 스텝으로 채우기',
+    gapFillCancel: '취소',
+    humanStep: '직접 입력',
+    humanStepHelp: '명세가 아니라 사용자가 알려준 내용으로 적힌 스텝입니다. 다르면 여기서 고치세요.',
     gapDetail: '왜 모르는지 보기',
     titleLabel: '시나리오 제목',
     actionLabel: '스텝 행위',

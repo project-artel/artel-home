@@ -5028,3 +5028,69 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   .cnode--gap { background: #2b2410; border-color: #6b5320; color: #f0c96d; }
   .cnode--gap .cnode-num { color: #c9ab6a; }
 }
+
+/* 사람 말로 채운 스텝(ARTEL-468). 명세 근거와 눈으로 구분돼야 한다. */
+.st-human-badge {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #ffefc2;
+  color: #7a4f00;
+  border: 1px solid #f0c36d;
+  white-space: nowrap;
+}
+@media (prefers-color-scheme: dark) {
+  .st-human-badge { background: #3a3016; color: #f0c96d; border-color: #6b5320; }
+}
+
+/* 경로 미정 자리를 채우는 모달(ARTEL-468). 한 구간의 답이 여러 행위일 수 있어 줄을 늘린다. */
+.gapfill { width: min(560px, 100%); }
+.gapfill-where {
+  align-self: flex-start;
+  font-size: 12px;
+  color: #7a4f00;
+  background: #ffefc2;
+  border: 1px solid #f0c36d;
+  border-radius: 4px;
+  padding: 1px 6px;
+  overflow-wrap: anywhere;
+}
+.gapfill-detail { margin: 0; font-size: 12px; line-height: 1.6; color: var(--color-text-muted); }
+.gapfill-rows { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.gapfill-row { display: flex; align-items: center; gap: 8px; }
+.gapfill-no { font-size: 12px; color: var(--color-text-muted); width: 16px; text-align: right; }
+.gapfill-input {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 6px;
+  background: var(--color-bg-raised, #fff);
+  color: var(--color-text-primary);
+  font: inherit;
+}
+.gapfill-more {
+  align-self: flex-start;
+  margin-top: 8px;
+  background: none;
+  border: 1px dashed var(--color-border-subtle);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.gapfill-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+.gapfill-cancel, .gapfill-confirm {
+  border-radius: 6px;
+  padding: 7px 14px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.gapfill-cancel { background: none; border: 1px solid var(--color-border-subtle); color: var(--color-text-secondary); }
+.gapfill-confirm { background: #e0a800; border: 1px solid #c99400; color: #2b2410; font-weight: 600; }
+.gapfill-confirm:disabled { opacity: 0.5; cursor: default; }
+
+@media (prefers-color-scheme: dark) {
+  .gapfill-where { color: #f0c96d; background: #3a3016; border-color: #6b5320; }
+}

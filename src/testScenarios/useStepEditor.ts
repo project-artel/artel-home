@@ -33,6 +33,12 @@ export type StepEditor = {
   addStep: () => void
   /** Insert an empty step at `index` — used by the gap block to fill the place it marks. */
   insertStep: (index: number, step?: ScenarioStep) => void
+  /**
+   * Replace the step at `index` with `steps`. The gap block uses it: once someone
+   * answers the question it asked, the notice should give up its place rather than
+   * sit above the answer repeating itself.
+   */
+  replaceStep: (index: number, steps: ScenarioStep[]) => void
   removeStep: (index: number) => void
   moveStep: (from: number, to: number) => void
   undo: () => void
@@ -115,6 +121,16 @@ export function useStepEditor(testScenarioId: number, initial: ScenarioDraft): S
         const steps = [...d.steps]
         steps.splice(Math.max(0, Math.min(index, steps.length)), 0, step ?? createEmptyStep())
         return { ...d, steps }
+      }),
+    [mutate],
+  )
+  const replaceStep = useCallback(
+    (index: number, steps: ScenarioStep[]) =>
+      mutate((d) => {
+        if (index < 0 || index >= d.steps.length || steps.length === 0) return d
+        const next = [...d.steps]
+        next.splice(index, 1, ...steps)
+        return { ...d, steps: next }
       }),
     [mutate],
   )
@@ -217,6 +233,7 @@ export function useStepEditor(testScenarioId: number, initial: ScenarioDraft): S
     updateStep,
     addStep,
     insertStep,
+    replaceStep,
     removeStep,
     moveStep,
     undo,

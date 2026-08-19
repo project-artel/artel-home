@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { TestCaseModal } from '../testCases/TestCaseModal'
-import { createHumanStep, groupStepsByCase, isGapStep } from './scenarioTypes'
+import { GapFillModal } from './GapFillModal'
+import { groupStepsByCase, isGapStep } from './scenarioTypes'
 import type { StepEditor } from './useStepEditor'
 
 /**
@@ -28,6 +29,8 @@ export function ScenarioStepEditor({
   // The TestCase a badge points at, opened read-only. `label` is the human "TC N",
   // never the internal case_id.
   const [tcView, setTcView] = useState<{ caseId: number; label: string } | null>(null)
+  // The gap being answered: its index and the detail the block hides behind ⓘ.
+  const [gapFill, setGapFill] = useState<{ index: number; blockedBy: string | null; detail: string } | null>(null)
   // Drag-reorder: index being dragged, and the row it is hovering over.
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [overIndex, setOverIndex] = useState<number | null>(null)
@@ -87,7 +90,7 @@ export function ScenarioStepEditor({
                   <button
                     className="st-gap-add"
                     type="button"
-                    onClick={() => editor.insertStep(index, createHumanStep())}
+                    onClick={() => setGapFill({ index, blockedBy: step.step_unknown_reason, detail: step.action })}
                   >
                     ＋ {e.gapAddStep}
                   </button>
@@ -125,6 +128,11 @@ export function ScenarioStepEditor({
                     }}
                   />
                   <div className="st-erow-meta">
+                    {/* 명세가 모르는 자리를 사람 말로 채운 스텝. 코드가 확인할 수 없는 근거라
+                        말한 당사자에게 보이는 것이 유일한 대비다 — 아니면 여기서 고친다. */}
+                    {step.step_source === 'HUMAN' && (
+                      <span className="st-human-badge" title={e.humanStepHelp}>{e.humanStep}</span>
+                    )}
                     {tcNo !== undefined && step.case_id !== null && (
                       <button
                         className="st-tc-badge st-tc-badge--btn"
@@ -156,6 +164,14 @@ export function ScenarioStepEditor({
 
         <button className="st-editor-add" type="button" onClick={editor.addStep}>＋ {e.addStep}</button>
       </div>
+      {gapFill !== null && (
+        <GapFillModal
+          blockedBy={gapFill.blockedBy}
+          detail={gapFill.detail}
+          onCancel={() => setGapFill(null)}
+          onConfirm={(steps) => { editor.replaceStep(gapFill.index, steps); setGapFill(null) }}
+        />
+      )}
       {tcView !== null && (
         <TestCaseModal
           projectId={projectId}
