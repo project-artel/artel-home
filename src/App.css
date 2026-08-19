@@ -4961,3 +4961,36 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   border-color: var(--color-action-primary);
   color: var(--color-action-primary);
 }
+
+/* 메우지 못한 자리(ARTEL-468). 스텝이 아니라 알림이라, 번호도 TC 배지도 없이 다르게 보인다. */
+.st-erow--gap {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  background: #fff8e1;
+  border: 1px solid #f0c36d;
+  border-left: 4px solid #e0a800;
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+.st-gap-mark { font-size: 15px; line-height: 1.4; color: #a86b00; }
+.st-gap-body { flex: 1; min-width: 0; }
+.st-gap-title { font-weight: 600; color: #7a4f00; margin-bottom: 4px; }
+.st-gap-text { margin: 0 0 4px; color: #5c4200; overflow-wrap: anywhere; }
+.st-gap-blocked { margin: 0 0 4px; font-size: 12px; color: #7a4f00; }
+.st-gap-help { margin: 0; font-size: 12px; color: #8a6d3b; }
+.cnode--gap {
+  background: #fff8e1;
+  border-color: #f0c36d;
+  color: #7a4f00;
+}
+.cnode--gap .cnode-num { color: #a86b00; }
+
+@media (prefers-color-scheme: dark) {
+  .st-erow--gap { background: #2b2410; border-color: #6b5320; border-left-color: #b8860b; }
+  .st-gap-title { color: #f0c96d; }
+  .st-gap-text { color: #e3d3a8; }
+  .st-gap-blocked, .st-gap-help, .st-gap-mark { color: #c9ab6a; }
+  .cnode--gap { background: #2b2410; border-color: #6b5320; color: #f0c96d; }
+  .cnode--gap .cnode-num { color: #c9ab6a; }
+}

@@ -2,7 +2,7 @@ import { Fragment, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { getTestScenario } from '../testScenarios/scenarioApi'
-import { groupStepsByCase } from '../testScenarios/scenarioTypes'
+import { groupStepsByCase, isGapStep } from '../testScenarios/scenarioTypes'
 import { getRunScenarios, getTestRun, type TestRun } from './testRunApi'
 
 /**
@@ -15,7 +15,7 @@ import { getRunScenarios, getTestRun, type TestRun } from './testRunApi'
  */
 
 /** One step, flattened for the map: its action and the TC region ordinal (if any). */
-type StepLite = { action: string; tcNo: number | null }
+type StepLite = { action: string; tcNo: number | null; gap: boolean }
 
 type ScenarioNode = {
   id: string
@@ -79,6 +79,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
               steps: steps.map((step, index) => ({
                 action: step.action,
                 tcNo: tcNoByIndex.get(index) ?? null,
+                gap: isGapStep(step),
               })),
             }
           }),
@@ -233,11 +234,16 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
                     node.steps.map((step, j) => (
                       <Fragment key={j}>
                         <span className="cflow-link" />
-                        <button className={'cnode' + (step.tcNo !== null ? ' cnode--tc' : '')} onClick={() => openEdit(node.id)} type="button">
+                        <button
+                          className={'cnode' + (step.gap ? ' cnode--gap' : step.tcNo !== null ? ' cnode--tc' : '')}
+                          onClick={() => openEdit(node.id)}
+                          type="button"
+                        >
                           <span className="cnode-row">
-                            <span className="cnode-num mono">{String(j + 1).padStart(2, '0')}</span>
+                            {/* A gap has no ordinal — it is a notice sitting between steps, not one of them. */}
+                            <span className="cnode-num mono">{step.gap ? '⚠' : String(j + 1).padStart(2, '0')}</span>
                             <span className="cnode-title">{step.action.length > 0 ? step.action : m.untitledStep}</span>
-                            {step.tcNo !== null && <span className="st-tc-badge">{m.tcUnit} {step.tcNo}</span>}
+                            {!step.gap && step.tcNo !== null && <span className="st-tc-badge">{m.tcUnit} {step.tcNo}</span>}
                           </span>
                         </button>
                       </Fragment>

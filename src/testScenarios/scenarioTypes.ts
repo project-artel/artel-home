@@ -21,6 +21,24 @@ export type ScenarioStep = {
   case_id: number | null
   hint: string | null
   input: string | null
+  /**
+   * Whether this line is something to do, or a notice (ARTEL-468).
+   *
+   * `GAP` is not an action. It marks a place where the scene spec does not know the
+   * route between two checks, so nothing was authored there — a run neither performs
+   * nor judges it. Rendering it as a numbered step would be a lie twice over: whoever
+   * runs it would try, and a thing nobody could do would be recorded as a failure.
+   *
+   * `null` means `ACTION` — every scenario authored before this field existed.
+   */
+  step_kind: 'ACTION' | 'GAP' | null
+  /** What blocks the route, on a `GAP` — a scene pair or a variable name. */
+  step_unknown_reason: string | null
+}
+
+/** A notice block, not a step to run. */
+export function isGapStep(step: ScenarioStep): boolean {
+  return step.step_kind === 'GAP'
 }
 
 export type ScenarioDraft = {
@@ -93,7 +111,7 @@ export function isScenarioDraftEqual(left: ScenarioDraft, right: ScenarioDraft):
 }
 
 export function createEmptyStep(): ScenarioStep {
-  return { action: '', case_id: null, hint: null, input: null }
+  return { action: '', case_id: null, hint: null, input: null, step_kind: null, step_unknown_reason: null }
 }
 
 /**

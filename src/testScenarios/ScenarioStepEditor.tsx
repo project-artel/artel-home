@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { TestCaseModal } from '../testCases/TestCaseModal'
-import { groupStepsByCase } from './scenarioTypes'
+import { groupStepsByCase, isGapStep } from './scenarioTypes'
 import type { StepEditor } from './useStepEditor'
 
 /**
@@ -65,6 +65,30 @@ export function ScenarioStepEditor({
         <ol className="st-editor-list">
           {working.steps.map((step, index) => {
             const tcNo = tcNoByIndex.get(index)
+            // A gap is not a step: no number, no TC badge, nothing to type into. It says
+            // the route between the checks around it is unknown, and a run skips it —
+            // rendering it as an editable action would invite someone to run a line
+            // nobody could perform, and to record that as a failure.
+            if (isGapStep(step)) {
+              return (
+                <li key={index} className="st-erow st-erow--gap">
+                  <span className="st-gap-mark" aria-hidden="true">⚠</span>
+                  <div className="st-gap-body">
+                    <div className="st-gap-title">{e.gapTitle}</div>
+                    <p className="st-gap-text">{step.action}</p>
+                    {step.step_unknown_reason !== null && (
+                      <p className="st-gap-blocked mono">
+                        {e.gapBlocks}: {step.step_unknown_reason}
+                      </p>
+                    )}
+                    <p className="st-gap-help">{e.gapHelp}</p>
+                  </div>
+                  <div className="st-erow-actions">
+                    <button className="iconbtn iconbtn--danger" type="button" title={e.remove} onClick={() => editor.removeStep(index)}>✕</button>
+                  </div>
+                </li>
+              )
+            }
             return (
               <li
                 key={index}

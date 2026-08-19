@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { updateScenario } from './scenarioApi'
-import { isScenarioDraftEqual, type ScenarioDraft, type ScenarioStep } from './scenarioTypes'
+import { isScenarioDraftEqual, type ScenarioDraft, type ScenarioStep, createEmptyStep } from './scenarioTypes'
 
 /**
  * Editable working copy of a scenario's steps, with undo/redo and autosave.
@@ -103,7 +103,7 @@ export function useStepEditor(testScenarioId: number, initial: ScenarioDraft): S
     () =>
       mutate((d) => ({
         ...d,
-        steps: [...d.steps, { action: '', case_id: null, hint: null, input: null }],
+        steps: [...d.steps, createEmptyStep()],
       })),
     [mutate],
   )
