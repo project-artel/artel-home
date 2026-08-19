@@ -31,6 +31,8 @@ export type StepEditor = {
   setTitle: (title: string) => void
   updateStep: (index: number, patch: Partial<ScenarioStep>) => void
   addStep: () => void
+  /** Insert an empty step at `index` — used by the gap block to fill the place it marks. */
+  insertStep: (index: number, step?: ScenarioStep) => void
   removeStep: (index: number) => void
   moveStep: (from: number, to: number) => void
   undo: () => void
@@ -105,6 +107,15 @@ export function useStepEditor(testScenarioId: number, initial: ScenarioDraft): S
         ...d,
         steps: [...d.steps, createEmptyStep()],
       })),
+    [mutate],
+  )
+  const insertStep = useCallback(
+    (index: number, step?: ScenarioStep) =>
+      mutate((d) => {
+        const steps = [...d.steps]
+        steps.splice(Math.max(0, Math.min(index, steps.length)), 0, step ?? createEmptyStep())
+        return { ...d, steps }
+      }),
     [mutate],
   )
   const removeStep = useCallback(
@@ -205,6 +216,7 @@ export function useStepEditor(testScenarioId: number, initial: ScenarioDraft): S
     setTitle,
     updateStep,
     addStep,
+    insertStep,
     removeStep,
     moveStep,
     undo,

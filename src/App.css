@@ -4962,35 +4962,69 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   color: var(--color-action-primary);
 }
 
-/* 메우지 못한 자리(ARTEL-468). 스텝이 아니라 알림이라, 번호도 TC 배지도 없이 다르게 보인다. */
+/* 메우지 못한 자리(ARTEL-468). 스텝이 아니라 알림이라 번호도 TC 배지도 없다.
+   한 줄로 짧게 두고 사정은 ⓘ 호버로 연다 — 블록에 다 적으면 정작 할 일이 묻힌다. */
 .st-erow--gap {
   display: flex;
-  gap: 10px;
-  align-items: flex-start;
+  gap: 8px;
+  align-items: center;
   background: #fff8e1;
   border: 1px solid #f0c36d;
   border-left: 4px solid #e0a800;
   border-radius: 6px;
-  padding: 10px 12px;
+  padding: 8px 12px;
 }
-.st-gap-mark { font-size: 15px; line-height: 1.4; color: #a86b00; }
-.st-gap-body { flex: 1; min-width: 0; }
-.st-gap-title { font-weight: 600; color: #7a4f00; margin-bottom: 4px; }
-.st-gap-text { margin: 0 0 4px; color: #5c4200; overflow-wrap: anywhere; }
-.st-gap-blocked { margin: 0 0 4px; font-size: 12px; color: #7a4f00; }
-.st-gap-help { margin: 0; font-size: 12px; color: #8a6d3b; }
-.cnode--gap {
-  background: #fff8e1;
-  border-color: #f0c36d;
+.st-gap-mark { color: #a86b00; }
+.st-gap-body { flex: 1; min-width: 0; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.st-gap-title { font-weight: 600; color: #7a4f00; }
+.st-gap-where {
+  font-size: 12px;
   color: #7a4f00;
+  background: #ffefc2;
+  border-radius: 4px;
+  padding: 1px 6px;
+  overflow-wrap: anywhere;
 }
+.st-gap-info { position: relative; color: #a86b00; cursor: help; line-height: 1; }
+.st-gap-pop {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  z-index: 20;
+  display: none;
+  width: max-content;
+  max-width: 380px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #2b2410;
+  color: #f4e7c3;
+  font-size: 12px;
+  line-height: 1.5;
+  box-shadow: 0 6px 20px rgb(0 0 0 / 28%);
+}
+.st-gap-info:hover .st-gap-pop,
+.st-gap-info:focus-visible .st-gap-pop { display: block; }
+.st-gap-add {
+  border: 1px solid #e0a800;
+  background: #ffefc2;
+  color: #7a4f00;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.st-gap-add:hover { background: #ffe49a; }
+.cnode--gap { background: #fff8e1; border-color: #f0c36d; color: #7a4f00; }
 .cnode--gap .cnode-num { color: #a86b00; }
 
 @media (prefers-color-scheme: dark) {
   .st-erow--gap { background: #2b2410; border-color: #6b5320; border-left-color: #b8860b; }
   .st-gap-title { color: #f0c96d; }
-  .st-gap-text { color: #e3d3a8; }
-  .st-gap-blocked, .st-gap-help, .st-gap-mark { color: #c9ab6a; }
+  .st-gap-mark, .st-gap-info { color: #c9ab6a; }
+  .st-gap-where { color: #e3d3a8; background: #3a3016; }
+  .st-gap-pop { background: #f4e7c3; color: #2b2410; }
+  .st-gap-add { background: #3a3016; border-color: #6b5320; color: #f0c96d; }
+  .st-gap-add:hover { background: #4a3d1c; }
   .cnode--gap { background: #2b2410; border-color: #6b5320; color: #f0c96d; }
   .cnode--gap .cnode-num { color: #c9ab6a; }
 }

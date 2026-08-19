@@ -34,11 +34,29 @@ export type ScenarioStep = {
   step_kind: 'ACTION' | 'GAP' | null
   /** What blocks the route, on a `GAP` — a scene pair or a variable name. */
   step_unknown_reason: string | null
+  /**
+   * Where the step came from. `HUMAN` is the one this screen writes: a step someone
+   * typed into a gap. The server leaves those alone — it neither rewrites them from
+   * the scene spec nor folds them into a notice, so an answer a person gave survives
+   * the next authoring turn.
+   */
+  step_source: 'CASE' | 'CAPABILITY' | 'UNKNOWN' | 'HUMAN' | null
 }
 
 /** A notice block, not a step to run. */
 export function isGapStep(step: ScenarioStep): boolean {
   return step.step_kind === 'GAP'
+}
+
+/**
+ * An empty step for a person to fill in at a gap.
+ *
+ * Marked `HUMAN` so the server keeps it: an unmarked bridge in a gap the scene spec
+ * cannot explain gets folded into the notice on the next save, which would throw away
+ * the very answer this button exists to collect.
+ */
+export function createHumanStep(): ScenarioStep {
+  return { ...createEmptyStep(), step_source: 'HUMAN', step_kind: 'ACTION' }
 }
 
 export type ScenarioDraft = {
@@ -111,7 +129,10 @@ export function isScenarioDraftEqual(left: ScenarioDraft, right: ScenarioDraft):
 }
 
 export function createEmptyStep(): ScenarioStep {
-  return { action: '', case_id: null, hint: null, input: null, step_kind: null, step_unknown_reason: null }
+  return {
+    action: '', case_id: null, hint: null, input: null,
+    step_kind: null, step_unknown_reason: null, step_source: null,
+  }
 }
 
 /**

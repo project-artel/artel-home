@@ -58,6 +58,8 @@ function asNullableText(value: unknown): string | null {
   return typeof value === 'string' && value.length > 0 ? value : null
 }
 
+const SOURCES = ['CASE', 'CAPABILITY', 'UNKNOWN', 'HUMAN']
+
 function parseStep(data: unknown): ScenarioStep | null {
   const record = asRecord(data)
   if (record === null) return null
@@ -73,6 +75,9 @@ function parseStep(data: unknown): ScenarioStep | null {
     // save, so a field parsed away here would be erased from storage on the next edit.
     step_kind: kind,
     step_unknown_reason: asNullableText(record.step_unknown_reason),
+    step_source: SOURCES.includes(record.step_source as string)
+      ? (record.step_source as ScenarioStep['step_source'])
+      : null,
   }
 }
 

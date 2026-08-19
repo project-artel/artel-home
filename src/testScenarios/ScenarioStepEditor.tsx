@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { TestCaseModal } from '../testCases/TestCaseModal'
-import { groupStepsByCase, isGapStep } from './scenarioTypes'
+import { createHumanStep, groupStepsByCase, isGapStep } from './scenarioTypes'
 import type { StepEditor } from './useStepEditor'
 
 /**
@@ -74,18 +74,24 @@ export function ScenarioStepEditor({
                 <li key={index} className="st-erow st-erow--gap">
                   <span className="st-gap-mark" aria-hidden="true">⚠</span>
                   <div className="st-gap-body">
-                    <div className="st-gap-title">{e.gapTitle}</div>
-                    <p className="st-gap-text">{step.action}</p>
+                    <span className="st-gap-title">{e.gapTitle}</span>
                     {step.step_unknown_reason !== null && (
-                      <p className="st-gap-blocked mono">
-                        {e.gapBlocks}: {step.step_unknown_reason}
-                      </p>
+                      <span className="st-gap-where mono">{step.step_unknown_reason}</span>
                     )}
-                    <p className="st-gap-help">{e.gapHelp}</p>
                   </div>
-                  <div className="st-erow-actions">
-                    <button className="iconbtn iconbtn--danger" type="button" title={e.remove} onClick={() => editor.removeStep(index)}>✕</button>
-                  </div>
+                  {/* 자세한 사정은 호버로 연다. 블록에 다 적으면 정작 할 일(스텝 추가)이 묻힌다. */}
+                  <span className="st-gap-info" tabIndex={0} aria-label={e.gapDetail}>
+                    ⓘ
+                    <span className="st-gap-pop" role="tooltip">{step.action}</span>
+                  </span>
+                  <button
+                    className="st-gap-add"
+                    type="button"
+                    onClick={() => editor.insertStep(index, createHumanStep())}
+                  >
+                    ＋ {e.gapAddStep}
+                  </button>
+                  <button className="iconbtn iconbtn--danger" type="button" title={e.remove} onClick={() => editor.removeStep(index)}>✕</button>
                 </li>
               )
             }
