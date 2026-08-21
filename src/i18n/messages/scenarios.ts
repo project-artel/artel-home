@@ -239,7 +239,12 @@ export const scenariosEn = {
     deleting: 'Deleting…',
     deleteFailed: 'The run could not be deleted. Please try again.',
     deleteTitle: 'Delete this run?',
-    deleteCopy: 'The run and its scenario grouping are removed. The scenarios and cases themselves are not deleted.',
+    deleteCopy: 'The run and its scenario grouping are removed. Cases are never deleted.',
+    deleteScenarios: (n: number) =>
+      `Also delete the ${n} scenario${n === 1 ? '' : 's'} only this run holds`,
+    deleteScenariosWhy: 'Kept scenarios keep counting towards case coverage.',
+    deleteKeptForHistory: (n: number) =>
+      `${n} scenario${n === 1 ? ' is' : 's are'} kept either way: a QA run has already used ${n === 1 ? 'it' : 'them'}.`,
     cancel: 'Cancel',
   },
   map: {
@@ -605,7 +610,11 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     deleting: '삭제 중…',
     deleteFailed: '런을 삭제하지 못했습니다. 다시 시도해 주세요.',
     deleteTitle: '이 런을 삭제할까요?',
-    deleteCopy: '런과 시나리오 묶음이 제거됩니다. 시나리오와 케이스 자체는 삭제되지 않습니다.',
+    deleteCopy: '런과 시나리오 묶음이 제거됩니다. 케이스는 삭제되지 않습니다.',
+    deleteScenarios: (n: number) => `이 런에만 있는 시나리오 ${n}개도 함께 삭제`,
+    deleteScenariosWhy: '남겨 두면 케이스 커버리지에 계속 잡힙니다.',
+    deleteKeptForHistory: (n: number) =>
+      `${n}개는 QA 실행 이력이 있어 어느 쪽이든 남습니다.`,
     cancel: '취소',
   },
   map: {
