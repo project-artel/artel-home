@@ -57,6 +57,11 @@ export const scenariosEn = {
     },
   },
   chat: {
+    question: {
+      freeTextPlaceholder: 'Or tell it how…',
+      freeTextLabel: 'Answer in your own words',
+      send: 'Send',
+    },
     title: 'Conversation',
     emptyCopy:
       'Describe the behaviour you want covered — for example, “Write a scenario for finishing the tutorial without taking damage.” The agent answers with a scenario you can edit.',
@@ -433,6 +438,11 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     },
   },
   chat: {
+    question: {
+      freeTextPlaceholder: '직접 알려주기…',
+      freeTextLabel: '직접 답하기',
+      send: '보내기',
+    },
     title: '대화',
     emptyCopy:
       '다루고 싶은 동작을 설명하세요 — 예: “피해를 입지 않고 튜토리얼을 끝내는 시나리오를 작성해 줘.” 에이전트가 편집할 수 있는 시나리오로 답합니다.',

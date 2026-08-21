@@ -87,6 +87,12 @@ export type ChatMessage = {
   createdAt: string | null
   /** A user message that has been sent but whose reply has not arrived yet. */
   pending: boolean
+  /**
+   * A question the server attached to this line (ARTEL-487). `null` on ordinary
+   * messages. Carried on the message rather than kept beside the thread so that a
+   * reload restores it in place — the question is that line, not something next to it.
+   */
+  question?: import('../testRuns/runChatApi').RunChatQuestion | null
 }
 
 export type ScenarioResult = {

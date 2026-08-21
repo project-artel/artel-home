@@ -5094,3 +5094,58 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
 @media (prefers-color-scheme: dark) {
   .gapfill-where { color: #f0c96d; background: #3a3016; border-color: #6b5320; }
 }
+
+/* 되묻는 줄에 붙는 것들(ARTEL-487). 답할 자리가 없는 질문은 설명으로 읽히고 지나간다. */
+.chat-question { margin-top: 8px; display: flex; flex-direction: column; gap: 8px; }
+.chat-question-why {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+.chat-question-options { display: flex; flex-wrap: wrap; gap: 6px; }
+.chat-question-option {
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-bg-raised, #fff);
+  color: var(--color-text-primary);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.chat-question-option:hover:not(:disabled) {
+  border-color: #e0a800;
+  background: #fff8e1;
+  color: #7a4f00;
+}
+.chat-question-option:disabled { opacity: 0.5; cursor: default; }
+.chat-question-write { display: flex; gap: 6px; }
+.chat-question-input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 10px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 6px;
+  background: var(--color-bg-raised, #fff);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: 13px;
+}
+.chat-question-send {
+  border: 1px solid var(--color-border-subtle);
+  background: none;
+  color: var(--color-text-secondary);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.chat-question-send:disabled { opacity: 0.5; cursor: default; }
+
+@media (prefers-color-scheme: dark) {
+  .chat-question-option:hover:not(:disabled) {
+    border-color: #6b5320;
+    background: #2b2410;
+    color: #f0c96d;
+  }
+}

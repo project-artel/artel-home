@@ -10,6 +10,7 @@ import {
   TERMINAL_STAGES,
   type AuthoringStage,
   type ScenarioProposal,
+  type RunChatAnswer,
 } from './runChatApi'
 
 /*
@@ -49,6 +50,17 @@ export type RunChatSession = ReturnType<typeof useRunChatSession>
  * @param onApplied called after scenarios are written (auto-apply or a card
  *   commit) so the page can reload the composition/rail to reflect them.
  */
+/**
+ * What the user's line says when they only pressed a button. The picked labels are
+ * already phrased as instructions, so echoing them reads as something a person wrote.
+ */
+function answerSummary(answer: RunChatAnswer | undefined): string {
+  if (answer === undefined) return ''
+  const said = answer.text?.trim() ?? ''
+  const picked = answer.displayText?.trim() ?? ''
+  return [picked, said].filter((part) => part.length > 0).join(' — ')
+}
+
 export function useRunChatSession(
   projectId: string,
   runId: string | null,
@@ -168,6 +180,24 @@ export function useRunChatSession(
         },
       ])
     })
+    source.addEventListener('question', (event: Event) => {
+      if (!(event instanceof MessageEvent)) return
+      const parsed = parseRunStreamEvent(event.data)
+      if (parsed === null || parsed.type !== 'question') return
+      // The question rides on its own assistant line. Keeping it beside the thread
+      // instead would put it out of order with the turn it belongs to.
+      setMessages((previous) => [
+        ...previous,
+        {
+          id: `question-${parsed.question.id}-${previous.length}`,
+          role: 'ASSISTANT' as const,
+          content: parsed.question.text,
+          createdAt: null,
+          pending: false,
+          question: parsed.question,
+        },
+      ])
+    })
     source.addEventListener('error', (event: Event) => {
       if (event instanceof MessageEvent) {
         // A server `error` frame is a failed turn, not a dead session: clear the
@@ -202,18 +232,25 @@ export function useRunChatSession(
   }, [projectId, runId])
 
   const send = useCallback(
-    async (message: string): Promise<boolean> => {
+    async (message: string, answer?: RunChatAnswer): Promise<boolean> => {
       const trimmed = message.trim()
-      if (runId === null || trimmed.length === 0 || sending) return false
+      // An answer can stand on its own: picking an option is a complete reply, so an
+      // empty message is only rejected when there is nothing else to send.
+      if (runId === null || sending) return false
+      if (trimmed.length === 0 && answer === undefined) return false
       setSending(true)
       setSendFailure(null)
       inFlightAutoApply.current = autoApply
       setMessages((previous) => [
-        ...previous,
+        // The answered question loses its buttons — it has been answered, and leaving
+        // them live invites a second answer to a question that is no longer pending.
+        ...previous.map((m) =>
+          answer !== undefined && m.question?.id === answer.questionId ? { ...m, question: null } : m,
+        ),
         {
           id: `user-${previous.length}`,
           role: 'USER' as const,
-          content: trimmed,
+          content: trimmed.length > 0 ? trimmed : answerSummary(answer),
           createdAt: null,
           pending: true,
         },
@@ -223,7 +260,7 @@ export function useRunChatSession(
       setStages([])
       setTurnStartedAt(Date.now())
       try {
-        await sendRunChatMessage(projectId, runId, trimmed, autoApply)
+        await sendRunChatMessage(projectId, runId, trimmed, autoApply, answer)
         return true
       } catch {
         // Drop the optimistic pending message and surface the failure.

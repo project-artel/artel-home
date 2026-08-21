@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
+import { RunChatQuestionBlock } from './RunChatQuestion'
 import { formatDateTime } from '../projects/formatters'
 import { groupStepsByCase } from '../testScenarios/scenarioTypes'
 import type { AuthoringStage, ScenarioProposal } from './runChatApi'
@@ -219,6 +220,15 @@ export function RunChat({ session }: { session: RunChatSession }) {
                 )}
               </p>
               <p className="chat-body">{message.content}</p>
+              {/* 물어본 줄에는 누를 것이 붙는다(ARTEL-487). 답하면 사라진다 — 이미 답한 질문에
+                  버튼이 남아 있으면 두 번 답하게 된다. */}
+              {message.question != null && (
+                <RunChatQuestionBlock
+                  question={message.question}
+                  disabled={session.sending || session.closed}
+                  onAnswer={(answer) => { void session.send('', answer) }}
+                />
+              )}
             </li>
           ))}
           {session.awaitingReply && (

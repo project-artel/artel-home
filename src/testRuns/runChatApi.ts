@@ -79,11 +79,48 @@ export type RunChatNotice = {
   message: string
 }
 
+/**
+ * One option on a question the server asked.
+ *
+ * The label is phrased as what the user would have typed ("담아 줘"), because that
+ * is exactly what gets relayed back to the agent when it is picked — nothing has to
+ * translate an option id into an instruction.
+ */
+export type RunChatQuestionOption = {
+  id: string
+  label: string
+  detail: string | null
+}
+
+/**
+ * A question waiting for the user (ARTEL-487).
+ *
+ * Authoring cannot compute everything, and until now the parts it could not settle
+ * were written into prose the user read as explanation. A question is that same
+ * uncertainty with somewhere to click.
+ *
+ * `why` carries the ground for asking — a question with a reason is answerable; a bare
+ * one just asks the user to guess what the tool wants.
+ */
+export type RunChatQuestion = {
+  id: string
+  text: string
+  why: string | null
+  options: RunChatQuestionOption[]
+  allowFreeText: boolean
+}
+
+export type RunChatQuestionEvent = {
+  type: 'question'
+  question: RunChatQuestion
+}
+
 export type RunChatStreamEvent =
   | RunChatResult
   | RunChatFailure
   | RunChatProgress
   | RunChatNotice
+  | RunChatQuestionEvent
 
 /** Absolute URL for the SSE stream (EventSource can't go through `apiFetch`). */
 export function runChatStreamUrl(projectId: string, runId: string): string {
@@ -91,15 +128,40 @@ export function runChatStreamUrl(projectId: string, runId: string): string {
 }
 
 /** Sends a user message; the agent's result arrives on the SSE stream. */
+/**
+ * An answer to a question the server asked. Sent with the message, not instead of it —
+ * picking an option and adding a line is the common shape, and splitting them would
+ * force the screen to send twice or drop one.
+ */
+export type RunChatAnswer = {
+  questionId: string
+  optionIds: string[]
+  text?: string
+  /**
+   * What to show in the user's own bubble — the picked labels, read back as if typed.
+   * Client-only: the server rebuilds the instruction from the option ids, so sending
+   * this too would relay the same sentence twice.
+   */
+  displayText?: string
+}
+
 export async function sendRunChatMessage(
   projectId: string,
   runId: string,
   message: string,
   autoApply: boolean,
+  answer?: RunChatAnswer,
 ): Promise<void> {
   const response = await apiFetch(chatPath(projectId, runId, '/message'), {
     method: 'POST',
-    ...jsonRequest({ message, autoApply }),
+    ...jsonRequest({
+      message,
+      autoApply,
+      answer: answer
+        ? { question_id: answer.questionId, option_ids: answer.optionIds, text: answer.text ?? null }
+        : null,
+      // `displayText` stays here on purpose — see its doc comment.
+    }),
   })
   if (!response.ok) {
     throw await toApiError(response)
@@ -118,12 +180,16 @@ export async function listRunChatMessages(
   return raw.map((entry, index) => {
     const record = asRecord(entry) ?? {}
     const role = asString(record.role) === 'USER' ? 'USER' : 'ASSISTANT'
+    const payload = asRecord(record.payload)
     return {
       id: `msg-${index}`,
       role: role as ScenarioRole,
       content: asString(record.content),
       createdAt: typeof record.createdAt === 'string' ? record.createdAt : null,
       pending: false,
+      // Restored so a reload does not leave the question on screen with nothing to
+      // click. Only the last unanswered one is actually offered (see the session hook).
+      question: payload?.kind === 'question' ? parseQuestion(payload) : null,
     }
   })
 }
@@ -190,6 +256,41 @@ function isAuthoringStage(value: unknown): value is AuthoringStage {
  * should not make this client render an empty step — silence is the honest
  * fallback, and the terminal stages it does know still close the indicator.
  */
+/**
+ * Reads a question from a stream frame or a stored message payload — one reader for
+ * both, because a question that arrives live and the same question after a reload
+ * have to render identically. A question with no text is dropped rather than shown
+ * as an empty prompt.
+ */
+export function parseQuestion(value: unknown): RunChatQuestion | null {
+  const record = asRecord(value)
+  if (record === null) return null
+  const text = asString(record.text)
+  const id = asString(record.id)
+  if (text.length === 0 || id.length === 0) return null
+  const rawOptions = Array.isArray(record.options) ? record.options : []
+  return {
+    id,
+    text,
+    why: typeof record.why === 'string' && record.why.length > 0 ? record.why : null,
+    options: rawOptions.flatMap((entry) => {
+      const option = asRecord(entry)
+      if (option === null) return []
+      const optionId = asString(option.id)
+      const label = asString(option.label)
+      if (optionId.length === 0 || label.length === 0) return []
+      return [{
+        id: optionId,
+        label,
+        detail: typeof option.detail === 'string' && option.detail.length > 0 ? option.detail : null,
+      }]
+    }),
+    // The server spells it snake_case on the wire; both spellings are read so a
+    // stored payload and a live frame do not diverge on this one field.
+    allowFreeText: record.allow_free_text !== false && record.allowFreeText !== false,
+  }
+}
+
 export function parseRunStreamEvent(data: string): RunChatStreamEvent | null {
   let parsed: unknown
   try {
@@ -214,6 +315,10 @@ export function parseRunStreamEvent(data: string): RunChatStreamEvent | null {
   }
   if (record.type === 'notice') {
     return { type: 'notice', message: asString(record.message) }
+  }
+  if (record.type === 'question') {
+    const question = parseQuestion(record.question)
+    return question === null ? null : { type: 'question', question }
   }
   return null
 }
