@@ -1,10 +1,16 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { formatDate } from '../projects/formatters'
 import { ProjectApiError } from '../projects/projectApi'
 import type { ExtrasStatus } from '../projects/workspace/workspaceContext'
-import { createTestRun, deleteTestRun, type TestRun } from './testRunApi'
+import {
+  createTestRun,
+  deleteTestRun,
+  getRunDeletionPreview,
+  type RunDeletionPreview,
+  type TestRun,
+} from './testRunApi'
 
 /**
  * The project's TestRuns — the entry point into the run map. A run bundles
@@ -41,12 +47,32 @@ export function RunListPanel({
   const [failure, setFailure] = useState<string | null>(null)
   const [pendingDelete, setPendingDelete] = useState<TestRun | null>(null)
   const [deleting, setDeleting] = useState(false)
+  // 이 런을 지우면 무엇이 같이 없어지는지(ARTEL-487). 열 때 읽어 온다 — 목록의 런마다 미리
+  // 세면 화면 하나에 질의가 런 수만큼 붙는데, 정작 읽는 것은 지우려는 한 건뿐이다.
+  const [impact, setImpact] = useState<RunDeletionPreview | null>(null)
+  // 함께 지울지. 기본은 지우는 쪽이다 — 남겨 두면 어느 런에도 없는 시나리오가 케이스 커버리지를
+  // 계속 채워, 사용자는 지웠는데 숫자가 그대로인 것을 본다. 되돌리기는 체크 해제 한 번이다.
+  const [dropScenarios, setDropScenarios] = useState(true)
+
+  useEffect(() => {
+    if (pendingDelete === null) return
+    const controller = new AbortController()
+    setImpact(null)
+    setDropScenarios(true)
+    getRunDeletionPreview(projectId, pendingDelete.id, controller.signal)
+      .then(setImpact)
+      .catch(() => {
+        // 못 세어도 삭제 자체는 할 수 있다. 그때는 체크박스 없이 런만 지운다.
+      })
+    return () => controller.abort()
+  }, [pendingDelete, projectId])
 
   async function confirmDelete() {
     if (pendingDelete === null || deleting) return
     setDeleting(true)
     try {
-      await deleteTestRun(projectId, pendingDelete.id)
+      const removable = impact?.removableScenarioCount ?? 0
+      await deleteTestRun(projectId, pendingDelete.id, dropScenarios && removable > 0)
       setPendingDelete(null)
       await onChanged()
     } catch (error: unknown) {
@@ -129,6 +155,23 @@ export function RunListPanel({
             <h3>{r.deleteTitle}</h3>
             <p className="run-del-name">{pendingDelete.name.length > 0 ? pendingDelete.name : r.untitled}</p>
             <p className="run-del-copy">{r.deleteCopy}</p>
+            {impact !== null && impact.removableScenarioCount > 0 && (
+              <label className="run-del-option">
+                <input
+                  checked={dropScenarios}
+                  disabled={deleting}
+                  onChange={(event) => setDropScenarios(event.target.checked)}
+                  type="checkbox"
+                />
+                <span>
+                  {r.deleteScenarios(impact.removableScenarioCount)}
+                  <em className="run-del-note">{r.deleteScenariosWhy}</em>
+                </span>
+              </label>
+            )}
+            {impact !== null && impact.keptForQaHistoryCount > 0 && (
+              <p className="run-del-note">{r.deleteKeptForHistory(impact.keptForQaHistoryCount)}</p>
+            )}
             <div className="run-del-actions">
               <button className="button button--secondary" disabled={deleting} onClick={() => setPendingDelete(null)} type="button">{r.cancel}</button>
               <button className="button button--danger" disabled={deleting} onClick={confirmDelete} type="button">{deleting ? r.deleting : r.delete}</button>

@@ -117,9 +117,60 @@ export async function setRunScenarios(
     .sort((left, right) => left.position - right.position)
 }
 
-/** `DELETE /api/projects/{projectId}/test-runs/{runId}` — removes the run (composition links go with it). */
-export async function deleteTestRun(projectId: string, runId: string): Promise<void> {
-  const response = await apiFetch(`${runsRoot(projectId)}/${encodeURIComponent(runId)}`, { method: 'DELETE' })
+/**
+ * What deleting this run would take with it (ARTEL-487).
+ *
+ * Deleting a run drops the composition but keeps the scenarios, while coverage
+ * counts every scenario in the project — so a run deleted on its own leaves cases
+ * counted as authored by scenarios nothing holds any more. The dialog asks about
+ * that, and it can only ask honestly if it knows the numbers first.
+ */
+export type RunDeletionPreview = {
+  /** Scenarios in this run. */
+  scenarioCount: number
+  /** Of those, the ones in no other run — the ones deletable along with the run. */
+  removableScenarioCount: number
+  /** Of those, kept regardless because a QA run has already used them. */
+  keptForQaHistoryCount: number
+}
+
+/** `GET /api/projects/{projectId}/test-runs/{runId}/deletion-preview`. */
+export async function getRunDeletionPreview(
+  projectId: string,
+  runId: string,
+  signal?: AbortSignal,
+): Promise<RunDeletionPreview> {
+  const response = await apiFetch(
+    `${runsRoot(projectId)}/${encodeURIComponent(runId)}/deletion-preview`,
+    { signal },
+  )
+  if (!response.ok) throw await toApiError(response)
+  const record = asRecord(await readJson(response))
+  const count = (value: unknown) => (typeof value === 'number' ? value : 0)
+  return {
+    scenarioCount: count(record?.scenarioCount),
+    removableScenarioCount: count(record?.removableScenarioCount),
+    keptForQaHistoryCount: count(record?.keptForQaHistoryCount),
+  }
+}
+
+/**
+ * `DELETE /api/projects/{projectId}/test-runs/{runId}` — removes the run (composition links go with it).
+ *
+ * `dropScenarios` also deletes the scenarios only this run held. The server keeps
+ * them by default and so does this signature: an irreversible delete takes the
+ * smaller default and the caller opts in.
+ */
+export async function deleteTestRun(
+  projectId: string,
+  runId: string,
+  dropScenarios = false,
+): Promise<void> {
+  const query = dropScenarios ? '?dropScenarios=true' : ''
+  const response = await apiFetch(
+    `${runsRoot(projectId)}/${encodeURIComponent(runId)}${query}`,
+    { method: 'DELETE' },
+  )
   if (!response.ok) throw await toApiError(response)
 }
 
