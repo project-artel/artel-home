@@ -49,13 +49,20 @@ export type RunChatFailure = {
 }
 
 /**
- * Where the current authoring turn is (ARTEL-419). Only stages the server
- * actually observed are sent, so the middle two can be absent — a turn that
- * calls no tool is normal. `repairing` is not an ending: another result follows.
+ * Where the current authoring turn is (ARTEL-419). Only stages someone actually
+ * observed are sent, so the middle ones can be absent — a turn that calls no tool
+ * is normal. `repairing` is not an ending: another result follows.
+ *
+ * `thinking` is the agent reporting its own model turns (ARTEL-487). It alternates
+ * with the tool stages, so a turn that keeps looking things up reads as a rhythm
+ * rather than as one line and a long silence.
  */
 export const AUTHORING_STAGES = [
   'sent',
+  'thinking',
   'looking_up_cases',
+  'reading_case',
+  'finding_path',
   'writing',
   'checking',
   'saved',

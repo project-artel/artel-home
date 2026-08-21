@@ -81,16 +81,24 @@ export const scenariosEn = {
     sendFailed: 'The message could not be sent. Please try again.',
     awaitingReply: 'Waiting for Artel to reply.',
     /*
-     * Stage labels (ARTEL-419). Each one says only what the server actually saw.
+     * Stage labels (ARTEL-419). Each one says only what someone actually saw.
      * `writing` is the exception and is worded for it: what is known is that the
      * cases were handed over, not that a scenario is being composed right now.
+     * `thinking` comes from the agent itself and repeats between tool calls, so
+     * the list collapses runs of it and counts them with `stageRepeat`.
      */
     stageSent: 'Request sent',
+    stageThinking: 'The agent is working',
     stageLookingUpCases: 'Looking up cases',
+    stageReadingCase: 'Reading what a case is made of',
+    stageFindingPath: 'Looking for the route between screens',
     stageWriting: 'Cases handed over',
     stageChecking: 'Checking coverage',
     stageRepairing: 'Asking for the missing part again',
+    stageRepeat: (n: number) => `×${n}`,
     stageElapsed: (seconds: number) => `${seconds}s`,
+    stagePast: (steps: number) => `${steps} earlier step${steps === 1 ? '' : 's'}`,
+    stageCollapse: 'Hide',
     stageLabel: 'Authoring progress',
     autoApplyLabel: 'Apply automatically',
     proposalsTitle: 'Proposed scenarios',
@@ -462,15 +470,23 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     sendFailed: '메시지를 전송하지 못했습니다. 다시 시도해 주세요.',
     awaitingReply: 'Artel의 응답을 기다리고 있습니다.',
     /*
-     * 단계 문구(ARTEL-419). 서버가 실제로 본 것까지만 말한다. `writing`이 유일한 추론이라
+     * 단계 문구(ARTEL-419). 누군가 실제로 본 것까지만 말한다. `writing`이 유일한 추론이라
      * 문구도 거기에 맞췄다 — 아는 것은 케이스를 넘겼다는 사실이지, 지금 쓰고 있다는 것이 아니다.
+     * `thinking`은 에이전트가 스스로 알려 주는 값이라 도구 호출 사이에 되풀이된다. 잇달아 오면
+     * 한 줄로 접고 `stageRepeat`으로 횟수를 센다.
      */
     stageSent: '요청 보냄',
+    stageThinking: '에이전트 작업 중',
     stageLookingUpCases: '케이스 확인 중',
+    stageReadingCase: '케이스 근거 확인 중',
+    stageFindingPath: '화면 사이 경로 찾는 중',
     stageWriting: '케이스 넘김',
     stageChecking: '검수 중',
     stageRepairing: '빠진 부분 다시 요청',
+    stageRepeat: (n: number) => `×${n}`,
     stageElapsed: (seconds: number) => `${seconds}초`,
+    stagePast: (steps: number) => `이전 ${steps}단계`,
+    stageCollapse: '접기',
     stageLabel: '저작 진행 단계',
     autoApplyLabel: '자동 적용',
     proposalsTitle: '제안된 시나리오',
