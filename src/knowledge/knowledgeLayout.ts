@@ -61,8 +61,29 @@ const ARROW_CLEARANCE = 5
  */
 export const LABEL_NODE_LIMIT = 44
 
-export type PlacedNode = {
-  node: KnowledgeNode
+/*
+ * ## Why the geometry is generic
+ *
+ * Nothing above reads a `relation`, a `tag` or a `summary` — the pass needs an
+ * identity per node and a pair of identities per edge, and everything else it is
+ * handed is payload it carries through untouched. Two screens now draw a
+ * directed graph over an open vocabulary (the project knowledge base, and a
+ * build's scene transitions), and they need exactly the same hard parts solved:
+ * self edges, parallel edges, reversed pairs, an empty graph.
+ *
+ * So the domain shapes are type parameters, defaulted to the knowledge ones. A
+ * second copy of this file for scenes is how the two would drift on the parts a
+ * person cannot see going wrong.
+ */
+
+/** The only thing the layout needs from a node. */
+export type LayoutNode = { id: string }
+
+/** The only thing the layout needs from an edge: which two nodes it joins. */
+export type LayoutEdge = { from: string; to: string }
+
+export type PlacedNode<N extends LayoutNode = KnowledgeNode> = {
+  node: N
   x: number
   y: number
   /** Index of the connected component, largest first. Isolated items get their own. */
@@ -71,10 +92,10 @@ export type PlacedNode = {
   degree: number
 }
 
-export type PlacedEdge = {
+export type PlacedEdge<E extends LayoutEdge = KnowledgeEdge> = {
   /** Stable, unique within one layout — usable as a React key and a selection id. */
   id: string
-  edge: KnowledgeEdge
+  edge: E
   /** `d` for the visible stroke and for the wider transparent hit target. */
   path: string
   /** Where a relation glyph or label belongs: the midpoint of the drawn curve. */
@@ -84,9 +105,12 @@ export type PlacedEdge = {
   selfEdge: boolean
 }
 
-export type GraphLayout = {
-  nodes: PlacedNode[]
-  edges: PlacedEdge[]
+export type GraphLayout<
+  N extends LayoutNode = KnowledgeNode,
+  E extends LayoutEdge = KnowledgeEdge,
+> = {
+  nodes: PlacedNode<N>[]
+  edges: PlacedEdge<E>[]
   /** `x y w h` covering everything, padded. `0 0 0 0` is never emitted. */
   viewBox: string
   width: number
@@ -351,10 +375,18 @@ function selfEdgePath(
  */
 export type PositionOverride = ReadonlyMap<string, { x: number; y: number }>
 
+/** The knowledge base's own graph, laid out. A name kept for its many callers. */
 export function layoutKnowledgeGraph(
   graph: KnowledgeGraph,
   override?: PositionOverride,
 ): GraphLayout {
+  return layoutGraph(graph, override)
+}
+
+export function layoutGraph<N extends LayoutNode, E extends LayoutEdge>(
+  graph: { nodes: readonly N[]; edges: readonly E[] },
+  override?: PositionOverride,
+): GraphLayout<N, E> {
   const indexById = new Map<string, number>()
   graph.nodes.forEach((node, index) => indexById.set(node.id, index))
 
@@ -452,7 +484,7 @@ export function layoutKnowledgeGraph(
   })
   singletons.forEach((member, order) => componentOf.set(member, clusters.length + order))
 
-  const nodes: PlacedNode[] = graph.nodes.map((node, index) => {
+  const nodes: PlacedNode<N>[] = graph.nodes.map((node, index) => {
     const at = positions.get(index) ?? { x: 0, y: 0 }
     return {
       node,
@@ -476,7 +508,7 @@ export function layoutKnowledgeGraph(
     else group.push(index)
   })
 
-  const placedEdges: (PlacedEdge | null)[] = graph.edges.map(() => null)
+  const placedEdges: (PlacedEdge<E> | null)[] = graph.edges.map(() => null)
   for (const group of groups.values()) {
     group.forEach((edgeIndex, position) => {
       const edge = graph.edges[edgeIndex]
@@ -509,7 +541,7 @@ export function layoutKnowledgeGraph(
       }
     })
   }
-  const edges = placedEdges.filter((edge): edge is PlacedEdge => edge !== null)
+  const edges = placedEdges.filter((edge): edge is PlacedEdge<E> => edge !== null)
 
   return { ...bounds(nodes, edges, homeExtent), nodes, edges, clusterCount: clusters.length, isolatedCount: degree.filter((count) => count === 0).length }
 }
@@ -522,8 +554,8 @@ export function layoutKnowledgeGraph(
  * otherwise a loop on a node at the top edge is clipped in half.
  */
 function bounds(
-  nodes: PlacedNode[],
-  edges: PlacedEdge[],
+  nodes: readonly PlacedNode<LayoutNode>[],
+  edges: readonly PlacedEdge<LayoutEdge>[],
   home: Extent | null,
 ): { viewBox: string; width: number; height: number } {
   if (nodes.length === 0) return { viewBox: '0 0 100 100', width: 100, height: 100 }
@@ -572,18 +604,21 @@ function bounds(
  * also the keyboard path to selecting an edge — the drawing itself is pointer
  * only and is announced through this list instead.
  */
-export type Incidence = {
-  placed: PlacedEdge
+export type Incidence<
+  N extends LayoutNode = KnowledgeNode,
+  E extends LayoutEdge = KnowledgeEdge,
+> = {
+  placed: PlacedEdge<E>
   direction: 'out' | 'in' | 'self'
-  other: KnowledgeNode
+  other: N
 }
 
-export function incidentEdges(
-  layout: GraphLayout,
+export function incidentEdges<N extends LayoutNode, E extends LayoutEdge>(
+  layout: GraphLayout<N, E>,
   nodeId: string,
-  nodesById: Map<string, KnowledgeNode>,
-): Incidence[] {
-  const incidence: Incidence[] = []
+  nodesById: ReadonlyMap<string, N>,
+): Incidence<N, E>[] {
+  const incidence: Incidence<N, E>[] = []
   for (const placed of layout.edges) {
     const { from, to } = placed.edge
     if (from !== nodeId && to !== nodeId) continue

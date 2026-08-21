@@ -192,6 +192,8 @@ export const projectsEn = {
     CLIENT_MALFORMED_BUILD: 'The server described the build oddly.',
     CLIENT_STORAGE_PUT_FAILED: 'The file could not be uploaded to storage. Please try again.',
     CLIENT_STORAGE_UNREACHABLE: 'Storage could not be reached. The upload was not completed.',
+    CLIENT_SCAN_NOT_IMPLEMENTED:
+      'Evidence scanning is not available yet. This console cannot start a scan until the server accepts one.',
   },
   /** The project's own shell: its left rail, and the dashboard behind it. */
   workspace: {
@@ -435,6 +437,8 @@ export const projectsKo: Localized<typeof projectsEn> = {
     CLIENT_MALFORMED_BUILD: '서버의 빌드 응답을 해석할 수 없습니다.',
     CLIENT_STORAGE_PUT_FAILED: '파일을 스토리지에 업로드하지 못했습니다. 다시 시도해 주세요.',
     CLIENT_STORAGE_UNREACHABLE: '스토리지에 연결할 수 없습니다. 업로드가 완료되지 않았습니다.',
+    CLIENT_SCAN_NOT_IMPLEMENTED:
+      '근거 스캔은 아직 쓸 수 없습니다. 서버가 스캔 요청을 받기 전까지는 이 콘솔에서 시작할 수 없습니다.',
   },
   workspace: {
     navLabel: '프로젝트 섹션',

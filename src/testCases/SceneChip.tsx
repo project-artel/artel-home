@@ -1,17 +1,5 @@
 import type { CSSProperties } from 'react'
-
-/**
- * A deterministic hue per scene name, so the same scene always reads as the same
- * colour across the library and the flow — the eye can group cases by screen at a
- * glance instead of reading every label.
- */
-function sceneHue(scene: string): number {
-  let hash = 0
-  for (let index = 0; index < scene.length; index += 1) {
-    hash = (hash * 31 + scene.charCodeAt(index)) % 360
-  }
-  return hash
-}
+import { sceneHue } from './sceneHue'
 
 /**
  * A small colour-coded tag for the screen a case verifies. Renders nothing when blank.
