@@ -115,12 +115,24 @@ export type RunChatQuestionEvent = {
   question: RunChatQuestion
 }
 
+/**
+ * Scenarios changed without a turn (ARTEL-487).
+ *
+ * Answering "how do you get across this gap?" is filled in by the server itself — the
+ * place to put it is known, so no model runs and no `result` arrives. The composition
+ * still has to reload, or the warning the user just answered stays on screen.
+ */
+export type RunChatApplied = {
+  type: 'applied'
+}
+
 export type RunChatStreamEvent =
   | RunChatResult
   | RunChatFailure
   | RunChatProgress
   | RunChatNotice
   | RunChatQuestionEvent
+  | RunChatApplied
 
 /** Absolute URL for the SSE stream (EventSource can't go through `apiFetch`). */
 export function runChatStreamUrl(projectId: string, runId: string): string {
@@ -319,6 +331,9 @@ export function parseRunStreamEvent(data: string): RunChatStreamEvent | null {
   if (record.type === 'question') {
     const question = parseQuestion(record.question)
     return question === null ? null : { type: 'question', question }
+  }
+  if (record.type === 'applied') {
+    return { type: 'applied' }
   }
   return null
 }

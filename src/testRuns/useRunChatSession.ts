@@ -198,6 +198,16 @@ export function useRunChatSession(
         },
       ])
     })
+    source.addEventListener('applied', (event: Event) => {
+      if (!(event instanceof MessageEvent)) return
+      const parsed = parseRunStreamEvent(event.data)
+      if (parsed === null || parsed.type !== 'applied') return
+      // The server changed the scenarios on its own (a gap answer it could place
+      // itself). No model ran, so no reply is coming — stop waiting and reload.
+      setAwaitingReply(false)
+      setMessages((previous) => previous.map((message) => ({ ...message, pending: false })))
+      onAppliedRef.current?.()
+    })
     source.addEventListener('error', (event: Event) => {
       if (event instanceof MessageEvent) {
         // A server `error` frame is a failed turn, not a dead session: clear the
