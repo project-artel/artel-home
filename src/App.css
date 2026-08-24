@@ -3139,7 +3139,11 @@ a.instance-name:hover {
 .run-del-modal{ width:min(420px,92vw); background:var(--color-bg-surface); border:1px solid var(--color-border-strong); border-radius:10px; padding:20px 22px; box-shadow:0 24px 70px -24px #000; }
 .run-del-modal h3{ margin:0 0 10px; font-size:16px; font-weight:650; }
 .run-del-name{ margin:0 0 6px; font-size:13px; font-weight:600; color:var(--color-text-primary); }
-.run-del-copy{ margin:0 0 18px; font-size:12.5px; color:var(--color-text-secondary); line-height:1.6; }
+.run-del-copy{ margin:0 0 12px; font-size:12.5px; color:var(--color-text-secondary); line-height:1.6; }
+/* 함께 지울지 고르는 자리. 되돌릴 수 없는 선택이라 본문과 버튼 사이에 두어 반드시 지나가게 한다. */
+.run-del-option{ display:flex; align-items:flex-start; gap:8px; margin:0 0 12px; padding:10px 12px; border:1px solid var(--color-border-subtle); border-radius:8px; font-size:12.5px; line-height:1.5; cursor:pointer; }
+.run-del-option input{ margin-top:2px; flex:none; }
+.run-del-note{ display:block; margin-top:2px; font-size:11.5px; font-style:normal; color:var(--color-text-secondary); }
 .run-del-actions{ display:flex; justify-content:flex-end; gap:8px; }
 
 /* run row delete icon (small, right-aligned) */
@@ -3510,6 +3514,24 @@ a.instance-name:hover {
 .performance-unmeasured,.performance-empty{ padding:32px; text-align:center; color:var(--color-text-secondary); }
 .performance-empty{ border:1px dashed var(--color-border-strong); background:var(--color-bg-surface); }
 .performance-empty strong{ display:block; color:var(--color-text-primary); font:600 18px/26px var(--font-display); }
+/* Metric groups (ARTEL-436). The left rule carries the availability state so an
+   unsupported group never reads like a measured-empty one at a glance. */
+.performance-groups{ display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:var(--space-3); padding:12px 16px; }
+.performance-group{ border:1px solid var(--color-border-subtle); border-left:3px solid var(--color-border-strong); background:var(--color-bg-raised); padding:12px 14px; }
+.performance-group[data-availability="MEASURED"]{ border-left-color:var(--color-action-primary); }
+.performance-group[data-availability="UNSUPPORTED"]{ border-left-color:var(--color-status-warning); }
+.performance-group[data-availability="NOT_REPORTED"]{ border-left-color:var(--color-border-strong); }
+.performance-group-head{ display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
+.performance-group h3{ margin:0; font:600 14px/20px var(--font-display); }
+.performance-group-state{ margin:0; color:var(--color-text-muted); font-size:11px; white-space:nowrap; }
+.performance-group-source{ margin:4px 0 0; color:var(--color-text-secondary); font-size:11px; }
+.performance-group-metrics{ margin:10px 0 0; display:grid; gap:4px; }
+.performance-group-metrics div{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
+.performance-group-metrics dt{ color:var(--color-text-secondary); font-size:12px; }
+.performance-group-metrics dd{ margin:0; font-size:12px; font-variant-numeric:tabular-nums; }
+.performance-group-coverage{ margin:10px 0 0; color:var(--color-text-muted); font-size:11px; }
+/* Inside a card the shared empty style's 32px of centred padding is too loud. */
+.performance-group .performance-unmeasured{ padding:10px 0 0; text-align:left; font-size:12px; }
 .performance-table-wrap{ overflow:auto; }
 .performance-table{ width:100%; border-collapse:collapse; font-size:12px; font-variant-numeric:tabular-nums; }
 .performance-table th,.performance-table td{ padding:10px 12px; border-top:1px solid var(--color-border-subtle); text-align:left; white-space:nowrap; }
