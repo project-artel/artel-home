@@ -62,6 +62,7 @@ export function useRunChatSession(
   const [sendFailure, setSendFailure] = useState<string | null>(null)
   const [closed, setClosed] = useState(false)
   const [applying, setApplying] = useState(false)
+  const [applyFailure, setApplyFailure] = useState<string | null>(null)
   const [autoApply, setAutoApplyState] = useState(readAutoApply)
 
   // Stages of the turn in flight (ARTEL-419), in arrival order. Empty = nothing to
@@ -244,12 +245,17 @@ export function useRunChatSession(
     async (toApply: ScenarioProposal[]): Promise<boolean> => {
       if (runId === null || toApply.length === 0 || applying) return false
       setApplying(true)
+      setApplyFailure(null)
       try {
         await commitRunScenarios(projectId, runId, toApply)
         setProposals((previous) => previous.filter((p) => !toApply.includes(p)))
         onAppliedRef.current?.()
         return true
       } catch {
+        // **실패를 말한다.** 부르는 쪽은 이 boolean 을 버리고(`void applyProposals(…)`), 카드는
+        // 그대로 남는다 — 화면에서는 누른 적이 없는 것과 구분되지 않아 사용자는 계속 다시 누른다.
+        // 실제로 이렇게 잃었다: 열어 둔 런이 지워져 커밋이 404 였는데, 화면은 아무 말도 안 했다.
+        setApplyFailure('apply-failed')
         return false
       } finally {
         setApplying(false)
@@ -285,6 +291,7 @@ export function useRunChatSession(
     sendFailure,
     closed,
     applying,
+    applyFailure,
     autoApply,
     stages,
     turnStartedAt,
