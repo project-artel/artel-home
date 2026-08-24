@@ -1729,6 +1729,46 @@ a.instance-name:hover {
   color: var(--color-status-critical);
 }
 
+/* 마지막 프레임이 이미 떠 있을 때의 알림. 덮는 대신 위쪽 띠로 앉아 그 프레임을
+   가리지 않는다. 자리와 크기를 양보한 만큼 "지금 화면이 아니다"는 말은 문안이
+   지므로, 여기서 줄이는 것은 글자 크기지 문장이 아니다. */
+.game-stream-notice--banner {
+  inset: var(--space-3) var(--space-3) auto;
+  flex-flow: row wrap;
+  gap: var(--space-2);
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
+  padding: var(--space-2) var(--space-3);
+  /* 임의의 게임 프레임 위에 뜨므로 덮개와 같은 불투명도를 쓰고, 테두리로 프레임과
+     띠의 경계를 긋는다. 이 시스템은 그림자로 깊이를 만들지 않는다. */
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  text-align: left;
+}
+
+.game-stream-notice--banner .game-stream-notice-label {
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.game-stream-notice--banner .game-stream-notice-detail {
+  max-width: none;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.game-stream-notice--banner .game-stream-mark {
+  width: 18px;
+  height: 18px;
+  font-size: 11px;
+}
+
+.game-stream-notice--banner .loading-mark {
+  width: 14px;
+  height: 14px;
+}
+
 /* QA Try detail: a live viewport and one chronological evidence surface.
    Terminal tries deliberately collapse to the evidence surface only. */
 .qa-page {

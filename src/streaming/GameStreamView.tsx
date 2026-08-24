@@ -1,9 +1,27 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useGameStream } from './useGameStream'
 import type { GameStreamFailure, GameStreamStatus } from './streamTypes'
 
 /**
- * How a non-live status is worded and how strongly it is coloured.
+ * Only the wall clock, because that is all the notice may show. A counter
+ * ticking beside a frozen picture would be a real-time number interpolated over
+ * a stream that stopped, and the log timeline is stamped in this same clock, so
+ * one reading lines the two up.
+ */
+const LOST_AT_FORMAT = new Intl.DateTimeFormat(undefined, {
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+})
+
+/**
+ * How a non-live status is worded, how strongly it is coloured, and how much of
+ * the box it takes.
+ *
+ * `placement` is `banner` exactly when a frame is already on screen. That frame
+ * is evidence — the tester was looking at it — so a disconnect leaves it up and
+ * takes only a strip at the top. With nothing behind it to protect, the notice
+ * covers the box as before.
  *
  * `retryLabel` is `null` where the button would be dead UI: a permission
  * refusal answers the same way every time, and the wait for a game already
@@ -12,9 +30,23 @@ import type { GameStreamFailure, GameStreamStatus } from './streamTypes'
  */
 type StatusNotice = {
   tone: 'pending' | 'warning' | 'critical'
+  placement: 'cover' | 'banner'
   label: string
   detail: string
   retryLabel: string | null
+}
+
+/**
+ * What the strip says about the picture under it.
+ *
+ * Not covering the frame is what makes this sentence load-bearing: position and
+ * colour are the two channels a banner gives up, so the words are the only
+ * place left to say that the picture is not live. `lostAt` is absent only for a
+ * stream that never went live in this view.
+ */
+function staleFrameDetail(lostAt: string | null): string {
+  const stale = '지금 화면이 아니라 마지막으로 받은 장면입니다.'
+  return lostAt === null ? stale : `${lostAt} 끊김 · ${stale}`
 }
 
 /**
@@ -24,12 +56,28 @@ type StatusNotice = {
 function describeStatus(
   status: GameStreamStatus,
   failure: GameStreamFailure | null,
+  hasFrame: boolean,
+  lostAt: string | null,
 ): StatusNotice | null {
   if (status === 'live') return null
 
   if (status === 'connecting') {
+    // A frame already received means this is a retry, not a first connection,
+    // and the wording follows: nobody is waiting for the screen to open when it
+    // is already in front of them.
+    if (hasFrame) {
+      return {
+        tone: 'pending',
+        placement: 'banner',
+        label: '다시 연결하는 중',
+        detail: staleFrameDetail(lostAt),
+        retryLabel: null,
+      }
+    }
+
     return {
       tone: 'pending',
+      placement: 'cover',
       label: '연결 중',
       detail: '게임 화면을 여는 중입니다.',
       retryLabel: null,
@@ -39,8 +87,11 @@ function describeStatus(
   if (status === 'reconnecting') {
     return {
       tone: 'warning',
+      placement: hasFrame ? 'banner' : 'cover',
       label: '다시 연결하는 중',
-      detail: '연결이 끊겼습니다. 아래 화면은 마지막으로 받은 장면이며 지금 화면이 아닙니다.',
+      detail: hasFrame
+        ? staleFrameDetail(lostAt)
+        : '연결이 끊겼습니다. 다시 연결하는 중입니다.',
       retryLabel: '지금 다시 시도',
     }
   }
@@ -48,6 +99,7 @@ function describeStatus(
   if (status === 'offline') {
     return {
       tone: 'pending',
+      placement: 'cover',
       label: '게임 대기 중',
       detail: '이 인스턴스에서 실행 중인 게임이 없습니다. 게임이 연결되면 자동으로 이어집니다.',
       retryLabel: null,
@@ -60,6 +112,7 @@ function describeStatus(
   if (status === 'takenOver') {
     return {
       tone: 'warning',
+      placement: 'cover',
       label: '다른 창이 이어받음',
       detail: '같은 게임을 다른 창에서 보기 시작해 이 연결이 끝났습니다. 다시 보면 그쪽 연결이 끊깁니다.',
       retryLabel: '다시 보기',
@@ -69,6 +122,7 @@ function describeStatus(
   if (failure === 'notPermitted') {
     return {
       tone: 'critical',
+      placement: 'cover',
       label: '볼 수 없음',
       detail: '이 게임이 속한 프로젝트의 멤버만 화면을 볼 수 있습니다.',
       retryLabel: null,
@@ -81,6 +135,7 @@ function describeStatus(
   if (failure === 'unreachable') {
     return {
       tone: 'critical',
+      placement: 'cover',
       label: '연결 실패',
       detail:
         '게임에 네트워크로 닿지 못했습니다. 게임과 브라우저가 서로 다른 네트워크에 있으면 연결되지 않을 수 있습니다.',
@@ -90,6 +145,7 @@ function describeStatus(
 
   return {
     tone: 'critical',
+    placement: 'cover',
     label: '연결 실패',
     detail: '스트림 신호 연결이 끊어졌습니다.',
     retryLabel: '다시 시도',
@@ -107,7 +163,8 @@ function describeStatus(
  *
  * The last received frame is left on screen while reconnecting, because it is
  * evidence. What must never happen is presenting it as live, which is why the
- * notice is opaque enough to read over any frame.
+ * strip that replaces the cover names the time the picture stopped and says in
+ * words that it is not the current screen.
  */
 export function GameStreamView({
   className,
@@ -120,6 +177,13 @@ export function GameStreamView({
 }) {
   const { failure, retry, status, stream } = useGameStream(instanceId)
   const videoRef = useRef<HTMLVideoElement>(null)
+  /*
+   * When the picture stopped being live, held for as long as it stays stale.
+   * Stamped once per disconnect: one loss is retried several times, and
+   * restamping on each attempt would report the last retry as the moment the
+   * game stopped — which is the one thing this time is read for.
+   */
+  const [lostAt, setLostAt] = useState<string | null>(null)
 
   // `srcObject` is not an attribute, so it cannot be set through JSX.
   useEffect(() => {
@@ -128,7 +192,21 @@ export function GameStreamView({
     video.srcObject = stream
   }, [stream])
 
-  const notice = describeStatus(status, failure)
+  useEffect(() => {
+    if (status === 'live') {
+      setLostAt(null)
+      return
+    }
+
+    // `connecting` is skipped rather than stamped: before the first frame there
+    // is nothing to have lost, and a retry after one carries the stamp the
+    // disconnect already left.
+    if (status === 'connecting') return
+
+    setLostAt((previous) => previous ?? LOST_AT_FORMAT.format(new Date()))
+  }, [status])
+
+  const notice = describeStatus(status, failure, stream !== null, lostAt)
 
   return (
     <div className={className === undefined ? 'game-stream' : `game-stream ${className}`}>
@@ -148,7 +226,10 @@ export function GameStreamView({
       {notice !== null && (
         /* One polite region for the whole notice: the label and the detail are
            a single summarised state change, not a log to read out line by line. */
-        <div className={`game-stream-notice game-stream-notice--${notice.tone}`} role="status">
+        <div
+          className={`game-stream-notice game-stream-notice--${notice.tone} game-stream-notice--${notice.placement}`}
+          role="status"
+        >
           {notice.tone === 'pending' ? (
             <span aria-hidden="true" className="loading-mark" />
           ) : (
