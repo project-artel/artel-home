@@ -155,6 +155,12 @@ export function useRunChatSession(
         // on screen would just be one more thing to read.
         setStages([])
         setTurnStartedAt(null)
+        // And stop waiting. Every turn used to end with a `result` frame, which
+        // cleared this; a turn the server finishes on its own does not send one —
+        // declining a question, filling a gap from the user's own words. Without
+        // this the typing dots spin forever on a turn that is already done (run 150).
+        setAwaitingReply(false)
+        setMessages((previous) => previous.map((message) => ({ ...message, pending: false })))
         return
       }
       // A repair turn was sent back to the agent, so another reply is coming. The
