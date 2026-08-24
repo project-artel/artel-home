@@ -196,10 +196,23 @@ export async function listRunChatMessages(
   const response = await apiFetch(chatPath(projectId, runId, '/messages'), { signal })
   const raw = await readJson(response)
   if (!Array.isArray(raw)) return []
+  // Questions the user has already answered. The server writes an `answered` payload
+  // when it closes one, and without this the buttons come back on every reload — the
+  // in-session strip (see the hook) only knows about answers made in that session.
+  // Clicking a revived button sends an answer to a question nobody is waiting on any
+  // more, which is exactly how an empty turn reached the model (run 150).
+  const answered = new Set(
+    raw
+      .map((entry) => asRecord(asRecord(entry)?.payload))
+      .filter((payload) => payload?.kind === 'answered')
+      .map((payload) => asString(payload?.id))
+      .filter((id) => id.length > 0),
+  )
   return raw.map((entry, index) => {
     const record = asRecord(entry) ?? {}
     const role = asString(record.role) === 'USER' ? 'USER' : 'ASSISTANT'
     const payload = asRecord(record.payload)
+    const question = payload?.kind === 'question' ? parseQuestion(payload) : null
     return {
       id: `msg-${index}`,
       role: role as ScenarioRole,
@@ -207,8 +220,9 @@ export async function listRunChatMessages(
       createdAt: typeof record.createdAt === 'string' ? record.createdAt : null,
       pending: false,
       // Restored so a reload does not leave the question on screen with nothing to
-      // click. Only the last unanswered one is actually offered (see the session hook).
-      question: payload?.kind === 'question' ? parseQuestion(payload) : null,
+      // click — unless it has been answered, in which case it keeps its text and
+      // loses its buttons, the same as it did the moment it was answered.
+      question: question !== null && !answered.has(question.id) ? question : null,
     }
   })
 }
