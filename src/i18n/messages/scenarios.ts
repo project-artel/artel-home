@@ -57,6 +57,11 @@ export const scenariosEn = {
     },
   },
   chat: {
+    question: {
+      freeTextPlaceholder: 'Or tell it how…',
+      freeTextLabel: 'Answer in your own words',
+      send: 'Send',
+    },
     title: 'Conversation',
     emptyCopy:
       'Describe the behaviour you want covered — for example, “Write a scenario for finishing the tutorial without taking damage.” The agent answers with a scenario you can edit.',
@@ -76,16 +81,24 @@ export const scenariosEn = {
     sendFailed: 'The message could not be sent. Please try again.',
     awaitingReply: 'Waiting for Artel to reply.',
     /*
-     * Stage labels (ARTEL-419). Each one says only what the server actually saw.
+     * Stage labels (ARTEL-419). Each one says only what someone actually saw.
      * `writing` is the exception and is worded for it: what is known is that the
      * cases were handed over, not that a scenario is being composed right now.
+     * `thinking` comes from the agent itself and repeats between tool calls, so
+     * the list collapses runs of it and counts them with `stageRepeat`.
      */
     stageSent: 'Request sent',
+    stageThinking: 'The agent is working',
     stageLookingUpCases: 'Looking up cases',
+    stageReadingCase: 'Reading what a case is made of',
+    stageFindingPath: 'Looking for the route between screens',
     stageWriting: 'Cases handed over',
     stageChecking: 'Checking coverage',
     stageRepairing: 'Asking for the missing part again',
+    stageRepeat: (n: number) => `×${n}`,
     stageElapsed: (seconds: number) => `${seconds}s`,
+    stagePast: (steps: number) => `${steps} earlier step${steps === 1 ? '' : 's'}`,
+    stageCollapse: 'Hide',
     stageLabel: 'Authoring progress',
     autoApplyLabel: 'Apply automatically',
     proposalsTitle: 'Proposed scenarios',
@@ -293,6 +306,15 @@ export const scenariosEn = {
     renameLabel: 'Scenario name',
   },
   stepsEditor: {
+    // The gap block: a place the scene spec could not fill, shown instead of a step.
+    gapTitle: 'Route unknown — a step is needed here',
+    gapAddStep: 'Add step',
+    gapFillTitle: 'Write the steps for this stretch',
+    gapFillConfirm: 'Replace the notice',
+    gapFillCancel: 'Cancel',
+    humanStep: 'from you',
+    humanStepHelp: 'Written from what you said, not from the scene spec. Correct it here if it is wrong.',
+    gapDetail: 'Why this is unknown',
     titleLabel: 'Scenario title',
     actionLabel: 'Step action',
     actionPlaceholder: 'What the player does or checks…',
@@ -430,6 +452,11 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     },
   },
   chat: {
+    question: {
+      freeTextPlaceholder: '직접 알려주기…',
+      freeTextLabel: '직접 답하기',
+      send: '보내기',
+    },
     title: '대화',
     emptyCopy:
       '다루고 싶은 동작을 설명하세요 — 예: “피해를 입지 않고 튜토리얼을 끝내는 시나리오를 작성해 줘.” 에이전트가 편집할 수 있는 시나리오로 답합니다.',
@@ -449,15 +476,23 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     sendFailed: '메시지를 전송하지 못했습니다. 다시 시도해 주세요.',
     awaitingReply: 'Artel의 응답을 기다리고 있습니다.',
     /*
-     * 단계 문구(ARTEL-419). 서버가 실제로 본 것까지만 말한다. `writing`이 유일한 추론이라
+     * 단계 문구(ARTEL-419). 누군가 실제로 본 것까지만 말한다. `writing`이 유일한 추론이라
      * 문구도 거기에 맞췄다 — 아는 것은 케이스를 넘겼다는 사실이지, 지금 쓰고 있다는 것이 아니다.
+     * `thinking`은 에이전트가 스스로 알려 주는 값이라 도구 호출 사이에 되풀이된다. 잇달아 오면
+     * 한 줄로 접고 `stageRepeat`으로 횟수를 센다.
      */
     stageSent: '요청 보냄',
+    stageThinking: '에이전트 작업 중',
     stageLookingUpCases: '케이스 확인 중',
+    stageReadingCase: '케이스 근거 확인 중',
+    stageFindingPath: '화면 사이 경로 찾는 중',
     stageWriting: '케이스 넘김',
     stageChecking: '검수 중',
     stageRepairing: '빠진 부분 다시 요청',
+    stageRepeat: (n: number) => `×${n}`,
     stageElapsed: (seconds: number) => `${seconds}초`,
+    stagePast: (steps: number) => `이전 ${steps}단계`,
+    stageCollapse: '접기',
     stageLabel: '저작 진행 단계',
     autoApplyLabel: '자동 적용',
     proposalsTitle: '제안된 시나리오',
@@ -664,6 +699,15 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     renameLabel: '시나리오 이름',
   },
   stepsEditor: {
+    // 명세가 메우지 못한 자리. 스텝 대신 이 블록이 그 자리에 놓인다.
+    gapTitle: '경로 미정 — 스텝이 필요합니다',
+    gapAddStep: '스텝 추가',
+    gapFillTitle: '이 구간의 스텝을 적습니다',
+    gapFillConfirm: '이 스텝으로 채우기',
+    gapFillCancel: '취소',
+    humanStep: '직접 입력',
+    humanStepHelp: '명세가 아니라 사용자가 알려준 내용으로 적힌 스텝입니다. 다르면 여기서 고치세요.',
+    gapDetail: '왜 모르는지 보기',
     titleLabel: '시나리오 제목',
     actionLabel: '스텝 행위',
     actionPlaceholder: '플레이어가 하는 행동 또는 확인…',

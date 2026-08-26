@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
+import { RunChatQuestionBlock } from './RunChatQuestion'
 import { formatDateTime } from '../projects/formatters'
 import { groupStepsByCase } from '../testScenarios/scenarioTypes'
 import type { AuthoringStage, ScenarioProposal } from './runChatApi'
@@ -46,8 +47,20 @@ function useElapsedSeconds(startedAt: number | null): number | null {
  * turn that calls no tool is normal — colouring "케이스 확인" as done in that
  * turn claims something nobody observed.
  *
- * The last entry is the live one and carries the clock; everything before it is
- * settled and steps back visually.
+ * **One line by default: what is happening now** (ARTEL-487). The stages used to
+ * run across the pane as a single row, which was fine at three of them; now that
+ * the agent reports every model turn a long turn produces eight or nine, they
+ * wrapped into ragged lines, and the one thing worth reading — the live stage and
+ * its clock — was the hardest to find in the middle of them.
+ *
+ * So the past folds away behind a count and opens as a vertical list, where the
+ * dots line up in a column and it reads as a history rather than as a paragraph.
+ * Left open once opened: someone watching a slow turn wants it to stay open.
+ *
+ * A stage that repeats is one entry with a count, not N entries. The agent reports
+ * every model turn, so a turn that looks things up three times sends "thinking"
+ * three times — worth knowing (it is still going round), not worth three identical
+ * rows.
  */
 function AuthoringProgress({
   stages,
@@ -55,33 +68,67 @@ function AuthoringProgress({
   elapsed,
   ariaLabel,
   formatElapsed,
+  formatRepeat,
+  formatPast,
+  collapseLabel,
 }: {
   stages: AuthoringStage[]
   labels: Partial<Record<AuthoringStage, string>>
   elapsed: number | null
   ariaLabel: string
   formatElapsed: (seconds: number) => string
+  formatRepeat: (times: number) => string
+  formatPast: (steps: number) => string
+  collapseLabel: string
 }) {
-  const shown = stages.filter((stage) => labels[stage] !== undefined)
+  const [open, setOpen] = useState(false)
+  const shown = stages
+    .filter((stage) => labels[stage] !== undefined)
+    .reduce<{ stage: AuthoringStage; times: number }[]>((runs, stage) => {
+      const last = runs[runs.length - 1]
+      if (last !== undefined && last.stage === stage) last.times += 1
+      else runs.push({ stage, times: 1 })
+      return runs
+    }, [])
   if (shown.length === 0) return null
+  const live = shown[shown.length - 1]
+  const past = shown.slice(0, -1)
   return (
-    <ol className="authoring-progress" aria-label={ariaLabel} role="status">
-      {shown.map((stage, index) => {
-        const live = index === shown.length - 1
-        return (
-          <li
-            className={live ? 'authoring-progress-step is-live' : 'authoring-progress-step'}
-            key={`${stage}-${index}`}
+    <div className="authoring-progress" aria-label={ariaLabel} role="status">
+      {open && past.length > 0 && (
+        <ol className="authoring-progress-past">
+          {past.map(({ stage, times }, index) => (
+            <li className="authoring-progress-step" key={`${stage}-${index}`}>
+              <span className="authoring-progress-dot" aria-hidden="true" />
+              <span className="authoring-progress-label">{labels[stage]}</span>
+              {times > 1 && (
+                <span className="authoring-progress-repeat">{formatRepeat(times)}</span>
+              )}
+            </li>
+          ))}
+        </ol>
+      )}
+      <p className="authoring-progress-step is-live">
+        <span className="authoring-progress-dot" aria-hidden="true" />
+        <span className="authoring-progress-label">{labels[live.stage]}</span>
+        {live.times > 1 && (
+          <span className="authoring-progress-repeat">{formatRepeat(live.times)}</span>
+        )}
+        {elapsed !== null && (
+          <span className="authoring-progress-elapsed">{formatElapsed(elapsed)}</span>
+        )}
+        {past.length > 0 && (
+          <button
+            aria-expanded={open}
+            className="authoring-progress-toggle"
+            onClick={() => setOpen((was) => !was)}
+            type="button"
           >
-            <span className="authoring-progress-dot" aria-hidden="true" />
-            <span className="authoring-progress-label">{labels[stage]}</span>
-            {live && elapsed !== null && (
-              <span className="authoring-progress-elapsed">{formatElapsed(elapsed)}</span>
-            )}
-          </li>
-        )
-      })}
-    </ol>
+            {open ? collapseLabel : formatPast(past.length)}
+          </button>
+        )}
+      </p>
+    </div>
   )
 }
 
@@ -111,7 +158,10 @@ export function RunChat({ session }: { session: RunChatSession }) {
   // 있었는지는 대화에 남은 문장이 말한다 — 다 끝난 눈금은 읽을거리만 하나 늘린다.
   const stageLabels: Partial<Record<AuthoringStage, string>> = {
     sent: c.stageSent,
+    thinking: c.stageThinking,
     looking_up_cases: c.stageLookingUpCases,
+    reading_case: c.stageReadingCase,
+    finding_path: c.stageFindingPath,
     writing: c.stageWriting,
     checking: c.stageChecking,
     repairing: c.stageRepairing,
@@ -155,7 +205,14 @@ export function RunChat({ session }: { session: RunChatSession }) {
     const thread = threadRef.current
     if (thread === null) return
     thread.scrollTop = thread.scrollHeight
-  }, [session.messages.length, session.awaitingReply, session.proposals.length])
+    // 단계가 늘어날 때도 따라 내린다(ARTEL-487). 이제 한 턴에 여러 줄이 쌓이는데, 그 줄들이
+    // 늘어나는 동안 스크롤이 그대로면 정작 지금 무엇을 하는지가 보이는 영역 밖으로 밀린다.
+  }, [
+    session.messages.length,
+    session.awaitingReply,
+    session.proposals.length,
+    session.stages.length,
+  ])
 
   async function submit(event: React.FormEvent) {
     event.preventDefault()
@@ -219,6 +276,15 @@ export function RunChat({ session }: { session: RunChatSession }) {
                 )}
               </p>
               <p className="chat-body">{message.content}</p>
+              {/* 물어본 줄에는 누를 것이 붙는다(ARTEL-487). 답하면 사라진다 — 이미 답한 질문에
+                  버튼이 남아 있으면 두 번 답하게 된다. */}
+              {message.question != null && (
+                <RunChatQuestionBlock
+                  question={message.question}
+                  disabled={session.sending || session.closed}
+                  onAnswer={(answer) => { void session.send('', answer) }}
+                />
+              )}
             </li>
           ))}
           {session.awaitingReply && (
@@ -236,6 +302,9 @@ export function RunChat({ session }: { session: RunChatSession }) {
                 ariaLabel={c.stageLabel}
                 elapsed={elapsed}
                 formatElapsed={c.stageElapsed}
+                collapseLabel={c.stageCollapse}
+                formatPast={c.stagePast}
+                formatRepeat={c.stageRepeat}
                 labels={stageLabels}
                 stages={session.stages}
               />

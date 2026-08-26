@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { updateScenario } from './scenarioApi'
-import { isScenarioDraftEqual, type ScenarioDraft, type ScenarioStep } from './scenarioTypes'
+import { isScenarioDraftEqual, type ScenarioDraft, type ScenarioStep, createEmptyStep } from './scenarioTypes'
 
 /**
  * Editable working copy of a scenario's steps, with undo/redo and autosave.
@@ -31,6 +31,14 @@ export type StepEditor = {
   setTitle: (title: string) => void
   updateStep: (index: number, patch: Partial<ScenarioStep>) => void
   addStep: () => void
+  /** Insert an empty step at `index` — used by the gap block to fill the place it marks. */
+  insertStep: (index: number, step?: ScenarioStep) => void
+  /**
+   * Replace the step at `index` with `steps`. The gap block uses it: once someone
+   * answers the question it asked, the notice should give up its place rather than
+   * sit above the answer repeating itself.
+   */
+  replaceStep: (index: number, steps: ScenarioStep[]) => void
   removeStep: (index: number) => void
   moveStep: (from: number, to: number) => void
   undo: () => void
@@ -103,8 +111,27 @@ export function useStepEditor(testScenarioId: number, initial: ScenarioDraft): S
     () =>
       mutate((d) => ({
         ...d,
-        steps: [...d.steps, { action: '', case_id: null, hint: null, input: null }],
+        steps: [...d.steps, createEmptyStep()],
       })),
+    [mutate],
+  )
+  const insertStep = useCallback(
+    (index: number, step?: ScenarioStep) =>
+      mutate((d) => {
+        const steps = [...d.steps]
+        steps.splice(Math.max(0, Math.min(index, steps.length)), 0, step ?? createEmptyStep())
+        return { ...d, steps }
+      }),
+    [mutate],
+  )
+  const replaceStep = useCallback(
+    (index: number, steps: ScenarioStep[]) =>
+      mutate((d) => {
+        if (index < 0 || index >= d.steps.length || steps.length === 0) return d
+        const next = [...d.steps]
+        next.splice(index, 1, ...steps)
+        return { ...d, steps: next }
+      }),
     [mutate],
   )
   const removeStep = useCallback(
@@ -205,6 +232,8 @@ export function useStepEditor(testScenarioId: number, initial: ScenarioDraft): S
     setTitle,
     updateStep,
     addStep,
+    insertStep,
+    replaceStep,
     removeStep,
     moveStep,
     undo,
