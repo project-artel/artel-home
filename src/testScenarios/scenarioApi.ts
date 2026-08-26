@@ -58,16 +58,26 @@ function asNullableText(value: unknown): string | null {
   return typeof value === 'string' && value.length > 0 ? value : null
 }
 
+const SOURCES = ['CASE', 'CAPABILITY', 'UNKNOWN', 'HUMAN']
+
 function parseStep(data: unknown): ScenarioStep | null {
   const record = asRecord(data)
   if (record === null) return null
 
   // Field names mirror the wire (재설계): action + optional case_id/hint/input.
+  const kind = record.step_kind === 'GAP' || record.step_kind === 'ACTION' ? record.step_kind : null
   return {
     action: asString(record.action),
     case_id: asNullableNumber(record.case_id),
     hint: asNullableText(record.hint),
     input: asNullableText(record.input),
+    // Carried through rather than dropped: the editor writes the whole step back on
+    // save, so a field parsed away here would be erased from storage on the next edit.
+    step_kind: kind,
+    step_unknown_reason: asNullableText(record.step_unknown_reason),
+    step_source: SOURCES.includes(record.step_source as string)
+      ? (record.step_source as ScenarioStep['step_source'])
+      : null,
   }
 }
 

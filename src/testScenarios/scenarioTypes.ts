@@ -21,6 +21,42 @@ export type ScenarioStep = {
   case_id: number | null
   hint: string | null
   input: string | null
+  /**
+   * Whether this line is something to do, or a notice (ARTEL-468).
+   *
+   * `GAP` is not an action. It marks a place where the scene spec does not know the
+   * route between two checks, so nothing was authored there — a run neither performs
+   * nor judges it. Rendering it as a numbered step would be a lie twice over: whoever
+   * runs it would try, and a thing nobody could do would be recorded as a failure.
+   *
+   * `null` means `ACTION` — every scenario authored before this field existed.
+   */
+  step_kind: 'ACTION' | 'GAP' | null
+  /** What blocks the route, on a `GAP` — a scene pair or a variable name. */
+  step_unknown_reason: string | null
+  /**
+   * Where the step came from. `HUMAN` is the one this screen writes: a step someone
+   * typed into a gap. The server leaves those alone — it neither rewrites them from
+   * the scene spec nor folds them into a notice, so an answer a person gave survives
+   * the next authoring turn.
+   */
+  step_source: 'CASE' | 'CAPABILITY' | 'UNKNOWN' | 'HUMAN' | null
+}
+
+/** A notice block, not a step to run. */
+export function isGapStep(step: ScenarioStep): boolean {
+  return step.step_kind === 'GAP'
+}
+
+/**
+ * An empty step for a person to fill in at a gap.
+ *
+ * Marked `HUMAN` so the server keeps it: an unmarked bridge in a gap the scene spec
+ * cannot explain gets folded into the notice on the next save, which would throw away
+ * the very answer this button exists to collect.
+ */
+export function createHumanStep(): ScenarioStep {
+  return { ...createEmptyStep(), step_source: 'HUMAN', step_kind: 'ACTION' }
 }
 
 export type ScenarioDraft = {
@@ -51,6 +87,12 @@ export type ChatMessage = {
   createdAt: string | null
   /** A user message that has been sent but whose reply has not arrived yet. */
   pending: boolean
+  /**
+   * A question the server attached to this line (ARTEL-487). `null` on ordinary
+   * messages. Carried on the message rather than kept beside the thread so that a
+   * reload restores it in place — the question is that line, not something next to it.
+   */
+  question?: import('../testRuns/runChatApi').RunChatQuestion | null
 }
 
 export type ScenarioResult = {
@@ -93,7 +135,10 @@ export function isScenarioDraftEqual(left: ScenarioDraft, right: ScenarioDraft):
 }
 
 export function createEmptyStep(): ScenarioStep {
-  return { action: '', case_id: null, hint: null, input: null }
+  return {
+    action: '', case_id: null, hint: null, input: null,
+    step_kind: null, step_unknown_reason: null, step_source: null,
+  }
 }
 
 /**
