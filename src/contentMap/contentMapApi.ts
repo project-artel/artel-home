@@ -2,9 +2,11 @@ import { apiFetch } from '../auth/authApi'
 import { asNullableString, asRecord, asString, readJson } from '../projects/projectApi'
 import {
   type CapabilityCounts,
+  type ConditionNode,
   type ContentMapGap,
   type ContentMapHeader,
   type ContentMapScene,
+  type ContentMapStep,
   type ContentMapVerification,
   type ContentMapView,
   type PendingDocument,
@@ -94,6 +96,111 @@ function parseCapabilities(data: unknown): CapabilityCounts {
 }
 
 /**
+ * 조건 트리의 마디 하나.
+ *
+ * 여기가 이 파일에서 유일하게 **관대하지 않은** 자리다. 나머지 파서는 필드
+ * 하나가 비면 화면이 감출 줄 아는 값으로 낮추지만, 조건은 그렇게 다룰 수
+ * 없다. 못 읽은 마디를 `always` 로 낮추면 화면은 "아무 때나 된다"고 말하게
+ * 되고, 그 줄을 읽은 QA 는 실제로는 선행 조건이 있는 조작을 조건 없이
+ * 테스트한다. 그래서 모르는 `kind` 는 낮추지 않고 `unrecognisedKind` 로
+ * 남겨서, 우리가 못 읽었다는 사실 자체를 화면에 올린다.
+ *
+ * 서버가 정규화해서 보내므로 `kind` 는 늘 소문자이고 이름표 없는 마디는
+ * 오지 않는다. 이 함수는 그 약속을 다시 확인하지 않고, 어긋나면 어긋난
+ * 그대로 보인다.
+ */
+export function parseCondition(data: unknown): ConditionNode {
+  const record = asRecord(data)
+  if (record === null) return { kind: 'unrecognisedKind', reportedKind: '' }
+
+  const kind = asString(record.kind)
+
+  switch (kind) {
+    case 'always':
+      return { kind: 'always' }
+
+    case 'test':
+      return {
+        kind: 'test',
+        left: asString(record.left),
+        operator: asString(record.operator),
+        right: asString(record.right),
+        context: asNullableString(record.context),
+        subjectLost: asNullableString(record.subjectLost),
+        offset: asCount(record.offset),
+      }
+
+    case 'gesture':
+      return { kind: 'gesture', input: asString(record.input), offset: asCount(record.offset) }
+
+    case 'every':
+    case 'either': {
+      const parts = toArray(record.parts).map(parseCondition)
+      // 부분이 하나도 없는 묶음은 조건이 아니다. 빈 `every` 를 그리면 화면이
+      // "이것을 전부 만족해야 한다"고 말해 놓고 아무것도 대지 못한다.
+      if (parts.length === 0) return { kind: 'unrecognisedKind', reportedKind: kind }
+      return { kind, parts }
+    }
+
+    case 'unknown':
+      return {
+        kind: 'unknown',
+        reason: asString(record.reason),
+        unread: asNullableString(record.unread),
+      }
+
+    default:
+      return { kind: 'unrecognisedKind', reportedKind: kind }
+  }
+}
+
+/**
+ * 조작 단계 하나. `id` 가 없으면 버린다 — 같은 씬 안에 요약·입력키·상태가
+ * 전부 같은 단계가 여럿 있고, 그것들을 가르는 것은 id 와 조건뿐이다.
+ */
+export function parseStep(data: unknown): ContentMapStep | null {
+  const record = asRecord(data)
+  if (record === null) return null
+
+  const id = asId(record.id)
+  if (id === null) return null
+
+  return {
+    id,
+    summary: asString(record.summary),
+    status: asString(record.status),
+    interaction: asString(record.interaction),
+    inputKey: asNullableString(record.inputKey),
+    controlLabel: asNullableString(record.controlLabel),
+    controlPath: asNullableString(record.controlPath),
+    givenText: asNullableString(record.givenText),
+    given: record.given === null || record.given === undefined ? null : parseCondition(record.given),
+  }
+}
+
+/**
+ * 씬의 단계 목록.
+ *
+ * 절이 없으면 `null` 을, 있으면 배열을 돌려준다. 이 구분이 이 함수의 전부다:
+ * 이 절을 아직 보내지 않는 서버의 응답에서 화면이 "단계가 0개"라고 말하면,
+ * 씬에 정말로 조작이 없다는 것과 우리가 물어보지 않았다는 것이 한 문장으로
+ * 합쳐진다. 절이 있지만 배열이 아닌 응답도 같은 이유로 "절 없음"으로 읽는다 —
+ * 배열이 아닌 것에서 단계를 세는 것보다 아무 말도 하지 않는 편이 정직하다.
+ */
+function parseSteps(data: unknown): ContentMapStep[] | null {
+  if (!Array.isArray(data)) return null
+
+  const steps: ContentMapStep[] = []
+  for (const raw of data) {
+    const step = parseStep(raw)
+    // 같은 id 가 두 번 와도 접지 않는다. 이 목록은 서로 구분되지 않는 줄이
+    // 여럿이라는 사실 자체를 보여 주는 곳이고, 접으면 그 사실이 사라진다.
+    if (step !== null) steps.push(step)
+  }
+  return steps
+}
+
+/**
  * 씬 하나. `id` 가 없으면 버린다 — 전이가 가리킬 수 없는 씬은 그래프에
  * 놓을 자리가 없고, 지어낸 id 는 다음 응답에서 다른 씬이 된다.
  */
@@ -109,6 +216,7 @@ export function parseScene(data: unknown): ContentMapScene | null {
     name: asString(record.name),
     walked: record.walked === true,
     capabilities: parseCapabilities(record.capabilities),
+    steps: parseSteps(record.steps),
   }
 }
 

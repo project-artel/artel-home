@@ -5747,6 +5747,214 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   font-size: 11px;
 }
 
+/* 조작 단계. 요약 줄이 개수를 말하고 여기가 무엇을 할 수 있는지를 말한다. */
+.cm-step-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-height: min(360px, 36vh);
+  margin: 0;
+  padding: 0 var(--space-1) 0 0;
+  list-style: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.cm-step-list:focus-visible {
+  outline: 2px solid var(--color-action-primary);
+  outline-offset: 2px;
+}
+.cm-step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-subtle);
+  border-left-width: 3px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface);
+}
+/* 상태는 왼쪽 규칙선에서 한 번 더 반복된다. 이름이 바로 옆에 적혀 있으므로
+   색 혼자서는 아무 상태도 말하지 않는다. */
+.cm-step--runnable {
+  border-left-color: var(--color-status-success);
+}
+.cm-step--needsProbe {
+  border-left-color: var(--color-status-warning);
+}
+.cm-step--unreachablePrecondition {
+  border-left-color: var(--color-status-critical);
+}
+.cm-step--unknown {
+  border-left-color: var(--color-border-strong);
+}
+/* 요약은 대체로 `Scenes.GameClearController.ShowGettedCard()` 같은 식별자다.
+   자르지 않는다 — 여섯 줄이 서로 다른지 보려면 끝까지 보여야 한다. */
+.cm-step-summary {
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+.cm-step-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+.cm-step-status {
+  color: var(--color-text-secondary);
+}
+.cm-step-path {
+  margin: 0;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+
+/* 조건. 요약·입력키·상태가 같은 단계들을 가르는 유일한 것이라, 단계마다
+   접히지 않고 붙어 있는다. */
+.cm-cond-block {
+  margin-top: var(--space-1);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border-subtle);
+}
+.cm-cond-heading {
+  margin: 0 0 var(--space-1);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+.cm-cond-sentence {
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--color-text-primary);
+}
+/* "조건이 기록되지 않았다"는 조용한 사실이다. 못 읽은 조건과 달리 아무것도
+   확인할 것이 없으므로 회색 한 줄로 둔다. */
+.cm-cond-none {
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--color-text-muted);
+}
+.cm-cond-raw summary {
+  width: fit-content;
+  min-height: 32px;
+  padding: 7px 0;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: 11px;
+}
+.cm-cond-raw summary:hover {
+  color: var(--color-text-primary);
+}
+.cm-cond-tree {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* 중첩은 규칙선 하나로 눈에 보인다. 구조를 말하는 것은 이 선이 아니라 묶는
+   문장과 중첩된 목록이다 — 들여쓰기는 스크린 리더에게 아무 소리도 내지 않는다. */
+.cm-cond .cm-cond-tree {
+  margin-top: var(--space-1);
+  padding-left: var(--space-3);
+  border-left: 1px solid var(--color-border-subtle);
+}
+.cm-cond {
+  font-size: 12px;
+  line-height: 18px;
+}
+.cm-cond-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--color-text-primary);
+}
+.cm-cond-join {
+  margin: 0;
+  font-size: 11px;
+  line-height: 17px;
+  color: var(--color-text-secondary);
+}
+.cm-cond-kind {
+  flex: none;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-text-muted);
+}
+/* `always` 는 조건이 없다는 사실이므로 본문보다 한 단계 조용하다. 아래의
+   못 읽은 조건과 결코 같은 모양이 되면 안 된다. */
+.cm-cond--always .cm-cond-line {
+  color: var(--color-text-secondary);
+}
+.cm-cond-expression {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-1);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.cm-cond-operator {
+  color: var(--color-text-secondary);
+}
+.cm-cond-note {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+/* 좌변의 주체를 찾지 못한 검사다. 색으로 말하지 않는다 — 앰버 글자는 이
+   종이 위에서 본문 대비를 넘지 못하고, 문구가 이미 무슨 일인지 말한다. */
+.cm-cond-note-warn {
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+/* 못 읽은 조건. 조건이 없는 것과 절대 같은 모양이 아니다 — 앞엣것은 확인할
+   것이 남아 있고 뒤엣것은 없다. 이 두 줄을 섞으면 조건 없는 단계와 조건을
+   모르는 단계가 한 줄로 보이고, 그 목록으로 쓴 테스트 케이스는 반대로 돈다. */
+.cm-cond--unknown,
+.cm-cond--unrecognised {
+  padding: var(--space-2);
+  border-left: 2px solid var(--color-status-warning);
+  border-radius: var(--radius-sm);
+  background: var(--color-status-warning-muted);
+}
+.cm-cond--unknown .cm-cond-kind,
+.cm-cond--unrecognised .cm-cond-kind {
+  color: var(--color-text-primary);
+}
+.cm-cond-unread {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: var(--space-1) 0 0;
+  font-size: 11px;
+}
+.cm-cond-note-label {
+  color: var(--color-text-muted);
+}
+.cm-cond-unread-text {
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+
 /* 씬 색칩. 스칼라 라이브러리·런 맵과 같은 규칙을 쓴다 — 같은 씬이 세 화면에서
    같은 색이어야 한다. */
 .content-map .cat-chip {
