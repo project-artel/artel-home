@@ -113,7 +113,7 @@ export function EvidenceScanPanel({
     setScanRun({ token: refreshToken, scan: { phase: 'running' } })
 
     try {
-      await requestEvidenceScan({ projectId, gameBuildId: buildId, gameInstanceId: instanceId })
+      await requestEvidenceScan({ projectId, gameBuildId: buildId })
       setScanRun({ token: refreshToken, scan: { phase: 'requested' } })
     } catch (error: unknown) {
       setScanRun({
