@@ -6,6 +6,7 @@ import { SceneChip } from '../testCases/SceneChip'
 import { KNOWN_CAPABILITY_STATUSES, edgeSourceStyle } from './contentMapTypes'
 import type { SceneIncidence, SceneNode } from './sceneGraphLayout'
 import { sceneKind, sceneTitle } from './sceneLabels'
+import { SceneStepList } from './SceneStepList'
 
 /**
  * 그림의 대등한 대체물.
@@ -146,6 +147,10 @@ function SceneDetail({
               ))}
             </ul>
           )}
+
+          {/* 개수 바로 다음에 온다. "능력 6개"를 읽은 다음 묻게 되는 것이
+              "그래서 무엇을 할 수 있나"이고, 그 답이 여기 있다. */}
+          <SceneStepList scene={scene} />
         </>
       )}
 

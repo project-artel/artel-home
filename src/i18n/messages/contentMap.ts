@@ -171,6 +171,68 @@ export const contentMapEn = {
     capabilityLabel: (capabilityId: string) => `capability ${capabilityId}`,
     noCapabilityLink: 'no capability recorded',
   },
+  // What can actually be done in the selected scene. The counts above say how
+  // many; this says which, and under what condition.
+  steps: {
+    heading: (count: number) => `${count} step${count === 1 ? '' : 's'}`,
+    // Without this line the reader compares a step count against a capability
+    // count and concludes the page lost some rows.
+    notAStepNote: (count: number) =>
+      `${count} further capabilit${count === 1 ? 'y is' : 'ies are'} not a step, so ${count === 1 ? 'it is' : 'they are'} not listed here.`,
+    none: 'The server described no step for this scene.',
+    untitled: 'Step the server did not summarise',
+    // The status vocabulary belongs to the server. An unrecognised one is
+    // printed as it arrived rather than folded into one this build knows.
+    statusUnknown: (status: string) =>
+      status.length > 0 ? `Unrecognised status ${status}` : 'No status recorded',
+    interactions: {
+      click: 'Click',
+      press: 'Press',
+      drag: 'Drag',
+      none: 'No interaction',
+    },
+    interactionUnknown: (interaction: string) =>
+      interaction.length > 0 ? `Unrecognised interaction ${interaction}` : 'No interaction recorded',
+    inputKey: (key: string) => `key ${key}`,
+    controlLabel: (label: string) => `control ${label}`,
+    // Condition. Six runnable steps in one measured scene share their summary,
+    // input key and status; only this tells them apart.
+    conditionHeading: 'Condition',
+    conditionNone: 'No condition was recorded for this step.',
+    // Explicitly unconditional, which is a different fact from "not recorded"
+    // and a different fact again from "we could not read it".
+    conditionAlways: 'Runs whenever this step is reached — nothing gates it.',
+    // The tree stays available once a sentence exists, folded away, because the
+    // sentence is a rendering of it and a reader may need the original.
+    conditionRawToggle: 'The condition as the server recorded it',
+    conditionEvery: (count: number) => `All ${count} of these must hold:`,
+    conditionEither: (count: number) => `Any one of these ${count} is enough:`,
+    conditionKinds: {
+      test: 'Check',
+      gesture: 'Gesture',
+      unknown: 'Could not be read',
+      unrecognised: 'Unrecognised condition',
+    },
+    // Read out to a screen reader, which cannot rely on the spacing that tells
+    // a sighted reader which side of the operator it is looking at.
+    testLeft: 'left side',
+    testOperator: 'operator',
+    testRight: 'right side',
+    gestureInput: 'input',
+    conditionContext: (context: string) => `in ${context}`,
+    // The server read the comparison but lost track of whose value it is. The
+    // condition is half-read, and saying so is the point of the field.
+    conditionSubjectLost: (subject: string) => `subject not resolved: ${subject}`,
+    conditionOffset: (offset: number) => `offset ${offset}`,
+    conditionReason: (reason: string) => `reason ${reason}`,
+    conditionUnread: 'What the server could not read',
+    // An empty kind is still a fact about the response, so it gets its own line
+    // rather than an empty pair of quotes.
+    conditionReportedKind: (kind: string) =>
+      kind.length > 0
+        ? `The server called this a ${kind}, which this page does not know how to read.`
+        : 'The server sent a condition without a kind, so this page cannot read it.',
+  },
 } as const
 
 export const contentMapKo: Localized<typeof contentMapEn> = {
@@ -326,5 +388,49 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
     notVerified: '미확인',
     capabilityLabel: (capabilityId: string) => `능력 ${capabilityId}`,
     noCapabilityLink: '연결된 능력 없음',
+  },
+  steps: {
+    heading: (count: number) => `조작 단계 ${count}개`,
+    notAStepNote: (count: number) =>
+      `이 씬의 다른 기능 ${count}개는 단계가 아니라서 여기에 없습니다.`,
+    none: '서버가 이 씬의 조작 단계를 하나도 기록하지 않았습니다.',
+    untitled: '서버가 요약을 주지 않은 단계',
+    statusUnknown: (status: string) =>
+      status.length > 0 ? `알 수 없는 상태 ${status}` : '상태 기록 없음',
+    interactions: {
+      click: '클릭',
+      press: '누르기',
+      drag: '끌기',
+      none: '상호작용 없음',
+    },
+    interactionUnknown: (interaction: string) =>
+      interaction.length > 0 ? `알 수 없는 상호작용 ${interaction}` : '상호작용 기록 없음',
+    inputKey: (key: string) => `키 ${key}`,
+    controlLabel: (label: string) => `컨트롤 ${label}`,
+    conditionHeading: '조건',
+    conditionNone: '이 단계에 기록된 조건이 없습니다.',
+    conditionAlways: '이 단계에 닿기만 하면 실행됩니다 — 막는 조건이 없습니다.',
+    conditionRawToggle: '서버가 기록한 조건 그대로',
+    conditionEvery: (count: number) => `다음 ${count}가지를 모두 만족해야 합니다:`,
+    conditionEither: (count: number) => `다음 ${count}가지 중 하나만 만족하면 됩니다:`,
+    conditionKinds: {
+      test: '검사',
+      gesture: '제스처',
+      unknown: '읽지 못함',
+      unrecognised: '알 수 없는 조건',
+    },
+    testLeft: '왼쪽',
+    testOperator: '연산자',
+    testRight: '오른쪽',
+    gestureInput: '입력',
+    conditionContext: (context: string) => `위치 ${context}`,
+    conditionSubjectLost: (subject: string) => `주체를 찾지 못함: ${subject}`,
+    conditionOffset: (offset: number) => `오프셋 ${offset}`,
+    conditionReason: (reason: string) => `사유 ${reason}`,
+    conditionUnread: '서버가 읽지 못한 부분',
+    conditionReportedKind: (kind: string) =>
+      kind.length > 0
+        ? `서버는 이것을 ${kind} 라고 했지만 이 화면은 그 종류를 읽을 줄 모릅니다.`
+        : '서버가 종류 없는 조건을 보내서 이 화면이 읽을 수 없습니다.',
   },
 }

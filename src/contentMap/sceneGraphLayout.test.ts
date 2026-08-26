@@ -28,6 +28,7 @@ function scene(id: string, name: string, over: Partial<ContentMapScene> = {}): C
       notAStep: 0,
       unreachablePrecondition: 0,
     },
+    steps: null,
     ...over,
   }
 }
