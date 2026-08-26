@@ -161,16 +161,25 @@ export function parseQaRun(data: unknown, status = 200): QaRun {
   }
 }
 
-/** `POST /api/qa-runs` — start a TR-unit run (all its scenarios, in order). */
+/**
+ * `POST /api/qa-runs` — start a TR-unit run (all its scenarios, in order).
+ *
+ * `force` ends whatever QA that game is still running and takes its place. It is
+ * off by default and is meant to be a second call: send the plain request, and
+ * if it comes back `qa_run_active`, ask the operator before sending it again
+ * with `force`. Cancelling someone's run is not undoable, so nothing may infer
+ * the intent from a first request that did not say it.
+ */
 export async function createQaRun(
   testRunId: string,
   gameInstanceId: string,
   model: string,
   reasoning: QaReasoningSelection | null,
+  force = false,
 ): Promise<QaRun> {
   const response = await apiFetch(QA_RUNS_ROOT, {
     method: 'POST',
-    ...jsonRequest({ testRunId, gameInstanceId, model, reasoning }),
+    ...jsonRequest({ testRunId, gameInstanceId, model, reasoning, force }),
   })
   return parseQaRun(await readJson(response), response.status)
 }
@@ -255,6 +264,26 @@ export async function listQaModels(signal?: AbortSignal): Promise<QaModel[]> {
 
 export function isQaConflict(error: unknown): error is ProjectApiError {
   return error instanceof ProjectApiError && error.status === 409
+}
+
+/**
+ * Why the server refused to start a run, when it refused.
+ *
+ * The three reasons all answer `409` and are told apart by `code`, never by the
+ * message: that message is prose we edit, and the previous match — a regex
+ * looking for "sdk" in it — silently mapped "this test run has no scenarios" to
+ * "that game is already running QA". `null` for anything that is not one of the
+ * three, so callers fall through to their generic copy.
+ */
+export function qaStartConflict(
+  error: unknown,
+): 'sdk_disconnected' | 'qa_run_active' | 'test_run_empty' | null {
+  if (!isQaConflict(error)) return null
+  return error.code === 'sdk_disconnected' ||
+    error.code === 'qa_run_active' ||
+    error.code === 'test_run_empty'
+    ? error.code
+    : null
 }
 
 /** One project's runs, newest first. Malformed rows are dropped, not fatal. */

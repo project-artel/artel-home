@@ -39,6 +39,12 @@ function QaRunMissing({ projectId }: { projectId: string }) {
 // per-frame GAME_STATE) are noise there and stay in the Raw tab.
 const FLOW_TYPES = new Set<QaLog['type']>(['ACTION', 'ACTION_RESULT', 'STATUS', 'ERROR', 'CHAT'])
 
+/** How often the console re-reads the run while it is still going. */
+const POLL_INTERVAL_MS = 3000
+
+/** The ceiling the retry delay backs off to while the server is unreachable. */
+const POLL_BACKOFF_MAX_MS = 30_000
+
 /**
  * The QA run console (ARTEL-290): one run-scoped page for the whole execution.
  * A left rail lists every scenario in the run with its status; the centre shows
@@ -54,25 +60,46 @@ function QaRunPage({ projectId, qaRunId }: { projectId: string; qaRunId: string 
   const [cancelError, setCancelError] = useState<string | null>(null)
   const [titleById, setTitleById] = useState<Map<string, string>>(new Map())
   const stop = useRef(false)
+  const refresh = useRef<() => void>(() => {})
 
   useEffect(() => {
     stop.current = false
     let timer: ReturnType<typeof setTimeout> | null = null
+    // Grows while the server is unreachable so a long outage is not a request
+    // every three seconds, and resets on the first answer.
+    let backoff = POLL_INTERVAL_MS
+
+    function schedule(delay: number) {
+      if (timer !== null) clearTimeout(timer)
+      timer = setTimeout(() => void tick(), delay)
+    }
+
     async function tick() {
       try {
         const next = await getQaRun(qaRunId)
         if (stop.current) return
         setRun(next)
         setState('ready')
-        if (!isTerminalQaStatus(next.status)) timer = setTimeout(tick, 3000)
+        backoff = POLL_INTERVAL_MS
+        if (!isTerminalQaStatus(next.status)) schedule(POLL_INTERVAL_MS)
       } catch {
         if (stop.current) return
         setState((prev) => (prev === 'ready' ? 'ready' : 'missing'))
+        // **Keep polling.** This used to stop here, and one failed request ended
+        // the loop for good: the page froze on its last snapshot — typically
+        // `RUNNING` — and never moved again, so ending the run looked like it did
+        // nothing. A deploy restarting Orchestration mid-run is exactly the case,
+        // and exactly when the operator reaches for the cancel button.
+        schedule(backoff)
+        backoff = Math.min(backoff * 2, POLL_BACKOFF_MAX_MS)
       }
     }
+
+    refresh.current = () => void tick()
     void tick()
     return () => {
       stop.current = true
+      refresh.current = () => {}
       if (timer !== null) clearTimeout(timer)
     }
   }, [qaRunId])
@@ -91,6 +118,9 @@ function QaRunPage({ projectId, qaRunId }: { projectId: string; qaRunId: string 
     setCancelError(null)
     try {
       await cancelQaRun(qaRunId)
+      // Read the run back now rather than waiting for the next poll: the button
+      // is the one place the operator expects the page to answer immediately.
+      refresh.current()
     } catch {
       setCancelError(t.qa.run.cancelFailed)
     } finally {

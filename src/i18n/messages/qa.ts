@@ -98,6 +98,14 @@ export const qaEn = {
     failed: 'The run could not be ended.',
     gone: 'This QA Try no longer exists.',
   },
+  /** Taking a game away from the QA still running on it. */
+  takeover: {
+    title: 'End the QA already running on this game?',
+    copy: 'That game is still running QA. Starting yours ends it where it is — its remaining steps stay unanswered, and it cannot be resumed.',
+    keepRunning: 'Leave it running',
+    confirm: 'End it and run',
+    pending: 'Starting…',
+  },
   /** The QA history section: every run this project has started. */
   history: {
     filterLabel: 'Filter by status',
@@ -116,7 +124,7 @@ export const qaEn = {
     // The server answers 409 for both; the copy names the fix for each.
     sdkDisconnected:
       'That game is not connected. Start it with its instance key, then run QA again.',
-    alreadyRunning: 'That game already has a QA run in progress. Open or finish it first.',
+    alreadyRunning: 'That game is still running QA and could not be taken over. Open that run, end it there, then try again.',
     startFailed: 'The QA run could not be started.',
   },
   run: {
@@ -239,6 +247,13 @@ export const qaKo: Localized<typeof qaEn> = {
     failed: '실행을 종료하지 못했습니다.',
     gone: '이 QA Try가 더 이상 존재하지 않습니다.',
   },
+  takeover: {
+    title: '이 게임에서 진행 중인 QA를 종료할까요?',
+    copy: '그 게임은 아직 QA를 실행 중입니다. 새로 시작하면 그 실행이 그 자리에서 멈추고, 남은 스텝은 판정되지 않은 채로 남으며 다시 이어서 실행할 수 없습니다.',
+    keepRunning: '그대로 두기',
+    confirm: '종료하고 실행',
+    pending: '시작하는 중…',
+  },
   history: {
     filterLabel: '상태로 거르기',
     all: '전체',
@@ -254,7 +269,7 @@ export const qaKo: Localized<typeof qaEn> = {
     missingSelection: '게임과 테스트 런을 선택하세요.',
     emptyRun: '이 런에는 시나리오가 없습니다. 먼저 추가하세요.',
     sdkDisconnected: '그 게임이 연결되어 있지 않습니다. 인스턴스 키로 실행한 뒤 다시 시도하세요.',
-    alreadyRunning: '그 게임에는 이미 진행 중인 QA가 있습니다. 먼저 열어보거나 종료하세요.',
+    alreadyRunning: '그 게임의 진행 중인 QA를 넘겨받지 못했습니다. 그 실행을 열어 종료한 뒤 다시 시도하세요.',
     startFailed: 'QA를 시작하지 못했습니다.',
   },
   run: {

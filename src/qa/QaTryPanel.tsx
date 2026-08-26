@@ -7,18 +7,12 @@ import { ProjectApiError } from '../projects/projectApi'
 import { sectionHref } from '../projects/workspace/sections'
 import type { ExtrasStatus } from '../projects/workspace/workspaceContext'
 import type { TestRun } from '../testRuns/testRunApi'
-import { createQaRun, isQaConflict } from './qaApi'
+import { createQaRun, qaStartConflict } from './qaApi'
 import type { QaModel, QaReasoningSelection, QaTry } from './qaTypes'
+import { TakeOverQaRunDialog } from './TakeOverQaRunDialog'
 
 /** How many recent runs the panel shows before deferring to the history section. */
 const RECENT_LIMIT = 5
-
-/**
- * Both preconditions answer 409 and share one error code, so the server's
- * `reason` is the only thing that separates them. Matched on the one word that
- * distinguishes them rather than the whole sentence, which is prose and moves.
- */
-const SDK_DISCONNECTED = /sdk/i
 
 /**
  * Starting a QA run, and the handful most recently started.
@@ -53,6 +47,8 @@ export function QaTryPanel({
   const [reasoningValue, setReasoningValue] = useState(0)
   const [starting, setStarting] = useState(false)
   const [failure, setFailure] = useState<string | null>(null)
+  // Open only after the server has refused a plain start with `qa_run_active`.
+  const [takeoverOpen, setTakeoverOpen] = useState(false)
   const navigate = useNavigate()
   const { t } = useI18n()
   const gameSelectId = useId()
@@ -65,7 +61,11 @@ export function QaTryPanel({
   // otherwise paint one frame with an empty select.
   const modelId = selectedModelId || models[0]?.id || ''
 
-  async function run() {
+  /**
+   * @param force end whatever QA still holds the game and take its place. Only
+   *   ever true on the second attempt, after the operator answered the dialog.
+   */
+  async function run(force = false) {
     if (instanceId === '' || runId === '' || modelId === '') {
       setFailure(t.qa.errors.missingSelection)
       return
@@ -77,20 +77,34 @@ export function QaTryPanel({
     try {
       // TR 단위 실행: 런의 모든 시나리오를 순차 실행한다(사이 게임 리셋). 시나리오 없는 런은
       // 백엔드가 409로 거부한다.
-      const run = await createQaRun(runId, instanceId, modelId, selectedReasoning)
+      const run = await createQaRun(runId, instanceId, modelId, selectedReasoning, force)
+      setTakeoverOpen(false)
       navigate(
         `/projects/${encodeURIComponent(projectId)}/qa-runs/${encodeURIComponent(run.id)}`,
       )
     } catch (error: unknown) {
-      if (isQaConflict(error)) {
-        setFailure(
-          SDK_DISCONNECTED.test(error.message)
-            ? t.qa.errors.sdkDisconnected
-            : t.qa.errors.alreadyRunning,
-        )
-      } else {
-        setFailure(error instanceof ProjectApiError ? error.message : t.qa.errors.startFailed)
+      const conflict = qaStartConflict(error)
+      // 진행 중인 QA는 막다른 오류가 아니라 선택지다 — 물어보고 뺏을 수 있다. 스테일 런이
+      // 게임을 붙잡고 있는 경우가 흔한데(배포로 Orchestration이 재시작하면 소켓만 죽고 런은
+      // RUNNING으로 남는다), 그때마다 다른 화면으로 보내 종료시키고 돌아오게 하는 것은 같은
+      // 결정을 두 번 시키는 것이다. 이미 뺏겠다고 답한 요청(force)이 또 이 코드로 돌아왔다면
+      // 뺏을 대상이 계속 바뀌고 있다는 뜻이라, 다시 묻지 않고 오류로 보여 준다.
+      if (conflict === 'qa_run_active' && !force) {
+        setTakeoverOpen(true)
+        setStarting(false)
+        return
       }
+      setFailure(
+        conflict === 'sdk_disconnected'
+          ? t.qa.errors.sdkDisconnected
+          : conflict === 'test_run_empty'
+            ? t.qa.errors.emptyRun
+            : conflict === 'qa_run_active'
+              ? t.qa.errors.alreadyRunning
+              : error instanceof ProjectApiError
+                ? error.message
+                : t.qa.errors.startFailed,
+      )
       setStarting(false)
     }
   }
@@ -232,7 +246,7 @@ export function QaTryPanel({
           <button
             className="button button--primary"
             disabled={!runnable || starting}
-            onClick={run}
+            onClick={() => void run()}
             type="button"
           >
             {starting ? t.qa.panel.starting : t.qa.panel.runButton}
@@ -240,7 +254,17 @@ export function QaTryPanel({
         </div>
       )}
 
-      {failure !== null && (
+      {takeoverOpen && (
+        <TakeOverQaRunDialog
+          failure={failure}
+          onClose={() => setTakeoverOpen(false)}
+          onConfirm={() => void run(true)}
+          pending={starting}
+        />
+      )}
+
+      {/* 이어받기 다이얼로그가 떠 있으면 실패는 거기서 보여 준다 — 같은 문구를 두 곳에 내지 않는다. */}
+      {failure !== null && !takeoverOpen && (
         <div className="inline-error" role="alert">
           <span aria-hidden="true">!</span>
           {failure}
