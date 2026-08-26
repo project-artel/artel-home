@@ -10,6 +10,7 @@ import {
   type ContentMapVerification,
   type ContentMapView,
   type PendingDocument,
+  type SceneThumbnail,
   type SceneTransition,
 } from './contentMapTypes'
 
@@ -201,6 +202,42 @@ function parseSteps(data: unknown): ContentMapStep[] | null {
 }
 
 /**
+ * 대표 이미지 절.
+ *
+ * `state` 가 이 빌드가 아는 두 값 중 하나일 때만 읽는다. 모르는 상태를
+ * `available` 로 접으면 화면이 없는 이미지를 그리려 들고, `unavailable` 로
+ * 접으면 서버가 말하지 않은 실패를 지어낸다. 둘 다 틀리므로 통째로 버린다 —
+ * 그때 화면은 "서버가 이 씬에 대해 아무 말도 안 했다" 갈래를 탄다.
+ *
+ * `available` 인데 `url` 이 비어 있으면 그릴 것이 없다. 그것도 버린다.
+ */
+export function parseThumbnail(data: unknown): SceneThumbnail | null {
+  const record = asRecord(data)
+  if (record === null) return null
+
+  const state = asString(record.state)
+  if (state === 'available') {
+    const url = asString(record.url)
+    if (url.length === 0) return null
+    return {
+      state: 'available',
+      url,
+      width: asNullableCount(record.width),
+      height: asNullableCount(record.height),
+    }
+  }
+  if (state === 'unavailable') {
+    return { state: 'unavailable', reason: asString(record.reason) }
+  }
+  return null
+}
+
+/** 픽셀 크기. 없거나 말이 안 되는 값이면 null 로 둔다 — 0 은 크기가 아니다. */
+function asNullableCount(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null
+}
+
+/**
  * 씬 하나. `id` 가 없으면 버린다 — 전이가 가리킬 수 없는 씬은 그래프에
  * 놓을 자리가 없고, 지어낸 id 는 다음 응답에서 다른 씬이 된다.
  */
@@ -217,6 +254,7 @@ export function parseScene(data: unknown): ContentMapScene | null {
     walked: record.walked === true,
     capabilities: parseCapabilities(record.capabilities),
     steps: parseSteps(record.steps),
+    thumbnail: parseThumbnail(record.thumbnail),
   }
 }
 
@@ -235,6 +273,7 @@ export function parseTransition(data: unknown): SceneTransition | null {
     capabilityId: asId(record.capabilityId),
     source: asString(record.source),
     verifiedAt: asNullableString(record.verifiedAt),
+    given: record.given === null || record.given === undefined ? null : parseCondition(record.given),
   }
 }
 

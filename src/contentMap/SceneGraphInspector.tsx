@@ -1,12 +1,14 @@
+import { useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import type { Messages } from '../i18n/messages'
 import { truncate } from '../knowledge/knowledgeLabels'
 import { formatDateTime } from '../projects/formatters'
 import { SceneChip } from '../testCases/SceneChip'
 import { KNOWN_CAPABILITY_STATUSES, edgeSourceStyle } from './contentMapTypes'
+import type { SceneThumbnail } from './contentMapTypes'
 import type { SceneIncidence, SceneNode } from './sceneGraphLayout'
 import { sceneKind, sceneTitle } from './sceneLabels'
-import { SceneStepList } from './SceneStepList'
+import { ConditionTree, SceneStepList } from './SceneStepList'
 
 /**
  * 그림의 대등한 대체물.
@@ -131,6 +133,9 @@ function SceneDetail({
 
       {scene !== null && (
         <>
+          <h3 className="cm-detail-subtitle">{copy.thumbnailHeading}</h3>
+          <SceneThumbnailView thumbnail={scene.thumbnail} title={sceneTitle(t, node)} />
+
           <h3 className="cm-detail-subtitle">{copy.capabilitiesHeading}</h3>
           {scene.capabilities.total === 0 ? (
             <p className="cm-inspector-hint">{copy.noCapabilities}</p>
@@ -165,6 +170,46 @@ function SceneDetail({
         </ul>
       )}
     </div>
+  )
+}
+
+/**
+ * 선택한 씬의 큰 미리보기.
+ *
+ * 그림 쪽 노드는 손톱만 해서 "어느 화면인지" 이상은 못 읽는다. 여기가 실제로
+ * 화면을 보는 자리다.
+ *
+ * 세 가지 없음을 세 문장으로 가른다. 신고 자체가 없는 것, 스캔이 못 찍은 것,
+ * 그리고 주소가 만료돼 불러오지 못한 것. 마지막은 서버가 모르는 사실이라
+ * `onError` 로만 알 수 있고, 그때 깨진 이미지 아이콘을 그대로 두면 사용자는
+ * 스캔이 실패했다고 잘못 읽는다.
+ */
+function SceneThumbnailView({
+  thumbnail,
+  title,
+}: {
+  thumbnail: SceneThumbnail | null
+  title: string
+}) {
+  const { t } = useI18n()
+  const copy = t.contentMap.list
+  const [broken, setBroken] = useState(false)
+
+  if (thumbnail === null) return <p className="cm-inspector-hint">{copy.thumbnailNone}</p>
+  if (thumbnail.state === 'unavailable') {
+    return <p className="cm-inspector-hint">{copy.thumbnailUnavailable(thumbnail.reason)}</p>
+  }
+  if (broken) return <p className="cm-inspector-hint">{copy.thumbnailBroken}</p>
+
+  return (
+    <figure className="cm-thumb">
+      <img alt={title} className="cm-thumb-image" onError={() => setBroken(true)} src={thumbnail.url} />
+      {thumbnail.width !== null && thumbnail.height !== null && (
+        <figcaption className="cm-thumb-size mono">
+          {copy.thumbnailSize(thumbnail.width, thumbnail.height)}
+        </figcaption>
+      )}
+    </figure>
   )
 }
 
@@ -217,6 +262,13 @@ function TransitionRow({
           </span>
         </span>
       </button>
+      {/* 그림은 조건을 한 줄로 접고, 그래프가 크면 아예 감춘다. 여기가 접지 않은 것을
+          늘 두는 자리다 — 키보드와 스크린 리더로는 이쪽밖에 없기도 하다. */}
+      {transition.given !== null && (
+        <div className="cm-transition-condition">
+          <ConditionTree node={transition.given} />
+        </div>
+      )}
     </li>
   )
 }

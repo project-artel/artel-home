@@ -29,6 +29,7 @@ function scene(id: string, name: string, over: Partial<ContentMapScene> = {}): C
       unreachablePrecondition: 0,
     },
     steps: null,
+    thumbnail: null,
     ...over,
   }
 }
@@ -45,6 +46,7 @@ function transition(
     capabilityId: null,
     source: 'static',
     verifiedAt: null,
+    given: null,
     ...over,
   }
 }

@@ -8,6 +8,7 @@ import {
   type PlacedEdge,
   type PlacedNode,
 } from '../knowledge/knowledgeLayout'
+import { conditionSummary } from './conditionSummary'
 import { KNOWN_EDGE_SOURCES, type EdgeSourceStyle } from './contentMapTypes'
 import { sceneHue } from '../testCases/sceneHue'
 import type { SceneEdge, SceneGraphLayout, SceneNode } from './sceneGraphLayout'
@@ -43,6 +44,20 @@ const LABEL_UNIT_WIDTH = 6
 
 /** 라벨 한 줄의 그려지는 높이(사용자 단위). */
 const LABEL_LINE_HEIGHT = 13
+
+/** 사각·마름모 노드의 한 변. `SceneMark` 의 `side` 와 같은 값이어야 클립이 맞는다. */
+const THUMB_SIDE = NODE_RADIUS * 1.7
+
+/**
+ * 조건 라벨을 전부 펼쳐 두는 전이 수의 상한.
+ *
+ * 넘으면 선 위의 글자들이 서로 겹쳐 어느 것이 어느 선의 조건인지 못 읽는다. 그때는 고른 것과 포인터가 얹힌 것만 보인다 —
+ * 감추는 것이 아니라 묻는 순서를 바꾸는 것이고, 인스펙터에는 언제나 전부 있다.
+ */
+const CONDITION_LABEL_EDGE_LIMIT = 12
+
+/** 조건 한 줄의 폭 예산, 라틴 문자 기준. */
+const CONDITION_WIDTH = 28
 
 export function SceneGraphCanvas({ layout, selectedNodeId, onSelectNode }: CanvasProps) {
   const { t } = useI18n()
@@ -103,14 +118,37 @@ export function SceneGraphCanvas({ layout, selectedNodeId, onSelectNode }: Canva
             <path d="M 0 0 L 7 3.5 L 0 7 z" />
           </marker>
         ))}
+
+        {/*
+          노드 모양마다 클립 하나. 이미지를 모양 밖으로 넘치게 두면 이웃 노드를
+          덮어 그래프가 읽히지 않는다. `objectBoundingBox` 를 쓰지 않는 이유는
+          마름모가 회전 변환으로 그려져 경계 상자가 실제 모양과 다르기 때문이다.
+        */}
+        <clipPath clipPathUnits="userSpaceOnUse" id="cm-clip-circle">
+          <circle r={NODE_RADIUS} />
+        </clipPath>
+        <clipPath clipPathUnits="userSpaceOnUse" id="cm-clip-square">
+          <rect height={THUMB_SIDE} rx="2" width={THUMB_SIDE} x={-THUMB_SIDE / 2} y={-THUMB_SIDE / 2} />
+        </clipPath>
+        <clipPath clipPathUnits="userSpaceOnUse" id="cm-clip-diamond">
+          <rect
+            height={THUMB_SIDE}
+            transform="rotate(45)"
+            width={THUMB_SIDE}
+            x={-THUMB_SIDE / 2}
+            y={-THUMB_SIDE / 2}
+          />
+        </clipPath>
       </defs>
 
       <g className="cm-edges">
         {layout.edges.map((placed) => (
           <TransitionMark
+            alwaysLabelled={layout.edges.length <= CONDITION_LABEL_EDGE_LIMIT}
             dimmed={selectedNodeId !== null && !touchesSelection(placed, selectedNodeId)}
             key={placed.id}
             placed={placed}
+            selected={selectedNodeId !== null && touchesSelection(placed, selectedNodeId)}
           />
         ))}
       </g>
@@ -145,14 +183,28 @@ function touchesSelection(placed: PlacedEdge<SceneEdge>, nodeId: string): boolea
 function TransitionMark({
   placed,
   dimmed,
+  selected,
+  alwaysLabelled,
 }: {
   placed: PlacedEdge<SceneEdge>
   dimmed: boolean
+  selected: boolean
+  alwaysLabelled: boolean
 }) {
+  const { t } = useI18n()
   const { style, transition } = placed.edge
   const classes = ['cm-edge', `cm-edge--${style}`]
   if (dimmed) classes.push('is-dimmed')
   if (transition.verifiedAt !== null) classes.push('is-verified')
+
+  // 조건이 없는 전이는 라벨 자체가 없다. 빈 자리를 그리면 "조건 없음"과 "조건을 못 읽음"이 같은 모양이 된다 —
+  // 그 둘을 가르는 것은 인스펙터의 문장이고, 그림은 아예 말하지 않는 쪽을 고른다.
+  const condition = transition.given === null ? null : conditionSummary(t, transition.given)
+
+  // 늘 보이지 않을 때는 CSS 가 hover 로 되살린다. React 상태로 hover 를 들면 포인터가 지나갈 때마다 그래프 전체가
+  // 다시 그려지고, 씬 수백 개에서 그 비용이 곧바로 보인다.
+  const labelClasses = ['cm-edge-label']
+  if (!alwaysLabelled && !selected) labelClasses.push('is-quiet')
 
   return (
     <g className={classes.join(' ')}>
@@ -163,6 +215,16 @@ function TransitionMark({
           <circle className="cm-edge-glyph-disc" r="6.5" />
           <path className="cm-edge-glyph-mark" d="M -3 0 L -0.8 2.4 L 3 -2.4" />
         </g>
+      )}
+      {condition !== null && (
+        <text
+          className={labelClasses.join(' ')}
+          textAnchor="middle"
+          x={placed.midX}
+          y={placed.midY - 9}
+        >
+          {truncate(condition, CONDITION_WIDTH)}
+        </text>
       )}
     </g>
   )
@@ -190,7 +252,13 @@ function SceneMark({
   // 정하므로 TSX 에 원시 16진수가 들어가지 않는다. 같은 씬 이름은 라이브러리와
   // 플로우에서 쓰던 것과 같은 색을 얻어, 목록과 그림이 눈으로 이어진다.
   const style = { '--cat-hue': String(sceneHue(placed.node.name)) } as CSSProperties
-  const side = NODE_RADIUS * 1.7
+  const side = THUMB_SIDE
+  // 대표 이미지는 모양을 **채울** 뿐 모양을 대신하지 않는다. 밟은 씬과 안 밟은
+  // 씬을 가르는 것은 여전히 모양이고, 이미지가 있는 씬만 동그라미가 되어 버리면
+  // 범례가 거짓말을 한다.
+  const thumbnail = placed.node.scene?.thumbnail ?? null
+  const image = thumbnail?.state === 'available' ? thumbnail : null
+  const box = shape === 'circle' ? NODE_RADIUS * 2 : side
 
   return (
     <g className={classes.join(' ')} onClick={onSelect} style={style} transform={`translate(${placed.x} ${placed.y})`}>
@@ -206,6 +274,20 @@ function SceneMark({
           width={side}
           x={-side / 2}
           y={-side / 2}
+        />
+      )}
+      {image !== null && (
+        // `slice` 로 비율을 지킨다. 늘리면 화면이 실제와 다른 모양으로 보이고,
+        // 그 그림을 보고 쓴 테스트 케이스는 없는 레이아웃을 가정한다.
+        <image
+          className="cm-node-thumb"
+          clipPath={`url(#cm-clip-${shape})`}
+          height={box}
+          href={image.url}
+          preserveAspectRatio="xMidYMid slice"
+          width={box}
+          x={-box / 2}
+          y={-box / 2}
         />
       )}
       {label !== null && (
