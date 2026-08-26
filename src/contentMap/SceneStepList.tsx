@@ -39,12 +39,14 @@ export function SceneStepList({ scene }: { scene: ContentMapScene }) {
 
   return (
     <>
-      <h3 className="cm-detail-subtitle">{copy.heading(steps.length)}</h3>
+      <h3 className="cm-detail-subtitle" id="cm-step-list-heading">
+        {copy.heading(steps.length)}
+      </h3>
 
       {steps.length === 0 ? (
         <p className="cm-inspector-hint">{copy.none}</p>
       ) : (
-        <ul className="cm-step-list">
+        <ul className="cm-step-list" aria-labelledby="cm-step-list-heading" tabIndex={0}>
           {steps.map((step, index) => (
             // id 가 겹쳐도 접지 않기 때문에 키에 자리를 함께 넣는다. 서로
             // 구분되지 않는 줄이 여럿이라는 사실이 이 목록의 내용이다.

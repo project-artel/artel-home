@@ -5752,9 +5752,17 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  max-height: min(360px, 36vh);
   margin: 0;
-  padding: 0;
+  padding: 0 var(--space-1) 0 0;
   list-style: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.cm-step-list:focus-visible {
+  outline: 2px solid var(--color-action-primary);
+  outline-offset: 2px;
 }
 .cm-step {
   display: flex;
