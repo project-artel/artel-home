@@ -275,6 +275,12 @@ export function RunChat({ session }: { session: RunChatSession }) {
               {session.applying ? c.applying : c.applyAll}
             </button>
           </div>
+          {session.applyFailure !== null && (
+            <div className="inline-error" role="alert">
+              <span aria-hidden="true">!</span>
+              {c.applyFailed}
+            </div>
+          )}
           <ul className="run-chat-cards">
             {session.proposals.map((proposal, index) => (
               <ProposalCard
