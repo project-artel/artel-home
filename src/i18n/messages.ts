@@ -1,4 +1,5 @@
 import { commonEn, commonKo } from './messages/common'
+import { contentMapEn, contentMapKo } from './messages/contentMap'
 import { issuesEn, issuesKo } from './messages/issues'
 import { knowledgeEn, knowledgeKo } from './messages/knowledge'
 import { performanceEn, performanceKo } from './messages/performance'
@@ -21,6 +22,7 @@ export type Localized<T> = {
 export const messages = {
   en: {
     common: commonEn,
+    contentMap: contentMapEn,
     issues: issuesEn,
     knowledge: knowledgeEn,
     performance: performanceEn,
@@ -30,6 +32,7 @@ export const messages = {
   },
   ko: {
     common: commonKo,
+    contentMap: contentMapKo,
     issues: issuesKo,
     knowledge: knowledgeKo,
     performance: performanceKo,

@@ -6,6 +6,7 @@ import { NotFoundPage } from './NotFoundPage'
 import { useAuth } from './auth/useAuth'
 import { SdkLoginPage } from './auth/SdkLoginPage'
 import { resumeSdkLogin, SDK_LOGIN_PATH } from './auth/sdkLoginRequest'
+import { ContentMapRoute } from './contentMap/ContentMapPage'
 import { useI18n } from './i18n/useI18n'
 import { KnowledgeSection } from './knowledge/KnowledgeGraphPage'
 import { BuildPerformanceRoute } from './performance/BuildPerformancePage'
@@ -121,6 +122,7 @@ export function App() {
           />
           <Route path="/projects/:projectId/qa-runs/:qaRunId/performance" element={<RunPerformanceRoute />} />
           <Route path="/projects/:projectId/game-builds/:buildId/performance" element={<BuildPerformanceRoute />} />
+          <Route path="/projects/:projectId/game-builds/:buildId/content-map" element={<ContentMapRoute />} />
           <Route
             path="/projects/:projectId/qa-tries/:qaTryId"
             element={<QaTryRoute />}

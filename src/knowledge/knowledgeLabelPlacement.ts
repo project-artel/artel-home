@@ -1,5 +1,5 @@
 import { displayWidth } from './knowledgeLabels'
-import { NODE_RADIUS, type PlacedNode } from './knowledgeLayout'
+import { NODE_RADIUS, type LayoutNode, type PlacedNode } from './knowledgeLayout'
 
 /*
  * Which node labels actually get drawn.
@@ -53,15 +53,15 @@ type Box = { left: number; right: number; top: number; bottom: number }
 /**
  * @param label the already-shortened text for a node, or the empty string to skip it.
  */
-export function placeLabels(
-  nodes: readonly PlacedNode[],
-  label: (node: PlacedNode) => string,
+export function placeLabels<N extends LayoutNode>(
+  nodes: readonly PlacedNode<N>[],
+  label: (node: PlacedNode<N>) => string,
   options: LabelOptions,
 ): Map<string, LabelPlacement> {
   const placements = new Map<string, LabelPlacement>()
   const taken: Box[] = []
 
-  for (const placed of [...nodes].sort(byPriority(options.keep))) {
+  for (const placed of [...nodes].sort(byPriority<N>(options.keep))) {
     const text = label(placed)
     if (text.length === 0) continue
 
@@ -108,8 +108,8 @@ export function placeLabels(
  * a reader orients by, so it should keep its name when space runs out. The id
  * comparison at the end is only there to make the order total.
  */
-function byPriority(keep: ReadonlySet<string>) {
-  return (left: PlacedNode, right: PlacedNode): number => {
+function byPriority<N extends LayoutNode>(keep: ReadonlySet<string>) {
+  return (left: PlacedNode<N>, right: PlacedNode<N>): number => {
     const leftKept = keep.has(left.node.id)
     const rightKept = keep.has(right.node.id)
     if (leftKept !== rightKept) return leftKept ? -1 : 1

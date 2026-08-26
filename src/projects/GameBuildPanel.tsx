@@ -279,6 +279,12 @@ function GameBuildRow({
               <div className="form-actions">
                 <Link
                   className="button button--secondary button--compact"
+                  to={`/projects/${encodeURIComponent(projectId)}/game-builds/${encodeURIComponent(build.id)}/content-map`}
+                >
+                  {t.contentMap.entry.build}
+                </Link>
+                <Link
+                  className="button button--secondary button--compact"
                   to={`/projects/${encodeURIComponent(projectId)}/game-builds/${encodeURIComponent(build.id)}/performance`}
                 >
                   {t.performance.entry.build}

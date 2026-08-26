@@ -1,0 +1,330 @@
+import type { Localized } from '../messages'
+
+/** Strings for `src/contentMap/*`. See `common.ts` for the typing convention. */
+export const contentMapEn = {
+  entry: {
+    /** The link on a build row, next to the performance one. */
+    build: 'Content map',
+  },
+  page: {
+    back: '← Back to the builds',
+    eyebrow: (buildId: string) => `Build ${buildId}`,
+    title: 'Content map',
+    subtitle:
+      'What this build contains, as the server read it out of the evidence the SDK sent: its scenes, the capabilities in each one, and the transitions between them.',
+    refresh: 'Refresh',
+    readAt: (time: string) => `Read at ${time}`,
+  },
+  states: {
+    loading: 'Loading the content map…',
+    loadFailed: 'The content map could not be loaded.',
+    retry: 'Retry',
+    // Offline and "the refresh failed" are two different facts. In both cases
+    // whatever is already on screen stays there, marked with the time it was
+    // read — never presented as the current state of the build.
+    offlineTitle: 'This browser is offline',
+    offlineCopy: (time: string) =>
+      `Nothing below has been checked since ${time}. It may already be out of date.`,
+    staleTitle: 'The last refresh did not go through',
+    staleCopy: (time: string) =>
+      `What is shown is the content map as it was read at ${time}. Refresh to try again.`,
+  },
+  empty: {
+    // Three different situations, three different next actions. Collapsing them
+    // into one "no data" would leave the reader with nothing to do.
+    neverUploadedTitle: 'Nothing has been scanned for this build yet',
+    neverUploadedCopy:
+      'A content map is built from the evidence a connected game sends. Ask one to scan above, and the scenes, capabilities and transitions appear here.',
+    notIngestedTitle: 'The evidence is uploaded but has not been read yet',
+    notIngestedCopy:
+      'The document is stored against this build. Reading it is what turns it into scenes and capabilities.',
+    noScenesTitle: 'The evidence was read and described no scene',
+    noScenesCopy:
+      'The document is ingested, so this is what it contains — not a loading state. Check that the export covered the scenes you expected.',
+  },
+  pending: {
+    title: (count: number) => `${count} document${count === 1 ? '' : 's'} not read yet`,
+    copy: 'The server has these but has not folded them into the map below.',
+    waiting: 'Waiting to be read',
+    failedAt: (time: string) => `Reading failed at ${time}`,
+    documentLabel: (documentId: string) => `Document ${documentId}`,
+    receivedAt: (time: string) => `received ${time}`,
+  },
+  scan: {
+    title: 'Evidence',
+    copy: 'The SDK sends the evidence itself. Ask a connected game to scan its content, and this map is rebuilt from what it sends.',
+    instanceLabel: 'Game to scan',
+    noInstanceOption: 'No connected game at the last check',
+    action: 'Rescan evidence',
+    running: 'Asking the game…',
+    requested:
+      'The scan was requested. This map changes once the game has sent its evidence and the server has read it — refresh to pick that up.',
+    failed: 'The scan could not be started.',
+    checkedAt: (time: string) =>
+      `Connected games as of ${time}. Nothing is polling; refresh to check again.`,
+    // Four reasons, four different things to do about it. One "cannot scan"
+    // line would erase the difference between waiting, retrying, installing
+    // the SDK, and starting the game.
+    disabled: {
+      loading: 'Checking which games are connected…',
+      loadFailed: 'The connected games could not be checked, so a scan cannot be started yet.',
+      noInstances:
+        'No game has ever connected to this project. Install the SDK and run the game once, and it will appear here.',
+      // The instance list is a snapshot from the last check, not a live
+      // subscription, so the copy must not read as one.
+      noneConnected: (time: string) =>
+        `No game was connected as of ${time}. A scan runs inside the running game, so one has to be online — start the game and refresh.`,
+    },
+  },
+  summary: {
+    scenes: (count: number) => `${count} scene${count === 1 ? '' : 's'}`,
+    walked: (count: number) => `${count} walked`,
+    capabilities: (count: number) => `${count} capabilit${count === 1 ? 'y' : 'ies'}`,
+    transitions: (count: number) => `${count} transition${count === 1 ? '' : 's'}`,
+    capabilityTitle: 'Capabilities by status',
+    statuses: {
+      runnable: 'Runnable',
+      needsProbe: 'Needs a probe',
+      notAStep: 'Not a step',
+      unreachablePrecondition: 'Unreachable precondition',
+    },
+    verificationTitle: 'Verified transitions',
+    verificationRatio: (verified: number, total: number) => `${verified} of ${total}`,
+    verificationNone: 'Nothing has been verified yet.',
+    verificationLabel: (verified: number, total: number) =>
+      `${verified} of ${total} transitions verified`,
+    gapsTitle: 'Recorded gaps',
+    noGaps: 'The server recorded no gaps.',
+    // The gap vocabulary is not published, so the reason is printed exactly as
+    // the server wrote it rather than guessed at.
+    gapsNote: 'Reasons are shown exactly as the server recorded them.',
+  },
+  header: {
+    title: 'This capture',
+    captureLabel: 'Capture',
+    schemaLabel: 'Schema version',
+    digestLabel: 'Evidence digest',
+    unityLabel: 'Unity',
+    platformLabel: 'Platform',
+    sdkLabel: 'SDK',
+    ingestedAtLabel: 'Read at',
+    notIngested: 'Not read yet',
+    unknown: 'Not reported',
+  },
+  graph: {
+    title: 'Scene transitions',
+    labelNote: 'Names are hidden while the graph is this large. The list beside it has them all.',
+    noEdgesTitle: 'No transitions have been recorded',
+    noEdgesCopy: (count: number) =>
+      `${count} scene${count === 1 ? ' is' : 's are'} described, but nothing says how to get from one to another yet. Transitions come from static analysis of the build and from what a QA run actually walked.`,
+    unmappedNote: (count: number) =>
+      `${count} destination${count === 1 ? '' : 's'} in this drawing ${count === 1 ? 'is' : 'are'} not described by this content map. ${count === 1 ? 'It is' : 'They are'} drawn as an outline so a transition leading out of the map is still visible.`,
+    legendSourceTitle: 'Where a transition came from',
+    legendSceneTitle: 'Scenes',
+    sources: {
+      static: 'Static analysis',
+      runtime: 'Observed in a run',
+      unknown: 'Unrecognised source',
+    },
+    // Named in words as well as drawn, so the legend still works when the
+    // colours cannot be told apart.
+    sourceShapes: {
+      static: 'dashed line',
+      runtime: 'solid line',
+      unknown: 'thin dotted line',
+    },
+    sceneKinds: {
+      walked: 'Walked by a run',
+      notWalked: 'Not walked yet',
+      unmapped: 'Not in this content map',
+    },
+    sceneShapes: {
+      walked: 'filled circle',
+      notWalked: 'square',
+      unmapped: 'dashed diamond',
+    },
+  },
+  list: {
+    heading: (count: number) => `${count} scene${count === 1 ? '' : 's'} in the drawing`,
+    untitled: 'Scene with no name',
+    unnamedDestination: 'Destination the server did not name',
+    selectHint: 'Pick a scene to read its capabilities and the transitions that touch it.',
+    clear: 'Clear',
+    detailTitle: 'Selected scene',
+    walked: 'Walked',
+    notWalked: 'Not walked',
+    unmapped: 'Not described by this content map',
+    unmappedCopy:
+      'A transition leads here, but this content map does not describe the scene. Either the evidence did not cover it, or it does not exist in the build.',
+    sceneIdLabel: 'Scene id',
+    nameOnly: 'Known by name only',
+    capabilitiesHeading: 'Capabilities',
+    noCapabilities: 'No capabilities were recorded for this scene.',
+    transitionsHeading: (count: number) =>
+      `${count} transition${count === 1 ? '' : 's'}`,
+    noTransitions: 'No transition touches this scene.',
+    directionOut: 'to',
+    directionIn: 'from',
+    directionSelf: 'back to itself',
+    verifiedAt: (time: string) => `verified ${time}`,
+    notVerified: 'not verified',
+    capabilityLabel: (capabilityId: string) => `capability ${capabilityId}`,
+    noCapabilityLink: 'no capability recorded',
+  },
+} as const
+
+export const contentMapKo: Localized<typeof contentMapEn> = {
+  entry: {
+    build: '콘텐츠 맵',
+  },
+  page: {
+    back: '← 빌드 목록으로',
+    eyebrow: (buildId: string) => `빌드 ${buildId}`,
+    title: '콘텐츠 맵',
+    subtitle:
+      'SDK가 보낸 증거 문서를 서버가 읽어 낸 결과입니다. 이 빌드에 어떤 씬이 있고, 씬마다 어떤 능력이 있으며, 씬 사이를 어떻게 오가는지 보여 줍니다.',
+    refresh: '새로고침',
+    readAt: (time: string) => `${time} 기준`,
+  },
+  states: {
+    loading: '콘텐츠 맵을 불러오는 중…',
+    loadFailed: '콘텐츠 맵을 불러오지 못했습니다.',
+    retry: '다시 시도',
+    offlineTitle: '브라우저가 오프라인입니다',
+    offlineCopy: (time: string) =>
+      `${time} 이후로 아래 내용을 다시 확인하지 못했습니다. 이미 달라졌을 수 있습니다.`,
+    staleTitle: '마지막 새로고침이 실패했습니다',
+    staleCopy: (time: string) =>
+      `아래는 ${time}에 읽어 둔 콘텐츠 맵입니다. 새로고침으로 다시 시도해 보세요.`,
+  },
+  empty: {
+    neverUploadedTitle: '이 빌드는 아직 한 번도 스캔되지 않았습니다',
+    neverUploadedCopy:
+      '콘텐츠 맵은 붙어 있는 게임이 보낸 증거 문서로 만들어집니다. 위에서 스캔을 시키면 씬, 능력, 전이가 여기에 나타납니다.',
+    notIngestedTitle: '증거는 올라왔지만 아직 읽히지 않았습니다',
+    notIngestedCopy:
+      '문서는 이 빌드에 저장돼 있습니다. 읽어야 씬과 능력으로 바뀝니다.',
+    noScenesTitle: '증거를 읽었지만 씬이 하나도 없었습니다',
+    noScenesCopy:
+      '문서는 이미 반영됐으므로 이것이 문서의 내용입니다 — 로딩 중이 아닙니다. 내보내기가 기대한 씬을 포함했는지 확인해 보세요.',
+  },
+  pending: {
+    title: (count: number) => `아직 적재되지 않은 문서 ${count}개`,
+    copy: '서버가 받아 두었지만 아래 맵에는 아직 반영되지 않았습니다.',
+    waiting: '적재 대기 중',
+    failedAt: (time: string) => `${time}에 적재 실패`,
+    documentLabel: (documentId: string) => `문서 ${documentId}`,
+    receivedAt: (time: string) => `${time} 접수`,
+  },
+  scan: {
+    title: '근거',
+    copy: '근거 문서는 SDK가 스스로 올립니다. 붙어 있는 게임에 스캔을 시키면 게임이 보낸 내용으로 이 맵이 다시 만들어집니다.',
+    instanceLabel: '스캔할 게임',
+    noInstanceOption: '마지막 확인 때 붙어 있는 게임 없음',
+    action: '근거 다시 스캔',
+    running: '게임에 요청하는 중…',
+    requested:
+      '스캔을 요청했습니다. 게임이 근거를 보내고 서버가 그것을 읽으면 이 맵이 바뀝니다 — 새로고침으로 확인하세요.',
+    failed: '스캔을 시작하지 못했습니다.',
+    checkedAt: (time: string) =>
+      `붙어 있는 게임 목록은 ${time} 기준입니다. 계속 지켜보고 있지는 않으니 새로고침으로 다시 확인하세요.`,
+    disabled: {
+      loading: '어떤 게임이 붙어 있는지 확인하는 중…',
+      loadFailed: '붙어 있는 게임을 확인하지 못해 아직 스캔을 시작할 수 없습니다.',
+      noInstances:
+        '이 프로젝트에 붙은 적 있는 게임이 없습니다. SDK를 설치하고 게임을 한 번 실행하면 여기에 나타납니다.',
+      noneConnected: (time: string) =>
+        `${time} 기준으로 붙어 있는 게임이 없었습니다. 스캔은 실행 중인 게임 안에서 돌기 때문에 한 대는 켜져 있어야 합니다 — 게임을 켜고 새로고침해 주세요.`,
+    },
+  },
+  summary: {
+    scenes: (count: number) => `씬 ${count}개`,
+    walked: (count: number) => `밟은 씬 ${count}개`,
+    capabilities: (count: number) => `능력 ${count}개`,
+    transitions: (count: number) => `전이 ${count}개`,
+    capabilityTitle: '상태별 능력',
+    statuses: {
+      runnable: '실행 가능',
+      needsProbe: '탐색 필요',
+      notAStep: '단계 아님',
+      unreachablePrecondition: '선행 조건 도달 불가',
+    },
+    verificationTitle: '확인된 전이',
+    verificationRatio: (verified: number, total: number) => `${total}개 중 ${verified}개`,
+    verificationNone: '아직 확인된 전이가 없습니다.',
+    verificationLabel: (verified: number, total: number) =>
+      `전이 ${total}개 중 ${verified}개 확인됨`,
+    gapsTitle: '기록된 결손',
+    noGaps: '서버가 기록한 결손이 없습니다.',
+    gapsNote: '사유는 서버가 기록한 문자열 그대로입니다.',
+  },
+  header: {
+    title: '이 캡처',
+    captureLabel: '캡처',
+    schemaLabel: '스키마 버전',
+    digestLabel: '증거 다이제스트',
+    unityLabel: 'Unity',
+    platformLabel: '플랫폼',
+    sdkLabel: 'SDK',
+    ingestedAtLabel: '읽은 시각',
+    notIngested: '아직 안 읽음',
+    unknown: '보고 없음',
+  },
+  graph: {
+    title: '씬 전이',
+    labelNote: '그래프가 커서 이름은 감췄습니다. 옆 목록에 전부 있습니다.',
+    noEdgesTitle: '기록된 전이가 없습니다',
+    noEdgesCopy: (count: number) =>
+      `씬 ${count}개는 있지만 씬 사이를 어떻게 오가는지는 아직 기록되지 않았습니다. 전이는 빌드의 정적 분석과 QA 실행이 실제로 밟은 경로에서 나옵니다.`,
+    unmappedNote: (count: number) =>
+      `이 그림의 목적지 ${count}개는 이 콘텐츠 맵이 설명하지 않는 씬입니다. 맵 밖으로 나가는 전이도 보이도록 윤곽선으로 그렸습니다.`,
+    legendSourceTitle: '전이의 출처',
+    legendSceneTitle: '씬',
+    sources: {
+      static: '정적 분석',
+      runtime: '실행에서 관측',
+      unknown: '알 수 없는 출처',
+    },
+    sourceShapes: {
+      static: '파선',
+      runtime: '실선',
+      unknown: '가는 점선',
+    },
+    sceneKinds: {
+      walked: '실행이 밟은 씬',
+      notWalked: '아직 안 밟은 씬',
+      unmapped: '이 콘텐츠 맵에 없는 씬',
+    },
+    sceneShapes: {
+      walked: '채운 원',
+      notWalked: '사각형',
+      unmapped: '파선 마름모',
+    },
+  },
+  list: {
+    heading: (count: number) => `그림에 있는 씬 ${count}개`,
+    untitled: '이름 없는 씬',
+    unnamedDestination: '서버가 이름을 주지 않은 목적지',
+    selectHint: '씬을 고르면 그 씬의 능력과 관련된 전이를 볼 수 있습니다.',
+    clear: '선택 해제',
+    detailTitle: '선택한 씬',
+    walked: '밟음',
+    notWalked: '안 밟음',
+    unmapped: '이 콘텐츠 맵이 설명하지 않는 씬',
+    unmappedCopy:
+      '여기로 오는 전이는 있지만 이 콘텐츠 맵에는 이 씬이 없습니다. 증거가 이 씬을 담지 않았거나, 빌드에 존재하지 않는 씬입니다.',
+    sceneIdLabel: '씬 id',
+    nameOnly: '이름만 알려진 씬',
+    capabilitiesHeading: '능력',
+    noCapabilities: '이 씬에 기록된 능력이 없습니다.',
+    transitionsHeading: (count: number) => `전이 ${count}개`,
+    noTransitions: '이 씬에 닿는 전이가 없습니다.',
+    directionOut: '나감:',
+    directionIn: '들어옴:',
+    directionSelf: '자기 자신으로',
+    verifiedAt: (time: string) => `${time} 확인`,
+    notVerified: '미확인',
+    capabilityLabel: (capabilityId: string) => `능력 ${capabilityId}`,
+    noCapabilityLink: '연결된 능력 없음',
+  },
+}
