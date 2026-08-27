@@ -148,7 +148,7 @@ function StepConditionBlock({ step }: { step: ContentMapStep }) {
 }
 
 /** 트리 한 그루. 마디 하나짜리 조건도 항목 하나짜리 목록으로 그린다. */
-function ConditionTree({ node }: { node: ConditionNode }) {
+export function ConditionTree({ node }: { node: ConditionNode }) {
   return (
     <ul className="cm-cond-tree">
       <ConditionItem node={node} />

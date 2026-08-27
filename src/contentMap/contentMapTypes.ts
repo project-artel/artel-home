@@ -164,6 +164,22 @@ export function stepCondition(step: ContentMapStep): StepCondition {
   return { form: 'none' }
 }
 
+/**
+ * 씬 대표 이미지, 또는 만들지 못한 이유.
+ *
+ * **세 상태를 가른다.** `thumbnail` 자체가 null 이면 서버가 캡처를 아예
+ * 신고하지 않은 것이고 — 이 절을 보내지 않는 옛 서버이거나, 캡처를 올리지
+ * 않는 옛 SDK 다 — `unavailable` 은 시도했다가 못 찍었다는 사실이다. 둘을
+ * 같은 자리표시로 그리면 "아직 안 올렸다"와 "이 씬은 못 찍는다"가 한 모양이
+ * 되고, 사용자는 기다려야 할지 고쳐야 할지 알 수 없다.
+ *
+ * `url` 은 서명된 단기 주소다. 만료되면 이미지가 깨지므로 화면은 그 실패를
+ * 자리표시로 받아 낸다 — 깨진 이미지 아이콘은 사실을 말하지 않는다.
+ */
+export type SceneThumbnail =
+  | { state: 'available'; url: string; width: number | null; height: number | null }
+  | { state: 'unavailable'; reason: string }
+
 export type ContentMapScene = {
   id: string
   name: string
@@ -179,6 +195,8 @@ export type ContentMapScene = {
    * 것이고, 그건 화면에 적을 값어치가 있는 사실이다.
    */
   steps: ContentMapStep[] | null
+  /** 대표 이미지. null 이면 서버가 이 씬에 대해 캡처를 말하지 않았다. */
+  thumbnail: SceneThumbnail | null
 }
 
 /**
@@ -197,6 +215,13 @@ export type SceneTransition = {
   source: string
   /** 런타임으로 확인된 시각. null 이면 아직 확인되지 않은 전이다. */
   verifiedAt: string | null
+  /**
+   * 이 전이가 일어나는 조건. 단계 쪽 `given` 과 같은 트리다.
+   *
+   * null 은 "조건 없음"이 아니라 "조건 근거가 없음"이다. 자동 전이에는 기능이
+   * 없어 조건도 없고, 그 사실은 `always` 와 다르다.
+   */
+  given: ConditionNode | null
 }
 
 /** 이 빌드가 선 모양을 정해 둔 전이 출처. */

@@ -119,6 +119,18 @@ export const contentMapEn = {
       `${count} scene${count === 1 ? ' is' : 's are'} described, but nothing says how to get from one to another yet. Transitions come from static analysis of the build and from what a QA run actually walked.`,
     unmappedNote: (count: number) =>
       `${count} destination${count === 1 ? '' : 's'} in this drawing ${count === 1 ? 'is' : 'are'} not described by this content map. ${count === 1 ? 'It is' : 'They are'} drawn as an outline so a transition leading out of the map is still visible.`,
+    // 그래프 위 조건 한 줄. 인스펙터가 트리를 펴는 것과 달리 여기는 접는 자리라,
+    // `either` 와 `every` 를 다른 말로 잇는 것이 문구의 요점이다.
+    conditionAlways: 'any time',
+    conditionGesture: (input: string) => `input ${input}`,
+    conditionUnknown: 'condition not read',
+    conditionUnrecognised: (kind: string) => `unrecognised condition (${kind})`,
+    conditionEmpty: 'condition with no parts',
+    conditionEveryJoin: ' and ',
+    conditionEitherJoin: ' or ',
+    conditionMore: (shown: string, hidden: number) => `${shown} +${hidden} more`,
+    conditionLabelNote:
+      'Transition conditions are hidden while the graph is this large. Select a transition, or read them in the panel beside it.',
     legendSourceTitle: 'Where a transition came from',
     legendSceneTitle: 'Scenes',
     sources: {
@@ -158,6 +170,13 @@ export const contentMapEn = {
       'A transition leads here, but this content map does not describe the scene. Either the evidence did not cover it, or it does not exist in the build.',
     sceneIdLabel: 'Scene id',
     nameOnly: 'Known by name only',
+    thumbnailHeading: 'Screen',
+    // 세 상태가 세 문장이다. 하나로 합치면 사용자가 기다려야 할지 고쳐야
+    // 할지 알 수 없다.
+    thumbnailNone: 'This scan did not report a screen capture for this scene.',
+    thumbnailUnavailable: (reason: string) => `The scan could not capture this screen (${reason}).`,
+    thumbnailBroken: 'The capture link expired or the image could not be loaded. Reload the page.',
+    thumbnailSize: (width: number, height: number) => `${width} × ${height}`,
     capabilitiesHeading: 'Capabilities',
     noCapabilities: 'No capabilities were recorded for this scene.',
     transitionsHeading: (count: number) =>
@@ -340,6 +359,16 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
       `씬 ${count}개는 있지만 씬 사이를 어떻게 오가는지는 아직 기록되지 않았습니다. 전이는 빌드의 정적 분석과 QA 실행이 실제로 밟은 경로에서 나옵니다.`,
     unmappedNote: (count: number) =>
       `이 그림의 목적지 ${count}개는 이 콘텐츠 맵이 설명하지 않는 씬입니다. 맵 밖으로 나가는 전이도 보이도록 윤곽선으로 그렸습니다.`,
+    conditionAlways: '아무 때나',
+    conditionGesture: (input: string) => `입력 ${input}`,
+    conditionUnknown: '조건을 못 읽음',
+    conditionUnrecognised: (kind: string) => `모르는 조건 (${kind})`,
+    conditionEmpty: '내용이 빈 조건',
+    conditionEveryJoin: ' 그리고 ',
+    conditionEitherJoin: ' 또는 ',
+    conditionMore: (shown: string, hidden: number) => `${shown} 외 ${hidden}개`,
+    conditionLabelNote:
+      '그래프가 커서 전이 조건은 감췄습니다. 전이를 고르거나 옆 패널에서 읽을 수 있습니다.',
     legendSourceTitle: '전이의 출처',
     legendSceneTitle: '씬',
     sources: {
@@ -377,6 +406,11 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
       '여기로 오는 전이는 있지만 이 콘텐츠 맵에는 이 씬이 없습니다. 증거가 이 씬을 담지 않았거나, 빌드에 존재하지 않는 씬입니다.',
     sceneIdLabel: '씬 id',
     nameOnly: '이름만 알려진 씬',
+    thumbnailHeading: '화면',
+    thumbnailNone: '이번 스캔은 이 씬의 화면 캡처를 신고하지 않았습니다.',
+    thumbnailUnavailable: (reason: string) => `스캔이 이 화면을 캡처하지 못했습니다 (${reason}).`,
+    thumbnailBroken: '캡처 주소가 만료됐거나 이미지를 불러오지 못했습니다. 새로고침하세요.',
+    thumbnailSize: (width: number, height: number) => `${width} × ${height}`,
     capabilitiesHeading: '능력',
     noCapabilities: '이 씬에 기록된 능력이 없습니다.',
     transitionsHeading: (count: number) => `전이 ${count}개`,
