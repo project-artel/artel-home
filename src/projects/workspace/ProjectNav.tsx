@@ -12,6 +12,9 @@ const ICON_PATHS: Record<WorkspaceSectionId, string[]> = {
   testRuns: ['M5.2 3.4l7 4.6-7 4.6z'],
   qa: ['M8.8 2L4 9h3.4l-.9 5L12 7H8.4z'],
   qaHistory: ['M3 4.2h10', 'M3 8h10', 'M3 11.8h6.5'],
+  // A box holding two smaller boxes, with a line leaving it: a scene container,
+  // the screens inside it, and a transition out. The drawing's own shape, small.
+  contentMap: ['M2.2 3h7.6v7.6H2.2z', 'M3.8 4.6h1.9v1.9H3.8z', 'M6.4 4.6h1.9v1.9H6.4z', 'M9.8 6.8h2.6v6.4H6.6'],
   performance: ['M2.5 12.5l3.2-3.4 2.5 1.8 5.3-7', 'M10.8 3.9h2.7v2.7'],
   issues: ['M4 14V2.7', 'M4 3h8l-1.8 2.8L12 8.6H4'],
   // Three nodes and the lines between them: the graph's own shape, small.

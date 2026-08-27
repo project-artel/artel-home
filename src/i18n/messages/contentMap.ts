@@ -111,6 +111,45 @@ export const contentMapEn = {
     notIngested: 'Not read yet',
     unknown: 'Not reported',
   },
+  section: {
+    title: 'Screen map',
+    subtitle:
+      'One scene holds several screens — overlays, popups, state branches. This draws them nested, so which scene a screen lives in is visible rather than inferred.',
+    selectLabel: 'Build',
+    noBuildsTitle: 'No build has registered itself yet',
+    noBuildsCopy:
+      'A build appears here once the SDK registers it from the editor or a player. There is nothing to draw until then.',
+    sceneGraphLink: 'Scene graph for this build →',
+  },
+  screenMap: {
+    title: 'Scenes and the screens inside them',
+    counts: (scenes: number, screens: number, transitions: number) =>
+      `${scenes} scene${scenes === 1 ? '' : 's'}, ${screens} screen${screens === 1 ? '' : 's'}, ${transitions} screen transition${transitions === 1 ? '' : 's'}`,
+    screenCount: (count: number) => `${count} screen${count === 1 ? '' : 's'}`,
+    // Not an error and not a loading state. Static analysis cannot see screens,
+    // so a build no QA run has played has none — and the drawing says so inside
+    // each container rather than leaving an empty box to be read as unfinished.
+    noScreens: 'No screen observed yet',
+    noScreensTitle: 'No QA run has played this build yet',
+    noScreensCopy: (count: number) =>
+      `The ${count} scene${count === 1 ? '' : 's'} below ${count === 1 ? 'comes' : 'come'} from static analysis, which cannot see screens. Screens and the transitions between them are recorded by a QA run.`,
+    unnamedScreen: 'Unnamed screen',
+    observed: (count: number) => `${count}×`,
+    legend: {
+      verified: (count: number) =>
+        `${count} scene transition${count === 1 ? '' : 's'} walked in a run — solid, filled head`,
+      // The reason this screen exists. The count leads so the size of the hole
+      // is read before the explanation of the line style.
+      unverified: (count: number) =>
+        `${count} scene transition${count === 1 ? '' : 's'} never walked — dashed, hollow head. This is the coverage hole.`,
+      screenTransition: (count: number) =>
+        `${count} screen transition${count === 1 ? '' : 's'} inside one scene — thin line, open head`,
+      crossing: (count: number) =>
+        `${count} screen transition${count === 1 ? '' : 's'} crossing a scene boundary — drawn through the container edge`,
+      walked: 'A scene a run has stood in — solid container border',
+      notWalked: 'A scene no run has stood in — dashed container border',
+    },
+  },
   graph: {
     title: 'Scene transitions',
     labelNote: 'Names are hidden while the graph is this large. The list beside it has them all.',
@@ -350,6 +389,37 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
     ingestedAtLabel: '읽은 시각',
     notIngested: '아직 안 읽음',
     unknown: '보고 없음',
+  },
+  section: {
+    title: '화면 지도',
+    subtitle:
+      '씬 하나에 화면이 여럿 든다 — overlay, popup, 상태 branch. 그것을 중첩해 그려서, 어느 화면이 어느 씬 안에 있는지를 짐작하지 않고 보게 한다.',
+    selectLabel: '빌드',
+    noBuildsTitle: '아직 등록된 빌드가 없습니다',
+    noBuildsCopy:
+      'SDK 가 에디터나 플레이어에서 빌드를 등록하면 여기 나타납니다. 그전에는 그릴 것이 없습니다.',
+    sceneGraphLink: '이 빌드의 씬 그래프 →',
+  },
+  screenMap: {
+    title: '씬과 그 안의 화면',
+    counts: (scenes: number, screens: number, transitions: number) =>
+      `씬 ${scenes}개 · 화면 ${screens}개 · 화면 전이 ${transitions}개`,
+    screenCount: (count: number) => `화면 ${count}`,
+    noScreens: '아직 관측된 화면 없음',
+    noScreensTitle: '아직 이 빌드를 플레이한 QA 런이 없습니다',
+    noScreensCopy: (count: number) =>
+      `아래 씬 ${count}개는 정적 분석에서 나온 것이고, 정적 분석은 화면을 볼 수 없습니다. 화면과 화면 전이는 QA 런이 기록합니다.`,
+    unnamedScreen: '이름 없는 화면',
+    observed: (count: number) => `${count}회`,
+    legend: {
+      verified: (count: number) => `런이 밟아 본 씬 전이 ${count}개 — 실선, 속 찬 화살촉`,
+      unverified: (count: number) =>
+        `아직 못 가본 씬 전이 ${count}개 — 점선, 속 빈 화살촉. 이것이 커버리지 구멍이다.`,
+      screenTransition: (count: number) => `씬 안에서 도는 화면 전이 ${count}개 — 가는 선, 열린 화살촉`,
+      crossing: (count: number) => `씬 경계를 넘는 화면 전이 ${count}개 — 컨테이너 테두리를 뚫고 지나간다`,
+      walked: '런이 서 본 씬 — 실선 컨테이너 테두리',
+      notWalked: '아직 아무 런도 서 보지 않은 씬 — 점선 컨테이너 테두리',
+    },
   },
   graph: {
     title: '씬 전이',

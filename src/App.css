@@ -6331,3 +6331,316 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
     color: #f0c96d;
   }
 }
+
+/* ── 화면 지도 (중첩 다이어그램) ───────────────────────────────────────────
+   씬이 컨테이너, 화면이 그 안의 노드. 색을 빼고 읽어도 전부 갈려야 한다는 것이
+   이 블록의 규칙이다 — 검증 여부는 실선/점선과 화살촉 모양이, 씬을 밟았는지는
+   컨테이너 테두리가, 경계를 넘는 전이는 밑에 깔린 casing 이 말한다. */
+.cm-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+.cm-section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+.cm-section-head h2 {
+  margin: 0;
+}
+.cm-build-picker {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+.cm-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.cm-section-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.cm-section-link {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+.cm-section-link:hover {
+  color: var(--color-action-primary);
+}
+
+.sm-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* 씬 컨테이너. 밟은 씬은 실선, 아직 안 밟은 씬은 점선 테두리다. 채도가 아니라
+   테두리가 그 차이를 나른다. */
+.sm-container {
+  cursor: pointer;
+}
+.sm-container-frame {
+  fill: hsl(var(--cat-hue, 220) 45% 55% / 0.07);
+  stroke: hsl(var(--cat-hue, 220) 40% 42%);
+  stroke-width: 1.4;
+}
+:root[data-theme='dark'] .sm-container-frame {
+  fill: hsl(var(--cat-hue, 220) 50% 62% / 0.1);
+  stroke: hsl(var(--cat-hue, 220) 55% 64%);
+}
+.sm-container--notWalked .sm-container-frame {
+  stroke-dasharray: 6 4;
+}
+/* 응답에 없는 목적지. 아는 두 갈래 중 하나로 꾸미지 않고 흐린 점선으로 둔다. */
+.sm-container--unmapped .sm-container-frame {
+  fill: none;
+  stroke: var(--color-border-strong);
+  stroke-dasharray: 3 4;
+}
+.sm-container-head {
+  fill: hsl(var(--cat-hue, 220) 45% 55% / 0.12);
+}
+.sm-container--unmapped .sm-container-head {
+  fill: none;
+}
+.sm-container.is-selected .sm-container-frame {
+  stroke: var(--color-action-primary);
+  stroke-width: 2.6;
+}
+.sm-container.is-dimmed {
+  opacity: 0.26;
+}
+/* 경계를 넘는 화면 전이는 컨테이너 위에 그려지므로 머리글을 가로지를 수 있다. 글자
+   둘레의 배경색 획이 그 아래에서 이름을 읽히게 한다. */
+.sm-container-name {
+  fill: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  pointer-events: none;
+  paint-order: stroke;
+  stroke: var(--color-bg-canvas);
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+.sm-container-count {
+  fill: var(--color-text-muted);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+.sm-container-empty {
+  fill: var(--color-text-muted);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  pointer-events: none;
+}
+
+/* 화면 노드. 이름은 표시용이고 화면을 실제로 가르는 것은 아래 줄의
+   `discriminator` 라, 둘을 함께 보인다. */
+.sm-screen {
+  cursor: pointer;
+}
+.sm-screen-frame {
+  fill: var(--color-bg-surface);
+  stroke: var(--color-border-strong);
+  stroke-width: 1.1;
+}
+.sm-screen.is-selected .sm-screen-frame {
+  stroke: var(--color-action-primary);
+  stroke-width: 2.2;
+}
+.sm-screen.is-dimmed {
+  opacity: 0.26;
+}
+.sm-screen-name {
+  fill: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  pointer-events: none;
+}
+/* 이름이 없는 것은 빈 이름과 다른 사실이다. 기울여서 이것이 우리가 붙인
+   자리표시라는 것을 말한다. */
+.sm-screen-name.is-unnamed {
+  fill: var(--color-text-muted);
+  font-style: italic;
+}
+.sm-screen-observed {
+  fill: var(--color-text-muted);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+.sm-screen-discriminator {
+  fill: var(--color-text-muted);
+  font-size: 9px;
+  pointer-events: none;
+}
+
+/* 선. 굵기와 화살촉이 씬 전이와 화면 전이를 가르고, 실선/점선이 검증 여부를
+   가른다. 두 축이 서로 겹치지 않는다. */
+.sm-link {
+  cursor: pointer;
+}
+.sm-link-line {
+  fill: none;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+/* 넓고 투명한 사본. 1.2px 짜리 선을 포인터로 집으려면 이것이 있어야 한다. */
+.sm-link-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 14;
+  pointer-events: stroke;
+}
+/*
+  씬 전이의 두 상태에서 **무게가 실리는 쪽은 아직 못 가본 쪽이다.**
+
+  실측에서 씬 간선 19 개 중 확인된 것은 2 개다. 확인된 쪽을 눈에 띄게 그리면 그림이 소수의
+  성공을 자랑하고 다수의 구멍은 배경으로 물러난다 — 이 화면이 존재하는 이유가 바로 그 구멍인데.
+  그래서 확인된 전이는 가라앉은 잉크의 조용한 실선이고, 못 가본 전이가 amber 점선으로 먼저
+  읽힌다. `DESIGN.md` 에서 amber 는 불확실성의 색이고, 아직 아무도 안 가 본 길이 정확히 그것이다.
+
+  색은 되풀이일 뿐이다. 실선/점선과 속 찬/빈 화살촉이 흑백에서도 같은 말을 한다.
+*/
+.sm-link--scene .sm-link-line {
+  stroke-width: 1.6;
+}
+.sm-link--scene.is-verified .sm-link-line {
+  stroke: var(--color-text-secondary);
+}
+.sm-link--scene.is-unverified .sm-link-line {
+  stroke: var(--color-status-warning);
+  stroke-width: 2.1;
+  stroke-dasharray: 7 5;
+}
+.sm-link--screen .sm-link-line {
+  stroke: var(--color-action-primary);
+  stroke-width: 1.2;
+}
+/*
+  씬 경계를 넘는 전이. 선 밑에 배경색 casing 을 깔아 컨테이너 테두리를 뚫고
+  지나가게 한다. 없으면 테두리와 만나는 자리에서 선이 거기서 끊긴 것인지
+  지나간 것인지 읽히지 않는다.
+*/
+.sm-link-casing {
+  fill: none;
+  stroke: var(--color-bg-canvas);
+  stroke-width: 5.5;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+.sm-link--screen.is-crossing .sm-link-line {
+  stroke-width: 1.6;
+}
+.sm-link.is-selected .sm-link-line {
+  stroke: var(--color-action-primary);
+  stroke-width: 2.8;
+}
+.sm-link.is-dimmed {
+  opacity: 0.16;
+}
+.sm-arrow--verified {
+  fill: var(--color-text-secondary);
+  stroke: none;
+}
+/* 속이 비어 있다. 채운 삼각형과 흑백에서도 갈린다. */
+.sm-arrow--unverified {
+  fill: var(--color-bg-canvas);
+  stroke: var(--color-status-warning);
+  stroke-width: 1.4;
+}
+.sm-arrow--screen {
+  fill: none;
+  stroke: var(--color-action-primary);
+  stroke-width: 1.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.sm-link-label {
+  fill: var(--color-text-secondary);
+  font-family: var(--font-sans);
+  font-size: 9.5px;
+  pointer-events: none;
+  paint-order: stroke;
+  stroke: var(--color-bg-canvas);
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+/* 선이 많을 때는 고른 것과 포인터가 얹힌 것만 보인다. 감추는 것이 아니라
+   묻는 순서를 바꾸는 것이고, hover 를 CSS 로 두어 그림 전체를 다시 그리지
+   않는다. */
+.sm-link-label.is-quiet {
+  opacity: 0;
+}
+.sm-link:hover .sm-link-label.is-quiet {
+  opacity: 1;
+}
+.sm-link.is-selected .sm-link-label {
+  fill: var(--color-text-primary);
+  font-weight: 600;
+}
+
+/* 범례. 캔버스가 `aria-hidden` 이라 그림의 어휘를 글로 적는 곳은 여기뿐이다. */
+.sm-legend {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-raised);
+}
+.sm-legend-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.sm-legend-row dt {
+  flex: none;
+  display: flex;
+  align-items: center;
+}
+.sm-legend-row dd {
+  margin: 0;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--color-text-secondary);
+}
+.sm-legend-sample {
+  display: block;
+  width: 44px;
+  height: 14px;
+}
+.sm-legend-boundary {
+  stroke: var(--color-border-strong);
+  stroke-width: 1.4;
+}
+.sm-legend-head.is-filled {
+  fill: var(--color-text-secondary);
+  stroke: none;
+}
+.sm-legend-head {
+  fill: var(--color-bg-canvas);
+  stroke: var(--color-status-warning);
+  stroke-width: 1.4;
+}
+.sm-legend-head.is-open {
+  fill: none;
+  stroke: var(--color-action-primary);
+  stroke-width: 1.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}

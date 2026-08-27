@@ -7,6 +7,7 @@ import { useAuth } from './auth/useAuth'
 import { SdkLoginPage } from './auth/SdkLoginPage'
 import { resumeSdkLogin, SDK_LOGIN_PATH } from './auth/sdkLoginRequest'
 import { ContentMapRoute } from './contentMap/ContentMapPage'
+import { ContentMapSection } from './contentMap/ContentMapSection'
 import { useI18n } from './i18n/useI18n'
 import { KnowledgeSection } from './knowledge/KnowledgeGraphPage'
 import { BuildPerformanceRoute } from './performance/BuildPerformancePage'
@@ -93,6 +94,7 @@ export function App() {
             <Route path="test-runs" element={<TestRunsSection />} />
             <Route path="qa" element={<QaSection />} />
             <Route path="qa-history" element={<QaHistorySection />} />
+            <Route path="content-map" element={<ContentMapSection />} />
             <Route path="performance" element={<PerformanceSection />} />
             <Route path="issues" element={<IssuesSection />} />
             <Route path="knowledge" element={<KnowledgeSection />} />
