@@ -100,6 +100,11 @@ Keep these in English inside a Korean comment:
 // 레이트 리밋 창이 갱신되지 않아 복구가 오히려 늦어진다.
 ```
 
+That list covers kinds of words. Which name to use for a thing the code already
+names is settled by `## Terminology in comments, documents, and pull requests`
+in [`AGENTS.md`](../../AGENTS.md), and that rule reaches documents and pull
+requests as well.
+
 This rule covers source files only. Documentation, commit messages, and PR
 bodies keep the language their own conventions already set — `AGENTS.md`,
 `commit.md`, `pull-request.md`.
