@@ -62,7 +62,13 @@ QA 에이전트가 지식창고에 만들던 화면 지도는 orchestration serv
 - **Commands run:** `npm run typecheck`, `npm test`, `npx eslint src/knowledge src/i18n/messages/knowledge.ts`
 - **Result:** typecheck exit 0. 144 tests pass, 0 fail — 새 `knowledgeAnchors.test.ts` 7건과
   `knowledgeApi.test.ts` 의 앵커 8건 포함. 변경한 파일에 lint 경고 없음.
-- **Not run:** 1024px·1440px 브라우저 확인. 서버가 아직 `anchors` 를 싣지 않아 눈으로 본 것이 없다.
+- **Screens:** headless Chrome 으로 상태별 스크린샷을 찍어 `.plan/assets/2026-08-27-show-knowledge-scene-anchors/`
+  에 두었다. 앵커 하나·여럿(씬만 있는 것 포함)·게임 전체(light·dark)·씬 필터·게임 전체 필터.
+  **실서버가 아니라 fixture 노드에 인스펙터를 물려 찍은 것이다.** 컴포넌트가 그린다는 증거이지
+  ARTEL-605 의 응답이 이 모양이라는 증거가 아니다.
+- **스크린샷이 잡은 실제 결함:** 씬만 있는 앵커에서 "화면은 아직 기록되지 않았습니다" 가 줄바꿈되며
+  마름모 아래로 떨어져, 어느 씬 이야기인지 읽히지 않았다. 씬과 화면을 한 덩이로 묶어 고쳤다.
+- **Not run:** 실서버 연동 확인. 서버가 아직 `anchors` 를 싣지 않는다.
 
 ## Risks & Rollback
 
