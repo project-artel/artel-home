@@ -2,6 +2,20 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { useI18n } from '../i18n/useI18n'
 import { groupStepsByCase, type ScenarioStep } from '../testScenarios/scenarioTypes'
 import { compareDecimalIds } from './qaApi'
+import {
+  anchorOf,
+  buildTimelineRows,
+  eventIdOf,
+  formatPath,
+  formatToolResult,
+  hiddenLogTargets,
+  newestOf,
+  toolCallOf,
+  toolOutputOf,
+  toolResultSummary,
+  type TimelineEvent,
+  type TimelineRow,
+} from './qaLogGrouping'
 import { stepOf } from './qaProgress'
 import type { QaLog } from './qaTypes'
 
@@ -28,6 +42,12 @@ const DATE_FORMAT = new Intl.DateTimeFormat(undefined, {
 
 const TYPE_LABELS: Record<QaLog['type'], string> = {
   LOG: 'Log',
+  // 에이전트가 부른 tool 하나. 답이 그 행 안에 붙으므로 호출 하나를 통째로 말하는
+  // 'Tool' 이고, 짝을 못 찾아 홀로 남은 답만 'Tool result' 로 뜬다.
+  TOOL: 'Tool',
+  TOOL_RESULT: 'Tool result',
+  // 그중 조작 tool 이 SDK 로 내보낸 요청. tool 호출이 아니라 그 아래 층의 전송이므로
+  // Tool 과 이름을 나눠 둔다.
   ACTION: 'Action',
   ACTION_RESULT: 'Action result',
   GAME_STATE: 'Game state',
@@ -36,175 +56,8 @@ const TYPE_LABELS: Record<QaLog['type'], string> = {
   CHAT: 'Chat',
 }
 
-/** Endpoints of each direction, so a relayed event can be shown as one path. */
-const DIRECTION_NODES: Record<QaLog['direction'], [string, string]> = {
-  AGENT_TO_ORCHE: ['Agent', 'Orchestration'],
-  ORCHE_TO_AGENT: ['Orchestration', 'Agent'],
-  ORCHE_TO_SDK: ['Orchestration', 'SDK'],
-  SDK_TO_ORCHE: ['SDK', 'Orchestration'],
-  ORCHE_INTERNAL: ['Orchestration', 'Orchestration'],
-  USER_TO_ORCHE: ['You', 'Orchestration'],
-}
-
-/**
- * One event and every relay hop of it, oldest first.
- *
- * A message crossing SDK → Orchestration → Agent is written once per hop, which
- * reads as three events when it is one.
- */
-type TimelineEvent = QaLog[]
-
-/**
- * One rendered row: a run of consecutive events shown as their newest, the path
- * they travelled, and — once expanded — every event still available in full.
- *
- * Two things are folded, both only when *consecutive*, so the chronology never
- * changes:
- *
- * 1. Streamed state. A running game emits GAME_STATE about once a second; each
- *    frame differs slightly, so nothing that compares payloads would ever fold
- *    them. Only the newest is worth reading by default.
- * 2. Exact repeats of anything else.
- *
- * Nothing is discarded: `events` keeps every folded log so the reader can open
- * the run and read the frames one by one.
- */
-type TimelineRow = {
-  events: TimelineEvent[]
-  path: QaLog['direction'][]
-}
-
-/** The log a collapsed row speaks for: the last hop of its newest event. */
-function newestOf(row: TimelineRow): QaLog {
-  const event = row.events[row.events.length - 1]
-  return event[event.length - 1]
-}
-
-/**
- * The id a row is remembered by while it is expanded.
- *
- * Its *oldest* log, not its newest: a live run keeps folding new frames into the
- * tail row, and an identity that moved with them would drop the reader's
- * expansion on the next frame.
- */
-function anchorOf(row: TimelineRow): string {
-  return row.events[0][0].id
-}
-
 /** Breathing room above a row scrolled to, so it does not sit flush at the edge. */
 const FOCUS_MARGIN = 16
-
-/** Types whose consecutive rows are folded even when their payloads differ. */
-const STREAMED_TYPES = new Set<QaLog['type']>(['GAME_STATE'])
-
-function isSameEvent(left: QaLog, right: QaLog): boolean {
-  return (
-    left.direction === right.direction &&
-    left.message === right.message &&
-    // Payload equality is what separates a real repeat from a same-titled event
-    // carrying new evidence. Cheap enough: only adjacent rows are compared.
-    JSON.stringify(left.payload) === JSON.stringify(right.payload)
-  )
-}
-
-/**
- * Whether `right` is `left` arriving at its next hop.
- *
- * Relays either carry the id forward (GAME_STATE, ACTION_RESULT) or reference it
- * as the correlation of a newly allocated one (an ACTION becoming an SDK call).
- * Ids must be present to link: two rows that both lack one are not evidence of
- * anything, so those fall back to comparing content.
- */
-function isNextHop(left: QaLog, right: QaLog): boolean {
-  if (left.direction === right.direction) return false
-  const linked =
-    (left.messageId !== null && left.messageId === right.messageId) ||
-    (left.messageId !== null && left.messageId === right.correlationId) ||
-    (right.messageId !== null && right.messageId === left.correlationId)
-  if (linked) return true
-  // Relay copies written without ids (an operator message on its way to the
-  // Agent) carry the same text and payload instead.
-  return (
-    left.messageId === null &&
-    right.messageId === null &&
-    left.message === right.message &&
-    JSON.stringify(left.payload) === JSON.stringify(right.payload)
-  )
-}
-
-/**
- * Add a hop to a row's path, ignoring one already on it.
- *
- * A folded stream travels the same route on every frame, so appending blindly
- * would render "SDK → Orchestration → Agent → Orchestration → Agent → …".
- */
-function withHop(path: QaLog['direction'][], direction: QaLog['direction']): QaLog['direction'][] {
-  return path.includes(direction) ? path : [...path, direction]
-}
-
-function collapseRepeats(logs: QaLog[]): TimelineRow[] {
-  const rows: TimelineRow[] = []
-
-  for (const log of logs) {
-    const previous = rows[rows.length - 1]
-    if (previous === undefined || newestOf(previous).type !== log.type) {
-      rows.push({ events: [[log]], path: [log.direction] })
-      continue
-    }
-
-    const latest = newestOf(previous)
-    if (isNextHop(latest, log)) {
-      // Same event, one hop later: it joins that event rather than becoming one.
-      previous.events[previous.events.length - 1].push(log)
-      previous.path = withHop(previous.path, log.direction)
-      continue
-    }
-
-    // Streamed frames fold whichever hop they were caught on: the same frame is
-    // logged on arrival and again on relay, so consecutive frames alternate
-    // direction and a same-direction test would fold nothing at all.
-    if (STREAMED_TYPES.has(log.type) || isSameEvent(latest, log)) {
-      previous.events.push([log])
-      previous.path = withHop(previous.path, log.direction)
-      continue
-    }
-
-    rows.push({ events: [[log]], path: [log.direction] })
-  }
-
-  return rows
-}
-
-/**
- * Where a log that is not rendered on its own can be found: the row to expand,
- * and the element that appears once it is.
- *
- * Only rows with something to expand are mapped. A relay hop folded into a
- * single-event row stays unreachable, as it was before: the row it belongs to is
- * the same event, and scrolling to that row is what a jump to it means.
- */
-function foldedTargets(rows: TimelineRow[]): Map<string, { anchor: string; target: string }> {
-  const targets = new Map<string, { anchor: string; target: string }>()
-  for (const row of rows) {
-    if (row.events.length < 2) continue
-    const anchor = anchorOf(row)
-    for (const event of row.events) {
-      for (const hop of event) targets.set(hop.id, { anchor, target: event[0].id })
-    }
-  }
-  return targets
-}
-
-/** "SDK → Orchestration → Agent" from the hops actually seen. */
-function formatPath(path: QaLog['direction'][]): string {
-  const nodes: string[] = []
-  for (const direction of path) {
-    const [from, to] = DIRECTION_NODES[direction]
-    if (nodes.length === 0) nodes.push(from)
-    if (nodes[nodes.length - 1] !== to) nodes.push(to)
-  }
-  return nodes.join(' → ')
-}
 
 function formatTimestamp(value: string): string {
   const date = new Date(value)
@@ -224,6 +77,43 @@ function payloadText(payload: unknown): string {
   }
 }
 
+/**
+ * 한 행 안에 붙는 답.
+ *
+ * 한 줄 요약이 먼저이고 원본은 접어 둔다. 읽는 사람이 로그에서 찾는 것은 "이게 됐나"
+ * 하나인데, 그 답이 배열이나 긴 본문 안에 묻혀 있으면 매번 펼쳐야 한다.
+ *
+ * 요약을 뽑는 방법이 층마다 다르다. `ACTION_RESULT` 는 `results` 배열이라 성패를 셀 수
+ * 있고, `TOOL_RESULT` 는 tool 이 모델에게 돌려준 문자열이라 셀 것이 없다 — 그래서 성패를
+ * 지어내지 않고 본문 첫 줄을 보인다.
+ */
+function QaCallResult({ result }: { result: QaLog[] }) {
+  const newest = result[result.length - 1]
+  const summary = toolResultSummary(newest.payload)
+  const output = toolOutputOf(newest.payload)
+  const failed = summary !== null && summary.failed > 0
+  const outcome = summary === null ? 'Returned' : failed ? 'Failed' : 'Succeeded'
+  const headline =
+    summary !== null ? formatToolResult(summary) : (output?.split('\n')[0] ?? null)
+
+  return (
+    <div className={`qa-log-tool-result${failed ? ' qa-log-tool-result--failed' : ''}`}>
+      <p className="qa-log-tool-verdict">
+        {/* 색만으로는 못 읽는다. 성패는 글자로도 말한다. */}
+        <span className="qa-log-tool-outcome">{outcome}</span>
+        {headline !== null && <span>{headline}</span>}
+        <time dateTime={newest.createdAt}>{formatTimestamp(newest.createdAt)}</time>
+      </p>
+      <details className="qa-log-payload">
+        <summary>Inspect result</summary>
+        {/* tool 이 돌려준 것은 사람이 읽으라고 쓴 글이다. JSON 으로 다시 감싸면
+            줄바꿈이 \n 으로 굳어 읽을 수 없다. */}
+        <pre>{output ?? payloadText(newest.payload)}</pre>
+      </details>
+    </div>
+  )
+}
+
 /** One folded event, read on its own once the reader opens the run. */
 function QaFoldedEvent({
   event,
@@ -234,8 +124,8 @@ function QaFoldedEvent({
   focused: boolean
   headline: string
 }) {
-  const first = event[0]
-  const newest = event[event.length - 1]
+  const first = event.hops[0]
+  const newest = event.hops[event.hops.length - 1]
   const hasPayload = newest.payload !== null && newest.payload !== undefined
 
   return (
@@ -246,7 +136,7 @@ function QaFoldedEvent({
     >
       <div className="qa-log-meta">
         <time dateTime={newest.createdAt}>{formatTimestamp(newest.createdAt)}</time>
-        <span>{formatPath(event.map((hop) => hop.direction))}</span>
+        <span>{formatPath(event.hops.map((hop) => hop.direction))}</span>
         <span className="mono" translate="no">#{first.id}</span>
       </div>
       {/* The row already states the message the whole run shares; only a frame
@@ -260,6 +150,7 @@ function QaFoldedEvent({
           <pre>{payloadText(newest.payload)}</pre>
         </details>
       )}
+      {event.result !== null && <QaCallResult result={event.result} />}
     </li>
   )
 }
@@ -277,10 +168,20 @@ function QaLogRow({
 }) {
   const { t } = useI18n()
   const log = newestOf(row)
+  // 행이 대표하는 이벤트. 결과가 붙어 있다면 그 이벤트의 것이다.
+  const newestEvent = row.events[row.events.length - 1]
   const repeats = row.events.length
   const hasPayload = log.payload !== null && log.payload !== undefined
   const step = stepOf(log)
-  const message = log.message.length > 0 ? log.message : 'No message'
+  // TOOL 행은 `message` 가 tool 이름이다. 그것은 메타 줄의 칩으로 따로 보이므로, 본문
+  // 자리에는 모델이 왜 불렀는지를 적은 `thought` 를 놓는다.
+  const call = log.type === 'TOOL' ? toolCallOf(log) : null
+  const message =
+    call !== null
+      ? (call.thought ?? 'No reason given')
+      : log.message.length > 0
+        ? log.message
+        : 'No message'
   const focused = log.id === focusedLogId
 
   return (
@@ -295,6 +196,9 @@ function QaLogRow({
       <article aria-labelledby={`qa-log-${log.id}-message`}>
         <header className="qa-log-meta">
           <span className="qa-log-kind">{TYPE_LABELS[log.type]}</span>
+          {call !== null && (
+            <span className="qa-log-tool-name mono" translate="no">{call.tool}</span>
+          )}
           {step !== null && <span className="qa-log-step">{t.qa.steps.short(step)}</span>}
           {repeats > 1 && (
             /* Counted, not just styled: the number is the information. */
@@ -317,12 +221,20 @@ function QaLogRow({
             )}
           </p>
         )}
-        {hasPayload && (
-          <details className="qa-log-payload">
-            <summary>Inspect payload</summary>
-            <pre>{payloadText(log.payload)}</pre>
-          </details>
-        )}
+        {call !== null
+          ? Object.keys(call.args).length > 0 && (
+              <details className="qa-log-payload">
+                <summary>Inspect arguments</summary>
+                <pre>{payloadText(call.args)}</pre>
+              </details>
+            )
+          : hasPayload && (
+              <details className="qa-log-payload">
+                <summary>Inspect payload</summary>
+                <pre>{payloadText(log.payload)}</pre>
+              </details>
+            )}
+        {newestEvent.result !== null && <QaCallResult result={newestEvent.result} />}
         {repeats > 1 && (
           <>
             <button
@@ -338,9 +250,9 @@ function QaLogRow({
                 {row.events.map((event) => (
                   <QaFoldedEvent
                     event={event}
-                    focused={event[0].id === focusedLogId}
+                    focused={eventIdOf(event) === focusedLogId}
                     headline={message}
-                    key={event[0].id}
+                    key={eventIdOf(event)}
                   />
                 ))}
               </ol>
@@ -406,8 +318,8 @@ export function QaLogTimeline({
   const [expandedRows, setExpandedRows] = useState<ReadonlySet<string>>(() => new Set())
   const oldestId = logs[0]?.id
   const newestId = logs.at(-1)?.id ?? null
-  const rows = useMemo(() => collapseRepeats(logs), [logs])
-  const foldTargets = useMemo(() => foldedTargets(rows), [rows])
+  const rows = useMemo(() => buildTimelineRows(logs), [logs])
+  const hiddenTargets = useMemo(() => hiddenLogTargets(rows), [rows])
 
   // step (1-based) → its TC region ordinal, or null for a case-less action step.
   const regionByStep = useMemo(() => {
@@ -556,19 +468,21 @@ export function QaLogTimeline({
       return
     }
 
-    // Folded into a collapsed run: open it, and let the next render scroll to the
-    // event now that it has an element of its own.
-    const folded = foldTargets.get(focusRequest.logId)
-    if (folded !== undefined) {
-      if (!expandedRows.has(folded.anchor)) {
+    // 제 요소가 없는 로그다. 접힌 묶음 안이거나, 한 이벤트의 중계 hop 이거나, tool 행
+    // 안으로 들어간 ACTION_RESULT 다. 펼쳐야 나오는 것이면 먼저 펼치고, 요소가 생긴
+    // 다음 렌더에서 그리로 스크롤한다.
+    const hidden = hiddenTargets.get(focusRequest.logId)
+    if (hidden !== undefined) {
+      const anchor = hidden.anchor
+      if (anchor !== null && !expandedRows.has(anchor)) {
         // Deferred a frame for the same reason the unseen counter is: opening the
         // run is a render this effect asks for, not one it should cascade into.
-        window.requestAnimationFrame(() => expandRow(folded.anchor))
+        window.requestAnimationFrame(() => expandRow(anchor))
         return
       }
-      const event = viewport.querySelector<HTMLElement>(`[data-log-id="${folded.target}"]`)
-      if (event !== null) {
-        focusOn(viewport, event, folded.target)
+      const element = viewport.querySelector<HTMLElement>(`[data-log-id="${hidden.target}"]`)
+      if (element !== null) {
+        focusOn(viewport, element, hidden.target)
         return
       }
     }
@@ -579,8 +493,8 @@ export function QaLogTimeline({
     expandRow,
     expandedRows,
     focusRequest,
-    foldTargets,
     hasMore,
+    hiddenTargets,
     historyFailure,
     historyLoading,
     logs,

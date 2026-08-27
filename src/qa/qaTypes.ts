@@ -13,6 +13,11 @@ export type QaTryStatus = (typeof QA_TRY_STATUSES)[number]
 
 export const QA_LOG_TYPES = [
   'LOG',
+  // 에이전트가 부른 tool 하나와 그 답. `ACTION` 과 다르다 — 저쪽은 조작 tool 이 SDK 로
+  // 내보낸 요청이라 tool 28개 중 15개만 남기고, 지식 검색이나 스텝 판정처럼 SDK 를
+  // 거치지 않는 tool 은 흔적이 없었다.
+  'TOOL',
+  'TOOL_RESULT',
   'ACTION',
   'ACTION_RESULT',
   'GAME_STATE',

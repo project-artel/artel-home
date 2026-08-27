@@ -2145,6 +2145,8 @@ a.instance-name:hover {
   background: var(--color-agent-reasoning);
 }
 
+.qa-log-row--tool .qa-log-marker,
+.qa-log-row--tool_result .qa-log-marker,
 .qa-log-row--action .qa-log-marker,
 .qa-log-row--action_result .qa-log-marker {
   background: var(--color-action-primary);
@@ -2190,9 +2192,17 @@ a.instance-name:hover {
   color: var(--color-agent-reasoning);
 }
 
+.qa-log-row--tool .qa-log-kind,
+.qa-log-row--tool_result .qa-log-kind,
 .qa-log-row--action .qa-log-kind,
 .qa-log-row--action_result .qa-log-kind {
   color: var(--color-action-primary);
+}
+
+/* 부른 tool 의 이름. 메타 줄에서 가장 먼저 눈에 걸려야 하는 값이라 본문 색을 준다. */
+.qa-log-tool-name {
+  color: var(--color-text-primary);
+  font-weight: 500;
 }
 
 .qa-log-row--error .qa-log-kind {
@@ -2254,6 +2264,50 @@ a.instance-name:hover {
   word-break: break-word;
 }
 
+/* tool 호출 행 안에 붙는 결과. 왼쪽 선 하나로 호출 본문과 갈라 두면, 접힌 payload 를
+   펼치지 않고도 어디까지가 답인지 읽힌다. */
+.qa-log-tool-result {
+  margin-top: var(--space-2);
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--color-status-success);
+}
+
+.qa-log-tool-result--failed {
+  border-left-color: var(--color-status-critical);
+}
+
+.qa-log-tool-verdict {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+/* 색만으로 성패를 말하지 않는다. 글자가 먼저이고 색은 거드는 쪽이다. */
+.qa-log-tool-outcome {
+  color: var(--color-status-success);
+  font-weight: 650;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.qa-log-tool-result--failed .qa-log-tool-outcome {
+  color: var(--color-status-critical);
+}
+
+.qa-log-tool-verdict time {
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
 .qa-new-logs {
   position: sticky;
   right: var(--space-4);
