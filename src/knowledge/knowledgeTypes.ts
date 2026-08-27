@@ -9,6 +9,24 @@
  * explicit "unknown" branch and still says what the server said.
  */
 
+/**
+ * Where a knowledge item holds, when it does not hold everywhere.
+ *
+ * 화면 지도는 orchestration server 의 `content_map` 으로 옮겼다. 지식창고에 남는 것 중
+ * 한 화면에서만 참인 사실이 이 앵커를 단다.
+ */
+export type KnowledgeAnchor = {
+  /** The scene the item is tied to. An anchor always names one. */
+  sceneName: string
+  /**
+   * Null whenever the anchor stops at the scene.
+   *
+   * 화면은 관측으로 정해지고 대개 정해지지 않는다. 그래서 `null` 은 결손이 아니라 보통이며,
+   * 서버가 문자열로 보내는 id 다 — 숫자로 다루면 앞의 0 이 잘린다.
+   */
+  screenId: string | null
+}
+
 export type KnowledgeNode = {
   id: string
   /** e.g. `CONTROL`, `INFO`, `MISC`, `RULE`, `OBJECTIVE`, `UI` — open vocabulary. */
@@ -21,6 +39,11 @@ export type KnowledgeNode = {
   /** Only QA-authored items carry a run; a document-derived item has none. */
   createdByQaTryId: string | null
   createdAt: string
+  /**
+   * Scenes and screens this item is tied to. Empty is the ordinary case and
+   * means the fact holds across the whole game — not that the field is missing.
+   */
+  anchors: KnowledgeAnchor[]
 }
 
 export type KnowledgeEdge = {

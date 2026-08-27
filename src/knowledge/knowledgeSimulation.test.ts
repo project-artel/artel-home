@@ -30,6 +30,7 @@ function node(id: string, x: number, y: number): PlacedNode {
     version: 1,
     createdByQaTryId: null,
     createdAt: '2026-08-11T00:00:00Z',
+    anchors: [],
   }
   return { node: knowledge, x, y, component: 0, degree: 0 }
 }
