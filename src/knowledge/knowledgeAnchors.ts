@@ -3,8 +3,8 @@ import type { KnowledgeNode } from './knowledgeTypes'
 /*
  * Narrowing the item list to one scene.
  *
- * 지식은 두 종류다. 게임 어디서나 참인 것(앵커 없음, 보통)과 한 씬에서만 참인 것(앵커 있음).
- * 목록을 씬 하나로 좁히는 일도, 앵커 없는 것만 모아 보는 일도 여기 순수 함수가 답한다 —
+ * 지식은 두 종류다. 게임 어디서나 참인 것(`anchor` 없음, 보통)과 한 씬에서만 참인 것(`anchor` 있음).
+ * 목록을 씬 하나로 좁히는 일도, `anchor` 없는 것만 모아 보는 일도 여기 순수 함수가 답한다 —
  * 컴포넌트가 아니라 여기 있어야 테스트가 붙는다.
  */
 
@@ -14,8 +14,8 @@ export const SCENE_FILTER_ALL = 'ALL'
 /**
  * Only the items with no anchor at all.
  *
- * 앵커가 빠진 항목을 사람이 찾는 통로다. 씬 하나를 고르는 것만으로는 "여기 있어야 하는데
- * 앵커가 없는 것"을 볼 수 없다.
+ * `anchor` 가 빠진 항목을 사람이 찾는 통로다. 씬 하나를 고르는 것만으로는 "여기 있어야 하는데
+ * `anchor` 가 없는 것"을 볼 수 없다.
  */
 export const SCENE_FILTER_GAME_WIDE = 'GAME_WIDE'
 

@@ -52,7 +52,7 @@ test('the documented response is read field for field', () => {
     version: 1,
     createdByQaTryId: '36',
     createdAt: '2026-08-11T06:00:00Z',
-    // 앵커가 없는 항목은 게임 전체에서 참인 사실이다. 서버가 `anchors` 를 아직 싣지
+    // `anchor` 가 없는 항목은 게임 전체에서 참인 사실이다. 서버가 `anchors` 를 아직 싣지
     // 않는 지금의 응답과, 빈 배열을 실은 응답이 여기서 같은 값이 되어야 한다.
     anchors: [],
   })
@@ -199,11 +199,11 @@ test('an unreadable body becomes an empty graph for the project that was asked a
 })
 
 /*
- * Anchors (ARTEL-593). 지식 항목은 두 종류다. 앵커가 없으면 게임 어디서나 참인 사실이고
- * 이쪽이 보통이다. 앵커가 있으면 그 씬(그리고 정해졌다면 그 화면)에서만 참이다.
+ * Anchors (ARTEL-593). 지식 항목은 두 종류다. `anchor` 가 없으면 게임 어디서나 참인 사실이고
+ * 이쪽이 보통이다. `anchor` 가 있으면 그 씬(그리고 정해졌다면 그 화면)에서만 참이다.
  *
  * 이 묶음이 못 박는 것: `anchors` 키가 없는 응답과 빈 배열을 실은 응답이 구분되지 않는다는
- * 것, 그리고 앵커 하나가 깨져도 항목은 살아남는다는 것.
+ * 것, 그리고 `anchor` 하나가 깨져도 항목은 살아남는다는 것.
  */
 
 test('one anchor is read scene and screen', () => {
@@ -233,14 +233,14 @@ test('several anchors are all kept, in the order the server sent them', () => {
 })
 
 test('a null screen id is the ordinary anchor, not a missing value', () => {
-  // 화면은 관측으로 정해지고 대개 정해지지 않는다. 씬까지만 아는 앵커는 온전한 앵커다.
+  // 화면은 관측으로 정해지고 대개 정해지지 않는다. 씬까지만 아는 `anchor` 는 온전한 `anchor` 다.
   const parsed = parseKnowledgeNode({ id: '1', anchors: [{ sceneName: 'TitleScene' }] })
 
   assert.deepEqual(parsed?.anchors, [{ sceneName: 'TitleScene', screenId: null }])
 })
 
 test('a response with no anchors key reads exactly like one with an empty array', () => {
-  // 오늘의 서버가 보내는 모양이다. 이 둘이 갈리면 앵커를 싣기 전의 모든 항목이 화면에서
+  // 오늘의 서버가 보내는 모양이다. 이 둘이 갈리면 `anchor` 를 싣기 전의 모든 항목이 화면에서
   // "불러오지 못함"으로 보이게 된다.
   const withoutKey = parseKnowledgeGraph({ ...sample, nodes: [{ id: '1' }] }, '1')
   const withEmptyArray = parseKnowledgeGraph({ ...sample, nodes: [{ id: '1', anchors: [] }] }, '1')

@@ -67,7 +67,7 @@ QA Try 타임라인에서 GAME_STATE가 차지하는 비중을 줄이면서, 접
 - 오래 실행된 런은 한 행에 수백 프레임이 접힌다. 펼치면 payload `details`가 그만큼
   렌더된다. 기본이 접힘이고 열람은 명시적 조작이므로 감수한다. 문제가 되면
   펼침 목록에 상한을 둔다.
-- `content-visibility: auto`가 걸린 행이 펼침으로 크게 늘어나면 스크롤 앵커가
+- `content-visibility: auto`가 걸린 행이 펼침으로 크게 늘어나면 스크롤 `anchor` 가
   튈 수 있다. `contain-intrinsic-size: auto`가 마지막 크기를 기억하므로 두 번째
   진입부터는 안정적이다.
 - 롤백: `QaLogTimeline.tsx`와 `App.css`의 해당 커밋만 되돌리면 된다. 서버 계약과

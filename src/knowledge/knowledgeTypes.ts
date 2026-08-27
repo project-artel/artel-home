@@ -13,7 +13,7 @@
  * Where a knowledge item holds, when it does not hold everywhere.
  *
  * 화면 지도는 orchestration server 의 `content_map` 으로 옮겼다. 지식창고에 남는 것 중
- * 한 화면에서만 참인 사실이 이 앵커를 단다.
+ * 한 화면에서만 참인 사실이 이 `anchor` 를 단다.
  */
 export type KnowledgeAnchor = {
   /** The scene the item is tied to. An anchor always names one. */

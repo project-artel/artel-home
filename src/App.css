@@ -4962,7 +4962,7 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   text-align: left;
   cursor: pointer;
 }
-/* 항목이 어디서 성립하는지. 앵커 있음/없음은 채운 마름모와 빈 마름모, 그리고 문장으로
+/* 항목이 어디서 성립하는지. `anchor` 있음/없음은 채운 마름모와 빈 마름모, 그리고 문장으로
    가른다 — 색만으로 가르지 않는다. 마름모는 장식이 아니라 색을 대신하는 표식이다. */
 .kg-anchor-list {
   display: flex;
