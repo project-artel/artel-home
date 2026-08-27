@@ -93,6 +93,13 @@ export const knowledgeEn = {
     createdByDocument: 'Extracted from a document, not a run',
     createdAtLabel: 'Created',
     openQaTry: 'Open the run',
+    anchorsLabel: 'Where it holds',
+    // Not a blank and not "none". An item with no anchor is a fact about the
+    // whole game, and the reader has to be able to tell that from a field that
+    // failed to load.
+    gameWide: 'Holds game-wide — not tied to any scene',
+    anchorScreen: (screenId: string) => `screen #${screenId}`,
+    anchorScreenUnset: 'no screen recorded yet',
     relationsHeading: (count: number) => `Relations (${count})`,
     noRelations: 'Nothing is linked to this item yet.',
     directionOut: 'to',
@@ -108,8 +115,15 @@ export const knowledgeEn = {
   },
   list: {
     heading: (count: number) => `All items (${count})`,
+    // "All items" stops being true the moment the scene filter narrows the list.
+    headingFiltered: (count: number) => `Matching items (${count})`,
     untitled: 'Untitled item',
     select: 'Select this item',
+    sceneFilterLabel: 'Scene',
+    sceneFilterAll: 'Every item',
+    sceneFilterGameWide: 'Game-wide only',
+    emptyFiltered: 'No item is tied to this scene.',
+    emptyGameWide: 'Every item is tied to at least one scene.',
   },
 }
 
@@ -201,6 +215,10 @@ export const knowledgeKo: Localized<typeof knowledgeEn> = {
     createdByDocument: '런이 아니라 문서에서 추출된 항목입니다',
     createdAtLabel: '생성',
     openQaTry: '런 열기',
+    anchorsLabel: '성립하는 곳',
+    gameWide: '게임 전체에서 성립합니다. 특정 씬에 묶여 있지 않습니다',
+    anchorScreen: (screenId: string) => `화면 #${screenId}`,
+    anchorScreenUnset: '화면은 아직 기록되지 않았습니다',
     relationsHeading: (count: number) => `관계 (${count})`,
     noRelations: '이 항목에 걸린 관계가 아직 없습니다.',
     directionOut: '→',
@@ -215,7 +233,13 @@ export const knowledgeKo: Localized<typeof knowledgeEn> = {
   },
   list: {
     heading: (count: number) => `전체 항목 (${count})`,
+    headingFiltered: (count: number) => `해당 항목 (${count})`,
     untitled: '이름 없는 항목',
     select: '이 항목 선택',
+    sceneFilterLabel: '씬',
+    sceneFilterAll: '전체 항목',
+    sceneFilterGameWide: '게임 전체 항목만',
+    emptyFiltered: '이 씬에 묶인 항목이 없습니다.',
+    emptyGameWide: '모든 항목이 씬 하나 이상에 묶여 있습니다.',
   },
 }

@@ -4908,6 +4908,58 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   text-align: left;
   cursor: pointer;
 }
+/* 항목이 어디서 성립하는지. 앵커 있음/없음은 채운 마름모와 빈 마름모, 그리고 문장으로
+   가른다 — 색만으로 가르지 않는다. 마름모는 장식이 아니라 색을 대신하는 표식이다. */
+.kg-anchor-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.kg-anchor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+}
+.kg-anchor-mark {
+  color: var(--color-text-muted);
+  font-size: 10px;
+}
+.kg-anchor--scoped .kg-anchor-mark {
+  color: var(--color-action-primary);
+}
+.kg-anchor-scene {
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+.kg-anchor-screen {
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+/* 게임 전체는 결손이 아니다. 흐리게 두면 "값이 없다"로 읽히므로 본문 색을 준다. */
+.kg-anchor--game-wide {
+  color: var(--color-text-secondary);
+}
+
+/* 목록을 씬 하나로 좁히는 컨트롤. 결함 목록의 필터와 같은 관용구다. */
+.kg-list-filter {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3);
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+.kg-list-filter select {
+  min-width: 0;
+  flex: 1 1 auto;
+}
 .kg-item-list-section {
   display: flex;
   flex: 1 1 auto;

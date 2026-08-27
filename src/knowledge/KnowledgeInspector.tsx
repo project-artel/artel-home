@@ -1,7 +1,15 @@
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { formatDateTime } from '../projects/formatters'
 import type { Selection } from './KnowledgeGraphCanvas'
+import {
+  anchoredSceneNames,
+  matchesSceneFilter,
+  sceneFilterValue,
+  SCENE_FILTER_ALL,
+  SCENE_FILTER_GAME_WIDE,
+} from './knowledgeAnchors'
 import { itemTitle, relationLabel, sourceLabel, tagClass, tagLabel, truncate } from './knowledgeLabels'
 import { incidentEdges, type GraphLayout } from './knowledgeLayout'
 import { relationStyle, type KnowledgeNode } from './knowledgeTypes'
@@ -31,11 +39,29 @@ export function KnowledgeInspector({
   onClear: () => void
 }) {
   const { t } = useI18n()
+  const [sceneFilter, setSceneFilter] = useState(SCENE_FILTER_ALL)
   const selectedNode = selection?.kind === 'node' ? nodesById.get(selection.id) ?? null : null
   const selectedEdge =
     selection?.kind === 'edge'
       ? layout.edges.find((placed) => placed.id === selection.id) ?? null
       : null
+
+  const sceneNames = useMemo(
+    () => anchoredSceneNames(layout.nodes.map((placed) => placed.node)),
+    [layout.nodes],
+  )
+  // A reload can retire the scene that was selected. Falling back keeps the
+  // `<select>` showing what the list is actually doing instead of a blank box
+  // over an unnarrowed list.
+  const knownFilters = [
+    SCENE_FILTER_ALL,
+    SCENE_FILTER_GAME_WIDE,
+    ...sceneNames.map(sceneFilterValue),
+  ]
+  const activeFilter = knownFilters.includes(sceneFilter) ? sceneFilter : SCENE_FILTER_ALL
+  const visibleNodes = layout.nodes.filter((placed) =>
+    matchesSceneFilter(placed.node, activeFilter),
+  )
 
   return (
     <div className="kg-inspector">
@@ -70,10 +96,38 @@ export function KnowledgeInspector({
 
       <section aria-labelledby="kg-items-title" className="kg-item-list-section">
         <h2 className="kg-inspector-subtitle" id="kg-items-title">
-          {t.knowledge.list.heading(layout.nodes.length)}
+          {activeFilter === SCENE_FILTER_ALL
+            ? t.knowledge.list.heading(visibleNodes.length)
+            : t.knowledge.list.headingFiltered(visibleNodes.length)}
         </h2>
+
+        {/* No anchor anywhere means nothing to narrow by, and a select offering
+            only "everything" would be a control that never does anything. */}
+        {sceneNames.length > 0 && (
+          <label className="kg-list-filter">
+            <span>{t.knowledge.list.sceneFilterLabel}</span>
+            <select onChange={(event) => setSceneFilter(event.target.value)} value={activeFilter}>
+              <option value={SCENE_FILTER_ALL}>{t.knowledge.list.sceneFilterAll}</option>
+              <option value={SCENE_FILTER_GAME_WIDE}>{t.knowledge.list.sceneFilterGameWide}</option>
+              {sceneNames.map((sceneName) => (
+                <option key={sceneName} value={sceneFilterValue(sceneName)}>
+                  {sceneName}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+
+        {visibleNodes.length === 0 && (
+          <p className="kg-inspector-hint">
+            {activeFilter === SCENE_FILTER_GAME_WIDE
+              ? t.knowledge.list.emptyGameWide
+              : t.knowledge.list.emptyFiltered}
+          </p>
+        )}
+
         <ul className="kg-item-list">
-          {layout.nodes.map((placed) => {
+          {visibleNodes.map((placed) => {
             const selected = selection?.kind === 'node' && selection.id === placed.node.id
             return (
               <li key={placed.node.id}>
@@ -137,6 +191,11 @@ function NodeDetail({
         <dt>{t.knowledge.inspector.sourceLabel}</dt>
         <dd>{sourceLabel(t, node.source)}</dd>
 
+        <dt>{t.knowledge.inspector.anchorsLabel}</dt>
+        <dd>
+          <AnchorList anchors={node.anchors} />
+        </dd>
+
         <dt>{t.knowledge.inspector.versionLabel}</dt>
         <dd className="mono">
           {node.version === null ? t.knowledge.inspector.unknownVersion : `v${node.version}`}
@@ -187,6 +246,49 @@ function NodeDetail({
         </ul>
       )}
     </div>
+  )
+}
+
+/**
+ * Where the selected item holds.
+ *
+ * 앵커가 없는 항목은 게임 전체에서 참인 사실이고, 그것이 보통이다. 그래서 빈칸도 "없음"도
+ * 쓰지 않는다 — 둘 다 "불러오지 못했다"와 구분되지 않고, 그 구분이 이 기능의 전부다.
+ *
+ * 색으로 가르지 않는다(`DESIGN.md`). 묶인 앵커는 채운 마름모, 게임 전체는 빈 마름모이며
+ * 두 경우 모두 문장이 같은 말을 반복한다. 마름모는 `aria-hidden` 이다 — 읽어 주는 쪽에는
+ * 문장만 남는다.
+ */
+function AnchorList({ anchors }: { anchors: KnowledgeNode['anchors'] }) {
+  const { t } = useI18n()
+
+  if (anchors.length === 0) {
+    return (
+      <p className="kg-anchor kg-anchor--game-wide">
+        <span aria-hidden="true" className="kg-anchor-mark">
+          ◇
+        </span>
+        {t.knowledge.inspector.gameWide}
+      </p>
+    )
+  }
+
+  return (
+    <ul className="kg-anchor-list">
+      {anchors.map((anchor) => (
+        <li className="kg-anchor kg-anchor--scoped" key={`${anchor.sceneName} ${anchor.screenId ?? ''}`}>
+          <span aria-hidden="true" className="kg-anchor-mark">
+            ◆
+          </span>
+          <span className="kg-anchor-scene mono">{anchor.sceneName}</span>
+          <span className="kg-anchor-screen">
+            {anchor.screenId === null
+              ? t.knowledge.inspector.anchorScreenUnset
+              : t.knowledge.inspector.anchorScreen(anchor.screenId)}
+          </span>
+        </li>
+      ))}
+    </ul>
   )
 }
 
