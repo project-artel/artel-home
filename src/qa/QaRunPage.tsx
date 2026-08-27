@@ -37,7 +37,17 @@ function QaRunMissing({ projectId }: { projectId: string }) {
 
 // Only these carry meaning for the compact "Flow" view; the rest (raw LOG lines,
 // per-frame GAME_STATE) are noise there and stay in the Raw tab.
-const FLOW_TYPES = new Set<QaLog['type']>(['ACTION', 'ACTION_RESULT', 'STATUS', 'ERROR', 'CHAT'])
+//
+// `ACTION` 은 여기서 빠졌다. 조작 tool 이 SDK 로 내보낸 요청이라 그 tool 의 `TOOL` 행과
+// 같은 사건을 두 번 말하고, 흐름은 "에이전트가 무엇을 불렀나"의 나열로 읽혀야 한다.
+// 전송 프레임을 봐야 할 때는 Raw 탭이 그대로 들고 있다.
+const FLOW_TYPES = new Set<QaLog['type']>([
+  'TOOL',
+  'TOOL_RESULT',
+  'STATUS',
+  'ERROR',
+  'CHAT',
+])
 
 /** How often the console re-reads the run while it is still going. */
 const POLL_INTERVAL_MS = 3000

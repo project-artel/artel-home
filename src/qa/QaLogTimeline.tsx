@@ -10,6 +10,8 @@ import {
   formatToolResult,
   hiddenLogTargets,
   newestOf,
+  toolCallOf,
+  toolOutputOf,
   toolResultSummary,
   type TimelineEvent,
   type TimelineRow,
@@ -40,11 +42,14 @@ const DATE_FORMAT = new Intl.DateTimeFormat(undefined, {
 
 const TYPE_LABELS: Record<QaLog['type'], string> = {
   LOG: 'Log',
-  // 이 두 줄은 에이전트의 tool 호출과 그 답이다. ACTION 행에는 짝이 되는 결과가 붙어
-  // 있으므로 호출 하나를 통째로 말하는 'Tool' 이고, 짝을 못 찾아 홀로 남은 결과만
-  // 'Tool result' 로 남는다.
-  ACTION: 'Tool',
-  ACTION_RESULT: 'Tool result',
+  // 에이전트가 부른 tool 하나. 답이 그 행 안에 붙으므로 호출 하나를 통째로 말하는
+  // 'Tool' 이고, 짝을 못 찾아 홀로 남은 답만 'Tool result' 로 뜬다.
+  TOOL: 'Tool',
+  TOOL_RESULT: 'Tool result',
+  // 그중 조작 tool 이 SDK 로 내보낸 요청. tool 호출이 아니라 그 아래 층의 전송이므로
+  // Tool 과 이름을 나눠 둔다.
+  ACTION: 'Action',
+  ACTION_RESULT: 'Action result',
   GAME_STATE: 'Game state',
   STATUS: 'Status',
   ERROR: 'Error',
@@ -73,29 +78,37 @@ function payloadText(payload: unknown): string {
 }
 
 /**
- * tool 호출에 돌아온 답.
+ * 한 행 안에 붙는 답.
  *
- * 요약 한 줄이 먼저이고 원본 payload 는 접어 둔다. 읽는 사람이 로그에서 찾는 것은
- * "이 호출이 됐나" 하나이고, 그 답이 results 배열 안에 묻혀 있으면 매번 펼쳐야 한다.
- * 성공과 실패는 색만이 아니라 글자로도 말한다.
+ * 한 줄 요약이 먼저이고 원본은 접어 둔다. 읽는 사람이 로그에서 찾는 것은 "이게 됐나"
+ * 하나인데, 그 답이 배열이나 긴 본문 안에 묻혀 있으면 매번 펼쳐야 한다.
+ *
+ * 요약을 뽑는 방법이 층마다 다르다. `ACTION_RESULT` 는 `results` 배열이라 성패를 셀 수
+ * 있고, `TOOL_RESULT` 는 tool 이 모델에게 돌려준 문자열이라 셀 것이 없다 — 그래서 성패를
+ * 지어내지 않고 본문 첫 줄을 보인다.
  */
-function QaToolResult({ result }: { result: QaLog[] }) {
+function QaCallResult({ result }: { result: QaLog[] }) {
   const newest = result[result.length - 1]
   const summary = toolResultSummary(newest.payload)
+  const output = toolOutputOf(newest.payload)
   const failed = summary !== null && summary.failed > 0
+  const outcome = summary === null ? 'Returned' : failed ? 'Failed' : 'Succeeded'
+  const headline =
+    summary !== null ? formatToolResult(summary) : (output?.split('\n')[0] ?? null)
 
   return (
     <div className={`qa-log-tool-result${failed ? ' qa-log-tool-result--failed' : ''}`}>
       <p className="qa-log-tool-verdict">
-        <span className="qa-log-tool-outcome">
-          {summary === null ? 'Result' : failed ? 'Failed' : 'Succeeded'}
-        </span>
-        {summary !== null && <span>{formatToolResult(summary)}</span>}
+        {/* 색만으로는 못 읽는다. 성패는 글자로도 말한다. */}
+        <span className="qa-log-tool-outcome">{outcome}</span>
+        {headline !== null && <span>{headline}</span>}
         <time dateTime={newest.createdAt}>{formatTimestamp(newest.createdAt)}</time>
       </p>
       <details className="qa-log-payload">
         <summary>Inspect result</summary>
-        <pre>{payloadText(newest.payload)}</pre>
+        {/* tool 이 돌려준 것은 사람이 읽으라고 쓴 글이다. JSON 으로 다시 감싸면
+            줄바꿈이 \n 으로 굳어 읽을 수 없다. */}
+        <pre>{output ?? payloadText(newest.payload)}</pre>
       </details>
     </div>
   )
@@ -137,7 +150,7 @@ function QaFoldedEvent({
           <pre>{payloadText(newest.payload)}</pre>
         </details>
       )}
-      {event.result !== null && <QaToolResult result={event.result} />}
+      {event.result !== null && <QaCallResult result={event.result} />}
     </li>
   )
 }
@@ -160,7 +173,15 @@ function QaLogRow({
   const repeats = row.events.length
   const hasPayload = log.payload !== null && log.payload !== undefined
   const step = stepOf(log)
-  const message = log.message.length > 0 ? log.message : 'No message'
+  // TOOL 행은 `message` 가 tool 이름이다. 그것은 메타 줄의 칩으로 따로 보이므로, 본문
+  // 자리에는 모델이 왜 불렀는지를 적은 `thought` 를 놓는다.
+  const call = log.type === 'TOOL' ? toolCallOf(log) : null
+  const message =
+    call !== null
+      ? (call.thought ?? 'No reason given')
+      : log.message.length > 0
+        ? log.message
+        : 'No message'
   const focused = log.id === focusedLogId
 
   return (
@@ -175,6 +196,9 @@ function QaLogRow({
       <article aria-labelledby={`qa-log-${log.id}-message`}>
         <header className="qa-log-meta">
           <span className="qa-log-kind">{TYPE_LABELS[log.type]}</span>
+          {call !== null && (
+            <span className="qa-log-tool-name mono" translate="no">{call.tool}</span>
+          )}
           {step !== null && <span className="qa-log-step">{t.qa.steps.short(step)}</span>}
           {repeats > 1 && (
             /* Counted, not just styled: the number is the information. */
@@ -197,13 +221,20 @@ function QaLogRow({
             )}
           </p>
         )}
-        {hasPayload && (
-          <details className="qa-log-payload">
-            <summary>Inspect payload</summary>
-            <pre>{payloadText(log.payload)}</pre>
-          </details>
-        )}
-        {newestEvent.result !== null && <QaToolResult result={newestEvent.result} />}
+        {call !== null
+          ? Object.keys(call.args).length > 0 && (
+              <details className="qa-log-payload">
+                <summary>Inspect arguments</summary>
+                <pre>{payloadText(call.args)}</pre>
+              </details>
+            )
+          : hasPayload && (
+              <details className="qa-log-payload">
+                <summary>Inspect payload</summary>
+                <pre>{payloadText(log.payload)}</pre>
+              </details>
+            )}
+        {newestEvent.result !== null && <QaCallResult result={newestEvent.result} />}
         {repeats > 1 && (
           <>
             <button

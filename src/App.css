@@ -2145,6 +2145,8 @@ a.instance-name:hover {
   background: var(--color-agent-reasoning);
 }
 
+.qa-log-row--tool .qa-log-marker,
+.qa-log-row--tool_result .qa-log-marker,
 .qa-log-row--action .qa-log-marker,
 .qa-log-row--action_result .qa-log-marker {
   background: var(--color-action-primary);
@@ -2190,9 +2192,17 @@ a.instance-name:hover {
   color: var(--color-agent-reasoning);
 }
 
+.qa-log-row--tool .qa-log-kind,
+.qa-log-row--tool_result .qa-log-kind,
 .qa-log-row--action .qa-log-kind,
 .qa-log-row--action_result .qa-log-kind {
   color: var(--color-action-primary);
+}
+
+/* 부른 tool 의 이름. 메타 줄에서 가장 먼저 눈에 걸려야 하는 값이라 본문 색을 준다. */
+.qa-log-tool-name {
+  color: var(--color-text-primary);
+  font-weight: 500;
 }
 
 .qa-log-row--error .qa-log-kind {

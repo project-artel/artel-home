@@ -8,6 +8,8 @@ import {
   formatToolResult,
   hiddenLogTargets,
   newestOf,
+  toolCallOf,
+  toolOutputOf,
   toolResultSummary,
 } from './qaLogGrouping'
 import type { QaLog, QaLogDirection, QaLogType } from './qaTypes'
@@ -79,7 +81,7 @@ function gameStateLogs(id: string): QaLog[] {
   ]
 }
 
-test('a tool call and its result become one row', () => {
+test('an action and its result become one row', () => {
   const logs = [
     ...actionLogs('a1', '10', 'Click Start'),
     ...actionResultLogs('a1', '10', [{ id: 1, success: true }]),
@@ -95,7 +97,7 @@ test('a tool call and its result become one row', () => {
   )
 })
 
-test('game state frames between a call and its result do not break the pair', () => {
+test('game state frames between an action and its result do not break the pair', () => {
   const logs = [
     ...actionLogs('a1', '10', 'Click Start'),
     ...gameStateLogs('11'),
@@ -149,7 +151,7 @@ test('the row path shows the whole round trip once a result is attached', () => 
   )
 })
 
-test('a jump to a result log lands on the tool row that swallowed it', () => {
+test('a jump to an action result lands on the action row that swallowed it', () => {
   const logs = [
     ...actionLogs('a1', '10', 'Click Start'),
     ...actionResultLogs('a1', '10', [{ id: 1, success: true }]),
@@ -209,4 +211,115 @@ test('the summary line says the outcome in words', () => {
     '2 of 3 actions failed · Element not found.',
   )
   assert.equal(formatToolResult({ total: 2, failed: 1, firstError: null }), '1 of 2 actions failed')
+})
+
+// --- tool 호출 -----------------------------------------------------------------
+//
+// Agent 가 부르는 tool 하나와 그 답. 조작 tool 은 여기에 더해 SDK 로 나가는 ACTION 도
+// 남기므로, 두 쌍이 한 런에 섞여 흐른다.
+
+/** Agent 가 tool 호출 하나를 남기는 프레임. correlation 은 답이 들고 온다. */
+function toolLog(id: string, tool: string, args: Record<string, unknown>): QaLog {
+  return makeLog(id, 'TOOL', 'AGENT_TO_ORCHE', {
+    messageId: `msg-${id}`,
+    message: tool,
+    payload: { message: tool, tool, tool_call_id: `call-${id}`, args, step: args.step },
+  })
+}
+
+function toolResultLog(id: string, callId: string, tool: string, content: string): QaLog {
+  return makeLog(id, 'TOOL_RESULT', 'AGENT_TO_ORCHE', {
+    messageId: `msg-${id}`,
+    correlationId: `msg-${callId}`,
+    message: tool,
+    payload: { message: tool, tool, tool_call_id: `call-${callId}`, content },
+  })
+}
+
+test('a tool call and its answer become one row', () => {
+  const logs = [
+    toolLog('1', 'search_knowledge', { step: 2, query: '보스전 진입 조건', thought: '규칙이 애매하다' }),
+    toolResultLog('2', '1', 'search_knowledge', '2 entries found.'),
+  ]
+
+  const rows = buildTimelineRows(logs)
+
+  assert.equal(rows.length, 1)
+  assert.equal(newestOf(rows[0]).type, 'TOOL')
+  assert.deepEqual(
+    rows[0].events[0].result?.map((hop) => hop.id),
+    ['2'],
+  )
+})
+
+test('a tool answer does not attach to an action, nor an action result to a tool', () => {
+  // 조작 한 번이 남기는 네 줄이 섞여 흐른다. 층을 가리지 않으면 tool 의 답이 액션에 붙는다.
+  const logs = [
+    toolLog('1', 'click_button', { step: 1, target_id: 12, thought: '시작을 누른다' }),
+    ...actionLogs('a1', '10', 'Clicking 12'),
+    ...actionResultLogs('a1', '10', [{ id: 1, success: true }]),
+    toolResultLog('2', '1', 'click_button', '  button_click: ok'),
+  ]
+
+  const rows = buildTimelineRows(logs)
+
+  assert.deepEqual(
+    rows.map((row) => newestOf(row).type),
+    ['TOOL', 'ACTION'],
+  )
+  // tool 행에는 tool 의 답이, 액션 행에는 SDK 의 답이 붙는다.
+  assert.deepEqual(rows[0].events[0].result?.map((hop) => hop.id), ['2'])
+  assert.deepEqual(rows[1].events[0].result?.map((hop) => hop.id), ['101', '102'])
+})
+
+test('two tool calls keep their own answers', () => {
+  const logs = [
+    toolLog('1', 'observe_scene', { step: 1, thought: '화면을 본다' }),
+    toolLog('2', 'report_step', { step: 1, thought: '판정한다' }),
+    toolResultLog('3', '2', 'report_step', '1 step(s) left'),
+    toolResultLog('4', '1', 'observe_scene', 'scene: Lobby'),
+  ]
+
+  const rows = buildTimelineRows(logs)
+
+  assert.equal(rows.length, 2)
+  assert.deepEqual(rows[0].events[0].result?.map((hop) => hop.id), ['4'])
+  assert.deepEqual(rows[1].events[0].result?.map((hop) => hop.id), ['3'])
+})
+
+test('a jump to a tool answer lands on the call that swallowed it', () => {
+  const rows = buildTimelineRows([
+    toolLog('1', 'observe_scene', { step: 1, thought: '화면을 본다' }),
+    toolResultLog('2', '1', 'observe_scene', 'scene: Lobby'),
+  ])
+
+  assert.deepEqual(hiddenLogTargets(rows).get('2'), {
+    anchor: null,
+    target: newestOf(rows[0]).id,
+  })
+})
+
+test('the call reads its tool, its reason, and the arguments worth expanding', () => {
+  const call = toolCallOf(
+    toolLog('1', 'search_knowledge', { step: 2, query: '보스전', thought: '규칙이 애매하다' }),
+  )
+
+  assert.equal(call?.tool, 'search_knowledge')
+  assert.equal(call?.thought, '규칙이 애매하다')
+  // `thought` 는 행의 본문으로, `step` 은 배지로 이미 보인다. 펼칠 것에 남기면 두 번 읽는다.
+  assert.deepEqual(call?.args, { query: '보스전' })
+})
+
+test('a frame that names no tool is not read as a call', () => {
+  assert.equal(toolCallOf(makeLog('1', 'LOG', 'ORCHE_TO_AGENT')), null)
+  assert.equal(
+    toolCallOf(makeLog('1', 'TOOL', 'AGENT_TO_ORCHE', { payload: { args: {} } })),
+    null,
+  )
+})
+
+test('the answer body is the string the tool returned', () => {
+  assert.equal(toolOutputOf({ content: 'scene: Lobby' }), 'scene: Lobby')
+  assert.equal(toolOutputOf({ content: '' }), null)
+  assert.equal(toolOutputOf(null), null)
 })

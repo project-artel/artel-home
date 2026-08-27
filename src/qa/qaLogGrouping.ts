@@ -23,6 +23,19 @@ const DIRECTION_NODES: Record<QaLog['direction'], [string, string]> = {
 const STREAMED_TYPES = new Set<QaLog['type']>(['GAME_STATE'])
 
 /**
+ * 답이 돌아오는 종류와, 그 답의 종류.
+ *
+ * 둘은 층이 다르다. `TOOL` 은 에이전트가 부른 tool 하나이고, `ACTION` 은 그중 조작 tool 이
+ * SDK 로 내보낸 요청이다. 조작 한 번은 둘 다 남기므로 두 쌍이 한 런에 섞여 흐른다.
+ */
+const RESULT_OF: Partial<Record<QaLog['type'], QaLog['type']>> = {
+  TOOL: 'TOOL_RESULT',
+  ACTION: 'ACTION_RESULT',
+}
+
+const RESULT_TYPES = new Set<QaLog['type']>(Object.values(RESULT_OF))
+
+/**
  * 이벤트 하나와 그것이 거쳐 간 모든 중계 hop, 오래된 순.
  *
  * SDK -> Orchestration -> Agent 를 건너는 메시지는 hop 마다 한 줄씩 기록되므로, 하나인
@@ -175,19 +188,23 @@ function intersects(left: Set<string>, right: Set<string>): boolean {
  */
 export function attachToolResults(events: TimelineEvent[]): TimelineEvent[] {
   const kept: TimelineEvent[] = []
-  // 아직 결과를 못 받은 ACTION 이벤트. 가장 최근 것부터 맞춰 본다. id 집합을 넣을 때
-  // 한 번만 만들어 들고 다니는 이유는, 실행 중인 런이 로그가 늘 때마다 이 전체를 다시
-  // 돌리기 때문이다. 후보마다 다시 만들면 로그 수의 제곱으로 커진다.
-  const awaiting: { event: TimelineEvent; ids: Set<string> }[] = []
+  // 아직 답을 못 받은 호출. 가장 최근 것부터 맞춰 본다. id 집합을 넣을 때 한 번만 만들어
+  // 들고 다니는 이유는, 실행 중인 런이 로그가 늘 때마다 이 전체를 다시 돌리기 때문이다.
+  // 후보마다 다시 만들면 로그 수의 제곱으로 커진다.
+  //
+  // `resultType` 을 함께 든다. TOOL 과 ACTION 이 한 런에 섞여 흐르므로, 답이 왔을 때 그것이
+  // 어느 층의 답인지 가려야 tool 의 답이 액션에 붙는 일이 없다.
+  const awaiting: { event: TimelineEvent; ids: Set<string>; resultType: QaLog['type'] }[] = []
 
   for (const event of events) {
     const type = event.hops[0].type
-    if (type === 'ACTION') {
-      awaiting.push({ event, ids: linkIdsOf(event) })
+    const resultType = RESULT_OF[type]
+    if (resultType !== undefined) {
+      awaiting.push({ event, ids: linkIdsOf(event), resultType })
       kept.push(event)
       continue
     }
-    if (type !== 'ACTION_RESULT') {
+    if (!RESULT_TYPES.has(type)) {
       kept.push(event)
       continue
     }
@@ -195,8 +212,9 @@ export function attachToolResults(events: TimelineEvent[]): TimelineEvent[] {
     const ids = linkIdsOf(event)
     let matched = false
     for (let index = awaiting.length - 1; index >= 0; index -= 1) {
-      if (!intersects(awaiting[index].ids, ids)) continue
-      awaiting[index].event.result = event.hops
+      const candidate = awaiting[index]
+      if (candidate.resultType !== type || !intersects(candidate.ids, ids)) continue
+      candidate.event.result = event.hops
       awaiting.splice(index, 1)
       matched = true
       break
@@ -289,6 +307,52 @@ export function formatPath(path: QaLog['direction'][]): string {
     if (nodes[nodes.length - 1] !== to) nodes.push(to)
   }
   return nodes.join(' → ')
+}
+
+/** TOOL 프레임 하나가 말하는 것: 무엇을 어떤 인자로 불렀고, 왜 불렀는지. */
+export type ToolCall = {
+  tool: string
+  /** 모델이 적은 이유. 거의 모든 tool 이 `thought` 를 인자로 받는다. */
+  thought: string | null
+  /**
+   * 나머지 인자.
+   *
+   * `thought` 와 `step` 은 뺀다. 앞의 것은 행의 본문으로, 뒤의 것은 스텝 배지로 이미
+   * 보이므로 펼쳐 봐야 할 것에 남겨 두면 같은 값을 두 번 읽게 한다.
+   */
+  args: Record<string, unknown>
+}
+
+export function toolCallOf(log: QaLog): ToolCall | null {
+  const payload = asRecord(log.payload)
+  if (payload === null) return null
+  const tool = typeof payload.tool === 'string' ? payload.tool : null
+  if (tool === null) return null
+
+  const source = asRecord(payload.args) ?? {}
+  const args: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(source)) {
+    if (key === 'thought' || key === 'step') continue
+    args[key] = value
+  }
+  const thought = source.thought
+  return {
+    tool,
+    thought: typeof thought === 'string' && thought.length > 0 ? thought : null,
+    args,
+  }
+}
+
+/**
+ * TOOL_RESULT 가 실어 온 본문. tool 이 모델에게 돌려준 문자열 그대로다.
+ *
+ * 성패를 말하는 값이 없다. tool 은 문자열 하나를 돌려줄 뿐이라 Agent 도 지어내지 않았고,
+ * 조작이 실제로 됐는지는 같은 왕복의 ACTION_RESULT 가 말한다.
+ */
+export function toolOutputOf(payload: unknown): string | null {
+  const record = asRecord(payload)
+  if (record === null) return null
+  return typeof record.content === 'string' && record.content.length > 0 ? record.content : null
 }
 
 /** ACTION_RESULT 하나가 말하는 것: 몇 개가 돌았고 그중 몇 개가 실패했는지. */
