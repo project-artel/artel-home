@@ -268,7 +268,7 @@ function AnchorList({ anchors }: { anchors: KnowledgeNode['anchors'] }) {
         <span aria-hidden="true" className="kg-anchor-mark">
           ◇
         </span>
-        {t.knowledge.inspector.gameWide}
+        <span className="kg-anchor-where">{t.knowledge.inspector.gameWide}</span>
       </p>
     )
   }
@@ -280,11 +280,15 @@ function AnchorList({ anchors }: { anchors: KnowledgeNode['anchors'] }) {
           <span aria-hidden="true" className="kg-anchor-mark">
             ◆
           </span>
-          <span className="kg-anchor-scene mono">{anchor.sceneName}</span>
-          <span className="kg-anchor-screen">
-            {anchor.screenId === null
-              ? t.knowledge.inspector.anchorScreenUnset
-              : t.knowledge.inspector.anchorScreen(anchor.screenId)}
+          {/* 씬과 화면을 한 덩이로 묶는다. 풀어 두면 화면 문구가 줄바꿈될 때 마름모
+              아래로 떨어져, 어느 씬의 화면인지 읽히지 않는다. */}
+          <span className="kg-anchor-where">
+            <span className="kg-anchor-scene mono">{anchor.sceneName}</span>{' '}
+            <span className="kg-anchor-screen">
+              {anchor.screenId === null
+                ? t.knowledge.inspector.anchorScreenUnset
+                : t.knowledge.inspector.anchorScreen(anchor.screenId)}
+            </span>
           </span>
         </li>
       ))}
