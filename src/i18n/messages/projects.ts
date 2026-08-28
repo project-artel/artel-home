@@ -202,6 +202,8 @@ export const projectsEn = {
   workspace: {
     navLabel: 'Project sections',
     projectEyebrow: 'Project',
+    collapseNav: 'Collapse the section rail',
+    expandNav: 'Expand the section rail',
     allProjects: 'All projects',
     seeAll: 'See all →',
     recentQa: 'Recent QA runs',
@@ -450,6 +452,8 @@ export const projectsKo: Localized<typeof projectsEn> = {
   workspace: {
     navLabel: '프로젝트 섹션',
     projectEyebrow: '프로젝트',
+    collapseNav: '섹션 레일 접기',
+    expandNav: '섹션 레일 펼치기',
     allProjects: '전체 프로젝트',
     seeAll: '전체 보기 →',
     recentQa: '최근 QA 실행',
