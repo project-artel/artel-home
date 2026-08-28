@@ -121,6 +121,17 @@ export const contentMapEn = {
       'A build appears here once the SDK registers it from the editor or a player. There is nothing to draw until then.',
     sceneGraphLink: 'Scene graph for this build →',
   },
+  // Pan and zoom, shared by every canvas in this directory.
+  viewport: {
+    // Told as a hint rather than an instruction: the gestures are the ones a
+    // reader already expects from a map, and the sentence is there for the
+    // reader who did not think to try them.
+    hint: 'Drag to move the drawing, scroll to zoom.',
+    scale: (times: number) => `${times.toFixed(times < 10 ? 1 : 0)}×`,
+    zoomIn: 'Zoom in',
+    zoomOut: 'Zoom out',
+    reset: 'Fit',
+  },
   screenMap: {
     title: 'Scenes and the screens inside them',
     counts: (scenes: number, screens: number, transitions: number) =>
@@ -399,6 +410,13 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
     noBuildsCopy:
       'SDK 가 에디터나 플레이어에서 빌드를 등록하면 여기 나타납니다. 그전에는 그릴 것이 없습니다.',
     sceneGraphLink: '이 빌드의 씬 그래프 →',
+  },
+  viewport: {
+    hint: '끌어서 옮기고, 스크롤해서 확대·축소합니다.',
+    scale: (times: number) => `${times.toFixed(times < 10 ? 1 : 0)}배`,
+    zoomIn: '확대',
+    zoomOut: '축소',
+    reset: '전체 보기',
   },
   screenMap: {
     title: '씬과 그 안의 화면',

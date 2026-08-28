@@ -9,6 +9,7 @@ import {
   type ContentMapSelection,
 } from './contentMapTypes'
 import { sceneKind, sceneTitle } from './sceneLabels'
+import type { CanvasViewport } from './useCanvasViewport'
 import type {
   PlacedContainer,
   PlacedSceneEdge,
@@ -44,6 +45,12 @@ type CanvasProps = {
   layout: ScreenMapLayout
   selection: ContentMapSelection | null
   onSelect: (selection: ContentMapSelection) => void
+  /**
+   * Pan and zoom, owned by the section so its controls can sit outside the
+   * drawing. The canvas is `aria-hidden`, so a control placed inside it would
+   * be unreachable by anything but a pointer.
+   */
+  viewport: CanvasViewport
 }
 
 /** 씬 이름 라벨의 폭 예산, 라틴 문자 기준. 한글로는 절반쯤이다. */
@@ -72,7 +79,7 @@ const EDGE_LABEL_WIDTH = 24
  */
 const EDGE_LABEL_LIMIT = 14
 
-export function ScreenMapCanvas({ layout, selection, onSelect }: CanvasProps) {
+export function ScreenMapCanvas({ layout, selection, onSelect, viewport }: CanvasProps) {
   // 고른 것이 닿는 요소들. 나머지를 지우지 않고 조용하게만 두는 이유는, 주변이 있어야 고른
   // 것이 무엇을 뜻하는지 읽히기 때문이다.
   const related = useMemo(() => relatedIds(layout, selection), [layout, selection])
@@ -81,9 +88,10 @@ export function ScreenMapCanvas({ layout, selection, onSelect }: CanvasProps) {
   return (
     <svg
       aria-hidden="true"
-      className="sm-canvas"
+      className={`sm-canvas${viewport.panning ? ' is-panning' : ''}`}
       preserveAspectRatio="xMidYMid meet"
-      viewBox={layout.viewBox}
+      viewBox={viewport.viewBox}
+      {...viewport.bind}
     >
       <defs>
         {/*

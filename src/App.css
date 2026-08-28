@@ -6382,6 +6382,40 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   display: block;
   width: 100%;
   height: 100%;
+  /* 끌면 옮겨진다는 것을 커서가 먼저 말한다. `touch-action` 이 없으면 터치에서
+     브라우저의 스크롤이 pointermove 를 먼저 삼켜 pan 이 한 번도 안 돈다. */
+  cursor: grab;
+  touch-action: none;
+}
+.sm-canvas.is-panning {
+  cursor: grabbing;
+}
+
+/* 확대·축소 조작. 캔버스가 `aria-hidden` 이라 이 줄이 포인터 없는 유일한 경로다. */
+.cm-viewport-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+.cm-viewport-scale {
+  margin-right: auto;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
+}
+.cm-viewport-button {
+  min-width: 32px;
+  padding: 2px var(--space-2);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.cm-viewport-button--reset {
+  font-size: 12px;
+}
+.cm-viewport-button:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 /* 씬 컨테이너. 밟은 씬은 실선, 아직 안 밟은 씬은 점선 테두리다. 채도가 아니라
