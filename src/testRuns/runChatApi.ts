@@ -120,6 +120,14 @@ export type RunChatQuestion = {
 export type RunChatQuestionEvent = {
   type: 'question'
   question: RunChatQuestion
+  /**
+   * Everything authoring could not settle this turn (ARTEL-630).
+   *
+   * The server used to send one and stay silent about the rest, so a run with five
+   * blocked spots asked about one and the user read the scenarios as finished.
+   * `question` is the first of these and stays for older clients; render this.
+   */
+  questions?: RunChatQuestion[]
 }
 
 /**
@@ -351,7 +359,13 @@ export function parseRunStreamEvent(data: string): RunChatStreamEvent | null {
   }
   if (record.type === 'question') {
     const question = parseQuestion(record.question)
-    return question === null ? null : { type: 'question', question }
+    if (question === null) return null
+    // 함께 낸 것을 다 읽는다(ARTEL-630). 옛 서버는 `questions` 를 안 보내므로 첫 것만 남는다 —
+    // 그때도 화면은 지금까지처럼 하나를 그린다.
+    const rest = Array.isArray(record.questions)
+      ? record.questions.map(parseQuestion).filter((q): q is RunChatQuestion => q !== null)
+      : []
+    return { type: 'question', question, questions: rest.length > 0 ? rest : [question] }
   }
   if (record.type === 'applied') {
     return { type: 'applied' }

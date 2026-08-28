@@ -61,6 +61,8 @@ export const scenariosEn = {
       freeTextPlaceholder: 'Or tell it how…',
       freeTextLabel: 'Answer in your own words',
       send: 'Send',
+      // Says how many are open before the list. A bare list makes you count.
+      pendingCount: '{count} things authoring could not settle. Answer what you know.',
     },
     title: 'Conversation',
     emptyCopy:
@@ -456,6 +458,7 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
       freeTextPlaceholder: '직접 알려주기…',
       freeTextLabel: '직접 답하기',
       send: '보내기',
+      pendingCount: '저작이 못 정한 것이 {count}가지입니다. 아는 것만 답해도 됩니다.',
     },
     title: '대화',
     emptyCopy:

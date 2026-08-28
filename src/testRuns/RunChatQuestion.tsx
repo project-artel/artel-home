@@ -14,6 +14,50 @@ import type { RunChatAnswer, RunChatQuestion } from './runChatApi'
  * Picking is one click and sends immediately. The extra line is optional and exists
  * for the questions options cannot close ("how do you get from here to there").
  */
+/**
+ * Everything one turn could not settle, in one place (ARTEL-630).
+ *
+ * The server used to ask one thing and stay silent about the rest. A run with five
+ * blocked spots asked about one, and the user read the scenarios as finished — the
+ * other four sat in the steps as "이 구간의 경로를 확인할 수 없습니다" that nobody was
+ * invited to answer.
+ *
+ * Seeing them together is the point: the user answers what they know and leaves the
+ * rest. Each question keeps its own buttons and its own line, and answering one does
+ * not clear the others.
+ */
+export function RunChatQuestionList({
+  questions,
+  disabled,
+  onAnswer,
+}: {
+  questions: RunChatQuestion[]
+  disabled: boolean
+  onAnswer: (answer: RunChatAnswer) => void
+}) {
+  const { t } = useI18n()
+  const q = t.scenarios.chat.question
+
+  if (questions.length === 1) {
+    return <RunChatQuestionBlock question={questions[0]} disabled={disabled} onAnswer={onAnswer} />
+  }
+
+  return (
+    <div className="chat-questions">
+      {/* 몇 개가 남았는지 먼저 말한다. 목록만 있으면 얼마나 더 있는지 세어야 한다. */}
+      <p className="chat-questions-count">{q.pendingCount.replace('{count}', String(questions.length))}</p>
+      <ol className="chat-questions-list">
+        {questions.map((question) => (
+          <li key={question.id} className="chat-questions-item">
+            <p className="chat-questions-text">{question.text}</p>
+            <RunChatQuestionBlock question={question} disabled={disabled} onAnswer={onAnswer} />
+          </li>
+        ))}
+      </ol>
+    </div>
+  )
+}
+
 export function RunChatQuestionBlock({
   question,
   disabled,
