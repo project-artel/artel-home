@@ -1,22 +1,42 @@
 import { useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, Navigate, useParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { LABEL_NODE_LIMIT } from '../knowledge/knowledgeLayout'
 import { formatDateTime } from '../projects/formatters'
+import { CanvasViewportControls } from './CanvasViewportControls'
 import { CaptureHeader, ContentMapSummary } from './ContentMapSummary'
-import type { ContentMapView } from './contentMapTypes'
+import type { ContentMapSelection, ContentMapView } from './contentMapTypes'
 import { EvidenceScanPanel } from './EvidenceScanPanel'
-import { SceneGraphCanvas } from './SceneGraphCanvas'
 import { SceneGraphInspector } from './SceneGraphInspector'
-import { SceneGraphLegend } from './SceneGraphLegend'
-import { buildSceneGraph, incidenceByNode, layoutSceneGraph } from './sceneGraphLayout'
+import { buildSceneGraph, incidenceByNode } from './sceneGraphLayout'
+import { ScreenMapCanvas } from './ScreenMapCanvas'
+import { ScreenMapLegend } from './ScreenMapLegend'
+import { buildScreenMap, layoutScreenMap } from './screenMapLayout'
+import { useCanvasViewport } from './useCanvasViewport'
 import { useContentMap } from './useContentMap'
 
 /**
- * 한 빌드의 콘텐츠 맵.
+ * 옛 주소를 지금의 콘텐츠 맵으로 넘긴다.
  *
- * 레일 밖의 독립 화면이다. 성능 화면과 같은 이유로 — 빌드 하나에 대해 묻는
- * 질문이고, 그림이 화면 폭을 전부 쓴다.
+ * `/projects/:projectId/game-builds/:buildId/content-map` 은 한때 이 화면 자체였고, 빌드
+ * 패널의 링크와 사람들이 밖에 붙여 둔 주소가 아직 그곳을 가리킨다. 콘텐츠 맵이 작업공간의
+ * 섹션 하나로 합쳐졌으므로 여기서는 빌드 id 만 `?build=` 로 옮겨 싣고 넘긴다.
+ *
+ * `replace` 인 이유는 이 주소가 목적지가 아니라 통로이기 때문이다. 히스토리에 남기면
+ * 뒤로 가기가 리다이렉트를 다시 밟아 앞으로 튕긴다.
+ */
+export function ContentMapRedirect() {
+  const { projectId = '', buildId = '' } = useParams()
+  return (
+    <Navigate
+      replace
+      to={`/projects/${encodeURIComponent(projectId)}/content-map?build=${encodeURIComponent(buildId)}`}
+    />
+  )
+}
+
+/**
+ * 한 빌드의 콘텐츠 맵.
  *
  * ## 다섯 상태를 응답 어디에서 읽는가
  *
@@ -33,11 +53,6 @@ import { useContentMap } from './useContentMap'
  *   새로고침이 실패했다. 마지막으로 읽은 맵은 남기되 읽은 시각을 붙인다 —
  *   마지막 프레임을 라이브인 척하지 않는다는 규칙 그대로다.
  */
-export function ContentMapRoute() {
-  const { projectId = '', buildId = '' } = useParams()
-  return <ContentMapReport buildId={buildId} projectId={projectId} />
-}
-
 export function ContentMapReport({
   buildId,
   projectId,
@@ -197,57 +212,116 @@ function ContentMapBody({ view }: { view: ContentMapView }) {
   )
 }
 
+/**
+ * 한 빌드의 지도, 캔버스 하나로.
+ *
+ * ## 왜 씬 그래프와 화면 지도가 한 캔버스인가
+ *
+ * 둘은 같은 것의 두 배율이다. `buildScreenMap` 은 `buildSceneGraph` 를 그대로 감싸므로
+ * 컨테이너 id 는 씬 노드 id 와 같은 값이고, 씬 간선도 같은 간선이다. 화면이 0 개인 빌드에서
+ * 이 그림은 예전 씬 그래프와 똑같이 생겼다 — 컨테이너 안이 비어 있을 뿐이다.
+ *
+ * 그래서 둘을 따로 두면 얻는 것이 없고 잃는 것이 분명하다. 같은 질문에 답하는 화면이 둘이면
+ * 어느 쪽이 참인지 아무도 모르고, `screen_capability` 에 대해 편 논증이 그대로 적용된다.
+ * 링크가 어디를 가리키느냐에 따라 사용자가 화면을 볼 수도, 못 볼 수도 있는 상태가 특히 나쁘다 —
+ * 화면이 안 보이는 쪽에 도착한 사람은 그것을 "아직 기록이 없다"로 읽는다.
+ */
 function SceneGraphView({ view }: { view: ContentMapView }) {
   const { t } = useI18n()
   const copy = t.contentMap.graph
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
+  const screenCopy = t.contentMap.screenMap
+  const [selection, setSelection] = useState<ContentMapSelection | null>(null)
 
   // 배치가 비싼 부분이고 응답 말고는 아무것에도 기대지 않는다. 씬을 고르는
   // 것이 배치를 다시 계산하게 두면 안 된다.
-  const model = useMemo(() => buildSceneGraph(view.scenes, view.edges), [view.edges, view.scenes])
-  const layout = useMemo(() => layoutSceneGraph(model), [model])
-  const incidence = useMemo(() => incidenceByNode(model), [model])
+  const model = useMemo(
+    () => buildScreenMap(view.scenes, view.edges, view.screenTransitions),
+    [view.edges, view.scenes, view.screenTransitions],
+  )
+  const layout = useMemo(() => layoutScreenMap(model), [model])
+  const viewport = useCanvasViewport(layout.viewBox)
+
+  // 인스펙터는 아직 씬만 안다. 씬 그래프 모델을 따로 세우는 이유는 그것이
+  // `incidenceByNode` 가 받는 모양이기 때문이고, `buildScreenMap` 이 안에서
+  // 같은 것을 세우므로 두 번 도는 값은 순수 계산 한 번뿐이다.
+  const graph = useMemo(() => buildSceneGraph(view.scenes, view.edges), [view.edges, view.scenes])
+  const incidence = useMemo(() => incidenceByNode(graph), [graph])
+
+  /**
+   * 인스펙터가 읽을 씬.
+   *
+   * 화면을 고르면 그 화면이 든 씬을 보인다. 화면 자체의 근거를 내는 것은 ARTEL-598 이고,
+   * 그때까지 아무것도 안 보이는 것보다 한 단계 위를 보이는 편이 낫다 — 고른 것이 어디에
+   * 속하는지는 그것만으로도 답이 된다. 선은 아직 인스펙터에 자리가 없어 비운다.
+   */
+  const selectedNodeId = useMemo(() => {
+    if (selection === null) return null
+    if (selection.kind === 'scene') return selection.id
+    if (selection.kind !== 'screen') return null
+    return model.containers.find((c) => c.screens.some((s) => s.id === selection.id))?.id ?? null
+  }, [model.containers, selection])
 
   return (
     <div className="cm-workspace">
       <section aria-labelledby="cm-graph-title" className="panel cm-canvas-panel">
         <header className="panel-header">
           <h2 id="cm-graph-title">{copy.title}</h2>
+          <p className="cm-canvas-note">
+            {screenCopy.counts(
+              model.containers.length,
+              model.screenCount,
+              model.screenTransitions.length,
+            )}
+          </p>
         </header>
 
         {/* 씬은 있는데 아무것도 잇지 않는다. 흩어진 점들을 보고 사용자가
             혼자 결론 내리게 두지 않는다. */}
-        {model.edges.length === 0 && (
+        {model.sceneEdges.length === 0 && (
           <div className="cm-notice" role="status">
             <p className="cm-notice-title">{copy.noEdgesTitle}</p>
             <p className="cm-notice-copy">{copy.noEdgesCopy(view.scenes.length)}</p>
           </div>
         )}
 
+        {/* 씬은 있는데 화면이 하나도 없다. 오류가 아니라 아직 QA 런이 없다는 뜻이고, 그 말을
+            그림 위에 적어 두지 않으면 빈 컨테이너들이 그리다 만 화면으로 읽힌다. */}
+        {model.screenCount === 0 && (
+          <div className="cm-notice" role="status">
+            <p className="cm-notice-title">{screenCopy.noScreensTitle}</p>
+            <p className="cm-notice-copy">{screenCopy.noScreensCopy(model.containers.length)}</p>
+          </div>
+        )}
+
+        <CanvasViewportControls viewport={viewport} />
+
         <div className="cm-canvas-frame">
-          <SceneGraphCanvas
+          <ScreenMapCanvas
             layout={layout}
-            onSelectNode={setSelectedNodeId}
-            selectedNodeId={selectedNodeId}
+            onSelect={setSelection}
+            selection={selection}
+            viewport={viewport}
           />
         </div>
+
+        <p className="cm-canvas-note">{t.contentMap.viewport.hint}</p>
 
         {model.unmappedScenes > 0 && (
           <p className="cm-canvas-note">{copy.unmappedNote(model.unmappedScenes)}</p>
         )}
-        {model.nodes.length > LABEL_NODE_LIMIT && (
+        {model.containers.length > LABEL_NODE_LIMIT && (
           <p className="cm-canvas-note">{copy.labelNote}</p>
         )}
 
-        <SceneGraphLegend model={model} />
+        <ScreenMapLegend model={model} />
       </section>
 
       <aside className="panel cm-inspector-panel">
         <SceneGraphInspector
           incidence={incidence}
-          nodes={model.nodes}
-          onClear={() => setSelectedNodeId(null)}
-          onSelectNode={setSelectedNodeId}
+          nodes={graph.nodes}
+          onClear={() => setSelection(null)}
+          onSelectNode={(id) => setSelection({ kind: 'scene', id })}
           selectedNodeId={selectedNodeId}
         />
       </aside>
