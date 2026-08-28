@@ -6,6 +6,8 @@ import type { QaModel, QaTry } from '../../qa/qaTypes'
 import { getCoverage } from '../../testCases/testCaseApi'
 import type { TestCaseCoverage } from '../../testCases/testCaseTypes'
 import { listTestRuns, type TestRun } from '../../testRuns/testRunApi'
+import { getTrackerLink } from '../../tracker/trackerApi'
+import type { TrackerLink } from '../../tracker/trackerTypes'
 import type { ExtrasStatus } from './workspaceContext'
 
 type Extras = {
@@ -14,6 +16,7 @@ type Extras = {
   models: QaModel[]
   openIssues: Issue[]
   coverage: TestCaseCoverage
+  trackerLink: TrackerLink | null
 }
 
 const emptyCoverage: TestCaseCoverage = {
@@ -32,14 +35,20 @@ const empty: Extras = {
   models: [],
   openIssues: [],
   coverage: emptyCoverage,
+  trackerLink: null,
 }
 
 /**
- * The four reads no single section owns.
+ * The five reads no single section owns.
  *
- * They are fetched together, once, because the dashboard needs all four at the
- * same time and each of the other sections needs one of them. Splitting them
- * per section would put the dashboard back to four staggered spinners.
+ * They are fetched together, once, because the dashboard needs several of
+ * them at the same time and every other section needs at least one.
+ * Splitting them per section would put the dashboard back to staggered
+ * spinners. `trackerLink` joined this set for the same reason: both
+ * `SettingsSection` (owns connecting/disconnecting/editing it) and
+ * `IssuesSection` (needs to know "is anything connected at all" to decide
+ * whether a row shows tracker UI) need it, and reading it twice — once per
+ * section — would mean the two could briefly disagree about it.
  *
  * A failure is one status for the set: the retry is offered in whichever
  * section the user happens to be in, and re-runs everything. That matches how
@@ -59,9 +68,10 @@ export function useWorkspaceExtras(projectId: string) {
       listQaModels(controller.signal),
       listProjectIssues(projectId, { status: 'OPEN' }, undefined, controller.signal),
       getCoverage(projectId, controller.signal),
+      getTrackerLink(projectId, controller.signal),
     ])
-      .then(([runs, tries, models, issues, coverage]) => {
-        setExtras({ runs, tries, models, openIssues: issues.items, coverage })
+      .then(([runs, tries, models, issues, coverage, trackerLink]) => {
+        setExtras({ runs, tries, models, openIssues: issues.items, coverage, trackerLink })
         setStatus('ready')
       })
       .catch(() => {
@@ -108,5 +118,17 @@ export function useWorkspaceExtras(projectId: string) {
     [projectId],
   )
 
-  return { ...extras, extrasStatus: status, reloadExtras, refreshRuns, refreshTries }
+  /** Applies a server response the caller already holds, avoiding a second fetch. */
+  const applyTrackerLink = useCallback((trackerLink: TrackerLink | null) => {
+    setExtras((previous) => ({ ...previous, trackerLink }))
+  }, [])
+
+  return {
+    ...extras,
+    extrasStatus: status,
+    reloadExtras,
+    refreshRuns,
+    refreshTries,
+    applyTrackerLink,
+  }
 }

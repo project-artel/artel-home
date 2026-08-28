@@ -9,6 +9,7 @@ import {
   toApiError,
 } from '../projects/projectApi'
 import { isDecimalId } from '../qa/qaApi'
+import { parseIssueTracker } from '../tracker/trackerApi'
 import {
   ISSUE_SEVERITIES,
   ISSUE_STATUSES,
@@ -45,6 +46,7 @@ export function parseIssue(data: unknown): Issue | null {
     detail: record.detail ?? null,
     reportedAt: asString(record.reportedAt),
     resolvedAt: asNullableString(record.resolvedAt),
+    tracker: parseIssueTracker(record.tracker),
   }
 }
 

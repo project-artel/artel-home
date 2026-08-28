@@ -1,4 +1,5 @@
 import { useI18n } from '../i18n/useI18n'
+import { useTrackerSync } from '../tracker/useTrackerSync'
 import { IssueRow } from './IssueRow'
 import type { Issue } from './issueTypes'
 import { useIssueResolution } from './useIssueResolution'
@@ -15,6 +16,13 @@ type IssueListProps = {
   /** True when a filter is narrowing the list, which changes the empty text. */
   filtered: boolean
   onRetry: () => void
+  /**
+   * Whether the project this list belongs to has a connected tracker at all.
+   * Required rather than optional so every call site states its own answer —
+   * `QaTryIssuePanel` has no access to the project's tracker state and passes
+   * `false` explicitly, rather than a default silently doing that for it.
+   */
+  trackerConnected: boolean
 }
 
 /**
@@ -33,9 +41,11 @@ export function IssueList({
   qaTryHref,
   filtered,
   onRetry,
+  trackerConnected,
 }: IssueListProps) {
   const { t } = useI18n()
   const { toggle, pending, failedId } = useIssueResolution(patch)
+  const { sync, pending: syncPending, failedId: syncFailedId } = useTrackerSync(patch)
 
   if (status === 'loading') {
     return (
@@ -70,9 +80,13 @@ export function IssueList({
             failed={failedId === issue.id}
             issue={issue}
             key={issue.id}
+            onSync={(target) => void sync(target)}
             onToggle={(target) => void toggle(target)}
             pending={pending.has(issue.id)}
             qaTryHref={qaTryHref === null ? null : qaTryHref(issue.qaTryId)}
+            syncFailed={syncFailedId === issue.id}
+            syncPending={syncPending.has(issue.id)}
+            trackerConnected={trackerConnected}
           />
         ))}
       </ul>

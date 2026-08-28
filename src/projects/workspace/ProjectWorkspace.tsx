@@ -49,6 +49,7 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
   const { pathname } = useLocation()
 
   const {
+    applyTrackerLink,
     coverage,
     extrasStatus,
     models,
@@ -58,6 +59,7 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
     reloadExtras,
     runs,
     tries,
+    trackerLink,
   } = extras
 
   const value = useMemo<WorkspaceValue | null>(
@@ -75,6 +77,7 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
             models,
             openIssues,
             coverage,
+            trackerLink,
             extrasStatus,
             reloadExtras,
             refreshRuns,
@@ -85,12 +88,14 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
             applyInstance,
             removeInstance,
             applyBuild,
+            applyTrackerLink,
           },
     [
       applyBuild,
       applyInstance,
       applyNewDocument,
       applyProject,
+      applyTrackerLink,
       builds,
       coverage,
       documents,
@@ -107,6 +112,7 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
       removeInstance,
       runs,
       tries,
+      trackerLink,
     ],
   )
 

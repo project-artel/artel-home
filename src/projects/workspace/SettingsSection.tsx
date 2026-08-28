@@ -7,6 +7,7 @@ import { formatDate } from '../formatters'
 import { ProjectApiError, updateProject } from '../projectApi'
 import { ProjectForm } from '../ProjectForm'
 import type { ProjectDetail, ProjectDraft } from '../projectTypes'
+import { TrackerLinkPanel } from '../../tracker/TrackerLinkPanel'
 import { useWorkspace } from './workspaceContext'
 
 function toDraft(project: ProjectDetail): ProjectDraft {
@@ -164,6 +165,8 @@ export function SettingsSection() {
 
         <p aria-live="polite" className="visually-hidden">{announcement}</p>
       </section>
+
+      <TrackerLinkPanel />
 
       {/* Members have no path to becoming an owner in this release, so a
           disabled control would be permanently dead UI. */}
