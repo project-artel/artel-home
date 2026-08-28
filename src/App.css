@@ -5673,12 +5673,17 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
     max-height: none;
   }
 }
+/* 스크롤은 패널 하나에만 둔다. 절마다 따로 굴리면 긴 detail 을 읽는 동안 어느 막대가 어느
+   목록의 것인지 알 수 없고, 패널이 `overflow: hidden` 이라 넘친 부분은 아예 닿지 못한다. */
 .cm-inspector {
   display: flex;
   flex-direction: column;
   max-height: inherit;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .cm-inspector-selection {
+  flex: none;
   padding: var(--space-4);
   border-bottom: 1px solid var(--color-border-subtle);
 }
@@ -5712,6 +5717,7 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
 }
 .cm-scene-list-section {
   display: flex;
+  flex: none;
   flex-direction: column;
   min-height: 0;
 }
@@ -5719,7 +5725,6 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   margin: 0;
   padding: 0 var(--space-2) var(--space-3);
   list-style: none;
-  overflow-y: auto;
 }
 .cm-scene {
   display: flex;
@@ -6677,4 +6682,350 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   stroke-width: 1.3;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+/* 인스펙터 — 중첩 다이어그램 쪽.
+   그림이 `aria-hidden` 이라 이 패널이 대등한 대체물이다. 그림에서 고를 수 있는 네 갈래가
+   전부 여기 버튼으로 있고, 152 × 48 픽셀 상자가 담지 못하는 근거도 여기 있다. */
+.cm-inspector-header h3 {
+  margin: 0;
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+}
+/* 무엇을 고른 것인지부터 말한다. 씬과 화면과 두 종류의 선이 같은 자리에 뜨므로,
+   이름만 놓으면 어느 갈래를 보고 있는지 읽히지 않는다. */
+.cm-detail-eyebrow {
+  margin: 0 0 var(--space-1);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+/* 이름 없는 화면이 보통이다. 이름 자리를 비워 두지 않고, 지어낸 이름이 아니라는 것만
+   기울임으로 말한다. */
+.cm-detail-name.is-unnamed {
+  font-style: italic;
+  color: var(--color-text-secondary);
+}
+/* 패널 안에서 다른 것으로 건너뛰는 자리. 링크처럼 보이되 라우팅이 아니라 선택이다. */
+.cm-detail-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-action-primary);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.sm-detail-jump {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+/* 캡처가 없는 상태. 오늘 모든 화면이 이 상태이므로 오류처럼도 로딩처럼도 보이지 않아야 한다.
+   점선 테두리가 "여기 그림이 들어올 자리"라고 말하고, 두 줄이 왜 비었는지 말한다. */
+.sm-capture-empty {
+  padding: var(--space-4);
+  border: 1px dashed var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-raised);
+}
+.sm-capture-empty-title {
+  margin: 0 0 var(--space-1);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+/* discriminator. 원문을 그대로 보이는 갈래는 줄바꿈만 허용하고 해석하지 않는다. */
+.sm-discriminator-raw {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-raised);
+  font-size: 11px;
+  line-height: 17px;
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+/* 실측 빌드의 화면 하나가 조건 스물다섯 줄을 단다. 전부 펼쳐 두면 그 아래의 capability 와
+   transition 이 패널 밖으로 밀려나므로, 이 절만 자기 안에서 굴린다. */
+.sm-clause-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  max-height: min(260px, 28vh);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.sm-clause-list li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border-left: 2px solid var(--color-border-strong);
+  background: var(--color-bg-raised);
+  font-size: 11px;
+  line-height: 17px;
+}
+/* 켜짐과 꺼짐은 글자가 먼저 말한다. 규칙선의 실선/점선은 그 반복이고, 색은 세 번째다 —
+   흑백으로 인쇄해도 두 줄이 갈린다. */
+.sm-clause-list li.is-active {
+  border-left-style: solid;
+  border-left-color: var(--color-status-success);
+}
+.sm-clause-list li.is-inactive {
+  border-left-style: dotted;
+  border-left-color: var(--color-text-muted);
+}
+.sm-clause-state {
+  flex: none;
+  min-width: 34px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+.sm-clause-selector {
+  min-width: 0;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+/* selector 앞부분은 한 씬의 화면들이 대체로 공유한다. 두 화면을 실제로 가르는 끝마디에
+   무게를 싣는다. */
+.sm-clause-tail {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+/* capability 한 줄과 두 배지. */
+.sm-capability-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sm-capability {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-surface);
+}
+.sm-capability-summary {
+  margin: 0 0 var(--space-1);
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--color-text-primary);
+}
+.sm-capability-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+.sm-capability-status,
+.sm-capability-count {
+  color: var(--color-text-secondary);
+}
+
+/* 배지. `DESIGN.md` 가 색만으로 말하는 것을 금지하므로 이름표와 값이 늘 글자로 들어 있고,
+   테두리 굵기와 점선이 그 위에 한 겹 더 얹힌다. 그림자는 없다. */
+.sm-badge {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  padding: 1px var(--space-2);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+.sm-badge-label {
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+/* origin 은 어디서 알아냈나다. 근거 문서에서 온 것과 사람이 넣은 것이 한 모양이면
+   "이 조작을 어디까지 믿을 수 있나"가 사라진다. */
+.sm-badge--origin-evidence {
+  border-color: var(--color-border-strong);
+  color: var(--color-text-primary);
+}
+.sm-badge--origin-observed {
+  border-color: var(--color-action-primary);
+  color: var(--color-action-primary);
+}
+.sm-badge--origin-inferred {
+  border-style: dashed;
+}
+.sm-badge--origin-human {
+  border-color: var(--color-agent-reasoning);
+  color: var(--color-agent-reasoning);
+}
+/* verification 은 셋이 절대 같은 모양이 되면 안 된다. 미확인은 커버리지 구멍이고
+   어긋남은 결함이다. */
+.sm-badge--unverified {
+  border-style: dashed;
+  border-color: var(--color-border-strong);
+}
+.sm-badge--confirmed {
+  border-width: 2px;
+  border-color: var(--color-status-success);
+  color: var(--color-text-primary);
+}
+.sm-badge--contradicted {
+  border-width: 2px;
+  border-color: var(--color-status-critical);
+  color: var(--color-status-critical);
+}
+.sm-badge--unknown {
+  border-style: dotted;
+}
+/* 씬 전이의 확인 여부. 배지가 아니라 한 줄 안의 글자라 굵기로만 갈린다. */
+.sm-verified--yes {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+.sm-verified--no {
+  color: var(--color-text-muted);
+}
+
+/* 화면에 묶인 지식. 지식 그래프 쪽 알약을 그대로 쓴다 — 같은 것을 두 모양으로 그리면
+   두 화면을 오가는 사람이 다른 것으로 읽는다. */
+.sm-knowledge-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sm-knowledge-list li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-size: 12px;
+  line-height: 18px;
+}
+.sm-knowledge-summary {
+  min-width: 0;
+  color: var(--color-text-primary);
+}
+
+/* 씬 목록 안에 화면을 중첩한다. 그림의 중첩과 같은 모양이라, 스크린 리더로 읽어도
+   어느 화면이 어느 씬 안에 있는지가 목록 구조로 전해진다. */
+.sm-screen-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 0 var(--space-1);
+  padding: 0 0 0 var(--space-5);
+  list-style: none;
+}
+.sm-screen-button {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-1) var(--space-2);
+  border: 0;
+  border-left: 2px solid var(--color-border-subtle);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: transparent;
+  text-align: left;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+.sm-screen-button:hover {
+  background: var(--color-bg-hover);
+}
+.sm-screen-button.is-selected {
+  border-left-color: var(--color-action-primary);
+  background: var(--color-bg-raised);
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+.sm-screen-button-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 이름이 없는 것은 결손이 아니라 보통이다. 지어낸 이름이 아니라는 것만 기울임으로 말한다. */
+.sm-screen-button-name.is-unnamed {
+  font-style: italic;
+}
+/* 이름 없는 줄끼리 구별되는 유일한 값. 이름이 있는 줄에는 붙지 않는다. */
+.sm-screen-button-id {
+  flex: none;
+  margin-right: auto;
+  color: var(--color-text-muted);
+  font-size: 10.5px;
+}
+.sm-screen-button-meta {
+  flex: none;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 두 종류의 선 목록. 접어 두는 이유는 `DESIGN.md` 그대로다 — 요약을 먼저 보이고 원본은
+   명시적으로 펼치게 한다. 접혀 있어도 키보드로는 탭 두 번이면 닿는다. */
+.sm-edge-lists {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  border-top: 1px solid var(--color-border-subtle);
+}
+.sm-edge-list {
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+.sm-edge-list > summary {
+  padding: var(--space-3) var(--space-4);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+.sm-edge-list > summary:hover {
+  color: var(--color-text-secondary);
+}
+.sm-edge-list > .cm-transition-list {
+  max-height: min(320px, 32vh);
+  padding: 0 var(--space-4) var(--space-3);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+/* 관측된 것과 유도한 것을 한 줄이 가른다. 씬의 목록을 그대로 보이면서 "이 화면에서 실제로
+   쓰인 것"만 굵게 두면, 유도한 부분이 관측된 사실로 읽히지 않는다. */
+.sm-capability.is-used {
+  border-left: 3px solid var(--color-action-primary);
+}
+.sm-capability-use {
+  margin: var(--space-1) 0 0;
+  font-size: 10.5px;
+  line-height: 16px;
+  color: var(--color-text-muted);
+}
+.sm-capability-use.is-used {
+  color: var(--color-text-secondary);
+  font-weight: 600;
 }

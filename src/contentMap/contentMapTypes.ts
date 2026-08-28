@@ -207,6 +207,89 @@ export type ContentMapScreen = {
   discriminator: string
   observedCount: number
   firstSeenQaRunId: string | null
+  /**
+   * 이 화면의 캡처. 없으면 아직 못 찍은 것이다.
+   *
+   * 씬 대표 이미지(`SceneThumbnail`)와 달리 `state` 도 `reason` 도 없다. `screen` 표에 실패 코드 칸이
+   * 없어 가를 두 상태가 없기 때문이다 — 캡처가 있으면 이 객체가 있고, 없으면 통째로 null 이다.
+   * 없는 상태를 흉내 내는 칸을 만들면 화면이 영영 오지 않는 값을 분기한다.
+   */
+  image: ScreenImage | null
+}
+
+/**
+ * 화면 캡처의 서명된 주소.
+ *
+ * `url` 은 단기 서명이라 만료되면 이미지가 깨진다. 화면은 그 실패를 `onError` 로 받아 자리표시로
+ * 바꾼다 — 깨진 이미지 아이콘은 아무 사실도 말하지 않는다.
+ */
+export type ScreenImage = {
+  url: string
+  /** 서명이 만료되는 시각. 서버가 말하지 않으면 null 이다. */
+  expiresAt: string | null
+  /** 찍은 시각. 지금 모양과 얼마나 떨어진 그림인지를 말한다. */
+  capturedAt: string | null
+}
+
+/**
+ * 한 씬의 capability 하나. **개수(`CapabilityCounts`)가 센 그 행이다.**
+ *
+ * `steps` 와 겹치되 같지 않다. 이쪽이 상위집합이고, 차이가 `not-a-step` 이다 — 조작이 없어 단독
+ * 명세가 될 수 없지만 given/then 의 재료로 실재하는 행이라, 인스펙터가 "그 나머지가 무엇인가"를
+ * 물으면 답이 있어야 한다.
+ *
+ * `status` · `origin` · `verification` 을 비롯한 축은 전부 평범한 문자열이다. 서버가 소유한 열린
+ * 어휘이고, 아는 값으로 좁혀 두면 서버가 값을 하나 늘리는 날 화면이 그 행을 다른 것으로 부른다.
+ * 아래 `capabilityOriginStyle` · `verificationStyle` 은 오직 배지 모양을 고를 때만 쓴다.
+ */
+export type SceneCapability = {
+  id: string
+  summary: string
+  /** `runnable` | `needs-probe` | `unreachable-precondition` | `not-a-step`, 그리고 무엇이든. */
+  status: string
+  /** `evidence` | `observed` | `inferred` | `human`. 어디서 알아냈나. */
+  origin: string
+  /** `unverified` | `confirmed` | `contradicted`. 실행으로 확인됐나. */
+  verification: string
+  /** 이 조작을 실제로 할 수 있나. */
+  actionability: string
+  /** 그 결과를 볼 수 있나. */
+  observability: string
+  /** 이 빌드에 이 규칙이 적용되나. */
+  applicability: string
+  /** `click` | `press` | `none` 등. 프로토콜 메서드가 아니라 의도다. */
+  interaction: string
+}
+
+/** 이 빌드가 이름을 아는 capability 출처. 목록 밖의 값은 서버 철자 그대로 보인다. */
+export const KNOWN_CAPABILITY_ORIGINS = ['evidence', 'observed', 'inferred', 'human'] as const
+
+export type KnownCapabilityOrigin = (typeof KNOWN_CAPABILITY_ORIGINS)[number]
+
+export type CapabilityOriginStyle = KnownCapabilityOrigin | 'unknown'
+
+export function capabilityOriginStyle(origin: string): CapabilityOriginStyle {
+  return (KNOWN_CAPABILITY_ORIGINS as readonly string[]).includes(origin)
+    ? (origin as KnownCapabilityOrigin)
+    : 'unknown'
+}
+
+/**
+ * 이 빌드가 이름을 아는 확인 상태.
+ *
+ * `unverified` 와 `contradicted` 를 절대 같은 모양으로 그리지 않는다. 앞은 "아직 안 해 봤다"이고
+ * 뒤는 "해 봤는데 아니었다"이다. 둘을 섞으면 커버리지 구멍과 실제 결함이 한 줄로 보인다.
+ */
+export const KNOWN_VERIFICATIONS = ['unverified', 'confirmed', 'contradicted'] as const
+
+export type KnownVerification = (typeof KNOWN_VERIFICATIONS)[number]
+
+export type VerificationStyle = KnownVerification | 'unknown'
+
+export function verificationStyle(verification: string): VerificationStyle {
+  return (KNOWN_VERIFICATIONS as readonly string[]).includes(verification)
+    ? (verification as KnownVerification)
+    : 'unknown'
 }
 
 /**
@@ -291,6 +374,14 @@ export type ContentMapScene = {
    * 씬을 그리다 화면이 생기는 것이지, 화면이 없어 씬이 덜 그려지는 것이 아니다.
    */
   screens: ContentMapScreen[]
+  /**
+   * `capabilities` 가 센 그 행들.
+   *
+   * `steps` 와 달리 `not-a-step` 까지 전부 들어 있어 `capabilityList.length` 가
+   * `capabilities.total` 과 같다. 인스펙터가 capability id 하나로 `origin` 과 `verification` 을
+   * 되찾는 자리이고, 그 id 는 screen transition 이 들고 온다.
+   */
+  capabilityList: SceneCapability[]
 }
 
 /**

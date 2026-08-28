@@ -3,11 +3,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { NODE_RADIUS } from '../knowledge/knowledgeLayout.ts'
 import type { ContentMapScene, SceneTransition } from './contentMapTypes.ts'
-import {
-  buildSceneGraph,
-  incidenceByNode,
-  layoutSceneGraph,
-} from './sceneGraphLayout.ts'
+import { buildSceneGraph, layoutSceneGraph } from './sceneGraphLayout.ts'
 
 /*
  * 이 모듈이 틀리면 아무것도 던지지 않는다. 전이 하나가 조용히 사라지거나,
@@ -31,6 +27,7 @@ function scene(id: string, name: string, over: Partial<ContentMapScene> = {}): C
     steps: null,
     thumbnail: null,
     screens: [],
+    capabilityList: [],
     ...over,
   }
 }
@@ -266,29 +263,4 @@ test('같은 응답은 언제나 같은 그림이 된다', () => {
   assert.deepEqual(second.nodes, first.nodes)
   assert.deepEqual(second.edges, first.edges)
   assert.equal(second.viewBox, first.viewBox)
-})
-
-test('인접 목록은 양방향을 풀어 주고 자기 전이를 한 번만 센다', () => {
-  const model = buildSceneGraph(
-    [scene('1', 'A'), scene('2', 'B'), scene('3', 'C')],
-    [
-      transition('1', { id: '2' }),
-      transition('3', { id: '1' }),
-      transition('1', { id: '1' }),
-    ],
-  )
-
-  const grouped = incidenceByNode(model)
-  assert.deepEqual(
-    (grouped.get('scene:1') ?? []).map(({ direction, other }) => [direction, other.id]),
-    [
-      ['out', 'scene:2'],
-      ['in', 'scene:3'],
-      ['self', 'scene:1'],
-    ],
-  )
-  assert.deepEqual(
-    (grouped.get('scene:2') ?? []).map(({ direction }) => direction),
-    ['in'],
-  )
 })

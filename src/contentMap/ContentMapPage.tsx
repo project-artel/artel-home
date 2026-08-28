@@ -2,13 +2,14 @@ import { useMemo, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { LABEL_NODE_LIMIT } from '../knowledge/knowledgeLayout'
+import { useKnowledgeGraph } from '../knowledge/useKnowledgeGraph'
 import { formatDateTime } from '../projects/formatters'
 import { CanvasViewportControls } from './CanvasViewportControls'
+import { ContentMapInspector } from './ContentMapInspector'
 import { CaptureHeader, ContentMapSummary } from './ContentMapSummary'
 import type { ContentMapSelection, ContentMapView } from './contentMapTypes'
 import { EvidenceScanPanel } from './EvidenceScanPanel'
-import { SceneGraphInspector } from './SceneGraphInspector'
-import { buildSceneGraph, incidenceByNode } from './sceneGraphLayout'
+import { indexScreenMap } from './screenInspection'
 import { ScreenMapCanvas } from './ScreenMapCanvas'
 import { ScreenMapLegend } from './ScreenMapLegend'
 import { buildScreenMap, layoutScreenMap } from './screenMapLayout'
@@ -148,13 +149,13 @@ export function ContentMapReport({
         view={view}
       />
 
-      <ContentMapBody view={view} />
+      <ContentMapBody projectId={projectId} view={view} />
     </section>
   )
 }
 
 /** 업로드 패널 아래에 무엇을 그릴지. 세 가지 빈 상태가 여기서 갈린다. */
-function ContentMapBody({ view }: { view: ContentMapView }) {
+function ContentMapBody({ projectId, view }: { projectId: string; view: ContentMapView }) {
   const { t } = useI18n()
   const copy = t.contentMap
 
@@ -206,7 +207,7 @@ function ContentMapBody({ view }: { view: ContentMapView }) {
   return (
     <>
       <ContentMapSummary view={view} />
-      <SceneGraphView view={view} />
+      <SceneGraphView projectId={projectId} view={view} />
       <CaptureHeader view={view} />
     </>
   )
@@ -226,7 +227,7 @@ function ContentMapBody({ view }: { view: ContentMapView }) {
  * 링크가 어디를 가리키느냐에 따라 사용자가 화면을 볼 수도, 못 볼 수도 있는 상태가 특히 나쁘다 —
  * 화면이 안 보이는 쪽에 도착한 사람은 그것을 "아직 기록이 없다"로 읽는다.
  */
-function SceneGraphView({ view }: { view: ContentMapView }) {
+function SceneGraphView({ projectId, view }: { projectId: string; view: ContentMapView }) {
   const { t } = useI18n()
   const copy = t.contentMap.graph
   const screenCopy = t.contentMap.screenMap
@@ -241,25 +242,17 @@ function SceneGraphView({ view }: { view: ContentMapView }) {
   const layout = useMemo(() => layoutScreenMap(model), [model])
   const viewport = useCanvasViewport(layout.viewBox)
 
-  // 인스펙터는 아직 씬만 안다. 씬 그래프 모델을 따로 세우는 이유는 그것이
-  // `incidenceByNode` 가 받는 모양이기 때문이고, `buildScreenMap` 이 안에서
-  // 같은 것을 세우므로 두 번 도는 값은 순수 계산 한 번뿐이다.
-  const graph = useMemo(() => buildSceneGraph(view.scenes, view.edges), [view.edges, view.scenes])
-  const incidence = useMemo(() => incidenceByNode(graph), [graph])
+  // 인스펙터가 고른 것 하나를 되짚는 색인. 배치와 같은 이유로 응답 말고는 아무것에도 기대지
+  // 않는다 — 고르는 동작이 색인을 다시 만들게 두면 클릭 한 번마다 응답 전체를 다시 돈다.
+  const index = useMemo(() => indexScreenMap(model), [model])
 
   /**
-   * 인스펙터가 읽을 씬.
+   * 화면에 묶인 지식.
    *
-   * 화면을 고르면 그 화면이 든 씬을 보인다. 화면 자체의 근거를 내는 것은 ARTEL-598 이고,
-   * 그때까지 아무것도 안 보이는 것보다 한 단계 위를 보이는 편이 낫다 — 고른 것이 어디에
-   * 속하는지는 그것만으로도 답이 된다. 선은 아직 인스펙터에 자리가 없어 비운다.
+   * 콘텐츠 맵과 다른 조회에서 온다. 실패해도 그림은 그대로 그려지고 지식 절만 못 읽었다고
+   * 말한다 — 못 읽은 것을 "묶인 지식이 없다"로 접으면 화면이 게임에 대해 거짓말을 한다.
    */
-  const selectedNodeId = useMemo(() => {
-    if (selection === null) return null
-    if (selection.kind === 'scene') return selection.id
-    if (selection.kind !== 'screen') return null
-    return model.containers.find((c) => c.screens.some((s) => s.id === selection.id))?.id ?? null
-  }, [model.containers, selection])
+  const { graph: knowledgeGraph, status: knowledgeStatus } = useKnowledgeGraph(projectId)
 
   return (
     <div className="cm-workspace">
@@ -317,12 +310,14 @@ function SceneGraphView({ view }: { view: ContentMapView }) {
       </section>
 
       <aside className="panel cm-inspector-panel">
-        <SceneGraphInspector
-          incidence={incidence}
-          nodes={graph.nodes}
+        <ContentMapInspector
+          gaps={view.gaps}
+          index={index}
+          knowledge={{ status: knowledgeStatus, nodes: knowledgeGraph?.nodes ?? [] }}
+          model={model}
           onClear={() => setSelection(null)}
-          onSelectNode={(id) => setSelection({ kind: 'scene', id })}
-          selectedNodeId={selectedNodeId}
+          onSelect={setSelection}
+          selection={selection}
         />
       </aside>
     </div>

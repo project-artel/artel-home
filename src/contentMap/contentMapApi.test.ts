@@ -405,3 +405,83 @@ test('모르는 화면 전이 갈래는 서버가 쓴 철자 그대로 남는다
   assert.equal(transitionKindStyle('timeout'), 'unknown')
   assert.equal(transitionKindStyle('auto'), 'auto')
 })
+
+test('화면 캡처는 주소가 있을 때만 읽고 없으면 통째로 null 이다', () => {
+  const view = parseContentMapView({
+    contentMap: { id: 1, capture: 'editor', schemaVersion: 3, evidenceDigest: 'sha256:abc' },
+    scenes: [
+      {
+        id: 1,
+        name: 'TitleScene',
+        screens: [
+          {
+            id: 10,
+            sceneId: 1,
+            discriminator: [],
+            image: {
+              url: 'https://s3.example/screen-10.jpg?sig=abc',
+              expiresAt: '2026-08-28T00:05:00Z',
+              capturedAt: '2026-08-27T23:59:00Z',
+            },
+          },
+          // 오늘 살아 있는 빌드의 화면은 전부 이쪽이다. 없다는 사실 자체가 화면이 그릴 상태다.
+          { id: 11, sceneId: 1, discriminator: [] },
+          // 주소 없는 캡처는 그릴 것이 없다. 빈 객체를 남기면 화면이 있지도 않은 그림을 그린다.
+          { id: 12, sceneId: 1, discriminator: [], image: { capturedAt: '2026-08-27T23:59:00Z' } },
+        ],
+      },
+    ],
+  })
+
+  const [withImage, without, urlless] = view.scenes[0].screens
+  assert.deepEqual(withImage.image, {
+    url: 'https://s3.example/screen-10.jpg?sig=abc',
+    expiresAt: '2026-08-28T00:05:00Z',
+    capturedAt: '2026-08-27T23:59:00Z',
+  })
+  assert.equal(without.image, null)
+  assert.equal(urlless.image, null)
+})
+
+test('씬의 capability 목록은 id 로 접히고 서버 철자를 그대로 남긴다', () => {
+  const view = parseContentMapView({
+    contentMap: { id: 1, capture: 'editor', schemaVersion: 3, evidenceDigest: 'sha256:abc' },
+    scenes: [
+      {
+        id: 1,
+        name: 'TitleScene',
+        capabilities: { total: 2, runnable: 1, notAStep: 1 },
+        capabilityList: [
+          {
+            id: 100,
+            summary: '시작을 누른다',
+            status: 'runnable',
+            origin: 'evidence',
+            verification: 'confirmed',
+            actionability: 'runnable',
+            observability: 'observable',
+            applicability: 'applies',
+            interaction: 'click',
+          },
+          // 서버가 나중에 늘릴 어휘. 아는 값으로 접으면 배지가 없는 상태를 말한다.
+          { id: 101, summary: '무언가', status: 'brand-new', origin: 'oracle', verification: 'pending' },
+          // id 가 같으면 색인이 어차피 하나만 쓴다.
+          { id: 100, summary: '같은 것이 또' },
+          // id 가 없으면 전이가 되짚을 수 없어 자리만 차지한다.
+          { summary: 'id 가 없다' },
+        ],
+      },
+    ],
+  })
+
+  const list = view.scenes[0].capabilityList
+  assert.deepEqual(
+    list.map((capability) => capability.id),
+    ['100', '101'],
+  )
+  assert.equal(list[0].verification, 'confirmed')
+  assert.equal(list[1].origin, 'oracle')
+  assert.equal(list[1].verification, 'pending')
+  // 절이 없는 씬은 빈 배열이다. 색인의 재료일 뿐이라 `null` 을 따로 두지 않는다.
+  assert.deepEqual(parseContentMapView({ scenes: [{ id: 2, name: 'X' }] }).scenes[0].capabilityList, [])
+})

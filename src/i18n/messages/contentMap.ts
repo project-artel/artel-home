@@ -240,6 +240,157 @@ export const contentMapEn = {
     capabilityLabel: (capabilityId: string) => `capability ${capabilityId}`,
     noCapabilityLink: 'no capability recorded',
   },
+  // The panel beside the drawing. The drawing is pointer-only and `aria-hidden`,
+  // so everything selectable there is a button here, and the evidence a 152×48
+  // box has no room for lives here too.
+  inspector: {
+    title: 'Selected',
+    clear: 'Clear',
+    selectHint:
+      'Pick a scene or a screen — in the drawing, or from the lists below. Its capture, what identifies it, and what can be done from it appear here.',
+    missing: 'What was selected is no longer in this drawing.',
+
+    screenTitle: 'Screen',
+    // Nameless is the ordinary case, not a defect: a screen is split by
+    // observation and the name is written afterwards, by an LLM, if at all.
+    unnamedScreen: 'Unnamed screen',
+    unnamedNote:
+      'No one has named this screen yet, which is ordinary — the machine tells screens apart by the condition below, and the name is written afterwards.',
+    screenIdLabel: 'Screen id',
+    screenIdShort: (screenId: string) => `#${screenId}`,
+    sceneLabel: 'Scene',
+    sceneUnknown: 'Not in this drawing',
+    screenUnknown: 'Screen not in this drawing',
+    observedLabel: 'Observed',
+    observedCount: (count: number) => `${count}×`,
+    firstSeenLabel: 'First seen in run',
+    firstSeenNone: 'Not recorded',
+
+    captureHeading: 'Capture',
+    // A real state, not an error and not a spinner. Every screen in a live build
+    // is in it: a run records that the screen was reached, but uploading the
+    // picture that goes with it is not wired up yet.
+    captureNone: 'This screen has no capture yet',
+    captureNoneCopy:
+      'A QA run records that this screen was reached; the picture that goes with it is not being uploaded yet. Nothing failed, and there is nothing to wait for.',
+    captureBroken: 'The capture link expired or the image could not be loaded. Reload the page.',
+    captureAt: (time: string) => `Captured ${time}`,
+
+    discriminatorHeading: 'What identifies this screen',
+    discriminatorNone: 'The server recorded no condition for this screen.',
+    // Shown verbatim rather than half-read. Folding an unrecognised shape into
+    // the known one would show part of the condition as if it were all of it.
+    discriminatorRawNote:
+      'This build does not recognise the shape of this condition, so it is shown exactly as the server recorded it.',
+    discriminatorEvery: (count: number) =>
+      `${count} condition${count === 1 ? '' : 's'}, all of which hold on this screen:`,
+    clauseActive: 'on',
+    clauseInactive: 'off',
+
+    capabilitiesHeading: 'What can be done here',
+    // Says where the list came from and which part of it is observed. The
+    // response carries capabilities per scene, never per screen, so the list is
+    // the scene's — and each row says whether this screen was seen using it.
+    capabilitiesNote:
+      "These are the capabilities of the scene this screen belongs to; the response does not yet say which ones a screen offered. The rows a transition leaving this screen actually used are marked and listed first.",
+    capabilitiesNone: 'This scene has no capability that is a step.',
+    capabilitiesNotAStep: (count: number) =>
+      `${count} further capabilit${count === 1 ? 'y' : 'ies'} in this scene ${count === 1 ? 'is' : 'are'} not a step, so ${count === 1 ? 'it is' : 'they are'} not listed here.`,
+    capabilityUntitled: 'Capability the server did not summarise',
+    capabilityMissing:
+      'This capability is no longer in the content map, so its origin and verification cannot be read.',
+    capabilityUsedHere: (count: number) =>
+      `Used by ${count} transition${count === 1 ? '' : 's'} leaving this screen`,
+    capabilityNotUsedHere: 'No transition leaving this screen was observed using it',
+
+    originLabel: 'Origin',
+    origins: {
+      evidence: 'Evidence',
+      observed: 'Observed',
+      inferred: 'Inferred',
+      human: 'Human',
+    },
+    originUnknown: (origin: string) =>
+      origin.length > 0 ? `Unrecognised (${origin})` : 'Not recorded',
+    verificationLabel: 'Verification',
+    verifications: {
+      unverified: 'Unverified',
+      confirmed: 'Confirmed',
+      contradicted: 'Contradicted',
+    },
+    verificationUnknown: (verification: string) =>
+      verification.length > 0 ? `Unrecognised (${verification})` : 'Not recorded',
+
+    knowledgeHeading: 'Knowledge anchored here',
+    knowledgeNone: 'No knowledge item is anchored to this screen.',
+    knowledgeLoading: 'Reading the knowledge base…',
+    // Not folded into "none": one is a fact about the game, the other is a fact
+    // about this page, and only the second is something to retry.
+    knowledgeFailed: 'The knowledge base could not be read. The rest of this panel is unaffected.',
+
+    screenTransitionsHeading: (count: number) =>
+      `${count} transition${count === 1 ? '' : 's'} leaving this screen`,
+    screenTransitionsNone: 'No transition leaving this screen has been observed.',
+    incomingCount: (count: number) =>
+      count === 0
+        ? 'No observed transition arrives at this screen.'
+        : `${count} observed transition${count === 1 ? '' : 's'} arrive${count === 1 ? 's' : ''} at this screen.`,
+    transitionTo: (target: string) => `to ${target}`,
+    transitionFrom: (source: string) => `from ${source}`,
+    transitionPair: (from: string, to: string) => `${from} → ${to}`,
+    // A transition has no verification column of its own. The capability that
+    // caused it does, and a transition with no capability at all has nothing to
+    // confirm — a different fact from one that was never confirmed.
+    transitionNoCapability: 'No capability — nothing to confirm',
+    transitionNoCapabilityCopy:
+      'No capability is recorded for this transition, so there is nothing to confirm. An automatic transition — a timer, a load finishing — never has one, and neither does one whose capability was dropped when the map was re-ingested.',
+    transitionCapabilityGone:
+      'The capability behind this transition is no longer in the content map.',
+    transitionKindLabel: 'Kind',
+    transitionKinds: {
+      action: 'Action',
+      state: 'State change',
+      auto: 'Automatic',
+    },
+    transitionKindUnknown: (kind: string) =>
+      kind.length > 0 ? `Unrecognised kind ${kind}` : 'No kind recorded',
+    transitionCapabilityHeading: 'What causes it',
+    crossesScene: 'crosses a scene boundary',
+    crossesSceneLabel: 'Scene boundary',
+    crossesSceneYes: 'Crossed',
+    crossesSceneNo: 'Stays inside one scene',
+
+    sceneTitle: 'Scene',
+    sceneScreensHeading: (count: number) =>
+      `${count} screen${count === 1 ? '' : 's'} in this scene`,
+    sceneScreensNone: 'No QA run has observed a screen in this scene yet.',
+    sceneEdgesHeading: (count: number) =>
+      `${count} transition${count === 1 ? '' : 's'} leaving this scene`,
+    sceneEdgesNone: 'No transition leaves this scene.',
+    sceneEdgesIncomingHeading: (count: number) =>
+      `${count} transition${count === 1 ? '' : 's'} arriving at this scene`,
+    sceneEdgesNoneIncoming: 'No transition arrives at this scene.',
+    gapsHeading: 'Gap reasons',
+    // Counted across the build. Saying so is the point: the response has no
+    // per-scene breakdown, and presenting one would invent a number.
+    gapsNote:
+      'Counted across the whole build. The response does not break gap reasons down by scene.',
+    gapsNone: 'The server recorded no gap for this build.',
+
+    sceneEdgeTitle: 'Scene transition',
+    screenTransitionTitle: 'Screen transition',
+    edgePair: (from: string, to: string) => `${from} → ${to}`,
+    edgeSourceLabel: 'Source',
+    capabilityIdLabel: 'Capability id',
+    openScene: (name: string) => `Open scene ${name}`,
+    openScreen: (name: string) => `Open ${name}`,
+
+    scenesHeading: (count: number) => `${count} scene${count === 1 ? '' : 's'}`,
+    sceneEdgeListHeading: (count: number) =>
+      `${count} scene transition${count === 1 ? '' : 's'}`,
+    screenTransitionListHeading: (count: number) =>
+      `${count} screen transition${count === 1 ? '' : 's'}`,
+  },
   // What can actually be done in the selected scene. The counts above say how
   // many; this says which, and under what condition.
   steps: {
@@ -510,6 +661,128 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
     notVerified: '미확인',
     capabilityLabel: (capabilityId: string) => `능력 ${capabilityId}`,
     noCapabilityLink: '연결된 능력 없음',
+  },
+  inspector: {
+    title: '고른 것',
+    clear: '선택 해제',
+    selectHint:
+      '그림에서, 또는 아래 목록에서 scene 이나 screen 을 고르세요. 그 캡처와 무엇으로 판정되는지, 거기서 무엇을 할 수 있는지가 여기 뜹니다.',
+    missing: '고른 것이 더 이상 이 그림에 없습니다.',
+
+    screenTitle: 'Screen',
+    unnamedScreen: '이름 없는 screen',
+    unnamedNote:
+      '아직 아무도 이 screen 에 이름을 붙이지 않았고, 그것이 보통입니다 — 기계는 아래 조건으로 screen 을 가르고 이름은 나중에 붙습니다.',
+    screenIdLabel: 'Screen id',
+    screenIdShort: (screenId: string) => `#${screenId}`,
+    sceneLabel: 'Scene',
+    sceneUnknown: '이 그림에 없음',
+    screenUnknown: '이 그림에 없는 screen',
+    observedLabel: '관측',
+    observedCount: (count: number) => `${count}회`,
+    firstSeenLabel: '처음 본 런',
+    firstSeenNone: '기록 없음',
+
+    captureHeading: '캡처',
+    captureNone: '이 screen 은 아직 캡처가 없습니다',
+    captureNoneCopy:
+      'QA 런은 이 screen 에 닿았다는 것을 기록하지만, 그에 딸린 그림을 올리는 경로는 아직 없습니다. 실패한 것이 아니고, 기다릴 것도 없습니다.',
+    captureBroken: '캡처 주소가 만료됐거나 이미지를 불러오지 못했습니다. 새로고침하세요.',
+    captureAt: (time: string) => `${time} 촬영`,
+
+    discriminatorHeading: '이 screen 을 판정하는 것',
+    discriminatorNone: '서버가 이 screen 의 조건을 기록하지 않았습니다.',
+    discriminatorRawNote:
+      '이 빌드가 이 조건의 모양을 알지 못해, 서버가 기록한 원문 그대로 보입니다.',
+    discriminatorEvery: (count: number) => `이 screen 에서 함께 성립하는 조건 ${count}개:`,
+    clauseActive: '켜짐',
+    clauseInactive: '꺼짐',
+
+    capabilitiesHeading: '여기서 할 수 있는 일',
+    capabilitiesNote:
+      '이 screen 이 속한 scene 의 capability 입니다 — screen 이 어떤 capability 를 제공했는지는 응답에 아직 없습니다. 이 screen 에서 나가는 transition 이 실제로 쓴 것은 표시해 앞에 세웁니다.',
+    capabilitiesNone: '이 scene 에는 단계가 되는 capability 가 없습니다.',
+    capabilitiesNotAStep: (count: number) =>
+      `이 scene 의 다른 capability ${count}개는 단계가 아니라서 여기에 없습니다.`,
+    capabilityUntitled: '서버가 요약을 주지 않은 capability',
+    capabilityMissing:
+      '이 capability 가 콘텐츠 맵에 더 이상 없어서 origin 과 verification 을 읽을 수 없습니다.',
+    capabilityUsedHere: (count: number) =>
+      `이 screen 에서 나가는 transition ${count}개가 씁니다`,
+    capabilityNotUsedHere: '이 screen 에서 쓰이는 것이 아직 관측되지 않았습니다',
+
+    originLabel: 'Origin',
+    origins: {
+      evidence: '근거 문서',
+      observed: '런에서 관측',
+      inferred: '추론',
+      human: '사람이 입력',
+    },
+    originUnknown: (origin: string) =>
+      origin.length > 0 ? `알 수 없음 (${origin})` : '기록 없음',
+    verificationLabel: 'Verification',
+    verifications: {
+      unverified: '미확인',
+      confirmed: '확인됨',
+      contradicted: '어긋남',
+    },
+    verificationUnknown: (verification: string) =>
+      verification.length > 0 ? `알 수 없음 (${verification})` : '기록 없음',
+
+    knowledgeHeading: '여기에 묶인 지식',
+    knowledgeNone: '이 screen 에 묶인 지식 항목이 없습니다.',
+    knowledgeLoading: '지식창고를 읽는 중…',
+    knowledgeFailed: '지식창고를 읽지 못했습니다. 이 패널의 나머지는 그대로입니다.',
+
+    screenTransitionsHeading: (count: number) => `이 screen 에서 나가는 transition ${count}개`,
+    screenTransitionsNone: '이 screen 에서 나가는 transition 이 아직 관측되지 않았습니다.',
+    incomingCount: (count: number) =>
+      count === 0
+        ? '이 screen 으로 들어오는 관측된 transition 이 없습니다.'
+        : `이 screen 으로 들어오는 관측된 transition 이 ${count}개 있습니다.`,
+    transitionTo: (target: string) => `${target} 으로`,
+    transitionFrom: (source: string) => `${source} 에서`,
+    transitionPair: (from: string, to: string) => `${from} → ${to}`,
+    transitionNoCapability: 'Capability 없음 — 확인할 것이 없습니다',
+    transitionNoCapabilityCopy:
+      '이 transition 에 기록된 capability 가 없어서 확인할 것도 없습니다. 타이머나 로딩 완료 같은 자동 전이에는 애초에 capability 가 없고, 재적재로 capability 가 지워진 transition 도 마찬가지입니다.',
+    transitionCapabilityGone: '이 transition 을 일으킨 capability 가 콘텐츠 맵에 더 이상 없습니다.',
+    transitionKindLabel: '갈래',
+    transitionKinds: {
+      action: '조작',
+      state: '상태 변화',
+      auto: '자동',
+    },
+    transitionKindUnknown: (kind: string) =>
+      kind.length > 0 ? `알 수 없는 갈래 ${kind}` : '갈래 기록 없음',
+    transitionCapabilityHeading: '무엇이 일으키나',
+    crossesScene: 'scene 경계를 넘음',
+    crossesSceneLabel: 'Scene 경계',
+    crossesSceneYes: '넘음',
+    crossesSceneNo: '한 scene 안에 머무름',
+
+    sceneTitle: 'Scene',
+    sceneScreensHeading: (count: number) => `이 scene 의 screen ${count}개`,
+    sceneScreensNone: '아직 어떤 QA 런도 이 scene 에서 screen 을 관측하지 않았습니다.',
+    sceneEdgesHeading: (count: number) => `이 scene 에서 나가는 전이 ${count}개`,
+    sceneEdgesNone: '이 scene 에서 나가는 전이가 없습니다.',
+    sceneEdgesIncomingHeading: (count: number) => `이 scene 으로 들어오는 전이 ${count}개`,
+    sceneEdgesNoneIncoming: '이 scene 으로 들어오는 전이가 없습니다.',
+    gapsHeading: 'Gap 사유',
+    gapsNote: '빌드 전체를 센 값입니다. 응답은 gap 사유를 scene 별로 가르지 않습니다.',
+    gapsNone: '서버가 이 빌드의 gap 을 기록하지 않았습니다.',
+
+    sceneEdgeTitle: 'Scene 전이',
+    screenTransitionTitle: 'Screen transition',
+    edgePair: (from: string, to: string) => `${from} → ${to}`,
+    edgeSourceLabel: '출처',
+    capabilityIdLabel: 'Capability id',
+    openScene: (name: string) => `${name} scene 열기`,
+    openScreen: (name: string) => `${name} 열기`,
+
+    scenesHeading: (count: number) => `Scene ${count}개`,
+    sceneEdgeListHeading: (count: number) => `Scene 전이 ${count}개`,
+    screenTransitionListHeading: (count: number) => `Screen transition ${count}개`,
   },
   steps: {
     heading: (count: number) => `조작 단계 ${count}개`,
