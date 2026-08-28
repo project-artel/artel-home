@@ -1,5 +1,6 @@
 import type { Messages } from '../i18n/messages'
 import type { SceneNode } from './sceneGraphLayout'
+import type { SceneEdgeModel } from './screenMapLayout'
 
 /*
  * 노드 하나를 사람이 읽는 형태로.
@@ -37,4 +38,15 @@ export function sceneTitle(t: Messages, node: SceneNode): string {
   const name = node.name.trim()
   if (name.length > 0) return name
   return node.scene === null ? t.contentMap.list.unnamedDestination : t.contentMap.list.untitled
+}
+
+/**
+ * 씬 전이가 가리키는 목적지 이름.
+ *
+ * 목적지 씬이 응답에 없을 수 있다. 그때도 서버는 이름을 주는 편이고, 이름조차 없으면 그
+ * 사실을 이름 자리에 적는다 — 빈 칸을 두면 화살표가 어디로 가는지 아무 말도 하지 않는다.
+ */
+export function edgeTargetName(t: Messages, placed: SceneEdgeModel): string {
+  const name = placed.edge.transition.toSceneName.trim()
+  return name.length > 0 ? name : t.contentMap.list.unnamedDestination
 }

@@ -5443,16 +5443,46 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   color: var(--color-text-muted);
 }
 
-/* 그래프 작업면 */
+/* 그래프 작업면 — tree · canvas · detail 셋.
+ *
+ * 왼쪽은 고르는 곳이고 오른쪽은 고른 것이 뜨는 곳이다. 둘을 한 세로줄에 겹쳐 두면 — 예전
+ * 배치가 그랬다 — 무엇을 골라도 답이 스크롤 밖에서 바뀌어 아무 일도 안 일어난 것처럼 보인다.
+ *
+ * ## 좁아질 때 무엇이 먼저 접히나
+ *
+ * 캔버스가 먼저 양보한다. 그 안의 그림은 pan/zoom 을 갖고 있어 좁아져도 볼 수 있지만, tree 와
+ * detail 은 글자라 좁아지면 그냥 못 읽는다. 그래서 1280px 아래에서는 캔버스만 줄고, 양옆의 두
+ * pane 은 자기 폭을 지킨다.
+ *
+ * 1024px 아래에서는 세 칸이 남지 않는다. 그때 접히는 것은 **tree** 다. detail 은 캔버스 바로
+ * 밑에 남는다 — 고른 것이 뜨는 곳이 화면 밖으로 나가는 것이 이 배치가 고친 버그 그 자체이기
+ * 때문이다. tree 가 접혀 아래로 내려가도 선택이 화면 밖에서 바뀌지는 않는다: 선택이 바뀔 때마다
+ * tree 의 그 줄과 detail 패널이 각각 `scrollIntoView({ block: 'nearest' })` 로 따라온다. */
 .cm-workspace {
   display: grid;
   gap: var(--space-5);
-  grid-template-columns: minmax(0, 1fr) 360px;
+  grid-template-columns: 260px minmax(0, 1fr) 360px;
   align-items: start;
+}
+@media (max-width: 1279px) {
+  .cm-workspace {
+    gap: var(--space-4);
+    grid-template-columns: 216px minmax(0, 1fr) 320px;
+  }
 }
 @media (max-width: 1023px) {
   .cm-workspace {
     grid-template-columns: minmax(0, 1fr);
+  }
+  /* 캔버스, detail, tree 순. 고른 것이 뜨는 곳이 그림 바로 아래에 남는다. */
+  .cm-canvas-panel {
+    order: 1;
+  }
+  .cm-inspector-panel {
+    order: 2;
+  }
+  .cm-tree-pane {
+    order: 3;
   }
 }
 .cm-canvas-panel {
@@ -5658,8 +5688,161 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   font-size: 11px;
 }
 
-/* 인스펙터. `aria-hidden` 인 그림으로 들어가는 키보드·스크린 리더 경로이므로,
-   그림에서 고를 수 있는 것은 전부 여기에도 있어야 한다. */
+/* Tree pane. `aria-hidden` 인 그림으로 들어가는 유일한 키보드·스크린 리더 경로이고,
+   그림에서 고를 수 있는 네 갈래가 전부 여기 줄로 있다. */
+.cm-tree-pane {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - var(--space-12));
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+}
+@media (max-width: 1023px) {
+  .cm-tree-pane {
+    position: static;
+    max-height: min(520px, 70vh);
+  }
+}
+.cm-tree-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: inherit;
+}
+.cm-tree-title {
+  flex: none;
+  margin: 0;
+  padding: var(--space-4) var(--space-4) var(--space-1);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+/* 키보드 규칙을 적어 둔다. 화살표가 접고 펴는 tree 는 목록처럼 생겼지만 목록처럼 움직이지
+   않아서, 말해 두지 않으면 탭으로 스물아홉 줄을 지나려는 사람이 생긴다. */
+.cm-tree-hint {
+  flex: none;
+  margin: 0;
+  padding: 0 var(--space-4) var(--space-3);
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--color-text-muted);
+}
+.cm-tree {
+  flex: 1 1 auto;
+  margin: 0;
+  padding: 0 var(--space-2) var(--space-3);
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+}
+.cm-tree-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+  padding-top: 3px;
+  padding-bottom: 3px;
+  padding-right: var(--space-2);
+  border-left: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.cm-tree-row:hover {
+  background: var(--color-bg-hover);
+}
+/* 지금 고른 줄. 색만으로 말하지 않는다 — 왼쪽 규칙선과 굵기가 함께 말하고,
+   스크린 리더에는 `aria-selected` 가 같은 것을 말한다. */
+.cm-tree-row.is-selected {
+  border-left-color: var(--color-action-primary);
+  background: var(--color-bg-raised);
+}
+.cm-tree-row.is-selected .cm-tree-name {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+.cm-tree-row:focus-visible {
+  outline: 2px solid var(--color-action-primary);
+  outline-offset: -2px;
+}
+/* 펼침 상태는 삼각형의 방향이 말한다. 잎에도 같은 폭을 남겨 이름이 층마다 어긋나지 않게 한다. */
+.cm-tree-twisty {
+  flex: none;
+  width: 12px;
+  padding-top: 1px;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  line-height: 16px;
+  text-align: center;
+}
+.cm-tree-twisty.is-leaf {
+  color: transparent;
+}
+.cm-tree-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.cm-tree-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--color-text-secondary);
+}
+.cm-tree-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 이름이 없는 것은 결손이 아니라 보통이다. 지어낸 이름이 아니라는 것만 기울임으로 말한다. */
+.cm-tree-name.is-unnamed {
+  font-style: italic;
+}
+.cm-tree-id {
+  flex: none;
+  color: var(--color-text-muted);
+  font-size: 10.5px;
+}
+/* chip 이 이름을 지므로 긴 씬 이름은 여기서 잘린다. 잘린 이름은 줄 전체의 `title` 이 아니라
+   detail 이 온전히 답한다 — 고르면 바로 오른쪽에 전체 이름이 뜬다. */
+.cm-tree-chip {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cm-tree-arrow {
+  flex: none;
+  color: var(--color-text-muted);
+}
+.cm-tree-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: 10.5px;
+  line-height: 15px;
+  font-variant-numeric: tabular-nums;
+}
+/* 씬 경계를 넘는다는 사실. 그 전이는 출발 화면 밑에만 서므로, 이 글자가 없으면 씬 안에서
+   움직이는 전이와 구별되지 않는다. */
+.cm-tree-crossing {
+  color: var(--color-text-secondary);
+}
+
+/* 인스펙터. 방금 고른 것 하나만 뜬다.
+   목록은 왼쪽 tree 로 갔다 — 고르는 곳과 답이 뜨는 곳이 같은 세로줄에 겹쳐 있으면, 목록에서
+   고른 것이 스크롤 위쪽에서 바뀌어 아무 일도 안 일어난 것처럼 보인다. */
 .cm-inspector-panel {
   position: sticky;
   top: 0;
@@ -5667,14 +5850,16 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   overflow: hidden;
   padding: 0;
 }
+/* 쌓였을 때. sticky 는 풀되 높이는 여전히 묶어 둔다 — 풀어 두면 capability 마흔 줄이
+   전부 늘어서서 그 아래 tree 가 몇 화면 밑으로 밀리고, 그러면 고르러 가는 길이 사라진다. */
 @media (max-width: 1023px) {
   .cm-inspector-panel {
     position: static;
-    max-height: none;
+    max-height: min(680px, 75vh);
   }
 }
 /* 스크롤은 패널 하나에만 둔다. 절마다 따로 굴리면 긴 detail 을 읽는 동안 어느 막대가 어느
-   목록의 것인지 알 수 없고, 패널이 `overflow: hidden` 이라 넘친 부분은 아예 닿지 못한다. */
+   절의 것인지 알 수 없고, 패널이 `overflow: hidden` 이라 넘친 부분은 아예 닿지 못한다. */
 .cm-inspector {
   display: flex;
   flex-direction: column;
@@ -5685,7 +5870,6 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
 .cm-inspector-selection {
   flex: none;
   padding: var(--space-4);
-  border-bottom: 1px solid var(--color-border-subtle);
 }
 .cm-inspector-header {
   display: flex;
@@ -5700,69 +5884,11 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   line-height: 22px;
   font-weight: 600;
 }
-.cm-inspector-subtitle {
-  margin: 0;
-  padding: var(--space-3) var(--space-4);
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--color-text-muted);
-}
 .cm-inspector-hint {
   margin: 0;
   color: var(--color-text-muted);
   font-size: 12px;
   line-height: 18px;
-}
-.cm-scene-list-section {
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  min-height: 0;
-}
-.cm-scene-list {
-  margin: 0;
-  padding: 0 var(--space-2) var(--space-3);
-  list-style: none;
-}
-.cm-scene {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  width: 100%;
-  padding: var(--space-2) var(--space-3);
-  border: 0;
-  border-left: 2px solid transparent;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  text-align: left;
-  color: inherit;
-}
-.cm-scene:hover {
-  background: var(--color-bg-hover);
-}
-/* 선택은 왼쪽 규칙선으로 말한다 — 배경만 바꾸면 hover 와 구분되지 않는다. */
-.cm-scene.is-selected {
-  border-left-color: var(--color-action-primary);
-  background: var(--color-bg-raised);
-}
-.cm-scene-title {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-width: 0;
-  font-size: 13px;
-  color: var(--color-text-primary);
-}
-.cm-scene-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--color-text-muted);
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
 }
 /* 씬의 성격은 배지가 아니라 글자다. 알약이 셋이면 세 축이 한 축으로 읽힌다. */
 .cm-kind {
@@ -6985,35 +7111,6 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   font-variant-numeric: tabular-nums;
 }
 
-/* 두 종류의 선 목록. 접어 두는 이유는 `DESIGN.md` 그대로다 — 요약을 먼저 보이고 원본은
-   명시적으로 펼치게 한다. 접혀 있어도 키보드로는 탭 두 번이면 닿는다. */
-.sm-edge-lists {
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  border-top: 1px solid var(--color-border-subtle);
-}
-.sm-edge-list {
-  border-bottom: 1px solid var(--color-border-subtle);
-}
-.sm-edge-list > summary {
-  padding: var(--space-3) var(--space-4);
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--color-text-muted);
-  cursor: pointer;
-}
-.sm-edge-list > summary:hover {
-  color: var(--color-text-secondary);
-}
-.sm-edge-list > .cm-transition-list {
-  max-height: min(320px, 32vh);
-  padding: 0 var(--space-4) var(--space-3);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
 /* 관측된 것과 유도한 것을 한 줄이 가른다. 씬의 목록을 그대로 보이면서 "이 화면에서 실제로
    쓰인 것"만 굵게 두면, 유도한 부분이 관측된 사실로 읽히지 않는다. */
 .sm-capability.is-used {

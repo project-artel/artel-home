@@ -4,12 +4,10 @@ import type { Messages } from '../i18n/messages'
 import { truncate } from '../knowledge/knowledgeLabels'
 import type { KnowledgeNode } from '../knowledge/knowledgeTypes'
 import { formatDateTime } from '../projects/formatters'
-import { SceneChip } from '../testCases/SceneChip'
 import {
   KNOWN_CAPABILITY_STATUSES,
   capabilityOriginStyle,
   edgeSourceStyle,
-  sameSelection,
   transitionKindStyle,
   verificationStyle,
   type ContentMapGap,
@@ -19,7 +17,8 @@ import {
   type SceneThumbnail,
   type ScreenImage,
 } from './contentMapTypes'
-import { sceneKind, sceneTitle } from './sceneLabels'
+import { edgeTargetName, sceneKind, sceneTitle } from './sceneLabels'
+import { screenLabel, screenTitle } from './screenLabels'
 import { ConditionTree, SceneStepList } from './SceneStepList'
 import { selectorTail, type ScreenDiscriminator } from './screenDiscriminator'
 import {
@@ -35,11 +34,17 @@ import {
 import type { SceneEdgeModel, ScreenMapModel, ScreenTransitionModel } from './screenMapLayout'
 
 /**
- * 중첩 다이어그램의 대등한 대체물.
+ * 방금 고른 것 하나, 그리고 그것뿐.
  *
- * 편의 기능이 아니다. `ScreenMapCanvas` 는 포인터 전용이고 `aria-hidden` 이라, 키보드와 스크린
- * 리더 사용자가 씬·화면·전이를 고르는 경로가 여기밖에 없다. 그래서 그림에서 고를 수 있는 네
- * 갈래가 전부 여기에도 버튼으로 있다 — 씬, 화면, 씬 전이, 화면 전이.
+ * ## 왜 목록이 여기서 빠졌나
+ *
+ * 예전에는 이 패널이 detail 위에 얹은 채로 씬 목록과 전이 목록 둘을 아래에 달고 있었다. 그러면
+ * 목록에서 한 줄을 고를 때마다 답이 **스크롤 위쪽**에서 바뀌고, 좁은 화면에서는 패널 자체가
+ * 캔버스 아래로 내려가 화면 밖에 있었다. 고르는 곳과 답이 뜨는 곳이 같은 세로줄에 겹쳐 있으면
+ * 무엇을 해도 아무 일도 일어나지 않은 것처럼 보인다.
+ *
+ * 지금 목록은 캔버스 왼쪽의 `ContentMapTree` 로 옮겼고, 이 패널에는 방금 고른 것만 남는다.
+ * 여기 뜨는 것은 언제나 마지막으로 고른 바로 그것이다.
  *
  * ## 그림이 답하지 못하는 것을 답한다
  *
@@ -97,14 +102,6 @@ export function ContentMapInspector({
           selection={selection}
         />
       </section>
-
-      <SceneAndScreenList
-        model={model}
-        onSelect={onSelect}
-        selection={selection}
-      />
-
-      <EdgeLists index={index} model={model} onSelect={onSelect} selection={selection} />
     </div>
   )
 }
@@ -161,25 +158,6 @@ function SelectionDetail({
   const placed = model.screenTransitions.find((candidate) => candidate.id === selection.id)
   if (placed === undefined) return <p className="cm-inspector-hint">{copy.missing}</p>
   return <ScreenTransitionDetailPanel index={index} onSelect={onSelect} placed={placed} />
-}
-
-/** 이름이 없는 것이 보통이다. 자리를 비워 두지 않고 없다고 말한다. */
-function screenTitle(t: Messages, screen: ContentMapScreen): string {
-  const name = screen.name?.trim() ?? ''
-  return name.length > 0 ? name : t.contentMap.inspector.unnamedScreen
-}
-
-/**
- * 이름과, 이름이 없을 때의 id.
- *
- * 한 줄에 화면 둘이 함께 서는 자리 — 전이의 양 끝 — 에서는 이름만으로는 "이름 없는 screen →
- * 이름 없는 screen" 이 되어 어느 화면에서 어느 화면으로 가는지 아무 말도 하지 않는다.
- */
-function screenLabel(t: Messages, screen: ContentMapScreen): string {
-  const name = screen.name?.trim() ?? ''
-  return name.length > 0
-    ? name
-    : `${t.contentMap.inspector.unnamedScreen} ${t.contentMap.inspector.screenIdShort(screen.id)}`
 }
 
 /**
@@ -785,11 +763,6 @@ function SceneEdgeButton({
   )
 }
 
-function edgeTargetName(t: Messages, placed: SceneEdgeModel): string {
-  const name = placed.edge.transition.toSceneName.trim()
-  return name.length > 0 ? name : t.contentMap.list.unnamedDestination
-}
-
 /** 노드 id 로 씬 이름을. 그림에 없는 id 는 그 사실 자체를 이름 자리에 적는다. */
 function sceneNodeName(t: Messages, index: ScreenMapIndex, nodeId: string): string {
   const container = index.containerById.get(nodeId)
@@ -930,150 +903,5 @@ function ScreenTransitionDetailPanel({
         )}
       </div>
     </div>
-  )
-}
-
-/**
- * 씬과 그 안의 화면을 한 나무로.
- *
- * 그림의 중첩을 그대로 옮긴 모양이라, 스크린 리더로 읽어도 어느 화면이 어느 씬 안에 있는지가
- * 목록 구조 자체로 전해진다.
- */
-function SceneAndScreenList({
-  model,
-  selection,
-  onSelect,
-}: {
-  model: ScreenMapModel
-  selection: ContentMapSelection | null
-  onSelect: (selection: ContentMapSelection) => void
-}) {
-  const { t } = useI18n()
-  const copy = t.contentMap.inspector
-
-  return (
-    <section aria-labelledby="sm-scene-list-title" className="cm-scene-list-section">
-      <h3 className="cm-inspector-subtitle" id="sm-scene-list-title">
-        {copy.scenesHeading(model.containers.length)}
-      </h3>
-      <ul className="cm-scene-list">
-        {model.containers.map((container) => (
-          <li key={container.id}>
-            <button
-              aria-current={
-                sameSelection(selection, { kind: 'scene', id: container.id }) ? 'true' : undefined
-              }
-              className={`cm-scene${sameSelection(selection, { kind: 'scene', id: container.id }) ? ' is-selected' : ''}`}
-              onClick={() => onSelect({ kind: 'scene', id: container.id })}
-              type="button"
-            >
-              <span className="cm-scene-title">
-                <SceneChip scene={container.node.name.trim()} />
-                <span>{truncate(sceneTitle(t, container.node), 40)}</span>
-              </span>
-              <span className="cm-scene-meta">
-                <span className={`cm-kind cm-kind--${sceneKind(container.node)}`}>
-                  {t.contentMap.graph.sceneKinds[sceneKind(container.node)]}
-                </span>
-                <span>{t.contentMap.screenMap.screenCount(container.screens.length)}</span>
-              </span>
-            </button>
-
-            {container.screens.length > 0 && (
-              <ul className="sm-screen-list">
-                {container.screens.map((screen) => {
-                  const selected = sameSelection(selection, { kind: 'screen', id: screen.id })
-                  return (
-                    <li key={screen.id}>
-                      <ScreenButton
-                        onSelect={onSelect}
-                        screen={screen}
-                        selected={selected}
-                        width={22}
-                      />
-                    </li>
-                  )
-                })}
-              </ul>
-            )}
-          </li>
-        ))}
-      </ul>
-    </section>
-  )
-}
-
-/**
- * 두 종류의 선.
- *
- * 접어 둔다. 실측 빌드에서 씬 전이 열아홉과 화면 전이 서른아홉이 한 번에 펼쳐지면 씬 목록이
- * 화면 밖으로 밀려난다. `DESIGN.md` 가 말하는 "요약을 먼저, 원본은 명시적으로 펼치게" 그대로이고,
- * 접혀 있어도 키보드로는 두 번의 탭이면 닿는다.
- */
-function EdgeLists({
-  index,
-  model,
-  selection,
-  onSelect,
-}: {
-  index: ScreenMapIndex
-  model: ScreenMapModel
-  selection: ContentMapSelection | null
-  onSelect: (selection: ContentMapSelection) => void
-}) {
-  const { t } = useI18n()
-  const copy = t.contentMap.inspector
-
-  return (
-    <section className="sm-edge-lists">
-      <details className="sm-edge-list">
-        <summary>{copy.sceneEdgeListHeading(model.sceneEdges.length)}</summary>
-        <ul className="cm-transition-list">
-          {model.sceneEdges.map((placed) => (
-            <li key={placed.id}>
-              <SceneEdgeButton
-                label={copy.edgePair(
-                  truncate(sceneNodeName(t, index, placed.edge.from), 18),
-                  truncate(edgeTargetName(t, placed), 18),
-                )}
-                onSelect={onSelect}
-                placed={placed}
-              />
-            </li>
-          ))}
-        </ul>
-      </details>
-
-      <details className="sm-edge-list">
-        <summary>{copy.screenTransitionListHeading(model.screenTransitions.length)}</summary>
-        <ul className="cm-transition-list">
-          {model.screenTransitions.map((placed) => (
-            <li key={placed.id}>
-              <button
-                aria-current={
-                  sameSelection(selection, { kind: 'screenTransition', id: placed.id })
-                    ? 'true'
-                    : undefined
-                }
-                className={`cm-transition cm-transition--${transitionKindStyle(placed.transition.kind)}`}
-                onClick={() => onSelect({ kind: 'screenTransition', id: placed.id })}
-                type="button"
-              >
-                <span className="cm-transition-target">
-                  {copy.transitionPair(placed.transition.fromScreenId, placed.transition.toScreenId)}
-                </span>
-                <span className="cm-transition-meta">
-                  <span>
-                    {placed.transition.capabilitySummary === null
-                      ? copy.transitionNoCapability
-                      : truncate(placed.transition.capabilitySummary, 40)}
-                  </span>
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </details>
-    </section>
   )
 }

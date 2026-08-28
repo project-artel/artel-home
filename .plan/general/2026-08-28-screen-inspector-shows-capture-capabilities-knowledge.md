@@ -4,7 +4,7 @@
 - Jira: ARTEL-598 (epic ARTEL-582; blocked by ARTEL-597)
 - Branch: `feat/home-인스펙터에-캡처-기능-묶인-지식을-낸다-ARTEL-598`
 - Base: `feat/home-씬-컨테이너-안에-화면을-중첩해-그린다-ARTEL-597`
-- Status: Implemented
+- Status: Implemented, then reworked into three panes (see `## Rework — 세 pane`)
 
 ## Goal
 
@@ -132,3 +132,75 @@ anchoredToScreen(nodes, screenId): KnowledgeNode[]
   말한다.
 - 지식 그래프 조회가 한 번 더 붙는다. 실패해도 화면 지도는 그대로 그려지고 지식 절만 못 읽었다고
   말한다.
+
+
+## Rework — 세 pane
+
+살아 있는 stack 에서 화면을 열어 보니 인스펙터가 하는 일이 보이지 않았다. 원인은 배선이 아니라
+배치였다.
+
+1. `.cm-workspace` 가 `minmax(0, 1fr) 360px` 이고 1023px 아래에서 한 칸으로 접혔다. 그러면
+   인스펙터가 캔버스 패널 **아래**로 내려가 화면 밖에 앉는다. 캔버스를 클릭하면 그림만 밝아지고
+   아무 일도 일어나지 않은 것처럼 보인다.
+2. 넓은 화면에서도 그 360px 안에 detail · 씬 목록 · 전이 목록 셋이 세로로 쌓여 있었다. 아래쪽
+   목록에서 한 줄을 고르면 답이 **스크롤 위쪽**에서 바뀐다.
+
+### 무엇으로 바꿨나
+
+```text
+┌──────────┬───────────────────────────┬─────────────┐
+│   tree   │          canvas           │  inspector  │
+│          │        (pan/zoom)         │   detail    │
+└──────────┴───────────────────────────┴─────────────┘
+```
+
+- **왼쪽 tree** — 예전의 씬 목록과 전이 목록 둘이 하나의 tree 로 합쳐졌다. 캔버스가
+  `aria-hidden` 이라 이것이 유일한 키보드·스크린 리더 경로이고, 문은 뒤가 아니라 앞에 있어야 한다.
+- **가운데 canvas** — 그대로. viewport 컨트롤도 그대로.
+- **오른쪽 detail** — `SelectionDetail` 하나만. 여기 뜨는 것은 언제나 방금 고른 그것이다.
+
+### tree 의 모양
+
+```text
+▾ Scene
+    ▾ Screen
+        → 그 screen 에서 나가는 screen transition
+    → 그 scene 에서 나가는 scene edge
+```
+
+씬은 접힌 채로 시작한다. 실측 빌드의 `TurnBattleScene` 하나가 화면 스물아홉 개를 물고 있어서,
+펼친 채로 시작하면 "이 빌드에 어떤 씬이 있나"라는 첫 질문이 스크롤 밖으로 밀린다.
+
+씬 경계를 넘는 screen transition 은 출발 화면 밑에만 한 번 선다. 도착 씬 밑에 한 번 더 놓으면
+전이 하나가 둘로 읽히므로, 대신 그 줄이 "어느 씬으로 나가는지"를 줄 안에서 말한다.
+
+### 이어져 있다는 느낌을 만드는 것
+
+- 캔버스에서 고르면 tree 가 그 가지를 펼치고, 그 줄을 밝히고, 스크롤해서 보인다.
+- tree 에서 고르면 캔버스가 그것을 밝힌다.
+- 선택이 바뀔 때마다 detail 패널도 `scrollIntoView({ block: 'nearest' })` 로 따라온다. 넓은
+  화면에서는 아무 일도 일어나지 않고, 좁아져 쌓인 뒤에만 일한다.
+
+셋 중 하나라도 빠지면 pane 이 셋이 된 것 말고는 달라진 것이 없다.
+
+### 좁아질 때
+
+| 폭 | 배치 | 왜 |
+|---|---|---|
+| `>= 1280px` | 260 / 1fr / 360 | 셋이 다 선다 |
+| `1024–1279px` | 216 / 1fr / 320 | 캔버스가 먼저 양보한다. 그림은 pan/zoom 이 있어 좁아져도 볼 수 있지만 tree 와 detail 은 글자라 좁아지면 못 읽는다 |
+| `< 1024px` | canvas → detail → tree | 접히는 것은 tree 다. 고른 것이 뜨는 곳이 화면 밖으로 나가는 것이 이 배치가 고친 버그 그 자체다. detail 은 `min(680px, 75vh)` 로 묶여 그 아래 tree 가 몇 화면 밑으로 밀리지 않는다 |
+
+### 키보드
+
+`role="tree"` · `treeitem` · `aria-level` / `aria-posinset` / `aria-setsize` / `aria-expanded` /
+`aria-selected`, roving tabindex. 위아래로 줄을 옮기고, 오른쪽·왼쪽으로 펼치고 접고 부모로
+올라가고, Home·End 로 끝으로, Enter·Space 로 고른다. 캔버스는 여전히 포커스를 받지 않는다.
+
+펼침 상태는 색이 아니라 삼각형의 방향(`▸` / `▾`)이 말하고, 스크린 리더에는 `aria-expanded` 가
+같은 것을 말한다.
+
+### 결정이 든 것은 전부 순수 함수로
+
+`contentMapTree.ts` — tree 를 세우는 것, 접힌 상태에서 보이는 줄을 고르는 것, 선택이 어느 가지
+안에 있는지 되짚는 것, 키 하나가 무엇을 뜻하는지. `contentMapTree.test.ts` 가 16 개로 잡는다.

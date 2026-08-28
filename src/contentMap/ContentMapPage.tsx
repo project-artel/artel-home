@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { LABEL_NODE_LIMIT } from '../knowledge/knowledgeLayout'
@@ -6,6 +6,7 @@ import { useKnowledgeGraph } from '../knowledge/useKnowledgeGraph'
 import { formatDateTime } from '../projects/formatters'
 import { CanvasViewportControls } from './CanvasViewportControls'
 import { ContentMapInspector } from './ContentMapInspector'
+import { ContentMapTree } from './ContentMapTree'
 import { CaptureHeader, ContentMapSummary } from './ContentMapSummary'
 import type { ContentMapSelection, ContentMapView } from './contentMapTypes'
 import { EvidenceScanPanel } from './EvidenceScanPanel'
@@ -214,7 +215,22 @@ function ContentMapBody({ projectId, view }: { projectId: string; view: ContentM
 }
 
 /**
- * 한 빌드의 지도, 캔버스 하나로.
+ * 한 빌드의 지도, pane 셋으로.
+ *
+ * ```text
+ * ┌──────────┬───────────────────────────┬─────────────┐
+ * │   tree   │          canvas           │  inspector  │
+ * │          │        (pan/zoom)         │   detail    │
+ * └──────────┴───────────────────────────┴─────────────┘
+ * ```
+ *
+ * 왼쪽은 고르는 곳이고 오른쪽은 고른 것이 뜨는 곳이다. 이 둘이 한 세로줄에 겹쳐 있으면 —
+ * 예전 배치가 그랬다 — 목록에서 한 줄을 고를 때마다 답이 스크롤 위쪽에서 바뀌고, 1023px 아래에서는
+ * 패널 전체가 캔버스 아래로 내려가 화면 밖에 있었다. 그러면 클릭 한 번에 그림만 반짝이고, 사용자는
+ * 아무 일도 일어나지 않았다고 읽는다.
+ *
+ * tree 가 왼쪽인 이유는 그것이 접근성 경로이기 때문이다. 캔버스는 `aria-hidden` 에 포인터 전용이라
+ * 키보드와 스크린 리더가 이 지도에 들어오는 문은 tree 하나뿐이고, 문은 뒤가 아니라 앞에 있어야 한다.
  *
  * ## 왜 씬 그래프와 화면 지도가 한 캔버스인가
  *
@@ -254,8 +270,31 @@ function SceneGraphView({ projectId, view }: { projectId: string; view: ContentM
    */
   const { graph: knowledgeGraph, status: knowledgeStatus } = useKnowledgeGraph(projectId)
 
+  /*
+   * 고른 것이 화면 밖에서 바뀌지 않게 한다.
+   *
+   * 세 pane 이 나란히 설 만큼 넓으면 detail 은 이미 보이고 `nearest` 는 아무것도 하지 않는다.
+   * 좁아져서 detail 이 캔버스 아래로 내려간 뒤에야 이 줄이 일한다 — 그때 tree 나 캔버스에서
+   * 무언가를 고르면 답이 있는 자리까지 따라간다. 이것이 없으면 이번에 고친 버그가 폭만 바꾼 채
+   * 그대로 돌아온다.
+   */
+  const detailPane = useRef<HTMLElement>(null)
+  useEffect(() => {
+    if (selection === null) return
+    detailPane.current?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+  }, [selection])
+
   return (
     <div className="cm-workspace">
+      <aside className="panel cm-tree-pane">
+        <ContentMapTree
+          index={index}
+          model={model}
+          onSelect={setSelection}
+          selection={selection}
+        />
+      </aside>
+
       <section aria-labelledby="cm-graph-title" className="panel cm-canvas-panel">
         <header className="panel-header">
           <h2 id="cm-graph-title">{copy.title}</h2>
@@ -309,7 +348,7 @@ function SceneGraphView({ projectId, view }: { projectId: string; view: ContentM
         <ScreenMapLegend model={model} />
       </section>
 
-      <aside className="panel cm-inspector-panel">
+      <aside className="panel cm-inspector-panel" ref={detailPane}>
         <ContentMapInspector
           gaps={view.gaps}
           index={index}

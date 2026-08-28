@@ -247,7 +247,7 @@ export const contentMapEn = {
     title: 'Selected',
     clear: 'Clear',
     selectHint:
-      'Pick a scene or a screen — in the drawing, or from the lists below. Its capture, what identifies it, and what can be done from it appear here.',
+      'Pick a scene or a screen — in the drawing, or in the tree on the left. Its capture, what identifies it, and what can be done from it appear here.',
     missing: 'What was selected is no longer in this drawing.',
 
     screenTitle: 'Screen',
@@ -385,11 +385,20 @@ export const contentMapEn = {
     openScene: (name: string) => `Open scene ${name}`,
     openScreen: (name: string) => `Open ${name}`,
 
-    scenesHeading: (count: number) => `${count} scene${count === 1 ? '' : 's'}`,
-    sceneEdgeListHeading: (count: number) =>
-      `${count} scene transition${count === 1 ? '' : 's'}`,
-    screenTransitionListHeading: (count: number) =>
-      `${count} screen transition${count === 1 ? '' : 's'}`,
+  },
+  // The tree beside the drawing. It is the only keyboard and screen-reader path
+  // into the map, because the drawing itself is `aria-hidden` and pointer-only.
+  tree: {
+    title: 'Scenes, screens, and transitions',
+    keyboardHint:
+      'Arrow keys move between rows. Right and left open and close a row; Enter selects it.',
+    empty: 'This build describes no scene.',
+    sceneEdgeCount: (count: number) => `${count} out`,
+    // A screen transition that leaves its scene is listed under the screen it
+    // leaves from, once. This says where it goes so the row is not read as a
+    // move inside one scene.
+    crossesTo: (scene: string) => `leaves to ${scene}`,
+    verified: 'Walked',
   },
   // What can actually be done in the selected scene. The counts above say how
   // many; this says which, and under what condition.
@@ -666,7 +675,7 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
     title: '고른 것',
     clear: '선택 해제',
     selectHint:
-      '그림에서, 또는 아래 목록에서 scene 이나 screen 을 고르세요. 그 캡처와 무엇으로 판정되는지, 거기서 무엇을 할 수 있는지가 여기 뜹니다.',
+      '그림에서, 또는 왼쪽 tree 에서 scene 이나 screen 을 고르세요. 그 캡처와 무엇으로 판정되는지, 거기서 무엇을 할 수 있는지가 여기 뜹니다.',
     missing: '고른 것이 더 이상 이 그림에 없습니다.',
 
     screenTitle: 'Screen',
@@ -780,9 +789,15 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
     openScene: (name: string) => `${name} scene 열기`,
     openScreen: (name: string) => `${name} 열기`,
 
-    scenesHeading: (count: number) => `Scene ${count}개`,
-    sceneEdgeListHeading: (count: number) => `Scene 전이 ${count}개`,
-    screenTransitionListHeading: (count: number) => `Screen transition ${count}개`,
+  },
+  tree: {
+    title: 'Scene 과 screen 과 전이',
+    keyboardHint:
+      '위아래 화살표로 줄을 옮기고, 오른쪽·왼쪽 화살표로 펼치고 접습니다. Enter 로 고릅니다.',
+    empty: '이 빌드에 scene 이 하나도 없습니다.',
+    sceneEdgeCount: (count: number) => `나가는 길 ${count}개`,
+    crossesTo: (scene: string) => `${scene} 으로 나감`,
+    verified: '밟음',
   },
   steps: {
     heading: (count: number) => `조작 단계 ${count}개`,
