@@ -181,6 +181,59 @@ export const projectsEn = {
    * Failures the client detected itself, keyed by `ProjectApiError.code`.
    * Server-provided messages are rendered as-is and never localized here.
    */
+  /** 프로젝트 참여자 화면. 소유자만 보는 자리가 섞여 있어 문구를 한 덩어리로 모았다. */
+  members: {
+    title: 'Members',
+    count: (count: number) => `${count} ${count === 1 ? 'person' : 'people'}`,
+    loadingLabel: 'Loading members',
+    loadFailed: 'The member list could not be loaded.',
+    joined: (date: string) => `Joined ${date}`,
+    noEmail: 'No email on this account',
+    remove: 'Remove',
+    removing: 'Removing…',
+    removeTitle: 'Remove member',
+    removeConfirmSuffix: ' loses access to this project. They can be invited again later.',
+    removeFailed: 'The member could not be removed.',
+    inviteTitle: 'Invite someone',
+    inviteCopy:
+      'They join once they sign in and accept. An address without an ARTEL account can be invited too — the invitation waits for them.',
+    emailLabel: 'Email address',
+    emailPlaceholder: 'teammate@example.com',
+    roleLabel: 'Role',
+    send: 'Send invitation',
+    sending: 'Sending…',
+    sendFailed: 'The invitation could not be sent.',
+    sentAnnouncement: 'Invitation sent.',
+    pendingTitle: 'Waiting for an answer',
+    noPending: 'No invitation is waiting.',
+    expires: (date: string) => `Expires ${date}`,
+    expired: 'Expired',
+    revoke: 'Revoke',
+    revoking: 'Revoking…',
+    revokeFailed: 'The invitation could not be revoked.',
+  },
+  /** 프로젝트 목록 위의 받은 초대함. */
+  inbox: {
+    title: 'Invitations',
+    count: (count: number) => `${count}`,
+    copy: 'Accept to join the project, or decline to clear the invitation.',
+    noEmailCopy:
+      'This account has no email address, so invitations cannot reach it. Sign in with a provider that shares your email, or ask to be added another way.',
+    invitedBy: (name: string, role: string) => `${name} invited you as ${role}`,
+    invitedAs: (role: string) => `Invited as ${role}`,
+    expires: (date: string) => `expires ${date}`,
+    expired: 'expired',
+    accept: 'Accept',
+    accepting: 'Accepting…',
+    decline: 'Decline',
+    declining: 'Declining…',
+    answerFailed: 'The invitation could not be answered.',
+  },
+  /** 역할 이름. 배지와 선택지가 같은 문구를 쓴다. */
+  roles: {
+    OWNER: 'Owner',
+    MEMBER: 'Member',
+  },
   apiErrors: {
     CLIENT_GENERIC: 'The request could not be completed. Please try again.',
     CLIENT_UNREADABLE_RESPONSE: 'The server returned an unreadable response.',
@@ -197,6 +250,18 @@ export const projectsEn = {
     CLIENT_MALFORMED_TRACKER_LINK: 'The server described the tracker connection oddly.',
     CLIENT_MALFORMED_INSTALL_URL: 'The server did not return an installation link.',
     CLIENT_MALFORMED_TRACKER_SYNC: 'The server described the export oddly.',
+    CLIENT_MALFORMED_INVITATION: 'The server described the invitation oddly.',
+    /*
+     * 아래는 서버가 보내는 code 다. 사전에 없으면 `apiErrorMessage` 가 서버 문장을 그대로 쓰는데,
+     * 그 문장은 한국어뿐이라 영어 locale 사용자에게 한국어가 나간다. 초대는 사용자가 오류를 자주
+     * 만나는 화면이라 여기서 옮긴다. 문자열은 서버와 정확히 같아야 한다.
+     */
+    duplicate_invitation: 'That address has already been invited and is waiting for an answer.',
+    already_member: 'That address already belongs to a member of this project.',
+    invitation_already_settled: 'This invitation has already been answered.',
+    invitation_expired: 'This invitation has expired.',
+    invitation_not_yours: 'This invitation was sent to a different address.',
+    last_owner: 'The last owner cannot be removed.',
   },
   /** The project's own shell: its left rail, and the dashboard behind it. */
   workspace: {
@@ -224,6 +289,7 @@ export const projectsEn = {
       performance: 'Performance',
       issues: 'Issues',
       knowledge: 'Knowledge graph',
+      members: 'Members',
       settings: 'Settings',
     },
     stats: {
@@ -432,6 +498,56 @@ export const projectsKo: Localized<typeof projectsEn> = {
   copy: {
     blocked: '브라우저가 복사를 차단했습니다. 값을 선택해 직접 복사해 주세요.',
   },
+  members: {
+    title: '멤버',
+    count: (count: number) => `${count}명`,
+    loadingLabel: '멤버를 읽는 중',
+    loadFailed: '멤버 목록을 불러오지 못했습니다.',
+    joined: (date: string) => `${date} 참여`,
+    noEmail: '이 계정에는 이메일이 없습니다',
+    remove: '내보내기',
+    removing: '내보내는 중…',
+    removeTitle: '멤버 내보내기',
+    removeConfirmSuffix: ' 님이 이 프로젝트에 접근할 수 없게 됩니다. 나중에 다시 초대할 수 있습니다.',
+    removeFailed: '멤버를 내보내지 못했습니다.',
+    inviteTitle: '사람 부르기',
+    inviteCopy:
+      '초대받은 사람이 로그인해 수락하면 참여합니다. ARTEL 계정이 아직 없는 주소도 부를 수 있고, 그 사람이 가입하면 초대가 기다리고 있습니다.',
+    emailLabel: '이메일 주소',
+    emailPlaceholder: 'teammate@example.com',
+    roleLabel: '역할',
+    send: '초대 보내기',
+    sending: '보내는 중…',
+    sendFailed: '초대를 보내지 못했습니다.',
+    sentAnnouncement: '초대를 보냈습니다.',
+    pendingTitle: '답을 기다리는 초대',
+    noPending: '기다리는 초대가 없습니다.',
+    expires: (date: string) => `${date} 만료`,
+    expired: '만료됨',
+    revoke: '취소',
+    revoking: '취소하는 중…',
+    revokeFailed: '초대를 취소하지 못했습니다.',
+  },
+  inbox: {
+    title: '받은 초대',
+    count: (count: number) => `${count}`,
+    copy: '수락하면 프로젝트에 참여하고, 거절하면 초대가 사라집니다.',
+    noEmailCopy:
+      '이 계정에는 이메일 주소가 없어 초대가 닿을 수 없습니다. 이메일을 함께 주는 제공자로 로그인하거나, 다른 방법으로 추가해 달라고 요청하세요.',
+    invitedBy: (name: string, role: string) => `${name} 님이 ${role}(으)로 초대했습니다`,
+    invitedAs: (role: string) => `${role}(으)로 초대받았습니다`,
+    expires: (date: string) => `${date} 만료`,
+    expired: '만료됨',
+    accept: '수락',
+    accepting: '수락하는 중…',
+    decline: '거절',
+    declining: '거절하는 중…',
+    answerFailed: '초대에 답하지 못했습니다.',
+  },
+  roles: {
+    OWNER: '소유자',
+    MEMBER: '멤버',
+  },
   apiErrors: {
     CLIENT_GENERIC: '요청을 완료하지 못했습니다. 다시 시도해 주세요.',
     CLIENT_UNREADABLE_RESPONSE: '서버가 읽을 수 없는 응답을 반환했습니다.',
@@ -448,6 +564,13 @@ export const projectsKo: Localized<typeof projectsEn> = {
     CLIENT_MALFORMED_TRACKER_LINK: '서버가 트래커 연결 응답을 해석할 수 없게 반환했습니다.',
     CLIENT_MALFORMED_INSTALL_URL: '서버가 설치 링크를 반환하지 않았습니다.',
     CLIENT_MALFORMED_TRACKER_SYNC: '서버의 내보내기 응답을 해석할 수 없습니다.',
+    CLIENT_MALFORMED_INVITATION: '서버의 초대 응답을 해석할 수 없습니다.',
+    duplicate_invitation: '이미 초대를 보낸 주소입니다. 답을 기다리는 중입니다.',
+    already_member: '이미 이 프로젝트의 멤버인 주소입니다.',
+    invitation_already_settled: '이미 답한 초대입니다.',
+    invitation_expired: '만료된 초대입니다.',
+    invitation_not_yours: '다른 주소로 간 초대입니다.',
+    last_owner: '마지막 소유자는 내보낼 수 없습니다.',
   },
   workspace: {
     navLabel: '프로젝트 섹션',
@@ -473,6 +596,7 @@ export const projectsKo: Localized<typeof projectsEn> = {
       performance: '성능',
       issues: '이슈',
       knowledge: '지식 그래프',
+      members: '멤버',
       settings: '설정',
     },
     stats: {

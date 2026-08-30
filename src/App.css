@@ -7288,3 +7288,112 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   color: var(--color-text-secondary);
   font-weight: 600;
 }
+
+/* 프로젝트 멤버와 초대 (ARTEL-686)
+   ------------------------------------------------------------------ */
+
+/* 멤버와 초대 줄은 같은 리듬을 쓴다. `.instance-row` 가 세운 것 — 줄 사이를 1px 로만 가르고
+   여백으로 숨을 준다 — 을 그대로 따르되, 왼쪽에 사람, 오른쪽에 역할과 동작을 둔다. */
+.member-list,
+.invitation-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.member-row,
+.invitation-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+}
+
+.member-row + .member-row,
+.invitation-row + .invitation-row {
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.member-row-main,
+.invitation-row-main {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 220px;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.member-row-name,
+.invitation-row-project {
+  overflow: hidden;
+  color: var(--color-text-primary);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.member-row-email,
+.invitation-row-email {
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.invitation-row-email {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.member-row-joined,
+.invitation-row-meta {
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.member-row-meta,
+.invitation-row-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* 오류는 줄 전체 폭을 쓴다. 오른쪽 동작 옆에 끼우면 버튼이 밀려 잘린다. */
+.member-row .inline-error,
+.invitation-row .inline-error {
+  flex-basis: 100%;
+  margin-bottom: 0;
+}
+
+/* 읽는 중에도 줄 높이가 흔들리지 않도록, 실제 줄과 같은 여백을 갖는다. */
+.member-row--skeleton {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-2);
+}
+
+.invite-form-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+
+.invite-form-fields .field {
+  flex: 1 1 220px;
+}
+
+.invite-form-fields .field--compact {
+  flex: 0 1 140px;
+}
+
+/* 초대함은 프로젝트 목록 바로 위에 서므로 그 사이를 띄운다. */
+.invitation-inbox {
+  margin-bottom: var(--space-5);
+}

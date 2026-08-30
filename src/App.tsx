@@ -18,6 +18,7 @@ import { ProjectListPage } from './projects/ProjectListPage'
 import { DashboardSection } from './projects/workspace/DashboardSection'
 import { DocumentsSection } from './projects/workspace/DocumentsSection'
 import { IssuesSection } from './projects/workspace/IssuesSection'
+import { MembersSection } from './projects/workspace/MembersSection'
 import { ProjectWorkspaceRoute } from './projects/workspace/ProjectWorkspace'
 import { QaHistorySection } from './projects/workspace/QaHistorySection'
 import { QaSection } from './projects/workspace/QaSection'
@@ -98,6 +99,7 @@ export function App() {
             <Route path="performance" element={<PerformanceSection />} />
             <Route path="issues" element={<IssuesSection />} />
             <Route path="knowledge" element={<KnowledgeSection />} />
+            <Route path="members" element={<MembersSection />} />
             <Route path="settings" element={<SettingsSection />} />
           </Route>
           {/* The working screens stay outside the rail: a timeline, a run map,

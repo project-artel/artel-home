@@ -68,7 +68,9 @@ export type ProjectDocument = {
  * which is the safe direction: it hides a destructive action rather than
  * offering one the server will refuse.
  */
-export type ProjectRole = 'OWNER' | 'MEMBER'
+export const PROJECT_ROLES = ['OWNER', 'MEMBER'] as const
+
+export type ProjectRole = (typeof PROJECT_ROLES)[number]
 
 export type ProjectSummary = {
   /** Opaque server-owned identifier. Never parsed, split, or used in arithmetic. */
