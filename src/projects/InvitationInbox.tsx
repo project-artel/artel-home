@@ -27,68 +27,82 @@ export function InvitationInbox({ onAccepted }: { onAccepted: () => void }) {
   // 한 순간 잘못된 안내가 떴다가 사라진다.
   if (!knowsAccount) return null
 
-  if (!canReceive) {
-    return (
-      <section className="panel invitation-inbox" aria-labelledby="inbox-title">
-        <header className="panel-header">
-          <h2 id="inbox-title">{copy.title}</h2>
-        </header>
-        <p className="section-intro">{copy.noEmailCopy}</p>
-      </section>
-    )
-  }
-
-  // 못 읽은 것과 초대가 없는 것은 다른 상태다. 실패를 조용히 감추면, 나를 부른 프로젝트가 있는데
-  // 없는 것처럼 보인다.
-  if (status === 'error') {
-    return (
-      <section className="panel invitation-inbox" aria-labelledby="inbox-title">
-        <header className="panel-header">
-          <h2 id="inbox-title">{copy.title}</h2>
-        </header>
-        <div className="panel-message" role="alert">
-          <p>{copy.loadFailed}</p>
-          <button className="button button--secondary" onClick={reload} type="button">
-            {t.projects.shared.retry}
-          </button>
-        </div>
-      </section>
-    )
-  }
-
-  if (status !== 'ready' || invitations.length === 0) return null
-
   return (
-    <section className="panel invitation-inbox" aria-labelledby="inbox-title">
-      <header className="panel-header panel-header--split">
-        <h2 id="inbox-title">{copy.title}</h2>
-        <span className="badge">{copy.count(invitations.length)}</span>
-      </header>
-      <p className="section-intro">{copy.copy}</p>
+    <>
+      {panelFor()}
 
-      <ul className="invitation-list">
-        {invitations.map((invitation) => (
-          <ReceivedInvitationRow
-            invitation={invitation}
-            key={invitation.id}
-            onAccepted={() => {
-              setAnnouncement(copy.acceptedAnnouncement(invitation.projectName))
-              forget(invitation.id)
-              onAccepted()
-            }}
-            onDeclined={() => {
-              setAnnouncement(copy.declinedAnnouncement(invitation.projectName))
-              forget(invitation.id)
-            }}
-          />
-        ))}
-      </ul>
+      {/*
+        답한 줄은 목록에서 사라지기만 한다. 화면을 보지 않는 사람에게는 그것이 아무 일도 일어나지
+        않은 것과 같아, 무엇에 답했는지 말해 준다.
 
-      {/* 답한 줄은 목록에서 사라지기만 한다. 화면을 보지 않는 사람에게는 그것이 아무 일도
-          일어나지 않은 것과 같아, 무엇에 답했는지 말해 준다. */}
+        region 이 panel 밖에 있는 것이 핵심이다. 안에 두면 마지막 초대에 답하는 순간 panel 이
+        통째로 사라지면서 region 도 함께 unmount 되고, 보조 기술은 붙어 있는 동안 바뀐 글만
+        읽으므로 한 렌더에 나타났다 사라진 글은 읽히지 않는다.
+      */}
       <p aria-live="polite" className="visually-hidden">{announcement}</p>
-    </section>
+    </>
   )
+
+  function panelFor() {
+    if (!canReceive) {
+      return (
+        <section className="panel invitation-inbox" aria-labelledby="inbox-title">
+          <header className="panel-header">
+            <h2 id="inbox-title">{copy.title}</h2>
+          </header>
+          <p className="section-intro">{copy.noEmailCopy}</p>
+        </section>
+      )
+    }
+
+    // 못 읽은 것과 초대가 없는 것은 다른 상태다. 실패를 조용히 감추면, 나를 부른 프로젝트가
+    // 있는데 없는 것처럼 보인다.
+    if (status === 'error') {
+      return (
+        <section className="panel invitation-inbox" aria-labelledby="inbox-title">
+          <header className="panel-header">
+            <h2 id="inbox-title">{copy.title}</h2>
+          </header>
+          <div className="panel-message" role="alert">
+            <p>{copy.loadFailed}</p>
+            <button className="button button--secondary" onClick={reload} type="button">
+              {t.projects.shared.retry}
+            </button>
+          </div>
+        </section>
+      )
+    }
+
+    if (status !== 'ready' || invitations.length === 0) return null
+
+    return (
+      <section className="panel invitation-inbox" aria-labelledby="inbox-title">
+        <header className="panel-header panel-header--split">
+          <h2 id="inbox-title">{copy.title}</h2>
+          <span className="badge">{copy.count(invitations.length)}</span>
+        </header>
+        <p className="section-intro">{copy.copy}</p>
+
+        <ul className="invitation-list">
+          {invitations.map((invitation) => (
+            <ReceivedInvitationRow
+              invitation={invitation}
+              key={invitation.id}
+              onAccepted={() => {
+                setAnnouncement(copy.acceptedAnnouncement(invitation.projectName))
+                forget(invitation.id)
+                onAccepted()
+              }}
+              onDeclined={() => {
+                setAnnouncement(copy.declinedAnnouncement(invitation.projectName))
+                forget(invitation.id)
+              }}
+            />
+          ))}
+        </ul>
+      </section>
+    )
+  }
 }
 
 function ReceivedInvitationRow({

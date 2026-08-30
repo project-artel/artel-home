@@ -2,7 +2,7 @@
 
 - Date: 2026-08-30
 - Jira: ARTEL-686 (Story ARTEL-684, Epic ARTEL-683)
-- Status: Reviewed (plan review 통과)
+- Status: Implemented (plan review 통과, pair review 통과)
 
 ## Goal
 
@@ -70,6 +70,18 @@ GitHub 에서 공개 이메일을 받지 못한 계정은 `app_user.email` 이 n
 
 수락하면 `useProjects` 의 `reload` 를 부른다. 목록을 손으로 이어 붙이지 않는 이유는 서버가 정렬과 `total` 을 정하기 때문이다.
 
+### 못 읽은 것을 없는 것으로 말하지 않는다
+
+이메일 없는 계정을 두고 세운 원칙 — 빈 목록만으로는 두 경우가 구분되지 않는다 — 은 이 화면의 다른 두 자리에도 그대로 걸린다. 초대 목록을 못 읽었을 때 "기다리는 초대가 없습니다" 를 그리면 소유자가 다시 시도할지 정할 수 없고, 받은 초대함이 실패를 조용히 감추면 나를 부른 프로젝트가 있는데 없는 것처럼 보인다.
+
+셋 다 상태를 그대로 드러낸다. 초대 폼 옆은 "읽지 못했다" 를, 받은 초대함은 실패와 다시 시도 버튼을 갖는다.
+
+### 목록이 조용히 바뀌는 자리를 말한다
+
+멤버 내보내기, 초대 보내기, 초대 취소, 수락, 거절이 전부 목록에서 줄을 없애거나 더한다. 화면을 보지 않는 사람에게 그것은 아무 일도 일어나지 않은 것과 같다.
+
+`GameInstancePanel` 이 쓰는 방식을 따른다 — panel 하나가 `aria-live="polite"` region 하나를 갖고, 행이 `onAnnounce` 로 그것을 부른다. `DESIGN.md` 의 "Announce summarized state changes" 가 요구하는 것이고, 매 줄이 아니라 동작 하나가 끝날 때만 말하므로 과하지도 않다.
+
 ### 읽는 중과 실패는 목록 화면의 관례를 따른다
 
 workspace 안의 다른 section 은 `useProject` 가 미리 읽어 둔 것을 그리기만 해서 자기 loading 상태가 없다. Members 는 자기 데이터를 직접 읽으므로 상태를 갖는데, 새 관례를 만들지 않고 `ProjectListPage` 가 이미 쓰는 것을 그대로 쓴다 — 읽는 중에는 `skeleton-line` 줄 몇 개, 실패에는 `panel-message` 와 다시 시도 버튼.
@@ -125,34 +137,34 @@ PR #78(ARTEL-672, GitHub 저장소 연결)과도 `src/i18n/messages/projects.ts`
   - `DeleteProjectDialog` 의 확인 dialog 패턴과 `useProjects` 의 hook 패턴을 확인했다
   - `sections.ts` 가 `settings` 를 목록 밖에 둔 이유를 확인했다
 
-- [ ] **Step 1: 타입과 API**
+- [x] **Step 1: 타입과 API**
   - `src/projects/memberTypes.ts` — `ProjectMember`, `ProjectInvitation`, `InvitationStatus`, `isInvitationExpired`
   - `src/projects/memberApi.ts` — 위 여덟 경로. `projectApi.ts` 의 helper 를 그대로 쓴다
   - DELETE 셋은 204 라 본문이 없다. `readJson` 을 쓰면 빈 본문에서 `CLIENT_UNREADABLE_RESPONSE` 가 난다. `deleteProject`(`projectApi.ts:374`)처럼 `if (!response.ok) throw await toApiError(response)` 만 한다
   - accept 와 decline 은 `ProjectInvitationResponse` 를 돌려준다
 
-- [ ] **Step 2: parser 테스트**
+- [x] **Step 2: parser 테스트**
   - `src/projects/memberApi.test.ts` — degradation 규칙을 덮는다
 
-- [ ] **Step 3: 확인 dialog 를 primitive 로 뽑는다**
+- [x] **Step 3: 확인 dialog 를 primitive 로 뽑는다**
   - `src/design-system/primitives/ConfirmActionDialog.tsx`
   - `DeleteProjectDialog` 와 `DeleteGameInstanceDialog` 를 그 위로 옮긴다
 
-- [ ] **Step 4: hook**
+- [x] **Step 4: hook**
   - `src/projects/useMembers.ts` — `(projectId, myRole)` 을 받는다. `OWNER` 가 아니면 초대는 읽지 않는다
   - `src/projects/useInvitations.ts` — 받은 초대함. 로그인한 계정의 `email` 이 null 이면 읽지 않는다
 
-- [ ] **Step 5: 화면**
+- [x] **Step 5: 화면**
   - `src/projects/workspace/MembersSection.tsx`
   - `src/projects/InvitationInbox.tsx`
 
-- [ ] **Step 6: 붙이기**
+- [x] **Step 6: 붙이기**
   - `sections.ts` 에 `members` 를 `WorkspaceSectionId` 와 `sectionIdFromPath` 양쪽에 추가
   - `ProjectNav` foot 에 링크와 `ICON_PATHS` 아이콘
   - `App.tsx` 에 `members` route
   - `ProjectListPage` 에 초대함. `status === 'loading' | 'error' | 'ready'` 분기 **밖**에 둔다 — 목록이 읽는 중이거나 실패해도 초대함은 남아야 한다
 
-- [ ] **Step 7: 문구**
+- [x] **Step 7: 문구**
   - `src/i18n/messages/projects.ts` 에 en 과 ko. `apiErrors` 에 서버 code 여섯
   - `Messages` 타입은 `Localized<typeof messages.en>` 이라 영어 사전에 키를 더하면 타입이 따라 넓어지고, 한국어 사전이 같은 키를 갖지 않으면 `npm run typecheck` 가 잡는다. 타입을 따로 손댈 곳은 없다
 

@@ -191,7 +191,7 @@ function InvitePanel({
       await sendInvitation(projectId, { email, role })
       setEmail('')
       setRole('MEMBER')
-      onAnnounce(copy.sentAnnouncement)
+      onAnnounce(copy.sentAnnouncement(email.trim()))
       onChanged()
     } catch (error: unknown) {
       // 서버가 거절하는 이유가 여섯 가지라 code 로 문장을 고른다. 사전에 없는 code 는
@@ -266,7 +266,13 @@ function InvitePanel({
       {status === 'loading' ? (
         <span className="skeleton-line" aria-hidden="true" />
       ) : status === 'error' ? (
-        <p className="detail-empty">{copy.pendingUnknown}</p>
+        // `detail-empty` 를 쓰지 않는다. 그 흐린 회색은 "없다" 를 말하는 색이라, 실패가 빈 상태와
+        // 똑같이 보이면 못 읽었다는 사실이 눈에 걸리지 않는다. 위 멤버 panel 이 이미 alert 를
+        // 띄우고 있으므로 여기는 role 을 두지 않는다.
+        <div className="inline-error">
+          <span aria-hidden="true">!</span>
+          {copy.pendingUnknown}
+        </div>
       ) : invitations.length === 0 ? (
         <p className="detail-empty">{copy.noPending}</p>
       ) : (
