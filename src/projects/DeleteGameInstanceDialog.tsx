@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { Dialog } from '../design-system/primitives/Dialog'
+import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
 import { deleteGameInstance } from './gameApi'
 import { useI18n } from '../i18n/useI18n'
 import { ProjectApiError } from './projectApi'
@@ -10,6 +9,8 @@ import { ProjectApiError } from './projectApi'
  * instance. That is not recoverable from this UI, so — exactly as with project
  * deletion — the instance name is spelled out in the question and the
  * destructive button is second, never the one that already has focus.
+ *
+ * 그 배치와 실패 표시는 [ConfirmActionDialog] 가 맡는다.
  */
 export function DeleteGameInstanceDialog({
   instanceId,
@@ -24,65 +25,30 @@ export function DeleteGameInstanceDialog({
   onDeleted: () => void
   projectId: string
 }) {
-  const [failure, setFailure] = useState<string | null>(null)
-  const [pending, setPending] = useState(false)
   const { t } = useI18n()
 
-  async function confirm() {
-    setPending(true)
-    setFailure(null)
-
-    try {
-      await deleteGameInstance(projectId, instanceId)
-      onDeleted()
-    } catch (error: unknown) {
-      setFailure(
+  return (
+    <ConfirmActionDialog
+      body={
+        <>
+          <strong>{instanceName}</strong>
+          {t.projects.instanceDelete.confirmSuffix}
+        </>
+      }
+      cancelLabel={t.projects.shared.cancel}
+      confirmLabel={t.projects.instanceDelete.confirm}
+      onClose={onClose}
+      onConfirm={async () => {
+        await deleteGameInstance(projectId, instanceId)
+        onDeleted()
+      }}
+      pendingLabel={t.projects.shared.deleting}
+      title={t.projects.instanceDelete.title}
+      toFailureMessage={(error) =>
         error instanceof ProjectApiError && error.isForbidden
           ? t.projects.instanceDelete.forbidden
-          : t.projects.instanceDelete.deleteFailed,
-      )
-      // No `finally`: a success unmounts this dialog, so clearing the pending
-      // flag there would be a state update on a component that is already gone.
-      setPending(false)
-    }
-  }
-
-  return (
-    <Dialog
-      labelledBy="delete-instance-title"
-      onClose={onClose}
-      title={t.projects.instanceDelete.title}
-    >
-      <p className="dialog-copy">
-        <strong>{instanceName}</strong>
-        {t.projects.instanceDelete.confirmSuffix}
-      </p>
-
-      {failure !== null && (
-        <div className="inline-error" role="alert">
-          <span aria-hidden="true">!</span>
-          {failure}
-        </div>
-      )}
-
-      <div className="dialog-actions">
-        <button
-          className="button button--secondary"
-          disabled={pending}
-          onClick={onClose}
-          type="button"
-        >
-          {t.projects.shared.cancel}
-        </button>
-        <button
-          className="button button--danger"
-          disabled={pending}
-          onClick={() => void confirm()}
-          type="button"
-        >
-          {pending ? t.projects.shared.deleting : t.projects.instanceDelete.confirm}
-        </button>
-      </div>
-    </Dialog>
+          : t.projects.instanceDelete.deleteFailed
+      }
+    />
   )
 }
