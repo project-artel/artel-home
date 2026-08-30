@@ -177,10 +177,6 @@ export const projectsEn = {
   copy: {
     blocked: 'Copying was blocked by the browser. Select the value and copy it manually.',
   },
-  /**
-   * Failures the client detected itself, keyed by `ProjectApiError.code`.
-   * Server-provided messages are rendered as-is and never localized here.
-   */
   /** 프로젝트 참여자 화면. 소유자만 보는 자리가 섞여 있어 문구를 한 덩어리로 모았다. */
   members: {
     title: 'Members',
@@ -206,6 +202,9 @@ export const projectsEn = {
     sentAnnouncement: 'Invitation sent.',
     pendingTitle: 'Waiting for an answer',
     noPending: 'No invitation is waiting.',
+    pendingUnknown: 'Pending invitations could not be read.',
+    removedAnnouncement: (name: string) => `${name} was removed from the project.`,
+    revokedAnnouncement: (email: string) => `The invitation to ${email} was revoked.`,
     expires: (date: string) => `Expires ${date}`,
     expired: 'Expired',
     revoke: 'Revoke',
@@ -228,12 +227,23 @@ export const projectsEn = {
     decline: 'Decline',
     declining: 'Declining…',
     answerFailed: 'The invitation could not be answered.',
+    loadFailed: 'Your invitations could not be loaded.',
+    acceptedAnnouncement: (name: string) => `You joined ${name}.`,
+    declinedAnnouncement: (name: string) => `You declined the invitation to ${name}.`,
   },
   /** 역할 이름. 배지와 선택지가 같은 문구를 쓴다. */
   roles: {
     OWNER: 'Owner',
     MEMBER: 'Member',
   },
+  /**
+   * `ProjectApiError.code` 로 찾는 문구.
+   *
+   * `CLIENT_*` 는 클라이언트가 스스로 알아낸 실패다. 그 아래 소문자 code 들은 서버가 보내는
+   * 것으로, 사전에 없으면 서버가 준 문장이 그대로 나가는데 그 문장이 한국어뿐이라 여기서 옮긴다.
+   * 서버가 보내는 모든 code 를 옮기지는 않는다 — 사용자가 자주 만나는 것만 있고, 나머지는
+   * 여전히 서버 문장으로 떨어진다.
+   */
   apiErrors: {
     CLIENT_GENERIC: 'The request could not be completed. Please try again.',
     CLIENT_UNREADABLE_RESPONSE: 'The server returned an unreadable response.',
@@ -522,6 +532,9 @@ export const projectsKo: Localized<typeof projectsEn> = {
     sentAnnouncement: '초대를 보냈습니다.',
     pendingTitle: '답을 기다리는 초대',
     noPending: '기다리는 초대가 없습니다.',
+    pendingUnknown: '기다리는 초대를 읽지 못했습니다.',
+    removedAnnouncement: (name: string) => `${name} 님을 프로젝트에서 내보냈습니다.`,
+    revokedAnnouncement: (email: string) => `${email} 로 보낸 초대를 취소했습니다.`,
     expires: (date: string) => `${date} 만료`,
     expired: '만료됨',
     revoke: '취소',
@@ -543,6 +556,9 @@ export const projectsKo: Localized<typeof projectsEn> = {
     decline: '거절',
     declining: '거절하는 중…',
     answerFailed: '초대에 답하지 못했습니다.',
+    loadFailed: '받은 초대를 불러오지 못했습니다.',
+    acceptedAnnouncement: (name: string) => `${name} 에 참여했습니다.`,
+    declinedAnnouncement: (name: string) => `${name} 의 초대를 거절했습니다.`,
   },
   roles: {
     OWNER: '소유자',

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { parseInvitation, parseMember } from './memberApi'
-import { isInvitationExpired } from './memberTypes'
+import { isInvitationExpired, type ProjectInvitation } from './memberTypes'
 
 /*
  * 이 화면에서 실제로 틀릴 수 있는 논리는 서버 응답을 좁히는 규칙 하나다. 어느 필드가 없을 때 줄을
@@ -103,7 +103,7 @@ describe('parseInvitation', () => {
 })
 
 describe('isInvitationExpired', () => {
-  const at = (expiresAt: string) => ({ ...invitation, expiresAt }) as never
+  const at = (expiresAt: string) => ({ ...invitation, expiresAt }) as ProjectInvitation
 
   it('is true once the moment has passed', () => {
     const now = Date.parse('2026-09-13T00:00:01Z')

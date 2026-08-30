@@ -25,11 +25,14 @@ type InboxState = {
 export function useInvitations() {
   const auth = useAuth()
   const knowsAccount = auth.status === 'authenticated'
-  const canReceive = knowsAccount && typeof auth.user.email === 'string'
+  const email = knowsAccount ? auth.user.email : null
+  const canReceive = typeof email === 'string'
   const [state, setState] = useState<InboxState>({ status: 'loading', invitations: [] })
 
   // 읽지 않는 경우에 상태를 쓰지 않는다. `canReceive` 는 세션에서 바로 나오는 값이라, effect 로
   // 한 박자 늦게 반영하면 렌더가 한 번 더 돈다.
+  // `email` 을 의존성에 두는 것은 계정이 바뀌었는데 둘 다 이메일이 있는 경우를 위해서다.
+  // `canReceive` 만 보면 그때 값이 바뀌지 않아 앞 계정의 초대가 남는다.
   useEffect(() => {
     if (!canReceive) return
 
@@ -43,7 +46,14 @@ export function useInvitations() {
       })
 
     return () => controller.abort()
-  }, [canReceive])
+  }, [canReceive, email])
+
+  const reload = useCallback(() => {
+    setState({ status: 'loading', invitations: [] })
+    listReceivedInvitations()
+      .then((invitations) => setState({ status: 'ready', invitations }))
+      .catch(() => setState({ status: 'error', invitations: [] }))
+  }, [])
 
   /** 답한 초대를 목록에서 뺀다. 서버가 이미 그것을 `PENDING` 밖으로 옮긴 뒤에만 부른다. */
   const forget = useCallback((invitationId: string) => {
@@ -60,5 +70,6 @@ export function useInvitations() {
     status: canReceive ? state.status : 'ready',
     invitations: canReceive ? state.invitations : [],
     forget,
+    reload,
   }
 }

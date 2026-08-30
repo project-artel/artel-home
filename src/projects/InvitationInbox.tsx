@@ -18,7 +18,8 @@ import { useInvitations } from './useInvitations'
  *   정렬과 총 개수를 서버가 정하기 때문이다
  */
 export function InvitationInbox({ onAccepted }: { onAccepted: () => void }) {
-  const { canReceive, invitations, forget, knowsAccount, status } = useInvitations()
+  const { canReceive, invitations, forget, knowsAccount, reload, status } = useInvitations()
+  const [announcement, setAnnouncement] = useState('')
   const { t } = useI18n()
   const copy = t.projects.inbox
 
@@ -33,6 +34,24 @@ export function InvitationInbox({ onAccepted }: { onAccepted: () => void }) {
           <h2 id="inbox-title">{copy.title}</h2>
         </header>
         <p className="section-intro">{copy.noEmailCopy}</p>
+      </section>
+    )
+  }
+
+  // 못 읽은 것과 초대가 없는 것은 다른 상태다. 실패를 조용히 감추면, 나를 부른 프로젝트가 있는데
+  // 없는 것처럼 보인다.
+  if (status === 'error') {
+    return (
+      <section className="panel invitation-inbox" aria-labelledby="inbox-title">
+        <header className="panel-header">
+          <h2 id="inbox-title">{copy.title}</h2>
+        </header>
+        <div className="panel-message" role="alert">
+          <p>{copy.loadFailed}</p>
+          <button className="button button--secondary" onClick={reload} type="button">
+            {t.projects.shared.retry}
+          </button>
+        </div>
       </section>
     )
   }
@@ -53,13 +72,21 @@ export function InvitationInbox({ onAccepted }: { onAccepted: () => void }) {
             invitation={invitation}
             key={invitation.id}
             onAccepted={() => {
+              setAnnouncement(copy.acceptedAnnouncement(invitation.projectName))
               forget(invitation.id)
               onAccepted()
             }}
-            onDeclined={() => forget(invitation.id)}
+            onDeclined={() => {
+              setAnnouncement(copy.declinedAnnouncement(invitation.projectName))
+              forget(invitation.id)
+            }}
           />
         ))}
       </ul>
+
+      {/* 답한 줄은 목록에서 사라지기만 한다. 화면을 보지 않는 사람에게는 그것이 아무 일도
+          일어나지 않은 것과 같아, 무엇에 답했는지 말해 준다. */}
+      <p aria-live="polite" className="visually-hidden">{announcement}</p>
     </section>
   )
 }

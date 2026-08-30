@@ -4,7 +4,12 @@ import { useI18n } from '../../i18n/useI18n'
 import { apiErrorMessage } from '../apiErrorMessage'
 import { formatDate } from '../formatters'
 import { removeMember, revokeInvitation, sendInvitation } from '../memberApi'
-import { isInvitationExpired, type ProjectInvitation, type ProjectMember } from '../memberTypes'
+import {
+  INVITATION_EMAIL_MAX_LENGTH,
+  isInvitationExpired,
+  type ProjectInvitation,
+  type ProjectMember,
+} from '../memberTypes'
 import { ProjectApiError } from '../projectApi'
 import { PROJECT_ROLES, type ProjectRole } from '../projectTypes'
 import { useMembers } from '../useMembers'
@@ -25,6 +30,7 @@ export function MembersSection() {
   const isOwner = project.myRole === 'OWNER'
   const { status, members, invitations, refresh, reload } = useMembers(project.id, project.myRole)
   const [removing, setRemoving] = useState<ProjectMember | null>(null)
+  const [announcement, setAnnouncement] = useState('')
   const { t } = useI18n()
   const copy = t.projects.members
 
@@ -72,11 +78,16 @@ export function MembersSection() {
       {isOwner && (
         <InvitePanel
           invitations={invitations}
+          onAnnounce={setAnnouncement}
           onChanged={refresh}
           projectId={project.id}
-          reading={status === 'loading'}
+          status={status}
         />
       )}
+
+      {/* 멤버 내보내기·초대 보내기·초대 취소가 모두 목록을 소리 없이 바꾼다. 화면을 보지 않는
+          사람에게는 그 변화가 전해지지 않으므로 한 자리에서 말한다. */}
+      <p aria-live="polite" className="visually-hidden">{announcement}</p>
 
       {removing !== null && (
         <ConfirmActionDialog
@@ -91,6 +102,7 @@ export function MembersSection() {
           onClose={() => setRemoving(null)}
           onConfirm={async () => {
             await removeMember(project.id, removing.userId)
+            setAnnouncement(copy.removedAnnouncement(removing.displayName))
             setRemoving(null)
             refresh()
           }}
@@ -152,20 +164,21 @@ function MemberRow({
  */
 function InvitePanel({
   invitations,
+  onAnnounce,
   onChanged,
   projectId,
-  reading,
+  status,
 }: {
   invitations: ProjectInvitation[]
+  onAnnounce: (message: string) => void
   onChanged: () => void
   projectId: string
-  reading: boolean
+  status: 'loading' | 'ready' | 'error'
 }) {
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<ProjectRole>('MEMBER')
   const [failure, setFailure] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
-  const [announcement, setAnnouncement] = useState('')
   const { t } = useI18n()
   const copy = t.projects.members
 
@@ -178,7 +191,7 @@ function InvitePanel({
       await sendInvitation(projectId, { email, role })
       setEmail('')
       setRole('MEMBER')
-      setAnnouncement(copy.sentAnnouncement)
+      onAnnounce(copy.sentAnnouncement)
       onChanged()
     } catch (error: unknown) {
       // 서버가 거절하는 이유가 여섯 가지라 code 로 문장을 고른다. 사전에 없는 code 는
@@ -213,6 +226,7 @@ function InvitePanel({
               autoComplete="off"
               className="field-input"
               disabled={sending}
+              maxLength={INVITATION_EMAIL_MAX_LENGTH}
               onChange={(event) => setEmail(event.target.value)}
               placeholder={copy.emailPlaceholder}
               type="email"
@@ -246,11 +260,13 @@ function InvitePanel({
         </div>
       </form>
 
-      <p aria-live="polite" className="visually-hidden">{announcement}</p>
-
       <h3 className="panel-subtitle">{copy.pendingTitle}</h3>
-      {reading ? (
+      {/* 못 읽었을 때 "없다"고 말하지 않는다. 기다리는 초대가 정말 없는 것과 알 수 없는 것은
+          다른 상태이고, 소유자는 그 둘을 구분해야 다시 시도할지 정할 수 있다. */}
+      {status === 'loading' ? (
         <span className="skeleton-line" aria-hidden="true" />
+      ) : status === 'error' ? (
+        <p className="detail-empty">{copy.pendingUnknown}</p>
       ) : invitations.length === 0 ? (
         <p className="detail-empty">{copy.noPending}</p>
       ) : (
@@ -259,6 +275,7 @@ function InvitePanel({
             <SentInvitationRow
               invitation={invitation}
               key={invitation.id}
+              onAnnounce={onAnnounce}
               onRevoked={onChanged}
               projectId={projectId}
             />
@@ -271,10 +288,12 @@ function InvitePanel({
 
 function SentInvitationRow({
   invitation,
+  onAnnounce,
   onRevoked,
   projectId,
 }: {
   invitation: ProjectInvitation
+  onAnnounce: (message: string) => void
   onRevoked: () => void
   projectId: string
 }) {
@@ -292,6 +311,7 @@ function SentInvitationRow({
 
     try {
       await revokeInvitation(projectId, invitation.id)
+      onAnnounce(copy.revokedAnnouncement(invitation.email))
       onRevoked()
     } catch (error: unknown) {
       setFailure(error instanceof ProjectApiError ? apiErrorMessage(error, t) : copy.revokeFailed)
