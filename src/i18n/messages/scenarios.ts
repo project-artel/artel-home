@@ -63,6 +63,19 @@ export const scenariosEn = {
       send: 'Send',
       // Says how many are open before the list. A bare list makes you count.
       pendingCount: '{count} things authoring could not settle. Answer what you know.',
+      // The dialog. These sit in the middle of the screen because the answer decides
+      // whether a scenario can be run, and a 300px column under a wall of prose is
+      // not where that gets read.
+      modalTitle: 'Answer what authoring could not settle',
+      modalClose: 'Close',
+      modalProgress: '{at} of {total}',
+      modalSlotWhere: '“{scenario}” — step {position}',
+      modalSlotHere: 'Your answer goes here',
+      modalSlotUnknown: 'Where this lands is not on screen yet.',
+      modalPrev: 'Previous',
+      modalNext: 'Next',
+      openModal: 'Open ({count})',
+      openHint: 'Authoring left {count} things it could not settle. Open them to answer.',
     },
     title: 'Conversation',
     emptyCopy:
@@ -458,6 +471,16 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
       freeTextPlaceholder: '직접 알려주기…',
       freeTextLabel: '직접 답하기',
       send: '보내기',
+      modalTitle: '저작이 못 정한 것에 답하기',
+      modalClose: '닫기',
+      modalProgress: '{total}개 중 {at}번째',
+      modalSlotWhere: '「{scenario}」 · {position}번째 자리',
+      modalSlotHere: '여기에 답이 들어갑니다',
+      modalSlotUnknown: '어디에 들어가는지는 아직 화면에 없습니다.',
+      modalPrev: '이전',
+      modalNext: '다음',
+      openModal: '펼치기 ({count}건)',
+      openHint: '저작이 못 정한 것이 {count}건 있습니다. 펼쳐서 답해 주세요.',
       pendingCount: '저작이 못 정한 것이 {count}가지입니다. 아는 것만 답해도 됩니다.',
     },
     title: '대화',

@@ -221,6 +221,15 @@ export async function listRunChatMessages(
     const role = asString(record.role) === 'USER' ? 'USER' : 'ASSISTANT'
     const payload = asRecord(record.payload)
     const question = payload?.kind === 'question' ? parseQuestion(payload) : null
+    // **되살릴 때도 함께 낸 것을 다 읽는다**(ARTEL-677). 스트림은 `questions` 를 읽는데 여기서는
+    // 첫 것만 읽고 있었다 — 새로고침 한 번에 여섯 건이 한 건으로 줄어 있었고, 나머지 다섯은
+    // 화면 어디에도 없었다.
+    const rest =
+      payload?.kind === 'question' && Array.isArray(payload.questions)
+        ? payload.questions
+            .map(parseQuestion)
+            .filter((one): one is RunChatQuestion => one !== null && !answered.has(one.id))
+        : []
     return {
       id: `msg-${index}`,
       role: role as ScenarioRole,
@@ -231,6 +240,7 @@ export async function listRunChatMessages(
       // click — unless it has been answered, in which case it keeps its text and
       // loses its buttons, the same as it did the moment it was answered.
       question: question !== null && !answered.has(question.id) ? question : null,
+      questions: rest.length > 0 ? rest : undefined,
     }
   })
 }

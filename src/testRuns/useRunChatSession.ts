@@ -343,6 +343,8 @@ export function useRunChatSession(
 
   return {
     active: runId !== null,
+    // 되묻기 모달이 그 판의 시나리오를 읽어 자리를 짚는다(ARTEL-677).
+    runId,
     // 커버리지를 읽는 쪽이 이 세션 안에 있다(RunChat). 파라미터로 이미 들고 있는 값을
     // 밖으로 내보내 프롭을 하나 더 엮지 않는다.
     projectId,
