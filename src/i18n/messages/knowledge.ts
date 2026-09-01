@@ -91,6 +91,8 @@ export const knowledgeEn = {
     unknownVersion: 'Not recorded',
     createdByLabel: 'Created by run',
     createdByDocument: 'Extracted from a document, not a run',
+    /** The try is known, but `qaRunId` has not arrived for it yet — a muted row, not a dead link. */
+    noRunYet: 'Not yet linked to a run',
     createdAtLabel: 'Created',
     openQaTry: 'Open the run',
     anchorsLabel: 'Where it holds',
@@ -213,6 +215,7 @@ export const knowledgeKo: Localized<typeof knowledgeEn> = {
     unknownVersion: '기록 없음',
     createdByLabel: '만든 런',
     createdByDocument: '런이 아니라 문서에서 추출된 항목입니다',
+    noRunYet: '아직 런과 연결되지 않음',
     createdAtLabel: '생성',
     openQaTry: '런 열기',
     anchorsLabel: '성립하는 곳',

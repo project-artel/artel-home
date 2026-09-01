@@ -41,7 +41,7 @@ export function QaTryIssuePanel({ qaTryId }: { qaTryId: string }) {
         onRetry={reload}
         patch={issues.patch}
         // The run is already on screen; a link back to it would go nowhere.
-        qaTryHref={null}
+        runHref={null}
         status={issues.status}
         // This panel renders outside the project workspace route, so it has
         // no access to the project's tracker connection state (ARTEL-672

@@ -8,7 +8,7 @@ import { sectionHref } from '../projects/workspace/sections'
 import type { ExtrasStatus } from '../projects/workspace/workspaceContext'
 import type { TestRun } from '../testRuns/testRunApi'
 import { createQaRun, qaStartConflict } from './qaApi'
-import type { QaModel, QaReasoningSelection, QaTry } from './qaTypes'
+import { qaRunPath, type QaModel, type QaReasoningSelection, type QaTry } from './qaTypes'
 import { TakeOverQaRunDialog } from './TakeOverQaRunDialog'
 
 /** How many recent runs the panel shows before deferring to the history section. */
@@ -304,12 +304,15 @@ export function QaTryPanel({
         <ul className="qa-try-list">
           {tries.slice(0, RECENT_LIMIT).map((qaTry) => (
             <li className="qa-try-row" key={qaTry.id}>
-              <Link
-                className="qa-try-link"
-                to={`/projects/${encodeURIComponent(projectId)}/qa-tries/${encodeURIComponent(qaTry.id)}`}
-              >
-                {t.qa.panel.openRun} <span className="mono" translate="no">#{qaTry.id}</span>
-              </Link>
+              {qaTry.qaRunId === null ? (
+                <span className="qa-try-link qa-try-link--muted">
+                  {t.qa.panel.openRun} <span className="mono" translate="no">#{qaTry.id}</span>
+                </span>
+              ) : (
+                <Link className="qa-try-link" to={qaRunPath(projectId, qaTry.qaRunId, qaTry.id)}>
+                  {t.qa.panel.openRun} <span className="mono" translate="no">#{qaTry.id}</span>
+                </Link>
+              )}
               {/* Status carries a text label, never color alone. */}
               <span className={`qa-status qa-status--${qaTry.status.toLowerCase()}`}>
                 {t.qa.statusLabels[qaTry.status]}

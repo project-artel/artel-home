@@ -3,6 +3,7 @@ import { useI18n } from '../../i18n/useI18n'
 import { IssueList } from '../../issues/IssueList'
 import { ISSUE_SEVERITIES, ISSUE_STATUSES, type IssueFilters } from '../../issues/issueTypes'
 import { useProjectIssues } from '../../issues/useIssues'
+import { qaRunPath } from '../../qa/qaTypes'
 import { useWorkspace } from './workspaceContext'
 
 /**
@@ -82,7 +83,7 @@ export function IssuesSection() {
           onLoadMore={issues.loadMore}
           onRetry={() => setReloadToken((token) => token + 1)}
           patch={issues.patch}
-          qaTryHref={(qaTryId) => `/projects/${projectId}/qa-tries/${qaTryId}`}
+          runHref={(qaRunId, qaTryId) => qaRunPath(projectId, qaRunId, qaTryId)}
           status={issues.status}
           trackerConnected={trackerConnected}
         />

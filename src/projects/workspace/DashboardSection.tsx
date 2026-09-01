@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
 import { ISSUE_SEVERITIES, type Issue } from '../../issues/issueTypes'
 import { SeverityTag } from '../../issues/SeverityTag'
-import type { QaTry } from '../../qa/qaTypes'
+import { qaRunPath, type QaTry } from '../../qa/qaTypes'
 import type { TestCaseCoverage } from '../../testCases/testCaseTypes'
 import { formatDate } from '../formatters'
 import { QaStatusPill } from './QaStatusPill'
@@ -119,13 +119,19 @@ export function DashboardSection() {
               <ul className="summary-list">
                 {tries.slice(0, PREVIEW).map((qaTry) => (
                   <li className="summary-row summary-row--qa" key={qaTry.id}>
-                    <Link
-                      className="table-link mono"
-                      to={`/projects/${encodeURIComponent(projectId)}/qa-tries/${encodeURIComponent(qaTry.id)}`}
-                      translate="no"
-                    >
-                      #{qaTry.id}
-                    </Link>
+                    {qaTry.qaRunId === null ? (
+                      <span className="table-link table-link--muted mono" translate="no">
+                        #{qaTry.id}
+                      </span>
+                    ) : (
+                      <Link
+                        className="table-link mono"
+                        to={qaRunPath(projectId, qaTry.qaRunId, qaTry.id)}
+                        translate="no"
+                      >
+                        #{qaTry.id}
+                      </Link>
+                    )}
                     <QaStatusPill status={qaTry.status} />
                     <span className="summary-meta">{startedLabel(qaTry, t.qa.history.notStarted)}</span>
                   </li>
@@ -145,13 +151,19 @@ export function DashboardSection() {
                   <li className="summary-row summary-row--issue" key={issue.id}>
                     <SeverityTag severity={issue.severity} />
                     <span className="summary-title">{issue.title}</span>
-                    <Link
-                      className="table-link mono"
-                      to={`/projects/${encodeURIComponent(projectId)}/qa-tries/${encodeURIComponent(issue.qaTryId)}`}
-                      translate="no"
-                    >
-                      #{issue.qaTryId}
-                    </Link>
+                    {issue.qaRunId === null ? (
+                      <span className="table-link table-link--muted mono" translate="no">
+                        #{issue.qaTryId}
+                      </span>
+                    ) : (
+                      <Link
+                        className="table-link mono"
+                        to={qaRunPath(projectId, issue.qaRunId, issue.qaTryId)}
+                        translate="no"
+                      >
+                        #{issue.qaTryId}
+                      </Link>
+                    )}
                     <span className="summary-meta">{formatDate(issue.reportedAt)}</span>
                   </li>
                 ))}

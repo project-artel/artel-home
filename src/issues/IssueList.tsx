@@ -11,8 +11,13 @@ type IssueListProps = {
   loadingMore: boolean
   onLoadMore: () => void
   patch: (issueId: string, next: (issue: Issue) => Issue) => void
-  /** Given a run id, where its page is — or null inside that run's own panel. */
-  qaTryHref: ((qaTryId: string) => string) | null
+  /**
+   * Given a `qaRunId` and the `qaTryId` of the scenario an issue came from,
+   * the run console address for it — or `null` inside that run's own panel,
+   * where a link back would go nowhere. Called only for an issue whose own
+   * `qaRunId` is not `null`; `IssueRow` renders a muted row itself otherwise.
+   */
+  runHref: ((qaRunId: string, qaTryId: string) => string) | null
   /** True when a filter is narrowing the list, which changes the empty text. */
   filtered: boolean
   onRetry: () => void
@@ -38,7 +43,7 @@ export function IssueList({
   loadingMore,
   onLoadMore,
   patch,
-  qaTryHref,
+  runHref,
   filtered,
   onRetry,
   trackerConnected,
@@ -83,7 +88,7 @@ export function IssueList({
             onSync={(target) => void sync(target)}
             onToggle={(target) => void toggle(target)}
             pending={pending.has(issue.id)}
-            qaTryHref={qaTryHref === null ? null : qaTryHref(issue.qaTryId)}
+            runHref={runHref}
             syncFailed={syncFailedId === issue.id}
             syncPending={syncPending.has(issue.id)}
             trackerConnected={trackerConnected}

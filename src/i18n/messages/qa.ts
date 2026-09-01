@@ -88,16 +88,6 @@ export const qaEn = {
     sendFailed: 'The message could not be sent.',
     closed: 'This run has ended. The conversation is read-only.',
   },
-  cancel: {
-    action: 'End run',
-    title: 'End this QA run?',
-    copy: 'The run stops where it is. Steps it never reached stay unanswered, and it cannot be resumed.',
-    keepRunning: 'Keep running',
-    confirm: 'End run',
-    pending: 'Ending…',
-    failed: 'The run could not be ended.',
-    gone: 'This QA Try no longer exists.',
-  },
   /** Taking a game away from the QA still running on it. */
   takeover: {
     title: 'End the QA already running on this game?',
@@ -152,6 +142,15 @@ export const qaEn = {
     logGeneral: 'Run log',
     tabIssues: 'Issues',
     chat: 'Chat',
+    // Carried over from the retired `QaTryPage` (ARTEL-723): the stream state
+    // line, the load-failure retry, and the loaded-log count.
+    loadFailed: 'This QA Try could not be loaded.',
+    streamOffline: 'Live log connection lost. Reload to reconnect.',
+    streamDegraded: 'Live log connection interrupted. Reconnecting…',
+    streamConnecting: 'Connecting live logs…',
+    streamLive: 'Live logs connected',
+    streamStored: 'Stored logs',
+    logsCount: (n: number) => `${n} loaded`,
   },
 } as const
 
@@ -237,16 +236,6 @@ export const qaKo: Localized<typeof qaEn> = {
     sendFailed: '메시지를 보내지 못했습니다.',
     closed: '종료된 실행입니다. 대화는 읽기 전용입니다.',
   },
-  cancel: {
-    action: '실행 종료',
-    title: '이 QA 실행을 종료할까요?',
-    copy: '실행이 그 자리에서 멈춥니다. 도달하지 못한 스텝은 판정되지 않은 채로 남고, 다시 이어서 실행할 수 없습니다.',
-    keepRunning: '계속 실행',
-    confirm: '종료',
-    pending: '종료하는 중…',
-    failed: '실행을 종료하지 못했습니다.',
-    gone: '이 QA Try가 더 이상 존재하지 않습니다.',
-  },
   takeover: {
     title: '이 게임에서 진행 중인 QA를 종료할까요?',
     copy: '그 게임은 아직 QA를 실행 중입니다. 새로 시작하면 그 실행이 그 자리에서 멈추고, 남은 스텝은 판정되지 않은 채로 남으며 다시 이어서 실행할 수 없습니다.',
@@ -297,5 +286,12 @@ export const qaKo: Localized<typeof qaEn> = {
     logGeneral: '실행 로그',
     tabIssues: '이슈',
     chat: '채팅',
+    loadFailed: '이 QA Try를 불러오지 못했습니다.',
+    streamOffline: '실시간 로그 연결이 끊겼습니다. 새로고침하면 다시 연결됩니다.',
+    streamDegraded: '실시간 로그 연결이 끊어졌습니다. 다시 연결하는 중…',
+    streamConnecting: '실시간 로그에 연결하는 중…',
+    streamLive: '실시간 로그 연결됨',
+    streamStored: '저장된 로그',
+    logsCount: (n: number) => `${n}개 불러옴`,
   },
 }
