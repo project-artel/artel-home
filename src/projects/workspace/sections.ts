@@ -16,6 +16,7 @@ export const WORKSPACE_SECTIONS = [
   { id: 'testRuns', path: 'test-runs' },
   { id: 'qa', path: 'qa' },
   { id: 'qaHistory', path: 'qa-history' },
+  { id: 'contentMap', path: 'content-map' },
   { id: 'performance', path: 'performance' },
   { id: 'issues', path: 'issues' },
   { id: 'knowledge', path: 'knowledge' },

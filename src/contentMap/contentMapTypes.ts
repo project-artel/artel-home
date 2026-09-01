@@ -180,6 +180,95 @@ export type SceneThumbnail =
   | { state: 'available'; url: string; width: number | null; height: number | null }
   | { state: 'unavailable'; reason: string }
 
+/**
+ * 한 씬에서 관측된 화면 하나.
+ *
+ * **씬 하나에 화면이 여럿일 수 있다** — 오버레이, 팝업, 상태 branch. `Canvas/continue` 가 켜진 것과
+ * 꺼진 것은 같은 씬의 다른 화면이고, 그 둘을 한 노드로 접으면 "continue 를 누른다"는 테스트 케이스가
+ * 절반은 실패한다.
+ *
+ * 정적 분석은 화면을 모른다. 그래서 QA 런 전에는 이 목록이 비고 **그것이 정상이다** — 빈 목록을
+ * 결함으로 그리면 안 된다.
+ */
+export type ContentMapScreen = {
+  id: string
+  /** 이 화면이 속한 씬. 화면 전이가 화면 id 로만 오므로 되짚을 자리가 필요하다. */
+  sceneId: string
+  /**
+   * 표시용 이름. **조인 키가 아니다** — 기계는 `discriminator` 로 판정하고 이름은 LLM 이 짓는다.
+   * null 이면 아직 아무도 이름을 붙이지 않은 것이고, 빈 문자열과 같은 뜻이 아니다.
+   */
+  name: string | null
+  /**
+   * 이 화면임을 판정하는 pulse 관측 조건. 서버가 읽지 않고 그대로 옮기는 열린 JSON 이라
+   * 여기서도 해석하지 않고 원문 그대로 들고 다닌다 — 모양을 못 박으면 관측 쪽이 조건 어휘를
+   * 늘리는 날 이 화면이 먼저 깨진다.
+   */
+  discriminator: string
+  observedCount: number
+  firstSeenQaRunId: string | null
+}
+
+/**
+ * 화면에서 화면으로 가는 전이 하나. **관측된 것만 있다.**
+ *
+ * 씬 전이(`SceneTransition`)로 대신할 수 없다. 팝업이 열리는 것처럼 씬 안에서만 일어나는 전이가
+ * 있고, 그런 전이는 씬 그래프에 자리가 없다.
+ *
+ * `crossesScene` 이 이 화면의 중첩 다이어그램에서 컨테이너 **안**의 선과 경계를 **넘는** 선을
+ * 가른다. 두 씬에 걸친 전이를 어느 씬 안에 접어 넣어도 반쪽이 되므로, 이 목록은 씬 밖 최상위에
+ * 그대로 선다.
+ */
+export type ScreenTransition = {
+  id: string
+  fromScreenId: string
+  toScreenId: string
+  /** null 이면 자동 전이다 — 타이머나 로딩 완료처럼 테스트 케이스가 지시할 수 없는 것. */
+  capabilityId: string | null
+  capabilitySummary: string | null
+  /** `action` | `state` | `auto`, 그리고 서버가 나중에 추가할 무엇이든. */
+  kind: string
+  /** 씬 경계를 넘었나. false 면 같은 씬 안의 상태 변화다. */
+  crossesScene: boolean
+  observedCount: number
+  firstSeenQaRunId: string | null
+}
+
+/** 이 빌드가 이름을 아는 화면 전이의 갈래. 목록 밖의 값은 서버 철자 그대로 보인다. */
+export const KNOWN_TRANSITION_KINDS = ['action', 'state', 'auto'] as const
+
+export type KnownTransitionKind = (typeof KNOWN_TRANSITION_KINDS)[number]
+
+export type TransitionKindStyle = KnownTransitionKind | 'unknown'
+
+export function transitionKindStyle(kind: string): TransitionKindStyle {
+  return (KNOWN_TRANSITION_KINDS as readonly string[]).includes(kind)
+    ? (kind as KnownTransitionKind)
+    : 'unknown'
+}
+
+/**
+ * 중첩 다이어그램에서 지금 고른 것.
+ *
+ * 네 갈래를 하나의 union 으로 두는 이유는 인스펙터(ARTEL-598)가 고른 것 하나만 받으면 되기
+ * 때문이다. 갈래마다 상태를 따로 들면 "씬과 전이가 동시에 골라진" 상태를 표현할 수 있게 되고,
+ * 그것은 이 화면에 없는 상태다.
+ */
+export type ContentMapSelection =
+  | { kind: 'scene'; id: string }
+  | { kind: 'screen'; id: string }
+  | { kind: 'sceneEdge'; id: string }
+  | { kind: 'screenTransition'; id: string }
+
+/** 두 선택이 같은 것을 가리키나. `null` 끼리도 같다. */
+export function sameSelection(
+  left: ContentMapSelection | null,
+  right: ContentMapSelection | null,
+): boolean {
+  if (left === null || right === null) return left === right
+  return left.kind === right.kind && left.id === right.id
+}
+
 export type ContentMapScene = {
   id: string
   name: string
@@ -197,6 +286,11 @@ export type ContentMapScene = {
   steps: ContentMapStep[] | null
   /** 대표 이미지. null 이면 서버가 이 씬에 대해 캡처를 말하지 않았다. */
   thumbnail: SceneThumbnail | null
+  /**
+   * 이 씬에서 관측된 화면들. QA 런 전에는 비어 있고 그것이 정상이다 —
+   * 씬을 그리다 화면이 생기는 것이지, 화면이 없어 씬이 덜 그려지는 것이 아니다.
+   */
+  screens: ContentMapScreen[]
 }
 
 /**
@@ -290,6 +384,11 @@ export type ContentMapView = {
   contentMap: ContentMapHeader | null
   scenes: ContentMapScene[]
   edges: SceneTransition[]
+  /**
+   * 화면 전이. 씬 안에 접히지 않고 최상위에 선다 — `crossesScene` 인 전이는 두 씬에 걸쳐
+   * 있어 어느 씬에 넣어도 반쪽이 된다.
+   */
+  screenTransitions: ScreenTransition[]
   gaps: ContentMapGap[]
   verification: ContentMapVerification
   pendingDocuments: PendingDocument[]

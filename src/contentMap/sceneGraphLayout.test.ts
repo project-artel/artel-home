@@ -30,6 +30,7 @@ function scene(id: string, name: string, over: Partial<ContentMapScene> = {}): C
     },
     steps: null,
     thumbnail: null,
+    screens: [],
     ...over,
   }
 }

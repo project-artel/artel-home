@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { parseContentMapView } from './contentMapApi.ts'
-import { sumCapabilities } from './contentMapTypes.ts'
+import { sumCapabilities, transitionKindStyle } from './contentMapTypes.ts'
 
 /*
  * 이 파서가 지켜야 하는 두 가지.
@@ -238,4 +238,170 @@ test('같은 결손 사유가 두 번 오면 첫 번째만 남는다', () => {
   })
 
   assert.deepEqual(view.gaps, [{ reason: 'NO_EVIDENCE_FOR_PRECONDITION', count: 3 }])
+})
+
+/*
+ * 화면과 화면 전이 (ARTEL-596 · ARTEL-597).
+ *
+ * 아래 페이로드는 orchestration 의 `ContentMapViewDtos.kt` 와 그 골든 시험의 픽스처를 그대로
+ * 옮긴 것이다. 그래도 이 시험이 증명하는 것은 "명세대로 오면 이렇게 읽는다"이지 "서버가 이렇게
+ * 준다"가 아니다.
+ */
+
+test('씬 안의 화면을 씬에 붙여 읽고 화면 전이를 최상위로 읽는다', () => {
+  const view = parseContentMapView({
+    contentMap: { id: 12, capture: 'editor', schemaVersion: 3, evidenceDigest: 'sha256:abc' },
+    scenes: [
+      {
+        id: 1,
+        name: 'TitleScene',
+        walked: true,
+        capabilities: { total: 1, runnable: 1 },
+        screens: [
+          {
+            id: 10,
+            sceneId: 1,
+            name: '타이틀',
+            discriminator: [{ selector: 'Canvas[2]/settings[1]', active: false }],
+            observedCount: 4,
+            firstSeenQaRunId: 77,
+          },
+          {
+            id: 11,
+            sceneId: 1,
+            name: '타이틀 · 설정 팝업',
+            discriminator: [{ selector: 'Canvas[2]/settings[1]', active: true }],
+            observedCount: 2,
+            firstSeenQaRunId: null,
+          },
+        ],
+      },
+      { id: 2, name: 'Map_scene', walked: false, capabilities: { total: 0 }, screens: [{ id: 12, sceneId: 2, name: '맵', discriminator: [], observedCount: 5 }] },
+    ],
+    screenTransitions: [
+      { id: 20, fromScreenId: 10, toScreenId: 11, capabilityId: 91, capabilitySummary: '설정을 연다', kind: 'state', crossesScene: false, observedCount: 2, firstSeenQaRunId: 77 },
+      { id: 21, fromScreenId: 10, toScreenId: 12, capabilityId: 91, capabilitySummary: '게임을 시작한다', kind: 'action', crossesScene: true, observedCount: 5, firstSeenQaRunId: 77 },
+      { id: 22, fromScreenId: 11, toScreenId: 10, kind: 'auto', crossesScene: false, observedCount: 1 },
+    ],
+  })
+
+  assert.deepEqual(
+    view.scenes.map((scene) => scene.screens.map((screen) => screen.id)),
+    [['10', '11'], ['12']],
+  )
+  // 한 씬에 화면이 둘이고 그 둘을 가르는 것은 이름이 아니라 `discriminator` 다.
+  const [title, popup] = view.scenes[0].screens
+  assert.notEqual(title.discriminator, popup.discriminator)
+  assert.equal(title.discriminator, '[{"selector":"Canvas[2]/settings[1]","active":false}]')
+  assert.equal(title.firstSeenQaRunId, '77')
+  assert.equal(popup.firstSeenQaRunId, null)
+
+  assert.equal(view.screenTransitions.length, 3)
+  const crossing = view.screenTransitions.find((transition) => transition.id === '21')
+  assert.deepEqual(crossing, {
+    id: '21',
+    fromScreenId: '10',
+    toScreenId: '12',
+    capabilityId: '91',
+    capabilitySummary: '게임을 시작한다',
+    kind: 'action',
+    crossesScene: true,
+    observedCount: 5,
+    firstSeenQaRunId: '77',
+  })
+  // 기능이 없는 자동 전이. 요약도 없지만 "갔다는 사실"은 남는다.
+  const auto = view.screenTransitions.find((transition) => transition.id === '22')
+  assert.equal(auto?.capabilityId, null)
+  assert.equal(auto?.capabilitySummary, null)
+  assert.equal(auto?.kind, 'auto')
+})
+
+test('화면 절이 없는 응답은 빈 배열로 읽힌다', () => {
+  // QA 런 전의 정상 상태이자, 이 절을 아직 보내지 않는 서버의 응답이다. 사용자가 할 일이
+  // 같으므로 두 사실을 가르지 않는다.
+  const view = parseContentMapView({
+    contentMap: { id: 12, capture: 'editor', schemaVersion: 3, evidenceDigest: 'sha256:abc' },
+    scenes: [{ id: 1, name: 'Title', walked: false, capabilities: { total: 0 } }],
+  })
+
+  assert.deepEqual(view.scenes[0].screens, [])
+  assert.deepEqual(view.screenTransitions, [])
+})
+
+test('이름 없는 화면과 빈 이름의 화면을 가른다', () => {
+  const view = parseContentMapView({
+    scenes: [
+      {
+        id: 1,
+        name: 'Title',
+        screens: [
+          { id: 10, sceneId: 1, discriminator: [] },
+          { id: 11, sceneId: 1, name: '', discriminator: [{ active: true }] },
+        ],
+      },
+    ],
+  })
+
+  // null 은 아무도 이름을 붙이지 않은 것이고 `''` 는 빈 이름을 붙인 것이다. 화면이 두 문장을
+  // 다르게 쓸 수 있으려면 파서가 먼저 갈라야 한다.
+  assert.equal(view.scenes[0].screens[0].name, null)
+  assert.equal(view.scenes[0].screens[1].name, '')
+})
+
+test('id 나 sceneId 가 없는 화면만 버리고 나머지 화면은 살린다', () => {
+  const view = parseContentMapView({
+    scenes: [
+      {
+        id: 1,
+        name: 'Title',
+        screens: [
+          { sceneId: 1, name: '어디 화면인지는 아는데 누구인지 모른다', discriminator: [] },
+          { id: 11, name: '어느 씬인지 모른다', discriminator: [] },
+          { id: 12, sceneId: 1, name: '멀쩡한 화면', discriminator: [] },
+          // 같은 id 가 두 번. 접지 않으면 화면 전이가 어느 노드에 붙을지 정해지지 않는다.
+          { id: 12, sceneId: 1, name: '같은 화면이 또', discriminator: [] },
+        ],
+      },
+    ],
+  })
+
+  assert.deepEqual(
+    view.scenes[0].screens.map((screen) => [screen.id, screen.name]),
+    [['12', '멀쩡한 화면']],
+  )
+})
+
+test('두 끝 중 하나가 이 응답의 화면이 아니면 그 전이는 버린다', () => {
+  // 끝이 없는 선은 배치가 좌표를 낼 수 없다. 조용히 사라지는 선보다 애초에 없는 편이 낫다.
+  const view = parseContentMapView({
+    scenes: [{ id: 1, name: 'Title', screens: [{ id: 10, sceneId: 1, discriminator: [] }] }],
+    screenTransitions: [
+      { id: 20, fromScreenId: 10, toScreenId: 999, kind: 'action' },
+      { id: 21, fromScreenId: 10, toScreenId: 10, kind: 'state' },
+      { id: 22, fromScreenId: 10, kind: 'action' },
+    ],
+  })
+
+  assert.deepEqual(view.screenTransitions.map((transition) => transition.id), ['21'])
+})
+
+test('모르는 화면 전이 갈래는 서버가 쓴 철자 그대로 남는다', () => {
+  const view = parseContentMapView({
+    scenes: [
+      {
+        id: 1,
+        name: 'Title',
+        screens: [
+          { id: 10, sceneId: 1, discriminator: [] },
+          { id: 11, sceneId: 1, discriminator: [{ active: true }] },
+        ],
+      },
+    ],
+    screenTransitions: [{ id: 20, fromScreenId: 10, toScreenId: 11, kind: 'timeout' }],
+  })
+
+  // 아는 셋 중 하나로 접으면 서버가 말하지 않은 갈래를 화면이 지어낸다.
+  assert.equal(view.screenTransitions[0].kind, 'timeout')
+  assert.equal(transitionKindStyle('timeout'), 'unknown')
+  assert.equal(transitionKindStyle('auto'), 'auto')
 })

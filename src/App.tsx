@@ -6,7 +6,8 @@ import { NotFoundPage } from './NotFoundPage'
 import { useAuth } from './auth/useAuth'
 import { SdkLoginPage } from './auth/SdkLoginPage'
 import { resumeSdkLogin, SDK_LOGIN_PATH } from './auth/sdkLoginRequest'
-import { ContentMapRoute } from './contentMap/ContentMapPage'
+import { ContentMapRedirect } from './contentMap/ContentMapPage'
+import { ContentMapSection } from './contentMap/ContentMapSection'
 import { useI18n } from './i18n/useI18n'
 import { KnowledgeSection } from './knowledge/KnowledgeGraphPage'
 import { BuildPerformanceRoute } from './performance/BuildPerformancePage'
@@ -93,6 +94,7 @@ export function App() {
             <Route path="test-runs" element={<TestRunsSection />} />
             <Route path="qa" element={<QaSection />} />
             <Route path="qa-history" element={<QaHistorySection />} />
+            <Route path="content-map" element={<ContentMapSection />} />
             <Route path="performance" element={<PerformanceSection />} />
             <Route path="issues" element={<IssuesSection />} />
             <Route path="knowledge" element={<KnowledgeSection />} />
@@ -122,7 +124,9 @@ export function App() {
           />
           <Route path="/projects/:projectId/qa-runs/:qaRunId/performance" element={<RunPerformanceRoute />} />
           <Route path="/projects/:projectId/game-builds/:buildId/performance" element={<BuildPerformanceRoute />} />
-          <Route path="/projects/:projectId/game-builds/:buildId/content-map" element={<ContentMapRoute />} />
+          {/* 콘텐츠 맵 화면은 작업공간 안에 하나뿐이다. 빌드 패널의 링크와 밖에서 붙여 넣은
+              주소가 계속 살아 있도록, 옛 경로는 그 하나로 넘긴다. */}
+          <Route path="/projects/:projectId/game-builds/:buildId/content-map" element={<ContentMapRedirect />} />
           <Route
             path="/projects/:projectId/qa-tries/:qaTryId"
             element={<QaTryRoute />}

@@ -6,12 +6,14 @@ import {
   type ContentMapGap,
   type ContentMapHeader,
   type ContentMapScene,
+  type ContentMapScreen,
   type ContentMapStep,
   type ContentMapVerification,
   type ContentMapView,
   type PendingDocument,
   type SceneThumbnail,
   type SceneTransition,
+  type ScreenTransition,
 } from './contentMapTypes'
 
 /*
@@ -238,6 +240,100 @@ function asNullableCount(value: unknown): number | null {
 }
 
 /**
+ * 화면 하나. `id` 와 `sceneId` 가 모두 있어야 그릴 수 있으므로 그때만 버린다 — 어느 씬 안에
+ * 놓을지 모르는 화면은 컨테이너 밖을 떠돌게 되고, 그것은 이 그림이 말하려는 것과 정반대다.
+ *
+ * `discriminator` 는 해석하지 않고 직렬화만 한다. 서버도 읽지 않고 그대로 옮기는 열린 JSON 이라,
+ * 여기서 모양을 정하면 관측 쪽이 조건 어휘를 늘리는 날 이 화면이 먼저 깨진다. 문자열로 만들어 두면
+ * 두 화면이 서로 다른 화면인지를 눈으로 확인할 수도 있고, 그것이 이 값의 유일한 용도다.
+ *
+ * 직렬화가 실패할 수 있는 값(순환 참조)은 `fetch` 가 만든 JSON 에서는 나오지 않지만, 이 파서는
+ * 테스트에서 손으로 만든 값도 받는다. 실패하면 빈 문자열로 낮춘다 — 화면 하나를 통째로 버리는
+ * 것보다 판별 근거만 비는 편이 낫다.
+ */
+export function parseScreen(data: unknown): ContentMapScreen | null {
+  const record = asRecord(data)
+  if (record === null) return null
+
+  const id = asId(record.id)
+  const sceneId = asId(record.sceneId)
+  if (id === null || sceneId === null) return null
+
+  return {
+    id,
+    sceneId,
+    // `null` 과 `''` 를 가른다. 앞은 아무도 이름을 붙이지 않은 것이고 뒤는 빈 이름을 붙인 것이다.
+    name: typeof record.name === 'string' ? record.name : null,
+    discriminator: asJsonText(record.discriminator),
+    observedCount: asCount(record.observedCount),
+    firstSeenQaRunId: asId(record.firstSeenQaRunId),
+  }
+}
+
+/** 열린 JSON 을 사람이 볼 수 있는 한 줄로. 해석하지 않는다. */
+function asJsonText(value: unknown): string {
+  if (value === null || value === undefined) return ''
+  if (typeof value === 'string') return value
+  try {
+    return JSON.stringify(value) ?? ''
+  } catch {
+    return ''
+  }
+}
+
+/**
+ * 씬의 화면 목록.
+ *
+ * 절이 없으면 빈 배열이다. 단계 목록(`parseSteps`)과 달리 `null` 을 따로 두지 않는 이유는, 화면이
+ * 비어 있는 것이 **이 절을 보내지 않는 서버**와 **아직 QA 런이 없는 빌드**에서 똑같이 정상이기
+ * 때문이다. 두 사실에 대해 사용자가 할 일이 같으므로 — 런을 한 번 돌린다 — 가르지 않는다.
+ *
+ * 같은 id 가 두 번 오면 접는다. 화면 전이가 화면 id 로 오는데 같은 id 의 노드가 둘이면 선이 어느
+ * 쪽에 붙을지 정해지지 않는다.
+ */
+function parseScreens(data: unknown): ContentMapScreen[] {
+  const screens: ContentMapScreen[] = []
+  const seen = new Set<string>()
+  for (const raw of toArray(data)) {
+    const screen = parseScreen(raw)
+    if (screen === null || seen.has(screen.id)) continue
+    seen.add(screen.id)
+    screens.push(screen)
+  }
+  return screens
+}
+
+/**
+ * 화면 전이 하나. 세 id 가 다 있어야 그릴 수 있다.
+ *
+ * `id` 까지 요구하는 이유는 이것이 선택 대상이자 React key 이기 때문이다. 같은 두 화면 사이에
+ * 서로 다른 기능으로 가는 전이가 여럿 있을 수 있어서, 두 끝만으로는 서로 구분되지 않는다.
+ */
+export function parseScreenTransition(data: unknown): ScreenTransition | null {
+  const record = asRecord(data)
+  if (record === null) return null
+
+  const id = asId(record.id)
+  const fromScreenId = asId(record.fromScreenId)
+  const toScreenId = asId(record.toScreenId)
+  if (id === null || fromScreenId === null || toScreenId === null) return null
+
+  return {
+    id,
+    fromScreenId,
+    toScreenId,
+    capabilityId: asId(record.capabilityId),
+    capabilitySummary: asNullableString(record.capabilitySummary),
+    kind: asString(record.kind),
+    // 빠졌으면 false 다. 없는 경계 넘김을 그리는 것보다 씬 안의 상태 변화로 읽는 편이 조용하다 —
+    // 두 화면이 다른 씬에 있으면 배치가 어차피 컨테이너를 가로지르게 그린다.
+    crossesScene: record.crossesScene === true,
+    observedCount: asCount(record.observedCount),
+    firstSeenQaRunId: asId(record.firstSeenQaRunId),
+  }
+}
+
+/**
  * 씬 하나. `id` 가 없으면 버린다 — 전이가 가리킬 수 없는 씬은 그래프에
  * 놓을 자리가 없고, 지어낸 id 는 다음 응답에서 다른 씬이 된다.
  */
@@ -255,6 +351,7 @@ export function parseScene(data: unknown): ContentMapScene | null {
     capabilities: parseCapabilities(record.capabilities),
     steps: parseSteps(record.steps),
     thumbnail: parseThumbnail(record.thumbnail),
+    screens: parseScreens(record.screens),
   }
 }
 
@@ -367,6 +464,19 @@ export function parseContentMapView(data: unknown): ContentMapView {
     edges.push(edge)
   }
 
+  // 화면이 없는 응답에서는 전이도 그릴 수 없다. 그런 전이를 남기면 배치가 끝이 없는 선을
+  // 하나 들고 있게 되므로, 두 끝이 모두 실제 화면인 것만 남긴다.
+  const screenIds = new Set(scenes.flatMap((scene) => scene.screens.map((screen) => screen.id)))
+  const screenTransitions: ScreenTransition[] = []
+  const transitionIds = new Set<string>()
+  for (const raw of toArray(record?.screenTransitions)) {
+    const transition = parseScreenTransition(raw)
+    if (transition === null || transitionIds.has(transition.id)) continue
+    if (!screenIds.has(transition.fromScreenId) || !screenIds.has(transition.toScreenId)) continue
+    transitionIds.add(transition.id)
+    screenTransitions.push(transition)
+  }
+
   const gaps: ContentMapGap[] = []
   const gapReasons = new Set<string>()
   for (const raw of toArray(record?.gaps)) {
@@ -388,6 +498,7 @@ export function parseContentMapView(data: unknown): ContentMapView {
     contentMap: parseHeader(record?.contentMap),
     scenes,
     edges,
+    screenTransitions,
     gaps,
     verification: parseVerification(record?.verification),
     pendingDocuments,
