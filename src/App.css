@@ -3421,6 +3421,55 @@ a.instance-name:hover {
   margin-top: var(--space-5);
 }
 
+/* What a run cost, under what it did.
+
+   A definition list rather than a row of cards: DESIGN.md rules out repeated
+   rounded KPI tiles, and these four values are a caption for the run above them,
+   not four things being compared with each other. */
+.qa-usage-panel {
+  margin-top: var(--space-5);
+}
+
+.qa-usage-grid {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.qa-usage-item dt {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--color-text-muted);
+}
+
+.qa-usage-item dd {
+  margin: 2px 0 0;
+  font-size: 18px;
+  line-height: 26px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+}
+
+/* The hint carries what the number does not say — which calls the money stands
+   on, and that cached input is already inside the total above. Dropping it makes
+   a partial sum read as the whole bill. */
+.qa-usage-hint {
+  margin: 2px 0 0;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--color-text-muted);
+}
+
+/* Marks an amount as a floor. The `+` carries the meaning; the color only makes
+   it findable (DESIGN.md — never color alone). */
+.qa-usage-partial {
+  margin-left: 2px;
+  color: var(--color-status-warning);
+  font-weight: 600;
+}
+
 /* ── Issue tracker (ARTEL-672) ─────────────────────────────────────────── */
 
 /* A failed export, read alongside `.severity-tag`'s own critical treatment. */
