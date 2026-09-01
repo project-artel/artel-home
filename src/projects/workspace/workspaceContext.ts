@@ -3,6 +3,7 @@ import type { Issue } from '../../issues/issueTypes'
 import type { QaModel, QaTry } from '../../qa/qaTypes'
 import type { TestCaseCoverage } from '../../testCases/testCaseTypes'
 import type { TestRun } from '../../testRuns/testRunApi'
+import type { TrackerLink } from '../../tracker/trackerTypes'
 import type { GameBuild, GameInstance } from '../gameTypes'
 import type { ProjectDetail, ProjectDocument } from '../projectTypes'
 
@@ -39,9 +40,16 @@ export type WorkspaceValue = {
    * re-read after a run changes so the number never lags what the user just did.
    */
   coverage: TestCaseCoverage
+  /**
+   * The project's connection to an external issue tracker, or `null` when
+   * none exists. Read by `SettingsSection` (which owns connecting, changing,
+   * and disconnecting it) and by `IssuesSection` (which only needs to know
+   * whether one exists at all, to decide whether a row shows tracker UI).
+   */
+  trackerLink: TrackerLink | null
   extrasStatus: ExtrasStatus
 
-  /** Re-runs the four secondary reads after a failure. */
+  /** Re-runs the five secondary reads after a failure. */
   reloadExtras: () => void
   /** After a run is created or deleted. */
   refreshRuns: () => Promise<void>
@@ -55,6 +63,8 @@ export type WorkspaceValue = {
   applyInstance: (instance: GameInstance) => void
   removeInstance: (instanceId: string) => void
   applyBuild: (build: GameBuild) => void
+  /** After connecting, changing, or disconnecting the tracker link. */
+  applyTrackerLink: (trackerLink: TrackerLink | null) => void
 }
 
 export const WorkspaceContext = createContext<WorkspaceValue | null>(null)

@@ -1,3 +1,5 @@
+import type { IssueTracker } from '../tracker/trackerTypes'
+
 /**
  * Defects a QA run found in the game.
  *
@@ -27,6 +29,14 @@ export type Issue = {
   /** When the agent saw it, not when the server stored it. */
   reportedAt: string
   resolvedAt: string | null
+  /**
+   * Where this defect stands with the project's connected tracker. `null`
+   * when the project has no connection, when the server has not shipped this
+   * field yet, or when a connection exists but this defect has not been
+   * exported — `IssuesSection` tells those apart using the project's own
+   * `TrackerLink`, not this field alone.
+   */
+  tracker: IssueTracker | null
 }
 
 export type IssuePage = {

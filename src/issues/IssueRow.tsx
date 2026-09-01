@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { formatDateTime } from '../projects/formatters'
 import { parseIssueDetail } from './issueApi'
+import { IssueTrackerStatus } from './IssueTrackerStatus'
 import type { Issue } from './issueTypes'
 import { SeverityTag } from './SeverityTag'
 
@@ -13,6 +14,11 @@ type IssueRowProps = {
   onToggle: (issue: Issue) => void
   pending: boolean
   failed: boolean
+  /** Whether the project has a connected tracker at all — never derived from `issue.tracker` alone (see `IssueList`). */
+  trackerConnected: boolean
+  onSync: (issue: Issue) => void
+  syncPending: boolean
+  syncFailed: boolean
 }
 
 /**
@@ -22,7 +28,17 @@ type IssueRowProps = {
  * The detail stays folded. A list is for deciding what to look at, and the
  * expected/actual pair only helps once that decision is made.
  */
-export function IssueRow({ issue, qaTryHref, onToggle, pending, failed }: IssueRowProps) {
+export function IssueRow({
+  issue,
+  qaTryHref,
+  onToggle,
+  pending,
+  failed,
+  trackerConnected,
+  onSync,
+  syncPending,
+  syncFailed,
+}: IssueRowProps) {
   const { t } = useI18n()
   const [open, setOpen] = useState(false)
   const detailId = useId()
@@ -56,6 +72,7 @@ export function IssueRow({ issue, qaTryHref, onToggle, pending, failed }: IssueR
             {t.issues.row.resolvedAt(formatDateTime(issue.resolvedAt))}
           </span>
         ) : null}
+        {trackerConnected ? <IssueTrackerStatus tracker={issue.tracker} /> : null}
         {qaTryHref !== null ? (
           <Link className="issue-row-link" to={qaTryHref}>
             {t.issues.row.openQaTry}
@@ -64,6 +81,20 @@ export function IssueRow({ issue, qaTryHref, onToggle, pending, failed }: IssueR
       </div>
 
       <div className="issue-row-actions">
+        {trackerConnected && (issue.tracker === null || issue.tracker.syncState === 'FAILED') ? (
+          <button
+            className="button button--secondary button--compact"
+            disabled={syncPending}
+            onClick={() => onSync(issue)}
+            type="button"
+          >
+            {syncPending
+              ? t.tracker.row.exporting
+              : issue.tracker === null
+                ? t.tracker.row.export
+                : t.tracker.row.retry}
+          </button>
+        ) : null}
         {hasDetail ? (
           <button
             aria-controls={detailId}
@@ -86,6 +117,12 @@ export function IssueRow({ issue, qaTryHref, onToggle, pending, failed }: IssueR
       </div>
 
       {failed ? (
+        <p className="issue-row-error" role="alert">
+          {t.issues.row.failed}
+        </p>
+      ) : null}
+
+      {syncFailed ? (
         <p className="issue-row-error" role="alert">
           {t.issues.row.failed}
         </p>

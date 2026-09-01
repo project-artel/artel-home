@@ -3421,6 +3421,70 @@ a.instance-name:hover {
   margin-top: var(--space-5);
 }
 
+/* ── Issue tracker (ARTEL-672) ─────────────────────────────────────────── */
+
+/* A failed export, read alongside `.severity-tag`'s own critical treatment. */
+.tracker-sync-failed {
+  color: var(--color-status-critical-strong);
+  font-size: 12px;
+}
+
+.tracker-connected {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.tracker-link-meta {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.tracker-repo-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tracker-repo-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+}
+
+.tracker-repo-row + .tracker-repo-row {
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.tracker-repo-name {
+  flex: 1;
+  min-width: 0;
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.tracker-severity-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin: var(--space-2) 0 var(--space-4);
+}
+
+.tracker-severity-option {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-primary);
+  font-size: 13px;
+}
+
 /* QA 런(TR 단위) 진행 화면 (ARTEL-286) */
 .qa-run{ max-width:760px; }
 .qa-run-head{ display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }

@@ -16,10 +16,16 @@ import { useWorkspace } from './workspaceContext'
  */
 export function IssuesSection() {
   const { t } = useI18n()
-  const { projectId } = useWorkspace()
+  const { extrasStatus, projectId, trackerLink } = useWorkspace()
   const [filters, setFilters] = useState<IssueFilters>({ status: 'OPEN', severity: 'ALL' })
   const [reloadToken, setReloadToken] = useState(0)
   const issues = useProjectIssues(projectId, filters, reloadToken)
+  // `trackerLink` starts `null` until `useWorkspaceExtras`'s five-way read
+  // settles (see `DashboardSection`'s own `extrasStatus === 'ready'` guard);
+  // without this, a project with an existing connection would flash every
+  // row with no tracker UI for a moment before the badges appear.
+  const trackerConnected =
+    extrasStatus === 'ready' && trackerLink !== null && trackerLink.repository !== null
 
   return (
     <div className="section-single">
@@ -78,6 +84,7 @@ export function IssuesSection() {
           patch={issues.patch}
           qaTryHref={(qaTryId) => `/projects/${projectId}/qa-tries/${qaTryId}`}
           status={issues.status}
+          trackerConnected={trackerConnected}
         />
       </section>
     </div>

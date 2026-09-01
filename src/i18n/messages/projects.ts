@@ -194,6 +194,9 @@ export const projectsEn = {
     CLIENT_STORAGE_UNREACHABLE: 'Storage could not be reached. The upload was not completed.',
     CLIENT_SCAN_NOT_IMPLEMENTED:
       'Evidence scanning is not available yet. This console cannot start a scan until the server accepts one.',
+    CLIENT_MALFORMED_TRACKER_LINK: 'The server described the tracker connection oddly.',
+    CLIENT_MALFORMED_INSTALL_URL: 'The server did not return an installation link.',
+    CLIENT_MALFORMED_TRACKER_SYNC: 'The server described the export oddly.',
   },
   /** The project's own shell: its left rail, and the dashboard behind it. */
   workspace: {
@@ -440,6 +443,9 @@ export const projectsKo: Localized<typeof projectsEn> = {
     CLIENT_STORAGE_UNREACHABLE: '스토리지에 연결할 수 없습니다. 업로드가 완료되지 않았습니다.',
     CLIENT_SCAN_NOT_IMPLEMENTED:
       '근거 스캔은 아직 쓸 수 없습니다. 서버가 스캔 요청을 받기 전까지는 이 콘솔에서 시작할 수 없습니다.',
+    CLIENT_MALFORMED_TRACKER_LINK: '서버가 트래커 연결 응답을 해석할 수 없게 반환했습니다.',
+    CLIENT_MALFORMED_INSTALL_URL: '서버가 설치 링크를 반환하지 않았습니다.',
+    CLIENT_MALFORMED_TRACKER_SYNC: '서버의 내보내기 응답을 해석할 수 없습니다.',
   },
   workspace: {
     navLabel: '프로젝트 섹션',

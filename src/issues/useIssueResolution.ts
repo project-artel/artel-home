@@ -2,7 +2,8 @@ import { useCallback, useState } from 'react'
 import { setIssueResolved } from './issueApi'
 import type { Issue } from './issueTypes'
 
-type Patch = (issueId: string, next: (issue: Issue) => Issue) => void
+/** Shared with `useTrackerSync`, the other hook that patches one row in place. */
+export type Patch = (issueId: string, next: (issue: Issue) => Issue) => void
 
 /**
  * The resolve toggle, shared by the project list and the run panel.

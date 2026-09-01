@@ -43,6 +43,10 @@ export function QaTryIssuePanel({ qaTryId }: { qaTryId: string }) {
         // The run is already on screen; a link back to it would go nowhere.
         qaTryHref={null}
         status={issues.status}
+        // This panel renders outside the project workspace route, so it has
+        // no access to the project's tracker connection state (ARTEL-672
+        // plan, Non-goals). No tracker UI here for now.
+        trackerConnected={false}
       />
     </section>
   )
