@@ -6570,6 +6570,41 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   .gapfill-where { color: #f0c96d; background: #3a3016; border-color: #6b5320; }
 }
 
+/* 한 턴이 못 정한 것을 한자리에(ARTEL-630). 하나만 묻고 나머지를 조용히 두면 사용자는
+   시나리오가 완성된 줄 안다 — 못 간다고 적힌 자리가 다섯인데 물은 것이 하나였다. */
+.chat-questions { margin-top: 8px; display: flex; flex-direction: column; gap: 10px; }
+.chat-questions-count {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #7a4f00;
+}
+.chat-questions-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+/* 그림자 대신 1px 자로 나눈다. 왼쪽 앰버 선이 "아직 안 정해졌다"를 말한다. */
+.chat-questions-item {
+  border-left: 2px solid #e0a800;
+  padding-left: 10px;
+}
+.chat-questions-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-primary);
+}
+/* 목록 안에서는 질문 문구를 위에서 이미 적었으므로 블록의 여백만 줄인다. */
+.chat-questions-item .chat-question { margin-top: 6px; }
+
+@media (prefers-color-scheme: dark) {
+  .chat-questions-count { color: #f0c96d; }
+}
+
 /* 되묻는 줄에 붙는 것들(ARTEL-487). 답할 자리가 없는 질문은 설명으로 읽히고 지나간다. */
 .chat-question { margin-top: 8px; display: flex; flex-direction: column; gap: 8px; }
 .chat-question-why {
@@ -7397,6 +7432,55 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
 .invitation-inbox {
   margin-bottom: var(--space-5);
 }
+/* 되묻기 모달 — 저작이 못 정한 것을 화면 가운데서 묻는다(ARTEL-677).
+   답이 그 시나리오를 실행 가능하게 만드는지를 가르는데, 300px 대화 칸에 글줄로 쌓이면
+   아무도 안 읽는다. 그리고 **어디에 들어가는지**를 같이 보여야 무엇을 답할지 안다. */
+.chat-question-open{ margin-top:8px; padding:7px 14px; border-radius:8px; cursor:pointer;
+  background:var(--color-accent,#e8623c); color:#fff; border:none; font-size:13px; font-weight:600; }
+.chat-question-open:disabled{ opacity:0.5; cursor:default; }
+
+.askmodal{ width:min(620px,100%); }
+.askmodal-count{ margin:0 0 10px; font-size:12px; color:var(--color-text-muted); }
+.askmodal-question{ margin:0 0 6px; font-size:16px; font-weight:600; line-height:1.5; }
+.askmodal-why{ margin:0 0 14px; font-size:13px; color:var(--color-text-muted); line-height:1.6; }
+
+.askmodal-slot{ margin:0 0 16px; padding:12px; border-radius:10px;
+  border:1px solid var(--color-border-subtle); background:var(--color-bg-sunken,rgba(0,0,0,0.15)); }
+.askmodal-slot--unknown{ color:var(--color-text-muted); font-size:13px; }
+.askmodal-slot-where{ margin:0 0 8px; font-size:12px; color:var(--color-text-muted); }
+.askmodal-preview{ margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:6px; }
+.askmodal-preview-step{ display:flex; gap:10px; align-items:baseline; font-size:13px; line-height:1.5; }
+.askmodal-preview-no{ flex:0 0 22px; text-align:right; color:var(--color-text-muted); font-size:12px; }
+.askmodal-preview-text{ color:var(--color-text-muted); }
+/* 답이 들어갈 칸만 도드라진다 — 앞뒤는 자리를 알아보라고 있는 것이다. */
+.askmodal-preview-step--here .askmodal-preview-text{ color:var(--color-accent,#e8623c); font-weight:600; }
+.askmodal-preview-step--here{ padding:4px 0; }
+
+.askmodal-foot{ display:flex; justify-content:flex-end; gap:8px;
+  padding:12px 16px; border-top:1px solid var(--color-border-subtle); }
+
+/* 대화 줄에는 안내문과 펼치기만 남는다(ARTEL-677). */
+.chat-question-ask{ margin-top:8px; }
+.chat-question-hint{ margin:0 0 8px; font-size:12px; color:var(--color-text-muted); line-height:1.6; }
+
+/* 넘기는 화살표는 모달 밖 양옆에 둔다 — 안에 두면 답하는 단추와 섞인다. */
+.askmodal-arrow{ position:fixed; top:50%; transform:translateY(-50%); z-index:61;
+  width:44px; height:44px; border-radius:50%; cursor:pointer; font-size:26px; line-height:1;
+  color:var(--color-text-primary); background:var(--color-bg-raised,#1b1b1b);
+  border:1px solid var(--color-border-subtle); display:grid; place-items:center; }
+.askmodal-arrow:disabled{ opacity:0.25; cursor:default; }
+.askmodal-arrow--prev{ left:max(16px, calc(50% - 400px)); }
+.askmodal-arrow--next{ right:max(16px, calc(50% - 400px)); }
+
+/* 몇 개 중 몇 번째인지 — 세는 일을 사용자에게 넘기지 않는다. */
+.askmodal-map{ display:flex; align-items:center; gap:10px; margin:0 0 14px; }
+.askmodal-dots{ display:flex; gap:6px; margin:0; padding:0; list-style:none; }
+.askmodal-dot{ width:9px; height:9px; padding:0; border-radius:50%; cursor:pointer;
+  border:1px solid var(--color-border-subtle); background:transparent; }
+.askmodal-dot--done{ background:var(--color-text-muted); border-color:var(--color-text-muted); }
+.askmodal-dot--here{ background:var(--color-accent,#e8623c); border-color:var(--color-accent,#e8623c);
+  transform:scale(1.25); }
+.askmodal-count{ font-size:12px; color:var(--color-text-muted); }
 
 /* ── Case library ────────────────────────────────────────────────────────── */
 

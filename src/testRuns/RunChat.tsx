@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
-import { RunChatQuestionBlock } from './RunChatQuestion'
+import { RunChatQuestionModal } from './RunChatQuestionModal'
 import { formatDateTime } from '../projects/formatters'
 import { groupStepsByCase } from '../testScenarios/scenarioTypes'
-import type { AuthoringStage, ScenarioProposal } from './runChatApi'
+import type { AuthoringStage, RunChatQuestion, ScenarioProposal } from './runChatApi'
 import { getCoverage } from '../testCases/testCaseApi'
 import type { TestCaseCoverage } from '../testCases/testCaseTypes'
 import type { RunChatSession } from './useRunChatSession'
@@ -152,6 +152,8 @@ export function RunChat({ session }: { session: RunChatSession }) {
   const [searchParams] = useSearchParams()
   const [input, setInput] = useState(() => searchParams.get('draft') ?? '')
   const [expanded, setExpanded] = useState<ScenarioProposal | null>(null)
+  // 지금 화면 가운데에 띄워 둔 되묻기(ARTEL-677). 비어 있으면 모달이 없다.
+  const [asking, setAsking] = useState<RunChatQuestion[] | null>(null)
   const [coverage, setCoverage] = useState<TestCaseCoverage | null>(null)
   const elapsed = useElapsedSeconds(session.turnStartedAt)
   // 종착 단계(saved/blocked)는 여기에 없다. 그때는 훅이 목록을 비워 표시가 사라지고, 무슨 일이
@@ -278,12 +280,31 @@ export function RunChat({ session }: { session: RunChatSession }) {
               <p className="chat-body">{message.content}</p>
               {/* 물어본 줄에는 누를 것이 붙는다(ARTEL-487). 답하면 사라진다 — 이미 답한 질문에
                   버튼이 남아 있으면 두 번 답하게 된다. */}
-              {message.question != null && (
-                <RunChatQuestionBlock
-                  question={message.question}
-                  disabled={session.sending || session.closed}
-                  onAnswer={(answer) => { void session.send('', answer) }}
-                />
+              {/* **묻는 자리는 화면 가운데다**(ARTEL-677). 답이 시나리오를 실행 가능하게
+                  만드는지를 가르는데, 300px 대화 칸 안에 글줄로 쌓이면 아무도 안 읽는다.
+                  줄에는 여는 단추만 남기고, 질문과 그 답이 들어갈 자리는 모달이 보인다. */}
+              {(message.questions ?? (message.question != null ? [message.question] : [])).length > 0 && (
+                <div className="chat-question-ask">
+                  <p className="chat-question-hint">
+                    {t.scenarios.chat.question.openHint.replace(
+                      '{count}',
+                      String((message.questions ?? (message.question != null ? [message.question] : [])).length),
+                    )}
+                  </p>
+                  <button
+                    className="chat-question-open"
+                    type="button"
+                    disabled={session.sending || session.closed}
+                    onClick={() =>
+                      setAsking(message.questions ?? (message.question != null ? [message.question] : []))
+                    }
+                  >
+                    {t.scenarios.chat.question.openModal.replace(
+                      '{count}',
+                      String((message.questions ?? (message.question != null ? [message.question] : [])).length),
+                    )}
+                  </button>
+                </div>
               )}
             </li>
           ))}
@@ -423,6 +444,17 @@ export function RunChat({ session }: { session: RunChatSession }) {
         <ProposalStepsModal
           proposal={expanded}
           onClose={() => setExpanded(null)}
+        />
+      )}
+
+      {asking !== null && session.runId !== null && (
+        <RunChatQuestionModal
+          projectId={session.projectId}
+          runId={session.runId}
+          questions={asking}
+          disabled={session.sending || session.closed}
+          onAnswer={(answer) => { void session.send('', answer) }}
+          onClose={() => setAsking(null)}
         />
       )}
     </section>
