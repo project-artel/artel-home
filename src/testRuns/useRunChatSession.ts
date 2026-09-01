@@ -202,6 +202,8 @@ export function useRunChatSession(
           createdAt: null,
           pending: false,
           question: parsed.question,
+          // 함께 낸 것을 한 줄이 다 든다. 옛 서버는 `questions` 를 안 보내므로 첫 것만 남는다.
+          questions: parsed.questions ?? [parsed.question],
         },
       ])
     })
@@ -262,7 +264,15 @@ export function useRunChatSession(
         // The answered question loses its buttons — it has been answered, and leaving
         // them live invites a second answer to a question that is no longer pending.
         ...previous.map((m) =>
-          answer !== undefined && m.question?.id === answer.questionId ? { ...m, question: null } : m,
+          // **답한 것만 지운다**(ARTEL-630). 묶음의 나머지는 아직 답을 기다린다 — 하나 답했다고
+          // 다 치우면 물어본 보람이 없다.
+          answer === undefined
+            ? m
+            : {
+                ...m,
+                question: m.question?.id === answer.questionId ? null : m.question,
+                questions: m.questions?.filter((q) => q.id !== answer.questionId),
+              },
         ),
         {
           id: `user-${previous.length}`,
@@ -333,6 +343,8 @@ export function useRunChatSession(
 
   return {
     active: runId !== null,
+    // 되묻기 모달이 그 판의 시나리오를 읽어 자리를 짚는다(ARTEL-677).
+    runId,
     // 커버리지를 읽는 쪽이 이 세션 안에 있다(RunChat). 파라미터로 이미 들고 있는 값을
     // 밖으로 내보내 프롭을 하나 더 엮지 않는다.
     projectId,
