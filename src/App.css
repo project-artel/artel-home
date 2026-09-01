@@ -3430,6 +3430,16 @@ a.instance-name:hover {
   margin-top: var(--space-5);
 }
 
+/* 제목 아래의 설명 문장. `.panel-subtitle` 을 쓰지 않는 이유는 그것이 대문자 eyebrow 라
+   `text-transform: uppercase` 가 걸려 있어서다 — 한국어는 그대로 나오지만 영어 locale 의
+   문장은 통째로 대문자가 된다. */
+.qa-usage-note {
+  margin: var(--space-2) 0 var(--space-4);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
 .qa-usage-grid {
   display: grid;
   gap: var(--space-4);

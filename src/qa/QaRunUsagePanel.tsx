@@ -67,7 +67,7 @@ export function QaRunUsagePanel({ qaTryId, active }: { qaTryId: string; active: 
       <header className="panel-header panel-header--split">
         <div>
           <h2 id="qa-usage-title">{t.qa.usage.title}</h2>
-          <p className="panel-subtitle">
+          <p className="qa-usage-note">
             {active ? t.qa.usage.stillRunning : t.qa.usage.subtitle}
           </p>
         </div>
