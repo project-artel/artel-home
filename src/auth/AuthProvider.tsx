@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { endSession, getCurrentUser, setUnauthorizedHandler } from './authApi'
 import { AuthContext, type AuthContextValue } from './AuthContext'
-import type { AuthState } from './authTypes'
+import type { AccountProfileDraft, AuthState } from './authTypes'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({ status: 'loading', user: null })
@@ -12,6 +12,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setState({ status: 'unauthenticated', user: null })
     }
+  }, [])
+
+  const applyProfile = useCallback((profile: AccountProfileDraft) => {
+    setState((current) =>
+      current.status === 'authenticated'
+        ? { status: 'authenticated', user: { ...current.user, ...profile } }
+        : current,
+    )
   }, [])
 
   useEffect(() => setUnauthorizedHandler(() => {
@@ -36,8 +44,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value = useMemo<AuthContextValue>(
-    () => ({ ...state, logout }),
-    [logout, state],
+    () => ({ ...state, applyProfile, logout }),
+    [applyProfile, logout, state],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

@@ -52,6 +52,19 @@
   border-left: 1px solid var(--color-border-subtle);
 }
 
+.user-account-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+}
+
+.user-account-link:hover {
+  background: var(--color-bg-hover);
+}
+
 .user-avatar {
   width: 24px;
   height: 24px;
@@ -7369,6 +7382,20 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* 계정 설정에서 정한 이름. 로그인 이름을 대신하지 않고 옆에 붙으므로 굵기를 낮춘다. */
+.member-row-nickname {
+  margin-left: var(--space-1);
+  color: var(--color-text-secondary);
+  font-weight: 400;
+}
+
+/* battleTag 는 handle 이라 다른 필드처럼 sans 로 읽히면 안 된다 — `.mono` 가 그 값을
+   ID·로그와 같은 서체로 그린다. */
+.member-row-battletag {
+  color: var(--color-text-muted);
+  font-size: 12px;
 }
 
 .member-row-email,

@@ -1,5 +1,5 @@
 import { isLocale, type Locale } from '../i18n/locale'
-import type { AuthUser, LinkedIdentity } from './authTypes'
+import type { AccountProfileDraft, AuthUser, LinkedIdentity } from './authTypes'
 
 const orchestrationUrl = (import.meta.env.VITE_ORCHESTRATION_URL ?? 'http://localhost:8080').replace(/\/$/, '')
 
@@ -130,12 +130,12 @@ function parseLinkedIdentity(data: unknown): LinkedIdentity | null {
  * otherwise valid must never be rejected over a cosmetic field, which would
  * bounce the user back to the login screen with no way forward.
  */
-function parseAuthUser(data: unknown): AuthUser {
+export function parseAuthUser(data: unknown): AuthUser {
   if (typeof data !== 'object' || data === null) {
     throw new Error('Malformed session payload')
   }
 
-  const { id, displayName, email, locale, identities } = data as Record<string, unknown>
+  const { id, displayName, email, nickname, battleTag, locale, identities } = data as Record<string, unknown>
 
   if (typeof id !== 'string' || typeof displayName !== 'string') {
     throw new Error('Malformed session payload')
@@ -145,6 +145,8 @@ function parseAuthUser(data: unknown): AuthUser {
     id,
     displayName,
     email: typeof email === 'string' ? email : null,
+    nickname: typeof nickname === 'string' ? nickname : null,
+    battleTag: typeof battleTag === 'string' ? battleTag : null,
     // A locale the client has no translations for degrades to "never chosen".
     locale: isLocale(locale) ? locale : null,
     identities: Array.isArray(identities)
@@ -186,6 +188,27 @@ export async function updateMyLocale(locale: Locale): Promise<void> {
 
   if (!response.ok) {
     throw new Error('Unable to save the language preference')
+  }
+}
+
+/**
+ * Saves the account's nickname and BattleTag. The response is `204`, so the
+ * caller does not get an updated `AuthUser` back — it already knows what it
+ * just sent, and applies that to `AuthProvider` itself rather than this
+ * function re-fetching the whole session for two fields.
+ *
+ * The browser has already checked the BattleTag format before calling this;
+ * a rejection here is a network or server failure, not a format problem.
+ */
+export async function updateMyProfile(profile: AccountProfileDraft): Promise<void> {
+  const response = await apiFetch('/api/auth/me/profile', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(profile),
+  })
+
+  if (!response.ok) {
+    throw new Error('Unable to save the account profile')
   }
 }
 

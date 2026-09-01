@@ -134,7 +134,15 @@ function MemberRow({
   return (
     <li className="member-row">
       <div className="member-row-main">
-        <span className="member-row-name">{member.displayName}</span>
+        <span className="member-row-name">
+          {member.displayName}
+          {/* 계정 설정에서 정한 이름이 있으면 로그인 이름 옆에 덧붙인다 — 둘 다 이 사람을
+              가리키는 이름이라, 로그인 이름을 지우고 nickname 으로 바꾸면 초대·로그를 그
+              사람으로 찾을 다른 경로가 사라진다. */}
+          {member.nickname !== null && (
+            <span className="member-row-nickname">{copy.nickname(member.nickname)}</span>
+          )}
+        </span>
         {member.email !== null ? (
           <span className="member-row-email">{member.email}</span>
         ) : (
@@ -143,6 +151,9 @@ function MemberRow({
       </div>
       <div className="member-row-meta">
         <span className="badge">{t.projects.roles[member.role]}</span>
+        {member.battleTag !== null && (
+          <span className="member-row-battletag mono">{member.battleTag}</span>
+        )}
         <span className="member-row-joined">{copy.joined(formatDate(member.joinedAt))}</span>
         {onRemove !== null && (
           <button

@@ -7,6 +7,7 @@ import type { Localized } from '../messages'
 export const commonEn = {
   shell: {
     brandHomeLabel: 'ARTEL Replay Studio home',
+    accountSettingsLabel: 'Account settings',
     signOut: 'Sign out',
     languageLabel: 'Language',
     switchToDark: 'Switch to dark theme',
@@ -50,6 +51,7 @@ export const commonEn = {
 export const commonKo: Localized<typeof commonEn> = {
   shell: {
     brandHomeLabel: 'ARTEL Replay Studio 홈',
+    accountSettingsLabel: '계정 설정',
     signOut: '로그아웃',
     languageLabel: '언어',
     switchToDark: '다크 테마로 전환',

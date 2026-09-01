@@ -47,6 +47,8 @@ export function parseMember(data: unknown): ProjectMember | null {
     userId,
     displayName,
     email: asNullableString(record.email),
+    nickname: asNullableString(record.nickname),
+    battleTag: asNullableString(record.battleTag),
     role: asRole(record.role),
     joinedAt: asString(record.joinedAt),
   }

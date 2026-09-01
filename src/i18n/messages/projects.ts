@@ -185,6 +185,8 @@ export const projectsEn = {
     loadFailed: 'The member list could not be loaded.',
     joined: (date: string) => `Joined ${date}`,
     noEmail: 'No email on this account',
+    /** Set on the account settings screen; rendered next to the sign-in name, not instead of it. */
+    nickname: (nickname: string) => `(${nickname})`,
     remove: 'Remove',
     removing: 'Removing…',
     removeTitle: 'Remove member',
@@ -515,6 +517,7 @@ export const projectsKo: Localized<typeof projectsEn> = {
     loadFailed: '멤버 목록을 불러오지 못했습니다.',
     joined: (date: string) => `${date} 참여`,
     noEmail: '이 계정에는 이메일이 없습니다',
+    nickname: (nickname: string) => `(${nickname})`,
     remove: '내보내기',
     removing: '내보내는 중…',
     removeTitle: '멤버 내보내기',

@@ -19,6 +19,18 @@ export type AuthUser = {
   displayName: string
   email: string | null
   /**
+   * The name the user chose on the account settings screen, or `null` when
+   * they have never set one — every renderer falls back to `displayName`
+   * rather than showing an empty value.
+   */
+  nickname: string | null
+  /**
+   * A `Name#1234` handle, or `null` when the user has never set one. Format
+   * is enforced only in the browser, by [isBattleTagValid]; the server stores
+   * whatever a valid save sent and this type does not re-check it on read.
+   */
+  battleTag: string | null
+  /**
    * The UI language stored on the account, or `null` when the user has never
    * chosen one — the client then falls back to its own detection.
    */
@@ -32,3 +44,66 @@ export type AuthState =
   | { status: 'authenticated'; user: AuthUser }
   | { status: 'unauthenticated'; user: null }
   | { status: 'error'; user: null }
+
+/**
+ * What the account settings screen sends to `PUT /api/auth/me/profile`. Both
+ * fields are always sent together — the endpoint has no partial-update form —
+ * so this is not a `Partial<...>` the way `ProjectPatch` is over `ProjectDraft`.
+ */
+export type AccountProfileDraft = {
+  nickname: string | null
+  battleTag: string | null
+}
+
+/**
+ * Name of 1 to 24 characters, then `#`, then 1 to 8 digits — the format
+ * `ARTEL-730` stores on `app_user.battle_tag`. The name excludes `#` itself,
+ * so a stray second `#` in the input cannot be swallowed into the name half
+ * and still pass.
+ */
+const BATTLE_TAG_PATTERN = /^[^#]{1,24}#\d{1,8}$/
+
+/**
+ * The width of `app_user.nickname`, which `ARTEL-730` set to `VARCHAR(64)`.
+ * The server answers a longer value with `400 invalid_nickname`, so the field
+ * caps the input at this length instead of letting the user type a name that
+ * can only fail on save.
+ */
+export const NICKNAME_MAX_LENGTH = 64
+
+/**
+ * Only for a non-empty candidate. Clearing the field is a valid choice on its
+ * own — the screen turns an empty draft into `null` before this ever runs, so
+ * an empty string is never a call site's real question.
+ */
+export function isBattleTagValid(value: string): boolean {
+  return BATTLE_TAG_PATTERN.test(value)
+}
+
+/**
+ * Turns what the form fields hold into the wire shape. Both fields collapse
+ * an empty (or whitespace-only) string to `null` — on this endpoint that is
+ * how a user clears the value, not an omission the server should ignore.
+ *
+ * Does not validate the BattleTag; the caller runs [isBattleTagValid] against
+ * the trimmed candidate first, while it still has a field to blame for the
+ * failure. By the time a draft reaches here it is assumed already accepted.
+ */
+export function toAccountProfileDraft(nickname: string, battleTag: string): AccountProfileDraft {
+  const trimmedNickname = nickname.trim()
+  const trimmedBattleTag = battleTag.trim()
+
+  return {
+    nickname: trimmedNickname.length > 0 ? trimmedNickname : null,
+    battleTag: trimmedBattleTag.length > 0 ? trimmedBattleTag : null,
+  }
+}
+
+/**
+ * What the screen prints in place of an unset nickname. A user who never
+ * opened account settings still has a name somewhere to show, and that is
+ * always `displayName` — the one field `AuthUser` never lets be empty.
+ */
+export function resolveDisplayNickname(user: Pick<AuthUser, 'displayName' | 'nickname'>): string {
+  return user.nickname ?? user.displayName
+}

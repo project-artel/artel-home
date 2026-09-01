@@ -1,3 +1,4 @@
+import { accountEn, accountKo } from './messages/account'
 import { commonEn, commonKo } from './messages/common'
 import { contentMapEn, contentMapKo } from './messages/contentMap'
 import { issuesEn, issuesKo } from './messages/issues'
@@ -22,6 +23,7 @@ export type Localized<T> = {
 
 export const messages = {
   en: {
+    account: accountEn,
     common: commonEn,
     contentMap: contentMapEn,
     issues: issuesEn,
@@ -33,6 +35,7 @@ export const messages = {
     tracker: trackerEn,
   },
   ko: {
+    account: accountKo,
     common: commonKo,
     contentMap: contentMapKo,
     issues: issuesKo,

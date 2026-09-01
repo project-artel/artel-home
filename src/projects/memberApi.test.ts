@@ -12,6 +12,8 @@ const member = {
   userId: '52',
   displayName: 'octocat',
   email: 'octocat@example.com',
+  nickname: 'The Octocat',
+  battleTag: 'Octocat#1234',
   role: 'OWNER',
   joinedAt: '2026-08-30T00:00:00Z',
 }
@@ -34,6 +36,8 @@ describe('parseMember', () => {
       userId: '52',
       displayName: 'octocat',
       email: 'octocat@example.com',
+      nickname: 'The Octocat',
+      battleTag: 'Octocat#1234',
       role: 'OWNER',
       joinedAt: '2026-08-30T00:00:00Z',
     })
@@ -43,6 +47,12 @@ describe('parseMember', () => {
     const parsed = parseMember({ ...member, email: null })
     assert.equal(parsed?.email, null)
     assert.equal(parsed?.displayName, 'octocat')
+  })
+
+  it('keeps a member who never set a nickname or BattleTag', () => {
+    const parsed = parseMember({ ...member, nickname: null, battleTag: null })
+    assert.equal(parsed?.nickname, null)
+    assert.equal(parsed?.battleTag, null)
   })
 
   it('drops a row that cannot be pointed at', () => {

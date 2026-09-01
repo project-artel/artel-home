@@ -22,6 +22,10 @@ export type ProjectMember = {
    * 수도 없다. 감추지 않고 그대로 그려, 왜 그 사람을 부를 수 없는지가 화면에서 보이게 한다.
    */
   email: string | null
+  /** 그 사람이 계정 설정에서 정한 이름. 정한 적이 없으면 null 이고, `displayName` 이 대신한다. */
+  nickname: string | null
+  /** `Name#1234` 형식의 게임 handle. 형식은 `authTypes.ts` 의 `isBattleTagValid` 가 정한다. */
+  battleTag: string | null
   role: ProjectRole
   joinedAt: string
 }
