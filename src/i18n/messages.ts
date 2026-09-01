@@ -7,6 +7,7 @@ import { projectsEn, projectsKo } from './messages/projects'
 import { qaEn, qaKo } from './messages/qa'
 import { scenariosEn, scenariosKo } from './messages/scenarios'
 import { trackerEn, trackerKo } from './messages/tracker'
+import { usageEn, usageKo } from './messages/usage'
 
 /**
  * Maps an English dictionary shape to the type a translation must satisfy:
@@ -31,6 +32,7 @@ export const messages = {
     qa: qaEn,
     scenarios: scenariosEn,
     tracker: trackerEn,
+    usage: usageEn,
   },
   ko: {
     common: commonKo,
@@ -42,6 +44,7 @@ export const messages = {
     qa: qaKo,
     scenarios: scenariosKo,
     tracker: trackerKo,
+    usage: usageKo,
   },
 }
 
