@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { formatDate } from './formatters'
 import { useI18n } from '../i18n/useI18n'
+import { InvitationInbox } from './InvitationInbox'
 import { ProjectCreateDialog } from './ProjectCreateDialog'
 import type { ProjectSummary } from './projectTypes'
 import { useProjects } from './useProjects'
@@ -27,6 +28,10 @@ export function ProjectListPage() {
           {t.projects.list.newProject}
         </button>
       </header>
+
+      {/* 목록의 loading·error 분기 밖이다. 목록을 못 읽었다고 초대까지 감출 이유가 없고,
+          오히려 그때야말로 초대를 수락해 프로젝트를 얻을 수 있는 자리다. */}
+      <InvitationInbox onAccepted={reload} />
 
       {status === 'loading' && (
         <ul className="project-list" aria-busy="true" aria-label={t.projects.list.loadingLabel}>

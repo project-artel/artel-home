@@ -60,6 +60,9 @@ export type ProjectDocument = {
   parseStatus: 'PENDING'
 }
 
+/** 역할 선택지를 이 목록에서 만든다. 서버가 받지 않는 값을 고를 수 없게 하려는 것이다. */
+export const PROJECT_ROLES = ['OWNER', 'MEMBER'] as const
+
 /**
  * A user's role in one project. Users and projects are many-to-many, and
  * "ownership" is just a membership row with `OWNER`.
@@ -68,7 +71,7 @@ export type ProjectDocument = {
  * which is the safe direction: it hides a destructive action rather than
  * offering one the server will refuse.
  */
-export type ProjectRole = 'OWNER' | 'MEMBER'
+export type ProjectRole = (typeof PROJECT_ROLES)[number]
 
 export type ProjectSummary = {
   /** Opaque server-owned identifier. Never parsed, split, or used in arithmetic. */
