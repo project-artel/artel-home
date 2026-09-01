@@ -1,14 +1,16 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { LABEL_NODE_LIMIT } from '../knowledge/knowledgeLayout'
+import { useKnowledgeGraph } from '../knowledge/useKnowledgeGraph'
 import { formatDateTime } from '../projects/formatters'
 import { CanvasViewportControls } from './CanvasViewportControls'
+import { ContentMapInspector } from './ContentMapInspector'
+import { ContentMapTree } from './ContentMapTree'
 import { CaptureHeader, ContentMapSummary } from './ContentMapSummary'
 import type { ContentMapSelection, ContentMapView } from './contentMapTypes'
 import { EvidenceScanPanel } from './EvidenceScanPanel'
-import { SceneGraphInspector } from './SceneGraphInspector'
-import { buildSceneGraph, incidenceByNode } from './sceneGraphLayout'
+import { indexScreenMap } from './screenInspection'
 import { ScreenMapCanvas } from './ScreenMapCanvas'
 import { ScreenMapLegend } from './ScreenMapLegend'
 import { buildScreenMap, layoutScreenMap } from './screenMapLayout'
@@ -148,13 +150,13 @@ export function ContentMapReport({
         view={view}
       />
 
-      <ContentMapBody view={view} />
+      <ContentMapBody projectId={projectId} view={view} />
     </section>
   )
 }
 
 /** 업로드 패널 아래에 무엇을 그릴지. 세 가지 빈 상태가 여기서 갈린다. */
-function ContentMapBody({ view }: { view: ContentMapView }) {
+function ContentMapBody({ projectId, view }: { projectId: string; view: ContentMapView }) {
   const { t } = useI18n()
   const copy = t.contentMap
 
@@ -206,14 +208,29 @@ function ContentMapBody({ view }: { view: ContentMapView }) {
   return (
     <>
       <ContentMapSummary view={view} />
-      <SceneGraphView view={view} />
+      <SceneGraphView projectId={projectId} view={view} />
       <CaptureHeader view={view} />
     </>
   )
 }
 
 /**
- * 한 빌드의 지도, 캔버스 하나로.
+ * 한 빌드의 지도, pane 셋으로.
+ *
+ * ```text
+ * ┌──────────┬───────────────────────────┬─────────────┐
+ * │   tree   │          canvas           │  inspector  │
+ * │          │        (pan/zoom)         │   detail    │
+ * └──────────┴───────────────────────────┴─────────────┘
+ * ```
+ *
+ * 왼쪽은 고르는 곳이고 오른쪽은 고른 것이 뜨는 곳이다. 이 둘이 한 세로줄에 겹쳐 있으면 —
+ * 예전 배치가 그랬다 — 목록에서 한 줄을 고를 때마다 답이 스크롤 위쪽에서 바뀌고, 1023px 아래에서는
+ * 패널 전체가 캔버스 아래로 내려가 화면 밖에 있었다. 그러면 클릭 한 번에 그림만 반짝이고, 사용자는
+ * 아무 일도 일어나지 않았다고 읽는다.
+ *
+ * tree 가 왼쪽인 이유는 그것이 접근성 경로이기 때문이다. 캔버스는 `aria-hidden` 에 포인터 전용이라
+ * 키보드와 스크린 리더가 이 지도에 들어오는 문은 tree 하나뿐이고, 문은 뒤가 아니라 앞에 있어야 한다.
  *
  * ## 왜 씬 그래프와 화면 지도가 한 캔버스인가
  *
@@ -226,7 +243,7 @@ function ContentMapBody({ view }: { view: ContentMapView }) {
  * 링크가 어디를 가리키느냐에 따라 사용자가 화면을 볼 수도, 못 볼 수도 있는 상태가 특히 나쁘다 —
  * 화면이 안 보이는 쪽에 도착한 사람은 그것을 "아직 기록이 없다"로 읽는다.
  */
-function SceneGraphView({ view }: { view: ContentMapView }) {
+function SceneGraphView({ projectId, view }: { projectId: string; view: ContentMapView }) {
   const { t } = useI18n()
   const copy = t.contentMap.graph
   const screenCopy = t.contentMap.screenMap
@@ -241,28 +258,43 @@ function SceneGraphView({ view }: { view: ContentMapView }) {
   const layout = useMemo(() => layoutScreenMap(model), [model])
   const viewport = useCanvasViewport(layout.viewBox)
 
-  // 인스펙터는 아직 씬만 안다. 씬 그래프 모델을 따로 세우는 이유는 그것이
-  // `incidenceByNode` 가 받는 모양이기 때문이고, `buildScreenMap` 이 안에서
-  // 같은 것을 세우므로 두 번 도는 값은 순수 계산 한 번뿐이다.
-  const graph = useMemo(() => buildSceneGraph(view.scenes, view.edges), [view.edges, view.scenes])
-  const incidence = useMemo(() => incidenceByNode(graph), [graph])
+  // 인스펙터가 고른 것 하나를 되짚는 색인. 배치와 같은 이유로 응답 말고는 아무것에도 기대지
+  // 않는다 — 고르는 동작이 색인을 다시 만들게 두면 클릭 한 번마다 응답 전체를 다시 돈다.
+  const index = useMemo(() => indexScreenMap(model), [model])
 
   /**
-   * 인스펙터가 읽을 씬.
+   * 화면에 묶인 지식.
    *
-   * 화면을 고르면 그 화면이 든 씬을 보인다. 화면 자체의 근거를 내는 것은 ARTEL-598 이고,
-   * 그때까지 아무것도 안 보이는 것보다 한 단계 위를 보이는 편이 낫다 — 고른 것이 어디에
-   * 속하는지는 그것만으로도 답이 된다. 선은 아직 인스펙터에 자리가 없어 비운다.
+   * 콘텐츠 맵과 다른 조회에서 온다. 실패해도 그림은 그대로 그려지고 지식 절만 못 읽었다고
+   * 말한다 — 못 읽은 것을 "묶인 지식이 없다"로 접으면 화면이 게임에 대해 거짓말을 한다.
    */
-  const selectedNodeId = useMemo(() => {
-    if (selection === null) return null
-    if (selection.kind === 'scene') return selection.id
-    if (selection.kind !== 'screen') return null
-    return model.containers.find((c) => c.screens.some((s) => s.id === selection.id))?.id ?? null
-  }, [model.containers, selection])
+  const { graph: knowledgeGraph, status: knowledgeStatus } = useKnowledgeGraph(projectId)
+
+  /*
+   * 고른 것이 화면 밖에서 바뀌지 않게 한다.
+   *
+   * 세 pane 이 나란히 설 만큼 넓으면 detail 은 이미 보이고 `nearest` 는 아무것도 하지 않는다.
+   * 좁아져서 detail 이 캔버스 아래로 내려간 뒤에야 이 줄이 일한다 — 그때 tree 나 캔버스에서
+   * 무언가를 고르면 답이 있는 자리까지 따라간다. 이것이 없으면 이번에 고친 버그가 폭만 바꾼 채
+   * 그대로 돌아온다.
+   */
+  const detailPane = useRef<HTMLElement>(null)
+  useEffect(() => {
+    if (selection === null) return
+    detailPane.current?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+  }, [selection])
 
   return (
     <div className="cm-workspace">
+      <aside className="panel cm-tree-pane">
+        <ContentMapTree
+          index={index}
+          model={model}
+          onSelect={setSelection}
+          selection={selection}
+        />
+      </aside>
+
       <section aria-labelledby="cm-graph-title" className="panel cm-canvas-panel">
         <header className="panel-header">
           <h2 id="cm-graph-title">{copy.title}</h2>
@@ -316,13 +348,15 @@ function SceneGraphView({ view }: { view: ContentMapView }) {
         <ScreenMapLegend model={model} />
       </section>
 
-      <aside className="panel cm-inspector-panel">
-        <SceneGraphInspector
-          incidence={incidence}
-          nodes={graph.nodes}
+      <aside className="panel cm-inspector-panel" ref={detailPane}>
+        <ContentMapInspector
+          gaps={view.gaps}
+          index={index}
+          knowledge={{ status: knowledgeStatus, nodes: knowledgeGraph?.nodes ?? [] }}
+          model={model}
           onClear={() => setSelection(null)}
-          onSelectNode={(id) => setSelection({ kind: 'scene', id })}
-          selectedNodeId={selectedNodeId}
+          onSelect={setSelection}
+          selection={selection}
         />
       </aside>
     </div>

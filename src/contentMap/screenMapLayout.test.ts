@@ -30,6 +30,7 @@ function screen(id: string, sceneId: string, over: Partial<ContentMapScreen> = {
     discriminator: `[{"selector":"Canvas/${id}","active":true}]`,
     observedCount: 1,
     firstSeenQaRunId: null,
+    image: null,
     ...over,
   }
 }
@@ -49,6 +50,7 @@ function scene(id: string, name: string, screens: ContentMapScreen[] = []): Cont
     steps: null,
     thumbnail: null,
     screens,
+    capabilityList: [],
   }
 }
 

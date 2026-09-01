@@ -11,8 +11,10 @@ import {
   type ContentMapVerification,
   type ContentMapView,
   type PendingDocument,
+  type SceneCapability,
   type SceneThumbnail,
   type SceneTransition,
+  type ScreenImage,
   type ScreenTransition,
 } from './contentMapTypes'
 
@@ -267,6 +269,31 @@ export function parseScreen(data: unknown): ContentMapScreen | null {
     discriminator: asJsonText(record.discriminator),
     observedCount: asCount(record.observedCount),
     firstSeenQaRunId: asId(record.firstSeenQaRunId),
+    image: parseScreenImage(record.image),
+  }
+}
+
+/**
+ * 화면 캡처의 주소.
+ *
+ * `url` 이 없으면 그릴 것이 없으므로 통째로 버린다 — 그때 화면은 "아직 캡처가 없다" 갈래를 탄다.
+ * 오늘 살아 있는 DB 의 화면은 전부 그 갈래이고, **그것이 지금의 정상 상태다.** 캡처를 내보내는
+ * 경로가 아직 없기 때문이지 이 파서가 무언가를 놓쳐서가 아니다.
+ *
+ * 두 시각은 없어도 이미지를 버리지 않는다. 그림 자체가 이 절의 값어치이고, 언제 찍혔는지는
+ * 덧붙이는 사실이다.
+ */
+export function parseScreenImage(data: unknown): ScreenImage | null {
+  const record = asRecord(data)
+  if (record === null) return null
+
+  const url = asString(record.url)
+  if (url.length === 0) return null
+
+  return {
+    url,
+    expiresAt: asNullableString(record.expiresAt),
+    capturedAt: asNullableString(record.capturedAt),
   }
 }
 
@@ -352,7 +379,56 @@ export function parseScene(data: unknown): ContentMapScene | null {
     steps: parseSteps(record.steps),
     thumbnail: parseThumbnail(record.thumbnail),
     screens: parseScreens(record.screens),
+    capabilityList: parseCapabilityList(record.capabilityList),
   }
+}
+
+/**
+ * capability 하나. `id` 가 없으면 버린다 — 이 목록의 유일한 쓸모가 screen transition 이 들고 온
+ * id 로 `origin` 과 `verification` 을 되찾는 것이라, 찾을 수 없는 행은 자리만 차지한다.
+ *
+ * 나머지 칸은 전부 서버 철자 그대로 둔다. 아는 값으로 좁히면 서버가 어휘를 늘리는 날 배지가
+ * 없는 상태를 말하게 된다.
+ */
+export function parseCapability(data: unknown): SceneCapability | null {
+  const record = asRecord(data)
+  if (record === null) return null
+
+  const id = asId(record.id)
+  if (id === null) return null
+
+  return {
+    id,
+    summary: asString(record.summary),
+    status: asString(record.status),
+    origin: asString(record.origin),
+    verification: asString(record.verification),
+    actionability: asString(record.actionability),
+    observability: asString(record.observability),
+    applicability: asString(record.applicability),
+    interaction: asString(record.interaction),
+  }
+}
+
+/**
+ * 씬의 capability 목록.
+ *
+ * 절이 없으면 빈 배열이다. `steps` 와 달리 `null` 을 따로 두지 않는 이유는, 이 목록이 화면에 직접
+ * 그려지는 절이 아니라 **색인의 재료**이기 때문이다 — 비면 배지가 붙지 않고, 그 사실은 배지가 붙는
+ * 자리에서 이미 보인다.
+ *
+ * 같은 id 가 두 번 오면 접는다. 색인이 id 로 찾으므로 둘째 행은 어차피 닿지 않는다.
+ */
+function parseCapabilityList(data: unknown): SceneCapability[] {
+  const capabilities: SceneCapability[] = []
+  const seen = new Set<string>()
+  for (const raw of toArray(data)) {
+    const capability = parseCapability(raw)
+    if (capability === null || seen.has(capability.id)) continue
+    seen.add(capability.id)
+    capabilities.push(capability)
+  }
+  return capabilities
 }
 
 /** 전이 하나. 출발 씬을 모르면 그릴 수 없으므로 그때만 버린다. */
