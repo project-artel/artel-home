@@ -22,6 +22,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     )
   }, [])
 
+  const applyPendingEmail = useCallback((pendingEmail: string) => {
+    setState((current) =>
+      current.status === 'authenticated'
+        ? { status: 'authenticated', user: { ...current.user, pendingEmail } }
+        : current,
+    )
+  }, [])
+
+  const applyEmailVerified = useCallback(() => {
+    setState((current) => {
+      if (current.status !== 'authenticated' || current.user.pendingEmail === null) {
+        return current
+      }
+
+      return {
+        status: 'authenticated',
+        user: {
+          ...current.user,
+          email: current.user.pendingEmail,
+          emailVerified: true,
+          pendingEmail: null,
+        },
+      }
+    })
+  }, [])
+
   useEffect(() => setUnauthorizedHandler(() => {
     setState({ status: 'unauthenticated', user: null })
   }), [])
@@ -44,8 +70,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value = useMemo<AuthContextValue>(
-    () => ({ ...state, applyProfile, logout }),
-    [applyProfile, logout, state],
+    () => ({ ...state, applyEmailVerified, applyPendingEmail, applyProfile, logout }),
+    [applyEmailVerified, applyPendingEmail, applyProfile, logout, state],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
