@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
+import { readNavCollapsed, storeNavCollapsed } from './navCollapse'
 import { sectionHref, WORKSPACE_SECTIONS, type WorkspaceSectionId } from './sections'
 
 /**
@@ -43,12 +45,37 @@ function SectionIcon({ id }: { id: WorkspaceSectionId }) {
 }
 
 /**
+ * 접기 방향을 그대로 가리키는 갈매기 하나. 펼쳐진 레일에서는 왼쪽을, 접힌
+ * 레일에서는 오른쪽을 향해 버튼이 무엇을 할지 라벨을 읽기 전에 보여 준다.
+ */
+function CollapseIcon({ collapsed }: { collapsed: boolean }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className="nav-icon"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={1.5}
+      viewBox="0 0 16 16"
+    >
+      <path d={collapsed ? 'M6.2 3.5L10.5 8l-4.3 4.5' : 'M9.8 3.5L5.5 8l4.3 4.5'} />
+    </svg>
+  )
+}
+
+/**
  * The project's left rail.
  *
  * Counts are the reason the rail is worth its width: they answer "is there
  * anything in there" without a visit. A count is omitted rather than shown as
  * `0` while its read is still in flight, so a number never appears, changes,
  * and reflows the row under the pointer.
+ *
+ * 접으면 아이콘만 남는 48px 레일이 된다. 폭을 내주고 싶지 않은 화면에서 쓰라고
+ * 둔 것이라 label 은 화면에서만 사라질 뿐 DOM 에는 남는다 — 접힌 레일도 스크린
+ * 리더에게는 펼친 레일과 똑같이 읽힌다.
  */
 export function ProjectNav({
   counts,
@@ -62,16 +89,48 @@ export function ProjectNav({
   projectName: string
 }) {
   const { t } = useI18n()
-  const nav = t.projects.workspace.nav
+  const workspace = t.projects.workspace
+  const nav = workspace.nav
+  const [collapsed, setCollapsed] = useState(readNavCollapsed)
+
+  const toggleLabel = collapsed ? workspace.expandNav : workspace.collapseNav
 
   return (
-    <nav aria-label={t.projects.workspace.navLabel} className="project-nav">
+    <nav
+      aria-label={workspace.navLabel}
+      className={collapsed ? 'project-nav project-nav--collapsed' : 'project-nav'}
+    >
       <div className="project-nav-head">
-        <p className="project-nav-eyebrow">{t.projects.workspace.projectEyebrow}</p>
+        <div className="project-nav-head-row">
+          <p className="project-nav-eyebrow">{workspace.projectEyebrow}</p>
+          <button
+            aria-label={toggleLabel}
+            className="nav-collapse-toggle"
+            onClick={() => {
+              const next = !collapsed
+              setCollapsed(next)
+              storeNavCollapsed(next)
+            }}
+            title={toggleLabel}
+            type="button"
+          >
+            <CollapseIcon collapsed={collapsed} />
+          </button>
+        </div>
         <div className="project-nav-identity">
           <span className="project-nav-name" title={projectName}>{projectName}</span>
           <span className="badge">{genreLabel}</span>
         </div>
+        {/* 접힌 레일에 이름이 들어갈 자리는 없지만, 어느 프로젝트를 보고 있는지는
+            남아야 한다. 머리글자 하나가 그 자리를 대신한다. */}
+        <span
+          aria-label={projectName}
+          className="project-nav-initial"
+          role="img"
+          title={projectName}
+        >
+          {projectName.slice(0, 1).toUpperCase()}
+        </span>
       </div>
 
       <ul className="project-nav-list">
@@ -84,10 +143,13 @@ export function ProjectNav({
               // Without this the dashboard's own link stays active on every
               // child route, since its path is a prefix of all of them.
               end={section.path.length === 0}
+              title={collapsed ? nav[section.id] : undefined}
               to={sectionHref(projectId, section.path)}
             >
               <SectionIcon id={section.id} />
-              <span className="nav-label">{nav[section.id]}</span>
+              <span className={collapsed ? 'nav-label visually-hidden' : 'nav-label'}>
+                {nav[section.id]}
+              </span>
               <NavCount
                 alert={section.id === 'issues'}
                 value={counts[section.id] ?? null}
@@ -100,10 +162,13 @@ export function ProjectNav({
       <div className="project-nav-foot">
         <NavLink
           className={({ isActive }) => (isActive ? 'nav-item nav-item--active' : 'nav-item')}
+          title={collapsed ? nav.settings : undefined}
           to={sectionHref(projectId, 'settings')}
         >
           <SectionIcon id="settings" />
-          <span className="nav-label">{nav.settings}</span>
+          <span className={collapsed ? 'nav-label visually-hidden' : 'nav-label'}>
+            {nav.settings}
+          </span>
         </NavLink>
       </div>
     </nav>

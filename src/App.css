@@ -3888,6 +3888,19 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   height: calc(100dvh - 48px);
   min-height: 0;
   background: var(--color-bg-canvas);
+  transition: grid-template-columns var(--motion-fast) var(--ease-standard);
+}
+
+/* DESIGN.md 가 정한 접힌 레일 폭. 좌우 4px 여백을 빼고도 아이콘 하나가 32px
+   포인터 타깃을 유지한다. */
+.project-workspace:has(.project-nav--collapsed) {
+  grid-template-columns: 48px minmax(0, 1fr);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .project-workspace {
+    transition: none;
+  }
 }
 
 .project-nav {
@@ -3906,11 +3919,56 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   border-bottom: 1px solid var(--color-border-subtle);
 }
 
+/* eyebrow 와 접기 버튼이 같은 줄에 선다. 접으면 eyebrow 가 빠지고 버튼만
+   가운데 남으므로, 버튼은 두 상태에서 같은 높이에 있다. */
+.project-nav-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
+}
+
 .project-nav-eyebrow {
-  margin: 0 0 var(--space-1);
+  margin: 0;
   color: var(--color-text-muted);
   font-size: 11px;
   letter-spacing: 0.08em;
+}
+
+.nav-collapse-toggle {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  background: none;
+  cursor: pointer;
+}
+
+.nav-collapse-toggle:hover {
+  color: var(--color-text-primary);
+  background: var(--color-bg-hover);
+}
+
+/* 접혔을 때만 나타나는 프로젝트 머리글자. */
+.project-nav-initial {
+  display: none;
+  width: 32px;
+  height: 32px;
+  margin: 0 auto;
+  place-items: center;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  background: var(--color-bg-raised);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 650;
 }
 
 .project-nav-identity {
@@ -3996,6 +4054,40 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
 .nav-count--alert {
   color: var(--color-status-critical-strong);
   background: var(--color-status-critical-muted);
+}
+
+/* ── 접힌 레일 ─────────────────────────────────────────────────────────────
+   위의 기본 레일을 아이콘 폭까지 좁힌다. label 은 `visually-hidden` 으로 넘어가
+   DOM 에 남으므로 여기서 숨기는 것은 순수하게 눈에만 보이던 것들이다. */
+
+.project-nav--collapsed {
+  padding-right: var(--space-1);
+  padding-left: var(--space-1);
+}
+
+.project-nav--collapsed .project-nav-head {
+  padding: var(--space-1) 0 var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.project-nav--collapsed .project-nav-head-row {
+  justify-content: center;
+}
+
+.project-nav--collapsed .project-nav-eyebrow,
+.project-nav--collapsed .project-nav-identity,
+.project-nav--collapsed .nav-count {
+  display: none;
+}
+
+.project-nav--collapsed .project-nav-initial {
+  display: grid;
+}
+
+.project-nav--collapsed .nav-item {
+  justify-content: center;
+  gap: 0;
+  padding: 0;
 }
 
 .workspace-body {
@@ -4534,6 +4626,12 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
 
   .nav-count {
     display: none;
+  }
+
+  /* 가로 스트립에는 줄일 폭이 없다. 접힘은 항목을 아이콘만 남기는 것으로만
+     남고, 레일은 화면 너비를 그대로 쓴다. */
+  .project-workspace:has(.project-nav--collapsed) {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
