@@ -23,6 +23,7 @@ import { ProjectWorkspaceRoute } from './projects/workspace/ProjectWorkspace'
 import { QaHistorySection } from './projects/workspace/QaHistorySection'
 import { QaSection } from './projects/workspace/QaSection'
 import { SettingsSection } from './projects/workspace/SettingsSection'
+import { TestCasesSection } from './projects/workspace/TestCasesSection'
 import { TestRunsSection } from './projects/workspace/TestRunsSection'
 import { QaRunRoute } from './qa/QaRunPage'
 import { QaTryRoute } from './qa/QaTryPage'
@@ -92,6 +93,7 @@ export function App() {
           <Route element={<ProjectWorkspaceRoute />} path="/projects/:projectId">
             <Route index element={<DashboardSection />} />
             <Route path="documents" element={<DocumentsSection />} />
+            <Route path="test-cases" element={<TestCasesSection />} />
             <Route path="test-runs" element={<TestRunsSection />} />
             <Route path="qa" element={<QaSection />} />
             <Route path="qa-history" element={<QaHistorySection />} />

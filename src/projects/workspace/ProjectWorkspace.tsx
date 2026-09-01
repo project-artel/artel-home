@@ -161,6 +161,7 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
       <ProjectNav
         counts={{
           documents: documents.length,
+          testCases: settled ? coverage.total : null,
           testRuns: settled ? runs.length : null,
           qaHistory: settled ? tries.length : null,
           issues: settled ? openIssues.length : null,
