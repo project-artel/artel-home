@@ -20,7 +20,8 @@ import {
   truncate,
 } from './knowledgeLabels'
 import { incidentEdges, type GraphLayout } from './knowledgeLayout'
-import { relationStyle, type KnowledgeNode } from './knowledgeTypes'
+import { documentNodeIds, relationStyle, type KnowledgeNode } from './knowledgeTypes'
+import { useKnowledgeItemBody, type KnowledgeItemBodyEntry } from './useKnowledgeItemBody'
 
 /**
  * What the selected thing is, and the list that makes the drawing readable.
@@ -54,6 +55,13 @@ export function KnowledgeInspector({
       ? layout.edges.find((placed) => placed.id === selection.id) ?? null
       : null
 
+  // 선택된 node 가 바뀔 때마다 그 항목의 본문을 단건 조회한다(ARTEL-754). hook 은 selection 이
+  // node 가 아닐 때 `null` 을 받아 아무 것도 하지 않는다.
+  const { entry: bodyEntry, retry: retryBody } = useKnowledgeItemBody(
+    projectId,
+    selection?.kind === 'node' ? selection.id : null,
+  )
+
   const sceneNames = useMemo(
     () => anchoredSceneNames(layout.nodes.map((placed) => placed.node)),
     [layout.nodes],
@@ -85,9 +93,11 @@ export function KnowledgeInspector({
 
         {selectedNode !== null ? (
           <NodeDetail
+            bodyEntry={bodyEntry}
             layout={layout}
             node={selectedNode}
             nodesById={nodesById}
+            onRetryBody={retryBody}
             onSelectEdge={onSelectEdge}
             projectId={projectId}
           />
@@ -167,21 +177,34 @@ function NodeDetail({
   node,
   layout,
   nodesById,
+  bodyEntry,
+  onRetryBody,
   onSelectEdge,
   projectId,
 }: {
   node: KnowledgeNode
   layout: GraphLayout
   nodesById: Map<string, KnowledgeNode>
+  bodyEntry: KnowledgeItemBodyEntry | null
+  onRetryBody: () => void
   onSelectEdge: (edgeId: string) => void
   projectId: string
 }) {
   const { t } = useI18n()
   const incidence = incidentEdges(layout, node.id, nodesById)
+  // 문서 node 는 필드 값이 아니라 구조로 가려진다 — `documentNodeIds` 의 doc comment 참고.
+  // `KnowledgeGraphCanvas.tsx` 가 같은 식으로 같은 것을 계산한다.
+  const documentIds = useMemo(
+    () => documentNodeIds(layout.edges.map((placed) => placed.edge)),
+    [layout.edges],
+  )
+  const isDocumentNode = documentIds.has(node.id)
 
   return (
     <div className="kg-detail">
-      <p className="kg-detail-kind">{t.knowledge.inspector.itemHeading}</p>
+      <p className="kg-detail-kind">
+        {isDocumentNode ? t.knowledge.legend.documentNodeName : t.knowledge.inspector.itemHeading}
+      </p>
       <p className="kg-detail-summary">
         {node.summary.trim().length > 0 ? (
           node.summary
@@ -189,6 +212,9 @@ function NodeDetail({
           <span className="detail-empty">{t.knowledge.inspector.noSummary}</span>
         )}
       </p>
+
+      <h3 className="kg-detail-subtitle">{t.knowledge.inspector.bodyLabel}</h3>
+      <KnowledgeItemBody entry={bodyEntry} onRetry={onRetryBody} />
 
       <dl className="kg-detail-fields">
         <dt>{t.knowledge.inspector.tagLabel}</dt>
@@ -257,6 +283,51 @@ function NodeDetail({
       )}
     </div>
   )
+}
+
+/**
+ * The selected item's body — loading, failed, empty, or the text itself.
+ *
+ * Line breaks are load-bearing, not cosmetic: an item extracted from a
+ * document carries several `genre: …` style lines joined by `\n`, and
+ * collapsing them onto one line is exactly what this component exists to
+ * avoid (ARTEL-754). `.kg-detail-body` keeps `white-space: pre-wrap` for that
+ * reason; nothing here transforms `description` itself.
+ */
+function KnowledgeItemBody({
+  entry,
+  onRetry,
+}: {
+  entry: KnowledgeItemBodyEntry | null
+  onRetry: () => void
+}) {
+  const { t } = useI18n()
+
+  if (entry === null || entry.status === 'loading') {
+    return (
+      <p aria-busy="true" className="kg-inspector-hint">
+        {t.knowledge.inspector.bodyLoading}
+      </p>
+    )
+  }
+
+  if (entry.status === 'error') {
+    return (
+      <div className="kg-detail-body-error" role="alert">
+        <p className="kg-inspector-hint">{t.knowledge.inspector.bodyFailed}</p>
+        <button className="button button--secondary button--compact" onClick={onRetry} type="button">
+          {t.knowledge.states.retry}
+        </button>
+      </div>
+    )
+  }
+
+  const description = entry.description
+  if (description.trim().length === 0) {
+    return <p className="kg-inspector-hint">{t.knowledge.inspector.bodyEmpty}</p>
+  }
+
+  return <p className="kg-detail-body">{description}</p>
 }
 
 /**

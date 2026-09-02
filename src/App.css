@@ -5201,6 +5201,24 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   line-height: 20px;
   color: var(--color-text-primary);
 }
+/* The body preserves the server's line breaks — an item extracted from a
+   document is several `genre: …` style lines joined by `\n`, and collapsing
+   them onto one line is unreadable (ARTEL-754). No raised background, unlike
+   `.kg-detail-note`: this is the item's own prose, not a callout. */
+.kg-detail-body {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--color-text-primary);
+}
+.kg-detail-body-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
 .kg-detail-link {
   color: var(--color-action-primary);
 }
