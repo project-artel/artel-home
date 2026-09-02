@@ -42,6 +42,8 @@ export const issuesEn = {
     resolvedAt: (when: string) => `Resolved ${when}`,
     step: (step: number) => `Step ${step}`,
     openQaTry: 'Open the run',
+    /** `qaRunId` has not arrived for this issue yet — a muted row, not a dead link. */
+    noRun: 'No run linked yet',
     showDetail: 'Show detail',
     hideDetail: 'Hide detail',
     expected: 'Expected',
@@ -96,6 +98,7 @@ export const issuesKo: Localized<typeof issuesEn> = {
     resolvedAt: (when: string) => `${when} 해결`,
     step: (step: number) => `${step}번 스텝`,
     openQaTry: '실행 열기',
+    noRun: '아직 연결된 실행 없음',
     showDetail: '상세 보기',
     hideDetail: '상세 접기',
     expected: '기대',

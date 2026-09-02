@@ -21,6 +21,12 @@ export type Issue = {
   id: string
   /** The run that found it. What makes the row a way back to the timeline. */
   qaTryId: string
+  /**
+   * The `QaRun` that scenario belongs to. `null` for an issue whose try
+   * predates ARTEL-722, or while that server change has not shipped yet —
+   * callers render a plain muted row instead of a link when this is `null`.
+   */
+  qaRunId: string | null
   severity: IssueSeverity
   title: string
   /** The agent's whole payload. Shape is not guaranteed — see `IssueDetail`. */

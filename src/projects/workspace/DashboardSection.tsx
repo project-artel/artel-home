@@ -2,9 +2,10 @@ import { Link } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
 import { ISSUE_SEVERITIES, type Issue } from '../../issues/issueTypes'
 import { SeverityTag } from '../../issues/SeverityTag'
-import type { QaTry } from '../../qa/qaTypes'
+import { qaRunPath, type QaTry } from '../../qa/qaTypes'
 import type { TestCaseCoverage } from '../../testCases/testCaseTypes'
 import { formatDate } from '../formatters'
+import { ProjectUsagePanel } from '../../usage/ProjectUsagePanel'
 import { QaStatusPill } from './QaStatusPill'
 import { sectionHref } from './sections'
 import { useWorkspace } from './workspaceContext'
@@ -105,6 +106,10 @@ export function DashboardSection() {
         />
       </div>
 
+      {/* 타일 아래, 요약 목록 위다. 타일은 "무엇이 몇 개 있나"이고 아래 목록은 "최근에 무엇이
+          있었나"인데, 지출은 그 둘 사이의 "그걸 하는 데 얼마가 들었나"라 자리가 여기다. */}
+      <ProjectUsagePanel projectId={projectId} />
+
       <div className="dashboard-columns">
         <div className="dashboard-main">
           <SummaryPanel
@@ -119,13 +124,19 @@ export function DashboardSection() {
               <ul className="summary-list">
                 {tries.slice(0, PREVIEW).map((qaTry) => (
                   <li className="summary-row summary-row--qa" key={qaTry.id}>
-                    <Link
-                      className="table-link mono"
-                      to={`/projects/${encodeURIComponent(projectId)}/qa-tries/${encodeURIComponent(qaTry.id)}`}
-                      translate="no"
-                    >
-                      #{qaTry.id}
-                    </Link>
+                    {qaTry.qaRunId === null ? (
+                      <span className="table-link table-link--muted mono" translate="no">
+                        #{qaTry.id}
+                      </span>
+                    ) : (
+                      <Link
+                        className="table-link mono"
+                        to={qaRunPath(projectId, qaTry.qaRunId, qaTry.id)}
+                        translate="no"
+                      >
+                        #{qaTry.id}
+                      </Link>
+                    )}
                     <QaStatusPill status={qaTry.status} />
                     <span className="summary-meta">{startedLabel(qaTry, t.qa.history.notStarted)}</span>
                   </li>
@@ -145,13 +156,19 @@ export function DashboardSection() {
                   <li className="summary-row summary-row--issue" key={issue.id}>
                     <SeverityTag severity={issue.severity} />
                     <span className="summary-title">{issue.title}</span>
-                    <Link
-                      className="table-link mono"
-                      to={`/projects/${encodeURIComponent(projectId)}/qa-tries/${encodeURIComponent(issue.qaTryId)}`}
-                      translate="no"
-                    >
-                      #{issue.qaTryId}
-                    </Link>
+                    {issue.qaRunId === null ? (
+                      <span className="table-link table-link--muted mono" translate="no">
+                        #{issue.qaTryId}
+                      </span>
+                    ) : (
+                      <Link
+                        className="table-link mono"
+                        to={qaRunPath(projectId, issue.qaRunId, issue.qaTryId)}
+                        translate="no"
+                      >
+                        #{issue.qaTryId}
+                      </Link>
+                    )}
                     <span className="summary-meta">{formatDate(issue.reportedAt)}</span>
                   </li>
                 ))}

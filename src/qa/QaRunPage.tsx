@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { GameStreamView } from '../streaming/GameStreamView'
 import { QaTryIssuePanel } from '../issues/QaTryIssuePanel'
@@ -7,6 +7,7 @@ import { listTestScenarios } from '../testScenarios/scenarioApi'
 import { cancelQaRun, getQaRun, isDecimalId } from './qaApi'
 import { QaChatPanel } from './QaChatPanel'
 import { QaLogTimeline, type QaLogFocusRequest } from './QaLogTimeline'
+import { QaRunUsagePanel } from './QaRunUsagePanel'
 import { QaStepTimeline } from './QaStepTimeline'
 import { deriveQaProgress } from './qaProgress'
 import { isTerminalQaStatus, type QaLog, type QaRun, type QaTry } from './qaTypes'
@@ -15,8 +16,24 @@ import { useScenarioSteps } from './useScenarioSteps'
 
 export function QaRunRoute() {
   const { projectId = '', qaRunId = '' } = useParams()
+  // A malformed `try` degrades to no pin rather than a broken focus — the same
+  // rule the id fields the console reads from the server already follow.
+  const [searchParams] = useSearchParams()
+  const tryParam = searchParams.get('try')
+  const initialTryId = tryParam !== null && isDecimalId(tryParam) ? tryParam : null
   if (!isDecimalId(qaRunId)) return <QaRunMissing projectId={projectId} />
-  return <QaRunPage key={qaRunId} projectId={projectId} qaRunId={qaRunId} />
+  return (
+    <QaRunPage
+      // Keys by the (run, try) pair, not just the run: a link from one scenario
+      // in a run to a sibling scenario in the same run must still re-seed
+      // `pinnedTryId`, and a plain `run`-keyed remount would not fire because
+      // the component instance would already exist.
+      key={`${qaRunId}:${initialTryId ?? ''}`}
+      initialTryId={initialTryId}
+      projectId={projectId}
+      qaRunId={qaRunId}
+    />
+  )
 }
 
 function projectLink(projectId: string): string {
@@ -61,8 +78,23 @@ const POLL_BACKOFF_MAX_MS = 30_000
  * the focused scenario's live game and step progress; the log sits full-width
  * below with a Flow/Raw split. The console follows the active scenario as the run
  * advances — no refresh — and lets the operator click back to a finished one.
+ *
+ * `initialTryId` (ARTEL-723) is how the five retired `QaTryPage` entry points,
+ * plus every other place that used to link to one scenario, land here instead:
+ * they pass `?try=<id>`, which pins that scenario with follow off, exactly as
+ * clicking a rail item would. `QaRunRoute` keys this component by `(qaRunId,
+ * initialTryId)`, so this is read once per navigation, never re-applied by a
+ * poll tick.
  */
-function QaRunPage({ projectId, qaRunId }: { projectId: string; qaRunId: string }) {
+function QaRunPage({
+  initialTryId,
+  projectId,
+  qaRunId,
+}: {
+  initialTryId: string | null
+  projectId: string
+  qaRunId: string
+}) {
   const { t } = useI18n()
   const [run, setRun] = useState<QaRun | null>(null)
   const [state, setState] = useState<'loading' | 'ready' | 'missing'>('loading')
@@ -141,8 +173,8 @@ function QaRunPage({ projectId, qaRunId }: { projectId: string; qaRunId: string 
   // Auto-advance: follow the active scenario unless the operator has pinned one.
   const activeTryId = run?.tries.find((entry) => !isTerminalQaStatus(entry.status))?.id ?? null
   const lastTryId = run?.tries.at(-1)?.id ?? null
-  const [following, setFollowing] = useState(true)
-  const [pinnedTryId, setPinnedTryId] = useState<string | null>(null)
+  const [following, setFollowing] = useState(initialTryId === null)
+  const [pinnedTryId, setPinnedTryId] = useState<string | null>(initialTryId)
   const focusedTryId = following ? (activeTryId ?? lastTryId) : pinnedTryId
   function focusTry(id: string) {
     setPinnedTryId(id)
@@ -272,11 +304,40 @@ function FocusedTry({ tryId }: { tryId: string }) {
     [logView, session.logs],
   )
 
+  // Carried over from the retired `QaTryPage` (ARTEL-723): a failed load needs
+  // its own retry, distinct from the plain "still loading" state below — the
+  // console has no page refresh to fall back on, so this is the only way back.
+  if (session.loadStatus === 'error') {
+    return (
+      <div className="qa-focus qa-focus--empty">
+        <div className="panel-message" role="alert">
+          <p>{t.qa.run.loadFailed}</p>
+          <button className="button button--secondary" onClick={session.reload} type="button">
+            {t.qa.panel.retry}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   if (session.qaTry === null) {
     return <p className="panel-empty">{t.qa.run.loading}</p>
   }
 
   const active = !isTerminalQaStatus(session.qaTry.status)
+  // Carried over from `QaTryPage` (ARTEL-723): what state the live log stream
+  // is in. Only meaningful while the try is active — a terminal one already
+  // says "ended · stored logs" via `endedGame` below.
+  const streamLabel =
+    session.streamState === 'offline'
+      ? t.qa.run.streamOffline
+      : session.streamState === 'degraded'
+        ? t.qa.run.streamDegraded
+        : session.streamState === 'connecting'
+          ? t.qa.run.streamConnecting
+          : session.streamState === 'live'
+            ? t.qa.run.streamLive
+            : t.qa.run.streamStored
 
   return (
     <div className="qa-focus">
@@ -299,10 +360,29 @@ function FocusedTry({ tryId }: { tryId: string }) {
             <button className={logView === 'raw' ? 'on' : ''} onClick={() => setLogView('raw')} role="tab" aria-selected={logView === 'raw'} type="button">{t.qa.run.logsRaw}</button>
             <button className={logView === 'issues' ? 'on' : ''} onClick={() => setLogView('issues')} role="tab" aria-selected={logView === 'issues'} type="button">{t.qa.run.tabIssues}</button>
           </div>
+          {/* Carried over from `QaTryPage` (ARTEL-723): the stream state and the
+              loaded-log count. A summarized state, so `aria-live` fits DESIGN.md's
+              "do not announce every live log entry" rule. */}
+          <div className="qa-focus-logs-meta">
+            {active && (
+              <span aria-live="polite" className="qa-focus-stream-state mono">
+                {streamLabel}
+              </span>
+            )}
+            <span className="qa-focus-logs-count mono">{t.qa.run.logsCount(session.logs.length)}</span>
+          </div>
         </header>
         <div className="qa-focus-logs-body">
           {logView === 'issues' ? (
-            <QaTryIssuePanel qaTryId={session.qaTry.id} />
+            <>
+              <QaTryIssuePanel qaTryId={session.qaTry.id} />
+              {/* And this is what it cost. Carried over from `QaTryPage` (#82)
+                  when that screen was removed, and kept beside the issues rather
+                  than in the header: usage arrives in batches after the calls, so
+                  it is a record of the run the way the issues are, not a live
+                  reading like the status line. */}
+              <QaRunUsagePanel active={active} qaTryId={session.qaTry.id} />
+            </>
           ) : (
             <QaLogTimeline
               focusRequest={focusRequest}

@@ -38,12 +38,35 @@ export type KnowledgeNode = {
   version: number | null
   /** Only QA-authored items carry a run; a document-derived item has none. */
   createdByQaTryId: string | null
+  /**
+   * The `QaRun` that try belongs to. `null` when `createdByQaTryId` is also
+   * `null` (a document-derived item), and also `null` for a QA-authored item
+   * whose try predates ARTEL-722 or while that server change has not shipped
+   * yet — callers render a plain muted row instead of a link in that case.
+   */
+  createdByQaRunId: string | null
   createdAt: string
   /**
    * Scenes and screens this item is tied to. Empty is the ordinary case and
    * means the fact holds across the whole game — not that the field is missing.
    */
   anchors: KnowledgeAnchor[]
+}
+
+/**
+ * One item's body, from the single-item endpoint the graph list deliberately
+ * does not carry (ARTEL-752/753/754). Only the three fields the contract
+ * guarantees — this build has no use for anything beyond them yet.
+ */
+export type KnowledgeItemDetail = {
+  id: string
+  summary: string
+  /**
+   * May hold several `key: value` lines joined by newlines for an item
+   * extracted from a document. The newlines are meaningful and must render as
+   * line breaks, not be collapsed.
+   */
+  description: string
 }
 
 export type KnowledgeEdge = {
@@ -72,14 +95,20 @@ export type KnowledgeGraph = {
 export const KNOWLEDGE_NODE_LIMIT = 200
 
 /**
- * Relations this build knows how to draw. Order is the legend order: the four
+ * Relations this build knows how to draw. Order is the legend order: the five
  * ordinary relations first, then the one that disagrees.
+ *
+ * `PART_OF` is not one a QA agent can assert — the ingest pipeline is the only
+ * writer, and it always points from an extracted item to the document node it
+ * came from (ARTEL-747/748). It sits with the ordinary relations rather than
+ * with `CONTRADICTS` because, unlike a contradiction, it has a direction.
  */
 export const KNOWN_RELATIONS = [
   'LEADS_TO',
   'REFINES',
   'DEPENDS_ON',
   'REPLACES',
+  'PART_OF',
   'CONTRADICTS',
 ] as const
 
@@ -115,4 +144,30 @@ export type RelationStyle = KnownRelation | 'UNKNOWN'
 
 export function relationStyle(relation: string): RelationStyle {
   return isKnownRelation(relation) ? relation : 'UNKNOWN'
+}
+
+/**
+ * The document node ids in this graph, picked out by structure rather than by
+ * field.
+ *
+ * ARTEL-748's contract says a document node's `source` is `DOCS` — but every
+ * item extracted from that document also carries `source: 'DOCS'` (see the
+ * comment on `KnowledgeNode.source` above), so testing `source` alone would
+ * flag the whole document, not just the one node that represents it. What
+ * actually sets the document node apart is that a `PART_OF` edge always points
+ * *at* it: the direction is item → document (ARTEL-747/748), never the other
+ * way. So a node is the document node for a `PART_OF` group exactly when it is
+ * some edge's `to`.
+ *
+ * This does not depend on any field ARTEL-748 has not committed to yet — a
+ * document node still needs its own `tag`, and this build does not know what
+ * value that will carry. Once the server ships a discriminator built for this
+ * purpose, prefer it over this structural read.
+ */
+export function documentNodeIds(edges: readonly KnowledgeEdge[]): ReadonlySet<string> {
+  const ids = new Set<string>()
+  for (const edge of edges) {
+    if (edge.relation === 'PART_OF') ids.add(edge.to)
+  }
+  return ids
 }

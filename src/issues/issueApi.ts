@@ -40,6 +40,7 @@ export function parseIssue(data: unknown): Issue | null {
   return {
     id: record.id,
     qaTryId: record.qaTryId,
+    qaRunId: isDecimalId(record.qaRunId) ? record.qaRunId : null,
     severity: record.severity,
     status: record.status,
     title: asString(record.title),

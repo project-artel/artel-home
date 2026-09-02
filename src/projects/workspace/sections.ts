@@ -13,6 +13,7 @@ import type { Messages } from '../../i18n/messages'
 export const WORKSPACE_SECTIONS = [
   { id: 'dashboard', path: '' },
   { id: 'documents', path: 'documents' },
+  { id: 'testCases', path: 'test-cases' },
   { id: 'testRuns', path: 'test-runs' },
   { id: 'qa', path: 'qa' },
   { id: 'qaHistory', path: 'qa-history' },
@@ -23,11 +24,13 @@ export const WORKSPACE_SECTIONS = [
 ] as const
 
 /**
- * `members` 와 `settings` 는 위 목록에 없다. 둘 다 rail 아래 칸의 관리 화면이고, QA 가 흐르는
- * 순서 사이에 끼우면 그 순서가 깨진다.
+ * `usage`, `members`, `settings` 는 위 목록에 없다. 셋 다 rail 아래 칸의 관리 화면이고, QA 가
+ * 흐르는 순서 사이에 끼우면 그 순서가 깨진다. 지출은 QA 를 돌리는 단계가 아니라 그 결과를
+ * 정산하는 자리라 여기에 붙는다.
  */
 export type WorkspaceSectionId =
   | (typeof WORKSPACE_SECTIONS)[number]['id']
+  | 'usage'
   | 'members'
   | 'settings'
 
@@ -45,6 +48,7 @@ export function sectionHref(projectId: string, path: string): string {
 export function sectionIdFromPath(projectId: string, pathname: string): WorkspaceSectionId {
   const base = `/projects/${encodeURIComponent(projectId)}`
   const rest = pathname.startsWith(base) ? pathname.slice(base.length).replace(/^\//, '') : ''
+  if (rest === 'usage') return 'usage'
   if (rest === 'members') return 'members'
   if (rest === 'settings') return 'settings'
   const match = WORKSPACE_SECTIONS.find((section) => section.path === rest)

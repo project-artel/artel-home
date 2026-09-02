@@ -20,13 +20,14 @@ import { DashboardSection } from './projects/workspace/DashboardSection'
 import { DocumentsSection } from './projects/workspace/DocumentsSection'
 import { IssuesSection } from './projects/workspace/IssuesSection'
 import { MembersSection } from './projects/workspace/MembersSection'
+import { UsageSection } from './usage/UsageSection'
 import { ProjectWorkspaceRoute } from './projects/workspace/ProjectWorkspace'
 import { QaHistorySection } from './projects/workspace/QaHistorySection'
 import { QaSection } from './projects/workspace/QaSection'
 import { SettingsSection } from './projects/workspace/SettingsSection'
+import { TestCasesSection } from './projects/workspace/TestCasesSection'
 import { TestRunsSection } from './projects/workspace/TestRunsSection'
 import { QaRunRoute } from './qa/QaRunPage'
-import { QaTryRoute } from './qa/QaTryPage'
 import { AppShell } from './shell/AppShell'
 import { RunEditRoute } from './testRuns/RunEditPage'
 import { RunMapRoute } from './testRuns/RunMapPage'
@@ -94,6 +95,7 @@ export function App() {
           <Route element={<ProjectWorkspaceRoute />} path="/projects/:projectId">
             <Route index element={<DashboardSection />} />
             <Route path="documents" element={<DocumentsSection />} />
+            <Route path="test-cases" element={<TestCasesSection />} />
             <Route path="test-runs" element={<TestRunsSection />} />
             <Route path="qa" element={<QaSection />} />
             <Route path="qa-history" element={<QaHistorySection />} />
@@ -101,6 +103,7 @@ export function App() {
             <Route path="performance" element={<PerformanceSection />} />
             <Route path="issues" element={<IssuesSection />} />
             <Route path="knowledge" element={<KnowledgeSection />} />
+            <Route path="usage" element={<UsageSection />} />
             <Route path="members" element={<MembersSection />} />
             <Route path="settings" element={<SettingsSection />} />
           </Route>
@@ -131,10 +134,6 @@ export function App() {
           {/* 콘텐츠 맵 화면은 작업공간 안에 하나뿐이다. 빌드 패널의 링크와 밖에서 붙여 넣은
               주소가 계속 살아 있도록, 옛 경로는 그 하나로 넘긴다. */}
           <Route path="/projects/:projectId/game-builds/:buildId/content-map" element={<ContentMapRedirect />} />
-          <Route
-            path="/projects/:projectId/qa-tries/:qaTryId"
-            element={<QaTryRoute />}
-          />
           {/* The server's failed-callback redirect lands on /login. A user who
               is already signed in has nothing to do there, so send them on. */}
           <Route path="/login" element={<Navigate replace to="/projects" />} />

@@ -7,7 +7,9 @@ import { performanceEn, performanceKo } from './messages/performance'
 import { projectsEn, projectsKo } from './messages/projects'
 import { qaEn, qaKo } from './messages/qa'
 import { scenariosEn, scenariosKo } from './messages/scenarios'
+import { testCasesEn, testCasesKo } from './messages/testCases'
 import { trackerEn, trackerKo } from './messages/tracker'
+import { usageEn, usageKo } from './messages/usage'
 
 /**
  * Maps an English dictionary shape to the type a translation must satisfy:
@@ -32,7 +34,9 @@ export const messages = {
     projects: projectsEn,
     qa: qaEn,
     scenarios: scenariosEn,
+    testCases: testCasesEn,
     tracker: trackerEn,
+    usage: usageEn,
   },
   ko: {
     account: accountKo,
@@ -44,7 +48,9 @@ export const messages = {
     projects: projectsKo,
     qa: qaKo,
     scenarios: scenariosKo,
+    testCases: testCasesKo,
     tracker: trackerKo,
+    usage: usageKo,
   },
 }
 

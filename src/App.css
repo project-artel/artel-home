@@ -826,6 +826,7 @@ h1 {
 
 .document-line {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
@@ -838,6 +839,43 @@ h1 {
   align-items: center;
   gap: var(--space-2);
   min-width: 0;
+}
+
+.document-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/*
+ * Replaces `.document-actions` in place when a line's delete button is
+ * pressed, so the confirmation reads as that same row rather than a
+ * separate dialog the user has to notice.
+ */
+.document-confirm {
+  display: flex;
+  flex: 1 1 260px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+  min-width: 240px;
+}
+
+.document-confirm .inline-error {
+  align-self: stretch;
+  margin-bottom: 0;
+}
+
+.document-confirm-copy {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  text-align: right;
+}
+
+.document-confirm-actions {
+  display: flex;
+  gap: var(--space-2);
 }
 
 .document-name {
@@ -1808,22 +1846,6 @@ a.instance-name:hover {
   height: 14px;
 }
 
-/* QA Try detail: a live viewport and one chronological evidence surface.
-   Terminal tries deliberately collapse to the evidence surface only. */
-.qa-page {
-  min-height: calc(100vh - 48px);
-}
-
-.qa-page-header {
-  padding-bottom: var(--space-4);
-}
-
-.qa-page-header h1 .mono {
-  color: var(--color-text-secondary);
-  font-size: 0.72em;
-  font-weight: 500;
-}
-
 .qa-status {
   display: inline-flex;
   min-height: 24px;
@@ -2036,77 +2058,6 @@ a.instance-name:hover {
   color: var(--color-text-muted);
   font-size: 11px;
   line-height: 16px;
-}
-
-.qa-workspace {
-  display: grid;
-  min-height: 620px;
-  gap: var(--space-4);
-}
-
-.qa-page--active .qa-workspace {
-  grid-template-columns: minmax(0, 1.55fr) minmax(360px, 0.85fr);
-}
-
-.qa-page--terminal .qa-workspace {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.qa-stream-panel,
-.qa-log-panel {
-  min-width: 0;
-  overflow: hidden;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-lg);
-  background: var(--color-bg-surface);
-}
-
-.qa-stream-panel {
-  display: grid;
-  min-height: 520px;
-  place-items: center;
-  background: var(--color-bg-canvas);
-}
-
-.qa-stream-panel .game-stream {
-  width: 100%;
-}
-
-.qa-log-panel {
-  display: grid;
-  min-height: 0;
-  grid-template-rows: auto minmax(0, 1fr);
-}
-
-.qa-log-header {
-  display: flex;
-  min-width: 0;
-  align-items: start;
-  justify-content: space-between;
-  gap: var(--space-4);
-  padding: var(--space-4);
-  border-bottom: 1px solid var(--color-border-subtle);
-}
-
-.qa-log-header h2 {
-  margin: 0;
-  font-size: 15px;
-  line-height: 22px;
-}
-
-.qa-log-header p {
-  margin: var(--space-1) 0 0;
-  color: var(--color-text-muted);
-  font-size: 11px;
-  line-height: 16px;
-}
-
-.qa-log-count {
-  flex: none;
-  color: var(--color-text-muted);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
 }
 
 .qa-log-viewport {
@@ -2637,25 +2588,16 @@ a.instance-name:hover {
   font-size: 13px;
 }
 
+/* No `qaRunId` to link to (ARTEL-723): the same label, plain and inert. */
+.qa-try-link--muted {
+  color: var(--color-text-muted);
+}
+
 .qa-try-meta {
   margin-left: auto;
   color: var(--color-text-muted);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
-}
-
-@media (max-width: 1023px) {
-  .qa-page--active .qa-workspace {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .qa-stream-panel {
-    min-height: 360px;
-  }
-
-  .qa-log-viewport {
-    max-height: 620px;
-  }
 }
 
 /* ── 3-tier scenario composition (case body + library) ───────────────── */
@@ -3386,6 +3328,12 @@ a.instance-name:hover {
 .issue-row-link {
   color: var(--color-action-primary);
 }
+
+/* No `qaRunId` to link to (ARTEL-723): the same label, plain and inert. */
+.issue-row-link--muted {
+  color: var(--color-text-muted);
+}
+
 .issue-row-actions {
   display: flex;
   gap: var(--space-2);
@@ -3458,6 +3406,270 @@ a.instance-name:hover {
 }
 .qa-issue-panel {
   margin-top: var(--space-5);
+}
+
+/* What a run cost, under what it did.
+
+   A definition list rather than a row of cards: DESIGN.md rules out repeated
+   rounded KPI tiles, and these four values are a caption for the run above them,
+   not four things being compared with each other. */
+.qa-usage-panel {
+  margin-top: var(--space-5);
+}
+
+/* 제목 아래의 설명 문장. `.panel-subtitle` 을 쓰지 않는 이유는 그것이 대문자 eyebrow 라
+   `text-transform: uppercase` 가 걸려 있어서다 — 한국어는 그대로 나오지만 영어 locale 의
+   문장은 통째로 대문자가 된다. */
+.qa-usage-note {
+  margin: var(--space-2) 0 var(--space-4);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+/* ── 프로젝트 지출 (ARTEL-725) ────────────────────────────────────────── */
+
+.usage-panel {
+  margin-top: var(--space-5);
+}
+
+/* 제목 아래의 설명 문장. `.panel-subtitle` 을 쓰지 않는 이유는 그것이 대문자 eyebrow 라
+   `text-transform: uppercase` 가 걸려 있어서다 — 한국어는 그대로 나오지만 영어 문구와
+   `Asia/Seoul` 같은 식별자는 통째로 대문자가 된다. */
+.usage-note {
+  margin: var(--space-2) 0 var(--space-4);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.qa-usage-grid {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.qa-usage-item dt {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--color-text-muted);
+}
+
+.qa-usage-item dd {
+  margin: 2px 0 0;
+  font-size: 18px;
+  line-height: 26px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+}
+
+.usage-panel-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.usage-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* 카드 격자가 아니라 정의 목록이다. DESIGN.md 가 반복되는 둥근 KPI 타일을 금지하고,
+   이 넷은 서로 비교되는 값이 아니라 아래 잔디의 머리말이다. */
+.usage-figures {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0 0 var(--space-5);
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+.usage-figure dt {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--color-text-muted);
+}
+
+.usage-figure dd {
+  margin: 2px 0 0;
+  font-size: 18px;
+  line-height: 26px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+}
+
+/* The hint carries what the number does not say — which calls the money stands
+   on, and that cached input is already inside the total above. Dropping it makes
+   a partial sum read as the whole bill. */
+.qa-usage-hint {
+  margin: 2px 0 0;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--color-text-muted);
+}
+
+/* 숫자가 말하지 않는 것을 여기서 말한다 — 금액이 몇 건 위에 얹혔는지, 기록이 없다는 것이
+   0 과 다르다는 것. 빼면 부분합이 전체 청구서로 읽힌다. */
+.usage-figure-hint {
+  margin: 2px 0 0;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--color-text-muted);
+}
+
+/* ── 잔디 ─────────────────────────────────────────────────────────────── */
+
+.grass-plot {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+  overflow-x: auto;
+  padding-bottom: var(--space-1);
+}
+
+.grass-weekdays {
+  display: grid;
+  grid-template-rows: repeat(7, 13px);
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  flex: 0 0 auto;
+}
+
+.grass-weekday {
+  font-size: 10px;
+  line-height: 13px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.grass-grid {
+  border-collapse: separate;
+  border-spacing: 3px;
+  margin: -3px;
+}
+
+.grass-cell {
+  width: 13px;
+  height: 13px;
+  padding: 0;
+  border-radius: 3px;
+  background: var(--color-bg-hover);
+  /* 옅은 칸이 배경에 묻히지 않도록 테두리를 남긴다. 이것이 없으면 level 0 과 level 1 이
+     대비가 낮은 화면에서 같은 칸으로 보인다. */
+  box-shadow: inset 0 0 0 1px var(--color-border-subtle);
+}
+
+/* 짙기는 중립 회색 한 축이다. 초록은 이 시스템에서 통과, 코랄은 실패이고
+   `--color-action-primary` 는 이 테마에서 critical 과 사실상 같은 색이다 — 지출은 셋 중
+   무엇도 아니다. 뜻은 칸에 붙은 글자가 지고 색은 규모만 말한다(DESIGN.md). */
+.grass-cell--1 {
+  background: color-mix(in srgb, var(--color-text-secondary) 28%, var(--color-bg-surface));
+}
+
+.grass-cell--2 {
+  background: color-mix(in srgb, var(--color-text-secondary) 52%, var(--color-bg-surface));
+}
+
+.grass-cell--3 {
+  background: color-mix(in srgb, var(--color-text-secondary) 76%, var(--color-bg-surface));
+}
+
+.grass-cell--4 {
+  background: var(--color-text-primary);
+}
+
+/* 창 밖의 칸. 주의 모양만 잡아 주고 아무것도 말하지 않는다 — 여기에 빈 칸을 그리면
+   프로젝트가 그때 아무것도 안 썼다고 말하는 것이 된다. */
+.grass-cell--void {
+  background: transparent;
+  box-shadow: none;
+}
+
+.grass-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.grass-legend-scale {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.grass-legend-scale .grass-cell {
+  width: 11px;
+  height: 11px;
+}
+
+/* ── 축별 표 ──────────────────────────────────────────────────────────── */
+
+.usage-table {
+  width: 100%;
+}
+
+.usage-table td.num,
+.usage-table th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.usage-row-label {
+  display: block;
+  color: var(--color-text-primary);
+}
+
+.usage-row-sub {
+  display: block;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--color-text-muted);
+}
+
+.usage-share {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.usage-share-track {
+  width: 56px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-bg-hover);
+  border: 1px solid var(--color-border-subtle);
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+
+.usage-share-fill {
+  display: block;
+  height: 100%;
+  background: var(--color-text-secondary);
+}
+
+/* 금액이 하한이라는 표시. `+` 가 뜻을 지고 색은 눈에 띄게만 한다. */
+.usage-partial {
+  margin-left: 2px;
+  color: var(--color-status-warning);
+  font-weight: 600;
+}
+
+/* Marks an amount as a floor. The `+` carries the meaning; the color only makes
+   it findable (DESIGN.md — never color alone). */
+.qa-usage-partial {
+  margin-left: 2px;
+  color: var(--color-status-warning);
+  font-weight: 600;
 }
 
 /* ── Issue tracker (ARTEL-672) ─────────────────────────────────────────── */
@@ -3783,6 +3995,9 @@ a.instance-name:hover {
 .qa-log-tabs{ display:inline-flex; border:1px solid var(--color-border-strong); border-radius:8px; overflow:hidden; }
 .qa-log-tabs button{ font:inherit; font-size:12px; padding:5px 14px; border:0; background:transparent; color:var(--color-text-secondary); cursor:pointer; }
 .qa-log-tabs button.on{ background:var(--color-action-primary,#4c8bf5); color:var(--color-text-on-accent,#fff); font-weight:600; }
+/* Carried over from `QaTryPage` (ARTEL-723): stream state + loaded-log count,
+   pushed to the row's far edge. `.mono` already gives them tabular numerals. */
+.qa-focus-logs-meta{ display:flex; align-items:center; gap:10px; margin-left:auto; font-size:11px; color:var(--color-text-muted); }
 .qa-focus-logs-body{ flex:1; min-height:0; display:flex; flex-direction:column; }
 .qa-focus-logs-body .qa-log-viewport{ flex:1; min-height:0; max-height:none; }
 .qa-focus-logs-body .qa-issue-panel{ flex:1; min-height:0; overflow-y:auto; border:0; }
@@ -4595,6 +4810,11 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   color: var(--color-action-primary);
 }
 
+/* No `qaRunId` to link to (ARTEL-723): the same label, plain and inert. */
+.table-link--muted {
+  color: var(--color-text-muted);
+}
+
 .table-meta {
   color: var(--color-text-muted);
   font-size: 12px;
@@ -4816,6 +5036,18 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
 .kg-arrow--REPLACES {
   fill: var(--color-action-primary);
 }
+/* Structural, not agent-reasoned: the ingest pipeline is the only writer, so
+   PART_OF gets a plain ink tone rather than one of the reasoning/success/
+   warning/failure colours, and a tight, even dash that is not REFINES's long
+   dash or DEPENDS_ON's dotted one. */
+.kg-edge--PART_OF .kg-edge-line,
+.kg-legend-line .kg-edge--PART_OF {
+  stroke: var(--color-text-primary);
+  stroke-dasharray: 4 2;
+}
+.kg-arrow--PART_OF {
+  fill: var(--color-text-primary);
+}
 /* A contradiction is the one relation that disagrees with its own endpoints, so
    it is the heaviest line on the page, gets a head at both ends because it has
    no direction, and carries a ✕ that survives any colour vision. */
@@ -4911,6 +5143,19 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   stroke-width: 3.4;
   fill-opacity: 0.34;
 }
+/* The document node's ring: a bigger, unfilled outline of the mark's own
+   shape, so a 기획서 reads as "this shape, but framed" rather than teaching a
+   fourth glyph. Tag colour stays on the inner mark only — the ring is about
+   what the node is, not what it is tagged. Scoped under `.kg-node--document`
+   so that class drives something, rather than sitting on the `<g>` unread. */
+.kg-node--document .kg-node-document-ring {
+  fill: none;
+  stroke: var(--color-border-strong);
+  stroke-width: 1.6;
+}
+.kg-node--document.is-selected .kg-node-document-ring {
+  stroke: var(--color-action-primary);
+}
 .kg-node.is-dimmed {
   opacity: 0.24;
 }
@@ -4967,6 +5212,13 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   fill-opacity: 0.18;
   stroke: var(--color-text-muted);
   stroke-width: 1.6;
+}
+/* Matches `.kg-node-document-ring` — the same outline, drawn small, so the
+   legend teaches the exact mark the canvas uses. */
+.kg-legend-mark-ring {
+  fill: none;
+  stroke: var(--color-border-strong);
+  stroke-width: 1.4;
 }
 .kg-legend-name {
   color: var(--color-text-primary);
@@ -5097,6 +5349,24 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   font-size: 13px;
   line-height: 20px;
   color: var(--color-text-primary);
+}
+/* The body preserves the server's line breaks — an item extracted from a
+   document is several `genre: …` style lines joined by `\n`, and collapsing
+   them onto one line is unreadable (ARTEL-754). No raised background, unlike
+   `.kg-detail-note`: this is the item's own prose, not a callout. */
+.kg-detail-body {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--color-text-primary);
+}
+.kg-detail-body-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
 }
 .kg-detail-link {
   color: var(--color-action-primary);
@@ -7534,3 +7804,266 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
 .askmodal-dot--here{ background:var(--color-accent,#e8623c); border-color:var(--color-accent,#e8623c);
   transform:scale(1.25); }
 .askmodal-count{ font-size:12px; color:var(--color-text-muted); }
+
+/* ── Case library ────────────────────────────────────────────────────────── */
+
+/* 목록과 편집 폼을 나란히 둔다. 케이스를 고칠 때 참고하는 것은 옆 행들이라 — 같은 씬의
+   다른 케이스가 무엇을 기대하는지 — 편집 폼이 목록을 덮는 modal 이면 그것을 못 본다. */
+.tcl {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: minmax(0, 1fr) 340px;
+  align-items: start;
+}
+
+/* 1439px 아래에서는 편집 폼이 목록 아래로 내려간다. 340px 를 빼고 남는 폭으로는 스텝과
+   기대결과가 한 줄에 서지 못해 모든 행이 세 줄이 된다. */
+@media (max-width: 1439px) {
+  .tcl {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.tcl-list-panel,
+.tcl-editor-panel {
+  min-width: 0;
+}
+
+.tcl-editor-panel {
+  position: sticky;
+  top: var(--space-3);
+}
+
+@media (max-width: 1439px) {
+  .tcl-editor-panel {
+    position: static;
+  }
+}
+
+.tcl-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.tcl-filter {
+  display: flex;
+  min-width: 160px;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.tcl-filter--grow {
+  flex: 1 1 260px;
+}
+
+.tcl-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.tcl-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.tcl-chips .fchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 오른쪽 끝으로 민다. 몇 건이 걸러졌는지는 필터를 읽은 다음에 보는 값이다. */
+.tcl-shown {
+  margin-left: auto;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.tcl-rows {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tcl-row {
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-2);
+  border: 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.tcl-row:hover {
+  background: var(--color-bg-hover);
+}
+
+/* 선택은 왼쪽 3px 막대로 표시한다. 배경만 바꾸면 hover 와 구별되지 않고, 배경을 더 진하게
+   하면 그 위의 11px 메타데이터가 대비 밑으로 내려간다. */
+.tcl-row--selected {
+  border-left: 3px solid var(--color-action-primary);
+  padding-left: calc(var(--space-2) - 3px);
+  background: var(--color-bg-raised);
+}
+
+.tcl-row .vdot {
+  margin-top: 5px;
+}
+
+.tcl-row-main {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.tcl-row-title {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.tcl-row-meta {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.tcl-row-expected {
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.5;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tcl-row-outcome {
+  display: flex;
+  width: 168px;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  text-align: right;
+}
+
+/* 색만으로 결과를 말하지 않는다. 글자가 곧 판정이고 색은 그 위에 얹는 것이다. */
+.tcl-outcome {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border: 1px solid;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.tcl-outcome--verified {
+  border-color: var(--color-status-success);
+  background: var(--color-status-success-muted);
+  color: var(--color-text-primary);
+}
+
+.tcl-outcome--draft {
+  border-color: var(--color-status-warning);
+  background: var(--color-status-warning-muted);
+  color: var(--color-text-primary);
+}
+
+.tcl-outcome--broken {
+  border-color: var(--color-status-critical);
+  background: var(--color-status-critical-muted);
+  color: var(--color-text-primary);
+}
+
+.tcl-row-build,
+.tcl-row-added {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.tcl-row-added {
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+@media (max-width: 1023px) {
+  .tcl-row {
+    flex-wrap: wrap;
+  }
+
+  .tcl-row-outcome {
+    width: auto;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-2);
+  }
+}
+
+.tcl-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.tcl-editor-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.tcl-editor-head h3 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.tcl-editor .field-input--multiline {
+  min-height: 64px;
+}
+
+.tcl-editor-pair {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.tcl-editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.tcl-editor-spacer {
+  flex: 1;
+}

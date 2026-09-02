@@ -73,6 +73,7 @@ export function parseQaTry(data: unknown, status = 200): QaTry {
     status: parseStatus(record.status, status),
     startedAt: asNullableString(record.startedAt),
     completedAt: asNullableString(record.completedAt),
+    qaRunId: optionalId(record.qaRunId),
   }
 }
 
@@ -334,12 +335,6 @@ export async function sendQaMessage(qaTryId: string, message: string): Promise<v
     method: 'POST',
     ...jsonRequest({ message }),
   })
-  if (!response.ok) throw await toApiError(response)
-}
-
-/** Ends a running QA Try. A run that already ended answers 409. */
-export async function cancelQaTry(qaTryId: string): Promise<void> {
-  const response = await apiFetch(qaPath(qaTryId, '/cancel'), { method: 'POST' })
   if (!response.ok) throw await toApiError(response)
 }
 

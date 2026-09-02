@@ -29,6 +29,7 @@ function node(id: string, x: number, y: number): PlacedNode {
     summary: id,
     version: 1,
     createdByQaTryId: null,
+    createdByQaRunId: null,
     createdAt: '2026-08-11T00:00:00Z',
     anchors: [],
   }

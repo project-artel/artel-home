@@ -47,6 +47,12 @@ export type QaTry = {
   status: QaTryStatus
   startedAt: string | null
   completedAt: string | null
+  /**
+   * The `QaRun` this scenario belongs to. `null` for a try older than ARTEL-722,
+   * or while that server change has not shipped yet — callers render a plain
+   * muted row instead of a link when this is `null`, never a dead link.
+   */
+  qaRunId: string | null
 }
 
 /**
@@ -115,4 +121,15 @@ export type QaStreamState = 'connecting' | 'live' | 'degraded' | 'offline' | 'cl
 
 export function isTerminalQaStatus(status: QaTryStatus): boolean {
   return status === 'COMPLETED' || status === 'FAILED' || status === 'CANCELLED'
+}
+
+/**
+ * Address of the QA run console (ARTEL-723), optionally pinned to one
+ * scenario. The six call sites that used to link to the retired `QaTryPage`
+ * build their href through this one function so the query param shape lives
+ * in one place.
+ */
+export function qaRunPath(projectId: string, qaRunId: string, qaTryId?: string): string {
+  const base = `/projects/${encodeURIComponent(projectId)}/qa-runs/${encodeURIComponent(qaRunId)}`
+  return qaTryId === undefined ? base : `${base}?try=${encodeURIComponent(qaTryId)}`
 }
