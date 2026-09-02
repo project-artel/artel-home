@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { AuthApiError, parseAuthUser, registerEmail, verifyEmail } from './authApi'
-import { composeNicknameTag, isEmailValid, toAccountProfileDraft } from './authTypes'
+import {
+  composeNicknameTag,
+  isEmailValid,
+  parseNicknameTag,
+  toAccountProfileDraft,
+} from './authTypes'
 
 /*
  * `ARTEL-731` renames the old player-handle field to `userTag` and drops its
@@ -186,5 +191,38 @@ describe('composeNicknameTag', () => {
 
   it('does not assume the tag is four digits wide', () => {
     assert.equal(composeNicknameTag('Ash', '123456'), 'Ash#123456')
+  })
+})
+
+/*
+ * `ARTEL-735` reads the composed form back: the invite field lets someone paste
+ * `Yuni#0042` instead of picking from the suggestion list, so the same format
+ * now has to be split as well as joined. The server's `UserHandle.parse` makes
+ * the same three decisions — split at the last separator, digits only in the
+ * tag, and a `null` for anything else — and a disagreement here would send a
+ * different string to be looked up than the one the person typed.
+ */
+describe('parseNicknameTag', () => {
+  it('splits the composed form back into its two halves', () => {
+    assert.deepEqual(parseNicknameTag('Yuni#0042'), { nickname: 'Yuni', userTag: '0042' })
+    assert.deepEqual(parseNicknameTag(composeNicknameTag('Ash', '123456')), {
+      nickname: 'Ash',
+      userTag: '123456',
+    })
+  })
+
+  // A nickname may contain the separator; a userTag never can, so the last one
+  // is the boundary.
+  it('splits at the last separator', () => {
+    assert.deepEqual(parseNicknameTag('a#b#0001'), { nickname: 'a#b', userTag: '0001' })
+  })
+
+  it('rejects text that is not in that form', () => {
+    assert.equal(parseNicknameTag('Yuni'), null)
+    assert.equal(parseNicknameTag('Yuni#'), null)
+    assert.equal(parseNicknameTag('Yuni#00a2'), null)
+    assert.equal(parseNicknameTag('#0042'), null)
+    assert.equal(parseNicknameTag('hubot@example.com'), null)
+    assert.equal(parseNicknameTag(''), null)
   })
 })

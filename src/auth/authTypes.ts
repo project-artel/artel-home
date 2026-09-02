@@ -112,6 +112,13 @@ export function isEmailValid(value: string): boolean {
 }
 
 /**
+ * The character between the two halves of `Yuni#0042`. It lives here because
+ * both [composeNicknameTag] and [parseNicknameTag] need it, and a second
+ * literal elsewhere would be a second place that decides the format.
+ */
+const NICKNAME_TAG_SEPARATOR = '#'
+
+/**
  * `Yuni#0042` — the one way this repository writes a person's chosen name.
  * Every screen that names a user by nickname composes it through here rather
  * than templating the two fields itself, so there is exactly one place that
@@ -119,5 +126,33 @@ export function isEmailValid(value: string): boolean {
  * or otherwise assumed to be four digits wide.
  */
 export function composeNicknameTag(nickname: string, userTag: string): string {
-  return `${nickname}#${userTag}`
+  return `${nickname}${NICKNAME_TAG_SEPARATOR}${userTag}`
+}
+
+export type NicknameTag = {
+  nickname: string
+  userTag: string
+}
+
+/**
+ * The inverse of [composeNicknameTag], for text a person typed or pasted.
+ * Returns `null` when the text is not in that form, which is the answer for an
+ * email address and for a bare nickname alike.
+ *
+ * **Splits at the last separator, not the first.** A `nickname` may contain
+ * `#`, so splitting at the first one cuts `a#b#0001` down to `a`. A `userTag`
+ * is digits only and can never hold the separator, so the last one is always
+ * the boundary. `UserHandle.parse` on the server splits the same way, and the
+ * two have to agree: this decides which text gets looked up, and that one
+ * decides who the lookup finds.
+ */
+export function parseNicknameTag(value: string): NicknameTag | null {
+  const separatorIndex = value.lastIndexOf(NICKNAME_TAG_SEPARATOR)
+  if (separatorIndex <= 0) return null
+
+  const nickname = value.slice(0, separatorIndex)
+  const userTag = value.slice(separatorIndex + 1)
+  if (userTag.length === 0 || !/^[0-9]+$/.test(userTag)) return null
+
+  return { nickname, userTag }
 }

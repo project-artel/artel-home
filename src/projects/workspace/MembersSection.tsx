@@ -4,13 +4,13 @@ import { ConfirmActionDialog } from '../../design-system/primitives/ConfirmActio
 import { useI18n } from '../../i18n/useI18n'
 import { apiErrorMessage } from '../apiErrorMessage'
 import { formatDate } from '../formatters'
+import { resolveInvitationTarget, type InviteTargetValue } from '../invitationTarget'
 import { removeMember, revokeInvitation, sendInvitation } from '../memberApi'
 import {
   INVITATION_CANDIDATE_QUERY_MIN_LENGTH,
   INVITATION_EMAIL_MAX_LENGTH,
   isInvitationExpired,
   type InvitationCandidate,
-  type InvitationDraft,
   type ProjectInvitation,
   type ProjectMember,
 } from '../memberTypes'
@@ -170,13 +170,6 @@ function MemberRow({
   )
 }
 
-/** 초대 입력창이 현재 가리키는 대상. 텍스트를 편집하면 [candidate] 는 항상 비워진다 —
- * 골라 놓은 사람과 지금 보이는 글자가 어긋난 채로 남는 상태를 만들지 않는다. */
-type InviteTargetValue = {
-  text: string
-  candidate: InvitationCandidate | null
-}
-
 const emptyInviteTarget: InviteTargetValue = { text: '', candidate: null }
 
 /**
@@ -210,19 +203,24 @@ function InvitePanel({
     setFailure(null)
 
     try {
-      const draft: InvitationDraft =
-        target.candidate !== null
-          ? { kind: 'appUserId', appUserId: target.candidate.appUserId, role }
-          : { kind: 'email', email: target.text, role }
-      const sentTo =
-        target.candidate !== null
-          ? composeNicknameTag(target.candidate.nickname, target.candidate.userTag)
-          : target.text.trim()
+      // 목록에서 사람을 고르지 않고 `nickname#userTag` 를 붙여넣은 채 보내는 경로가 있어서,
+      // 보내기 직전에 그 글자가 지금 누구를 가리키는지 확인한다.
+      const resolved = await resolveInvitationTarget(projectId, target, role)
+      if (resolved.status !== 'ready') {
+        setFailure(
+          {
+            handleNotFound: copy.inviteHandleNotFound,
+            handleAmbiguous: copy.inviteHandleAmbiguous,
+            unusableText: copy.inviteTargetUnusable,
+          }[resolved.status],
+        )
+        return
+      }
 
-      await sendInvitation(projectId, draft)
+      await sendInvitation(projectId, resolved.draft)
       setTarget(emptyInviteTarget)
       setRole('MEMBER')
-      onAnnounce(copy.sentAnnouncement(sentTo))
+      onAnnounce(copy.sentAnnouncement(resolved.sentTo))
       onChanged()
     } catch (error: unknown) {
       // 서버가 거절하는 이유가 여섯 가지라 code 로 문장을 고른다. 사전에 없는 code 는

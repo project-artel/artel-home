@@ -208,6 +208,10 @@ export const projectsEn = {
     candidateEmpty: 'No matching account',
     candidateSearchFailed: 'Matching accounts could not be loaded.',
     candidateNoLogin: 'No linked login',
+    inviteHandleNotFound:
+      'No account can be invited under that name. They may already be a member, or already have an invitation waiting for an answer.',
+    inviteHandleAmbiguous: 'More than one account matches that name. Pick the person from the list.',
+    inviteTargetUnusable: 'Pick a person from the list, or type a full email address.',
     roleLabel: 'Role',
     send: 'Send invitation',
     sending: 'Sending…',
@@ -553,6 +557,10 @@ export const projectsKo: Localized<typeof projectsEn> = {
     candidateEmpty: '일치하는 계정이 없습니다',
     candidateSearchFailed: '일치하는 계정을 불러오지 못했습니다.',
     candidateNoLogin: '연결된 로그인이 없습니다',
+    inviteHandleNotFound:
+      '그 이름으로 초대할 수 있는 계정이 없습니다. 이미 멤버이거나, 답을 기다리는 초대가 이미 있을 수 있습니다.',
+    inviteHandleAmbiguous: '그 이름에 계정이 둘 이상 맞습니다. 목록에서 사람을 골라 주세요.',
+    inviteTargetUnusable: '목록에서 사람을 고르거나, 이메일 주소를 전부 적어 주세요.',
     roleLabel: '역할',
     send: '초대 보내기',
     sending: '보내는 중…',
