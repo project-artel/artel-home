@@ -88,6 +88,12 @@ export const projectsEn = {
     historyTitle: 'Earlier versions',
     current: 'Current',
     download: 'Download',
+    delete: 'Delete',
+    deleteConfirmCopy:
+      'Deleting this document cannot be undone, and the knowledge extracted from it disappears with it.',
+    deleteConfirm: 'Delete',
+    deletedAnnouncement: (version: number) => `Version ${version} deleted.`,
+    deleteFailed: 'The document could not be deleted. Please try again.',
     problems: {
       notPdf: 'Only PDF files can be uploaded.',
       emptyFile: 'That file is empty.',
@@ -430,6 +436,11 @@ export const projectsKo: Localized<typeof projectsEn> = {
     historyTitle: '이전 버전',
     current: '현재',
     download: '다운로드',
+    delete: '삭제',
+    deleteConfirmCopy: '이 문서를 삭제하면 되돌릴 수 없고, 이 문서에서 추출한 지식도 함께 사라집니다.',
+    deleteConfirm: '삭제',
+    deletedAnnouncement: (version: number) => `버전 ${version}을 삭제했습니다.`,
+    deleteFailed: '문서를 삭제하지 못했습니다. 다시 시도해 주세요.',
     problems: {
       notPdf: 'PDF 파일만 업로드할 수 있습니다.',
       emptyFile: '빈 파일입니다.',

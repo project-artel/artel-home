@@ -60,6 +60,7 @@ export type WorkspaceValue = {
 
   applyProject: (project: ProjectDetail) => void
   applyNewDocument: (document: ProjectDocument) => void
+  applyRemovedDocument: (documentId: string) => void
   applyInstance: (instance: GameInstance) => void
   removeInstance: (instanceId: string) => void
   applyBuild: (build: GameBuild) => void
