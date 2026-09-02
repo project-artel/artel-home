@@ -7540,3 +7540,266 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
 .askmodal-dot--here{ background:var(--color-accent,#e8623c); border-color:var(--color-accent,#e8623c);
   transform:scale(1.25); }
 .askmodal-count{ font-size:12px; color:var(--color-text-muted); }
+
+/* ── Case library ────────────────────────────────────────────────────────── */
+
+/* 목록과 편집 폼을 나란히 둔다. 케이스를 고칠 때 참고하는 것은 옆 행들이라 — 같은 씬의
+   다른 케이스가 무엇을 기대하는지 — 편집 폼이 목록을 덮는 modal 이면 그것을 못 본다. */
+.tcl {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: minmax(0, 1fr) 340px;
+  align-items: start;
+}
+
+/* 1439px 아래에서는 편집 폼이 목록 아래로 내려간다. 340px 를 빼고 남는 폭으로는 스텝과
+   기대결과가 한 줄에 서지 못해 모든 행이 세 줄이 된다. */
+@media (max-width: 1439px) {
+  .tcl {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.tcl-list-panel,
+.tcl-editor-panel {
+  min-width: 0;
+}
+
+.tcl-editor-panel {
+  position: sticky;
+  top: var(--space-3);
+}
+
+@media (max-width: 1439px) {
+  .tcl-editor-panel {
+    position: static;
+  }
+}
+
+.tcl-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.tcl-filter {
+  display: flex;
+  min-width: 160px;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.tcl-filter--grow {
+  flex: 1 1 260px;
+}
+
+.tcl-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.tcl-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.tcl-chips .fchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 오른쪽 끝으로 민다. 몇 건이 걸러졌는지는 필터를 읽은 다음에 보는 값이다. */
+.tcl-shown {
+  margin-left: auto;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.tcl-rows {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tcl-row {
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-2);
+  border: 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.tcl-row:hover {
+  background: var(--color-bg-hover);
+}
+
+/* 선택은 왼쪽 3px 막대로 표시한다. 배경만 바꾸면 hover 와 구별되지 않고, 배경을 더 진하게
+   하면 그 위의 11px 메타데이터가 대비 밑으로 내려간다. */
+.tcl-row--selected {
+  border-left: 3px solid var(--color-action-primary);
+  padding-left: calc(var(--space-2) - 3px);
+  background: var(--color-bg-raised);
+}
+
+.tcl-row .vdot {
+  margin-top: 5px;
+}
+
+.tcl-row-main {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.tcl-row-title {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.tcl-row-meta {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.tcl-row-expected {
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.5;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tcl-row-outcome {
+  display: flex;
+  width: 168px;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  text-align: right;
+}
+
+/* 색만으로 결과를 말하지 않는다. 글자가 곧 판정이고 색은 그 위에 얹는 것이다. */
+.tcl-outcome {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border: 1px solid;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.tcl-outcome--verified {
+  border-color: var(--color-status-success);
+  background: var(--color-status-success-muted);
+  color: var(--color-text-primary);
+}
+
+.tcl-outcome--draft {
+  border-color: var(--color-status-warning);
+  background: var(--color-status-warning-muted);
+  color: var(--color-text-primary);
+}
+
+.tcl-outcome--broken {
+  border-color: var(--color-status-critical);
+  background: var(--color-status-critical-muted);
+  color: var(--color-text-primary);
+}
+
+.tcl-row-build,
+.tcl-row-added {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.tcl-row-added {
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+@media (max-width: 1023px) {
+  .tcl-row {
+    flex-wrap: wrap;
+  }
+
+  .tcl-row-outcome {
+    width: auto;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-2);
+  }
+}
+
+.tcl-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.tcl-editor-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.tcl-editor-head h3 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.tcl-editor .field-input--multiline {
+  min-height: 64px;
+}
+
+.tcl-editor-pair {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.tcl-editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.tcl-editor-spacer {
+  flex: 1;
+}

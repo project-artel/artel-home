@@ -292,6 +292,7 @@ export const projectsEn = {
     nav: {
       dashboard: 'Dashboard',
       documents: 'Planning document',
+      testCases: 'Case library',
       testRuns: 'Test runs',
       qa: 'Run QA',
       qaHistory: 'QA history',
@@ -605,6 +606,7 @@ export const projectsKo: Localized<typeof projectsEn> = {
     nav: {
       dashboard: '대시보드',
       documents: '기획 문서',
+      testCases: '케이스 라이브러리',
       testRuns: '테스트 런',
       qa: 'QA 실행',
       qaHistory: 'QA 히스토리',
