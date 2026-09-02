@@ -25,6 +25,22 @@ export class UnauthorizedError extends Error {
   }
 }
 
+/**
+ * A failure the email endpoints described through their status code rather
+ * than an OK response. Neither endpoint's contract (`## Server contract` on
+ * `ARTEL-733`) promises a JSON error body, so `status` — not a parsed `code`
+ * field — is what a caller distinguishes `409` and `400` on.
+ */
+export class AuthApiError extends Error {
+  readonly status: number
+
+  constructor(status: number, message: string) {
+    super(message)
+    this.name = 'AuthApiError'
+    this.status = status
+  }
+}
+
 let unauthorizedHandler: (() => void) | null = null
 
 /**
@@ -140,7 +156,9 @@ export function parseAuthUser(data: unknown): AuthUser {
     throw new Error('Malformed session payload')
   }
 
-  const { id, displayName, email, nickname, userTag, locale, identities } = data as Record<string, unknown>
+  const {
+    id, displayName, email, emailVerified, pendingEmail, nickname, userTag, locale, identities,
+  } = data as Record<string, unknown>
 
   if (
     typeof id !== 'string'
@@ -155,6 +173,10 @@ export function parseAuthUser(data: unknown): AuthUser {
     id,
     displayName,
     email: typeof email === 'string' ? email : null,
+    // A session from before `ARTEL-732` added this field, or a wrong-typed
+    // value, degrades to "not verified" rather than a false positive.
+    emailVerified: typeof emailVerified === 'boolean' ? emailVerified : false,
+    pendingEmail: typeof pendingEmail === 'string' ? pendingEmail : null,
     nickname,
     userTag,
     // A locale the client has no translations for degrades to "never chosen".
@@ -222,6 +244,51 @@ export async function updateMyProfile(profile: AccountProfileDraft): Promise<Aut
   }
 
   return parseAuthUser(await response.json())
+}
+
+/**
+ * Registers a new email address as pending. The response is `202`, never a
+ * body — the address the server just accepted is the exact string the caller
+ * already sent, so `AccountSettingsPage` applies it to `AuthProvider` itself
+ * rather than re-fetching `/api/auth/me` for one field.
+ *
+ * `409` means another verified account already holds this address; a caller
+ * that needs to say so distinguishes it from a generic failure via
+ * `error.status`.
+ */
+export async function registerEmail(email: string): Promise<void> {
+  const response = await apiFetch('/api/auth/me/email', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  })
+
+  if (response.status !== 202) {
+    throw new AuthApiError(response.status, 'Unable to register the email address')
+  }
+}
+
+/**
+ * Consumes the verification token. `ARTEL-733` sends no real email — the
+ * server only logs the token — so this is what the account settings screen
+ * calls once the user pastes what they read from that log. The response is
+ * `204`, so the caller applies the verified state itself rather than getting
+ * an updated `AuthUser` back.
+ *
+ * `400` covers a token that is unknown, expired, or already consumed; a
+ * caller that needs to say so distinguishes it from a generic failure via
+ * `error.status`.
+ */
+export async function verifyEmail(token: string): Promise<void> {
+  const response = await apiFetch('/api/auth/me/email/verify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token }),
+  })
+
+  if (response.status !== 204) {
+    throw new AuthApiError(response.status, 'Unable to verify the email address')
+  }
 }
 
 /**

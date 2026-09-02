@@ -19,6 +19,22 @@ export type AuthUser = {
   displayName: string
   email: string | null
   /**
+   * Whether `email` has completed the `ARTEL-733` verification step. `false`
+   * whenever `email` is `null` — an unset address is never verified — and also
+   * `false` for a session the server described before `ARTEL-732` added this
+   * field, so an old session degrades to "cannot receive invitations" rather
+   * than a false positive.
+   */
+  emailVerified: boolean
+  /**
+   * An address `POST /api/auth/me/email` accepted but that has not yet been
+   * confirmed through `POST /api/auth/me/email/verify`, or `null` when no
+   * registration is in flight. Distinct from `email`: registering a new
+   * address while a previous one is already verified leaves `email` pointing
+   * at the still-active address until this one is confirmed.
+   */
+  pendingEmail: string | null
+  /**
    * The name the user chose on the account settings screen. The server
    * guarantees every user has one: a new account gets one at creation, and
    * an existing account was backfilled from its provider display name — so
@@ -69,6 +85,30 @@ export const NICKNAME_MAX_LENGTH = 64
  */
 export function toAccountProfileDraft(nickname: string): AccountProfileDraft {
   return { nickname: nickname.trim() }
+}
+
+/**
+ * `320` is the widest an email address can be under RFC 5321 (64 for the
+ * local part, `@`, 255 for the domain), and matches
+ * `INVITATION_EMAIL_MAX_LENGTH` in `memberTypes.ts` — the two flows land on
+ * the same server-side column width.
+ */
+export const EMAIL_MAX_LENGTH = 320
+
+/**
+ * Local part, `@`, domain part with at least one `.` — deliberately looser
+ * than the full RFC 5322 grammar. This only has to catch an obviously
+ * malformed address before it reaches the server; the server is the actual
+ * authority on whether an address is deliverable.
+ */
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+/**
+ * Only for a non-empty candidate — the caller trims the draft and turns an
+ * empty result into "nothing to register" before this ever runs.
+ */
+export function isEmailValid(value: string): boolean {
+  return EMAIL_PATTERN.test(value) && value.length <= EMAIL_MAX_LENGTH
 }
 
 /**

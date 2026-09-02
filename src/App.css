@@ -588,6 +588,16 @@ h1 {
   color: var(--color-action-primary);
 }
 
+.badge--success {
+  border-color: var(--color-status-success);
+  color: var(--color-status-success);
+}
+
+.badge--warning {
+  border-color: var(--color-status-warning);
+  color: var(--color-status-warning);
+}
+
 .project-row--skeleton {
   display: flex;
   flex-direction: column;
@@ -762,6 +772,22 @@ h1 {
   border-radius: var(--radius-md);
   color: var(--color-text-primary);
   background: var(--color-status-critical-muted);
+  font-size: 13px;
+}
+
+/* Same shape as `.inline-error`, amber rather than critical — for a state
+   that is unresolved but not a failure, such as an email address still
+   waiting on verification. */
+.inline-notice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-4) 0;
+  padding: var(--space-3);
+  border: 1px solid var(--color-status-warning);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  background: var(--color-status-warning-muted);
   font-size: 13px;
 }
 
