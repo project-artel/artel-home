@@ -1,13 +1,16 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { AuthApiError, parseAuthUser, registerEmail, verifyEmail } from './authApi'
-import { isBattleTagValid, isEmailValid, resolveDisplayNickname, toAccountProfileDraft } from './authTypes'
+import { composeNicknameTag, isEmailValid, toAccountProfileDraft } from './authTypes'
 
 /*
- * `ARTEL-730` adds `nickname` and `battleTag` to the session payload. The only new
- * logic on this side of that contract is: how the two fields degrade when the
- * session omits them, how a BattleTag candidate is judged, how a form's two text
- * fields become the wire payload, and what the screen shows when nickname is unset.
+ * `ARTEL-731` renames the old player-handle field to `userTag` and drops its
+ * client-side format check — the server now generates the tag, so the browser
+ * never validates its shape. `nickname` and `userTag` are both required on the
+ * session payload, so the only new logic on this side of that contract is:
+ * parsing them, refusing a payload missing either one, trimming a nickname
+ * candidate for the wire, and composing the `nickname#userTag` display form
+ * both this screen and the member list need.
  */
 
 const sessionPayload = {
@@ -17,7 +20,7 @@ const sessionPayload = {
   emailVerified: true,
   pendingEmail: null,
   nickname: 'The Octocat',
-  battleTag: 'Octocat#1234',
+  userTag: '1234',
   locale: null,
   identities: [],
 }
@@ -47,19 +50,17 @@ describe('parseAuthUser', () => {
   it('reads a session that carries both fields', () => {
     const user = parseAuthUser(sessionPayload)
     assert.equal(user.nickname, 'The Octocat')
-    assert.equal(user.battleTag, 'Octocat#1234')
+    assert.equal(user.userTag, '1234')
   })
 
-  it('degrades a missing nickname or BattleTag to null rather than dropping the session', () => {
-    const user = parseAuthUser({ ...sessionPayload, nickname: undefined, battleTag: undefined })
-    assert.equal(user.nickname, null)
-    assert.equal(user.battleTag, null)
+  it('throws on a session missing a nickname or userTag rather than inventing one', () => {
+    assert.throws(() => parseAuthUser({ ...sessionPayload, nickname: undefined }))
+    assert.throws(() => parseAuthUser({ ...sessionPayload, userTag: undefined }))
   })
 
-  it('degrades a non-string nickname or BattleTag to null', () => {
-    const user = parseAuthUser({ ...sessionPayload, nickname: 12, battleTag: {} })
-    assert.equal(user.nickname, null)
-    assert.equal(user.battleTag, null)
+  it('throws on a non-string nickname or userTag', () => {
+    assert.throws(() => parseAuthUser({ ...sessionPayload, nickname: 12 }))
+    assert.throws(() => parseAuthUser({ ...sessionPayload, userTag: {} }))
   })
 
   it('reads a session that carries a verified email and no pending one', () => {
@@ -146,30 +147,6 @@ describe('verifyEmail', () => {
   })
 })
 
-describe('isBattleTagValid', () => {
-  it('accepts a name, "#", and 1 to 8 digits', () => {
-    assert.equal(isBattleTagValid('Ashbringer#1'), true)
-    assert.equal(isBattleTagValid('Ashbringer#12345678'), true)
-  })
-
-  it('rejects a missing or malformed separator', () => {
-    assert.equal(isBattleTagValid('Ashbringer1234'), false)
-    assert.equal(isBattleTagValid('Ashbringer#'), false)
-  })
-
-  it('rejects more than 8 digits', () => {
-    assert.equal(isBattleTagValid('Ashbringer#123456789'), false)
-  })
-
-  it('rejects a name longer than 24 characters', () => {
-    assert.equal(isBattleTagValid(`${'a'.repeat(25)}#1234`), false)
-  })
-
-  it('rejects a second "#" inside the name', () => {
-    assert.equal(isBattleTagValid('Ash#bringer#1234'), false)
-  })
-})
-
 describe('isEmailValid', () => {
   it('accepts a local part, "@", and a domain with a dot', () => {
     assert.equal(isEmailValid('octocat@example.com'), true)
@@ -193,24 +170,21 @@ describe('isEmailValid', () => {
 })
 
 describe('toAccountProfileDraft', () => {
-  it('trims both fields', () => {
-    assert.deepEqual(toAccountProfileDraft('  Ash  ', '  Ashbringer#1234  '), {
-      nickname: 'Ash',
-      battleTag: 'Ashbringer#1234',
-    })
+  it('trims the nickname', () => {
+    assert.deepEqual(toAccountProfileDraft('  Ash  '), { nickname: 'Ash' })
   })
 
-  it('turns an empty or whitespace-only field into null, not an empty string', () => {
-    assert.deepEqual(toAccountProfileDraft('', '   '), { nickname: null, battleTag: null })
+  it('trims a whitespace-only nickname down to an empty string rather than null', () => {
+    assert.deepEqual(toAccountProfileDraft('   '), { nickname: '' })
   })
 })
 
-describe('resolveDisplayNickname', () => {
-  it('prints the chosen nickname when one is set', () => {
-    assert.equal(resolveDisplayNickname({ displayName: 'octocat', nickname: 'The Octocat' }), 'The Octocat')
+describe('composeNicknameTag', () => {
+  it('joins the nickname and userTag with "#"', () => {
+    assert.equal(composeNicknameTag('Ash', '1234'), 'Ash#1234')
   })
 
-  it('falls back to displayName when nickname is unset', () => {
-    assert.equal(resolveDisplayNickname({ displayName: 'octocat', nickname: null }), 'octocat')
+  it('does not assume the tag is four digits wide', () => {
+    assert.equal(composeNicknameTag('Ash', '123456'), 'Ash#123456')
   })
 })

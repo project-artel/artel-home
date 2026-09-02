@@ -3,9 +3,8 @@ import { AuthApiError, registerEmail, updateMyProfile, verifyEmail } from '../au
 import {
   EMAIL_MAX_LENGTH,
   NICKNAME_MAX_LENGTH,
-  isBattleTagValid,
+  composeNicknameTag,
   isEmailValid,
-  resolveDisplayNickname,
   toAccountProfileDraft,
   type AccountProfileDraft,
   type AuthUser,
@@ -15,18 +14,17 @@ import { useI18n } from '../i18n/useI18n'
 
 type ProfileFormDraft = {
   nickname: string
-  battleTag: string
 }
 
 function toFormDraft(user: AuthUser): ProfileFormDraft {
-  return { nickname: user.nickname ?? '', battleTag: user.battleTag ?? '' }
+  return { nickname: user.nickname }
 }
 
 /**
- * The signed-in user's own profile — nickname and BattleTag. This is not
- * `SettingsSection`, which edits the *project* the URL is scoped to; this
- * screen edits the account itself, so it sits outside the project workspace
- * at its own route.
+ * The signed-in user's own profile — nickname, and the `userTag` the server
+ * assigned alongside it. This is not `SettingsSection`, which edits the
+ * *project* the URL is scoped to; this screen edits the account itself, so it
+ * sits outside the project workspace at its own route.
  *
  * `ARTEL-733` adds `EmailPanel` as a sibling of `ProfilePanel` in the same
  * `section-columns` list, rather than folding email into `ProfilePanel` or
@@ -73,34 +71,33 @@ function ProfilePanel({
   applyProfile,
   user,
 }: {
-  applyProfile: (profile: AccountProfileDraft) => void
+  applyProfile: (user: AuthUser) => void
   user: AuthUser
 }) {
   const { t } = useI18n()
   const copy = t.account.profile
   const nicknameId = useId()
-  const battleTagId = useId()
 
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState<ProfileFormDraft>(() => toFormDraft(user))
-  const [battleTagError, setBattleTagError] = useState<string | null>(null)
+  const [nicknameError, setNicknameError] = useState<string | null>(null)
   const [failure, setFailure] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [announcement, setAnnouncement] = useState('')
 
   const saved = toFormDraft(user)
-  const dirty = draft.nickname !== saved.nickname || draft.battleTag !== saved.battleTag
+  const dirty = draft.nickname !== saved.nickname
 
   function startEditing() {
     setDraft(toFormDraft(user))
-    setBattleTagError(null)
+    setNicknameError(null)
     setFailure(null)
     setEditing(true)
   }
 
   /** Discards the draft, so nothing half-typed survives unseen. */
   function cancelEditing() {
-    setBattleTagError(null)
+    setNicknameError(null)
     setFailure(null)
     setEditing(false)
   }
@@ -108,24 +105,23 @@ function ProfilePanel({
   async function save(event: React.FormEvent) {
     event.preventDefault()
 
-    const profile = toAccountProfileDraft(draft.nickname, draft.battleTag)
+    const profile: AccountProfileDraft = toAccountProfileDraft(draft.nickname)
 
-    // Checked before the request goes out — the acceptance criterion for this
-    // field, not a courtesy. A malformed BattleTag never reaches the server.
-    if (profile.battleTag !== null && !isBattleTagValid(profile.battleTag)) {
-      setBattleTagError(copy.battleTagInvalid)
+    // Checked before the request goes out — the server treats a blank
+    // nickname as `invalid_nickname`, and a user can no longer clear it, so
+    // this is the one thing left for the browser to catch early.
+    if (profile.nickname.length === 0) {
+      setNicknameError(copy.nicknameRequired)
       return
     }
 
-    setBattleTagError(null)
+    setNicknameError(null)
     setFailure(null)
     setSaving(true)
 
     try {
-      await updateMyProfile(profile)
-      // The response is `204`; the values just accepted are the ones already
-      // in hand, so `AuthProvider` is updated from them directly.
-      applyProfile(profile)
+      const savedUser = await updateMyProfile(profile)
+      applyProfile(savedUser)
       setEditing(false)
       setAnnouncement(copy.savedAnnouncement)
     } catch {
@@ -162,34 +158,21 @@ function ProfilePanel({
           <div className="field">
             <label className="field-label" htmlFor={nicknameId}>{copy.nicknameLabel}</label>
             <input
+              aria-describedby={nicknameError !== null ? `${nicknameId}-error` : undefined}
+              aria-invalid={nicknameError !== null || undefined}
               className="field-input"
               disabled={saving}
               id={nicknameId}
               maxLength={NICKNAME_MAX_LENGTH}
-              onChange={(event) => setDraft({ ...draft, nickname: event.target.value })}
-              placeholder={user.displayName}
+              onChange={(event) => setDraft({ nickname: event.target.value })}
               value={draft.nickname}
             />
-            <p className="field-hint">{copy.nicknameHint}</p>
-          </div>
-
-          <div className="field">
-            <label className="field-label" htmlFor={battleTagId}>{copy.battleTagLabel}</label>
-            <input
-              aria-describedby={battleTagError !== null ? `${battleTagId}-error` : undefined}
-              aria-invalid={battleTagError !== null || undefined}
-              className="field-input mono"
-              disabled={saving}
-              id={battleTagId}
-              onChange={(event) => setDraft({ ...draft, battleTag: event.target.value })}
-              placeholder={copy.battleTagPlaceholder}
-              value={draft.battleTag}
-            />
-            {battleTagError !== null ? (
-              <p className="field-error" id={`${battleTagId}-error`}>{battleTagError}</p>
+            {nicknameError !== null ? (
+              <p className="field-error" id={`${nicknameId}-error`}>{nicknameError}</p>
             ) : (
-              <p className="field-hint">{copy.battleTagHint}</p>
+              <p className="field-hint">{copy.nicknameHint}</p>
             )}
+            <p className="field-hint">{copy.userTagHint}</p>
           </div>
 
           <div className="form-actions">
@@ -209,15 +192,11 @@ function ProfilePanel({
       ) : (
         <dl className="detail-fields">
           <dt>{copy.nicknameLabel}</dt>
-          <dd>{resolveDisplayNickname(user)}</dd>
+          <dd>{user.nickname}</dd>
 
-          <dt>{copy.battleTagLabel}</dt>
+          <dt>{copy.userTagLabel}</dt>
           <dd>
-            {user.battleTag !== null ? (
-              <span className="mono">{user.battleTag}</span>
-            ) : (
-              <span className="detail-empty">{copy.notSet}</span>
-            )}
+            <span className="mono">{composeNicknameTag(user.nickname, user.userTag)}</span>
           </dd>
         </dl>
       )}
@@ -294,8 +273,8 @@ function EmailPanel({
     const candidate = emailDraft.trim().toLowerCase()
 
     // Checked before the request goes out, the same rhythm `ProfilePanel`
-    // uses for BattleTag: an obviously malformed address never reaches the
-    // server.
+    // uses for a blank nickname: an obviously malformed address never
+    // reaches the server.
     if (!isEmailValid(candidate)) {
       setEmailError(copy.emailInvalid)
       return

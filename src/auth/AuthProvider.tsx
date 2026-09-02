@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { endSession, getCurrentUser, setUnauthorizedHandler } from './authApi'
 import { AuthContext, type AuthContextValue } from './AuthContext'
-import type { AccountProfileDraft, AuthState } from './authTypes'
+import type { AuthState, AuthUser } from './authTypes'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({ status: 'loading', user: null })
@@ -14,12 +14,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const applyProfile = useCallback((profile: AccountProfileDraft) => {
-    setState((current) =>
-      current.status === 'authenticated'
-        ? { status: 'authenticated', user: { ...current.user, ...profile } }
-        : current,
-    )
+  const applyProfile = useCallback((user: AuthUser) => {
+    setState((current) => (current.status === 'authenticated' ? { status: 'authenticated', user } : current))
   }, [])
 
   const applyPendingEmail = useCallback((pendingEmail: string) => {

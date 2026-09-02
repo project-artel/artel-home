@@ -7417,9 +7417,9 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   font-weight: 400;
 }
 
-/* battleTag 는 handle 이라 다른 필드처럼 sans 로 읽히면 안 된다 — `.mono` 가 그 값을
-   ID·로그와 같은 서체로 그린다. */
-.member-row-battletag {
+/* nickname#userTag 는 handle 이라 다른 필드처럼 sans 로 읽히면 안 된다 — `.mono` 가 그 값을
+   ID·로그와 같은 서체로 그린다. userTag 는 서버가 붙이는 길이라 폭을 고정하지 않는다. */
+.member-row-user-tag {
   color: var(--color-text-muted);
   font-size: 12px;
 }
