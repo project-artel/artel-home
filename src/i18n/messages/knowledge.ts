@@ -39,6 +39,9 @@ export const knowledgeEn = {
   legend: {
     relationTitle: 'Relations',
     sourceTitle: 'Where an item came from',
+    nodeKindTitle: 'Node kind',
+    documentNodeName: 'Document',
+    documentNodeShape: 'an extra outline around the mark',
     labelNote: 'Labels are hidden while the graph is this large. Pick an item to read it.',
     graphLabel: 'Knowledge graph drawing',
     graphDescription:
@@ -49,6 +52,13 @@ export const knowledgeEn = {
     REFINES: 'Refines',
     DEPENDS_ON: 'Depends on',
     REPLACES: 'Replaces',
+    // Read from the item's side: "this item belongs to a document". The
+    // document's side of the same edge reads as `PART_OF_CONTAINS` instead —
+    // see `relationLabelForDirection` in `knowledgeLabels.ts`.
+    PART_OF: 'Belongs to',
+    // Read from the document's side of a `PART_OF` edge: what it holds,
+    // rather than what it belongs to.
+    PART_OF_CONTAINS: 'Contains',
     CONTRADICTS: 'Contradicts',
     UNKNOWN: 'Unrecognised relation',
     unnamed: 'Relation with no name',
@@ -58,6 +68,7 @@ export const knowledgeEn = {
     REFINES: 'dashed line',
     DEPENDS_ON: 'dotted line',
     REPLACES: 'dash-dot line',
+    PART_OF: 'short, tight dashes',
     CONTRADICTS: 'thick line crossed with ✕, arrows at both ends',
     UNKNOWN: 'thin grey dashes',
   },
@@ -161,6 +172,9 @@ export const knowledgeKo: Localized<typeof knowledgeEn> = {
   legend: {
     relationTitle: '관계',
     sourceTitle: '항목의 출처',
+    nodeKindTitle: 'node 종류',
+    documentNodeName: '기획서',
+    documentNodeShape: '표시 둘레에 테두리가 하나 더 있음',
     labelNote: '그래프가 커서 이름표를 숨겼습니다. 항목을 고르면 내용이 보입니다.',
     graphLabel: '지식 그래프 그림',
     graphDescription:
@@ -171,6 +185,8 @@ export const knowledgeKo: Localized<typeof knowledgeEn> = {
     REFINES: '구체화',
     DEPENDS_ON: '의존',
     REPLACES: '대체',
+    PART_OF: '소속',
+    PART_OF_CONTAINS: '포함',
     CONTRADICTS: '모순',
     UNKNOWN: '알 수 없는 관계',
     unnamed: '이름 없는 관계',
@@ -180,6 +196,7 @@ export const knowledgeKo: Localized<typeof knowledgeEn> = {
     REFINES: '파선',
     DEPENDS_ON: '점선',
     REPLACES: '일점쇄선',
+    PART_OF: '촘촘한 짧은 파선',
     CONTRADICTS: '굵은 선에 ✕ 표시, 양쪽 화살표',
     UNKNOWN: '가는 회색 파선',
   },

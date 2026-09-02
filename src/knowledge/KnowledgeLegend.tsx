@@ -1,7 +1,7 @@
 import { useI18n } from '../i18n/useI18n'
 import { nodeShape, relationLabel, relationShape, sourceLabel } from './knowledgeLabels'
 import type { KnowledgeEdge, KnowledgeNode, RelationStyle } from './knowledgeTypes'
-import { relationStyle } from './knowledgeTypes'
+import { documentNodeIds, relationStyle } from './knowledgeTypes'
 
 /**
  * What the marks mean.
@@ -31,6 +31,7 @@ export function KnowledgeLegend({
   }
 
   const sources = [...new Set(nodes.map((node) => node.source))].sort()
+  const hasDocumentNode = documentNodeIds(edges).size > 0
 
   return (
     <div className="kg-legend">
@@ -91,6 +92,22 @@ export function KnowledgeLegend({
                 </li>
               )
             })}
+          </ul>
+        </section>
+      )}
+
+      {hasDocumentNode && (
+        <section className="kg-legend-group">
+          <h3>{t.knowledge.legend.nodeKindTitle}</h3>
+          <ul>
+            <li>
+              <svg aria-hidden="true" className="kg-legend-line" viewBox="0 0 44 12">
+                <rect className="kg-legend-mark-ring" height="11" rx="1" width="11" x="16.5" y="0.5" />
+                <rect className="kg-legend-mark" height="7" rx="1" width="7" x="18.5" y="2.5" />
+              </svg>
+              <span className="kg-legend-name">{t.knowledge.legend.documentNodeName}</span>
+              <span className="kg-legend-shape">{t.knowledge.legend.documentNodeShape}</span>
+            </li>
           </ul>
         </section>
       )}

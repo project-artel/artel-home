@@ -4887,6 +4887,18 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
 .kg-arrow--REPLACES {
   fill: var(--color-action-primary);
 }
+/* Structural, not agent-reasoned: the ingest pipeline is the only writer, so
+   PART_OF gets a plain ink tone rather than one of the reasoning/success/
+   warning/failure colours, and a tight, even dash that is not REFINES's long
+   dash or DEPENDS_ON's dotted one. */
+.kg-edge--PART_OF .kg-edge-line,
+.kg-legend-line .kg-edge--PART_OF {
+  stroke: var(--color-text-primary);
+  stroke-dasharray: 4 2;
+}
+.kg-arrow--PART_OF {
+  fill: var(--color-text-primary);
+}
 /* A contradiction is the one relation that disagrees with its own endpoints, so
    it is the heaviest line on the page, gets a head at both ends because it has
    no direction, and carries a ✕ that survives any colour vision. */
@@ -4982,6 +4994,19 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   stroke-width: 3.4;
   fill-opacity: 0.34;
 }
+/* The document node's ring: a bigger, unfilled outline of the mark's own
+   shape, so a 기획서 reads as "this shape, but framed" rather than teaching a
+   fourth glyph. Tag colour stays on the inner mark only — the ring is about
+   what the node is, not what it is tagged. Scoped under `.kg-node--document`
+   so that class drives something, rather than sitting on the `<g>` unread. */
+.kg-node--document .kg-node-document-ring {
+  fill: none;
+  stroke: var(--color-border-strong);
+  stroke-width: 1.6;
+}
+.kg-node--document.is-selected .kg-node-document-ring {
+  stroke: var(--color-action-primary);
+}
 .kg-node.is-dimmed {
   opacity: 0.24;
 }
@@ -5038,6 +5063,13 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   fill-opacity: 0.18;
   stroke: var(--color-text-muted);
   stroke-width: 1.6;
+}
+/* Matches `.kg-node-document-ring` — the same outline, drawn small, so the
+   legend teaches the exact mark the canvas uses. */
+.kg-legend-mark-ring {
+  fill: none;
+  stroke: var(--color-border-strong);
+  stroke-width: 1.4;
 }
 .kg-legend-name {
   color: var(--color-text-primary);

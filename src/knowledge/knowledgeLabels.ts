@@ -23,6 +23,30 @@ export function relationLabel(t: Messages, relation: string): string {
   return relation.length > 0 ? relation : t.knowledge.relations.unnamed
 }
 
+/**
+ * The relation's name as read from one endpoint.
+ *
+ * Every relation but `PART_OF` reads the same regardless of which end is
+ * asking — "Depends on" does not say which of the two nodes is the dependent
+ * one, and the inspector's own "to"/"from" wording carries that half of the
+ * sentence. `PART_OF` cannot share that shortcut: the edge is structural, not
+ * symmetric, so the item end and the document end are answering two different
+ * questions ("which document is this part of" versus "what does this document
+ * contain"), and one verb cannot honestly answer both. `direction === 'in'`
+ * is the document's end of the edge — see `incidentEdges` in
+ * `knowledgeLayout.ts`.
+ */
+export function relationLabelForDirection(
+  t: Messages,
+  relation: string,
+  direction: 'out' | 'in' | 'self',
+): string {
+  if (direction === 'in' && relationStyle(relation) === 'PART_OF') {
+    return t.knowledge.relations.PART_OF_CONTAINS
+  }
+  return relationLabel(t, relation)
+}
+
 /** How that relation is drawn, said in words — the colourless half of the legend. */
 export function relationShape(t: Messages, style: RelationStyle): string {
   return t.knowledge.relationShapes[style]
