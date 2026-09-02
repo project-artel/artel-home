@@ -3491,6 +3491,22 @@ a.instance-name:hover {
   line-height: 18px;
 }
 
+/* ── 프로젝트 지출 (ARTEL-725) ────────────────────────────────────────── */
+
+.usage-panel {
+  margin-top: var(--space-5);
+}
+
+/* 제목 아래의 설명 문장. `.panel-subtitle` 을 쓰지 않는 이유는 그것이 대문자 eyebrow 라
+   `text-transform: uppercase` 가 걸려 있어서다 — 한국어는 그대로 나오지만 영어 문구와
+   `Asia/Seoul` 같은 식별자는 통째로 대문자가 된다. */
+.usage-note {
+  margin: var(--space-2) 0 var(--space-4);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
 .qa-usage-grid {
   display: grid;
   gap: var(--space-4);
@@ -3513,6 +3529,41 @@ a.instance-name:hover {
   color: var(--color-text-primary);
 }
 
+.usage-panel-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.usage-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* 카드 격자가 아니라 정의 목록이다. DESIGN.md 가 반복되는 둥근 KPI 타일을 금지하고,
+   이 넷은 서로 비교되는 값이 아니라 아래 잔디의 머리말이다. */
+.usage-figures {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0 0 var(--space-5);
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+.usage-figure dt {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--color-text-muted);
+}
+
+.usage-figure dd {
+  margin: 2px 0 0;
+  font-size: 18px;
+  line-height: 26px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+}
+
 /* The hint carries what the number does not say — which calls the money stands
    on, and that cached input is already inside the total above. Dropping it makes
    a partial sum read as the whole bill. */
@@ -3521,6 +3572,160 @@ a.instance-name:hover {
   font-size: 11px;
   line-height: 16px;
   color: var(--color-text-muted);
+}
+
+/* 숫자가 말하지 않는 것을 여기서 말한다 — 금액이 몇 건 위에 얹혔는지, 기록이 없다는 것이
+   0 과 다르다는 것. 빼면 부분합이 전체 청구서로 읽힌다. */
+.usage-figure-hint {
+  margin: 2px 0 0;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--color-text-muted);
+}
+
+/* ── 잔디 ─────────────────────────────────────────────────────────────── */
+
+.grass-plot {
+  display: flex;
+  gap: var(--space-2);
+  align-items: flex-start;
+  overflow-x: auto;
+  padding-bottom: var(--space-1);
+}
+
+.grass-weekdays {
+  display: grid;
+  grid-template-rows: repeat(7, 13px);
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  flex: 0 0 auto;
+}
+
+.grass-weekday {
+  font-size: 10px;
+  line-height: 13px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.grass-grid {
+  border-collapse: separate;
+  border-spacing: 3px;
+  margin: -3px;
+}
+
+.grass-cell {
+  width: 13px;
+  height: 13px;
+  padding: 0;
+  border-radius: 3px;
+  background: var(--color-bg-hover);
+  /* 옅은 칸이 배경에 묻히지 않도록 테두리를 남긴다. 이것이 없으면 level 0 과 level 1 이
+     대비가 낮은 화면에서 같은 칸으로 보인다. */
+  box-shadow: inset 0 0 0 1px var(--color-border-subtle);
+}
+
+/* 짙기는 중립 회색 한 축이다. 초록은 이 시스템에서 통과, 코랄은 실패이고
+   `--color-action-primary` 는 이 테마에서 critical 과 사실상 같은 색이다 — 지출은 셋 중
+   무엇도 아니다. 뜻은 칸에 붙은 글자가 지고 색은 규모만 말한다(DESIGN.md). */
+.grass-cell--1 {
+  background: color-mix(in srgb, var(--color-text-secondary) 28%, var(--color-bg-surface));
+}
+
+.grass-cell--2 {
+  background: color-mix(in srgb, var(--color-text-secondary) 52%, var(--color-bg-surface));
+}
+
+.grass-cell--3 {
+  background: color-mix(in srgb, var(--color-text-secondary) 76%, var(--color-bg-surface));
+}
+
+.grass-cell--4 {
+  background: var(--color-text-primary);
+}
+
+/* 창 밖의 칸. 주의 모양만 잡아 주고 아무것도 말하지 않는다 — 여기에 빈 칸을 그리면
+   프로젝트가 그때 아무것도 안 썼다고 말하는 것이 된다. */
+.grass-cell--void {
+  background: transparent;
+  box-shadow: none;
+}
+
+.grass-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.grass-legend-scale {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.grass-legend-scale .grass-cell {
+  width: 11px;
+  height: 11px;
+}
+
+/* ── 축별 표 ──────────────────────────────────────────────────────────── */
+
+.usage-table {
+  width: 100%;
+}
+
+.usage-table td.num,
+.usage-table th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.usage-row-label {
+  display: block;
+  color: var(--color-text-primary);
+}
+
+.usage-row-sub {
+  display: block;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--color-text-muted);
+}
+
+.usage-share {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.usage-share-track {
+  width: 56px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-bg-hover);
+  border: 1px solid var(--color-border-subtle);
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+
+.usage-share-fill {
+  display: block;
+  height: 100%;
+  background: var(--color-text-secondary);
+}
+
+/* 금액이 하한이라는 표시. `+` 가 뜻을 지고 색은 눈에 띄게만 한다. */
+.usage-partial {
+  margin-left: 2px;
+  color: var(--color-status-warning);
+  font-weight: 600;
 }
 
 /* Marks an amount as a floor. The `+` carries the meaning; the color only makes

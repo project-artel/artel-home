@@ -5,6 +5,7 @@ import { SeverityTag } from '../../issues/SeverityTag'
 import type { QaTry } from '../../qa/qaTypes'
 import type { TestCaseCoverage } from '../../testCases/testCaseTypes'
 import { formatDate } from '../formatters'
+import { ProjectUsagePanel } from '../../usage/ProjectUsagePanel'
 import { QaStatusPill } from './QaStatusPill'
 import { sectionHref } from './sections'
 import { useWorkspace } from './workspaceContext'
@@ -104,6 +105,10 @@ export function DashboardSection() {
           value={String(instances.length)}
         />
       </div>
+
+      {/* 타일 아래, 요약 목록 위다. 타일은 "무엇이 몇 개 있나"이고 아래 목록은 "최근에 무엇이
+          있었나"인데, 지출은 그 둘 사이의 "그걸 하는 데 얼마가 들었나"라 자리가 여기다. */}
+      <ProjectUsagePanel projectId={projectId} />
 
       <div className="dashboard-columns">
         <div className="dashboard-main">

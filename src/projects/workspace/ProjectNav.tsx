@@ -23,6 +23,8 @@ const ICON_PATHS: Record<WorkspaceSectionId, string[]> = {
   issues: ['M4 14V2.7', 'M4 3h8l-1.8 2.8L12 8.6H4'],
   // Three nodes and the lines between them: the graph's own shape, small.
   knowledge: ['M4 4.6l4.4 2.2', 'M8.4 6.8L12 11.4', 'M4 4.6l1.6 6.8', 'M5.6 11.4h6.4'],
+  // 칸 넷이 짙어지는 순서로 놓인 잔디 한 줄. 이 섹션이 그리는 그림 자체를 15px 로 줄인 것이다.
+  usage: ['M2.4 9.4h2.6v3.2H2.4z', 'M6.2 7.2h2.6v5.4H6.2z', 'M10 4.2h2.6v8.4H10z', 'M2 3.4h1.6', 'M4.6 3.4h1.6'],
   // 사람 둘. 한 명은 앞에, 한 명은 뒤에 반쯤 가려 서서 "혼자가 아니다" 를 15px 안에서 말한다.
   members: ['M6.2 8.6a3.4 3.4 0 1 1 0-5.2', 'M2.2 13.4c0-2.2 1.8-3.4 4-3.4s4 1.2 4 3.4', 'M10.4 4a2.8 2.8 0 0 1 0 4.4', 'M11.4 10.3c1.5.4 2.4 1.5 2.4 3.1'],
   settings: ['M8 1.8v2M8 12.2v2M1.8 8h2M12.2 8h2M3.6 3.6l1.4 1.4M11 11l1.4 1.4M12.4 3.6L11 5M5 11l-1.4 1.4'],
@@ -164,6 +166,16 @@ export function ProjectNav({
       </ul>
 
       <div className="project-nav-foot">
+        <NavLink
+          className={({ isActive }) => (isActive ? 'nav-item nav-item--active' : 'nav-item')}
+          title={collapsed ? nav.usage : undefined}
+          to={sectionHref(projectId, 'usage')}
+        >
+          <SectionIcon id="usage" />
+          <span className={collapsed ? 'nav-label visually-hidden' : 'nav-label'}>
+            {nav.usage}
+          </span>
+        </NavLink>
         <NavLink
           className={({ isActive }) => (isActive ? 'nav-item nav-item--active' : 'nav-item')}
           title={collapsed ? nav.members : undefined}
