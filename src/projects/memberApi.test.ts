@@ -13,7 +13,7 @@ const member = {
   displayName: 'octocat',
   email: 'octocat@example.com',
   nickname: 'The Octocat',
-  battleTag: 'Octocat#1234',
+  userTag: '1234',
   role: 'OWNER',
   joinedAt: '2026-08-30T00:00:00Z',
 }
@@ -37,7 +37,7 @@ describe('parseMember', () => {
       displayName: 'octocat',
       email: 'octocat@example.com',
       nickname: 'The Octocat',
-      battleTag: 'Octocat#1234',
+      userTag: '1234',
       role: 'OWNER',
       joinedAt: '2026-08-30T00:00:00Z',
     })
@@ -49,21 +49,17 @@ describe('parseMember', () => {
     assert.equal(parsed?.displayName, 'octocat')
   })
 
-  it('keeps a member who never set a nickname or BattleTag', () => {
-    const parsed = parseMember({ ...member, nickname: null, battleTag: null })
-    assert.equal(parsed?.nickname, null)
-    assert.equal(parsed?.battleTag, null)
-  })
-
-  it('drops a row that cannot be pointed at', () => {
+  it('drops a row that cannot be pointed at, or that is missing a nickname or userTag', () => {
     assert.equal(parseMember({ ...member, userId: undefined }), null)
     assert.equal(parseMember({ ...member, displayName: undefined }), null)
+    assert.equal(parseMember({ ...member, nickname: null }), null)
+    assert.equal(parseMember({ ...member, userTag: null }), null)
     assert.equal(parseMember(null), null)
     assert.equal(parseMember('octocat'), null)
   })
 
   it('keeps a row that is only missing something cosmetic', () => {
-    const parsed = parseMember({ userId: '52', displayName: 'octocat' })
+    const parsed = parseMember({ userId: '52', displayName: 'octocat', nickname: 'The Octocat', userTag: '1234' })
     assert.equal(parsed?.joinedAt, '')
     assert.equal(parsed?.email, null)
   })

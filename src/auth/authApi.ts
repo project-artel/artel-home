@@ -125,8 +125,13 @@ function parseLinkedIdentity(data: unknown): LinkedIdentity | null {
 }
 
 /**
- * Only `id` and `displayName` are required, because those are what the shell
- * renders. Every other field degrades to a safe default: a session that is
+ * `id`, `displayName`, `nickname`, and `userTag` are required. The first two
+ * are what the shell renders; the latter two the server now guarantees on
+ * every user, so a payload missing either one is not a user with an unset
+ * nickname — it is a malformed response, and this throws rather than
+ * inventing a placeholder the rest of the app would treat as real.
+ *
+ * Every other field degrades to a safe default instead: a session that is
  * otherwise valid must never be rejected over a cosmetic field, which would
  * bounce the user back to the login screen with no way forward.
  */
@@ -135,9 +140,14 @@ export function parseAuthUser(data: unknown): AuthUser {
     throw new Error('Malformed session payload')
   }
 
-  const { id, displayName, email, nickname, battleTag, locale, identities } = data as Record<string, unknown>
+  const { id, displayName, email, nickname, userTag, locale, identities } = data as Record<string, unknown>
 
-  if (typeof id !== 'string' || typeof displayName !== 'string') {
+  if (
+    typeof id !== 'string'
+    || typeof displayName !== 'string'
+    || typeof nickname !== 'string'
+    || typeof userTag !== 'string'
+  ) {
     throw new Error('Malformed session payload')
   }
 
@@ -145,8 +155,8 @@ export function parseAuthUser(data: unknown): AuthUser {
     id,
     displayName,
     email: typeof email === 'string' ? email : null,
-    nickname: typeof nickname === 'string' ? nickname : null,
-    battleTag: typeof battleTag === 'string' ? battleTag : null,
+    nickname,
+    userTag,
     // A locale the client has no translations for degrades to "never chosen".
     locale: isLocale(locale) ? locale : null,
     identities: Array.isArray(identities)
@@ -192,15 +202,15 @@ export async function updateMyLocale(locale: Locale): Promise<void> {
 }
 
 /**
- * Saves the account's nickname and BattleTag. The response is `204`, so the
- * caller does not get an updated `AuthUser` back — it already knows what it
- * just sent, and applies that to `AuthProvider` itself rather than this
- * function re-fetching the whole session for two fields.
+ * Saves the account's nickname. The server assigns the matching `userTag`
+ * itself and answers `200` with the full session user, so the caller learns
+ * the new tag from this response instead of sending its own guess or issuing
+ * a second call to `/api/auth/me`.
  *
- * The browser has already checked the BattleTag format before calling this;
- * a rejection here is a network or server failure, not a format problem.
+ * The browser has already checked that the nickname is not blank before
+ * calling this; a rejection here is a network, length, or server failure.
  */
-export async function updateMyProfile(profile: AccountProfileDraft): Promise<void> {
+export async function updateMyProfile(profile: AccountProfileDraft): Promise<AuthUser> {
   const response = await apiFetch('/api/auth/me/profile', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
@@ -210,6 +220,8 @@ export async function updateMyProfile(profile: AccountProfileDraft): Promise<voi
   if (!response.ok) {
     throw new Error('Unable to save the account profile')
   }
+
+  return parseAuthUser(await response.json())
 }
 
 /**

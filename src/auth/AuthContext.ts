@@ -1,17 +1,18 @@
 import { createContext } from 'react'
-import type { AccountProfileDraft, AuthState } from './authTypes'
+import type { AuthState, AuthUser } from './authTypes'
 
 export type AuthContextValue = AuthState & {
   logout: () => Promise<void>
   /**
-   * Merges a saved nickname/BattleTag into the current user, right after
-   * `updateMyProfile` resolves. Local merge rather than a re-fetch of
-   * `/api/auth/me`: the caller already knows the exact value the server just
-   * accepted, and a second round trip for two fields would only add latency
-   * an already-authenticated screen has no reason to wait on. A no-op when
-   * the session is not `authenticated` — nothing to merge into.
+   * Replaces the current user with what `updateMyProfile` resolved to, right
+   * after that call succeeds. `PUT /api/auth/me/profile` now answers `200`
+   * with the full session user — the server, not the client, assigns
+   * `userTag` — so this takes that response rather than merging the request
+   * the client sent, which never carried the new tag to merge in the first
+   * place. A no-op when the session is not `authenticated` — nothing to
+   * replace.
    */
-  applyProfile: (profile: AccountProfileDraft) => void
+  applyProfile: (user: AuthUser) => void
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null)

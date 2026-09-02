@@ -31,9 +31,11 @@ function asRole(value: unknown): ProjectRole {
 /**
  * 멤버 한 줄.
  *
- * `userId` 와 `displayName` 만 필수다. 그 둘이 없으면 누구인지 가리킬 수도 부를 수도 없어 줄을
- * 버리지만, 나머지가 빠졌다고 버리지는 않는다 — 한 줄의 장식 필드 하나 때문에 멤버 목록 전체를
- * 못 보게 만드는 것이 더 나쁘다. `parseSummary` 가 세운 규칙과 같다.
+ * `userId`, `displayName`, `nickname`, `userTag` 넷 다 필수다. 서버가 모든 사용자에게
+ * `nickname` 과 `userTag` 를 보장하므로, 그 둘이 빠진 payload 는 "아직 안 정한 사람" 이 아니라
+ * 깨진 응답이다 — 넷 중 하나라도 없으면 줄을 버린다. 나머지가 빠졌다고 버리지는 않는다 — 한 줄의
+ * 장식 필드 하나 때문에 멤버 목록 전체를 못 보게 만드는 것이 더 나쁘다. `parseSummary` 가 세운
+ * 규칙과 같다.
  */
 export function parseMember(data: unknown): ProjectMember | null {
   const record = asRecord(data)
@@ -41,14 +43,16 @@ export function parseMember(data: unknown): ProjectMember | null {
 
   const userId = asNullableString(record.userId)
   const displayName = asNullableString(record.displayName)
-  if (userId === null || displayName === null) return null
+  const nickname = asNullableString(record.nickname)
+  const userTag = asNullableString(record.userTag)
+  if (userId === null || displayName === null || nickname === null || userTag === null) return null
 
   return {
     userId,
     displayName,
     email: asNullableString(record.email),
-    nickname: asNullableString(record.nickname),
-    battleTag: asNullableString(record.battleTag),
+    nickname,
+    userTag,
     role: asRole(record.role),
     joinedAt: asString(record.joinedAt),
   }
