@@ -104,6 +104,10 @@ export const knowledgeEn = {
     createdByDocument: 'Extracted from a document, not a run',
     createdAtLabel: 'Created',
     openQaTry: 'Open the run',
+    bodyLabel: 'Body',
+    bodyLoading: 'Loading the body…',
+    bodyFailed: 'The body could not be loaded.',
+    bodyEmpty: 'This item has no body.',
     anchorsLabel: 'Where it holds',
     // Not a blank and not "none". An item with no anchor is a fact about the
     // whole game, and the reader has to be able to tell that from a field that
@@ -232,6 +236,10 @@ export const knowledgeKo: Localized<typeof knowledgeEn> = {
     createdByDocument: '런이 아니라 문서에서 추출된 항목입니다',
     createdAtLabel: '생성',
     openQaTry: '런 열기',
+    bodyLabel: '본문',
+    bodyLoading: '본문을 불러오는 중…',
+    bodyFailed: '본문을 불러오지 못했습니다.',
+    bodyEmpty: '본문이 없는 항목입니다.',
     anchorsLabel: '성립하는 곳',
     gameWide: '게임 전체에서 성립합니다. 특정 씬에 묶여 있지 않습니다',
     anchorScreen: (screenId: string) => `화면 #${screenId}`,

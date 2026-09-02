@@ -46,6 +46,22 @@ export type KnowledgeNode = {
   anchors: KnowledgeAnchor[]
 }
 
+/**
+ * One item's body, from the single-item endpoint the graph list deliberately
+ * does not carry (ARTEL-752/753/754). Only the three fields the contract
+ * guarantees — this build has no use for anything beyond them yet.
+ */
+export type KnowledgeItemDetail = {
+  id: string
+  summary: string
+  /**
+   * May hold several `key: value` lines joined by newlines for an item
+   * extracted from a document. The newlines are meaningful and must render as
+   * line breaks, not be collapsed.
+   */
+  description: string
+}
+
 export type KnowledgeEdge = {
   from: string
   to: string
