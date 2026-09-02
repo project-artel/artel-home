@@ -10,7 +10,15 @@ import {
   SCENE_FILTER_ALL,
   SCENE_FILTER_GAME_WIDE,
 } from './knowledgeAnchors'
-import { itemTitle, relationLabel, sourceLabel, tagClass, tagLabel, truncate } from './knowledgeLabels'
+import {
+  itemTitle,
+  relationLabel,
+  relationLabelForDirection,
+  sourceLabel,
+  tagClass,
+  tagLabel,
+  truncate,
+} from './knowledgeLabels'
 import { incidentEdges, type GraphLayout } from './knowledgeLayout'
 import { relationStyle, type KnowledgeNode } from './knowledgeTypes'
 
@@ -234,7 +242,9 @@ function NodeDetail({
                 onClick={() => onSelectEdge(placed.id)}
                 type="button"
               >
-                <span className="kg-relation-name">{relationLabel(t, placed.edge.relation)}</span>
+                <span className="kg-relation-name">
+                  {relationLabelForDirection(t, placed.edge.relation, direction)}
+                </span>
                 <span className="kg-relation-target">
                   {direction === 'self'
                     ? t.knowledge.inspector.directionSelf
