@@ -7,6 +7,7 @@ import { listTestScenarios } from '../testScenarios/scenarioApi'
 import { cancelQaRun, getQaRun, isDecimalId } from './qaApi'
 import { QaChatPanel } from './QaChatPanel'
 import { QaLogTimeline, type QaLogFocusRequest } from './QaLogTimeline'
+import { QaRunUsagePanel } from './QaRunUsagePanel'
 import { QaStepTimeline } from './QaStepTimeline'
 import { deriveQaProgress } from './qaProgress'
 import { isTerminalQaStatus, type QaLog, type QaRun, type QaTry } from './qaTypes'
@@ -373,7 +374,15 @@ function FocusedTry({ tryId }: { tryId: string }) {
         </header>
         <div className="qa-focus-logs-body">
           {logView === 'issues' ? (
-            <QaTryIssuePanel qaTryId={session.qaTry.id} />
+            <>
+              <QaTryIssuePanel qaTryId={session.qaTry.id} />
+              {/* And this is what it cost. Carried over from `QaTryPage` (#82)
+                  when that screen was removed, and kept beside the issues rather
+                  than in the header: usage arrives in batches after the calls, so
+                  it is a record of the run the way the issues are, not a live
+                  reading like the status line. */}
+              <QaRunUsagePanel active={active} qaTryId={session.qaTry.id} />
+            </>
           ) : (
             <QaLogTimeline
               focusRequest={focusRequest}

@@ -88,6 +88,12 @@ export const projectsEn = {
     historyTitle: 'Earlier versions',
     current: 'Current',
     download: 'Download',
+    delete: 'Delete',
+    deleteConfirmCopy:
+      'Deleting this document cannot be undone, and the knowledge extracted from it disappears with it.',
+    deleteConfirm: 'Delete',
+    deletedAnnouncement: (version: number) => `Version ${version} deleted.`,
+    deleteFailed: 'The document could not be deleted. Please try again.',
     problems: {
       notPdf: 'Only PDF files can be uploaded.',
       emptyFile: 'That file is empty.',
@@ -185,6 +191,8 @@ export const projectsEn = {
     loadFailed: 'The member list could not be loaded.',
     joined: (date: string) => `Joined ${date}`,
     noEmail: 'No email on this account',
+    /** Set on the account settings screen; rendered next to the sign-in name, not instead of it. */
+    nickname: (nickname: string) => `(${nickname})`,
     remove: 'Remove',
     removing: 'Removing…',
     removeTitle: 'Remove member',
@@ -292,6 +300,7 @@ export const projectsEn = {
     nav: {
       dashboard: 'Dashboard',
       documents: 'Planning document',
+      testCases: 'Case library',
       testRuns: 'Test runs',
       qa: 'Run QA',
       qaHistory: 'QA history',
@@ -299,6 +308,7 @@ export const projectsEn = {
       performance: 'Performance',
       issues: 'Issues',
       knowledge: 'Knowledge graph',
+      usage: 'Spend',
       members: 'Members',
       settings: 'Settings',
     },
@@ -429,6 +439,11 @@ export const projectsKo: Localized<typeof projectsEn> = {
     historyTitle: '이전 버전',
     current: '현재',
     download: '다운로드',
+    delete: '삭제',
+    deleteConfirmCopy: '이 문서를 삭제하면 되돌릴 수 없고, 이 문서에서 추출한 지식도 함께 사라집니다.',
+    deleteConfirm: '삭제',
+    deletedAnnouncement: (version: number) => `버전 ${version}을 삭제했습니다.`,
+    deleteFailed: '문서를 삭제하지 못했습니다. 다시 시도해 주세요.',
     problems: {
       notPdf: 'PDF 파일만 업로드할 수 있습니다.',
       emptyFile: '빈 파일입니다.',
@@ -515,6 +530,7 @@ export const projectsKo: Localized<typeof projectsEn> = {
     loadFailed: '멤버 목록을 불러오지 못했습니다.',
     joined: (date: string) => `${date} 참여`,
     noEmail: '이 계정에는 이메일이 없습니다',
+    nickname: (nickname: string) => `(${nickname})`,
     remove: '내보내기',
     removing: '내보내는 중…',
     removeTitle: '멤버 내보내기',
@@ -605,6 +621,7 @@ export const projectsKo: Localized<typeof projectsEn> = {
     nav: {
       dashboard: '대시보드',
       documents: '기획 문서',
+      testCases: '케이스 라이브러리',
       testRuns: '테스트 런',
       qa: 'QA 실행',
       qaHistory: 'QA 히스토리',
@@ -612,6 +629,7 @@ export const projectsKo: Localized<typeof projectsEn> = {
       performance: '성능',
       issues: '이슈',
       knowledge: '지식 그래프',
+      usage: '사용량',
       members: '멤버',
       settings: '설정',
     },

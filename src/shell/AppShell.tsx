@@ -58,14 +58,20 @@ export function AppShell() {
             ))}
           </select>
           <div className="user-menu">
-            {primaryIdentity?.avatarUrl ? (
-              <img className="user-avatar" src={primaryIdentity.avatarUrl} alt="" />
-            ) : (
-              <span className="user-avatar user-avatar--fallback" aria-hidden="true">
-                {auth.user.displayName.slice(0, 1).toUpperCase()}
-              </span>
-            )}
-            <span className="user-name">{auth.user.displayName}</span>
+            <Link
+              aria-label={t.common.shell.accountSettingsLabel}
+              className="user-account-link"
+              to="/account"
+            >
+              {primaryIdentity?.avatarUrl ? (
+                <img className="user-avatar" src={primaryIdentity.avatarUrl} alt="" />
+              ) : (
+                <span className="user-avatar user-avatar--fallback" aria-hidden="true">
+                  {auth.user.displayName.slice(0, 1).toUpperCase()}
+                </span>
+              )}
+              <span className="user-name">{auth.user.displayName}</span>
+            </Link>
             <button className="logout-button" type="button" onClick={() => void auth.logout()}>
               {t.common.shell.signOut}
             </button>

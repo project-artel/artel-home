@@ -120,6 +120,14 @@ export type RunChatQuestion = {
 export type RunChatQuestionEvent = {
   type: 'question'
   question: RunChatQuestion
+  /**
+   * Everything authoring could not settle this turn (ARTEL-630).
+   *
+   * The server used to send one and stay silent about the rest, so a run with five
+   * blocked spots asked about one and the user read the scenarios as finished.
+   * `question` is the first of these and stays for older clients; render this.
+   */
+  questions?: RunChatQuestion[]
 }
 
 /**
@@ -213,6 +221,15 @@ export async function listRunChatMessages(
     const role = asString(record.role) === 'USER' ? 'USER' : 'ASSISTANT'
     const payload = asRecord(record.payload)
     const question = payload?.kind === 'question' ? parseQuestion(payload) : null
+    // **되살릴 때도 함께 낸 것을 다 읽는다**(ARTEL-677). 스트림은 `questions` 를 읽는데 여기서는
+    // 첫 것만 읽고 있었다 — 새로고침 한 번에 여섯 건이 한 건으로 줄어 있었고, 나머지 다섯은
+    // 화면 어디에도 없었다.
+    const rest =
+      payload?.kind === 'question' && Array.isArray(payload.questions)
+        ? payload.questions
+            .map(parseQuestion)
+            .filter((one): one is RunChatQuestion => one !== null && !answered.has(one.id))
+        : []
     return {
       id: `msg-${index}`,
       role: role as ScenarioRole,
@@ -223,6 +240,7 @@ export async function listRunChatMessages(
       // click — unless it has been answered, in which case it keeps its text and
       // loses its buttons, the same as it did the moment it was answered.
       question: question !== null && !answered.has(question.id) ? question : null,
+      questions: rest.length > 0 ? rest : undefined,
     }
   })
 }
@@ -351,7 +369,13 @@ export function parseRunStreamEvent(data: string): RunChatStreamEvent | null {
   }
   if (record.type === 'question') {
     const question = parseQuestion(record.question)
-    return question === null ? null : { type: 'question', question }
+    if (question === null) return null
+    // 함께 낸 것을 다 읽는다(ARTEL-630). 옛 서버는 `questions` 를 안 보내므로 첫 것만 남는다 —
+    // 그때도 화면은 지금까지처럼 하나를 그린다.
+    const rest = Array.isArray(record.questions)
+      ? record.questions.map(parseQuestion).filter((q): q is RunChatQuestion => q !== null)
+      : []
+    return { type: 'question', question, questions: rest.length > 0 ? rest : [question] }
   }
   if (record.type === 'applied') {
     return { type: 'applied' }

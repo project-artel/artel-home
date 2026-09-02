@@ -435,3 +435,17 @@ export async function createDownloadTicket(
   )
   return parseDownloadTicket(await readJson(response))
 }
+
+/**
+ * A `204` carries no body, so this reads only the status: `readJson` would
+ * throw on the empty response a success actually returns.
+ */
+export async function deleteDocument(projectId: string, documentId: string): Promise<void> {
+  const response = await apiFetch(
+    projectPath(projectId, `/documents/${encodeURIComponent(documentId)}`),
+    { method: 'DELETE' },
+  )
+  if (!response.ok) {
+    throw await toApiError(response)
+  }
+}

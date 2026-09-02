@@ -93,6 +93,14 @@ export type ChatMessage = {
    * reload restores it in place — the question is that line, not something next to it.
    */
   question?: import('../testRuns/runChatApi').RunChatQuestion | null
+  /**
+   * Everything authoring could not settle that turn (ARTEL-630).
+   *
+   * One line carries them all. The server used to send one and stay silent about the
+   * rest, so a run with five blocked spots asked about one and the user read the
+   * scenarios as finished. Each is answered on its own; answering one leaves the others.
+   */
+  questions?: import('../testRuns/runChatApi').RunChatQuestion[]
 }
 
 export type ScenarioResult = {

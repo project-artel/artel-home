@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import './App.css'
+import { AccountSettingsPage } from './account/AccountSettingsPage'
 import { LoginPage } from './LoginPage'
 import { NotFoundPage } from './NotFoundPage'
 import { useAuth } from './auth/useAuth'
@@ -19,10 +20,12 @@ import { DashboardSection } from './projects/workspace/DashboardSection'
 import { DocumentsSection } from './projects/workspace/DocumentsSection'
 import { IssuesSection } from './projects/workspace/IssuesSection'
 import { MembersSection } from './projects/workspace/MembersSection'
+import { UsageSection } from './usage/UsageSection'
 import { ProjectWorkspaceRoute } from './projects/workspace/ProjectWorkspace'
 import { QaHistorySection } from './projects/workspace/QaHistorySection'
 import { QaSection } from './projects/workspace/QaSection'
 import { SettingsSection } from './projects/workspace/SettingsSection'
+import { TestCasesSection } from './projects/workspace/TestCasesSection'
 import { TestRunsSection } from './projects/workspace/TestRunsSection'
 import { QaRunRoute } from './qa/QaRunPage'
 import { AppShell } from './shell/AppShell'
@@ -84,6 +87,7 @@ export function App() {
       <Routes>
         <Route element={<AppShell />}>
           <Route path="/" element={<Navigate replace to="/projects" />} />
+          <Route path="/account" element={<AccountSettingsPage />} />
           <Route path="/projects" element={<ProjectListPage />} />
           {/* One project, split by question asked. The layout loads the
               project once and keeps it mounted, so moving between sections
@@ -91,6 +95,7 @@ export function App() {
           <Route element={<ProjectWorkspaceRoute />} path="/projects/:projectId">
             <Route index element={<DashboardSection />} />
             <Route path="documents" element={<DocumentsSection />} />
+            <Route path="test-cases" element={<TestCasesSection />} />
             <Route path="test-runs" element={<TestRunsSection />} />
             <Route path="qa" element={<QaSection />} />
             <Route path="qa-history" element={<QaHistorySection />} />
@@ -98,6 +103,7 @@ export function App() {
             <Route path="performance" element={<PerformanceSection />} />
             <Route path="issues" element={<IssuesSection />} />
             <Route path="knowledge" element={<KnowledgeSection />} />
+            <Route path="usage" element={<UsageSection />} />
             <Route path="members" element={<MembersSection />} />
             <Route path="settings" element={<SettingsSection />} />
           </Route>

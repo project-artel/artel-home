@@ -49,6 +49,28 @@ function failedState(error: unknown): ProjectState {
 }
 
 /**
+ * The list and current-document change one delete produces.
+ *
+ * `project.document` names whichever version the detail view is showing, so a
+ * deleted current version falls back to the next-newest remaining one, or to
+ * no document at all rather than pointing at a version that no longer exists.
+ * Exported as a pure function so this fallback rule can be pinned down
+ * without mounting the hook.
+ */
+export function withDocumentRemoved(
+  documents: ProjectDocument[],
+  project: ProjectDetail | null,
+  documentId: string,
+): { documents: ProjectDocument[]; project: ProjectDetail | null } {
+  const remaining = documents.filter((existing) => existing.id !== documentId)
+  const nextProject =
+    project && project.document?.id === documentId
+      ? { ...project, document: remaining[0] ?? null }
+      : project
+  return { documents: remaining, project: nextProject }
+}
+
+/**
  * Loads one project with its document history, its game instances, and its
  * reported builds.
  *
@@ -122,6 +144,14 @@ export function useProject(projectId: string) {
     }))
   }, [])
 
+  /** Drops one document after a successful delete. */
+  const applyRemovedDocument = useCallback((documentId: string) => {
+    setState((previous) => ({
+      ...previous,
+      ...withDocumentRemoved(previous.documents, previous.project, documentId),
+    }))
+  }, [])
+
   /** Replaces one instance in place, so a rename never reorders the list under the user. */
   const applyInstance = useCallback((instance: GameInstance) => {
     setState((previous) => ({
@@ -152,6 +182,7 @@ export function useProject(projectId: string) {
     refreshGameState,
     applyProject,
     applyNewDocument,
+    applyRemovedDocument,
     applyInstance,
     removeInstance,
     applyBuild,

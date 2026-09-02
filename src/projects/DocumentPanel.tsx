@@ -1,6 +1,14 @@
 import { useRef, useState } from 'react'
-import { createDownloadTicket, ProjectApiError } from './projectApi'
+import { createDownloadTicket, deleteDocument, ProjectApiError } from './projectApi'
 import { apiErrorMessage } from './apiErrorMessage'
+import {
+  beginDocumentDelete,
+  cancelDocumentDelete,
+  idleDocumentDelete,
+  requestDocumentDelete,
+  runDocumentDelete,
+  type DocumentDeleteState,
+} from './documentDeleteState'
 import { formatBytes, formatDate } from './formatters'
 import { useI18n } from '../i18n/useI18n'
 import { DOCUMENT_ACCEPT, describeFileProblem, uploadDocument } from './uploadDocument'
@@ -14,16 +22,19 @@ type UploadState =
 export function DocumentPanel({
   projectId,
   documents,
+  onDeleted,
   onUploaded,
 }: {
   projectId: string
   documents: ProjectDocument[]
+  onDeleted: (documentId: string) => void
   onUploaded: (document: ProjectDocument) => void
 }) {
   const [upload, setUpload] = useState<UploadState>({ phase: 'idle' })
   const [pendingFile, setPendingFile] = useState<File | null>(null)
   const [dragging, setDragging] = useState(false)
   const [announcement, setAnnouncement] = useState('')
+  const [deleteState, setDeleteState] = useState<DocumentDeleteState>(idleDocumentDelete)
   const fileInput = useRef<HTMLInputElement>(null)
   const { t } = useI18n()
 
@@ -69,6 +80,31 @@ export function DocumentPanel({
     }
   }
 
+  function requestDelete(documentId: string) {
+    setDeleteState(requestDocumentDelete(documentId))
+  }
+
+  function cancelDelete() {
+    setDeleteState(cancelDocumentDelete())
+  }
+
+  async function confirmDelete(document: ProjectDocument) {
+    setDeleteState(beginDocumentDelete(document.id))
+
+    const { state, deleted } = await runDocumentDelete({
+      deleteDocument: (documentId) => deleteDocument(projectId, documentId),
+      documentId: document.id,
+      toErrorMessage: (error) =>
+        error instanceof ProjectApiError ? apiErrorMessage(error, t) : t.projects.documents.deleteFailed,
+    })
+
+    setDeleteState(state)
+    if (deleted) {
+      setAnnouncement(t.projects.documents.deletedAnnouncement(document.version))
+      onDeleted(document.id)
+    }
+  }
+
   const uploading = upload.phase === 'uploading'
 
   return (
@@ -81,7 +117,15 @@ export function DocumentPanel({
         <p className="panel-empty">{t.projects.documents.empty}</p>
       ) : (
         <div className="document-current">
-          <DocumentLine document={current} onDownload={download} isCurrent />
+          <DocumentLine
+            deleteState={deleteState}
+            document={current}
+            isCurrent
+            onCancelDelete={cancelDelete}
+            onConfirmDelete={confirmDelete}
+            onDownload={download}
+            onRequestDelete={requestDelete}
+          />
         </div>
       )}
 
@@ -168,7 +212,15 @@ export function DocumentPanel({
           <ul className="document-list">
             {history.map((document) => (
               <li key={document.id}>
-                <DocumentLine document={document} onDownload={download} isCurrent={false} />
+                <DocumentLine
+                  deleteState={deleteState}
+                  document={document}
+                  isCurrent={false}
+                  onCancelDelete={cancelDelete}
+                  onConfirmDelete={confirmDelete}
+                  onDownload={download}
+                  onRequestDelete={requestDelete}
+                />
               </li>
             ))}
           </ul>
@@ -179,15 +231,24 @@ export function DocumentPanel({
 }
 
 function DocumentLine({
+  deleteState,
   document,
-  onDownload,
   isCurrent,
+  onCancelDelete,
+  onConfirmDelete,
+  onDownload,
+  onRequestDelete,
 }: {
+  deleteState: DocumentDeleteState
   document: ProjectDocument
-  onDownload: (document: ProjectDocument) => void
   isCurrent: boolean
+  onCancelDelete: () => void
+  onConfirmDelete: (document: ProjectDocument) => Promise<void>
+  onDownload: (document: ProjectDocument) => void
+  onRequestDelete: (documentId: string) => void
 }) {
   const { t } = useI18n()
+  const isThisDocument = deleteState.documentId === document.id
 
   return (
     <div className="document-line">
@@ -200,13 +261,53 @@ function DocumentLine({
           {document.uploadedBy !== null && ` · ${document.uploadedBy.displayName}`}
         </span>
       </span>
-      <button
-        className="button button--secondary button--compact"
-        onClick={() => onDownload(document)}
-        type="button"
-      >
-        {t.projects.documents.download}
-      </button>
+
+      {isThisDocument ? (
+        <div className="document-confirm">
+          {deleteState.error !== null && (
+            <div className="inline-error" role="alert">
+              <span aria-hidden="true">!</span>
+              <span>{deleteState.error}</span>
+            </div>
+          )}
+          <p className="document-confirm-copy">{t.projects.documents.deleteConfirmCopy}</p>
+          <div className="document-confirm-actions">
+            <button
+              className="button button--secondary button--compact"
+              disabled={deleteState.pending}
+              onClick={onCancelDelete}
+              type="button"
+            >
+              {t.projects.shared.cancel}
+            </button>
+            <button
+              className="button button--danger button--compact"
+              disabled={deleteState.pending}
+              onClick={() => void onConfirmDelete(document)}
+              type="button"
+            >
+              {deleteState.pending ? t.projects.shared.deleting : t.projects.documents.deleteConfirm}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <span className="document-actions">
+          <button
+            className="button button--secondary button--compact"
+            onClick={() => onDownload(document)}
+            type="button"
+          >
+            {t.projects.documents.download}
+          </button>
+          <button
+            className="button button--danger-quiet button--compact"
+            onClick={() => onRequestDelete(document.id)}
+            type="button"
+          >
+            {t.projects.documents.delete}
+          </button>
+        </span>
+      )}
     </div>
   )
 }
