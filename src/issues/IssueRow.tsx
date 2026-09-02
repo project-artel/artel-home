@@ -9,8 +9,13 @@ import { SeverityTag } from './SeverityTag'
 
 type IssueRowProps = {
   issue: Issue
-  /** Absent inside a run's own panel — the run is already open there. */
-  qaTryHref: string | null
+  /**
+   * Builds the run console address from `issue.qaRunId` and `issue.qaTryId`.
+   * `null` disables the link entirely — used inside a run's own panel, where
+   * a link back would go nowhere. When present but `issue.qaRunId` is `null`,
+   * the row shows `t.issues.row.noRun` as plain muted text instead of a link.
+   */
+  runHref: ((qaRunId: string, qaTryId: string) => string) | null
   onToggle: (issue: Issue) => void
   pending: boolean
   failed: boolean
@@ -30,7 +35,7 @@ type IssueRowProps = {
  */
 export function IssueRow({
   issue,
-  qaTryHref,
+  runHref,
   onToggle,
   pending,
   failed,
@@ -73,10 +78,14 @@ export function IssueRow({
           </span>
         ) : null}
         {trackerConnected ? <IssueTrackerStatus tracker={issue.tracker} /> : null}
-        {qaTryHref !== null ? (
-          <Link className="issue-row-link" to={qaTryHref}>
-            {t.issues.row.openQaTry}
-          </Link>
+        {runHref !== null ? (
+          issue.qaRunId !== null ? (
+            <Link className="issue-row-link" to={runHref(issue.qaRunId, issue.qaTryId)}>
+              {t.issues.row.openQaTry}
+            </Link>
+          ) : (
+            <span className="issue-row-link issue-row-link--muted">{t.issues.row.noRun}</span>
+          )
         ) : null}
       </div>
 

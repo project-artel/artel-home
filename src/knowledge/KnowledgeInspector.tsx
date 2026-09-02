@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { formatDateTime } from '../projects/formatters'
+import { qaRunPath } from '../qa/qaTypes'
 import type { Selection } from './KnowledgeGraphCanvas'
 import {
   anchoredSceneNames,
@@ -241,10 +242,17 @@ function NodeDetail({
               there is no run to open. */}
           {node.createdByQaTryId === null ? (
             <span className="detail-empty">{t.knowledge.inspector.createdByDocument}</span>
+          ) : node.createdByQaRunId === null ? (
+            // The try exists but its run id has not arrived yet (ARTEL-722 not
+            // shipped, or a try that predates it) — a muted row, not a dead link.
+            <span className="detail-empty">
+              {t.knowledge.inspector.noRunYet}
+              <span className="mono"> #{node.createdByQaTryId}</span>
+            </span>
           ) : (
             <Link
               className="kg-detail-link"
-              to={`/projects/${encodeURIComponent(projectId)}/qa-tries/${encodeURIComponent(node.createdByQaTryId)}`}
+              to={qaRunPath(projectId, node.createdByQaRunId, node.createdByQaTryId)}
             >
               {t.knowledge.inspector.openQaTry}
               <span className="mono"> #{node.createdByQaTryId}</span>

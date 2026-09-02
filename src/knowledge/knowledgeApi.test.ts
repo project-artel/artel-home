@@ -21,6 +21,7 @@ const sample = {
       summary: '지식 카운터',
       version: 1,
       createdByQaTryId: '36',
+      createdByQaRunId: '9',
       createdAt: '2026-08-11T06:00:00Z',
     },
     {
@@ -30,6 +31,7 @@ const sample = {
       summary: '상점 화면',
       version: 3,
       createdByQaTryId: null,
+      createdByQaRunId: null,
       createdAt: '2026-08-10T06:00:00Z',
     },
   ],
@@ -51,6 +53,7 @@ test('the documented response is read field for field', () => {
     summary: '지식 카운터',
     version: 1,
     createdByQaTryId: '36',
+    createdByQaRunId: '9',
     createdAt: '2026-08-11T06:00:00Z',
     // 앵커가 없는 항목은 게임 전체에서 참인 사실이다. 서버가 `anchors` 를 아직 싣지
     // 않는 지금의 응답과, 빈 배열을 실은 응답이 여기서 같은 값이 되어야 한다.
@@ -59,6 +62,7 @@ test('the documented response is read field for field', () => {
   // A document-derived item has no run behind it, and that has to stay null
   // rather than becoming an empty string that renders as a broken link.
   assert.equal(parsed.nodes[1].createdByQaTryId, null)
+  assert.equal(parsed.nodes[1].createdByQaRunId, null)
   assert.deepEqual(parsed.edges, [
     { from: '1', to: '2', relation: 'LEADS_TO', note: '마을 상단바의 상점 버튼' },
   ])
@@ -138,9 +142,24 @@ test('missing optional fields degrade instead of dropping the item', () => {
     summary: '',
     version: null,
     createdByQaTryId: null,
+    createdByQaRunId: null,
     createdAt: '',
     anchors: [],
   })
+})
+
+/**
+ * `createdByQaRunId` (ARTEL-723) is validated as a decimal id, unlike its
+ * sibling `createdByQaTryId` above — it feeds `qaRunPath` directly, and a
+ * malformed value has to degrade to the muted row rather than build a broken
+ * link out of garbage input.
+ */
+test('a malformed createdByQaRunId reads as null, not as a broken link', () => {
+  assert.equal(
+    parseKnowledgeNode({ id: '9', createdByQaRunId: 'not-a-decimal-id' })?.createdByQaRunId,
+    null,
+  )
+  assert.equal(parseKnowledgeNode({ id: '9', createdByQaRunId: 9 })?.createdByQaRunId, null)
 })
 
 test('an edge pointing at an item that is not in the response is dropped', () => {

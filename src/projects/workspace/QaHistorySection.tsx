@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
 import { QaStatusPill } from './QaStatusPill'
-import type { QaTryStatus } from '../../qa/qaTypes'
+import { qaRunPath, type QaTryStatus } from '../../qa/qaTypes'
 import { formatDate } from '../formatters'
 import { useWorkspace } from './workspaceContext'
 
@@ -85,13 +85,19 @@ export function QaHistorySection() {
               {filtered.map((qaTry) => (
                 <tr key={qaTry.id}>
                   <td>
-                    <Link
-                      className="table-link mono"
-                      to={`/projects/${encodeURIComponent(projectId)}/qa-tries/${encodeURIComponent(qaTry.id)}`}
-                      translate="no"
-                    >
-                      #{qaTry.id}
-                    </Link>
+                    {qaTry.qaRunId === null ? (
+                      <span className="table-link table-link--muted mono" translate="no">
+                        #{qaTry.id}
+                      </span>
+                    ) : (
+                      <Link
+                        className="table-link mono"
+                        to={qaRunPath(projectId, qaTry.qaRunId, qaTry.id)}
+                        translate="no"
+                      >
+                        #{qaTry.id}
+                      </Link>
+                    )}
                   </td>
                   <td>
                     <QaStatusPill status={qaTry.status} />

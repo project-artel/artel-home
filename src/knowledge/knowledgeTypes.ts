@@ -38,6 +38,13 @@ export type KnowledgeNode = {
   version: number | null
   /** Only QA-authored items carry a run; a document-derived item has none. */
   createdByQaTryId: string | null
+  /**
+   * The `QaRun` that try belongs to. `null` when `createdByQaTryId` is also
+   * `null` (a document-derived item), and also `null` for a QA-authored item
+   * whose try predates ARTEL-722 or while that server change has not shipped
+   * yet — callers render a plain muted row instead of a link in that case.
+   */
+  createdByQaRunId: string | null
   createdAt: string
   /**
    * Scenes and screens this item is tied to. Empty is the ordinary case and

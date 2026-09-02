@@ -20,6 +20,7 @@ function node(id: string, over: Partial<KnowledgeNode> = {}): KnowledgeNode {
     summary: `item ${id}`,
     version: 1,
     createdByQaTryId: null,
+    createdByQaRunId: null,
     createdAt: '2026-08-11T06:00:00Z',
     anchors: [],
     ...over,

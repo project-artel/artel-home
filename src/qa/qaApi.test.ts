@@ -1,7 +1,38 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { ProjectApiError } from '../projects/projectApi'
-import { qaStartConflict } from './qaApi'
+import { parseQaTry, qaStartConflict } from './qaApi'
+
+const QA_TRY_FIELDS = {
+  id: '41',
+  testScenarioId: '7',
+  gameInstanceId: '3',
+  agentSessionId: null,
+  status: 'RUNNING',
+  startedAt: '2026-09-01T00:00:00Z',
+  completedAt: null,
+}
+
+/**
+ * `qaRunId` (ARTEL-723) degrades to `null` rather than failing the parse: it is
+ * missing from every server that has not deployed ARTEL-722 yet, and the
+ * console has to render the grey no-link row for that case, not an error.
+ */
+test('parseQaTry reads qaRunId when present', () => {
+  const parsed = parseQaTry({ ...QA_TRY_FIELDS, qaRunId: '9' })
+  assert.equal(parsed.qaRunId, '9')
+})
+
+test('parseQaTry reads a missing qaRunId as null, not a parse failure', () => {
+  const parsed = parseQaTry({ ...QA_TRY_FIELDS })
+  assert.equal(parsed.qaRunId, null)
+})
+
+test('parseQaTry reads a malformed qaRunId as null', () => {
+  assert.equal(parseQaTry({ ...QA_TRY_FIELDS, qaRunId: 'not-a-decimal-id' }).qaRunId, null)
+  assert.equal(parseQaTry({ ...QA_TRY_FIELDS, qaRunId: 9 }).qaRunId, null)
+  assert.equal(parseQaTry({ ...QA_TRY_FIELDS, qaRunId: null }).qaRunId, null)
+})
 
 /**
  * Why a run was refused is read from `code`, never from the message.
