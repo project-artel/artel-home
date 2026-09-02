@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import './App.css'
+import { AccountSettingsPage } from './account/AccountSettingsPage'
 import { LoginPage } from './LoginPage'
 import { NotFoundPage } from './NotFoundPage'
 import { useAuth } from './auth/useAuth'
@@ -86,6 +87,7 @@ export function App() {
       <Routes>
         <Route element={<AppShell />}>
           <Route path="/" element={<Navigate replace to="/projects" />} />
+          <Route path="/account" element={<AccountSettingsPage />} />
           <Route path="/projects" element={<ProjectListPage />} />
           {/* One project, split by question asked. The layout loads the
               project once and keeps it mounted, so moving between sections
