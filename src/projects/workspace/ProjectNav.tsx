@@ -11,6 +11,8 @@ import { sectionHref, WORKSPACE_SECTIONS, type WorkspaceSectionId } from './sect
 const ICON_PATHS: Record<WorkspaceSectionId, string[]> = {
   dashboard: ['M2.5 2.5h4.7v4.7H2.5z', 'M8.8 2.5h4.7v4.7H8.8z', 'M2.5 8.8h4.7v4.7H2.5z', 'M8.8 8.8h4.7v4.7H8.8z'],
   documents: ['M4 2h5.3L12 4.7V14H4z', 'M9.3 2v2.7H12', 'M6 8h4', 'M6 10.5h4'],
+  // 두 항목 앞의 체크 표시. 통과 여부가 붙는 목록이라는 것을 15px 안에서 말한다.
+  testCases: ['M2.6 4.4l1.5 1.5 2.5-2.7', 'M2.6 10.4l1.5 1.5 2.5-2.7', 'M9.2 4.6h4.2', 'M9.2 10.6h4.2'],
   testRuns: ['M5.2 3.4l7 4.6-7 4.6z'],
   qa: ['M8.8 2L4 9h3.4l-.9 5L12 7H8.4z'],
   qaHistory: ['M3 4.2h10', 'M3 8h10', 'M3 11.8h6.5'],

@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useRef } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import type { DragHandlers } from './useKnowledgeDrag'
-import { itemTitle, nodeShape, tagClass, truncate } from './knowledgeLabels'
+import { itemTitle, nodeShape, tagClass, truncate, type NodeShape } from './knowledgeLabels'
 import { placeLabels, type LabelPlacement } from './knowledgeLabelPlacement'
 import {
   LABEL_NODE_LIMIT,
@@ -10,7 +10,7 @@ import {
   type PlacedEdge,
   type PlacedNode,
 } from './knowledgeLayout'
-import { KNOWN_RELATIONS, relationStyle, type RelationStyle } from './knowledgeTypes'
+import { documentNodeIds, KNOWN_RELATIONS, relationStyle, type RelationStyle } from './knowledgeTypes'
 
 /**
  * The drawing.
@@ -105,6 +105,13 @@ export function KnowledgeGraphCanvas({
     return touched
   }, [layout.edges, selection])
 
+  // See `documentNodeIds` in `knowledgeTypes.ts`: a document node is not a
+  // field value, it is whatever a `PART_OF` edge points at.
+  const documentIds = useMemo(
+    () => documentNodeIds(layout.edges.map((placed) => placed.edge)),
+    [layout.edges],
+  )
+
   // Labels are laid out, not just shortened. Shortening alone still lets two
   // sentences land on the same spot — see `placeLabels`. The selection and its
   // neighbours are forced through so that clicking a node always names it and
@@ -177,6 +184,7 @@ export function KnowledgeGraphCanvas({
           <NodeMark
             dimmed={selection !== null && !related.has(placed.node.id)}
             held={drag.dragging === placed.node.id}
+            isDocument={documentIds.has(placed.node.id)}
             key={placed.node.id}
             label={labels.get(placed.node.id) ?? null}
             onDragStart={(event) => {
@@ -240,11 +248,32 @@ function EdgeMark({
   )
 }
 
+/** How far outside the ordinary mark a document node's ring sits. */
+const DOCUMENT_RING_PADDING = 6
+
+/**
+ * One shape, drawn at a given full width (diameter for a circle, side for a
+ * square or diamond). Pulled out of `NodeMark` so a document node's ring can
+ * reuse the exact same shape as its mark — a bigger, outlined version of
+ * itself — instead of the drawing needing a fourth glyph the legend would have
+ * to teach separately.
+ */
+function shapeGlyph(shape: NodeShape, size: number, className: string) {
+  if (shape === 'circle') return <circle className={className} r={size / 2} />
+  if (shape === 'square') {
+    return <rect className={className} height={size} rx="2" width={size} x={-size / 2} y={-size / 2} />
+  }
+  return (
+    <rect className={className} height={size} transform="rotate(45)" width={size} x={-size / 2} y={-size / 2} />
+  )
+}
+
 function NodeMark({
   placed,
   selected,
   dimmed,
   held,
+  isDocument,
   label,
   onSelect,
   onDragStart,
@@ -253,17 +282,20 @@ function NodeMark({
   selected: boolean
   dimmed: boolean
   held: boolean
+  /** Whether some `PART_OF` edge points at this node — see `documentNodeIds`. */
+  isDocument: boolean
   label: LabelPlacement | null
   onSelect: () => void
   onDragStart: (event: React.PointerEvent<SVGGElement>) => void
 }) {
   const shape = nodeShape(placed.node.source)
   const classes = ['kg-node', `kg-node--tag-${tagClass(placed.node.tag)}`, `kg-node--${shape}`]
+  if (isDocument) classes.push('kg-node--document')
   if (selected) classes.push('is-selected')
   if (dimmed) classes.push('is-dimmed')
   if (held) classes.push('is-held')
 
-  const side = NODE_RADIUS * 1.7
+  const markSize = shape === 'circle' ? NODE_RADIUS * 2 : NODE_RADIUS * 1.7
 
   return (
     <g
@@ -275,20 +307,8 @@ function NodeMark({
       onPointerDown={onDragStart}
       transform={`translate(${placed.x} ${placed.y})`}
     >
-      {shape === 'circle' && <circle className="kg-node-mark" r={NODE_RADIUS} />}
-      {shape === 'square' && (
-        <rect className="kg-node-mark" height={side} rx="2" width={side} x={-side / 2} y={-side / 2} />
-      )}
-      {shape === 'diamond' && (
-        <rect
-          className="kg-node-mark"
-          height={side}
-          transform="rotate(45)"
-          width={side}
-          x={-side / 2}
-          y={-side / 2}
-        />
-      )}
+      {isDocument && shapeGlyph(shape, markSize + DOCUMENT_RING_PADDING * 2, 'kg-node-document-ring')}
+      {shapeGlyph(shape, markSize, 'kg-node-mark')}
       {label !== null && (
         // The offset comes from the placement pass, not from here: a label that
         // could not fit below its node is drawn above it instead.

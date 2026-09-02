@@ -22,6 +22,14 @@ export type ProjectMember = {
    * 수도 없다. 감추지 않고 그대로 그려, 왜 그 사람을 부를 수 없는지가 화면에서 보이게 한다.
    */
   email: string | null
+  /** 그 사람이 계정 설정에서 정한 이름. 서버가 모든 사용자에게 보장하므로 항상 있다. */
+  nickname: string
+  /**
+   * `nickname` 과 짝을 이루는 discriminator. `authTypes.ts` 의 `composeNicknameTag` 로
+   * `nickname#userTag` 형태로 합쳐 그린다. 서버가 붙이는 값이라 보통 네 자리 숫자지만 폭을
+   * 고정하지 않는다.
+   */
+  userTag: string
   role: ProjectRole
   joinedAt: string
 }

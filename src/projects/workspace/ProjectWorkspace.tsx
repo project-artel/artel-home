@@ -34,6 +34,7 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
     applyBuild,
     applyInstance,
     applyNewDocument,
+    applyRemovedDocument,
     applyProject,
     builds,
     documents,
@@ -85,6 +86,7 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
             refreshGameState,
             applyProject,
             applyNewDocument,
+            applyRemovedDocument,
             applyInstance,
             removeInstance,
             applyBuild,
@@ -94,6 +96,7 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
       applyBuild,
       applyInstance,
       applyNewDocument,
+      applyRemovedDocument,
       applyProject,
       applyTrackerLink,
       builds,
@@ -161,6 +164,7 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
       <ProjectNav
         counts={{
           documents: documents.length,
+          testCases: settled ? coverage.total : null,
           testRuns: settled ? runs.length : null,
           qaHistory: settled ? tries.length : null,
           issues: settled ? openIssues.length : null,

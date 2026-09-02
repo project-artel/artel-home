@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { parseKnowledgeGraph, parseKnowledgeNode } from './knowledgeApi.ts'
+import { parseKnowledgeGraph, parseKnowledgeItemDetail, parseKnowledgeNode } from './knowledgeApi.ts'
 import { KNOWLEDGE_NODE_LIMIT, relationStyle } from './knowledgeTypes.ts'
 
 /*
@@ -293,4 +293,50 @@ test('a numeric screen id is accepted rather than read as no screen', () => {
   assert.deepEqual(parseKnowledgeNode({ id: '1', anchors: [{ sceneName: 'S', screenId: '  ' }] })?.anchors, [
     { sceneName: 'S', screenId: null },
   ])
+})
+
+/*
+ * 단건 조회(ARTEL-753/754). 여기서 못 박는 것: `description` 의 줄바꿈이 그대로 살아남는다는
+ * 것, 그리고 `id` 없는 응답만 실패로 다룬다는 것 — 나머지 필드는 `parseKnowledgeNode` 와 같은
+ * 관용구로 빈 문자열까지 낮아진다.
+ */
+
+test('the documented single-item response is read field for field', () => {
+  const parsed = parseKnowledgeItemDetail({
+    id: '2',
+    summary: '상점 화면',
+    description: '상점에서는 전투 중 얻은 재화로 장비를 산다',
+  })
+
+  assert.deepEqual(parsed, {
+    id: '2',
+    summary: '상점 화면',
+    description: '상점에서는 전투 중 얻은 재화로 장비를 산다',
+  })
+})
+
+test('a multi-line body keeps its line breaks', () => {
+  // 문서에서 뽑힌 항목의 본문은 `genre: …` 식으로 줄 단위 이어 붙은 여러 줄이다. 트림도
+  // 치환도 없이 그대로 통과해야 화면에서 줄바꿈을 살릴 수 있다.
+  const parsed = parseKnowledgeItemDetail({
+    id: '9',
+    summary: '장르',
+    description: 'genre: RPG\nplatform: PC\ntone: dark fantasy',
+  })
+
+  assert.equal(parsed?.description, 'genre: RPG\nplatform: PC\ntone: dark fantasy')
+})
+
+test('a row missing its id fails to parse', () => {
+  assert.equal(parseKnowledgeItemDetail({ summary: '이름 없음', description: '본문' }), null)
+})
+
+test('missing summary or description degrades to an empty string, not a dropped item', () => {
+  assert.deepEqual(parseKnowledgeItemDetail({ id: '3' }), { id: '3', summary: '', description: '' })
+})
+
+test('a body that is not an object fails to parse', () => {
+  for (const body of [null, undefined, 'nope', 42, [], 'genre: RPG']) {
+    assert.equal(parseKnowledgeItemDetail(body), null)
+  }
 })

@@ -13,6 +13,7 @@ import type { Messages } from '../../i18n/messages'
 export const WORKSPACE_SECTIONS = [
   { id: 'dashboard', path: '' },
   { id: 'documents', path: 'documents' },
+  { id: 'testCases', path: 'test-cases' },
   { id: 'testRuns', path: 'test-runs' },
   { id: 'qa', path: 'qa' },
   { id: 'qaHistory', path: 'qa-history' },
