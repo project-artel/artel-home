@@ -49,11 +49,38 @@ export type ProjectInvitation = {
   expiresAt: string
 }
 
-/** 새 초대 폼이 들고 있는 값. */
-export type InvitationDraft = {
-  email: string
-  role: ProjectRole
+/**
+ * 새 초대 폼이 들고 있는 값. 대상을 정확히 하나로 좁힌다 — 자동완성에서 사람을 고르면
+ * `appUserId`, 직접 이메일 주소를 쳐 넣으면 `email` 이다. 서버도 같은 규칙이라, 둘 다 보내거나
+ * 둘 다 안 보내면 `invitation_target_ambiguous` 로 400 이 난다.
+ */
+export type InvitationDraft =
+  | { kind: 'email'; email: string; role: ProjectRole }
+  | { kind: 'appUserId'; appUserId: string; role: ProjectRole }
+
+/**
+ * 초대 입력창 자동완성이 돌려주는 한 줄. `ARTEL-734` 의
+ * `GET /invitation-suggestions` 가 서버 쪽 짝이다.
+ *
+ * `appUserId` 는 이 사람을 초대할 때 그대로 돌려보내는 불투명 식별자다 — 파싱하지 않는다.
+ * `login` 과 `avatarUrl` 은 없을 수 있다: 이메일만 등록하고 provider 계정을 연결하지 않은
+ * 사람이 그렇다. 응답에는 이메일이 아예 실리지 않는다 — 서버가 부분 문자열로 주소를 훑을 길을
+ * 열어 두지 않으려는 것이라, 화면도 이메일을 보여 줄 수 없다.
+ */
+export type InvitationCandidate = {
+  appUserId: string
+  nickname: string
+  userTag: string
+  displayName: string
+  login: string | null
+  avatarUrl: string | null
 }
+
+/**
+ * 두 글자 미만은 검색하지 않는다. 서버의 접두 일치가 한 글자로는 후보를 너무 넓게 돌려주고,
+ * 매 keystroke 마다 요청을 보내는 것도 이 하한 때문에 막힌다.
+ */
+export const INVITATION_CANDIDATE_QUERY_MIN_LENGTH = 2
 
 export function isInvitationStatus(value: unknown): value is InvitationStatus {
   return typeof value === 'string' && (INVITATION_STATUSES as readonly string[]).includes(value)

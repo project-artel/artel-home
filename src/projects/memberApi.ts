@@ -1,6 +1,7 @@
 import { apiFetch } from '../auth/authApi'
 import {
   isInvitationStatus,
+  type InvitationCandidate,
   type InvitationDraft,
   type ProjectInvitation,
   type ProjectMember,
@@ -91,6 +92,32 @@ function parseList<T>(data: unknown, parse: (item: unknown) => T | null): T[] {
   return rows.map(parse).filter((row): row is T => row !== null)
 }
 
+/**
+ * 자동완성 한 줄. `appUserId`, `nickname`, `userTag`, `displayName` 넷이 다 있어야 이 사람을
+ * 가리키고 그릴 수 있으므로 넷 다 필수다. `login` 과 `avatarUrl` 은 없어도 줄을 버리지 않는다.
+ */
+export function parseInvitationCandidate(data: unknown): InvitationCandidate | null {
+  const record = asRecord(data)
+  if (record === null) return null
+
+  const appUserId = asNullableString(record.appUserId)
+  const nickname = asNullableString(record.nickname)
+  const userTag = asNullableString(record.userTag)
+  const displayName = asNullableString(record.displayName)
+  if (appUserId === null || nickname === null || userTag === null || displayName === null) {
+    return null
+  }
+
+  return {
+    appUserId,
+    nickname,
+    userTag,
+    displayName,
+    login: asNullableString(record.login),
+    avatarUrl: asNullableString(record.avatarUrl),
+  }
+}
+
 export async function listMembers(
   projectId: string,
   signal?: AbortSignal,
@@ -122,13 +149,37 @@ export async function listSentInvitations(
   return parseList(await readJson(response), parseInvitation)
 }
 
+/**
+ * 초대 입력창 자동완성. 소유자만 부를 수 있다 — 그 밖은 이 경로가 놓인 `/invitations` 와 같은
+ * 권한 규칙이다.
+ *
+ * 두 글자 미만은 부르지 않는다 — `INVITATION_CANDIDATE_QUERY_MIN_LENGTH` 가 그 하한을 정하고,
+ * 부르는 자리는 `useInvitationCandidates.ts` 다. 이 함수 자체는 그 하한을 강제하지 않는다:
+ * 실제로 부를지는 debounce 를 쥔 hook 의 책임이고, 여기서 또 검사하면 그 규칙이 두 곳에서
+ * 따로 관리된다.
+ */
+export async function searchInvitationCandidates(
+  projectId: string,
+  query: string,
+  signal?: AbortSignal,
+): Promise<InvitationCandidate[]> {
+  const params = new URLSearchParams({ query })
+  const response = await apiFetch(
+    `${projectPath(projectId, '/invitation-suggestions')}?${params}`,
+    { signal },
+  )
+  return parseList(await readJson(response), parseInvitationCandidate)
+}
+
 export async function sendInvitation(
   projectId: string,
   draft: InvitationDraft,
 ): Promise<ProjectInvitation> {
+  const target =
+    draft.kind === 'appUserId' ? { appUserId: draft.appUserId } : { email: draft.email.trim() }
   const response = await apiFetch(projectPath(projectId, '/invitations'), {
     method: 'POST',
-    ...jsonRequest({ email: draft.email.trim(), role: draft.role }),
+    ...jsonRequest({ ...target, role: draft.role }),
   })
   return required(parseInvitation(await readJson(response)))
 }

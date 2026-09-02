@@ -7751,6 +7751,80 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   flex: 0 1 140px;
 }
 
+/* 초대 입력창 자동완성 (ARTEL-735). popup 은 입력칸 바로 아래에 뜨고, 그 위에서 목록이
+   스크롤한다 — panel 자체는 늘어나지 않는다. */
+.invite-combobox {
+  position: relative;
+}
+
+.invite-candidate-popup {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-height: 240px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-raised);
+}
+
+.invite-candidate-status {
+  margin: 0;
+  padding: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.invite-candidate-status--error {
+  color: var(--color-status-critical);
+}
+
+.invite-candidate-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.invite-candidate-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+}
+
+.invite-candidate-row + .invite-candidate-row {
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+/* 방향키로 옮겨 다니는 줄. focus 는 계속 input 에 있으므로 `aria-activedescendant` 가 가리키는
+   이 배경색이 지금 어디에 있는지 보여 주는 유일한 표시다. */
+.invite-candidate-row--active {
+  background: var(--color-bg-hover);
+}
+
+.invite-candidate-name {
+  overflow: hidden;
+  color: var(--color-text-primary);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.invite-candidate-login {
+  overflow: hidden;
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* 초대함은 프로젝트 목록 바로 위에 서므로 그 사이를 띄운다. */
 .invitation-inbox {
   margin-bottom: var(--space-5);
