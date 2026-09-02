@@ -192,6 +192,7 @@ export function QaTryPanel({
               {models.map((model) => (
                 <option key={model.id} value={model.id}>
                   {model.label} · {model.provider}
+                  {model.knowledgeSearch ? '' : ` · ${t.qa.panel.noKnowledgeShort}`}
                 </option>
               ))}
             </select>
@@ -203,6 +204,12 @@ export function QaTryPanel({
                 <span>{selectedModel.multimodal ? t.qa.panel.multimodal : t.qa.panel.textOnly}</span>
                 <span>{selectedModel.inputModalities.join(' · ')}</span>
               </div>
+              {/* 고르고 난 뒤가 아니라 목록에서도 보이게 옵션에 짧은 표시를 함께 단다.
+                  여기 문장은 이유까지 말한다 — 런이 끝난 뒤 "왜 하나도 안 찾았나"를
+                  묻게 두지 않으려는 것이다. */}
+              {!selectedModel.knowledgeSearch && (
+                <p className="qa-model-warn">{t.qa.panel.noKnowledgeNote}</p>
+              )}
               {reasoning === null ? (
                 <p className="qa-reasoning-unavailable">{t.qa.panel.reasoningUnavailable}</p>
               ) : (

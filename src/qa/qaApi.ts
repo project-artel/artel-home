@@ -214,6 +214,7 @@ export async function listQaModels(signal?: AbortSignal): Promise<QaModel[]> {
       typeof record.label !== 'string' ||
       typeof record.provider !== 'string' ||
       typeof record.supportsVision !== 'boolean' ||
+      typeof record.knowledgeSearch !== 'boolean' ||
       typeof record.multimodal !== 'boolean' ||
       !Array.isArray(record.inputModalities) ||
       !record.inputModalities.every((value) => typeof value === 'string')
@@ -255,6 +256,7 @@ export async function listQaModels(signal?: AbortSignal): Promise<QaModel[]> {
       label: record.label,
       provider: record.provider,
       supportsVision: record.supportsVision,
+      knowledgeSearch: record.knowledgeSearch,
       inputModalities: record.inputModalities,
       multimodal: record.multimodal,
       reasoning: parsedReasoning,

@@ -84,6 +84,13 @@ export type QaModel = {
   label: string
   provider: string
   supportsVision: boolean
+  /**
+   * 이 모델로 런을 돌리면 지식창고 검색을 쓸 수 있나.
+   *
+   * 모델의 능력이 아니라 그 모델이 사는 경로의 사실이다 — Bedrock 에는 우리가 쓰는
+   * 임베딩 모델이 없다. `false` 면 런이 검색·기록 도구를 아예 쥐지 않는다.
+   */
+  knowledgeSearch: boolean
   inputModalities: string[]
   multimodal: boolean
   reasoning: QaReasoningCapability | null

@@ -23,6 +23,10 @@ export const qaEn = {
     modelLabel: 'Model',
     modelPlaceholder: 'Select a model',
     modelCapabilities: 'Model capabilities',
+    /** Shown inside the option so the trade-off is visible before picking. */
+    noKnowledgeShort: 'no knowledge search',
+    noKnowledgeNote:
+      'This model runs on AWS Bedrock, which does not serve our embedding model, so the run holds no knowledge tools. It will not search, record, or link entries.',
     multimodal: 'Multimodal',
     textOnly: 'Text only',
     reasoningLabel: 'Enable reasoning',
@@ -177,6 +181,9 @@ export const qaKo: Localized<typeof qaEn> = {
     modelLabel: '모델',
     modelPlaceholder: '모델을 선택하세요',
     modelCapabilities: '모델 기능',
+    noKnowledgeShort: '지식 검색 없음',
+    noKnowledgeNote:
+      '이 모델은 AWS Bedrock 에서 돈다. 거기에는 우리가 쓰는 임베딩 모델이 없어서, 런이 지식 도구를 아예 쥐지 않는다. 검색·기록·연결이 모두 일어나지 않는다.',
     multimodal: '멀티모달',
     textOnly: '텍스트 전용',
     reasoningLabel: 'Reasoning 사용',

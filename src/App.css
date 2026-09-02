@@ -7481,3 +7481,13 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
 .askmodal-dot--here{ background:var(--color-accent,#e8623c); border-color:var(--color-accent,#e8623c);
   transform:scale(1.25); }
 .askmodal-count{ font-size:12px; color:var(--color-text-muted); }
+
+/* 모델이 지식 검색을 못 쓸 때의 안내. 경고색만으로 말하지 않고 문장이 이유를 댄다. */
+.qa-model-warn{ margin:var(--space-2) 0 0; padding:6px 10px; border-left:2px solid var(--color-status-warning); background:var(--color-bg-raised); color:var(--color-text-secondary); font-size:12px; line-height:18px; }
+
+/* 트랙 폭이 `runsHeld` 이고 채움이 `runsCalled` 다. 트랙까지 비례를 주므로 이 칸은 폭을
+   양보하지 않는다 — 도구 이름이 길다고 막대가 줄면 길이 비교가 깨진다. */
+/* 전환 없음: 이 막대는 런을 세고, 미끄러지는 수는 시계처럼 읽힌다. */
+/* 심각도 도넛. 세그먼트를 12시부터 시계방향으로 이어 심각도 순서를 남긴다. */
+/* 가운데 합계는 도넛과 함께 돌면 안 된다 — 링만 12시에서 시작시키려고 돌린 것이다. */
+/* 안 불린 줄. 색만으로 말하지 않는다 — 옆의 라벨이 같은 말을 글자로 한다(DESIGN.md 접근성). */
