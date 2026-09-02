@@ -7,6 +7,7 @@ import { isDecimalId } from './qaApi'
 import { QaTryIssuePanel } from '../issues/QaTryIssuePanel'
 import { QaChatPanel } from './QaChatPanel'
 import { QaLogTimeline, type QaLogFocusRequest } from './QaLogTimeline'
+import { QaRunUsagePanel } from './QaRunUsagePanel'
 import { deriveQaProgress } from './qaProgress'
 import { QaStepStrip } from './QaStepStrip'
 import { isTerminalQaStatus, type QaTryStatus } from './qaTypes'
@@ -193,6 +194,11 @@ function QaTryPage({ projectId, qaTryId }: { projectId: string; qaTryId: string 
       {/* Below the workspace, not inside it: the timeline is what happened, and
           this is what came out of it. */}
       <QaTryIssuePanel qaTryId={session.qaTry.id} />
+
+      {/* And this is what it cost. Beside the issues rather than in the header:
+          usage arrives in batches after the calls, so it is a record of the run
+          the way the issues are, not a live reading like the status line. */}
+      <QaRunUsagePanel active={active} qaTryId={session.qaTry.id} />
 
       {cancelling && (
         <CancelQaTryDialog
