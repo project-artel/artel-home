@@ -99,6 +99,28 @@ export const projectsEn = {
       emptyFile: 'That file is empty.',
       tooLarge: 'That file is larger than 50 MB.',
     },
+    /** One `parseStatus` value each, plus the two that need more than a label (ARTEL-761). */
+    parseStatus: {
+      pending: 'Queued',
+      extracting: 'Extracting…',
+      extracted: 'Extracted',
+      failed: 'Extraction failed',
+      /** `EXTRACTING` with `stale: true` — the server lost the work to a restart. */
+      stale: 'Extraction status unknown',
+      elapsedLabel: (elapsed: string) => `${elapsed} elapsed`,
+      failedCopy: 'This document could not be processed. Delete it and upload it again.',
+      staleCopy:
+        'The server restarted before this finished, so the outcome is unknown. Delete this document and upload it again.',
+      extractedAnnouncement: (version: number) => `Version ${version} finished extracting.`,
+      failedAnnouncement: (version: number) => `Version ${version} failed to extract.`,
+    },
+    /** The `/documents/events` (ARTEL-760) connection, distinct from any one document's `parseStatus`. */
+    stream: {
+      connecting: 'Connecting to live updates…',
+      live: 'Live updates connected',
+      degraded: 'Live updates interrupted. Reconnecting…',
+      offline: 'Live updates disconnected. Reload the page to reconnect.',
+    },
   },
   builds: {
     title: 'Game builds',
@@ -459,6 +481,25 @@ export const projectsKo: Localized<typeof projectsEn> = {
       notPdf: 'PDF 파일만 업로드할 수 있습니다.',
       emptyFile: '빈 파일입니다.',
       tooLarge: '파일이 50 MB를 초과합니다.',
+    },
+    parseStatus: {
+      pending: '대기 중',
+      extracting: '추출 중…',
+      extracted: '추출 완료',
+      failed: '추출 실패',
+      stale: '추출 상태 알 수 없음',
+      elapsedLabel: (elapsed: string) => `경과 ${elapsed}`,
+      failedCopy: '이 문서를 처리하지 못했습니다. 삭제하고 다시 올려 주세요.',
+      staleCopy:
+        '서버가 재시작되어 이 작업이 끝났는지 알 수 없습니다. 삭제하고 다시 올려 주세요.',
+      extractedAnnouncement: (version: number) => `버전 ${version}의 추출이 끝났습니다.`,
+      failedAnnouncement: (version: number) => `버전 ${version}의 추출이 실패했습니다.`,
+    },
+    stream: {
+      connecting: '실시간 갱신에 연결하는 중…',
+      live: '실시간 갱신 연결됨',
+      degraded: '실시간 갱신 연결이 끊어졌습니다. 다시 연결하는 중…',
+      offline: '실시간 갱신 연결이 끊겼습니다. 새로고침하면 다시 연결됩니다.',
     },
   },
   builds: {

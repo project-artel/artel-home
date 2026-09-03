@@ -598,6 +598,23 @@ h1 {
   color: var(--color-status-warning);
 }
 
+.badge--critical {
+  border-color: var(--color-status-critical);
+  color: var(--color-status-critical);
+}
+
+/* `EXTRACTING` with `stale: true` (ARTEL-761) — the row is frozen, not
+   in progress, so it takes the same quiet gray as an offline connection. */
+.badge--offline {
+  border-color: var(--color-status-offline);
+  color: var(--color-status-offline);
+}
+
+.status-dot--warning {
+  border-color: var(--color-status-warning);
+  background: var(--color-status-warning);
+}
+
 .project-row--skeleton {
   display: flex;
   flex-direction: column;
@@ -824,6 +841,22 @@ h1 {
 
 /* ── Documents ───────────────────────────────────────────────────────────── */
 
+/* The `/documents/events` (ARTEL-760) connection state, next to the panel title. */
+.document-stream-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+/* Wraps one `.document-line` plus its optional `.document-parse-note`, so the
+   note renders full-width under the line instead of fighting its flex gap. */
+.document-row {
+  display: flex;
+  flex-direction: column;
+}
+
 .document-line {
   display: flex;
   flex-wrap: wrap;
@@ -831,6 +864,28 @@ h1 {
   justify-content: space-between;
   gap: var(--space-4);
   padding: var(--space-3) 0;
+}
+
+/* `FAILED`, or `EXTRACTING` with `stale: true`. Points at the Delete button
+   already on the row rather than adding a second way to remove a document. */
+.document-parse-note {
+  margin: 0 0 var(--space-2);
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--color-text-secondary);
+}
+
+.document-parse-note--failed {
+  color: var(--color-status-critical);
+}
+
+.document-parse-note--stale {
+  color: var(--color-text-muted);
+}
+
+.document-parse-elapsed {
+  color: var(--color-text-muted);
+  font-size: 12px;
 }
 
 .document-meta {

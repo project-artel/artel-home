@@ -32,6 +32,7 @@ export function ProjectWorkspaceRoute() {
 function ProjectWorkspace({ projectId }: { projectId: string }) {
   const {
     applyBuild,
+    applyDocumentStatus,
     applyInstance,
     applyNewDocument,
     applyRemovedDocument,
@@ -87,6 +88,7 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
             applyProject,
             applyNewDocument,
             applyRemovedDocument,
+            applyDocumentStatus,
             applyInstance,
             removeInstance,
             applyBuild,
@@ -94,6 +96,7 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
           },
     [
       applyBuild,
+      applyDocumentStatus,
       applyInstance,
       applyNewDocument,
       applyRemovedDocument,
