@@ -4,6 +4,7 @@ import type { QaModel, QaTry } from '../../qa/qaTypes'
 import type { TestCaseCoverage } from '../../testCases/testCaseTypes'
 import type { TestRun } from '../../testRuns/testRunApi'
 import type { TrackerLink } from '../../tracker/trackerTypes'
+import type { DocumentParseStatusEvent } from '../documentEventsApi'
 import type { GameBuild, GameInstance } from '../gameTypes'
 import type { ProjectDetail, ProjectDocument } from '../projectTypes'
 
@@ -61,6 +62,8 @@ export type WorkspaceValue = {
   applyProject: (project: ProjectDetail) => void
   applyNewDocument: (document: ProjectDocument) => void
   applyRemovedDocument: (documentId: string) => void
+  /** `/documents/events` 갱신 하나를 (ARTEL-760/761) 해당 문서에 반영한다. */
+  applyDocumentStatus: (update: DocumentParseStatusEvent) => void
   applyInstance: (instance: GameInstance) => void
   removeInstance: (instanceId: string) => void
   applyBuild: (build: GameBuild) => void

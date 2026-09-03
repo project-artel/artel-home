@@ -38,6 +38,14 @@ export type DocumentUploader = {
   displayName: string
 }
 
+/**
+ * orchestration server 의 `ParseStatus` enum 값 그대로다 (ARTEL-759
+ * cross-repository 계약). 이쪽에서 새 값을 만들지 않는다.
+ */
+export const PARSE_STATUSES = ['PENDING', 'EXTRACTING', 'EXTRACTED', 'FAILED'] as const
+
+export type ParseStatus = (typeof PARSE_STATUSES)[number]
+
 export type ProjectDocument = {
   id: string
   /**
@@ -53,11 +61,18 @@ export type ProjectDocument = {
   /** `null` when the server omits it — attribution is cosmetic, not required. */
   uploadedBy: DocumentUploader | null
   /**
-   * Reserved for a parsing pipeline that does not exist yet, so this is always
-   * `PENDING`. Render it as a static label or not at all: never as a spinner or
-   * a progress indicator, because nothing will ever advance it.
+   * 서버가 준 값을 그대로 읽고, `/documents/events` SSE (ARTEL-760) 로 계속
+   * 최신 값을 유지한다. 모르는 값은 화면을 깨뜨리는 대신 `PENDING` 으로
+   * 내려앉는다 — `projectApi.ts` 의 `isOneOf` 참고.
    */
-  parseStatus: 'PENDING'
+  parseStatus: ParseStatus
+  /**
+   * `parseStatus` 가 `EXTRACTING` 인데 그 추출을 들고 있어야 할 서버가 그
+   * 작업을 잃어버렸을 때만 `true` 다 — 보통 서버 재시작이다. 이 행은 굳은
+   * 것이지 진행 중인 것이 아니다. "상태를 알 수 없음"으로 그리고, 진행
+   * 중으로는 절대 그리지 않는다.
+   */
+  stale: boolean
 }
 
 /** 역할 선택지를 이 목록에서 만든다. 서버가 받지 않는 값을 고를 수 없게 하려는 것이다. */

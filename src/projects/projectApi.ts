@@ -2,6 +2,7 @@ import { apiFetch } from '../auth/authApi'
 import {
   isGenre,
   isProjectRole,
+  PARSE_STATUSES,
   type DocumentUploader,
   type DownloadTicket,
   type Genre,
@@ -200,7 +201,11 @@ function parseDocument(data: unknown): ProjectDocument | null {
     sizeBytes: asCount(record.sizeBytes),
     uploadedAt: asString(record.uploadedAt),
     uploadedBy: parseUploader(record.uploadedBy),
-    parseStatus: 'PENDING',
+    // 모르는 값은 화면을 깨뜨리는 대신 PENDING 으로 내려앉는다.
+    parseStatus: isOneOf(record.parseStatus, PARSE_STATUSES) ? record.parseStatus : 'PENDING',
+    // 이 응답에는 아직 `stale` 이 없다 — 그 값은 `/documents/events` 의
+    // snapshot 이벤트가 들고 온다. 여기서는 안전한 기본값만 읽는다.
+    stale: record.stale === true,
   }
 }
 

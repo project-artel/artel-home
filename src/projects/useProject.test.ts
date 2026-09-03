@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { withDocumentRemoved } from './useProject'
+import { withDocumentRemoved, withDocumentStatusApplied } from './useProject'
 import type { ProjectDetail, ProjectDocument } from './projectTypes'
 
 /*
@@ -19,6 +19,7 @@ function document(id: string, version: number): ProjectDocument {
     uploadedAt: '2026-08-30T00:00:00Z',
     uploadedBy: null,
     parseStatus: 'PENDING',
+    stale: false,
   }
 }
 
@@ -76,5 +77,60 @@ describe('withDocumentRemoved', () => {
 
     assert.deepEqual(result.documents, [])
     assert.equal(result.project, null)
+  })
+})
+
+describe('withDocumentStatusApplied', () => {
+  it('updates the matching document in place and leaves the rest untouched', () => {
+    const current = document('v2', 2)
+    const documents = [current, document('v1', 1)]
+
+    const result = withDocumentStatusApplied(documents, project(current), {
+      documentId: 'v2',
+      parseStatus: 'EXTRACTED',
+      stale: false,
+    })
+
+    assert.equal(result.documents[0].parseStatus, 'EXTRACTED')
+    assert.equal(result.documents[0].stale, false)
+    assert.equal(result.documents[1].parseStatus, 'PENDING')
+  })
+
+  it('keeps project.document in sync when the update names the current version', () => {
+    const current = document('v2', 2)
+
+    const result = withDocumentStatusApplied([current], project(current), {
+      documentId: 'v2',
+      parseStatus: 'FAILED',
+      stale: false,
+    })
+
+    assert.equal(result.project?.document?.parseStatus, 'FAILED')
+  })
+
+  it('leaves project.document alone when the update names an older version', () => {
+    const current = document('v2', 2)
+    const older = document('v1', 1)
+
+    const result = withDocumentStatusApplied([current, older], project(current), {
+      documentId: 'v1',
+      parseStatus: 'EXTRACTED',
+      stale: false,
+    })
+
+    assert.equal(result.project?.document?.parseStatus, 'PENDING')
+    assert.equal(result.documents[1].parseStatus, 'EXTRACTED')
+  })
+
+  it('carries a stale EXTRACTING flag through to project.document', () => {
+    const current = document('v1', 1)
+
+    const result = withDocumentStatusApplied([current], project(current), {
+      documentId: 'v1',
+      parseStatus: 'EXTRACTING',
+      stale: true,
+    })
+
+    assert.equal(result.project?.document?.stale, true)
   })
 })

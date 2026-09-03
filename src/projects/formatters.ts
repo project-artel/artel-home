@@ -43,3 +43,14 @@ export function formatBytes(bytes: number): string {
   if (bytes < 1000 * 1000) return `${(bytes / 1000).toFixed(1)} KB`
   return `${(bytes / (1000 * 1000)).toFixed(1)} MB`
 }
+
+/**
+ * `12s`, `1m 05s`. For an `EXTRACTING` document (ARTEL-761) — there is no
+ * progress to show for a single LLM call, only how long it has been running.
+ */
+export function formatElapsedSeconds(totalSeconds: number): string {
+  if (!Number.isFinite(totalSeconds) || totalSeconds < 0) return PLACEHOLDER
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = Math.floor(totalSeconds % 60)
+  return minutes > 0 ? `${minutes}m ${String(seconds).padStart(2, '0')}s` : `${seconds}s`
+}
