@@ -37,6 +37,7 @@ export const commonEn = {
     /** The three parameter faults are separate because the fixes differ. */
     invalidPort: 'The SDK asked this page to answer on a port it is not allowed to use. Start the sign-in from the SDK again.',
     missingRequest: 'This address is missing the details the SDK has to send. Start the sign-in from the SDK again.',
+    invalidKind: 'This address asks for a kind of sign-in this page does not recognize. Start the sign-in from the SDK again.',
     failed: 'The SDK could not be approved. It may have waited too long, or the server could not be reached.',
     retry: 'Try again',
     note: 'Approval only works for the SDK that opened this page. It is safe to close this tab once the SDK takes over.',
@@ -79,6 +80,7 @@ export const commonKo: Localized<typeof commonEn> = {
     returning: 'SDK로 돌아가는 중…',
     invalidPort: 'SDK가 사용할 수 없는 포트로 응답을 요청했습니다. SDK에서 로그인을 다시 시작해 주세요.',
     missingRequest: '주소에 SDK가 보내야 할 정보가 없습니다. SDK에서 로그인을 다시 시작해 주세요.',
+    invalidKind: '이 주소가 이 페이지가 알지 못하는 종류의 로그인을 요청하고 있습니다. SDK에서 로그인을 다시 시작해 주세요.',
     failed: 'SDK를 승인하지 못했습니다. 시간이 너무 지났거나 서버에 연결하지 못했을 수 있습니다.',
     retry: '다시 시도',
     note: '승인은 이 페이지를 연 SDK에만 적용됩니다. SDK가 이어받은 뒤에는 이 탭을 닫아도 됩니다.',

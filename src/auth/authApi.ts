@@ -1,5 +1,6 @@
 import { isLocale, type Locale } from '../i18n/locale'
 import type { AccountProfileDraft, AuthUser, LinkedIdentity } from './authTypes'
+import type { RelayRequestKind } from './sdkLoginRequest'
 
 const orchestrationUrl = (import.meta.env.VITE_ORCHESTRATION_URL ?? 'http://localhost:8080').replace(/\/$/, '')
 
@@ -292,19 +293,24 @@ export async function verifyEmail(token: string): Promise<void> {
 }
 
 /**
- * Issues the one-time code the SDK trades for its own token.
+ * Issues the one-time code the SDK or the CLI trades for its own token.
  *
  * The browser session is the only credential this call carries: `apiFetch`
- * sends the cookie, and the SDK proves later that it is the process that
+ * sends the cookie, and the caller proves later that it is the process that
  * started the flow by presenting the verifier behind `codeChallenge`. That is
  * why the code may travel back over plain loopback HTTP — on its own it is
  * useless to anyone who intercepts it.
+ *
+ * `kind` records which flow minted the code, so the server can refuse to
+ * exchange a code minted for one flow through the other flow's endpoint. A
+ * missing `kind` defaults to `sdk` on the server too, matching `readKind` in
+ * `sdkLoginRequest.ts`.
  */
-export async function createSdkLoginCode(codeChallenge: string): Promise<string> {
+export async function createSdkLoginCode(codeChallenge: string, kind: RelayRequestKind): Promise<string> {
   const response = await apiFetch('/api/auth/sdk/codes', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ codeChallenge }),
+    body: JSON.stringify({ codeChallenge, kind }),
   })
 
   if (!response.ok) {
