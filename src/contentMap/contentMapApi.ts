@@ -1,8 +1,10 @@
-import { apiFetch } from '../auth/authApi'
-import { asNullableString, asRecord, asString, readJson } from '../projects/projectApi'
+import { apiFetch, orchestrationUrlFor } from '../auth/authApi'
+import { asNullableString, asRecord, asString, isOneOf, readJson } from '../projects/projectApi'
 import {
+  SCAN_STATES,
   type CapabilityCounts,
   type ConditionNode,
+  type ContentMapDocumentEvent,
   type ContentMapGap,
   type ContentMapHeader,
   type ContentMapScene,
@@ -10,7 +12,10 @@ import {
   type ContentMapStep,
   type ContentMapVerification,
   type ContentMapView,
+  type IngestProgress,
+  type LastScan,
   type PendingDocument,
+  type ScanState,
   type SceneCapability,
   type SceneThumbnail,
   type SceneTransition,
@@ -594,4 +599,149 @@ export async function getContentMap(
 ): Promise<ContentMapView> {
   const response = await apiFetch(contentMapPath(projectId, buildId), { signal })
   return parseContentMapView(await readJson(response))
+}
+
+/*
+ * `.../content-map/events` (SSE) 페이로드 파싱.
+ *
+ * 위 REST 파서와 갈라 두는 이유는 입력의 신뢰 수준이 다르기 때문이다. 여기
+ * 오는 것은 `JSON.parse` 이전의 날 문자열이고, 프레임 하나가 깨져도 화면이
+ * 아는 마지막 상태를 지우면 안 된다. 그래서 프레임마다 try/catch 로 감싸고,
+ * 파싱에 실패하면 그 프레임만 버린다(`null`) — `useContentMapEvents.ts` 가
+ * 그 `null` 을 보면 상태를 건드리지 않는다.
+ *
+ * `scan` 은 정상적으로 `null` 일 수 있는 값이라(서버가 재시작해 이 빌드의
+ * 스캔을 모름) "프레임 파싱 실패"와 "스캔이 없다"를 같은 `null` 로 뭉개면
+ * 안 된다. 그래서 `scan`·`ingest`·`document` 프레임 파서는 `{ scan: ... }`
+ * 처럼 한 칸짜리 객체로 감싸 돌려주고, 감싸는 객체 자체가 `null` 이어야
+ * "프레임을 못 읽었다"는 뜻이다.
+ */
+
+function parseScanState(value: unknown): ScanState | null {
+  return isOneOf(value, SCAN_STATES) ? value : null
+}
+
+/**
+ * 마지막 원격 스캔 하나. `state`·`gameInstanceId`·`requestedAt` 이 없으면
+ * 그릴 수 없으므로 `null` 이다 — 호출부는 이것과 "정상적인 `null`"을 감싸는
+ * 프레임 타입에서 갈라 읽는다.
+ */
+export function parseLastScan(data: unknown): LastScan | null {
+  const record = asRecord(data)
+  if (record === null) return null
+
+  const state = parseScanState(record.state)
+  const gameInstanceId = asId(record.gameInstanceId)
+  const requestedAt = asString(record.requestedAt)
+  if (state === null || gameInstanceId === null || requestedAt.length === 0) return null
+
+  return {
+    state,
+    gameInstanceId,
+    gameInstanceName: asString(record.gameInstanceName),
+    requestedAt,
+    finishedAt: asNullableString(record.finishedAt),
+    ingestedDocuments:
+      typeof record.ingestedDocuments === 'number' ? asCount(record.ingestedDocuments) : null,
+    error: asNullableString(record.error),
+  }
+}
+
+export function parseIngestProgress(data: unknown): IngestProgress | null {
+  const record = asRecord(data)
+  if (record === null) return null
+
+  return {
+    receivedDocuments: asCount(record.receivedDocuments),
+    ingestedDocuments: asCount(record.ingestedDocuments),
+    failedDocuments: asCount(record.failedDocuments),
+  }
+}
+
+/** `id` 가 없으면 버린다 — 문서 상태를 documentId 로 색인하는 `useContentMapEvents.ts` 가 그것 없이는 쓸 수 없다. */
+export function parseContentMapDocumentEvent(data: unknown): ContentMapDocumentEvent | null {
+  const record = asRecord(data)
+  if (record === null) return null
+
+  const documentId = asId(record.documentId)
+  if (documentId === null) return null
+
+  return {
+    documentId,
+    receivedAt: asString(record.receivedAt),
+    ingestedAt: asNullableString(record.ingestedAt),
+    ingestFailedAt: asNullableString(record.ingestFailedAt),
+    ingestError: asNullableString(record.ingestError),
+  }
+}
+
+function parseContentMapDocumentEventList(data: unknown): ContentMapDocumentEvent[] {
+  const documents: ContentMapDocumentEvent[] = []
+  for (const raw of toArray(data)) {
+    const document = parseContentMapDocumentEvent(raw)
+    if (document !== null) documents.push(document)
+  }
+  return documents
+}
+
+export type ContentMapSnapshotFrame = {
+  scan: LastScan | null
+  ingest: IngestProgress | null
+  documents: ContentMapDocumentEvent[]
+}
+
+/** `event: snapshot` — 구독 직후 정확히 한 번 온다. */
+export function parseContentMapSnapshotEvent(raw: string): ContentMapSnapshotFrame | null {
+  try {
+    const record = asRecord(JSON.parse(raw))
+    if (record === null) return null
+    return {
+      scan: parseLastScan(record.scan),
+      ingest: parseIngestProgress(record.ingest),
+      documents: parseContentMapDocumentEventList(record.documents),
+    }
+  } catch {
+    return null
+  }
+}
+
+/** `event: scan` — `ScanStatus` 가 바뀔 때마다. */
+export function parseContentMapScanEvent(raw: string): { scan: LastScan | null } | null {
+  try {
+    const record = asRecord(JSON.parse(raw))
+    return record === null ? null : { scan: parseLastScan(record.scan) }
+  } catch {
+    return null
+  }
+}
+
+/** `event: ingest` — 문서 하나가 앉거나 실패할 때마다, 갱신된 두 수. */
+export function parseContentMapIngestEvent(raw: string): { ingest: IngestProgress } | null {
+  try {
+    const record = asRecord(JSON.parse(raw))
+    if (record === null) return null
+    const ingest = parseIngestProgress(record.ingest)
+    return ingest === null ? null : { ingest }
+  } catch {
+    return null
+  }
+}
+
+/** `event: document` — 문서 하나가 앉거나 실패할 때마다, 그 문서 한 행. */
+export function parseContentMapDocumentFrame(
+  raw: string,
+): { document: ContentMapDocumentEvent } | null {
+  try {
+    const record = asRecord(JSON.parse(raw))
+    if (record === null) return null
+    const document = parseContentMapDocumentEvent(record.document)
+    return document === null ? null : { document }
+  } catch {
+    return null
+  }
+}
+
+/** `GET .../content-map/events` — 이 빌드의 스캔·적재 진행을 구독하는 SSE 주소. */
+export function contentMapEventsUrl(projectId: string, buildId: string): string {
+  return orchestrationUrlFor(contentMapPath(projectId, buildId, '/events'))
 }

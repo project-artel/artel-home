@@ -33,6 +33,26 @@ For tracked Git work, follow:
 Use project-local skills when installed and applicable. Skill instructions
 define their own triggers, formats, and output paths.
 
+## Logged-in screens
+
+Every screen here is behind a session, and there is no way to log in locally
+without a registered GitHub OAuth app. `.agents/docs/pull-request.md` still asks
+for a screenshot against a running stack, so the session comes from a token
+minted with the local server's own signing secret.
+
+```bash
+.claude/skills/artel-jwt/mint-jwt.py --sub <app_user.id> --ttl 8h --format browser
+```
+
+That prints a `document.cookie = ...` line to paste into the DevTools console;
+the page reloads logged in. Give it a TTL longer than the 15-minute default or
+the session expires mid-capture. `--format playwright` prints the same cookie for
+a driven browser.
+
+The `artel-jwt` skill covers the rest: which of the four tokens goes where, and
+why admin access is a database column rather than a claim. It mints for a local
+server only.
+
 ## Terminology in comments, documents, and pull requests
 
 Keep a technical term in English, in backticks, even in the middle of a Korean

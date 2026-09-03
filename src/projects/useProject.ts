@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import type { DocumentParseStatusEvent } from './documentEventsApi'
 import { listGameBuilds, listGameInstances } from './gameApi'
 import { getProject, listDocuments, ProjectApiError } from './projectApi'
 import type { GameBuild, GameInstance } from './gameTypes'
@@ -68,6 +69,28 @@ export function withDocumentRemoved(
       ? { ...project, document: remaining[0] ?? null }
       : project
   return { documents: remaining, project: nextProject }
+}
+
+/**
+ * `/documents/events` (ARTEL-760) 갱신 하나를 `documents` 에 합치고, 그 갱신이
+ * `project.document` 가 보여 주는 버전을 가리키면 그 필드도 함께 고친다 — 위
+ * `withDocumentRemoved` 가 삭제에서 이미 따르는 이유와 같다. 둘이 서로 다른
+ * 값을 말해서는 안 된다.
+ */
+export function withDocumentStatusApplied(
+  documents: ProjectDocument[],
+  project: ProjectDetail | null,
+  update: DocumentParseStatusEvent,
+): { documents: ProjectDocument[]; project: ProjectDetail | null } {
+  const applyUpdate = (document: ProjectDocument): ProjectDocument =>
+    document.id === update.documentId
+      ? { ...document, parseStatus: update.parseStatus, stale: update.stale }
+      : document
+
+  return {
+    documents: documents.map(applyUpdate),
+    project: project?.document ? { ...project, document: applyUpdate(project.document) } : project,
+  }
 }
 
 /**
@@ -152,6 +175,14 @@ export function useProject(projectId: string) {
     }))
   }, [])
 
+  /** `/documents/events` 의 `parse_status`/`stale` 갱신 하나를 반영한다 (ARTEL-761). */
+  const applyDocumentStatus = useCallback((update: DocumentParseStatusEvent) => {
+    setState((previous) => ({
+      ...previous,
+      ...withDocumentStatusApplied(previous.documents, previous.project, update),
+    }))
+  }, [])
+
   /** Replaces one instance in place, so a rename never reorders the list under the user. */
   const applyInstance = useCallback((instance: GameInstance) => {
     setState((previous) => ({
@@ -183,6 +214,7 @@ export function useProject(projectId: string) {
     applyProject,
     applyNewDocument,
     applyRemovedDocument,
+    applyDocumentStatus,
     applyInstance,
     removeInstance,
     applyBuild,

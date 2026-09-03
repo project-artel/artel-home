@@ -598,11 +598,21 @@ h1 {
   color: var(--color-status-warning);
 }
 
-/* `badge--success`/`badge--warning` 과 같은 모양 — outline 하나, 텍스트 라벨 필수. CLI 토큰의
-   폐기 상태가 이 클래스를 처음 쓴다. */
 .badge--critical {
   border-color: var(--color-status-critical);
   color: var(--color-status-critical);
+}
+
+/* `EXTRACTING` with `stale: true` (ARTEL-761) — the row is frozen, not
+   in progress, so it takes the same quiet gray as an offline connection. */
+.badge--offline {
+  border-color: var(--color-status-offline);
+  color: var(--color-status-offline);
+}
+
+.status-dot--warning {
+  border-color: var(--color-status-warning);
+  background: var(--color-status-warning);
 }
 
 .project-row--skeleton {
@@ -831,6 +841,22 @@ h1 {
 
 /* ── Documents ───────────────────────────────────────────────────────────── */
 
+/* The `/documents/events` (ARTEL-760) connection state, next to the panel title. */
+.document-stream-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+/* Wraps one `.document-line` plus its optional `.document-parse-note`, so the
+   note renders full-width under the line instead of fighting its flex gap. */
+.document-row {
+  display: flex;
+  flex-direction: column;
+}
+
 .document-line {
   display: flex;
   flex-wrap: wrap;
@@ -838,6 +864,28 @@ h1 {
   justify-content: space-between;
   gap: var(--space-4);
   padding: var(--space-3) 0;
+}
+
+/* `FAILED`, or `EXTRACTING` with `stale: true`. Points at the Delete button
+   already on the row rather than adding a second way to remove a document. */
+.document-parse-note {
+  margin: 0 0 var(--space-2);
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--color-text-secondary);
+}
+
+.document-parse-note--failed {
+  color: var(--color-status-critical);
+}
+
+.document-parse-note--stale {
+  color: var(--color-text-muted);
+}
+
+.document-parse-elapsed {
+  color: var(--color-text-muted);
+  font-size: 12px;
 }
 
 .document-meta {
@@ -5861,6 +5909,37 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   color: var(--color-status-critical-strong);
 }
 
+/* 스캔 상태(REQUESTED/SUCCEEDED/FAILED) + 경과 시간. 진행률 막대는 여기 없다 —
+   `ScanState` 자체가 중간 진행을 모른다. */
+.cm-scan-status {
+  margin-top: var(--space-3);
+}
+.cm-scan-status p {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+/* 이 stream 연결 자체의 상태. 마지막으로 안 사실과 별개라, 옅은 색으로 아래에 둔다. */
+.cm-scan-connection {
+  margin-top: var(--space-1);
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+/* 문서 적재 진행률 막대의 채움. `.cm-ratio-fill` 과 같은 초록이다 — 둘 다
+   "끝난 만큼"을 뜻하는 진행 중인 동작이 아닌 값이다. */
+.cm-ingest-fill {
+  background: var(--color-status-success);
+}
+.cm-ingest-failed-count {
+  margin: var(--space-2) 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-status-critical-strong);
+}
+
 /* 요약 */
 .cm-summary {
   margin-bottom: var(--space-5);
@@ -5932,6 +6011,27 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   background: var(--color-border-strong);
 }
 .cm-status-dot--unreachablePrecondition {
+  background: var(--color-status-critical);
+}
+/* 스캔 상태 점. 능력 상태 점과 같은 컴포넌트를 쓰되 이 빌드의 세 갈래로. */
+.cm-status-dot--scan-requested {
+  background: var(--color-status-warning);
+}
+.cm-status-dot--scan-succeeded {
+  background: var(--color-status-success);
+}
+.cm-status-dot--scan-failed {
+  background: var(--color-status-critical);
+}
+/* 문서 한 행의 적재 상태 점. 목록에는 pending·failed 만 올라오지만, 점 자체는
+   세 상태 모두를 위해 둔다 — 진행률 숫자 옆에서 재사용할 여지를 남긴다. */
+.cm-status-dot--doc-pending {
+  background: var(--color-border-strong);
+}
+.cm-status-dot--doc-ingested {
+  background: var(--color-status-success);
+}
+.cm-status-dot--doc-failed {
   background: var(--color-status-critical);
 }
 .cm-status-name {

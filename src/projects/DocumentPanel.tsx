@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createDownloadTicket, deleteDocument, ProjectApiError } from './projectApi'
 import { apiErrorMessage } from './apiErrorMessage'
 import {
@@ -9,9 +9,10 @@ import {
   runDocumentDelete,
   type DocumentDeleteState,
 } from './documentDeleteState'
-import { formatBytes, formatDate } from './formatters'
+import { formatBytes, formatDate, formatElapsedSeconds } from './formatters'
 import { useI18n } from '../i18n/useI18n'
 import { DOCUMENT_ACCEPT, describeFileProblem, uploadDocument } from './uploadDocument'
+import type { DocumentStreamState } from './useDocumentEvents'
 import type { ProjectDocument } from './projectTypes'
 
 type UploadState =
@@ -24,11 +25,13 @@ export function DocumentPanel({
   documents,
   onDeleted,
   onUploaded,
+  streamState,
 }: {
   projectId: string
   documents: ProjectDocument[]
   onDeleted: (documentId: string) => void
   onUploaded: (document: ProjectDocument) => void
+  streamState: DocumentStreamState
 }) {
   const [upload, setUpload] = useState<UploadState>({ phase: 'idle' })
   const [pendingFile, setPendingFile] = useState<File | null>(null)
@@ -37,8 +40,43 @@ export function DocumentPanel({
   const [deleteState, setDeleteState] = useState<DocumentDeleteState>(idleDocumentDelete)
   const fileInput = useRef<HTMLInputElement>(null)
   const { t } = useI18n()
+  // effect 가 아니라 "prop 이 바뀌면 state 를 맞춘다" (React 문서의 패턴)
+  // 쪽이다: 여기서는 렌더 중 `useRef` 읽기/쓰기가 금지돼 있고, `useEffect`
+  // 본문에서 바로 setState 를 부르면 렌더가 한 번 더 캐스케이드된다. 직전
+  // `documents` *참조* 와 비교하는 것이 이 블록을 한 번만 돌게 만든다 —
+  // `useProject.ts` 의 `applyDocumentStatus` 는 문서가 실제로 바뀔 때만 이
+  // 배열을 새로 만들므로, 진짜 변화가 있을 때만 이 본문이 돌고 아래
+  // `setPreviousDocuments` 가 그것을 마무리한다.
+  const [previousDocuments, setPreviousDocuments] = useState(documents)
 
   const [current, ...history] = documents
+
+  /*
+   * `aria-live="polite"` 는 요약된 변화만 알린다. SSE 프레임 하나마다 알리지
+   * 않는다 — DESIGN.md 가 명시하는 규칙이다. 종료 상태 두 가지(`EXTRACTED`
+   * 또는 `FAILED`)로 바뀔 때만 말하고, `EXTRACTING` 이나 `stale` 플립은
+   * 조용히 지나간다.
+   */
+  if (documents !== previousDocuments) {
+    const previousStatusById = new Map(
+      previousDocuments.map((document) => [document.id, document.parseStatus]),
+    )
+    let pendingAnnouncement: string | null = null
+
+    for (const document of documents) {
+      const previousStatus = previousStatusById.get(document.id)
+      if (previousStatus === undefined || previousStatus === document.parseStatus) continue
+
+      if (document.parseStatus === 'EXTRACTED') {
+        pendingAnnouncement = t.projects.documents.parseStatus.extractedAnnouncement(document.version)
+      } else if (document.parseStatus === 'FAILED') {
+        pendingAnnouncement = t.projects.documents.parseStatus.failedAnnouncement(document.version)
+      }
+    }
+
+    setPreviousDocuments(documents)
+    if (pendingAnnouncement !== null) setAnnouncement(pendingAnnouncement)
+  }
 
   async function start(file: File) {
     const problem = describeFileProblem(file)
@@ -109,8 +147,9 @@ export function DocumentPanel({
 
   return (
     <section className="panel" aria-labelledby="documents-title">
-      <header className="panel-header">
+      <header className="panel-header panel-header--split">
         <h2 id="documents-title">{t.projects.documents.title}</h2>
+        <DocumentStreamIndicator streamState={streamState} />
       </header>
 
       {current === undefined ? (
@@ -249,65 +288,155 @@ function DocumentLine({
 }) {
   const { t } = useI18n()
   const isThisDocument = deleteState.documentId === document.id
+  const isStaleExtracting = document.parseStatus === 'EXTRACTING' && document.stale
+  const parseNote =
+    document.parseStatus === 'FAILED'
+      ? { variant: 'failed', copy: t.projects.documents.parseStatus.failedCopy }
+      : isStaleExtracting
+        ? { variant: 'stale', copy: t.projects.documents.parseStatus.staleCopy }
+        : null
 
   return (
-    <div className="document-line">
-      <span className="document-meta">
-        <span className="mono">v{document.version}</span>
-        {isCurrent && <span className="badge badge--current">{t.projects.documents.current}</span>}
-        <span className="document-name">{document.fileName}</span>
-        <span className="document-detail">
-          {formatBytes(document.sizeBytes)} · {formatDate(document.uploadedAt)}
-          {document.uploadedBy !== null && ` · ${document.uploadedBy.displayName}`}
-        </span>
-      </span>
-
-      {isThisDocument ? (
-        <div className="document-confirm">
-          {deleteState.error !== null && (
-            <div className="inline-error" role="alert">
-              <span aria-hidden="true">!</span>
-              <span>{deleteState.error}</span>
-            </div>
+    <div className="document-row">
+      <div className="document-line">
+        <span className="document-meta">
+          <span className="mono">v{document.version}</span>
+          {isCurrent && <span className="badge badge--current">{t.projects.documents.current}</span>}
+          <ParseStatusBadge document={document} />
+          {document.parseStatus === 'EXTRACTING' && !document.stale && (
+            <ExtractingElapsed since={document.uploadedAt} />
           )}
-          <p className="document-confirm-copy">{t.projects.documents.deleteConfirmCopy}</p>
-          <div className="document-confirm-actions">
+          <span className="document-name">{document.fileName}</span>
+          <span className="document-detail">
+            {formatBytes(document.sizeBytes)} · {formatDate(document.uploadedAt)}
+            {document.uploadedBy !== null && ` · ${document.uploadedBy.displayName}`}
+          </span>
+        </span>
+
+        {isThisDocument ? (
+          <div className="document-confirm">
+            {deleteState.error !== null && (
+              <div className="inline-error" role="alert">
+                <span aria-hidden="true">!</span>
+                <span>{deleteState.error}</span>
+              </div>
+            )}
+            <p className="document-confirm-copy">{t.projects.documents.deleteConfirmCopy}</p>
+            <div className="document-confirm-actions">
+              <button
+                className="button button--secondary button--compact"
+                disabled={deleteState.pending}
+                onClick={onCancelDelete}
+                type="button"
+              >
+                {t.projects.shared.cancel}
+              </button>
+              <button
+                className="button button--danger button--compact"
+                disabled={deleteState.pending}
+                onClick={() => void onConfirmDelete(document)}
+                type="button"
+              >
+                {deleteState.pending ? t.projects.shared.deleting : t.projects.documents.deleteConfirm}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <span className="document-actions">
             <button
               className="button button--secondary button--compact"
-              disabled={deleteState.pending}
-              onClick={onCancelDelete}
+              onClick={() => onDownload(document)}
               type="button"
             >
-              {t.projects.shared.cancel}
+              {t.projects.documents.download}
             </button>
             <button
-              className="button button--danger button--compact"
-              disabled={deleteState.pending}
-              onClick={() => void onConfirmDelete(document)}
+              className="button button--danger-quiet button--compact"
+              onClick={() => onRequestDelete(document.id)}
               type="button"
             >
-              {deleteState.pending ? t.projects.shared.deleting : t.projects.documents.deleteConfirm}
+              {t.projects.documents.delete}
             </button>
-          </div>
-        </div>
-      ) : (
-        <span className="document-actions">
-          <button
-            className="button button--secondary button--compact"
-            onClick={() => onDownload(document)}
-            type="button"
-          >
-            {t.projects.documents.download}
-          </button>
-          <button
-            className="button button--danger-quiet button--compact"
-            onClick={() => onRequestDelete(document.id)}
-            type="button"
-          >
-            {t.projects.documents.delete}
-          </button>
-        </span>
+          </span>
+        )}
+      </div>
+
+      {/* FAILED 이거나 EXTRACTING+stale 인 문서만. 위 버튼이 그대로 지우고
+          다시 올리는 길이라, 새 UI 를 만들지 않고 그 자리를 가리키기만 한다. */}
+      {parseNote !== null && !isThisDocument && (
+        <p className={`document-parse-note document-parse-note--${parseNote.variant}`} role="status">
+          {parseNote.copy}
+        </p>
       )}
     </div>
+  )
+}
+
+/** 네 상태가 서로 구별돼 보이게 하는 자리. `stale` 은 EXTRACTING 을 덮어써 별도로 읽는다. */
+function ParseStatusBadge({ document }: { document: ProjectDocument }) {
+  const { t } = useI18n()
+  const copy = t.projects.documents.parseStatus
+
+  if (document.parseStatus === 'EXTRACTING' && document.stale) {
+    return <span className="badge badge--offline">{copy.stale}</span>
+  }
+  if (document.parseStatus === 'EXTRACTING') {
+    return <span className="badge badge--warning">{copy.extracting}</span>
+  }
+  if (document.parseStatus === 'EXTRACTED') {
+    return <span className="badge badge--success">{copy.extracted}</span>
+  }
+  if (document.parseStatus === 'FAILED') {
+    return <span className="badge badge--critical">{copy.failed}</span>
+  }
+  return <span className="badge">{copy.pending}</span>
+}
+
+/**
+ * 진행률 막대는 없다 — 추출은 LLM 한 번이라 나눌 단위가 없다. `since` 는
+ * 문서의 `uploadedAt` 이다: 서버는 문서가 등록되자마자 추출을 fire-and-forget
+ * 으로 시작하므로, 이 화면이 가진 것 중 시작 시점에 가장 가까운 값이 업로드
+ * 시각이다.
+ */
+function ExtractingElapsed({ since }: { since: string }) {
+  const { t } = useI18n()
+  const [now, setNow] = useState(() => Date.now())
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const startedAt = new Date(since).getTime()
+  if (Number.isNaN(startedAt)) return null
+
+  const elapsedSeconds = Math.max(0, Math.floor((now - startedAt) / 1000))
+  return (
+    <span className="mono document-parse-elapsed">
+      {t.projects.documents.parseStatus.elapsedLabel(formatElapsedSeconds(elapsedSeconds))}
+    </span>
+  )
+}
+
+function DocumentStreamIndicator({ streamState }: { streamState: DocumentStreamState }) {
+  const { t } = useI18n()
+  const copy = t.projects.documents.stream
+
+  const label =
+    streamState === 'live'
+      ? copy.live
+      : streamState === 'offline'
+        ? copy.offline
+        : streamState === 'degraded'
+          ? copy.degraded
+          : copy.connecting
+
+  const dotModifier = streamState === 'live' ? ' status-dot--connected' : streamState === 'offline' ? '' : ' status-dot--warning'
+
+  return (
+    <span className="document-stream-status">
+      <span aria-hidden="true" className={`status-dot${dotModifier}`} />
+      {label}
+    </span>
   )
 }

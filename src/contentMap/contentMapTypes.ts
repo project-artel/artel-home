@@ -452,6 +452,85 @@ export type PendingDocument = {
   ingestError: string | null
 }
 
+/** `ScanState` 서버 값. `REQUESTED` 는 도는 중, `SUCCEEDED`·`FAILED` 는 끝났다. */
+export const SCAN_STATES = ['REQUESTED', 'SUCCEEDED', 'FAILED'] as const
+
+export type ScanState = (typeof SCAN_STATES)[number]
+
+/**
+ * 이 빌드에 마지막으로 시킨 원격 스캔. SSE `snapshot`·`scan` 이벤트로 온다.
+ *
+ * `null` 은 "스캔이 없었다"가 아니라 **"이 서버는 이 빌드의 스캔을 모른다"**는
+ * 뜻이다 — 이 값을 들고 있는 `ScanStatusRegistry` 가 프로세스 메모리에만
+ * 살아서, 서버가 재시작하면 사라진다. 화면은 이것을 영원한 진행 중으로
+ * 그리면 안 된다. 문서 적재 진행(`IngestProgress`, `ContentMapDocumentEvent`)은
+ * DB 에서 나오므로 재시작과 무관하게 그대로 남는다.
+ */
+export type LastScan = {
+  state: ScanState
+  gameInstanceId: string
+  gameInstanceName: string
+  requestedAt: string
+  /** 끝난 시각. `state` 가 `REQUESTED` 면 null 이다. */
+  finishedAt: string | null
+  ingestedDocuments: number | null
+  /** `state` 가 `FAILED` 일 때 사람에게 보여 줄 사유. */
+  error: string | null
+}
+
+/** 스캔이 `REQUESTED` 상태로 흐른 시간(초). `finishedAt` 이 있으면 거기까지, 없으면 `nowMs` 까지. */
+export function scanElapsedSeconds(scan: LastScan, nowMs: number): number {
+  const endMs = scan.finishedAt !== null ? Date.parse(scan.finishedAt) : nowMs
+  const startMs = Date.parse(scan.requestedAt)
+  if (Number.isNaN(startMs) || Number.isNaN(endMs)) return 0
+  return Math.max(0, Math.floor((endMs - startMs) / 1000))
+}
+
+/**
+ * 문서 적재 진행. SSE `snapshot`·`ingest` 이벤트로 온다.
+ *
+ * 서버는 퍼센트를 만들지 않는다 — 분모(`receivedDocuments`)가 스캔이 도는
+ * 동안 계속 늘어서, 서버가 계산한 순간 이미 낡기 때문이다. 이 두 수만 받아
+ * 화면이 자기가 그리는 시점의 값으로 비율을 만든다.
+ */
+export type IngestProgress = {
+  receivedDocuments: number
+  ingestedDocuments: number
+  failedDocuments: number
+}
+
+/** 문서 한 행의 적재 상태 세 갈래. */
+export type DocumentIngestState = 'pending' | 'ingested' | 'failed'
+
+/**
+ * SSE 로 받는 문서 한 행. `PendingDocument`(REST) 와 달리 `ingestedAt` 을 들고
+ * 있어서, 이미 적재된 문서도 같은 모양으로 그릴 수 있다 — `snapshot` 의
+ * `documents` 는 이 빌드의 `content_map_document` 행 전부이고, 아직 적재되지
+ * 않은 것만 담는 `PendingDocument` 의 상위집합이다.
+ */
+export type ContentMapDocumentEvent = {
+  documentId: string
+  receivedAt: string
+  ingestedAt: string | null
+  ingestFailedAt: string | null
+  ingestError: string | null
+}
+
+/** `ingestedAt` 과 `ingestFailedAt` 으로 세 갈래를 가른다. */
+export function documentIngestState(document: ContentMapDocumentEvent): DocumentIngestState {
+  if (document.ingestedAt !== null) return 'ingested'
+  if (document.ingestFailedAt !== null) return 'failed'
+  return 'pending'
+}
+
+/**
+ * `.../content-map/events` 구독의 연결 상태. `DESIGN.md` 의 `## States` 사다리와
+ * 같은 어휘다(connecting → live → degraded → offline). `useQaTry.ts` 의
+ * `QaStreamState` 와 같은 뜻이지만, ARTEL-761 의 SSE 훅과 공유하지 않기 위해
+ * 이 파일에 따로 둔다.
+ */
+export type ContentMapStreamState = 'connecting' | 'live' | 'degraded' | 'offline'
+
 /**
  * 콘텐츠 맵 자체의 머리말.
  *
