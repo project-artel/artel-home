@@ -49,6 +49,17 @@ export const contentMapEn = {
     failedAt: (time: string) => `Reading failed at ${time}`,
     documentLabel: (documentId: string) => `Document ${documentId}`,
     receivedAt: (time: string) => `received ${time}`,
+    // The live ingest panel (`EvidenceScanPanel`) reuses this section's copy for
+    // the parts that mean the same thing (document label, received time) and
+    // adds these for what only it needs: the progress bar and the per-document
+    // state that now includes "ingested", not just pending and failed.
+    progressTitle: (ingested: number, received: number) => `${ingested} of ${received} ingested`,
+    progressLabel: (ingested: number, received: number) =>
+      `${ingested} of ${received} documents ingested`,
+    failedCount: (count: number) => `${count} failed`,
+    documentPending: 'Not yet ingested',
+    documentFailed: 'Failed',
+    noDocuments: 'No evidence document has been received for this build yet.',
   },
   scan: {
     title: 'Evidence',
@@ -57,8 +68,11 @@ export const contentMapEn = {
     noInstanceOption: 'No connected game at the last check',
     action: 'Rescan evidence',
     running: 'Asking the game…',
-    requested:
-      'The scan was requested. This map changes once the game has sent its evidence and the server has read it — refresh to pick that up.',
+    // No "refresh to pick that up" here anymore: the scan status and ingest
+    // progress below now update themselves from the events stream, so telling
+    // the reader to refresh would tell them to do something the screen already
+    // does — the same fact stated twice.
+    requested: 'The scan was requested. Its status appears below once the game responds.',
     failed: 'The scan could not be started.',
     checkedAt: (time: string) =>
       `Connected games as of ${time}. Nothing is polling; refresh to check again.`,
@@ -75,6 +89,29 @@ export const contentMapEn = {
       noneConnected: (time: string) =>
         `No game was connected as of ${time}. A scan runs inside the running game, so one has to be online — start the game and refresh.`,
     },
+  },
+  // Live scan state and the events-stream connection it rides on. Deliberately
+  // no progress bar here — `ScanState` is only REQUESTED/SUCCEEDED/FAILED and
+  // the server has no notion of how far along a running scan is, so state plus
+  // elapsed time is all there is to show honestly.
+  scanStatus: {
+    requested: 'Scanning…',
+    succeeded: 'Last scan succeeded',
+    failed: 'Last scan failed',
+    elapsed: (seconds: number) => `${seconds}s elapsed`,
+    onInstance: (name: string) => `on ${name}`,
+    // `scan === null`: this server has no scan status for this build, most often
+    // because it restarted (`ScanStatusRegistry` lives in process memory only).
+    // Read as "unknown", never as a scan stuck running forever.
+    unknownTitle: 'This server has no scan status for this build',
+    unknownCopy:
+      'It likely restarted since a scan was last requested. Document ingest below is unaffected — it comes from the database, not this status. Start a new scan above to see live status again.',
+    // The events-stream connection itself, independent of what it last reported.
+    // Mirrors `t.qa.run.stream*` — same vocabulary, kept local to this track.
+    streamConnecting: 'Connecting to live updates…',
+    streamLive: 'Live',
+    streamDegraded: 'Live updates interrupted. Reconnecting…',
+    streamOffline: 'Live updates lost. Reload the page to reconnect.',
   },
   summary: {
     scenes: (count: number) => `${count} scene${count === 1 ? '' : 's'}`,
@@ -506,6 +543,12 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
     failedAt: (time: string) => `${time}에 적재 실패`,
     documentLabel: (documentId: string) => `문서 ${documentId}`,
     receivedAt: (time: string) => `${time} 접수`,
+    progressTitle: (ingested: number, received: number) => `${received}개 중 ${ingested}개 적재`,
+    progressLabel: (ingested: number, received: number) => `문서 ${received}개 중 ${ingested}개 적재됨`,
+    failedCount: (count: number) => `실패 ${count}개`,
+    documentPending: '아직 적재 안 됨',
+    documentFailed: '실패',
+    noDocuments: '이 빌드로 받은 근거 문서가 아직 없습니다.',
   },
   scan: {
     title: '근거',
@@ -514,8 +557,7 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
     noInstanceOption: '마지막 확인 때 붙어 있는 게임 없음',
     action: '근거 다시 스캔',
     running: '게임에 요청하는 중…',
-    requested:
-      '스캔을 요청했습니다. 게임이 근거를 보내고 서버가 그것을 읽으면 이 맵이 바뀝니다 — 새로고침으로 확인하세요.',
+    requested: '스캔을 요청했습니다. 게임이 응답하면 아래에 상태가 나타납니다.',
     failed: '스캔을 시작하지 못했습니다.',
     checkedAt: (time: string) =>
       `붙어 있는 게임 목록은 ${time} 기준입니다. 계속 지켜보고 있지는 않으니 새로고침으로 다시 확인하세요.`,
@@ -527,6 +569,20 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
       noneConnected: (time: string) =>
         `${time} 기준으로 붙어 있는 게임이 없었습니다. 스캔은 실행 중인 게임 안에서 돌기 때문에 한 대는 켜져 있어야 합니다 — 게임을 켜고 새로고침해 주세요.`,
     },
+  },
+  scanStatus: {
+    requested: '스캔하는 중…',
+    succeeded: '마지막 스캔 성공',
+    failed: '마지막 스캔 실패',
+    elapsed: (seconds: number) => `${seconds}초 경과`,
+    onInstance: (name: string) => `${name} 에서`,
+    unknownTitle: '이 서버는 이 빌드의 스캔 상태를 모릅니다',
+    unknownCopy:
+      '마지막 스캔 요청 이후 서버가 재시작됐을 가능성이 큽니다. 아래 문서 적재는 이 상태와 무관하게 DB 에서 그대로 나옵니다 — 영향받지 않습니다. 위에서 스캔을 다시 시키면 실시간 상태를 다시 볼 수 있습니다.',
+    streamConnecting: '실시간 갱신에 연결하는 중…',
+    streamLive: '실시간 연결됨',
+    streamDegraded: '실시간 갱신 연결이 끊어졌습니다. 다시 연결하는 중…',
+    streamOffline: '실시간 갱신 연결이 끊겼습니다. 새로고침하면 다시 연결됩니다.',
   },
   summary: {
     scenes: (count: number) => `씬 ${count}개`,

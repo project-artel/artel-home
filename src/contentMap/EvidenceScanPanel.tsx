@@ -5,7 +5,13 @@ import { formatDateTime } from '../projects/formatters'
 import { listGameInstances } from '../projects/gameApi'
 import type { GameInstance } from '../projects/gameTypes'
 import { ProjectApiError } from '../projects/projectApi'
-import type { ContentMapView } from './contentMapTypes'
+import {
+  documentIngestState,
+  scanElapsedSeconds,
+  type ContentMapStreamState,
+  type LastScan,
+} from './contentMapTypes'
+import type { ContentMapEventsState } from './useContentMapEvents'
 import { requestEvidenceScan } from './requestEvidenceScan'
 
 /**
@@ -47,13 +53,14 @@ export function EvidenceScanPanel({
   projectId,
   buildId,
   refreshToken,
-  view,
+  events,
 }: {
   projectId: string
   buildId: string
   /** 페이지의 새로고침 횟수. 바뀌면 붙어 있는 게임도 다시 확인한다. */
   refreshToken: number
-  view: ContentMapView
+  /** `.../content-map/events` 구독 상태. 스캔 상태와 문서 적재 진행이 여기서 나온다. */
+  events: ContentMapEventsState
 }) {
   const { t } = useI18n()
   const copy = t.contentMap.scan
@@ -189,7 +196,8 @@ export function EvidenceScanPanel({
         </div>
       )}
 
-      {view.pendingDocuments.length > 0 && <PendingDocuments view={view} />}
+      <ScanStatusPanel events={events} />
+      <IngestStatus events={events} />
 
       {/* 요청이 받아들여졌다는 사실만 알린다. 실패는 바로 위 role="alert" 가
           이미 읽어 주므로 여기서 또 알리면 두 번 말하게 된다. */}
@@ -211,41 +219,171 @@ function describeBlock(instances: InstancesState, connectedCount: number): Block
   return null
 }
 
+/** 스캔 상태 label 이 밟는 세 갈래에 맞춰 상태 점 색을 고른다. */
+function scanDotModifier(state: LastScan['state']): 'requested' | 'succeeded' | 'failed' {
+  if (state === 'REQUESTED') return 'requested'
+  if (state === 'SUCCEEDED') return 'succeeded'
+  return 'failed'
+}
+
 /**
- * 서버가 받았지만 아직 적재하지 않은 근거 문서.
- *
- * 여기에는 버튼이 없다. 적재는 서버가 스스로 하는 일이고, 이 목록은 지금
- * 보이는 맵이 완성본이 아니라는 사실의 근거일 뿐이다. 실패한 문서는 서버가
- * 쓴 문장을 그대로 달고 나온다 — 이 클라이언트는 그것을 다시 쓰지 않는다.
+ * 이 stream 이 마지막으로 알려 준 것과 무관하게, 연결 자체가 지금 어떤지.
+ * `t.qa.run.stream*` 과 같은 어휘를 이 트랙 안에서 따로 쓴다.
  */
-function PendingDocuments({ view }: { view: ContentMapView }) {
+function streamStateLabel(
+  copy: ReturnType<typeof useI18n>['t']['contentMap']['scanStatus'],
+  streamState: ContentMapStreamState,
+): string {
+  if (streamState === 'connecting') return copy.streamConnecting
+  if (streamState === 'degraded') return copy.streamDegraded
+  if (streamState === 'offline') return copy.streamOffline
+  return copy.streamLive
+}
+
+/**
+ * 초마다 갱신되는 현재 시각. `active` 가 꺼지면(스캔이 `REQUESTED` 를 벗어나면)
+ * 타이머를 멈춘다 — `testRuns/RunChat.tsx` 의 `useElapsedSeconds` 와 같은
+ * 모양이지만, 그 파일을 import 하지 않고 이 트랙 안에 따로 둔다.
+ */
+function useTickingNow(active: boolean): number {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    if (!active) return
+    const timer = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [active])
+  return now
+}
+
+/**
+ * 스캔 상태: `REQUESTED`·`SUCCEEDED`·`FAILED` 와 경과 시간뿐이다. **진행률
+ * 막대를 두지 않는다** — `ScanState` 에 중간 진행이라는 개념 자체가 없다.
+ *
+ * `scan === null` 은 "이 서버가 이 빌드의 스캔을 모른다"는 사실이고,
+ * `contract-contentmap.md` 가 못 박은 대로 영원한 진행 중으로 그리지 않는다.
+ */
+function ScanStatusPanel({ events }: { events: ContentMapEventsState }) {
+  const { t } = useI18n()
+  const copy = t.contentMap.scanStatus
+  const now = useTickingNow(events.scan?.state === 'REQUESTED')
+
+  // 첫 snapshot 을 아직 못 받았다 — connecting 이지 "스캔이 없다"가 아니다.
+  if (events.scan === undefined) {
+    return (
+      <p aria-live="polite" className="cm-scan-connection mono">
+        {streamStateLabel(copy, events.streamState)}
+      </p>
+    )
+  }
+
+  if (events.scan === null) {
+    return (
+      <div className="cm-outcome cm-outcome--notice" role="status">
+        <p>{copy.unknownTitle}</p>
+        <p>{copy.unknownCopy}</p>
+        <p className="cm-scan-connection mono">{streamStateLabel(copy, events.streamState)}</p>
+      </div>
+    )
+  }
+
+  const scan = events.scan
+  const elapsed = scanElapsedSeconds(scan, now)
+  const stateLabel =
+    scan.state === 'REQUESTED'
+      ? copy.requested
+      : scan.state === 'SUCCEEDED'
+        ? copy.succeeded
+        : copy.failed
+
+  return (
+    <div aria-live="polite" className="cm-scan-status" role="status">
+      <p>
+        <span
+          aria-hidden="true"
+          className={`cm-status-dot cm-status-dot--scan-${scanDotModifier(scan.state)}`}
+        />
+        <span>{stateLabel}</span>
+        <span> {copy.onInstance(scan.gameInstanceName)}</span>
+        <span className="mono"> {copy.elapsed(elapsed)}</span>
+      </p>
+      {scan.state === 'FAILED' && scan.error !== null && (
+        <p className="cm-pending-error">{scan.error}</p>
+      )}
+      <p className="cm-scan-connection mono">{streamStateLabel(copy, events.streamState)}</p>
+    </div>
+  )
+}
+
+/**
+ * 문서 적재 진행. **여기는 진행률 막대가 있다** — 분모(받은 문서 수)와
+ * 분자(적재된 문서 수)가 둘 다 있는 것은 스캔이 아니라 이 진행뿐이다.
+ *
+ * 첫 snapshot 을 아직 못 받았으면(`events.ingest === undefined`) 아무것도
+ * 그리지 않는다. 그 사이의 빈 자리는 `ContentMapPage` 상단 배너가 GET 스냅샷
+ * 기준으로 이미 채운다 — 여기서 같은 사실을 GET 값으로 다시 그리면 SSE 가
+ * 붙은 뒤에 두 수가 순간적으로 어긋나 보일 수 있다.
+ *
+ * 목록에는 아직 적재되지 않은 문서와 실패한 문서만 한 행씩 올린다. 이미
+ * 적재된 문서까지 전부 행으로 그리면(빌드에 수백 개가 쌓일 수 있다) 정작
+ * 봐야 할 두 상태가 그 밑에 묻힌다 — "적재됨" 이라는 사실은 위 진행률
+ * 숫자가 이미 말하고 있다.
+ */
+function IngestStatus({ events }: { events: ContentMapEventsState }) {
   const { t } = useI18n()
   const copy = t.contentMap.pending
 
-  // role="status" 를 달지 않는다. 페이지 상단의 저하 배너가 같은 두 문장을
-  // 이미 읽어 주므로, 여기에도 달면 스크린 리더가 같은 말을 두 번 알린다.
+  if (events.ingest === undefined) return null
+
+  const { receivedDocuments, ingestedDocuments, failedDocuments } = events.ingest
+
+  if (receivedDocuments === 0) {
+    return <p className="cm-scan-copy">{copy.noDocuments}</p>
+  }
+
+  const attention = [...events.documents.values()]
+    .filter((document) => documentIngestState(document) !== 'ingested')
+    .sort((left, right) => left.receivedAt.localeCompare(right.receivedAt))
+
   return (
     <div className="cm-pending">
-      <p className="cm-pending-title">{copy.title(view.pendingDocuments.length)}</p>
-      <p className="cm-pending-copy">{copy.copy}</p>
-      <ul className="cm-pending-list">
-        {view.pendingDocuments.map((document) => (
-          <li key={document.documentId}>
-            <span className="mono">{copy.documentLabel(document.documentId)}</span>
-            <span className="cm-pending-state">
-              {document.ingestFailedAt === null
-                ? copy.waiting
-                : copy.failedAt(formatDateTime(document.ingestFailedAt))}
-            </span>
-            <span className="cm-pending-state">
-              {copy.receivedAt(formatDateTime(document.receivedAt))}
-            </span>
-            {document.ingestError !== null && (
-              <span className="cm-pending-error">{document.ingestError}</span>
-            )}
-          </li>
-        ))}
-      </ul>
+      <p className="cm-pending-title">{copy.progressTitle(ingestedDocuments, receivedDocuments)}</p>
+      <div
+        aria-label={copy.progressLabel(ingestedDocuments, receivedDocuments)}
+        aria-valuemax={receivedDocuments}
+        aria-valuemin={0}
+        aria-valuenow={ingestedDocuments}
+        className="progress-track"
+        role="progressbar"
+      >
+        <span
+          className="progress-fill cm-ingest-fill"
+          style={{ width: `${(ingestedDocuments / receivedDocuments) * 100}%` }}
+        />
+      </div>
+      {failedDocuments > 0 && <p className="cm-ingest-failed-count">{copy.failedCount(failedDocuments)}</p>}
+
+      {attention.length > 0 && (
+        <ul className="cm-pending-list">
+          {attention.map((document) => {
+            const state = documentIngestState(document)
+            return (
+              <li key={document.documentId}>
+                <span aria-hidden="true" className={`cm-status-dot cm-status-dot--doc-${state}`} />
+                <span className="mono">{copy.documentLabel(document.documentId)}</span>
+                <span className="cm-pending-state">
+                  {state === 'failed' ? copy.documentFailed : copy.documentPending}
+                </span>
+                <span className="cm-pending-state">
+                  {copy.receivedAt(formatDateTime(document.receivedAt))}
+                </span>
+                {document.ingestError !== null && (
+                  <span className="cm-pending-error">{document.ingestError}</span>
+                )}
+              </li>
+            )
+          })}
+        </ul>
+      )}
     </div>
   )
 }
