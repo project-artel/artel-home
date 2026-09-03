@@ -598,6 +598,13 @@ h1 {
   color: var(--color-status-warning);
 }
 
+/* `badge--success`/`badge--warning` 과 같은 모양 — outline 하나, 텍스트 라벨 필수. CLI 토큰의
+   폐기 상태가 이 클래스를 처음 쓴다. */
+.badge--critical {
+  border-color: var(--color-status-critical);
+  color: var(--color-status-critical);
+}
+
 .project-row--skeleton {
   display: flex;
   flex-direction: column;
@@ -1077,7 +1084,8 @@ h1 {
 
 .instance-list,
 .build-list,
-.scenario-list {
+.scenario-list,
+.cli-token-list {
   display: flex;
   flex-direction: column;
   margin: 0;
@@ -1206,6 +1214,65 @@ a.instance-name:hover {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+}
+
+/* ── CLI tokens (ARTEL-781) ─────────────────────────────────────────────── */
+
+.cli-token-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4) 0;
+}
+
+.cli-token-row + .cli-token-row {
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.cli-token-row-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.cli-token-row-name {
+  color: var(--color-text-primary);
+  font-size: 15px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* 만료·폐기된 줄은 읽히되 아직 살아있는 토큰과 경쟁하지 않는다 — `.issue-row--resolved
+   .issue-row-title` 과 같은 판단이다. */
+.cli-token-row--expired .cli-token-row-name,
+.cli-token-row--revoked .cli-token-row-name {
+  color: var(--color-text-secondary);
+}
+
+.cli-token-row-meta {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.cli-token-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* 발급 직후 한 번만 보이는 원문 상자. 경고는 위 `.inline-notice` 문장이 이미 지고 있어 값
+   자체는 중립적인 상자로 둔다 — 둘 다 amber 면 "항상 켜진 경고"처럼 읽힌다. */
+.cli-token-value {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-raised);
 }
 
 /* A value the developer has to move into another application by hand, paired
