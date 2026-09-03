@@ -16,6 +16,7 @@ import { ScreenMapLegend } from './ScreenMapLegend'
 import { buildScreenMap, layoutScreenMap } from './screenMapLayout'
 import { useCanvasViewport } from './useCanvasViewport'
 import { useContentMap } from './useContentMap'
+import { useContentMapEvents } from './useContentMapEvents'
 
 /**
  * 옛 주소를 지금의 콘텐츠 맵으로 넘긴다.
@@ -48,9 +49,11 @@ export function ContentMapRedirect() {
  *   `ingestedAt === null` 이면 올렸지만 아직 안 읽음, 둘 다 아닌데
  *   `scenes` 가 비었으면 읽었는데 씬이 없었음. 사용자가 할 일이 각각 달라서
  *   합치지 않는다.
- * - **degraded** — 맵은 있는데 `pendingDocuments` 가 비어 있지 않다. 보이는
- *   것이 완성본이 아니라는 뜻이고, 그 사실은 그림이 떠 있는 동안 계속 떠
- *   있어야 한다.
+ * - **degraded** — 맵은 있는데 아직 적재되지 않은 문서가 있다. `useContentMapEvents`
+ *   가 스냅샷을 준 뒤로는 그 수를 쓰고, 그 전에만 GET 의 `pendingDocuments.length`
+ *   로 대신한다(ARTEL-764) — 두 수를 동시에 보이면 새로고침 시점과 SSE 시점이
+ *   어긋날 때 같은 사실을 다르게 말하게 된다. 보이는 것이 완성본이 아니라는
+ *   뜻이고, 그 사실은 그림이 떠 있는 동안 계속 떠 있어야 한다.
  * - **disconnected** — 브라우저가 오프라인이거나, 스냅샷이 있는 채로
  *   새로고침이 실패했다. 마지막으로 읽은 맵은 남기되 읽은 시각을 붙인다 —
  *   마지막 프레임을 라이브인 척하지 않는다는 규칙 그대로다.
@@ -65,6 +68,9 @@ export function ContentMapReport({
   const { t } = useI18n()
   const copy = t.contentMap
   const { view, status, fetchedAt, online, reload, reloadToken } = useContentMap(projectId, buildId)
+  // 화면이 마운트된 동안 계속 붙어 있는다. GET 의 로딩/에러 상태와 독립이다 —
+  // 스캔과 문서 적재는 이 빌드를 볼 수 있는 한 언제든 움직일 수 있다.
+  const events = useContentMapEvents(projectId, buildId)
   const refreshing = status === 'loading'
 
   // 첫 로드에만 화면을 비운다. 새로고침 중에는 직전 스냅샷이 그대로 남고
@@ -95,6 +101,14 @@ export function ContentMapReport({
   if (view === null) return null
 
   const readAt = fetchedAt === 0 ? '' : formatDateTime(new Date(fetchedAt).toISOString())
+  // 아직 적재되지 않은 문서 수. SSE 가 스냅샷을 준 뒤로는 그 값이 산다 — GET
+  // 의 `pendingDocuments` 와 SSE 의 `ingest` 가 같은 사실을 동시에 말하면
+  // 새로고침 시점과 SSE 시점이 어긋날 때 두 수가 서로 다르게 보일 수 있다.
+  // 연결 전(`events.ingest === undefined`)에만 GET 값을 쓴다.
+  const notYetIngestedCount =
+    events.ingest !== undefined
+      ? events.ingest.receivedDocuments - events.ingest.ingestedDocuments - events.ingest.failedDocuments
+      : view.pendingDocuments.length
 
   return (
     <section aria-busy={refreshing || undefined} className="page content-map">
@@ -136,18 +150,18 @@ export function ContentMapReport({
 
       {/* 저하 상태. 알림이 아니라 상시 조건이므로, 설명하는 그림이 떠 있는
           동안 함께 떠 있는다. */}
-      {view.pendingDocuments.length > 0 && (
+      {notYetIngestedCount > 0 && (
         <div className="cm-banner cm-banner--degraded" role="status">
-          <p className="cm-banner-title">{copy.pending.title(view.pendingDocuments.length)}</p>
+          <p className="cm-banner-title">{copy.pending.title(notYetIngestedCount)}</p>
           <p className="cm-banner-copy">{copy.pending.copy}</p>
         </div>
       )}
 
       <EvidenceScanPanel
         buildId={buildId}
+        events={events}
         projectId={projectId}
         refreshToken={reloadToken}
-        view={view}
       />
 
       <ContentMapBody projectId={projectId} view={view} />
