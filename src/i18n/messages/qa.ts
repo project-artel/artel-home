@@ -107,6 +107,40 @@ export const qaEn = {
     gameColumn: 'Game',
     unknownGame: 'Instance removed',
     notStarted: 'Not started',
+    /**
+     * The detail a history row opens onto (ARTEL-819).
+     *
+     * `cancelled` and `running` replace the result figures rather than sitting
+     * beside them. A cancelled run has no denominator to divide by, and a running
+     * one is read from a snapshot taken when the row opened — printing either
+     * alongside numbers would make the screen promise something it does not keep.
+     */
+    detail: {
+      expand: (id: string) => `Show what run #${id} did`,
+      collapse: (id: string) => `Hide what run #${id} did`,
+      loading: 'Loading this run…',
+      loadFailed: 'This run could not be loaded.',
+      gone: 'This run is no longer available.',
+      resultGroup: 'Result',
+      costGroup: 'Cost',
+      steps: 'Steps passed',
+      issues: 'Issues found',
+      feedback: 'Feedback',
+      cancelled: 'A cancelled run has no result to show.',
+      running: 'This run is still going.',
+      calls: 'Model calls',
+      cost: 'Cost',
+      costUnknown: 'Unknown',
+      estimated: 'Estimated',
+      estimatedWhy:
+        'The provider does not report a charge per call. This is calculated from the tokens used.',
+      outputTokens: 'Output tokens',
+      inputTokens: 'Input tokens',
+      cachedTokens: (tokens: string, percent: number) => `Cached ${tokens} (${percent}%)`,
+      elapsed: 'Took',
+      toolCalls: 'Tool calls',
+      noToolCalls: 'This run called no tools.',
+    },
   },
   errors: {
     missingSelection: 'Select a game and a test run.',
@@ -275,6 +309,31 @@ export const qaKo: Localized<typeof qaEn> = {
     gameColumn: '게임',
     unknownGame: '삭제된 인스턴스',
     notStarted: '시작 전',
+    detail: {
+      expand: (id: string) => `실행 #${id}이 무엇을 했는지 보기`,
+      collapse: (id: string) => `실행 #${id} 접기`,
+      loading: '이 실행을 불러오는 중…',
+      loadFailed: '이 실행을 불러오지 못했습니다.',
+      gone: '이 실행은 더 이상 없습니다.',
+      resultGroup: '결과',
+      costGroup: '비용',
+      steps: '통과한 step',
+      issues: '발견된 이슈',
+      feedback: '피드백',
+      cancelled: '취소된 QA는 결과를 확인할 수 없습니다.',
+      running: '아직 QA가 진행 중입니다.',
+      calls: '모델 호출',
+      cost: '비용',
+      costUnknown: '알 수 없음',
+      estimated: '추정',
+      estimatedWhy: '제공자가 호출별 결제 금액을 알려주지 않습니다. 사용한 토큰 수로 계산한 값입니다.',
+      outputTokens: '출력 토큰',
+      inputTokens: '입력 토큰',
+      cachedTokens: (tokens: string, percent: number) => `캐싱된 토큰 ${tokens} (${percent}%)`,
+      elapsed: '소요',
+      toolCalls: '도구 호출',
+      noToolCalls: '호출한 도구가 없습니다.',
+    },
   },
   errors: {
     missingSelection: '게임과 테스트 런을 선택하세요.',
