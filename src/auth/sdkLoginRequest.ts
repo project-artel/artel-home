@@ -13,6 +13,15 @@ export const SDK_LOGIN_PATH = '/sdk-login'
 const PARKED_REQUEST_KEY = 'artel.sdkLoginRequest'
 
 /**
+ * The two flows that mint a login code against this page: the Unity SDK, and
+ * the `artel` CLI, which adds `kind=cli` to the address the SDK does not send.
+ * The server records which one a code was minted for and lets each exchange
+ * endpoint trade only its own kind, so this is also what `createSdkLoginCode`
+ * sends it.
+ */
+export type RelayRequestKind = 'sdk' | 'cli'
+
+/**
  * What the SDK asks this page for: issue a login code against `challenge`, and
  * hand it back to the loopback server listening on `port`, echoing `state` so
  * the SDK can tell its own request from a stray one.
@@ -21,10 +30,22 @@ export type RelayRequest = {
   challenge: string
   port: number
   state: string
+  kind: RelayRequestKind
 }
 
-/** The two ways the address can be unusable. Each names its own message key. */
-export type RequestFault = 'invalidPort' | 'missingRequest'
+/** The three ways the address can be unusable. Each names its own message key. */
+export type RequestFault = 'invalidPort' | 'missingRequest' | 'invalidKind'
+
+/**
+ * An absent `kind` means `sdk`: the Unity SDK never sends the parameter, and
+ * every link and bookmark minted before the CLI existed must keep working
+ * unchanged. Anything present that is neither flow the server knows is a
+ * tampered or hand-written address, not a silent third flow.
+ */
+function readKind(raw: string | null): RelayRequestKind | null {
+  if (raw === null) return 'sdk'
+  return raw === 'sdk' || raw === 'cli' ? raw : null
+}
 
 /**
  * Ports below 1024 need privileges the SDK does not run with, so anything
@@ -46,11 +67,14 @@ export function readRelayRequest(search: string): RelayRequest | RequestFault {
   const port = readPort(params.get('port'))
   if (port === null) return 'invalidPort'
 
+  const kind = readKind(params.get('kind'))
+  if (kind === null) return 'invalidKind'
+
   const challenge = params.get('challenge') ?? ''
   const state = params.get('state') ?? ''
   if (challenge === '' || state === '') return 'missingRequest'
 
-  return { challenge, port, state }
+  return { challenge, port, state, kind }
 }
 
 /**

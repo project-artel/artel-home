@@ -9,6 +9,7 @@ import {
   type AccountProfileDraft,
   type AuthUser,
 } from '../auth/authTypes'
+import { CliTokenPanel } from '../auth/CliTokenPanel'
 import { useAuth } from '../auth/useAuth'
 import { useI18n } from '../i18n/useI18n'
 
@@ -28,7 +29,9 @@ function toFormDraft(user: AuthUser): ProfileFormDraft {
  *
  * `ARTEL-733` adds `EmailPanel` as a sibling of `ProfilePanel` in the same
  * `section-columns` list, rather than folding email into `ProfilePanel` or
- * reshaping the page.
+ * reshaping the page. `ARTEL-781` adds `CliTokenPanel` as a third sibling for
+ * the same reason — this page has no tabs or sub-routes yet, and one feature
+ * is not a reason to introduce them.
  */
 export function AccountSettingsPage() {
   const auth = useAuth()
@@ -57,6 +60,7 @@ export function AccountSettingsPage() {
           applyPendingEmail={auth.applyPendingEmail}
           user={auth.user}
         />
+        <CliTokenPanel />
       </div>
     </section>
   )

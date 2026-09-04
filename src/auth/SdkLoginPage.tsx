@@ -36,7 +36,7 @@ export function SdkLoginPage() {
     // arrival rather than behind a confirm button that could sit unread.
     let cancelled = false
 
-    createSdkLoginCode(request.challenge)
+    createSdkLoginCode(request.challenge, request.kind)
       .then((code) => {
         if (cancelled) return
         // Held so the panel keeps saying something while the browser leaves.
