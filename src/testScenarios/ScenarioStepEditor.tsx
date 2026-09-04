@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { TestCaseModal } from '../testCases/TestCaseModal'
 import { GapFillModal } from './GapFillModal'
@@ -35,6 +35,31 @@ export function ScenarioStepEditor({
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [overIndex, setOverIndex] = useState<number | null>(null)
 
+  // The centre column hides its scrollbar and marks the two edges instead, the
+  // way the TC spec list does — three bars on one screen was one too many, and
+  // this is the column that sits between the other two. `top`/`bottom` mean the
+  // scroll is AT that end, so the arrow there has nothing left to point at.
+  const bodyRef = useRef<HTMLElement>(null)
+  const [edge, setEdge] = useState({ top: true, bottom: true })
+
+  function readEdge(el: HTMLElement) {
+    setEdge({
+      top: el.scrollTop <= 2,
+      bottom: el.scrollTop + el.clientHeight >= el.scrollHeight - 2,
+    })
+  }
+
+  // Measured through a ResizeObserver rather than on render: adding or removing a
+  // step changes how far the column can scroll, and so does resizing the window.
+  useEffect(() => {
+    const el = bodyRef.current
+    if (el === null) return undefined
+    const observer = new ResizeObserver(() => readEdge(el))
+    observer.observe(el)
+    if (el.firstElementChild !== null) observer.observe(el.firstElementChild)
+    return () => observer.disconnect()
+  }, [])
+
   function onDrop(target: number) {
     if (dragIndex !== null && dragIndex !== target) editor.moveStep(dragIndex, target)
     setDragIndex(null)
@@ -51,7 +76,9 @@ export function ScenarioStepEditor({
   }
 
   return (
-    <main className="edoc-wrap">
+    <div className={'edoc-shell' + (edge.top ? ' at-top' : '') + (edge.bottom ? ' at-bottom' : '')}>
+      <div className="edoc-fade edoc-fade--top" aria-hidden="true"><span className="edoc-fade-hint">▴</span></div>
+      <main className="edoc-wrap" onScroll={(event) => readEdge(event.currentTarget)} ref={bodyRef}>
       <div className="edoc st-editor">
         <header className="st-editor-head">
           <input
@@ -164,6 +191,8 @@ export function ScenarioStepEditor({
 
         <button className="st-editor-add" type="button" onClick={editor.addStep}>＋ {e.addStep}</button>
       </div>
+      </main>
+      <div className="edoc-fade edoc-fade--bottom" aria-hidden="true"><span className="edoc-fade-hint">▾</span></div>
       {gapFill !== null && (
         <GapFillModal
           blockedBy={gapFill.blockedBy}
@@ -180,6 +209,6 @@ export function ScenarioStepEditor({
           onClose={() => setTcView(null)}
         />
       )}
-    </main>
+    </div>
   )
 }
