@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { RunChatQuestionModal } from './RunChatQuestionModal'
+import { ChatMessageBody } from './ChatMessageBody'
 import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { formatDateTime } from '../projects/formatters'
 import { groupStepsByCase } from '../testScenarios/scenarioTypes'
@@ -286,7 +287,11 @@ export function RunChat({ session }: { session: RunChatSession }) {
                   <span className="chat-time">{formatDateTime(message.createdAt)}</span>
                 )}
               </p>
-              <p className="chat-body">{message.content}</p>
+              {/* 에이전트가 쓴 구조는 세워 두고, 사용자가 친 글자는 건드리지 않는다 —
+                  별표를 친 사람은 별표를 보려고 친 것이다. */}
+              {message.role === 'USER'
+                ? <p className="chat-body">{message.content}</p>
+                : <ChatMessageBody body={message.content} />}
               {/* 물어본 줄에는 누를 것이 붙는다(ARTEL-487). 답하면 사라진다 — 이미 답한 질문에
                   버튼이 남아 있으면 두 번 답하게 된다. */}
               {/* **묻는 자리는 화면 가운데다**(ARTEL-677). 답이 시나리오를 실행 가능하게

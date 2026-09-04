@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type CSSProperties } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { shortcutLabel } from '../shell/platform'
 import { TestCaseSpecModal } from '../testCases/TestCaseSpecModal'
 import { RunChat } from '../testRuns/RunChat'
 import { RunNameCrumb } from '../testRuns/RunNameCrumb'
+import { SplitHandle } from '../design-system/primitives/SplitHandle'
 import { getTestRun } from '../testRuns/testRunApi'
 import { useRunChatSession } from '../testRuns/useRunChatSession'
 import { ApproveScenarioDialog } from './ApproveScenarioDialog'
@@ -30,6 +31,35 @@ export function TestScenarioRoute() {
 
 function backLink(projectId: string) {
   return `/projects/${encodeURIComponent(projectId)}`
+}
+
+/**
+ * 대화 칸 폭. 사람마다 읽는 폭이 다르고 화면 크기도 다르니 값을 들고 있는다.
+ * 접근 못 하는 저장소(사생활 보호 모드)에서는 그냥 기본값으로 연다.
+ */
+const CHAT_WIDTH_KEY = 'artel.studio.chatWidth'
+const CHAT_WIDTH_DEFAULT = 360
+const CHAT_WIDTH_MIN = 300
+const CHAT_WIDTH_MAX = 720
+/** 대화가 아무리 넓어져도 가운데 STEP 은 이만큼 남는다. */
+const STEPS_MIN_PX = 420
+const RAIL_PX = 280
+const SPLIT_PX = 6
+
+function readChatWidth(): number {
+  try {
+    const saved = Number(window.localStorage.getItem(CHAT_WIDTH_KEY))
+    if (!Number.isFinite(saved) || saved <= 0) return CHAT_WIDTH_DEFAULT
+    return Math.min(CHAT_WIDTH_MAX, Math.max(CHAT_WIDTH_MIN, saved))
+  } catch {
+    return CHAT_WIDTH_DEFAULT
+  }
+}
+
+/** 창이 좁으면 저장된 폭을 그대로 못 쓴다 — STEP 이 설 자리부터 뺀다. */
+function chatWidthCeiling(): number {
+  const room = window.innerWidth - RAIL_PX - SPLIT_PX - STEPS_MIN_PX
+  return Math.max(CHAT_WIDTH_MIN, Math.min(CHAT_WIDTH_MAX, room))
 }
 
 /**
@@ -128,6 +158,18 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
     return () => window.removeEventListener('keydown', onKey)
   }, [undo, redo])
 
+  // 대화 칸 폭. 끄는 동안에도 이 수 하나만 바뀌고, 나머지는 CSS 변수가 받는다.
+  const [chatWidth, setChatWidth] = useState(readChatWidth)
+  const [splitting, setSplitting] = useState(false)
+  const onChatWidth = useCallback((next: number) => {
+    setChatWidth(next)
+    try {
+      window.localStorage.setItem(CHAT_WIDTH_KEY, String(next))
+    } catch {
+      // 저장이 막혀도 이번 판에서는 넓어진 채로 쓴다.
+    }
+  }, [])
+
   const [dialog, setDialog] = useState<'approve' | 'delete' | null>(null)
   // Approve/delete return to where the scenario was opened from: the run's edit
   // view when in a run, otherwise the project.
@@ -159,7 +201,10 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
   const title = editor.working.title.length > 0 ? editor.working.title : t.scenarios.page.untitled
 
   return (
-    <div className="scenario-studio">
+    <div
+      className={'scenario-studio' + (splitting ? ' is-splitting' : '')}
+      style={{ '--st-chat-w': `${Math.min(chatWidth, chatWidthCeiling())}px` } as CSSProperties}
+    >
       <header className="st-top">
         <Link className="st-back" to={backLink(projectId)}>{t.scenarios.page.backToProject}</Link>
         <div className="st-crumb">
@@ -205,6 +250,16 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
         ) : (
           <div className="edoc-shell at-top at-bottom"><main className="edoc-wrap"><div className="edoc" /></main></div>
         )}
+        {/* 경계는 가운데와 대화 사이다. 왼쪽으로 끌면 대화가 넓어지므로 부호가 뒤집힌다. */}
+        <SplitHandle
+          label={t.scenarios.chat.title}
+          max={chatWidthCeiling()}
+          min={CHAT_WIDTH_MIN}
+          onChange={onChatWidth}
+          onDragState={setSplitting}
+          sign={-1}
+          value={chatWidth}
+        />
         <aside className="st-chat">
           {fromRun !== null && <RunChat session={runChat} />}
         </aside>
