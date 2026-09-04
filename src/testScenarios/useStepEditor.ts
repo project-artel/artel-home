@@ -45,8 +45,12 @@ export type StepEditor = {
   redo: () => void
   /** Persist now, bypassing the debounce (e.g. before navigating away). */
   flush: () => Promise<boolean>
-  /** Seed the editor from a freshly loaded draft, clearing history (initial load). */
-  reset: (draft: ScenarioDraft) => void
+  /**
+   * Seed the editor from a freshly loaded draft, clearing history. `testScenarioId`
+   * says which scenario the draft IS: autosave stays suspended until it matches the
+   * scenario being edited, so a draft can never be written to the wrong one.
+   */
+  reset: (testScenarioId: number, draft: ScenarioDraft) => void
   /**
    * Adopt a draft applied out-of-band (a chat proposal) as a new committed state,
    * recording it on the history so the apply can be undone.
@@ -58,6 +62,13 @@ export function useStepEditor(testScenarioId: number, initial: ScenarioDraft): S
   const [working, setWorking] = useState<ScenarioDraft>(initial)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+
+  // The scenario `working` belongs to. The studio does not remount between
+  // scenarios, so selecting a row swaps `testScenarioId` in while the draft on
+  // screen is still the previous scenario's — for those frames the two disagree,
+  // and saving then would write one scenario's steps over another's. `reset`
+  // moves ownership once the new draft has actually arrived.
+  const ownerRef = useRef(testScenarioId)
 
   // The last-persisted draft; `dirty` is working ≠ this. A ref so mutations don't
   // depend on it. `savedTick` re-reads it after autosave advances it silently.
@@ -185,10 +196,33 @@ export function useStepEditor(testScenarioId: number, initial: ScenarioDraft): S
   // one write (and thus one undo entry).
   useEffect(() => {
     if (!dirty) return undefined
+    // Not ours yet — the draft on screen still belongs to the scenario being left.
+    if (ownerRef.current !== testScenarioId) return undefined
     const snapshot = working
     const timer = setTimeout(() => { void persist(snapshot) }, AUTOSAVE_DEBOUNCE_MS)
     return () => clearTimeout(timer)
-  }, [dirty, working, persist])
+  }, [dirty, working, persist, testScenarioId])
+
+  // What the quiet window still owes, and to whom. A ref, because the hand-off
+  // below has to read it after `testScenarioId` has already moved on.
+  const pendingRef = useRef<{ id: number; draft: ScenarioDraft } | null>(null)
+  useEffect(() => {
+    pendingRef.current = dirty ? { id: ownerRef.current, draft: working } : null
+  }, [dirty, working])
+
+  // Leaving a scenario pays out what its debounce still owed. Clicking another row
+  // within those 600ms dropped the last edits before; now the guard above would
+  // discard them without a word, which is worse. Also covers leaving the studio.
+  useEffect(() => {
+    return () => {
+      const pending = pendingRef.current
+      if (pending === null) return
+      pendingRef.current = null
+      void updateScenario(pending.id, pending.draft).catch(() => {
+        // The editor has already moved on; there is no longer a screen to correct.
+      })
+    }
+  }, [testScenarioId])
 
   const flush = useCallback(() => persist(working), [persist, working])
 
@@ -206,7 +240,8 @@ export function useStepEditor(testScenarioId: number, initial: ScenarioDraft): S
     syncAvail()
   }, [syncAvail])
 
-  const reset = useCallback((draft: ScenarioDraft) => {
+  const reset = useCallback((ownedBy: number, draft: ScenarioDraft) => {
+    ownerRef.current = ownedBy
     baseline.current = draft
     historyRef.current = [draft]
     cursorRef.current = 0

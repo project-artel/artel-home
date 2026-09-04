@@ -16,12 +16,16 @@ import { EMPTY_SCENARIO_DRAFT } from './scenarioTypes'
 import { useStepEditor } from './useStepEditor'
 
 /**
- * Keyed by the scenario id so opening another scenario remounts rather than
- * reusing the previous one.
+ * Deliberately NOT keyed by the scenario id. It used to be, and opening another
+ * scenario remounted the whole studio — including the chat on the right, which
+ * belongs to the RUN, not to the scenario. The turn in flight, the thread and the
+ * proposal cards all went with it, so picking a row from the rail cost the user
+ * the conversation beside it. What is scenario-scoped resets on `scenarioId`
+ * instead: the editor re-seeds through `reset`, which also moves its ownership.
  */
 export function TestScenarioRoute() {
   const { projectId = '', testScenarioId = '' } = useParams()
-  return <TestScenarioPage key={testScenarioId} projectId={projectId} testScenarioId={testScenarioId} />
+  return <TestScenarioPage projectId={projectId} testScenarioId={testScenarioId} />
 }
 
 function backLink(projectId: string) {
@@ -50,21 +54,27 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
   const fromRun = searchParams.get('run')
 
   const editor = useStepEditor(scenarioId, EMPTY_SCENARIO_DRAFT)
-  const [status, setStatus] = useState<'loading' | 'ready' | 'missing'>('loading')
+  // WHICH scenario the load settled on, not just how it went. Without the id, the
+  // render right after a switch would still read `ready` — the page no longer
+  // remounts — and flash the previous scenario's steps under the new title.
+  const [loaded, setLoaded] = useState<{ id: number; found: boolean } | null>(null)
+  const status = loaded?.id === scenarioId ? (loaded.found ? 'ready' : 'missing') : 'loading'
   const [specOpen, setSpecOpen] = useState(false)
 
-  // Initial load seeds the editor (clearing history). `editor.reset` is stable, so
-  // this runs once per scenario (the page remounts on scenarioId via the route).
+  // Loading a scenario seeds the editor (clearing history). `editor.reset` is
+  // stable, so this runs once per scenario id.
   const { reset } = editor
   useEffect(() => {
     if (!validId) return
     const controller = new AbortController()
-    setStatus('loading')
     getTestScenario(scenarioId, controller.signal)
-      .then((scenario) => { reset(scenario.payload); setStatus('ready') })
+      .then((scenario) => {
+        reset(scenarioId, scenario.payload)
+        setLoaded({ id: scenarioId, found: true })
+      })
       .catch((error) => {
         if (error instanceof DOMException && error.name === 'AbortError') return
-        setStatus('missing')
+        setLoaded({ id: scenarioId, found: false })
       })
     return () => controller.abort()
   }, [scenarioId, validId, reset])
@@ -185,7 +195,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
         {status === 'ready' ? (
           <ScenarioStepEditor projectId={projectId} editor={editor} />
         ) : (
-          <main className="edoc-wrap"><div className="edoc" /></main>
+          <div className="edoc-shell at-top at-bottom"><main className="edoc-wrap"><div className="edoc" /></main></div>
         )}
         <aside className="st-chat">
           {fromRun !== null && <RunChat session={runChat} />}
