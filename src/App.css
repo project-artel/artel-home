@@ -8308,3 +8308,315 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
 .tcl-editor-spacer {
   flex: 1;
 }
+
+/* ── QA 히스토리 행 펼치기 (ARTEL-819) ─────────────────────────────── */
+
+.run-row {
+  cursor: pointer;
+}
+
+/* 펼친 행과 그 상세는 한 덩어리로 읽혀야 한다. 사이의 경계선을 지워 붙인다. */
+.data-table tbody tr.run-row--open > td {
+  border-bottom-color: transparent;
+  background: var(--color-bg-raised);
+}
+
+.run-row-id {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/*
+ * 캐럿이 키보드가 닿는 컨트롤이다. 행 클릭은 마우스 편의일 뿐이라 여기서 32×32를 지킨다 —
+ * DESIGN.md 의 최소 포인터 타깃이고, 링크 바로 옆이라 빗나가면 다른 화면으로 간다.
+ */
+.run-row-toggle {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  inline-size: 32px;
+  block-size: 32px;
+  margin-inline-start: calc(var(--space-2) * -1);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.run-row-toggle:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+
+.data-table tbody tr.run-detail-row:hover > td,
+.run-detail-row > td {
+  padding-block: 0 var(--space-5);
+  background: var(--color-bg-raised);
+}
+
+.run-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(200px, 280px);
+  gap: var(--space-6);
+}
+
+@media (max-width: 1100px) {
+  .run-detail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.run-detail-scenario {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-block-end: var(--space-3);
+  margin-block-end: var(--space-3);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.run-detail-name {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+}
+
+.run-detail-model {
+  overflow-wrap: anywhere;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+/*
+ * 결과와 비용은 다른 질문에 답한다. 한 격자에 섞으면 "통과했나" 와 "얼마였나" 가 같은 무게로
+ * 읽히고, 이 화면이 먼저 답해야 하는 것은 앞쪽이다.
+ */
+.run-detail-group + .run-detail-group {
+  padding-block-start: var(--space-4);
+  margin-block-start: var(--space-4);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.run-detail-label {
+  margin: 0 0 var(--space-3);
+  color: var(--color-text-muted);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+}
+
+.run-detail-note {
+  max-inline-size: 52ch;
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.run-detail-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--space-4) var(--space-5);
+  margin: 0;
+}
+
+.run-detail-fact {
+  display: flex;
+  min-inline-size: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.run-detail-fact--wide {
+  grid-column: 1 / -1;
+}
+
+.run-detail-fact-label {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 16px;
+  letter-spacing: 0.04em;
+}
+
+.run-detail-fact-value {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 16px;
+  line-height: 24px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 0 이 아닌 이슈는 숫자만으로 안 보인다. 라벨이 이미 무엇인지 말하므로 색만으로 전달하지 않는다. */
+.run-detail-fact-value--alert {
+  color: var(--color-status-critical);
+}
+
+.run-detail-fact-value--quiet {
+  color: var(--color-text-muted);
+}
+
+.run-detail-denominator {
+  color: var(--color-text-muted);
+}
+
+/*
+ * 캐싱된 토큰은 입력에 포함된 값이다. 두 수를 나란히 놓으면 더하고 싶어지고, 더하면 같은
+ * 토큰을 두 번 센 수가 된다. 그래서 아래에 깔아 "이 중" 이라고 형태로 말한다.
+ */
+.run-detail-nested {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-block-start: var(--space-2);
+  max-inline-size: 320px;
+}
+
+.run-detail-nested-track {
+  block-size: 3px;
+  border-radius: var(--radius-sm);
+  background: var(--color-border-subtle);
+}
+
+.run-detail-nested-fill {
+  block-size: 100%;
+  border-radius: var(--radius-sm);
+  background: var(--color-text-muted);
+}
+
+.run-detail-nested-label {
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * 왜 추정인지는 한 줄로 안 적힌다. 칸 밑에 고정으로 붙이면 매번 자리를 먹으면서 두 번째부터는
+ * 아무도 안 읽으므로, 점선으로 "댈 것이 있다"고만 알리고 펴는 것은 읽고 싶은 사람에게 맡긴다.
+ */
+.run-detail-chip {
+  position: relative;
+  display: inline-block;
+  margin-inline-start: var(--space-2);
+  padding: 1px 5px;
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  line-height: 16px;
+  vertical-align: 3px;
+  cursor: help;
+}
+
+.run-detail-chip:focus-visible {
+  outline: 2px solid var(--color-action-primary);
+  outline-offset: 1px;
+}
+
+/*
+ * 아래로 편다. 이 패널은 `overflow: hidden` 이라 위로 펴면 잘리는데, 칩 아래에는 입력 토큰
+ * 칸이 항상 있어 자리가 남는다.
+ */
+.run-detail-tip {
+  position: absolute;
+  z-index: 2;
+  inset-block-start: calc(100% + 6px);
+  inset-inline-start: -6px;
+  visibility: hidden;
+  inline-size: max-content;
+  max-inline-size: 240px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+  text-align: left;
+  opacity: 0;
+  transition: opacity var(--motion-fast) var(--ease-standard);
+}
+
+.run-detail-chip:hover .run-detail-tip,
+.run-detail-chip:focus-visible .run-detail-tip {
+  visibility: visible;
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .run-detail-tip {
+    transition: none;
+  }
+}
+
+.run-detail-tools-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-block-end: var(--space-2);
+  margin-block-end: var(--space-3);
+  border-bottom: 1px solid var(--color-border-subtle);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.run-detail-tools-head .run-detail-label {
+  margin: 0;
+}
+
+.run-detail-tool-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.run-detail-tool {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/*
+ * 도구는 목록이 아니라 분포로 읽힌다. 이름만 늘어놓으면 19와 1이 같은 무게로 보인다.
+ * 막대는 이름 뒤에 깔린 배경이라, 이름이 길어져도 줄이 늘지 않는다.
+ */
+.run-detail-tool-name {
+  overflow: hidden;
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    to right,
+    var(--color-bg-hover) 0 var(--share, 0%),
+    transparent var(--share, 0%) 100%
+  );
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.run-detail-tool-count {
+  flex: 0 0 auto;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
