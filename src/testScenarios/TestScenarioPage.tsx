@@ -252,7 +252,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
         )}
         {/* 경계는 가운데와 대화 사이다. 왼쪽으로 끌면 대화가 넓어지므로 부호가 뒤집힌다. */}
         <SplitHandle
-          label={t.scenarios.chat.title}
+          label={t.scenarios.chat.widthHandle}
           max={chatWidthCeiling()}
           min={CHAT_WIDTH_MIN}
           onChange={onChatWidth}

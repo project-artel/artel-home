@@ -85,6 +85,11 @@ export function SplitHandle({
       onPointerDown={onPointerDown}
       role="separator"
       tabIndex={0}
-    />
+      title={label}
+    >
+      {/* 손잡이. 1px 선만 있으면 끌 수 있다는 것을 마우스가 우연히 지나가야 안다 —
+          평소에도 보이는 것이 있어야 조절할 수 있다는 사실이 전달된다. */}
+      <span aria-hidden="true" className="st-split-grip" />
+    </div>
   )
 }

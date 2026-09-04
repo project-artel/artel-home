@@ -78,6 +78,8 @@ export const scenariosEn = {
       openHint: 'Authoring left {count} things it could not settle. Open them to answer.',
     },
     title: 'Conversation',
+    // Doubles as the handle's tooltip and its accessible name, so it says what dragging does.
+    widthHandle: 'Drag to resize the conversation',
     emptyCopy:
       'Describe the behaviour you want covered — for example, “Write a scenario for finishing the tutorial without taking damage.” The agent answers with a scenario you can edit.',
     you: 'You',
@@ -484,6 +486,8 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
       pendingCount: '저작이 못 정한 것이 {count}가지입니다. 아는 것만 답해도 됩니다.',
     },
     title: '대화',
+    // 손잡이의 툴팁이자 screen reader 가 읽는 이름이다. 이름이 아니라 무엇을 하는지가 온다.
+    widthHandle: '끌어서 대화 칸 폭 조절',
     emptyCopy:
       '다루고 싶은 동작을 설명하세요 — 예: “피해를 입지 않고 튜토리얼을 끝내는 시나리오를 작성해 줘.” 에이전트가 편집할 수 있는 시나리오로 답합니다.',
     you: '나',

@@ -2947,6 +2947,18 @@ a.instance-name:hover {
 .scenario-studio .st-split.is-dragging::after{ background:var(--st-action); width:3px; margin-left:-1.5px; }
 .scenario-studio .st-split:focus-visible{ outline:none; }
 .scenario-studio .st-split:focus-visible::after{ background:var(--st-action); width:3px; margin-left:-1.5px; }
+
+/* 손잡이. 1px 선만 두면 마우스가 우연히 지나가야 끌 수 있다는 것을 안다 — 평소에도
+   보이는 것이 있어야 조절할 수 있다는 사실이 전달된다. */
+.scenario-studio .st-split-grip{
+  position:absolute; top:50%; left:50%; width:5px; height:34px;
+  transform:translate(-50%, -50%); border-radius:999px; z-index:1;
+  background:var(--st-border-strong);
+  transition:background 120ms var(--ease-standard), height 120ms var(--ease-standard);
+}
+.scenario-studio .st-split:hover .st-split-grip,
+.scenario-studio .st-split:focus-visible .st-split-grip,
+.scenario-studio .st-split.is-dragging .st-split-grip{ background:var(--st-action); height:56px; }
 /* 끄는 동안 글자가 잡히면 드래그가 선택으로 새어 나간다. */
 .scenario-studio.is-splitting{ user-select:none; cursor:col-resize; }
 /* each column scrolls independently within the fixed studio height; the page itself never scrolls */
@@ -3063,29 +3075,45 @@ a.instance-name:hover {
 .scenario-studio .st-chat .panel-header{ padding:12px 16px; border-bottom:1px solid var(--st-border); background:none; }
 .scenario-studio .st-chat .panel-header h2{ margin:0; font-size:13px; font-weight:600; letter-spacing:.02em; text-transform:uppercase; color:var(--st-text-2); }
 .scenario-studio .st-chat .panel-empty{ padding:16px; color:var(--st-muted); font-size:12.5px; }
-.scenario-studio .st-chat .chat-thread{ flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:16px; list-style:none; margin:0; }
-.scenario-studio .st-chat .chat-message{ margin:0; }
-.scenario-studio .st-chat .chat-author{ font-size:11px; color:var(--st-muted); margin:0 0 5px; display:flex; align-items:center; gap:7px; }
+/* 대화는 상자를 겹치지 않는다. 전역 `.chat-message` 는 테두리 상자인데 그 안의
+   `.chat-body` 도 상자여서, 답변마다 상자가 둘씩 서고 그래서 md 파일처럼 읽혔다.
+   에이전트 줄은 상자를 아예 벗고 지면 위에 놓는다 — 대화를 읽는 화면들이 그렇게 한다.
+   말한 사람은 색으로만 가르지 않는다. 이름이 글로 적혀 있고 왼쪽 표시는 두 번째 단서다. */
+.scenario-studio .st-chat .chat-thread{ flex:1; overflow-y:auto; padding:18px 16px 24px; display:flex; flex-direction:column; gap:22px; list-style:none; margin:0; }
+.scenario-studio .st-chat .chat-message{ margin:0; padding:0; border:0; background:none; border-radius:0; }
+.scenario-studio .st-chat .chat-author{ font-size:10.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--st-muted); margin:0 0 6px; display:flex; align-items:baseline; gap:7px; }
 .scenario-studio .st-chat .chat-message--agent .chat-author{ color:var(--st-action); }
-.scenario-studio .st-chat .chat-time{ font-family:var(--st-mono); }
-.scenario-studio .st-chat .chat-body{ font-size:13px; line-height:1.6; border-radius:8px; padding:11px 13px; margin:0; }
+.scenario-studio .st-chat .chat-time{ font-family:var(--st-mono); font-size:10px; color:var(--st-muted); letter-spacing:0; text-transform:none; }
+.scenario-studio .st-chat .chat-body{ font-size:13.5px; line-height:1.75; border-radius:0; padding:0; margin:0; color:var(--st-text); }
+
+/* 사용자 줄만 말풍선을 쓴다. 짧고(평균 23자) 띄엄띄엄 오기 때문에, 지면 위에 그냥 두면
+   에이전트의 긴 글에 묻혀 어디서 내가 말했는지가 안 보인다. */
+.scenario-studio .st-chat .chat-message--user{ align-self:flex-end; max-width:88%; }
+.scenario-studio .st-chat .chat-message--user .chat-author{ justify-content:flex-end; }
+.scenario-studio .st-chat .chat-message--user .chat-body{
+  background:var(--st-raised); border:1px solid var(--st-border);
+  border-radius:12px 12px 4px 12px; padding:9px 12px; white-space:pre-wrap;
+}
 /* 에이전트가 쓴 구조. 문단·목록 사이 간격은 gap 이 잡는다 — margin 은 겹쳐서 첫 줄과
    끝 줄에만 다르게 먹는다. */
-.scenario-studio .st-chat .chat-body--rich{ display:flex; flex-direction:column; gap:9px; }
-.scenario-studio .st-chat .chat-md-p{ margin:0; }
-.scenario-studio .st-chat .chat-md-list{ margin:0; padding-left:18px; display:flex; flex-direction:column; gap:5px; }
-.scenario-studio .st-chat .chat-md-list--nested{ margin-top:5px; padding-left:15px; gap:3px; }
-.scenario-studio .st-chat .chat-md-list li{ padding-left:2px; }
-.scenario-studio .st-chat .chat-md-list li::marker{ color:var(--st-muted); }
-.scenario-studio .st-chat .chat-body strong{ font-weight:700; color:var(--st-text); }
+/* `white-space` 는 되돌린다. 전역이 `pre-wrap` 인데, 요소로 그린 뒤에는 JSX 사이의
+   공백까지 글자로 나온다. */
+.scenario-studio .st-chat .chat-body--rich{ display:flex; flex-direction:column; gap:12px; white-space:normal; }
+.scenario-studio .st-chat .chat-md-p{ margin:0; color:var(--st-text-2); }
+.scenario-studio .st-chat .chat-md-list{ margin:0; padding-left:16px; display:flex; flex-direction:column; gap:7px; color:var(--st-text-2); }
+.scenario-studio .st-chat .chat-md-list--nested{ margin-top:6px; padding-left:14px; gap:4px; }
+.scenario-studio .st-chat .chat-md-list li{ padding-left:3px; }
+.scenario-studio .st-chat .chat-md-list li::marker{ color:var(--st-border-strong); }
+/* 에이전트는 볼드를 소제목처럼 쓴다(`**GameClearScene**: …`). 본문을 한 단 낮추고
+   볼드를 제 색으로 두면, 굵기만 다를 때보다 눈이 먼저 그것을 집는다. */
+.scenario-studio .st-chat .chat-body strong{ font-weight:600; color:var(--st-text); }
 /* 인라인 코드는 배경 대신 색과 서체로 가른다. 좁은 칸에서 배경 칩이 줄마다 서면
    글줄이 조각나 보인다. */
 .scenario-studio .st-chat .chat-md-code{
-  font-family:var(--st-mono); font-size:0.92em; color:var(--st-action);
-  overflow-wrap:anywhere;
+  font-family:var(--st-mono); font-size:0.88em; color:var(--st-text);
+  background:var(--st-raised); border:1px solid var(--st-border);
+  border-radius:4px; padding:1px 5px; overflow-wrap:anywhere;
 }
-.scenario-studio .st-chat .chat-message--user .chat-body{ background:var(--st-raised); border:1px solid var(--st-border); }
-.scenario-studio .st-chat .chat-message--agent .chat-body{ background:var(--color-bg-raised); border:1px solid var(--color-border-subtle); }
 .scenario-studio .st-chat .chat-status{ font-size:11px; color:var(--st-muted); margin:5px 0 0; }
 .scenario-studio .st-chat .chat-closed{ padding:14px 16px; border-top:1px solid var(--st-border); background:var(--st-verified-dim); }
 .scenario-studio .st-chat .chat-closed-title{ font-size:12.5px; color:var(--st-verified); font-weight:600; margin:0; }
