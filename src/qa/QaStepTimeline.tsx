@@ -110,12 +110,15 @@ export function QaStepTimeline({
                     title={block.expectedPassed === null ? undefined : s.gradeNote}
                   >
                     <span aria-hidden="true">{STATE_GLYPHS[block.verdict]}</span>{s.stateLabels[block.verdict]}
-                    {/* Same mark the cells carry: without it the cap reads as a red
-                        "Passed", which is the one way this strip can mislead. */}
+                    {/* The cells' band, shrunk to fit a text row. Without something
+                        here the cap reads as a red "Passed", which is the one way
+                        this strip can mislead — and a glyph here would repeat the
+                        verdict's own character, the noise the band replaced. */}
                     {block.expectedPassed !== null && (
-                      <span aria-hidden="true" className="qa-tl-cell-mark">
-                        {STATE_GLYPHS[block.expectedPassed ? 'passed' : 'failed']}
-                      </span>
+                      <span
+                        aria-hidden="true"
+                        className={`qa-tl-cap-expect qa-tl-cap-expect--${block.expectedPassed ? 'passed' : 'failed'}`}
+                      />
                     )}
                   </span>
                 </>
@@ -144,17 +147,21 @@ export function QaStepTimeline({
                   .join(' · ')
                 const cell = (
                   <>
+                    {/* The expectation gets its own band rather than a glyph beside
+                        the verdict: a step expected to pass and one that did pass
+                        drew the same character twice, which read as a rendering
+                        slip instead of an answer. A band is a second channel — the
+                        cell body says how the grading came out, this says what was
+                        being graded against, and its absence says nothing was. */}
+                    {step.expectedPassed !== null && (
+                      <span
+                        aria-hidden="true"
+                        className={`qa-tl-cell-expect qa-tl-cell-expect--${step.expectedPassed ? 'passed' : 'failed'}`}
+                      />
+                    )}
                     <span className="qa-tl-cell-head">
                       <span aria-hidden="true" className="qa-tl-cell-glyph">{STATE_GLYPHS[step.state]}</span>
                       <span className="qa-tl-cell-no">{step.step}</span>
-                      {/* The expectation, drawn beside the verdict rather than as a
-                          bare "this is graded" mark: two glyphs that differ say the
-                          agent was wrong without anyone having to see the colour. */}
-                      {step.expectedPassed !== null && (
-                        <span aria-hidden="true" className="qa-tl-cell-mark">
-                          {STATE_GLYPHS[step.expectedPassed ? 'passed' : 'failed']}
-                        </span>
-                      )}
                     </span>
                     <span className="qa-tl-cell-name">{title}</span>
                   </>

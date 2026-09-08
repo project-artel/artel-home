@@ -4213,7 +4213,7 @@ a.instance-name:hover {
 .qa-tl-cap-verdict--grade-correct{ color:var(--color-status-success,#3a9a5c); }
 .qa-tl-cap-verdict--grade-wrong{ color:var(--color-status-critical,#d64545); }
 .qa-tl-cells{ display:flex; gap:4px; min-width:min-content; }
-.qa-tl-cell{ flex:1 1 44px; min-width:44px; height:56px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding:4px 5px; border-radius:7px; border:1px solid var(--color-border-subtle); background:var(--color-bg-raised); color:var(--color-text-secondary); font:inherit; overflow:hidden; }
+.qa-tl-cell{ position:relative; flex:1 1 44px; min-width:44px; height:56px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding:4px 5px; border-radius:7px; border:1px solid var(--color-border-subtle); background:var(--color-bg-raised); color:var(--color-text-secondary); font:inherit; overflow:hidden; }
 button.qa-tl-cell--linked{ cursor:pointer; }
 button.qa-tl-cell--linked:hover{ filter:brightness(1.06); }
 .qa-tl-cell-head{ display:flex; align-items:center; gap:5px; }
@@ -4243,9 +4243,15 @@ button.qa-tl-cell--linked:hover{ filter:brightness(1.06); }
 .qa-tl-cell--running{ background:color-mix(in srgb,var(--color-action-primary,#4c8bf5) 16%,transparent); border-color:var(--color-action-primary,#4c8bf5); color:var(--color-action-primary,#4c8bf5); }
 .qa-tl-cell--grade-correct{ background:var(--color-status-success-subtle,color-mix(in srgb,var(--color-status-success,#3a9a5c) 16%,transparent)); border-color:var(--color-status-success,#3a9a5c); color:var(--color-status-success,#3a9a5c); }
 .qa-tl-cell--grade-wrong{ background:var(--color-status-critical-subtle,color-mix(in srgb,var(--color-status-critical,#d64545) 16%,transparent)); border-color:var(--color-status-critical,#d64545); color:var(--color-status-critical,#d64545); }
-/* 기대 판정을 verdict 옆에 작게 얹는다. 초록 ✕ 를 오독하지 않게 하는 유일한 장치라
-   색이 아니라 글자로 그린다 — 두 glyph 가 다르면 에이전트가 틀린 것이다. */
-.qa-tl-cell-mark{ font-size:9px; line-height:1; font-weight:800; opacity:.7; align-self:flex-start; }
+/* TC cap 의 기대 판정. 셀의 띠를 글자 줄에 맞게 줄인 것이다. */
+.qa-tl-cap-expect{ display:inline-block; width:12px; height:3px; border-radius:2px; }
+.qa-tl-cap-expect--passed{ background:var(--color-status-success,#3a9a5c); }
+.qa-tl-cap-expect--failed{ background:var(--color-status-critical,#d64545); }
+/* 셀의 기대 판정. 배경 tint 가 16% 라 full strength 로 칠하면 같은 색 위에서도 띠로 읽힌다.
+   테두리와 붙지 않게 좌우를 6px 들여, 두꺼운 위 테두리로 보이지 않게 한다. */
+.qa-tl-cell-expect{ position:absolute; top:3px; left:6px; right:6px; height:3px; border-radius:2px; }
+.qa-tl-cell-expect--passed{ background:var(--color-status-success,#3a9a5c); }
+.qa-tl-cell-expect--failed{ background:var(--color-status-critical,#d64545); }
 .qa-tl-cell--verify{ outline:2px solid color-mix(in srgb,var(--color-text-primary) 30%,transparent); outline-offset:-1px; }
 
 @media (max-width:1180px){

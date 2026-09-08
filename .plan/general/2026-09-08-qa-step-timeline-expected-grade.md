@@ -36,12 +36,20 @@ ARTEL-301 이 사람이 단 기대 판정을 붙이고 결정적 채점자를 �
 | 무엇 | 무엇을 말하나 |
 | --- | --- |
 | glyph (`✓` / `✕`) | 에이전트가 실제로 보고한 판정 |
-| 그 옆의 작은 glyph | 사람이 적어 둔 기대 판정 |
-| 색 | 둘이 맞았는지 |
+| 셀 위의 띠 | 사람이 적어 둔 기대 판정 |
+| 셀 몸통 색 | 둘이 맞았는지 |
 
-두 glyph 가 다르면 에이전트가 틀린 것이다. **색이 안 보여도 읽힌다** — 색만으로 채점을
-전달하지 않는 것이 요점이다. TC cap 도 같은 표시를 단다. 없으면 cap 이 빨간색으로
+기대 판정은 **띠**로 그린다. 처음에는 verdict 옆에 작은 glyph 로 얹었는데, 통과해야 하는
+스텝이 통과하면 같은 문자가 두 번 찍혀 (`✓ 1 ✓`) 답이 아니라 렌더링 사고로 읽혔다. 띠는
+채널이 하나 더 있는 표현이라 그 문제가 없다 — 몸통은 채점 결과를, 띠는 무엇에 대고 채점한
+것인지를 말하고, 띠가 없다는 것이 곧 채점 대상이 아니라는 뜻이다.
+
+띠 색은 셀 배경보다 진하다. 배경은 16% tint 이고 띠는 full strength 라, 같은 색이어도 띠로
+분리돼 보인다. 좌우를 6px 들여 두꺼운 위 테두리로 보이지 않게 한다.
+
+TC cap 은 글자 줄이라 띠를 그 폭에 맞춰 12px 로 줄여 단다. 없으면 cap 이 빨간색으로
 `✓ Passed` 라고만 떠서, 이 strip 이 오독될 수 있는 단 한 가지 방식이 그대로 남는다.
+여기에 glyph 를 쓰면 셀에서 없앤 중복이 캡에서 되살아난다.
 
 ## 채점 규칙은 서버와 같아야 한다
 
@@ -66,9 +74,9 @@ ARTEL-301 이 사람이 단 기대 판정을 붙이고 결정적 채점자를 �
 | `src/testScenarios/scenarioTypes.ts` | `ScenarioStep.expected_passed` |
 | `src/testScenarios/scenarioApi.ts` | `parseStep` 이 그 필드를 살린다. 정확히 boolean 일 때만 |
 | `src/qa/qaProgress.ts` | 스텝별 `expectedPassed` / `grade`, 런 단위 `labeled` / `correct` / `wrong` |
-| `src/qa/QaStepTimeline.tsx` | `toneClass`, 기대 glyph, 머리의 집계 |
+| `src/qa/QaStepTimeline.tsx` | `toneClass`, 기대 띠, 머리의 집계 |
 | `src/i18n/messages/qa.ts` | `expected` / `gradeLabels` / `gradeSummary` / `gradeNote` (en · ko) |
-| `src/App.css` | `--grade-correct` / `--grade-wrong`, `.qa-tl-cell-mark`, 머리 `flex-wrap` |
+| `src/App.css` | `--grade-correct` / `--grade-wrong`, `.qa-tl-cell-expect`, `.qa-tl-cap-expect`, 머리 `flex-wrap` |
 
 editor 가 이 필드를 저장 요청에 되돌려 보내지만 서버의 `ExpectedLabelPolicy` 가 일반 쓰기
 경로의 라벨을 버리므로 저장은 바뀌지 않는다. 라벨을 바꾸는 경로는 `expected-labels` 하나다.
