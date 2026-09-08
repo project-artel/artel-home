@@ -4,8 +4,10 @@
 }
 
 .app-shell {
+  /* 스튜디오처럼 뷰포트 한 판에 갇히는 화면이 이 값을 빼서 자기 높이를 잡는다. */
+  --shell-topbar-h: 48px;
   display: grid;
-  grid-template-rows: 48px 1fr;
+  grid-template-rows: var(--shell-topbar-h) 1fr;
   color: var(--color-text-primary);
   background: var(--color-bg-canvas);
 }
@@ -2791,8 +2793,52 @@ a.instance-name:hover {
   background:var(--st-canvas); color:var(--st-text); overflow:hidden;
 }
 /* studio fills the workspace cell (app shell header stays visible) */
-.workspace:has(.scenario-studio){ padding:0; place-items:stretch; background:none; }
+/* 스튜디오는 뷰포트 한 판 안에 갇힌다. `.app-shell` 은 min-height 만 갖고 있어 `1fr`
+   행이 내용만큼 늘어나고, 그러면 `height:100%` 인 studio 도 따라 늘어나 각 칸의
+   `overflow-y:auto` 가 아예 발동하지 않았다 — 가운데 STEP 이 길면 body 가 스크롤되고
+   좌·우 rail 이 화면 밖으로 밀려났다. 셀 높이를 못박아야 세 칸이 각자 스크롤한다. */
+.workspace:has(.scenario-studio){ padding:0; place-items:stretch; background:none; min-height:0; overflow:hidden; height:calc(100vh - var(--shell-topbar-h)); }
 .scenario-studio .mono{ font-family:var(--st-mono); font-variant-numeric:tabular-nums; }
+
+/* 스크롤바. 세 칸이 각자 스크롤하게 된 뒤로 막대가 셋 섰다. 가운데는 화살표로 바꿔
+   내주고(`.edoc-fade`), 좌·우 두 칸만 막대를 남기되 화면 바깥쪽 끝으로 밀었다.
+
+   막대는 네이티브가 아니라 {@link EdgeScrollbar} 가 그린다. Chrome 은
+   `::-webkit-scrollbar` 를 자기 레이어에 그리면서 `transition` 을 버리기 때문에,
+   "손이 가까이 오면 굵어진다"를 CSS 만으로는 쓸 수 없다. 그래서 네이티브는 숨긴다. */
+.scenario-studio .scn-list,
+.scenario-studio .chat-thread{ scrollbar-width:none; }
+.scenario-studio .scn-list::-webkit-scrollbar,
+.scenario-studio .chat-thread::-webkit-scrollbar{ display:none; }
+
+/* 막대를 얹으려면 스크롤하지 않는 부모가 자리를 잡아야 한다. */
+.scenario-studio .elist{ position:relative; }
+.scenario-studio .st-chat > .scenario-chat{ position:relative; }
+
+/* 트랙은 통과시킨다. 살아 있으면 칸 가장자리의 클릭을 삼키는데, rail 에서 그 가장자리는
+   모든 행의 일부다. 포인터를 받는 것은 thumb 뿐이다. */
+.scenario-studio .edgebar{ position:absolute; width:18px; pointer-events:none; z-index:3; }
+.scenario-studio .edgebar--left{ left:0; }
+.scenario-studio .edgebar--right{ right:0; }
+
+/* thumb 은 **잡는 면적**이고(넓고 투명), 눈에 보이는 막대는 그 안의 fill 이다. 4px 을
+   정확히 눌러야 한다면 굵어지는 보람이 없다.
+
+   면적은 늘 살아 있다. `.is-near` 일 때만 켜 봤더니, 막대에 닿자마자 누르는 사람은
+   상태가 바뀐 렌더가 도착하기 전에 눌러서 그대로 통과해 버렸다 — 잡히지 않는 막대의
+   원인이 그것이었다. 삼키는 것은 thumb 이 차지한 세로 구간의 가장자리 18px 뿐이고,
+   행에서 그 자리는 안쪽 여백이라 이름도 점도 가리지 않는다. */
+.scenario-studio .edgebar-thumb{
+  position:absolute; left:0; right:0; pointer-events:auto; cursor:grab; touch-action:none;
+}
+.scenario-studio .edgebar-thumb:active{ cursor:grabbing; }
+.scenario-studio .edgebar-fill{
+  position:absolute; top:0; bottom:0; width:4px; background:var(--st-action);
+  transition:width 120ms var(--ease-standard), background 120ms var(--ease-standard);
+}
+.scenario-studio .edgebar--left .edgebar-fill{ left:0; }
+.scenario-studio .edgebar--right .edgebar-fill{ right:0; }
+.scenario-studio .edgebar.is-near .edgebar-fill{ width:11px; background:var(--st-action-strong); }
 
 /* topbar */
 .scenario-studio .st-top{ display:flex; align-items:center; gap:12px; padding:0 16px; background:var(--st-surface); border-bottom:1px solid var(--st-border); }
@@ -2881,9 +2927,21 @@ a.instance-name:hover {
 .scenario-studio .st-edit{ min-height:0; overflow:hidden; display:grid; grid-template-columns:280px minmax(0,1fr) 360px; }
 /* each column scrolls independently within the fixed studio height; the page itself never scrolls */
 .scenario-studio .st-edit > .elist,
-.scenario-studio .st-edit > .edoc-wrap,
+.scenario-studio .st-edit > .edoc-shell,
 .scenario-studio .st-edit > .st-chat{ min-height:0; height:100%; overflow:hidden; }
-.scenario-studio .st-edit > .edoc-wrap{ overflow-y:auto; }
+
+/* 가운데 칸은 막대를 내주고 양 끝의 화살표로 대신한다(TC spec 목록과 같은 방식).
+   `.edoc-shell` 이 자리를 잡고, 스크롤은 그 안의 `.edoc-wrap` 이 한다 — fade 가 내용과
+   함께 흘러가 버리지 않으려면 스크롤하지 않는 부모가 하나 있어야 한다. */
+.scenario-studio .edoc-shell{ position:relative; display:flex; min-width:0; }
+.scenario-studio .edoc-shell > .edoc-wrap{ flex:1; min-width:0; min-height:0; overflow-y:auto; scrollbar-width:none; }
+.scenario-studio .edoc-shell > .edoc-wrap::-webkit-scrollbar{ display:none; }
+.scenario-studio .edoc-fade{ position:absolute; left:0; right:0; height:40px; pointer-events:none; display:flex; justify-content:center; z-index:2; transition:opacity 140ms; }
+.scenario-studio .edoc-fade--top{ top:0; align-items:flex-start; padding-top:4px; background:linear-gradient(to top, transparent, var(--st-canvas) 78%); }
+.scenario-studio .edoc-fade--bottom{ bottom:0; align-items:flex-end; padding-bottom:4px; background:linear-gradient(to bottom, transparent, var(--st-canvas) 78%); }
+.scenario-studio .edoc-shell.at-top .edoc-fade--top{ opacity:0; }
+.scenario-studio .edoc-shell.at-bottom .edoc-fade--bottom{ opacity:0; }
+.scenario-studio .edoc-fade-hint{ color:var(--st-action); font-size:13px; }
 .scenario-studio .elist{ background:var(--st-surface); border-right:1px solid var(--st-border); display:flex; flex-direction:column; min-height:0; }
 .scenario-studio .elist-head{ display:flex; align-items:center; gap:8px; padding:13px 15px; border-bottom:1px solid var(--st-border); }
 .scenario-studio .elist-head h2{ margin:0; font-size:13px; font-weight:600; letter-spacing:.02em; text-transform:uppercase; color:var(--st-text-2); }
@@ -2894,7 +2952,10 @@ a.instance-name:hover {
 .scenario-studio .scnrow{ display:grid; grid-template-columns:9px 1fr auto; gap:9px; align-items:center; padding:10px; border-radius:6px; cursor:pointer; border:1px solid transparent; margin-bottom:2px; background:none; width:100%; text-align:left; color:inherit; font:inherit; }
 .scenario-studio .scnrow:hover{ background:var(--st-hover); }
 .scenario-studio .scnrow.sel{ background:var(--st-raised); border-color:var(--st-border-strong); box-shadow:inset 2px 0 0 var(--st-action); }
-.scenario-studio .scnrow-name{ font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+/* 이름 칸은 CSS 가 없어 grid 의 `min-width:auto` 를 그대로 썼다. 긴 제목이 칸을 밀어내
+   가로 스크롤바가 서고, `.scnrow-name` 이 inline 이라 ellipsis 도 듣지 않았다. */
+.scenario-studio .scnrow-main{ display:flex; flex-direction:column; min-width:0; }
+.scenario-studio .scnrow-name{ font-size:13px; font-weight:600; line-height:1.45; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; line-clamp:2; overflow:hidden; overflow-wrap:anywhere; }
 .scenario-studio .scnrow-meta{ font-size:11px; color:var(--st-muted); margin-top:1px; }
 .scenario-studio .scnrow-count{ font-size:11px; color:var(--st-text-2); background:var(--st-raised); border:1px solid var(--st-border); border-radius:999px; padding:1px 7px; }
 

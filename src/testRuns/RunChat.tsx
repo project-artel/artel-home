@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { RunChatQuestionModal } from './RunChatQuestionModal'
+import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { formatDateTime } from '../projects/formatters'
 import { groupStepsByCase } from '../testScenarios/scenarioTypes'
 import type { AuthoringStage, RunChatQuestion, ScenarioProposal } from './runChatApi'
@@ -201,7 +202,15 @@ export function RunChat({ session }: { session: RunChatSession }) {
       })
     return () => controller.abort()
   }, [session.active, session.projectId, session.messages.length])
-  const threadRef = useRef<HTMLOListElement>(null)
+  // 대화 줄 목록을 ref 와 state 둘 다로 든다. 아래 자동 스크롤은 노드를 직접 건드리므로
+  // ref 여야 하고, {@link EdgeScrollbar} 는 이 `<ol>` 이 **생기는 순간**을 알아야 하므로
+  // state 여야 한다 — 첫 메시지가 오기 전에는 목록 자체가 DOM 에 없다.
+  const threadRef = useRef<HTMLOListElement | null>(null)
+  const [threadNode, setThreadNode] = useState<HTMLOListElement | null>(null)
+  const setThread = useCallback((node: HTMLOListElement | null) => {
+    threadRef.current = node
+    setThreadNode(node)
+  }, [])
 
   useEffect(() => {
     const thread = threadRef.current
@@ -265,7 +274,7 @@ export function RunChat({ session }: { session: RunChatSession }) {
       {session.messages.length === 0 && !session.closed ? (
         <p className="panel-empty">{c.emptyCopy}</p>
       ) : (
-        <ol className="chat-thread" ref={threadRef}>
+        <ol className="chat-thread" ref={setThread}>
           {session.messages.map((message) => (
             <li
               className={`chat-message chat-message--${message.role.toLowerCase()}`}
@@ -333,6 +342,7 @@ export function RunChat({ session }: { session: RunChatSession }) {
           )}
         </ol>
       )}
+      <EdgeScrollbar label={c.title} scroller={threadNode} side="right" />
 
       {/* 턴이 끝난 뒤에 나오는 제안(ARTEL-405). 대화가 시작도 안 했는데 버튼이 놓여 있으면
           그건 제안이 아니라 도구 모음이고, 사용자는 무엇을 하라는 말인지 모른 채 지나친다.

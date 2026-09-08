@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../i18n/useI18n'
 import { getRunScenarios, setRunScenarios } from '../testRuns/testRunApi'
 import { createTestScenario, listTestScenarios } from './scenarioApi'
@@ -26,6 +27,8 @@ export function ScenarioList({
   const { t } = useI18n()
   const s = t.scenarios.list
   const navigate = useNavigate()
+  // 노드를 state 로 든다 — {@link EdgeScrollbar} 가 붙는 시점을 알아야 한다.
+  const [listNode, setListNode] = useState<HTMLDivElement | null>(null)
   const [items, setItems] = useState<TestScenarioSummary[]>([])
   const [creating, setCreating] = useState(false)
   const [reload, setReload] = useState(0)
@@ -82,7 +85,7 @@ export function ScenarioList({
         <span className="count-pill">{items.length}</span>
         <button className="mini-add" onClick={create} disabled={creating} aria-label={s.new} title={s.new} type="button">＋</button>
       </div>
-      <div className="scn-list">
+      <div className="scn-list" ref={setListNode}>
         {items.length === 0 ? (
           <p className="empty-note">{s.empty}</p>
         ) : (
@@ -103,6 +106,7 @@ export function ScenarioList({
           ))
         )}
       </div>
+      <EdgeScrollbar label={s.heading} scroller={listNode} side="left" />
     </aside>
   )
 }
