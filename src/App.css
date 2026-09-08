@@ -4180,10 +4180,11 @@ a.instance-name:hover {
 
 /* 가로 스텝/TC 타임라인 (재생바) */
 .qa-timeline{ flex:none; border:1px solid var(--color-border-subtle); border-radius:12px; background:var(--color-bg-surface); padding:12px 14px; }
-.qa-timeline-head{ display:flex; align-items:baseline; gap:12px; margin-bottom:10px; }
+.qa-timeline-head{ display:flex; flex-wrap:wrap; align-items:baseline; gap:12px; margin-bottom:10px; }
 .qa-timeline-title{ font-size:13px; font-weight:700; }
 .qa-timeline-tc{ font-size:12px; font-weight:600; color:var(--color-text-secondary); }
 .qa-timeline-steps{ margin-left:auto; font-size:11.5px; color:var(--color-text-muted); font-variant-numeric:tabular-nums; }
+.qa-timeline-grade{ font-size:11.5px; font-weight:700; color:var(--color-text-secondary); font-variant-numeric:tabular-nums; }
 .qa-timeline-track{ display:flex; gap:8px; align-items:stretch; overflow-x:auto; overscroll-behavior-x:contain; padding-bottom:6px; }
 /* 섹터를 꽉 채운다: 블록은 스텝 수에 비례해 폭을 나눠 갖고(flexGrow=count), 셀은
    그 폭 안에서 늘어난다(flex:1). 스텝이 많아 셀이 min-width에 도달하면 더는 줄지
@@ -4196,6 +4197,11 @@ a.instance-name:hover {
 .qa-tl-block--failed{ border-top-color:var(--color-status-critical,#d64545); }
 .qa-tl-block--running{ border-top-color:var(--color-action-primary,#4c8bf5); }
 .qa-tl-block--pending,.qa-tl-block--unreported,.qa-tl-block--unknown{ border-top-color:var(--color-border-strong); }
+/* 기대 판정이 붙은 자리는 통과 여부가 아니라 기대와 맞았는지로 칠한다(ARTEL-301).
+   색만 바꾸고 verdict 글자는 그대로 두므로, 실패한 검증이 초록으로 보일 때도
+   무엇이 일어났는지는 캡에 남는다. */
+.qa-tl-block--grade-correct{ border-top-color:var(--color-status-success,#3a9a5c); }
+.qa-tl-block--grade-wrong{ border-top-color:var(--color-status-critical,#d64545); }
 .qa-tl-cap{ display:flex; align-items:center; gap:6px; height:20px; flex:none; white-space:nowrap; }
 .qa-tl-cap-no{ font-size:10px; font-weight:800; letter-spacing:.04em; color:#fff; background:var(--color-action-primary,#4c8bf5); border-radius:4px; padding:1px 6px; }
 .qa-tl-cap-label{ font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--color-text-muted); }
@@ -4204,6 +4210,8 @@ a.instance-name:hover {
 .qa-tl-cap-verdict--failed{ color:var(--color-status-critical,#d64545); }
 .qa-tl-cap-verdict--running{ color:var(--color-action-primary,#4c8bf5); }
 .qa-tl-cap-verdict--pending,.qa-tl-cap-verdict--unreported,.qa-tl-cap-verdict--unknown{ color:var(--color-text-muted); }
+.qa-tl-cap-verdict--grade-correct{ color:var(--color-status-success,#3a9a5c); }
+.qa-tl-cap-verdict--grade-wrong{ color:var(--color-status-critical,#d64545); }
 .qa-tl-cells{ display:flex; gap:4px; min-width:min-content; }
 .qa-tl-cell{ flex:1 1 44px; min-width:44px; height:56px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding:4px 5px; border-radius:7px; border:1px solid var(--color-border-subtle); background:var(--color-bg-raised); color:var(--color-text-secondary); font:inherit; overflow:hidden; }
 button.qa-tl-cell--linked{ cursor:pointer; }
@@ -4233,6 +4241,11 @@ button.qa-tl-cell--linked:hover{ filter:brightness(1.06); }
 .qa-tl-cell--passed{ background:var(--color-status-success-subtle,color-mix(in srgb,var(--color-status-success,#3a9a5c) 16%,transparent)); border-color:var(--color-status-success,#3a9a5c); color:var(--color-status-success,#3a9a5c); }
 .qa-tl-cell--failed{ background:var(--color-status-critical-subtle,color-mix(in srgb,var(--color-status-critical,#d64545) 16%,transparent)); border-color:var(--color-status-critical,#d64545); color:var(--color-status-critical,#d64545); }
 .qa-tl-cell--running{ background:color-mix(in srgb,var(--color-action-primary,#4c8bf5) 16%,transparent); border-color:var(--color-action-primary,#4c8bf5); color:var(--color-action-primary,#4c8bf5); }
+.qa-tl-cell--grade-correct{ background:var(--color-status-success-subtle,color-mix(in srgb,var(--color-status-success,#3a9a5c) 16%,transparent)); border-color:var(--color-status-success,#3a9a5c); color:var(--color-status-success,#3a9a5c); }
+.qa-tl-cell--grade-wrong{ background:var(--color-status-critical-subtle,color-mix(in srgb,var(--color-status-critical,#d64545) 16%,transparent)); border-color:var(--color-status-critical,#d64545); color:var(--color-status-critical,#d64545); }
+/* 기대 판정을 verdict 옆에 작게 얹는다. 초록 ✕ 를 오독하지 않게 하는 유일한 장치라
+   색이 아니라 글자로 그린다 — 두 glyph 가 다르면 에이전트가 틀린 것이다. */
+.qa-tl-cell-mark{ font-size:9px; line-height:1; font-weight:800; opacity:.7; align-self:flex-start; }
 .qa-tl-cell--verify{ outline:2px solid color-mix(in srgb,var(--color-text-primary) 30%,transparent); outline-offset:-1px; }
 
 @media (max-width:1180px){

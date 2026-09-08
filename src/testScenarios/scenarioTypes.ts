@@ -35,6 +35,19 @@ export type ScenarioStep = {
   /** What blocks the route, on a `GAP` — a scene pair or a variable name. */
   step_unknown_reason: string | null
   /**
+   * Whether a person judged that this step should pass or fail (ARTEL-301).
+   *
+   * `null` is "nobody labelled this", which is every step of an ordinary project —
+   * the labels exist to score benchmark runs, and only the labelling tool writes
+   * them. It is deliberately not "expected to pass": reading a missing answer as a
+   * pass would turn every unlabelled step into a step the agent got right.
+   *
+   * Read-only on this side. The server takes labels on one endpoint of its own and
+   * discards whatever an ordinary scenario save carries, so the editor writing this
+   * field back changes nothing.
+   */
+  expected_passed: boolean | null
+  /**
    * Where the step came from. `HUMAN` is the one this screen writes: a step someone
    * typed into a gap. The server leaves those alone — it neither rewrites them from
    * the scene spec nor folds them into a notice, so an answer a person gave survives
@@ -146,6 +159,7 @@ export function createEmptyStep(): ScenarioStep {
   return {
     action: '', case_id: null, hint: null, input: null,
     step_kind: null, step_unknown_reason: null, step_source: null,
+    expected_passed: null,
   }
 }
 

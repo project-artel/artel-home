@@ -73,6 +73,24 @@ export const qaEn = {
       unreported: 'The run moved past this step without recording a verdict.',
       unknown: 'Its verdict may be in logs that are not loaded. Load older logs to find out.',
     },
+    /**
+     * Shown only where a step carries an expectation, which is no step at all on
+     * an ordinary project. Every string here has to say that the colour changed
+     * meaning — on a labelled step green is "the agent was right", and a step the
+     * game refuses is green precisely when the agent reported it as failed.
+     */
+    expected: {
+      passed: 'Expected to pass',
+      failed: 'Expected to fail',
+    },
+    gradeLabels: {
+      correct: 'matches',
+      wrong: 'contradicts',
+    },
+    gradeSummary: (correct: number, wrong: number, labeled: number) =>
+      `${labeled} expected · ${correct} matched · ${wrong} contradicted`,
+    gradeNote:
+      'These steps carry a written expectation. On them the colour is whether the verdict matches that expectation, not whether the step passed.',
   },
   chat: {
     title: 'Talk to the agent',
@@ -277,6 +295,18 @@ export const qaKo: Localized<typeof qaEn> = {
       unreported: '이 스텝을 판정하지 않은 채 실행이 지나갔습니다.',
       unknown: '아직 불러오지 않은 로그에 판정이 있을 수 있습니다. 이전 로그를 불러오세요.',
     },
+    expected: {
+      passed: '통과해야 하는 스텝',
+      failed: '실패해야 하는 스텝',
+    },
+    gradeLabels: {
+      correct: '기대와 일치',
+      wrong: '기대와 불일치',
+    },
+    gradeSummary: (correct: number, wrong: number, labeled: number) =>
+      `기대 ${labeled}개 · 일치 ${correct} · 불일치 ${wrong}`,
+    gradeNote:
+      '기대 판정이 적힌 스텝입니다. 이 스텝의 색은 통과 여부가 아니라 판정이 기대와 맞았는지를 나타냅니다.',
   },
   chat: {
     title: '에이전트에게 말하기',
