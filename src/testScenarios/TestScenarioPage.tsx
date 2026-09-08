@@ -81,8 +81,16 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
 
   // Applying a chat proposal re-fetches the scenario and rebases the editor onto
   // it — the committed steps appear, and the apply is recorded on the undo stack.
+  //
+  // The rail has to hear about it too. The agent does not only edit the scenario
+  // that happens to be open; it makes new ones and appends them to the run, and
+  // the rail reads its own list. Bumping this token is the whole of telling it —
+  // a number, not a reload: the page, the chat and the editor all stay as they
+  // are and only the list re-reads. Same shape as `EvidenceScanPanel`.
+  const [railToken, setRailToken] = useState(0)
   const { rebase } = editor
   const onProposalApplied = useCallback(() => {
+    setRailToken((token) => token + 1)
     getTestScenario(scenarioId)
       .then((scenario) => rebase(scenario.payload))
       .catch(() => { /* leave the current draft on a reload failure */ })
@@ -191,7 +199,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
       </header>
 
       <div className="st-edit">
-        <ScenarioList projectId={projectId} activeId={scenarioId} runId={fromRun} />
+        <ScenarioList activeId={scenarioId} projectId={projectId} refreshToken={railToken} runId={fromRun} />
         {status === 'ready' ? (
           <ScenarioStepEditor projectId={projectId} editor={editor} />
         ) : (

@@ -18,11 +18,18 @@ export function ScenarioList({
   projectId,
   activeId,
   runId = null,
+  refreshToken = 0,
 }: {
   projectId: string
   activeId: number
   /** When set, the rail is scoped to this run and new scenarios append to it. */
   runId?: string | null
+  /**
+   * Bumped by the studio when the authoring chat writes scenarios. The rail owns
+   * its list, so without this a scenario the agent just made stays invisible
+   * until the page is reloaded — and reloading is how the conversation is lost.
+   */
+  refreshToken?: number
 }) {
   const { t } = useI18n()
   const s = t.scenarios.list
@@ -51,7 +58,7 @@ export function ScenarioList({
 
     load().then(setItems).catch(() => undefined)
     return () => controller.abort()
-  }, [projectId, runId, activeId, reload])
+  }, [projectId, runId, activeId, reload, refreshToken])
 
   function open(id: number) {
     const suffix = runId !== null ? `?run=${encodeURIComponent(runId)}` : ''
