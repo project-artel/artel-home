@@ -78,6 +78,10 @@ function parseStep(data: unknown): ScenarioStep | null {
     step_source: SOURCES.includes(record.step_source as string)
       ? (record.step_source as ScenarioStep['step_source'])
       : null,
+    // Exactly a boolean or nothing. A scenario authored before labels existed has
+    // no key here at all, and reading a missing answer as "expected to pass" would
+    // score every unlabelled step as one the agent got right.
+    expected_passed: typeof record.expected_passed === 'boolean' ? record.expected_passed : null,
   }
 }
 
