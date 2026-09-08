@@ -26,6 +26,17 @@ export type QaStepState =
   /** A verdict may exist in logs that have not been loaded yet. */
   | 'unknown'
 
+/**
+ * How the Agent's verdict compares with the expected one a person wrote down
+ * (`expected_passed`, ARTEL-301).
+ *
+ * `null` covers both "nobody labelled this step" and "the run never judged it".
+ * Those are different facts, but neither is a grade, and `state` already tells
+ * the two apart — a step with no verdict is `pending`, `running`, `unreported`
+ * or `unknown`, never `passed` or `failed`.
+ */
+export type QaStepGrade = 'correct' | 'wrong' | null
+
 export type QaStepProgress = {
   /** 1-based, matching `ScenarioStep.step` and the Agent's `step_number`. */
   step: number
@@ -36,6 +47,9 @@ export type QaStepProgress = {
   verdict: string | null
   /** The `STATUS` row holding that evidence — where a click on this step lands. */
   verdictLogId: string | null
+  /** What the step was supposed to do, or `null` where nobody said. */
+  expectedPassed: boolean | null
+  grade: QaStepGrade
 }
 
 export type QaProgress = {
@@ -44,9 +58,20 @@ export type QaProgress = {
   passed: number
   failed: number
   total: number
+  /**
+   * The answer-key tallies. `labeled` counts steps carrying an expectation,
+   * whether or not the run reached them, so `labeled - correct - wrong` is the
+   * number the run left unjudged — the same third state the server's grader keeps
+   * out of its matrix rather than folding into either side.
+   */
+  labeled: number
+  correct: number
+  wrong: number
 }
 
-const EMPTY_PROGRESS: QaProgress = { steps: [], reported: 0, passed: 0, failed: 0, total: 0 }
+const EMPTY_PROGRESS: QaProgress = {
+  steps: [], reported: 0, passed: 0, failed: 0, total: 0, labeled: 0, correct: 0, wrong: 0,
+}
 
 function asStepNumber(value: unknown): number | null {
   return typeof value === 'number' && Number.isInteger(value) && value >= 1 ? value : null
@@ -169,18 +194,29 @@ export function deriveQaProgress({
   const steps: QaStepProgress[] = []
   let passed = 0
   let failed = 0
+  let labeled = 0
+  let correct = 0
+  let wrong = 0
 
   for (let step = 1; step <= total; step += 1) {
+    const expectedPassed = scenarioSteps[step - 1]?.expected_passed ?? null
+    if (expectedPassed !== null) labeled += 1
     const verdict = verdicts.get(step)
     if (verdict !== undefined) {
       if (verdict.passed) passed += 1
       else failed += 1
+      const grade: QaStepGrade =
+        expectedPassed === null ? null : verdict.passed === expectedPassed ? 'correct' : 'wrong'
+      if (grade === 'correct') correct += 1
+      else if (grade === 'wrong') wrong += 1
       steps.push({
         step,
         title: scenarioSteps[step - 1]?.action ?? '',
         state: verdict.passed ? 'passed' : 'failed',
         verdict: verdict.message.length > 0 ? verdict.message : null,
         verdictLogId: verdict.logId,
+        expectedPassed,
+        grade,
       })
       continue
     }
@@ -207,8 +243,11 @@ export function deriveQaProgress({
       state,
       verdict: null,
       verdictLogId: null,
+      expectedPassed,
+      // No verdict, so nothing to compare the expectation against.
+      grade: null,
     })
   }
 
-  return { steps, reported: verdicts.size, passed, failed, total }
+  return { steps, reported: verdicts.size, passed, failed, total, labeled, correct, wrong }
 }
