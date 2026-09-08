@@ -3088,6 +3088,10 @@ a.instance-name:hover {
 .scenario-studio .st-chat .chat-thread{ flex:1; overflow-y:auto; padding:18px 16px 24px; display:flex; flex-direction:column; gap:22px; list-style:none; margin:0; }
 .scenario-studio .st-chat .chat-message{ margin:0; padding:0; border:0; background:none; border-radius:0; }
 .scenario-studio .st-chat .chat-author{ font-size:10.5px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--st-muted); margin:0 0 6px; display:flex; align-items:baseline; gap:7px; }
+/* 말한 사람은 글로도 적혀 있고 색으로도 갈린다. 선택자가 둘인 것은 코드가 그렇게
+   부르기 때문이다 — 저장된 답변은 `--assistant`, 답을 기다리는 줄은 `--agent` 다.
+   `--assistant` 쪽이 빠져 있어서 그동안 ARTEL 이 회색으로 나왔다. */
+.scenario-studio .st-chat .chat-message--assistant .chat-author,
 .scenario-studio .st-chat .chat-message--agent .chat-author{ color:var(--st-action); }
 .scenario-studio .st-chat .chat-time{ font-family:var(--st-mono); font-size:10px; color:var(--st-muted); letter-spacing:0; text-transform:none; }
 .scenario-studio .st-chat .chat-body{ font-size:13.5px; line-height:1.75; border-radius:0; padding:0; margin:0; color:var(--st-text); }
