@@ -273,9 +273,13 @@ export function TestCaseLibrary({
                       onMouseEnter={() => setActive(index)}
                     >
                       <td className="tct-step">
-                        <span className={`vdot ${testCase.verificationStatus}`} />
-                        <span className="tct-step-text">
-                          {testCase.step.length > 0 ? testCase.step : m.row.untitled}
+                        {/* `td` 를 flex 로 만들면 그 칸만 table-cell 밖으로 나가, 행 배경이
+                            나머지 칸과 0.5px 어긋나고 높이도 5.5px 짧아진다. 안에서 편다. */}
+                        <span className="tct-step-in">
+                          <span className={`vdot ${testCase.verificationStatus}`} />
+                          <span className="tct-step-text">
+                            {testCase.step.length > 0 ? testCase.step : m.row.untitled}
+                          </span>
                         </span>
                       </td>
                       <td><SceneChip scene={testCase.scene} /></td>
