@@ -66,15 +66,9 @@ export const testCasesEn = {
     expectedValuePlaceholder: 'What has to happen for this case to pass',
     verification: 'Result',
     /** The grade the spec author set. Read-only: nothing here owns that value. */
-    /* A case is a Given/When/Then in everything but name: precondition is the state the
-       run must be in, step is the act, expected value is the judgement. Labelling the three
-       that way turns a stack of identical boxes into a sequence a person can read down. */
-    givenLabel: 'Given',
-    whenLabel: 'When',
-    thenLabel: 'Then',
-    givenHint: 'the state before',
-    whenHint: 'the act',
-    thenHint: 'the judgement',
+    /* The three fields are one ordered sentence — the state before, the act, the judgement.
+       Numbering them says so; three identical boxes stacked do not. */
+    content: 'Content',
     sceneKnown: 'Screens already in use',
     specGrade: 'Spec grade',
     specGradeNone: 'The spec set no grade',
@@ -161,12 +155,7 @@ export const testCasesKo: Localized<typeof testCasesEn> = {
     expectedValue: '기대결과',
     expectedValuePlaceholder: '이 케이스가 통과하려면 일어나야 하는 일',
     verification: '결과',
-    givenLabel: 'Given',
-    whenLabel: 'When',
-    thenLabel: 'Then',
-    givenHint: '앞선 상태',
-    whenHint: '하는 일',
-    thenHint: '판정',
+    content: '내용',
     sceneKnown: '이미 쓰고 있는 화면',
     specGrade: '명세 등급',
     specGradeNone: '명세가 등급을 남기지 않았습니다',

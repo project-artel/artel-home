@@ -172,12 +172,10 @@ export function TestCaseEditor({
       )}
 
       <ol className="tce-flow">
-        <li className="tce-step tce-step--given">
-          <span className="tce-marker" aria-hidden="true">G</span>
+        <li className="tce-step tce-step--pre">
+          <span className="tce-marker" aria-hidden="true">1</span>
           <div className="tce-body">
-            <label className="tce-label" htmlFor={preconditionId}>
-              {m.givenLabel} <span className="tce-hint">{m.givenHint}</span>
-            </label>
+            <label className="tce-label" htmlFor={preconditionId}>{m.precondition}</label>
             <textarea
               className="tce-input"
               disabled={pending}
@@ -189,11 +187,11 @@ export function TestCaseEditor({
           </div>
         </li>
 
-        <li className="tce-step tce-step--when">
-          <span className="tce-marker" aria-hidden="true">W</span>
+        <li className="tce-step tce-step--act">
+          <span className="tce-marker" aria-hidden="true">2</span>
           <div className="tce-body">
             <label className="tce-label" htmlFor={stepId}>
-              {m.whenLabel} <span className="tce-hint">{m.whenHint}</span>
+              {m.content}
               <span className="tce-req" aria-hidden="true">*</span>
             </label>
             <textarea
@@ -212,11 +210,11 @@ export function TestCaseEditor({
           </div>
         </li>
 
-        <li className="tce-step tce-step--then">
-          <span className="tce-marker" aria-hidden="true">T</span>
+        <li className="tce-step tce-step--exp">
+          <span className="tce-marker" aria-hidden="true">3</span>
           <div className="tce-body">
             <label className="tce-label" htmlFor={expectedValueId}>
-              {m.thenLabel} <span className="tce-hint">{m.thenHint}</span>
+              {m.expectedValue}
               <span className="tce-req" aria-hidden="true">*</span>
             </label>
             <textarea
