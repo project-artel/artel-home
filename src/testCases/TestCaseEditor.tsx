@@ -2,7 +2,6 @@ import { useId, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { apiErrorMessage } from '../projects/apiErrorMessage'
 import { ProjectApiError } from '../projects/projectApi'
-import { SpecGradeChip } from './SpecGradeChip'
 import { createTestCase, updateTestCase } from './testCaseApi'
 import {
   DEFAULT_VERIFICATION_STATUS,
@@ -72,6 +71,7 @@ function toPatch(draft: Draft, saved: TestCase): TestCaseInput {
  * 편집 중이던 draft 가 다음 케이스로 새어 나가지 않는다.
  */
 export function TestCaseEditor({
+  knownScenes = [],
   projectId,
   testCase,
   onCreated,
@@ -79,6 +79,8 @@ export function TestCaseEditor({
   onDone,
   onSaved,
 }: {
+  /** Screen names already used in this project, offered as chips and as a `datalist`. */
+  knownScenes?: string[]
   projectId: string
   testCase: TestCase | null
   onCreated: (created: TestCase) => void
@@ -102,6 +104,7 @@ export function TestCaseEditor({
   const preconditionId = useId()
   const expectedValueId = useId()
   const verificationId = useId()
+  const sceneListId = useId()
 
   const creating = testCase === null
   const patch = creating ? null : toPatch(draft, testCase)
@@ -159,7 +162,6 @@ export function TestCaseEditor({
     <form className="tcl-editor" noValidate onSubmit={(event) => void submit(event)}>
       <header className="tcl-editor-head">
         <h3>{creating ? m.newTitle : m.editTitle}</h3>
-        {!creating && <SpecGradeChip status={testCase.status} />}
       </header>
 
       {failure !== null && (
@@ -169,84 +171,123 @@ export function TestCaseEditor({
         </div>
       )}
 
-      <div className="field">
-        <label className="field-label" htmlFor={stepId}>
-          {m.step} <span className="field-required" aria-hidden="true">*</span>
-        </label>
-        <textarea
-          aria-describedby={fieldErrors.step ? `${stepId}-error` : undefined}
-          aria-invalid={fieldErrors.step ? true : undefined}
-          className="field-input field-input--multiline"
-          disabled={pending}
-          id={stepId}
-          onChange={(event) => setDraft({ ...draft, step: event.target.value })}
-          placeholder={m.stepPlaceholder}
-          value={draft.step}
-        />
-        {fieldErrors.step && (
-          <p className="field-error" id={`${stepId}-error`}>{fieldErrors.step}</p>
-        )}
-      </div>
+      <ol className="tce-flow">
+        <li className="tce-step tce-step--given">
+          <span className="tce-marker" aria-hidden="true">G</span>
+          <div className="tce-body">
+            <label className="tce-label" htmlFor={preconditionId}>
+              {m.givenLabel} <span className="tce-hint">{m.givenHint}</span>
+            </label>
+            <textarea
+              className="tce-input"
+              disabled={pending}
+              id={preconditionId}
+              onChange={(event) => setDraft({ ...draft, precondition: event.target.value })}
+              placeholder={m.preconditionPlaceholder}
+              value={draft.precondition}
+            />
+          </div>
+        </li>
 
-      <div className="field">
-        <label className="field-label" htmlFor={expectedValueId}>
-          {m.expectedValue} <span className="field-required" aria-hidden="true">*</span>
-        </label>
-        <textarea
-          aria-describedby={fieldErrors.expectedValue ? `${expectedValueId}-error` : undefined}
-          aria-invalid={fieldErrors.expectedValue ? true : undefined}
-          className="field-input field-input--multiline"
-          disabled={pending}
-          id={expectedValueId}
-          onChange={(event) => setDraft({ ...draft, expectedValue: event.target.value })}
-          placeholder={m.expectedValuePlaceholder}
-          value={draft.expectedValue}
-        />
-        {fieldErrors.expectedValue && (
-          <p className="field-error" id={`${expectedValueId}-error`}>{fieldErrors.expectedValue}</p>
-        )}
-      </div>
+        <li className="tce-step tce-step--when">
+          <span className="tce-marker" aria-hidden="true">W</span>
+          <div className="tce-body">
+            <label className="tce-label" htmlFor={stepId}>
+              {m.whenLabel} <span className="tce-hint">{m.whenHint}</span>
+              <span className="tce-req" aria-hidden="true">*</span>
+            </label>
+            <textarea
+              aria-describedby={fieldErrors.step ? `${stepId}-error` : undefined}
+              aria-invalid={fieldErrors.step ? true : undefined}
+              className={'tce-input' + (fieldErrors.step ? ' is-bad' : '')}
+              disabled={pending}
+              id={stepId}
+              onChange={(event) => setDraft({ ...draft, step: event.target.value })}
+              placeholder={m.stepPlaceholder}
+              value={draft.step}
+            />
+            {fieldErrors.step && (
+              <p className="field-error" id={`${stepId}-error`}>{fieldErrors.step}</p>
+            )}
+          </div>
+        </li>
 
-      <div className="field">
-        <label className="field-label" htmlFor={preconditionId}>{m.precondition}</label>
-        <textarea
-          className="field-input field-input--multiline"
-          disabled={pending}
-          id={preconditionId}
-          onChange={(event) => setDraft({ ...draft, precondition: event.target.value })}
-          placeholder={m.preconditionPlaceholder}
-          value={draft.precondition}
-        />
-      </div>
+        <li className="tce-step tce-step--then">
+          <span className="tce-marker" aria-hidden="true">T</span>
+          <div className="tce-body">
+            <label className="tce-label" htmlFor={expectedValueId}>
+              {m.thenLabel} <span className="tce-hint">{m.thenHint}</span>
+              <span className="tce-req" aria-hidden="true">*</span>
+            </label>
+            <textarea
+              aria-describedby={fieldErrors.expectedValue ? `${expectedValueId}-error` : undefined}
+              aria-invalid={fieldErrors.expectedValue ? true : undefined}
+              className={'tce-input' + (fieldErrors.expectedValue ? ' is-bad' : '')}
+              disabled={pending}
+              id={expectedValueId}
+              onChange={(event) => setDraft({ ...draft, expectedValue: event.target.value })}
+              placeholder={m.expectedValuePlaceholder}
+              value={draft.expectedValue}
+            />
+            {fieldErrors.expectedValue && (
+              <p className="field-error" id={`${expectedValueId}-error`}>{fieldErrors.expectedValue}</p>
+            )}
+          </div>
+        </li>
+      </ol>
 
-      <div className="tcl-editor-pair">
-        <div className="field">
-          <label className="field-label" htmlFor={sceneId}>{m.scene}</label>
+      <div className="tce-meta">
+        <div className="tce-field">
+          <label className="tce-label" htmlFor={sceneId}>{m.scene}</label>
           <input
-            className="field-input"
+            className="tce-input tce-input--one"
             disabled={pending}
             id={sceneId}
+            list={sceneListId}
             onChange={(event) => setDraft({ ...draft, scene: event.target.value })}
             placeholder={m.scenePlaceholder}
             value={draft.scene}
           />
+          {knownScenes.length > 0 && (
+            <div className="tce-known">
+              <span className="tce-known-label">{m.sceneKnown}</span>
+              {knownScenes.map((name) => (
+                <button
+                  className={'fchip' + (draft.scene === name ? ' on' : '')}
+                  disabled={pending}
+                  key={name}
+                  onClick={() => setDraft({ ...draft, scene: name })}
+                  type="button"
+                >
+                  {name}
+                </button>
+              ))}
+            </div>
+          )}
+          <datalist id={sceneListId}>
+            {knownScenes.map((name) => <option key={name} value={name} />)}
+          </datalist>
         </div>
 
-        <div className="field">
-          <label className="field-label" htmlFor={verificationId}>{m.verification}</label>
-          <select
-            className="field-input"
-            disabled={pending}
-            id={verificationId}
-            onChange={(event) =>
-              setDraft({ ...draft, verificationStatus: event.target.value as VerificationStatus })
-            }
-            value={draft.verificationStatus}
-          >
+        <div className="tce-field">
+          <span className="tce-label" id={verificationId}>{m.verification}</span>
+          {/* 값이 셋뿐이다. 드롭다운은 고르기 전에는 무엇이 있는지 감추는데, 셋은 다 보여도 된다. */}
+          <div className="tce-seg" role="radiogroup" aria-labelledby={verificationId}>
             {VERIFICATION_STATUSES.map((status) => (
-              <option key={status} value={status}>{statusLabel[status]}</option>
+              <button
+                aria-checked={draft.verificationStatus === status}
+                className={'tce-seg-btn' + (draft.verificationStatus === status ? ' on' : '')}
+                disabled={pending}
+                key={status}
+                onClick={() => setDraft({ ...draft, verificationStatus: status })}
+                role="radio"
+                type="button"
+              >
+                <span className={`vdot ${status}`} />
+                {statusLabel[status]}
+              </button>
             ))}
-          </select>
+          </div>
         </div>
       </div>
 

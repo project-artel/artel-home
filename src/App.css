@@ -3033,8 +3033,8 @@ a.instance-name:hover {
 /* status dot / pill */
 :is(.scenario-studio, .cp-scope) .vdot{ width:9px; height:9px; border-radius:999px; flex:none; }
 :is(.scenario-studio, .cp-scope) .vdot.VERIFIED{ background:var(--st-verified); } :is(.scenario-studio, .cp-scope) .vdot.DRAFT{ background:var(--st-draft); } :is(.scenario-studio, .cp-scope) .vdot.BROKEN{ background:var(--st-broken); }
-:is(.scenario-studio, .cp-scope) .vpill{ font-size:11px; font-weight:600; padding:3px 9px; border-radius:999px; white-space:nowrap; display:inline-flex; align-items:center; gap:6px; border:1px solid; }
-:is(.scenario-studio, .cp-scope) .vpill.VERIFIED{ color:var(--st-verified); background:var(--st-verified-dim); border-color:var(--color-status-success); } :is(.scenario-studio, .cp-scope) .vpill.DRAFT{ color:var(--st-draft); background:var(--st-draft-dim); border-color:var(--color-status-warning); } :is(.scenario-studio, .cp-scope) .vpill.BROKEN{ color:var(--st-broken); background:var(--st-broken-dim); border-color:var(--color-status-critical); }
+:is(.scenario-studio, .cp-scope) .vpill{ color:var(--st-text); font-size:11px; font-weight:600; padding:3px 9px; border-radius:999px; white-space:nowrap; display:inline-flex; align-items:center; gap:6px; border:1px solid; }
+:is(.scenario-studio, .cp-scope) .vpill.VERIFIED{ background:var(--st-verified-dim); border-color:var(--color-status-success); } :is(.scenario-studio, .cp-scope) .vpill.DRAFT{ background:var(--st-draft-dim); border-color:var(--color-status-warning); } :is(.scenario-studio, .cp-scope) .vpill.BROKEN{ background:var(--st-broken-dim); border-color:var(--color-status-critical); }
 
 /* detail card grid */
 .scenario-studio .detail{ margin-top:22px; border-top:1px solid var(--st-border); padding-top:18px; }
@@ -8211,10 +8211,9 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
 /* 목록과 편집 폼을 나란히 둔다. 케이스를 고칠 때 참고하는 것은 옆 행들이라 — 같은 씬의
    다른 케이스가 무엇을 기대하는지 — 편집 폼이 목록을 덮는 modal 이면 그것을 못 본다. */
 .tcl {
-  display: grid;
-  gap: var(--space-3);
-  grid-template-columns: minmax(0, 1fr) 340px;
-  align-items: start;
+  position: relative;
+  display: block;
+  min-width: 0;
 }
 
 /* 1439px 아래에서는 편집 폼이 목록 아래로 내려간다. 340px 를 빼고 남는 폭으로는 스텝과
@@ -8811,3 +8810,106 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
 .tcl-list-panel > .tcl-status-row,
 .tcl-list-panel > .cp-filter-row,
 .tcl-list-panel > .cp-foot{ flex:none; }
+
+/* ── 케이스 라이브러리: 전폭 표 + side sheet (ARTEL-872) ───────────────────────
+   `.section-content` 가 모든 워크스페이스 화면을 1240px 로 가운데 몰고 있었다. 2560px
+   화면에서 좌우 1152px 이 여백으로 사라지는데, 88건을 훑는 화면에서 그 폭은 정보다.
+   여기서만 벗어나게 한다 — 다른 화면까지 푸는 것은 따로 정할 일이다. */
+/* `.section-content` 는 `width: min(100%, 1240px)` 라 max-width 로는 안 풀린다.
+   `:has(.kg-section)` 가 같은 이유로 이미 1440px 로 넓혀 두었다 — 같은 방식으로 전폭을 쓴다. */
+.section-content:has(.tcl){ width:100%; }
+
+.tcl-table{ width:100%; border-collapse:collapse; table-layout:fixed; font-size:13px; }
+/* 스텝이 이 표의 주어다. 다섯을 균등히 나누면 주어가 제일 먼저 잘린다. */
+col.tct-c-step{ width:30% } col.tct-c-scene{ width:12% } col.tct-c-spec{ width:11% }
+col.tct-c-res{ width:10% } col.tct-c-exp{ width:27% } col.tct-c-added{ width:10% }
+
+.tcl-table thead th{
+  position:sticky; top:0; z-index:1;
+  font-family:var(--st-mono); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase;
+  font-weight:400; color:var(--st-text-2); text-align:left;
+  padding:8px 10px; background:var(--st-surface); border-bottom:1px solid var(--st-border-strong);
+}
+.tcl-table td{ padding:7px 10px; border-bottom:1px solid var(--st-border); vertical-align:middle; }
+.tct-row{ cursor:pointer; }
+.tct-row:hover td, .tct-row.active td{ background:var(--st-hover); }
+.tct-row.picked td{ background:var(--color-bg-hover); }
+.tct-row.picked td:first-child{ box-shadow:inset 3px 0 0 var(--color-brand-accent); }
+.tct-step{ display:flex; align-items:center; gap:9px; min-width:0; }
+.tct-step-text{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600; }
+/* 고른 행은 왼쪽 띠와 배경이 말한다. 글자까지 accent 로 두면 그 배경 위에서 2.84:1 이 된다. */
+.tct-row.picked .tct-step-text{ color:var(--st-text); }
+/* 기대결과와 날짜는 스텝을 읽고 나서 보는 것이다. 한 단계 뒤로 물린다. */
+.tct-quiet{ color:var(--st-text-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.tcl .tcl-scroll{ padding:0; }
+
+/* side sheet — 표를 가리지 않을 만큼만 덮는다 */
+.tcl-scrim{ position:fixed; inset:0; z-index:40; background:rgb(0 0 0 / 28%); }
+.tcl-sheet{
+  position:fixed; z-index:41; right:0; top:var(--shell-topbar-h); bottom:0; width:min(620px, 92vw);
+  display:flex; flex-direction:column; gap:10px; padding:16px 18px 18px;
+  background:var(--st-surface); border-left:1px solid var(--st-border-strong);
+  box-shadow:-18px 0 44px -28px rgb(0 0 0 / 70%); overflow-y:auto;
+  animation:tcl-sheet-in 160ms var(--ease-standard, ease-out);
+}
+@keyframes tcl-sheet-in { from { transform:translateX(18px); opacity:.6 } to { transform:none; opacity:1 } }
+@media (prefers-reduced-motion: reduce) { .tcl-sheet{ animation:none } }
+.tcl-sheet-head{ display:flex; align-items:flex-start; gap:10px; }
+.tcl-sheet-tags{ display:flex; flex-wrap:wrap; align-items:center; gap:7px; flex:1; min-width:0; }
+.tcl-sheet-close{ flex:none; width:28px; height:28px; border-radius:6px; border:1px solid var(--st-border-strong);
+  background:transparent; color:var(--st-text-2); cursor:pointer; font-size:13px; line-height:1; }
+.tcl-sheet-close:hover{ background:var(--st-hover); color:var(--st-text); }
+.tcl-sheet-meta{ margin:0; font-family:var(--st-mono); font-size:11.5px; color:var(--st-text-2); }
+
+/* ── 편집 폼: Given / When / Then ─────────────────────────────────────────────
+   케이스는 이름만 다를 뿐 Given/When/Then 이다 — 사전조건은 앞선 상태, 스텝은 하는 일,
+   기대결과는 판정. 똑같이 생긴 상자 셋을 쌓아 두면 셋이 같은 무게로 보이지만, 실제로는
+   순서가 있는 하나의 문장이다. 표시로 그 순서를 되돌려 준다. */
+.tce-flow{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:0; }
+.tce-step{ display:grid; grid-template-columns:26px minmax(0,1fr); gap:11px; position:relative; padding:0 0 14px; }
+.tce-step:last-child{ padding-bottom:4px; }
+/* 표시들을 잇는 실 — 셋이 한 흐름이라는 말을 선이 한다. */
+.tce-step:not(:last-child)::before{
+  content:""; position:absolute; left:13px; top:26px; bottom:2px; width:1px; background:var(--st-border-strong);
+}
+.tce-marker{
+  width:26px; height:26px; border-radius:999px; display:grid; place-items:center;
+  font-family:var(--st-mono); font-size:11px; font-weight:600;
+  border:1px solid var(--st-border-strong); background:var(--st-raised); color:var(--st-text-2);
+}
+.tce-step--when .tce-marker{ border-color:var(--color-brand-accent); color:var(--st-action); }
+.tce-step--then .tce-marker{ border-color:var(--st-verified); color:var(--st-verified); }
+.tce-body{ min-width:0; display:flex; flex-direction:column; gap:5px; }
+.tce-label{ display:flex; align-items:baseline; gap:7px; font-family:var(--st-mono); font-size:11px;
+  letter-spacing:.07em; text-transform:uppercase; color:var(--st-text); }
+.tce-hint{ font-family:var(--font-sans, inherit); font-size:11.5px; letter-spacing:0; text-transform:none; color:var(--st-text-2); }
+.tce-req{ color:var(--st-action); }
+.tce-input{
+  width:100%; min-height:74px; resize:vertical; font:inherit; font-size:13px; line-height:1.55;
+  color:var(--st-text); background:var(--st-canvas);
+  border:1px solid var(--st-border-strong); border-radius:7px; padding:8px 10px;
+}
+.tce-input--one{ min-height:0; resize:none; }
+.tce-input:focus-visible{ outline:2px solid var(--color-brand-accent); outline-offset:1px; border-color:var(--color-brand-accent); }
+.tce-input.is-bad{ border-color:var(--st-broken); }
+.tce-input::placeholder{ color:var(--st-muted); }
+
+.tce-meta{ display:grid; grid-template-columns:minmax(0,1fr) auto; gap:14px; align-items:start;
+  padding-top:12px; border-top:1px solid var(--st-border); }
+.tce-field{ min-width:0; display:flex; flex-direction:column; gap:6px; }
+.tce-known{ display:flex; flex-wrap:wrap; align-items:center; gap:5px; }
+.tce-known-label{ font-family:var(--st-mono); font-size:10px; color:var(--st-text-2); margin-right:2px; }
+/* 값이 셋뿐인 것을 드롭다운에 감추지 않는다. */
+.tce-seg{ display:inline-flex; border:1px solid var(--st-border-strong); border-radius:7px; overflow:hidden; }
+.tce-seg-btn{ display:inline-flex; align-items:center; gap:6px; padding:6px 11px; font:inherit; font-size:12.5px;
+  background:transparent; color:var(--st-text); border:0; border-right:1px solid var(--st-border-strong); cursor:pointer; }
+.tce-seg-btn:last-child{ border-right:0; }
+.tce-seg-btn:hover{ background:var(--st-hover); }
+.tce-seg-btn.on{ background:var(--color-bg-hover); box-shadow:inset 0 -2px 0 var(--color-brand-accent); }
+.tce-seg-btn:focus-visible{ outline:2px solid var(--color-brand-accent); outline-offset:-2px; }
+
+.tcl-sheet .tcl-editor{ display:flex; flex-direction:column; gap:14px; }
+.tcl-sheet .tcl-editor-head h3{ margin:0; font-size:14px; }
+/* 저장·삭제는 시트 바닥에 붙어 스크롤과 무관하게 늘 닿는다. */
+.tcl-sheet .tcl-editor-actions{ position:sticky; bottom:-18px; margin:0 -18px -18px; padding:12px 18px;
+  background:var(--st-surface); border-top:1px solid var(--st-border); display:flex; align-items:center; gap:8px; }

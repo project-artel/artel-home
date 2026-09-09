@@ -1,11 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
 import type { Messages } from '../i18n/messages'
 import { useI18n } from '../i18n/useI18n'
 import { formatDate } from '../projects/formatters'
 import type { GameBuild } from '../projects/gameTypes'
 import { ProjectApiError } from '../projects/projectApi'
-import { CaseListRow } from './CaseListRow'
 import { CaseSceneFilter } from './CaseSceneFilter'
 import { SceneChip } from './SceneChip'
 import { SpecGradeChip } from './SpecGradeChip'
@@ -75,6 +74,29 @@ export function TestCaseLibrary({
   const nav = useCaseListNav(shown.length)
   const { active, edge, listRef, onScroll, setActive } = nav
   const cursored = shown[active] ?? null
+  const sheetOpen = creating || selected !== null
+  const sheetRef = useRef<HTMLElement | null>(null)
+
+  const closeSheet = useCallback(() => {
+    setCreating(false)
+    setSelectedId(null)
+  }, [])
+
+  // 시트가 열리면 초점을 안으로 옮긴다. 열어 놓고 초점이 뒤 표에 남아 있으면 키보드로
+  // 시트에 닿을 방법이 없고, `Escape` 도 표가 먼저 받는다.
+  useEffect(() => {
+    if (!sheetOpen) return
+    const box = sheetRef.current
+    // 입력칸을 먼저 찾는다. DOM 순서로만 고르면 닫기 버튼이 먼저 잡히는데, 시트를 연 이유는
+    // 닫으려는 것이 아니라 고치려는 것이다.
+    const first = box?.querySelector<HTMLElement>('textarea, input') ?? box?.querySelector<HTMLElement>('button')
+    first?.focus()
+  }, [sheetOpen])
+  // 화면 이름은 대부분 이미 쓰던 것 중 하나다. 편집기에 넘겨 칩으로 고르게 한다.
+  const knownScenes = useMemo(
+    () => [...new Set(library.cases.map((one) => one.scene.trim()).filter((one) => one.length > 0))].sort(),
+    [library.cases],
+  )
 
   function startCreating() {
     setSelectedId(null)
@@ -114,7 +136,7 @@ export function TestCaseLibrary({
   const filtered = hasActiveFilters(filters)
 
   return (
-    <div className="tcl cp-scope">
+    <div className={'tcl cp-scope' + (sheetOpen ? ' has-sheet' : '')}>
       <section
         className="panel tcl-list-panel"
         aria-label={m.section.title}
@@ -216,20 +238,62 @@ export function TestCaseLibrary({
             }
           >
             <div className="cp-fade cp-fade--top" aria-hidden="true"><span className="cp-fade-hint">▴</span></div>
-            <div className="cp-list" onScroll={onScroll} ref={listRef}>
-              {shown.map((testCase, index) => (
-                <CaseListRow
-                  active={index === active}
-                  fallbackTitle={m.row.untitled}
-                  index={index}
-                  key={testCase.id}
-                  onClick={() => { setActive(index); select(testCase) }}
-                  onMouseEnter={() => setActive(index)}
-                  selected={testCase.id === selectedId}
-                  statusLabel={m.outcome[testCase.verificationStatus]}
-                  testCase={testCase}
-                />
-              ))}
+            <div className="cp-list tcl-scroll" onScroll={onScroll} ref={listRef}>
+              <table className="tcl-table">
+                <colgroup>
+                  <col className="tct-c-step" />
+                  <col className="tct-c-scene" />
+                  <col className="tct-c-spec" />
+                  <col className="tct-c-res" />
+                  <col className="tct-c-exp" />
+                  <col className="tct-c-added" />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th scope="col">{m.editor.step}</th>
+                    <th scope="col">{m.editor.scene}</th>
+                    <th scope="col">{m.editor.specGrade}</th>
+                    <th scope="col">{m.filters.status}</th>
+                    <th scope="col">{m.editor.expectedValue}</th>
+                    <th scope="col">{m.outcome.added}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {shown.map((testCase, index) => (
+                    <tr
+                      aria-current={testCase.id === selectedId ? true : undefined}
+                      className={
+                        'tct-row' +
+                        (index === active ? ' active' : '') +
+                        (testCase.id === selectedId ? ' picked' : '')
+                      }
+                      data-index={index}
+                      key={testCase.id}
+                      onClick={() => { setActive(index); select(testCase) }}
+                      onMouseEnter={() => setActive(index)}
+                    >
+                      <td className="tct-step">
+                        <span className={`vdot ${testCase.verificationStatus}`} />
+                        <span className="tct-step-text">
+                          {testCase.step.length > 0 ? testCase.step : m.row.untitled}
+                        </span>
+                      </td>
+                      <td><SceneChip scene={testCase.scene} /></td>
+                      <td><SpecGradeChip bare status={testCase.status} /></td>
+                      <td>
+                        <span className={`vpill ${testCase.verificationStatus}`}>
+                          <span className={`vdot ${testCase.verificationStatus}`} />
+                          {m.outcome[testCase.verificationStatus]}
+                        </span>
+                      </td>
+                      <td className="tct-quiet">
+                        {testCase.expectedValue.length > 0 ? testCase.expectedValue : m.row.noExpectedValue}
+                      </td>
+                      <td className="tct-quiet mono">{formatDate(testCase.createdAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
             <div className="cp-fade cp-fade--bottom" aria-hidden="true"><span className="cp-fade-hint">▾</span></div>
           </div>
@@ -241,45 +305,66 @@ export function TestCaseLibrary({
         </div>
       </section>
 
-      <aside className="panel tcl-editor-panel" aria-label={m.editor.editTitle}>
-        {selected !== null && (
-          <div className="tcl-outcome-note">
-            <span className={`vpill ${selected.verificationStatus}`}>
-              <span className={`vdot ${selected.verificationStatus}`} />
-              {m.outcome[selected.verificationStatus]}
-            </span>
-            <SceneChip scene={selected.scene} />
-            <SpecGradeChip status={selected.status} />
-            <span className="tcl-outcome-note-meta">
-              {buildNote(selected, builds, m)} · {m.outcome.addedAt(formatDate(selected.createdAt))}
-            </span>
-          </div>
-        )}
-        {creating || selected !== null ? (
-          <TestCaseEditor
-            key={selected?.id ?? 'new'}
-            onCreated={(created) => {
-              library.applyCreated(created)
-              setCreating(false)
-              setSelectedId(created.id)
-              setAnnouncement(m.editor.created)
-            }}
-            onDelete={() => setDeleting(selected)}
-            onDone={() => {
-              setCreating(false)
-              setSelectedId(null)
-            }}
-            onSaved={(saved) => {
-              library.applySaved(saved)
-              setAnnouncement(m.editor.saved)
-            }}
-            projectId={projectId}
-            testCase={selected}
-          />
-        ) : (
-          <p className="panel-empty">{m.editor.idle}</p>
-        )}
-      </aside>
+      {sheetOpen && (
+        <>
+          <div className="tcl-scrim" onClick={closeSheet} />
+          <aside
+            aria-label={m.editor.editTitle}
+            aria-modal="true"
+            className="tcl-sheet"
+            onKeyDown={(event) => { if (event.key === 'Escape') { event.stopPropagation(); closeSheet() } }}
+            ref={sheetRef}
+            role="dialog"
+          >
+            <header className="tcl-sheet-head">
+              <div className="tcl-sheet-tags">
+                {selected !== null && (
+                  <>
+                    <span className={`vpill ${selected.verificationStatus}`}>
+                      <span className={`vdot ${selected.verificationStatus}`} />
+                      {m.outcome[selected.verificationStatus]}
+                    </span>
+                    <SceneChip scene={selected.scene} />
+                    <SpecGradeChip status={selected.status} />
+                  </>
+                )}
+              </div>
+              <button
+                className="tcl-sheet-close"
+                onClick={closeSheet}
+                title={m.row.close}
+                type="button"
+              >✕</button>
+            </header>
+            {selected !== null && (
+              <p className="tcl-sheet-meta">
+                {buildNote(selected, builds, m)} · {m.outcome.addedAt(formatDate(selected.createdAt))}
+              </p>
+            )}
+            <TestCaseEditor
+              key={selected?.id ?? 'new'}
+              knownScenes={knownScenes}
+              onCreated={(created) => {
+                library.applyCreated(created)
+                setCreating(false)
+                setSelectedId(created.id)
+                setAnnouncement(m.editor.created)
+              }}
+              onDelete={() => setDeleting(selected)}
+              onDone={() => {
+                setCreating(false)
+                setSelectedId(null)
+              }}
+              onSaved={(saved) => {
+                library.applySaved(saved)
+                setAnnouncement(m.editor.saved)
+              }}
+              projectId={projectId}
+              testCase={selected}
+            />
+          </aside>
+        </>
+      )}
 
       <p aria-live="polite" className="visually-hidden" role="status">{announcement}</p>
 

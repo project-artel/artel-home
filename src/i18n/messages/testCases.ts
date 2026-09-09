@@ -42,12 +42,15 @@ export const testCasesEn = {
     buildGone: 'Build no longer exists',
     neverRun: 'No run has verified it',
     addedAt: (date: string) => `Added ${date}`,
+    added: 'Added',
   },
   row: {
     untitled: 'Untitled case',
     noExpectedValue: 'No expected value',
     open: 'Edit this case',
     hintNav: 'navigate',
+    hintOpen: 'open',
+    close: 'Close',
   },
   editor: {
     newTitle: 'New case',
@@ -63,6 +66,16 @@ export const testCasesEn = {
     expectedValuePlaceholder: 'What has to happen for this case to pass',
     verification: 'Result',
     /** The grade the spec author set. Read-only: nothing here owns that value. */
+    /* A case is a Given/When/Then in everything but name: precondition is the state the
+       run must be in, step is the act, expected value is the judgement. Labelling the three
+       that way turns a stack of identical boxes into a sequence a person can read down. */
+    givenLabel: 'Given',
+    whenLabel: 'When',
+    thenLabel: 'Then',
+    givenHint: 'the state before',
+    whenHint: 'the act',
+    thenHint: 'the judgement',
+    sceneKnown: 'Screens already in use',
     specGrade: 'Spec grade',
     specGradeNone: 'The spec set no grade',
     save: 'Save',
@@ -125,12 +138,15 @@ export const testCasesKo: Localized<typeof testCasesEn> = {
     buildGone: '해당 build 가 남아 있지 않음',
     neverRun: '아직 검증한 실행이 없음',
     addedAt: (date: string) => `${date} 추가`,
+    added: '추가',
   },
   row: {
     untitled: '이름 없는 케이스',
     noExpectedValue: '기대결과 없음',
     open: '이 케이스 편집',
     hintNav: '탐색',
+    hintOpen: '열기',
+    close: '닫기',
   },
   editor: {
     newTitle: '새 케이스',
@@ -145,6 +161,13 @@ export const testCasesKo: Localized<typeof testCasesEn> = {
     expectedValue: '기대결과',
     expectedValuePlaceholder: '이 케이스가 통과하려면 일어나야 하는 일',
     verification: '결과',
+    givenLabel: 'Given',
+    whenLabel: 'When',
+    thenLabel: 'Then',
+    givenHint: '앞선 상태',
+    whenHint: '하는 일',
+    thenHint: '판정',
+    sceneKnown: '이미 쓰고 있는 화면',
     specGrade: '명세 등급',
     specGradeNone: '명세가 등급을 남기지 않았습니다',
     save: '저장',
