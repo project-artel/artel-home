@@ -5,12 +5,14 @@ import { useI18n } from '../i18n/useI18n'
 import { formatDate } from '../projects/formatters'
 import type { GameBuild } from '../projects/gameTypes'
 import { ProjectApiError } from '../projects/projectApi'
+import { CaseListRow } from './CaseListRow'
+import { CaseSceneFilter } from './CaseSceneFilter'
 import { SceneChip } from './SceneChip'
 import { SpecGradeChip } from './SpecGradeChip'
 import { deleteTestCase } from './testCaseApi'
 import { TestCaseEditor } from './TestCaseEditor'
+import { useCaseListNav } from './useCaseListNav'
 import {
-  countScenes,
   describeVerifiedBuild,
   hasActiveFilters,
   NO_FILTERS,
@@ -65,10 +67,14 @@ export function TestCaseLibrary({
     () => selectTestCases(library.cases, filters, sort),
     [library.cases, filters, sort],
   )
-  const scenes = useMemo(() => countScenes(library.cases), [library.cases])
   const tally = useMemo(() => tallyTestCases(library.cases), [library.cases])
 
   const selected = library.cases.find((testCase) => testCase.id === selectedId) ?? null
+  // 팔레트와 같은 이동. `active` 는 키보드 커서고 `selectedId` 는 편집기가 열린 케이스라,
+  // 둘은 따로 움직인다 — 훑어보는 것과 고르는 것이 같은 동작이 아니다.
+  const nav = useCaseListNav(shown.length)
+  const { active, edge, listRef, onScroll, setActive } = nav
+  const cursored = shown[active] ?? null
 
   function startCreating() {
     setSelectedId(null)
@@ -108,8 +114,15 @@ export function TestCaseLibrary({
   const filtered = hasActiveFilters(filters)
 
   return (
-    <div className="tcl">
-      <section className="panel tcl-list-panel" aria-label={m.section.title}>
+    <div className="tcl cp-scope">
+      <section
+        className="panel tcl-list-panel"
+        aria-label={m.section.title}
+        onKeyDown={(event) => {
+          if (nav.onKeyDown(event)) return
+          if (event.key === 'Enter' && cursored !== null) { event.preventDefault(); select(cursored) }
+        }}
+      >
         <header className="panel-header panel-header--split">
           <h2>{m.section.title}</h2>
           <button
@@ -132,20 +145,6 @@ export function TestCaseLibrary({
               type="search"
               value={filters.query}
             />
-          </label>
-
-          <label className="tcl-filter">
-            <span className="field-label">{m.filters.scene}</span>
-            <select
-              className="field-input"
-              onChange={(event) => setFilters({ ...filters, scene: event.target.value })}
-              value={filters.scene}
-            >
-              <option value="">{m.filters.allScenes}</option>
-              {scenes.map(({ count, scene }) => (
-                <option key={scene} value={scene}>{m.filters.sceneOption(scene, count)}</option>
-              ))}
-            </select>
           </label>
 
           <label className="tcl-filter">
@@ -183,8 +182,19 @@ export function TestCaseLibrary({
               </button>
             ))}
           </div>
-          <span className="tcl-shown">{m.section.shownOf(shown.length, tally.total)}</span>
         </div>
+
+        <CaseSceneFilter
+          cases={library.cases}
+          labels={{
+            all: m.filters.allScenes,
+            noMatch: m.filters.noMatch,
+            scene: m.filters.scene,
+            search: m.filters.sceneSearch,
+          }}
+          onChange={(scene) => setFilters({ ...filters, scene })}
+          value={filters.scene}
+        />
 
         {shown.length === 0 ? (
           <div className="panel-empty-block">
@@ -200,53 +210,51 @@ export function TestCaseLibrary({
             )}
           </div>
         ) : (
-          <ul className="tcl-rows">
-            {shown.map((testCase) => (
-              <li key={testCase.id}>
-                <button
-                  aria-current={testCase.id === selectedId ? true : undefined}
-                  className={
-                    testCase.id === selectedId ? 'tcl-row tcl-row--selected' : 'tcl-row'
-                  }
-                  onClick={() => select(testCase)}
-                  title={m.row.open}
-                  type="button"
-                >
-                  <span
-                    aria-hidden="true"
-                    className={`vdot vdot--${STATUS_CLASS[testCase.verificationStatus]}`}
-                  />
-                  <span className="tcl-row-main">
-                    <span className="tcl-row-title">
-                      {testCase.step.length > 0 ? testCase.step : m.row.untitled}
-                    </span>
-                    <span className="tcl-row-meta">
-                      <SceneChip scene={testCase.scene} />
-                      <SpecGradeChip status={testCase.status} quietWhenSettled />
-                      <span className="tcl-row-expected">
-                        {testCase.expectedValue.length > 0
-                          ? testCase.expectedValue
-                          : m.row.noExpectedValue}
-                      </span>
-                    </span>
-                  </span>
-                  <span className="tcl-row-outcome">
-                    <span
-                      className={`tcl-outcome tcl-outcome--${STATUS_CLASS[testCase.verificationStatus]}`}
-                    >
-                      {m.outcome[testCase.verificationStatus]}
-                    </span>
-                    <span className="tcl-row-build">{buildNote(testCase, builds, m)}</span>
-                    <span className="tcl-row-added">{m.outcome.addedAt(formatDate(testCase.createdAt))}</span>
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
+          <div
+            className={
+              'cp-listwrap' + (edge.top ? ' at-top' : '') + (edge.bottom ? ' at-bottom' : '')
+            }
+          >
+            <div className="cp-fade cp-fade--top" aria-hidden="true"><span className="cp-fade-hint">▴</span></div>
+            <div className="cp-list" onScroll={onScroll} ref={listRef}>
+              {shown.map((testCase, index) => (
+                <CaseListRow
+                  active={index === active}
+                  fallbackTitle={m.row.untitled}
+                  index={index}
+                  key={testCase.id}
+                  onClick={() => { setActive(index); select(testCase) }}
+                  onMouseEnter={() => setActive(index)}
+                  selected={testCase.id === selectedId}
+                  statusLabel={m.outcome[testCase.verificationStatus]}
+                  testCase={testCase}
+                />
+              ))}
+            </div>
+            <div className="cp-fade cp-fade--bottom" aria-hidden="true"><span className="cp-fade-hint">▾</span></div>
+          </div>
         )}
+
+        <div className="cp-foot">
+          <span>↑↓ {m.row.hintNav}</span>
+          <span>{m.section.shownOf(shown.length, tally.total)}</span>
+        </div>
       </section>
 
       <aside className="panel tcl-editor-panel" aria-label={m.editor.editTitle}>
+        {selected !== null && (
+          <div className="tcl-outcome-note">
+            <span className={`vpill ${selected.verificationStatus}`}>
+              <span className={`vdot ${selected.verificationStatus}`} />
+              {m.outcome[selected.verificationStatus]}
+            </span>
+            <SceneChip scene={selected.scene} />
+            <SpecGradeChip status={selected.status} />
+            <span className="tcl-outcome-note-meta">
+              {buildNote(selected, builds, m)} · {m.outcome.addedAt(formatDate(selected.createdAt))}
+            </span>
+          </div>
+        )}
         {creating || selected !== null ? (
           <TestCaseEditor
             key={selected?.id ?? 'new'}

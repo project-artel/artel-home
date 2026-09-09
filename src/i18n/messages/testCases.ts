@@ -26,6 +26,8 @@ export const testCasesEn = {
     scene: 'Screen',
     allScenes: 'Every screen',
     sceneOption: (scene: string, count: number) => `${scene} (${count})`,
+    sceneSearch: 'Search screen…',
+    noMatch: 'No screens match.',
     sort: 'Order',
     sortFailingFirst: 'Failing first',
     sortNewest: 'Newest first',
@@ -45,6 +47,7 @@ export const testCasesEn = {
     untitled: 'Untitled case',
     noExpectedValue: 'No expected value',
     open: 'Edit this case',
+    hintNav: 'navigate',
   },
   editor: {
     newTitle: 'New case',
@@ -106,6 +109,8 @@ export const testCasesKo: Localized<typeof testCasesEn> = {
     scene: '화면',
     allScenes: '전체 화면',
     sceneOption: (scene: string, count: number) => `${scene} (${count})`,
+    sceneSearch: '화면 검색…',
+    noMatch: '맞는 화면이 없습니다.',
     sort: '정렬',
     sortFailingFirst: '실패 먼저',
     sortNewest: '최근 먼저',
@@ -125,6 +130,7 @@ export const testCasesKo: Localized<typeof testCasesEn> = {
     untitled: '이름 없는 케이스',
     noExpectedValue: '기대결과 없음',
     open: '이 케이스 편집',
+    hintNav: '탐색',
   },
   editor: {
     newTitle: '새 케이스',
