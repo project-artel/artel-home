@@ -91,6 +91,23 @@ function transition(
   }
 }
 
+/**
+ * 고리의 두 끝 사이 거리가 지름을 넘지 않나.
+ *
+ * SVG 는 반지름이 모자란 호를 그리라고 하면 던지지 않는다. 두 끝이 다 들어갈 때까지 반지름을
+ * 말없이 키워서, 화면에는 훨씬 큰 고리가 그려진다. 컨테이너는 안에 든 화면 수만큼 가로로
+ * 넓어지므로 — 화면 스물이면 964px — 두 끝을 폭의 비율로만 잡으면 이 일이 실제로 일어난다.
+ * 배치가 낸 숫자만 봐서는 알 수 없고 그림을 봐야 보이는 종류의 오류라, 여기서 못 박는다.
+ */
+function assertArcFits(path: string): void {
+  const match = /^M ([-\d.]+) ([-\d.]+) A ([-\d.]+) [-\d.]+ 0 1 1 ([-\d.]+) ([-\d.]+)$/.exec(path)
+  assert.ok(match !== null, `고리가 아닌 경로다: ${path}`)
+
+  const [, startX, startY, radius, endX, endY] = match.map(Number)
+  const chord = Math.hypot(endX - startX, endY - startY)
+  assert.ok(chord <= radius * 2, `두 끝 거리 ${chord} 가 지름 ${radius * 2} 를 넘었다`)
+}
+
 /** 화면이 컨테이너 안에 온전히 들어 있나. 이 그림의 전제 그 자체다. */
 function contains(container: PlacedContainer, index: number): boolean {
   const inner = container.screens[index]
@@ -150,6 +167,34 @@ test('한 씬의 화면 여럿이 그 씬의 컨테이너 안에 놓인다', () 
       assert.ok(apart, `화면 ${left} 와 ${right} 가 겹쳤다`)
     }
   }
+})
+
+test('캡처가 있는 화면과 없는 화면이 같은 크기 상자를 받는다', () => {
+  // 배치는 image 를 읽지 않는다. 화면 캡처를 그리는 것은 ScreenMapCanvas 이고, 여기서는
+  // 서명된 주소가 있건 없건 자리만 정한다.
+  const withImage = layoutScreenMap(
+    buildScreenMap(
+      [
+        scene('1', 'A', [
+          screen('10', '1', {
+            image: { url: 'https://example.com/a.png', expiresAt: null, capturedAt: null },
+          }),
+        ]),
+      ],
+      [],
+      [],
+    ),
+  )
+  const withoutImage = layoutScreenMap(
+    buildScreenMap([scene('1', 'A', [screen('10', '1', { image: null })])], [], []),
+  )
+
+  const placedWithImage = withImage.containers[0].screens[0]
+  const placedWithoutImage = withoutImage.containers[0].screens[0]
+  assert.equal(placedWithImage.width, placedWithoutImage.width)
+  assert.equal(placedWithImage.height, placedWithoutImage.height)
+  assert.equal(withImage.containers[0].width, withoutImage.containers[0].width)
+  assert.equal(withImage.containers[0].height, withoutImage.containers[0].height)
 })
 
 test('컨테이너는 안에 든 화면 수만큼 커진다 — 안쪽을 먼저 재기 때문이다', () => {
@@ -216,7 +261,7 @@ test('같은 데이터를 두 번 배치하면 같은 좌표가 나온다', () =
   )
 })
 
-test('entry 씬이 첫 layer 에 서고 뒤따르는 씬이 아래로 쌓인다', () => {
+test('entry 씬이 첫 layer 에 서고 뒤따르는 씬이 오른쪽으로 쌓인다', () => {
   const layout = layoutScreenMap(
     buildScreenMap(
       [scene('1', 'TitleScene'), scene('2', 'Map_scene'), scene('3', 'BattleScene')],
@@ -230,9 +275,9 @@ test('entry 씬이 첫 layer 에 서고 뒤따르는 씬이 아래로 쌓인다'
   assert.equal(byName.get('Map_scene')!.layer, 1)
   assert.equal(byName.get('BattleScene')!.layer, 2)
   assert.equal(layout.layerCount, 3)
-  // layer 가 위에서 아래로 쌓인다. 상태 머신을 읽는 방향이다.
-  assert.ok(byName.get('Map_scene')!.y > byName.get('TitleScene')!.y)
-  assert.ok(byName.get('BattleScene')!.y > byName.get('Map_scene')!.y)
+  // layer 가 왼쪽에서 오른쪽으로 쌓인다. 상태 머신을 읽는 방향이다.
+  assert.ok(byName.get('Map_scene')!.x > byName.get('TitleScene')!.x)
+  assert.ok(byName.get('BattleScene')!.x > byName.get('Map_scene')!.x)
 })
 
 test('순환뿐이라 들어오는 선이 없는 씬이 하나도 없어도 배치된다', () => {
@@ -335,6 +380,7 @@ test('자기 자신으로 가는 화면 전이는 고리로 그려진다', () =>
 
   assert.equal(layout.screenTransitions.length, 2)
   for (const placed of layout.screenTransitions) assert.equal(placed.loop, true)
+  for (const placed of layout.screenTransitions) assertArcFits(placed.path)
   // 두 고리가 서로 다른 크기라야 전이가 둘이라는 사실이 보인다.
   assert.notEqual(layout.screenTransitions[0].path, layout.screenTransitions[1].path)
 })
@@ -403,7 +449,22 @@ test('화면과 씬 전이가 모두 뷰 박스 안에 든다', () => {
   assert.equal(SCREEN_HEIGHT > 0 && SCREEN_WIDTH > 0, true)
 })
 
-test('화면이 스물인 씬이 이웃과 한 줄에 서도 겹치지 않고 세로 가운데에 놓인다', () => {
+test('화면이 스물인 씬의 자기 전이도 반지름 안에 드는 고리로 그려진다', () => {
+  // 컨테이너 폭이 화면 수를 따라 자라는 것이 이 시험의 요점이다. 화면 스물이면 상자가 964px 이라,
+  // 고리의 두 끝을 폭의 비율로만 잡으면 그 거리가 지름의 여덟 배가 된다. 그때 SVG 는 오류를 내지
+  // 않고 반지름을 말없이 키워, 컨테이너를 통째로 감싸는 고리 하나가 그려진다.
+  const many = Array.from({ length: 20 }, (_, index) => screen(String(100 + index), '1'))
+  const layout = layoutScreenMap(
+    buildScreenMap([scene('1', 'TurnBattleScene', many)], [edge('1', { id: '1', name: 'TurnBattleScene' })], []),
+  )
+
+  assert.equal(layout.containers[0].width > SCREEN_WIDTH * 4, true, '상자가 넓지 않으면 시험이 무의미하다')
+  assert.equal(layout.sceneEdges.length, 1)
+  assert.equal(layout.sceneEdges[0].loop, true)
+  assertArcFits(layout.sceneEdges[0].path)
+})
+
+test('화면이 스물인 씬이 이웃과 한 열에 서도 겹치지 않고 가로 가운데에 놓인다', () => {
   // 씬마다 화면 수가 크게 다른 것은 정상이다 — 한 씬에서만 오버레이가 여럿 갈리고, 판정
   // 임계값에 따라 같은 씬이 화면 셋이 되기도 스물이 되기도 한다. 그 경우에만 틀리는 배치는
   // 정확히 가장 필요할 때 거짓말을 한다.
@@ -422,14 +483,14 @@ test('화면이 스물인 씬이 이웃과 한 줄에 서도 겹치지 않고 �
     assert.ok(contains(big, index), `화면 ${index} 가 컨테이너 밖으로 나갔다`)
   })
 
-  // 두 컨테이너는 같은 줄이다. 겹치면 안 되고, 서로 가로로 떨어져 있어야 한다.
+  // 두 컨테이너는 같은 layer, 즉 같은 열이다. 겹치면 안 되고, 서로 세로로 떨어져 있어야 한다.
   assert.equal(big.layer, small.layer)
-  assert.ok(big.x + big.width <= small.x || small.x + small.width <= big.x)
+  assert.ok(big.y + big.height <= small.y || small.y + small.height <= big.y)
 
-  // 위 맞춤이면 작은 컨테이너가 큰 것의 위쪽 모서리에 매달려 사고처럼 보인다.
-  const bigCentre = big.y + big.height / 2
-  const smallCentre = small.y + small.height / 2
-  assert.ok(Math.abs(bigCentre - smallCentre) < 0.51, '한 줄의 컨테이너는 세로 가운데로 맞춘다')
+  // 왼쪽 맞춤이면 작은 컨테이너가 큰 것의 왼쪽 모서리에 매달려 사고처럼 보인다.
+  const bigCentre = big.x + big.width / 2
+  const smallCentre = small.x + small.width / 2
+  assert.ok(Math.abs(bigCentre - smallCentre) < 0.51, '한 열의 컨테이너는 가로 가운데로 맞춘다')
 
   // `sqrt` 열이라 폭과 높이가 함께 자란다. 한 줄로 늘어놓았다면 폭이 스무 배가 됐을 것이다.
   assert.ok(big.width < SCREEN_WIDTH * 20)

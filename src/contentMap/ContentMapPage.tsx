@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
+import { CollapseIcon } from '../design-system/primitives/CollapseIcon'
 import { useI18n } from '../i18n/useI18n'
 import { LABEL_NODE_LIMIT } from '../knowledge/knowledgeLayout'
 import { useKnowledgeGraph } from '../knowledge/useKnowledgeGraph'
@@ -7,6 +8,7 @@ import { formatDateTime } from '../projects/formatters'
 import { CanvasViewportControls } from './CanvasViewportControls'
 import { ContentMapInspector } from './ContentMapInspector'
 import { ContentMapTree } from './ContentMapTree'
+import { usePaneOpen } from './contentMapPanes'
 import { CaptureHeader, ContentMapSummary } from './ContentMapSummary'
 import type { ContentMapSelection, ContentMapView } from './contentMapTypes'
 import { EvidenceScanPanel } from './EvidenceScanPanel'
@@ -236,6 +238,11 @@ function ContentMapBody({ projectId, view }: { projectId: string; view: ContentM
  * │   tree   │          canvas           │  inspector  │
  * │          │        (pan/zoom)         │   detail    │
  * └──────────┴───────────────────────────┴─────────────┘
+ *
+ * 둘 다 접으면:
+ * ┌──┬─────────────────────────────────────────────┬──┐
+ * │▸ │                   canvas                    │ ◂│
+ * └──┴─────────────────────────────────────────────┴──┘
  * ```
  *
  * 왼쪽은 고르는 곳이고 오른쪽은 고른 것이 뜨는 곳이다. 이 둘이 한 세로줄에 겹쳐 있으면 —
@@ -245,6 +252,15 @@ function ContentMapBody({ projectId, view }: { projectId: string; view: ContentM
  *
  * tree 가 왼쪽인 이유는 그것이 접근성 경로이기 때문이다. 캔버스는 `aria-hidden` 에 포인터 전용이라
  * 키보드와 스크린 리더가 이 지도에 들어오는 문은 tree 하나뿐이고, 문은 뒤가 아니라 앞에 있어야 한다.
+ *
+ * ## 곁 pane 둘은 접힌다
+ *
+ * 씬이 열 개만 넘어가도 가운데 칸은 그림을 담기에 좁다. 그래서 두 pane 은 각각 48px rail 로 접히고,
+ * 둘 다 접히면 캔버스가 가로 전체를 쓰면서 높이도 함께 자란다.
+ *
+ * 접힌 pane 이 사라지지 않고 rail 로 남는 것은 다시 펴는 버튼이 살아 있어야 하기 때문이다. tree 를
+ * 통째로 걷어내면 이 지도의 유일한 키보드 입구가 함께 사라진다. 내용도 언마운트하지 않고 `hidden`
+ * 으로만 감춘다 — 언마운트하면 tree 가 펼쳐 둔 가지와 스크롤 자리를 잃는다.
  *
  * ## 왜 씬 그래프와 화면 지도가 한 캔버스인가
  *
@@ -261,7 +277,12 @@ function SceneGraphView({ projectId, view }: { projectId: string; view: ContentM
   const { t } = useI18n()
   const copy = t.contentMap.graph
   const screenCopy = t.contentMap.screenMap
+  const paneCopy = t.contentMap.panes
   const [selection, setSelection] = useState<ContentMapSelection | null>(null)
+  // 접힘은 세션을 넘어 남는다. 한 번 접은 사람이 빌드를 옮길 때마다 다시 접어야 한다면 접기 자체가
+  // 쓸모없다 — 왼쪽 rail(`navCollapse.ts`)이 같은 이유로 같은 일을 한다.
+  const [treeOpen, toggleTree] = usePaneOpen('tree')
+  const [inspectorOpen, toggleInspector] = usePaneOpen('inspector')
 
   // 배치가 비싼 부분이고 응답 말고는 아무것에도 기대지 않는다. 씬을 고르는
   // 것이 배치를 다시 계산하게 두면 안 된다.
@@ -291,22 +312,35 @@ function SceneGraphView({ projectId, view }: { projectId: string; view: ContentM
    * 좁아져서 detail 이 캔버스 아래로 내려간 뒤에야 이 줄이 일한다 — 그때 tree 나 캔버스에서
    * 무언가를 고르면 답이 있는 자리까지 따라간다. 이것이 없으면 이번에 고친 버그가 폭만 바꾼 채
    * 그대로 돌아온다.
+   *
+   * 접힌 inspector 에는 따라가지 않는다. 그때 그 자리는 48px rail 이고 내용은 `hidden` 이라,
+   * 스크롤해 봐야 빈 막대에 도착한다. 대신 자동으로 펴지도 않는다 — 접은 것은 캔버스를 크게 보려는
+   * 선택이고, 무언가를 고를 때마다 되펴지면 접기가 쓸모없어진다.
    */
   const detailPane = useRef<HTMLElement>(null)
   useEffect(() => {
-    if (selection === null) return
+    if (selection === null || !inspectorOpen) return
     detailPane.current?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
-  }, [selection])
+  }, [inspectorOpen, selection])
 
   return (
     <div className="cm-workspace">
-      <aside className="panel cm-tree-pane">
-        <ContentMapTree
-          index={index}
-          model={model}
-          onSelect={setSelection}
-          selection={selection}
+      <aside className={`panel cm-tree-pane${treeOpen ? '' : ' cm-tree-pane--collapsed'}`}>
+        <PaneToggle
+          controls="cm-tree-body"
+          name={paneCopy.tree}
+          onToggle={toggleTree}
+          open={treeOpen}
+          side="left"
         />
+        <div className="cm-pane-body" hidden={!treeOpen} id="cm-tree-body">
+          <ContentMapTree
+            index={index}
+            model={model}
+            onSelect={setSelection}
+            selection={selection}
+          />
+        </div>
       </aside>
 
       <section aria-labelledby="cm-graph-title" className="panel cm-canvas-panel">
@@ -341,7 +375,16 @@ function SceneGraphView({ projectId, view }: { projectId: string; view: ContentM
 
         <CanvasViewportControls viewport={viewport} />
 
-        <div className="cm-canvas-frame">
+        {/*
+          틀의 높이를 그림의 비율에서 받는다. 고정 높이로 두면 layer 가 가로로 늘어선 뒤로는
+          그림이 늘 납작해서, 720px 짜리 틀 가운데에 200px 짜리 띠 하나만 뜨고 위아래가 통째로
+          빈다. `meet` 는 틀을 채우지 않고 맞추기만 하므로 그 빈 자리는 확대해도 줄지 않는다.
+          최소·최대 높이는 CSS 가 잡는다 — 씬이 둘뿐인 빌드의 그림이 손톱만 해지지 않도록.
+        */}
+        <div
+          className="cm-canvas-frame"
+          style={{ '--cm-canvas-ratio': layout.width / layout.height } as CSSProperties}
+        >
           <ScreenMapCanvas
             layout={layout}
             onSelect={setSelection}
@@ -362,17 +405,77 @@ function SceneGraphView({ projectId, view }: { projectId: string; view: ContentM
         <ScreenMapLegend model={model} />
       </section>
 
-      <aside className="panel cm-inspector-panel" ref={detailPane}>
-        <ContentMapInspector
-          gaps={view.gaps}
-          index={index}
-          knowledge={{ status: knowledgeStatus, nodes: knowledgeGraph?.nodes ?? [] }}
-          model={model}
-          onClear={() => setSelection(null)}
-          onSelect={setSelection}
-          selection={selection}
+      <aside
+        className={`panel cm-inspector-panel${inspectorOpen ? '' : ' cm-inspector-panel--collapsed'}`}
+        ref={detailPane}
+      >
+        <PaneToggle
+          controls="cm-inspector-body"
+          name={paneCopy.inspector}
+          onToggle={toggleInspector}
+          open={inspectorOpen}
+          side="right"
         />
+        <div className="cm-pane-body" hidden={!inspectorOpen} id="cm-inspector-body">
+          <ContentMapInspector
+            gaps={view.gaps}
+            index={index}
+            knowledge={{ status: knowledgeStatus, nodes: knowledgeGraph?.nodes ?? [] }}
+            model={model}
+            onClear={() => setSelection(null)}
+            onSelect={setSelection}
+            selection={selection}
+          />
+        </div>
       </aside>
     </div>
+  )
+}
+
+/**
+ * 곁 pane 하나를 접고 펴는 버튼.
+ *
+ * 각 `<aside>` 의 **첫 자식**이다. 밖에 형제로 두면 `.cm-workspace` 의 직계 자식이 셋에서 다섯이
+ * 되어 grid 가 둘째 줄로 흘러내리고, 접힌 칸의 48px 폭이 버튼이 아니라 `<aside>` 에만 걸린다.
+ *
+ * 보이는 글자는 pane 이름 하나이고 접근 가능한 이름은 `aria-label` 이 "씬과 화면 접기"까지 말한다.
+ * 이름을 두 번 적어 두면(보이는 글자 + `sr-only`) 스크린 리더가 "씬과 화면 씬과 화면 접기"로 읽는다.
+ *
+ * `side` 는 화살표 방향을 정한다. 왼쪽 pane 은 접히면서 왼쪽으로 물러나고 오른쪽 pane 은 오른쪽으로
+ * 물러나므로, 같은 `open` 값에 대해 두 화살표는 서로 반대를 가리켜야 한다.
+ */
+function PaneToggle({
+  controls,
+  name,
+  onToggle,
+  open,
+  side,
+}: {
+  controls: string
+  name: string
+  onToggle: () => void
+  open: boolean
+  side: 'left' | 'right'
+}) {
+  const { t } = useI18n()
+  const copy = t.contentMap.panes
+  const label = open ? copy.collapse(name) : copy.expand(name)
+  const pointsLeft = side === 'left' ? open : !open
+
+  return (
+    <button
+      aria-controls={controls}
+      aria-expanded={open}
+      aria-label={label}
+      className="cm-pane-toggle"
+      onClick={onToggle}
+      title={label}
+      type="button"
+    >
+      <CollapseIcon direction={pointsLeft ? 'left' : 'right'} />
+      <span aria-hidden="true" className="cm-pane-toggle-name">
+        {name}
+      </span>
+    </button>
   )
 }

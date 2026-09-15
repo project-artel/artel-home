@@ -1,4 +1,4 @@
-import { useMemo, type CSSProperties } from 'react'
+import { useMemo, useState, type CSSProperties } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { truncate } from '../knowledge/knowledgeLabels'
 import { sceneHue } from '../testCases/sceneHue'
@@ -10,12 +10,13 @@ import {
 } from './contentMapTypes'
 import { sceneKind, sceneTitle } from './sceneLabels'
 import type { CanvasViewport } from './useCanvasViewport'
-import type {
-  PlacedContainer,
-  PlacedSceneEdge,
-  PlacedScreen,
-  PlacedScreenTransition,
-  ScreenMapLayout,
+import {
+  SCREEN_IMAGE_HEIGHT,
+  type PlacedContainer,
+  type PlacedSceneEdge,
+  type PlacedScreen,
+  type PlacedScreenTransition,
+  type ScreenMapLayout,
 } from './screenMapLayout'
 
 /**
@@ -57,7 +58,10 @@ type CanvasProps = {
 const SCENE_NAME_WIDTH = 18
 
 /** 화면 이름 라벨의 폭 예산. */
-const SCREEN_NAME_WIDTH = 14
+const SCREEN_NAME_WIDTH = 16
+
+/** 캡처가 노드 테두리 안쪽으로 물러서는 거리. */
+const CAPTURE_INSET = 4
 
 /**
  * `discriminator` 한 줄의 폭 예산. 원문은 인스펙터가 전부 보인다.
@@ -66,7 +70,7 @@ const SCREEN_NAME_WIDTH = 14
  * 두 화면을 실제로 가르는 것은 셀렉터의 끝마디와 `active` 값이다. 앞에서 자르면 한 씬의 세
  * 화면이 모두 같은 글자를 달고 서서, 왜 셋인지를 말해야 할 줄이 아무 말도 하지 않는다.
  */
-const DISCRIMINATOR_WIDTH = 26
+const DISCRIMINATOR_WIDTH = 30
 
 /** 선 위 라벨의 폭 예산. */
 const EDGE_LABEL_WIDTH = 24
@@ -345,10 +349,25 @@ function ContainerMark({
 }
 
 /**
- * 화면 하나.
+ * 화면 하나: 캡처 한 장과 그 아래 두 줄.
  *
- * 두 줄이다. 위는 이름, 아래는 `discriminator` — 이름은 표시용이고 화면을 실제로 가르는 것은
- * 아래쪽이라, 이름이 같아 보이는 두 화면이 왜 둘인지 그림에서 바로 읽혀야 한다.
+ * ## 왜 그림에 캡처가 있나
+ *
+ * 이름과 `discriminator` 만으로는 이 노드가 **무엇인지** 답할 수 없다. `Canvas/continue` 가 켜진
+ * 화면과 꺼진 화면은 글자로는 한 글자 차이지만 눈으로는 전혀 다른 그림이고, 지도를 여는 사람이
+ * 찾는 것은 대개 그 그림이다. 캡처가 없을 때는 노드를 하나씩 골라 인스펙터를 봐야 했다.
+ *
+ * 아래 두 줄은 그대로 남는다. 위는 이름, 아래는 `discriminator` — 이름은 표시용이고 화면을 실제로
+ * 가르는 것은 아래쪽이라, 이름이 같아 보이는 두 화면이 왜 둘인지 그림에서 바로 읽혀야 한다.
+ *
+ * ## 잘리지 않는다
+ *
+ * `ScreenImage` 에는 픽셀 크기가 없어서 어떤 비율이 올지 모른 채 자리를 잡아야 한다. 그래서 틀은
+ * 고정이고 `preserveAspectRatio="xMidYMid meet"` 가 남는 자리를 letterbox 로 둔다 — 잘라서 채우면
+ * 화면을 알아보게 하려고 넣은 그림이 정작 구별되는 부분을 잘라 낸다.
+ *
+ * 캡처가 `CAPTURE_INSET` 만큼 물러서는 것은 노드 테두리가 `rx=4` 로 둥글기 때문이다. 딱 맞춰 넣으면
+ * 이미지 모서리가 둥근 테두리 밖으로 비어져 나온다. 노드마다 `clipPath` 를 두는 것보다 싸다.
  */
 function ScreenMark({
   placed,
@@ -366,6 +385,23 @@ function ScreenMark({
   const { screen } = placed
   const name = screen.name?.trim() ?? ''
 
+  /*
+   * 불러오지 못한 캡처의 주소. boolean 이 아닌 이유는 새로고침이 들어야 하기 때문이다.
+   *
+   * 서명된 주소가 만료되면 `onError` 가 온다. 그때 사용자가 할 일은 새로고침이고, 그러면 서버가
+   * 새로 서명한 주소를 준다. 그런데 이 컴포넌트의 React key 는 `placed.screen.id` 라 새 스냅샷이
+   * 와도 같은 인스턴스가 살아남는다 — boolean 으로 들면 unmount 될 때까지 안 풀려서, 화면이 새
+   * 주소를 받고도 "불러오지 못함"을 계속 띄운다. 안내가 가리키는 버튼이 듣지 않는 상태가 된다.
+   */
+  const [failedUrl, setFailedUrl] = useState<string | null>(null)
+  const image = screen.image
+  const broken = image !== null && failedUrl === image.url
+
+  const captureWidth = placed.width - CAPTURE_INSET * 2
+  const captureHeight = SCREEN_IMAGE_HEIGHT - CAPTURE_INSET * 2
+  const nameBaseline = SCREEN_IMAGE_HEIGHT + 14
+  const discriminatorBaseline = SCREEN_IMAGE_HEIGHT + 29
+
   return (
     <g
       className={classes('sm-screen', selected && 'is-selected', dimmed && 'is-dimmed')}
@@ -373,17 +409,49 @@ function ScreenMark({
       transform={`translate(${placed.x} ${placed.y})`}
     >
       <rect className="sm-screen-frame" height={placed.height} rx="4" width={placed.width} />
+
+      {image !== null && !broken ? (
+        <image
+          className="sm-screen-capture"
+          height={captureHeight}
+          href={image.url}
+          onError={() => setFailedUrl(image.url)}
+          preserveAspectRatio="xMidYMid meet"
+          width={captureWidth}
+          x={CAPTURE_INSET}
+          y={CAPTURE_INSET}
+        />
+      ) : (
+        /*
+           캡처가 없는 것과 못 불러온 것을 한 문장으로 접지 않는다. 앞은 QA 런을 한 번 돌리면
+           채워지고, 뒤는 새로고침하면 된다 — 사용자가 할 일이 다르므로 같은 자리표시라도 문장은
+           갈린다.
+        */
+        <g className="sm-screen-capture-empty">
+          <rect
+            height={captureHeight}
+            rx="3"
+            width={captureWidth}
+            x={CAPTURE_INSET}
+            y={CAPTURE_INSET}
+          />
+          <text textAnchor="middle" x={placed.width / 2} y={SCREEN_IMAGE_HEIGHT / 2 + 4}>
+            {broken ? copy.captureBroken : copy.noCapture}
+          </text>
+        </g>
+      )}
+
       <text
         className={classes('sm-screen-name', name.length === 0 && 'is-unnamed')}
         x={9}
-        y={18}
+        y={nameBaseline}
       >
         {truncate(name.length > 0 ? name : copy.unnamedScreen, SCREEN_NAME_WIDTH)}
       </text>
-      <text className="sm-screen-observed mono" textAnchor="end" x={placed.width - 9} y={18}>
+      <text className="sm-screen-observed mono" textAnchor="end" x={placed.width - 9} y={nameBaseline}>
         {copy.observed(screen.observedCount)}
       </text>
-      <text className="sm-screen-discriminator mono" x={9} y={35}>
+      <text className="sm-screen-discriminator mono" x={9} y={discriminatorBaseline}>
         {keepTail(screen.discriminator, DISCRIMINATOR_WIDTH)}
       </text>
     </g>
