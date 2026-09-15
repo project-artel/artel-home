@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
+import { CollapseIcon } from '../../design-system/primitives/CollapseIcon'
 import { useI18n } from '../../i18n/useI18n'
 import { readNavCollapsed, storeNavCollapsed } from './navCollapse'
 import { sectionHref, WORKSPACE_SECTIONS, type WorkspaceSectionId } from './sections'
@@ -46,27 +47,6 @@ function SectionIcon({ id }: { id: WorkspaceSectionId }) {
       {ICON_PATHS[id].map((d) => (
         <path d={d} key={d} />
       ))}
-    </svg>
-  )
-}
-
-/**
- * 접기 방향을 그대로 가리키는 갈매기 하나. 펼쳐진 레일에서는 왼쪽을, 접힌
- * 레일에서는 오른쪽을 향해 버튼이 무엇을 할지 라벨을 읽기 전에 보여 준다.
- */
-function CollapseIcon({ collapsed }: { collapsed: boolean }) {
-  return (
-    <svg
-      aria-hidden="true"
-      className="nav-icon"
-      fill="none"
-      stroke="currentColor"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.5}
-      viewBox="0 0 16 16"
-    >
-      <path d={collapsed ? 'M6.2 3.5L10.5 8l-4.3 4.5' : 'M9.8 3.5L5.5 8l4.3 4.5'} />
     </svg>
   )
 }
@@ -120,7 +100,7 @@ export function ProjectNav({
             title={toggleLabel}
             type="button"
           >
-            <CollapseIcon collapsed={collapsed} />
+            <CollapseIcon direction={collapsed ? 'right' : 'left'} />
           </button>
         </div>
         <div className="project-nav-identity">

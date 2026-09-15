@@ -3,6 +3,13 @@
   min-height: 100vh;
 }
 
+/* `hidden` 속성이 실제로 감추게 한다. 이 시트에는 class 로 `display: flex` 를 거는 자리가 많고,
+   그런 규칙은 user agent sheet 의 `[hidden] { display: none }` 을 그냥 이긴다. 전역 reset 이므로
+   한 화면의 절이 아니라 셸 규칙 옆에 둔다. */
+[hidden] {
+  display: none !important;
+}
+
 .app-shell {
   /* 스튜디오처럼 뷰포트 한 판에 갇히는 화면이 이 값을 빼서 자기 높이를 잡는다. */
   --shell-topbar-h: 48px;
@@ -4563,6 +4570,14 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   flex-shrink: 0;
 }
 
+/* 접기 갈매기. `design-system/primitives/CollapseIcon` 이 쓰고, 왼쪽 rail 과 content map 이 함께
+   가져다 쓴다. `.nav-icon` 을 빌려 쓰면 nav 를 정리하는 날 content map 의 아이콘이 함께 바뀐다. */
+.collapse-icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
 .nav-label {
   flex: 1;
   overflow: hidden;
@@ -6256,17 +6271,44 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
  * 밑에 남는다 — 고른 것이 뜨는 곳이 화면 밖으로 나가는 것이 이 배치가 고친 버그 그 자체이기
  * 때문이다. tree 가 접혀 아래로 내려가도 선택이 화면 밖에서 바뀌지는 않는다: 선택이 바뀔 때마다
  * tree 의 그 줄과 detail 패널이 각각 `scrollIntoView({ block: 'nearest' })` 로 따라온다. */
+/* 곁 pane 둘의 폭과 캔버스 높이를 custom property 로 돌린다. 접힘 조합이 넷이라 규칙마다
+   `grid-template-columns` 를 다시 적으면 breakpoint 마다 여섯 줄이 되고, 폭 하나를 바꿀 때 고칠
+   자리가 여섯 곳이 된다. 값 두 개만 바꾸면 조합은 저절로 나온다. */
 .cm-workspace {
+  --cm-tree-width: 260px;
+  --cm-inspector-width: 360px;
+  --cm-canvas-height: clamp(400px, 60vh, 720px);
   display: grid;
   gap: var(--space-5);
-  grid-template-columns: 260px minmax(0, 1fr) 360px;
+  grid-template-columns: var(--cm-tree-width) minmax(0, 1fr) var(--cm-inspector-width);
   align-items: start;
+  transition: grid-template-columns var(--motion-fast) var(--ease-standard);
+}
+@media (prefers-reduced-motion: reduce) {
+  .cm-workspace {
+    transition: none;
+  }
 }
 @media (max-width: 1279px) {
   .cm-workspace {
+    --cm-tree-width: 216px;
+    --cm-inspector-width: 320px;
     gap: var(--space-4);
-    grid-template-columns: 216px minmax(0, 1fr) 320px;
   }
+}
+/* 접힌 rail 은 48px 이다. `DESIGN.md` 가 정한 값이고 프로젝트 작업공간의 왼쪽 rail 이 이미 쓴다.
+   `:has()` 를 단 규칙은 특정도가 한 단계 높아 위 media query 안의 값을 이긴다 — media query 자체는
+   특정도를 더하지 않는다. 그래서 1279px 아래에서도 접힌 쪽은 48px 이다. */
+.cm-workspace:has(.cm-tree-pane--collapsed) {
+  --cm-tree-width: 48px;
+}
+.cm-workspace:has(.cm-inspector-panel--collapsed) {
+  --cm-inspector-width: 48px;
+}
+/* 둘 다 접었을 때만 높이가 자란다. 한쪽만 접어서 얻는 것은 폭이고, 높이까지 함께 움직이면 버튼
+   한 번에 그림이 두 방향으로 뛴다. */
+.cm-workspace:has(.cm-tree-pane--collapsed):has(.cm-inspector-panel--collapsed) {
+  --cm-canvas-height: clamp(480px, 78vh, 1080px);
 }
 @media (max-width: 1023px) {
   .cm-workspace {
@@ -6281,6 +6323,17 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   }
   .cm-tree-pane {
     order: 3;
+  }
+  /* 쌓였을 때 접힌 pane 은 48px 폭이 아니라 한 줄짜리 가로 막대다. 가로로는 자리가 남으므로
+     이름도 그대로 둔다 — 세로로 늘어선 막대 둘이 이름 없이 서 있으면 어느 것이 무엇인지 모른다. */
+  .cm-tree-pane--collapsed .cm-pane-toggle,
+  .cm-inspector-panel--collapsed .cm-pane-toggle {
+    justify-content: flex-start;
+    padding: var(--space-2) var(--space-3);
+  }
+  .cm-tree-pane--collapsed .cm-pane-toggle-name,
+  .cm-inspector-panel--collapsed .cm-pane-toggle-name {
+    display: block;
   }
 }
 .cm-canvas-panel {
@@ -6308,8 +6361,13 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   line-height: 18px;
   color: var(--color-text-secondary);
 }
+/* 높이는 그림의 비율이 정하고, 두 끝만 여기서 묶는다. `--cm-canvas-ratio` 는 `layout` 이 낸
+   그림의 가로/세로 비다. 바닥이 필요한 이유는 씬 둘짜리 빌드에서 틀이 손톱만 해지기 때문이고,
+   천장이 필요한 이유는 씬 하나에 화면이 스물인 빌드에서 틀이 화면을 넘기 때문이다. */
 .cm-canvas-frame {
-  height: clamp(400px, 60vh, 720px);
+  aspect-ratio: var(--cm-canvas-ratio, 16 / 9);
+  min-height: 360px;
+  max-height: var(--cm-canvas-height);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
   background: var(--color-bg-canvas);
@@ -6504,11 +6562,54 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
     max-height: min(520px, 70vh);
   }
 }
-.cm-tree-panel {
+/* 접기 버튼과 그것이 여닫는 몸통. 두 pane 이 같은 짝을 쓴다. */
+.cm-pane-toggle {
   display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 32px;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.cm-pane-toggle:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+.cm-pane-toggle-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+/* 48px rail 에 이름이 들어갈 자리는 없다. 버튼은 남으므로 다시 펴는 길은 그대로 있고,
+   `aria-label` 이 무엇을 펴는 버튼인지 계속 말한다. */
+.cm-tree-pane--collapsed .cm-pane-toggle,
+.cm-inspector-panel--collapsed .cm-pane-toggle {
+  justify-content: center;
+  padding: var(--space-2) 0;
+}
+.cm-tree-pane--collapsed .cm-pane-toggle-name,
+.cm-inspector-panel--collapsed .cm-pane-toggle-name {
+  display: none;
+}
+.cm-pane-body {
+  display: flex;
+  flex: 1;
   flex-direction: column;
   min-height: 0;
-  max-height: inherit;
+}
+.cm-tree-panel {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
 }
 .cm-tree-title {
   flex: none;
@@ -6641,9 +6742,14 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
 /* 인스펙터. 방금 고른 것 하나만 뜬다.
    목록은 왼쪽 tree 로 갔다 — 고르는 곳과 답이 뜨는 곳이 같은 세로줄에 겹쳐 있으면, 목록에서
    고른 것이 스크롤 위쪽에서 바뀌어 아무 일도 안 일어난 것처럼 보인다. */
+/* tree pane 과 같은 flex column 이다. block 으로 두면 접기 버튼이 첫 자식으로 들어온 만큼
+   `.cm-inspector` 가 부모 높이를 넘고, `overflow: hidden` 이 그 띠를 잘라 낸다 — 끝까지 스크롤해도
+   detail 의 마지막 줄들에 닿지 못한다. 바로 아래 주석이 경고하는 그 함정이다. */
 .cm-inspector-panel {
   position: sticky;
   top: 0;
+  display: flex;
+  flex-direction: column;
   max-height: calc(100vh - var(--space-12));
   overflow: hidden;
   padding: 0;
@@ -6660,8 +6766,9 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
    절의 것인지 알 수 없고, 패널이 `overflow: hidden` 이라 넘친 부분은 아예 닿지 못한다. */
 .cm-inspector {
   display: flex;
+  flex: 1;
   flex-direction: column;
-  max-height: inherit;
+  min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -7460,6 +7567,25 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
 }
 .sm-screen.is-dimmed {
   opacity: 0.26;
+}
+/* 화면 캡처. 이 그림이 "이 노드가 무엇인가"에 답하는 자리다. `preserveAspectRatio` 가 letterbox 로
+   남는 자리를 두므로 밑에 깔린 바탕이 그 띠로 비친다. */
+.sm-screen-capture {
+  pointer-events: none;
+}
+/* 캡처가 없거나 못 불러온 자리. 같은 상자에 문장만 갈린다 — 둘을 다른 모양으로 그리면 상자 크기가
+   화면마다 달라져 격자가 어긋난다. */
+.sm-screen-capture-empty rect {
+  fill: var(--color-bg-raised);
+  stroke: var(--color-border-subtle);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+.sm-screen-capture-empty text {
+  fill: var(--color-text-muted);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  pointer-events: none;
 }
 .sm-screen-name {
   fill: var(--color-text-primary);

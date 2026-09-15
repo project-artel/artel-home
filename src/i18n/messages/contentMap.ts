@@ -169,6 +169,16 @@ export const contentMapEn = {
     zoomOut: 'Zoom out',
     reset: 'Fit',
   },
+  // The two side panes, and the control that folds each one away so the drawing
+  // gets the whole width. The name is said twice — once as the rail's own label
+  // and once inside the button's accessible name — because a collapsed rail is
+  // 48px wide and has room for a chevron and nothing else.
+  panes: {
+    tree: 'Scenes and screens',
+    inspector: 'Detail',
+    collapse: (pane: string) => `Collapse ${pane}`,
+    expand: (pane: string) => `Expand ${pane}`,
+  },
   screenMap: {
     title: 'Scenes and the screens inside them',
     counts: (scenes: number, screens: number, transitions: number) =>
@@ -183,6 +193,11 @@ export const contentMapEn = {
       `The ${count} scene${count === 1 ? '' : 's'} below ${count === 1 ? 'comes' : 'come'} from static analysis, which cannot see screens. Screens and the transitions between them are recorded by a QA run.`,
     unnamedScreen: 'Unnamed screen',
     observed: (count: number) => `${count}×`,
+    // Two different facts, so two different sentences. "Not captured yet" is
+    // answered by running a QA run; "could not be loaded" is answered by a
+    // refresh, because the capture URL is short-lived and signed.
+    noCapture: 'No capture yet',
+    captureBroken: 'Capture could not be loaded',
     legend: {
       verified: (count: number) =>
         `${count} scene transition${count === 1 ? '' : 's'} walked in a run — solid, filled head`,
@@ -634,6 +649,12 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
     zoomOut: '축소',
     reset: '전체 보기',
   },
+  panes: {
+    tree: '씬과 화면',
+    inspector: '상세',
+    collapse: (pane: string) => `${pane} 접기`,
+    expand: (pane: string) => `${pane} 펼치기`,
+  },
   screenMap: {
     title: '씬과 그 안의 화면',
     counts: (scenes: number, screens: number, transitions: number) =>
@@ -645,6 +666,8 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
       `아래 씬 ${count}개는 정적 분석에서 나온 것이고, 정적 분석은 화면을 볼 수 없습니다. 화면과 화면 전이는 QA 런이 기록합니다.`,
     unnamedScreen: '이름 없는 화면',
     observed: (count: number) => `${count}회`,
+    noCapture: '아직 캡처 없음',
+    captureBroken: '캡처를 불러오지 못함',
     legend: {
       verified: (count: number) => `런이 밟아 본 씬 전이 ${count}개 — 실선, 속 찬 화살촉`,
       unverified: (count: number) =>

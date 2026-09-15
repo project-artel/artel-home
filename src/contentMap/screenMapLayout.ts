@@ -39,11 +39,15 @@ import { buildSceneGraph, type SceneEdge, type SceneNode } from './sceneGraphLay
 /**
  * 화면 노드 하나의 크기.
  *
- * 이름 한 줄과 `discriminator` 한 줄이 들어가야 한다. 두 화면이 왜 둘인지를 말하는 것은
- * 아래 줄이므로, 그 줄이 상자를 넘치지 않을 만큼은 넓어야 한다.
+ * 위 `SCREEN_IMAGE_HEIGHT` 자리에 화면 캡처가 앉고, 그 아래 남는 띠에 이름 한 줄과
+ * `discriminator` 한 줄이 들어간다. 두 화면이 왜 둘인지를 말하는 것은 그 아래 줄이므로,
+ * 상자가 그 줄을 넘치지 않을 만큼은 넓어야 한다. 글자 띠 높이는 `SCREEN_HEIGHT -
+ * SCREEN_IMAGE_HEIGHT` 로 나오므로 네 번째 상수를 따로 두지 않는다 — 두면 세 값이
+ * 어긋날 자리만 생긴다.
  */
-export const SCREEN_WIDTH = 152
-export const SCREEN_HEIGHT = 48
+export const SCREEN_WIDTH = 176
+export const SCREEN_IMAGE_HEIGHT = 100
+export const SCREEN_HEIGHT = 134
 
 /** 격자 안에서 화면끼리 벌어지는 거리. */
 const SCREEN_GAP_X = 14
@@ -67,11 +71,23 @@ const EMPTY_BODY_HEIGHT = 34
 /** 컨테이너의 최소 폭. 화면 하나와 씬 이름이 둘 다 들어갈 만큼. */
 const MIN_CONTAINER_WIDTH = SCREEN_WIDTH + CONTAINER_PADDING * 2
 
-/** layer 사이의 세로 간격. 여기에 씬 간선이 그려진다. */
-const LAYER_GAP = 88
+/**
+ * layer 사이의 가로 간격. 여기에 씬 전이가 가로로 지나가고 그 위에 조건 한 줄이 앉는다.
+ * 세로 간격이던 시절의 88 은 두 layer 사이에 글자가 들어갈 높이였을 뿐이라, 가로에서는
+ * 전이 라벨의 폭을 감당하지 못한다.
+ */
+const LAYER_GAP = 120
 
-/** 같은 layer 안에서 컨테이너끼리 벌어지는 거리. */
-const SIBLING_GAP = 56
+/**
+ * 같은 layer(열) 안에서 컨테이너끼리 벌어지는 세로 거리. 자기 자신으로 가는 고리가 상자
+ * 위쪽으로 자라므로(`selfLink` 참조), 열 안에서 위 이웃과의 거리가 고리가 올라오는 높이보다
+ * 커야 한다. 64 는 **첫 고리**를 덮는 값이다 — 반지름 22 에 라벨까지 37px 이다.
+ *
+ * 한 씬에서 자기 자신으로 가는 전이가 셋 이상이면 세 번째 고리의 라벨이 68px 로 이 간격을
+ * 넘어 위 이웃에 닿는다. 그 경우까지 덮으려고 간격을 키우지 않는 것은, 씬 하나에 자기 전이가
+ * 셋 넘게 달리는 일보다 모든 열이 늘 벌어지는 비용이 크기 때문이다.
+ */
+const SIBLING_GAP = 64
 
 /** 그림 전체를 두르는 여백. */
 const PADDING = 44
@@ -305,8 +321,8 @@ function measureContainer(screens: readonly ContentMapScreen[]): Box {
 /**
  * 컨테이너를 layer 로 가른다.
  *
- * entry 는 들어오는 씬 간선이 없는 씬이다. 상태 머신을 위에서 아래로 읽는 그림에서 그것이
- * 시작점이고, 여럿이면 전부 첫 줄에 선다. 하나도 없으면 그래프가 순환뿐이라는 뜻이고, 그때는
+ * entry 는 들어오는 씬 간선이 없는 씬이다. 상태 머신을 왼쪽에서 오른쪽으로 읽는 그림에서 그것이
+ * 시작점이고, 여럿이면 전부 첫 layer 에 선다. 하나도 없으면 그래프가 순환뿐이라는 뜻이고, 그때는
  * 입력 순서의 첫 씬을 시작점으로 삼는다 — 임의로 고르는 것보다 결정적인 편이 낫다.
  *
  * root 에서 못 닿는 씬이 남으면 남은 것 중 가장 앞의 것을 새 root 로 잡아 다시 돈다. 그
@@ -361,9 +377,9 @@ function assignLayers(containers: readonly SceneContainerModel[], edges: readonl
 /**
  * layer 안에서 컨테이너를 어떤 순서로 놓을지.
  *
- * 바로 위 layer 에 이미 놓인 선행 씬들의 **자리 평균**으로 정렬한다. 들어오는 선이 layer 를
- * 가로질러 되돌아가는 일이 줄어, 반복 없이 한 번에 대체로 안 꼬인 그림이 된다. 선행이 위
- * layer 에 하나도 없는 컨테이너는 평균이 없으므로 줄 끝에 모으고, 그 안에서는 입력 순서를
+ * 바로 앞 layer 에 이미 놓인 선행 씬들의 **자리 평균**으로 정렬한다. 들어오는 선이 layer 를
+ * 가로질러 되돌아가는 일이 줄어, 반복 없이 한 번에 대체로 안 꼬인 그림이 된다. 선행이 앞
+ * layer 에 하나도 없는 컨테이너는 평균이 없으므로 열 끝에 모으고, 그 안에서는 입력 순서를
  * 지킨다.
  */
 function orderLayer(
@@ -459,17 +475,21 @@ function link(from: Rect, to: Rect, offset: number): Drawn {
   }
 }
 
-/** 상자 오른쪽에 매달리는 고리. 같은 상자의 고리가 늘 때마다 바깥으로 자란다. */
+/**
+ * 상자 위쪽에 매달리는 고리. 오른쪽은 이제 다음 layer 로 나가는 선이 지나는 자리라 고리를
+ * 위쪽으로 올린다. 같은 상자의 고리가 늘 때마다 바깥으로 자란다.
+ */
 function selfLink(rect: Rect, index: number): Drawn {
   const radius = SELF_LOOP_RADIUS + index * 9
-  const x = rect.x + rect.width
-  const top = rect.y + rect.height / 2 - rect.height * 0.18
-  const bottom = rect.y + rect.height / 2 + rect.height * 0.18
+  const centreX = rect.x + rect.width / 2
+  // `spread` 를 반지름에 묶는다. 컨테이너가 가로로 넓어 폭의 18% 를 그대로 쓰면 두 끝
+  // 사이 거리가 지름보다 커져 SVG 가 반지름을 제멋대로 늘린다.
+  const spread = Math.min(rect.width * 0.18, radius * 0.8)
 
   return {
-    path: `M ${round(x)} ${round(top)} A ${radius} ${radius} 0 1 1 ${round(x)} ${round(bottom)}`,
-    midX: round(x + radius * 1.7),
-    midY: round(rect.y + rect.height / 2),
+    path: `M ${round(centreX - spread)} ${round(rect.y)} A ${radius} ${radius} 0 1 1 ${round(centreX + spread)} ${round(rect.y)}`,
+    midX: round(centreX),
+    midY: round(rect.y - radius * 1.7),
     loop: true,
   }
 }
@@ -530,45 +550,45 @@ export function layoutScreenMap(model: ScreenMapModel): ScreenMapLayout {
 
   const placed: PlacedContainer[] = new Array(model.containers.length)
   let previousOrder: number[] = []
-  let top = 0
+  let left = 0
 
   for (let depth = 0; depth < layerCount; depth += 1) {
     const order = depth === 0 ? byLayer[0] : orderLayer(byLayer[depth], previousOrder, predecessors)
-    const totalWidth =
-      order.reduce((sum, index) => sum + boxes[index].width, 0) + SIBLING_GAP * (order.length - 1)
-    const rowHeight = order.reduce((max, index) => Math.max(max, boxes[index].height), 0)
+    const totalHeight =
+      order.reduce((sum, index) => sum + boxes[index].height, 0) + SIBLING_GAP * (order.length - 1)
+    const columnWidth = order.reduce((max, index) => Math.max(max, boxes[index].width), 0)
 
-    // 줄을 x = 0 을 기준으로 가운데 정렬한다. 왼쪽 맞춤이면 씬 하나짜리 줄이 왼쪽 끝에
-    // 붙어, 위아래 줄을 잇는 선이 전부 한쪽으로 쏠린다.
-    let left = -totalWidth / 2
+    // 열을 y = 0 을 기준으로 가운데 정렬한다. 위 맞춤이면 씬 하나짜리 열이 위쪽 끝에
+    // 붙어, 좌우 열을 잇는 선이 전부 한쪽으로 쏠린다.
+    let top = -totalHeight / 2
     for (const index of order) {
       const container = model.containers[index]
       const box = boxes[index]
-      // 줄 안에서 세로 가운데. 위 맞춤이면 화면 스무 개짜리 씬 하나가 줄 높이를 혼자 정하고
-      // 이웃들이 그 위쪽 모서리에 매달린다 — 씬마다 화면 수가 크게 다른 것은 정상이므로
+      // 열 안에서 가로 가운데. 왼쪽 맞춤이면 화면 스무 개짜리 씬 하나가 열 폭을 혼자 정하고
+      // 이웃들이 그 왼쪽 모서리에 매달린다 — 씬마다 화면 수가 크게 다른 것은 정상이므로
       // (한 씬에서만 오버레이가 여럿 갈린다) 그 경우가 사고처럼 보이면 안 된다.
-      const offset = (rowHeight - box.height) / 2
+      const offset = (columnWidth - box.width) / 2
       placed[index] = {
         id: container.id,
         node: container.node,
-        x: round(left),
-        y: round(top + offset),
+        x: round(left + offset),
+        y: round(top),
         width: box.width,
         height: box.height,
         layer: depth,
         screens: container.screens.map((screen, position) => ({
           screen,
-          x: round(left + box.screens[position].x),
-          y: round(top + offset + box.screens[position].y),
+          x: round(left + offset + box.screens[position].x),
+          y: round(top + box.screens[position].y),
           width: SCREEN_WIDTH,
           height: SCREEN_HEIGHT,
         })),
       }
-      left += box.width + SIBLING_GAP
+      top += box.height + SIBLING_GAP
     }
 
     previousOrder = order
-    top += rowHeight + LAYER_GAP
+    left += columnWidth + LAYER_GAP
   }
 
   const rectById = new Map(placed.map((container) => [container.id, container]))
