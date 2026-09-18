@@ -48,7 +48,11 @@ export type RunChatSession = ReturnType<typeof useRunChatSession>
  * @param runId the run whose conversation this is, or null when the studio was
  *   opened outside a run — then the chat is inert (no run to author into).
  * @param onApplied called after scenarios are written (auto-apply or a card
- *   commit) so the page can reload the composition/rail to reflect them.
+ *   commit) so the page can rebase the open scenario onto what the server now holds.
+ * @param onTurnEnded called once a turn is over, whatever it did. Lists read again on
+ *   this; the editor does not. The two are different questions — "did the run change?"
+ *   is true far more often than "did the scenario I have open change?", and rebasing
+ *   the editor throws away a draft the user was typing.
  */
 /**
  * What the user's line says when they only pressed a button. The picked labels are
@@ -65,6 +69,7 @@ export function useRunChatSession(
   projectId: string,
   runId: string | null,
   onApplied?: () => void,
+  onTurnEnded?: () => void,
 ) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [proposals, setProposals] = useState<ScenarioProposal[]>([])
@@ -89,9 +94,13 @@ export function useRunChatSession(
   // handled, even if the user toggles before the reply lands.
   const inFlightAutoApply = useRef(autoApply)
   const onAppliedRef = useRef(onApplied)
+  const onTurnEndedRef = useRef(onTurnEnded)
   useEffect(() => {
     onAppliedRef.current = onApplied
   }, [onApplied])
+  useEffect(() => {
+    onTurnEndedRef.current = onTurnEnded
+  }, [onTurnEnded])
 
   const setAutoApply = useCallback((value: boolean) => {
     setAutoApplyState(value)
@@ -162,6 +171,11 @@ export function useRunChatSession(
         // this the typing dots spin forever on a turn that is already done (run 150).
         setAwaitingReply(false)
         setMessages((previous) => previous.map((message) => ({ ...message, pending: false })))
+        // 그리고 목록은 다시 읽는다. 자동 적용에서 갱신이 `result` 프레임이 `scenarios` 를
+        // 되돌려 줄 때만 일어나서, 서버가 스스로 반영을 끝내고 그 배열을 비워 보내면 새
+        // 시나리오가 새로고침 전까지 안 보였다(ARTEL-882, run 47 에서 11 → 12 인데 레일은 11).
+        // 턴의 끝은 여기가 이미 알고 있고, 목록 재조회는 싸고 여러 번 해도 같은 결과다.
+        onTurnEndedRef.current?.()
         return
       }
       // A repair turn was sent back to the agent, so another reply is coming. The

@@ -125,7 +125,10 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
       .then((scenario) => rebase(scenario.payload))
       .catch(() => { /* leave the current draft on a reload failure */ })
   }, [scenarioId, rebase])
-  const runChat = useRunChatSession(projectId, fromRun, onProposalApplied)
+  // 턴이 끝나면 레일만 다시 읽는다. 편집기는 건드리지 않는다 — `rebase` 는 `working` 을
+  // 서버 값으로 덮으므로, 손으로 고치던 초안이 남의 턴 하나에 사라진다.
+  const onTurnEnded = useCallback(() => setRailToken((token) => token + 1), [])
+  const runChat = useRunChatSession(projectId, fromRun, onProposalApplied, onTurnEnded)
 
   // The run's name for the crumb, when the studio was opened from a run. Fetched
   // here because the studio only carries the run id (?run=), not its name.

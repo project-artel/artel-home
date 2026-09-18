@@ -44,7 +44,10 @@ function RunEditPage({ projectId, runId }: { projectId: string; runId: string })
   // redirect would unmount them).
   const [reloadKey, setReloadKey] = useState(0)
   const initialLoad = useRef(true)
-  const runChat = useRunChatSession(projectId, runId, () => setReloadKey((k) => k + 1))
+  // 목록은 턴이 끝날 때도 다시 읽는다 — `result` 가 `scenarios` 를 되돌려 주지 않는 턴이
+  // 있고, 그때 새 시나리오가 새로고침 전까지 안 보였다(ARTEL-882).
+  const reloadList = () => setReloadKey((k) => k + 1)
+  const runChat = useRunChatSession(projectId, runId, reloadList, reloadList)
 
   useEffect(() => {
     const controller = new AbortController()
