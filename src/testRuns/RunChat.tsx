@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
+import { Dialog } from '../design-system/primitives/Dialog'
 import { RunChatQuestionModal } from './RunChatQuestionModal'
 import { ChatMessageBody } from './ChatMessageBody'
 import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
@@ -9,6 +10,8 @@ import { groupStepsByCase } from '../testScenarios/scenarioTypes'
 import type { AuthoringStage, RunChatQuestion, ScenarioProposal } from './runChatApi'
 import { getCoverage } from '../testCases/testCaseApi'
 import type { TestCaseCoverage } from '../testCases/testCaseTypes'
+import { getRunCoverage } from './testRunApi'
+import type { RunCoverage } from './testRunApi'
 import type { RunChatSession } from './useRunChatSession'
 
 /** 표시용 텍스트 정리: 줄바꿈·중복 공백을 한 칸으로, 앞의 대시·불릿·번호 접두 제거. */
@@ -157,6 +160,11 @@ export function RunChat({ session }: { session: RunChatSession }) {
   // 지금 화면 가운데에 띄워 둔 되묻기(ARTEL-677). 비어 있으면 모달이 없다.
   const [asking, setAsking] = useState<RunChatQuestion[] | null>(null)
   const [coverage, setCoverage] = useState<TestCaseCoverage | null>(null)
+  // 이 런이 담은 것(ARTEL-904). 위의 `coverage` 와 **축이 다르다** — 저쪽은 프로젝트 전량이고
+  // 이쪽은 지금 만들고 있는 것들이다.
+  const [runCoverage, setRunCoverage] = useState<RunCoverage | null>(null)
+  // 내역을 펼쳤나. 배지는 수 하나만 보이고 시나리오별 줄은 눌러서 본다.
+  const [coverageOpen, setCoverageOpen] = useState(false)
   const elapsed = useElapsedSeconds(session.turnStartedAt)
   // 종착 단계(saved/blocked)는 여기에 없다. 그때는 훅이 목록을 비워 표시가 사라지고, 무슨 일이
   // 있었는지는 대화에 남은 문장이 말한다 — 다 끝난 눈금은 읽을거리만 하나 늘린다.
@@ -201,8 +209,21 @@ export function RunChat({ session }: { session: RunChatSession }) {
       .catch(() => {
         // 커버리지를 못 읽는 것이 대화를 막을 이유는 없다. 줄이 사라질 뿐이다.
       })
+    // 두 값을 **같은 시점에** 읽는다. 하나만 새로 읽으면 나란히 놓인 두 숫자가 서로 다른
+    // 순간을 가리키고, 그 어긋남은 화면에서 계산 오류처럼 보인다.
+    //
+    // `active` 가 곧 `runId !== null` 이지만 타입은 그것을 모른다. 조건을 다시 적는 대신
+    // 값으로 붙잡는다 — 여기서 `!` 를 쓰면 그 등식이 깨지는 날 런타임까지 간다.
+    const runId = session.runId
+    if (runId !== null) {
+      getRunCoverage(session.projectId, runId, controller.signal)
+        .then(setRunCoverage)
+        .catch(() => {
+          // 이 배지만 사라진다. 서버가 이 조회를 아직 모르는 판(구버전)도 여기로 온다.
+        })
+    }
     return () => controller.abort()
-  }, [session.active, session.projectId, session.messages.length])
+  }, [session.active, session.projectId, session.runId, session.messages.length])
   // 대화 줄 목록을 ref 와 state 둘 다로 든다. 아래 자동 스크롤은 노드를 직접 건드리므로
   // ref 여야 하고, {@link EdgeScrollbar} 는 이 `<ol>` 이 **생기는 순간**을 알아야 하므로
   // state 여야 한다 — 첫 메시지가 오기 전에는 목록 자체가 DOM 에 없다.
@@ -248,6 +269,26 @@ export function RunChat({ session }: { session: RunChatSession }) {
             "지금 어디까지 왔나"만 말한다. 버튼과 나란히 두면 둘 다 도구처럼 읽힌다.
             폴링하지 않는다. 이 값은 이 페이지에서 일어난 일로만 바뀌고(턴이 끝나 저작이
             저장될 때), 그 시점에 이미 다시 읽는다. */}
+        {/* 이 런의 커버리지(ARTEL-904). **왼쪽이 이 런, 오른쪽이 프로젝트 전량**이다 — 좁은
+            것에서 넓은 것으로 읽히는 순서다. 앞서 이 값은 저작 턴마다 대화로 씬별 집계
+            (`TurnBattleScene 8/29`)로 나갔는데, 시나리오는 여러 씬을 지나는 흐름이라 그
+            비율로는 다음에 무엇을 할지 정할 수 없었다(ARTEL-903). 단위를 시나리오로 바꿔
+            여기에 놓는다.
+            **수만 보이고 내역은 눌러서 본다** — 머리에 시나리오 목록을 펼치면 대화가
+            밀린다. 툴팁에만 두는 것도 안 된다: 화면으로 확인할 방법이 없다. */}
+        {runCoverage !== null && runCoverage.total > 0 && (
+          <button
+            type="button"
+            className="run-chat-coverage run-chat-coverage--run"
+            title={c.runCoverageTitle(runCoverage.covered, runCoverage.total)}
+            aria-label={c.runCoverageOpen}
+            onClick={() => setCoverageOpen(true)}
+          >
+            {c.runCoverageLabel}
+            <strong>{runCoverage.covered}</strong>
+            <span className="run-chat-coverage-total">/{runCoverage.total}</span>
+          </button>
+        )}
         {coverage !== null && coverage.total > 0 && (
           <span
             className={
@@ -460,6 +501,47 @@ export function RunChat({ session }: { session: RunChatSession }) {
           proposal={expanded}
           onClose={() => setExpanded(null)}
         />
+      )}
+
+      {/* 시나리오별 내역(ARTEL-904). **수는 배지가, 줄은 여기가** 보인다 — 머리에 목록을
+          펼치면 대화가 밀리고, 툴팁에만 두면 화면으로 확인할 방법이 없다. */}
+      {coverageOpen && runCoverage !== null && (
+        <Dialog
+          title={c.runCoverageDialogTitle}
+          labelledBy="run-coverage-title"
+          onClose={() => setCoverageOpen(false)}
+        >
+          <p className="run-coverage-summary">
+            {c.runCoverageSummary(runCoverage.covered, runCoverage.total)}
+          </p>
+          {runCoverage.scenarios.length === 0 ? (
+            <p className="panel-empty">{c.runCoverageEmpty}</p>
+          ) : (
+            <table className="run-coverage-table">
+              <thead>
+                <tr>
+                  <th scope="col">{c.runCoverageColumnScenario}</th>
+                  <th scope="col">{c.runCoverageColumnSteps}</th>
+                  <th scope="col">{c.runCoverageColumnCases}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {runCoverage.scenarios.map((row) => (
+                  <tr key={row.testScenarioId}>
+                    <td>{row.title}</td>
+                    <td>{row.steps}</td>
+                    <td>{row.cases}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          <div className="dialog-actions">
+            <button type="button" onClick={() => setCoverageOpen(false)}>
+              {c.runCoverageClose}
+            </button>
+          </div>
+        </Dialog>
       )}
 
       {asking !== null && session.runId !== null && (

@@ -117,6 +117,25 @@ export const scenariosEn = {
     stagePast: (steps: number) => `${steps} earlier step${steps === 1 ? '' : 's'}`,
     stageCollapse: 'Hide',
     stageLabel: 'Authoring progress',
+    /*
+     * 대화 머리의 두 번째 배지(ARTEL-904). 옆의 `미커버` 는 **프로젝트 전량**을 재고, 이쪽은
+     * **이 런의 시나리오들**을 잰다. 라벨이 그 차이를 져야 한다 — 숫자 둘이 나란히 놓이는데
+     * 무엇을 세는지 구분되지 않으면 둘 중 하나는 읽히지 않는다.
+     */
+    runCoverageLabel: 'This run',
+    runCoverageTitle: (covered: number, total: number) =>
+      `This run's scenarios cover ${covered} of the project's ${total} cases.`,
+    runCoverageScenario: (title: string, cases: number) =>
+      `${title} — ${cases} case${cases === 1 ? '' : 's'}`,
+    runCoverageEmpty: 'No scenarios in this run yet.',
+    runCoverageOpen: 'Coverage of this run',
+    runCoverageDialogTitle: 'What this run covers',
+    runCoverageSummary: (covered: number, total: number) =>
+      `${covered} of the project's ${total} cases`,
+    runCoverageColumnScenario: 'Scenario',
+    runCoverageColumnSteps: 'Steps',
+    runCoverageColumnCases: 'Cases',
+    runCoverageClose: 'Close',
     autoApplyLabel: 'Apply automatically',
     proposalsTitle: 'Proposed scenarios',
     proposalNew: '🆕 Add',
@@ -524,6 +543,19 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     stagePast: (steps: number) => `이전 ${steps}단계`,
     stageCollapse: '접기',
     stageLabel: '저작 진행 단계',
+    runCoverageLabel: '이 런',
+    runCoverageTitle: (covered: number, total: number) =>
+      `이 런의 시나리오들이 프로젝트 케이스 ${total}건 중 ${covered}건을 담았습니다.`,
+    runCoverageScenario: (title: string, cases: number) => `${title} — ${cases}건`,
+    runCoverageEmpty: '이 런에는 아직 시나리오가 없습니다.',
+    runCoverageOpen: '이 런의 커버리지',
+    runCoverageDialogTitle: '이 런이 담은 것',
+    runCoverageSummary: (covered: number, total: number) =>
+      `프로젝트 케이스 ${total}건 중 ${covered}건`,
+    runCoverageColumnScenario: '시나리오',
+    runCoverageColumnSteps: '스텝',
+    runCoverageColumnCases: '케이스',
+    runCoverageClose: '닫기',
     autoApplyLabel: '자동 적용',
     proposalsTitle: '제안된 시나리오',
     proposalNew: '🆕 추가',
