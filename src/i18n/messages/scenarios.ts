@@ -117,6 +117,28 @@ export const scenariosEn = {
     stagePast: (steps: number) => `${steps} earlier step${steps === 1 ? '' : 's'}`,
     stageCollapse: 'Hide',
     stageLabel: 'Authoring progress',
+    /*
+     * 대화 머리의 두 번째 배지(ARTEL-904). 옆의 `미커버` 는 **프로젝트 전량**을 재고, 이쪽은
+     * **이 런의 시나리오들**을 잰다. 라벨이 그 차이를 져야 한다 — 숫자 둘이 나란히 놓이는데
+     * 무엇을 세는지 구분되지 않으면 둘 중 하나는 읽히지 않는다.
+     */
+    runCoverageLabel: 'Current run',
+    /*
+     * 라벨만으로는 두 수의 차이를 알 수 없다 — `현재 런 21 /88` 과 `프로젝트 미커버 1 /88` 은
+     * 같은 분모를 쓰면서 다른 것을 센다. 그 차이를 도움말이 말한다. 둘째 문장이 핵심이다:
+     * 프로젝트 쪽은 **다른 런에 담긴 것까지** 담긴 것으로 센다.
+     */
+    runCoverageHelp:
+      'How many cases the scenarios in this run verify. A case in two scenarios is counted once. Click for the per-scenario breakdown.',
+    runCoverageEmpty: 'No scenarios in this run yet.',
+    runCoverageOpen: 'Coverage of this run',
+    runCoverageDialogTitle: 'What this run covers',
+    runCoverageSummary: (covered: number, total: number) =>
+      `${covered} of the project's ${total} cases`,
+    runCoverageColumnScenario: 'Scenario',
+    runCoverageColumnSteps: 'Steps',
+    runCoverageColumnCases: 'Cases',
+    runCoverageClose: 'Close',
     autoApplyLabel: 'Apply automatically',
     proposalsTitle: 'Proposed scenarios',
     proposalNew: '🆕 Add',
@@ -524,6 +546,18 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     stagePast: (steps: number) => `이전 ${steps}단계`,
     stageCollapse: '접기',
     stageLabel: '저작 진행 단계',
+    runCoverageLabel: '현재 런',
+    runCoverageHelp:
+      '이 런에 담긴 시나리오들이 검증하는 케이스 수입니다. 두 시나리오에 겹치는 케이스는 한 번만 셉니다. 눌러서 시나리오별로 봅니다.',
+    runCoverageEmpty: '이 런에는 아직 시나리오가 없습니다.',
+    runCoverageOpen: '이 런의 커버리지',
+    runCoverageDialogTitle: '이 런이 담은 것',
+    runCoverageSummary: (covered: number, total: number) =>
+      `프로젝트 케이스 ${total}건 중 ${covered}건`,
+    runCoverageColumnScenario: '시나리오',
+    runCoverageColumnSteps: '스텝',
+    runCoverageColumnCases: '케이스',
+    runCoverageClose: '닫기',
     autoApplyLabel: '자동 적용',
     proposalsTitle: '제안된 시나리오',
     proposalNew: '🆕 추가',

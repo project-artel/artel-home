@@ -3148,8 +3148,13 @@ a.instance-name:hover {
 .scenario-studio .st-chat .inline-error{ font-size:12px; color:var(--st-broken); background:var(--st-broken-dim); border:1px solid var(--color-status-critical); border-radius:6px; padding:8px 10px; display:flex; gap:8px; align-items:center; }
 
 /* run-scoped chat: auto-apply toggle + proposal cards (ARTEL-206 Step 6) */
-.scenario-studio .st-chat .panel-header{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
-.run-chat-toggle{ display:flex; align-items:center; gap:6px; font-size:11px; color:var(--st-muted); text-transform:none; letter-spacing:normal; cursor:pointer; }
+/* `position:relative` 는 도움말 말풍선의 기준이다(ARTEL-904). 배지를 기준으로 열면 배지가
+   패널 오른쪽 가장자리에 붙어 있어 말풍선이 왼쪽으로 패널을 넘어가고, 넘어간 쪽이 잘려
+   첫 글자부터 안 읽힌다. 머리를 기준으로 삼으면 패널 폭 안에서만 열린다. */
+.scenario-studio .st-chat .panel-header{ position:relative; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+/* `white-space:nowrap` 은 배지가 둘이 된 뒤에 붙었다(ARTEL-904) — 라벨이 길어지며 머리가
+   좁아져 "자동 적용" 이 두 줄로 접혔고, 두 줄이 된 글자가 머리 높이를 밀어 올렸다. */
+.run-chat-toggle{ display:flex; align-items:center; gap:6px; font-size:11px; color:var(--st-muted); text-transform:none; letter-spacing:normal; cursor:pointer; white-space:nowrap; }
 .run-chat-toggle input{ accent-color:var(--st-action); }
 .run-chat-proposals{ flex:none; border-top:1px solid var(--st-border); padding:12px; display:flex; flex-direction:column; gap:10px; max-height:45%; overflow-y:auto; }
 .run-chat-proposals-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
@@ -5849,8 +5854,8 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   align-items: baseline;
   gap: 4px;
   margin-left: auto;
-  margin-right: var(--space-3);
-  padding: 2px 9px;
+  margin-right: var(--space-2);
+  padding: 2px 8px;
   border: 1px solid var(--color-border-subtle);
   border-radius: 999px;
   background: var(--color-bg-surface);
@@ -5870,6 +5875,107 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   opacity: 0.8;
 }
 
+/* 배지가 둘이다(ARTEL-904) — 왼쪽이 이 런, 오른쪽이 프로젝트 전량. 오른쪽으로 미는 것은
+   **앞엣것 하나**여야 하고, 뒤따르는 것은 그 옆에 붙어야 한다. 형제 선택자로 두면 배지가
+   하나일 때와 둘일 때가 같은 규칙으로 놓여 컴포넌트가 여백을 계산하지 않는다. */
+.run-chat-coverage + .run-chat-coverage {
+  margin-left: 0;
+}
+
+/* 두 배지의 도움말(ARTEL-904). 분모가 같은 두 수가 나란히 놓여서, 라벨만으로는 무엇을
+   세는지 갈리지 않는다 — 가져다 대면 그 선을 그어 준다.
+
+   `title` 속성을 안 쓴 이유: 뜨는 데 1초 가까이 걸리고 글꼴·줄바꿈을 정할 수 없어 두 문장
+   이상은 읽히지 않는다. 장치는 `QaHistoryDetail` 의 `run-detail-tip` 과 같은 것이다.
+
+   **오른쪽 끝에 맞춘다.** 배지가 패널 오른쪽 가장자리에 붙어 있어 왼쪽 기준으로 열면
+   말풍선이 화면 밖으로 나간다. */
+.run-chat-coverage-tip {
+  position: absolute;
+  z-index: 2;
+  /* 머리 **아래**로 편다. 기준이 머리라 배지 높이가 아니라 머리 높이만큼 내려가고, 그래야
+     말풍선이 대화 첫 줄을 덮는 대신 그 위에 얹힌다. */
+  inset-block-start: calc(100% - 4px);
+  inset-inline: var(--space-3) var(--space-3);
+  visibility: hidden;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+  text-align: left;
+  white-space: normal;
+  opacity: 0;
+  transition: opacity var(--motion-fast) var(--ease-standard);
+}
+
+.run-chat-coverage:hover .run-chat-coverage-tip,
+.run-chat-coverage:focus-visible .run-chat-coverage-tip {
+  visibility: visible;
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .run-chat-coverage-tip {
+    transition: none;
+  }
+}
+
+/* 배지가 눌린다(ARTEL-904). 겉모습은 옆의 미커버 배지와 같게 두되 — 둘은 같은 종류의
+   값이라 다르게 보일 이유가 없다 — 누를 수 있다는 것만 커서와 초점 테두리로 말한다. */
+button.run-chat-coverage {
+  cursor: pointer;
+  font: inherit;
+  font-size: 11.5px;
+}
+
+button.run-chat-coverage:hover {
+  border-color: var(--color-border-strong);
+  color: var(--color-text-primary);
+}
+
+/* 이 런이 담은 것 — 내역 표. 숫자 칸은 오른쪽으로 모아 자릿수가 눈으로 비교된다. */
+.run-coverage-summary {
+  margin: 0 0 var(--space-3);
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+}
+
+.run-coverage-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.run-coverage-table th,
+.run-coverage-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  text-align: left;
+}
+
+.run-coverage-table th:not(:first-child),
+.run-coverage-table td:not(:first-child) {
+  width: 4.5rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.run-coverage-table th {
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+/* 이 런 쪽은 중립으로 둔다. 미커버는 "남았다"라서 색이 붙을 때가 있지만, 이쪽은 담은 수라
+   많을수록 좋은 값이고 경고할 것이 없다. */
+.run-chat-coverage--run {
+  margin-right: 6px;
+}
+
 /* 남은 것이 있을 때만 색이 붙는다. 전부 덮였으면 볼 것이 없으니 조용한 편이 맞다. */
 .run-chat-coverage--open {
   border-color: color-mix(in srgb, var(--color-status-warning) 45%, transparent);
@@ -5878,32 +5984,6 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
 
 .run-chat-coverage--open strong {
   color: var(--color-status-warning);
-}
-
-/* 턴이 끝난 뒤 대화 아래에 붙는 제안 칩(ARTEL-405). 입력창 위 고정 자리가 아니라 여기인 것은,
-   놓여 있는 버튼은 제안이 아니라 도구 모음으로 읽히기 때문이다. */
-.chat-suggestions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  padding: 0 var(--space-3) var(--space-2);
-}
-
-.chat-suggestion {
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 999px;
-  background: var(--color-bg-surface);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  font: inherit;
-  font-size: 12px;
-  padding: 4px 12px;
-  transition: border-color .12s ease, color .12s ease;
-}
-
-.chat-suggestion:hover {
-  border-color: var(--color-action-primary);
-  color: var(--color-action-primary);
 }
 
 /* ── Content map ─────────────────────────────────────────────────────────── */
