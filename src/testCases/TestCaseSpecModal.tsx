@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
+import { CaseListRow } from './CaseListRow'
+import { CaseSceneFilter } from './CaseSceneFilter'
 import { SceneChip } from './SceneChip'
 import { SpecGradeChip } from './SpecGradeChip'
 import { listTestCases } from './testCaseApi'
 import { VERIFICATION_STATUSES, type TestCase, type VerificationStatus } from './testCaseTypes'
+import { useCaseListNav } from './useCaseListNav'
 
 type Filter = 'ALL' | VerificationStatus
-
-/** How many scene chips show before the rest collapse behind a "＋N" search. */
-const MAX_SCENE_CHIPS = 7
 
 /**
  * Read-only ⌘K browser of every TestCase in the project (ARTEL-289 #4). Reuses the
@@ -32,14 +32,7 @@ export function TestCaseSpecModal({
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<Filter>('ALL')
   const [scene, setScene] = useState<string>('')
-  const [pinned, setPinned] = useState<string[]>([])
-  const [sceneSearchOpen, setSceneSearchOpen] = useState(false)
-  const [sceneQuery, setSceneQuery] = useState('')
-  const [sceneAtEnd, setSceneAtEnd] = useState(false)
-  const [listEdge, setListEdge] = useState({ top: true, bottom: false })
-  const [active, setActive] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
-  const listRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     inputRef.current?.focus()
@@ -52,47 +45,6 @@ export function TestCaseSpecModal({
       })
     return () => controller.abort()
   }, [projectId])
-
-  // Distinct scenes, most-frequent first — the scalable filter source.
-  const sceneCounts = useMemo(() => {
-    const counts = new Map<string, number>()
-    for (const testCase of cases) {
-      const key = testCase.scene.trim()
-      if (key.length > 0) counts.set(key, (counts.get(key) ?? 0) + 1)
-    }
-    return counts
-  }, [cases])
-  const scenes = useMemo(
-    () => [...sceneCounts.entries()].sort((a, b) => b[1] - a[1]).map(([name]) => name),
-    [sceneCounts],
-  )
-
-  // The chip row: pinned (recently searched) first, then frequency order, capped.
-  const chipScenes = useMemo(() => {
-    const seen = new Set<string>()
-    const out: string[] = []
-    for (const name of pinned) {
-      if (scenes.includes(name) && !seen.has(name)) { seen.add(name); out.push(name) }
-    }
-    for (const name of scenes) {
-      if (out.length >= MAX_SCENE_CHIPS) break
-      if (!seen.has(name)) { seen.add(name); out.push(name) }
-    }
-    return out.slice(0, MAX_SCENE_CHIPS)
-  }, [pinned, scenes])
-
-  function pickScene(name: string) {
-    setPinned((prev) => [name, ...prev.filter((n) => n !== name)])
-    setScene(name)
-    setSceneSearchOpen(false)
-    setSceneQuery('')
-  }
-
-  const sceneSearchResults = useMemo(() => {
-    const sq = sceneQuery.trim().toLowerCase()
-    const matched = scenes.filter((name) => sq === '' || name.toLowerCase().includes(sq))
-    return [...matched].sort((a, b) => Number(chipScenes.includes(a)) - Number(chipScenes.includes(b)))
-  }, [scenes, sceneQuery, chipScenes])
 
   const q = query.trim().toLowerCase()
   const shown = useMemo(
@@ -110,29 +62,12 @@ export function TestCaseSpecModal({
     [cases, status, scene, q],
   )
 
-  useEffect(() => {
-    setActive((current) => Math.min(current, Math.max(0, shown.length - 1)))
-  }, [shown.length])
-
-  useEffect(() => {
-    const el = listRef.current?.querySelector<HTMLElement>(`[data-index="${active}"]`)
-    el?.scrollIntoView({ block: 'nearest' })
-  }, [active])
-
-  function updateListEdge(el: HTMLElement) {
-    setListEdge({
-      top: el.scrollTop <= 2,
-      bottom: el.scrollTop + el.clientHeight >= el.scrollHeight - 2,
-    })
-  }
-  useEffect(() => {
-    if (listRef.current !== null) updateListEdge(listRef.current)
-  }, [shown.length])
+  const nav = useCaseListNav(shown.length)
+  const { active, edge: listEdge, listRef, setActive } = nav
 
   function onKeyDown(event: React.KeyboardEvent) {
     if (event.key === 'Escape') { event.preventDefault(); onClose(); return }
-    if (event.key === 'ArrowDown') { event.preventDefault(); setActive((i) => Math.min(i + 1, shown.length - 1)); return }
-    if (event.key === 'ArrowUp') { event.preventDefault(); setActive((i) => Math.max(i - 1, 0)) }
+    nav.onKeyDown(event)
   }
 
   return (
@@ -155,50 +90,31 @@ export function TestCaseSpecModal({
           </div>
         </div>
 
-        {scenes.length > 0 && (
-          <div className="cp-filter-row">
-            <span className="cp-filter-label">{p.sceneLabel}</span>
-            <div className="cp-chips">
-              <button className={scene === '' ? 'fchip on' : 'fchip'} onClick={() => setScene('')} type="button">{p.sceneAll}</button>
-              {chipScenes.map((name) => (
-                <button className={scene === name ? 'fchip on' : 'fchip'} key={name} onClick={() => setScene(scene === name ? '' : name)} type="button">{name}</button>
-              ))}
-              {scenes.length > chipScenes.length && (
-                <button className="fchip cp-more" onClick={() => setSceneSearchOpen(true)} type="button">
-                  ＋{scenes.length - chipScenes.length}
-                </button>
-              )}
-            </div>
-          </div>
-        )}
+        <CaseSceneFilter
+          cases={cases}
+          labels={{ all: p.sceneAll, noMatch: p.noMatch, scene: p.sceneLabel, search: p.sceneSearch }}
+          onChange={setScene}
+          value={scene}
+        />
 
         <div className="cp-body">
           <div className={'cp-listwrap' + (listEdge.top ? ' at-top' : '') + (listEdge.bottom ? ' at-bottom' : '')}>
             <div className="cp-fade cp-fade--top" aria-hidden="true"><span className="cp-fade-hint">▴</span></div>
-            <div className="cp-list" onScroll={(event) => updateListEdge(event.currentTarget)} ref={listRef}>
+            <div className="cp-list" onScroll={nav.onScroll} ref={listRef}>
               {shown.length === 0 ? (
                 <p className="cp-empty">{loadFailed ? p.noMatch : cases.length === 0 ? p.empty : p.noMatch}</p>
               ) : (
                 shown.map((testCase, index) => (
-                  <button
-                    className={'cp-row' + (index === active ? ' active' : '')}
-                    data-index={index}
+                  <CaseListRow
+                    active={index === active}
+                    fallbackTitle={`TC ${index + 1}`}
+                    index={index}
                     key={testCase.id}
                     onClick={() => setActive(index)}
                     onMouseEnter={() => setActive(index)}
-                    type="button"
-                  >
-                    <span className={`vdot ${testCase.verificationStatus}`} />
-                    <span className="cp-main">
-                      <span className="cp-title">{testCase.step.length > 0 ? testCase.step : `TC ${index + 1}`}</span>
-                      <span className="cp-sub">{statusLabel[testCase.verificationStatus]}</span>
-                    </span>
-                    {/* Settled grades stay off the rows. A list where every row reads
-                        "확정" carries no information; the badge earns its space only
-                        on the cases that are not settled. */}
-                    <SpecGradeChip status={testCase.status} quietWhenSettled />
-                    <SceneChip scene={testCase.scene} />
-                  </button>
+                    statusLabel={statusLabel[testCase.verificationStatus]}
+                    testCase={testCase}
+                  />
                 ))
               )}
             </div>
@@ -242,50 +158,6 @@ export function TestCaseSpecModal({
           <span>{shown.length} / {cases.length}</span>
         </div>
 
-        {sceneSearchOpen && (
-          <div className="cp-catpop-overlay" onClick={() => { setSceneSearchOpen(false); setSceneQuery('') }}>
-            <div className="cp-catpop" onClick={(event) => event.stopPropagation()}>
-              <div className="cp-catpop-head">
-                <span className="cp-catpop-icon" aria-hidden="true">⌕</span>
-                <input
-                  autoFocus
-                  className="cp-catpop-input"
-                  onChange={(event) => setSceneQuery(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Escape') { setSceneSearchOpen(false); setSceneQuery('') }
-                    if (event.key === 'Enter' && sceneSearchResults[0] !== undefined) pickScene(sceneSearchResults[0])
-                  }}
-                  placeholder={p.sceneSearch}
-                  value={sceneQuery}
-                />
-                <button className="cp-esc" onClick={() => { setSceneSearchOpen(false); setSceneQuery('') }} type="button">ESC</button>
-              </div>
-              <div
-                className={'cp-catpop-scroll' + (sceneAtEnd ? ' at-end' : '')}
-                onScroll={(event) => {
-                  const el = event.currentTarget
-                  setSceneAtEnd(el.scrollTop + el.clientHeight >= el.scrollHeight - 2)
-                }}
-              >
-                <div className="cp-catpop-list">
-                  {sceneSearchResults.length === 0 ? (
-                    <p className="cp-catpop-empty">{p.noMatch}</p>
-                  ) : (
-                    sceneSearchResults.map((name) => (
-                      <button className={'cp-catpop-row' + (chipScenes.includes(name) ? ' shown' : '')} key={name} onClick={() => pickScene(name)} type="button">
-                        <SceneChip scene={name} />
-                        <span className="cp-catpop-count">{sceneCounts.get(name) ?? 0}</span>
-                      </button>
-                    ))
-                  )}
-                </div>
-                <div className="cp-catpop-fade" aria-hidden="true">
-                  <span className="cp-catpop-fade-hint">▾</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   )

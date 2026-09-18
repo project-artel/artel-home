@@ -17,11 +17,16 @@ import { specGradeTone } from './testCaseTypes'
  * the reason to show grades at all is the cases that are NOT settled. Detail
  * views leave it off — there the question "what grade is this?" is being asked
  * directly, so the answer should be present even when it is the boring one.
+ *
+ * `bare` drops the "명세 상태:" prefix. A table column already carries that header, so
+ * repeating it in every cell spends width on a word the reader has read once.
  */
 export function SpecGradeChip({
+  bare = false,
   status,
   quietWhenSettled = false,
 }: {
+  bare?: boolean
   status: string | null
   quietWhenSettled?: boolean
 }) {
@@ -40,7 +45,7 @@ export function SpecGradeChip({
 
   return (
     <span className={`tc-spec-status${tone !== null ? ` grade-${tone}` : ''}`}>
-      {m.label}: {label}
+      {bare ? label : `${m.label}: ${label}`}
     </span>
   )
 }
