@@ -280,13 +280,15 @@ export function RunChat({ session }: { session: RunChatSession }) {
           <button
             type="button"
             className="run-chat-coverage run-chat-coverage--run"
-            title={c.runCoverageTitle(runCoverage.covered, runCoverage.total)}
             aria-label={c.runCoverageOpen}
             onClick={() => setCoverageOpen(true)}
           >
             {c.runCoverageLabel}
             <strong>{runCoverage.covered}</strong>
             <span className="run-chat-coverage-total">/{runCoverage.total}</span>
+            <span className="run-chat-coverage-tip" role="tooltip">
+              {c.runCoverageHelp}
+            </span>
           </button>
         )}
         {coverage !== null && coverage.total > 0 && (
@@ -296,11 +298,14 @@ export function RunChat({ session }: { session: RunChatSession }) {
                 ? 'run-chat-coverage run-chat-coverage--open'
                 : 'run-chat-coverage'
             }
-            title={u.title}
+            tabIndex={0}
           >
             {u.remainingLabel}
             <strong>{coverage.unauthored}</strong>
             <span className="run-chat-coverage-total">/{coverage.total}</span>
+            <span className="run-chat-coverage-tip" role="tooltip">
+              {u.remainingHelp}
+            </span>
           </span>
         )}
         <label className="run-chat-toggle">
