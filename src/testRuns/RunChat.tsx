@@ -179,23 +179,6 @@ export function RunChat({ session }: { session: RunChatSession }) {
     repairing: c.stageRepairing,
   }
 
-  // 제안을 낼 조건. 턴이 한 번은 끝났고(에이전트가 답한 적이 있고), 지금 답을 기다리는 중이
-  // 아니며, 아직 안 담긴 케이스가 있을 때만이다. 셋 중 하나라도 아니면 낼 말이 없다.
-  const answered = session.messages.some((message) => message.role !== 'USER')
-  const idle = !session.awaitingReply && !session.sending
-  const topScene = coverage?.uncoveredScenes[0]
-  // 두 칩은 종류가 다르다. 하나는 시키고, 하나는 묻는다 — 같은 것 여럿 중에 고르라는 메뉴가
-  // 아니라서 둘을 나란히 둘 수 있다. 묻는 쪽은 에이전트의 list_uncovered_cases로 이어져
-  // 씬과 케이스 문구로 답이 온다.
-  const suggestions =
-    answered && idle && topScene !== undefined
-      ? [
-          { key: 'author', label: u.suggestScene(topScene.scene, topScene.count),
-            request: u.requestFor(topScene.scene, topScene.count) },
-          { key: 'ask', label: u.askRemaining, request: u.askRemainingRequest },
-        ]
-      : []
-
   // 저작하는 자리에서 남은 수를 본다(ARTEL-405). 대시보드에도 같은 값이 있지만 이쪽이 실제로
   // 무언가를 할 자리다 — 입력창이 바로 아래라 페이지를 옮기지 않고 그대로 이어서 요청한다.
   //
@@ -395,24 +378,13 @@ export function RunChat({ session }: { session: RunChatSession }) {
       )}
       <EdgeScrollbar label={c.title} scroller={threadNode} side="right" />
 
-      {/* 턴이 끝난 뒤에 나오는 제안(ARTEL-405). 대화가 시작도 안 했는데 버튼이 놓여 있으면
-          그건 제안이 아니라 도구 모음이고, 사용자는 무엇을 하라는 말인지 모른 채 지나친다.
-          답이 오는 중에는 감춘다 — 아직 끝나지 않은 턴에 다음 할 일을 권하는 것은 이르다. */}
-      {suggestions.length > 0 && (
-        <div className="chat-suggestions">
-          {suggestions.map((suggestion) => (
-            <button
-              className="chat-suggestion"
-              key={suggestion.key}
-              onClick={() => setInput(suggestion.request)}
-              type="button"
-            >
-              {suggestion.label}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* 여기 있던 제안 칩 둘을 걷어냈다(ARTEL-904) — `다음은 TurnBattleScene — 아직 22건 남음`
+          과 `뭐가 남았는지 보기`.
 
+          **씬 축이 없어졌기 때문이다.** 두 칩은 `coverage.uncoveredScenes[0]` 를 읽어 "어느
+          씬에 몇 건 남았나" 를 다음 할 일로 권했는데, 시나리오는 여러 씬을 지나는 흐름이라
+          그 수로는 다음에 무엇을 할지 정할 수 없다(ARTEL-903 이 같은 이유로 대화에서 걷어낸
+          안내다). 화면에 남아 있으면 없는 기능을 권하는 버튼이 된다. */}
       {session.proposals.length > 0 && (
         <div className="run-chat-proposals">
           <div className="run-chat-proposals-head">

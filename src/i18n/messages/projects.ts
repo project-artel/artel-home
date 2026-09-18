@@ -371,7 +371,6 @@ export const projectsEn = {
       /** Fills the composer rather than sending — the proposal is the user's to edit. */
       draftRequest: 'Write a scenario for these',
       /** The post-turn suggestion chip. Names the gap so the offer is concrete. */
-      suggestScene: (scene: string, count: number) => `Next: ${scene} — ${count} still uncovered`,
       /** Passive marker in the chat header: where the project stands, no action attached. */
       remainingLabel: 'Project uncovered',
       /*
@@ -381,9 +380,6 @@ export const projectsEn = {
       remainingHelp:
         "Cases in this project that no scenario covers — including scenarios in other runs. Not limited to the run you are editing.",
       /** The other chip: asks rather than tells. Lands on the agent's coverage tool. */
-      askRemaining: 'What is left?',
-      askRemainingRequest:
-        'Which cases are still not covered by any scenario? Name the scenes and what each case checks.',
       requestFor: (scene: string, count: number) =>
         `Write a scenario covering the ${count} cases still uncovered in ${scene}.`,
       /** The verification axis, kept beside the authoring one rather than merged. */
@@ -721,13 +717,9 @@ export const projectsKo: Localized<typeof projectsEn> = {
       empty: '모든 케이스가 어떤 시나리오엔가 담겨 있습니다.',
       sceneCount: (count: number) => `${count}건`,
       draftRequest: '이 케이스로 시나리오 만들기',
-      suggestScene: (scene: string, count: number) => `다음은 ${scene} — 아직 ${count}건 남음`,
       remainingLabel: '프로젝트 미커버',
       remainingHelp:
         '이 프로젝트의 케이스 중 어떤 시나리오에도 담기지 않은 수입니다. 다른 런에 담긴 것도 담긴 것으로 세므로, 지금 편집 중인 런에 한정된 수가 아닙니다.',
-      askRemaining: '뭐가 남았는지 보기',
-      askRemainingRequest:
-        '아직 어떤 시나리오에도 담기지 않은 케이스가 뭐가 남았어? 어느 화면에 몇 건인지, 각 케이스가 뭘 확인하는지 알려줘.',
       requestFor: (scene: string, count: number) =>
         `${scene}에서 아직 시나리오에 담기지 않은 ${count}건을 검증하는 시나리오를 만들어줘.`,
       verification: (verified: number, draft: number, broken: number) =>

@@ -5986,32 +5986,6 @@ button.run-chat-coverage:hover {
   color: var(--color-status-warning);
 }
 
-/* 턴이 끝난 뒤 대화 아래에 붙는 제안 칩(ARTEL-405). 입력창 위 고정 자리가 아니라 여기인 것은,
-   놓여 있는 버튼은 제안이 아니라 도구 모음으로 읽히기 때문이다. */
-.chat-suggestions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  padding: 0 var(--space-3) var(--space-2);
-}
-
-.chat-suggestion {
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 999px;
-  background: var(--color-bg-surface);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  font: inherit;
-  font-size: 12px;
-  padding: 4px 12px;
-  transition: border-color .12s ease, color .12s ease;
-}
-
-.chat-suggestion:hover {
-  border-color: var(--color-action-primary);
-  color: var(--color-action-primary);
-}
-
 /* ── Content map ─────────────────────────────────────────────────────────── */
 
 /* 한 빌드의 씬 명세. 지식 그래프와 같은 규칙 위에 서 있다: 깊이는 1px 선과
