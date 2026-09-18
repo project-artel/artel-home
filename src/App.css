@@ -2940,6 +2940,9 @@ a.instance-name:hover {
    못 미친다. 색상은 같고 명도만 내린 쪽을 라이트에 둔다(`#c93a28`, 4.93:1). */
 .scenario-studio, .cp-scope{ --st-emph:#c93a28; }
 :root[data-theme='dark'] :is(.scenario-studio, .cp-scope){ --st-emph:var(--st-action); }
+
+/* 칸 넷이고 자식도 넷이다: 목록 · 가운데 · `SplitHandle` · 대화. 자동 배치라서 셋만 그리면
+   대화가 6px 손잡이 칸으로 밀려 들어가 안 보인다 — 한동안 런 편집 화면이 그랬다. */
 .scenario-studio .st-edit{ min-height:0; overflow:hidden; display:grid; grid-template-columns:280px minmax(0,1fr) 6px var(--st-chat-w); }
 
 /* 경계. 보이는 것은 1px 선이고 잡는 자리는 그보다 넓다 — DESIGN.md 의 최소 타겟 32px 을

@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
+import { SplitHandle } from '../design-system/primitives/SplitHandle'
 import { listTestScenarios } from '../testScenarios/scenarioApi'
 import { ScenarioList } from '../testScenarios/ScenarioList'
+import { useChatWidth } from '../testScenarios/useChatWidth'
 import { getRunScenarios, getTestRun, setRunScenarios, type TestRun } from './testRunApi'
 import { createTestScenario } from '../testScenarios/scenarioApi'
 import { RunChat } from './RunChat'
@@ -48,6 +50,7 @@ function RunEditPage({ projectId, runId }: { projectId: string; runId: string })
   // 있고, 그때 새 시나리오가 새로고침 전까지 안 보였다(ARTEL-882).
   const reloadList = () => setReloadKey((k) => k + 1)
   const runChat = useRunChatSession(projectId, runId, reloadList, reloadList)
+  const split = useChatWidth()
 
   useEffect(() => {
     const controller = new AbortController()
@@ -114,7 +117,7 @@ function RunEditPage({ projectId, runId }: { projectId: string; runId: string })
   // apply (key), while the chat aside stays mounted (stable position).
   const e = t.scenarios.runEdit
   return (
-    <div className="scenario-studio">
+    <div {...split.studio}>
       <header className="st-top">
         <Link className="st-back" to={`/projects/${encodeURIComponent(projectId)}`}>{t.scenarios.page.backToProject}</Link>
         <div className="st-crumb">
@@ -155,6 +158,7 @@ function RunEditPage({ projectId, runId }: { projectId: string; runId: string })
             )}
           </div>
         </main>
+        <SplitHandle label={t.scenarios.chat.widthHandle} {...split.handle} />
         <aside className="st-chat">
           <RunChat session={runChat} />
         </aside>
