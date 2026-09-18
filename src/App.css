@@ -7550,6 +7550,11 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   font-size: 10px;
   pointer-events: none;
 }
+/* 화면이 아직 없는 씬 몸통에 그 씬의 대표 이미지를 그리는 자리. `sm-container-empty` 문장을
+   대신할 뿐이라 둘은 함께 그려지지 않는다. */
+.sm-container-thumbnail {
+  pointer-events: none;
+}
 
 /* 화면 노드. 이름은 표시용이고 화면을 실제로 가르는 것은 아래 줄의
    `discriminator` 라, 둘을 함께 보인다. */
