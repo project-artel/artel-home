@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { TestCaseModal } from '../testCases/TestCaseModal'
 import { GapFillModal } from './GapFillModal'
@@ -142,17 +142,11 @@ export function ScenarioStepEditor({
                 >⠿</span>
                 <span className="st-erow-no">{index + 1}</span>
                 <div className="st-erow-body">
-                  <textarea
-                    className="st-erow-action"
-                    rows={1}
-                    value={step.action}
+                  <StepAction
+                    label={e.actionLabel}
+                    onChange={(action) => editor.updateStep(index, { action })}
                     placeholder={e.actionPlaceholder}
-                    aria-label={e.actionLabel}
-                    onChange={(ev) => {
-                      editor.updateStep(index, { action: ev.target.value })
-                      ev.target.style.height = 'auto'
-                      ev.target.style.height = `${ev.target.scrollHeight}px`
-                    }}
+                    value={step.action}
                   />
                   <div className="st-erow-meta">
                     {/* 명세가 모르는 자리를 사람 말로 채운 스텝. 코드가 확인할 수 없는 근거라
@@ -210,5 +204,74 @@ export function ScenarioStepEditor({
         />
       )}
     </div>
+  )
+}
+
+/**
+ * STEP 의 글 칸. 높이가 내용을 따라간다.
+ *
+ * 높이를 `onChange` 안에서만 맞추면 **타이핑할 때만** 맞는다. 서버에서 불러와 처음 그릴
+ * 때, undo/redo 로 값이 되돌아올 때, 대화의 제안이 적용돼 `rebase` 될 때는 아무도 다시
+ * 재지 않아 한 줄로 잘린 채 남는다 — `resize:none; overflow:hidden` 이라 스크롤로 볼
+ * 수도, 끌어 늘릴 수도 없어서 글이 사라진 것처럼 보인다. 그래서 값이 어디서 바뀌든
+ * 다시 재는 자리를 값 옆이 아니라 `value` 에 둔다.
+ *
+ * 폭이 바뀌어도 같은 글자가 다르게 접힌다. 대화 칸의 경계를 끌면 이 칸의 폭이 바뀌므로
+ * `ResizeObserver` 도 함께 본다 — 다만 **가로만** 본다. 세로까지 보면 높이를 고치는 것이
+ * 다시 관찰을 부르는 되먹임이 된다.
+ */
+function StepAction({
+  value,
+  placeholder,
+  label,
+  onChange,
+}: {
+  value: string
+  placeholder: string
+  label: string
+  onChange: (value: string) => void
+}) {
+  // 노드를 ref 와 state 둘 다로 든다. 높이를 직접 건드리므로 조작은 ref 여야 하고,
+  // 아래 두 effect 는 노드가 **붙는 시점**을 알아야 하므로 state 여야 한다.
+  const fieldRef = useRef<HTMLTextAreaElement | null>(null)
+  const [node, setNode] = useState<HTMLTextAreaElement | null>(null)
+  const setField = useCallback((element: HTMLTextAreaElement | null) => {
+    fieldRef.current = element
+    setNode(element)
+  }, [])
+
+  const fit = useCallback(() => {
+    const element = fieldRef.current
+    if (element === null) return
+    element.style.height = 'auto'
+    element.style.height = `${element.scrollHeight}px`
+  }, [])
+
+  // 그리기 전에 맞춘다. 한 줄로 그렸다가 늘리면 목록 전체가 한 번 출렁인다.
+  useLayoutEffect(() => { fit() }, [fit, node, value])
+
+  const lastWidth = useRef(0)
+  useEffect(() => {
+    if (node === null) return undefined
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0].contentRect.width
+      if (width === lastWidth.current) return
+      lastWidth.current = width
+      fit()
+    })
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [node, fit])
+
+  return (
+    <textarea
+      aria-label={label}
+      className="st-erow-action"
+      onChange={(event) => onChange(event.target.value)}
+      placeholder={placeholder}
+      ref={setField}
+      rows={1}
+      value={value}
+    />
   )
 }
