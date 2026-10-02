@@ -3136,6 +3136,24 @@ a.instance-name:hover {
   background:var(--st-raised); border:1px solid var(--st-border);
   border-radius:4px; padding:1px 5px; overflow-wrap:anywhere;
 }
+/* 답의 세 칸(ARTEL-929). 결과는 박스 — 무엇을 했는지가 첫눈에 들어오게. 설명은 그 아래
+   본문 그대로이고, 질문은 같은 줄에 붙은 모달 단추로 연다. */
+.scenario-studio .st-chat .chat-reply{ display:flex; flex-direction:column; gap:10px; }
+.scenario-studio .st-chat .chat-reply-result{
+  display:flex; flex-direction:column; gap:4px;
+  border:1px solid var(--st-border-strong); border-radius:8px;
+  background:var(--st-raised); padding:9px 12px;
+}
+.scenario-studio .st-chat .chat-reply-result-line{ margin:0; color:var(--st-text); font-weight:500; }
+.scenario-studio .st-chat .chat-reply-result strong{ font-weight:600; color:var(--st-emph); }
+/* 표는 좁은 칸에서 가로로 밀린다. 칸을 줄이면 글자가 세로로 쌓여 못 읽는다. */
+.scenario-studio .st-chat .chat-md-table-wrap{ overflow-x:auto; }
+.scenario-studio .st-chat .chat-md-table{ border-collapse:collapse; font-size:12.5px; color:var(--st-text); }
+.scenario-studio .st-chat .chat-md-table th,
+.scenario-studio .st-chat .chat-md-table td{
+  border:1px solid var(--st-border); padding:5px 8px; text-align:left; vertical-align:top;
+}
+.scenario-studio .st-chat .chat-md-table th{ background:var(--st-raised); font-weight:600; color:var(--st-text-2); }
 .scenario-studio .st-chat .chat-status{ font-size:11px; color:var(--st-muted); margin:5px 0 0; }
 .scenario-studio .st-chat .chat-closed{ padding:14px 16px; border-top:1px solid var(--st-border); background:var(--st-verified-dim); }
 .scenario-studio .st-chat .chat-closed-title{ font-size:12.5px; color:var(--st-verified); font-weight:600; margin:0; }

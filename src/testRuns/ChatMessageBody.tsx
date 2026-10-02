@@ -1,5 +1,6 @@
 import { Fragment } from 'react'
-import { parseChatMarkdown, type Inline } from './chatMarkdown'
+import { parseChatMarkdown, parseInline, type Inline } from './chatMarkdown'
+import type { ChatReply } from './runChatApi'
 
 /**
  * An agent message, with the structure it wrote left standing.
@@ -12,6 +13,27 @@ import { parseChatMarkdown, type Inline } from './chatMarkdown'
  * React elements, never `dangerouslySetInnerHTML`: the body is a string a model
  * produced, and nothing in it should be able to become markup.
  */
+/**
+ * An agent answer split into its result and its explanation (ARTEL-929).
+ *
+ * The result is what the agent's code counted — one or two lines, so it goes in a box
+ * where it is the first thing read. The explanation is the model's, and it chooses its
+ * own shape (sentences, a list, a table) for whatever it has to say. Questions are not
+ * here: they hang off the same line and open the question modal.
+ */
+export function ChatReplyBody({ reply }: { reply: ChatReply }) {
+  return (
+    <div className="chat-reply">
+      <div className="chat-reply-result">
+        {reply.result.split('\n').map((line, index) => (
+          <p className="chat-reply-result-line" key={index}><InlineRun parts={parseInline(line)} /></p>
+        ))}
+      </div>
+      {reply.detail.trim().length > 0 && <ChatMessageBody body={reply.detail} />}
+    </div>
+  )
+}
+
 export function ChatMessageBody({ body }: { body: string }) {
   const blocks = parseChatMarkdown(body)
 
@@ -28,6 +50,31 @@ export function ChatMessageBody({ body }: { body: string }) {
                 </Fragment>
               ))}
             </p>
+          )
+        }
+        if (block.kind === 'table') {
+          // 좁은 대화 칸에서 넘치면 가로로 밀린다 — 칸을 줄이면 글자가 세로로 쌓여 못 읽는다.
+          return (
+            <div className="chat-md-table-wrap" key={index}>
+              <table className="chat-md-table">
+                <thead>
+                  <tr>
+                    {block.header.map((cell, cellIndex) => (
+                      <th key={cellIndex}><InlineRun parts={cell} /></th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {block.rows.map((row, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {row.map((cell, cellIndex) => (
+                        <td key={cellIndex}><InlineRun parts={cell} /></td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )
         }
         const List = block.ordered ? 'ol' : 'ul'
