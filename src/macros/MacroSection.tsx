@@ -10,7 +10,7 @@ import { useBuildMacros, useMacroSource } from './useBuildMacros'
  * 프로젝트 작업공간의 macro 섹션 (ARTEL-941).
  *
  * 빌드 하나를 골라 그 빌드에 등록된 macro 를 목록으로 보고, 하나를 열어 source 를
- * 읽는다. 읽기만 한다 — 고치는 길은 agent 의 `edit_macro` 와 `register_macro` 다.
+ * 읽는다. 읽기만 한다 — 쓰는 길은 agent 의 frame 뿐이다.
  *
  * `ContentMapSection` / `ContentMapReport` 와 같은 분업이다. 빌드를 고르는 일만 바깥
  * 컴포넌트에 남고, 읽기와 상태는 `MacroReport` 가 진다.
@@ -23,8 +23,11 @@ import { useBuildMacros, useMacroSource } from './useBuildMacros'
  * macro 를 고르면 `build` 가 날아가고, `build` 가 없으니 아래 effect 가 기본 빌드를
  * 채우며 `macro` 를 날린다. 선택이 한 렌더도 살아남지 못한다.
  *
- * 그래서 네 자리 전부 `new URLSearchParams(searchParams)` 를 거친다
- * (`TrackerLinkPanel.tsx:78` 의 관용구). 지우는 것은 의도한 자리에서만 지운다.
+ * 그래서 네 자리 전부 `setSearchParams` 의 **함수형**을 쓴다. 직전 값을 react-router
+ * 에게 받으므로, 같은 tick 에 둘이 쓰더라도 나중 것이 앞의 것을 덮지 않는다 —
+ * 렌더에서 붙잡은 `searchParams` 로 짓는 것과 달리 경우를 따져서가 아니라 구조로
+ * 막힌다. 아래 목록은 예외 명단이 아니다. 주소에 쓰는 자리를 새로 만들면 그것도
+ * 같은 모양을 쓴다.
  */
 export function MacroSection() {
   const { builds, projectId } = useWorkspace()
@@ -39,27 +42,37 @@ export function MacroSection() {
   // 사람이 가리킨 macro 를 영영 못 본다.
   useEffect(() => {
     if (selectedBuild === undefined || requestedBuildId === selectedBuild.id) return
-    const next = new URLSearchParams(searchParams)
-    next.set('build', selectedBuild.id)
-    setSearchParams(next, { replace: true })
-  }, [requestedBuildId, selectedBuild, searchParams, setSearchParams])
+    setSearchParams(
+      (previous) => {
+        const next = new URLSearchParams(previous)
+        next.set('build', selectedBuild.id)
+        return next
+      },
+      { replace: true },
+    )
+  }, [requestedBuildId, selectedBuild, setSearchParams])
 
   const changeBuild = useCallback(
     (buildId: string) => {
-      const next = new URLSearchParams(searchParams)
-      next.set('build', buildId)
-      // 다른 빌드의 macro 번호는 뜻이 없다. 번호는 빌드마다 다시 매겨지므로 남겨 두면
-      // 엉뚱한 macro 가 열린다.
-      next.delete('macro')
-      setSearchParams(next)
+      setSearchParams((previous) => {
+        const next = new URLSearchParams(previous)
+        next.set('build', buildId)
+        // 다른 빌드의 macro id 는 뜻이 없다. 남겨 두면 그 빌드에 없는 id 가 되어
+        // 곧바로 지워지거나, 더 나쁘게는 엉뚱한 macro 를 연다.
+        next.delete('macro')
+        return next
+      })
     },
-    [searchParams, setSearchParams],
+    [setSearchParams],
   )
 
   return (
     <section className="macro-section">
       <header className="macro-section-head">
-        <p className="section-intro">{copy.subtitle}</p>
+        <div>
+          <h2>{copy.title}</h2>
+          <p className="section-intro">{copy.subtitle}</p>
+        </div>
         {selectedBuild !== undefined && (
           <label className="macro-build-picker">
             <span>{copy.selectLabel}</span>
@@ -78,17 +91,22 @@ export function MacroSection() {
 
       {selectedBuild === undefined ? (
         <div className="panel-message">
-          <h2>{copy.noBuildsTitle}</h2>
+          <h3>{copy.noBuildsTitle}</h3>
           <p className="panel-message-copy">{copy.noBuildsCopy}</p>
         </div>
       ) : (
+        /*
+         * `key` 가 빌드 id 다. 빌드를 바꾸면 `MacroReport` 가 통째로 새로 마운트되어
+         * 목록 state 가 초기값부터 시작한다 — 새로고침 중에는 직전 목록을 남기는
+         * `useBuildMacros` 가, 빌드를 바꿀 때만은 남기지 않게 되는 자리가 여기다.
+         */
         <MacroReport buildId={selectedBuild.id} key={selectedBuild.id} projectId={projectId} />
       )}
     </section>
   )
 }
 
-/** 한 빌드의 macro. 목록 읽기와 네 상태, 그리고 `?macro=` 선택이 여기 산다. */
+/** 한 빌드의 macro. 목록 읽기와 상태들, 그리고 `?macro=` 선택이 여기 산다. */
 function MacroReport({ buildId, projectId }: { buildId: string; projectId: string }) {
   const { t } = useI18n()
   const copy = t.macros
@@ -96,35 +114,45 @@ function MacroReport({ buildId, projectId }: { buildId: string; projectId: strin
   const requestedMacro = searchParams.get('macro')
 
   const { macros, status, reload } = useBuildMacros(projectId, buildId)
+  const refreshing = status === 'loading'
 
-  // 주소가 가리키는 번호가 이 빌드의 목록에 실제로 있을 때만 선택으로 친다.
-  const selectedNumber =
-    requestedMacro !== null && macros.some((macro) => macro.number === requestedMacro)
+  // 주소가 가리키는 id 가 이 빌드의 목록에 실제로 있을 때만 선택으로 친다.
+  const selectedId =
+    requestedMacro !== null && macros.some((macro) => macro.id === requestedMacro)
       ? requestedMacro
       : null
 
-  // 목록에 없는 번호를 주소에서 지운다. **목록이 뜬 뒤에만 판정한다** — 아직 읽는
+  // 목록에 없는 id 를 주소에서 지운다. **목록이 뜬 뒤에만 판정한다** — 아직 읽는
   // 중에 지우면 멀쩡한 주소를 지우게 되고, 공유받은 링크가 그 한 번에 망가진다.
   useEffect(() => {
     if (status !== 'ready') return
-    if (requestedMacro === null || selectedNumber !== null) return
-    const next = new URLSearchParams(searchParams)
-    next.delete('macro')
-    setSearchParams(next, { replace: true })
-  }, [status, requestedMacro, selectedNumber, searchParams, setSearchParams])
+    if (requestedMacro === null || selectedId !== null) return
+    setSearchParams(
+      (previous) => {
+        const next = new URLSearchParams(previous)
+        next.delete('macro')
+        return next
+      },
+      { replace: true },
+    )
+  }, [status, requestedMacro, selectedId, setSearchParams])
 
   const selectMacro = useCallback(
-    (number: string) => {
-      const next = new URLSearchParams(searchParams)
-      next.set('macro', number)
-      setSearchParams(next)
+    (macroId: string) => {
+      setSearchParams((previous) => {
+        const next = new URLSearchParams(previous)
+        next.set('macro', macroId)
+        return next
+      })
     },
-    [searchParams, setSearchParams],
+    [setSearchParams],
   )
 
-  const sourceRead = useMacroSource(projectId, buildId, selectedNumber)
+  const sourceRead = useMacroSource(projectId, buildId, selectedId)
 
-  if (status === 'loading') {
+  // 첫 로드에만 화면을 비운다. 새로고침 중에는 직전 목록이 그대로 남고 `aria-busy` 만
+  // 붙는다 — 사용자가 누른 것은 새로고침이지 닫기가 아니다.
+  if (refreshing && macros.length === 0) {
     return (
       <section className="panel">
         <p aria-busy="true" className="panel-empty">
@@ -134,7 +162,9 @@ function MacroReport({ buildId, projectId }: { buildId: string; projectId: strin
     )
   }
 
-  if (status === 'error') {
+  // 되돌아갈 목록이 없는 실패. 빌드가 없거나 접근할 수 없을 때도 여기로 온다 —
+  // 서버가 404 의 세 이유를 가르지 않으므로 화면도 가르지 않는다.
+  if (status === 'error' && macros.length === 0) {
     return (
       <section className="panel">
         <div className="panel-message" role="alert">
@@ -147,13 +177,13 @@ function MacroReport({ buildId, projectId }: { buildId: string; projectId: strin
     )
   }
 
-  // 빌드는 있는데 macro 가 하나도 없다. 오류도 로딩도 아니고, 아직 agent 가 저장할
-  // 만한 것을 못 만난 것이다.
+  // 빌드는 있는데 macro 가 하나도 없다. 서버가 404 가 아니라 빈 목록으로 답하는
+  // 자리이고, 오류도 로딩도 아니다 — 아직 agent 가 저장할 만한 것을 못 만난 것이다.
   if (macros.length === 0) {
     return (
       <section className="panel">
         <div className="panel-message">
-          <h2>{copy.empty.title}</h2>
+          <h3>{copy.empty.title}</h3>
           <p className="panel-message-copy">{copy.empty.copy}</p>
         </div>
       </section>
@@ -161,21 +191,39 @@ function MacroReport({ buildId, projectId }: { buildId: string; projectId: strin
   }
 
   return (
-    <>
+    <div aria-busy={refreshing || undefined}>
+      {/* 새로고침이 실패했고 직전 목록이 남아 있는 상태. 목록은 그대로 두되 지금의
+          사실인 척하지 않는다 — 마지막으로 받은 것을 살아 있는 것처럼 보이면 안 된다. */}
+      {status === 'error' && (
+        <div className="macro-banner" role="status">
+          <p className="macro-banner-title">{copy.states.refreshFailedTitle}</p>
+          <p className="macro-banner-copy">{copy.states.refreshFailedCopy}</p>
+        </div>
+      )}
+
       <div className="macro-section-actions">
-        <button className="button button--secondary" onClick={reload} type="button">
-          {copy.section.refresh}
+        <button
+          className="button button--secondary"
+          disabled={refreshing}
+          onClick={reload}
+          type="button"
+        >
+          {refreshing ? copy.states.loading : copy.section.refresh}
         </button>
       </div>
 
       <div className="macro-workspace">
         <section className="panel macro-list-panel">
-          <MacroList macros={macros} onSelect={selectMacro} selectedNumber={selectedNumber} />
+          <MacroList macros={macros} onSelect={selectMacro} selectedId={selectedId} />
         </section>
         <aside className="panel macro-detail-panel">
-          <MacroDetail macro={sourceRead.macro} onRetry={sourceRead.reload} status={sourceRead.status} />
+          <MacroDetail
+            macro={sourceRead.macro}
+            onRetry={sourceRead.reload}
+            status={sourceRead.status}
+          />
         </aside>
       </div>
-    </>
+    </div>
   )
 }

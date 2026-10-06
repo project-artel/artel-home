@@ -66,10 +66,18 @@ export function useBuildMacros(projectId: string, gameBuildId: string) {
   const settled = state.source === source
   const reload = useCallback(() => setReloadToken((token) => token + 1), [])
 
-  // 직전 빌드의 목록은 다음 빌드가 오는 동안 보이지 않는다. 다른 빌드의 macro 가 이
-  // 빌드의 이름을 달고 서 있게 된다.
+  /*
+   * 새로고침 중에는 직전 목록이 그대로 남는다. 비우면 화면이 통째로 "불러오는 중" 으로
+   * 떨어지고, 열어 둔 macro 의 선택과 source 까지 함께 사라진다 — 사용자가 누른 것은
+   * 새로고침이지 닫기가 아니다.
+   *
+   * **빌드가 바뀔 때는 다르다.** 그때는 직전 빌드의 macro 가 이 빌드의 이름을 달고
+   * 서 있게 되므로 보여서는 안 된다. 두 경우가 갈리는 자리는 여기가 아니라
+   * `MacroSection` 의 `key={selectedBuild.id}` 다 — 빌드가 바뀌면 이 hook 이 통째로
+   * 새로 마운트되어 state 가 초기값부터 시작한다.
+   */
   return {
-    macros: settled ? state.macros : [],
+    macros: state.macros,
     status: settled ? state.status : ('loading' as MacroListStatus),
     reload,
   }
@@ -96,23 +104,23 @@ const initialSourceState: SourceState = { status: 'ready', macro: null, source: 
 /**
  * 고른 macro 하나와 그 `source`.
  *
- * token 에 `gameBuildId` 가 들어간다. 빌드마다 번호가 1 부터 다시 매겨지므로, 빌드를
- * 빼고 키를 잡으면 빌드를 바꿔도 같은 번호의 macro 를 다시 읽지 않는다.
+ * token 에 `gameBuildId` 가 들어간다. 빼고 키를 잡으면 빌드를 바꿔도 같은 id 를 다시
+ * 읽지 않아, 다른 빌드의 source 가 이 빌드의 이름을 달고 남는다.
  */
 export function useMacroSource(
   projectId: string,
   gameBuildId: string,
-  number: string | null,
+  macroId: string | null,
 ) {
   const [reloadToken, setReloadToken] = useState(0)
   const [state, setState] = useState<SourceState>(initialSourceState)
-  const source = number === null ? NO_READ : `${projectId}/${gameBuildId}/${number}#${reloadToken}`
+  const source = macroId === null ? NO_READ : `${projectId}/${gameBuildId}/${macroId}#${reloadToken}`
 
   useEffect(() => {
-    if (number === null) return
+    if (macroId === null) return
     const controller = new AbortController()
 
-    getBuildMacro(projectId, gameBuildId, number, controller.signal)
+    getBuildMacro(projectId, gameBuildId, macroId, controller.signal)
       .then((macro) => setState({ status: 'ready', macro, source }))
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === 'AbortError') return
@@ -120,11 +128,11 @@ export function useMacroSource(
       })
 
     return () => controller.abort()
-  }, [projectId, gameBuildId, number, source])
+  }, [projectId, gameBuildId, macroId, source])
 
   const reload = useCallback(() => setReloadToken((token) => token + 1), [])
 
-  if (number === null) {
+  if (macroId === null) {
     return { macro: null, status: 'idle' as MacroSourceStatus, reload }
   }
 

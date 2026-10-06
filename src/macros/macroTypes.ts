@@ -1,54 +1,57 @@
-import type { Messages } from '../i18n/messages'
-
 /*
  * 빌드에 등록된 macro 의 view model (ARTEL-941).
  *
  * macro 는 agent 가 성공한 조작을 저장해 둔 script 다. 사람은 이것을 읽기만 한다 —
- * 고치는 길은 agent 의 `edit_macro` 와 `register_macro` 뿐이라, 여기에는 어떤 쓰기
- * 모양도 없다.
+ * 쓰는 길은 agent 의 WebSocket frame 뿐이고, 사람이 손으로 정의를 적는 경로는 서버에도
+ * 없다. 그래서 여기에는 어떤 쓰기 모양도 없다.
  *
- * 계약은 이 파일과 `macroApi.ts` 두 곳에만 산다. 서버(ARTEL-943)가 아직 머지되지
- * 않아 어긋날 수 있고, 어긋났을 때 고칠 자리가 한 군데여야 한다.
+ * 계약은 이 파일과 `macroApi.ts` 두 곳에만 산다. 모양은
+ * `artel-orchestration-server` 의 `contentmap/dto/MacroViewDtos.kt` (ARTEL-943) 에서
+ * 확인한 것이다.
  */
 
 /**
- * `parameter` 하나. `type` 은 선언된 타입이고 **열린 문자열이다** — 이 build 가 모르는
- * 타입 이름이 와도 그대로 보여 준다. 아는 목록으로 좁히면 macro language 가 타입을
- * 하나 늘리는 날 이 화면이 먼저 거짓말을 한다.
+ * `parameter` 하나.
+ *
+ * **`type` 이 `null` 인 것이 정상이다.** 이름과 순서는 `macro.parameter_names` 에서
+ * 오지만 선언 타입은 `definition_json` 의 진입점 `def` 에만 있어서, 저장된 tree 가
+ * 그것을 말하지 않으면 `null` 로 떨어진다. 그래도 이름과 순서는 남는다 — 조회가 통째로
+ * 깨지는 것보다 낫다는 서버 쪽 판단이고, 화면도 같은 판단을 따라 타입 없이 이름만
+ * 그린다.
  */
 export type MacroParameter = {
   name: string
-  type: string
+  type: string | null
 }
 
 /**
- * 이 macro 가 달린 `screen` 하나.
+ * 이 macro 가 이어진 `screen` 하나.
  *
- * `name` 이 `null` 인 것은 결손이 아니라 보통이다. `screen` 이름은 LLM 이 짓는 표시용
- * 값이고 아직 아무도 안 지은 화면이 흔하다 — `contentMapTypes.ts` 의 `ContentMapScreen`
- * 과 같은 규칙이다.
+ * `name` 은 LLM 이 짓는 표시용 값이라 `null` 일 수 있다. `sceneName` 은 NOT NULL 이고,
+ * 이름이 없을 때 사람이 그 화면을 알아볼 유일한 값이다. 그래서 화면은 늘 `sceneName`
+ * 을 먼저 보여 준다.
  */
 export type MacroScreen = {
   id: string
   name: string | null
+  sceneName: string
 }
 
 /**
- * 목록 항목. **`source` 가 없다.**
+ * 목록 항목. **`source` 가 없다 — key 자체가 오지 않는다.**
  *
- * 목록과 상세를 나눈 것이 설계다. source 는 길고, 빌드에 쌓인 macro 를 전부 싣고
- * 시작하면 목록이 source 무게만큼 느려진다. `src/knowledge/*` 가 같은 모양이고
- * (ARTEL-753/754), 거기서도 목록이 `description` 을 일부러 뺀다.
+ * 목록과 상세를 나눈 것이 설계다. source 는 한 건이 최대 20,000자라 목록에 실으면
+ * 빌드 하나가 수백 KB 가 된다.
  */
 export type MacroSummary = {
   /**
-   * 이 빌드 안에서 macro 를 가리키는 번호. 상세 경로의 마지막 조각이기도 하다.
+   * `macro.id`. 상세 조회 경로의 마지막 칸이 이 값이다.
    *
-   * 서버가 숫자로 보내든 문자열로 보내든 여기서는 문자열 하나다. 숫자를 그대로 들고
-   * 다니면 `1` 과 `"1"` 이 서로 다른 Map 키가 되어, 주소에서 읽은 선택이 목록의 항목을
-   * 못 찾는다.
+   * 서버는 `Long` 으로 보낸다. 숫자를 그대로 들고 다니면 주소에서 읽은 `"7"` 이
+   * 목록의 `7` 을 못 찾으므로 문자열 하나로 맞춘다.
    */
-  number: string
+  id: string
+  /** 진입점 `def` 의 이름. 같은 빌드 안에서 유일하다. */
   name: string
   /** 선언 순서 그대로. 서명을 다시 쓰는 화면이라 순서가 뜻을 가진다. */
   parameters: MacroParameter[]
@@ -60,50 +63,67 @@ export type MacroSummary = {
    * 화면이 두 묶음을 갈라 그리는 이유가 이것이고, 그 뜻은 `MacroList` 가 글로도 적는다.
    */
   screens: MacroScreen[]
+  /**
+   * 정의를 마지막으로 고친 시각. 같은 이름을 다시 등록하면 제자리에서 갱신되므로 이
+   * 값만 움직이고 `id` 는 그대로다.
+   */
   updatedAt: string
 }
 
-/** 목록 항목에 원문이 더해진 것. 상세 endpoint 만 `source` 를 싣는다. */
+/** 목록 항목에 원문이 더해진 **평평한** 객체. 상세 응답에는 래퍼가 없다. */
 export type MacroDetail = MacroSummary & {
   /**
-   * agent 가 쓴 글자 그대로. 줄바꿈도 들여쓰기도 손대지 않는다 — 들여쓰기가 macro
-   * language 문법의 일부라(`if` 몸통) 다듬는 순간 읽을 수 없는 글이 된다.
+   * 저장된 원문 그대로. 서버가 공백을 깎지 않고, 여기서도 깎지 않는다 — 들여쓰기가
+   * 문법의 일부라(`if` 몸통) 다듬는 순간 다른 뜻의 글이 된다.
    */
   source: string
 }
 
 /**
- * `(slot: int, name: string)`.
+ * `(card_a: string, repeat)`.
  *
- * 목록과 상세가 둘 다 쓴다. parameter 가 없으면 `()` 다 — 빈 문자열로 두면 이름 뒤에
- * 아무것도 없어서 "서명을 아직 못 읽었다" 로 보인다.
+ * 타입을 모르는 parameter 는 이름만 쓴다. `: null` 이나 `: unknown` 을 적으면 서버가
+ * 말하지 않은 것을 화면이 지어내는 것이 된다.
+ *
+ * parameter 가 없으면 `()` 다 — 빈 문자열로 두면 이름 뒤에 아무것도 없어서 "서명을
+ * 아직 못 읽었다" 로 보인다.
  */
 export function macroSignature(parameters: MacroParameter[]): string {
-  return `(${parameters.map((parameter) => `${parameter.name}: ${parameter.type}`).join(', ')})`
+  const rendered = parameters.map((parameter) =>
+    parameter.type === null ? parameter.name : `${parameter.name}: ${parameter.type}`,
+  )
+  return `(${rendered.join(', ')})`
 }
 
 /**
- * `screen` 하나를 사람이 읽는 이름으로.
+ * `screen` 하나를 사람이 읽는 이름으로. `TurnBattleScene · 손패`.
  *
- * `contentMap/screenLabels.ts` 의 `screenLabel` 과 같은 규칙이다. 이름이 없으면 id 를
- * 붙여 부른다 — 이름 없는 화면이 둘 이상 달린 macro 에서 "이름 없는 screen" 이 두 번
- * 나오면 그 둘이 같은 화면인지 다른 화면인지 아무 말도 하지 않는다.
+ * 씬 이름을 늘 앞에 둔다. 화면 이름은 `null` 일 수 있고, 그때 남는 유일한 단서가
+ * 씬이다. 이름도 없으면 id 를 붙인다 — 같은 씬의 이름 없는 화면이 둘 달린 macro 에서
+ * 씬 이름만 두 번 서면 그 둘이 같은 화면인지 다른 화면인지 아무 말도 하지 않는다.
+ *
+ * 번역하지 않는다. 양쪽 조각 다 서버가 준 고유명사이고, 그 사이의 가운뎃점은 어느
+ * 언어에서도 같다.
  */
-export function macroScreenLabel(t: Messages, screen: MacroScreen): string {
+export function macroScreenLabel(screen: MacroScreen): string {
   const name = screen.name?.trim() ?? ''
-  return name.length > 0 ? name : t.macros.list.unnamedScreen(screen.id)
+  return name.length > 0 ? `${screen.sceneName} · ${name}` : `${screen.sceneName} · #${screen.id}`
 }
 
 /**
- * 목록의 정렬. 이름 오름차순, 같으면 번호 오름차순.
+ * 목록의 정렬. 이름 오름차순, 같으면 id 오름차순.
  *
- * 서버 순서를 믿지 않는다. 명세가 순서를 말하지 않았고, 사람이 이름으로 찾는 목록이
- * 읽을 때마다 다른 순서로 서면 "그 macro 가 사라졌나" 를 매번 의심하게 된다.
- * 번호는 동점을 가르는 자리에서만 쓰므로 숫자로 비교한다 — 문자열로 두면 10 이 2 보다
- * 앞에 선다.
+ * 서버도 이름 오름차순으로 주지만 화면이 목록을 두 묶음으로 가르면서 다시 늘어놓으므로,
+ * 각 묶음 안의 순서를 여기서 정한다. id 는 숫자다 — 문자열로 비교하면 10 이 2 보다
+ * 앞에 선다. 숫자로 읽히지 않는 값이 오면 0 으로 보고 이름 순서를 그대로 둔다
+ * (`NaN` 을 돌려주면 정렬 결과가 구현에 따라 달라진다).
  */
 export function compareMacros(left: MacroSummary, right: MacroSummary): number {
   const byName = left.name.localeCompare(right.name)
   if (byName !== 0) return byName
-  return Number(left.number) - Number(right.number)
+
+  const leftId = Number(left.id)
+  const rightId = Number(right.id)
+  if (!Number.isFinite(leftId) || !Number.isFinite(rightId)) return 0
+  return leftId - rightId
 }

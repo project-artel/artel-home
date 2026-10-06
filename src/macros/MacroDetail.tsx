@@ -6,9 +6,11 @@ import type { MacroSourceStatus } from './useBuildMacros'
 /**
  * 고른 macro 하나와 그 source.
  *
- * 읽기 전용이다. 고치는 길은 agent 의 `edit_macro` 와 `register_macro` 뿐이라 이
- * 컴포넌트에는 어떤 입력도 없고, 그 사실을 글로도 한 줄 적는다 — 없는 조작 button 을
- * 찾아 헤매게 두는 것보다 싸다.
+ * 읽기 전용이다. 고치는 길은 agent 의 frame 뿐이라 이 컴포넌트에는 어떤 입력도 없고,
+ * 그 사실을 글로도 한 줄 적는다 — 없는 조작 button 을 찾아 헤매게 두는 것보다 싸다.
+ *
+ * 제목이 `h3` 인 이유: 작업공간 layout 이 `h1` 을, `MacroSection` 이 `h2` 를 이미
+ * 그린다. 그 아래 단계를 건너뛰면 heading 만으로 훑는 사람에게 구조가 끊긴다.
  */
 export function MacroDetail({
   macro,
@@ -25,9 +27,9 @@ export function MacroDetail({
   if (status === 'idle') {
     return (
       <section aria-labelledby="macro-detail-title" className="macro-detail">
-        <h2 className="macro-detail-title" id="macro-detail-title">
+        <h3 className="macro-detail-title" id="macro-detail-title">
           {copy.title}
-        </h2>
+        </h3>
         <p className="macro-detail-hint">{copy.hint}</p>
       </section>
     )
@@ -36,9 +38,9 @@ export function MacroDetail({
   if (status === 'loading') {
     return (
       <section aria-busy="true" aria-labelledby="macro-detail-title" className="macro-detail">
-        <h2 className="macro-detail-title" id="macro-detail-title">
+        <h3 className="macro-detail-title" id="macro-detail-title">
           {copy.title}
-        </h2>
+        </h3>
         <p className="panel-empty">{copy.sourceLoading}</p>
       </section>
     )
@@ -47,9 +49,9 @@ export function MacroDetail({
   if (status === 'error' || macro === null) {
     return (
       <section aria-labelledby="macro-detail-title" className="macro-detail">
-        <h2 className="macro-detail-title" id="macro-detail-title">
+        <h3 className="macro-detail-title" id="macro-detail-title">
           {copy.title}
-        </h2>
+        </h3>
         <div className="panel-message" role="alert">
           <p className="panel-message-copy">{copy.sourceFailed}</p>
           <button className="button button--secondary" onClick={onRetry} type="button">
@@ -63,24 +65,24 @@ export function MacroDetail({
   return (
     <section aria-labelledby="macro-detail-title" className="macro-detail">
       <header className="macro-detail-head">
-        <h2 className="macro-detail-title" id="macro-detail-title">
+        <h3 className="macro-detail-title" id="macro-detail-title">
           <span className="mono">
             <span className="macro-detail-name">{macro.name}</span>
             {macroSignature(macro.parameters)}
           </span>
-        </h2>
+        </h3>
         <p className="macro-detail-updated">
           {t.macros.list.updatedAt(formatDateTime(macro.updatedAt))}
         </p>
       </header>
 
       <div className="macro-detail-screens">
-        <h3 className="macro-detail-subtitle">{copy.screensLabel}</h3>
+        <h4 className="macro-detail-subtitle">{copy.screensLabel}</h4>
         {macro.screens.length > 0 ? (
           <ul className="macro-detail-screen-list">
             {macro.screens.map((screen) => (
               <li key={screen.id}>
-                <span className="macro-screen-badge">{macroScreenLabel(t, screen)}</span>
+                <span className="macro-screen-badge">{macroScreenLabel(screen)}</span>
               </li>
             ))}
           </ul>
@@ -96,7 +98,9 @@ export function MacroDetail({
 
       <div className="macro-source">
         <div className="macro-source-head">
-          <h3 className="macro-detail-subtitle">{copy.sourceLabel}</h3>
+          <h4 className="macro-detail-subtitle" id="macro-source-title">
+            {copy.sourceLabel}
+          </h4>
           <p className="macro-source-note">{copy.readOnly}</p>
         </div>
         {macro.source.length === 0 ? (
@@ -104,14 +108,16 @@ export function MacroDetail({
         ) : (
           /*
            * 가로로 넘치는 영역이라 키보드만 쓰는 사람이 스크롤할 수 있어야 한다.
-           * `tabIndex` 와 이름이 그 자리를 만든다.
+           * `tabIndex` 와 이름이 그 자리를 만든다. `region` 과 `aria-labelledby` 는
+           * `QaLogTimeline` 의 스크롤 영역과 같은 모양이고, 바로 위 `h4` 를 이름으로
+           * 빌려 쓰므로 같은 말을 두 번 읽지 않는다.
            *
            * 줄을 접지 않는 이유는 `App.css` 의 `white-space: pre` 에 적혀 있다.
            */
           <pre
-            aria-label={copy.sourceLabel}
+            aria-labelledby="macro-source-title"
             className="macro-source-body mono"
-            role="group"
+            role="region"
             tabIndex={0}
           >
             {macro.source}

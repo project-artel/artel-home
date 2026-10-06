@@ -2,7 +2,7 @@
 
 - Date: 2026-10-06
 - GitHub Issue: None (Jira: ARTEL-941)
-- Status: Revised after fast, medium, and heavy review
+- Status: Implemented. Contract corrected mid-flight against the real server code
 
 ## Goal
 
@@ -32,55 +32,73 @@
 
 ## Context / Constraints
 
-### API 계약 (ARTEL-943, 아직 머지 안 됨)
+### API 계약 (ARTEL-943) — 실제 구현으로 확인했다
+
+처음 받은 계약 두 군데가 틀렸고, orchestration 쪽 PR #286 의
+`contentmap/dto/MacroViewDtos.kt` 와 `contentmap/controller/ProjectMacroController.kt`
+를 직접 읽어 맞췄다. 정본은 이것이다.
 
 ```
 GET /api/projects/:projectId/game-builds/:gameBuildId/macros
-GET /api/projects/:projectId/game-builds/:gameBuildId/macros/:number
+GET /api/projects/:projectId/game-builds/:gameBuildId/macros/:macroId
 ```
 
-목록 항목: `number` · `name` · `parameters`(순서 있는 배열, 각 항목에 `name` 과 선언
-`type`) · `screens`(이어진 screen 배열, **빈 배열이 "아직 어디서 쓸지 모른다"는 뜻**) ·
-`updatedAt`.
+**목록** — `{ "items": [...] }`. 최상위 배열이 아니다. 이 저장소의 목록 응답
+관례이고 `GameBuildListResponse` 를 비롯해 여섯이 같다. 이름 오름차순.
 
-상세: 목록 항목에 `source`(원문)가 더해진 것.
+```json
+{"items": [{
+  "id": 7,
+  "name": "attack_with_combined_card",
+  "parameters": [{"name": "card_a", "type": "string"}, {"name": "repeat", "type": null}],
+  "screens": [{"id": 41, "name": "손패", "sceneName": "TurnBattleScene"}],
+  "updatedAt": "2026-10-06T05:21:17.775Z"
+}]}
+```
 
-**목록에는 `source` 가 없다. 그 둘을 나눈 것이 설계다.** `src/knowledge/*` 가 같은
-모양이다 — `knowledge-graph` 목록이 `description` 을 일부러 빼고,
-`useKnowledgeItemBody` 가 선택된 항목 하나만 단건 조회한다(ARTEL-753/754).
+**상세** — 목록 한 줄에 `source` 하나를 더한 **평평한** 객체다. 래퍼가 없다.
+`id` · `name` · `parameters` · `screens` · `updatedAt` · `source`.
 
-**단, 그 hook 의 캐시는 가져오지 않는다.** `useKnowledgeItemBody` 는 106줄이고 그 대부분이
-한 상황을 위한 것이다 — 사용자가 그래프 node 수십 개를 빠르게 옮겨 다닐 때 늦게 온 A 의
-응답이 B 를 덮지 않게 하는 것. 여기에는 그 상황이 없고, 더 중요하게는 **캐시가 틀린
-답을 준다.** `source` 는 변한다. agent 가 `edit_macro` 로 다시 쓰기 때문이다. 화면이
-떠 있는 동안 비우지 않는 캐시는 agent 가 이미 고쳐 쓴 macro 의 옛 `source` 를 계속
-보여 준다. knowledge 항목의 본문은 열려 있는 화면 밑에서 다시 쓰이지 않으므로 그쪽에는
-없던 문제다.
+- 식별자는 `number` 가 아니라 **`id`** (`Long`) 다. 이 저장소에 프로젝트 단위 번호
+  축이 없다 — migration 98개 전부에 `number` 컬럼이 0개다.
+- `source` 는 목록에 **key 자체가 없다.** 한 건이 최대 20,000자라 목록에 실으면
+  빌드 하나가 수백 KB 가 된다.
+- `definition`(실행용 JSON tree)은 양쪽 어디에도 없다.
+- `parameters[].type` 은 **nullable** 이다. 이름과 순서는 `macro.parameter_names`
+  에서 오지만 타입은 `definition_json` 에만 있어, tree 가 말하지 않으면 `null` 이다.
+- `screens[].name` 은 nullable, **`screens[].sceneName` 은 NOT NULL** 이다. 이름이
+  없는 `screen` 을 사람이 알아볼 유일한 값이라 화면이 늘 앞에 둔다.
+- `parameters` 는 선언 순서를 지킨다.
 
-그래서 `useMacroSource` 는 `useKnowledgeGraph` 의 `source`-토큰 관용구를 따른다 —
-effect 당 `AbortController` 하나, 로딩은 `state.source !== source` 로 도출, 토큰은
-`${projectId}/${buildId}/${number}#${reloadToken}`. stale 응답 방어는 구조에서 나오고,
-macro 를 다시 고르면 다시 읽는다. **토큰에 `buildId` 가 들어간다** — knowledge 쪽
-hook 은 `projectId` 로만 키를 잡는데, 그대로 베끼면 빌드가 바뀌어도 같은 번호의 macro 를
-다시 읽지 않는 구멍이 따라온다.
+**404 는 한 가지 뜻이다.** 빌드가 없음 · 경로의 `projectId` 가 그 빌드의 것과 다름 ·
+그 macro 가 이 빌드에 없음, 셋을 서버가 일부러 가르지 않는다. id 를 훑어 남의 빌드
+내용을 알아내는 것을 막기 위해서다. 화면도 가르지 않는다.
 
-저쪽이 아직 없으므로 계약이 어긋날 수 있다. 타입과 호출을 `src/macros/macroTypes.ts` 와
-`src/macros/macroApi.ts` 두 파일에 모아, 어긋나면 한 자리만 고치면 되게 한다.
+**macro 가 없는 빌드는 404 가 아니라 `{"items": []}` 다.** 지도가 아예 없는 빌드도
+같다. 빈 상태와 없음은 다른 화면이고, 그 분기가 `MacroReport` 에 그대로 있다.
 
-### 추측으로 메우는 자리
+계약은 `macroTypes.ts` 와 `macroApi.ts` 두 파일에만 산다. 더 어긋나면 그 둘만
+고치면 된다 — 화면 쪽에는 계약이 한 조각도 새어 있지 않다.
 
-명세가 말하지 않아 추측한 것들. 전부 `macroApi.ts` 상단 주석에 남기고 PR 에 적는다.
+### 목록과 상세를 나눈 것이 설계다
 
-| 자리 | 추측 | 어긋나면 |
-|---|---|---|
-| 목록 응답 봉투 | 배열 자체이거나 `{ macros: [...] }` — **둘 다 받는다** | 안 깨진다 |
-| `number` 의 JSON 타입 | 숫자 또는 문자열 — 둘 다 받아 문자열 하나로 정규화 | 안 깨진다 |
-| `screens[]` 항목 모양 | `{ id, name }`, `name` 은 `null` 가능 | 이름 자리가 비고 id 만 남는다 |
-| `parameters[].type` | 열린 문자열, 그대로 보여 준다 | 안 깨진다 |
-| `updatedAt` | ISO 8601 문자열 | `formatDateTime` 이 `—` 로 낮춘다 |
-| macro 없는 빌드 | 200 + 빈 배열 (404 아님) | 404 면 빈 상태 대신 오류가 뜬다 |
-| 상세 404 | `ProjectApiError` 로 올라온다 | 안 깨진다 |
-| 목록 정렬 | 서버 순서를 **믿지 않고** 화면에서 `name` 오름차순(`localeCompare`), 동점은 `number` 오름차순 | 안 깨진다 |
+`src/knowledge/*` 가 같은 모양이다 — `knowledge-graph` 목록이 `description` 을
+일부러 빼고, `useKnowledgeItemBody` 가 선택된 항목 하나만 단건 조회한다
+(ARTEL-753/754).
+
+**단, 그 hook 의 캐시는 가져오지 않는다.** `useKnowledgeItemBody` 는 106줄이고 그
+대부분이 한 상황을 위한 것이다 — 사용자가 그래프 node 수십 개를 빠르게 옮겨 다닐 때
+늦게 온 A 의 응답이 B 를 덮지 않게 하는 것. 여기에는 그 상황이 없고, 더 중요하게는
+**캐시가 틀린 답을 준다.** `source` 는 변한다. agent 가 macro 를 다시 쓰기 때문이다.
+화면이 떠 있는 동안 비우지 않는 캐시는 이미 고쳐 쓴 macro 의 옛 `source` 를 계속
+보여 준다. knowledge 항목의 본문은 열려 있는 화면 밑에서 다시 쓰이지 않으므로
+그쪽에는 없던 문제다.
+
+그래서 `useMacroSource` 는 `useKnowledgeGraph` 의 token 관용구를 따른다 — effect 당
+`AbortController` 하나, 로딩은 `state.source !== source` 로 도출, token 은
+`${projectId}/${gameBuildId}/${macroId}#${reloadToken}`. **token 에 `gameBuildId` 가
+들어간다** — knowledge 쪽 hook 은 `projectId` 로만 키를 잡는데, 그대로 베끼면 빌드가
+바뀌어도 같은 id 를 다시 읽지 않는 구멍이 따라온다.
 
 ### 저장소 제약
 
@@ -183,14 +201,23 @@ source 는 코드다. 들여쓰기가 문법의 일부라(`if` 몸통) 무너지
 
 ### parameter 서명
 
-`(slot: int, name: string)` — 괄호로 감싸고 `이름: 타입` 을 `, ` 로 잇는다. parameter 가
-없으면 `()`. 목록과 상세가 둘 다 쓰므로 `macroTypes.ts` 에 `macroSignature()` 하나를
-둔다 — `qaTypes.ts` 의 `qaRunPath`, `knowledgeTypes.ts` 의 `relationStyle` 과 같은 자리다.
+`(card_a: string, repeat)` — 괄호로 감싸고 `이름: 타입` 을 `, ` 로 잇는다. **타입이
+`null` 인 parameter 는 이름만 쓴다.** `: null` 이나 `: unknown` 을 적으면 서버가 말하지
+않은 것을 화면이 지어내는 것이 된다. parameter 가 없으면 `()` — 빈 문자열로 두면 이름
+뒤에 아무것도 없어서 "서명을 아직 못 읽었다" 로 보인다.
+
+목록과 상세가 둘 다 쓰므로 `macroTypes.ts` 에 `macroSignature()` 하나를 둔다 —
+`qaTypes.ts` 의 `qaRunPath`, `knowledgeTypes.ts` 의 `relationStyle` 과 같은 자리다.
 
 ### `screen` 뱃지
 
-`screenLabels.ts` 의 `screenLabel` 과 같은 규칙이다. 이름이 있으면 이름, 없으면
-"이름 없는 screen #<id>". 이름이 없는 것은 결손이 아니라 보통이다.
+`TurnBattleScene · 손패`. **씬 이름을 늘 앞에 둔다** — `screens[].name` 은 nullable
+이고 그때 남는 유일한 단서가 NOT NULL 인 `sceneName` 이다. 이름도 없으면
+`TurnBattleScene · #41` 로 id 를 붙인다. 같은 씬의 이름 없는 화면이 둘 달린 macro 에서
+씬 이름만 두 번 서면 그 둘이 같은 화면인지 다른 화면인지 아무 말도 하지 않는다.
+
+번역하지 않는다. 양쪽 조각 다 서버가 준 고유명사이고 가운뎃점은 어느 언어에서도 같다.
+그래서 `macroScreenLabel` 은 `Messages` 를 받지 않는다.
 
 ## Approach (Checklist)
 
@@ -258,12 +285,15 @@ source 는 코드다. 들여쓰기가 문법의 일부라(`if` 몸통) 무너지
 ## Risks & Rollback
 
 - **Risks:**
-  - orchestration 쪽 endpoint 둘(ARTEL-943)이 아직 머지되지 않았다. 이 PR 의 성공
-    경로는 실제 응답으로 확인되지 않았다.
-  - `screens[]` 항목 모양이 추측이다. 어긋나면 `screen` 뱃지가 id 만 보이거나 빈다.
-  - 목록 응답 봉투가 추측이다. 두 모양 다 받으므로 깨지지는 않는다.
-- **Rollback steps:** `git revert`. rail 섹션 하나와 route 하나가 사라질 뿐 다른 화면에
-  영향이 없다.
+  - orchestration 쪽 endpoint 둘(ARTEL-943, PR #286)이 아직 머지되지 않았다. 계약은
+    그 PR 의 Kotlin DTO 를 읽어 맞췄지만 **실제 응답을 받아 본 적은 없다.** 머지 전에
+    모양이 더 움직이면 `macroTypes.ts` 와 `macroApi.ts` 두 파일만 고치면 된다.
+  - 성공 경로의 screen capture 가 없다. 로컬에 띄울 스택이 없고, endpoint 가 없으니
+    띄운다 해도 채워진 화면은 안 나온다.
+  - 더 이상 추측으로 메운 자리는 없다. 처음 받은 계약의 `number` 와 최상위 배열은
+    둘 다 틀렸던 것으로 확인돼 고쳤다.
+- **Rollback steps:** `git revert`. rail 섹션 하나와 route 하나가 사라질 뿐 다른
+  화면에 영향이 없다.
 
 ## Rejected feedback
 

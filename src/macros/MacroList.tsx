@@ -17,11 +17,11 @@ import { compareMacros, macroScreenLabel, macroSignature, type MacroSummary } fr
 export function MacroList({
   macros,
   onSelect,
-  selectedNumber,
+  selectedId,
 }: {
   macros: MacroSummary[]
-  onSelect: (number: string) => void
-  selectedNumber: string | null
+  onSelect: (macroId: string) => void
+  selectedId: string | null
 }) {
   const { t } = useI18n()
   const copy = t.macros.list
@@ -35,17 +35,17 @@ export function MacroList({
   }, [macros])
 
   return (
-    <div className="macro-list" aria-label={copy.label} role="group">
+    <div aria-label={copy.label} className="macro-list" role="group">
       {attached.length > 0 && (
         <section className="macro-group">
           <h3 className="macro-group-heading">{copy.attachedHeading(attached.length)}</h3>
           <ul className="macro-group-items">
             {attached.map((macro) => (
               <MacroRow
-                key={macro.number}
+                key={macro.id}
                 macro={macro}
                 onSelect={onSelect}
-                selected={macro.number === selectedNumber}
+                selected={macro.id === selectedId}
               />
             ))}
           </ul>
@@ -61,10 +61,10 @@ export function MacroList({
           <ul className="macro-group-items">
             {unattached.map((macro) => (
               <MacroRow
-                key={macro.number}
+                key={macro.id}
                 macro={macro}
                 onSelect={onSelect}
-                selected={macro.number === selectedNumber}
+                selected={macro.id === selectedId}
               />
             ))}
           </ul>
@@ -87,7 +87,7 @@ function MacroRow({
   selected,
 }: {
   macro: MacroSummary
-  onSelect: (number: string) => void
+  onSelect: (macroId: string) => void
   selected: boolean
 }) {
   const { t } = useI18n()
@@ -98,7 +98,7 @@ function MacroRow({
       <button
         aria-current={selected ? 'true' : undefined}
         className={selected ? 'macro-row macro-row--selected' : 'macro-row'}
-        onClick={() => onSelect(macro.number)}
+        onClick={() => onSelect(macro.id)}
         type="button"
       >
         <span className="macro-row-signature mono">
@@ -108,7 +108,7 @@ function MacroRow({
         <span className="macro-row-meta">
           {macro.screens.map((screen) => (
             <span className="macro-screen-badge" key={screen.id}>
-              {macroScreenLabel(t, screen)}
+              {macroScreenLabel(screen)}
             </span>
           ))}
           <span className="macro-row-updated">{copy.updatedAt(formatDateTime(macro.updatedAt))}</span>

@@ -9177,7 +9177,14 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:27% } col.tct-c-added{ width:10%
 
 /* ── Macro (ARTEL-941) ───────────────────────────────────────────────────────
    빌드에 등록된 macro 목록과 그 source. 읽기 전용 화면이라 조작 affordance 를 가진
-   것은 행 button 과 빌드 picker, 새로고침 button 셋뿐이다. */
+   것은 행 button 과 빌드 picker, 새로고침 button 셋뿐이다.
+
+   **여기서 `--font-mono` 를 DESIGN.md 가 허용한 범위 밖에 쓴다.** 그 문서는 mono 를
+   timestamp·id·log·input event 에만 쓰라고 적었는데, macro 의 source 와 parameter
+   서명은 그 넷 중 어느 것도 아니다. 그래도 등폭이어야 하는 이유는 들여쓰기가 macro
+   language 문법의 일부라는 것이다(`if` 몸통). 비례 글꼴에서는 들여쓰기 단계가 서로
+   맞지 않아 읽을 수 없는 글이 된다. 의도한 예외이지 못 보고 지나친 위반이 아니다 —
+   ARTEL-941 의 acceptance criteria 가 등폭을 못박았다. */
 .section-content:has(.macro-section) {
   width: min(100%, 1440px);
 }
@@ -9291,8 +9298,11 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:27% } col.tct-c-added{ width:10%
   align-items: center;
   gap: var(--space-2);
 }
+/* `--color-text-muted` 가 아니라 `--color-text-secondary` 다. 선택된 행의 배경이
+   `--color-bg-raised` 인데, 다크에서 muted(#838C9A)를 그 위에 얹으면 4.46:1 로
+   DESIGN.md 의 본문 대비 4.5:1 아래로 떨어진다. */
 .macro-row-updated {
-  color: var(--color-text-muted);
+  color: var(--color-text-secondary);
   font-family: var(--font-mono);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
@@ -9418,4 +9428,26 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:27% } col.tct-c-added{ width:10%
   white-space: pre;
   overflow-x: auto;
   tab-size: 2;
+}
+
+/* 새로고침이 실패했는데 직전 목록은 남아 있는 상태. 알림이 아니라 상시 조건이므로,
+   설명하는 목록이 떠 있는 동안 함께 떠 있는다. */
+.macro-banner {
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-status-warning);
+  border-radius: var(--radius-md);
+  background: var(--color-status-warning-muted);
+}
+.macro-banner-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.macro-banner-copy {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
 }

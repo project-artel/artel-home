@@ -3,8 +3,7 @@ import type { Localized } from '../messages'
 /** Strings for `src/macros/*`. See `common.ts` for the typing convention. */
 export const macrosEn = {
   section: {
-    // No title here: the workspace layout already renders the nav label as the
-    // page's `h1`, and a second heading with the same words would be read twice.
+    title: 'Registered macros',
     subtitle:
       'The macros the QA agent saved on this build, and the source it wrote for each one.',
     selectLabel: 'Build',
@@ -14,8 +13,13 @@ export const macrosEn = {
   },
   states: {
     loading: 'Loading this build’s macros…',
+    // One wording for every 404: the server will not say whether the build is
+    // missing, belongs to another project, or simply has no map.
     loadFailed: 'This build’s macros could not be loaded.',
     retry: 'Retry',
+    refreshFailedTitle: 'This list is the last one that loaded',
+    refreshFailedCopy:
+      'The refresh did not reach the server, so a macro registered since then is missing from it.',
   },
   empty: {
     title: 'No macros are registered on this build',
@@ -29,8 +33,6 @@ export const macrosEn = {
     unattachedHeading: (count: number) => `No screen chosen yet · ${count}`,
     unattachedCopy:
       'Nothing has said where these run. An empty relation means the screen is still undecided, not that the macro works on any screen.',
-    unnamedScreen: (id: string) => `Unnamed screen #${id}`,
-    screenCount: (count: number) => `${count} screen${count === 1 ? '' : 's'}`,
     updatedAt: (date: string) => `Updated ${date}`,
   },
   detail: {
@@ -47,12 +49,12 @@ export const macrosEn = {
     sourceEmpty: 'This macro has no source.',
     sourceLoading: 'Loading the source…',
     sourceFailed: 'The source could not be loaded.',
-    parameterless: 'Takes no parameters',
   },
 } as const
 
 export const macrosKo: Localized<typeof macrosEn> = {
   section: {
+    title: '등록된 macro',
     subtitle: 'QA 에이전트가 이 빌드에 저장한 macro 와, 각각에 대해 쓴 source 입니다.',
     selectLabel: '빌드',
     refresh: '새로고침',
@@ -63,6 +65,9 @@ export const macrosKo: Localized<typeof macrosEn> = {
     loading: '이 빌드의 macro 를 불러오는 중…',
     loadFailed: '이 빌드의 macro 를 불러오지 못했습니다.',
     retry: '다시 시도',
+    refreshFailedTitle: '마지막으로 불러온 목록입니다',
+    refreshFailedCopy:
+      '새로고침이 서버에 닿지 못했습니다. 그 뒤에 등록된 macro 는 이 목록에 없습니다.',
   },
   empty: {
     title: '이 빌드에 등록된 macro 가 없습니다',
@@ -74,8 +79,6 @@ export const macrosKo: Localized<typeof macrosEn> = {
     unattachedHeading: (count: number) => `아직 screen 미정 · ${count}`,
     unattachedCopy:
       '이것들이 어디서 도는지는 아직 아무도 정하지 않았습니다. 빈 관계는 screen 이 미정이라는 뜻이지, 아무 screen 에서나 된다는 뜻이 아닙니다.',
-    unnamedScreen: (id: string) => `이름 없는 screen #${id}`,
-    screenCount: (count: number) => `screen ${count}개`,
     updatedAt: (date: string) => `수정 ${date}`,
   },
   detail: {
@@ -90,6 +93,5 @@ export const macrosKo: Localized<typeof macrosEn> = {
     sourceEmpty: '이 macro 에는 source 가 없습니다.',
     sourceLoading: 'source 를 불러오는 중…',
     sourceFailed: 'source 를 불러오지 못했습니다.',
-    parameterless: 'parameter 없음',
   },
 }
