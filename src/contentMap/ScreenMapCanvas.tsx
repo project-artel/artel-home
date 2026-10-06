@@ -7,6 +7,7 @@ import {
   sameSelection,
   transitionKindStyle,
   type ContentMapSelection,
+  type SceneThumbnail,
 } from './contentMapTypes'
 import { sceneKind, sceneTitle } from './sceneLabels'
 import type { CanvasViewport } from './useCanvasViewport'
@@ -62,6 +63,9 @@ const SCREEN_NAME_WIDTH = 16
 
 /** 캡처가 노드 테두리 안쪽으로 물러서는 거리. */
 const CAPTURE_INSET = 4
+
+/** 컨테이너 머리글 rect 의 높이. 빈 상자에 씬 대표 이미지를 그릴 때 그 아래에서 시작한다. */
+const CONTAINER_HEAD_HEIGHT = 26
 
 /**
  * `discriminator` 한 줄의 폭 예산. 원문은 인스펙터가 전부 보인다.
@@ -298,6 +302,12 @@ function classes(...parts: (string | false | null)[]): string {
  *
  * 머리글에 이름과 화면 수가 있고, 화면이 0 개인 씬은 몸통에 그 사실을 한 줄로 쓴다. 빈 몸통을
  * 그냥 두면 "아직 QA 런이 없다"가 "이 씬은 그리다 만 것 같다"로 읽힌다.
+ *
+ * **단, 그 씬의 `thumbnail` 이 `state: 'available'` 이면 문장 대신 그 이미지를 그린다.** `screen`
+ * 표는 QA 런 전에 0행인 것이 정상이지만(`ContentMapScreen` 주석), 정적 분석만으로도 씬 대표
+ * 이미지는 이미 서버에 있다 — evidence scan 만 돌리고 QA 런은 아직 안 돌린 사람에게 빈 상자
+ * 대신 그 그림을 보여 줄 수 있다. `thumbnail` 이 `null` 이거나 `unavailable` 이면 지금과
+ * 같은 문장으로 되돌아간다.
  */
 function ContainerMark({
   container,
@@ -314,6 +324,13 @@ function ContainerMark({
   const copy = t.contentMap.screenMap
   const kind = sceneKind(container.node)
   const empty = container.screens.length === 0
+  const title = sceneTitle(t, container.node)
+
+  // screen 이 하나라도 있으면 지금까지와 똑같이 그린다 — 이미지는 빈 상자를 대신할 뿐, 그
+  // 위에 얹지 않는다.
+  const thumbnail = container.node.scene?.thumbnail ?? null
+  const availableThumbnail: Extract<SceneThumbnail, { state: 'available' }> | null =
+    empty && thumbnail !== null && thumbnail.state === 'available' ? thumbnail : null
 
   return (
     <g
@@ -328,9 +345,9 @@ function ContainerMark({
       transform={`translate(${container.x} ${container.y})`}
     >
       <rect className="sm-container-frame" height={container.height} rx="6" width={container.width} />
-      <rect className="sm-container-head" height={26} rx="5" width={container.width} />
+      <rect className="sm-container-head" height={CONTAINER_HEAD_HEIGHT} rx="5" width={container.width} />
       <text className="sm-container-name" x={12} y={19}>
-        {truncate(sceneTitle(t, container.node), SCENE_NAME_WIDTH)}
+        {truncate(title, SCENE_NAME_WIDTH)}
       </text>
       {/* 0 은 적지 않는다. 몸통이 이미 그 사실을 문장으로 말하고, 여기 숫자를 더 놓으면
           좁은 컨테이너에서 씬 이름과 겹친다. */}
@@ -339,7 +356,20 @@ function ContainerMark({
           {copy.screenCount(container.screens.length)}
         </text>
       )}
-      {empty && (
+      {availableThumbnail !== null && (
+        <image
+          className="sm-container-thumbnail"
+          height={container.height - CONTAINER_HEAD_HEIGHT - CAPTURE_INSET * 2}
+          href={availableThumbnail.url}
+          preserveAspectRatio="xMidYMid meet"
+          width={container.width - CAPTURE_INSET * 2}
+          x={CAPTURE_INSET}
+          y={CONTAINER_HEAD_HEIGHT + CAPTURE_INSET}
+        >
+          <title>{title}</title>
+        </image>
+      )}
+      {empty && availableThumbnail === null && (
         <text className="sm-container-empty" x={container.width / 2} y={container.height - 22} textAnchor="middle">
           {copy.noScreens}
         </text>
