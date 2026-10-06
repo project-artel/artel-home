@@ -56,7 +56,17 @@ export type AuthUser = {
   locale: Locale | null
   /** Sorted by the server with the most recently used provider first. */
   identities: LinkedIdentity[]
+  /** The grade outside any project. Only the server grants it; the UI never decides access from it. */
+  platformRole: PlatformRole
+  /**
+   * True for an account whose password an administrator set. The server
+   * answers 403 everywhere except `/api/auth/me` and `/api/auth/password`
+   * until it is changed, so the app shows only the password screen.
+   */
+  mustChangePassword: boolean
 }
+
+export type PlatformRole = 'USER' | 'DEVELOPER' | 'ADMIN'
 
 export type AuthState =
   | { status: 'loading'; user: null }

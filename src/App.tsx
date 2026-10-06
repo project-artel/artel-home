@@ -5,6 +5,7 @@ import { AccountSettingsPage } from './account/AccountSettingsPage'
 import { LoginPage } from './LoginPage'
 import { NotFoundPage } from './NotFoundPage'
 import { useAuth } from './auth/useAuth'
+import { ForcePasswordChangePage } from './auth/ForcePasswordChangePage'
 import { SdkLoginPage } from './auth/SdkLoginPage'
 import { resumeSdkLogin, SDK_LOGIN_PATH } from './auth/sdkLoginRequest'
 import { ContentMapRedirect } from './contentMap/ContentMapPage'
@@ -56,10 +57,16 @@ export function App() {
   // root, because that is the only address the server's OAuth handler redirects
   // to. Replaying the parked request is what closes that gap.
   useEffect(() => {
-    if (auth.status !== 'authenticated') return
+    if (auth.status !== 'authenticated' || auth.user.mustChangePassword) return
     if (window.location.pathname === SDK_LOGIN_PATH) return
     resumeSdkLogin()
-  }, [auth.status])
+  }, [auth])
+
+  // A forced password change outranks every route, the SDK relay page
+  // included: the server refuses everything else until it is done.
+  if (auth.status === 'authenticated' && auth.user.mustChangePassword) {
+    return <ForcePasswordChangePage />
+  }
 
   // Matched ahead of the login boundary below: the SDK opens this page in a
   // browser that may have no session, and the routed subtree only mounts once

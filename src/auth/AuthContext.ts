@@ -2,6 +2,12 @@ import { createContext } from 'react'
 import type { AuthState, AuthUser } from './authTypes'
 
 export type AuthContextValue = AuthState & {
+  /**
+   * Reads `/api/auth/me` again. Called after an email sign-in, sign-up, or
+   * password change, whose response carries no user: the session cookies are
+   * new, so the user has to be fetched.
+   */
+  refresh: () => Promise<void>
   logout: () => Promise<void>
   /**
    * Replaces the current user with what `updateMyProfile` resolved to, right

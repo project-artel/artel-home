@@ -44,6 +44,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
+  const refresh = useCallback(async () => {
+    try {
+      const user = await getCurrentUser()
+      setState(user ? { status: 'authenticated', user } : { status: 'unauthenticated', user: null })
+    } catch {
+      setState({ status: 'error', user: null })
+    }
+  }, [])
+
   useEffect(() => setUnauthorizedHandler(() => {
     setState({ status: 'unauthenticated', user: null })
   }), [])
@@ -66,8 +75,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value = useMemo<AuthContextValue>(
-    () => ({ ...state, applyEmailVerified, applyPendingEmail, applyProfile, logout }),
-    [applyEmailVerified, applyPendingEmail, applyProfile, logout, state],
+    () => ({ ...state, applyEmailVerified, applyPendingEmail, applyProfile, logout, refresh }),
+    [applyEmailVerified, applyPendingEmail, applyProfile, logout, refresh, state],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
