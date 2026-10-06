@@ -57,7 +57,11 @@ export function useBuildMacros(projectId: string, gameBuildId: string) {
         // abort 는 이 effect 가 교체됐다는 뜻이다. 더 새로운 읽기가 state 를 갖고
         // 있으므로 여기서 오류를 적으면 그 결과를 덮는다.
         if (error instanceof DOMException && error.name === 'AbortError') return
-        setState({ status: 'error', macros: [], source })
+        // 직전 목록을 들고 간다. 비우면 새로고침이 실패했을 때 화면이 통째로 오류로
+        // 떨어지는데, 그때 보여 줘야 할 것은 "마지막으로 불러온 목록 + 그것이 지금의
+        // 사실이 아니라는 banner" 다. 첫 로드 실패에서는 들고 갈 것이 없어 빈 배열이
+        // 그대로 남고, `MacroReport` 가 그 둘을 목록 길이로 가른다.
+        setState((previous) => ({ status: 'error', macros: previous.macros, source }))
       })
 
     return () => controller.abort()
