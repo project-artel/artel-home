@@ -6,7 +6,10 @@ function texts(block: Block): string[] {
   if (block.kind === 'paragraph') {
     return block.lines.map((line) => line.map((part) => part.text).join(''))
   }
-  return block.items.map((item) => item.content.map((part) => part.text).join(''))
+  if (block.kind === 'list') {
+    return block.items.map((item) => item.content.map((part) => part.text).join(''))
+  }
+  return block.header.map((cell) => cell.map((part) => part.text).join(''))
 }
 
 test('마크다운이 없는 본문은 한 문단 그대로다', () => {
@@ -118,4 +121,47 @@ test('빈 볼드는 강조가 아니라 네 글자다', () => {
 test('빈 본문은 블록을 만들지 않는다', () => {
   assert.deepEqual(parseChatMarkdown(''), [])
   assert.deepEqual(parseChatMarkdown('\n\n'), [])
+})
+
+// ---- 표(ARTEL-929) — 설명 칸은 모델이 가시성 우선으로 표를 쓸 수 있다 ----------------
+
+function cellTexts(cells: import('./chatMarkdown').Inline[][]): string[] {
+  return cells.map((cell) => cell.map((part) => part.text).join(''))
+}
+
+test('머리줄과 구분줄이 있으면 표다', () => {
+  const blocks = parseChatMarkdown(
+    '| 시나리오 | 스텝 |\n|---|---:|\n| **게임 시작 → 맵** | 12 |\n| 첫 전투 | 16 |',
+  )
+  assert.equal(blocks.length, 1)
+  const table = blocks[0]
+  assert.equal(table.kind, 'table')
+  if (table.kind !== 'table') return
+  assert.deepEqual(cellTexts(table.header), ['시나리오', '스텝'])
+  assert.equal(table.rows.length, 2)
+  assert.deepEqual(cellTexts(table.rows[1]), ['첫 전투', '16'])
+  // 칸 안의 강조도 읽는다.
+  assert.deepEqual(table.rows[0][0], [{ kind: 'bold', text: '게임 시작 → 맵' }])
+})
+
+test('구분줄이 없으면 파이프가 있어도 글이다', () => {
+  // `|` 는 경로나 문장에도 나온다 — 구분줄 없이 표로 읽으면 멀쩡한 문장이 깨진다.
+  const blocks = parseChatMarkdown('| 이건 표가 아니다 |')
+  assert.equal(blocks.length, 1)
+  assert.equal(blocks[0].kind, 'paragraph')
+})
+
+test('표 앞뒤의 글은 따로 남는다', () => {
+  const blocks = parseChatMarkdown('둘로 나눴어요.\n| a | b |\n|---|---|\n| 1 | 2 |\n그래서 이렇게 됐어요.')
+  assert.deepEqual(
+    blocks.map((block) => block.kind),
+    ['paragraph', 'table', 'paragraph'],
+  )
+})
+
+test('칸 수가 모자란 줄은 빈 칸으로 채운다', () => {
+  const blocks = parseChatMarkdown('| a | b | c |\n|---|---|---|\n| 1 |')
+  const table = blocks[0]
+  if (table.kind !== 'table') throw new Error('table expected')
+  assert.deepEqual(cellTexts(table.rows[0]), ['1', '', ''])
 })

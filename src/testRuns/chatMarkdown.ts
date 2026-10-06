@@ -3,9 +3,12 @@
  *
  * Measured on a local run's 25 assistant messages: paragraphs separated by a
  * blank line (7), unordered lists (5, three of them with one level of nesting),
- * ordered lists (5), bold (7), inline code (6). Code fences, headings, links and
- * tables: **none**. So this parses those four and nothing else — a full Markdown
- * dependency would be a tree of packages for a syntax that does not arrive.
+ * ordered lists (5), bold (7), inline code (6). Code fences, headings and links:
+ * **none**. So this parses those and nothing else — a full Markdown dependency
+ * would be a tree of packages for a syntax that does not arrive.
+ *
+ * Pipe tables were added with the split reply (ARTEL-929): the explanation part is
+ * told to use a table when it compares or maps things, so tables now do arrive.
  *
  * The output is data, not HTML. The renderer builds React elements from it, so a
  * message can never inject markup — the body is a string a model wrote.
@@ -29,6 +32,8 @@ export type ListItem = {
 export type Block =
   | { kind: 'paragraph'; lines: Inline[][] }
   | { kind: 'list'; ordered: boolean; items: ListItem[] }
+  /** Every row has as many cells as the header — short rows are padded with empty cells. */
+  | { kind: 'table'; header: Inline[][]; rows: Inline[][][] }
 
 /** `- ` or `* ` at the start, after optional indent. */
 const BULLET = /^(\s*)[-*]\s+(.*)$/
@@ -38,6 +43,21 @@ const NUMBER = /^(\s*)\d+\.\s+(.*)$/
 const NEST_INDENT = 2
 
 type Marker = { indent: number; ordered: boolean; text: string }
+
+/** `| a | b |` — a row starts with a pipe. */
+function isTableRow(line: string): boolean {
+  return line.trimStart().startsWith('|')
+}
+
+/** `|---|:---:|` — only dashes, colons, pipes and spaces, with at least one dash. */
+function isTableSeparator(line: string): boolean {
+  return isTableRow(line) && /^[\s|:-]+$/.test(line) && line.includes('-')
+}
+
+function tableCells(line: string): string[] {
+  const inner = line.trim().replace(/^\|/, '').replace(/\|$/, '')
+  return inner.split('|').map((cell) => cell.trim())
+}
 
 function readMarker(line: string): Marker | null {
   const bullet = BULLET.exec(line)
@@ -70,11 +90,30 @@ export function parseChatMarkdown(body: string): Block[] {
     list = null
   }
 
-  for (const raw of body.split('\n')) {
-    const line = raw.replace(/\s+$/, '')
+  const lines = body.split('\n').map((raw) => raw.replace(/\s+$/, ''))
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index]
     if (line.trim().length === 0) {
       closeParagraph()
       closeList()
+      continue
+    }
+
+    // A table needs its separator row. Without it a leading `|` is just a character
+    // the model wrote — reading it as a table would break an ordinary sentence.
+    if (isTableRow(line) && index + 1 < lines.length && isTableSeparator(lines[index + 1])) {
+      closeParagraph()
+      closeList()
+      const header = tableCells(line)
+      const rows: Inline[][][] = []
+      index += 2
+      while (index < lines.length && isTableRow(lines[index])) {
+        const cells = tableCells(lines[index])
+        rows.push(header.map((_, column) => parseInline(cells[column] ?? '')))
+        index += 1
+      }
+      index -= 1
+      blocks.push({ kind: 'table', header: header.map((cell) => parseInline(cell)), rows })
       continue
     }
 

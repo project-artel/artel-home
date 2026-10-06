@@ -40,6 +40,31 @@ export type RunChatResult = {
   type: 'result'
   message: string
   scenarios: ScenarioProposal[]
+  /** The answer split for the screen (ARTEL-929). `null` on a plain reply — a greeting, a failure. */
+  reply: ChatReply | null
+}
+
+/**
+ * An agent answer split into what was done and why (ARTEL-929).
+ *
+ * `result` is what the agent's code counted — what was saved, under which title, how
+ * many steps — and goes in a box. `detail` is the model's explanation in the same
+ * Markdown slice the thread already reads, plus tables. The third part, questions,
+ * travels separately and opens the question modal.
+ */
+export type ChatReply = {
+  result: string
+  detail: string
+}
+
+/** Reads a stored `kind=reply` payload or a live frame's `reply`. Anything without a result is not one. */
+export function parseReply(value: unknown): ChatReply | null {
+  const record = asRecord(value)
+  if (record === null) return null
+  if (record.kind !== undefined && record.kind !== 'reply') return null
+  const result = asString(record.result)
+  if (result.length === 0) return null
+  return { result, detail: asString(record.detail) }
 }
 
 export type RunChatFailure = {
@@ -241,6 +266,7 @@ export async function listRunChatMessages(
       // loses its buttons, the same as it did the moment it was answered.
       question: question !== null && !answered.has(question.id) ? question : null,
       questions: rest.length > 0 ? rest : undefined,
+      reply: payload?.kind === 'reply' ? parseReply(payload) : null,
     }
   })
 }
@@ -356,7 +382,7 @@ export function parseRunStreamEvent(data: string): RunChatStreamEvent | null {
     const scenarios = Array.isArray(record.scenarios)
       ? record.scenarios.map(parseProposal)
       : []
-    return { type: 'result', message: asString(record.message), scenarios }
+    return { type: 'result', message: asString(record.message), scenarios, reply: parseReply(record.reply) }
   }
   if (record.type === 'error') {
     return { type: 'error', code: asString(record.code), detail: asString(record.detail) }

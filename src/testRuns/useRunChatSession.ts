@@ -135,6 +135,7 @@ export function useRunChatSession(
           content: parsed.message,
           createdAt: null,
           pending: false,
+          reply: parsed.reply,
         },
       ])
       // In card-review mode the result IS the end of the turn — no audit runs, so

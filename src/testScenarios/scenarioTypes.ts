@@ -114,6 +114,12 @@ export type ChatMessage = {
    * scenarios as finished. Each is answered on its own; answering one leaves the others.
    */
   questions?: import('../testRuns/runChatApi').RunChatQuestion[]
+  /**
+   * The answer split into result and explanation (ARTEL-929). When present the line is
+   * drawn from this, not from `content` — `content` is the same text joined into one
+   * string, kept for older screens and for the conversation record.
+   */
+  reply?: import('../testRuns/runChatApi').ChatReply | null
 }
 
 export type ScenarioResult = {
