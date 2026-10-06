@@ -9,8 +9,11 @@ import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { formatDateTime } from '../projects/formatters'
 import { groupStepsByCase } from '../testScenarios/scenarioTypes'
 import type { AuthoringStage, ChatRef, RunChatQuestion, ScenarioProposal } from './runChatApi'
-import { getCoverage } from '../testCases/testCaseApi'
-import type { TestCaseCoverage } from '../testCases/testCaseTypes'
+import { deleteTestCase, getCoverage, getTestCase } from '../testCases/testCaseApi'
+import type { TestCase, TestCaseCoverage } from '../testCases/testCaseTypes'
+import { TestCaseSheet } from '../testCases/TestCaseSheet'
+import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
+import { ProjectApiError } from '../projects/projectApi'
 import { getRunCoverage } from './testRunApi'
 import type { RunCoverage } from './testRunApi'
 import type { RunChatSession } from './useRunChatSession'
@@ -162,6 +165,14 @@ export function RunChat({ session }: { session: RunChatSession }) {
   const [asking, setAsking] = useState<RunChatQuestion[] | null>(null)
   // 질문 문장 속 표식의 이름(ARTEL-933). 그 질문이 붙은 줄의 것을 모달까지 들고 간다.
   const [askingRefs, setAskingRefs] = useState<ChatRef[]>([])
+  // TC 칩으로 연 케이스(ARTEL-940). 라이브러리와 같은 상세 시트로 보이고 거기서 고칠 수도 있다.
+  const [openedCase, setOpenedCase] = useState<TestCase | null>(null)
+  const [deletingCase, setDeletingCase] = useState<TestCase | null>(null)
+  const projectId = session.projectId
+  const openCase = useCallback((caseId: number) => {
+    // 불러오지 못하면 열지 않는다 — 지워진 TC 를 가리키는 옛 답일 수 있다. 칩 자체는 남는다.
+    getTestCase(projectId, String(caseId)).then(setOpenedCase, () => setOpenedCase(null))
+  }, [projectId])
   const [coverage, setCoverage] = useState<TestCaseCoverage | null>(null)
   // 이 런이 담은 것(ARTEL-904). 위의 `coverage` 와 **축이 다르다** — 저쪽은 프로젝트 전량이고
   // 이쪽은 지금 만들고 있는 것들이다.
@@ -248,7 +259,7 @@ export function RunChat({ session }: { session: RunChatSession }) {
   }
 
   return (
-    <ChatLinkContext.Provider value={{ projectId: session.projectId, runId: session.runId }}>
+    <ChatLinkContext.Provider value={{ projectId: session.projectId, runId: session.runId, openCase }}>
     <section className="panel scenario-chat" aria-labelledby="run-chat-title">
       <header className="panel-header">
         <h2 id="run-chat-title">{c.title}</h2>
@@ -537,6 +548,43 @@ export function RunChat({ session }: { session: RunChatSession }) {
           disabled={session.sending || session.closed}
           onAnswer={(answer) => { void session.send('', answer) }}
           onClose={() => setAsking(null)}
+        />
+      )}
+      {openedCase !== null && (
+        <TestCaseSheet
+          onClose={() => setOpenedCase(null)}
+          onDelete={() => setDeletingCase(openedCase)}
+          onSaved={setOpenedCase}
+          projectId={session.projectId}
+          testCase={openedCase}
+        />
+      )}
+
+      {deletingCase !== null && (
+        <ConfirmActionDialog
+          body={
+            <>
+              <strong>
+                {deletingCase.step.length > 0 ? deletingCase.step : t.testCases.delete.untitledName}
+              </strong>
+              {t.testCases.delete.copySuffix}
+            </>
+          }
+          cancelLabel={t.testCases.delete.cancel}
+          confirmLabel={t.testCases.delete.confirm}
+          onClose={() => setDeletingCase(null)}
+          onConfirm={async () => {
+            await deleteTestCase(session.projectId, deletingCase.id)
+            setDeletingCase(null)
+            setOpenedCase(null)
+          }}
+          pendingLabel={t.testCases.delete.pending}
+          title={t.testCases.delete.title}
+          toFailureMessage={(error) =>
+            error instanceof ProjectApiError && error.isNotFound
+              ? t.testCases.delete.gone
+              : t.testCases.delete.failed
+          }
         />
       )}
     </section>

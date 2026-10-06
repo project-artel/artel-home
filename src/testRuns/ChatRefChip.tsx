@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState, type CSSProperties } from 'react'
+import { useContext } from 'react'
 import { Link } from 'react-router-dom'
 import { ChatLinkContext, ChatRefsContext } from './chatRefContext'
 
@@ -9,24 +9,12 @@ import { ChatLinkContext, ChatRefsContext } from './chatRefContext'
  * stand for. A number never reaches the screen: a marker with a known ref becomes a
  * chip with the name, and one without draws nothing — the agent already removed every
  * marker it could not resolve, so an orphan here means a payload from an older turn.
+ * A TS chip opens the scenario; a TC chip opens the TC library's detail sheet.
  */
-
-const CARD_WIDTH = 280
-const CARD_MARGIN = 8
 
 export function ChatRefChip({ refKind, id }: { refKind: 'tc' | 'ts'; id: number }) {
   const refs = useContext(ChatRefsContext)
   const link = useContext(ChatLinkContext)
-  // 열린 카드의 자리. 대화 칸은 300px 남짓이라 칩 아래에 그대로 두면 칸 밖으로 잘린다 —
-  // 화면 기준(fixed)으로 띄우고 오른쪽 끝을 넘지 않게 당긴다.
-  const [card, setCard] = useState<CSSProperties | null>(null)
-  // 스크롤하면 칩이 움직이는데 화면 기준 카드는 그대로라 떨어져 보인다. 그때는 닫는다.
-  useEffect(() => {
-    if (card === null) return
-    const close = () => setCard(null)
-    window.addEventListener('scroll', close, true)
-    return () => window.removeEventListener('scroll', close, true)
-  }, [card])
   const ref = refs.find((one) => one.kind === refKind && one.id === id)
   if (ref === undefined) return null
 
@@ -50,37 +38,15 @@ export function ChatRefChip({ refKind, id }: { refKind: 'tc' | 'ts'; id: number 
     )
   }
 
-  // A TC has no page of its own, so the chip opens what the case says right here.
+  // TC 는 라이브러리의 상세 시트를 그대로 연다(ARTEL-940). 따로 만든 작은 카드는 내용이 덜하고
+  // 그 시트와 어긋나게 된다.
+  const openCase = link?.openCase
+  if (openCase === undefined) {
+    return <span className="chat-ref chat-ref--tc">{tag}{label}</span>
+  }
   return (
-    <span className="chat-ref-wrap">
-      <button
-        type="button"
-        className="chat-ref chat-ref--tc"
-        aria-expanded={card !== null}
-        onClick={(event) => {
-          if (card !== null) {
-            setCard(null)
-            return
-          }
-          const at = event.currentTarget.getBoundingClientRect()
-          const width = Math.min(CARD_WIDTH, window.innerWidth - 2 * CARD_MARGIN)
-          setCard({
-            top: at.bottom + 4,
-            left: Math.max(CARD_MARGIN, Math.min(at.left, window.innerWidth - width - CARD_MARGIN)),
-            width,
-          })
-        }}
-        onBlur={() => setCard(null)}
-        onKeyDown={(event) => { if (event.key === 'Escape') setCard(null) }}
-      >
-        {tag}{label}
-      </button>
-      {card !== null && (
-        <span className="chat-ref-card" role="tooltip" style={card}>
-          <span className="chat-ref-card-title">{label}</span>
-          {ref.detail !== null && <span className="chat-ref-card-body">{ref.detail.replace(/`/g, '')}</span>}
-        </span>
-      )}
-    </span>
+    <button type="button" className="chat-ref chat-ref--tc" onClick={() => openCase(id)}>
+      {tag}{label}
+    </button>
   )
 }
