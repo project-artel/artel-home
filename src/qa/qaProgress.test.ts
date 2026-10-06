@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createEmptyStep, type ScenarioStep } from '../testScenarios/scenarioTypes'
-import { deriveQaContextUsage, deriveQaProgress } from './qaProgress'
+import { deriveQaContextUsage, deriveQaProgress, isQaContextLog } from './qaProgress'
 import type { QaLog } from './qaTypes'
 
 function step(action: string, expectedPassed: boolean | null = null): ScenarioStep {
@@ -134,4 +134,10 @@ test('deriveQaContextUsage skips malformed frames and keeps an earlier good one'
     contextLog('8', { used_tokens: 1, max_tokens: 2 }, 'STATUS'),
   ])
   assert.deepEqual(usage, { usedTokens: 50000, maxTokens: 100000, percent: 50 })
+})
+
+test('isQaContextLog marks only LOG frames that carry a context object', () => {
+  assert.equal(isQaContextLog(contextLog('1', { used_tokens: 10, max_tokens: 100 })), true)
+  assert.equal(isQaContextLog(contextLog('2', { used_tokens: 10, max_tokens: 100 }, 'STATUS')), false)
+  assert.equal(isQaContextLog(contextLog('3', undefined)), false)
 })
