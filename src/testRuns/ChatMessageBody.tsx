@@ -1,8 +1,10 @@
-import { Fragment } from 'react'
+import { Fragment, useContext, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { useI18n } from '../i18n/useI18n'
 import { parseChatMarkdown, parseInline, type Inline } from './chatMarkdown'
 import { ChatRefChip } from './ChatRefChip'
-import { ChatRefsContext } from './chatRefContext'
-import type { ChatRef, ChatReply } from './runChatApi'
+import { ChatLinkContext, ChatRefsContext } from './chatRefContext'
+import type { ChatRef, ChatReply, ScenarioChange } from './runChatApi'
 
 /**
  * An agent message, with the structure it wrote left standing.
@@ -31,12 +33,56 @@ export function ChatReplyBody({ reply, refs = [] }: { reply: ChatReply; refs?: C
         {reply.result.split('\n').map((line, index) => (
           <p className="chat-reply-result-line" key={index}><InlineRun parts={parseInline(line)} /></p>
         ))}
+        {reply.changes.length > 0 && <ChangeList changes={reply.changes} />}
       </div>
       {reply.detail.trim().length > 0 && <ChatMessageBody body={reply.detail} refs={refs} />}
     </div>
     </ChatRefsContext.Provider>
   )
 }
+
+/**
+ * What the turn changed, one scenario per line, coloured by what happened to it
+ * (ARTEL-938). A long list folds: the box is the first thing read, and twelve
+ * titles push the explanation off the screen.
+ */
+function ChangeList({ changes }: { changes: ScenarioChange[] }) {
+  const { t } = useI18n()
+  const m = t.scenarios.chat.changes
+  const link = useContext(ChatLinkContext)
+  const [open, setOpen] = useState(false)
+  const shown = open ? changes : changes.slice(0, FOLDED_CHANGES)
+  const hidden = changes.length - shown.length
+
+  return (
+    <>
+      <ul className="chat-reply-changes">
+        {shown.map((change, index) => {
+          const tag = <span className="chat-reply-change-tag">{m[change.action]}</span>
+          const opensTo =
+            link !== null && change.scenarioId !== null && change.action !== 'removed'
+              ? `/projects/${encodeURIComponent(link.projectId)}/test-scenarios/${change.scenarioId}` +
+                (link.runId !== null ? `?run=${encodeURIComponent(link.runId)}` : '')
+              : null
+          return (
+            <li className={`chat-reply-change chat-reply-change--${change.action}`} key={index}>
+              {tag}
+              {opensTo !== null ? <Link to={opensTo}>{change.title}</Link> : <span>{change.title}</span>}
+            </li>
+          )
+        })}
+      </ul>
+      {(hidden > 0 || open) && changes.length > FOLDED_CHANGES && (
+        <button className="chat-reply-changes-toggle" onClick={() => setOpen((was) => !was)} type="button">
+          {open ? m.collapse : m.expand.replace('{count}', String(hidden))}
+        </button>
+      )}
+    </>
+  )
+}
+
+/** How many changed scenarios the box shows before folding the rest. */
+const FOLDED_CHANGES = 3
 
 /** One line of model text with its markers drawn as chips — for the question modal. */
 export function ChatInline({ text, refs = [] }: { text: string; refs?: ChatRef[] }) {
