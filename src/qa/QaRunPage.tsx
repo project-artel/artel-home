@@ -8,8 +8,9 @@ import { cancelQaRun, getQaRun, isDecimalId } from './qaApi'
 import { QaChatPanel } from './QaChatPanel'
 import { QaLogTimeline, type QaLogFocusRequest } from './QaLogTimeline'
 import { QaRunUsagePanel } from './QaRunUsagePanel'
+import { QaContextGauge } from './QaContextGauge'
 import { QaStepTimeline } from './QaStepTimeline'
-import { deriveQaProgress } from './qaProgress'
+import { deriveQaContextUsage, deriveQaProgress } from './qaProgress'
 import { isTerminalQaStatus, type QaLog, type QaRun, type QaTry } from './qaTypes'
 import { useQaTry } from './useQaTry'
 import { useScenarioSteps } from './useScenarioSteps'
@@ -293,6 +294,8 @@ function FocusedTry({ tryId }: { tryId: string }) {
     [scenarioSteps, session.hasMore, session.logs, session.qaTry?.status],
   )
 
+  const contextUsage = useMemo(() => deriveQaContextUsage(session.logs), [session.logs])
+
   const jumpToLog = useCallback((logId: string) => {
     setLogView('raw')
     setFocusRequest((current) => ({ logId, token: (current?.token ?? 0) + 1 }))
@@ -350,6 +353,7 @@ function FocusedTry({ tryId }: { tryId: string }) {
           )}
         </section>
 
+        <QaContextGauge usage={contextUsage} />
         <QaStepTimeline onJump={jumpToLog} progress={progress} scenarioSteps={scenarioSteps} />
       </div>
 

@@ -56,6 +56,8 @@ export const qaEn = {
     verification: 'Verification',
     casesSummary: (passed: number, failed: number, total: number) =>
       `${total} checks · ${passed} passed · ${failed} failed`,
+    contextLabel: 'Agent context window usage',
+    contextCompaction: (percent: number) => `Compaction starts at ${percent}%`,
     stepsHeading: 'Steps',
     stateLabels: {
       passed: 'Passed',
@@ -281,6 +283,8 @@ export const qaKo: Localized<typeof qaEn> = {
     verification: '검증',
     casesSummary: (passed: number, failed: number, total: number) =>
       `검증 ${total}개 · 통과 ${passed} · 실패 ${failed}`,
+    contextLabel: '에이전트 context window 사용량',
+    contextCompaction: (percent: number) => `${percent}%에서 compaction 시작`,
     stepsHeading: '스텝',
     stateLabels: {
       passed: '통과',
