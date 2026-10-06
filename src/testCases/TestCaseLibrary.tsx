@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
-import type { Messages } from '../i18n/messages'
 import { useI18n } from '../i18n/useI18n'
 import { formatDate } from '../projects/formatters'
 import type { GameBuild } from '../projects/gameTypes'
@@ -9,10 +8,9 @@ import { CaseSceneFilter } from './CaseSceneFilter'
 import { SceneChip } from './SceneChip'
 import { SpecGradeChip } from './SpecGradeChip'
 import { deleteTestCase } from './testCaseApi'
-import { TestCaseEditor } from './TestCaseEditor'
+import { TestCaseSheet } from './TestCaseSheet'
 import { useCaseListNav } from './useCaseListNav'
 import {
-  describeVerifiedBuild,
   hasActiveFilters,
   NO_FILTERS,
   selectTestCases,
@@ -75,23 +73,11 @@ export function TestCaseLibrary({
   const { active, edge, listRef, onScroll, setActive } = nav
   const cursored = shown[active] ?? null
   const sheetOpen = creating || selected !== null
-  const sheetRef = useRef<HTMLElement | null>(null)
 
   const closeSheet = useCallback(() => {
     setCreating(false)
     setSelectedId(null)
   }, [])
-
-  // 시트가 열리면 초점을 안으로 옮긴다. 열어 놓고 초점이 뒤 표에 남아 있으면 키보드로
-  // 시트에 닿을 방법이 없고, `Escape` 도 표가 먼저 받는다.
-  useEffect(() => {
-    if (!sheetOpen) return
-    const box = sheetRef.current
-    // 입력칸을 먼저 찾는다. DOM 순서로만 고르면 닫기 버튼이 먼저 잡히는데, 시트를 연 이유는
-    // 닫으려는 것이 아니라 고치려는 것이다.
-    const first = box?.querySelector<HTMLElement>('textarea, input') ?? box?.querySelector<HTMLElement>('button')
-    first?.focus()
-  }, [sheetOpen])
   // 화면 이름은 대부분 이미 쓰던 것 중 하나다. 편집기에 넘겨 칩으로 고르게 한다.
   const knownScenes = useMemo(
     () => [...new Set(library.cases.map((one) => one.scene.trim()).filter((one) => one.length > 0))].sort(),
@@ -310,64 +296,24 @@ export function TestCaseLibrary({
       </section>
 
       {sheetOpen && (
-        <>
-          <div className="tcl-scrim" onClick={closeSheet} />
-          <aside
-            aria-label={m.editor.editTitle}
-            aria-modal="true"
-            className="tcl-sheet"
-            onKeyDown={(event) => { if (event.key === 'Escape') { event.stopPropagation(); closeSheet() } }}
-            ref={sheetRef}
-            role="dialog"
-          >
-            <header className="tcl-sheet-head">
-              <div className="tcl-sheet-tags">
-                {selected !== null && (
-                  <>
-                    <span className={`vpill ${selected.verificationStatus}`}>
-                      <span className={`vdot ${selected.verificationStatus}`} />
-                      {m.outcome[selected.verificationStatus]}
-                    </span>
-                    <SceneChip scene={selected.scene} />
-                    <SpecGradeChip status={selected.status} />
-                  </>
-                )}
-              </div>
-              <button
-                className="tcl-sheet-close"
-                onClick={closeSheet}
-                title={m.row.close}
-                type="button"
-              >✕</button>
-            </header>
-            {selected !== null && (
-              <p className="tcl-sheet-meta">
-                {buildNote(selected, builds, m)} · {m.outcome.addedAt(formatDate(selected.createdAt))}
-              </p>
-            )}
-            <TestCaseEditor
-              key={selected?.id ?? 'new'}
-              knownScenes={knownScenes}
-              onCreated={(created) => {
-                library.applyCreated(created)
-                setCreating(false)
-                setSelectedId(created.id)
-                setAnnouncement(m.editor.created)
-              }}
-              onDelete={() => setDeleting(selected)}
-              onDone={() => {
-                setCreating(false)
-                setSelectedId(null)
-              }}
-              onSaved={(saved) => {
-                library.applySaved(saved)
-                setAnnouncement(m.editor.saved)
-              }}
-              projectId={projectId}
-              testCase={selected}
-            />
-          </aside>
-        </>
+        <TestCaseSheet
+          builds={builds}
+          knownScenes={knownScenes}
+          onClose={closeSheet}
+          onCreated={(created) => {
+            library.applyCreated(created)
+            setCreating(false)
+            setSelectedId(created.id)
+            setAnnouncement(m.editor.created)
+          }}
+          onDelete={() => setDeleting(selected)}
+          onSaved={(saved) => {
+            library.applySaved(saved)
+            setAnnouncement(m.editor.saved)
+          }}
+          projectId={projectId}
+          testCase={selected}
+        />
       )}
 
       <p aria-live="polite" className="visually-hidden" role="status">{announcement}</p>
@@ -408,18 +354,4 @@ function countOf(tally: TestCaseTally, status: VerificationStatus): number {
   if (status === 'VERIFIED') return tally.verified
   if (status === 'BROKEN') return tally.broken
   return tally.draft
-}
-
-/**
- * 결과 아래 한 줄. 어떤 build 에서 그렇게 판정했는지가 결과 자체만큼 중요하다 — 두 버전 전
- * build 에서 실패한 케이스와 어제 build 에서 실패한 케이스는 같은 "실패" 가 아니다.
- */
-function buildNote(
-  testCase: TestCase,
-  builds: GameBuild[],
-  m: Messages['testCases'],
-): string {
-  const build = describeVerifiedBuild(testCase.lastVerifiedBuildId, builds)
-  if (build !== null) return m.outcome.onBuild(build)
-  return testCase.lastVerifiedBuildId !== null ? m.outcome.buildGone : m.outcome.neverRun
 }
