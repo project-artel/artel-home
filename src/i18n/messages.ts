@@ -3,6 +3,7 @@ import { commonEn, commonKo } from './messages/common'
 import { contentMapEn, contentMapKo } from './messages/contentMap'
 import { issuesEn, issuesKo } from './messages/issues'
 import { knowledgeEn, knowledgeKo } from './messages/knowledge'
+import { macrosEn, macrosKo } from './messages/macros'
 import { performanceEn, performanceKo } from './messages/performance'
 import { projectsEn, projectsKo } from './messages/projects'
 import { qaEn, qaKo } from './messages/qa'
@@ -30,6 +31,7 @@ export const messages = {
     contentMap: contentMapEn,
     issues: issuesEn,
     knowledge: knowledgeEn,
+    macros: macrosEn,
     performance: performanceEn,
     projects: projectsEn,
     qa: qaEn,
@@ -44,6 +46,7 @@ export const messages = {
     contentMap: contentMapKo,
     issues: issuesKo,
     knowledge: knowledgeKo,
+    macros: macrosKo,
     performance: performanceKo,
     projects: projectsKo,
     qa: qaKo,

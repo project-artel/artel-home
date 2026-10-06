@@ -20,6 +20,9 @@ const ICON_PATHS: Record<WorkspaceSectionId, string[]> = {
   // A box holding two smaller boxes, with a line leaving it: a scene container,
   // the screens inside it, and a transition out. The drawing's own shape, small.
   contentMap: ['M2.2 3h7.6v7.6H2.2z', 'M3.8 4.6h1.9v1.9H3.8z', 'M6.4 4.6h1.9v1.9H6.4z', 'M9.8 6.8h2.6v6.4H6.6'],
+  // A saved command: the `>` prompt chevron with a line after it, boxed. A
+  // macro is a script the agent wrote down and calls again.
+  macros: ['M2.4 3.2h11.2v9.6H2.4z', 'M4.8 6l1.8 2-1.8 2', 'M8.2 10h3'],
   performance: ['M2.5 12.5l3.2-3.4 2.5 1.8 5.3-7', 'M10.8 3.9h2.7v2.7'],
   issues: ['M4 14V2.7', 'M4 3h8l-1.8 2.8L12 8.6H4'],
   // Three nodes and the lines between them: the graph's own shape, small.
