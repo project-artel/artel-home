@@ -129,6 +129,11 @@ function MacroReport({ buildId, projectId }: { buildId: string; projectId: strin
     if (requestedMacro === null || selectedId !== null) return
     setSearchParams(
       (previous) => {
+        // 위 조건은 렌더에서 붙잡은 `requestedMacro` 로 판단한 것이고, 이 updater 가
+        // 도는 시점에는 이미 다른 값이 들어와 있을 수 있다. 지우는 쓰기는 네 자리
+        // 중 여기뿐이므로, 지우기 직전에 "내가 보고 판단한 그 값이 맞는가" 를 한 번
+        // 더 본다. 아니면 아무것도 하지 않는다.
+        if (previous.get('macro') !== requestedMacro) return previous
         const next = new URLSearchParams(previous)
         next.delete('macro')
         return next
@@ -202,13 +207,16 @@ function MacroReport({ buildId, projectId }: { buildId: string; projectId: strin
       )}
 
       <div className="macro-section-actions">
+        {/* 라벨이 바뀌지 않는다. 말줄임표가 붙은 상태 문장은 button 이름이 아니고,
+            누르는 순간 폭이 변해 포인터 밑에서 button 이 움직인다. 진행 중이라는
+            사실은 `disabled` 와 바깥의 `aria-busy` 가 이미 말한다. */}
         <button
           className="button button--secondary"
           disabled={refreshing}
           onClick={reload}
           type="button"
         >
-          {refreshing ? copy.states.loading : copy.section.refresh}
+          {copy.section.refresh}
         </button>
       </div>
 

@@ -206,6 +206,11 @@ test('screen 이름은 씬을 앞에 두고, 이름이 없으면 id 로 가린�
     macroScreenLabel({ id: '41', name: null, sceneName: 'TurnBattleScene' }),
     'TurnBattleScene · #41',
   )
+
+  // `sceneName` 은 계약상 NOT NULL 이지만 파서가 빈 값도 받아 둔다. 그대로 이으면
+  // `· 손패` 처럼 앞이 허전한 가운뎃점이 남으므로, 있는 조각만 잇는다.
+  assert.equal(macroScreenLabel({ id: '41', name: '손패', sceneName: '' }), '손패')
+  assert.equal(macroScreenLabel({ id: '41', name: null, sceneName: '' }), '#41')
 })
 
 test('정렬은 이름 오름차순, 동점은 id 를 숫자로 비교한다', () => {

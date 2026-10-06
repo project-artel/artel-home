@@ -102,12 +102,21 @@ export function macroSignature(parameters: MacroParameter[]): string {
  * 씬이다. 이름도 없으면 id 를 붙인다 — 같은 씬의 이름 없는 화면이 둘 달린 macro 에서
  * 씬 이름만 두 번 서면 그 둘이 같은 화면인지 다른 화면인지 아무 말도 하지 않는다.
  *
- * 번역하지 않는다. 양쪽 조각 다 서버가 준 고유명사이고, 그 사이의 가운뎃점은 어느
+ * `sceneName` 은 계약상 NOT NULL 이지만 `macroApi.ts` 가 빈 값도 받아 둔다 — 그 한 칸
+ * 때문에 관계를 버리면 macro 가 "아직 screen 미정" 이라는 틀린 묶음으로 내려가기
+ * 때문이다. 그래서 여기서도 빈 씬 이름을 견뎌야 한다. 그대로 이으면 `· 손패` 처럼
+ * 앞이 허전한 가운뎃점이 남으므로, 있는 조각만 잇는다.
+ *
+ * 번역하지 않는다. 조각 둘 다 서버가 준 고유명사이고, 그 사이의 가운뎃점은 어느
  * 언어에서도 같다.
  */
 export function macroScreenLabel(screen: MacroScreen): string {
+  const sceneName = screen.sceneName.trim()
   const name = screen.name?.trim() ?? ''
-  return name.length > 0 ? `${screen.sceneName} · ${name}` : `${screen.sceneName} · #${screen.id}`
+  const parts = [sceneName, name.length > 0 ? name : `#${screen.id}`].filter(
+    (part) => part.length > 0,
+  )
+  return parts.join(' · ')
 }
 
 /**

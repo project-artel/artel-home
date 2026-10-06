@@ -33,9 +33,20 @@ type ListState = {
   status: Exclude<MacroListStatus, 'loading'>
   macros: MacroSummary[]
   source: string
+  /**
+   * 이 목록이 어느 프로젝트의 어느 빌드 것인가. `source` 에서 `reloadToken` 을 뺀 값이다.
+   *
+   * 따로 두는 이유는 아래 반환이 `settled` 를 거치지 않고 `macros` 를 그대로 내보내기
+   * 때문이다. 그 자체는 새로고침 중에 직전 목록을 남기려는 의도지만, 범위가 바뀌었을
+   * 때까지 남기면 다른 빌드의 macro 가 이 빌드의 이름을 달고 선다. 지금은 호출하는
+   * 쪽의 `key=` 가 그것을 막고 있는데, 그 보호가 두세 파일 떨어진 prop 에 있어서 여기를
+   * 읽는 사람에게는 보이지 않는다. 범위를 state 에 함께 적어 두면 hook 이 스스로를
+   * 지킨다.
+   */
+  scope: string
 }
 
-const initialListState: ListState = { status: 'ready', macros: [], source: NO_READ }
+const initialListState: ListState = { status: 'ready', macros: [], source: NO_READ, scope: '' }
 
 /**
  * 한 빌드에 등록된 macro 목록.
@@ -46,13 +57,14 @@ const initialListState: ListState = { status: 'ready', macros: [], source: NO_RE
 export function useBuildMacros(projectId: string, gameBuildId: string) {
   const [reloadToken, setReloadToken] = useState(0)
   const [state, setState] = useState<ListState>(initialListState)
-  const source = `${projectId}/${gameBuildId}#${reloadToken}`
+  const scope = `${projectId}/${gameBuildId}`
+  const source = `${scope}#${reloadToken}`
 
   useEffect(() => {
     const controller = new AbortController()
 
     listBuildMacros(projectId, gameBuildId, controller.signal)
-      .then((macros) => setState({ status: 'ready', macros, source }))
+      .then((macros) => setState({ status: 'ready', macros, source, scope }))
       .catch((error: unknown) => {
         // abort 는 이 effect 가 교체됐다는 뜻이다. 더 새로운 읽기가 state 를 갖고
         // 있으므로 여기서 오류를 적으면 그 결과를 덮는다.
@@ -61,11 +73,19 @@ export function useBuildMacros(projectId: string, gameBuildId: string) {
         // 떨어지는데, 그때 보여 줘야 할 것은 "마지막으로 불러온 목록 + 그것이 지금의
         // 사실이 아니라는 banner" 다. 첫 로드 실패에서는 들고 갈 것이 없어 빈 배열이
         // 그대로 남고, `MacroReport` 가 그 둘을 목록 길이로 가른다.
-        setState((previous) => ({ status: 'error', macros: previous.macros, source }))
+        //
+        // 범위가 바뀌어 실패한 경우에는 들고 가지 않는다. 그때 남은 목록은 이 빌드의
+        // 것이 아니다.
+        setState((previous) => ({
+          status: 'error',
+          macros: previous.scope === scope ? previous.macros : [],
+          source,
+          scope,
+        }))
       })
 
     return () => controller.abort()
-  }, [projectId, gameBuildId, source])
+  }, [projectId, gameBuildId, scope, source])
 
   const settled = state.source === source
   const reload = useCallback(() => setReloadToken((token) => token + 1), [])
@@ -75,13 +95,13 @@ export function useBuildMacros(projectId: string, gameBuildId: string) {
    * 떨어지고, 열어 둔 macro 의 선택과 source 까지 함께 사라진다 — 사용자가 누른 것은
    * 새로고침이지 닫기가 아니다.
    *
-   * **빌드가 바뀔 때는 다르다.** 그때는 직전 빌드의 macro 가 이 빌드의 이름을 달고
-   * 서 있게 되므로 보여서는 안 된다. 두 경우가 갈리는 자리는 여기가 아니라
-   * `MacroSection` 의 `key={selectedBuild.id}` 다 — 빌드가 바뀌면 이 hook 이 통째로
-   * 새로 마운트되어 state 가 초기값부터 시작한다.
+   * **빌드나 프로젝트가 바뀔 때는 다르다.** 그때 남은 목록은 이 빌드의 것이 아니므로
+   * 보여서는 안 된다. 호출하는 쪽의 `key=` 가 이 hook 을 통째로 새로 마운트시켜 이미
+   * 막고 있지만, 그 보호가 두세 파일 떨어진 prop 에 있어 여기를 읽는 사람에게는
+   * 보이지 않는다. `scope` 를 직접 비교해 hook 이 스스로를 지킨다.
    */
   return {
-    macros: state.macros,
+    macros: state.scope === scope ? state.macros : [],
     status: settled ? state.status : ('loading' as MacroListStatus),
     reload,
   }
