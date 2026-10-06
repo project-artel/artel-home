@@ -165,3 +165,25 @@ test('칸 수가 모자란 줄은 빈 칸으로 채운다', () => {
   if (table.kind !== 'table') throw new Error('table expected')
   assert.deepEqual(cellTexts(table.rows[0]), ['1', '', ''])
 })
+
+// ---- TC·TS 참조 표식(ARTEL-933) — 번호는 표식 안에서만 읽고 글자로는 내지 않는다 ----------
+
+test('참조 표식은 번호 없는 ref 조각이 된다', () => {
+  assert.deepEqual(parseInline('[[tc:5]] 도 따로 볼까요?'), [
+    { kind: 'ref', refKind: 'tc', id: 5, text: '' },
+    { kind: 'text', text: ' 도 따로 볼까요?' },
+  ])
+})
+
+test('표식과 강조가 한 줄에 같이 있다', () => {
+  assert.deepEqual(parseInline('**상점** 다음에 [[ts:7]] 를 고쳤어요'), [
+    { kind: 'bold', text: '상점' },
+    { kind: 'text', text: ' 다음에 ' },
+    { kind: 'ref', refKind: 'ts', id: 7, text: '' },
+    { kind: 'text', text: ' 를 고쳤어요' },
+  ])
+})
+
+test('모양이 틀린 표식은 글자 그대로다', () => {
+  assert.deepEqual(parseInline('[[tc:abc]]'), [{ kind: 'text', text: '[[tc:abc]]' }])
+})

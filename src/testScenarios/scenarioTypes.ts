@@ -120,6 +120,11 @@ export type ChatMessage = {
    * string, kept for older screens and for the conversation record.
    */
   reply?: import('../testRuns/runChatApi').ChatReply | null
+  /**
+   * What the `[[tc:N]]` / `[[ts:N]]` markers on this line point at (ARTEL-933). Kept per
+   * line because the server stores them per line — on the answer and on its questions.
+   */
+  refs?: import('../testRuns/runChatApi').ChatRef[]
 }
 
 export type ScenarioResult = {

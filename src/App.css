@@ -3154,6 +3154,27 @@ a.instance-name:hover {
   border:1px solid var(--st-border); padding:5px 8px; text-align:left; vertical-align:top;
 }
 .scenario-studio .st-chat .chat-md-table th{ background:var(--st-raised); font-weight:600; color:var(--st-text-2); }
+/* TC·TS 참조 칩(ARTEL-933). 번호 대신 이름이 보이고, 눌러서 연다 — TS 는 그 화면으로,
+   TC 는 따로 볼 화면이 없어 사전조건·기대값 카드를 바로 아래에 띄운다. */
+/* 칩은 글줄처럼 흐른다 — 이름이 길면 줄을 넘겨도 테두리가 줄마다 이어진다. */
+.scenario-studio .st-chat .chat-ref-wrap{ display:inline; }
+.scenario-studio .st-chat .chat-ref{
+  display:inline; font:inherit; font-size:0.92em; line-height:1.6; text-align:left;
+  text-decoration:none; cursor:pointer; color:var(--st-text); background:var(--st-raised);
+  border:1px solid var(--st-border-strong); border-radius:5px; padding:0 5px;
+  overflow-wrap:anywhere; -webkit-box-decoration-break:clone; box-decoration-break:clone;
+}
+.scenario-studio .st-chat .chat-ref:hover{ border-color:var(--st-action); }
+.scenario-studio .st-chat .chat-ref:focus-visible{ outline:2px solid var(--st-action); outline-offset:1px; }
+.scenario-studio .st-chat .chat-ref-tag{ font-size:0.8em; font-weight:700; color:var(--st-emph); letter-spacing:.02em; white-space:nowrap; margin-right:4px; }
+.scenario-studio .st-chat .chat-ref-card{
+  position:fixed; z-index:50;
+  display:flex; flex-direction:column; gap:4px;
+  background:var(--st-surface); border:1px solid var(--st-border-strong); border-radius:8px;
+  padding:8px 10px; box-shadow:0 6px 18px rgba(0,0,0,.25); white-space:pre-wrap;
+}
+.scenario-studio .st-chat .chat-ref-card-title{ font-weight:600; font-size:12.5px; color:var(--st-text); }
+.scenario-studio .st-chat .chat-ref-card-body{ font-size:12px; color:var(--st-text-2); }
 .scenario-studio .st-chat .chat-status{ font-size:11px; color:var(--st-muted); margin:5px 0 0; }
 .scenario-studio .st-chat .chat-closed{ padding:14px 16px; border-top:1px solid var(--st-border); background:var(--st-verified-dim); }
 .scenario-studio .st-chat .chat-closed-title{ font-size:12.5px; color:var(--st-verified); font-weight:600; margin:0; }

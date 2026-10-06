@@ -1,6 +1,8 @@
 import { Fragment } from 'react'
 import { parseChatMarkdown, parseInline, type Inline } from './chatMarkdown'
-import type { ChatReply } from './runChatApi'
+import { ChatRefChip } from './ChatRefChip'
+import { ChatRefsContext } from './chatRefContext'
+import type { ChatRef, ChatReply } from './runChatApi'
 
 /**
  * An agent message, with the structure it wrote left standing.
@@ -21,23 +23,35 @@ import type { ChatReply } from './runChatApi'
  * own shape (sentences, a list, a table) for whatever it has to say. Questions are not
  * here: they hang off the same line and open the question modal.
  */
-export function ChatReplyBody({ reply }: { reply: ChatReply }) {
+export function ChatReplyBody({ reply, refs = [] }: { reply: ChatReply; refs?: ChatRef[] }) {
   return (
+    <ChatRefsContext.Provider value={refs}>
     <div className="chat-reply">
       <div className="chat-reply-result">
         {reply.result.split('\n').map((line, index) => (
           <p className="chat-reply-result-line" key={index}><InlineRun parts={parseInline(line)} /></p>
         ))}
       </div>
-      {reply.detail.trim().length > 0 && <ChatMessageBody body={reply.detail} />}
+      {reply.detail.trim().length > 0 && <ChatMessageBody body={reply.detail} refs={refs} />}
     </div>
+    </ChatRefsContext.Provider>
   )
 }
 
-export function ChatMessageBody({ body }: { body: string }) {
+/** One line of model text with its markers drawn as chips — for the question modal. */
+export function ChatInline({ text, refs = [] }: { text: string; refs?: ChatRef[] }) {
+  return (
+    <ChatRefsContext.Provider value={refs}>
+      <InlineRun parts={parseInline(text)} />
+    </ChatRefsContext.Provider>
+  )
+}
+
+export function ChatMessageBody({ body, refs = [] }: { body: string; refs?: ChatRef[] }) {
   const blocks = parseChatMarkdown(body)
 
   return (
+    <ChatRefsContext.Provider value={refs}>
     <div className="chat-body chat-body--rich">
       {blocks.map((block, index) => {
         if (block.kind === 'paragraph') {
@@ -96,6 +110,7 @@ export function ChatMessageBody({ body }: { body: string }) {
         )
       })}
     </div>
+    </ChatRefsContext.Provider>
   )
 }
 
@@ -105,6 +120,7 @@ function InlineRun({ parts }: { parts: Inline[] }) {
       {parts.map((part, index) => {
         if (part.kind === 'bold') return <strong key={index}>{part.text}</strong>
         if (part.kind === 'code') return <code className="chat-md-code" key={index}>{part.text}</code>
+        if (part.kind === 'ref') return <ChatRefChip key={index} refKind={part.refKind} id={part.id} />
         return <Fragment key={index}>{part.text}</Fragment>
       })}
     </>

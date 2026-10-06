@@ -22,6 +22,12 @@ export type Inline =
   | { kind: 'text'; text: string }
   | { kind: 'bold'; text: string }
   | { kind: 'code'; text: string }
+  /**
+   * A `[[tc:5]]` / `[[ts:7]]` marker (ARTEL-933). The number is for the machine only, so
+   * `text` is empty — the renderer draws the name from the message's refs, and a marker
+   * with no matching ref draws nothing.
+   */
+  | { kind: 'ref'; refKind: 'tc' | 'ts'; id: number; text: '' }
 
 export type ListItem = {
   content: Inline[]
@@ -151,6 +157,24 @@ export function parseChatMarkdown(body: string): Block[] {
  * happens to contain asterisks.
  */
 export function parseInline(line: string): Inline[] {
+  // Markers first: they cannot contain markup, and splitting on them keeps the bold
+  // and code rules below exactly as they were.
+  const parts: Inline[] = []
+  let at = 0
+  for (const match of line.matchAll(MARKER)) {
+    const start = match.index ?? 0
+    if (start > at) parts.push(...parseRuns(line.slice(at, start)))
+    parts.push({ kind: 'ref', refKind: match[1] as 'tc' | 'ts', id: Number(match[2]), text: '' })
+    at = start + match[0].length
+  }
+  if (at < line.length) parts.push(...parseRuns(line.slice(at)))
+  return parts
+}
+
+/** `[[tc:5]]` / `[[ts:7]]`. A malformed one (`[[tc:abc]]`) does not match and stays text. */
+const MARKER = /\[\[(tc|ts):(\d+)\]\]/g
+
+function parseRuns(line: string): Inline[] {
   const parts: Inline[] = []
   let plain = ''
   let at = 0

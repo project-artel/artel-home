@@ -4,10 +4,11 @@ import { useI18n } from '../i18n/useI18n'
 import { Dialog } from '../design-system/primitives/Dialog'
 import { RunChatQuestionModal } from './RunChatQuestionModal'
 import { ChatMessageBody, ChatReplyBody } from './ChatMessageBody'
+import { ChatLinkContext } from './chatRefContext'
 import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { formatDateTime } from '../projects/formatters'
 import { groupStepsByCase } from '../testScenarios/scenarioTypes'
-import type { AuthoringStage, RunChatQuestion, ScenarioProposal } from './runChatApi'
+import type { AuthoringStage, ChatRef, RunChatQuestion, ScenarioProposal } from './runChatApi'
 import { getCoverage } from '../testCases/testCaseApi'
 import type { TestCaseCoverage } from '../testCases/testCaseTypes'
 import { getRunCoverage } from './testRunApi'
@@ -159,6 +160,8 @@ export function RunChat({ session }: { session: RunChatSession }) {
   const [expanded, setExpanded] = useState<ScenarioProposal | null>(null)
   // 지금 화면 가운데에 띄워 둔 되묻기(ARTEL-677). 비어 있으면 모달이 없다.
   const [asking, setAsking] = useState<RunChatQuestion[] | null>(null)
+  // 질문 문장 속 표식의 이름(ARTEL-933). 그 질문이 붙은 줄의 것을 모달까지 들고 간다.
+  const [askingRefs, setAskingRefs] = useState<ChatRef[]>([])
   const [coverage, setCoverage] = useState<TestCaseCoverage | null>(null)
   // 이 런이 담은 것(ARTEL-904). 위의 `coverage` 와 **축이 다르다** — 저쪽은 프로젝트 전량이고
   // 이쪽은 지금 만들고 있는 것들이다.
@@ -245,6 +248,7 @@ export function RunChat({ session }: { session: RunChatSession }) {
   }
 
   return (
+    <ChatLinkContext.Provider value={{ projectId: session.projectId, runId: session.runId }}>
     <section className="panel scenario-chat" aria-labelledby="run-chat-title">
       <header className="panel-header">
         <h2 id="run-chat-title">{c.title}</h2>
@@ -321,8 +325,8 @@ export function RunChat({ session }: { session: RunChatSession }) {
               {message.role === 'USER'
                 ? <p className="chat-body">{message.content}</p>
                 : message.reply != null
-                  ? <ChatReplyBody reply={message.reply} />
-                  : <ChatMessageBody body={message.content} />}
+                  ? <ChatReplyBody reply={message.reply} refs={message.refs} />
+                  : <ChatMessageBody body={message.content} refs={message.refs} />}
               {/* 물어본 줄에는 누를 것이 붙는다(ARTEL-487). 답하면 사라진다 — 이미 답한 질문에
                   버튼이 남아 있으면 두 번 답하게 된다. */}
               {/* **묻는 자리는 화면 가운데다**(ARTEL-677). 답이 시나리오를 실행 가능하게
@@ -340,9 +344,10 @@ export function RunChat({ session }: { session: RunChatSession }) {
                     className="chat-question-open"
                     type="button"
                     disabled={session.sending || session.closed}
-                    onClick={() =>
+                    onClick={() => {
+                      setAskingRefs(message.refs ?? [])
                       setAsking(message.questions ?? (message.question != null ? [message.question] : []))
-                    }
+                    }}
                   >
                     {t.scenarios.chat.question.openModal.replace(
                       '{count}',
@@ -528,12 +533,14 @@ export function RunChat({ session }: { session: RunChatSession }) {
           projectId={session.projectId}
           runId={session.runId}
           questions={asking}
+          refs={askingRefs}
           disabled={session.sending || session.closed}
           onAnswer={(answer) => { void session.send('', answer) }}
           onClose={() => setAsking(null)}
         />
       )}
     </section>
+    </ChatLinkContext.Provider>
   )
 }
 

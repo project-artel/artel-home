@@ -136,6 +136,7 @@ export function useRunChatSession(
           createdAt: null,
           pending: false,
           reply: parsed.reply,
+          refs: parsed.refs,
         },
       ])
       // In card-review mode the result IS the end of the turn — no audit runs, so
@@ -219,6 +220,7 @@ export function useRunChatSession(
           question: parsed.question,
           // 함께 낸 것을 한 줄이 다 든다. 옛 서버는 `questions` 를 안 보내므로 첫 것만 남는다.
           questions: parsed.questions ?? [parsed.question],
+          refs: parsed.refs,
         },
       ])
     })

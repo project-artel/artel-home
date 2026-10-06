@@ -42,6 +42,8 @@ export type RunChatResult = {
   scenarios: ScenarioProposal[]
   /** The answer split for the screen (ARTEL-929). `null` on a plain reply — a greeting, a failure. */
   reply: ChatReply | null
+  /** Names for the markers in `reply` (ARTEL-933). */
+  refs: ChatRef[]
 }
 
 /**
@@ -55,6 +57,33 @@ export type RunChatResult = {
 export type ChatReply = {
   result: string
   detail: string
+}
+
+/**
+ * What a `[[tc:N]]` / `[[ts:N]]` marker in an answer points at (ARTEL-933). The chip shows
+ * `label`; a TC chip opens `detail` (precondition and expected result), since a TC has no
+ * page of its own. A TS chip opens the scenario.
+ */
+export type ChatRef = {
+  kind: 'tc' | 'ts'
+  id: number
+  label: string
+  detail: string | null
+}
+
+/** Reads a payload's or frame's `refs`. Entries without a kind, a numeric id or a label are dropped. */
+export function parseRefs(value: unknown): ChatRef[] {
+  if (!Array.isArray(value)) return []
+  return value.flatMap((entry) => {
+    const record = asRecord(entry)
+    if (record === null) return []
+    const kind = record.kind
+    const id = Number(record.id)
+    const label = asString(record.label)
+    if ((kind !== 'tc' && kind !== 'ts') || !Number.isFinite(id) || label.length === 0) return []
+    const detail = asString(record.detail)
+    return [{ kind, id, label, detail: detail.length > 0 ? detail : null }]
+  })
 }
 
 /** Reads a stored `kind=reply` payload or a live frame's `reply`. Anything without a result is not one. */
@@ -153,6 +182,8 @@ export type RunChatQuestionEvent = {
    * `question` is the first of these and stays for older clients; render this.
    */
   questions?: RunChatQuestion[]
+  /** Names for the markers in the question text (ARTEL-933). */
+  refs: ChatRef[]
 }
 
 /**
@@ -267,6 +298,7 @@ export async function listRunChatMessages(
       question: question !== null && !answered.has(question.id) ? question : null,
       questions: rest.length > 0 ? rest : undefined,
       reply: payload?.kind === 'reply' ? parseReply(payload) : null,
+      refs: parseRefs(payload?.refs),
     }
   })
 }
@@ -382,7 +414,13 @@ export function parseRunStreamEvent(data: string): RunChatStreamEvent | null {
     const scenarios = Array.isArray(record.scenarios)
       ? record.scenarios.map(parseProposal)
       : []
-    return { type: 'result', message: asString(record.message), scenarios, reply: parseReply(record.reply) }
+    return {
+      type: 'result',
+      message: asString(record.message),
+      scenarios,
+      reply: parseReply(record.reply),
+      refs: parseRefs(record.refs),
+    }
   }
   if (record.type === 'error') {
     return { type: 'error', code: asString(record.code), detail: asString(record.detail) }
@@ -401,7 +439,12 @@ export function parseRunStreamEvent(data: string): RunChatStreamEvent | null {
     const rest = Array.isArray(record.questions)
       ? record.questions.map(parseQuestion).filter((q): q is RunChatQuestion => q !== null)
       : []
-    return { type: 'question', question, questions: rest.length > 0 ? rest : [question] }
+    return {
+      type: 'question',
+      question,
+      questions: rest.length > 0 ? rest : [question],
+      refs: parseRefs(record.refs),
+    }
   }
   if (record.type === 'applied') {
     return { type: 'applied' }

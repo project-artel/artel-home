@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { parseReply, parseRunStreamEvent } from './runChatApi'
+import { parseRefs, parseReply, parseRunStreamEvent } from './runChatApi'
 
 // 답의 세 칸(ARTEL-929). 결과·설명은 저장된 payload(`kind=reply`)와 실시간 결과 프레임의 `reply`
 // 두 길로 온다 — 둘이 같은 모양으로 읽혀야 새로고침 전후가 같아 보인다.
@@ -38,4 +38,32 @@ test('결과 프레임의 reply 를 읽는다', () => {
 test('reply 없는 결과 프레임은 글만 있는 답이다', () => {
   const parsed = parseRunStreamEvent(JSON.stringify({ type: 'result', message: '안녕하세요', scenarios: [] }))
   assert.equal(parsed?.type === 'result' ? parsed.reply : 'x', null)
+})
+
+// ---- 참조(ARTEL-933) ---------------------------------------------------------------------
+
+test('refs 를 읽고 모양이 틀린 것은 버린다', () => {
+  assert.deepEqual(
+    parseRefs([
+      { kind: 'tc', id: 5, label: 'Shop — 상점을 연다', detail: '기대값: 상점이 열린다' },
+      { kind: 'ts', id: '7', label: '상점 여정' },
+      { kind: 'xx', id: 1, label: '?' },
+      { kind: 'tc', id: 2 },
+    ]),
+    [
+      { kind: 'tc', id: 5, label: 'Shop — 상점을 연다', detail: '기대값: 상점이 열린다' },
+      { kind: 'ts', id: 7, label: '상점 여정', detail: null },
+    ],
+  )
+  assert.deepEqual(parseRefs(undefined), [])
+})
+
+test('결과 프레임과 질문 프레임이 refs 를 든다', () => {
+  const refs = [{ kind: 'tc', id: 5, label: 'Shop — 상점을 연다' }]
+  const result = parseRunStreamEvent(JSON.stringify({ type: 'result', message: 'm', scenarios: [], refs }))
+  const question = parseRunStreamEvent(
+    JSON.stringify({ type: 'question', question: { id: 'q', text: '[[tc:5]] 볼까요?', options: [] }, refs }),
+  )
+  assert.equal(result?.type === 'result' ? result.refs[0]?.label : null, 'Shop — 상점을 연다')
+  assert.equal(question?.type === 'question' ? question.refs[0]?.id : null, 5)
 })

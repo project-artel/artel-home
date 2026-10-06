@@ -3,7 +3,8 @@ import { useI18n } from '../i18n/useI18n'
 import { getTestScenario } from '../testScenarios/scenarioApi'
 import { getRunScenarios } from './testRunApi'
 import { RunChatQuestionBlock } from './RunChatQuestion'
-import type { RunChatAnswer, RunChatQuestion } from './runChatApi'
+import type { ChatRef, RunChatAnswer, RunChatQuestion } from './runChatApi'
+import { ChatInline } from './ChatMessageBody'
 import type { ScenarioStep } from '../testScenarios/scenarioTypes'
 
 /**
@@ -31,6 +32,7 @@ export function RunChatQuestionModal({
   projectId,
   runId,
   questions,
+  refs = [],
   disabled,
   onAnswer,
   onClose,
@@ -38,6 +40,8 @@ export function RunChatQuestionModal({
   projectId: string
   runId: string
   questions: RunChatQuestion[]
+  /** Names for the markers in the question text (ARTEL-933). */
+  refs?: ChatRef[]
   disabled: boolean
   onAnswer: (answer: RunChatAnswer) => void
   onClose: () => void
@@ -147,8 +151,8 @@ export function RunChatQuestionModal({
             </div>
           )}
 
-          <p className="askmodal-question">{current.text}</p>
-          {current.why !== null && <p className="askmodal-why">{current.why}</p>}
+          <p className="askmodal-question"><ChatInline text={current.text} refs={refs} /></p>
+          {current.why !== null && <p className="askmodal-why"><ChatInline text={current.why} refs={refs} /></p>}
 
           {/* **어디에 들어가는지 먼저 보인다.** 자리를 모르면 무엇을 답해야 할지도 모른다. */}
           {slot === undefined ? (
