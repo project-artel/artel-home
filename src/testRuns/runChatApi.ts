@@ -57,6 +57,34 @@ export type RunChatResult = {
 export type ChatReply = {
   result: string
   detail: string
+  /** What this turn changed (ARTEL-938), drawn as a coloured list under `result`. */
+  changes: ScenarioChange[]
+}
+
+/**
+ * One scenario this turn created, updated or removed. `scenarioId` is null for a
+ * removed one — it no longer exists, so there is nothing to open.
+ */
+export type ScenarioChange = {
+  action: 'created' | 'updated' | 'removed'
+  title: string
+  scenarioId: number | null
+}
+
+const CHANGE_ACTIONS = ['created', 'updated', 'removed'] as const
+
+function parseChanges(value: unknown): ScenarioChange[] {
+  if (!Array.isArray(value)) return []
+  return value.flatMap((entry) => {
+    const record = asRecord(entry)
+    if (record === null) return []
+    const action = CHANGE_ACTIONS.find((one) => one === record.action)
+    const title = asString(record.title)
+    if (action === undefined || title.length === 0) return []
+    const raw = record.scenario_id ?? record.scenarioId
+    const id = raw == null ? Number.NaN : Number(raw)
+    return [{ action, title, scenarioId: Number.isFinite(id) ? id : null }]
+  })
 }
 
 /**
@@ -93,7 +121,7 @@ export function parseReply(value: unknown): ChatReply | null {
   if (record.kind !== undefined && record.kind !== 'reply') return null
   const result = asString(record.result)
   if (result.length === 0) return null
-  return { result, detail: asString(record.detail) }
+  return { result, detail: asString(record.detail), changes: parseChanges(record.changes) }
 }
 
 export type RunChatFailure = {

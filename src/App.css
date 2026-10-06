@@ -3146,6 +3146,22 @@ a.instance-name:hover {
 }
 .scenario-studio .st-chat .chat-reply-result-line{ margin:0; color:var(--st-text); font-weight:500; }
 .scenario-studio .st-chat .chat-reply-result strong{ font-weight:600; color:var(--st-emph); }
+/* 바뀐 시나리오 목록(ARTEL-938). 무엇이 일어났는지는 색과 앞 글자로 함께 말한다 — 색만으로
+   가르면 색을 못 가리는 사람에게는 세 줄이 같아 보인다. */
+.scenario-studio .st-chat .chat-reply-changes{ list-style:none; margin:4px 0 0; padding:0; display:flex; flex-direction:column; gap:3px; }
+.scenario-studio .st-chat .chat-reply-change{ display:flex; gap:6px; align-items:baseline; font-size:12.5px; line-height:1.45; color:var(--st-text); }
+.scenario-studio .st-chat .chat-reply-change a{ color:inherit; text-decoration:none; overflow-wrap:anywhere; }
+.scenario-studio .st-chat .chat-reply-change a:hover{ text-decoration:underline; }
+.scenario-studio .st-chat .chat-reply-change-tag{ flex:none; font-size:11px; font-weight:700; border-radius:4px; padding:0 5px; }
+.scenario-studio .st-chat .chat-reply-change--created .chat-reply-change-tag{ color:#1f8a4c; background:rgba(31,138,76,.14); }
+.scenario-studio .st-chat .chat-reply-change--updated .chat-reply-change-tag{ color:#a87400; background:rgba(214,158,0,.16); }
+.scenario-studio .st-chat .chat-reply-change--removed .chat-reply-change-tag{ color:#c93a28; background:rgba(201,58,40,.14); }
+.scenario-studio .st-chat .chat-reply-change--removed span:last-child{ text-decoration:line-through; color:var(--st-muted); }
+:root[data-theme='dark'] .scenario-studio .st-chat .chat-reply-change--created .chat-reply-change-tag{ color:#4cc97f; }
+:root[data-theme='dark'] .scenario-studio .st-chat .chat-reply-change--updated .chat-reply-change-tag{ color:#f0c040; }
+:root[data-theme='dark'] .scenario-studio .st-chat .chat-reply-change--removed .chat-reply-change-tag{ color:#f07a68; }
+.scenario-studio .st-chat .chat-reply-changes-toggle{ align-self:flex-start; margin-top:2px; font:inherit; font-size:12px; color:var(--st-muted); background:none; border:0; padding:0; cursor:pointer; }
+.scenario-studio .st-chat .chat-reply-changes-toggle:hover{ color:var(--st-text); }
 /* 표는 좁은 칸에서 가로로 밀린다. 칸을 줄이면 글자가 세로로 쌓여 못 읽는다. */
 .scenario-studio .st-chat .chat-md-table-wrap{ overflow-x:auto; }
 .scenario-studio .st-chat .chat-md-table{ border-collapse:collapse; font-size:12.5px; color:var(--st-text); }

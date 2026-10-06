@@ -57,6 +57,14 @@ export const scenariosEn = {
     },
   },
   chat: {
+    // The result box of an agent answer (ARTEL-938).
+    changes: {
+      created: 'Added',
+      updated: 'Changed',
+      removed: 'Removed',
+      expand: '… show {count} more',
+      collapse: 'Show less',
+    },
     question: {
       freeTextPlaceholder: 'Or tell it how…',
       freeTextLabel: 'Answer in your own words',
@@ -491,6 +499,13 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     },
   },
   chat: {
+    changes: {
+      created: '추가',
+      updated: '수정',
+      removed: '삭제',
+      expand: '… 펼치기 ({count}건 더)',
+      collapse: '접기',
+    },
     question: {
       freeTextPlaceholder: '직접 알려주기…',
       freeTextLabel: '직접 답하기',
