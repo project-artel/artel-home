@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ChatMessage } from '../testScenarios/scenarioTypes'
 import {
+  cancelRunChat,
   closeRunChat,
   commitRunScenarios,
   listRunChatMessages,
@@ -80,6 +81,14 @@ export function useRunChatSession(
   const [sendFailure, setSendFailure] = useState<string | null>(null)
   const [closed, setClosed] = useState(false)
   const [applying, setApplying] = useState(false)
+  // 취소 요청이 왕복 중인가(ARTEL-956). 화면에 보일 일은 없고, 아래 ref 와 짝으로 둔다.
+  const [cancelling, setCancelling] = useState(false)
+  /**
+   * 같은 것을 ref 로도 든다. **state 로는 빠른 연타를 못 막는다** — ESC 를 세 번 잇달아 누르면
+   * 세 handler 가 같은 렌더의 `cancelling` 을 읽어 셋 다 `false` 를 보고 지나간다. 실측에서
+   * 대화에 "요청을 취소했습니다" 가 세 줄 남았다.
+   */
+  const cancellingRef = useRef(false)
   const [applyFailure, setApplyFailure] = useState<string | null>(null)
   const [autoApply, setAutoApplyState] = useState(readAutoApply)
 
@@ -390,6 +399,45 @@ export function useRunChatSession(
     // `count` 가 바뀌면(묶음 하나가 끝나면) 시계도 다시 돈다 — 같은 단계가 이어져도 움직였다.
   }, [awaitingReply, current, count])
 
+  /**
+   * 도는 요청을 끊는다(ARTEL-956). ESC 두 번이 여기로 온다.
+   *
+   * **끊을 요청이 없었으면 화면을 건드리지 않는다.** 답이 방금 도착한 순간의 ESC 가 그 길이고,
+   * 그때 기다림을 지우면 방금 받은 답 위에 취소가 얹힌다.
+   *
+   * 취소 문구는 여기서 만들지 않는다 — 서버가 대화에 저장하고 `notice` 로 보내므로 위의
+   * 리스너가 평소대로 줄을 붙인다. 여기서 한 줄 더 붙이면 새로고침 전에는 두 줄, 뒤에는 한
+   * 줄이 보인다.
+   *
+   * @return 실제로 끊었는지.
+   */
+  const cancel = useCallback(async (): Promise<boolean> => {
+    if (runId === null || cancellingRef.current) return false
+    cancellingRef.current = true
+    setCancelling(true)
+    try {
+      const outcome = await cancelRunChat(projectId, runId)
+      if (!outcome.cancelled) return false
+      setAwaitingReply(false)
+      setStages([])
+      setCount(null)
+      setTurnStartedAt(null)
+      setStalled(false)
+      setMessages((previous) => previous.map((message) => ({ ...message, pending: false })))
+      // 끊기 전에 저장을 마친 것이 있을 수 있다. 지우지 않으므로 목록은 다시 읽어야 한다 —
+      // 안 읽으면 취소한 뒤에 레일과 DB 가 어긋난 채로 남는다.
+      onTurnEndedRef.current?.()
+      return true
+    } catch {
+      // 못 끊었다. 기다림은 그대로 둔다 — 치우면 오지 않을 답을 기다리지 않는 대신, 오고 있는
+      // 답을 받을 자리가 없어진다.
+      return false
+    } finally {
+      cancellingRef.current = false
+      setCancelling(false)
+    }
+  }, [projectId, runId])
+
   const close = useCallback(async () => {
     if (runId === null) return
     try {
@@ -420,10 +468,12 @@ export function useRunChatSession(
     applying,
     applyFailure,
     autoApply,
+    cancelling,
     stages,
     turnStartedAt,
     setAutoApply,
     send,
+    cancel,
     applyProposals,
     dropProposal,
     close,
