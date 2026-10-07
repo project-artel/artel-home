@@ -8,8 +8,9 @@ import { cancelQaRun, getQaRun, isDecimalId } from './qaApi'
 import { QaChatPanel } from './QaChatPanel'
 import { QaLogTimeline, type QaLogFocusRequest } from './QaLogTimeline'
 import { QaRunUsagePanel } from './QaRunUsagePanel'
+import { QaContextGauge } from './QaContextGauge'
 import { QaStepTimeline } from './QaStepTimeline'
-import { deriveQaProgress } from './qaProgress'
+import { deriveQaContextUsage, deriveQaProgress, isQaContextLog } from './qaProgress'
 import { isTerminalQaStatus, type QaLog, type QaRun, type QaTry } from './qaTypes'
 import { useQaTry } from './useQaTry'
 import { useScenarioSteps } from './useScenarioSteps'
@@ -293,16 +294,19 @@ function FocusedTry({ tryId }: { tryId: string }) {
     [scenarioSteps, session.hasMore, session.logs, session.qaTry?.status],
   )
 
+  const contextUsage = useMemo(() => deriveQaContextUsage(session.logs), [session.logs])
+
   const jumpToLog = useCallback((logId: string) => {
     setLogView('raw')
     setFocusRequest((current) => ({ logId, token: (current?.token ?? 0) + 1 }))
   }, [])
   const clearFocusRequest = useCallback(() => setFocusRequest(null), [])
 
-  const shownLogs = useMemo(
-    () => (logView === 'flow' ? session.logs.filter((log) => FLOW_TYPES.has(log.type)) : session.logs),
-    [logView, session.logs],
-  )
+  const shownLogs = useMemo(() => {
+    // Context readings are shown by the gauge, in one place, not as a line per model call.
+    const withoutContext = session.logs.filter((log) => !isQaContextLog(log))
+    return logView === 'flow' ? withoutContext.filter((log) => FLOW_TYPES.has(log.type)) : withoutContext
+  }, [logView, session.logs])
 
   // Carried over from the retired `QaTryPage` (ARTEL-723): a failed load needs
   // its own retry, distinct from the plain "still loading" state below — the
@@ -350,6 +354,7 @@ function FocusedTry({ tryId }: { tryId: string }) {
           )}
         </section>
 
+        <QaContextGauge usage={contextUsage} />
         <QaStepTimeline onJump={jumpToLog} progress={progress} scenarioSteps={scenarioSteps} />
       </div>
 

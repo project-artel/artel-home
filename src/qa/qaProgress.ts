@@ -251,3 +251,51 @@ export function deriveQaProgress({
 
   return { steps, reported: verdicts.size, passed, failed, total, labeled, correct, wrong }
 }
+
+/** How full the Agent's LLM context window is, as of its latest model call. */
+export type QaContextUsage = {
+  usedTokens: number
+  maxTokens: number
+  /** `usedTokens / maxTokens` as a percentage, rounded, not capped. */
+  percent: number
+}
+
+function asTokenCount(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null
+}
+
+/**
+ * The newest context usage the Agent reported.
+ *
+ * Each model call emits a `LOG` frame whose payload carries a `context` object
+ * (`used_tokens`, `max_tokens`); other `LOG` frames lack it. Frames with a
+ * missing or malformed `context`, or a `max_tokens` of zero or less, are
+ * skipped, so one bad frame does not hide an earlier good reading.
+ * Returns `null` when no frame qualifies.
+ */
+export function deriveQaContextUsage(logs: QaLog[]): QaContextUsage | null {
+  for (let index = logs.length - 1; index >= 0; index -= 1) {
+    const usage = readQaContextUsage(logs[index])
+    if (usage !== null) return usage
+  }
+  return null
+}
+
+/**
+ * Whether this frame only carries a context reading. The gauge is where that reading
+ * is shown, so the log timeline leaves these frames out; one per model call would
+ * otherwise bury the lines that matter.
+ */
+export function isQaContextLog(log: QaLog): boolean {
+  return log.type === 'LOG' && asRecord(asRecord(log.payload)?.context) !== null
+}
+
+function readQaContextUsage(log: QaLog): QaContextUsage | null {
+  if (log.type !== 'LOG') return null
+  const context = asRecord(asRecord(log.payload)?.context)
+  if (context === null) return null
+  const usedTokens = asTokenCount(context.used_tokens)
+  const maxTokens = asTokenCount(context.max_tokens)
+  if (usedTokens === null || maxTokens === null || maxTokens <= 0) return null
+  return { usedTokens, maxTokens, percent: Math.round((usedTokens / maxTokens) * 100) }
+}
