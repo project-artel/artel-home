@@ -9,6 +9,7 @@ import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { formatDateTime } from '../projects/formatters'
 import { groupStepsByCase } from '../testScenarios/scenarioTypes'
 import type { AuthoringStage, ChatRef, RunChatQuestion, ScenarioProposal } from './runChatApi'
+import { ESC_WINDOW_MS, pressEscape } from './escCancel'
 import { deleteTestCase, getCoverage, getTestCase } from '../testCases/testCaseApi'
 import type { TestCase, TestCaseCoverage } from '../testCases/testCaseTypes'
 import { TestCaseSheet } from '../testCases/TestCaseSheet'
@@ -219,6 +220,24 @@ export function RunChat({ session }: { session: RunChatSession }) {
   // 내역을 펼쳤나. 배지는 수 하나만 보이고 시나리오별 줄은 눌러서 본다.
   const [coverageOpen, setCoverageOpen] = useState(false)
   const elapsed = useElapsedSeconds(session.turnStartedAt)
+  /**
+   * ESC 를 처음 누른 때(ARTEL-956). `null` 이면 묻지 않은 상태다.
+   *
+   * 두 번 누르게 한 이유는 되돌릴 수 없어서다 — 끊긴 턴은 이어서 하는 길이 없고, 저작 한 턴은
+   * 수십 초라 그 사이 ESC 가 다른 뜻으로 눌린다. 판단은 {@link pressEscape} 가 한다.
+   */
+  const [escArmedAt, setEscArmedAt] = useState<number | null>(null)
+  // 물어본 상태를 **화면에 보일 때**는 도는 턴이 있는지까지 본다. 기다림이 끝나는 것은 ESC 와
+  // 무관하게 일어나므로(답이 도착한다), 그때 문구가 남아 있으면 끊을 것이 없는데 "한 번 더" 를
+  // 읽게 된다.
+  const escArmed = escArmedAt !== null && session.awaitingReply
+  // 이 화면이 띄워 둔 모달. 열려 있으면 ESC 는 그것을 닫는 뜻이라 취소로 세지 않는다.
+  const overlayOpen =
+    asking !== null ||
+    expanded !== null ||
+    openedCase !== null ||
+    deletingCase !== null ||
+    coverageOpen
   // 종착 단계(saved/blocked)는 여기에 없다. 그때는 훅이 목록을 비워 표시가 사라지고, 무슨 일이
   // 있었는지는 대화에 남은 문장이 말한다 — 다 끝난 눈금은 읽을거리만 하나 늘린다.
   const stageLabels: Partial<Record<AuthoringStage, string>> = {
@@ -295,6 +314,35 @@ export function RunChat({ session }: { session: RunChatSession }) {
       setInput('')
     }
   }
+
+  /**
+   * ESC 두 번으로 도는 요청을 끊는다(ARTEL-956).
+   *
+   * 입력창이 아니라 창 전체에서 듣는다. 기다리는 동안 사용자가 커서를 어디에 두고 있을지
+   * 알 수 없고, 그때 ESC 가 안 먹으면 "눌러도 아무 일이 없다" 가 된다.
+   */
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== 'Escape' || overlayOpen) return
+      // 도는 턴이 없으면 판단이 `ignored` 로 떨어지고 물어본 상태도 함께 지워진다. 그래서
+      // 턴이 끝났는지를 여기서 따로 치울 필요가 없다 — 치우는 자리가 둘이면 어긋난다.
+      const press = pressEscape(escArmedAt, Date.now(), session.awaitingReply)
+      setEscArmedAt(press.armedAt)
+      if (press.verdict === 'cancel') void session.cancel()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+    // `session` 통째로 두는 이유는 린트가 그렇게 요구하기 때문이다. 매 렌더마다 듣는 자리를
+    // 다시 걸게 되는데, 그 비용은 이벤트 하나 등록이라 진행 표시가 1초마다 바뀌는 것보다 싸다.
+  }, [session, escArmedAt, overlayOpen])
+
+  // 창이 지나면 물어본 것을 잊는다 — 화면의 "한 번 더" 도 함께 사라져야 한다. 문구는 남았는데
+  // 그 ESC 가 이미 창을 넘겼으면, 한 번 더 눌러도 끊기지 않는 것을 사용자가 보게 된다.
+  useEffect(() => {
+    if (escArmedAt === null) return
+    const timer = window.setTimeout(() => setEscArmedAt(null), ESC_WINDOW_MS)
+    return () => window.clearTimeout(timer)
+  }, [escArmedAt])
 
   // Enter sends; Shift+Enter is a newline. `isComposing` guards IME input (Korean).
   function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -522,8 +570,18 @@ export function RunChat({ session }: { session: RunChatSession }) {
           />
 
           <div className="chat-composer-actions">
-            <p className="shortcut-hint" id="run-chat-hint">
-              {c.shortcutHint}
+            {/* 입력창 바로 아래 한 줄로만 말한다(ARTEL-956). 버튼을 두지 않은 것은 취소가 흔한
+                일이 아니기 때문이다 — 늘 보이는 버튼은 늘 읽히고, 읽히는 만큼 눌린다. */}
+            <p
+              aria-live="polite"
+              className={escArmed ? 'shortcut-hint shortcut-hint--armed' : 'shortcut-hint'}
+              id="run-chat-hint"
+            >
+              {escArmed
+                ? c.cancelArmed
+                : session.awaitingReply
+                  ? c.cancelHint
+                  : c.shortcutHint}
             </p>
             <button
               className="button button--primary button--compact"
