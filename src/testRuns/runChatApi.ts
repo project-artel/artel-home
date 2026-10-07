@@ -141,11 +141,18 @@ export type RunChatFailure = {
  */
 export const AUTHORING_STAGES = [
   'sent',
+  // 워크플로 노드 (ARTEL-952). `thinking` 은 루프 시절 값이다 — 모델 호출마다 울려서
+  // "몇 바퀴 돌았나" 를 세라는 설계였다. 워크플로에는 바퀴가 없고 노드가 있다.
+  'grouping',
+  'grouped',
+  'bridging',
   'thinking',
   'looking_up_cases',
   'reading_case',
   'finding_path',
   'writing',
+  'saving',
+  'modifying',
   'checking',
   'saved',
   'repairing',
@@ -160,6 +167,49 @@ export const TERMINAL_STAGES: readonly AuthoringStage[] = ['saved', 'blocked']
 export type RunChatProgress = {
   type: 'progress'
   stage: AuthoringStage
+  /**
+   * 셀 수 있는 단계의 진행 (ARTEL-952). 없으면 셀 것이 없는 단계다.
+   *
+   * `writing` 이 묶음마다 반복되기 때문에 필요하다. 수가 없으면 같은 단계가 잇달아 온 것으로만
+   * 보이고 — 화면이 그것을 되풀이 횟수로 접는다 — 몇 개 중 몇 번째인지 말할 수 없다.
+   * 실측(런 87)에서 한 묶음이 29~54초였다.
+   */
+  done?: number
+  total?: number
+}
+
+/**
+ * 마지막 진행 표시 이후 이만큼 지나면 끊긴 것으로 본다 (ARTEL-952, 단위 ms).
+ *
+ * 한 값으로 두지 않는 이유는 노드마다 걸리는 시간이 자리수로 다르기 때문이다. 전량 저작 한 판이
+ * 141초인데 90초 한 값으로 두면 정상 턴에 거짓 경고가 나오고, 반대로 라우터가 0.24초인데 같은
+ * 값을 쓰면 죽은 턴을 한참 뒤에 알린다.
+ *
+ * 수는 실측에서 왔다 — 라우터는 ARTEL-944 의 163줄 측정, 나머지는 런 87 trace(2026-10-06):
+ *
+ *     묶기        25.7초 · 50.3초
+ *     문장 쓰기    29.4초 · 54.2초  (묶음 하나)
+ *     나눈다·메운다·검수·저장  0.2~0.5초 (코드)
+ *
+ * 실측의 세 배 남짓을 한도로 둔다. 느린 날을 끊긴 것으로 부르는 쪽이, 끊긴 것을 느리다고
+ * 부르는 쪽보다 나쁘다 — 앞은 사용자가 멀쩡한 턴을 버리게 만들고, 뒤는 16시간을 기다리게 했다.
+ */
+export const STAGE_STALL_MS: Record<AuthoringStage, number> = {
+  sent: 30_000,
+  grouping: 180_000,
+  grouped: 30_000,
+  bridging: 180_000,
+  thinking: 180_000,
+  looking_up_cases: 60_000,
+  reading_case: 60_000,
+  finding_path: 60_000,
+  writing: 180_000,
+  saving: 60_000,
+  modifying: 180_000,
+  checking: 60_000,
+  saved: Number.POSITIVE_INFINITY,
+  repairing: 180_000,
+  blocked: Number.POSITIVE_INFINITY,
 }
 
 /** An ASSISTANT line the *server* wrote (repair notice, audit refusal, remaining count). */
@@ -454,7 +504,17 @@ export function parseRunStreamEvent(data: string): RunChatStreamEvent | null {
     return { type: 'error', code: asString(record.code), detail: asString(record.detail) }
   }
   if (record.type === 'progress') {
-    return isAuthoringStage(record.stage) ? { type: 'progress', stage: record.stage } : null
+    if (!isAuthoringStage(record.stage)) return null
+    // 수는 **숫자일 때만** 읽는다. 서버는 셀 것이 없으면 `null` 을 실어 보내고(그 DTO 는
+    // null 을 그대로 싣는다), 옛 서버는 칸 자체가 없다. 둘 다 "셀 것이 없다" 로 같게 읽힌다.
+    const count = (value: unknown): number | undefined =>
+      typeof value === 'number' && Number.isFinite(value) ? value : undefined
+    return {
+      type: 'progress',
+      stage: record.stage,
+      done: count(record.done),
+      total: count(record.total),
+    }
   }
   if (record.type === 'notice') {
     return { type: 'notice', message: asString(record.message) }

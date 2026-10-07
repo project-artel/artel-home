@@ -80,6 +80,10 @@ function AuthoringProgress({
   formatRepeat,
   formatPast,
   collapseLabel,
+  count,
+  stalled,
+  stalledLabel,
+  formatCount,
 }: {
   stages: AuthoringStage[]
   labels: Partial<Record<AuthoringStage, string>>
@@ -89,8 +93,21 @@ function AuthoringProgress({
   formatRepeat: (times: number) => string
   formatPast: (steps: number) => string
   collapseLabel: string
+  /** 지금 단계의 n/N (ARTEL-952). 셀 것이 없는 단계면 null. */
+  count: { done?: number; total?: number } | null
+  /** 한도를 넘겨 끊긴 것으로 보인다 (ARTEL-952). */
+  stalled: boolean
+  stalledLabel: string
+  formatCount: (done: number, total: number) => string
 }) {
-  const [open, setOpen] = useState(false)
+  /**
+   * 지나온 단계를 **펼친 채로 시작한다** (ARTEL-952).
+   *
+   * 접은 것이 기본이던 이유는 단계가 `thinking` 하나로 되풀이돼서, 펼쳐도 같은 줄이 여러 개
+   * 쌓이기만 했기 때문이다. 노드로 바뀐 뒤에는 줄마다 다른 일을 말하므로 — 흐름을 나누고,
+   * 스텝을 쓰고, 저장하고 — 펼친 쪽이 턴이 어디까지 왔는지 보여 준다.
+   */
+  const [open, setOpen] = useState(true)
   const shown = stages
     .filter((stage) => labels[stage] !== undefined)
     .reduce<{ stage: AuthoringStage; times: number }[]>((runs, stage) => {
@@ -120,8 +137,18 @@ function AuthoringProgress({
       <p className="authoring-progress-step is-live">
         <span className="authoring-progress-dot" aria-hidden="true" />
         <span className="authoring-progress-label">{labels[live.stage]}</span>
-        {live.times > 1 && (
-          <span className="authoring-progress-repeat">{formatRepeat(live.times)}</span>
+        {/*
+          * 수가 있으면 **되풀이 횟수 대신 수를 그린다** (ARTEL-952). 묶음 셋을 쓰는 중에
+          * "3번" 과 "3/7" 은 다른 말이고, 뒤가 사용자가 알고 싶은 것이다.
+          */}
+        {count !== null && count.total !== undefined ? (
+          <span className="authoring-progress-count">
+            {formatCount(count.done ?? 0, count.total)}
+          </span>
+        ) : (
+          live.times > 1 && (
+            <span className="authoring-progress-repeat">{formatRepeat(live.times)}</span>
+          )
         )}
         {elapsed !== null && (
           <span className="authoring-progress-elapsed">{formatElapsed(elapsed)}</span>
@@ -137,6 +164,18 @@ function AuthoringProgress({
           </button>
         )}
       </p>
+      {/*
+        * 끊긴 것으로 보일 때만 나오는 줄. 이것이 없을 때 무슨 일이 생겼나 — 런 87 의 턴이
+        * 끊겼고 화면은 16시간 48분 뒤에도 같았다. 느린 것과 죽은 것을 구분할 수 없었다.
+        *
+        * 되돌릴 수 있는 상태로 둔다. 늦게라도 프레임이 오면 이 줄이 사라지고 화면은 다시
+        * 진행으로 돌아간다 — 느린 턴을 죽었다고 단정해 사용자가 멀쩡한 결과를 버리게 하면 안 된다.
+        */}
+      {stalled && (
+        <p className="authoring-progress-stalled" role="alert">
+          {stalledLabel}
+        </p>
+      )}
     </div>
   )
 }
@@ -184,6 +223,12 @@ export function RunChat({ session }: { session: RunChatSession }) {
   // 있었는지는 대화에 남은 문장이 말한다 — 다 끝난 눈금은 읽을거리만 하나 늘린다.
   const stageLabels: Partial<Record<AuthoringStage, string>> = {
     sent: c.stageSent,
+    // 워크플로 노드 (ARTEL-952)
+    grouping: c.stageGrouping,
+    grouped: c.stageGrouped,
+    bridging: c.stageBridging,
+    saving: c.stageSaving,
+    modifying: c.stageModifying,
     thinking: c.stageThinking,
     looking_up_cases: c.stageLookingUpCases,
     reading_case: c.stageReadingCase,
@@ -389,6 +434,10 @@ export function RunChat({ session }: { session: RunChatSession }) {
                 formatRepeat={c.stageRepeat}
                 labels={stageLabels}
                 stages={session.stages}
+                count={session.count}
+                stalled={session.stalled}
+                stalledLabel={c.stageStalled}
+                formatCount={c.stageCount}
               />
             </li>
           )}

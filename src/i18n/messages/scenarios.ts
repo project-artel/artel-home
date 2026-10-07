@@ -113,11 +113,18 @@ export const scenariosEn = {
      * the list collapses runs of it and counts them with `stageRepeat`.
      */
     stageSent: 'Request sent',
+    // 워크플로 노드 (ARTEL-952). 사용자가 보는 말로 적는다 — 노드 이름(B·C·D)이 아니라
+    // 그 노드가 하는 일로.
+    stageGrouping: 'Sorting the cases into journeys',
+    stageGrouped: 'Journeys decided',
+    stageBridging: 'Fixing the order',
+    stageSaving: 'Saving',
+    stageModifying: 'Editing the scenario',
     stageThinking: 'The agent is working',
     stageLookingUpCases: 'Looking up cases',
     stageReadingCase: 'Reading what a case is made of',
     stageFindingPath: 'Looking for the route between screens',
-    stageWriting: 'Cases handed over',
+    stageWriting: 'Writing the steps',
     stageChecking: 'Checking coverage',
     stageRepairing: 'Asking for the missing part again',
     stageRepeat: (n: number) => `×${n}`,
@@ -125,6 +132,9 @@ export const scenariosEn = {
     stagePast: (steps: number) => `${steps} earlier step${steps === 1 ? '' : 's'}`,
     stageCollapse: 'Hide',
     stageLabel: 'Authoring progress',
+    stageCount: (done: number, total: number) => `${done}/${total}`,
+    stageStalled:
+      'No answer has arrived for a while. The turn may have been cut off — if nothing changes, send the message again.',
     /*
      * 대화 머리의 두 번째 배지(ARTEL-904). 옆의 `미커버` 는 **프로젝트 전량**을 재고, 이쪽은
      * **이 런의 시나리오들**을 잰다. 라벨이 그 차이를 져야 한다 — 숫자 둘이 나란히 놓이는데
@@ -549,11 +559,17 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
      * 한 줄로 접고 `stageRepeat`으로 횟수를 센다.
      */
     stageSent: '요청 보냄',
+    // 워크플로 노드 (ARTEL-952). 노드 이름(B·C·D)이 아니라 그 노드가 하는 일로 적는다.
+    stageGrouping: '케이스를 흐름으로 나누는 중',
+    stageGrouped: '흐름을 나눴어요',
+    stageBridging: '순서를 고치는 중',
+    stageSaving: '저장 중',
+    stageModifying: '시나리오를 고치는 중',
     stageThinking: '에이전트 작업 중',
     stageLookingUpCases: '케이스 확인 중',
     stageReadingCase: '케이스 근거 확인 중',
     stageFindingPath: '화면 사이 경로 찾는 중',
-    stageWriting: '케이스 넘김',
+    stageWriting: '스텝을 쓰는 중',
     stageChecking: '검수 중',
     stageRepairing: '빠진 부분 다시 요청',
     stageRepeat: (n: number) => `×${n}`,
@@ -561,6 +577,9 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     stagePast: (steps: number) => `이전 ${steps}단계`,
     stageCollapse: '접기',
     stageLabel: '저작 진행 단계',
+    stageCount: (done: number, total: number) => `${done}/${total}`,
+    // 단정하지 않는다 — 늦게라도 올 수 있고, 멀쩡한 턴을 버리게 만들면 안 된다.
+    stageStalled: '한동안 답이 오지 않았어요. 턴이 끊겼을 수 있으니 그대로면 메시지를 다시 보내 주세요.',
     runCoverageLabel: '현재 런',
     runCoverageHelp:
       '이 런에 담긴 시나리오들이 검증하는 케이스 수입니다. 두 시나리오에 겹치는 케이스는 한 번만 셉니다. 눌러서 시나리오별로 봅니다.',

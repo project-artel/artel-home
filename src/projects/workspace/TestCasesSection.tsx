@@ -1,4 +1,4 @@
-import { TestCaseLibrary } from '../../testCases/TestCaseLibrary'
+import { TestCaseLibrary } from '../../testCases/TestCaseLibrary.tsx'
 import { useWorkspace } from './workspaceContext'
 
 /**
