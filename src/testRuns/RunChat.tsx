@@ -227,6 +227,14 @@ export function RunChat({ session }: { session: RunChatSession }) {
    * 수십 초라 그 사이 ESC 가 다른 뜻으로 눌린다. 판단은 {@link pressEscape} 가 한다.
    */
   const [escArmedAt, setEscArmedAt] = useState<number | null>(null)
+  /**
+   * 같은 값을 ref 로도 든다. 판단은 이것으로 하고 화면은 state 로 그린다.
+   *
+   * **state 만으로는 연타가 어긋난다** — ESC 를 세 번 잇달아 누르면 세 handler 가 같은 렌더의
+   * `escArmedAt` 을 읽어 2·3번째가 똑같이 "창 안의 두 번째" 로 판정된다. 실측에서 취소가 세 번
+   * 나갔다. ref 는 handler 안에서 바로 바뀌므로 세 번째 누름은 다시 첫 번째가 된다.
+   */
+  const escArmedAtRef = useRef<number | null>(null)
   // 물어본 상태를 **화면에 보일 때**는 도는 턴이 있는지까지 본다. 기다림이 끝나는 것은 ESC 와
   // 무관하게 일어나므로(답이 도착한다), 그때 문구가 남아 있으면 끊을 것이 없는데 "한 번 더" 를
   // 읽게 된다.
@@ -326,7 +334,8 @@ export function RunChat({ session }: { session: RunChatSession }) {
       if (event.key !== 'Escape' || overlayOpen) return
       // 도는 턴이 없으면 판단이 `ignored` 로 떨어지고 물어본 상태도 함께 지워진다. 그래서
       // 턴이 끝났는지를 여기서 따로 치울 필요가 없다 — 치우는 자리가 둘이면 어긋난다.
-      const press = pressEscape(escArmedAt, Date.now(), session.awaitingReply)
+      const press = pressEscape(escArmedAtRef.current, Date.now(), session.awaitingReply)
+      escArmedAtRef.current = press.armedAt
       setEscArmedAt(press.armedAt)
       if (press.verdict === 'cancel') void session.cancel()
     }
@@ -334,13 +343,16 @@ export function RunChat({ session }: { session: RunChatSession }) {
     return () => window.removeEventListener('keydown', onKeyDown)
     // `session` 통째로 두는 이유는 린트가 그렇게 요구하기 때문이다. 매 렌더마다 듣는 자리를
     // 다시 걸게 되는데, 그 비용은 이벤트 하나 등록이라 진행 표시가 1초마다 바뀌는 것보다 싸다.
-  }, [session, escArmedAt, overlayOpen])
+  }, [session, overlayOpen])
 
   // 창이 지나면 물어본 것을 잊는다 — 화면의 "한 번 더" 도 함께 사라져야 한다. 문구는 남았는데
   // 그 ESC 가 이미 창을 넘겼으면, 한 번 더 눌러도 끊기지 않는 것을 사용자가 보게 된다.
   useEffect(() => {
     if (escArmedAt === null) return
-    const timer = window.setTimeout(() => setEscArmedAt(null), ESC_WINDOW_MS)
+    const timer = window.setTimeout(() => {
+      escArmedAtRef.current = null
+      setEscArmedAt(null)
+    }, ESC_WINDOW_MS)
     return () => window.clearTimeout(timer)
   }, [escArmedAt])
 

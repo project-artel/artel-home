@@ -81,8 +81,14 @@ export function useRunChatSession(
   const [sendFailure, setSendFailure] = useState<string | null>(null)
   const [closed, setClosed] = useState(false)
   const [applying, setApplying] = useState(false)
-  // 취소 요청이 왕복 중인가(ARTEL-956). ESC 를 세 번 눌러도 창구는 한 번만 두드린다.
+  // 취소 요청이 왕복 중인가(ARTEL-956). 화면에 보일 일은 없고, 아래 ref 와 짝으로 둔다.
   const [cancelling, setCancelling] = useState(false)
+  /**
+   * 같은 것을 ref 로도 든다. **state 로는 빠른 연타를 못 막는다** — ESC 를 세 번 잇달아 누르면
+   * 세 handler 가 같은 렌더의 `cancelling` 을 읽어 셋 다 `false` 를 보고 지나간다. 실측에서
+   * 대화에 "요청을 취소했습니다" 가 세 줄 남았다.
+   */
+  const cancellingRef = useRef(false)
   const [applyFailure, setApplyFailure] = useState<string | null>(null)
   const [autoApply, setAutoApplyState] = useState(readAutoApply)
 
@@ -406,7 +412,8 @@ export function useRunChatSession(
    * @return 실제로 끊었는지.
    */
   const cancel = useCallback(async (): Promise<boolean> => {
-    if (runId === null || cancelling) return false
+    if (runId === null || cancellingRef.current) return false
+    cancellingRef.current = true
     setCancelling(true)
     try {
       const outcome = await cancelRunChat(projectId, runId)
@@ -426,9 +433,10 @@ export function useRunChatSession(
       // 답을 받을 자리가 없어진다.
       return false
     } finally {
+      cancellingRef.current = false
       setCancelling(false)
     }
-  }, [projectId, runId, cancelling])
+  }, [projectId, runId])
 
   const close = useCallback(async () => {
     if (runId === null) return
