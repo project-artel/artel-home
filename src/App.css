@@ -9174,3 +9174,280 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:27% } col.tct-c-added{ width:10%
 /* 저장·삭제는 시트 바닥에 붙어 스크롤과 무관하게 늘 닿는다. */
 .tcl-sheet .tcl-editor-actions{ position:sticky; bottom:-18px; margin:0 -18px -18px; padding:12px 18px;
   background:var(--st-surface); border-top:1px solid var(--st-border); display:flex; align-items:center; gap:8px; }
+
+/* ── Macro (ARTEL-941) ───────────────────────────────────────────────────────
+   빌드에 등록된 macro 목록과 그 source. 읽기 전용 화면이라 조작 affordance 를 가진
+   것은 행 button 과 빌드 picker, 새로고침 button 셋뿐이다.
+
+   **여기서 `--font-mono` 를 DESIGN.md 가 허용한 범위 밖에 쓴다.** 그 문서는 mono 를
+   timestamp·id·log·input event 에만 쓰라고 적었는데, macro 의 source 와 parameter
+   서명은 그 넷 중 어느 것도 아니다. 그래도 등폭이어야 하는 이유는 들여쓰기가 macro
+   language 문법의 일부라는 것이다(`if` 몸통). 비례 글꼴에서는 들여쓰기 단계가 서로
+   맞지 않아 읽을 수 없는 글이 된다. 의도한 예외이지 못 보고 지나친 위반이 아니다 —
+   ARTEL-941 의 acceptance criteria 가 등폭을 못박았다. */
+.section-content:has(.macro-section) {
+  width: min(100%, 1440px);
+}
+.macro-section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+.macro-build-picker {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+.macro-section-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 var(--space-3);
+}
+.macro-workspace {
+  display: grid;
+  gap: var(--space-5);
+  grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
+  align-items: start;
+}
+/* source 는 가로로 넓은 것이 본체다. 한 단이 되면 목록이 위, source 가 아래로 간다. */
+@media (max-width: 1023px) {
+  .macro-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.macro-list-panel,
+.macro-detail-panel {
+  min-width: 0;
+}
+
+.macro-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+.macro-group-heading {
+  margin: 0 0 var(--space-2);
+  color: var(--color-text-muted);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+/* 빈 관계가 무슨 뜻인지 적는 자리. 경고가 아니라 설명이므로 색을 쓰지 않는다 —
+   미정은 결함이 아니다. */
+.macro-group-copy {
+  margin: 0 0 var(--space-3);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+.macro-group-items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.macro-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+  width: 100%;
+  /* 최소 포인터 대상 32px. 두 줄이라 실제로는 그보다 높다. */
+  min-height: 32px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid transparent;
+  /* 선택됐을 때 굵어질 자리를 미리 비워 둔다. 선택이 폭을 바꾸면 고를 때마다 글자가
+     옆으로 밀린다. */
+  border-left: 3px solid transparent;
+  border-radius: var(--radius-md);
+  background: none;
+  text-align: left;
+  color: var(--color-text-primary);
+  transition: background var(--motion-fast) var(--ease-standard);
+}
+.macro-row:hover {
+  background: var(--color-bg-hover);
+}
+/* 선택을 색 하나로 말하지 않는다. 왼쪽에 3px 막대가 서는 형태 변화가 함께 가고,
+   스크린 리더에게는 `aria-current` 가 같은 사실을 말한다. */
+.macro-row--selected {
+  border-left-color: var(--color-action-primary);
+  background: var(--color-bg-raised);
+}
+.macro-row-signature {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+.macro-row-name {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.macro-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+/* `--color-text-muted` 가 아니라 `--color-text-secondary` 다. 선택된 행의 배경이
+   `--color-bg-raised` 인데, 다크에서 muted(#838C9A)를 그 위에 얹으면 4.46:1 로
+   DESIGN.md 의 본문 대비 4.5:1 아래로 떨어진다. */
+.macro-row-updated {
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+/* `.badge` 를 쓰지 않는다. 그쪽은 `text-transform: uppercase` 라서 `screen` 이름을
+   사람이 지은 대로 보여 주지 못한다. */
+.macro-screen-badge {
+  display: inline-block;
+  max-width: 220px;
+  padding: 2px var(--space-2);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  line-height: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.macro-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.macro-detail-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.macro-detail-title {
+  margin: 0;
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+.macro-detail-name {
+  color: var(--color-text-primary);
+}
+.macro-detail-updated {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.macro-detail-hint {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+.macro-detail-subtitle {
+  margin: 0 0 var(--space-2);
+  color: var(--color-text-muted);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.macro-detail-screen-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* "아직 screen 미정" 은 정상 상태다. 테두리만 두르고 색은 쓰지 않는다. */
+.macro-detail-unattached {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-raised);
+}
+.macro-detail-unattached-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.macro-detail-unattached-copy {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.macro-source-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.macro-source-note {
+  margin: 0 0 var(--space-2);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 16px;
+}
+/*
+ * source 는 코드다.
+ *
+ * `white-space: pre` 이지 `pre-wrap` 이 아니다. 들여쓰기가 macro language 문법의
+ * 일부라(`if` 몸통) 긴 줄을 임의의 자리에서 접으면 접힌 줄이 한 단계 더 들어간
+ * 것처럼 보인다. 그것은 읽기 불편한 글이 아니라 다른 뜻의 글이다. 대신 가로로
+ * 스크롤한다.
+ */
+.macro-source-body {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-canvas);
+  color: var(--color-text-primary);
+  font-size: 12px;
+  line-height: 18px;
+  white-space: pre;
+  overflow-x: auto;
+  tab-size: 2;
+}
+
+/* 새로고침이 실패했는데 직전 목록은 남아 있는 상태. 알림이 아니라 상시 조건이므로,
+   설명하는 목록이 떠 있는 동안 함께 떠 있는다. */
+.macro-banner {
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-status-warning);
+  border-radius: var(--radius-md);
+  background: var(--color-status-warning-muted);
+}
+.macro-banner-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.macro-banner-copy {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}

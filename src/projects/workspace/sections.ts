@@ -18,6 +18,7 @@ export const WORKSPACE_SECTIONS = [
   { id: 'qa', path: 'qa' },
   { id: 'qaHistory', path: 'qa-history' },
   { id: 'contentMap', path: 'content-map' },
+  { id: 'macros', path: 'macros' },
   { id: 'performance', path: 'performance' },
   { id: 'issues', path: 'issues' },
   { id: 'knowledge', path: 'knowledge' },

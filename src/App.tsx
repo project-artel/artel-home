@@ -11,6 +11,7 @@ import { ContentMapRedirect } from './contentMap/ContentMapPage'
 import { ContentMapSection } from './contentMap/ContentMapSection'
 import { useI18n } from './i18n/useI18n'
 import { KnowledgeSection } from './knowledge/KnowledgeGraphPage'
+import { MacroSection } from './macros/MacroSection'
 import { BuildPerformanceRoute } from './performance/BuildPerformancePage'
 import { PerformanceSection } from './performance/PerformanceSection'
 import { RunPerformanceRoute } from './performance/RunPerformancePage'
@@ -100,6 +101,7 @@ export function App() {
             <Route path="qa" element={<QaSection />} />
             <Route path="qa-history" element={<QaHistorySection />} />
             <Route path="content-map" element={<ContentMapSection />} />
+            <Route path="macros" element={<MacroSection />} />
             <Route path="performance" element={<PerformanceSection />} />
             <Route path="issues" element={<IssuesSection />} />
             <Route path="knowledge" element={<KnowledgeSection />} />
