@@ -1,25 +1,22 @@
 import { useEffect, useState } from 'react'
 import { getOAuthLoginUrl } from './auth/authApi'
-import { oauthProviders } from './auth/oauthProviders'
-import type { Messages } from './i18n/messages'
+import { enabledOAuthProviders } from './auth/oauthProviders'
+import { PasswordLoginForm } from './auth/PasswordLoginForm'
+import { oauthErrorMessage } from './auth/passwordFormErrors'
+import { getAuthProviders, type AuthProviders } from './auth/passwordAuthApi'
 import { useI18n } from './i18n/useI18n'
 import { ThemeToggle } from './ThemeToggle'
 
 /**
  * The orchestration server reports a failed callback as `?error=oauth` (the
- * provider exchange failed) or `?error=server` (the server could not issue a
- * session). Unknown codes fall back to the generic message so a new server
+ * provider exchange failed), `?error=server` (the server could not issue a
+ * session), `?error=disabled` (the account is disabled) or
+ * `?error=signup_closed` (a new GitHub account is not allowed in). Unknown codes fall back to the generic message so a new server
  * code never renders an empty alert. The code, not the text, is held in state
  * so the message follows a locale switch.
  */
 function readOAuthErrorCode(): string | null {
   return new URLSearchParams(window.location.search).get('error')
-}
-
-function oauthErrorMessage(code: string, login: Messages['common']['login']): string {
-  if (code === 'oauth') return login.errorOauth
-  if (code === 'server') return login.errorServer
-  return login.errorGeneric
 }
 
 function ProviderIcon({ providerId }: { providerId: string }) {
@@ -48,6 +45,17 @@ export function LoginPage({
 }) {
   const [oauthErrorCode] = useState(readOAuthErrorCode)
   const { t } = useI18n()
+  // `null` until the server answers; the email form does not wait for it.
+  const [providers, setProviders] = useState<AuthProviders | null>(null)
+  const oauthButtons = enabledOAuthProviders(providers)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    getAuthProviders(controller.signal)
+      .then(setProviders)
+      .catch(() => undefined)
+    return () => controller.abort()
+  }, [])
 
   useEffect(() => {
     if (oauthErrorCode === null) return
@@ -86,20 +94,26 @@ export function LoginPage({
           </div>
         )}
 
-        <div className="provider-list" aria-label={t.common.login.providerListLabel}>
-          {oauthProviders.map((provider) => (
-            <a
-              className="provider-button"
-              href={getOAuthLoginUrl(provider.loginPath)}
-              key={provider.id}
-            >
-              <ProviderIcon providerId={provider.id} />
-              {t.common.login.continueWith(provider.label)}
-            </a>
-          ))}
-        </div>
+        <PasswordLoginForm signupOpen={providers?.signupOpen === true} />
 
-        <p className="login-note">{t.common.login.note}</p>
+        {oauthButtons.length > 0 && (
+          <>
+            <p className="login-divider" aria-hidden="true"><span>{t.common.login.orDivider}</span></p>
+            <div className="provider-list" aria-label={t.common.login.providerListLabel}>
+              {oauthButtons.map((provider) => (
+                <a
+                  className="provider-button"
+                  href={getOAuthLoginUrl(provider.loginPath)}
+                  key={provider.id}
+                >
+                  <ProviderIcon providerId={provider.id} />
+                  {t.common.login.continueWith(provider.label)}
+                </a>
+              ))}
+            </div>
+            <p className="login-note">{t.common.login.note}</p>
+          </>
+        )}
       </section>
     </main>
   )

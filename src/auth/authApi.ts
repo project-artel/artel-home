@@ -34,11 +34,14 @@ export class UnauthorizedError extends Error {
  */
 export class AuthApiError extends Error {
   readonly status: number
+  /** The server's `code` (`email_taken`, `invalid_credentials`, ...), or `''` when the body had none. */
+  readonly code: string
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, code = '') {
     super(message)
     this.name = 'AuthApiError'
     this.status = status
+    this.code = code
   }
 }
 
@@ -159,6 +162,7 @@ export function parseAuthUser(data: unknown): AuthUser {
 
   const {
     id, displayName, email, emailVerified, pendingEmail, nickname, userTag, locale, identities,
+    platformRole, mustChangePassword,
   } = data as Record<string, unknown>
 
   if (
@@ -187,6 +191,9 @@ export function parseAuthUser(data: unknown): AuthUser {
           .map(parseLinkedIdentity)
           .filter((identity): identity is LinkedIdentity => identity !== null)
       : [],
+    // A missing or unknown grade degrades to the least privileged one.
+    platformRole: platformRole === 'ADMIN' || platformRole === 'DEVELOPER' ? platformRole : 'USER',
+    mustChangePassword: mustChangePassword === true,
   }
 }
 

@@ -9459,3 +9459,71 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:27% } col.tct-c-added{ width:10%
   font-size: 12px;
   line-height: 18px;
 }
+
+/* Email and password sign-in, shown above the provider buttons. */
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.login-form .field-input {
+  min-height: 44px;
+}
+
+.login-error--form {
+  margin-top: 0;
+}
+
+.login-submit {
+  min-height: 44px;
+  width: 100%;
+}
+
+.login-mode {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-raised);
+}
+
+.login-mode-button {
+  min-height: 36px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.login-mode-button[aria-pressed='true'] {
+  border-color: var(--color-border-strong);
+  color: var(--color-text-primary);
+  background: var(--color-bg-surface);
+}
+
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-6) 0 0;
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.login-divider::before,
+.login-divider::after {
+  flex: 1;
+  height: 1px;
+  background: var(--color-border-subtle);
+  content: '';
+}
+
+.login-divider + .provider-list {
+  margin-top: var(--space-4);
+}
