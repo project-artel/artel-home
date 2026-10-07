@@ -7,6 +7,7 @@ import {
   parseRunStreamEvent,
   runChatStreamUrl,
   sendRunChatMessage,
+  STAGE_STALL_MS,
   TERMINAL_STAGES,
   type AuthoringStage,
   type ScenarioProposal,
@@ -85,6 +86,17 @@ export function useRunChatSession(
   // Stages of the turn in flight (ARTEL-419), in arrival order. Empty = nothing to
   // show: either no turn is running or the one that was has reached its end.
   const [stages, setStages] = useState<AuthoringStage[]>([])
+  /**
+   * 지금 단계의 진행 (ARTEL-952). `writing` 의 n/N 이 여기 담긴다.
+   */
+  const [count, setCount] = useState<{ done?: number; total?: number } | null>(null)
+  /**
+   * 마지막 진행 표시 이후 한도를 넘겼다 (ARTEL-952).
+   *
+   * 이것이 없을 때 무슨 일이 생겼나 — 런 87 의 턴이 Agent 재시작으로 끊겼고, 화면은
+   * **16시간 48분 뒤에도 같았다**. 사용자는 느린 것과 죽은 것을 구분할 방법이 없었다.
+   */
+  const [stalled, setStalled] = useState(false)
   // When the current turn was sent, so the wait can be counted out loud. Elapsed
   // time is what separates "slow" from "stuck" while the server has nothing new
   // to report — and having nothing to report is the normal case between stages.
@@ -144,6 +156,7 @@ export function useRunChatSession(
       // Under auto-apply, checking/saved still follow: leave it up.
       if (!inFlightAutoApply.current) {
         setStages([])
+        setCount(null)
         setTurnStartedAt(null)
       }
       if (parsed.scenarios.length > 0) {
@@ -161,11 +174,14 @@ export function useRunChatSession(
       const parsed = parseRunStreamEvent(event.data)
       if (parsed === null || parsed.type !== 'progress') return
       const { stage } = parsed
+      // 무엇이든 왔다는 것은 살아 있다는 뜻이다. 한도 시계를 되감는다.
+      setStalled(false)
       if (TERMINAL_STAGES.includes(stage)) {
         // The turn is over. What happened is already in the thread (the agent's
         // reply, or the notice explaining the refusal) — keeping a spent stepper
         // on screen would just be one more thing to read.
         setStages([])
+        setCount(null)
         setTurnStartedAt(null)
         // And stop waiting. Every turn used to end with a `result` frame, which
         // cleared this; a turn the server finishes on its own does not send one —
@@ -184,6 +200,11 @@ export function useRunChatSession(
       // `result` that triggered it already cleared the waiting state; restore it,
       // or the wait that follows looks like nothing is happening.
       if (stage === 'repairing') setAwaitingReply(true)
+      setCount(
+        parsed.done === undefined && parsed.total === undefined
+          ? null
+          : { done: parsed.done, total: parsed.total },
+      )
       setStages((previous) =>
         previous[previous.length - 1] === stage ? previous : [...previous, stage],
       )
@@ -311,6 +332,7 @@ export function useRunChatSession(
         setMessages((previous) => previous.filter((m) => !m.pending))
         setAwaitingReply(false)
         setStages([])
+        setCount(null)
         setTurnStartedAt(null)
         setSendFailure('send-failed')
         return false
@@ -348,6 +370,26 @@ export function useRunChatSession(
     setProposals((previous) => previous.filter((p) => p !== proposal))
   }, [])
 
+  /**
+   * 지금 단계의 한도를 넘기면 끊긴 것으로 본다 (ARTEL-952).
+   *
+   * **단계마다 한도가 다르다.** 노드마다 걸리는 시간이 자리수로 다르기 때문이다 — 라우터는
+   * 0.24초이고 문장 쓰기는 묶음 하나에 29~54초다(실측). 한 값으로 두면 둘 중 하나가 틀린다.
+   *
+   * 시계는 **마지막 진행 표시**에서 다시 돈다. 무엇이든 오면 살아 있다는 뜻이므로, 그때마다
+   * 앞의 타이머를 버리고 새로 건다. 끊김은 되돌릴 수 있는 상태다 — 늦게라도 프레임이 오면
+   * 경고가 사라지고 화면은 다시 진행으로 돌아간다.
+   */
+  const current = stages[stages.length - 1]
+  useEffect(() => {
+    if (!awaitingReply || current === undefined) return
+    const limit = STAGE_STALL_MS[current]
+    if (!Number.isFinite(limit)) return
+    const timer = window.setTimeout(() => setStalled(true), limit)
+    return () => window.clearTimeout(timer)
+    // `count` 가 바뀌면(묶음 하나가 끝나면) 시계도 다시 돈다 — 같은 단계가 이어져도 움직였다.
+  }, [awaitingReply, current, count])
+
   const close = useCallback(async () => {
     if (runId === null) return
     try {
@@ -368,6 +410,9 @@ export function useRunChatSession(
     messages,
     proposals,
     connected,
+    // 지금 단계의 n/N 과, 한도를 넘겨 끊긴 것으로 보이는지 (ARTEL-952).
+    count,
+    stalled,
     awaitingReply,
     sending,
     sendFailure,
