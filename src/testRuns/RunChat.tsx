@@ -540,6 +540,14 @@ export function RunChat({ session }: { session: RunChatSession }) {
         </div>
       )}
 
+      {/* ESC 를 한 번 눌렀다(ARTEL-956). 대화의 끝에 붙인다 — 기다리는 동안 사용자가
+          보고 있는 것은 진행 표시이지 입력창 아래 한 줄이 아니다. */}
+      {escArmed && (
+        <p className="run-chat-cancel-armed" role="alert">
+          {c.cancelArmed}
+        </p>
+      )}
+
       {session.closed ? (
         <div className="chat-closed" role="status">
           <p className="chat-closed-title">{c.closedTitle}</p>
@@ -570,18 +578,12 @@ export function RunChat({ session }: { session: RunChatSession }) {
           />
 
           <div className="chat-composer-actions">
-            {/* 입력창 바로 아래 한 줄로만 말한다(ARTEL-956). 버튼을 두지 않은 것은 취소가 흔한
-                일이 아니기 때문이다 — 늘 보이는 버튼은 늘 읽히고, 읽히는 만큼 눌린다. */}
-            <p
-              aria-live="polite"
-              className={escArmed ? 'shortcut-hint shortcut-hint--armed' : 'shortcut-hint'}
-              id="run-chat-hint"
-            >
-              {escArmed
-                ? c.cancelArmed
-                : session.awaitingReply
-                  ? c.cancelHint
-                  : c.shortcutHint}
+            {/* 버튼을 두지 않은 것은 취소가 흔한 일이 아니기 때문이다(ARTEL-956) — 늘 보이는
+                버튼은 늘 읽히고, 읽히는 만큼 눌린다. 기다리는 동안에만 전송 안내를 대신한다.
+                한 번 눌러 물어보는 말은 여기가 아니라 대화 끝에 붙는다 — 사용자가 보고 있는
+                곳이 거기다. */}
+            <p className="shortcut-hint" id="run-chat-hint">
+              {session.awaitingReply ? c.cancelHint : c.shortcutHint}
             </p>
             <button
               className="button button--primary button--compact"

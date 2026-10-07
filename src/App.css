@@ -1651,13 +1651,21 @@ a.instance-name:hover {
 /*
  * ESC 를 한 번 눌러 물어보는 중(ARTEL-956).
  *
- * 같은 자리에서 글자만 바뀌므로, 색이 바뀌지 않으면 사용자는 문구가 달라진 것을 못 본다 —
- * 평소의 전송 안내와 글자 수가 비슷해서 더 그렇다. 경고색은 "다음 한 번이 되돌릴 수 없다" 를
- * 말하는 자리라 {@link .authoring-progress-stalled} 와 같은 것을 쓴다.
+ * 대화와 입력창 사이에 한 줄로 선다. 입력창 아래 안내와 같은 글씨로 두면 사용자는 문구가
+ * 달라진 것을 못 본다 — 다음 한 번이 되돌릴 수 없는 자리라 끊김 알림
+ * (`.authoring-progress-stalled`)과 같은 경고색을 쓴다.
  */
-.chat-composer-actions .shortcut-hint--armed {
+.run-chat-cancel-armed {
+  margin: var(--space-2) var(--space-4) 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-status-warning);
+  border-radius: var(--radius-md);
+  background: var(--color-status-warning-muted);
   color: var(--color-status-warning);
+  font-size: 13px;
   font-weight: 600;
+  line-height: 20px;
+  text-align: center;
 }
 
 .chat-closed {
