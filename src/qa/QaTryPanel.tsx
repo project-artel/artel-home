@@ -8,6 +8,7 @@ import { sectionHref } from '../projects/workspace/sections'
 import type { ExtrasStatus } from '../projects/workspace/workspaceContext'
 import type { TestRun } from '../testRuns/testRunApi'
 import { createQaRun, qaStartConflict } from './qaApi'
+import { byAscendingEffort } from './reasoningEfforts'
 import { qaRunPath, type QaModel, type QaReasoningSelection, type QaTry } from './qaTypes'
 import { TakeOverQaRunDialog } from './TakeOverQaRunDialog'
 
@@ -113,11 +114,13 @@ export function QaTryPanel({
   const runnable = ready && instances.length > 0 && runs.length > 0 && models.length > 0
   const selectedModel = models.find((model) => model.id === modelId) ?? null
   const reasoning = selectedModel?.reasoning ?? null
+  const sliderEfforts =
+    reasoning?.kind === 'effort' ? byAscendingEffort(reasoning.efforts) : []
   const selectedReasoning: QaReasoningSelection | null =
     !reasoningEnabled || reasoning === null
       ? null
       : reasoning.kind === 'effort'
-        ? { effort: reasoning.efforts[reasoningValue] ?? reasoning.efforts[0] }
+        ? { effort: sliderEfforts[reasoningValue] ?? sliderEfforts[0] }
         : { maxTokens: reasoningValue }
 
   function selectModel(nextId: string) {
@@ -126,7 +129,7 @@ export function QaTryPanel({
     setReasoningEnabled(false)
     setReasoningValue(
       next?.reasoning?.kind === 'effort'
-        ? Math.max(next.reasoning.efforts.indexOf('medium'), 0)
+        ? Math.max(byAscendingEffort(next.reasoning.efforts).indexOf('medium'), 0)
         : next?.reasoning?.minTokens ?? 0,
     )
   }
@@ -219,7 +222,7 @@ export function QaTryPanel({
                     <label className="qa-reasoning-slider" htmlFor={reasoningControlId}>
                       <span>
                         {reasoning.kind === 'effort'
-                          ? reasoning.efforts[reasoningValue]
+                          ? sliderEfforts[reasoningValue]
                           : reasoningValue.toLocaleString()}
                       </span>
                       <input
@@ -227,7 +230,7 @@ export function QaTryPanel({
                         id={reasoningControlId}
                         max={
                           reasoning.kind === 'effort'
-                            ? reasoning.efforts.length - 1
+                            ? sliderEfforts.length - 1
                             : reasoning.maxTokens
                         }
                         min={reasoning.kind === 'effort' ? 0 : reasoning.minTokens}
