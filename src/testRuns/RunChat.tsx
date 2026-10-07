@@ -100,7 +100,14 @@ function AuthoringProgress({
   stalledLabel: string
   formatCount: (done: number, total: number) => string
 }) {
-  const [open, setOpen] = useState(false)
+  /**
+   * 지나온 단계를 **펼친 채로 시작한다** (ARTEL-952).
+   *
+   * 접은 것이 기본이던 이유는 단계가 `thinking` 하나로 되풀이돼서, 펼쳐도 같은 줄이 여러 개
+   * 쌓이기만 했기 때문이다. 노드로 바뀐 뒤에는 줄마다 다른 일을 말하므로 — 흐름을 나누고,
+   * 스텝을 쓰고, 저장하고 — 펼친 쪽이 턴이 어디까지 왔는지 보여 준다.
+   */
+  const [open, setOpen] = useState(true)
   const shown = stages
     .filter((stage) => labels[stage] !== undefined)
     .reduce<{ stage: AuthoringStage; times: number }[]>((runs, stage) => {
