@@ -5,6 +5,7 @@ import { useI18n } from '../i18n/useI18n'
 import { getRunScenarios, setRunScenarios } from '../testRuns/testRunApi'
 import { createTestScenario, listTestScenarios } from './scenarioApi'
 import type { ScenarioImportResult } from './scenarioLibrary'
+import { PlaylistAddIcon } from './scenarioIcons'
 import { ScenarioImportDialog } from './ScenarioImportDialog'
 import type { TestScenarioSummary } from './scenarioTypes'
 
@@ -16,8 +17,8 @@ import type { TestScenarioSummary } from './scenarioTypes'
  * Creating a scenario in a run context both makes it and appends it to the run,
  * so a scenario made here is immediately part of the run being edited.
  *
- * 📂 은 다른 런의 시나리오를 복사해 이 런에 붙인다(ARTEL-995). 런 안에서만 보인다 — 복사본이 붙을
- * 자리가 런이다.
+ * 가져오기 버튼은 다른 런의 시나리오를 복사해 이 런에 붙인다(ARTEL-995). 런 안에서만 보인다 — 복사본이
+ * 붙을 자리가 런이다. 두 버튼은 아이콘만 두고 이름은 말풍선으로 보인다.
  */
 export function ScenarioList({
   projectId,
@@ -107,11 +108,15 @@ export function ScenarioList({
         <h2>{s.heading}</h2>
         <span className="count-pill">{items.length}</span>
         {runId !== null && (
-          <button className="mini-add" onClick={() => setImporting(true)} aria-label={s.import} title={s.import} type="button">
-            <span aria-hidden="true">📂</span>
+          <button className="mini-add tip-btn" onClick={() => setImporting(true)} aria-label={s.import} type="button">
+            <PlaylistAddIcon size={15} />
+            <span aria-hidden="true" className="tip">{s.import}</span>
           </button>
         )}
-        <button className="mini-add" onClick={create} disabled={creating} aria-label={s.new} title={s.new} type="button">＋</button>
+        <button className="mini-add tip-btn" onClick={create} disabled={creating} aria-label={s.new} type="button">
+          ＋
+          <span aria-hidden="true" className="tip">{s.new}</span>
+        </button>
       </div>
       {notice !== null && (
         <p className="empty-note" role="status">{notice}</p>

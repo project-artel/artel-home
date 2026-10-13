@@ -5,6 +5,7 @@ import { SplitHandle } from '../design-system/primitives/SplitHandle'
 import { listTestScenarios } from '../testScenarios/scenarioApi'
 import { ScenarioImportDialog } from '../testScenarios/ScenarioImportDialog'
 import { ScenarioList } from '../testScenarios/ScenarioList'
+import { PlaylistAddIcon } from '../testScenarios/scenarioIcons'
 import type { ScenarioImportResult } from '../testScenarios/scenarioLibrary'
 import { useChatWidth } from '../testScenarios/useChatWidth'
 import { getRunScenarios, getTestRun, setRunScenarios, type TestRun } from './testRunApi'
@@ -177,7 +178,8 @@ function RunEditPage({ projectId, runId }: { projectId: string; runId: string })
                   <button className="st-btn st-btn--primary" disabled={creating} onClick={createFirst} type="button">
                     {creating ? e.creating : e.createFirst}
                   </button>
-                  <button className="st-btn" disabled={creating} onClick={() => setImporting(true)} type="button">
+                  <button className="st-btn st-btn--icon" disabled={creating} onClick={() => setImporting(true)} type="button">
+                    <PlaylistAddIcon size={16} />
                     {e.importExisting}
                   </button>
                 </div>

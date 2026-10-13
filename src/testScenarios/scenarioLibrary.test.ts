@@ -1,15 +1,16 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
-  importOrder,
+  currentVersionKey,
+  findRun,
+  initialActiveRun,
   initialExpanded,
   parseScenarioImport,
   parseScenarioLibrary,
-  runKey,
   runSelection,
+  scenarioOrigins,
   toggleRun,
   toggleScenario,
-  versionKey,
   versionLabel,
 } from './scenarioLibrary'
 
@@ -18,8 +19,9 @@ const wire = {
     {
       gameBuild: { gameBuildId: '2', version: '2.0.0', label: null },
       testRuns: [
-        { testRunId: '20', name: '2.0 런', testScenarios: [
-          { testScenarioId: '201', title: '보스전', stepCount: 4, updatedAt: '2026-10-13T00:00:00Z' },
+        { testRunId: '20', name: '2.0 런', testScenarios: [] },
+        { testRunId: '21', name: '2.0 다른 런', testScenarios: [
+          { testScenarioId: '201', title: '보스전', stepCount: 4, caseCount: 3, updatedAt: '2026-10-13T00:00:00Z' },
         ] },
       ],
     },
@@ -28,7 +30,7 @@ const wire = {
       testRuns: [
         { testRunId: '10', name: '1.0 런', testScenarios: [
           { testScenarioId: '101', title: '튜토리얼', stepCount: 3, updatedAt: null },
-          { testScenarioId: '201', title: '보스전', stepCount: 4, updatedAt: null },
+          { testScenarioId: '201', title: '보스전', stepCount: 4, caseCount: 3, updatedAt: null },
           { testScenarioId: '', title: 'id 없음', stepCount: 1 },
         ] },
       ],
@@ -37,40 +39,51 @@ const wire = {
   ],
 }
 
-test('트리는 버전 → TR → TS 로 읽고, id 없는 TS 는 버린다', () => {
+test('트리는 버전 → 런 → 시나리오로 읽고, id 없는 시나리오는 버린다', () => {
   const versions = parseScenarioLibrary(wire)
 
   assert.equal(versions.length, 3)
-  assert.equal(versions[1].gameBuild?.label, '알파')
   assert.deepEqual(versions[1].testRuns[0].testScenarios.map((s) => s.testScenarioId), ['101', '201'])
-  assert.equal(versions[2].gameBuild, null)
-  assert.equal(versions[2].testRuns[0].testRunId, null)
+  assert.equal(versions[1].testRuns[0].testScenarios[0].caseCount, 0)
+  assert.equal(versions[0].testRuns[1].testScenarios[0].caseCount, 3)
   assert.equal(versionLabel(versions[1], '없음'), '알파')
-  assert.equal(versionLabel(versions[0], '없음'), '2.0.0')
   assert.equal(versionLabel(versions[2], '없음'), '없음')
 })
 
-test('처음에는 가장 최근 버전과 그 TR 만 펼친다', () => {
+test('처음에는 버전을 모두 펼치고, 편집 중인 런과 빈 런을 건너뛴 첫 런을 보인다', () => {
   const versions = parseScenarioLibrary(wire)
 
-  assert.deepEqual([...initialExpanded(versions)], [versionKey(versions[0]), runKey(versions[0], versions[0].testRuns[0])])
-  assert.deepEqual([...initialExpanded([])], [])
+  assert.equal(initialExpanded(versions).size, 3)
+  assert.equal(initialActiveRun(versions, '21'), 'v:1/r:10')
+  assert.equal(initialActiveRun(versions, '99'), 'v:2/r:21')
+  assert.equal(findRun(versions, 'v:none/r:loose')?.run.testScenarios[0].testScenarioId, '301')
+  assert.equal(findRun(versions, null), null)
 })
 
-test('TR 을 고르면 그 안의 TS 전부, 다시 누르면 전부 푼다', () => {
+test('편집 중인 런이 든 버전을 찾는다', () => {
+  const versions = parseScenarioLibrary(wire)
+
+  assert.equal(currentVersionKey(versions, '10'), 'v:1')
+  assert.equal(currentVersionKey(versions, '99'), null)
+})
+
+test('런 전체 고르기는 빠진 것을 런 순서대로 뒤에 붙이고, 다 골랐으면 그 런 것만 뺀다', () => {
   const ids = ['101', '201']
-  const some = toggleScenario('101', new Set())
+  const some = toggleScenario('201', ['301'])
+  assert.deepEqual(some, ['301', '201'])
   assert.equal(runSelection(ids, some), 'some')
 
   const all = toggleRun(ids, some)
+  assert.deepEqual(all, ['301', '201', '101'])
   assert.equal(runSelection(ids, all), 'all')
-  assert.equal(runSelection(ids, toggleRun(ids, all)), 'none')
+  assert.deepEqual(toggleRun(ids, all), ['301'])
 })
 
-test('보내는 순서는 트리 순서이고 여러 TR 에 든 TS 는 한 번만 보낸다', () => {
-  const versions = parseScenarioLibrary(wire)
+test('고른 것의 출처는 트리에서 처음 나온 곳이다', () => {
+  const origins = scenarioOrigins(parseScenarioLibrary(wire), '버전 없음', '어느 런에도 없음')
 
-  assert.deepEqual(importOrder(versions, new Set(['301', '101', '201'])), ['201', '101', '301'])
+  assert.deepEqual(origins.get('201'), { title: '보스전', from: '2.0.0 · 2.0 다른 런' })
+  assert.deepEqual(origins.get('301'), { title: '', from: '버전 없음 · 어느 런에도 없음' })
 })
 
 test('가져오기 응답의 복사본과 짝 없는 TC', () => {

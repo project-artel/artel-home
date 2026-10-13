@@ -13,6 +13,8 @@ export type LibraryScenario = {
   testScenarioId: string
   title: string
   stepCount: number
+  /** 스텝이 검증하는 서로 다른 TC 수. */
+  caseCount: number
   updatedAt: string | null
 }
 
@@ -56,6 +58,7 @@ export function parseScenarioLibrary(data: unknown): LibraryVersion[] {
                 testScenarioId,
                 title: asString(scenario?.title),
                 stepCount: typeof scenario?.stepCount === 'number' ? scenario.stepCount : 0,
+                caseCount: typeof scenario?.caseCount === 'number' ? scenario.caseCount : 0,
                 updatedAt: asNullableString(scenario?.updatedAt),
               }
             })
@@ -106,56 +109,89 @@ export async function importScenarios(
 
 /* ---------------------------------------------------------------- tree */
 
-/** 펼침 상태의 키. 버전은 build id(없으면 `none`), TR 은 그 아래 TR id(없으면 `loose`). */
+/** 펼침 상태의 키. 버전은 build id(없으면 `none`). */
 export const versionKey = (version: LibraryVersion) => `v:${version.gameBuild?.gameBuildId ?? 'none'}`
+/** 오른쪽에 펼칠 런의 키. 어느 런에도 없는 묶음은 버전마다 하나라 버전 키를 붙인다. */
 export const runKey = (version: LibraryVersion, run: LibraryRun) =>
   `${versionKey(version)}/r:${run.testRunId ?? 'loose'}`
 
-/** 처음 열 때 펼쳐 둘 것: 가장 최근 버전과 그 아래 TR 들. 나머지는 접어 둔다. */
+/** 지금 편집 중인 런이 든 버전. 트리에서 "이 런의 버전" 을 표시한다. */
+export function currentVersionKey(versions: readonly LibraryVersion[], runId: string): string | null {
+  const found = versions.find((version) => version.testRuns.some((run) => run.testRunId === runId))
+  return found === undefined ? null : versionKey(found)
+}
+
+/** 처음에는 모든 버전을 펼친다. 버전 수는 적고, 접혀 있으면 런이 있는지조차 안 보인다. */
 export function initialExpanded(versions: readonly LibraryVersion[]): Set<string> {
-  const first = versions[0]
-  if (first === undefined) return new Set()
-  return new Set([versionKey(first), ...first.testRuns.map((run) => runKey(first, run))])
-}
-
-/** TR 줄의 체크 상태. 안의 TS 가 전부 골라졌으면 `all`, 일부면 `some`. */
-export function runSelection(scenarioIds: readonly string[], selected: ReadonlySet<string>): 'all' | 'some' | 'none' {
-  const picked = scenarioIds.filter((id) => selected.has(id)).length
-  if (picked === 0) return 'none'
-  return picked === scenarioIds.length ? 'all' : 'some'
-}
-
-/** TR 줄을 누르면 전부 고르거나, 이미 전부 골랐으면 전부 푼다. */
-export function toggleRun(scenarioIds: readonly string[], selected: ReadonlySet<string>): Set<string> {
-  const next = new Set(selected)
-  if (runSelection(scenarioIds, selected) === 'all') scenarioIds.forEach((id) => next.delete(id))
-  else scenarioIds.forEach((id) => next.add(id))
-  return next
-}
-
-export function toggleScenario(testScenarioId: string, selected: ReadonlySet<string>): Set<string> {
-  const next = new Set(selected)
-  if (next.has(testScenarioId)) next.delete(testScenarioId)
-  else next.add(testScenarioId)
-  return next
+  return new Set(versions.map(versionKey))
 }
 
 /**
- * 서버로 보낼 순서. 트리에 보이는 순서(버전 → TR → TR 안의 순서)를 따르고, 여러 TR 에 든 TS 는 한 번만 보낸다.
- * 고른 순서를 따르지 않는 것은, 사람이 TR 째 고를 때 기대하는 것이 그 TR 의 순서이기 때문이다.
+ * 처음 오른쪽에 보일 런: 가장 최근 버전부터 훑어, 지금 편집 중인 런이 아니고 시나리오가 있는 첫 런.
+ * 자기 런을 먼저 보이면 첫 화면이 "이미 있는 것" 이다.
  */
-export function importOrder(versions: readonly LibraryVersion[], selected: ReadonlySet<string>): string[] {
-  const order: string[] = []
+export function initialActiveRun(versions: readonly LibraryVersion[], runId: string): string | null {
+  for (const version of versions) {
+    for (const run of version.testRuns) {
+      if (run.testRunId !== runId && run.testScenarios.length > 0) return runKey(version, run)
+    }
+  }
+  return null
+}
+
+export function findRun(
+  versions: readonly LibraryVersion[],
+  key: string | null,
+): { version: LibraryVersion; run: LibraryRun } | null {
+  for (const version of versions) {
+    for (const run of version.testRuns) {
+      if (runKey(version, run) === key) return { version, run }
+    }
+  }
+  return null
+}
+
+/** 고른 것 줄이 보일 출처. 같은 TS 가 여러 런에 있으면 트리에서 먼저 나오는 곳이다. */
+export function scenarioOrigins(
+  versions: readonly LibraryVersion[],
+  noVersion: string,
+  looseRun: string,
+): Map<string, { title: string; from: string }> {
+  const origins = new Map<string, { title: string; from: string }>()
   for (const version of versions) {
     for (const run of version.testRuns) {
       for (const scenario of run.testScenarios) {
-        if (selected.has(scenario.testScenarioId) && !order.includes(scenario.testScenarioId)) {
-          order.push(scenario.testScenarioId)
-        }
+        if (origins.has(scenario.testScenarioId)) continue
+        origins.set(scenario.testScenarioId, {
+          title: scenario.title,
+          from: `${versionLabel(version, noVersion)} · ${run.name ?? looseRun}`,
+        })
       }
     }
   }
-  return order
+  return origins
+}
+
+/** 런의 고른 상태. 안의 TS 가 전부 골라졌으면 `all`, 일부면 `some`. */
+export function runSelection(scenarioIds: readonly string[], picked: readonly string[]): 'all' | 'some' | 'none' {
+  const count = scenarioIds.filter((id) => picked.includes(id)).length
+  if (count === 0) return 'none'
+  return count === scenarioIds.length ? 'all' : 'some'
+}
+
+/**
+ * "이 런 전체" 를 누르면 빠진 것을 런 순서대로 뒤에 붙이고, 이미 전부 골랐으면 그 런의 것을 모두 뺀다.
+ * 고른 것은 배열이다 — 그 순서가 곧 TR 에 붙는 순서이고, 고른 것 줄도 같은 순서로 보인다.
+ */
+export function toggleRun(scenarioIds: readonly string[], picked: readonly string[]): string[] {
+  if (runSelection(scenarioIds, picked) === 'all') return picked.filter((id) => !scenarioIds.includes(id))
+  return [...picked, ...scenarioIds.filter((id) => !picked.includes(id))]
+}
+
+export function toggleScenario(testScenarioId: string, picked: readonly string[]): string[] {
+  return picked.includes(testScenarioId)
+    ? picked.filter((id) => id !== testScenarioId)
+    : [...picked, testScenarioId]
 }
 
 export function versionLabel(version: LibraryVersion, noVersion: string): string {
