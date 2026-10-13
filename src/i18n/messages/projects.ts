@@ -330,6 +330,23 @@ export const projectsEn = {
     dangerTitle: 'Danger zone',
     dangerCopy:
       'Deleting a project removes its test runs, QA history, and issues. This cannot be undone.',
+    cliRun: {
+      title: 'Run from the CLI',
+      intro: 'Drive this project from a terminal or from CI.',
+      ciBefore: 'In CI, set a CLI token from ',
+      ciLink: 'account settings',
+      ciAfter: ' as the ',
+      ciEnd: ' environment variable instead.',
+      commandsTitle: 'Commands for this project',
+      commandsIntro:
+        'game start launches the build signed in and prints the instance id. qa run exits 0 only when the run passed, so CI can gate on it.',
+      copyStart: 'Copy game start command',
+      startCopied: 'Game start command copied.',
+      copyList: 'Copy game list command',
+      listCopied: 'Game list command copied.',
+      copyQaRun: 'Copy qa run command',
+      qaRunCopied: 'QA run command copied.',
+    },
     nav: {
       dashboard: 'Dashboard',
       documents: 'Planning document',
@@ -684,6 +701,23 @@ export const projectsKo: Localized<typeof projectsEn> = {
     generalTitle: '일반',
     dangerTitle: '위험 구역',
     dangerCopy: '프로젝트를 삭제하면 테스트 런, QA 기록, 이슈가 모두 사라집니다. 되돌릴 수 없습니다.',
+    cliRun: {
+      title: 'CLI 로 실행',
+      intro: '터미널이나 CI 에서 이 프로젝트를 실행합니다.',
+      ciBefore: 'CI 에서는 ',
+      ciLink: '계정 설정',
+      ciAfter: '에서 발급한 CLI 토큰을 ',
+      ciEnd: ' 환경 변수로 지정합니다.',
+      commandsTitle: '이 프로젝트의 명령',
+      commandsIntro:
+        'game start 는 로그인된 상태로 빌드를 실행하고 인스턴스 id 를 출력합니다. qa run 은 실행이 통과했을 때만 종료 코드 0 을 반환하므로 CI 에서 통과 여부를 판단하는 데 쓸 수 있습니다.',
+      copyStart: 'game start 명령 복사',
+      startCopied: 'game start 명령을 복사했습니다.',
+      copyList: 'game list 명령 복사',
+      listCopied: 'game list 명령을 복사했습니다.',
+      copyQaRun: 'qa run 명령 복사',
+      qaRunCopied: 'qa run 명령을 복사했습니다.',
+    },
     nav: {
       dashboard: '대시보드',
       documents: '기획 문서',
