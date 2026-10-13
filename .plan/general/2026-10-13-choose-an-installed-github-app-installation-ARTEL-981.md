@@ -2,7 +2,7 @@
 
 - Date: 2026-10-13
 - Jira: ARTEL-981 (스토리 ARTEL-979, 먼저 merge 할 것: ARTEL-980)
-- Status: Reviewed
+- Status: Implemented
 
 ## Goal
 
@@ -122,6 +122,15 @@
   - ARTEL-980 보다 먼저 배포되면 "GitHub 연결" 이 404 를 받는다. merge 순서를 지킨다.
   - 이미 App 을 인가한 사람은 GitHub 화면 없이 바로 돌아온다. 화면이 한 번 깜빡이는 것처럼 보일 수 있다.
 - **Rollback steps:** `git revert`.
+
+## Implementation notes
+
+- 서버 code `tracker_installation_not_verified`(400)는 서버 메시지 대신 `selectInstallationFailed` 문구와
+  "다시 승인" 버튼으로 처리한다. 목록이 낡았을 때만 생기고, 다시 승인하면 목록이 새로 만들어진다.
+- 다시 승인이 필요한 실패 뒤에는 이전 목록을 숨긴다. 이미 실패한 행을 다시 누르지 않게 하기 위해서다.
+- 버튼은 `.tracker-actions` 가로 묶음에 둔다. 첫 screen capture 에서 버튼이 간격 없이 붙고, 연결된 상태의
+  두 버튼이 세로로 꽉 차게 쌓였다.
+- screen capture 는 `.plan/assets/2026-10-13-choose-an-installed-github-app-installation-ARTEL-981/` 에 있다.
 
 ## Merge 전 확인
 
