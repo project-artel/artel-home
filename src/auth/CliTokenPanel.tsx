@@ -18,6 +18,7 @@ import { useCliTokens } from './useCliTokens'
 
 const CLI_INSTALL_COMMAND = 'npm install -g @project-artel/cli@alpha'
 const CLI_LOGIN_COMMAND = 'artel auth login'
+const CLI_AGENT_GUIDE_URL = 'https://artel.kr/cli.md'
 const CLI_README_URL = 'https://github.com/project-artel/artel-cli#readme'
 
 /**
@@ -44,6 +45,7 @@ export function CliTokenPanel() {
   const [revoking, setRevoking] = useState<CliToken | null>(null)
   const [announcement, setAnnouncement] = useState('')
 
+  const agentPrompt = copy.install.agentPrompt(CLI_AGENT_GUIDE_URL)
   const installTitleId = useId()
   const nameId = useId()
   const expiryId = useId()
@@ -96,6 +98,16 @@ export function CliTokenPanel() {
             label={copy.install.copyInstall}
             onResult={setAnnouncement}
             text={CLI_INSTALL_COMMAND}
+          />
+        </div>
+        <p className="guide-copy">{copy.install.agentIntro}</p>
+        <div className="copy-line">
+          <code className="mono copy-value">{agentPrompt}</code>
+          <CopyButton
+            copiedMessage={copy.install.agentPromptCopied}
+            label={copy.install.copyAgentPrompt}
+            onResult={setAnnouncement}
+            text={agentPrompt}
           />
         </div>
         <p className="guide-copy">{copy.install.signIn}</p>
