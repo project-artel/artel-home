@@ -1,7 +1,6 @@
 import { QaTryPanel } from '../../qa/QaTryPanel'
 import { GameBuildPanel } from '../GameBuildPanel'
 import { GameInstancePanel } from '../GameInstancePanel'
-import { CliRunPanel } from './CliRunPanel'
 import { useWorkspace } from './workspaceContext'
 
 /**
@@ -48,7 +47,6 @@ export function QaSection() {
           projectId={projectId}
         />
         <GameBuildPanel builds={builds} onSaved={applyBuild} projectId={projectId} />
-        <CliRunPanel projectId={projectId} />
       </div>
     </div>
   )

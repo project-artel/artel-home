@@ -1,4 +1,5 @@
 import { useId, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { CopyButton } from '../projects/CopyButton'
 import { formatDateTime } from '../projects/formatters'
 import { useI18n } from '../i18n/useI18n'
@@ -89,6 +90,8 @@ export function CliTokenPanel() {
         </p>
         <p className="guide-copy">
           <a href={CLI_README_URL} rel="noreferrer" target="_blank">{copy.install.readme}</a>
+          <span aria-hidden="true"> · </span>
+          <Link to="/setup">{copy.install.fullGuide}</Link>
         </p>
       </CliInstallSteps>
 
