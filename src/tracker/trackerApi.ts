@@ -226,7 +226,10 @@ export async function listTrackerInstallations(
   return parseTrackerInstallationList(await readJson(response))
 }
 
-/** Switches the project to another installation; the server clears `repository`, so the link comes back without one. */
+/**
+ * Attaches an installation to the project. When it differs from the current
+ * one the server clears `repository`, so the link comes back without one.
+ */
 export async function selectTrackerInstallation(
   projectId: string,
   provider: TrackerProvider,

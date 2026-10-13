@@ -105,9 +105,9 @@ export const trackerKo: Localized<typeof trackerEn> = {
     chooseInstallationCopy: 'GitHub App 이 설치된 계정을 고르세요. 이 프로젝트는 그 계정의 저장소로 결함을 보냅니다.',
     installationsLoading: '계정을 불러오는 중…',
     installationsFailed: '계정 목록을 불러오지 못했습니다.',
-    installationsEmpty: '아직 사용할 수 있는 GitHub App 설치 계정이 없습니다.',
-    authorizationExpired: 'GitHub 인가가 만료되었습니다.',
-    reauthorize: '다시 인가',
+    installationsEmpty: 'GitHub App 이 설치된 계정 중 사용할 수 있는 계정이 아직 없습니다.',
+    authorizationExpired: 'GitHub 승인이 만료되었습니다.',
+    reauthorize: '다시 승인',
     accountTypeLabels: {
       USER: '개인',
       ORGANIZATION: '조직',
