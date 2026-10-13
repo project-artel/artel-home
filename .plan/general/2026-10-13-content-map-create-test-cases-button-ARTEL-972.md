@@ -58,3 +58,15 @@ content map 적재가 더는 test case 를 만들지 않으므로, content map �
 
 - 수용: i18n 의 `scanStatus` 주석 자리 복구, 막힌 이유에 이미 있는 `cm-scan-blocked` 사용.
 - 수용하지 않음: component 렌더 테스트(DOM 환경 없음), `isGenerateDisabled` 삭제(판정 한 곳에 두는 쪽을 택했다), 이상한 200 응답을 오류로 보기(계약이 고정이고 버튼이 이미 막혀 있어 위험이 낮다 — 서버 PR 과 맞춰 본 뒤 결정), content map 이 다시 적재될 때 결과 지우기, `cm-scan` 클래스 재사용(스타일 중복을 피하려는 선택이고 이름 변경 때 같이 고친다).
+
+## Fix (2026-10-13): 문서가 없는 build 에 "근거는 올라왔지만 아직 읽히지 않았습니다" 가 뜨는 문제
+
+`content_map` 행은 있지만 문서가 0건인 build(로컬 build `1.0`)에서 비활성 이유가 거짓이었다. Home 은 `ingestedAt === null` 만 봤다.
+
+서버 응답(`ContentMapResponse`, orch ARTEL-971 worktree 의 `ContentMapViewDtos.kt`)이 이미 구별에 필요한 값을 준다:
+- `pendingDocuments` — "등록됐지만 아직 앉지 못한 문서". `ingestedAt` 은 앉은 문서에서 유도하므로, `ingestedAt === null` 이고 `pendingDocuments` 도 비었으면 올라온 문서가 하나도 없다.
+- `contentMap.capture/schemaVersion/evidenceDigest` 가 null 이면 근거 문서가 없다는 신호이지만, 서버 문서가 "이 사실로 `rootedBy` 를 유도하지 말라" 고 하므로 쓰지 않았다.
+
+그래서 서버는 바꾸지 않는다. 판정을 세 갈래로 나눈다: `notUploaded`(`contentMap` 없음), `noDocuments`(행은 있고 문서 없음), `notIngested`(문서는 있고 아직 안 읽힘). `ContentMapBody` 의 같은 빈 상태 문구도 같은 이유로 고친다(같은 조건이 거짓을 말하고 있었다).
+
+Pair review: 문서가 있는 build 에서 모든 문서의 적재가 실패한 경우(`ingestFailedAt`)는 지금도 "아직 읽히지 않았다" 로 보인다(수정 전과 같은 알려진 한계, 별도 갈래로 나누지 않았다). 문서를 올린 직후 REST 를 다시 읽기 전까지는 SSE 가 이미 문서를 세고 있어도 `pendingDocuments` 가 비어 "올라온 문서가 없다" 로 보일 수 있다 — 새로고침하면 사라지는 짧은 창이라 SSE 수를 섞지 않았다. 판정 규칙은 `describeGenerationBlock` 한 곳에 두고 `ContentMapBody` 도 그것을 부른다. 한국어 문구는 `증거` 로 통일했다.

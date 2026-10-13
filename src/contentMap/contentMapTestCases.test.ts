@@ -18,7 +18,10 @@ import type { ContentMapView } from './contentMapTypes.ts'
  * 이지 "서버가 이렇게 준다"가 아니다.
  */
 
-function makeView(contentMap: ContentMapView['contentMap']): ContentMapView {
+function makeView(
+  contentMap: ContentMapView['contentMap'],
+  pendingDocuments: unknown[] = [],
+): ContentMapView {
   return {
     contentMap,
     scenes: [],
@@ -26,16 +29,21 @@ function makeView(contentMap: ContentMapView['contentMap']): ContentMapView {
     screenTransitions: [],
     gaps: [],
     verification: { verified: 0, total: 0 },
-    pendingDocuments: [],
+    pendingDocuments,
   } as unknown as ContentMapView
 }
 
 const header = (ingestedAt: string | null) =>
   ({ id: '1', ingestedAt }) as unknown as NonNullable<ContentMapView['contentMap']>
 
-test('content map 이 없으면 notUploaded, 적재 전이면 notIngested, 적재됐으면 막지 않는다', () => {
+test('content map 이 없으면 notUploaded, 문서가 없으면 noDocuments, 문서가 안 읽혔으면 notIngested, 적재됐으면 막지 않는다', () => {
   assert.equal(describeGenerationBlock(makeView(null)), 'notUploaded')
-  assert.equal(describeGenerationBlock(makeView(header(null))), 'notIngested')
+  // content_map 행은 있지만 올라온 문서가 없다. 로컬 빌드 1.0 이 이 모양이다.
+  assert.equal(describeGenerationBlock(makeView(header(null))), 'noDocuments')
+  assert.equal(
+    describeGenerationBlock(makeView(header(null), [{ documentId: '5', ingestFailedAt: null }])),
+    'notIngested',
+  )
   assert.equal(describeGenerationBlock(makeView(header('2026-10-13T00:00:00Z'))), null)
 })
 
@@ -112,11 +120,21 @@ test('409 와 그 밖의 오류는 서로 다른 문구다', () => {
   }
 })
 
+test('세 가지 막힌 이유는 서로 다른 문구다', () => {
+  for (const copy of [contentMapKo.generate.blocked, contentMapEn.generate.blocked]) {
+    assert.equal(new Set(Object.values(copy)).size, 3)
+  }
+  // 문서가 없는데 "올라왔지만 아직 읽히지 않았다" 고 말하면 거짓이다.
+  assert.doesNotMatch(contentMapKo.generate.blocked.noDocuments, /올라왔/)
+  assert.doesNotMatch(contentMapEn.generate.blocked.noDocuments, /uploaded but/)
+})
+
 test('막힌 이유가 있거나 생성 중이면 버튼을 누를 수 없다', () => {
   assert.equal(isGenerateDisabled(null, false), false)
   assert.equal(isGenerateDisabled(null, true), true)
   assert.equal(isGenerateDisabled('notIngested', false), true)
   assert.equal(isGenerateDisabled('notUploaded', true), true)
+  assert.equal(isGenerateDisabled('noDocuments', false), true)
 })
 
 test('본문을 읽을 수 없는 200 응답은 ProjectApiError 가 되어 other 로 분류된다', async () => {

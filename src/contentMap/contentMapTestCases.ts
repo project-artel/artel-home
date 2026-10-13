@@ -8,13 +8,24 @@ import type { ContentMapView } from './contentMapTypes'
  * 판정을 읽어야 해서다. 순수 함수라 렌더 없이 테스트한다.
  */
 
-/** 버튼을 못 누르는 이유. `ContentMapBody` 가 가르는 빈 상태 두 갈래와 같은 조건이다. */
-export type GenerationBlock = 'notUploaded' | 'notIngested'
+/**
+ * 버튼을 못 누르는 이유. 세 갈래는 서로 다른 사실이다.
+ *
+ * - `notUploaded`: `contentMap` 이 없다. 이 빌드에 문서가 한 번도 등록되지 않았다.
+ * - `noDocuments`: `contentMap` 행은 있지만 올라온 문서가 하나도 없다(관측만으로 선 지도 등).
+ * - `notIngested`: 문서는 올라왔는데 아직 적재되지 않았다.
+ */
+export type GenerationBlock = 'notUploaded' | 'noDocuments' | 'notIngested'
 
+/**
+ * `ingestedAt === null` 만으로는 "문서가 올라왔지만 안 읽힘" 과 "문서가 없음" 을 가르지 못한다.
+ * 서버는 적재되지 않은 문서를 `pendingDocuments` 에 싣고(등록됐지만 아직 앉지 못한 문서),
+ * `ingestedAt` 은 앉은 문서에서 유도하므로, 둘 다 비었으면 문서가 하나도 없다.
+ */
 export function describeGenerationBlock(view: ContentMapView): GenerationBlock | null {
   if (view.contentMap === null) return 'notUploaded'
-  if (view.contentMap.ingestedAt === null) return 'notIngested'
-  return null
+  if (view.contentMap.ingestedAt !== null) return null
+  return view.pendingDocuments.length === 0 ? 'noDocuments' : 'notIngested'
 }
 
 /** 서버가 주는 실패 중 문구가 갈리는 둘과 나머지. */

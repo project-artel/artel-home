@@ -35,6 +35,9 @@ export const contentMapEn = {
     neverUploadedTitle: 'Nothing has been scanned for this build yet',
     neverUploadedCopy:
       'A content map is built from the evidence a connected game sends. Ask one to scan above, and the scenes, capabilities and transitions appear here.',
+    noDocumentsTitle: 'No evidence document has been uploaded for this build',
+    noDocumentsCopy:
+      'The content map exists, but nothing has been uploaded to read. Ask a connected game to scan above, and the scenes appear here.',
     notIngestedTitle: 'The evidence is uploaded but has not been read yet',
     notIngestedCopy:
       'The document is stored against this build. Reading it is what turns it into scenes and capabilities.',
@@ -97,6 +100,7 @@ export const contentMapEn = {
     running: 'Creating test cases…',
     blocked: {
       notUploaded: 'Nothing has been scanned for this build, so there is no content map to create test cases from.',
+      noDocuments: 'This build has a content map but no evidence document has been uploaded for it. Scan the game above first.',
       notIngested: 'The evidence is uploaded but has not been read yet. Create test cases once the content map is read.',
     },
     result: (counts: { created: number; updated: number; deleted: number; broken: number }) =>
@@ -564,6 +568,9 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
     neverUploadedTitle: '이 빌드는 아직 한 번도 스캔되지 않았습니다',
     neverUploadedCopy:
       '콘텐츠 맵은 붙어 있는 게임이 보낸 증거 문서로 만들어집니다. 위에서 스캔을 시키면 씬, 능력, 전이가 여기에 나타납니다.',
+    noDocumentsTitle: '이 빌드에는 올라온 증거 문서가 없습니다',
+    noDocumentsCopy:
+      '콘텐츠 맵은 있지만 읽을 문서가 올라온 적이 없습니다. 위에서 게임을 스캔시키면 씬이 여기에 나타납니다.',
     notIngestedTitle: '증거는 올라왔지만 아직 읽히지 않았습니다',
     notIngestedCopy:
       '문서는 이 빌드에 저장돼 있습니다. 읽어야 씬과 능력으로 바뀝니다.',
@@ -612,7 +619,8 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
     running: '테스트 케이스를 만드는 중…',
     blocked: {
       notUploaded: '이 빌드는 아직 스캔된 적이 없어 테스트 케이스를 만들 콘텐츠 맵이 없습니다.',
-      notIngested: '근거는 올라왔지만 아직 읽히지 않았습니다. 콘텐츠 맵이 읽힌 뒤에 만들 수 있습니다.',
+      noDocuments: '이 빌드에는 콘텐츠 맵이 있지만 올라온 증거 문서가 없습니다. 위에서 게임을 스캔한 뒤에 만들 수 있습니다.',
+      notIngested: '증거는 올라왔지만 아직 읽히지 않았습니다. 콘텐츠 맵이 읽힌 뒤에 만들 수 있습니다.',
     },
     result: (counts: { created: number; updated: number; deleted: number; broken: number }) =>
       counts.created + counts.updated + counts.deleted + counts.broken === 0
