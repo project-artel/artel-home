@@ -89,3 +89,16 @@ test case 라이브러리 왼쪽에 폴더 tree 를 두고, 폴더를 만들고 
 
 - 수용: 폴더를 만들거나 바꾼 직후 서버 응답을 목록에 바로 끼운다(`applyUpserted`)고 다시 읽기는 번호를 매겨 늦은 답을 버린다. 폴더 링크로 들어왔는데 폴더 목록이 아직 없으면 전체 목록 대신 loading 을 보인다. 선택 해석을 `effectiveFolderSelection` 으로 빼서 테스트한다. 폴더 select 의 들여쓰기에 `└` 를 붙인다. 삭제 후 focus 를 tree 로 옮기고, 404 면 tree 를 다시 읽는다. nav 에 별도 label. 고아 폴더를 옮길 때 부모를 최상위로 본다. 값이 바뀌지 않은 이름 변경·이동은 제출을 막는다. 이동 announcement 는 서버가 답한 건수를 쓴다. CSS 중복 규칙을 지웠다.
 - 수용하지 않음: `FolderPane`, dialog 의 component 테스트 — 이 repo 에 component 테스트 환경이 없다. 이동 dialog 의 기본값을 비우는 것 — `폴더 없음` 이 기본인 것은 현재 폴더로 시작하는 규칙과 일관되고, Enter 한 번으로 바뀌는 것은 확인 button 이 건수를 적고 있다.
+
+## Fix (2026-10-13): layout 두 가지 (실제 stack 에서 화면을 찍어 보고 찾음)
+
+1. 1440px 에서 폴더 column 240px 가 `1.3.0 content map` 을 `1.3.0 content ...` 로 잘라 build 를 가르는 뒷부분이 안 보였다.
+   - 폴더 이름을 한 줄 말줄임표 대신 두 줄까지 보이게 한다(`line-clamp: 2`, `overflow-wrap: anywhere`). 두 줄에도 안 들어가면 말줄임표로 줄이고, button 의 `title` 에 전체 이름을 둔다. 건수와 `content map` 배지는 세로 가운데에 둔다(한 줄 이름이 위로 쏠리지 않게).
+   - column 은 240px -> 264px. 이름이 두 줄로 접히면 충분해 resizable column 은 만들지 않았다(YAGNI; 조절 상태를 저장할 곳도 없다).
+2. 1024px 에서 `TurnBattleScene` 칩이 옆 칸의 `runnable` 칩 위로 겹쳐 그려졌다. 칩이 `white-space:nowrap` 이라 칸을 넘쳐 나갔다.
+   - 표 안의 칩(`.cat-chip`, `.tc-spec-status`)에 `max-width:100%` 와 말줄임표를 주고 그 칸은 `overflow:hidden` 으로 둔다. 칸이 좁으면 칩 안에서 줄어들 뿐 이웃 칸으로 나가지 않는다. `SceneChip`, `SpecGradeChip` 에 `title` 을 달아 전체 이름을 남긴다.
+   - 화면 열을 12% -> 15%, 명세 등급 11% -> 12%, 스텝 26% -> 24%, 기대결과 27% -> 24% 로 조정해 긴 화면 이름이 덜 잘리게 한다.
+
+이전 캡처 중 폴더 column 과 표가 보이는 것은 다시 찍어야 한다.
+
+Pair review: 명세 등급 열이 `runnable` 칩보다 좁아 보여 12% 로 늘렸고, 폴더 항목의 `align-items` 는 center 를 유지한다. 화면에서 다시 확인하지 못했다(캡처는 별도 단계).

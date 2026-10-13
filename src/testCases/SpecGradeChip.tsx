@@ -44,7 +44,7 @@ export function SpecGradeChip({
   const label = labels[status.toLowerCase()] ?? status
 
   return (
-    <span className={`tc-spec-status${tone !== null ? ` grade-${tone}` : ''}`}>
+    <span className={`tc-spec-status${tone !== null ? ` grade-${tone}` : ''}`} title={label}>
       {bare ? label : `${m.label}: ${label}`}
     </span>
   )
