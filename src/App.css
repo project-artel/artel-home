@@ -1648,6 +1648,30 @@ a.instance-name:hover {
   margin: 0;
 }
 
+/*
+ * ESC 를 한 번 눌러 물어보는 중(ARTEL-956).
+ *
+ * 대화와 입력창 사이에 한 줄로 선다. 입력창 아래 안내와 같은 글씨로 두면 사용자는 문구가
+ * 달라진 것을 못 본다.
+ *
+ * 경고색이 아니라 **accent** 를 쓴다. 이 줄은 고장을 알리는 것이 아니라 **지금 누를 것**을
+ * 말하는 자리이고, 이 화면에서 그것을 맡은 색은 `전송`·`펼치기` 와 같은 accent 다. 노란
+ * 경고색은 끊김 알림(`.authoring-progress-stalled`)의 몫으로 남겨 둔다 — 둘이 같은 색이면
+ * "답이 안 온다" 와 "한 번 더 누르면 끊는다" 가 한눈에 구분되지 않는다.
+ */
+.run-chat-cancel-armed {
+  margin: var(--space-2) var(--space-4) 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-action-primary);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-action-primary) 12%, transparent);
+  color: var(--color-action-primary);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 20px;
+  text-align: center;
+}
+
 .chat-closed {
   padding: var(--space-4);
   border: 1px solid var(--color-status-warning);

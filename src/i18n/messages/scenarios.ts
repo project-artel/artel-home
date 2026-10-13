@@ -101,6 +101,12 @@ export const scenariosEn = {
     inputLabel: 'Message to the agent',
     inputPlaceholder: 'Describe what should be tested',
     shortcutHint: 'Enter to send · Shift+Enter for a new line',
+    /*
+     * 취소 안내(ARTEL-956). 기다리는 동안에만 전송 안내를 대신한다 — 한가할 때 보이면
+     * 무엇이 취소되는지 알 수 없다.
+     */
+    cancelHint: 'Press Esc twice to cancel this request',
+    cancelArmed: 'Press Esc once more to end the request',
     sending: 'Sending…',
     send: 'Send',
     sendFailed: 'The message could not be sent. Please try again.',
@@ -548,6 +554,9 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     inputLabel: '에이전트에게 보낼 메시지',
     inputPlaceholder: '테스트할 내용을 설명하세요',
     shortcutHint: 'Enter 전송 · Shift+Enter 줄바꿈',
+    // 취소 안내(ARTEL-956). 기다리는 동안에만 전송 안내를 대신한다.
+    cancelHint: 'ESC 두 번 누르면 요청 취소',
+    cancelArmed: 'ESC 를 한 번 더 눌러 요청 종료',
     sending: '전송 중…',
     send: '전송',
     sendFailed: '메시지를 전송하지 못했습니다. 다시 시도해 주세요.',

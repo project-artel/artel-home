@@ -381,6 +381,41 @@ export async function listRunChatMessages(
   })
 }
 
+/**
+ * 도는 저작 요청 **하나만** 끊는다(ARTEL-956). 화면에서 ESC 를 두 번 누른 길이다.
+ *
+ * @property cancelled 끊을 요청이 **있었나**. `false` 면 화면은 아무것도 치우지 않는다 — 답이
+ *   방금 도착했는데 ESC 를 누른 경우가 그 길이고, 그때 기다림을 지우면 방금 받은 답 위에
+ *   "취소했습니다" 가 얹힌다.
+ * @property saved 끊기 전에 **이미 저장된** 시나리오 수. 지우지 않는다 — 멈춘 것은 남은
+ *   작업이고, 끝난 작업은 그대로 남는다. 카드 검토 모드에서는 저장한 것이 없어 0 이다.
+ */
+export type RunChatCancellation = {
+  cancelled: boolean
+  saved: number
+}
+
+/**
+ * 도는 요청을 취소한다. **세션은 닫지 않는다** — 아래 [closeRunChat] 과 다른 창구인 것이
+ * 이 기능의 전부다. 사용자가 멈추려는 것은 기다림이지 대화가 아니다.
+ */
+export async function cancelRunChat(
+  projectId: string,
+  runId: string,
+): Promise<RunChatCancellation> {
+  const response = await apiFetch(chatPath(projectId, runId, '/cancel'), { method: 'POST' })
+  if (!response.ok) {
+    throw await toApiError(response)
+  }
+  const raw = asRecord(await readJson(response))
+  return {
+    // 옛 서버는 이 창구를 모른다 — 그쪽은 위에서 이미 던졌다. 여기 기본값은 칸이 비어 온
+    // 경우를 위한 것이고, 그때는 **끊지 못한 것으로 읽는다.**
+    cancelled: raw?.cancelled === true,
+    saved: Number(raw?.saved ?? 0) || 0,
+  }
+}
+
 /** Ends the authoring session (Agent WS + SSE). Chat and scenarios are kept. */
 export async function closeRunChat(projectId: string, runId: string): Promise<void> {
   const response = await apiFetch(chatPath(projectId, runId, '/close'), { method: 'POST' })
