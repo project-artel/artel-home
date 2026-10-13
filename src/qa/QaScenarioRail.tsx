@@ -1,4 +1,5 @@
 import { useI18n } from '../i18n/useI18n'
+import type { VerificationStatus } from '../testCases/testCaseTypes'
 import type { ScenarioStep } from '../testScenarios/scenarioTypes'
 import type { QaProgress } from './qaProgress'
 import { QaRunUsagePanel } from './QaRunUsagePanel'
@@ -13,6 +14,8 @@ export type FocusedScenarioDetail = {
   progress: QaProgress
   scenarioSteps: ScenarioStep[]
   onJump: (logId: string) => void
+  /** 이 실행이 TC 상태로 저장한 판정(ARTEL-995). `case_id` → 저장된 상태. */
+  caseVerdicts: ReadonlyMap<string, VerificationStatus>
 }
 
 export type QaScenarioRailProps = {
@@ -119,7 +122,12 @@ function RailScenario({
       {expanded && (
         <div id={stepsId}>
           {focused !== null ? (
-            <QaScenarioSteps onJump={focused.onJump} progress={focused.progress} scenarioSteps={focused.scenarioSteps} />
+            <QaScenarioSteps
+              caseVerdicts={focused.caseVerdicts}
+              onJump={focused.onJump}
+              progress={focused.progress}
+              scenarioSteps={focused.scenarioSteps}
+            />
           ) : (
             <UnfocusedScenarioSteps testScenarioId={entry.testScenarioId} />
           )}

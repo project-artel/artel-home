@@ -1,5 +1,6 @@
 import { asRecord, asString } from '../projects/projectApi'
 import type { ScenarioStep } from '../testScenarios/scenarioTypes'
+import { asVerificationStatus, type VerificationStatus } from '../testCases/testCaseTypes'
 import { isTerminalQaStatus, type QaLog, type QaTryStatus } from './qaTypes'
 
 /**
@@ -298,4 +299,22 @@ function readQaContextUsage(log: QaLog): QaContextUsage | null {
   const maxTokens = asTokenCount(context.max_tokens)
   if (usedTokens === null || maxTokens === null || maxTokens <= 0) return null
   return { usedTokens, maxTokens, percent: Math.round((usedTokens / maxTokens) * 100) }
+}
+
+/**
+ * 이 실행이 TC 상태로 저장한 판정(ARTEL-995). `case_id` → 저장된 상태이고, 같은 TC 가 두 번 오면 나중 것이다.
+ *
+ * 스텝 판정(`STATUS`)과 따로 읽는다. 스텝 판정은 agent 의 말이고, 이것은 서버가 그 말을 TC 에 실제로 적었다는
+ * 기록이다 — `BROKEN` 인 TC 처럼 적지 않은 경우가 있어 둘이 늘 같지 않다.
+ */
+export function deriveCaseVerdicts(logs: readonly QaLog[]): Map<string, VerificationStatus> {
+  const verdicts = new Map<string, VerificationStatus>()
+  for (const log of logs) {
+    if (log.type !== 'CASE_VERDICT') continue
+    const payload = asRecord(log.payload)
+    const caseId = payload?.case_id
+    if (typeof caseId !== 'number' && typeof caseId !== 'string') continue
+    verdicts.set(String(caseId), asVerificationStatus(payload?.verification_status))
+  }
+  return verdicts
 }

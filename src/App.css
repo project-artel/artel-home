@@ -2845,7 +2845,9 @@ a.instance-name:hover {
 .vdot { width: 9px; height: 9px; border-radius: 999px; flex: none; background: var(--color-text-muted); }
 .vdot--verified { background: var(--color-status-success); }
 .vdot--draft { background: var(--color-status-warning); }
-.vdot--broken { background: var(--color-status-critical); }
+.vdot--broken { background: var(--color-status-offline); }
+.vdot--failed { background: var(--color-status-critical); }
+.vdot--regression { background: var(--color-agent-reasoning); }
 
 .scenario-add-row { display: flex; gap: var(--space-2); margin-top: var(--space-3); }
 .scenario-add-row .button { flex: 1; }
@@ -3146,9 +3148,9 @@ a.instance-name:hover {
 
 /* status dot / pill */
 :is(.scenario-studio, .cp-scope) .vdot{ width:9px; height:9px; border-radius:999px; flex:none; }
-:is(.scenario-studio, .cp-scope) .vdot.VERIFIED{ background:var(--st-verified); } :is(.scenario-studio, .cp-scope) .vdot.DRAFT{ background:var(--st-draft); } :is(.scenario-studio, .cp-scope) .vdot.BROKEN{ background:var(--st-broken); }
+:is(.scenario-studio, .cp-scope) .vdot.VERIFIED{ background:var(--st-verified); } :is(.scenario-studio, .cp-scope) .vdot.DRAFT{ background:var(--st-draft); } :is(.scenario-studio, .cp-scope) .vdot.BROKEN{ background:var(--color-status-offline); } :is(.scenario-studio, .cp-scope) .vdot.FAILED{ background:var(--st-broken); } :is(.scenario-studio, .cp-scope) .vdot.REGRESSION{ background:var(--color-agent-reasoning); }
 :is(.scenario-studio, .cp-scope) .vpill{ color:var(--st-text); font-size:11px; font-weight:600; padding:3px 9px; border-radius:999px; white-space:nowrap; display:inline-flex; align-items:center; gap:6px; border:1px solid; }
-:is(.scenario-studio, .cp-scope) .vpill.VERIFIED{ background:var(--st-verified-dim); border-color:var(--color-status-success); } :is(.scenario-studio, .cp-scope) .vpill.DRAFT{ background:var(--st-draft-dim); border-color:var(--color-status-warning); } :is(.scenario-studio, .cp-scope) .vpill.BROKEN{ background:var(--st-broken-dim); border-color:var(--color-status-critical); }
+:is(.scenario-studio, .cp-scope) .vpill.VERIFIED{ background:var(--st-verified-dim); border-color:var(--color-status-success); } :is(.scenario-studio, .cp-scope) .vpill.DRAFT{ background:var(--st-draft-dim); border-color:var(--color-status-warning); } :is(.scenario-studio, .cp-scope) .vpill.BROKEN{ background:transparent; border-color:var(--color-status-offline); } :is(.scenario-studio, .cp-scope) .vpill.FAILED{ background:var(--st-broken-dim); border-color:var(--color-status-critical); } :is(.scenario-studio, .cp-scope) .vpill.REGRESSION{ background:color-mix(in srgb, var(--color-agent-reasoning) 14%, transparent); border-color:var(--color-agent-reasoning); }
 
 /* detail card grid */
 .scenario-studio .detail{ margin-top:22px; border-top:1px solid var(--st-border); padding-top:18px; }
@@ -3168,7 +3170,7 @@ a.instance-name:hover {
 .scenario-studio .status-choose{ display:flex; gap:6px; }
 .scenario-studio .status-choose button{ font:inherit; font-size:11.5px; padding:4px 10px; border-radius:999px; border:1px solid var(--st-border-strong); background:transparent; color:var(--st-text-2); cursor:pointer; }
 .scenario-studio .status-choose button:disabled{ cursor:default; }
-.scenario-studio .status-choose button.on.VERIFIED{ color:var(--st-verified); border-color:var(--color-status-success); background:var(--st-verified-dim); } .scenario-studio .status-choose button.on.DRAFT{ color:var(--st-draft); border-color:var(--color-status-warning); background:var(--st-draft-dim); } .scenario-studio .status-choose button.on.BROKEN{ color:var(--st-broken); border-color:var(--color-status-critical); background:var(--st-broken-dim); }
+.scenario-studio .status-choose button.on.VERIFIED{ color:var(--st-verified); border-color:var(--color-status-success); background:var(--st-verified-dim); } .scenario-studio .status-choose button.on.DRAFT{ color:var(--st-draft); border-color:var(--color-status-warning); background:var(--st-draft-dim); } .scenario-studio .status-choose button.on.BROKEN{ color:var(--color-status-offline); border-color:var(--color-status-offline); background:transparent; } .scenario-studio .status-choose button.on.FAILED{ color:var(--st-broken); border-color:var(--color-status-critical); background:var(--st-broken-dim); } .scenario-studio .status-choose button.on.REGRESSION{ color:var(--color-action-primary); border-color:var(--color-agent-reasoning); background:color-mix(in srgb, var(--color-agent-reasoning) 14%, transparent); }
 
 /* library */
 .scenario-studio .lib{ margin-top:22px; border:1px solid var(--st-border-strong); border-radius:8px; background:var(--st-surface); }
@@ -3485,15 +3487,15 @@ a.instance-name:hover {
 .run-map .mmeta{ font-size:12px; color:var(--color-text-muted); margin-bottom:12px; }
 .run-map .vbar{ display:flex; height:8px; border-radius:999px; overflow:hidden; background:var(--color-bg-raised); gap:2px; }
 .run-map .vbar i{ display:block; }
-.run-map .vbar i.VERIFIED{ background:var(--rm-green); } .run-map .vbar i.DRAFT{ background:var(--rm-amber); } .run-map .vbar i.BROKEN{ background:var(--rm-red); } .run-map .vbar i.empty{ background:var(--color-border-subtle); }
+.run-map .vbar i.VERIFIED{ background:var(--rm-green); } .run-map .vbar i.DRAFT{ background:var(--rm-amber); } .run-map .vbar i.BROKEN{ background:var(--color-status-offline); } .run-map .vbar i.FAILED{ background:var(--rm-red); } .run-map .vbar i.REGRESSION{ background:var(--color-agent-reasoning); } .run-map .vbar i.empty{ background:var(--color-border-subtle); }
 .run-map .mroll{ display:flex; align-items:center; gap:12px; font-size:12px; color:var(--color-text-secondary); margin-top:8px; flex-wrap:wrap; }
 .run-map .mroll .k{ display:inline-flex; align-items:center; gap:5px; } .run-map .mroll .k b{ color:var(--color-text-primary); }
 .run-map .mroll .k::before{ content:""; width:8px; height:8px; border-radius:999px; }
-.run-map .mroll .k.VERIFIED::before{ background:var(--rm-green); } .run-map .mroll .k.DRAFT::before{ background:var(--rm-amber); } .run-map .mroll .k.BROKEN::before{ background:var(--rm-red); }
+.run-map .mroll .k.VERIFIED::before{ background:var(--rm-green); } .run-map .mroll .k.DRAFT::before{ background:var(--rm-amber); } .run-map .mroll .k.BROKEN::before{ background:var(--color-status-offline); } .run-map .mroll .k.FAILED::before{ background:var(--rm-red); } .run-map .mroll .k.REGRESSION::before{ background:var(--color-agent-reasoning); }
 .run-map .open-hint{ position:absolute; right:14px; bottom:12px; font-size:11.5px; color:var(--rm-action); opacity:0; transition:opacity 120ms; }
 .run-map .mnode:hover .open-hint{ opacity:1; }
 .run-map .vdot{ width:9px; height:9px; border-radius:999px; }
-.run-map .vdot.VERIFIED{ background:var(--rm-green); } .run-map .vdot.DRAFT{ background:var(--rm-amber); } .run-map .vdot.BROKEN{ background:var(--rm-red); }
+.run-map .vdot.VERIFIED{ background:var(--rm-green); } .run-map .vdot.DRAFT{ background:var(--rm-amber); } .run-map .vdot.BROKEN{ background:var(--color-status-offline); } .run-map .vdot.FAILED{ background:var(--rm-red); } .run-map .vdot.REGRESSION{ background:var(--color-agent-reasoning); }
 
 .run-map .mentry{ position:absolute; width:170px; background:var(--color-bg-surface); border:1px solid var(--color-border-subtle); border-radius:10px; padding:13px 15px; }
 .run-map .mentry .lbl{ font-size:13px; font-weight:650; display:flex; align-items:center; gap:8px; } .run-map .mentry .lbl .d{ width:8px; height:8px; border-radius:999px; background:var(--rm-action); }
@@ -3506,7 +3508,7 @@ a.instance-name:hover {
 
 .run-map .legend{ position:absolute; right:16px; top:64px; display:flex; gap:14px; align-items:center; background:var(--color-bg-surface); border:1px solid var(--color-border-subtle); border-radius:999px; padding:7px 14px; }
 .run-map .legend .lg{ font-size:11.5px; color:var(--color-text-secondary); display:inline-flex; align-items:center; gap:6px; } .run-map .legend .lg::before{ content:""; width:9px; height:9px; border-radius:999px; }
-.run-map .legend .lg.VERIFIED::before{ background:var(--rm-green); } .run-map .legend .lg.DRAFT::before{ background:var(--rm-amber); } .run-map .legend .lg.BROKEN::before{ background:var(--rm-red); }
+.run-map .legend .lg.VERIFIED::before{ background:var(--rm-green); } .run-map .legend .lg.DRAFT::before{ background:var(--rm-amber); } .run-map .legend .lg.BROKEN::before{ background:var(--color-status-offline); } .run-map .legend .lg.FAILED::before{ background:var(--rm-red); } .run-map .legend .lg.REGRESSION::before{ background:var(--color-agent-reasoning); }
 .run-map .rm-empty{ position:absolute; inset:52px 0 0 0; display:grid; place-items:center; color:var(--color-text-muted); }
 
 /* run-map: expand cases + edit affordances + edit/map toggle */
@@ -9768,6 +9770,156 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
 .cm-generate-result p{ margin:0; font-size:13px; color:var(--color-text-primary); }
 .tcl-selection-bar .tcl-selection-count, .tcl-selection-bar .button{ flex:none; }
 
+.run-version-chip{ display:inline-flex; align-items:center; padding:0 6px; border:1px solid var(--color-border-strong); border-radius:999px; font-size:11px; color:var(--color-text-muted); white-space:nowrap; }
+.run-empty-actions{ display:flex; gap:var(--space-2); justify-content:center; flex-wrap:wrap; }
+.qa-rail-case-saved{ display:inline-flex; align-items:center; margin-left:4px; }
+
+/* 빨간 TC 배지 안의 상태 점(ARTEL-995). 흰 테두리가 없으면 FAILED 점이 배지에 묻힌다. */
+.st-tc-badge .vdot{ display:inline-block; width:8px; height:8px; margin-right:4px; vertical-align:middle; box-shadow:0 0 0 1.5px var(--color-text-on-accent); }
+
+.run-version-chip{ display:inline-flex; align-items:center; padding:0 6px; border:1px solid var(--color-border-strong); border-radius:999px; font-size:11px; color:var(--color-text-muted); white-space:nowrap; }
+.run-empty-actions{ display:flex; gap:var(--space-2); justify-content:center; flex-wrap:wrap; }
+
+/* 빨간 TC 배지 안의 상태 점(ARTEL-995). 흰 테두리가 없으면 FAILED 점이 배지에 묻힌다. */
+.st-tc-badge .vdot{ display:inline-block; width:8px; height:8px; margin-right:4px; vertical-align:middle; box-shadow:0 0 0 1.5px var(--color-text-on-accent); }
+
+/* ── TS 불러오기 모달, 카드형(ARTEL-995) ────────────────────────────────────────
+   버전 = 접히는 카드(펼치면 왼쪽 강조 막대), 런 = 카드 안 섹션, 시나리오 = 체크 목록.
+   줄 높이와 체크박스를 키워 한눈에 고르기 쉽게 한다. */
+.dialog-panel:has(.sil){ width:min(100%, 720px); display:flex; flex-direction:column; }
+.sil{ display:flex; flex-direction:column; min-height:0; }
+.sil .dialog-copy{ margin-bottom:var(--space-4); }
+.sil-empty{ margin:var(--space-6) 0; text-align:center; color:var(--color-text-muted); font-size:14px; }
+.sil-versions{ list-style:none; margin:0; padding:2px; display:flex; flex-direction:column; gap:var(--space-3); overflow-y:auto; max-height:min(58vh, 560px); }
+.sil-card{ border:1px solid var(--color-border-subtle); border-radius:12px; background:var(--color-bg-raised); overflow:hidden; transition:border-color .15s, box-shadow .15s; }
+.sil-card.is-open{ border-color:var(--color-border-strong); box-shadow:inset 4px 0 0 var(--color-brand-accent), 0 1px 3px rgba(0,0,0,.18); }
+.sil-card-head{ display:grid; grid-template-columns:1fr auto auto; grid-template-rows:auto auto; column-gap:var(--space-3); align-items:center; width:100%; padding:16px 18px 16px 22px; border:0; background:transparent; color:var(--color-text-primary); text-align:left; cursor:pointer; }
+.sil-card-head:hover{ background:var(--color-bg-hover); }
+.sil-card-head:focus-visible{ outline:2px solid var(--color-brand-accent); outline-offset:-2px; }
+.sil-card-kicker{ grid-column:1; font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:var(--color-text-muted); }
+.sil-card-title{ grid-column:1; grid-row:2; font-size:18px; font-weight:600; line-height:26px; }
+.sil-chip{ grid-column:2; grid-row:1 / span 2; padding:2px 10px; border-radius:999px; background:var(--color-bg-hover); color:var(--color-text-secondary); font-size:12px; white-space:nowrap; }
+.sil-chevron{ grid-column:3; grid-row:1 / span 2; flex:none; color:var(--color-text-muted); transition:transform .15s; }
+.sil-chevron.is-open{ transform:rotate(180deg); }
+.sil-runs{ list-style:none; margin:0; padding:0 0 var(--space-2); border-top:1px solid var(--color-border-subtle); }
+.sil-run + .sil-run{ border-top:1px solid var(--color-border-subtle); }
+.sil-run-head{ display:flex; align-items:center; gap:var(--space-2); padding:6px 14px 6px 22px; }
+.sil-run.is-picked > .sil-run-head{ background:color-mix(in srgb, var(--color-brand-accent) 8%, transparent); }
+.sil-run-toggle{ flex:1; min-width:0; display:flex; align-items:center; gap:var(--space-3); padding:10px 4px; border:0; background:transparent; color:var(--color-text-primary); text-align:left; cursor:pointer; border-radius:8px; }
+.sil-run-toggle:hover{ background:var(--color-bg-hover); }
+.sil-run-toggle .sil-chevron{ grid-column:auto; grid-row:auto; }
+.sil-run-name{ flex:1; min-width:0; font-size:15px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.sil-meta{ flex:none; font-size:12px; color:var(--color-text-muted); white-space:nowrap; }
+.sil-check{ display:inline-flex; padding:6px; border-radius:999px; cursor:pointer; }
+.sil-check:hover{ background:var(--color-bg-hover); }
+.sil input[type="checkbox"]{ width:18px; height:18px; margin:0; accent-color:var(--color-brand-accent); cursor:pointer; flex:none; }
+.sil-scenarios{ list-style:none; margin:0 0 var(--space-2); padding:0 14px 0 60px; }
+.sil-scenario-label{ display:flex; align-items:center; gap:var(--space-3); min-height:44px; padding:6px 10px; border-radius:8px; cursor:pointer; }
+.sil-scenario-label:hover{ background:var(--color-bg-hover); }
+.sil-scenario.is-picked .sil-scenario-label{ background:color-mix(in srgb, var(--color-brand-accent) 10%, transparent); }
+.sil-scenario-title{ flex:1; min-width:0; font-size:14px; line-height:20px; color:var(--color-text-primary); overflow:hidden; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; line-clamp:2; }
+.sil-footer{ display:flex; align-items:center; justify-content:space-between; gap:var(--space-3); margin-top:var(--space-4); padding-top:var(--space-4); border-top:1px solid var(--color-border-subtle); }
+.sil-footer .dialog-actions{ margin-top:0; }
+.sil-selected{ font-size:13px; color:var(--color-text-secondary); }
+
+/* ── 시나리오 가져오기 모달(ARTEL-995) ─────────────────────────────────────────
+   위: 고른 것, 왼쪽: 게임 버전 → 런, 오른쪽: 런의 시나리오. 두 목록만 스크롤되고 머리는 고정이다.
+   스크롤은 스텝 편집기처럼 기본 막대를 숨기고 끝 페이드(▴/▾)와 EdgeScrollbar 로 보인다. */
+.dialog-panel:has(.sil){ width:min(100%, 1400px); height:min(calc(100vh - var(--space-8)), 920px); display:flex; flex-direction:column; padding:0; overflow:hidden; }
+.dialog-panel:has(.sil) > .dialog-title{ margin:0; padding:24px 28px 4px; font-size:22px; }
+.sil{ flex:1; min-height:0; display:flex; flex-direction:column; }
+.sil-copy{ margin:0; padding:0 28px 18px; font-size:13px; line-height:20px; color:var(--color-text-secondary); border-bottom:1px solid var(--color-border-subtle); }
+.sil-muted{ font-size:12px; color:var(--color-text-muted); font-weight:400; }
+.sil-empty{ margin:0; padding:32px 0; text-align:center; font-size:14px; color:var(--color-text-muted); list-style:none; }
+
+.sil-tray{ flex:none; display:flex; align-items:center; gap:14px; min-height:76px; box-sizing:border-box; padding:12px 28px; background:var(--color-bg-canvas); border-bottom:1px solid var(--color-border-subtle); }
+.sil-tray-count{ flex:none; width:56px; display:flex; flex-direction:column; font-size:12px; font-weight:600; color:var(--color-text-secondary); }
+.sil-tray-count strong{ font-family:var(--font-display); font-size:22px; line-height:26px; color:var(--color-text-primary); }
+.sil-tray-empty{ font-size:13px; color:var(--color-text-muted); }
+.sil-tray-list{ list-style:none; margin:0; padding:0; flex:1; min-width:0; display:flex; gap:10px; overflow-x:auto; scrollbar-width:none; }
+.sil-tray-list::-webkit-scrollbar{ display:none; }
+.sil-tile{ flex:none; width:236px; box-sizing:border-box; display:flex; align-items:center; gap:10px; padding:8px 6px 8px 12px; border:1px solid var(--color-border-subtle); border-radius:10px; background:var(--color-bg-raised); }
+.sil-tile-icon{ flex:none; color:var(--color-brand-accent); }
+.sil-tile-text{ flex:1; min-width:0; display:flex; flex-direction:column; }
+.sil-tile-title{ font-size:13px; line-height:18px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sil-tile-from{ font-size:11px; color:var(--color-text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sil-tile-remove{ flex:none; width:28px; height:28px; border:0; border-radius:6px; background:transparent; color:var(--color-text-muted); cursor:pointer; font-size:12px; }
+.sil-tile-remove:hover{ background:var(--color-bg-hover); color:var(--color-text-primary); }
+
+.sil-body{ flex:1; min-height:0; display:flex; }
+.sil-side{ width:360px; flex:none; display:flex; flex-direction:column; min-height:0; border-right:1px solid var(--color-border-subtle); }
+.sil-side-head{ flex:none; display:flex; align-items:baseline; justify-content:space-between; padding:18px 20px 10px; font-size:12px; font-weight:600; letter-spacing:.04em; color:var(--color-text-secondary); }
+.sil-scroll{ position:relative; flex:1; min-height:0; display:flex; flex-direction:column; }
+.sil-scroll > ul{ flex:1; min-height:0; overflow-y:auto; scrollbar-width:none; }
+.sil-scroll > ul::-webkit-scrollbar{ display:none; }
+.sil-fade{ position:absolute; left:0; right:0; height:40px; display:flex; justify-content:center; pointer-events:none; z-index:2; transition:opacity 140ms; color:var(--color-brand-accent); font-size:13px; }
+.sil-fade--top{ top:0; align-items:flex-start; padding-top:4px; background:linear-gradient(to top, transparent, var(--color-bg-surface) 78%); }
+.sil-fade--bottom{ bottom:0; align-items:flex-end; padding-bottom:4px; background:linear-gradient(to bottom, transparent, var(--color-bg-surface) 78%); }
+.sil-fade.is-hidden{ opacity:0; }
+.sil .edgebar{ position:absolute; width:18px; pointer-events:none; z-index:3; right:0; }
+.sil .edgebar-thumb{ position:absolute; left:0; right:0; pointer-events:auto; cursor:grab; touch-action:none; }
+.sil .edgebar-fill{ position:absolute; top:0; bottom:0; right:0; width:4px; border-radius:2px; background:var(--color-brand-accent); transition:width 120ms; }
+.sil .edgebar.is-near .edgebar-fill{ width:11px; background:var(--color-brand-accent-strong); }
+
+.sil-tree{ list-style:none; margin:0; padding:0 16px 16px 12px; }
+.sil-tree > li{ margin-bottom:4px; }
+.sil-version{ width:100%; min-height:52px; display:flex; align-items:center; gap:10px; padding:8px 10px; border:0; border-radius:10px; background:transparent; color:var(--color-text-primary); cursor:pointer; text-align:left; font:inherit; }
+.sil-version:hover, .sil-run:hover{ background:var(--color-bg-hover); }
+.sil-folder{ flex:none; color:var(--color-text-secondary); }
+.sil-version-text{ flex:1; min-width:0; display:flex; flex-direction:column; }
+.sil-version-name{ font-family:var(--font-display); font-size:16px; line-height:22px; font-weight:600; }
+.sil-badge{ flex:none; padding:2px 8px; border-radius:999px; background:var(--color-status-critical-muted); color:var(--color-brand-accent-strong); font-size:11px; font-weight:600; }
+.sil-runs{ list-style:none; margin:2px 0 6px 21px; padding:0 0 0 12px; border-left:1px dashed var(--color-border-subtle); }
+.sil-run{ width:100%; min-height:44px; display:flex; align-items:center; gap:10px; padding:6px 10px; border:0; border-radius:8px; background:transparent; color:var(--color-text-primary); cursor:pointer; text-align:left; font:inherit; }
+.sil-run.is-active{ background:var(--color-status-critical-muted); box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--color-brand-accent) 35%, transparent); }
+.sil-run.is-active .sil-folder{ color:var(--color-brand-accent); }
+.sil-run-name{ flex:1; min-width:0; font-size:14px; line-height:20px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sil-run-picked{ flex:none; padding:1px 7px; border-radius:999px; background:var(--color-brand-accent); color:var(--color-text-on-accent); font-size:11px; font-weight:700; }
+
+.sil-main{ flex:1; min-width:0; display:flex; flex-direction:column; min-height:0; }
+.sil-main-head{ flex:none; display:flex; align-items:flex-end; gap:16px; padding:20px 28px 14px; }
+.sil-main-title{ flex:1; min-width:0; display:flex; flex-direction:column; gap:4px; }
+.sil-main-title h3{ margin:0; font-family:var(--font-display); font-size:24px; line-height:32px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sil-all{ flex:none; display:inline-flex; align-items:center; gap:8px; min-height:44px; padding:0 16px; border:1px solid var(--color-border-strong); border-radius:999px; background:transparent; color:var(--color-text-primary); font:inherit; font-size:14px; font-weight:600; cursor:pointer; white-space:nowrap; transition:background 120ms, color 120ms, border-color 120ms; }
+.sil-all:hover{ background:var(--color-bg-hover); }
+.sil-all.is-on{ background:var(--color-brand-accent); border-color:var(--color-brand-accent); color:var(--color-text-on-accent); }
+.sil-all.is-on:hover{ background:var(--color-brand-accent-strong); }
+.sil-search{ flex:none; display:flex; align-items:center; gap:10px; height:44px; margin:0 28px 12px; padding:0 14px; border:1px solid var(--color-border-subtle); border-radius:10px; background:var(--color-bg-raised); color:var(--color-text-muted); }
+.sil-search input{ flex:1; min-width:0; border:0; background:transparent; color:var(--color-text-primary); font:inherit; font-size:14px; outline:none; }
+.sil-search:focus-within{ border-color:var(--color-brand-accent); }
+.sil-cols, .sil-row{ display:grid; grid-template-columns:44px minmax(0, 1fr) 56px 56px 64px; gap:12px; align-items:center; }
+.sil-cols{ flex:none; padding:0 40px 8px; font-size:12px; color:var(--color-text-muted); }
+.sil-cols > span:nth-child(n+3){ text-align:right; }
+.sil-list{ list-style:none; margin:0; padding:0 28px 16px; }
+.sil-row{ min-height:52px; padding:4px 12px; border-radius:10px; cursor:pointer; }
+.sil-list > li:nth-child(odd) .sil-row{ background:color-mix(in srgb, var(--color-bg-raised) 55%, transparent); }
+.sil-row:hover, .sil-list > li:nth-child(odd) .sil-row:hover{ background:var(--color-bg-hover); }
+.sil-row.is-picked, .sil-list > li .sil-row.is-picked{ background:var(--color-status-critical-muted); }
+.sil-row-check{ display:grid; place-items:center; }
+.sil-row-check input{ width:18px; height:18px; margin:0; accent-color:var(--color-brand-accent); cursor:pointer; }
+.sil-row-title{ display:flex; align-items:center; gap:10px; min-width:0; font-size:14px; line-height:20px; }
+.sil-row-title > span{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sil-row-icon{ flex:none; color:var(--color-text-secondary); }
+.sil-num{ text-align:right; font-size:13px; color:var(--color-text-secondary); font-variant-numeric:tabular-nums; }
+.sil-date{ text-align:right; font-size:12px; color:var(--color-text-muted); font-variant-numeric:tabular-nums; }
+.sil-actions{ flex:none; margin:0; padding:16px 28px; border-top:1px solid var(--color-border-subtle); }
+
+/* 아이콘만 둔 버튼의 말풍선. 이름은 aria-label 이 읽고, 말풍선은 보는 사람용이라 aria-hidden 이다. */
+.tip-btn{ position:relative; }
+.tip-btn .tip{ position:absolute; top:calc(100% + 8px); left:50%; transform:translateX(-50%); z-index:20; padding:6px 10px; border-radius:6px; background:var(--color-brand-charcoal); color:#f2efe9; font-size:12px; font-weight:500; line-height:16px; white-space:nowrap; letter-spacing:0; text-transform:none; pointer-events:none; opacity:0; visibility:hidden; transition:opacity 120ms; box-shadow:0 4px 12px rgba(0,0,0,.24); }
+.tip-btn .tip::before{ content:""; position:absolute; bottom:100%; left:50%; transform:translateX(-50%); border:5px solid transparent; border-bottom-color:var(--color-brand-charcoal); }
+.tip-btn:hover .tip, .tip-btn:focus-visible .tip{ opacity:1; visibility:visible; }
+.st-btn--icon{ display:inline-flex; align-items:center; gap:6px; }
+.scenario-studio .mini-add + .mini-add{ margin-left:0; }
+.scenario-studio .mini-add.tip-btn{ display:inline-flex; align-items:center; justify-content:center; padding:0; line-height:0; }
+.scenario-studio .mini-add.tip-btn > svg{ display:block; flex:none; }
+.sil-all > svg{ display:block; flex:none; }
+.sil-pick-hint{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:24px; text-align:center; color:var(--color-text-muted); pointer-events:none; }
+.sil-pick-hint p{ margin:0; max-width:320px; font-size:14px; line-height:22px; }
+/* 목록 머리의 말풍선이 칸 밖(가운데 편집 칸 위)까지 나오게 한다(ARTEL-995). 스크롤은 안쪽 `.scn-list` 가
+   하므로 칸 자체는 잘라 낼 필요가 없다. 옆 칸보다 앞에 그린다. */
+.scenario-studio .st-edit > .elist{ overflow:visible; z-index:4; }
+.scenario-studio .elist-head{ position:relative; z-index:5; }
 /* Changes made to knowledge and macros by a QA run, shown as line diffs. */
 .qa-changes-caret{ width:12px; color:var(--color-text-muted); }
 .qa-changes{ padding:2px 0; }
@@ -9795,3 +9947,4 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
 .qa-diff-line--add .qa-diff-marker, .qa-diff-line--remove .qa-diff-marker{ font-weight:700; color:var(--color-text-primary); }
 .qa-diff-fold{ display:block; width:100%; min-height:24px; font:inherit; text-align:left; padding:2px 12px; cursor:pointer; background:var(--color-bg-raised); border:0; border-block:1px solid var(--color-border-subtle); color:var(--color-text-secondary); }
 .qa-diff-fold:hover{ background:var(--color-bg-hover); }
+.tc-gap .vdot{ display:inline-block; width:8px; height:8px; border-radius:999px; vertical-align:middle; }

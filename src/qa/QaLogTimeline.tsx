@@ -54,6 +54,7 @@ const TYPE_LABELS: Record<QaLog['type'], string> = {
   STATUS: 'Status',
   ERROR: 'Error',
   CHAT: 'Chat',
+  CASE_VERDICT: 'Case verdict',
 }
 
 /** Breathing room above a row scrolled to, so it does not sit flush at the edge. */

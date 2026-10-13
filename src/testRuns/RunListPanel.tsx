@@ -11,6 +11,7 @@ import {
   type RunDeletionPreview,
   type TestRun,
 } from './testRunApi'
+import { RunVersionChip } from './RunVersionChip'
 
 /**
  * The project's TestRuns — the entry point into the run map. A run bundles
@@ -141,7 +142,9 @@ export function RunListPanel({
                     <p className="scenario-row-desc">{run.description}</p>
                   )}
                 </div>
-                <p className="scenario-row-meta">{r.created(formatDate(run.createdAt))}</p>
+                <p className="scenario-row-meta">
+                  <RunVersionChip build={run.gameBuild} /> {r.created(formatDate(run.createdAt))}
+                </p>
                 <button className="run-del-icon" onClick={() => setPendingDelete(run)} aria-label={r.delete} title={r.delete} type="button">✕</button>
               </li>
             ))}

@@ -7,12 +7,34 @@ import { asNullableString, asRecord, asString, jsonRequest, readJson, toApiError
  * Create/update/delete and scenario editing come with the editable Map later.
  */
 
+/** TR 을 만든 게임 버전(ARTEL-995). `label` 이 있으면 그것, 없으면 `version` 을 보인다. */
+export type RunGameBuild = {
+  gameBuildId: string
+  version: string
+  label: string | null
+}
+
 export type TestRun = {
   id: string
   projectId: string
   name: string
   description: string | null
   createdAt: string
+  /** null — build 가 없던 프로젝트의 TR, 또는 한 번도 QA 를 돌리지 않은 옛 TR. */
+  gameBuild: RunGameBuild | null
+}
+
+export function parseRunGameBuild(data: unknown): RunGameBuild | null {
+  const record = asRecord(data)
+  if (record === null) return null
+  const gameBuildId = asString(record.gameBuildId)
+  if (gameBuildId.length === 0) return null
+  return { gameBuildId, version: asString(record.version), label: asNullableString(record.label) }
+}
+
+/** 사람이 붙인 이름이 있으면 그것, 없으면 SDK 가 보고한 version. */
+export function gameBuildName(build: RunGameBuild): string {
+  return build.label !== null && build.label.trim().length > 0 ? build.label : build.version
 }
 
 /** One slot of a run's scenario composition: position + the scenario id it points at. */
@@ -36,6 +58,7 @@ export function parseTestRun(data: unknown): TestRun | null {
     name: asString(record.name),
     description: asNullableString(record.description),
     createdAt: asString(record.createdAt),
+    gameBuild: parseRunGameBuild(record.gameBuild),
   }
 }
 

@@ -14,6 +14,7 @@ import {
   type TestCaseCoverage,
   type TestCaseInput,
   type UncoveredScene,
+  type VerificationStatus,
 } from './testCaseTypes'
 
 /*
@@ -243,4 +244,46 @@ function asScenes(value: unknown): UncoveredScene[] {
     .filter((entry): entry is Record<string, unknown> => entry !== null)
     .map((entry) => ({ scene: asString(entry.scene), count: asCount(entry.count) }))
     .filter((entry) => entry.scene.length > 0)
+}
+
+/** 같은 케이스의 build 하나 몫의 판정(ARTEL-995). build 마다 다른 행이 같은 `case_key` 로 이어진다. */
+export type CaseVerdictHistoryItem = {
+  testCaseId: string
+  gameBuildId: string
+  version: string
+  label: string | null
+  verificationStatus: VerificationStatus
+}
+
+export function parseVerdictHistory(data: unknown): CaseVerdictHistoryItem[] {
+  const items = asRecord(data)?.items
+  return (Array.isArray(items) ? items : [])
+    .map((raw): CaseVerdictHistoryItem | null => {
+      const record = asRecord(raw)
+      const testCaseId = asString(record?.testCaseId)
+      const gameBuildId = asString(record?.gameBuildId)
+      if (testCaseId.length === 0 || gameBuildId.length === 0) return null
+      return {
+        testCaseId,
+        gameBuildId,
+        version: asString(record?.version),
+        label: asNullableString(record?.label),
+        verificationStatus: asVerificationStatus(record?.verificationStatus),
+      }
+    })
+    .filter((item): item is CaseVerdictHistoryItem => item !== null)
+}
+
+/**
+ * `GET /api/projects/{projectId}/test-cases/{caseId}/verdict-history` — 오래된 build 부터. 사람이 쓴
+ * 케이스처럼 build 에 묶이지 않은 것은 빈 목록이다.
+ */
+export async function getVerdictHistory(
+  projectId: string,
+  caseId: string,
+  signal?: AbortSignal,
+): Promise<CaseVerdictHistoryItem[]> {
+  const response = await apiFetch(`${casePath(projectId, caseId)}/verdict-history`, { signal })
+  if (!response.ok) throw await toApiError(response)
+  return parseVerdictHistory(await readJson(response))
 }

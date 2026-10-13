@@ -1,4 +1,5 @@
 import { useI18n } from '../i18n/useI18n'
+import type { VerificationStatus } from '../testCases/testCaseTypes'
 import { groupStepsByCase, type ScenarioStep } from '../testScenarios/scenarioTypes'
 import type { QaProgress, QaStepGrade, QaStepProgress, QaStepState } from './qaProgress'
 
@@ -46,10 +47,13 @@ function stepRows(scenarioSteps: ScenarioStep[], progress: QaProgress | null): S
 }
 
 export function QaScenarioSteps({
+  caseVerdicts = new Map(),
   onJump,
   progress,
   scenarioSteps,
 }: {
+  /** 서버가 TC 상태로 저장한 판정(ARTEL-995). TC 머리에 저장된 상태를 점으로 따로 보인다. */
+  caseVerdicts?: ReadonlyMap<string, VerificationStatus>
   onJump?: (logId: string) => void
   progress: QaProgress | null
   scenarioSteps: ScenarioStep[]
@@ -141,6 +145,9 @@ export function QaScenarioSteps({
             <li key={`case-${blockIndex}`} className="qa-rail-case">
               <div className="qa-rail-case-head">
                 <span className="qa-rail-case-no">{s.caseLabel(block.caseNumber)}</span>
+                {caseVerdicts.has(String(block.caseId)) && (
+                  <SavedVerdict status={caseVerdicts.get(String(block.caseId)) as VerificationStatus} />
+                )}
                 {last !== null && (
                   <span className={`qa-rail-case-verdict ${toneClass('qa-rail-case-verdict', last.state, last.grade)}`}>
                     <span aria-hidden="true">{STATE_GLYPHS[last.state]}</span>
@@ -154,5 +161,19 @@ export function QaScenarioSteps({
         })}
       </ol>
     </div>
+  )
+}
+
+/**
+ * 서버가 이 TC 에 실제로 저장한 상태. 옆의 판정(agent 의 말)과 늘 같지는 않다 — `BROKEN` 인 TC 는
+ * 판정이 와도 저장되지 않는다. 그래서 따로 보인다.
+ */
+function SavedVerdict({ status }: { status: VerificationStatus }) {
+  const { t } = useI18n()
+  return (
+    <span className="qa-rail-case-saved" title={t.qa.steps.savedTitle(t.testCases.outcome[status])}>
+      <span className={`vdot vdot--${status.toLowerCase()}`} />
+      <span className="visually-hidden">{t.qa.steps.savedTitle(t.testCases.outcome[status])}</span>
+    </span>
   )
 }

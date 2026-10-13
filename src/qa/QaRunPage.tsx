@@ -8,7 +8,7 @@ import { cancelQaRun, getQaRun, isDecimalId } from './qaApi'
 import { QaFocusStage } from './QaFocusStage'
 import { QaLogTimeline, type QaLogFocusRequest } from './QaLogTimeline'
 import { QaScenarioRail, type QaScenarioRailProps } from './QaScenarioRail'
-import { deriveQaContextUsage, deriveQaProgress, isQaContextLog } from './qaProgress'
+import { deriveCaseVerdicts, deriveQaContextUsage, deriveQaProgress, isQaContextLog } from './qaProgress'
 import { isTerminalQaStatus, type QaLog, type QaRun, type QaTry } from './qaTypes'
 import { useQaTry } from './useQaTry'
 import { useScenarioSteps } from './useScenarioSteps'
@@ -300,6 +300,7 @@ function FocusedTry({ qaRun, rail, tryId }: { qaRun: QaRun; rail: QaScenarioRail
   )
 
   const contextUsage = useMemo(() => deriveQaContextUsage(session.logs), [session.logs])
+  const caseVerdicts = useMemo(() => deriveCaseVerdicts(session.logs), [session.logs])
 
   const jumpToLog = useCallback((logId: string) => {
     setLogView('raw')
@@ -366,6 +367,7 @@ function FocusedTry({ qaRun, rail, tryId }: { qaRun: QaRun; rail: QaScenarioRail
           progress,
           scenarioSteps,
           onJump: jumpToLog,
+          caseVerdicts,
         }}
       />
       <div className="qa-focus">

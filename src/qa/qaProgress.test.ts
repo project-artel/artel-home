@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createEmptyStep, type ScenarioStep } from '../testScenarios/scenarioTypes'
-import { deriveQaContextUsage, deriveQaProgress, isQaContextLog } from './qaProgress'
+import { deriveCaseVerdicts, deriveQaContextUsage, deriveQaProgress, isQaContextLog } from './qaProgress'
 import type { QaLog } from './qaTypes'
 
 function step(action: string, expectedPassed: boolean | null = null): ScenarioStep {
@@ -140,4 +140,19 @@ test('isQaContextLog marks only LOG frames that carry a context object', () => {
   assert.equal(isQaContextLog(contextLog('1', { used_tokens: 10, max_tokens: 100 })), true)
   assert.equal(isQaContextLog(contextLog('2', { used_tokens: 10, max_tokens: 100 }, 'STATUS')), false)
   assert.equal(isQaContextLog(contextLog('3', undefined)), false)
+})
+
+test('TC 상태 저장 기록은 case_id 별 마지막 상태로 읽는다', () => {
+  const row = (id: string, payload: unknown): QaLog => ({
+    id, qaTryId: '1', messageId: null, correlationId: null, direction: 'ORCHE_INTERNAL',
+    type: 'CASE_VERDICT', message: '', payload, createdAt: '2026-10-13T00:00:00Z',
+  })
+  const verdicts = deriveCaseVerdicts([
+    row('1', { case_id: 7, verification_status: 'FAILED' }),
+    row('2', { case_id: 8, verification_status: 'VERIFIED' }),
+    row('3', { case_id: 7, verification_status: 'VERIFIED' }),
+    row('4', { verification_status: 'VERIFIED' }),
+  ])
+
+  assert.deepEqual([...verdicts.entries()], [['7', 'VERIFIED'], ['8', 'VERIFIED']])
 })

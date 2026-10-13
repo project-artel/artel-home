@@ -6,7 +6,8 @@ import { TestCaseSpecModal } from '../testCases/TestCaseSpecModal'
 import { RunChat } from '../testRuns/RunChat'
 import { RunNameCrumb } from '../testRuns/RunNameCrumb'
 import { SplitHandle } from '../design-system/primitives/SplitHandle'
-import { getTestRun } from '../testRuns/testRunApi'
+import { RunVersionChip } from '../testRuns/RunVersionChip'
+import { getTestRun, type RunGameBuild } from '../testRuns/testRunApi'
 import { useRunChatSession } from '../testRuns/useRunChatSession'
 import { ApproveScenarioDialog } from './ApproveScenarioDialog'
 import { DeleteScenarioDialog } from './DeleteScenarioDialog'
@@ -105,11 +106,16 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
   // The run's name for the crumb, when the studio was opened from a run. Fetched
   // here because the studio only carries the run id (?run=), not its name.
   const [runName, setRunName] = useState('')
+  const [runBuild, setRunBuild] = useState<RunGameBuild | null>(null)
   useEffect(() => {
     if (fromRun === null) return
     const controller = new AbortController()
     getTestRun(projectId, fromRun, controller.signal)
-      .then((run) => { if (run !== null) setRunName(run.name) })
+      .then((run) => {
+        if (run === null) return
+        setRunName(run.name)
+        setRunBuild(run.gameBuild)
+      })
       .catch(() => { /* leave the crumb blank on failure */ })
     return () => controller.abort()
   }, [projectId, fromRun])
@@ -178,6 +184,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
                 name={runName}
                 onRenamed={(run) => setRunName(run.name)}
               />
+              <RunVersionChip build={runBuild} />
               <span className="st-crumb-sep" aria-hidden="true">/</span>
             </>
           )}

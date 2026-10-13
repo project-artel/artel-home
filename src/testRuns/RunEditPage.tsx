@@ -3,12 +3,16 @@ import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { SplitHandle } from '../design-system/primitives/SplitHandle'
 import { listTestScenarios } from '../testScenarios/scenarioApi'
+import { ScenarioImportDialog } from '../testScenarios/ScenarioImportDialog'
 import { ScenarioList } from '../testScenarios/ScenarioList'
+import { PlaylistAddIcon } from '../testScenarios/scenarioIcons'
+import type { ScenarioImportResult } from '../testScenarios/scenarioLibrary'
 import { useChatWidth } from '../testScenarios/useChatWidth'
 import { getRunScenarios, getTestRun, setRunScenarios, type TestRun } from './testRunApi'
 import { createTestScenario } from '../testScenarios/scenarioApi'
 import { RunChat } from './RunChat'
 import { RunNameCrumb } from './RunNameCrumb'
+import { RunVersionChip } from './RunVersionChip'
 import { useRunChatSession } from './useRunChatSession'
 
 /**
@@ -40,6 +44,8 @@ function RunEditPage({ projectId, runId }: { projectId: string; runId: string })
     | { kind: 'missing' }
   >({ kind: 'loading' })
   const [creating, setCreating] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [importNotice, setImportNotice] = useState<string | null>(null)
   // Bumped after the chat applies a proposal, so the rail re-fetches. Only the
   // FIRST load hands off to the studio; after an apply we stay here so the chat —
   // and any remaining proposal cards — survive (they are client-side state, and a
@@ -96,6 +102,22 @@ function RunEditPage({ projectId, runId }: { projectId: string; runId: string })
     }
   }
 
+  /**
+   * 빈 런에 다른 런의 시나리오를 복사해 온 뒤(ARTEL-995). 이 버전에 없는 케이스가 있으면 이동하지 않고
+   * 여기서 먼저 알린다 — 이동하면 이 화면이 사라져 알림을 볼 자리가 없다.
+   */
+  function imported(result: ScenarioImportResult) {
+    setImporting(false)
+    const first = result.importedScenarios[0]
+    if (first === undefined) return
+    if (result.unmatchedCaseIds.length === 0) {
+      navigate(`/projects/${encodeURIComponent(projectId)}/test-scenarios/${first.testScenarioId}?run=${encodeURIComponent(runId)}`)
+      return
+    }
+    setImportNotice(t.scenarios.list.unmatched(result.unmatchedCaseIds.length))
+    setReloadKey((n) => n + 1)
+  }
+
   if (state.kind === 'loading') {
     return <div className="scenario-studio"><div className="empty-note" style={{ padding: 40 }}>{t.scenarios.map.loading}</div></div>
   }
@@ -127,6 +149,7 @@ function RunEditPage({ projectId, runId }: { projectId: string; runId: string })
             name={state.run.name}
             onRenamed={(run) => setState((prev) => (prev.kind === 'ready' ? { ...prev, run } : prev))}
           />
+          <RunVersionChip build={state.run.gameBuild} />
           <span className="id mono">TestRun</span>
         </div>
         <div className="st-spacer" />
@@ -151,12 +174,27 @@ function RunEditPage({ projectId, runId }: { projectId: string; runId: string })
               <>
                 <h1 className="run-empty-title">{e.emptyTitle}</h1>
                 <p className="run-empty-copy">{e.emptyCopy}</p>
-                <button className="st-btn st-btn--primary" disabled={creating} onClick={createFirst} type="button">
-                  {creating ? e.creating : e.createFirst}
-                </button>
+                <div className="run-empty-actions">
+                  <button className="st-btn st-btn--primary" disabled={creating} onClick={createFirst} type="button">
+                    {creating ? e.creating : e.createFirst}
+                  </button>
+                  <button className="st-btn st-btn--icon" disabled={creating} onClick={() => setImporting(true)} type="button">
+                    <PlaylistAddIcon size={16} />
+                    {e.importExisting}
+                  </button>
+                </div>
               </>
             )}
+            {importNotice !== null && <p className="run-empty-copy" role="status">{importNotice}</p>}
           </div>
+          {importing && (
+            <ScenarioImportDialog
+              onClose={() => setImporting(false)}
+              onImported={imported}
+              projectId={projectId}
+              runId={runId}
+            />
+          )}
         </main>
         <SplitHandle label={t.scenarios.chat.widthHandle} {...split.handle} />
         <aside className="st-chat">
