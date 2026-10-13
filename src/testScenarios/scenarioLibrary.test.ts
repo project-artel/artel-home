@@ -3,7 +3,6 @@ import test from 'node:test'
 import {
   importOrder,
   initialExpanded,
-  libraryRows,
   parseScenarioImport,
   parseScenarioLibrary,
   runKey,
@@ -53,21 +52,9 @@ test('트리는 버전 → TR → TS 로 읽고, id 없는 TS 는 버린다', ()
 
 test('처음에는 가장 최근 버전과 그 TR 만 펼친다', () => {
   const versions = parseScenarioLibrary(wire)
-  const rows = libraryRows(versions, initialExpanded(versions))
 
-  assert.deepEqual(rows.map((row) => `${row.level}:${row.kind}`), [
-    '1:version', '2:run', '3:scenario', '1:version', '1:version',
-  ])
-})
-
-test('펼친 노드만 따라 내려간다', () => {
-  const versions = parseScenarioLibrary(wire)
-  const expanded = new Set([versionKey(versions[1]), runKey(versions[1], versions[1].testRuns[0])])
-  const rows = libraryRows(versions, expanded)
-
-  assert.deepEqual(rows.filter((row) => row.kind === 'scenario').map((row) => row.key), [
-    'v:1/r:10/s:101', 'v:1/r:10/s:201',
-  ])
+  assert.deepEqual([...initialExpanded(versions)], [versionKey(versions[0]), runKey(versions[0], versions[0].testRuns[0])])
+  assert.deepEqual([...initialExpanded([])], [])
 })
 
 test('TR 을 고르면 그 안의 TS 전부, 다시 누르면 전부 푼다', () => {

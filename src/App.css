@@ -9651,18 +9651,48 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
 .cm-generate-result p{ margin:0; font-size:13px; color:var(--color-text-primary); }
 .tcl-selection-bar .tcl-selection-count, .tcl-selection-bar .button{ flex:none; }
 
-/* TS 불러오기 모달(ARTEL-995). 줄 모양은 TC 폴더 tree(.tcl-folder)를 그대로 쓰고, 단계만 들여 쓴다. */
-.scn-import-tree{ max-height:min(60vh, 520px); overflow-y:auto; margin:var(--space-3) 0; padding:var(--space-2); border:1px solid var(--color-border-subtle); border-radius:var(--radius-md); background:var(--color-bg-raised); }
-.scn-import-tree [aria-level="2"]{ margin-left:var(--space-3); }
-.scn-import-tree [aria-level="3"]{ margin-left:calc(var(--space-3) * 2 + 22px); }
-.scn-import-row{ display:flex; align-items:center; gap:2px; }
-.scn-import-caret{ width:12px; flex:none; color:var(--color-text-muted); }
-.scn-import-caret-btn{ flex:none; width:22px; height:28px; border:0; border-radius:var(--radius-md); background:transparent; color:var(--color-text-muted); cursor:pointer; }
-.scn-import-caret-btn:hover{ background:var(--color-bg-hover); }
-.scn-import-row .tcl-folder input{ flex:none; margin:0; }
 .run-version-chip{ display:inline-flex; align-items:center; padding:0 6px; border:1px solid var(--color-border-strong); border-radius:999px; font-size:11px; color:var(--color-text-muted); white-space:nowrap; }
 .run-empty-actions{ display:flex; gap:var(--space-2); justify-content:center; flex-wrap:wrap; }
 .qa-tl-cap-saved{ display:inline-flex; align-items:center; margin-left:4px; }
 
 /* 빨간 TC 배지 안의 상태 점(ARTEL-995). 흰 테두리가 없으면 FAILED 점이 배지에 묻힌다. */
 .st-tc-badge .vdot{ display:inline-block; width:8px; height:8px; margin-right:4px; vertical-align:middle; box-shadow:0 0 0 1.5px var(--color-text-on-accent); }
+
+/* ── TS 불러오기 모달, 카드형(ARTEL-995) ────────────────────────────────────────
+   버전 = 접히는 카드(펼치면 왼쪽 강조 막대), 런 = 카드 안 섹션, 시나리오 = 체크 목록.
+   줄 높이와 체크박스를 키워 한눈에 고르기 쉽게 한다. */
+.dialog-panel:has(.sil){ width:min(100%, 720px); display:flex; flex-direction:column; }
+.sil{ display:flex; flex-direction:column; min-height:0; }
+.sil .dialog-copy{ margin-bottom:var(--space-4); }
+.sil-empty{ margin:var(--space-6) 0; text-align:center; color:var(--color-text-muted); font-size:14px; }
+.sil-versions{ list-style:none; margin:0; padding:2px; display:flex; flex-direction:column; gap:var(--space-3); overflow-y:auto; max-height:min(58vh, 560px); }
+.sil-card{ border:1px solid var(--color-border-subtle); border-radius:12px; background:var(--color-bg-raised); overflow:hidden; transition:border-color .15s, box-shadow .15s; }
+.sil-card.is-open{ border-color:var(--color-border-strong); box-shadow:inset 4px 0 0 var(--color-brand-accent), 0 1px 3px rgba(0,0,0,.18); }
+.sil-card-head{ display:grid; grid-template-columns:1fr auto auto; grid-template-rows:auto auto; column-gap:var(--space-3); align-items:center; width:100%; padding:16px 18px 16px 22px; border:0; background:transparent; color:var(--color-text-primary); text-align:left; cursor:pointer; }
+.sil-card-head:hover{ background:var(--color-bg-hover); }
+.sil-card-head:focus-visible{ outline:2px solid var(--color-brand-accent); outline-offset:-2px; }
+.sil-card-kicker{ grid-column:1; font-size:11px; letter-spacing:.04em; text-transform:uppercase; color:var(--color-text-muted); }
+.sil-card-title{ grid-column:1; grid-row:2; font-size:18px; font-weight:600; line-height:26px; }
+.sil-chip{ grid-column:2; grid-row:1 / span 2; padding:2px 10px; border-radius:999px; background:var(--color-bg-hover); color:var(--color-text-secondary); font-size:12px; white-space:nowrap; }
+.sil-chevron{ grid-column:3; grid-row:1 / span 2; flex:none; color:var(--color-text-muted); transition:transform .15s; }
+.sil-chevron.is-open{ transform:rotate(180deg); }
+.sil-runs{ list-style:none; margin:0; padding:0 0 var(--space-2); border-top:1px solid var(--color-border-subtle); }
+.sil-run + .sil-run{ border-top:1px solid var(--color-border-subtle); }
+.sil-run-head{ display:flex; align-items:center; gap:var(--space-2); padding:6px 14px 6px 22px; }
+.sil-run.is-picked > .sil-run-head{ background:color-mix(in srgb, var(--color-brand-accent) 8%, transparent); }
+.sil-run-toggle{ flex:1; min-width:0; display:flex; align-items:center; gap:var(--space-3); padding:10px 4px; border:0; background:transparent; color:var(--color-text-primary); text-align:left; cursor:pointer; border-radius:8px; }
+.sil-run-toggle:hover{ background:var(--color-bg-hover); }
+.sil-run-toggle .sil-chevron{ grid-column:auto; grid-row:auto; }
+.sil-run-name{ flex:1; min-width:0; font-size:15px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.sil-meta{ flex:none; font-size:12px; color:var(--color-text-muted); white-space:nowrap; }
+.sil-check{ display:inline-flex; padding:6px; border-radius:999px; cursor:pointer; }
+.sil-check:hover{ background:var(--color-bg-hover); }
+.sil input[type="checkbox"]{ width:18px; height:18px; margin:0; accent-color:var(--color-brand-accent); cursor:pointer; flex:none; }
+.sil-scenarios{ list-style:none; margin:0 0 var(--space-2); padding:0 14px 0 60px; }
+.sil-scenario-label{ display:flex; align-items:center; gap:var(--space-3); min-height:44px; padding:6px 10px; border-radius:8px; cursor:pointer; }
+.sil-scenario-label:hover{ background:var(--color-bg-hover); }
+.sil-scenario.is-picked .sil-scenario-label{ background:color-mix(in srgb, var(--color-brand-accent) 10%, transparent); }
+.sil-scenario-title{ flex:1; min-width:0; font-size:14px; line-height:20px; color:var(--color-text-primary); overflow:hidden; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; line-clamp:2; }
+.sil-footer{ display:flex; align-items:center; justify-content:space-between; gap:var(--space-3); margin-top:var(--space-4); padding-top:var(--space-4); border-top:1px solid var(--color-border-subtle); }
+.sil-footer .dialog-actions{ margin-top:0; }
+.sil-selected{ font-size:13px; color:var(--color-text-secondary); }

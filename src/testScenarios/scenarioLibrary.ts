@@ -111,36 +111,6 @@ export const versionKey = (version: LibraryVersion) => `v:${version.gameBuild?.g
 export const runKey = (version: LibraryVersion, run: LibraryRun) =>
   `${versionKey(version)}/r:${run.testRunId ?? 'loose'}`
 
-export type LibraryRow =
-  | { kind: 'version'; key: string; level: 1; version: LibraryVersion; expanded: boolean; runCount: number }
-  | { kind: 'run'; key: string; level: 2; run: LibraryRun; expanded: boolean; scenarioIds: string[] }
-  | { kind: 'scenario'; key: string; level: 3; scenario: LibraryScenario }
-
-/**
- * 펼친 노드만 따라 내려간 평면 줄 목록. `aria-level` 로 들여쓰기를 그리는 ARIA tree 가 이것을 읽는다.
- * 같은 TS 가 여러 TR 에 들어 있으면 TR 마다 한 줄씩 나온다 — 어느 TR 에서 왔는지가 고를 때의 맥락이다.
- */
-export function libraryRows(versions: readonly LibraryVersion[], expanded: ReadonlySet<string>): LibraryRow[] {
-  const rows: LibraryRow[] = []
-  for (const version of versions) {
-    const vKey = versionKey(version)
-    const vOpen = expanded.has(vKey)
-    rows.push({ kind: 'version', key: vKey, level: 1, version, expanded: vOpen, runCount: version.testRuns.length })
-    if (!vOpen) continue
-    for (const run of version.testRuns) {
-      const rKey = runKey(version, run)
-      const rOpen = expanded.has(rKey)
-      const scenarioIds = run.testScenarios.map((scenario) => scenario.testScenarioId)
-      rows.push({ kind: 'run', key: rKey, level: 2, run, expanded: rOpen, scenarioIds })
-      if (!rOpen) continue
-      for (const scenario of run.testScenarios) {
-        rows.push({ kind: 'scenario', key: `${rKey}/s:${scenario.testScenarioId}`, level: 3, scenario })
-      }
-    }
-  }
-  return rows
-}
-
 /** 처음 열 때 펼쳐 둘 것: 가장 최근 버전과 그 아래 TR 들. 나머지는 접어 둔다. */
 export function initialExpanded(versions: readonly LibraryVersion[]): Set<string> {
   const first = versions[0]
