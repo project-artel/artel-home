@@ -17,8 +17,7 @@ const SDK_PACKAGE_URL = 'https://github.com/project-artel/artel-sdk.git'
  *
  * `width` and `height` are the file's own pixels, not the size it renders at:
  * the browser only needs the ratio to reserve the box before the image
- * arrives, and the guide scrolls inside a dialog, where a late reflow would
- * move the step the reader is on.
+ * arrives, and a late reflow would move the step the reader is on.
  */
 function GuideShot({
   alt,
@@ -49,8 +48,8 @@ function GuideShot({
  * steps have none: the overlay is the SDK's own UI and a screenshot of it would
  * go stale on the SDK's release cycle, not this one's.
  *
- * It owns its own `aria-live` region because it is used inside a dialog that
- * has no panel-level one to borrow.
+ * It owns its own `aria-live` region, so the setup page's SDK panel does not
+ * need one of its own to borrow.
  */
 export function SdkInstallGuide() {
   const [announcement, setAnnouncement] = useState('')
@@ -61,15 +60,14 @@ export function SdkInstallGuide() {
   /**
    * Moving focus to the step is what makes the change perceivable without
    * sight: the button the reader just pressed stays put and says nothing about
-   * what replaced the step behind it. Skipped on the first render, where
-   * nothing has been replaced and the dialog owns the focus.
+   * what replaced the step behind it. Skipped while the step is the one
+   * already shown, so opening the page does not pull focus or scroll to the
+   * guide before the reader has asked for a step.
    */
-  const started = useRef(false)
+  const focusedStep = useRef(stepIndex)
   useEffect(() => {
-    if (!started.current) {
-      started.current = true
-      return
-    }
+    if (focusedStep.current === stepIndex) return
+    focusedStep.current = stepIndex
     stepRef.current?.focus()
   }, [stepIndex])
 

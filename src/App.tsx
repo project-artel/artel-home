@@ -18,6 +18,7 @@ import { PerformanceSection } from './performance/PerformanceSection'
 import { RunPerformanceRoute } from './performance/RunPerformancePage'
 import { GameInstanceDetailRoute } from './projects/GameInstanceDetailPage'
 import { ProjectListPage } from './projects/ProjectListPage'
+import { SetupPage } from './projects/SetupPage'
 import { DashboardSection } from './projects/workspace/DashboardSection'
 import { DocumentsSection } from './projects/workspace/DocumentsSection'
 import { IssuesSection } from './projects/workspace/IssuesSection'
@@ -27,6 +28,7 @@ import { ProjectWorkspaceRoute } from './projects/workspace/ProjectWorkspace'
 import { QaHistorySection } from './projects/workspace/QaHistorySection'
 import { QaSection } from './projects/workspace/QaSection'
 import { SettingsSection } from './projects/workspace/SettingsSection'
+import { SetupSection } from './projects/workspace/SetupSection'
 import { TestCasesSection } from './projects/workspace/TestCasesSection'
 import { TestRunsSection } from './projects/workspace/TestRunsSection'
 import { QaRunRoute } from './qa/QaRunPage'
@@ -97,6 +99,7 @@ export function App() {
           <Route path="/" element={<Navigate replace to="/projects" />} />
           <Route path="/account" element={<AccountSettingsPage />} />
           <Route path="/projects" element={<ProjectListPage />} />
+          <Route path="/setup" element={<SetupPage />} />
           {/* One project, split by question asked. The layout loads the
               project once and keeps it mounted, so moving between sections
               costs a re-render and no request. */}
@@ -112,6 +115,7 @@ export function App() {
             <Route path="performance" element={<PerformanceSection />} />
             <Route path="issues" element={<IssuesSection />} />
             <Route path="knowledge" element={<KnowledgeSection />} />
+            <Route path="setup" element={<SetupSection />} />
             <Route path="usage" element={<UsageSection />} />
             <Route path="members" element={<MembersSection />} />
             <Route path="settings" element={<SettingsSection />} />

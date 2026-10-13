@@ -153,8 +153,6 @@ export const projectsEn = {
     deletedAnnouncement: 'Instance deleted.',
     savedAnnouncement: 'Instance saved.',
     saveFailed: 'The instance could not be saved. Please try again.',
-    guideTitle: 'Set up the SDK',
-    guideIntro: 'Follow these steps once per machine to connect a game to this project.',
     neverConnected: 'Never connected',
     lastConnected: (date: string) => `Last connected ${date}`,
     registered: (date: string) => `Registered ${date}`,
@@ -186,7 +184,7 @@ export const projectsEn = {
     copyUrl: 'Copy URL',
     step2: 'Run the game and choose Sign in in the Artel overlay. It opens your browser.',
     step3:
-      'Approve the SDK in the browser, then pick this project in the overlay. The instance registers itself from there.',
+      'Approve the SDK in the browser, then pick the project in the overlay. The instance registers itself from there.',
     previousStep: 'Back',
     nextStep: 'Next',
     /** Labels the step itself as well as the counter, so both read the same. */
@@ -201,6 +199,38 @@ export const projectsEn = {
     shot1GitUrlInputAlt:
       'The Artel SDK git URL typed into the Add package from git URL field.',
     note: 'There is no key to keep. The SDK remembers the sign-in on that machine, and the instance is created by the first report.',
+  },
+  /**
+   * The setup guide, shown at `/setup` and as a project section. `projectId`
+   * decides which command copy applies: the global page shows a placeholder
+   * and says where to find the id.
+   */
+  setup: {
+    eyebrow: 'Getting started',
+    title: 'Setup guide',
+    sdkTitle: 'Unity SDK',
+    sdkIntro: 'Follow these steps once per machine to connect a game to a project.',
+    cliTitle: 'CLI',
+    cliIntro: 'Start games and QA runs from a terminal or from CI.',
+    ciBefore: 'In CI, set a CLI token from ',
+    ciLink: 'account settings',
+    ciAfter: ' as the ',
+    ciEnd: ' environment variable instead.',
+    commandsTitle: 'Commands',
+    projectCommandsTitle: 'Commands for this project',
+    /** Rendered before and after the placeholder, which stays in code style. */
+    projectIdBefore: 'Replace ',
+    projectIdAfter: ' with the id of your project. This command prints the projects you can access and their ids:',
+    copyProjectList: 'Copy project list command',
+    projectListCopied: 'Project list command copied.',
+    copyStart: 'Copy game start command',
+    startCopied: 'Game start command copied.',
+    copyList: 'Copy game list command',
+    listCopied: 'Game list command copied.',
+    copyQaRun: 'Copy qa run command',
+    qaRunCopied: 'QA run command copied.',
+    commandsNote:
+      'game start launches the build signed in and prints the instance id. qa run exits 0 only when the run passed, so CI can gate on it.',
   },
   copy: {
     blocked: 'Copying was blocked by the browser. Select the value and copy it manually.',
@@ -342,6 +372,7 @@ export const projectsEn = {
       performance: 'Performance',
       issues: 'Issues',
       knowledge: 'Knowledge graph',
+      setup: 'Setup guide',
       usage: 'Spend',
       members: 'Members',
       settings: 'Settings',
@@ -535,8 +566,6 @@ export const projectsKo: Localized<typeof projectsEn> = {
     deletedAnnouncement: '인스턴스를 삭제했습니다.',
     savedAnnouncement: '인스턴스를 저장했습니다.',
     saveFailed: '인스턴스를 저장하지 못했습니다. 다시 시도해 주세요.',
-    guideTitle: 'SDK 설정',
-    guideIntro: '게임 하나를 이 프로젝트에 연결하려면 머신마다 한 번씩 다음 단계를 따르세요.',
     neverConnected: '연결된 적 없음',
     lastConnected: (date: string) => `마지막 연결 ${date}`,
     registered: (date: string) => `등록일 ${date}`,
@@ -566,7 +595,7 @@ export const projectsKo: Localized<typeof projectsEn> = {
     copyUrl: 'URL 복사',
     step2: '게임을 실행하고 Artel 오버레이에서 로그인을 선택하세요. 브라우저가 열립니다.',
     step3:
-      '브라우저에서 SDK를 승인한 뒤 오버레이에서 이 프로젝트를 선택하세요. 인스턴스는 그 뒤에 자동으로 등록됩니다.',
+      '브라우저에서 SDK를 승인한 뒤 오버레이에서 프로젝트를 선택하세요. 인스턴스는 그 뒤에 자동으로 등록됩니다.',
     previousStep: '이전',
     nextStep: '다음',
     stepPosition: (current: number, total: number) => `${total}단계 중 ${current}단계`,
@@ -574,6 +603,32 @@ export const projectsKo: Localized<typeof projectsEn> = {
       'Package Manager의 더하기 메뉴가 열리고 Add package from git URL이 선택된 화면.',
     shot1GitUrlInputAlt: 'Add package from git URL 입력칸에 Artel SDK의 git URL을 입력한 화면.',
     note: '따로 보관할 키는 없습니다. SDK가 해당 머신의 로그인을 기억하며, 인스턴스는 첫 보고 시점에 만들어집니다.',
+  },
+  setup: {
+    eyebrow: '시작하기',
+    title: '설치 안내',
+    sdkTitle: 'Unity SDK',
+    sdkIntro: '게임 하나를 프로젝트에 연결하려면 머신마다 한 번씩 다음 단계를 따르세요.',
+    cliTitle: 'CLI',
+    cliIntro: '터미널이나 CI 에서 게임과 QA 실행을 시작합니다.',
+    ciBefore: 'CI 에서는 ',
+    ciLink: '계정 설정',
+    ciAfter: '에서 발급한 CLI 토큰을 ',
+    ciEnd: ' 환경 변수로 지정합니다.',
+    commandsTitle: '명령',
+    projectCommandsTitle: '이 프로젝트의 명령',
+    projectIdBefore: '',
+    projectIdAfter: ' 자리에 프로젝트 id 를 넣습니다. 이 명령은 접근할 수 있는 프로젝트와 그 id 를 출력합니다:',
+    copyProjectList: 'project list 명령 복사',
+    projectListCopied: 'project list 명령을 복사했습니다.',
+    copyStart: 'game start 명령 복사',
+    startCopied: 'game start 명령을 복사했습니다.',
+    copyList: 'game list 명령 복사',
+    listCopied: 'game list 명령을 복사했습니다.',
+    copyQaRun: 'qa run 명령 복사',
+    qaRunCopied: 'qa run 명령을 복사했습니다.',
+    commandsNote:
+      'game start 는 로그인된 상태로 빌드를 실행하고 인스턴스 id 를 출력합니다. qa run 은 실행이 통과했을 때만 종료 코드 0 을 반환하므로 CI 에서 통과 여부를 판단하는 데 쓸 수 있습니다.',
   },
   copy: {
     blocked: '브라우저가 복사를 차단했습니다. 값을 선택해 직접 복사해 주세요.',
@@ -696,6 +751,7 @@ export const projectsKo: Localized<typeof projectsEn> = {
       performance: '성능',
       issues: '이슈',
       knowledge: '지식 그래프',
+      setup: '설치 안내',
       usage: '사용량',
       members: '멤버',
       settings: '설정',

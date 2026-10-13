@@ -27,6 +27,8 @@ const ICON_PATHS: Record<WorkspaceSectionId, string[]> = {
   issues: ['M4 14V2.7', 'M4 3h8l-1.8 2.8L12 8.6H4'],
   // Three nodes and the lines between them: the graph's own shape, small.
   knowledge: ['M4 4.6l4.4 2.2', 'M8.4 6.8L12 11.4', 'M4 4.6l1.6 6.8', 'M5.6 11.4h6.4'],
+  // An arrow coming down into a tray: something to install, once.
+  setup: ['M8 2.4v7.2', 'M5.2 6.8L8 9.6l2.8-2.8', 'M2.8 10.6v2.6h10.4v-2.6'],
   // 칸 넷이 짙어지는 순서로 놓인 잔디 한 줄. 이 섹션이 그리는 그림 자체를 15px 로 줄인 것이다.
   usage: ['M2.4 9.4h2.6v3.2H2.4z', 'M6.2 7.2h2.6v5.4H6.2z', 'M10 4.2h2.6v8.4H10z', 'M2 3.4h1.6', 'M4.6 3.4h1.6'],
   // 사람 둘. 한 명은 앞에, 한 명은 뒤에 반쯤 가려 서서 "혼자가 아니다" 를 15px 안에서 말한다.
@@ -149,6 +151,16 @@ export function ProjectNav({
       </ul>
 
       <div className="project-nav-foot">
+        <NavLink
+          className={({ isActive }) => (isActive ? 'nav-item nav-item--active' : 'nav-item')}
+          title={collapsed ? nav.setup : undefined}
+          to={sectionHref(projectId, 'setup')}
+        >
+          <SectionIcon id="setup" />
+          <span className={collapsed ? 'nav-label visually-hidden' : 'nav-label'}>
+            {nav.setup}
+          </span>
+        </NavLink>
         <NavLink
           className={({ isActive }) => (isActive ? 'nav-item nav-item--active' : 'nav-item')}
           title={collapsed ? nav.usage : undefined}
