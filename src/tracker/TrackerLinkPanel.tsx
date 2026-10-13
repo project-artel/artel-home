@@ -1,20 +1,49 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { ISSUE_SEVERITIES, type IssueSeverity } from '../issues/issueTypes'
+import type { Messages } from '../i18n/messages'
 import { useI18n } from '../i18n/useI18n'
 import { apiErrorMessage } from '../projects/apiErrorMessage'
 import { ProjectApiError } from '../projects/projectApi'
 import { useWorkspace } from '../projects/workspace/workspaceContext'
 import {
   deleteTrackerLink,
+  getTrackerAuthorizeUrl,
   getTrackerInstallUrl,
+  listTrackerInstallations,
   listTrackerRepositories,
+  selectTrackerInstallation,
   updateTrackerLink,
 } from './trackerApi'
-import { DEFAULT_AUTO_SYNC_SEVERITIES, type TrackerLink, type TrackerRepository } from './trackerTypes'
+import {
+  DEFAULT_AUTO_SYNC_SEVERITIES,
+  type TrackerInstallation,
+  type TrackerLink,
+  type TrackerRepository,
+} from './trackerTypes'
 
 /** The only provider this build implements. Every call below still threads it as data, not a literal. */
 const PROVIDER = 'GITHUB' as const
+
+/** The server's code for an authorization that is missing or older than its 10-minute window. */
+const AUTHORIZATION_REQUIRED_CODE = 'tracker_authorization_required'
+
+/** A failed installation request: the text to show, and whether authorizing again would fix it. */
+type InstallationFailure = { message: string; authorizationRequired: boolean }
+
+function installationFailure(
+  error: unknown,
+  t: Messages,
+  fallback: string = t.tracker.panel.installationsFailed,
+): InstallationFailure {
+  if (!(error instanceof ProjectApiError)) return { message: fallback, authorizationRequired: false }
+
+  const authorizationRequired = error.code === AUTHORIZATION_REQUIRED_CODE
+  return {
+    message: authorizationRequired ? t.tracker.panel.authorizationExpired : apiErrorMessage(error, t),
+    authorizationRequired,
+  }
+}
 
 /**
  * A repository's identity for both the list `key` and "which row is
@@ -33,6 +62,9 @@ function repoKey(repository: TrackerRepository): string {
  * could drift from it): no connection, installed but no repository chosen,
  * and connected. Only an owner can change anything; a member sees the same
  * three states with every write action removed.
+ *
+ * A fourth screen, the installation picker, replaces those three for an owner
+ * who lands from GitHub authorization with `?tracker=choose`.
  */
 export function TrackerLinkPanel() {
   const { applyTrackerLink, extrasStatus, project, projectId, reloadExtras, trackerLink } =
@@ -49,9 +81,21 @@ export function TrackerLinkPanel() {
   // effect body; only a local `setState` call there is not.
   const [initialTrackerFlag] = useState(() => searchParams.get('tracker'))
   const [announcement, setAnnouncement] = useState('')
+  // Cancel and a successful connection both close the installation picker. A
+  // reload does not reopen it: the flag is gone from the URL by then.
+  const [pickerClosed, setPickerClosed] = useState(false)
 
   const [connecting, setConnecting] = useState(false)
   const [connectFailure, setConnectFailure] = useState<string | null>(null)
+
+  type InstallationLoad =
+    | { token: number; status: 'ready'; installations: TrackerInstallation[] }
+    | { token: number; status: 'error'; failure: InstallationFailure }
+  const [installationLoad, setInstallationLoad] = useState<InstallationLoad | null>(null)
+  const [installationReloadToken, setInstallationReloadToken] = useState(0)
+  const [selectingInstallation, setSelectingInstallation] = useState<string | null>(null)
+  const [installationSelectFailure, setInstallationSelectFailure] = useState<InstallationFailure | null>(null)
+  const [installingElsewhere, setInstallingElsewhere] = useState(false)
 
   type RepoLoad =
     | { token: number; status: 'ready'; repositories: TrackerRepository[] }
@@ -68,12 +112,19 @@ export function TrackerLinkPanel() {
   const [disconnectFailure, setDisconnectFailure] = useState<string | null>(null)
 
   // The GitHub App install flow returns here carrying `?tracker=connected` or
-  // `?tracker=failed` (see the plan's note on where "home" resolves to).
+  // `?tracker=failed` (see the plan's note on where "home" resolves to), and
+  // GitHub authorization returns with `?tracker=choose`.
   // Strip it immediately so a reload cannot repeat the notice, and — only on
   // success — re-read the workspace's tracker state, since the layout's own
   // load happened before the redirect.
   useEffect(() => {
-    if (initialTrackerFlag !== 'connected' && initialTrackerFlag !== 'failed') return
+    if (
+      initialTrackerFlag !== 'connected' &&
+      initialTrackerFlag !== 'failed' &&
+      initialTrackerFlag !== 'choose'
+    ) {
+      return
+    }
 
     const next = new URLSearchParams(searchParams)
     next.delete('tracker')
@@ -88,7 +139,11 @@ export function TrackerLinkPanel() {
 
   const installFailedNotice = initialTrackerFlag === 'failed'
 
-  const showRepositoryPicker = trackerLink !== null && trackerLink.repository === null
+  // A member who opens the `choose` address sees the ordinary panel.
+  const showInstallationPicker = isOwner && initialTrackerFlag === 'choose' && !pickerClosed
+
+  const showRepositoryPicker =
+    !showInstallationPicker && trackerLink !== null && trackerLink.repository === null
 
   // `repoLoad`'s `token` decides whether it belongs to the request in
   // flight; a mismatch (including `repoLoad === null`, the initial state)
@@ -116,17 +171,69 @@ export function TrackerLinkPanel() {
     return () => controller.abort()
   }, [isOwner, showRepositoryPicker, projectId, t, repoReloadToken])
 
-  async function connect() {
+  // Same token scheme as `repoLoad` above, for the installation list.
+  const installationsLoading = installationLoad === null || installationLoad.token !== installationReloadToken
+
+  useEffect(() => {
+    if (!showInstallationPicker) return
+
+    const controller = new AbortController()
+    const token = installationReloadToken
+
+    listTrackerInstallations(projectId, PROVIDER, controller.signal)
+      .then((installations) => setInstallationLoad({ token, status: 'ready', installations }))
+      .catch((error: unknown) => {
+        if (controller.signal.aborted) return
+        setInstallationLoad({
+          token,
+          status: 'error',
+          failure: installationFailure(error, t),
+        })
+      })
+
+    return () => controller.abort()
+  }, [showInstallationPicker, projectId, t, installationReloadToken])
+
+  /** Sends the owner to GitHub authorization, which lists the accounts the App is installed on. */
+  async function startAuthorization() {
     setConnecting(true)
     setConnectFailure(null)
     try {
-      const url = await getTrackerInstallUrl(projectId, PROVIDER)
+      const url = await getTrackerAuthorizeUrl(projectId, PROVIDER)
       window.location.assign(url)
     } catch (error: unknown) {
       setConnectFailure(
         error instanceof ProjectApiError ? apiErrorMessage(error, t) : t.tracker.panel.connectFailed,
       )
       setConnecting(false)
+    }
+  }
+
+  /** Sends the owner to GitHub to install the App on an account that is not in the list yet. */
+  async function installOnAnotherAccount() {
+    setInstallingElsewhere(true)
+    setInstallationSelectFailure(null)
+    try {
+      const url = await getTrackerInstallUrl(projectId, PROVIDER)
+      window.location.assign(url)
+    } catch (error: unknown) {
+      setInstallationSelectFailure(installationFailure(error, t, t.tracker.panel.connectFailed))
+      setInstallingElsewhere(false)
+    }
+  }
+
+  async function selectInstallation(installation: TrackerInstallation) {
+    setSelectingInstallation(installation.installationId)
+    setInstallationSelectFailure(null)
+    try {
+      const link = await selectTrackerInstallation(projectId, PROVIDER, installation.installationId)
+      applyTrackerLink(link)
+      setPickerClosed(true)
+      setAnnouncement(t.tracker.panel.accountConnected(installation.account))
+    } catch (error: unknown) {
+      setInstallationSelectFailure(installationFailure(error, t, t.tracker.panel.selectInstallationFailed))
+    } finally {
+      setSelectingInstallation(null)
     }
   }
 
@@ -233,21 +340,41 @@ export function TrackerLinkPanel() {
         </div>
       )}
 
-      {trackerLink === null && (
+      {showInstallationPicker && (
+        <InstallationPicker
+          connectFailure={connectFailure}
+          installations={installationLoad?.status === 'ready' ? installationLoad.installations : null}
+          installingElsewhere={installingElsewhere}
+          loading={installationsLoading}
+          loadFailure={installationLoad?.status === 'error' ? installationLoad.failure : null}
+          onCancel={() => setPickerClosed(true)}
+          onInstallElsewhere={() => void installOnAnotherAccount()}
+          onReauthorize={() => void startAuthorization()}
+          onRetry={() => setInstallationReloadToken((token) => token + 1)}
+          onSelect={(installation) => void selectInstallation(installation)}
+          selectFailure={installationSelectFailure}
+          selectingInstallation={selectingInstallation}
+        />
+      )}
+
+      {!showInstallationPicker && trackerLink === null && (
         <NotConnected
           connectFailure={connectFailure}
           connecting={connecting}
           isOwner={isOwner}
-          onConnect={() => void connect()}
+          onConnect={() => void startAuthorization()}
         />
       )}
 
       {showRepositoryPicker && (
         <RepositoryPicker
+          changeAccountFailure={connectFailure}
+          changingAccount={connecting}
           connectingRepo={connectingRepo}
           isOwner={isOwner}
           loading={repositoriesLoading}
           loadFailure={repoLoad?.status === 'error' ? repoLoad.message : null}
+          onChangeAccount={() => void startAuthorization()}
           onConnect={(repository) => void connectRepository(repository)}
           onRetry={() => setRepoReloadToken((token) => token + 1)}
           repoConnectFailure={repoConnectFailure}
@@ -255,11 +382,14 @@ export function TrackerLinkPanel() {
         />
       )}
 
-      {trackerLink !== null && trackerLink.repository !== null && (
+      {!showInstallationPicker && trackerLink !== null && trackerLink.repository !== null && (
         <Connected
+          changeAccountFailure={connectFailure}
+          changingAccount={connecting}
           disconnectFailure={disconnectFailure}
           disconnecting={disconnecting}
           isOwner={isOwner}
+          onChangeAccount={() => void startAuthorization()}
           onDisconnect={() => void disconnect()}
           onToggleSeverity={toggleSeverity}
           savingSeverities={savingSeverities}
@@ -318,19 +448,25 @@ function NotConnected({
 }
 
 function RepositoryPicker({
+  changeAccountFailure,
+  changingAccount,
   connectingRepo,
   isOwner,
   loading,
   loadFailure,
+  onChangeAccount,
   onConnect,
   onRetry,
   repoConnectFailure,
   repositories,
 }: {
+  changeAccountFailure: string | null
+  changingAccount: boolean
   connectingRepo: string | null
   isOwner: boolean
   loading: boolean
   loadFailure: string | null
+  onChangeAccount: () => void
   onConnect: (repository: TrackerRepository) => void
   onRetry: () => void
   repoConnectFailure: string | null
@@ -386,23 +522,187 @@ function RepositoryPicker({
           ))}
         </ul>
       )}
+
+      <ChangeAccountButton
+        changing={changingAccount}
+        failure={changeAccountFailure}
+        onChangeAccount={onChangeAccount}
+      />
+    </div>
+  )
+}
+
+/** Starts GitHub authorization again, so the owner can pick a different installed account. */
+function ChangeAccountButton({
+  changing,
+  failure,
+  onChangeAccount,
+}: {
+  changing: boolean
+  failure: string | null
+  onChangeAccount: () => void
+}) {
+  const { t } = useI18n()
+
+  return (
+    <>
+      {failure !== null && (
+        <div className="inline-error" role="alert">
+          <span aria-hidden="true">!</span>
+          {failure}
+        </div>
+      )}
+      <button
+        className="button button--secondary button--compact"
+        disabled={changing}
+        onClick={onChangeAccount}
+        type="button"
+      >
+        {changing ? t.tracker.panel.connecting : t.tracker.panel.changeAccount}
+      </button>
+    </>
+  )
+}
+
+function InstallationPicker({
+  connectFailure,
+  installations,
+  installingElsewhere,
+  loading,
+  loadFailure,
+  onCancel,
+  onInstallElsewhere,
+  onReauthorize,
+  onRetry,
+  onSelect,
+  selectFailure,
+  selectingInstallation,
+}: {
+  connectFailure: string | null
+  installations: TrackerInstallation[] | null
+  installingElsewhere: boolean
+  loading: boolean
+  loadFailure: InstallationFailure | null
+  onCancel: () => void
+  onInstallElsewhere: () => void
+  onReauthorize: () => void
+  onRetry: () => void
+  onSelect: (installation: TrackerInstallation) => void
+  selectFailure: InstallationFailure | null
+  selectingInstallation: string | null
+}) {
+  const { t } = useI18n()
+  const busy = selectingInstallation !== null || installingElsewhere
+
+  const installElsewhereButton = (
+    <button
+      className="button button--secondary button--compact"
+      disabled={busy}
+      onClick={onInstallElsewhere}
+      type="button"
+    >
+      {installingElsewhere ? t.tracker.panel.connecting : t.tracker.panel.installOnAnotherAccount}
+    </button>
+  )
+
+  return (
+    <div>
+      <p className="section-intro">{t.tracker.panel.chooseInstallationCopy}</p>
+
+      {connectFailure !== null && (
+        <div className="inline-error" role="alert">
+          <span aria-hidden="true">!</span>
+          {connectFailure}
+        </div>
+      )}
+
+      {selectFailure !== null && (
+        <div className="inline-error" role="alert">
+          <span aria-hidden="true">!</span>
+          {selectFailure.message}
+          {selectFailure.authorizationRequired && (
+            <button className="button button--secondary button--compact" onClick={onReauthorize} type="button">
+              {t.tracker.panel.reauthorize}
+            </button>
+          )}
+        </div>
+      )}
+
+      {loading ? (
+        <p className="panel-empty" aria-busy="true">{t.tracker.panel.installationsLoading}</p>
+      ) : loadFailure !== null ? (
+        <div className="panel-message" role="alert">
+          <p className="panel-message-copy">{loadFailure.message}</p>
+          {loadFailure.authorizationRequired ? (
+            <button className="button button--primary button--compact" onClick={onReauthorize} type="button">
+              {t.tracker.panel.reauthorize}
+            </button>
+          ) : (
+            <button className="button button--secondary button--compact" onClick={onRetry} type="button">
+              {t.projects.shared.retry}
+            </button>
+          )}
+        </div>
+      ) : installations !== null && installations.length === 0 ? (
+        <div className="panel-empty-block">
+          <p className="panel-empty">{t.tracker.panel.installationsEmpty}</p>
+          {installElsewhereButton}
+        </div>
+      ) : (
+        <>
+          <ul className="tracker-repo-list">
+            {(installations ?? []).map((installation) => (
+              <li className="tracker-repo-row" key={installation.installationId}>
+                <span className="tracker-repo-name">{installation.account}</span>
+                <span className="badge">{t.tracker.panel.accountTypeLabels[installation.accountType]}</span>
+                <button
+                  className="button button--secondary button--compact"
+                  disabled={busy}
+                  onClick={() => onSelect(installation)}
+                  type="button"
+                >
+                  {selectingInstallation === installation.installationId
+                    ? t.tracker.panel.connecting
+                    : t.tracker.panel.useInstallation}
+                </button>
+              </li>
+            ))}
+          </ul>
+          {installElsewhereButton}
+        </>
+      )}
+
+      <button
+        className="button button--secondary button--compact"
+        disabled={busy}
+        onClick={onCancel}
+        type="button"
+      >
+        {t.projects.shared.cancel}
+      </button>
     </div>
   )
 }
 
 function Connected({
+  changeAccountFailure,
+  changingAccount,
   disconnectFailure,
   disconnecting,
   isOwner,
+  onChangeAccount,
   onDisconnect,
   onToggleSeverity,
   savingSeverities,
   severityFailure,
   trackerLink,
 }: {
+  changeAccountFailure: string | null
+  changingAccount: boolean
   disconnectFailure: string | null
   disconnecting: boolean
   isOwner: boolean
+  onChangeAccount: () => void
   onDisconnect: () => void
   onToggleSeverity: (severity: IssueSeverity) => void
   savingSeverities: boolean
@@ -478,7 +778,12 @@ function Connected({
             type="button"
           >
             {disconnecting ? t.tracker.panel.disconnecting : t.tracker.panel.disconnect}
-          </button>
+          </button>{' '}
+          <ChangeAccountButton
+            changing={changingAccount}
+            failure={changeAccountFailure}
+            onChangeAccount={onChangeAccount}
+          />
         </>
       )}
     </div>
