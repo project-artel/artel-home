@@ -2,7 +2,7 @@
 
 - Date: 2026-10-13
 - GitHub Issue: None (Jira ARTEL-968, Story ARTEL-965)
-- Status: Implemented
+- Status: Implemented (scope change 2026-10-13 applied)
 
 ## Goal
 
@@ -15,10 +15,30 @@ test case 라이브러리 목록에서 여러 건을 골라 한 번에 삭제한
 - 키보드만으로 선택과 삭제가 된다
 - ARTEL-970 의 "선택한 test case 를 폴더로 이동" 이 같은 선택 상태를 재사용한다
 
+## Scope change (2026-10-13): 마우스와 키보드 조합
+
+Jira ARTEL-968 의 "마우스와 키보드 조합" 절이 계약이다. 파일 탐색기처럼 고른다.
+
+- 그냥 click: 편집기를 열고, 다중 선택을 비우고, 그 줄을 범위의 시작점(anchor)으로 삼는다.
+- Ctrl/Cmd click: 그 줄을 토글한다. 편집기는 열지 않는다.
+- Shift click: 시작점부터 click 한 줄까지로 선택을 바꾼다. Ctrl/Cmd+Shift click 은 기존 선택에 범위를 더한다.
+- Shift+ArrowUp/Down: 시작점부터 움직인 커서까지로 선택을 늘리거나 줄인다.
+- 선택이 있을 때 Delete 는 삭제 확인 dialog 를 연다(바로 지우지 않는다). 입력칸, select 안에서는 가로채지 않는다.
+- 범위도 500건 상한을 넘지 않는다. 범위의 줄을 보이는 순서대로 앞에서 상한까지만 받는다.
+- Shift click 은 브라우저의 글자 선택을 만들지 않는다. checkbox click 도 시작점을 정한다. 필터로 시작점이 숨겨지면 시작점이 없는 것으로 본다.
+
+결정:
+1. 규칙은 `testCaseSelection.ts` 의 순수 함수(`resolveAnchor`, `rangeBetween`, `selectRange`)에 둔다. 시작점이 없는 Shift click 은 Ctrl click 처럼 그 줄을 토글한다.
+2. `useCaseSelection` 이 시작점을 상태로 갖고 render 중에 정리한다. `selectedIds`, `clear` 의 모양은 그대로라 ARTEL-970 의 이동이 영향을 받지 않는다. `clear` 는 시작점도 지운다.
+3. 행은 `TestCaseLibrary.tsx` 가 직접 그린 `<tr>` 이고 `CaseListRow.tsx` 는 ⌘K palette 의 행이라 건드리지 않는다.
+4. 문서 순서: click 으로 고른 행은 `chosen` 클래스로 배경을 깐다(편집기가 열린 행 `picked` 의 띠와 구별).
+5. 키보드 시작점이 없을 때 Shift+화살표의 시작점은 움직이기 전의 커서 줄이다. 커서(`active`)는 기존대로 mouse hover 를 따른다.
+6. macOS 에는 Delete 키가 없어 Cmd+Backspace 도 같은 동작으로 둔다.
+
 ## Non-goals
 
 - 삭제 취소(undo)
-- shift-click 범위 선택, drag 선택
+- drag 선택
 - 폴더 이동 UI (ARTEL-970)
 
 ## Context / Constraints
@@ -95,3 +115,10 @@ test case 라이브러리 목록에서 여러 건을 골라 한 번에 삭제한
 - 수용: `refresh` 의 늦은 응답 버리기, 해제·삭제 뒤 focus 를 render 후 effect 로 복원(목록이 비면 panel), 삭제 건수 fallback, `MAX_BULK_SELECTION` 을 `testCaseTypes.ts` 로 이동, `removeCase` 를 `removeCases` 위에 정의, 필터가 아무것도 숨기지 않을 때 같은 Set 을 돌려주는 테스트 추가.
 - 수용하지 않음: 선택 bar 의 `role="status"` 가 처음 mount 될 때 읽히지 않을 수 있다는 지적 — 건수는 화면에 보이고 행 checkbox 가 자기 상태를 읽는다. 상시 live region 은 후속으로 미룬다.
 - 수용하지 않음: key routing 을 순수 함수로 빼서 테스트 — 이 repo 에 component test 환경이 없고, 분기가 4줄이라 추출이 YAGNI 에 더 가깝다. 수동 검증도 서버 부재로 못 했다는 것을 PR 에 적는다.
+
+## Pair review outcome (range selection)
+
+- 수용: Shift+화살표는 Ctrl, Alt, Meta 가 함께 눌리면 가로채지 않는다. Shift mousedown 의 `preventDefault` 와 focus 는 왼쪽 button 일 때만. 목록 아래 줄에 선택 조작 안내를 더했다.
+- 수용된 특징: 범위가 500건을 넘으면 "보이는 순서의 앞 500건" 이라서 시작점이 범위의 아래쪽 끝일 때 시작점 줄이 빠진다(계약 그대로, `selectRange` 의 상한 테스트가 고정한다).
+- 수용된 특징: Shift+checkbox click 은 범위를 잇지 않고 그 줄만 토글한다(계약의 "checkbox click 은 지금처럼").
+- 수용하지 않음: component 테스트(DOM 환경 없음). Delete 안내 문구와 guard 선택자는 코드 검토로만 확인했다.
