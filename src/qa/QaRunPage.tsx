@@ -10,7 +10,7 @@ import { QaLogTimeline, type QaLogFocusRequest } from './QaLogTimeline'
 import { QaRunUsagePanel } from './QaRunUsagePanel'
 import { QaContextGauge } from './QaContextGauge'
 import { QaStepTimeline } from './QaStepTimeline'
-import { deriveQaContextUsage, deriveQaProgress, isQaContextLog } from './qaProgress'
+import { deriveCaseVerdicts, deriveQaContextUsage, deriveQaProgress, isQaContextLog } from './qaProgress'
 import { isTerminalQaStatus, type QaLog, type QaRun, type QaTry } from './qaTypes'
 import { useQaTry } from './useQaTry'
 import { useScenarioSteps } from './useScenarioSteps'
@@ -295,6 +295,7 @@ function FocusedTry({ tryId }: { tryId: string }) {
   )
 
   const contextUsage = useMemo(() => deriveQaContextUsage(session.logs), [session.logs])
+  const caseVerdicts = useMemo(() => deriveCaseVerdicts(session.logs), [session.logs])
 
   const jumpToLog = useCallback((logId: string) => {
     setLogView('raw')
@@ -355,7 +356,7 @@ function FocusedTry({ tryId }: { tryId: string }) {
         </section>
 
         <QaContextGauge usage={contextUsage} />
-        <QaStepTimeline onJump={jumpToLog} progress={progress} scenarioSteps={scenarioSteps} />
+        <QaStepTimeline caseVerdicts={caseVerdicts} onJump={jumpToLog} progress={progress} scenarioSteps={scenarioSteps} />
       </div>
 
       <aside className="qa-focus-logs-col" aria-label={t.qa.run.logsTitle}>

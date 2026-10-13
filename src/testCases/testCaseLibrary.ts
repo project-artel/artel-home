@@ -69,9 +69,11 @@ function matchesQuery(testCase: TestCase, query: string): boolean {
 }
 
 const FAILING_FIRST_RANK: Record<VerificationStatus, number> = {
-  BROKEN: 0,
-  DRAFT: 1,
-  VERIFIED: 2,
+  FAILED: 0,
+  BROKEN: 1,
+  REGRESSION: 2,
+  DRAFT: 3,
+  VERIFIED: 4,
 }
 
 /**
@@ -105,15 +107,19 @@ export function selectTestCases(
 export type TestCaseTally = {
   total: number
   verified: number
+  failed: number
+  regression: number
   draft: number
   broken: number
 }
 
 /** 필터 chip 옆에 붙는 수. 전체 목록에서 세므로 필터를 걸어도 숫자가 흔들리지 않는다. */
 export function tallyTestCases(cases: TestCase[]): TestCaseTally {
-  const tally: TestCaseTally = { total: cases.length, verified: 0, draft: 0, broken: 0 }
+  const tally: TestCaseTally = { total: cases.length, verified: 0, failed: 0, regression: 0, draft: 0, broken: 0 }
   for (const testCase of cases) {
     if (testCase.verificationStatus === 'VERIFIED') tally.verified += 1
+    else if (testCase.verificationStatus === 'FAILED') tally.failed += 1
+    else if (testCase.verificationStatus === 'REGRESSION') tally.regression += 1
     else if (testCase.verificationStatus === 'BROKEN') tally.broken += 1
     else tally.draft += 1
   }

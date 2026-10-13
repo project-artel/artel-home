@@ -4,6 +4,8 @@ import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../i18n/useI18n'
 import { getRunScenarios, setRunScenarios } from '../testRuns/testRunApi'
 import { createTestScenario, listTestScenarios } from './scenarioApi'
+import type { ScenarioImportResult } from './scenarioLibrary'
+import { ScenarioImportDialog } from './ScenarioImportDialog'
 import type { TestScenarioSummary } from './scenarioTypes'
 
 /**
@@ -13,6 +15,9 @@ import type { TestScenarioSummary } from './scenarioTypes'
  *
  * Creating a scenario in a run context both makes it and appends it to the run,
  * so a scenario made here is immediately part of the run being edited.
+ *
+ * 📂 은 다른 런의 시나리오를 복사해 이 런에 붙인다(ARTEL-995). 런 안에서만 보인다 — 복사본이 붙을
+ * 자리가 런이다.
  */
 export function ScenarioList({
   projectId,
@@ -39,6 +44,8 @@ export function ScenarioList({
   const [items, setItems] = useState<TestScenarioSummary[]>([])
   const [creating, setCreating] = useState(false)
   const [reload, setReload] = useState(0)
+  const [importing, setImporting] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -85,13 +92,38 @@ export function ScenarioList({
     }
   }
 
+  function imported(result: ScenarioImportResult) {
+    setImporting(false)
+    setReload((n) => n + 1)
+    const count = result.importedScenarios.length
+    setNotice(result.unmatchedCaseIds.length > 0 ? `${s.imported(count)} ${s.unmatched(result.unmatchedCaseIds.length)}` : s.imported(count))
+    const first = result.importedScenarios[0]
+    if (first !== undefined) open(Number(first.testScenarioId))
+  }
+
   return (
     <aside className="elist">
       <div className="elist-head">
         <h2>{s.heading}</h2>
         <span className="count-pill">{items.length}</span>
+        {runId !== null && (
+          <button className="mini-add" onClick={() => setImporting(true)} aria-label={s.import} title={s.import} type="button">
+            <span aria-hidden="true">📂</span>
+          </button>
+        )}
         <button className="mini-add" onClick={create} disabled={creating} aria-label={s.new} title={s.new} type="button">＋</button>
       </div>
+      {notice !== null && (
+        <p className="empty-note" role="status">{notice}</p>
+      )}
+      {importing && runId !== null && (
+        <ScenarioImportDialog
+          onClose={() => setImporting(false)}
+          onImported={imported}
+          projectId={projectId}
+          runId={runId}
+        />
+      )}
       <div className="scn-list" ref={setListNode}>
         {items.length === 0 ? (
           <p className="empty-note">{s.empty}</p>

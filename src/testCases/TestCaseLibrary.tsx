@@ -43,6 +43,8 @@ import { useTestCaseLibrary } from './useTestCaseLibrary'
 /** `vdot` 와 결과 pill 이 상태마다 쓰는 CSS 접미사. 대문자 상태값을 클래스에 그대로 넣지 않는다. */
 const STATUS_CLASS: Record<VerificationStatus, string> = {
   VERIFIED: 'verified',
+  FAILED: 'failed',
+  REGRESSION: 'regression',
   DRAFT: 'draft',
   BROKEN: 'broken',
 }
@@ -675,6 +677,8 @@ export function TestCaseLibrary({
 
 function countOf(tally: TestCaseTally, status: VerificationStatus): number {
   if (status === 'VERIFIED') return tally.verified
+  if (status === 'FAILED') return tally.failed
+  if (status === 'REGRESSION') return tally.regression
   if (status === 'BROKEN') return tally.broken
   return tally.draft
 }

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { TestCaseModal } from '../testCases/TestCaseModal'
+import { listTestCases } from '../testCases/testCaseApi'
+import type { VerificationStatus } from '../testCases/testCaseTypes'
 import { GapFillModal } from './GapFillModal'
 import { groupStepsByCase, isGapStep } from './scenarioTypes'
 import type { StepEditor } from './useStepEditor'
@@ -34,6 +36,9 @@ export function ScenarioStepEditor({
   // Drag-reorder: index being dragged, and the row it is hovering over.
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [overIndex, setOverIndex] = useState<number | null>(null)
+  // TC 배지에 붙일 검증 상태(ARTEL-995). 프로젝트 목록을 한 번 받아 id 로 찾는다 — 스텝마다 따로
+  // 부르면 TC 수만큼 요청이 나간다. 못 읽으면 점 없이 배지만 그린다.
+  const caseStatuses = useCaseStatuses(projectId)
 
   // The centre column hides its scrollbar and marks the two edges instead, the
   // way the TC spec list does — three bars on one screen was one too many, and
@@ -161,6 +166,12 @@ export function ScenarioStepEditor({
                         title={e.viewCase}
                         onClick={() => setTcView({ caseId: step.case_id as number, label: `TC ${tcNo}` })}
                       >
+                        {caseStatuses.has(String(step.case_id)) && (
+                          <span
+                            className={`vdot ${caseStatuses.get(String(step.case_id))}`}
+                            title={t.scenarios.composition.status[caseStatuses.get(String(step.case_id)) as VerificationStatus]}
+                          />
+                        )}
                         TC {tcNo}
                       </button>
                     )}
@@ -274,4 +285,17 @@ function StepAction({
       value={value}
     />
   )
+}
+
+/** 프로젝트 TC 의 id → 검증 상태. 화면이 열릴 때 한 번 읽는다. */
+function useCaseStatuses(projectId: string): Map<string, VerificationStatus> {
+  const [statuses, setStatuses] = useState<Map<string, VerificationStatus>>(new Map())
+  useEffect(() => {
+    const controller = new AbortController()
+    listTestCases(projectId, controller.signal)
+      .then((cases) => setStatuses(new Map(cases.map((testCase) => [testCase.id, testCase.verificationStatus]))))
+      .catch(() => undefined)
+    return () => controller.abort()
+  }, [projectId])
+  return statuses
 }

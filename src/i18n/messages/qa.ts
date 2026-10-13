@@ -53,6 +53,7 @@ export const qaEn = {
     jumpHint: 'Select a judged step to open the log entry that judged it.',
     jump: (step: number) => `Go to the log for step ${step}`,
     caseLabel: (n: number) => `TC ${n}`,
+    savedTitle: (status: string) => `Saved to the test case as ${status}`,
     verification: 'Verification',
     casesSummary: (passed: number, failed: number, total: number) =>
       `${total} checks · ${passed} passed · ${failed} failed`,
@@ -280,6 +281,7 @@ export const qaKo: Localized<typeof qaEn> = {
     jumpHint: '판정된 스텝을 선택하면 그 판정을 남긴 로그로 이동합니다.',
     jump: (step: number) => `스텝 ${step}의 로그로 이동`,
     caseLabel: (n: number) => `TC ${n}`,
+    savedTitle: (status: string) => `테스트 케이스에 ${status}(으)로 저장됨`,
     verification: '검증',
     casesSummary: (passed: number, failed: number, total: number) =>
       `검증 ${total}개 · 통과 ${passed} · 실패 ${failed}`,

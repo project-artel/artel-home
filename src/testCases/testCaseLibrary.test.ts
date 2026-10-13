@@ -135,15 +135,19 @@ test('씬 집계는 많은 것부터, 같은 수면 이름순이고 빈 씬은 �
   ])
 })
 
-test('집계는 세 상태를 각각 센다', () => {
+test('집계는 다섯 상태를 각각 센다', () => {
   const cases = [
     makeCase('1', { verificationStatus: 'VERIFIED' }),
     makeCase('2', { verificationStatus: 'BROKEN' }),
     makeCase('3', { verificationStatus: 'BROKEN' }),
     makeCase('4', { verificationStatus: 'DRAFT' }),
+    makeCase('5', { verificationStatus: 'FAILED' }),
+    makeCase('6', { verificationStatus: 'REGRESSION' }),
   ]
 
-  assert.deepEqual(tallyTestCases(cases), { total: 4, verified: 1, draft: 1, broken: 2 })
+  assert.deepEqual(tallyTestCases(cases), {
+    total: 6, verified: 1, failed: 1, regression: 1, draft: 1, broken: 2,
+  })
 })
 
 test('build 이름은 label 을 쓰고, 없으면 version 으로 떨어진다', () => {

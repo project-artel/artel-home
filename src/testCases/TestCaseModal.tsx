@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { SceneChip } from './SceneChip'
 import { SpecGradeChip } from './SpecGradeChip'
-import { getTestCase } from './testCaseApi'
+import { getTestCase, getVerdictHistory, type CaseVerdictHistoryItem } from './testCaseApi'
 import type { TestCase } from './testCaseTypes'
 
 /**
@@ -33,6 +33,8 @@ export function TestCaseModal({
   const statusLabel = t.scenarios.composition.status
   const [testCase, setTestCase] = useState<TestCase | null>(null)
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading')
+  // build 별 판정(ARTEL-995). 못 읽어도 카드는 그대로 보인다 — 이력은 덧붙이는 정보다.
+  const [history, setHistory] = useState<CaseVerdictHistoryItem[]>([])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -43,6 +45,9 @@ export function TestCaseModal({
         if (error instanceof DOMException && error.name === 'AbortError') return
         setState('error')
       })
+    getVerdictHistory(projectId, String(caseId), controller.signal)
+      .then(setHistory)
+      .catch(() => setHistory([]))
     return () => controller.abort()
   }, [projectId, caseId])
 
@@ -96,6 +101,24 @@ export function TestCaseModal({
                     <ul className="tc-gap-list">
                       {testCase.evidenceGaps.map((gap, index) => (
                         <li key={`${gap}-${index}`} className="tc-gap">{gap}</li>
+                      ))}
+                    </ul>
+                  </dd>
+                </div>
+              )}
+              {/* 한 build 뿐이면 위의 상태 pill 과 같은 말이라 적지 않는다. */}
+              {history.length > 1 && (
+                <div className="tc-field">
+                  <dt className="tc-field-label">{m.verdictHistory}</dt>
+                  <dd className="tc-field-val">
+                    <ul className="tc-gap-list">
+                      {history.map((item) => (
+                        <li className="tc-gap" key={item.testCaseId}>
+                          <span className={`vdot ${item.verificationStatus}`} />{' '}
+                          {item.label !== null && item.label.trim().length > 0 ? item.label : item.version}
+                          {' · '}{statusLabel[item.verificationStatus]}
+                          {String(caseId) === item.testCaseId && ` ${m.thisVersion}`}
+                        </li>
                       ))}
                     </ul>
                   </dd>

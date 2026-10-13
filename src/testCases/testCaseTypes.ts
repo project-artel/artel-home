@@ -16,16 +16,21 @@
  */
 export const MAX_BULK_SELECTION = 500
 
-export type VerificationStatus = 'DRAFT' | 'VERIFIED' | 'BROKEN'
+/**
+ * - `FAILED` — QA 검증 스텝이 실패했다(ARTEL-995).
+ * - `REGRESSION` — 앞 버전에서 판정이 났고 이번 버전에서 다시 검증해야 한다(ARTEL-995).
+ * - `BROKEN` — 지도 재생성에서 사라졌지만 시나리오가 인용해 남은 케이스.
+ */
+export type VerificationStatus = 'DRAFT' | 'VERIFIED' | 'FAILED' | 'REGRESSION' | 'BROKEN'
 
 /** Display order for status pickers and filters (verified-first, matching the studio). */
-export const VERIFICATION_STATUSES: VerificationStatus[] = ['VERIFIED', 'DRAFT', 'BROKEN']
+export const VERIFICATION_STATUSES: VerificationStatus[] = ['VERIFIED', 'FAILED', 'REGRESSION', 'DRAFT', 'BROKEN']
 
 /** The server's default for a freshly created case, before any run verifies it. */
 export const DEFAULT_VERIFICATION_STATUS: VerificationStatus = 'DRAFT'
 
 export function asVerificationStatus(value: unknown): VerificationStatus {
-  return value === 'VERIFIED' || value === 'BROKEN' ? value : 'DRAFT'
+  return VERIFICATION_STATUSES.includes(value as VerificationStatus) ? (value as VerificationStatus) : 'DRAFT'
 }
 
 export type TestCase = {

@@ -37,8 +37,10 @@ export const testCasesEn = {
   },
   outcome: {
     VERIFIED: 'Passed',
+    FAILED: 'Failed',
+    REGRESSION: 'Re-verify',
     DRAFT: 'Not verified',
-    BROKEN: 'Failed',
+    BROKEN: 'Broken',
     onBuild: (build: string) => `on ${build}`,
     buildGone: 'Build no longer exists',
     neverRun: 'No run has verified it',
@@ -209,8 +211,10 @@ export const testCasesKo: Localized<typeof testCasesEn> = {
   },
   outcome: {
     VERIFIED: '통과',
+    FAILED: '실패',
+    REGRESSION: '재검증 필요',
     DRAFT: '미검증',
-    BROKEN: '실패',
+    BROKEN: '깨짐',
     onBuild: (build: string) => `${build} 에서`,
     buildGone: '해당 build 가 남아 있지 않음',
     neverRun: '아직 검증한 실행이 없음',

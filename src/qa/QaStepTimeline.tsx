@@ -1,5 +1,6 @@
 import { useI18n } from '../i18n/useI18n'
 import { groupStepsByCase, type ScenarioStep } from '../testScenarios/scenarioTypes'
+import type { VerificationStatus } from '../testCases/testCaseTypes'
 import type { QaProgress, QaStepGrade, QaStepProgress, QaStepState } from './qaProgress'
 
 /**
@@ -32,10 +33,13 @@ function toneClass(prefix: string, state: QaStepState, grade: QaStepGrade): stri
 }
 
 export function QaStepTimeline({
+  caseVerdicts = new Map(),
   onJump,
   progress,
   scenarioSteps,
 }: {
+  /** 서버가 TC 상태로 저장한 판정(ARTEL-995). TC 머리에 저장된 상태를 따로 보인다. */
+  caseVerdicts?: ReadonlyMap<string, VerificationStatus>
   onJump: (logId: string) => void
   progress: QaProgress
   scenarioSteps: ScenarioStep[]
@@ -70,6 +74,7 @@ export function QaStepTimeline({
           kind: 'tc' as const,
           key: `c${groupIndex}`,
           no: tcSeq,
+          saved: caseVerdicts.get(String(group.caseId)) ?? null,
           verdict,
           grade: last?.grade ?? null,
           expectedPassed: last?.expectedPassed ?? null,
@@ -105,6 +110,11 @@ export function QaStepTimeline({
               {block.kind === 'tc' ? (
                 <>
                   <span className="qa-tl-cap-no">{s.caseLabel(block.no)}</span>
+                  {block.saved !== null && (
+                    <span className="qa-tl-cap-saved" title={s.savedTitle(t.testCases.outcome[block.saved])}>
+                      <span className={`vdot vdot--${block.saved.toLowerCase()}`} />
+                    </span>
+                  )}
                   <span
                     className={`qa-tl-cap-verdict ${toneClass('qa-tl-cap-verdict', block.verdict, block.grade)}`}
                     title={block.expectedPassed === null ? undefined : s.gradeNote}
