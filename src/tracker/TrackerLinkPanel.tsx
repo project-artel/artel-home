@@ -28,6 +28,13 @@ const PROVIDER = 'GITHUB' as const
 /** The server's code for an authorization that is missing or older than its 10-minute window. */
 const AUTHORIZATION_REQUIRED_CODE = 'tracker_authorization_required'
 
+/**
+ * The server's code for an installation that is not in the list it read at
+ * authorization. Only a stale picker sends one, and authorizing again
+ * refreshes the list.
+ */
+const INSTALLATION_NOT_VERIFIED_CODE = 'tracker_installation_not_verified'
+
 /** A failed installation request: the text to show, and whether authorizing again would fix it. */
 type InstallationFailure = { message: string; authorizationRequired: boolean }
 
@@ -38,11 +45,13 @@ function installationFailure(
 ): InstallationFailure {
   if (!(error instanceof ProjectApiError)) return { message: fallback, authorizationRequired: false }
 
-  const authorizationRequired = error.code === AUTHORIZATION_REQUIRED_CODE
-  return {
-    message: authorizationRequired ? t.tracker.panel.authorizationExpired : apiErrorMessage(error, t),
-    authorizationRequired,
+  if (error.code === AUTHORIZATION_REQUIRED_CODE) {
+    return { message: t.tracker.panel.authorizationExpired, authorizationRequired: true }
   }
+  if (error.code === INSTALLATION_NOT_VERIFIED_CODE) {
+    return { message: t.tracker.panel.selectInstallationFailed, authorizationRequired: true }
+  }
+  return { message: apiErrorMessage(error, t), authorizationRequired: false }
 }
 
 /**
@@ -343,6 +352,7 @@ export function TrackerLinkPanel() {
       {showInstallationPicker && (
         <InstallationPicker
           connectFailure={connectFailure}
+          connecting={connecting}
           installations={installationLoad?.status === 'ready' ? installationLoad.installations : null}
           installingElsewhere={installingElsewhere}
           loading={installationsLoading}
@@ -566,6 +576,7 @@ function ChangeAccountButton({
 
 function InstallationPicker({
   connectFailure,
+  connecting,
   installations,
   installingElsewhere,
   loading,
@@ -579,6 +590,7 @@ function InstallationPicker({
   selectingInstallation,
 }: {
   connectFailure: string | null
+  connecting: boolean
   installations: TrackerInstallation[] | null
   installingElsewhere: boolean
   loading: boolean
@@ -592,7 +604,19 @@ function InstallationPicker({
   selectingInstallation: string | null
 }) {
   const { t } = useI18n()
-  const busy = selectingInstallation !== null || installingElsewhere
+  // `connecting` covers "다시 승인": the page is about to leave for GitHub.
+  const busy = selectingInstallation !== null || installingElsewhere || connecting
+
+  const reauthorizeButton = (variant: 'primary' | 'secondary') => (
+    <button
+      className={`button button--${variant} button--compact`}
+      disabled={busy}
+      onClick={onReauthorize}
+      type="button"
+    >
+      {connecting ? t.tracker.panel.connecting : t.tracker.panel.reauthorize}
+    </button>
+  )
 
   const installElsewhereButton = (
     <button
@@ -617,15 +641,13 @@ function InstallationPicker({
       )}
 
       {selectFailure !== null && (
-        <div className="inline-error" role="alert">
-          <span aria-hidden="true">!</span>
-          {selectFailure.message}
-          {selectFailure.authorizationRequired && (
-            <button className="button button--secondary button--compact" onClick={onReauthorize} type="button">
-              {t.tracker.panel.reauthorize}
-            </button>
-          )}
-        </div>
+        <>
+          <div className="inline-error" role="alert">
+            <span aria-hidden="true">!</span>
+            {selectFailure.message}
+          </div>
+          {selectFailure.authorizationRequired && reauthorizeButton('secondary')}
+        </>
       )}
 
       {loading ? (
@@ -634,9 +656,7 @@ function InstallationPicker({
         <div className="panel-message" role="alert">
           <p className="panel-message-copy">{loadFailure.message}</p>
           {loadFailure.authorizationRequired ? (
-            <button className="button button--primary button--compact" onClick={onReauthorize} type="button">
-              {t.tracker.panel.reauthorize}
-            </button>
+            reauthorizeButton('primary')
           ) : (
             <button className="button button--secondary button--compact" onClick={onRetry} type="button">
               {t.projects.shared.retry}
