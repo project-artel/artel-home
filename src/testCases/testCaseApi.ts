@@ -9,6 +9,7 @@ import {
 } from '../projects/projectApi'
 import {
   asVerificationStatus,
+  MAX_BULK_SELECTION,
   type TestCase,
   type TestCaseCoverage,
   type TestCaseInput,
@@ -152,6 +153,33 @@ export async function updateTestCase(
 export async function deleteTestCase(projectId: string, caseId: string): Promise<void> {
   const response = await apiFetch(casePath(projectId, caseId), { method: 'DELETE' })
   if (!response.ok) throw await toApiError(response)
+}
+
+
+/**
+ * `POST /api/projects/{projectId}/test-cases/bulk-delete` — deletes the given
+ * cases in one request and returns how many rows were removed.
+ *
+ * The server accepts 1..500 ids and rejects anything else, so the library caps
+ * the selection (`MAX_BULK_SELECTION`) instead of splitting the call: two
+ * requests could leave half the selection deleted. A missing or odd `deleted`
+ * degrades to 0 because callers reload the list rather than trust the count.
+ */
+export async function bulkDeleteTestCases(
+  projectId: string,
+  caseIds: readonly string[],
+): Promise<number> {
+  // 서버가 400 으로 거절할 요청은 보내지 않는다. 호출부(선택 상한)가 막아 두므로 여기 닿으면 버그다.
+  if (caseIds.length === 0 || caseIds.length > MAX_BULK_SELECTION) {
+    throw new RangeError(`bulk-delete takes 1..${MAX_BULK_SELECTION} ids, got ${caseIds.length}.`)
+  }
+
+  const response = await apiFetch(`${casesRoot(projectId)}/bulk-delete`, {
+    method: 'POST',
+    ...jsonRequest({ caseIds }),
+  })
+  const record = asRecord(await readJson(response))
+  return asCount(record?.deleted)
 }
 
 

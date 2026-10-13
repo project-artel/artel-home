@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
 import { useI18n } from '../i18n/useI18n'
 import { formatDate } from '../projects/formatters'
@@ -7,9 +7,11 @@ import { ProjectApiError } from '../projects/projectApi'
 import { CaseSceneFilter } from './CaseSceneFilter'
 import { SceneChip } from './SceneChip'
 import { SpecGradeChip } from './SpecGradeChip'
-import { deleteTestCase } from './testCaseApi'
+import { CaseSelectionBar } from './CaseSelectionBar'
+import { bulkDeleteTestCases, deleteTestCase } from './testCaseApi'
 import { TestCaseSheet } from './TestCaseSheet'
 import { useCaseListNav } from './useCaseListNav'
+import { useCaseSelection } from './useCaseSelection'
 import {
   hasActiveFilters,
   NO_FILTERS,
@@ -56,6 +58,7 @@ export function TestCaseLibrary({
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [deleting, setDeleting] = useState<TestCase | null>(null)
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false)
   // 편집기는 고른 케이스가 바뀔 때마다 다시 마운트되므로, 안내 문구를 그 안에 두면
   // 새 케이스를 추가한 직후 그 문구가 마운트와 함께 사라져 screen reader 에 닿지 않는다.
   const [announcement, setAnnouncement] = useState('')
@@ -65,6 +68,31 @@ export function TestCaseLibrary({
     [library.cases, filters, sort],
   )
   const tally = useMemo(() => tallyTestCases(library.cases), [library.cases])
+  // 선택은 지금 보이는 줄에 묶인다. 필터가 줄을 숨기면 hook 이 그 줄을 선택에서 뺀다.
+  const visibleIds = useMemo(() => shown.map((testCase) => testCase.id), [shown])
+  const selection = useCaseSelection(visibleIds)
+  const selectAllRef = useRef<HTMLInputElement | null>(null)
+  const limitNoteId = useId()
+
+  // 선택 bar 가 사라지면 그 안의 button(해제, 삭제)이 가졌던 focus 도 사라진다. render 가 끝난 뒤
+  // 전체 선택 checkbox 로 옮기고, 목록이 비어 그것도 없으면 panel 로 옮긴다.
+  const panelRef = useRef<HTMLElement | null>(null)
+  const shouldRestoreFocus = useRef(false)
+  function clearSelection() {
+    shouldRestoreFocus.current = true
+    selection.clear()
+  }
+  useEffect(() => {
+    if (!shouldRestoreFocus.current) return
+    shouldRestoreFocus.current = false
+    ;(selectAllRef.current ?? panelRef.current)?.focus()
+  })
+
+  useEffect(() => {
+    if (selectAllRef.current !== null) {
+      selectAllRef.current.indeterminate = selection.visibleState === 'some'
+    }
+  }, [selection.visibleState, shown.length])
 
   const selected = library.cases.find((testCase) => testCase.id === selectedId) ?? null
   // 팔레트와 같은 이동. `active` 는 키보드 커서고 `selectedId` 는 편집기가 열린 케이스라,
@@ -87,6 +115,40 @@ export function TestCaseLibrary({
   function startCreating() {
     setSelectedId(null)
     setCreating(true)
+  }
+
+  /**
+   * 행 checkbox 에서 ArrowUp/ArrowDown 을 누르면 이웃 행의 checkbox 로 focus 를 옮긴다.
+   * panel 의 기존 화살표는 `active` 커서만 움직이고 focus 는 두기 때문에, 키보드로 줄마다
+   * Tab 하지 않고 훑으려면 focus 가 따라가야 한다.
+   */
+  function moveCheckboxFocus(event: React.KeyboardEvent, checkbox: HTMLElement): boolean {
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return false
+
+    const index = Number(checkbox.closest<HTMLElement>('tr')?.dataset.index)
+    if (!Number.isInteger(index)) return false
+
+    event.preventDefault()
+    const next = Math.min(Math.max(index + (event.key === 'ArrowDown' ? 1 : -1), 0), shown.length - 1)
+    setActive(next)
+    listRef.current
+      ?.querySelector<HTMLInputElement>(`tr[data-index="${next}"] input[type="checkbox"]`)
+      ?.focus()
+    return true
+  }
+
+  async function deleteSelected() {
+    const caseIds = [...selection.selectedIds]
+    const deleted = await bulkDeleteTestCases(projectId, caseIds)
+
+    library.removeCases(caseIds)
+    // 서버 값으로 맞춘다. 실패해도 위에서 이미 지운 목록이 남는다.
+    library.refresh()
+    clearSelection()
+    setActive(0)
+    if (selectedId !== null && caseIds.includes(selectedId)) setSelectedId(null)
+    setIsBulkDeleting(false)
+    setAnnouncement(m.bulkDelete.done(deleted > 0 ? deleted : caseIds.length))
   }
 
   function select(testCase: TestCase) {
@@ -125,9 +187,17 @@ export function TestCaseLibrary({
     <div className={'tcl cp-scope' + (sheetOpen ? ' has-sheet' : '')}>
       <section
         className="panel tcl-list-panel"
+        ref={panelRef}
+        tabIndex={-1}
         aria-label={m.section.title}
         onKeyDown={(event) => {
+          const target = event.target as HTMLElement
+          const rowCheckbox = target.closest<HTMLElement>('tbody .tct-check')
+          if (rowCheckbox !== null && moveCheckboxFocus(event, rowCheckbox)) return
           if (nav.onKeyDown(event)) return
+          // button, select, checkbox 의 Enter 는 그 컨트롤의 것이다. 가로채면 `선택 삭제` 가
+          // dialog 대신 편집기를 연다.
+          if (target.closest('button, select, input[type="checkbox"]') !== null) return
           if (event.key === 'Enter' && cursored !== null) { event.preventDefault(); select(cursored) }
         }}
       >
@@ -204,6 +274,16 @@ export function TestCaseLibrary({
           value={filters.scene}
         />
 
+        {selection.count > 0 && (
+          <CaseSelectionBar
+            count={selection.count}
+            isLimitReached={selection.isLimitReached}
+            limitNoteId={limitNoteId}
+            onClear={clearSelection}
+            onDelete={() => setIsBulkDeleting(true)}
+          />
+        )}
+
         {shown.length === 0 ? (
           <div className="panel-empty-block">
             <p className="panel-empty">{filtered ? m.section.emptyFiltered : m.section.empty}</p>
@@ -227,6 +307,7 @@ export function TestCaseLibrary({
             <div className="cp-list tcl-scroll" onScroll={onScroll} ref={listRef}>
               <table className="tcl-table">
                 <colgroup>
+                  <col className="tct-c-check" />
                   <col className="tct-c-step" />
                   <col className="tct-c-scene" />
                   <col className="tct-c-spec" />
@@ -236,6 +317,17 @@ export function TestCaseLibrary({
                 </colgroup>
                 <thead>
                   <tr>
+                    <th className="tct-check-head" scope="col">
+                      <label className="tct-check">
+                        <input
+                          aria-label={m.selection.selectAll}
+                          checked={selection.visibleState === 'all'}
+                          onChange={selection.toggleAllVisible}
+                          ref={selectAllRef}
+                          type="checkbox"
+                        />
+                      </label>
+                    </th>
                     <th scope="col">{m.editor.step}</th>
                     <th scope="col">{m.editor.scene}</th>
                     <th scope="col">{m.editor.specGrade}</th>
@@ -258,6 +350,20 @@ export function TestCaseLibrary({
                       onClick={() => { setActive(index); select(testCase) }}
                       onMouseEnter={() => setActive(index)}
                     >
+                      <td className="tct-check-cell" onClick={(event) => event.stopPropagation()}>
+                        <label className="tct-check">
+                          <input
+                            aria-describedby={selection.isLimitReached ? limitNoteId : undefined}
+                            aria-label={m.selection.selectRow(
+                              testCase.step.length > 0 ? testCase.step : m.row.untitled,
+                            )}
+                            checked={selection.isSelected(testCase.id)}
+                            disabled={selection.isLimitReached && !selection.isSelected(testCase.id)}
+                            onChange={() => selection.toggle(testCase.id)}
+                            type="checkbox"
+                          />
+                        </label>
+                      </td>
                       <td className="tct-step">
                         {/* `td` 를 flex 로 만들면 그 칸만 table-cell 밖으로 나가, 행 배경이
                             나머지 칸과 0.5px 어긋나고 높이도 5.5px 짧아진다. 안에서 편다. */}
@@ -317,6 +423,28 @@ export function TestCaseLibrary({
       )}
 
       <p aria-live="polite" className="visually-hidden" role="status">{announcement}</p>
+
+      {isBulkDeleting && (
+        <ConfirmActionDialog
+          body={
+            <>
+              <strong>{m.bulkDelete.countName(selection.count)}</strong>
+              {m.bulkDelete.copySuffix}
+            </>
+          }
+          cancelLabel={m.bulkDelete.cancel}
+          confirmLabel={m.bulkDelete.confirm(selection.count)}
+          onClose={() => setIsBulkDeleting(false)}
+          onConfirm={deleteSelected}
+          pendingLabel={m.bulkDelete.pending}
+          title={m.bulkDelete.title(selection.count)}
+          toFailureMessage={(error) =>
+            error instanceof ProjectApiError && error.isForbidden
+              ? m.bulkDelete.forbidden
+              : m.bulkDelete.failed
+          }
+        />
+      )}
 
       {deleting !== null && (
         <ConfirmActionDialog

@@ -9137,7 +9137,7 @@ button.run-chat-coverage:hover {
 
 .tcl-table{ width:100%; border-collapse:collapse; table-layout:fixed; font-size:13px; }
 /* 스텝이 이 표의 주어다. 다섯을 균등히 나누면 주어가 제일 먼저 잘린다. */
-col.tct-c-step{ width:30% } col.tct-c-scene{ width:12% } col.tct-c-spec{ width:11% }
+col.tct-c-check{ width:36px } col.tct-c-step{ width:26% } col.tct-c-scene{ width:12% } col.tct-c-spec{ width:11% }
 col.tct-c-res{ width:10% } col.tct-c-exp{ width:27% } col.tct-c-added{ width:10% }
 
 .tcl-table thead th{
@@ -9151,6 +9151,12 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:27% } col.tct-c-added{ width:10%
 .tct-row:hover td, .tct-row.active td{ background:var(--st-hover); }
 .tct-row.picked td{ background:var(--color-bg-hover); }
 .tct-row.picked td:first-child{ box-shadow:inset 3px 0 0 var(--color-brand-accent); }
+.tct-check-head, .tct-check-cell{ padding-left:6px; padding-right:0; }
+/* 32px 미만이면 표 안의 작은 checkbox 를 누르기 어렵다. label 이 그 자리를 채운다. */
+.tct-check{ display:flex; align-items:center; justify-content:center; width:32px; height:32px; cursor:pointer; }
+.tct-check input{ width:16px; height:16px; margin:0; accent-color:var(--color-brand-accent); cursor:pointer; }
+.tct-check input:disabled{ cursor:not-allowed; }
+.tct-check input:focus-visible{ outline:2px solid var(--color-brand-accent); outline-offset:2px; }
 .tct-step-in{ display:flex; align-items:center; gap:9px; min-width:0; }
 .tct-step-text{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600; }
 /* 고른 행은 왼쪽 띠와 배경이 말한다. 글자까지 accent 로 두면 그 배경 위에서 2.84:1 이 된다. */
@@ -9572,3 +9578,16 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:27% } col.tct-c-added{ width:10%
 .login-divider + .provider-list {
   margin-top: var(--space-4);
 }
+
+/* 선택 bar — 고른 건수와 그 선택에 거는 동작 (ARTEL-968) */
+.tcl-list-panel > .tcl-selection-bar{ flex:none; }
+.tcl-selection-bar{
+  display:flex; align-items:center; flex-wrap:wrap; gap:var(--space-3);
+  padding:var(--space-2) var(--space-4);
+  border-top:1px solid var(--color-border-subtle); border-bottom:1px solid var(--color-border-subtle);
+  background:var(--color-bg-hover);
+}
+.tcl-selection-count{ font-size:13px; font-weight:600; color:var(--color-text-primary); }
+.tcl-selection-note{ font-size:12px; color:var(--color-text-muted); }
+.tcl-selection-spacer{ flex:1; }
+.tcl-list-panel:focus{ outline:none; }

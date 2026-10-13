@@ -10,6 +10,12 @@
  * avoid the precision loss JavaScript numbers would introduce.
  */
 
+/**
+ * 서버의 `bulk-delete` 와 `move` 가 요청 하나에 받는 test case 수의 상한(500).
+ * 요청을 나누면 중간 실패 때 일부만 반영되므로, 화면은 선택 단계에서 이 수를 넘기지 못하게 한다.
+ */
+export const MAX_BULK_SELECTION = 500
+
 export type VerificationStatus = 'DRAFT' | 'VERIFIED' | 'BROKEN'
 
 /** Display order for status pickers and filters (verified-first, matching the studio). */

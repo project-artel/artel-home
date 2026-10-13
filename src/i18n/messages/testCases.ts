@@ -94,6 +94,25 @@ export const testCasesEn = {
     failed: 'The case could not be deleted.',
     gone: 'This case is already gone.',
   },
+  selection: {
+    selectAll: 'Select every case shown',
+    selectRow: (name: string) => `Select ${name}`,
+    count: (count: number) => `${count} selected`,
+    clear: 'Clear selection',
+    limitNote: (limit: number) => `At most ${limit} cases can be selected at once.`,
+  },
+  bulkDelete: {
+    action: 'Delete selected',
+    title: (count: number) => `Delete ${count} cases?`,
+    copySuffix: ' will be deleted. Scenarios that reference them lose these cases, and there is no undo.',
+    countName: (count: number) => `${count} cases`,
+    confirm: (count: number) => `Delete ${count} cases`,
+    pending: 'Deleting…',
+    cancel: 'Cancel',
+    failed: 'The cases could not be deleted. Nothing was altered.',
+    forbidden: 'You do not have permission to delete these cases.',
+    done: (count: number) => `${count} cases were deleted.`,
+  },
 }
 
 export const testCasesKo: Localized<typeof testCasesEn> = {
@@ -180,5 +199,24 @@ export const testCasesKo: Localized<typeof testCasesEn> = {
     cancel: '취소',
     failed: '케이스를 삭제하지 못했습니다.',
     gone: '이미 삭제된 케이스입니다.',
+  },
+  selection: {
+    selectAll: '보이는 케이스 전체 선택',
+    selectRow: (name: string) => `${name} 선택`,
+    count: (count: number) => `${count}건 선택됨`,
+    clear: '선택 해제',
+    limitNote: (limit: number) => `한 번에 ${limit}건까지 선택할 수 있습니다.`,
+  },
+  bulkDelete: {
+    action: '선택 삭제',
+    title: (count: number) => `케이스 ${count}건을 삭제할까요?`,
+    copySuffix: ' 을(를) 삭제합니다. 이 케이스를 담고 있는 시나리오에서도 빠지며, 되돌릴 수 없습니다.',
+    countName: (count: number) => `케이스 ${count}건`,
+    confirm: (count: number) => `${count}건 삭제`,
+    pending: '삭제하는 중…',
+    cancel: '취소',
+    failed: '케이스를 삭제하지 못했습니다. 아무것도 바뀌지 않았습니다.',
+    forbidden: '이 케이스를 삭제할 권한이 없습니다.',
+    done: (count: number) => `케이스 ${count}건을 삭제했습니다.`,
   },
 }
