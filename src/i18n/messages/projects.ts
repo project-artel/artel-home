@@ -79,6 +79,22 @@ export const projectsEn = {
     uploadFirst: 'Upload a document',
     uploadNew: 'Upload a new version',
     hint: 'PDF, up to 50 MB. Drag a file here or choose one.',
+    /** How an uploaded document is stored, sent, and deleted. Keep it in step with the server. */
+    dataNotice: {
+      summary:
+        'Uploaded documents are stored on this ARTEL server and sent to an outside LLM provider to be summarised.',
+      more: 'How documents are handled',
+      storage:
+        'Storage: the original PDF is kept in the S3-compatible file storage this ARTEL server uses. Only members of this project can download it.',
+      extraction:
+        'Summary: the server extracts the text from the PDF, sends it to an LLM provider (OpenRouter or AWS Bedrock), and saves the summary it returns as knowledge.',
+      qaRuns:
+        'QA runs: the QA agent can read this knowledge while it tests the game, and whatever it reads is sent to the LLM provider.',
+      deletion:
+        'Deletion: deleting a document removes the original file and its record, and QA runs stop using its knowledge. The knowledge itself stays in the server database, marked as deleted.',
+      providerRetention:
+        "How long an LLM provider keeps what it receives is set by that provider's own policy.",
+    },
     progressLabel: 'Upload progress',
     uploading: 'Uploading…',
     uploadingPercent: (percent: number) => `Uploading… ${percent}%`,
@@ -466,6 +482,19 @@ export const projectsKo: Localized<typeof projectsEn> = {
     uploadFirst: '문서 업로드',
     uploadNew: '새 버전 업로드',
     hint: 'PDF, 최대 50 MB. 파일을 여기에 끌어다 놓거나 선택하세요.',
+    dataNotice: {
+      summary: '업로드한 문서는 이 ARTEL 서버에 저장되고, 요약을 위해 외부 LLM 제공자에게 전송됩니다.',
+      more: '문서 처리 방식 자세히 보기',
+      storage:
+        '저장: 원본 PDF 는 이 ARTEL 서버가 사용하는 S3 호환 파일 저장소에 보관됩니다. 이 프로젝트의 멤버만 내려받을 수 있습니다.',
+      extraction:
+        '요약: 서버가 PDF 에서 텍스트를 추출해 LLM 제공자(OpenRouter 또는 AWS Bedrock)에게 보내고, 돌려받은 요약을 knowledge 로 저장합니다.',
+      qaRuns:
+        'QA 실행: QA agent 는 게임을 테스트하는 동안 이 knowledge 를 읽을 수 있고, 읽은 내용은 LLM 제공자에게 전송됩니다.',
+      deletion:
+        '삭제: 문서를 삭제하면 원본 파일과 문서 기록이 지워지고, QA 실행에서도 해당 knowledge 를 더 이상 사용하지 않습니다. 다만 knowledge 자체는 삭제 표시가 된 채로 서버 데이터베이스에 남습니다.',
+      providerRetention: 'LLM 제공자가 전송받은 내용을 얼마나 보관하는지는 각 제공자의 정책을 따릅니다.',
+    },
     progressLabel: '업로드 진행률',
     uploading: '업로드 중…',
     uploadingPercent: (percent: number) => `업로드 중… ${percent}%`,

@@ -989,6 +989,36 @@ h1 {
   margin-top: var(--space-3);
 }
 
+.document-data-notice {
+  margin-top: var(--space-3);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.document-data-notice p {
+  margin: 0;
+}
+
+.document-data-notice summary {
+  width: fit-content;
+  min-height: 32px;
+  padding: 7px 0;
+  cursor: pointer;
+}
+
+.document-data-notice summary:hover {
+  color: var(--color-text-primary);
+}
+
+.document-data-notice ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding-left: var(--space-4);
+}
+
 .progress-track {
   height: 6px;
   border-radius: 999px;
