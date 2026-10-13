@@ -1399,6 +1399,11 @@ a.instance-name:hover {
   margin-bottom: var(--space-2);
 }
 
+.cli-install-guide a {
+  color: var(--color-action-primary);
+  font-weight: 600;
+}
+
 .guide-step .copy-line {
   margin-top: var(--space-2);
 }
