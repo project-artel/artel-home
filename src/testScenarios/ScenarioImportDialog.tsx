@@ -1,4 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Dialog } from '../design-system/primitives/Dialog'
 import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../i18n/useI18n'
@@ -113,7 +114,9 @@ export function ScenarioImportDialog({
     }
   }
 
-  return (
+  // body 로 띄운다. 이 모달을 여는 시나리오 목록 칸은 말풍선을 옆 칸 위로 내려고 z-index 를 갖는데,
+  // 그 안에서 그리면 모달도 그 층에 갇혀 뒤쪽 분할 손잡이가 모달 위로 비친다.
+  return createPortal(
     <Dialog labelledBy={titleId} onClose={onClose} title={m.title}>
       <div className="sil">
         <p className="sil-copy">{m.copy}</p>
@@ -306,7 +309,8 @@ export function ScenarioImportDialog({
           </button>
         </div>
       </div>
-    </Dialog>
+    </Dialog>,
+    document.body,
   )
 }
 
