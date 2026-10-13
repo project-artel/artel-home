@@ -23,7 +23,7 @@ export function CaseSelectionBar({
     <div className="tcl-selection-bar">
       <span className="tcl-selection-count" role="status">{m.selection.count(count)}</span>
       {isLimitReached && (
-        <span className="tcl-selection-note" id={limitNoteId}>
+        <span className="tcl-selection-note" id={limitNoteId} title={m.selection.limitNote(MAX_BULK_SELECTION)}>
           {m.selection.limitNote(MAX_BULK_SELECTION)}
         </span>
       )}

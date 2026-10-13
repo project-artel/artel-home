@@ -8,6 +8,7 @@ import { CaseSceneFilter } from './CaseSceneFilter'
 import { SceneChip } from './SceneChip'
 import { SpecGradeChip } from './SpecGradeChip'
 import { CaseSelectionBar } from './CaseSelectionBar'
+import { hasPointerMoved, type PointerPosition } from './pointerMovement'
 import { bulkDeleteTestCases, deleteTestCase } from './testCaseApi'
 import { TestCaseSheet } from './TestCaseSheet'
 import { useCaseListNav } from './useCaseListNav'
@@ -73,6 +74,7 @@ export function TestCaseLibrary({
   const selection = useCaseSelection(visibleIds)
   const selectAllRef = useRef<HTMLInputElement | null>(null)
   const limitNoteId = useId()
+  const lastPointer = useRef<PointerPosition | null>(null)
 
   // 선택 bar 가 사라지면 그 안의 button(해제, 삭제)이 가졌던 focus 도 사라진다. render 가 끝난 뒤
   // 전체 선택 checkbox 로 옮기고, 목록이 비어 그것도 없으면 panel 로 옮긴다.
@@ -170,7 +172,9 @@ export function TestCaseLibrary({
    * 선택에 범위를 더한다. 선택 조작은 편집기를 열지 않는다.
    */
   function clickRow(event: React.MouseEvent, testCase: TestCase, index: number) {
+    // click 은 항상 그 줄을 커서로 삼는다. 이어지는 Shift+화살표가 이 줄에서 출발한다.
     setActive(index)
+    lastPointer.current = { x: event.clientX, y: event.clientY }
     const isAdditive = event.ctrlKey || event.metaKey
 
     if (event.shiftKey) selection.selectRangeTo(testCase.id, isAdditive)
@@ -331,15 +335,21 @@ export function TestCaseLibrary({
           value={filters.scene}
         />
 
-        {selection.count > 0 && (
-          <CaseSelectionBar
-            count={selection.count}
-            isLimitReached={selection.isLimitReached}
-            limitNoteId={limitNoteId}
-            onClear={clearSelection}
-            onDelete={() => setIsBulkDeleting(true)}
-          />
-        )}
+        {/* 선택 bar 가 나타나고 사라져도 표가 밀리지 않게 자리를 늘 잡아 둔다. 비어 있을 때는
+            선택 조작 안내가 그 자리를 쓴다. */}
+        <div className="tcl-selection-slot">
+          {selection.count > 0 ? (
+            <CaseSelectionBar
+              count={selection.count}
+              isLimitReached={selection.isLimitReached}
+              limitNoteId={limitNoteId}
+              onClear={clearSelection}
+              onDelete={() => setIsBulkDeleting(true)}
+            />
+          ) : (
+            <p className="tcl-selection-hint" title={m.row.hintSelect}>{m.row.hintSelect}</p>
+          )}
+        </div>
 
         {shown.length === 0 ? (
           <div className="panel-empty-block">
@@ -415,7 +425,14 @@ export function TestCaseLibrary({
                           panelRef.current?.focus({ preventScroll: true })
                         }
                       }}
-                      onMouseEnter={() => setActive(index)}
+                      onMouseMove={(event) => {
+                        // 포인터가 실제로 움직였을 때만 커서를 옮긴다. `mouseenter` 는 레이아웃이
+                        // 바뀌거나 목록이 스크롤될 때도 가만히 있는 포인터 아래의 행에 온다.
+                        if (hasPointerMoved(lastPointer.current, event.clientX, event.clientY)) {
+                          setActive(index)
+                        }
+                        lastPointer.current = { x: event.clientX, y: event.clientY }
+                      }}
                     >
                       <td className="tct-check-cell" onClick={(event) => event.stopPropagation()}>
                         <label className="tct-check">
@@ -463,7 +480,7 @@ export function TestCaseLibrary({
         )}
 
         <div className="cp-foot">
-          <span>↑↓ {m.row.hintNav} · {m.row.hintSelect}</span>
+          <span>↑↓ {m.row.hintNav}</span>
           <span>{m.section.shownOf(shown.length, tally.total)}</span>
         </div>
       </section>
