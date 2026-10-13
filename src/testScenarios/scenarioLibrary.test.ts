@@ -3,8 +3,6 @@ import test from 'node:test'
 import {
   currentVersionKey,
   findRun,
-  initialActiveRun,
-  initialExpanded,
   parseScenarioImport,
   parseScenarioLibrary,
   runSelection,
@@ -50,12 +48,10 @@ test('트리는 버전 → 런 → 시나리오로 읽고, id 없는 시나리�
   assert.equal(versionLabel(versions[2], '없음'), '없음')
 })
 
-test('처음에는 버전을 모두 펼치고, 편집 중인 런과 빈 런을 건너뛴 첫 런을 보인다', () => {
+test('런 키로 그 런과 버전을 찾는다', () => {
   const versions = parseScenarioLibrary(wire)
 
-  assert.equal(initialExpanded(versions).size, 3)
-  assert.equal(initialActiveRun(versions, '21'), 'v:1/r:10')
-  assert.equal(initialActiveRun(versions, '99'), 'v:2/r:21')
+  assert.equal(findRun(versions, 'v:2/r:21')?.version.gameBuild?.version, '2.0.0')
   assert.equal(findRun(versions, 'v:none/r:loose')?.run.testScenarios[0].testScenarioId, '301')
   assert.equal(findRun(versions, null), null)
 })

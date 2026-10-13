@@ -19,6 +19,15 @@ export function PlaylistAddIcon({ className, size = 18 }: IconProps) {
   )
 }
 
+/** 시나리오 추가의 ＋. 글자 ＋ 는 글꼴마다 기준선이 달라 버튼 가운데에 오지 않는다. */
+export function PlusIcon({ className, size = 14 }: IconProps) {
+  return (
+    <svg aria-hidden="true" className={className} fill="none" height={size} stroke="currentColor" strokeLinecap="round" strokeWidth="2.2" viewBox="0 0 24 24" width={size}>
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  )
+}
+
 export function ClipboardListIcon({ className, size = 18 }: IconProps) {
   return (
     <svg aria-hidden="true" className={className} fill="none" height={size} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" viewBox="0 0 24 24" width={size}>

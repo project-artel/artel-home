@@ -121,23 +121,6 @@ export function currentVersionKey(versions: readonly LibraryVersion[], runId: st
   return found === undefined ? null : versionKey(found)
 }
 
-/** 처음에는 모든 버전을 펼친다. 버전 수는 적고, 접혀 있으면 런이 있는지조차 안 보인다. */
-export function initialExpanded(versions: readonly LibraryVersion[]): Set<string> {
-  return new Set(versions.map(versionKey))
-}
-
-/**
- * 처음 오른쪽에 보일 런: 가장 최근 버전부터 훑어, 지금 편집 중인 런이 아니고 시나리오가 있는 첫 런.
- * 자기 런을 먼저 보이면 첫 화면이 "이미 있는 것" 이다.
- */
-export function initialActiveRun(versions: readonly LibraryVersion[], runId: string): string | null {
-  for (const version of versions) {
-    for (const run of version.testRuns) {
-      if (run.testRunId !== runId && run.testScenarios.length > 0) return runKey(version, run)
-    }
-  }
-  return null
-}
 
 export function findRun(
   versions: readonly LibraryVersion[],

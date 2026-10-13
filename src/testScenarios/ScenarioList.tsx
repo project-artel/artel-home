@@ -5,7 +5,7 @@ import { useI18n } from '../i18n/useI18n'
 import { getRunScenarios, setRunScenarios } from '../testRuns/testRunApi'
 import { createTestScenario, listTestScenarios } from './scenarioApi'
 import type { ScenarioImportResult } from './scenarioLibrary'
-import { PlaylistAddIcon } from './scenarioIcons'
+import { PlaylistAddIcon, PlusIcon } from './scenarioIcons'
 import { ScenarioImportDialog } from './ScenarioImportDialog'
 import type { TestScenarioSummary } from './scenarioTypes'
 
@@ -114,7 +114,7 @@ export function ScenarioList({
           </button>
         )}
         <button className="mini-add tip-btn" onClick={create} disabled={creating} aria-label={s.new} type="button">
-          ＋
+          <PlusIcon />
           <span aria-hidden="true" className="tip">{s.new}</span>
         </button>
       </div>

@@ -8,8 +8,6 @@ import {
   findRun,
   getScenarioLibrary,
   importScenarios,
-  initialActiveRun,
-  initialExpanded,
   runKey,
   runSelection,
   scenarioOrigins,
@@ -63,9 +61,8 @@ export function ScenarioImportDialog({
     const controller = new AbortController()
     getScenarioLibrary(projectId, controller.signal)
       .then((versions) => {
+        // 처음에는 버전을 모두 접어 둔다. 버전만 한눈에 보이고, 펼칠 곳은 사용자가 고른다.
         setState({ kind: 'ready', versions })
-        setExpanded(initialExpanded(versions))
-        setActiveKey(initialActiveRun(versions, runId))
       })
       .catch((cause: unknown) => {
         if (cause instanceof DOMException && cause.name === 'AbortError') return
@@ -239,24 +236,34 @@ export function ScenarioImportDialog({
                 </button>
               )}
             </div>
-            <label className="sil-search">
-              <SearchIcon />
-              <span className="visually-hidden">{m.search}</span>
-              <input
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder={m.searchPlaceholder}
-                type="search"
-                value={query}
-              />
-            </label>
-            <div aria-hidden="true" className="sil-cols">
-              <span />
-              <span>{m.colScenario}</span>
-              <span>{m.colSteps}</span>
-              <span>{m.colCases}</span>
-              <span>{m.colUpdated}</span>
-            </div>
+{active !== null && (
+              <>
+                <label className="sil-search">
+                  <SearchIcon />
+                  <span className="visually-hidden">{m.search}</span>
+                  <input
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder={m.searchPlaceholder}
+                    type="search"
+                    value={query}
+                  />
+                </label>
+                <div aria-hidden="true" className="sil-cols">
+                  <span />
+                  <span>{m.colScenario}</span>
+                  <span>{m.colSteps}</span>
+                  <span>{m.colCases}</span>
+                  <span>{m.colUpdated}</span>
+                </div>
+              </>
+            )}
             <div className="sil-scroll">
+              {active === null && state.kind === 'ready' && versions.length > 0 && (
+                <div className="sil-pick-hint">
+                  <ClipboardListIcon size={40} />
+                  <p>{m.pickRunCopy}</p>
+                </div>
+              )}
               <ul aria-label={m.listLabel} className="sil-list" ref={setListNode}>
                 {shown.map((scenario) => {
                   const checked = picked.includes(scenario.testScenarioId)

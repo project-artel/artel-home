@@ -9707,7 +9707,7 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
 /* ── 시나리오 가져오기 모달(ARTEL-995) ─────────────────────────────────────────
    위: 고른 것, 왼쪽: 게임 버전 → 런, 오른쪽: 런의 시나리오. 두 목록만 스크롤되고 머리는 고정이다.
    스크롤은 스텝 편집기처럼 기본 막대를 숨기고 끝 페이드(▴/▾)와 EdgeScrollbar 로 보인다. */
-.dialog-panel:has(.sil){ width:min(100%, 1160px); height:min(calc(100vh - var(--space-8)), 800px); display:flex; flex-direction:column; padding:0; overflow:hidden; }
+.dialog-panel:has(.sil){ width:min(100%, 1400px); height:min(calc(100vh - var(--space-8)), 920px); display:flex; flex-direction:column; padding:0; overflow:hidden; }
 .dialog-panel:has(.sil) > .dialog-title{ margin:0; padding:24px 28px 4px; font-size:22px; }
 .sil{ flex:1; min-height:0; display:flex; flex-direction:column; }
 .sil-copy{ margin:0; padding:0 28px 18px; font-size:13px; line-height:20px; color:var(--color-text-secondary); border-bottom:1px solid var(--color-border-subtle); }
@@ -9729,7 +9729,7 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
 .sil-tile-remove:hover{ background:var(--color-bg-hover); color:var(--color-text-primary); }
 
 .sil-body{ flex:1; min-height:0; display:flex; }
-.sil-side{ width:320px; flex:none; display:flex; flex-direction:column; min-height:0; border-right:1px solid var(--color-border-subtle); }
+.sil-side{ width:360px; flex:none; display:flex; flex-direction:column; min-height:0; border-right:1px solid var(--color-border-subtle); }
 .sil-side-head{ flex:none; display:flex; align-items:baseline; justify-content:space-between; padding:18px 20px 10px; font-size:12px; font-weight:600; letter-spacing:.04em; color:var(--color-text-secondary); }
 .sil-scroll{ position:relative; flex:1; min-height:0; display:flex; flex-direction:column; }
 .sil-scroll > ul{ flex:1; min-height:0; overflow-y:auto; scrollbar-width:none; }
@@ -9793,3 +9793,8 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
 .tip-btn:hover .tip, .tip-btn:focus-visible .tip{ opacity:1; visibility:visible; }
 .st-btn--icon{ display:inline-flex; align-items:center; gap:6px; }
 .scenario-studio .mini-add + .mini-add{ margin-left:0; }
+.scenario-studio .mini-add.tip-btn{ display:inline-flex; align-items:center; justify-content:center; padding:0; line-height:0; }
+.scenario-studio .mini-add.tip-btn > svg{ display:block; flex:none; }
+.sil-all > svg{ display:block; flex:none; }
+.sil-pick-hint{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:24px; text-align:center; color:var(--color-text-muted); pointer-events:none; }
+.sil-pick-hint p{ margin:0; max-width:320px; font-size:14px; line-height:22px; }
