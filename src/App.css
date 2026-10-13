@@ -9798,3 +9798,7 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
 .sil-all > svg{ display:block; flex:none; }
 .sil-pick-hint{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; padding:24px; text-align:center; color:var(--color-text-muted); pointer-events:none; }
 .sil-pick-hint p{ margin:0; max-width:320px; font-size:14px; line-height:22px; }
+/* 목록 머리의 말풍선이 칸 밖(가운데 편집 칸 위)까지 나오게 한다(ARTEL-995). 스크롤은 안쪽 `.scn-list` 가
+   하므로 칸 자체는 잘라 낼 필요가 없다. 옆 칸보다 앞에 그린다. */
+.scenario-studio .st-edit > .elist{ overflow:visible; z-index:4; }
+.scenario-studio .elist-head{ position:relative; z-index:5; }
