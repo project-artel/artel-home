@@ -137,6 +137,50 @@ export function TestCaseLibrary({
     return true
   }
 
+  /**
+   * Shift+ArrowUp/ArrowDown: 시작점부터 움직인 커서까지로 선택을 늘리거나 줄인다. 시작점이 아직
+   * 없으면 움직이기 전의 커서 줄이 시작점이다. 글자를 쓰는 칸(검색 입력, select)에서는 가로채지
+   * 않는다 — 거기서 Shift+화살표는 글자 선택이다.
+   */
+  function extendSelection(event: React.KeyboardEvent, target: HTMLElement): boolean {
+    if (!event.shiftKey || event.ctrlKey || event.metaKey || event.altKey) return false
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return false
+    if (shown.length === 0 || target.closest('input:not([type="checkbox"]), select, textarea') !== null) {
+      return false
+    }
+
+    const rowIndex = Number(target.closest<HTMLElement>('tbody tr')?.dataset.index)
+    const from = Number.isInteger(rowIndex) ? rowIndex : active
+    const next = Math.min(Math.max(from + (event.key === 'ArrowDown' ? 1 : -1), 0), shown.length - 1)
+
+    event.preventDefault()
+    setActive(next)
+    selection.selectRangeTo(shown[next].id, false, shown[from]?.id ?? null)
+    if (target.closest('tbody .tct-check') !== null) {
+      listRef.current
+        ?.querySelector<HTMLInputElement>(`tr[data-index="${next}"] input[type="checkbox"]`)
+        ?.focus()
+    }
+    return true
+  }
+
+  /**
+   * 행 click. 그냥 click 은 편집기를 열고 선택을 비우며 그 줄을 시작점으로 삼는다. Ctrl(macOS 는
+   * Cmd) 은 그 줄을 토글하고, Shift 는 시작점부터 그 줄까지를 선택한다. 둘을 함께 누르면 기존
+   * 선택에 범위를 더한다. 선택 조작은 편집기를 열지 않는다.
+   */
+  function clickRow(event: React.MouseEvent, testCase: TestCase, index: number) {
+    setActive(index)
+    const isAdditive = event.ctrlKey || event.metaKey
+
+    if (event.shiftKey) selection.selectRangeTo(testCase.id, isAdditive)
+    else if (isAdditive) selection.toggle(testCase.id)
+    else {
+      selection.anchorAt(testCase.id)
+      select(testCase)
+    }
+  }
+
   async function deleteSelected() {
     const caseIds = [...selection.selectedIds]
     const deleted = await bulkDeleteTestCases(projectId, caseIds)
@@ -193,7 +237,20 @@ export function TestCaseLibrary({
         onKeyDown={(event) => {
           const target = event.target as HTMLElement
           const rowCheckbox = target.closest<HTMLElement>('tbody .tct-check')
+          if (extendSelection(event, target)) return
           if (rowCheckbox !== null && moveCheckboxFocus(event, rowCheckbox)) return
+          // 선택이 있을 때 Delete(macOS 는 Cmd+Backspace)는 삭제 확인을 연다. 바로 지우지 않는다.
+          // 입력칸 안의 Delete 와 Backspace 는 글자를 지우는 키다.
+          const isDeleteKey = event.key === 'Delete' || (event.key === 'Backspace' && event.metaKey)
+          if (
+            isDeleteKey &&
+            selection.count > 0 &&
+            target.closest('input:not([type="checkbox"]), select, textarea, [contenteditable]') === null
+          ) {
+            event.preventDefault()
+            setIsBulkDeleting(true)
+            return
+          }
           if (nav.onKeyDown(event)) return
           // button, select, checkbox 의 Enter 는 그 컨트롤의 것이다. 가로채면 `선택 삭제` 가
           // dialog 대신 편집기를 연다.
@@ -343,11 +400,21 @@ export function TestCaseLibrary({
                       className={
                         'tct-row' +
                         (index === active ? ' active' : '') +
-                        (testCase.id === selectedId ? ' picked' : '')
+                        (testCase.id === selectedId ? ' picked' : '') +
+                        (selection.isSelected(testCase.id) ? ' chosen' : '')
                       }
                       data-index={index}
                       key={testCase.id}
-                      onClick={() => { setActive(index); select(testCase) }}
+                      onClick={(event) => clickRow(event, testCase, index)}
+                      onMouseDown={(event) => {
+                        // Shift 클릭이 브라우저의 글자 선택을 함께 만들면 범위 선택이 파랗게 번진다.
+                        // preventDefault 는 focus 이동도 막으므로, 이후 Shift+화살표와 Delete 가 이 panel
+                        // 에 닿도록 focus 는 직접 준다.
+                        if (event.shiftKey && event.button === 0) {
+                          event.preventDefault()
+                          panelRef.current?.focus({ preventScroll: true })
+                        }
+                      }}
                       onMouseEnter={() => setActive(index)}
                     >
                       <td className="tct-check-cell" onClick={(event) => event.stopPropagation()}>
@@ -396,7 +463,7 @@ export function TestCaseLibrary({
         )}
 
         <div className="cp-foot">
-          <span>↑↓ {m.row.hintNav}</span>
+          <span>↑↓ {m.row.hintNav} · {m.row.hintSelect}</span>
           <span>{m.section.shownOf(shown.length, tally.total)}</span>
         </div>
       </section>

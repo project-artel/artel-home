@@ -81,3 +81,64 @@ export function describeVisibleSelection(
     selectable.length > 0 && selectable.every((caseId) => selected.has(caseId))
   return isEverySelectableSelected ? 'all' : 'some'
 }
+
+/** 시작점이 보이는 목록에 있을 때만 시작점이다. 필터로 숨겨졌다면 시작점이 없는 것으로 본다. */
+export function resolveAnchor(
+  anchorId: string | null,
+  visibleIds: readonly string[],
+): string | null {
+  return anchorId !== null && visibleIds.includes(anchorId) ? anchorId : null
+}
+
+/**
+ * 시작점부터 대상까지, 보이는 순서대로의 id. 시작점이 위에 있든 아래에 있든 같은 줄들이 나온다.
+ * 시작점이 없거나 보이지 않으면 대상 한 줄이다. 대상이 목록에 없으면 빈 배열이다.
+ */
+export function rangeBetween(
+  visibleIds: readonly string[],
+  anchorId: string | null,
+  targetId: string,
+): string[] {
+  const targetIndex = visibleIds.indexOf(targetId)
+  if (targetIndex < 0) return []
+
+  const anchorIndex = anchorId === null ? -1 : visibleIds.indexOf(anchorId)
+  if (anchorIndex < 0) return [targetId]
+
+  const from = Math.min(anchorIndex, targetIndex)
+  const to = Math.max(anchorIndex, targetIndex)
+  return visibleIds.slice(from, to + 1)
+}
+
+/**
+ * 시작점부터 대상까지를 선택한다.
+ *
+ * - `additive` 가 아니면 선택이 그 범위로 바뀐다(Shift 클릭, Shift 화살표).
+ * - `additive` 면 기존 선택에 범위를 더한다(Ctrl Shift 클릭).
+ *
+ * 상한은 전체 선택과 같다. 범위의 줄을 보이는 순서대로 상한까지만 받고, 더하는 경우에는 기존
+ * 선택이 먼저 자리를 차지한다. 시작점이 없으면 범위가 대상 한 줄이라 Ctrl 클릭과 같이 그 줄을
+ * 토글한다.
+ */
+export function selectRange(
+  selected: ReadonlySet<string>,
+  visibleIds: readonly string[],
+  anchorId: string | null,
+  targetId: string,
+  additive: boolean,
+  limit: number = MAX_BULK_SELECTION,
+): ReadonlySet<string> {
+  if (resolveAnchor(anchorId, visibleIds) === null) {
+    return visibleIds.includes(targetId) ? toggleSelection(selected, targetId, limit) : selected
+  }
+
+  const range = rangeBetween(visibleIds, anchorId, targetId)
+  if (!additive) return new Set(range.slice(0, limit))
+
+  const next = new Set(selected)
+  for (const caseId of range) {
+    if (next.size >= limit) break
+    next.add(caseId)
+  }
+  return next
+}

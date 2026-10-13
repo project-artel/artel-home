@@ -9150,6 +9150,9 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:27% } col.tct-c-added{ width:10%
 .tct-row{ cursor:pointer; }
 .tct-row:hover td, .tct-row.active td{ background:var(--st-hover); }
 .tct-row.picked td{ background:var(--color-bg-hover); }
+/* 다중 선택으로 고른 행. 편집기가 열린 행(picked)의 왼쪽 띠와 겹치지 않게 배경만 깐다. */
+.tct-row.chosen td{ background:var(--color-bg-hover); }
+.tct-row.chosen .tct-check-cell{ box-shadow:inset 3px 0 0 var(--color-border-strong); }
 .tct-row.picked td:first-child{ box-shadow:inset 3px 0 0 var(--color-brand-accent); }
 .tct-check-head, .tct-check-cell{ padding-left:6px; padding-right:0; }
 /* 32px 미만이면 표 안의 작은 checkbox 를 누르기 어렵다. label 이 그 자리를 채운다. */
