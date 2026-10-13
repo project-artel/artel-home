@@ -10,6 +10,12 @@
  * avoid the precision loss JavaScript numbers would introduce.
  */
 
+/**
+ * 서버의 `bulk-delete` 와 `move` 가 요청 하나에 받는 test case 수의 상한(500).
+ * 요청을 나누면 중간 실패 때 일부만 반영되므로, 화면은 선택 단계에서 이 수를 넘기지 못하게 한다.
+ */
+export const MAX_BULK_SELECTION = 500
+
 export type VerificationStatus = 'DRAFT' | 'VERIFIED' | 'BROKEN'
 
 /** Display order for status pickers and filters (verified-first, matching the studio). */
@@ -45,6 +51,8 @@ export type TestCase = {
   /** The last game build a run verified this case against, or `null` if never. */
   lastVerifiedBuildId: string | null
   createdAt: string
+  /** The folder holding this case, or `null` for a case outside every folder. */
+  folderId: string | null
   /**
    * Why the spec side graded this case the way it did — reason codes from
    * `metadata.source.evidence_gaps`, empty when there is nothing to say.
@@ -98,6 +106,8 @@ export type TestCaseInput = {
   precondition?: string | null
   expectedValue?: string
   verificationStatus?: VerificationStatus
+  /** Only a create sends this; moving an existing case goes through `moveTestCases`. */
+  folderId?: string | null
 }
 
 /** One position in a scenario's ordered case composition (`/cases`). */

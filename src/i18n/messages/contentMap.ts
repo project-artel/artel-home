@@ -35,6 +35,9 @@ export const contentMapEn = {
     neverUploadedTitle: 'Nothing has been scanned for this build yet',
     neverUploadedCopy:
       'A content map is built from the evidence a connected game sends. Ask one to scan above, and the scenes, capabilities and transitions appear here.',
+    noDocumentsTitle: 'No evidence document has been uploaded for this build',
+    noDocumentsCopy:
+      'The content map exists, but nothing has been uploaded to read. Ask a connected game to scan above, and the scenes appear here.',
     notIngestedTitle: 'The evidence is uploaded but has not been read yet',
     notIngestedCopy:
       'The document is stored against this build. Reading it is what turns it into scenes and capabilities.',
@@ -88,6 +91,27 @@ export const contentMapEn = {
       // subscription, so the copy must not read as one.
       noneConnected: (time: string) =>
         `No game was connected as of ${time}. A scan runs inside the running game, so one has to be online — start the game and refresh.`,
+    },
+  },
+  generate: {
+    title: 'Test cases',
+    copy: 'Creates test cases from this content map in a folder of their own, updates the ones it created before, and removes the ones whose screen is gone.',
+    action: 'Create test cases',
+    running: 'Creating test cases…',
+    blocked: {
+      notUploaded: 'Nothing has been scanned for this build, so there is no content map to create test cases from.',
+      noDocuments: 'This build has a content map but no evidence document has been uploaded for it. Scan the game above first.',
+      notIngested: 'The evidence is uploaded but has not been read yet. Create test cases once the content map is read.',
+    },
+    result: (counts: { created: number; updated: number; deleted: number; broken: number }) =>
+      counts.created + counts.updated + counts.deleted + counts.broken === 0
+        ? 'Nothing changed: the test cases already match this content map.'
+        : `Created ${counts.created}, updated ${counts.updated}, deleted ${counts.deleted}, marked ${counts.broken} as BROKEN.`,
+    openLibrary: 'Open the test case library',
+    failure: {
+      notIngested: 'This build has no content map that has been read yet, so no test cases were created. Press Refresh at the top of the page, then try again.',
+      buildMissing: 'This build no longer exists, so no test cases were created.',
+      other: 'Test cases could not be created. Nothing was altered.',
     },
   },
   // Live scan state and the events-stream connection it rides on. Deliberately
@@ -544,6 +568,9 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
     neverUploadedTitle: '이 빌드는 아직 한 번도 스캔되지 않았습니다',
     neverUploadedCopy:
       '콘텐츠 맵은 붙어 있는 게임이 보낸 증거 문서로 만들어집니다. 위에서 스캔을 시키면 씬, 능력, 전이가 여기에 나타납니다.',
+    noDocumentsTitle: '이 빌드에는 올라온 증거 문서가 없습니다',
+    noDocumentsCopy:
+      '콘텐츠 맵은 있지만 읽을 문서가 올라온 적이 없습니다. 위에서 게임을 스캔시키면 씬이 여기에 나타납니다.',
     notIngestedTitle: '증거는 올라왔지만 아직 읽히지 않았습니다',
     notIngestedCopy:
       '문서는 이 빌드에 저장돼 있습니다. 읽어야 씬과 능력으로 바뀝니다.',
@@ -583,6 +610,27 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
         '이 프로젝트에 붙은 적 있는 게임이 없습니다. SDK를 설치하고 게임을 한 번 실행하면 여기에 나타납니다.',
       noneConnected: (time: string) =>
         `${time} 기준으로 붙어 있는 게임이 없었습니다. 스캔은 실행 중인 게임 안에서 돌기 때문에 한 대는 켜져 있어야 합니다 — 게임을 켜고 새로고침해 주세요.`,
+    },
+  },
+  generate: {
+    title: '테스트 케이스',
+    copy: '이 콘텐츠 맵에서 테스트 케이스를 전용 폴더에 만듭니다. 전에 만든 것은 갱신하고, 화면이 사라진 것은 지웁니다.',
+    action: '테스트 케이스 생성',
+    running: '테스트 케이스를 만드는 중…',
+    blocked: {
+      notUploaded: '이 빌드는 아직 스캔된 적이 없어 테스트 케이스를 만들 콘텐츠 맵이 없습니다.',
+      noDocuments: '이 빌드에는 콘텐츠 맵이 있지만 올라온 증거 문서가 없습니다. 위에서 게임을 스캔한 뒤에 만들 수 있습니다.',
+      notIngested: '증거는 올라왔지만 아직 읽히지 않았습니다. 콘텐츠 맵이 읽힌 뒤에 만들 수 있습니다.',
+    },
+    result: (counts: { created: number; updated: number; deleted: number; broken: number }) =>
+      counts.created + counts.updated + counts.deleted + counts.broken === 0
+        ? '바뀐 것이 없습니다. 테스트 케이스가 이미 이 콘텐츠 맵과 같습니다.'
+        : `생성 ${counts.created}건, 갱신 ${counts.updated}건, 삭제 ${counts.deleted}건, BROKEN 처리 ${counts.broken}건.`,
+    openLibrary: '테스트 케이스 라이브러리에서 열기',
+    failure: {
+      notIngested: '이 빌드에 읽힌 콘텐츠 맵이 아직 없어 테스트 케이스를 만들지 못했습니다. 위쪽의 새로고침을 누른 뒤 다시 시도해 주세요.',
+      buildMissing: '이 빌드가 더는 없어 테스트 케이스를 만들지 못했습니다.',
+      other: '테스트 케이스를 만들지 못했습니다. 아무것도 바뀌지 않았습니다.',
     },
   },
   scanStatus: {

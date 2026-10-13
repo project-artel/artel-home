@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
 import { useI18n } from '../i18n/useI18n'
 import { formatDate } from '../projects/formatters'
@@ -7,9 +8,25 @@ import { ProjectApiError } from '../projects/projectApi'
 import { CaseSceneFilter } from './CaseSceneFilter'
 import { SceneChip } from './SceneChip'
 import { SpecGradeChip } from './SpecGradeChip'
-import { deleteTestCase } from './testCaseApi'
+import { CaseSelectionBar } from './CaseSelectionBar'
+import { FolderPane } from './FolderPane'
+import { MoveCasesDialog } from './MoveCasesDialog'
+import { hasPointerMoved, type PointerPosition } from './pointerMovement'
+import { bulkDeleteTestCases, deleteTestCase, moveTestCases } from './testCaseApi'
+import {
+  ALL_FOLDERS,
+  buildFolderTree,
+  countCasesByFolder,
+  filterByFolder,
+  flattenFolderTree,
+  parseFolderSelection,
+  effectiveFolderSelection,
+  toFolderParam,
+  type FolderSelection,
+} from './testCaseFolders'
 import { TestCaseSheet } from './TestCaseSheet'
 import { useCaseListNav } from './useCaseListNav'
+import { useCaseSelection } from './useCaseSelection'
 import {
   hasActiveFilters,
   NO_FILTERS,
@@ -20,6 +37,7 @@ import {
   type TestCaseTally,
 } from './testCaseLibrary'
 import { VERIFICATION_STATUSES, type TestCase, type VerificationStatus } from './testCaseTypes'
+import { useTestCaseFolders } from './useTestCaseFolders'
 import { useTestCaseLibrary } from './useTestCaseLibrary'
 
 /** `vdot` 와 결과 pill 이 상태마다 쓰는 CSS 접미사. 대문자 상태값을 클래스에 그대로 넣지 않는다. */
@@ -51,20 +69,91 @@ export function TestCaseLibrary({
   const m = t.testCases
 
   const library = useTestCaseLibrary(projectId)
+  const folderList = useTestCaseFolders(projectId)
+  const [searchParams, setSearchParams] = useSearchParams()
   const [filters, setFilters] = useState<TestCaseFilters>(NO_FILTERS)
   const [sort, setSort] = useState<TestCaseSort>('FAILING_FIRST')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [deleting, setDeleting] = useState<TestCase | null>(null)
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false)
+  const [isMoving, setIsMoving] = useState(false)
   // 편집기는 고른 케이스가 바뀔 때마다 다시 마운트되므로, 안내 문구를 그 안에 두면
   // 새 케이스를 추가한 직후 그 문구가 마운트와 함께 사라져 screen reader 에 닿지 않는다.
   const [announcement, setAnnouncement] = useState('')
 
-  const shown = useMemo(
-    () => selectTestCases(library.cases, filters, sort),
-    [library.cases, filters, sort],
+  // 주소의 `?folder=` 가 보는 범위다(ARTEL-972 의 링크가 여기로 온다). 폴더 목록을 읽기 전에는
+  // 폴더 id 가 있는지 알 수 없으므로 없는 id 를 전체로 돌리는 일도 읽은 뒤에만 한다. 읽지
+  // 못했다면 폴더 필터는 걸지 않는다.
+  const requestedFolder = parseFolderSelection(searchParams.get('folder'))
+  const folderSelection: FolderSelection = effectiveFolderSelection(
+    requestedFolder,
+    folderList.status,
+    folderList.folders,
   )
-  const tally = useMemo(() => tallyTestCases(library.cases), [library.cases])
+  // 폴더 링크로 들어왔는데 폴더 목록이 아직 없으면, 전체 목록을 잠깐 보여 주지 않는다. 그 목록에서
+  // 고르고 지우면 주소가 말한 폴더와 다른 것을 만지게 된다.
+  const waitsForFolder = requestedFolder.kind === 'folder' && folderList.status === 'loading'
+  const selectFolder = useCallback(
+    (next: FolderSelection) => {
+      setSearchParams(
+        (current) => {
+          const params = new URLSearchParams(current)
+          const value = toFolderParam(next)
+          if (value === null) params.delete('folder')
+          else params.set('folder', value)
+          return params
+        },
+        { replace: true },
+      )
+    },
+    [setSearchParams],
+  )
+  const folderCounts = useMemo(
+    () => countCasesByFolder(library.cases, folderList.folders),
+    [library.cases, folderList.folders],
+  )
+  const moveTargets = useMemo(
+    () => flattenFolderTree(buildFolderTree(folderList.folders)),
+    [folderList.folders],
+  )
+  // 폴더로 먼저 좁힌 목록을 목록, 집계, 화면 필터가 함께 읽는다. 그래야 "N건 중 M건" 과 chip 의
+  // 수가 같은 범위를 말한다.
+  const inFolder = useMemo(
+    () => filterByFolder(library.cases, folderSelection, folderList.folders),
+    [library.cases, folderSelection, folderList.folders],
+  )
+  const shown = useMemo(
+    () => selectTestCases(inFolder, filters, sort),
+    [inFolder, filters, sort],
+  )
+  const tally = useMemo(() => tallyTestCases(inFolder), [inFolder])
+  // 선택은 지금 보이는 줄에 묶인다. 필터가 줄을 숨기면 hook 이 그 줄을 선택에서 뺀다.
+  const visibleIds = useMemo(() => shown.map((testCase) => testCase.id), [shown])
+  const selection = useCaseSelection(visibleIds)
+  const selectAllRef = useRef<HTMLInputElement | null>(null)
+  const limitNoteId = useId()
+  const lastPointer = useRef<PointerPosition | null>(null)
+
+  // 선택 bar 가 사라지면 그 안의 button(해제, 삭제)이 가졌던 focus 도 사라진다. render 가 끝난 뒤
+  // 전체 선택 checkbox 로 옮기고, 목록이 비어 그것도 없으면 panel 로 옮긴다.
+  const panelRef = useRef<HTMLElement | null>(null)
+  const shouldRestoreFocus = useRef(false)
+  function clearSelection() {
+    shouldRestoreFocus.current = true
+    selection.clear()
+  }
+  useEffect(() => {
+    if (!shouldRestoreFocus.current) return
+    shouldRestoreFocus.current = false
+    ;(selectAllRef.current ?? panelRef.current)?.focus()
+  })
+
+  useEffect(() => {
+    if (selectAllRef.current !== null) {
+      selectAllRef.current.indeterminate = selection.visibleState === 'some'
+    }
+  }, [selection.visibleState, shown.length])
 
   const selected = library.cases.find((testCase) => testCase.id === selectedId) ?? null
   // 팔레트와 같은 이동. `active` 는 키보드 커서고 `selectedId` 는 편집기가 열린 케이스라,
@@ -89,12 +178,105 @@ export function TestCaseLibrary({
     setCreating(true)
   }
 
+  /**
+   * 행 checkbox 에서 ArrowUp/ArrowDown 을 누르면 이웃 행의 checkbox 로 focus 를 옮긴다.
+   * panel 의 기존 화살표는 `active` 커서만 움직이고 focus 는 두기 때문에, 키보드로 줄마다
+   * Tab 하지 않고 훑으려면 focus 가 따라가야 한다.
+   */
+  function moveCheckboxFocus(event: React.KeyboardEvent, checkbox: HTMLElement): boolean {
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return false
+
+    const index = Number(checkbox.closest<HTMLElement>('tr')?.dataset.index)
+    if (!Number.isInteger(index)) return false
+
+    event.preventDefault()
+    const next = Math.min(Math.max(index + (event.key === 'ArrowDown' ? 1 : -1), 0), shown.length - 1)
+    setActive(next)
+    listRef.current
+      ?.querySelector<HTMLInputElement>(`tr[data-index="${next}"] input[type="checkbox"]`)
+      ?.focus()
+    return true
+  }
+
+  /**
+   * Shift+ArrowUp/ArrowDown: 시작점부터 움직인 커서까지로 선택을 늘리거나 줄인다. 시작점이 아직
+   * 없으면 움직이기 전의 커서 줄이 시작점이다. 글자를 쓰는 칸(검색 입력, select)에서는 가로채지
+   * 않는다 — 거기서 Shift+화살표는 글자 선택이다.
+   */
+  function extendSelection(event: React.KeyboardEvent, target: HTMLElement): boolean {
+    if (!event.shiftKey || event.ctrlKey || event.metaKey || event.altKey) return false
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return false
+    if (shown.length === 0 || target.closest('input:not([type="checkbox"]), select, textarea') !== null) {
+      return false
+    }
+
+    const rowIndex = Number(target.closest<HTMLElement>('tbody tr')?.dataset.index)
+    const from = Number.isInteger(rowIndex) ? rowIndex : active
+    const next = Math.min(Math.max(from + (event.key === 'ArrowDown' ? 1 : -1), 0), shown.length - 1)
+
+    event.preventDefault()
+    setActive(next)
+    selection.selectRangeTo(shown[next].id, false, shown[from]?.id ?? null)
+    if (target.closest('tbody .tct-check') !== null) {
+      listRef.current
+        ?.querySelector<HTMLInputElement>(`tr[data-index="${next}"] input[type="checkbox"]`)
+        ?.focus()
+    }
+    return true
+  }
+
+  /**
+   * 행 click. 그냥 click 은 편집기를 열고 선택을 비우며 그 줄을 시작점으로 삼는다. Ctrl(macOS 는
+   * Cmd) 은 그 줄을 토글하고, Shift 는 시작점부터 그 줄까지를 선택한다. 둘을 함께 누르면 기존
+   * 선택에 범위를 더한다. 선택 조작은 편집기를 열지 않는다.
+   */
+  function clickRow(event: React.MouseEvent, testCase: TestCase, index: number) {
+    // click 은 항상 그 줄을 커서로 삼는다. 이어지는 Shift+화살표가 이 줄에서 출발한다.
+    setActive(index)
+    lastPointer.current = { x: event.clientX, y: event.clientY }
+    const isAdditive = event.ctrlKey || event.metaKey
+
+    if (event.shiftKey) selection.selectRangeTo(testCase.id, isAdditive)
+    else if (isAdditive) selection.toggle(testCase.id)
+    else {
+      selection.anchorAt(testCase.id)
+      select(testCase)
+    }
+  }
+
+  async function deleteSelected() {
+    const caseIds = [...selection.selectedIds]
+    const deleted = await bulkDeleteTestCases(projectId, caseIds)
+
+    library.removeCases(caseIds)
+    // 서버 값으로 맞춘다. 실패해도 위에서 이미 지운 목록이 남는다.
+    library.refresh()
+    clearSelection()
+    setActive(0)
+    if (selectedId !== null && caseIds.includes(selectedId)) setSelectedId(null)
+    setIsBulkDeleting(false)
+    setAnnouncement(m.bulkDelete.done(deleted > 0 ? deleted : caseIds.length))
+  }
+
+  async function moveSelected(folderId: string | null) {
+    const caseIds = [...selection.selectedIds]
+    const moved = await moveTestCases(projectId, caseIds, folderId)
+
+    library.applyMoved(caseIds, folderId)
+    library.refresh()
+    clearSelection()
+    setIsMoving(false)
+    const destination =
+      moveTargets.find((row) => row.folder.id === folderId)?.folder.name ?? m.moveCases.noFolder
+    setAnnouncement(m.moveCases.done(moved, destination))
+  }
+
   function select(testCase: TestCase) {
     setCreating(false)
     setSelectedId(testCase.id)
   }
 
-  if (library.status === 'loading') {
+  if (library.status === 'loading' || waitsForFolder) {
     return (
       <div className="section-single">
         <section className="panel" aria-busy="true">
@@ -123,11 +305,53 @@ export function TestCaseLibrary({
 
   return (
     <div className={'tcl cp-scope' + (sheetOpen ? ' has-sheet' : '')}>
+      <FolderPane
+        counts={folderCounts}
+        folders={folderList.folders}
+        onAnnounce={setAnnouncement}
+        onChanged={({ deletedFolderIds }) => {
+          folderList.refresh()
+          // 지운 폴더 안의 test case 는 서버에서 폴더 없음이 됐다.
+          if (deletedFolderIds.length > 0) {
+            library.refresh()
+            if (folderSelection.kind === 'folder' && deletedFolderIds.includes(folderSelection.id)) {
+              selectFolder(ALL_FOLDERS)
+            }
+          }
+        }}
+        onRetry={folderList.reload}
+        onUpsert={folderList.applyUpserted}
+        onSelect={selectFolder}
+        projectId={projectId}
+        selection={folderSelection}
+        status={folderList.status}
+      />
       <section
         className="panel tcl-list-panel"
+        ref={panelRef}
+        tabIndex={-1}
         aria-label={m.section.title}
         onKeyDown={(event) => {
+          const target = event.target as HTMLElement
+          const rowCheckbox = target.closest<HTMLElement>('tbody .tct-check')
+          if (extendSelection(event, target)) return
+          if (rowCheckbox !== null && moveCheckboxFocus(event, rowCheckbox)) return
+          // 선택이 있을 때 Delete(macOS 는 Cmd+Backspace)는 삭제 확인을 연다. 바로 지우지 않는다.
+          // 입력칸 안의 Delete 와 Backspace 는 글자를 지우는 키다.
+          const isDeleteKey = event.key === 'Delete' || (event.key === 'Backspace' && event.metaKey)
+          if (
+            isDeleteKey &&
+            selection.count > 0 &&
+            target.closest('input:not([type="checkbox"]), select, textarea, [contenteditable]') === null
+          ) {
+            event.preventDefault()
+            setIsBulkDeleting(true)
+            return
+          }
           if (nav.onKeyDown(event)) return
+          // button, select, checkbox 의 Enter 는 그 컨트롤의 것이다. 가로채면 `선택 삭제` 가
+          // dialog 대신 편집기를 연다.
+          if (target.closest('button, select, input[type="checkbox"]') !== null) return
           if (event.key === 'Enter' && cursored !== null) { event.preventDefault(); select(cursored) }
         }}
       >
@@ -193,7 +417,7 @@ export function TestCaseLibrary({
         </div>
 
         <CaseSceneFilter
-          cases={library.cases}
+          cases={inFolder}
           labels={{
             all: m.filters.allScenes,
             noMatch: m.filters.noMatch,
@@ -204,9 +428,32 @@ export function TestCaseLibrary({
           value={filters.scene}
         />
 
+        {/* 선택 bar 가 나타나고 사라져도 표가 밀리지 않게 자리를 늘 잡아 둔다. 비어 있을 때는
+            선택 조작 안내가 그 자리를 쓴다. */}
+        <div className="tcl-selection-slot">
+          {selection.count > 0 ? (
+            <CaseSelectionBar
+              count={selection.count}
+              isLimitReached={selection.isLimitReached}
+              limitNoteId={limitNoteId}
+              onClear={clearSelection}
+              onDelete={() => setIsBulkDeleting(true)}
+              onMove={() => setIsMoving(true)}
+            />
+          ) : (
+            <p className="tcl-selection-hint" title={m.row.hintSelect}>{m.row.hintSelect}</p>
+          )}
+        </div>
+
         {shown.length === 0 ? (
           <div className="panel-empty-block">
-            <p className="panel-empty">{filtered ? m.section.emptyFiltered : m.section.empty}</p>
+            <p className="panel-empty">
+              {filtered
+                ? m.section.emptyFiltered
+                : folderSelection.kind !== 'all'
+                  ? m.section.emptyFolder
+                  : m.section.empty}
+            </p>
             {filtered && (
               <button
                 className="button button--secondary button--compact"
@@ -227,6 +474,7 @@ export function TestCaseLibrary({
             <div className="cp-list tcl-scroll" onScroll={onScroll} ref={listRef}>
               <table className="tcl-table">
                 <colgroup>
+                  <col className="tct-c-check" />
                   <col className="tct-c-step" />
                   <col className="tct-c-scene" />
                   <col className="tct-c-spec" />
@@ -236,6 +484,17 @@ export function TestCaseLibrary({
                 </colgroup>
                 <thead>
                   <tr>
+                    <th className="tct-check-head" scope="col">
+                      <label className="tct-check">
+                        <input
+                          aria-label={m.selection.selectAll}
+                          checked={selection.visibleState === 'all'}
+                          onChange={selection.toggleAllVisible}
+                          ref={selectAllRef}
+                          type="checkbox"
+                        />
+                      </label>
+                    </th>
                     <th scope="col">{m.editor.step}</th>
                     <th scope="col">{m.editor.scene}</th>
                     <th scope="col">{m.editor.specGrade}</th>
@@ -251,13 +510,44 @@ export function TestCaseLibrary({
                       className={
                         'tct-row' +
                         (index === active ? ' active' : '') +
-                        (testCase.id === selectedId ? ' picked' : '')
+                        (testCase.id === selectedId ? ' picked' : '') +
+                        (selection.isSelected(testCase.id) ? ' chosen' : '')
                       }
                       data-index={index}
                       key={testCase.id}
-                      onClick={() => { setActive(index); select(testCase) }}
-                      onMouseEnter={() => setActive(index)}
+                      onClick={(event) => clickRow(event, testCase, index)}
+                      onMouseDown={(event) => {
+                        // Shift 클릭이 브라우저의 글자 선택을 함께 만들면 범위 선택이 파랗게 번진다.
+                        // preventDefault 는 focus 이동도 막으므로, 이후 Shift+화살표와 Delete 가 이 panel
+                        // 에 닿도록 focus 는 직접 준다.
+                        if (event.shiftKey && event.button === 0) {
+                          event.preventDefault()
+                          panelRef.current?.focus({ preventScroll: true })
+                        }
+                      }}
+                      onMouseMove={(event) => {
+                        // 포인터가 실제로 움직였을 때만 커서를 옮긴다. `mouseenter` 는 레이아웃이
+                        // 바뀌거나 목록이 스크롤될 때도 가만히 있는 포인터 아래의 행에 온다.
+                        if (hasPointerMoved(lastPointer.current, event.clientX, event.clientY)) {
+                          setActive(index)
+                        }
+                        lastPointer.current = { x: event.clientX, y: event.clientY }
+                      }}
                     >
+                      <td className="tct-check-cell" onClick={(event) => event.stopPropagation()}>
+                        <label className="tct-check">
+                          <input
+                            aria-describedby={selection.isLimitReached ? limitNoteId : undefined}
+                            aria-label={m.selection.selectRow(
+                              testCase.step.length > 0 ? testCase.step : m.row.untitled,
+                            )}
+                            checked={selection.isSelected(testCase.id)}
+                            disabled={selection.isLimitReached && !selection.isSelected(testCase.id)}
+                            onChange={() => selection.toggle(testCase.id)}
+                            type="checkbox"
+                          />
+                        </label>
+                      </td>
                       <td className="tct-step">
                         {/* `td` 를 flex 로 만들면 그 칸만 table-cell 밖으로 나가, 행 배경이
                             나머지 칸과 0.5px 어긋나고 높이도 5.5px 짧아진다. 안에서 편다. */}
@@ -298,6 +588,7 @@ export function TestCaseLibrary({
       {sheetOpen && (
         <TestCaseSheet
           builds={builds}
+          folderId={folderSelection.kind === 'folder' ? folderSelection.id : null}
           knownScenes={knownScenes}
           onClose={closeSheet}
           onCreated={(created) => {
@@ -317,6 +608,38 @@ export function TestCaseLibrary({
       )}
 
       <p aria-live="polite" className="visually-hidden" role="status">{announcement}</p>
+
+      {isMoving && (
+        <MoveCasesDialog
+          count={selection.count}
+          initialFolderId={folderSelection.kind === 'folder' ? folderSelection.id : null}
+          onClose={() => setIsMoving(false)}
+          onConfirm={moveSelected}
+          rows={moveTargets}
+        />
+      )}
+
+      {isBulkDeleting && (
+        <ConfirmActionDialog
+          body={
+            <>
+              <strong>{m.bulkDelete.countName(selection.count)}</strong>
+              {m.bulkDelete.copySuffix}
+            </>
+          }
+          cancelLabel={m.bulkDelete.cancel}
+          confirmLabel={m.bulkDelete.confirm(selection.count)}
+          onClose={() => setIsBulkDeleting(false)}
+          onConfirm={deleteSelected}
+          pendingLabel={m.bulkDelete.pending}
+          title={m.bulkDelete.title(selection.count)}
+          toFailureMessage={(error) =>
+            error instanceof ProjectApiError && error.isForbidden
+              ? m.bulkDelete.forbidden
+              : m.bulkDelete.failed
+          }
+        />
+      )}
 
       {deleting !== null && (
         <ConfirmActionDialog

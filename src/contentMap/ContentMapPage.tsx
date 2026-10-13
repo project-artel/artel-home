@@ -6,6 +6,8 @@ import { useKnowledgeGraph } from '../knowledge/useKnowledgeGraph'
 import { formatDateTime } from '../projects/formatters'
 import { CanvasViewportControls } from './CanvasViewportControls'
 import { ContentMapInspector } from './ContentMapInspector'
+import { ContentMapTestCases } from './ContentMapTestCases'
+import { describeGenerationBlock } from './contentMapTestCases'
 import { ContentMapTree } from './ContentMapTree.tsx'
 import { CaptureHeader, ContentMapSummary } from './ContentMapSummary'
 import type { ContentMapSelection, ContentMapView } from './contentMapTypes'
@@ -45,8 +47,9 @@ export function ContentMapRedirect() {
  *
  * - **loading** — 이 `projectId:buildId` 의 스냅샷이 아직 없다.
  * - **error** — GET 이 실패했고 되돌아갈 스냅샷도 없다.
- * - **empty** — 세 갈래다. `contentMap === null` 이면 한 번도 올린 적 없음,
- *   `ingestedAt === null` 이면 올렸지만 아직 안 읽음, 둘 다 아닌데
+ * - **empty** — 네 갈래다. `contentMap === null` 이면 한 번도 올린 적 없음,
+ *   `ingestedAt === null` 이면서 `pendingDocuments` 도 비었으면 올라온 문서가 없음,
+ *   `ingestedAt === null` 인데 `pendingDocuments` 가 있으면 올렸지만 아직 안 읽음, 그 밖에
  *   `scenes` 가 비었으면 읽었는데 씬이 없었음. 사용자가 할 일이 각각 달라서
  *   합치지 않는다.
  * - **degraded** — 맵은 있는데 아직 적재되지 않은 문서가 있다. `useContentMapEvents`
@@ -164,6 +167,8 @@ export function ContentMapReport({
         refreshToken={reloadToken}
       />
 
+      <ContentMapTestCases buildId={buildId} projectId={projectId} view={view} />
+
       <ContentMapBody projectId={projectId} view={view} />
     </section>
   )
@@ -190,13 +195,17 @@ function ContentMapBody({ projectId, view }: { projectId: string; view: ContentM
   // 근거는 들어왔지만 아직 적재되지 않았다. 로딩이 아니라 서버가 아직 하지
   // 않은 일이고, 위 패널의 밀린 문서 목록이 그 근거다.
   if (view.contentMap.ingestedAt === null) {
+    // 적재되지 않은 문서가 하나도 없으면 "올라왔지만 안 읽혔다" 는 거짓이다. 올라온 문서 자체가 없다.
+    const hasUploadedDocument = describeGenerationBlock(view) !== 'noDocuments'
     return (
       <>
         <CaptureHeader view={view} />
         <section className="panel">
           <div className="panel-message">
-            <h2>{copy.empty.notIngestedTitle}</h2>
-            <p className="panel-message-copy">{copy.empty.notIngestedCopy}</p>
+            <h2>{hasUploadedDocument ? copy.empty.notIngestedTitle : copy.empty.noDocumentsTitle}</h2>
+            <p className="panel-message-copy">
+              {hasUploadedDocument ? copy.empty.notIngestedCopy : copy.empty.noDocumentsCopy}
+            </p>
           </div>
         </section>
       </>

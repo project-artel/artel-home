@@ -12,6 +12,14 @@ export type TestCaseLibrary = {
   applySaved: (saved: TestCase) => void
   applyCreated: (created: TestCase) => void
   removeCase: (caseId: string) => void
+  removeCases: (caseIds: readonly string[]) => void
+  /** 서버가 옮겼다고 답한 줄의 `folderId` 를 그 자리에서 바꾼다. 목록 순서는 그대로 둔다. */
+  applyMoved: (caseIds: readonly string[], folderId: string | null) => void
+  /**
+   * 화면을 `loading` 으로 돌리지 않고 다시 읽는다. `reload` 는 화면 전체를 unmount 해 scroll,
+   * 커서, 열린 sheet 를 잃는다. 실패하면 지금 목록을 그대로 둔다.
+   */
+  refresh: () => void
 }
 
 type LoadedCases = {
@@ -71,15 +79,38 @@ export function useTestCaseLibrary(projectId: string): TestCaseLibrary {
     setLoaded((current) => ({ ...current, cases: [created, ...current.cases] }))
   }, [])
 
-  const removeCase = useCallback((caseId: string) => {
+  const removeCases = useCallback((caseIds: readonly string[]) => {
+    const removed = new Set(caseIds)
     setLoaded((current) => ({
       ...current,
-      cases: current.cases.filter((testCase) => testCase.id !== caseId),
+      cases: current.cases.filter((testCase) => !removed.has(testCase.id)),
     }))
   }, [])
+  const applyMoved = useCallback((caseIds: readonly string[], folderId: string | null) => {
+    const moved = new Set(caseIds)
+    setLoaded((current) => ({
+      ...current,
+      cases: current.cases.map((testCase) =>
+        moved.has(testCase.id) ? { ...testCase, folderId } : testCase,
+      ),
+    }))
+  }, [])
+  const removeCase = useCallback((caseId: string) => removeCases([caseId]), [removeCases])
+
+  const refresh = useCallback(() => {
+    listTestCases(projectId)
+      // 읽는 사이 projectId 가 바뀌었으면(`source` 가 달라졌으면) 늦게 온 답을 버린다.
+      .then((cases) =>
+        setLoaded((current) => (current.source === source ? { cases, failed: false, source } : current)),
+      )
+      .catch(() => {
+        // 이미 로컬에서 지운 목록이 화면에 있다. 다시 읽기가 실패했다고 그것을 오류 화면으로
+        // 바꾸면 성공한 삭제가 실패처럼 보인다.
+      })
+  }, [projectId, source])
 
   const status: TestCaseLibraryStatus =
     loaded.source !== source ? 'loading' : loaded.failed ? 'failed' : 'ready'
 
-  return { cases: loaded.cases, status, reload, applySaved, applyCreated, removeCase }
+  return { cases: loaded.cases, status, reload, applySaved, applyCreated, removeCase, removeCases, applyMoved, refresh }
 }

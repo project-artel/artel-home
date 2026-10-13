@@ -72,6 +72,7 @@ function toPatch(draft: Draft, saved: TestCase): TestCaseInput {
  */
 export function TestCaseEditor({
   knownScenes = [],
+  folderId = null,
   projectId,
   testCase,
   onCreated,
@@ -81,6 +82,8 @@ export function TestCaseEditor({
 }: {
   /** Screen names already used in this project, offered as chips and as a `datalist`. */
   knownScenes?: string[]
+  /** 새 케이스를 만들 폴더. 고른 케이스를 고치는 저장에는 실리지 않는다 — 저장이 폴더를 풀면 안 된다. */
+  folderId?: string | null
   projectId: string
   testCase: TestCase | null
   onCreated: (created: TestCase) => void
@@ -134,6 +137,7 @@ export function TestCaseEditor({
           precondition: draft.precondition.trim().length > 0 ? draft.precondition.trim() : null,
           expectedValue: draft.expectedValue.trim(),
           verificationStatus: draft.verificationStatus,
+          folderId,
         })
         onCreated(created)
         return

@@ -8644,11 +8644,14 @@ button.run-chat-coverage:hover {
    다른 케이스가 무엇을 기대하는지 — 편집 폼이 목록을 덮는 modal 이면 그것을 못 본다. */
 .tcl {
   position: relative;
-  display: block;
+  display: grid;
+  grid-template-columns: 264px minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-4);
   min-width: 0;
 }
 
-/* 1439px 아래에서는 편집 폼이 목록 아래로 내려간다. 340px 를 빼고 남는 폭으로는 스텝과
+/* 1439px 아래에서는 폴더 tree 가 목록 위로 쌓인다. 240px 를 빼고 남는 폭으로는 스텝과
    기대결과가 한 줄에 서지 못해 모든 행이 세 줄이 된다. */
 @media (max-width: 1439px) {
   .tcl {
@@ -9256,8 +9259,15 @@ button.run-chat-coverage:hover {
 
 .tcl-table{ width:100%; border-collapse:collapse; table-layout:fixed; font-size:13px; }
 /* 스텝이 이 표의 주어다. 다섯을 균등히 나누면 주어가 제일 먼저 잘린다. */
-col.tct-c-step{ width:30% } col.tct-c-scene{ width:12% } col.tct-c-spec{ width:11% }
-col.tct-c-res{ width:10% } col.tct-c-exp{ width:27% } col.tct-c-added{ width:10% }
+col.tct-c-check{ width:36px } col.tct-c-step{ width:24% } col.tct-c-scene{ width:15% } col.tct-c-spec{ width:12% }
+col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10% }
+/* 칩은 자기 칸을 넘지 않는다. 1024px 에서 긴 화면 이름(TurnBattleScene)이 옆 칸의 칩 위로 겹쳐 그려졌다.
+   칸이 좁으면 칩 안에서 말줄임표로 줄이고, 전체 이름은 title 로 남긴다. */
+.tcl-table td:has(.cat-chip), .tcl-table td:has(.tc-spec-status){ overflow:hidden; }
+.tcl-table td .cat-chip, .tcl-table td .tc-spec-status{
+  display:inline-block; max-width:100%; box-sizing:border-box; vertical-align:middle;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
 
 .tcl-table thead th{
   position:sticky; top:0; z-index:1;
@@ -9269,7 +9279,16 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:27% } col.tct-c-added{ width:10%
 .tct-row{ cursor:pointer; }
 .tct-row:hover td, .tct-row.active td{ background:var(--st-hover); }
 .tct-row.picked td{ background:var(--color-bg-hover); }
+/* 다중 선택으로 고른 행. 편집기가 열린 행(picked)의 왼쪽 띠와 겹치지 않게 배경만 깐다. */
+.tct-row.chosen td{ background:var(--color-bg-hover); }
+.tct-row.chosen .tct-check-cell{ box-shadow:inset 3px 0 0 var(--color-border-strong); }
 .tct-row.picked td:first-child{ box-shadow:inset 3px 0 0 var(--color-brand-accent); }
+.tct-check-head, .tct-check-cell{ padding-left:6px; padding-right:0; }
+/* 32px 미만이면 표 안의 작은 checkbox 를 누르기 어렵다. label 이 그 자리를 채운다. */
+.tct-check{ display:flex; align-items:center; justify-content:center; width:32px; height:32px; cursor:pointer; }
+.tct-check input{ width:16px; height:16px; margin:0; accent-color:var(--color-brand-accent); cursor:pointer; }
+.tct-check input:disabled{ cursor:not-allowed; }
+.tct-check input:focus-visible{ outline:2px solid var(--color-brand-accent); outline-offset:2px; }
 .tct-step-in{ display:flex; align-items:center; gap:9px; min-width:0; }
 .tct-step-text{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600; }
 /* 고른 행은 왼쪽 띠와 배경이 말한다. 글자까지 accent 로 두면 그 배경 위에서 2.84:1 이 된다. */
@@ -9691,6 +9710,63 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:27% } col.tct-c-added{ width:10%
 .login-divider + .provider-list {
   margin-top: var(--space-4);
 }
+
+/* 선택 bar — 고른 건수와 그 선택에 거는 동작 (ARTEL-968) */
+/* 자리는 늘 같은 높이로 잡는다. bar 가 나타나며 표를 한 줄 밀면 가만히 있는 포인터 아래로 다른 행이
+   들어와 키보드 커서가 옮겨 간다. */
+.tcl-list-panel > .tcl-selection-slot{ flex:none; min-height:48px; }
+.tcl-selection-slot{ display:flex; align-items:center; border-top:1px solid var(--color-border-subtle); border-bottom:1px solid var(--color-border-subtle); }
+.tcl-selection-hint{ margin:0; padding:0 var(--space-4); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; line-height:1.4; color:var(--color-text-muted); }
+.tcl-selection-bar{
+  display:flex; align-items:center; flex-wrap:wrap; gap:var(--space-2) var(--space-3); width:100%; min-height:48px;
+  padding:var(--space-2) var(--space-4);
+  background:var(--color-bg-hover);
+}
+.tcl-selection-count{ font-size:13px; font-weight:600; color:var(--color-text-primary); }
+.tcl-selection-note{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; color:var(--color-text-muted); }
+.tcl-selection-spacer{ flex:1; }
+.tcl-list-panel:focus{ outline:none; }
+
+/* 폴더 tree — 라이브러리 왼쪽 열 (ARTEL-970) */
+.tcl-folders{
+  display:flex; flex-direction:column; gap:var(--space-3); min-width:0;
+  max-height:calc(100vh - var(--shell-topbar-h) - var(--space-6) * 2); overflow-y:auto;
+  padding:var(--space-3);
+  border:1px solid var(--color-border-subtle); border-radius:var(--radius-md);
+  background:var(--color-bg-raised);
+}
+.tcl-folders-title{ margin:0; font-size:13px; font-weight:600; color:var(--color-text-primary); }
+.tcl-folder-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px; }
+.tcl-folder-list--nested{ margin-left:var(--space-3); padding-left:var(--space-2); border-left:1px solid var(--color-border-subtle); }
+.tcl-folder{
+  display:flex; align-items:center; gap:var(--space-2); width:100%; min-height:32px;
+  padding:4px var(--space-2); border:0; border-radius:var(--radius-md);
+  background:transparent; color:var(--color-text-primary); font-size:13px; text-align:left; cursor:pointer;
+}
+.tcl-folder:hover{ background:var(--color-bg-hover); }
+.tcl-folder:focus-visible{ outline:2px solid var(--color-brand-accent); outline-offset:-2px; }
+.tcl-folder.is-current{ background:var(--color-bg-hover); box-shadow:inset 3px 0 0 var(--color-brand-accent); font-weight:600; }
+/* 폴더 이름은 두 줄까지 보인다. 한 줄 말줄임표는 `1.3.0 content map` 에서 build 를 가르는 뒷부분을 잘랐다.
+   두 줄에도 안 들어가는 이름은 말줄임표로 줄이고 title 에 전체 이름이 있다. */
+.tcl-folder-name{
+  flex:1; min-width:0; overflow:hidden; overflow-wrap:anywhere;
+  display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; line-clamp:2;
+}
+.tcl-folder-count{ flex:none; font-size:11px; color:var(--color-text-muted); }
+.tcl-folder-badge{
+  flex:none; padding:0 6px; border:1px solid var(--color-border-strong); border-radius:999px;
+  font-size:10px; color:var(--color-text-muted);
+}
+.tcl-folder-tools{ display:flex; flex-wrap:wrap; gap:var(--space-2); }
+
+@media (max-width: 1439px) {
+  .tcl-folders{ max-height:240px; }
+}
+
+/* test case 생성 결과 — 건수 한 문장과 라이브러리로 가는 링크 (ARTEL-972) */
+.cm-generate-result{ display:flex; flex-wrap:wrap; align-items:center; gap:var(--space-3); margin-top:var(--space-3); }
+.cm-generate-result p{ margin:0; font-size:13px; color:var(--color-text-primary); }
+.tcl-selection-bar .tcl-selection-count, .tcl-selection-bar .button{ flex:none; }
 
 /* Changes made to knowledge and macros by a QA run, shown as line diffs. */
 .qa-changes-caret{ width:12px; color:var(--color-text-muted); }

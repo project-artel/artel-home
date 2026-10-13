@@ -18,6 +18,7 @@ import type { TestCase } from './testCaseTypes'
  */
 export function TestCaseSheet({
   builds = [],
+  folderId = null,
   knownScenes = [],
   projectId,
   testCase,
@@ -28,6 +29,8 @@ export function TestCaseSheet({
 }: {
   builds?: GameBuild[]
   knownScenes?: string[]
+  /** 새 케이스를 넣을 폴더. */
+  folderId?: string | null
   projectId: string
   testCase: TestCase | null
   onClose: () => void
@@ -86,6 +89,7 @@ export function TestCaseSheet({
           </p>
         )}
         <TestCaseEditor
+          folderId={folderId}
           key={testCase?.id ?? 'new'}
           knownScenes={knownScenes}
           onCreated={onCreated}
