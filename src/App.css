@@ -9586,15 +9586,18 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:27% } col.tct-c-added{ width:10%
 }
 
 /* 선택 bar — 고른 건수와 그 선택에 거는 동작 (ARTEL-968) */
-.tcl-list-panel > .tcl-selection-bar{ flex:none; }
+/* 자리는 늘 같은 높이로 잡는다. bar 가 나타나며 표를 한 줄 밀면 가만히 있는 포인터 아래로 다른 행이
+   들어와 키보드 커서가 옮겨 간다. */
+.tcl-list-panel > .tcl-selection-slot{ flex:none; min-height:48px; }
+.tcl-selection-slot{ display:flex; align-items:center; border-top:1px solid var(--color-border-subtle); border-bottom:1px solid var(--color-border-subtle); }
+.tcl-selection-hint{ margin:0; padding:0 var(--space-4); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; line-height:1.4; color:var(--color-text-muted); }
 .tcl-selection-bar{
-  display:flex; align-items:center; flex-wrap:wrap; gap:var(--space-3);
+  display:flex; align-items:center; flex-wrap:wrap; gap:var(--space-2) var(--space-3); width:100%; min-height:48px;
   padding:var(--space-2) var(--space-4);
-  border-top:1px solid var(--color-border-subtle); border-bottom:1px solid var(--color-border-subtle);
   background:var(--color-bg-hover);
 }
 .tcl-selection-count{ font-size:13px; font-weight:600; color:var(--color-text-primary); }
-.tcl-selection-note{ font-size:12px; color:var(--color-text-muted); }
+.tcl-selection-note{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; color:var(--color-text-muted); }
 .tcl-selection-spacer{ flex:1; }
 .tcl-list-panel:focus{ outline:none; }
 
@@ -9632,3 +9635,4 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:27% } col.tct-c-added{ width:10%
 /* test case 생성 결과 — 건수 한 문장과 라이브러리로 가는 링크 (ARTEL-972) */
 .cm-generate-result{ display:flex; flex-wrap:wrap; align-items:center; gap:var(--space-3); margin-top:var(--space-3); }
 .cm-generate-result p{ margin:0; font-size:13px; color:var(--color-text-primary); }
+.tcl-selection-bar .tcl-selection-count, .tcl-selection-bar .button{ flex:none; }
