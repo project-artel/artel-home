@@ -15,5 +15,5 @@ import { sceneHue } from './sceneHue'
 export function SceneChip({ scene, className = 'cat-chip' }: { scene: string; className?: string }) {
   if (scene.trim().length === 0) return null
   const style = { '--cat-hue': String(sceneHue(scene)) } as CSSProperties
-  return <span className={className} style={style}>{scene}</span>
+  return <span className={className} style={style} title={scene}>{scene}</span>
 }

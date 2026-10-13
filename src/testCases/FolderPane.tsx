@@ -258,6 +258,7 @@ function FolderItem({
       aria-current={current ? 'true' : undefined}
       className={'tcl-folder' + (current ? ' is-current' : '')}
       onClick={onClick}
+      title={label}
       type="button"
     >
       <span className="tcl-folder-name">{label}</span>
