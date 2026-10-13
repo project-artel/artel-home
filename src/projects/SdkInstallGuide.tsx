@@ -3,14 +3,23 @@ import { CopyButton } from './CopyButton'
 import { useI18n } from '../i18n/useI18n'
 import addPackageFromGitUrlShot from '../assets/sdk-guide/step1-add-package-from-git-url.png'
 import gitUrlInputShot from '../assets/sdk-guide/step1-git-url-input.png'
+import signInScreenShot from '../assets/sdk-guide/step2-sdk-sign-in-screen.png'
+import browserSignInShot from '../assets/sdk-guide/step3-browser-sign-in.png'
+import projectPickerShot from '../assets/sdk-guide/step4-sdk-project-picker.png'
+import instanceConnectedShot from '../assets/sdk-guide/step4-instance-connected.png'
 
 /**
  * The git URL Unity's Package Manager installs the SDK from. It is a constant
  * of the product, not of this project, so it is not fetched: there is no
  * endpoint that returns it and inventing one would only add a way for the
  * guide to fail to load.
+ *
+ * `?path=` is required, not decoration. The repository root holds the sample
+ * project and the tooling as well, and the package itself is one folder down
+ * at `Packages/kr.artel.sdk`; without the query Package Manager reads the root,
+ * finds no `package.json`, and refuses the URL.
  */
-const SDK_PACKAGE_URL = 'https://github.com/project-artel/artel-sdk.git'
+const SDK_PACKAGE_URL = 'https://github.com/project-artel/artel-sdk.git?path=/Packages/kr.artel.sdk'
 
 /**
  * One screenshot of the Unity editor.
@@ -19,35 +28,47 @@ const SDK_PACKAGE_URL = 'https://github.com/project-artel/artel-sdk.git'
  * the browser only needs the ratio to reserve the box before the image
  * arrives, and the guide scrolls inside a dialog, where a late reflow would
  * move the step the reader is on.
+ *
+ * `narrow` is for a capture taller than it is wide. At the column's full width
+ * the browser sign-in card alone would be taller than the dialog.
  */
 function GuideShot({
   alt,
   height,
+  narrow = false,
   src,
   width,
 }: {
   alt: string
   height: number
+  narrow?: boolean
   src: string
   width: number
 }) {
   return (
-    <img alt={alt} className="guide-shot" height={height} loading="lazy" src={src} width={width} />
+    <img
+      alt={alt}
+      className={narrow ? 'guide-shot guide-shot--narrow' : 'guide-shot'}
+      height={height}
+      loading="lazy"
+      src={src}
+      width={width}
+    />
   )
 }
 
 /**
- * The three steps that turn an empty Unity project into a connected game.
+ * The four steps that turn an empty Unity project into a connected game.
  *
- * The last two are the sign-in: the SDK opens the browser, the browser approves
- * it, and the instance is registered by the first report. Nothing is copied out
- * of this screen any more, which is why the guide no longer needs to know which
- * instance it is being shown for.
+ * The last three are the sign-in: the SDK's sign-in screen opens the browser,
+ * signing in there approves the SDK, and picking a project back in the game
+ * registers the instance. Nothing is copied out of this screen any more, which
+ * is why the guide no longer needs to know which instance it is being shown for.
  *
- * Only the install step carries screenshots, because the Package Manager menu
- * names alone do not say what the reader should be looking at. The sign-in
- * steps have none: the overlay is the SDK's own UI and a screenshot of it would
- * go stale on the SDK's release cycle, not this one's.
+ * Every step carries a screenshot. The sign-in screen and the project picker
+ * are the SDK's own UI, so those two go stale on the SDK's release cycle rather
+ * than this one's; they are still here because without them a first-time
+ * reader has no way to tell which of the game's screens the step means.
  *
  * It owns its own `aria-live` region because it is used inside a dialog that
  * has no panel-level one to borrow.
@@ -105,8 +126,40 @@ export function SdkInstallGuide() {
         width={1090}
       />
     </>,
-    <p className="guide-copy">{t.projects.guide.step2}</p>,
-    <p className="guide-copy">{t.projects.guide.step3}</p>,
+    <>
+      <p className="guide-copy">{t.projects.guide.step2}</p>
+      <GuideShot
+        alt={t.projects.guide.shot2SignInScreenAlt}
+        height={420}
+        src={signInScreenShot}
+        width={480}
+      />
+    </>,
+    <>
+      <p className="guide-copy">{t.projects.guide.step3}</p>
+      <GuideShot
+        alt={t.projects.guide.shot3BrowserSignInAlt}
+        height={1264}
+        narrow
+        src={browserSignInShot}
+        width={840}
+      />
+    </>,
+    <>
+      <p className="guide-copy">{t.projects.guide.step4}</p>
+      <GuideShot
+        alt={t.projects.guide.shot4ProjectPickerAlt}
+        height={420}
+        src={projectPickerShot}
+        width={480}
+      />
+      <GuideShot
+        alt={t.projects.guide.shot4InstanceConnectedAlt}
+        height={454}
+        src={instanceConnectedShot}
+        width={1004}
+      />
+    </>,
   ]
   const isFirst = stepIndex === 0
   const isLast = stepIndex === steps.length - 1
