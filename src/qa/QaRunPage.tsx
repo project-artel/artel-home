@@ -5,11 +5,9 @@ import { GameStreamView } from '../streaming/GameStreamView'
 import { QaTryIssuePanel } from '../issues/QaTryIssuePanel'
 import { listTestScenarios } from '../testScenarios/scenarioApi'
 import { cancelQaRun, getQaRun, isDecimalId } from './qaApi'
-import { QaChatPanel } from './QaChatPanel'
+import { QaFocusStage } from './QaFocusStage'
 import { QaLogTimeline, type QaLogFocusRequest } from './QaLogTimeline'
-import { QaRunUsagePanel } from './QaRunUsagePanel'
-import { QaContextGauge } from './QaContextGauge'
-import { QaStepTimeline } from './QaStepTimeline'
+import { QaScenarioRail, type QaScenarioRailProps } from './QaScenarioRail'
 import { deriveQaContextUsage, deriveQaProgress, isQaContextLog } from './qaProgress'
 import { isTerminalQaStatus, type QaLog, type QaRun, type QaTry } from './qaTypes'
 import { useQaTry } from './useQaTry'
@@ -75,10 +73,12 @@ const POLL_BACKOFF_MAX_MS = 30_000
 
 /**
  * The QA run console (ARTEL-290): one run-scoped page for the whole execution.
- * A left rail lists every scenario in the run with its status; the centre shows
- * the focused scenario's live game and step progress; the log sits full-width
- * below with a Flow/Raw split. The console follows the active scenario as the run
- * advances — no refresh — and lets the operator click back to a finished one.
+ * A left rail lists every scenario in the run with its status, unfolds the
+ * focused one into its steps, and keeps that scenario's model usage at the
+ * bottom. The centre shows the live game with a "Now" panel beside it and the
+ * operator chat below; the log column on the right has Flow, Raw, and Issues
+ * tabs. The console follows the active scenario as the run advances — no
+ * refresh — and lets the operator click back to a finished one.
  *
  * `initialTryId` (ARTEL-723) is how the five retired `QaTryPage` entry points,
  * plus every other place that used to link to one scenario, land here instead:
@@ -177,9 +177,25 @@ function QaRunPage({
   const [following, setFollowing] = useState(initialTryId === null)
   const [pinnedTryId, setPinnedTryId] = useState<string | null>(initialTryId)
   const focusedTryId = following ? (activeTryId ?? lastTryId) : pinnedTryId
+  // A scenario's steps are shown while it is focused, unless the operator folded
+  // it, and stay shown after focus moves on only if the operator opened them.
+  // Entering a scenario always unfolds it, which is why focusing drops its entry.
+  const [expandedOverrides, setExpandedOverrides] = useState<ReadonlyMap<string, boolean>>(new Map())
   function focusTry(id: string) {
     setPinnedTryId(id)
     setFollowing(false)
+    setExpandedOverrides((current) => {
+      const next = new Map(current)
+      next.delete(id)
+      return next
+    })
+  }
+  function isExpanded(id: string): boolean {
+    return expandedOverrides.get(id) ?? id === focusedTryId
+  }
+  function toggleExpanded(id: string) {
+    const expanded = isExpanded(id)
+    setExpandedOverrides((current) => new Map(current).set(id, !expanded))
   }
 
   if (state === 'loading') {
@@ -196,6 +212,16 @@ function QaRunPage({
   function scenarioTitle(entry: QaTry, index: number): string {
     const title = titleById.get(entry.testScenarioId)
     return title !== undefined && title.length > 0 ? title : t.qa.run.scenario(index + 1)
+  }
+
+  const rail: QaScenarioRailProps = {
+    tries: run.tries,
+    activeTryId,
+    focusedTryId,
+    scenarioTitle,
+    isExpanded,
+    onToggle: toggleExpanded,
+    onFocus: focusTry,
   }
 
   return (
@@ -233,39 +259,14 @@ function QaRunPage({
         </div>
       </header>
 
-      <div className="qa-console-grid">
-        <nav className="qa-console-rail" aria-label={t.qa.run.scenariosHeading}>
-          <p className="qa-console-rail-head">{t.qa.run.scenariosHeading}</p>
-          <ol className="qa-console-rail-list">
-            {run.tries.map((entry, index) => {
-              const isFocused = entry.id === focusedTryId
-              const isActive = entry.id === activeTryId
-              return (
-                <li key={entry.id}>
-                  <button
-                    className={`qa-rail-item${isFocused ? ' qa-rail-item--focused' : ''}${isActive ? ' qa-rail-item--active' : ''}`}
-                    onClick={() => focusTry(entry.id)}
-                    type="button"
-                  >
-                    <span className={`qa-rail-dot qa-rail-dot--${entry.status.toLowerCase()}`} aria-hidden="true" />
-                    <span className="qa-rail-no">{index + 1}</span>
-                    <span className="qa-rail-title">{scenarioTitle(entry, index)}</span>
-                    <span className={`qa-run-status qa-run-status--${entry.status.toLowerCase()}`}>
-                      {t.qa.statusLabels[entry.status]}
-                    </span>
-                  </button>
-                </li>
-              )
-            })}
-          </ol>
-        </nav>
-
-        {focusedTry !== null ? (
-          <FocusedTry key={focusedTry.id} tryId={focusedTry.id} />
-        ) : (
+      {focusedTry !== null ? (
+        <FocusedTry key={focusedTry.id} rail={rail} tryId={focusedTry.id} />
+      ) : (
+        <div className="qa-console-grid">
+          <QaScenarioRail {...rail} focused={null} />
           <div className="qa-focus qa-focus--empty"><p className="panel-empty">{t.qa.run.selectScenario}</p></div>
-        )}
-      </div>
+        </div>
+      )}
     </section>
   )
 }
@@ -274,14 +275,18 @@ function QaRunPage({
  * The focused scenario's detail, embedded in the console. Keyed by tryId in the
  * parent so advancing to the next scenario swaps the whole session cleanly (its
  * own SSE, game stream, logs) with no page refresh.
+ *
+ * It renders the rail too, because the rail lists the focused scenario's steps
+ * with their verdicts and those come from this session's log stream. The rail's
+ * own state (which scenarios are unfolded) lives in the parent, so remounting
+ * here on a scenario change does not reset it.
  */
-function FocusedTry({ tryId }: { tryId: string }) {
+function FocusedTry({ rail, tryId }: { rail: QaScenarioRailProps; tryId: string }) {
   const { t } = useI18n()
   const session = useQaTry(tryId)
   const scenarioSteps = useScenarioSteps(session.qaTry?.testScenarioId ?? null)
   const [logView, setLogView] = useState<'flow' | 'raw' | 'issues'>('flow')
   const [focusRequest, setFocusRequest] = useState<QaLogFocusRequest | null>(null)
-  const [chatOpen, setChatOpen] = useState(false)
 
   const progress = useMemo(
     () =>
@@ -313,19 +318,27 @@ function FocusedTry({ tryId }: { tryId: string }) {
   // console has no page refresh to fall back on, so this is the only way back.
   if (session.loadStatus === 'error') {
     return (
-      <div className="qa-focus qa-focus--empty">
-        <div className="panel-message" role="alert">
-          <p>{t.qa.run.loadFailed}</p>
-          <button className="button button--secondary" onClick={session.reload} type="button">
-            {t.qa.panel.retry}
-          </button>
+      <div className="qa-console-grid">
+        <QaScenarioRail {...rail} focused={null} />
+        <div className="qa-focus qa-focus--empty">
+          <div className="panel-message" role="alert">
+            <p>{t.qa.run.loadFailed}</p>
+            <button className="button button--secondary" onClick={session.reload} type="button">
+              {t.qa.panel.retry}
+            </button>
+          </div>
         </div>
       </div>
     )
   }
 
   if (session.qaTry === null) {
-    return <p className="panel-empty">{t.qa.run.loading}</p>
+    return (
+      <div className="qa-console-grid">
+        <QaScenarioRail {...rail} focused={null} />
+        <div className="qa-focus qa-focus--empty"><p className="panel-empty">{t.qa.run.loading}</p></div>
+      </div>
+    )
   }
 
   const active = !isTerminalQaStatus(session.qaTry.status)
@@ -344,117 +357,76 @@ function FocusedTry({ tryId }: { tryId: string }) {
             : t.qa.run.streamStored
 
   return (
-    <div className="qa-focus">
-      <div className="qa-focus-center">
-        <section className="qa-focus-game" aria-label={active ? t.qa.run.liveGame : t.qa.run.endedGame}>
-          {active ? (
-            <GameStreamView instanceId={session.qaTry.gameInstanceId} />
-          ) : (
-            <div className="qa-focus-game-ended">{t.qa.run.endedGame}</div>
-          )}
-        </section>
-
-        <QaContextGauge usage={contextUsage} />
-        <QaStepTimeline onJump={jumpToLog} progress={progress} scenarioSteps={scenarioSteps} />
-      </div>
-
-      <aside className="qa-focus-logs-col" aria-label={t.qa.run.logsTitle}>
-        <header className="qa-focus-logs-head">
-          <div className="qa-log-tabs" role="tablist">
-            <button className={logView === 'flow' ? 'on' : ''} onClick={() => setLogView('flow')} role="tab" aria-selected={logView === 'flow'} type="button">{t.qa.run.logsFlow}</button>
-            <button className={logView === 'raw' ? 'on' : ''} onClick={() => setLogView('raw')} role="tab" aria-selected={logView === 'raw'} type="button">{t.qa.run.logsRaw}</button>
-            <button className={logView === 'issues' ? 'on' : ''} onClick={() => setLogView('issues')} role="tab" aria-selected={logView === 'issues'} type="button">{t.qa.run.tabIssues}</button>
-          </div>
-          {/* Carried over from `QaTryPage` (ARTEL-723): the stream state and the
-              loaded-log count. A summarized state, so `aria-live` fits DESIGN.md's
-              "do not announce every live log entry" rule. */}
-          <div className="qa-focus-logs-meta">
-            {active && (
-              <span aria-live="polite" className="qa-focus-stream-state mono">
-                {streamLabel}
-              </span>
-            )}
-            <span className="qa-focus-logs-count mono">{t.qa.run.logsCount(session.logs.length)}</span>
-          </div>
-        </header>
-        <div className="qa-focus-logs-body">
-          {logView === 'issues' ? (
-            <>
-              <QaTryIssuePanel qaTryId={session.qaTry.id} />
-              {/* And this is what it cost. Carried over from `QaTryPage` (#82)
-                  when that screen was removed, and kept beside the issues rather
-                  than in the header: usage arrives in batches after the calls, so
-                  it is a record of the run the way the issues are, not a live
-                  reading like the status line. */}
-              <QaRunUsagePanel active={active} qaTryId={session.qaTry.id} />
-            </>
-          ) : (
-            <QaLogTimeline
-              focusRequest={focusRequest}
-              hasMore={session.hasMore}
-              historyFailure={session.historyFailure}
-              historyLoading={session.historyLoading}
-              live={active}
-              loadOlder={session.loadOlder}
-              logs={shownLogs}
-              onFocusResolved={clearFocusRequest}
-              scenarioSteps={scenarioSteps}
-            />
-          )}
+    <div className="qa-console-grid">
+      <QaScenarioRail
+        {...rail}
+        focused={{
+          tryId: session.qaTry.id,
+          active,
+          progress,
+          scenarioSteps,
+          onJump: jumpToLog,
+        }}
+      />
+      <div className="qa-focus">
+        <div className="qa-focus-center">
+          <QaFocusStage
+            chatDisabled={session.qaTry.status !== 'RUNNING'}
+            contextUsage={contextUsage}
+            game={
+              <section className="qa-focus-game" aria-label={active ? t.qa.run.liveGame : t.qa.run.endedGame}>
+                {active ? (
+                  <GameStreamView instanceId={session.qaTry.gameInstanceId} />
+                ) : (
+                  <div className="qa-focus-game-ended">{t.qa.run.endedGame}</div>
+                )}
+              </section>
+            }
+            logs={session.logs}
+            progress={progress}
+            qaTryId={session.qaTry.id}
+          />
         </div>
-      </aside>
 
-      <div className="qa-chat-dock">
-        {chatOpen && (
-          <div className="qa-chat-pop" role="dialog" aria-label={t.qa.run.chat}>
-            <QaChatPanel
-              disabled={session.qaTry.status !== 'RUNNING'}
-              logs={session.logs}
-              qaTryId={session.qaTry.id}
-            />
+        <aside className="qa-focus-logs-col" aria-label={t.qa.run.logsTitle}>
+          <header className="qa-focus-logs-head">
+            <div className="qa-log-tabs" role="tablist">
+              <button className={logView === 'flow' ? 'on' : ''} onClick={() => setLogView('flow')} role="tab" aria-selected={logView === 'flow'} type="button">{t.qa.run.logsFlow}</button>
+              <button className={logView === 'raw' ? 'on' : ''} onClick={() => setLogView('raw')} role="tab" aria-selected={logView === 'raw'} type="button">{t.qa.run.logsRaw}</button>
+              <button className={logView === 'issues' ? 'on' : ''} onClick={() => setLogView('issues')} role="tab" aria-selected={logView === 'issues'} type="button">{t.qa.run.tabIssues}</button>
+            </div>
+            {/* Carried over from `QaTryPage` (ARTEL-723): the stream state and the
+                loaded-log count. A summarized state, so `aria-live` fits DESIGN.md's
+                "do not announce every live log entry" rule. */}
+            <div className="qa-focus-logs-meta">
+              {active && (
+                <span aria-live="polite" className="qa-focus-stream-state mono">
+                  {streamLabel}
+                </span>
+              )}
+              <span className="qa-focus-logs-count mono">{t.qa.run.logsCount(session.logs.length)}</span>
+            </div>
+          </header>
+          <div className="qa-focus-logs-body">
+            {logView === 'issues' ? (
+              <QaTryIssuePanel qaTryId={session.qaTry.id} />
+            ) : (
+              <QaLogTimeline
+                focusRequest={focusRequest}
+                hasMore={session.hasMore}
+                historyFailure={session.historyFailure}
+                historyLoading={session.historyLoading}
+                live={active}
+                loadOlder={session.loadOlder}
+                logs={shownLogs}
+                onFocusResolved={clearFocusRequest}
+                scenarioSteps={scenarioSteps}
+              />
+            )}
           </div>
-        )}
-        <button
-          className={`qa-chat-fab${chatOpen ? ' qa-chat-fab--on' : ''}`}
-          onClick={() => setChatOpen((open) => !open)}
-          aria-expanded={chatOpen}
-          aria-label={t.qa.run.chat}
-          title={t.qa.run.chat}
-          type="button"
-        >
-          {chatOpen ? <ChatCloseIcon /> : <ArtelChatIcon />}
-        </button>
+        </aside>
       </div>
     </div>
   )
 }
 
-/**
- * Chat mark in the ARTEL house style: a monoline speech bubble (same stroke
- * weight / butt-cap, miter-join geometry as the brand mark) with three "typing"
- * dots. Drawn in currentColor so the FAB controls ink vs paper per state.
- */
-function ArtelChatIcon() {
-  return (
-    <svg viewBox="0 0 64 64" width="26" height="26" fill="none" aria-hidden="true">
-      <path
-        d="M14 40 L14 16 L50 16 L50 40 L28 40 L18 50 L18 40 Z"
-        stroke="currentColor"
-        strokeWidth="7"
-        strokeLinejoin="miter"
-        strokeLinecap="butt"
-      />
-      <circle cx="24" cy="28" r="3.1" fill="currentColor" />
-      <circle cx="32" cy="28" r="3.1" fill="currentColor" />
-      <circle cx="40" cy="28" r="3.1" fill="currentColor" />
-    </svg>
-  )
-}
-
-function ChatCloseIcon() {
-  return (
-    <svg viewBox="0 0 64 64" width="22" height="22" fill="none" aria-hidden="true">
-      <path d="M18 18 L46 46 M46 18 L18 46" stroke="currentColor" strokeWidth="7" strokeLinecap="butt" />
-    </svg>
-  )
-}
