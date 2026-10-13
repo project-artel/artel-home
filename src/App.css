@@ -9625,3 +9625,7 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:27% } col.tct-c-added{ width:10%
 @media (max-width: 1439px) {
   .tcl-folders{ max-height:240px; }
 }
+
+/* test case 생성 결과 — 건수 한 문장과 라이브러리로 가는 링크 (ARTEL-972) */
+.cm-generate-result{ display:flex; flex-wrap:wrap; align-items:center; gap:var(--space-3); margin-top:var(--space-3); }
+.cm-generate-result p{ margin:0; font-size:13px; color:var(--color-text-primary); }

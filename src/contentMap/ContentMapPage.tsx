@@ -6,6 +6,7 @@ import { useKnowledgeGraph } from '../knowledge/useKnowledgeGraph'
 import { formatDateTime } from '../projects/formatters'
 import { CanvasViewportControls } from './CanvasViewportControls'
 import { ContentMapInspector } from './ContentMapInspector'
+import { ContentMapTestCases } from './ContentMapTestCases'
 import { ContentMapTree } from './ContentMapTree.tsx'
 import { CaptureHeader, ContentMapSummary } from './ContentMapSummary'
 import type { ContentMapSelection, ContentMapView } from './contentMapTypes'
@@ -163,6 +164,8 @@ export function ContentMapReport({
         projectId={projectId}
         refreshToken={reloadToken}
       />
+
+      <ContentMapTestCases buildId={buildId} projectId={projectId} view={view} />
 
       <ContentMapBody projectId={projectId} view={view} />
     </section>
