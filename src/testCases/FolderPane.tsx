@@ -1,4 +1,4 @@
-import { useId, useMemo, useRef, useState } from 'react'
+import { useId, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
 import { useI18n } from '../i18n/useI18n'
 import { ProjectApiError } from '../projects/projectApi'
@@ -34,6 +34,7 @@ import type { TestCaseFoldersStatus } from './useTestCaseFolders'
  * 관리가 줄 수만큼 늘어난다.
  */
 export function FolderPane({
+  collapsed = false,
   counts,
   folders,
   onAnnounce,
@@ -44,7 +45,11 @@ export function FolderPane({
   projectId,
   selection,
   status,
+  onToggleCollapsed,
+  top,
 }: {
+  /** 접힌 창은 펼침 버튼만 남는다(ARTEL-1022). */
+  collapsed?: boolean
   counts: FolderCounts
   folders: readonly TestCaseFolder[]
   onAnnounce: (message: string) => void
@@ -56,6 +61,12 @@ export function FolderPane({
   projectId: string
   selection: FolderSelection
   status: TestCaseFoldersStatus
+  onToggleCollapsed?: () => void
+  /**
+   * 맨 위 "전체" 자리에 대신 그릴 것(ARTEL-1022). 버전이 있는 프로젝트는 여기에 버전 목록이 오고, 버전을 고르는
+   * 것이 곧 전체를 보는 것이다.
+   */
+  top?: ReactNode
 }) {
   const { t } = useI18n()
   const m = t.testCases.folders
@@ -118,20 +129,43 @@ export function FolderPane({
   // 전체나 폴더 없음을 골랐을 때 `새 폴더` 는 최상위에 만든다. 어디에 만드는지 이름이 말한다.
   const createLabel = hasFolder ? m.toolbar.createInside : m.toolbar.createTop
 
+  const collapseButton = onToggleCollapsed === undefined ? null : (
+    <button
+      aria-expanded={!collapsed}
+      aria-label={collapsed ? m.expandPane : m.collapsePane}
+      className="tcl-side-toggle"
+      onClick={onToggleCollapsed}
+      title={collapsed ? m.expandPane : m.collapsePane}
+      type="button"
+    >
+      <span aria-hidden="true">{collapsed ? '›' : '‹'}</span>
+    </button>
+  )
+
+  if (collapsed) {
+    return <aside aria-labelledby={headingId} className="tcl-folders tcl-folders--collapsed">{collapseButton}<span className="visually-hidden" id={headingId}>{m.title}</span></aside>
+  }
+
   return (
     <aside aria-labelledby={headingId} className="tcl-folders">
-      <h2 className="tcl-folders-title" id={headingId}>{m.title}</h2>
+      {top !== undefined && <div className="tcl-side-head">{top}{collapseButton}</div>}
+      <div className="tcl-folders-head">
+        <h2 className="tcl-folders-title" id={headingId}>{m.title}</h2>
+        {top === undefined && collapseButton}
+      </div>
 
       <nav aria-label={m.treeLabel} aria-busy={status === 'loading' || undefined} ref={treeRef}>
         <ul className="tcl-folder-list">
-          <li>
-            <FolderItem
-              count={counts.total}
-              current={selection.kind === 'all'}
-              label={m.all}
-              onClick={() => onSelect(ALL_FOLDERS)}
-            />
-          </li>
+          {top === undefined && (
+            <li>
+              <FolderItem
+                count={counts.total}
+                current={selection.kind === 'all'}
+                label={m.all}
+                onClick={() => onSelect(ALL_FOLDERS)}
+              />
+            </li>
+          )}
           <li>
             <FolderItem
               count={counts.unfiled}

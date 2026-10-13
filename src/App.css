@@ -9953,3 +9953,35 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
 .qa-diff-fold{ display:block; width:100%; min-height:24px; font:inherit; text-align:left; padding:2px 12px; cursor:pointer; background:var(--color-bg-raised); border:0; border-block:1px solid var(--color-border-subtle); color:var(--color-text-secondary); }
 .qa-diff-fold:hover{ background:var(--color-bg-hover); }
 .tc-gap .vdot{ display:inline-block; width:8px; height:8px; border-radius:999px; vertical-align:middle; }
+
+/* ── 케이스 라이브러리 버전 보기(ARTEL-1022) ─────────────────────────────────────
+   왼쪽 창과 목록은 내용 수와 상관없이 화면 높이에 고정한다. 왼쪽 창은 접을 수 있다. */
+@media (min-width: 1440px) {
+  .tcl-folders,
+  .tcl-list-panel{ height:calc(100vh - var(--shell-topbar-h) - var(--space-6) * 2); max-height:none; }
+  .tcl.is-side-collapsed{ grid-template-columns:40px minmax(0, 1fr); }
+}
+.tcl-folders{ position:relative; }
+.tcl-folders--collapsed{ align-items:center; padding:var(--space-2) 0; overflow:hidden; }
+.tcl-side-head{ display:flex; align-items:flex-start; gap:var(--space-2); }
+.tcl-side-head > .tcl-versions{ flex:1; min-width:0; }
+.tcl-folders-head{ display:flex; align-items:center; justify-content:space-between; gap:var(--space-2); }
+.tcl-side-toggle{ flex:none; width:28px; height:28px; display:grid; place-items:center; border:1px solid var(--color-border-subtle); border-radius:6px; background:transparent; color:var(--color-text-secondary); cursor:pointer; font-size:16px; line-height:0; }
+.tcl-side-toggle:hover{ background:var(--color-bg-hover); color:var(--color-text-primary); }
+.tcl-versions{ display:flex; flex-direction:column; gap:var(--space-2); padding-bottom:var(--space-3); border-bottom:1px solid var(--color-border-subtle); }
+.tcl-version .tcl-folder-name{ font-family:var(--font-display); font-weight:600; }
+.tcl-version-latest{ flex:none; padding:0 6px; border-radius:999px; background:var(--color-status-critical-muted); color:var(--color-brand-accent-strong); font-size:10px; font-weight:600; }
+
+.tcl-title{ display:flex; align-items:baseline; gap:var(--space-3); flex-wrap:wrap; }
+.tcl-current-version{ font-size:12px; font-weight:400; color:var(--color-text-muted); }
+.tcl-current-version strong{ margin-left:4px; padding:1px 8px; border:1px solid var(--color-border-strong); border-radius:999px; color:var(--color-text-primary); font-weight:600; }
+
+.fchip--regress.on{ background:var(--color-status-critical-muted); border-color:var(--color-status-critical); color:var(--color-status-critical); }
+.vpill--absent{ display:inline-flex; align-items:center; padding:1px 8px; border:1px dashed var(--color-border-strong); border-radius:999px; font-size:11px; color:var(--color-text-muted); white-space:nowrap; }
+
+/* 한쪽 버전에만 있는 줄: 게임의 경고 띠처럼 빗금을 깐다. 글자는 흐리게 하되 읽을 수 있게 둔다. */
+.tct-row--absent td{
+  background-image:repeating-linear-gradient(-45deg, color-mix(in srgb, var(--color-status-warning) 16%, transparent) 0 10px, transparent 10px 20px);
+}
+.tct-row--absent .tct-step-text, .tct-row--absent .tct-quiet{ opacity:.7; }
+.tct-absent-note{ display:block; margin-top:2px; font-size:11px; font-weight:600; color:var(--color-status-warning); letter-spacing:.01em; }

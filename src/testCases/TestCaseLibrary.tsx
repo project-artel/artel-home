@@ -39,6 +39,15 @@ import {
 import { VERIFICATION_STATUSES, type TestCase, type VerificationStatus } from './testCaseTypes'
 import { useTestCaseFolders } from './useTestCaseFolders'
 import { useTestCaseLibrary } from './useTestCaseLibrary'
+import {
+  absenceNote,
+  isRegression,
+  resolveCompare,
+  resolveVersion,
+  versionName,
+} from './testCaseVersions'
+import { useTestCaseVersionList, useVersionCases } from './useTestCaseVersions'
+import { VersionList } from './VersionList'
 
 /** `vdot` 와 결과 pill 이 상태마다 쓰는 CSS 접미사. 대문자 상태값을 클래스에 그대로 넣지 않는다. */
 const STATUS_CLASS: Record<VerificationStatus, string> = {
@@ -73,6 +82,51 @@ export function TestCaseLibrary({
   const library = useTestCaseLibrary(projectId)
   const folderList = useTestCaseFolders(projectId)
   const [searchParams, setSearchParams] = useSearchParams()
+  // 버전 보기(ARTEL-1022). 버전이 있는 프로젝트는 고른 버전의 표를 그린다. 주소의 `?version=` 이 없으면 최신
+  // 버전이고, `?compare=` 를 주면 그 버전과 비교한다. 버전이 하나도 없으면 예전처럼 케이스 목록을 그린다.
+  const versionList = useTestCaseVersionList(projectId)
+  const selectedVersionId = resolveVersion(versionList.versions, searchParams.get('version'))
+  const compareVersionId = resolveCompare(versionList.versions, selectedVersionId, searchParams.get('compare'))
+  const versionCases = useVersionCases(projectId, selectedVersionId, compareVersionId)
+  const versionsMode = versionList.status === 'ready' && versionList.versions.length > 0
+  const selectedVersion = versionList.versions.find((version) => version.gameBuildId === selectedVersionId)
+  const compareVersion = versionList.versions.find((version) => version.gameBuildId === compareVersionId)
+  const latestVersion = versionList.versions.find((version) => version.latest)
+  const [onlyRegressions, setOnlyRegressions] = useState(false)
+  const rowById = useMemo(
+    () => new Map(versionCases.rows.map((row) => [row.testCase.id, row])),
+    [versionCases.rows],
+  )
+  const baseCases = useMemo(() => {
+    const all = versionsMode ? versionCases.rows.map((row) => row.testCase) : library.cases
+    if (!onlyRegressions || compareVersionId === null) return all
+    return all.filter((testCase) => {
+      const row = rowById.get(testCase.id)
+      return row !== undefined && isRegression(row)
+    })
+  }, [versionsMode, versionCases.rows, library.cases, onlyRegressions, compareVersionId, rowById])
+  const setVersionParams = useCallback(
+    (version: string | null, compare: string | null) => {
+      setSearchParams(
+        (current) => {
+          const params = new URLSearchParams(current)
+          if (version === null) params.delete('version')
+          else params.set('version', version)
+          if (compare === null) params.delete('compare')
+          else params.set('compare', compare)
+          return params
+        },
+        { replace: true },
+      )
+    },
+    [setSearchParams],
+  )
+  const { refresh: refreshVersionList } = versionList
+  const { refresh: refreshVersionCases } = versionCases
+  const refreshVersions = useCallback(() => {
+    refreshVersionList()
+    refreshVersionCases()
+  }, [refreshVersionList, refreshVersionCases])
   const [filters, setFilters] = useState<TestCaseFilters>(NO_FILTERS)
   const [sort, setSort] = useState<TestCaseSort>('FAILING_FIRST')
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -83,6 +137,7 @@ export function TestCaseLibrary({
   // 편집기는 고른 케이스가 바뀔 때마다 다시 마운트되므로, 안내 문구를 그 안에 두면
   // 새 케이스를 추가한 직후 그 문구가 마운트와 함께 사라져 screen reader 에 닿지 않는다.
   const [announcement, setAnnouncement] = useState('')
+  const [sideCollapsed, setSideCollapsed] = useState(false)
 
   // 주소의 `?folder=` 가 보는 범위다(ARTEL-972 의 링크가 여기로 온다). 폴더 목록을 읽기 전에는
   // 폴더 id 가 있는지 알 수 없으므로 없는 id 를 전체로 돌리는 일도 읽은 뒤에만 한다. 읽지
@@ -112,8 +167,8 @@ export function TestCaseLibrary({
     [setSearchParams],
   )
   const folderCounts = useMemo(
-    () => countCasesByFolder(library.cases, folderList.folders),
-    [library.cases, folderList.folders],
+    () => countCasesByFolder(baseCases, folderList.folders),
+    [baseCases, folderList.folders],
   )
   const moveTargets = useMemo(
     () => flattenFolderTree(buildFolderTree(folderList.folders)),
@@ -122,8 +177,8 @@ export function TestCaseLibrary({
   // 폴더로 먼저 좁힌 목록을 목록, 집계, 화면 필터가 함께 읽는다. 그래야 "N건 중 M건" 과 chip 의
   // 수가 같은 범위를 말한다.
   const inFolder = useMemo(
-    () => filterByFolder(library.cases, folderSelection, folderList.folders),
-    [library.cases, folderSelection, folderList.folders],
+    () => filterByFolder(baseCases, folderSelection, folderList.folders),
+    [baseCases, folderSelection, folderList.folders],
   )
   const shown = useMemo(
     () => selectTestCases(inFolder, filters, sort),
@@ -168,7 +223,7 @@ export function TestCaseLibrary({
   const closeSheet = useCallback(() => {
     setCreating(false)
     setSelectedId(null)
-  }, [])
+  }, [setCreating, setSelectedId])
   // 화면 이름은 대부분 이미 쓰던 것 중 하나다. 편집기에 넘겨 칩으로 고르게 한다.
   const knownScenes = useMemo(
     () => [...new Set(library.cases.map((one) => one.scene.trim()).filter((one) => one.length > 0))].sort(),
@@ -253,6 +308,7 @@ export function TestCaseLibrary({
     library.removeCases(caseIds)
     // 서버 값으로 맞춘다. 실패해도 위에서 이미 지운 목록이 남는다.
     library.refresh()
+    refreshVersions()
     clearSelection()
     setActive(0)
     if (selectedId !== null && caseIds.includes(selectedId)) setSelectedId(null)
@@ -266,6 +322,7 @@ export function TestCaseLibrary({
 
     library.applyMoved(caseIds, folderId)
     library.refresh()
+    refreshVersions()
     clearSelection()
     setIsMoving(false)
     const destination =
@@ -278,7 +335,9 @@ export function TestCaseLibrary({
     setSelectedId(testCase.id)
   }
 
-  if (library.status === 'loading' || waitsForFolder) {
+  const waitsForVersion =
+    versionList.status === 'loading' || (versionsMode && !versionCases.ready && !versionCases.failed)
+  if (library.status === 'loading' || waitsForFolder || waitsForVersion) {
     return (
       <div className="section-single">
         <section className="panel" aria-busy="true">
@@ -306,8 +365,24 @@ export function TestCaseLibrary({
   const filtered = hasActiveFilters(filters)
 
   return (
-    <div className={'tcl cp-scope' + (sheetOpen ? ' has-sheet' : '')}>
+    <div className={'tcl cp-scope' + (sheetOpen ? ' has-sheet' : '') + (sideCollapsed ? ' is-side-collapsed' : '')}>
       <FolderPane
+        collapsed={sideCollapsed}
+        onToggleCollapsed={() => setSideCollapsed((value) => !value)}
+        top={
+          versionsMode ? (
+            <VersionList
+              onSelect={(gameBuildId) => {
+                // 버전을 고르는 것이 곧 그 버전 전체를 보는 것이다. 폴더 필터와 비교는 푼다.
+                setOnlyRegressions(false)
+                setVersionParams(gameBuildId, null)
+                selectFolder(ALL_FOLDERS)
+              }}
+              selectedId={folderSelection.kind === 'all' ? selectedVersionId : null}
+              versions={versionList.versions}
+            />
+          ) : undefined
+        }
         counts={folderCounts}
         folders={folderList.folders}
         onAnnounce={setAnnouncement}
@@ -316,6 +391,7 @@ export function TestCaseLibrary({
           // 지운 폴더 안의 test case 는 서버에서 폴더 없음이 됐다.
           if (deletedFolderIds.length > 0) {
             library.refresh()
+            refreshVersions()
             if (folderSelection.kind === 'folder' && deletedFolderIds.includes(folderSelection.id)) {
               selectFolder(ALL_FOLDERS)
             }
@@ -358,7 +434,14 @@ export function TestCaseLibrary({
         }}
       >
         <header className="panel-header panel-header--split">
-          <h2>{m.section.title}</h2>
+          <h2 className="tcl-title">
+            {m.section.title}
+            {latestVersion !== undefined && (
+              <span className="tcl-current-version" title={m.versions.currentTitle}>
+                {m.versions.current} <strong>{versionName(latestVersion)}</strong>
+              </span>
+            )}
+          </h2>
           <button
             className="button button--primary button--compact"
             onClick={startCreating}
@@ -380,6 +463,30 @@ export function TestCaseLibrary({
               value={filters.query}
             />
           </label>
+
+          {versionsMode && (
+            <label className="tcl-filter">
+              <span className="field-label">{m.versions.compareLabel}</span>
+              <select
+                className="field-input"
+                onChange={(event) => {
+                  const next = event.target.value.length > 0 ? event.target.value : null
+                  if (next === null) setOnlyRegressions(false)
+                  setVersionParams(selectedVersionId, next)
+                }}
+                value={compareVersionId ?? ''}
+              >
+                <option value="">{m.versions.noCompare}</option>
+                {versionList.versions
+                  .filter((version) => version.gameBuildId !== selectedVersionId)
+                  .map((version) => (
+                    <option key={version.gameBuildId} value={version.gameBuildId}>
+                      {versionName(version)}
+                    </option>
+                  ))}
+              </select>
+            </label>
+          )}
 
           <label className="tcl-filter">
             <span className="field-label">{m.filters.sort}</span>
@@ -415,6 +522,17 @@ export function TestCaseLibrary({
                 {m.outcome[status]} {countOf(tally, status)}
               </button>
             ))}
+            {compareVersionId !== null && (
+              <button
+                aria-pressed={onlyRegressions}
+                className={onlyRegressions ? 'fchip fchip--regress on' : 'fchip fchip--regress'}
+                onClick={() => setOnlyRegressions((value) => !value)}
+                title={m.versions.onlyRegressionsTitle}
+                type="button"
+              >
+                {m.versions.onlyRegressions}
+              </button>
+            )}
           </div>
         </div>
 
@@ -481,6 +599,7 @@ export function TestCaseLibrary({
                   <col className="tct-c-scene" />
                   <col className="tct-c-spec" />
                   <col className="tct-c-res" />
+                  {compareVersionId !== null && <col className="tct-c-res" />}
                   <col className="tct-c-exp" />
                   <col className="tct-c-added" />
                 </colgroup>
@@ -500,20 +619,32 @@ export function TestCaseLibrary({
                     <th scope="col">{m.editor.step}</th>
                     <th scope="col">{m.editor.scene}</th>
                     <th scope="col">{m.editor.specGrade}</th>
-                    <th scope="col">{m.filters.status}</th>
+                    <th scope="col">
+                      {versionsMode && selectedVersion !== undefined
+                        ? m.versions.statusOn(versionName(selectedVersion))
+                        : m.filters.status}
+                    </th>
+                    {compareVersion !== undefined && (
+                      <th scope="col">{m.versions.statusOn(versionName(compareVersion))}</th>
+                    )}
                     <th scope="col">{m.editor.expectedValue}</th>
                     <th scope="col">{m.outcome.added}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {shown.map((testCase, index) => (
+                  {shown.map((testCase, index) => {
+                    const versionRow = rowById.get(testCase.id)
+                    const note =
+                      versionRow === undefined ? null : absenceNote(versionRow.presence, selectedVersion, compareVersion)
+                    return (
                     <tr
                       aria-current={testCase.id === selectedId ? true : undefined}
                       className={
                         'tct-row' +
                         (index === active ? ' active' : '') +
                         (testCase.id === selectedId ? ' picked' : '') +
-                        (selection.isSelected(testCase.id) ? ' chosen' : '')
+                        (selection.isSelected(testCase.id) ? ' chosen' : '') +
+                        (note !== null ? ' tct-row--absent' : '')
                       }
                       data-index={index}
                       key={testCase.id}
@@ -557,23 +688,27 @@ export function TestCaseLibrary({
                           <span className={`vdot ${testCase.verificationStatus}`} />
                           <span className="tct-step-text">
                             {testCase.step.length > 0 ? testCase.step : m.row.untitled}
+                            {note !== null && <span className="tct-absent-note">{m.versions.absence[note]}</span>}
                           </span>
                         </span>
                       </td>
                       <td><SceneChip scene={testCase.scene} /></td>
                       <td><SpecGradeChip bare status={testCase.status} /></td>
                       <td>
-                        <span className={`vpill ${testCase.verificationStatus}`}>
-                          <span className={`vdot ${testCase.verificationStatus}`} />
-                          {m.outcome[testCase.verificationStatus]}
-                        </span>
+                        <StatusPill labels={m} status={versionRow === undefined ? testCase.verificationStatus : versionRow.verificationStatus} />
                       </td>
+                      {compareVersionId !== null && (
+                        <td>
+                          <StatusPill labels={m} status={versionRow?.compareVerificationStatus ?? null} />
+                        </td>
+                      )}
                       <td className="tct-quiet">
                         {testCase.expectedValue.length > 0 ? testCase.expectedValue : m.row.noExpectedValue}
                       </td>
                       <td className="tct-quiet mono">{formatDate(testCase.createdAt)}</td>
                     </tr>
-                  ))}
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
@@ -595,6 +730,7 @@ export function TestCaseLibrary({
           onClose={closeSheet}
           onCreated={(created) => {
             library.applyCreated(created)
+            refreshVersions()
             setCreating(false)
             setSelectedId(created.id)
             setAnnouncement(m.editor.created)
@@ -602,6 +738,7 @@ export function TestCaseLibrary({
           onDelete={() => setDeleting(selected)}
           onSaved={(saved) => {
             library.applySaved(saved)
+            refreshVersions()
             setAnnouncement(m.editor.saved)
           }}
           projectId={projectId}
@@ -681,4 +818,21 @@ function countOf(tally: TestCaseTally, status: VerificationStatus): number {
   if (status === 'REGRESSION') return tally.regression
   if (status === 'BROKEN') return tally.broken
   return tally.draft
+}
+
+/** 한 버전의 판정 칸. 그 버전에 없는 케이스(null)는 "없음" 이다. */
+function StatusPill({
+  labels,
+  status,
+}: {
+  labels: ReturnType<typeof useI18n>['t']['testCases']
+  status: VerificationStatus | null
+}) {
+  if (status === null) return <span className="vpill vpill--absent">{labels.versions.absent}</span>
+  return (
+    <span className={`vpill ${status}`}>
+      <span className={`vdot ${status}`} />
+      {labels.outcome[status]}
+    </span>
+  )
 }
