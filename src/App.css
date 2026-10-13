@@ -1385,6 +1385,20 @@ a.instance-name:hover {
   line-height: 20px;
 }
 
+.cli-install-guide {
+  margin-bottom: var(--space-4);
+}
+
+.cli-install-title {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  margin: 0 0 var(--space-1);
+}
+
+.cli-install-guide .copy-line {
+  margin-bottom: var(--space-2);
+}
+
 .guide-step .copy-line {
   margin-top: var(--space-2);
 }

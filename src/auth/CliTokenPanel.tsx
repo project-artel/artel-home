@@ -16,6 +16,10 @@ import {
 import { RevokeCliTokenDialog } from './RevokeCliTokenDialog'
 import { useCliTokens } from './useCliTokens'
 
+const CLI_INSTALL_COMMAND = 'npm install -g @project-artel/cli@alpha'
+const CLI_LOGIN_COMMAND = 'artel auth login'
+const CLI_README_URL = 'https://github.com/project-artel/artel-cli#readme'
+
 /**
  * `artel-cli` 인증에 쓰는 토큰을 발급·조회·폐기한다. `ProfilePanel`/`EmailPanel` 의 "읽기 →
  * 편집 요청" 리듬이 아니라 `MembersSection` 의 `InvitePanel` 리듬을 따른다 — 발급 폼을 항상
@@ -40,6 +44,7 @@ export function CliTokenPanel() {
   const [revoking, setRevoking] = useState<CliToken | null>(null)
   const [announcement, setAnnouncement] = useState('')
 
+  const installTitleId = useId()
   const nameId = useId()
   const expiryId = useId()
 
@@ -79,6 +84,39 @@ export function CliTokenPanel() {
         <h2 id="cli-tokens-title">{copy.title}</h2>
       </header>
       <p className="section-intro">{copy.intro}</p>
+
+      {/* 설치 명령은 상수다 — `@alpha` tag 가 필수라 서버에서 받아 오지 않고 그대로 적는다. */}
+      <div aria-labelledby={installTitleId} className="cli-install-guide" role="group">
+        <h3 className="guide-copy cli-install-title" id={installTitleId}>{copy.install.title}</h3>
+        <p className="guide-copy">{copy.install.requirement}</p>
+        <div className="copy-line">
+          <code className="mono copy-value">{CLI_INSTALL_COMMAND}</code>
+          <CopyButton
+            copiedMessage={copy.install.installCopied}
+            label={copy.install.copyInstall}
+            onResult={setAnnouncement}
+            text={CLI_INSTALL_COMMAND}
+          />
+        </div>
+        <p className="guide-copy">{copy.install.signIn}</p>
+        <div className="copy-line">
+          <code className="mono copy-value">{CLI_LOGIN_COMMAND}</code>
+          <CopyButton
+            copiedMessage={copy.install.loginCopied}
+            label={copy.install.copyLogin}
+            onResult={setAnnouncement}
+            text={CLI_LOGIN_COMMAND}
+          />
+        </div>
+        <p className="guide-copy">
+          {copy.install.ciBefore}
+          <code className="mono">ARTEL_TOKEN</code>
+          {copy.install.ciAfter}
+        </p>
+        <p className="guide-copy">
+          <a href={CLI_README_URL} rel="noreferrer" target="_blank">{copy.install.readme}</a>
+        </p>
+      </div>
 
       <form onSubmit={(event) => void submit(event)} noValidate>
         {createFailure !== null && (
