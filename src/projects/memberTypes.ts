@@ -1,3 +1,4 @@
+import { composeNicknameTag } from '../auth/authTypes'
 import type { ProjectRole } from './projectTypes'
 
 /**
@@ -39,7 +40,16 @@ export type ProjectInvitation = {
   projectId: string
   /** 받은 초대함이 어느 프로젝트의 부름인지 말하려면 이름이 필요하다. */
   projectName: string
-  email: string
+  /**
+   * 대상을 가리키는 방법이 둘이라 `email` 과 `nickname` · `userTag` · `displayName` 이 짝을
+   * 이룬다. 이메일 주소로 보낸 초대는 `email` 만 차 있고, 자동완성에서 고른 계정에 보낸 초대는
+   * 나머지 셋만 차 있다. 서버는 계정 초대에 그 계정의 주소를 싣지 않는다. 화면에 그릴 때는
+   * [invitationTargetLabel] 을 쓴다.
+   */
+  email: string | null
+  nickname: string | null
+  userTag: string | null
+  displayName: string | null
   /** 수락했을 때 갖게 될 역할. 이미 멤버인 사람이 수락하면 서버가 기존 역할을 그대로 돌려준다. */
   role: ProjectRole
   status: InvitationStatus
@@ -81,6 +91,15 @@ export type InvitationCandidate = {
  * 매 keystroke 마다 요청을 보내는 것도 이 하한 때문에 막힌다.
  */
 export const INVITATION_CANDIDATE_QUERY_MIN_LENGTH = 2
+
+/**
+ * 초대가 누구에게 갔는지 한 줄로. 이메일 초대는 주소를, 계정 초대는 `nickname#userTag` 를
+ * 돌려준다. `parseInvitation` 이 둘 중 하나가 있는 행만 남기므로 빈 값은 나오지 않는다.
+ */
+export function invitationTargetLabel(invitation: ProjectInvitation): string {
+  if (invitation.email !== null) return invitation.email
+  return composeNicknameTag(invitation.nickname ?? '', invitation.userTag ?? '')
+}
 
 export function isInvitationStatus(value: unknown): value is InvitationStatus {
   return typeof value === 'string' && (INVITATION_STATUSES as readonly string[]).includes(value)
