@@ -122,3 +122,18 @@ Jira ARTEL-968 의 "마우스와 키보드 조합" 절이 계약이다. 파일 �
 - 수용된 특징: 범위가 500건을 넘으면 "보이는 순서의 앞 500건" 이라서 시작점이 범위의 아래쪽 끝일 때 시작점 줄이 빠진다(계약 그대로, `selectRange` 의 상한 테스트가 고정한다).
 - 수용된 특징: Shift+checkbox click 은 범위를 잇지 않고 그 줄만 토글한다(계약의 "checkbox click 은 지금처럼").
 - 수용하지 않음: component 테스트(DOM 환경 없음). Delete 안내 문구와 guard 선택자는 코드 검토로만 확인했다.
+
+## Fix (2026-10-13): Ctrl+click 뒤 키보드 커서가 한 줄 위로 튀는 문제
+
+재현: 선택이 없을 때 3번 행을 Ctrl+click 하고 Shift+ArrowDown 을 세 번 누르면 선택이 [3] -> [3] -> [3,4] -> [3,4,5] 로 간다. 첫 입력에서 [3,4] 여야 한다.
+
+원인: 선택 bar 가 표 위에 나타나며 행을 한 줄 밀고, 가만히 있는 포인터 아래로 2번 행이 들어와 `onMouseEnter` 가 `active` 를 2번으로 옮긴다. bar 가 이미 보이면 재현되지 않는다.
+
+고친 방법(양쪽 모두):
+1. 선택 bar 의 자리(`tcl-selection-slot`, 높이 48px)를 늘 잡는다. 선택이 없을 때는 선택 조작 안내가 그 자리를 쓴다(푸터에서 옮겼다). 표가 밀리지 않으므로 레이아웃 변화로 가짜 hover 가 생기지 않는다. 대안인 푸터 쪽 bar 는 선택 건수와 삭제 button 이 시선에서 멀어져 버렸다.
+2. 행의 hover 를 `onMouseEnter` 에서 `onMouseMove` 로 바꾸고, 직전과 같은 좌표(`clientX/clientY`)의 이벤트는 무시한다(`pointerMovement.ts`). 레이아웃 변화뿐 아니라 키보드 이동이 `scrollIntoView` 로 목록을 밀 때 오는 가짜 이벤트도 막는다. `mouseenter` 에 좌표 비교를 얹는 대신 `mousemove` 를 쓴 이유는 `mouseenter` 가 이미 "들어왔다" 는 사실만 알려 주고 포인터가 움직였는지는 알려 주지 않기 때문이다.
+3. click 은 항상 그 줄을 `active` 로 삼고 마지막 포인터 좌표를 기록한다.
+
+테스트: 좌표 판정을 `pointerMovement.test.ts` 로 고정했다. 레이아웃이 밀리지 않는 것은 브라우저에서 확인해야 하며 이 환경에서는 하지 못했다.
+
+Pair review: 기준 좌표가 없는 첫 이벤트는 움직임으로 치지 않는다(키보드만 쓰는 사람의 멈춘 포인터). 자리는 `min-height:48px` 로 두고 줄바꿈을 허용해 button 이 잘리지 않게 한다 — 아주 좁은 폭에서 상한 안내가 줄을 바꾸면 표가 한 번 밀릴 수 있다. 안내 문구에는 `title` 을 달았다. `TestCaseSpecModal.tsx` 의 `onMouseEnter` 는 같은 종류의 문제지만 이 화면 밖이라 따로 다룬다. 실제 재현 순서(Ctrl+click 후 Shift+아래 화살표)는 component 테스트 환경이 없어 자동 테스트로 고정하지 못했다.
