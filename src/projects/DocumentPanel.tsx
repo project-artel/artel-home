@@ -204,6 +204,8 @@ export function DocumentPanel({
         <p className="upload-hint">{t.projects.documents.hint}</p>
       </div>
 
+      <DocumentDataNotice />
+
       {uploading && (
         <div className="upload-progress">
           <div
@@ -438,5 +440,27 @@ function DocumentStreamIndicator({ streamState }: { streamState: DocumentStreamS
       <span aria-hidden="true" className={`status-dot${dotModifier}`} />
       {label}
     </span>
+  )
+}
+
+/** Says where an uploaded document goes before anyone uploads one. */
+function DocumentDataNotice() {
+  const { t } = useI18n()
+  const notice = t.projects.documents.dataNotice
+
+  return (
+    <div className="document-data-notice">
+      <p>{notice.summary}</p>
+      <details>
+        <summary>{notice.more}</summary>
+        <ul>
+          <li>{notice.storage}</li>
+          <li>{notice.extraction}</li>
+          <li>{notice.qaRuns}</li>
+          <li>{notice.deletion}</li>
+          <li>{notice.providerRetention}</li>
+        </ul>
+      </details>
+    </div>
   )
 }

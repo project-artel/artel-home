@@ -12,9 +12,12 @@ import {
   toApiError,
 } from '../projects/projectApi'
 import {
+  TRACKER_ACCOUNT_TYPES,
   TRACKER_PROVIDERS,
   TRACKER_SYNC_STATES,
   type IssueTracker,
+  type TrackerAccountType,
+  type TrackerInstallation,
   type TrackerLink,
   type TrackerLinkDraft,
   type TrackerProvider,
@@ -102,6 +105,27 @@ function parseTrackerRepositoryList(data: unknown): TrackerRepository[] {
     .filter((item): item is TrackerRepository => item !== null)
 }
 
+/** A row with an unknown `accountType` or an empty field is dropped, like an unreadable repository. */
+function parseTrackerInstallation(data: unknown): TrackerInstallation | null {
+  const record = asRecord(data)
+  if (record === null) return null
+
+  const installationId = asNullableString(record.installationId)
+  const account = asNullableString(record.account)
+  if (installationId === null || installationId === '' || account === null || account === '') return null
+  if (!isOneOf<TrackerAccountType>(record.accountType, TRACKER_ACCOUNT_TYPES)) return null
+
+  return { installationId, account, accountType: record.accountType }
+}
+
+function parseTrackerInstallationList(data: unknown): TrackerInstallation[] {
+  const record = asRecord(data)
+  const items = record !== null && Array.isArray(record.items) ? record.items : []
+  return items
+    .map(parseTrackerInstallation)
+    .filter((item): item is TrackerInstallation => item !== null)
+}
+
 /**
  * The provider-specific path segment for the GitHub-App-flavoured endpoints
  * (`install-url`, `repositories`). A one-entry lookup today, matching every
@@ -167,6 +191,65 @@ export async function getTrackerInstallUrl(
     )
   }
   return url
+}
+
+/** The GitHub authorization address; GitHub sends the owner back to the settings page with `?tracker=choose`. */
+export async function getTrackerAuthorizeUrl(
+  projectId: string,
+  provider: TrackerProvider,
+): Promise<string> {
+  const response = await apiFetch(
+    projectPath(projectId, `/tracker/${PROVIDER_PATH_SEGMENT[provider]}/authorize-url`),
+  )
+  const record = asRecord(await readJson(response))
+  const url = asNullableString(record?.url)
+
+  if (url === null) {
+    throw new ProjectApiError(
+      response.status,
+      'The server did not return an authorization link.',
+      'CLIENT_MALFORMED_AUTHORIZE_URL',
+    )
+  }
+  return url
+}
+
+export async function listTrackerInstallations(
+  projectId: string,
+  provider: TrackerProvider,
+  signal?: AbortSignal,
+): Promise<TrackerInstallation[]> {
+  const response = await apiFetch(
+    projectPath(projectId, `/tracker/${PROVIDER_PATH_SEGMENT[provider]}/installations`),
+    { signal },
+  )
+  return parseTrackerInstallationList(await readJson(response))
+}
+
+/**
+ * Attaches an installation to the project. When it differs from the current
+ * one the server clears `repository`, so the link comes back without one.
+ */
+export async function selectTrackerInstallation(
+  projectId: string,
+  provider: TrackerProvider,
+  installationId: string,
+): Promise<TrackerLink> {
+  const response = await apiFetch(
+    projectPath(projectId, `/tracker/${PROVIDER_PATH_SEGMENT[provider]}/installation`),
+    { method: 'PUT', ...jsonRequest({ installationId }) },
+  )
+  const record = asRecord(await readJson(response))
+  const link = record === null ? null : parseTrackerLink(record.link)
+
+  if (link === null) {
+    throw new ProjectApiError(
+      response.status,
+      'The server described the tracker connection oddly.',
+      'CLIENT_MALFORMED_TRACKER_LINK',
+    )
+  }
+  return link
 }
 
 export async function listTrackerRepositories(

@@ -1,7 +1,9 @@
 import { useId, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { CopyButton } from '../projects/CopyButton'
 import { formatDateTime } from '../projects/formatters'
 import { useI18n } from '../i18n/useI18n'
+import { CliInstallSteps, CLI_README_URL } from './CliInstallSteps'
 import { createCliToken } from './cliTokenApi'
 import {
   CLI_TOKEN_EXPIRY_OPTIONS,
@@ -79,6 +81,19 @@ export function CliTokenPanel() {
         <h2 id="cli-tokens-title">{copy.title}</h2>
       </header>
       <p className="section-intro">{copy.intro}</p>
+
+      <CliInstallSteps onResult={setAnnouncement}>
+        <p className="guide-copy">
+          {copy.install.ciBefore}
+          <code className="mono">ARTEL_TOKEN</code>
+          {copy.install.ciAfter}
+        </p>
+        <p className="guide-copy">
+          <a href={CLI_README_URL} rel="noreferrer" target="_blank">{copy.install.readme}</a>
+          <span aria-hidden="true"> · </span>
+          <Link to="/setup">{copy.install.fullGuide}</Link>
+        </p>
+      </CliInstallSteps>
 
       <form onSubmit={(event) => void submit(event)} noValidate>
         {createFailure !== null && (
