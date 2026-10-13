@@ -113,6 +113,27 @@
   background: var(--color-bg-hover);
 }
 
+.top-bar-link {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.top-bar-link:hover {
+  background: var(--color-bg-hover);
+}
+
+.top-bar-link[aria-current='page'] {
+  color: var(--color-text-primary);
+  background: var(--color-bg-raised);
+}
+
 .locale-select {
   min-height: 32px;
   padding: 0 var(--space-2);
@@ -444,6 +465,10 @@ h1 {
   .user-menu {
     padding-left: 0;
     border-left: 0;
+  }
+
+  .top-bar-actions {
+    gap: var(--space-2);
   }
 
   .login-layout {
@@ -989,6 +1014,36 @@ h1 {
   margin-top: var(--space-3);
 }
 
+.document-data-notice {
+  margin-top: var(--space-3);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.document-data-notice p {
+  margin: 0;
+}
+
+.document-data-notice summary {
+  width: fit-content;
+  min-height: 32px;
+  padding: 7px 0;
+  cursor: pointer;
+}
+
+.document-data-notice summary:hover {
+  color: var(--color-text-primary);
+}
+
+.document-data-notice ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding-left: var(--space-4);
+}
+
 .progress-track {
   height: 6px;
   border-radius: 999px;
@@ -1383,6 +1438,25 @@ a.instance-name:hover {
   color: var(--color-text-secondary);
   font-size: 13px;
   line-height: 20px;
+}
+
+.cli-install-guide {
+  margin-bottom: var(--space-4);
+}
+
+.cli-install-title {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  margin: 0 0 var(--space-1);
+}
+
+.cli-install-guide .copy-line {
+  margin-bottom: var(--space-2);
+}
+
+.cli-install-guide a {
+  color: var(--color-action-primary);
+  font-weight: 600;
 }
 
 .guide-step .copy-line {
@@ -4054,6 +4128,15 @@ a.instance-name:hover {
   gap: var(--space-2);
 }
 
+/* Buttons that act on the whole tracker connection, laid out in one wrapping row. */
+.tracker-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
 .tracker-link-meta {
   margin: 0;
   color: var(--color-text-secondary);
@@ -4338,7 +4421,7 @@ a.instance-name:hover {
 .qa-follow{ font:inherit; font-size:12.5px; cursor:pointer; border-radius:999px; padding:5px 12px; border:1px solid var(--color-border-strong); background:transparent; color:var(--color-text-secondary); }
 .qa-follow--on{ border-color:var(--color-status-success,#3a9a5c); color:var(--color-status-success,#3a9a5c); background:color-mix(in srgb, var(--color-status-success,#3a9a5c) 12%, transparent); cursor:default; }
 
-.qa-console-grid{ flex:1; min-height:0; display:grid; grid-template-columns:248px minmax(0,1fr); }
+.qa-console-grid{ flex:1; min-height:0; display:grid; grid-template-columns:288px minmax(0,1fr); }
 
 .qa-console-rail{ min-height:0; overflow-y:auto; border-right:1px solid var(--color-border-subtle); background:var(--color-bg-surface); }
 .qa-console-rail-head{ margin:0; padding:12px 14px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--color-text-muted); border-bottom:1px solid var(--color-border-subtle); position:sticky; top:0; background:var(--color-bg-surface); }
@@ -4378,81 +4461,111 @@ a.instance-name:hover {
 .qa-focus-logs-body .qa-log-viewport{ flex:1; min-height:0; max-height:none; }
 .qa-focus-logs-body .qa-issue-panel{ flex:1; min-height:0; overflow-y:auto; border:0; }
 
-/* 가로 스텝/TC 타임라인 (재생바) */
-.qa-timeline{ flex:none; border:1px solid var(--color-border-subtle); border-radius:12px; background:var(--color-bg-surface); padding:12px 14px; }
-.qa-timeline-head{ display:flex; flex-wrap:wrap; align-items:baseline; gap:12px; margin-bottom:10px; }
-.qa-timeline-title{ font-size:13px; font-weight:700; }
-.qa-timeline-tc{ font-size:12px; font-weight:600; color:var(--color-text-secondary); }
-.qa-timeline-steps{ margin-left:auto; font-size:11.5px; color:var(--color-text-muted); font-variant-numeric:tabular-nums; }
-.qa-timeline-grade{ font-size:11.5px; font-weight:700; color:var(--color-text-secondary); font-variant-numeric:tabular-nums; }
-.qa-timeline-track{ display:flex; gap:8px; align-items:stretch; overflow-x:auto; overscroll-behavior-x:contain; padding-bottom:6px; }
-/* 섹터를 꽉 채운다: 블록은 스텝 수에 비례해 폭을 나눠 갖고(flexGrow=count), 셀은
-   그 폭 안에서 늘어난다(flex:1). 스텝이 많아 셀이 min-width에 도달하면 더는 줄지
-   않고 트랙이 가로 스크롤된다.
-   그 스크롤이 실제로 일어나려면 블록이 min-content 아래로 줄지 않아야 한다. 블록만
-   0까지 줄면 셀은 min-width를 지키느라 테두리 밖으로 흘러 옆 블록 위에 겹쳐 그려진다. */
-/* TC 블록과 일반 블록을 같은 골격으로: 둘 다 테두리+패딩+동일 높이 캡 → 크기 통일 */
-.qa-tl-block{ display:flex; flex-direction:column; gap:6px; flex:1 1 auto; min-width:min-content; border:1px solid var(--color-border-subtle); border-top-width:3px; border-top-color:var(--color-border-strong); border-radius:8px; padding:6px 7px; }
-.qa-tl-block--passed{ border-top-color:var(--color-status-success,#3a9a5c); }
-.qa-tl-block--failed{ border-top-color:var(--color-status-critical,#d64545); }
-.qa-tl-block--running{ border-top-color:var(--color-action-primary,#4c8bf5); }
-.qa-tl-block--pending,.qa-tl-block--unreported,.qa-tl-block--unknown{ border-top-color:var(--color-border-strong); }
-/* 기대 판정이 붙은 자리는 통과 여부가 아니라 기대와 맞았는지로 칠한다(ARTEL-301).
-   색만 바꾸고 verdict 글자는 그대로 두므로, 실패한 검증이 초록으로 보일 때도
-   무엇이 일어났는지는 캡에 남는다. */
-.qa-tl-block--grade-correct{ border-top-color:var(--color-status-success,#3a9a5c); }
-.qa-tl-block--grade-wrong{ border-top-color:var(--color-status-critical,#d64545); }
-.qa-tl-cap{ display:flex; align-items:center; gap:6px; height:20px; flex:none; white-space:nowrap; }
-.qa-tl-cap-no{ font-size:10px; font-weight:800; letter-spacing:.04em; color:#fff; background:var(--color-action-primary,#4c8bf5); border-radius:4px; padding:1px 6px; }
-.qa-tl-cap-label{ font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--color-text-muted); }
-.qa-tl-cap-verdict{ margin-left:auto; display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:800; }
-.qa-tl-cap-verdict--passed{ color:var(--color-status-success,#3a9a5c); }
-.qa-tl-cap-verdict--failed{ color:var(--color-status-critical,#d64545); }
-.qa-tl-cap-verdict--running{ color:var(--color-action-primary,#4c8bf5); }
-.qa-tl-cap-verdict--pending,.qa-tl-cap-verdict--unreported,.qa-tl-cap-verdict--unknown{ color:var(--color-text-muted); }
-.qa-tl-cap-verdict--grade-correct{ color:var(--color-status-success,#3a9a5c); }
-.qa-tl-cap-verdict--grade-wrong{ color:var(--color-status-critical,#d64545); }
-.qa-tl-cells{ display:flex; gap:4px; min-width:min-content; }
-.qa-tl-cell{ position:relative; flex:1 1 44px; min-width:44px; height:56px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding:4px 5px; border-radius:7px; border:1px solid var(--color-border-subtle); background:var(--color-bg-raised); color:var(--color-text-secondary); font:inherit; overflow:hidden; }
-button.qa-tl-cell--linked{ cursor:pointer; }
-button.qa-tl-cell--linked:hover{ filter:brightness(1.06); }
-.qa-tl-cell-head{ display:flex; align-items:center; gap:5px; }
-.qa-tl-cell-glyph{ font-size:14px; line-height:1; }
-.qa-tl-cell-no{ font-size:10px; font-variant-numeric:tabular-nums; opacity:.8; }
-.qa-tl-cell-name{ max-width:100%; font-size:10.5px; line-height:1.25; text-align:center; color:var(--color-text-secondary); overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+/* Scenario rail (left). Each scenario unfolds into its steps; the focused
+   scenario's model usage stays pinned under the list. */
+.qa-console-rail{ display:flex; flex-direction:column; overflow:hidden; }
+.qa-console-rail .qa-console-rail-list{ flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; }
+.qa-rail-row{ display:grid; grid-template-columns:24px minmax(0,1fr); align-items:center; gap:2px; }
+.qa-rail-toggle{ width:24px; height:32px; display:grid; place-items:center; padding:0; border:0; border-radius:4px; background:transparent; color:var(--color-text-muted); cursor:pointer; }
+.qa-rail-toggle:hover{ background:var(--color-bg-hover); color:var(--color-text-primary); }
+.qa-rail-toggle:focus-visible, .qa-rail-step--linked:focus-visible, .qa-stage-resize:focus-visible{ outline:2px solid var(--color-action-primary); outline-offset:1px; }
+.qa-rail-chevron{ width:6px; height:6px; border-right:1.5px solid currentColor; border-bottom:1.5px solid currentColor; transform:rotate(-45deg); transition:transform 160ms cubic-bezier(.2,0,0,1); }
+.qa-rail-entry--expanded .qa-rail-chevron{ transform:rotate(45deg); }
+.qa-rail-item{ min-width:0; }
+.qa-rail-steps{ padding:2px 4px 8px 26px; }
+.qa-rail-steps-note, .qa-rail-steps-empty{ margin:4px 0 6px; font-size:11px; line-height:16px; color:var(--color-text-muted); }
+.qa-rail-step-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:1px; }
+.qa-rail-step{ position:relative; width:100%; display:grid; grid-template-columns:14px 20px minmax(0,1fr); align-items:baseline; gap:4px; padding:4px 6px 4px 8px; border:0; border-radius:4px; background:transparent; color:var(--color-text-secondary); font:inherit; font-size:12px; line-height:18px; text-align:left; }
+.qa-rail-step--neutral{ grid-template-columns:20px minmax(0,1fr); }
+button.qa-rail-step--linked{ cursor:pointer; }
+button.qa-rail-step--linked:hover{ background:var(--color-bg-hover); }
+.qa-rail-step-glyph{ font-size:12px; text-align:center; }
+.qa-rail-step-no{ font-family:var(--font-mono); font-size:11px; color:var(--color-text-muted); font-variant-numeric:tabular-nums; }
+.qa-rail-step-title{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.qa-rail-step--passed .qa-rail-step-glyph, .qa-rail-step--grade-correct .qa-rail-step-glyph{ color:var(--color-status-success); }
+.qa-rail-step--failed .qa-rail-step-glyph, .qa-rail-step--grade-wrong .qa-rail-step-glyph{ color:var(--color-status-critical); }
+.qa-rail-step--running{ background:color-mix(in srgb, var(--color-action-primary) 10%, transparent); color:var(--color-text-primary); }
+.qa-rail-step--running .qa-rail-step-glyph{ color:var(--color-action-primary); }
+.qa-rail-step--grade-wrong{ background:color-mix(in srgb, var(--color-status-critical) 10%, transparent); }
+/* What the step was expected to do (ARTEL-301), as a band on the left edge so it
+   never competes with the glyph that says what actually happened. */
+.qa-rail-step-expect{ position:absolute; left:2px; top:5px; bottom:5px; width:2px; border-radius:1px; }
+.qa-rail-step-expect--passed{ background:var(--color-status-success); }
+.qa-rail-step-expect--failed{ background:var(--color-status-critical); }
+.qa-rail-case{ margin:4px 0; padding-left:6px; border-left:1px solid var(--color-border-subtle); }
+.qa-rail-case-head{ display:flex; align-items:center; gap:6px; padding:2px 0 2px 2px; font-size:11px; }
+.qa-rail-case-no{ font-weight:700; letter-spacing:.04em; color:var(--color-text-muted); }
+.qa-rail-case-verdict{ margin-left:auto; display:inline-flex; gap:4px; font-weight:650; color:var(--color-text-muted); }
+.qa-rail-case-verdict--passed, .qa-rail-case-verdict--grade-correct{ color:var(--color-status-success); }
+.qa-rail-case-verdict--failed, .qa-rail-case-verdict--grade-wrong{ color:var(--color-status-critical); }
+.qa-rail-case-verdict--running{ color:var(--color-action-primary); }
+.qa-console-rail-usage{ flex:none; max-height:50%; overflow-y:auto; border-top:1px solid var(--color-border-subtle); }
+.qa-console-rail-usage .qa-usage-panel{ margin:0; }
+.qa-usage-summary{ display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; padding:10px 14px; cursor:pointer; list-style:none; }
+.qa-usage-summary::-webkit-details-marker{ display:none; }
+.qa-usage-summary::before{ content:""; width:6px; height:6px; margin-right:2px; border-right:1.5px solid var(--color-text-muted); border-bottom:1.5px solid var(--color-text-muted); transform:rotate(-45deg); }
+.qa-usage-details[open] > .qa-usage-summary::before{ transform:rotate(45deg); }
+.qa-usage-summary:focus-visible{ outline:2px solid var(--color-action-primary); outline-offset:-2px; }
+.qa-usage-summary h2{ display:inline; margin:0; font-size:12px; font-weight:650; font-family:var(--font-sans); }
+.qa-usage-summary-figures{ margin-left:auto; font-size:11px; color:var(--color-text-secondary); }
+.qa-usage-body{ padding:0 14px 12px; }
+.qa-usage-body-head{ display:flex; align-items:flex-start; gap:8px; }
+.qa-usage-body-head .qa-usage-note{ flex:1; margin:0 0 10px; font-size:11px; line-height:16px; }
+.qa-console-rail-usage .qa-usage-grid{ grid-template-columns:1fr 1fr; gap:10px 12px; }
+.qa-console-rail-usage .qa-usage-item dd{ font-size:14px; line-height:20px; }
 
-/* 런타임 챗봇 토글 (좌하단 플로팅) */
-.qa-chat-dock{ position:absolute; left:16px; bottom:16px; z-index:30; display:flex; flex-direction:column; align-items:flex-start; gap:10px; }
-.qa-chat-fab{ width:52px; height:52px; border-radius:999px; border:0; background:var(--color-brand-accent,#f04b3a); color:#fbf7f0; cursor:pointer; box-shadow:0 8px 22px -6px color-mix(in srgb, var(--color-brand-accent,#f04b3a) 55%, transparent); display:grid; place-items:center; transition:transform .12s ease, filter .12s ease; }
-.qa-chat-fab:hover{ filter:brightness(1.06); transform:translateY(-1px); }
-.qa-chat-fab:active{ transform:translateY(0); }
-.qa-chat-fab--on{ background:var(--color-bg-raised); color:var(--color-text-primary); border:1px solid var(--color-border-strong); box-shadow:0 6px 18px -8px rgba(0,0,0,.5); }
-.qa-chat-pop{ width:min(380px,86vw); height:min(520px,64vh); overflow:hidden; display:flex; flex-direction:column; border:1px solid var(--color-border-subtle); border-radius:14px; background:var(--color-bg-surface); box-shadow:0 20px 60px -20px rgba(0,0,0,.55); }
-/* 팝업 안에서는 패널 자체 크롬(테두리·배경·큰 헤더)을 벗기고 팝업 골격에 맞춘다 */
-.qa-chat-pop .qa-chat{ flex:1; min-height:0; height:100%; margin:0; padding:14px; gap:10px; border:0; border-radius:0; background:transparent; }
-.qa-chat-pop .qa-chat .panel-header{ margin:0; display:flex; flex-direction:column; gap:3px; }
-.qa-chat-pop .qa-chat .panel-header h2{ margin:0; font-size:14px; }
-.qa-chat-pop .qa-chat .scenario-hint{ margin:0; font-size:12px; color:var(--color-text-muted); }
-.qa-chat-pop .qa-chat-thread{ flex:1; min-height:0; max-height:none; border:1px solid var(--color-border-subtle); border-radius:10px; background:var(--color-bg-canvas); }
-.qa-chat-pop .qa-chat-thread .panel-empty{ padding:14px; }
-.qa-chat-pop .qa-chat-composer{ display:flex; flex-direction:column; gap:8px; }
-.qa-chat-pop .qa-chat-composer textarea{ width:100%; box-sizing:border-box; }
-.qa-chat-pop > .qa-chat > .panel-empty{ margin:0; padding:10px 12px; border:1px dashed var(--color-border-strong); border-radius:8px; font-size:12px; }
-.qa-tl-cell--passed{ background:var(--color-status-success-subtle,color-mix(in srgb,var(--color-status-success,#3a9a5c) 16%,transparent)); border-color:var(--color-status-success,#3a9a5c); color:var(--color-status-success,#3a9a5c); }
-.qa-tl-cell--failed{ background:var(--color-status-critical-subtle,color-mix(in srgb,var(--color-status-critical,#d64545) 16%,transparent)); border-color:var(--color-status-critical,#d64545); color:var(--color-status-critical,#d64545); }
-.qa-tl-cell--running{ background:color-mix(in srgb,var(--color-action-primary,#4c8bf5) 16%,transparent); border-color:var(--color-action-primary,#4c8bf5); color:var(--color-action-primary,#4c8bf5); }
-.qa-tl-cell--grade-correct{ background:var(--color-status-success-subtle,color-mix(in srgb,var(--color-status-success,#3a9a5c) 16%,transparent)); border-color:var(--color-status-success,#3a9a5c); color:var(--color-status-success,#3a9a5c); }
-.qa-tl-cell--grade-wrong{ background:var(--color-status-critical-subtle,color-mix(in srgb,var(--color-status-critical,#d64545) 16%,transparent)); border-color:var(--color-status-critical,#d64545); color:var(--color-status-critical,#d64545); }
-/* TC cap 의 기대 판정. 셀의 띠를 글자 줄에 맞게 줄인 것이다. */
-.qa-tl-cap-expect{ display:inline-block; width:12px; height:3px; border-radius:2px; }
-.qa-tl-cap-expect--passed{ background:var(--color-status-success,#3a9a5c); }
-.qa-tl-cap-expect--failed{ background:var(--color-status-critical,#d64545); }
-/* 셀의 기대 판정. 배경 tint 가 16% 라 full strength 로 칠하면 같은 색 위에서도 띠로 읽힌다.
-   테두리와 붙지 않게 좌우를 6px 들여, 두꺼운 위 테두리로 보이지 않게 한다. */
-.qa-tl-cell-expect{ position:absolute; top:3px; left:6px; right:6px; height:3px; border-radius:2px; }
-.qa-tl-cell-expect--passed{ background:var(--color-status-success,#3a9a5c); }
-.qa-tl-cell-expect--failed{ background:var(--color-status-critical,#d64545); }
-.qa-tl-cell--verify{ outline:2px solid color-mix(in srgb,var(--color-text-primary) 30%,transparent); outline-offset:-1px; }
+/* Stage (centre): the game and the Now panel on top, the chat below, with a
+   handle between them. The game keeps 16:9, so losing height also loses width
+   and it shrinks into the top-left corner; the Now panel takes the width. */
+.qa-focus-center{ gap:0; }
+.qa-stage{ flex:1; min-height:0; display:flex; flex-direction:column; }
+.qa-stage-top{ flex:1; min-height:0; display:flex; gap:12px; }
+.qa-stage-top .qa-focus-game{ flex:0 1 auto; height:100%; aspect-ratio:16 / 9; min-width:0; max-width:100%; border-radius:6px; }
+.qa-now{ flex:1 1 0; min-width:0; min-height:0; container-type:inline-size; }
+.qa-now-body{ height:100%; box-sizing:border-box; overflow-y:auto; padding:12px 14px; border:1px solid var(--color-border-subtle); border-radius:6px; background:var(--color-bg-surface); display:flex; flex-direction:column; gap:10px; }
+/* Too narrow to read: show nothing rather than a column of clipped words. */
+@container (max-width: 179px){ .qa-now-body{ display:none; } }
+.qa-now-title{ margin:0; font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--color-text-muted); font-family:var(--font-sans); }
+.qa-now-list{ margin:0; display:flex; flex-direction:column; gap:10px; }
+.qa-now-item dt{ font-size:11px; line-height:16px; font-weight:500; color:var(--color-text-muted); }
+.qa-now-item dd{ margin:2px 0 0; display:flex; flex-direction:column; gap:2px; font-size:13px; line-height:20px; color:var(--color-text-primary); }
+.qa-now-item dd.mono{ font-size:12px; }
+.qa-now-empty{ color:var(--color-text-muted); font-size:12px; }
+.qa-now-state{ font-size:11px; font-weight:650; color:var(--color-text-muted); }
+.qa-now-state--running{ color:var(--color-action-primary); }
+.qa-now-state--passed{ color:var(--color-status-success); }
+.qa-now-state--failed{ color:var(--color-status-critical); }
+.qa-now-step{ overflow-wrap:anywhere; }
+.qa-now-tool{ display:flex; align-items:baseline; gap:8px; }
+.qa-now-tool .mono:first-child{ color:var(--color-action-primary); font-size:12px; }
+.qa-now-time{ margin-left:auto; font-size:11px; color:var(--color-text-muted); }
+/* The agent's stated reason. Clamped, because the log column holds the whole text. */
+.qa-now-thought{ color:var(--color-text-secondary); font-size:12px; line-height:18px; overflow:hidden; display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; }
+.qa-now-grade{ color:var(--color-text-secondary); }
+.qa-now .qa-context{ margin:0; flex-wrap:wrap; }
+
+/* An 8px hit area with a visible grip in the middle (DESIGN.md resize handles). */
+.qa-stage-resize{ flex:none; height:12px; position:relative; cursor:row-resize; touch-action:none; }
+.qa-stage-resize::after{ content:""; position:absolute; left:50%; top:50%; width:40px; height:3px; margin:-1.5px 0 0 -20px; border-radius:999px; background:var(--color-border-strong); }
+.qa-stage-resize:hover::after{ background:var(--color-action-primary); }
+.qa-stage-chat{ flex:none; min-height:0; display:flex; flex-direction:column; border:1px solid var(--color-border-subtle); border-radius:6px; background:var(--color-bg-surface); overflow:hidden; }
+.qa-stage-dock-tabs{ align-self:flex-start; flex:none; margin:8px 12px 0; }
+.qa-stage-dock-count{ margin-left:6px; font-size:11px; opacity:.85; }
+.qa-stage-dock-body{ flex:1; min-height:0; display:flex; }
+.qa-stage-dock-body[hidden]{ display:none; }
+.qa-stage-dock-body--scroll{ display:block; overflow-y:auto; padding:8px 12px 12px; }
+.qa-stage-chat .qa-chat{ flex:1; min-height:0; margin:0; padding:10px 12px; gap:8px; border:0; border-radius:0; background:transparent; }
+.qa-stage-chat .qa-chat .panel-header{ margin:0; display:flex; align-items:baseline; gap:8px; }
+.qa-stage-chat .qa-chat .panel-header h2{ margin:0; font-size:13px; }
+.qa-stage-chat .qa-chat .scenario-hint{ margin:0; font-size:12px; color:var(--color-text-muted); }
+.qa-stage-chat .qa-chat-thread{ flex:1; min-height:0; max-height:none; border:1px solid var(--color-border-subtle); border-radius:4px; background:var(--color-bg-canvas); }
+.qa-stage-chat .qa-chat-thread .panel-empty{ padding:10px 12px; }
+.qa-stage-chat .qa-chat-composer{ padding:0; border-top:0; }
+.qa-stage-chat .qa-chat-composer textarea{ resize:none; }
+.qa-stage-chat .qa-chat-composer .button{ min-height:36px; }
+.qa-stage-chat > .qa-chat > .panel-empty{ margin:0; padding:8px 10px; border:1px dashed var(--color-border-strong); border-radius:4px; font-size:12px; }
+@media (prefers-reduced-motion: reduce){ .qa-rail-chevron{ transition:none; } }
+
 
 @media (max-width:1180px){
   .qa-focus{ grid-template-columns:1fr; grid-template-rows:minmax(0,1fr) minmax(0,45%); }
@@ -9578,3 +9691,31 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:27% } col.tct-c-added{ width:10%
 .login-divider + .provider-list {
   margin-top: var(--space-4);
 }
+
+/* Changes made to knowledge and macros by a QA run, shown as line diffs. */
+.qa-changes-caret{ width:12px; color:var(--color-text-muted); }
+.qa-changes{ padding:2px 0; }
+.qa-changes-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+.qa-change{ border:1px solid var(--color-border-subtle); border-left-width:3px; border-radius:6px; background:var(--color-bg-raised); }
+.qa-change--create{ border-left-color:var(--color-status-success); }
+.qa-change--update{ border-left-color:var(--color-status-warning); }
+.qa-change--delete{ border-left-color:var(--color-status-critical); }
+.qa-change--reverted{ border-left-color:var(--color-border-strong); }
+.qa-change--reverted .qa-change-name{ text-decoration:line-through; color:var(--color-text-secondary); }
+.qa-change-head{ display:flex; align-items:center; gap:8px; padding-right:8px; }
+.qa-change-toggle{ flex:1; min-width:0; min-height:32px; display:flex; align-items:center; gap:8px; padding:4px 10px; font:inherit; font-size:13px; text-align:left; cursor:pointer; background:transparent; border:0; color:var(--color-text-primary); }
+.qa-change-kind{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--color-text-muted); }
+.qa-change-type{ font-size:12px; font-weight:600; color:var(--color-text-secondary); }
+.qa-change-name{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.qa-change-state{ font-size:12px; padding:1px 8px; border:1px solid var(--color-border-strong); border-radius:999px; color:var(--color-text-secondary); }
+.qa-change-reason{ font-size:12px; color:var(--color-text-muted); }
+.qa-change-body{ padding:0 10px 10px; }
+.qa-diff{ font-family:var(--font-mono); font-size:12px; line-height:1.5; border:1px solid var(--color-border-subtle); border-radius:4px; background:var(--color-bg-surface); overflow-x:auto; }
+.qa-diff-line{ display:flex; min-width:max-content; white-space:pre; }
+.qa-diff-marker{ flex:none; width:2ch; padding:0 6px; text-align:center; user-select:none; color:var(--color-text-secondary); }
+.qa-diff-text{ padding-right:12px; }
+.qa-diff-line--add{ background:var(--color-status-success-muted); }
+.qa-diff-line--remove{ background:var(--color-status-critical-muted); }
+.qa-diff-line--add .qa-diff-marker, .qa-diff-line--remove .qa-diff-marker{ font-weight:700; color:var(--color-text-primary); }
+.qa-diff-fold{ display:block; width:100%; min-height:24px; font:inherit; text-align:left; padding:2px 12px; cursor:pointer; background:var(--color-bg-raised); border:0; border-block:1px solid var(--color-border-subtle); color:var(--color-text-secondary); }
+.qa-diff-fold:hover{ background:var(--color-bg-hover); }

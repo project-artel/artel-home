@@ -79,6 +79,22 @@ export const projectsEn = {
     uploadFirst: 'Upload a document',
     uploadNew: 'Upload a new version',
     hint: 'PDF, up to 50 MB. Drag a file here or choose one.',
+    /** How an uploaded document is stored, sent, and deleted. Keep it in step with the server. */
+    dataNotice: {
+      summary:
+        'Uploaded documents are stored on this ARTEL server and sent to an outside LLM provider to be summarised.',
+      more: 'How documents are handled',
+      storage:
+        'Storage: the original PDF is kept in the S3-compatible file storage this ARTEL server uses. Only members of this project can download it.',
+      extraction:
+        'Summary: the server extracts the text from the PDF, sends it to an LLM provider (OpenRouter or AWS Bedrock), and saves the summary it returns as knowledge.',
+      qaRuns:
+        'QA runs: the QA agent can read this knowledge while it tests the game, and whatever it reads is sent to the LLM provider.',
+      deletion:
+        'Deletion: deleting a document removes the original file and its record, and QA runs stop using its knowledge. The knowledge itself stays in the server database, marked as deleted.',
+      providerRetention:
+        "How long an LLM provider keeps what it receives is set by that provider's own policy.",
+    },
     progressLabel: 'Upload progress',
     uploading: 'Uploading…',
     uploadingPercent: (percent: number) => `Uploading… ${percent}%`,
@@ -153,8 +169,6 @@ export const projectsEn = {
     deletedAnnouncement: 'Instance deleted.',
     savedAnnouncement: 'Instance saved.',
     saveFailed: 'The instance could not be saved. Please try again.',
-    guideTitle: 'Set up the SDK',
-    guideIntro: 'Follow these steps once per machine to connect a game to this project.',
     neverConnected: 'Never connected',
     lastConnected: (date: string) => `Last connected ${date}`,
     registered: (date: string) => `Registered ${date}`,
@@ -211,6 +225,38 @@ export const projectsEn = {
     shot4ProjectPickerAlt: 'The Artel SDK screen in the game listing projects to connect to.',
     shot4InstanceConnectedAlt: 'The game instance list in Artel showing the new instance as Connected.',
     note: 'There is no key to keep. The SDK remembers the sign-in on that machine, and the instance is created by the first report.',
+  },
+  /**
+   * The setup guide, shown at `/setup` and as a project section. `projectId`
+   * decides which command copy applies: the global page shows a placeholder
+   * and says where to find the id.
+   */
+  setup: {
+    eyebrow: 'Getting started',
+    title: 'Setup guide',
+    sdkTitle: 'Unity SDK',
+    sdkIntro: 'Follow these steps once per machine to connect a game to a project.',
+    cliTitle: 'CLI',
+    cliIntro: 'Start games and QA runs from a terminal or from CI.',
+    ciBefore: 'In CI, set a CLI token from ',
+    ciLink: 'account settings',
+    ciAfter: ' as the ',
+    ciEnd: ' environment variable instead.',
+    commandsTitle: 'Commands',
+    projectCommandsTitle: 'Commands for this project',
+    /** Rendered before and after the placeholder, which stays in code style. */
+    projectIdBefore: 'Replace ',
+    projectIdAfter: ' with the id of your project. This command prints the projects you can access and their ids:',
+    copyProjectList: 'Copy project list command',
+    projectListCopied: 'Project list command copied.',
+    copyStart: 'Copy game start command',
+    startCopied: 'Game start command copied.',
+    copyList: 'Copy game list command',
+    listCopied: 'Game list command copied.',
+    copyQaRun: 'Copy qa run command',
+    qaRunCopied: 'QA run command copied.',
+    commandsNote:
+      'game start launches the build signed in and prints the instance id. qa run exits 0 only when the run passed, so CI can gate on it.',
   },
   copy: {
     blocked: 'Copying was blocked by the browser. Select the value and copy it manually.',
@@ -352,6 +398,7 @@ export const projectsEn = {
       performance: 'Performance',
       issues: 'Issues',
       knowledge: 'Knowledge graph',
+      setup: 'Setup guide',
       usage: 'Spend',
       members: 'Members',
       settings: 'Settings',
@@ -476,6 +523,19 @@ export const projectsKo: Localized<typeof projectsEn> = {
     uploadFirst: '문서 업로드',
     uploadNew: '새 버전 업로드',
     hint: 'PDF, 최대 50 MB. 파일을 여기에 끌어다 놓거나 선택하세요.',
+    dataNotice: {
+      summary: '업로드한 문서는 이 ARTEL 서버에 저장되고, 요약을 위해 외부 LLM 제공자에게 전송됩니다.',
+      more: '문서 처리 방식 자세히 보기',
+      storage:
+        '저장: 원본 PDF 는 이 ARTEL 서버가 사용하는 S3 호환 파일 저장소에 보관됩니다. 이 프로젝트의 멤버만 내려받을 수 있습니다.',
+      extraction:
+        '요약: 서버가 PDF 에서 텍스트를 추출해 LLM 제공자(OpenRouter 또는 AWS Bedrock)에게 보내고, 돌려받은 요약을 knowledge 로 저장합니다.',
+      qaRuns:
+        'QA 실행: QA agent 는 게임을 테스트하는 동안 이 knowledge 를 읽을 수 있고, 읽은 내용은 LLM 제공자에게 전송됩니다.',
+      deletion:
+        '삭제: 문서를 삭제하면 원본 파일과 문서 기록이 지워지고, QA 실행에서도 해당 knowledge 를 더 이상 사용하지 않습니다. 다만 knowledge 자체는 삭제 표시가 된 채로 서버 데이터베이스에 남습니다.',
+      providerRetention: 'LLM 제공자가 전송받은 내용을 얼마나 보관하는지는 각 제공자의 정책을 따릅니다.',
+    },
     progressLabel: '업로드 진행률',
     uploading: '업로드 중…',
     uploadingPercent: (percent: number) => `업로드 중… ${percent}%`,
@@ -545,8 +605,6 @@ export const projectsKo: Localized<typeof projectsEn> = {
     deletedAnnouncement: '인스턴스를 삭제했습니다.',
     savedAnnouncement: '인스턴스를 저장했습니다.',
     saveFailed: '인스턴스를 저장하지 못했습니다. 다시 시도해 주세요.',
-    guideTitle: 'SDK 설정',
-    guideIntro: '게임 하나를 이 프로젝트에 연결하려면 머신마다 한 번씩 다음 단계를 따르세요.',
     neverConnected: '연결된 적 없음',
     lastConnected: (date: string) => `마지막 연결 ${date}`,
     registered: (date: string) => `등록일 ${date}`,
@@ -591,6 +649,32 @@ export const projectsKo: Localized<typeof projectsEn> = {
     shot4ProjectPickerAlt: '게임 안의 Artel SDK 화면에 연결할 프로젝트 목록이 표시된 화면.',
     shot4InstanceConnectedAlt: 'Artel의 게임 인스턴스 목록에 새 인스턴스가 연결됨으로 표시된 화면.',
     note: '따로 보관할 키는 없습니다. SDK가 해당 머신의 로그인을 기억하며, 인스턴스는 첫 보고 시점에 만들어집니다.',
+  },
+  setup: {
+    eyebrow: '시작하기',
+    title: '설치 안내',
+    sdkTitle: 'Unity SDK',
+    sdkIntro: '게임 하나를 프로젝트에 연결하려면 머신마다 한 번씩 다음 단계를 따르세요.',
+    cliTitle: 'CLI',
+    cliIntro: '터미널이나 CI 에서 게임과 QA 실행을 시작합니다.',
+    ciBefore: 'CI 에서는 ',
+    ciLink: '계정 설정',
+    ciAfter: '에서 발급한 CLI 토큰을 ',
+    ciEnd: ' 환경 변수로 지정합니다.',
+    commandsTitle: '명령',
+    projectCommandsTitle: '이 프로젝트의 명령',
+    projectIdBefore: '',
+    projectIdAfter: ' 자리에 프로젝트 id 를 넣습니다. 이 명령은 접근할 수 있는 프로젝트와 그 id 를 출력합니다:',
+    copyProjectList: 'project list 명령 복사',
+    projectListCopied: 'project list 명령을 복사했습니다.',
+    copyStart: 'game start 명령 복사',
+    startCopied: 'game start 명령을 복사했습니다.',
+    copyList: 'game list 명령 복사',
+    listCopied: 'game list 명령을 복사했습니다.',
+    copyQaRun: 'qa run 명령 복사',
+    qaRunCopied: 'qa run 명령을 복사했습니다.',
+    commandsNote:
+      'game start 는 로그인된 상태로 빌드를 실행하고 인스턴스 id 를 출력합니다. qa run 은 실행이 통과했을 때만 종료 코드 0 을 반환하므로 CI 에서 통과 여부를 판단하는 데 쓸 수 있습니다.',
   },
   copy: {
     blocked: '브라우저가 복사를 차단했습니다. 값을 선택해 직접 복사해 주세요.',
@@ -713,6 +797,7 @@ export const projectsKo: Localized<typeof projectsEn> = {
       performance: '성능',
       issues: '이슈',
       knowledge: '지식 그래프',
+      setup: '설치 안내',
       usage: '사용량',
       members: '멤버',
       settings: '설정',

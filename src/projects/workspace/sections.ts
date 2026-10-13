@@ -7,8 +7,9 @@ import type { Messages } from '../../i18n/messages'
  * all read from here, so a renamed route cannot leave one of the three
  * pointing at the old address.
  *
- * `members` and `settings` are deliberately not in this list: they sit below
- * the divider at the bottom of the rail and are not part of the main sequence.
+ * `setup`, `usage`, `members`, and `settings` are deliberately not in this
+ * list: they sit below the divider at the bottom of the rail and are not part
+ * of the main sequence.
  */
 export const WORKSPACE_SECTIONS = [
   { id: 'dashboard', path: '' },
@@ -27,10 +28,12 @@ export const WORKSPACE_SECTIONS = [
 /**
  * `usage`, `members`, `settings` 는 위 목록에 없다. 셋 다 rail 아래 칸의 관리 화면이고, QA 가
  * 흐르는 순서 사이에 끼우면 그 순서가 깨진다. 지출은 QA 를 돌리는 단계가 아니라 그 결과를
- * 정산하는 자리라 여기에 붙는다.
+ * 정산하는 자리라 여기에 붙는다. `setup` 도 같은 칸에 둔다. SDK 와 CLI 설치는 머신마다 한 번
+ * 하는 준비 작업이지 QA 순서의 한 단계가 아니다.
  */
 export type WorkspaceSectionId =
   | (typeof WORKSPACE_SECTIONS)[number]['id']
+  | 'setup'
   | 'usage'
   | 'members'
   | 'settings'
@@ -49,6 +52,7 @@ export function sectionHref(projectId: string, path: string): string {
 export function sectionIdFromPath(projectId: string, pathname: string): WorkspaceSectionId {
   const base = `/projects/${encodeURIComponent(projectId)}`
   const rest = pathname.startsWith(base) ? pathname.slice(base.length).replace(/^\//, '') : ''
+  if (rest === 'setup') return 'setup'
   if (rest === 'usage') return 'usage'
   if (rest === 'members') return 'members'
   if (rest === 'settings') return 'settings'

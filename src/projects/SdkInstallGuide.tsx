@@ -26,11 +26,10 @@ const SDK_PACKAGE_URL = 'https://github.com/project-artel/artel-sdk.git?path=/Pa
  *
  * `width` and `height` are the file's own pixels, not the size it renders at:
  * the browser only needs the ratio to reserve the box before the image
- * arrives, and the guide scrolls inside a dialog, where a late reflow would
- * move the step the reader is on.
+ * arrives, and a late reflow would move the step the reader is on.
  *
  * `narrow` is for a capture taller than it is wide. At the column's full width
- * the browser sign-in card alone would be taller than the dialog.
+ * the browser sign-in card alone would be taller than the screen.
  */
 function GuideShot({
   alt,
@@ -70,8 +69,8 @@ function GuideShot({
  * than this one's; they are still here because without them a first-time
  * reader has no way to tell which of the game's screens the step means.
  *
- * It owns its own `aria-live` region because it is used inside a dialog that
- * has no panel-level one to borrow.
+ * It owns its own `aria-live` region, so the setup page's SDK panel does not
+ * need one of its own to borrow.
  */
 export function SdkInstallGuide() {
   const [announcement, setAnnouncement] = useState('')
@@ -82,15 +81,14 @@ export function SdkInstallGuide() {
   /**
    * Moving focus to the step is what makes the change perceivable without
    * sight: the button the reader just pressed stays put and says nothing about
-   * what replaced the step behind it. Skipped on the first render, where
-   * nothing has been replaced and the dialog owns the focus.
+   * what replaced the step behind it. Skipped while the step is the one
+   * already shown, so opening the page does not pull focus or scroll to the
+   * guide before the reader has asked for a step.
    */
-  const started = useRef(false)
+  const focusedStep = useRef(stepIndex)
   useEffect(() => {
-    if (!started.current) {
-      started.current = true
-      return
-    }
+    if (focusedStep.current === stepIndex) return
+    focusedStep.current = stepIndex
     stepRef.current?.focus()
   }, [stepIndex])
 

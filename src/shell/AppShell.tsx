@@ -1,4 +1,4 @@
-import { Link, Outlet } from 'react-router-dom'
+import { Link, NavLink, Outlet } from 'react-router-dom'
 import { updateMyLocale } from '../auth/authApi'
 import { useAuth } from '../auth/useAuth'
 import { isLocale, LOCALE_LABELS, LOCALES } from '../i18n/locale'
@@ -34,6 +34,11 @@ export function AppShell() {
           <span className="product-name">Replay Studio</span>
         </Link>
         <div className="top-bar-actions">
+          {/* The guide is not tied to a project, so it sits in the chrome every
+              signed-in page shares rather than in one project's rail. */}
+          <NavLink className="top-bar-link" to="/setup">
+            {t.common.shell.setupGuide}
+          </NavLink>
           <ThemeToggle
             toDarkLabel={t.common.shell.switchToDark}
             toLightLabel={t.common.shell.switchToLight}
