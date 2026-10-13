@@ -1,13 +1,12 @@
 import { useId, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Dialog } from '../design-system/primitives/Dialog'
 import { DeleteGameInstanceDialog } from './DeleteGameInstanceDialog'
 import { formatDate } from './formatters'
 import { updateGameInstance } from './gameApi'
 import { useI18n } from '../i18n/useI18n'
 import { apiErrorMessage } from './apiErrorMessage'
 import { ProjectApiError } from './projectApi'
-import { SdkInstallGuide } from './SdkInstallGuide'
+import { sectionHref } from './workspace/sections'
 import {
   describePlatform,
   INSTANCE_NAME_MAX_LENGTH,
@@ -45,12 +44,12 @@ export function GameInstancePanel({
 }) {
   const [announcement, setAnnouncement] = useState('')
   const [deleting, setDeleting] = useState<GameInstance | null>(null)
-  // The guide is about the project, not about a row: with no key to paste there
-  // is nothing per-instance left in it.
-  const [showingGuide, setShowingGuide] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [refreshFailure, setRefreshFailure] = useState<string | null>(null)
   const { t } = useI18n()
+  // The guide is about the project, not about a row: with no key to paste there
+  // is nothing per-instance in it, so it is the project's setup section.
+  const guideHref = sectionHref(projectId, 'setup')
 
   /**
    * The one question this panel cannot answer on its own is "has the game
@@ -85,13 +84,9 @@ export function GameInstancePanel({
           >
             {refreshing ? t.projects.instances.refreshing : t.projects.instances.refresh}
           </button>
-          <button
-            className="button button--primary button--compact"
-            onClick={() => setShowingGuide(true)}
-            type="button"
-          >
+          <Link className="button button--primary button--compact" to={guideHref}>
             {t.projects.instances.installGuide}
-          </button>
+          </Link>
         </div>
       </header>
 
@@ -105,13 +100,9 @@ export function GameInstancePanel({
       {instances.length === 0 ? (
         <div className="panel-empty-block">
           <p className="panel-empty">{t.projects.instances.empty}</p>
-          <button
-            className="button button--secondary button--compact"
-            onClick={() => setShowingGuide(true)}
-            type="button"
-          >
+          <Link className="button button--secondary button--compact" to={guideHref}>
             {t.projects.instances.installGuide}
-          </button>
+          </Link>
         </div>
       ) : (
         <ul className="instance-list">
@@ -149,26 +140,6 @@ export function GameInstancePanel({
           }}
           projectId={projectId}
         />
-      )}
-
-      {showingGuide && (
-        <Dialog
-          labelledBy="instance-guide-title"
-          onClose={() => setShowingGuide(false)}
-          title={t.projects.instances.guideTitle}
-        >
-          <p className="dialog-copy">{t.projects.instances.guideIntro}</p>
-          <SdkInstallGuide />
-          <div className="dialog-actions">
-            <button
-              className="button button--secondary"
-              onClick={() => setShowingGuide(false)}
-              type="button"
-            >
-              {t.projects.shared.close}
-            </button>
-          </div>
-        </Dialog>
       )}
     </section>
   )

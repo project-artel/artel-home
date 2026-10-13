@@ -63,84 +63,97 @@ export function QaRunUsagePanel({ qaTryId, active }: { qaTryId: string; active: 
   const partial = usage !== null && usage.pricedCalls < usage.calls
 
   return (
-    <section className="panel qa-usage-panel" aria-labelledby="qa-usage-title">
-      <header className="panel-header panel-header--split">
-        <div>
+    <section className="qa-usage-panel" aria-labelledby="qa-usage-title">
+      {/* Folded by default: the rail is narrow, and the steps above it are what
+          the operator reads while a run is going. The summary line still carries
+          the two numbers someone opens this for. */}
+      <details className="qa-usage-details">
+        <summary className="qa-usage-summary">
           <h2 id="qa-usage-title">{t.qa.usage.title}</h2>
-          <p className="qa-usage-note">
-            {active ? t.qa.usage.stillRunning : t.qa.usage.subtitle}
-          </p>
+          {status === 'ready' && usage !== null && usage.calls > 0 && (
+            <span className="qa-usage-summary-figures mono">
+              {counts.format(tokens)} {t.qa.usage.tokens} · {formatCost(usage.costUsd, t.qa.usage.costUnknown)}
+              {partial && usage.costUsd !== null && '+'}
+            </span>
+          )}
+        </summary>
+        <div className="qa-usage-body">
+          <div className="qa-usage-body-head">
+            <p className="qa-usage-note">
+              {active ? t.qa.usage.stillRunning : t.qa.usage.subtitle}
+            </p>
+            <button
+              className="button button--secondary button--compact"
+              onClick={refresh}
+              type="button"
+            >
+              {t.qa.usage.refresh}
+            </button>
+          </div>
+
+          {status === 'loading' && <p className="panel-empty">{t.qa.usage.loading}</p>}
+
+          {status === 'error' && (
+            <p className="panel-empty" role="alert">
+              {t.qa.usage.loadFailed}
+            </p>
+          )}
+
+          {status === 'ready' && (usage === null || usage.calls === 0) && (
+            // Zero is not "this run was free" — it is "nothing has arrived yet".
+            <p className="panel-empty">{t.qa.usage.nothingReported}</p>
+          )}
+
+          {status === 'ready' && usage !== null && usage.calls > 0 && (
+            <dl className="qa-usage-grid">
+              <div className="qa-usage-item">
+                <dt>{t.qa.usage.tokens}</dt>
+                <dd className="mono">{counts.format(tokens)}</dd>
+                <p className="qa-usage-hint">
+                  {t.qa.usage.tokenSplit(
+                    counts.format(usage.inputTokens),
+                    counts.format(usage.outputTokens),
+                  )}
+                </p>
+              </div>
+
+              <div className="qa-usage-item">
+                <dt>{t.qa.usage.cost}</dt>
+                <dd className="mono">
+                  {formatCost(usage.costUsd, t.qa.usage.costUnknown)}
+                  {partial && usage.costUsd !== null && (
+                    <span className="qa-usage-partial" title={t.qa.usage.partialHint}>
+                      +
+                    </span>
+                  )}
+                </dd>
+                <p className="qa-usage-hint">
+                  {usage.costUsd === null
+                    ? t.qa.usage.noPricedCall
+                    : partial
+                      ? t.qa.usage.partialPrice(usage.pricedCalls, usage.calls)
+                      : t.qa.usage.fullyPriced(usage.calls)}
+                </p>
+              </div>
+
+              <div className="qa-usage-item">
+                <dt>{t.qa.usage.calls}</dt>
+                <dd className="mono">{counts.format(usage.calls)}</dd>
+                <p className="qa-usage-hint">
+                  {t.qa.usage.perCall(counts.format(Math.round(tokens / usage.calls)))}
+                </p>
+              </div>
+
+              <div className="qa-usage-item">
+                <dt>{t.qa.usage.cached}</dt>
+                <dd className="mono">{counts.format(usage.cachedInputTokens)}</dd>
+                {/* A subset of input tokens, so it is not added to the total above. */}
+                <p className="qa-usage-hint">{t.qa.usage.cachedHint}</p>
+              </div>
+            </dl>
+          )}
         </div>
-        <button
-          className="button button--secondary button--compact"
-          onClick={refresh}
-          type="button"
-        >
-          {t.qa.usage.refresh}
-        </button>
-      </header>
-
-      {status === 'loading' && <p className="panel-empty">{t.qa.usage.loading}</p>}
-
-      {status === 'error' && (
-        <p className="panel-empty" role="alert">
-          {t.qa.usage.loadFailed}
-        </p>
-      )}
-
-      {status === 'ready' && (usage === null || usage.calls === 0) && (
-        // Zero is not "this run was free" — it is "nothing has arrived yet".
-        <p className="panel-empty">{t.qa.usage.nothingReported}</p>
-      )}
-
-      {status === 'ready' && usage !== null && usage.calls > 0 && (
-        <dl className="qa-usage-grid">
-          <div className="qa-usage-item">
-            <dt>{t.qa.usage.tokens}</dt>
-            <dd className="mono">{counts.format(tokens)}</dd>
-            <p className="qa-usage-hint">
-              {t.qa.usage.tokenSplit(
-                counts.format(usage.inputTokens),
-                counts.format(usage.outputTokens),
-              )}
-            </p>
-          </div>
-
-          <div className="qa-usage-item">
-            <dt>{t.qa.usage.cost}</dt>
-            <dd className="mono">
-              {formatCost(usage.costUsd, t.qa.usage.costUnknown)}
-              {partial && usage.costUsd !== null && (
-                <span className="qa-usage-partial" title={t.qa.usage.partialHint}>
-                  +
-                </span>
-              )}
-            </dd>
-            <p className="qa-usage-hint">
-              {usage.costUsd === null
-                ? t.qa.usage.noPricedCall
-                : partial
-                  ? t.qa.usage.partialPrice(usage.pricedCalls, usage.calls)
-                  : t.qa.usage.fullyPriced(usage.calls)}
-            </p>
-          </div>
-
-          <div className="qa-usage-item">
-            <dt>{t.qa.usage.calls}</dt>
-            <dd className="mono">{counts.format(usage.calls)}</dd>
-            <p className="qa-usage-hint">
-              {t.qa.usage.perCall(counts.format(Math.round(tokens / usage.calls)))}
-            </p>
-          </div>
-
-          <div className="qa-usage-item">
-            <dt>{t.qa.usage.cached}</dt>
-            <dd className="mono">{counts.format(usage.cachedInputTokens)}</dd>
-            {/* A subset of input tokens, so it is not added to the total above. */}
-            <p className="qa-usage-hint">{t.qa.usage.cachedHint}</p>
-          </div>
-        </dl>
-      )}
+      </details>
     </section>
   )
 }

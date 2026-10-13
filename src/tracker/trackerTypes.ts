@@ -52,6 +52,17 @@ export type TrackerRepository = {
   private: boolean
 }
 
+export const TRACKER_ACCOUNT_TYPES = ['USER', 'ORGANIZATION'] as const
+
+export type TrackerAccountType = (typeof TRACKER_ACCOUNT_TYPES)[number]
+
+/** One GitHub account the App is installed on, offered as a pick in the connect flow. */
+export type TrackerInstallation = {
+  installationId: string
+  account: string
+  accountType: TrackerAccountType
+}
+
 /**
  * Where one issue stands with the connected tracker. `null` on `Issue` means
  * either there is no connection, or this defect never qualified for

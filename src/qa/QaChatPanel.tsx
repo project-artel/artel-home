@@ -134,7 +134,7 @@ export function QaChatPanel({
             void send()
           }}
         >
-          <label className="sr-only" htmlFor="qa-chat-input">
+          <label className="visually-hidden" htmlFor="qa-chat-input">
             {t.qa.chat.inputLabel}
           </label>
           <textarea
