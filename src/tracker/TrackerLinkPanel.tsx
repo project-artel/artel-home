@@ -533,44 +533,39 @@ function RepositoryPicker({
         </ul>
       )}
 
-      <ChangeAccountButton
-        changing={changingAccount}
-        failure={changeAccountFailure}
-        onChangeAccount={onChangeAccount}
-      />
+      <ChangeAccountFailure failure={changeAccountFailure} />
+      <div className="tracker-actions">
+        <ChangeAccountButton changing={changingAccount} onChangeAccount={onChangeAccount} />
+      </div>
     </div>
   )
 }
 
 /** Starts GitHub authorization again, so the owner can pick a different installed account. */
-function ChangeAccountButton({
-  changing,
-  failure,
-  onChangeAccount,
-}: {
-  changing: boolean
-  failure: string | null
-  onChangeAccount: () => void
-}) {
+function ChangeAccountButton({ changing, onChangeAccount }: { changing: boolean; onChangeAccount: () => void }) {
   const { t } = useI18n()
 
   return (
-    <>
-      {failure !== null && (
-        <div className="inline-error" role="alert">
-          <span aria-hidden="true">!</span>
-          {failure}
-        </div>
-      )}
-      <button
-        className="button button--secondary button--compact"
-        disabled={changing}
-        onClick={onChangeAccount}
-        type="button"
-      >
-        {changing ? t.tracker.panel.connecting : t.tracker.panel.changeAccount}
-      </button>
-    </>
+    <button
+      className="button button--secondary button--compact"
+      disabled={changing}
+      onClick={onChangeAccount}
+      type="button"
+    >
+      {changing ? t.tracker.panel.connecting : t.tracker.panel.changeAccount}
+    </button>
+  )
+}
+
+/** Kept apart from the button so the error never lands inside an action row. */
+function ChangeAccountFailure({ failure }: { failure: string | null }) {
+  if (failure === null) return null
+
+  return (
+    <div className="inline-error" role="alert">
+      <span aria-hidden="true">!</span>
+      {failure}
+    </div>
   )
 }
 
@@ -607,9 +602,13 @@ function InstallationPicker({
   // `connecting` covers "다시 승인": the page is about to leave for GitHub.
   const busy = selectingInstallation !== null || installingElsewhere || connecting
 
-  const reauthorizeButton = (variant: 'primary' | 'secondary') => (
+  // A failed select that authorizing again would fix hides the stale list, so
+  // the row that just failed cannot be clicked a second time.
+  const needsReauthorization = selectFailure?.authorizationRequired === true
+
+  const reauthorizeButton = (
     <button
-      className={`button button--${variant} button--compact`}
+      className="button button--primary button--compact"
       disabled={busy}
       onClick={onReauthorize}
       type="button"
@@ -641,13 +640,10 @@ function InstallationPicker({
       )}
 
       {selectFailure !== null && (
-        <>
-          <div className="inline-error" role="alert">
-            <span aria-hidden="true">!</span>
-            {selectFailure.message}
-          </div>
-          {selectFailure.authorizationRequired && reauthorizeButton('secondary')}
-        </>
+        <div className="inline-error" role="alert">
+          <span aria-hidden="true">!</span>
+          {selectFailure.message}
+        </div>
       )}
 
       {loading ? (
@@ -656,50 +652,48 @@ function InstallationPicker({
         <div className="panel-message" role="alert">
           <p className="panel-message-copy">{loadFailure.message}</p>
           {loadFailure.authorizationRequired ? (
-            reauthorizeButton('primary')
+            reauthorizeButton
           ) : (
             <button className="button button--secondary button--compact" onClick={onRetry} type="button">
               {t.projects.shared.retry}
             </button>
           )}
         </div>
-      ) : installations !== null && installations.length === 0 ? (
-        <div className="panel-empty-block">
-          <p className="panel-empty">{t.tracker.panel.installationsEmpty}</p>
-          {installElsewhereButton}
-        </div>
+      ) : needsReauthorization ? null : installations !== null && installations.length === 0 ? (
+        <p className="panel-empty">{t.tracker.panel.installationsEmpty}</p>
       ) : (
-        <>
-          <ul className="tracker-repo-list">
-            {(installations ?? []).map((installation) => (
-              <li className="tracker-repo-row" key={installation.installationId}>
-                <span className="tracker-repo-name">{installation.account}</span>
-                <span className="badge">{t.tracker.panel.accountTypeLabels[installation.accountType]}</span>
-                <button
-                  className="button button--secondary button--compact"
-                  disabled={busy}
-                  onClick={() => onSelect(installation)}
-                  type="button"
-                >
-                  {selectingInstallation === installation.installationId
-                    ? t.tracker.panel.connecting
-                    : t.tracker.panel.useInstallation}
-                </button>
-              </li>
-            ))}
-          </ul>
-          {installElsewhereButton}
-        </>
+        <ul className="tracker-repo-list">
+          {(installations ?? []).map((installation) => (
+            <li className="tracker-repo-row" key={installation.installationId}>
+              <span className="tracker-repo-name">{installation.account}</span>
+              <span className="badge">{t.tracker.panel.accountTypeLabels[installation.accountType]}</span>
+              <button
+                className="button button--secondary button--compact"
+                disabled={busy}
+                onClick={() => onSelect(installation)}
+                type="button"
+              >
+                {selectingInstallation === installation.installationId
+                  ? t.tracker.panel.connecting
+                  : t.tracker.panel.useInstallation}
+              </button>
+            </li>
+          ))}
+        </ul>
       )}
 
-      <button
-        className="button button--secondary button--compact"
-        disabled={busy}
-        onClick={onCancel}
-        type="button"
-      >
-        {t.projects.shared.cancel}
-      </button>
+      <div className="tracker-actions">
+        {needsReauthorization && reauthorizeButton}
+        {!loading && loadFailure === null && !needsReauthorization && installElsewhereButton}
+        <button
+          className="button button--secondary button--compact"
+          disabled={busy}
+          onClick={onCancel}
+          type="button"
+        >
+          {t.projects.shared.cancel}
+        </button>
+      </div>
     </div>
   )
 }
@@ -790,20 +784,19 @@ function Connected({
               {disconnectFailure}
             </div>
           )}
+          <ChangeAccountFailure failure={changeAccountFailure} />
           <p className="panel-note">{t.tracker.panel.disconnectNote}</p>
-          <button
-            className="button button--secondary button--compact"
-            disabled={disconnecting}
-            onClick={onDisconnect}
-            type="button"
-          >
-            {disconnecting ? t.tracker.panel.disconnecting : t.tracker.panel.disconnect}
-          </button>{' '}
-          <ChangeAccountButton
-            changing={changingAccount}
-            failure={changeAccountFailure}
-            onChangeAccount={onChangeAccount}
-          />
+          <div className="tracker-actions">
+            <ChangeAccountButton changing={changingAccount} onChangeAccount={onChangeAccount} />
+            <button
+              className="button button--secondary button--compact"
+              disabled={disconnecting}
+              onClick={onDisconnect}
+              type="button"
+            >
+              {disconnecting ? t.tracker.panel.disconnecting : t.tracker.panel.disconnect}
+            </button>
+          </div>
         </>
       )}
     </div>
