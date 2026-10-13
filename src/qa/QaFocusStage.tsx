@@ -2,9 +2,11 @@ import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type Poin
 import { useI18n } from '../i18n/useI18n'
 import { QaChatPanel } from './QaChatPanel'
 import { QaContextGauge } from './QaContextGauge'
+import { QaRunChangesPanel } from './QaRunChangesPanel'
 import { toolCallOf } from './qaLogGrouping'
 import type { QaContextUsage, QaProgress, QaStepProgress } from './qaProgress'
-import type { QaLog } from './qaTypes'
+import type { QaLog, QaRun } from './qaTypes'
+import { useQaRunChanges } from './useQaRunChanges'
 
 /** The chat's height when the viewer has never resized it. */
 const DEFAULT_CHAT_HEIGHT_PIXELS = 240
@@ -40,6 +42,11 @@ function storeChatHeight(heightPixels: number) {
  * it shrinks toward the top-left corner. The width it gives up goes to the
  * "Now" panel on its right, which therefore grows exactly when the game is too
  * small to read the run from.
+ *
+ * The dock under the game switches between the chat and the knowledge and macro
+ * changes this run made, the same way the log column switches between flow, raw
+ * and issues. The chat stays mounted while hidden so a half-typed message and
+ * its scroll position survive the switch.
  */
 export function QaFocusStage({
   chatDisabled,
@@ -47,6 +54,7 @@ export function QaFocusStage({
   game,
   logs,
   progress,
+  qaRun,
   qaTryId,
 }: {
   chatDisabled: boolean
@@ -54,10 +62,13 @@ export function QaFocusStage({
   game: ReactNode
   logs: QaLog[]
   progress: QaProgress
+  qaRun: QaRun
   qaTryId: string
 }) {
   const { t } = useI18n()
   const stageRef = useRef<HTMLDivElement>(null)
+  const [dockView, setDockView] = useState<'chat' | 'changes'>('chat')
+  const changes = useQaRunChanges(qaRun)
   const [chatHeight, setChatHeight] = useState(readStoredChatHeight)
   const [maximumChatHeight, setMaximumChatHeight] = useState<number | null>(null)
 
@@ -135,7 +146,21 @@ export function QaFocusStage({
         tabIndex={0}
       />
       <div className="qa-stage-chat" style={{ height: shownChatHeight }}>
-        <QaChatPanel disabled={chatDisabled} logs={logs} qaTryId={qaTryId} />
+        <div className="qa-log-tabs qa-stage-dock-tabs" role="tablist">
+          <button aria-selected={dockView === 'chat'} className={dockView === 'chat' ? 'on' : ''} onClick={() => setDockView('chat')} role="tab" type="button">{t.qa.run.chat}</button>
+          <button aria-selected={dockView === 'changes'} className={dockView === 'changes' ? 'on' : ''} onClick={() => setDockView('changes')} role="tab" type="button">
+            {t.qa.changes.tab}
+            {changes.state === 'ready' && changes.items.length > 0 && <span className="qa-stage-dock-count mono">{changes.items.length}</span>}
+          </button>
+        </div>
+        <div className="qa-stage-dock-body" hidden={dockView !== 'chat'} role="tabpanel">
+          <QaChatPanel disabled={chatDisabled} logs={logs} qaTryId={qaTryId} />
+        </div>
+        {dockView === 'changes' && (
+          <div className="qa-stage-dock-body qa-stage-dock-body--scroll" role="tabpanel">
+            <QaRunChangesPanel changes={changes} qaRunId={qaRun.id} />
+          </div>
+        )}
       </div>
     </div>
   )

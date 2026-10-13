@@ -260,7 +260,7 @@ function QaRunPage({
       </header>
 
       {focusedTry !== null ? (
-        <FocusedTry key={focusedTry.id} rail={rail} tryId={focusedTry.id} />
+        <FocusedTry key={focusedTry.id} qaRun={run} rail={rail} tryId={focusedTry.id} />
       ) : (
         <div className="qa-console-grid">
           <QaScenarioRail {...rail} focused={null} />
@@ -281,7 +281,7 @@ function QaRunPage({
  * own state (which scenarios are unfolded) lives in the parent, so remounting
  * here on a scenario change does not reset it.
  */
-function FocusedTry({ rail, tryId }: { rail: QaScenarioRailProps; tryId: string }) {
+function FocusedTry({ qaRun, rail, tryId }: { qaRun: QaRun; rail: QaScenarioRailProps; tryId: string }) {
   const { t } = useI18n()
   const session = useQaTry(tryId)
   const scenarioSteps = useScenarioSteps(session.qaTry?.testScenarioId ?? null)
@@ -384,6 +384,7 @@ function FocusedTry({ rail, tryId }: { rail: QaScenarioRailProps; tryId: string 
             }
             logs={session.logs}
             progress={progress}
+            qaRun={qaRun}
             qaTryId={session.qaTry.id}
           />
         </div>
