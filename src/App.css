@@ -1503,6 +1503,12 @@ a.instance-name:hover {
   border-radius: var(--radius-md);
 }
 
+/* A portrait capture keeps its own proportions instead of filling the column. */
+.guide-shot--narrow {
+  max-width: 240px;
+  margin-inline: auto;
+}
+
 .guide-note {
   margin: var(--space-5) 0 var(--space-4);
   color: var(--color-text-muted);

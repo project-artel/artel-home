@@ -198,9 +198,13 @@ export const projectsEn = {
     step1After: '.',
     packageUrlCopied: 'Package URL copied.',
     copyUrl: 'Copy URL',
-    step2: 'Run the game and choose Sign in in the Artel overlay. It opens your browser.',
+    /** The SDK's own buttons are in Korean only, so the label is quoted as it appears. */
+    step2:
+      'Run the game. The Artel SDK sign-in screen appears over it. Choose 로그인 (Sign in) and your browser opens.',
     step3:
-      'Approve the SDK in the browser, then pick the project in the overlay. The instance registers itself from there.',
+      'Sign in to Artel in the browser. Signing in approves the SDK, and you can close the tab after that. If you are already signed in, the SDK is approved as soon as the page opens.',
+    step4:
+      'Back in the game, pick this project. The instance registers itself and shows as Connected in this list. With only one project, the SDK picks it for you.',
     previousStep: 'Back',
     nextStep: 'Next',
     /** Labels the step itself as well as the counter, so both read the same. */
@@ -214,6 +218,12 @@ export const projectsEn = {
       'The plus menu in Package Manager open with Add package from git URL highlighted.',
     shot1GitUrlInputAlt:
       'The Artel SDK git URL typed into the Add package from git URL field.',
+    shot2SignInScreenAlt:
+      'The Artel SDK sign-in screen over the game, with its 로그인 button.',
+    shot3BrowserSignInAlt:
+      'The Artel sign-in page in the browser, saying that signing in approves the SDK waiting on this machine.',
+    shot4ProjectPickerAlt: 'The Artel SDK screen in the game listing projects to connect to.',
+    shot4InstanceConnectedAlt: 'The game instance list in Artel showing the new instance as Connected.',
     note: 'There is no key to keep. The SDK remembers the sign-in on that machine, and the instance is created by the first report.',
   },
   /**
@@ -622,15 +632,22 @@ export const projectsKo: Localized<typeof projectsEn> = {
     step1After: '을 선택하세요.',
     packageUrlCopied: '패키지 URL을 복사했습니다.',
     copyUrl: 'URL 복사',
-    step2: '게임을 실행하고 Artel 오버레이에서 로그인을 선택하세요. 브라우저가 열립니다.',
+    step2:
+      '게임을 실행하면 게임 화면 위에 Artel SDK 로그인 화면이 뜹니다. 로그인을 선택하면 브라우저가 열립니다.',
     step3:
-      '브라우저에서 SDK를 승인한 뒤 오버레이에서 프로젝트를 선택하세요. 인스턴스는 그 뒤에 자동으로 등록됩니다.',
+      '브라우저에서 Artel에 로그인하세요. 로그인하면 SDK가 승인되고, 그 뒤에는 탭을 닫아도 됩니다. 이미 로그인되어 있다면 페이지가 열리자마자 승인됩니다.',
+    step4:
+      '게임으로 돌아와 이 프로젝트를 선택하세요. 인스턴스가 자동으로 등록되고 이 목록에 연결됨으로 표시됩니다. 프로젝트가 하나뿐이면 SDK가 자동으로 선택합니다.',
     previousStep: '이전',
     nextStep: '다음',
     stepPosition: (current: number, total: number) => `${total}단계 중 ${current}단계`,
     shot1GitUrlMenuAlt:
       'Package Manager의 더하기 메뉴가 열리고 Add package from git URL이 선택된 화면.',
     shot1GitUrlInputAlt: 'Add package from git URL 입력칸에 Artel SDK의 git URL을 입력한 화면.',
+    shot2SignInScreenAlt: '게임 화면 위에 뜬 Artel SDK 로그인 화면과 로그인 버튼.',
+    shot3BrowserSignInAlt: '로그인하면 이 컴퓨터에서 기다리는 SDK를 승인한다고 안내하는 브라우저의 Artel 로그인 페이지.',
+    shot4ProjectPickerAlt: '게임 안의 Artel SDK 화면에 연결할 프로젝트 목록이 표시된 화면.',
+    shot4InstanceConnectedAlt: 'Artel의 게임 인스턴스 목록에 새 인스턴스가 연결됨으로 표시된 화면.',
     note: '따로 보관할 키는 없습니다. SDK가 해당 머신의 로그인을 기억하며, 인스턴스는 첫 보고 시점에 만들어집니다.',
   },
   setup: {
