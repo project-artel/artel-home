@@ -51,6 +51,8 @@ export type TestCase = {
   /** The last game build a run verified this case against, or `null` if never. */
   lastVerifiedBuildId: string | null
   createdAt: string
+  /** The folder holding this case, or `null` for a case outside every folder. */
+  folderId: string | null
   /**
    * Why the spec side graded this case the way it did — reason codes from
    * `metadata.source.evidence_gaps`, empty when there is nothing to say.
@@ -104,6 +106,8 @@ export type TestCaseInput = {
   precondition?: string | null
   expectedValue?: string
   verificationStatus?: VerificationStatus
+  /** Only a create sends this; moving an existing case goes through `moveTestCases`. */
+  folderId?: string | null
 }
 
 /** One position in a scenario's ordered case composition (`/cases`). */

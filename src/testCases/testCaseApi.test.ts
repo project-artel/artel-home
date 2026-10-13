@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { ProjectApiError } from '../projects/projectApi.ts'
-import { bulkDeleteTestCases } from './testCaseApi.ts'
+import { bulkDeleteTestCases, parseTestCase } from './testCaseApi.ts'
 
 /*
  * 서버의 `bulk-delete` 는 아직 merge 되지 않았다. 여기 있는 응답은 Jira ARTEL-968 이 적은
@@ -85,4 +85,12 @@ test('0건이나 500건 초과는 요청을 보내지 않는다', async () => {
       assert.equal(calls.length, 0)
     },
   )
+})
+
+test('test case 응답의 folderId 는 문자열이거나 null 이고, 없으면 null 이다', () => {
+  const base = { id: '1', step: 's', expectedValue: 'e' }
+
+  assert.equal(parseTestCase({ ...base, folderId: '9' })?.folderId, '9')
+  assert.equal(parseTestCase({ ...base, folderId: null })?.folderId, null)
+  assert.equal(parseTestCase(base)?.folderId, null)
 })

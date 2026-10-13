@@ -8,6 +8,7 @@ export function CaseSelectionBar({
   limitNoteId,
   onClear,
   onDelete,
+  onMove,
 }: {
   count: number
   isLimitReached: boolean
@@ -15,6 +16,7 @@ export function CaseSelectionBar({
   limitNoteId: string
   onClear: () => void
   onDelete: () => void
+  onMove: () => void
 }) {
   const { t } = useI18n()
   const m = t.testCases
@@ -30,6 +32,9 @@ export function CaseSelectionBar({
       <span className="tcl-selection-spacer" />
       <button className="button button--secondary button--compact" onClick={onClear} type="button">
         {m.selection.clear}
+      </button>
+      <button className="button button--secondary button--compact" onClick={onMove} type="button">
+        {m.moveCases.action}
       </button>
       <button className="button button--danger button--compact" onClick={onDelete} type="button">
         {m.bulkDelete.action}

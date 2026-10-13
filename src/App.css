@@ -8525,11 +8525,14 @@ button.run-chat-coverage:hover {
    다른 케이스가 무엇을 기대하는지 — 편집 폼이 목록을 덮는 modal 이면 그것을 못 본다. */
 .tcl {
   position: relative;
-  display: block;
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-4);
   min-width: 0;
 }
 
-/* 1439px 아래에서는 편집 폼이 목록 아래로 내려간다. 340px 를 빼고 남는 폭으로는 스텝과
+/* 1439px 아래에서는 폴더 tree 가 목록 위로 쌓인다. 240px 를 빼고 남는 폭으로는 스텝과
    기대결과가 한 줄에 서지 못해 모든 행이 세 줄이 된다. */
 @media (max-width: 1439px) {
   .tcl {
@@ -9591,3 +9594,34 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:27% } col.tct-c-added{ width:10%
 .tcl-selection-note{ font-size:12px; color:var(--color-text-muted); }
 .tcl-selection-spacer{ flex:1; }
 .tcl-list-panel:focus{ outline:none; }
+
+/* 폴더 tree — 라이브러리 왼쪽 열 (ARTEL-970) */
+.tcl-folders{
+  display:flex; flex-direction:column; gap:var(--space-3); min-width:0;
+  max-height:calc(100vh - var(--shell-topbar-h) - var(--space-6) * 2); overflow-y:auto;
+  padding:var(--space-3);
+  border:1px solid var(--color-border-subtle); border-radius:var(--radius-md);
+  background:var(--color-bg-raised);
+}
+.tcl-folders-title{ margin:0; font-size:13px; font-weight:600; color:var(--color-text-primary); }
+.tcl-folder-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px; }
+.tcl-folder-list--nested{ margin-left:var(--space-3); padding-left:var(--space-2); border-left:1px solid var(--color-border-subtle); }
+.tcl-folder{
+  display:flex; align-items:center; gap:var(--space-2); width:100%; min-height:32px;
+  padding:4px var(--space-2); border:0; border-radius:var(--radius-md);
+  background:transparent; color:var(--color-text-primary); font-size:13px; text-align:left; cursor:pointer;
+}
+.tcl-folder:hover{ background:var(--color-bg-hover); }
+.tcl-folder:focus-visible{ outline:2px solid var(--color-brand-accent); outline-offset:-2px; }
+.tcl-folder.is-current{ background:var(--color-bg-hover); box-shadow:inset 3px 0 0 var(--color-brand-accent); font-weight:600; }
+.tcl-folder-name{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.tcl-folder-count{ flex:none; font-size:11px; color:var(--color-text-muted); }
+.tcl-folder-badge{
+  flex:none; padding:0 6px; border:1px solid var(--color-border-strong); border-radius:999px;
+  font-size:10px; color:var(--color-text-muted);
+}
+.tcl-folder-tools{ display:flex; flex-wrap:wrap; gap:var(--space-2); }
+
+@media (max-width: 1439px) {
+  .tcl-folders{ max-height:240px; }
+}

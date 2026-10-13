@@ -13,6 +13,8 @@ export type TestCaseLibrary = {
   applyCreated: (created: TestCase) => void
   removeCase: (caseId: string) => void
   removeCases: (caseIds: readonly string[]) => void
+  /** 서버가 옮겼다고 답한 줄의 `folderId` 를 그 자리에서 바꾼다. 목록 순서는 그대로 둔다. */
+  applyMoved: (caseIds: readonly string[], folderId: string | null) => void
   /**
    * 화면을 `loading` 으로 돌리지 않고 다시 읽는다. `reload` 는 화면 전체를 unmount 해 scroll,
    * 커서, 열린 sheet 를 잃는다. 실패하면 지금 목록을 그대로 둔다.
@@ -84,6 +86,15 @@ export function useTestCaseLibrary(projectId: string): TestCaseLibrary {
       cases: current.cases.filter((testCase) => !removed.has(testCase.id)),
     }))
   }, [])
+  const applyMoved = useCallback((caseIds: readonly string[], folderId: string | null) => {
+    const moved = new Set(caseIds)
+    setLoaded((current) => ({
+      ...current,
+      cases: current.cases.map((testCase) =>
+        moved.has(testCase.id) ? { ...testCase, folderId } : testCase,
+      ),
+    }))
+  }, [])
   const removeCase = useCallback((caseId: string) => removeCases([caseId]), [removeCases])
 
   const refresh = useCallback(() => {
@@ -101,5 +112,5 @@ export function useTestCaseLibrary(projectId: string): TestCaseLibrary {
   const status: TestCaseLibraryStatus =
     loaded.source !== source ? 'loading' : loaded.failed ? 'failed' : 'ready'
 
-  return { cases: loaded.cases, status, reload, applySaved, applyCreated, removeCase, removeCases, refresh }
+  return { cases: loaded.cases, status, reload, applySaved, applyCreated, removeCase, removeCases, applyMoved, refresh }
 }

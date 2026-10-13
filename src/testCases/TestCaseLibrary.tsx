@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
 import { useI18n } from '../i18n/useI18n'
 import { formatDate } from '../projects/formatters'
@@ -8,7 +9,20 @@ import { CaseSceneFilter } from './CaseSceneFilter'
 import { SceneChip } from './SceneChip'
 import { SpecGradeChip } from './SpecGradeChip'
 import { CaseSelectionBar } from './CaseSelectionBar'
-import { bulkDeleteTestCases, deleteTestCase } from './testCaseApi'
+import { FolderPane } from './FolderPane'
+import { MoveCasesDialog } from './MoveCasesDialog'
+import { bulkDeleteTestCases, deleteTestCase, moveTestCases } from './testCaseApi'
+import {
+  ALL_FOLDERS,
+  buildFolderTree,
+  countCasesByFolder,
+  filterByFolder,
+  flattenFolderTree,
+  parseFolderSelection,
+  effectiveFolderSelection,
+  toFolderParam,
+  type FolderSelection,
+} from './testCaseFolders'
 import { TestCaseSheet } from './TestCaseSheet'
 import { useCaseListNav } from './useCaseListNav'
 import { useCaseSelection } from './useCaseSelection'
@@ -22,6 +36,7 @@ import {
   type TestCaseTally,
 } from './testCaseLibrary'
 import { VERIFICATION_STATUSES, type TestCase, type VerificationStatus } from './testCaseTypes'
+import { useTestCaseFolders } from './useTestCaseFolders'
 import { useTestCaseLibrary } from './useTestCaseLibrary'
 
 /** `vdot` 와 결과 pill 이 상태마다 쓰는 CSS 접미사. 대문자 상태값을 클래스에 그대로 넣지 않는다. */
@@ -53,21 +68,65 @@ export function TestCaseLibrary({
   const m = t.testCases
 
   const library = useTestCaseLibrary(projectId)
+  const folderList = useTestCaseFolders(projectId)
+  const [searchParams, setSearchParams] = useSearchParams()
   const [filters, setFilters] = useState<TestCaseFilters>(NO_FILTERS)
   const [sort, setSort] = useState<TestCaseSort>('FAILING_FIRST')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [deleting, setDeleting] = useState<TestCase | null>(null)
   const [isBulkDeleting, setIsBulkDeleting] = useState(false)
+  const [isMoving, setIsMoving] = useState(false)
   // 편집기는 고른 케이스가 바뀔 때마다 다시 마운트되므로, 안내 문구를 그 안에 두면
   // 새 케이스를 추가한 직후 그 문구가 마운트와 함께 사라져 screen reader 에 닿지 않는다.
   const [announcement, setAnnouncement] = useState('')
 
-  const shown = useMemo(
-    () => selectTestCases(library.cases, filters, sort),
-    [library.cases, filters, sort],
+  // 주소의 `?folder=` 가 보는 범위다(ARTEL-972 의 링크가 여기로 온다). 폴더 목록을 읽기 전에는
+  // 폴더 id 가 있는지 알 수 없으므로 없는 id 를 전체로 돌리는 일도 읽은 뒤에만 한다. 읽지
+  // 못했다면 폴더 필터는 걸지 않는다.
+  const requestedFolder = parseFolderSelection(searchParams.get('folder'))
+  const folderSelection: FolderSelection = effectiveFolderSelection(
+    requestedFolder,
+    folderList.status,
+    folderList.folders,
   )
-  const tally = useMemo(() => tallyTestCases(library.cases), [library.cases])
+  // 폴더 링크로 들어왔는데 폴더 목록이 아직 없으면, 전체 목록을 잠깐 보여 주지 않는다. 그 목록에서
+  // 고르고 지우면 주소가 말한 폴더와 다른 것을 만지게 된다.
+  const waitsForFolder = requestedFolder.kind === 'folder' && folderList.status === 'loading'
+  const selectFolder = useCallback(
+    (next: FolderSelection) => {
+      setSearchParams(
+        (current) => {
+          const params = new URLSearchParams(current)
+          const value = toFolderParam(next)
+          if (value === null) params.delete('folder')
+          else params.set('folder', value)
+          return params
+        },
+        { replace: true },
+      )
+    },
+    [setSearchParams],
+  )
+  const folderCounts = useMemo(
+    () => countCasesByFolder(library.cases, folderList.folders),
+    [library.cases, folderList.folders],
+  )
+  const moveTargets = useMemo(
+    () => flattenFolderTree(buildFolderTree(folderList.folders)),
+    [folderList.folders],
+  )
+  // 폴더로 먼저 좁힌 목록을 목록, 집계, 화면 필터가 함께 읽는다. 그래야 "N건 중 M건" 과 chip 의
+  // 수가 같은 범위를 말한다.
+  const inFolder = useMemo(
+    () => filterByFolder(library.cases, folderSelection, folderList.folders),
+    [library.cases, folderSelection, folderList.folders],
+  )
+  const shown = useMemo(
+    () => selectTestCases(inFolder, filters, sort),
+    [inFolder, filters, sort],
+  )
+  const tally = useMemo(() => tallyTestCases(inFolder), [inFolder])
   // 선택은 지금 보이는 줄에 묶인다. 필터가 줄을 숨기면 hook 이 그 줄을 선택에서 뺀다.
   const visibleIds = useMemo(() => shown.map((testCase) => testCase.id), [shown])
   const selection = useCaseSelection(visibleIds)
@@ -151,12 +210,25 @@ export function TestCaseLibrary({
     setAnnouncement(m.bulkDelete.done(deleted > 0 ? deleted : caseIds.length))
   }
 
+  async function moveSelected(folderId: string | null) {
+    const caseIds = [...selection.selectedIds]
+    const moved = await moveTestCases(projectId, caseIds, folderId)
+
+    library.applyMoved(caseIds, folderId)
+    library.refresh()
+    clearSelection()
+    setIsMoving(false)
+    const destination =
+      moveTargets.find((row) => row.folder.id === folderId)?.folder.name ?? m.moveCases.noFolder
+    setAnnouncement(m.moveCases.done(moved, destination))
+  }
+
   function select(testCase: TestCase) {
     setCreating(false)
     setSelectedId(testCase.id)
   }
 
-  if (library.status === 'loading') {
+  if (library.status === 'loading' || waitsForFolder) {
     return (
       <div className="section-single">
         <section className="panel" aria-busy="true">
@@ -185,6 +257,27 @@ export function TestCaseLibrary({
 
   return (
     <div className={'tcl cp-scope' + (sheetOpen ? ' has-sheet' : '')}>
+      <FolderPane
+        counts={folderCounts}
+        folders={folderList.folders}
+        onAnnounce={setAnnouncement}
+        onChanged={({ deletedFolderIds }) => {
+          folderList.refresh()
+          // 지운 폴더 안의 test case 는 서버에서 폴더 없음이 됐다.
+          if (deletedFolderIds.length > 0) {
+            library.refresh()
+            if (folderSelection.kind === 'folder' && deletedFolderIds.includes(folderSelection.id)) {
+              selectFolder(ALL_FOLDERS)
+            }
+          }
+        }}
+        onRetry={folderList.reload}
+        onUpsert={folderList.applyUpserted}
+        onSelect={selectFolder}
+        projectId={projectId}
+        selection={folderSelection}
+        status={folderList.status}
+      />
       <section
         className="panel tcl-list-panel"
         ref={panelRef}
@@ -263,7 +356,7 @@ export function TestCaseLibrary({
         </div>
 
         <CaseSceneFilter
-          cases={library.cases}
+          cases={inFolder}
           labels={{
             all: m.filters.allScenes,
             noMatch: m.filters.noMatch,
@@ -281,12 +374,19 @@ export function TestCaseLibrary({
             limitNoteId={limitNoteId}
             onClear={clearSelection}
             onDelete={() => setIsBulkDeleting(true)}
+            onMove={() => setIsMoving(true)}
           />
         )}
 
         {shown.length === 0 ? (
           <div className="panel-empty-block">
-            <p className="panel-empty">{filtered ? m.section.emptyFiltered : m.section.empty}</p>
+            <p className="panel-empty">
+              {filtered
+                ? m.section.emptyFiltered
+                : folderSelection.kind !== 'all'
+                  ? m.section.emptyFolder
+                  : m.section.empty}
+            </p>
             {filtered && (
               <button
                 className="button button--secondary button--compact"
@@ -404,6 +504,7 @@ export function TestCaseLibrary({
       {sheetOpen && (
         <TestCaseSheet
           builds={builds}
+          folderId={folderSelection.kind === 'folder' ? folderSelection.id : null}
           knownScenes={knownScenes}
           onClose={closeSheet}
           onCreated={(created) => {
@@ -423,6 +524,16 @@ export function TestCaseLibrary({
       )}
 
       <p aria-live="polite" className="visually-hidden" role="status">{announcement}</p>
+
+      {isMoving && (
+        <MoveCasesDialog
+          count={selection.count}
+          initialFolderId={folderSelection.kind === 'folder' ? folderSelection.id : null}
+          onClose={() => setIsMoving(false)}
+          onConfirm={moveSelected}
+          rows={moveTargets}
+        />
+      )}
 
       {isBulkDeleting && (
         <ConfirmActionDialog

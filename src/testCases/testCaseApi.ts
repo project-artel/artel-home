@@ -60,6 +60,7 @@ export function parseTestCase(data: unknown): TestCase | null {
     verificationStatus: asVerificationStatus(record.verificationStatus),
     lastVerifiedBuildId: asNullableString(record.lastVerifiedBuildId),
     createdAt: asString(record.createdAt),
+    folderId: asNullableString(record.folderId),
     evidenceGaps: asStringArray(record.evidenceGaps),
   }
 }
@@ -180,6 +181,29 @@ export async function bulkDeleteTestCases(
   })
   const record = asRecord(await readJson(response))
   return asCount(record?.deleted)
+}
+
+
+/**
+ * `POST /api/projects/{projectId}/test-cases/move` — puts the given cases in a
+ * folder, or outside every folder when `folderId` is `null`. Same 1..500 limit
+ * as `bulkDeleteTestCases`, for the same reason.
+ */
+export async function moveTestCases(
+  projectId: string,
+  caseIds: readonly string[],
+  folderId: string | null,
+): Promise<number> {
+  if (caseIds.length === 0 || caseIds.length > MAX_BULK_SELECTION) {
+    throw new RangeError(`move takes 1..${MAX_BULK_SELECTION} ids, got ${caseIds.length}.`)
+  }
+
+  const response = await apiFetch(`${casesRoot(projectId)}/move`, {
+    method: 'POST',
+    ...jsonRequest({ caseIds, folderId }),
+  })
+  const record = asRecord(await readJson(response))
+  return asCount(record?.moved)
 }
 
 
