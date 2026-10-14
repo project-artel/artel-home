@@ -1,5 +1,5 @@
 import type { GameBuild } from '../projects/gameTypes'
-import type { TestCase, VerificationStatus } from './testCaseTypes'
+import type { CaseOrigin, TestCase, VerificationStatus } from './testCaseTypes'
 
 /*
  * 케이스 라이브러리 화면이 목록을 좁히고 줄 세우는 규칙.
@@ -23,13 +23,17 @@ export type TestCaseFilters = {
   /** 빈 문자열은 씬을 가리지 않는다는 뜻이다. */
   scene: string
   status: TestCaseStatusFilter
+  /** 출처(ARTEL-1032). `ALL` 은 가리지 않는다. 출처를 모르는 케이스는 `ALL` 에서만 보인다. */
+  origin: 'ALL' | CaseOrigin
 }
 
-export const NO_FILTERS: TestCaseFilters = { query: '', scene: '', status: 'ALL' }
+export const NO_FILTERS: TestCaseFilters = { query: '', scene: '', status: 'ALL', origin: 'ALL' }
 
 /** 하나라도 걸려 있으면 빈 목록의 문구가 "아직 없음"이 아니라 "조건에 맞는 것이 없음"이 된다. */
 export function hasActiveFilters(filters: TestCaseFilters): boolean {
-  return filters.query.trim().length > 0 || filters.scene.length > 0 || filters.status !== 'ALL'
+  return (
+    filters.query.trim().length > 0 || filters.scene.length > 0 || filters.status !== 'ALL' || filters.origin !== 'ALL'
+  )
 }
 
 export type SceneCount = { scene: string; count: number }
@@ -93,6 +97,7 @@ export function selectTestCases(
     (testCase) =>
       (filters.status === 'ALL' || testCase.verificationStatus === filters.status) &&
       (filters.scene.length === 0 || testCase.scene === filters.scene) &&
+      (filters.origin === 'ALL' || testCase.origin === filters.origin) &&
       matchesQuery(testCase, query),
   )
 

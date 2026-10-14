@@ -8,6 +8,7 @@ import {
   toApiError,
 } from '../projects/projectApi'
 import {
+  asCaseOrigin,
   asVerificationStatus,
   MAX_BULK_SELECTION,
   type TestCase,
@@ -63,6 +64,7 @@ export function parseTestCase(data: unknown): TestCase | null {
     createdAt: asString(record.createdAt),
     folderId: asNullableString(record.folderId),
     evidenceGaps: asStringArray(record.evidenceGaps),
+    origin: asCaseOrigin(record.origin),
   }
 }
 

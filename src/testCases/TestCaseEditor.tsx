@@ -3,6 +3,18 @@ import { useI18n } from '../i18n/useI18n'
 import { apiErrorMessage } from '../projects/apiErrorMessage'
 import { ProjectApiError } from '../projects/projectApi'
 import { createTestCase, updateTestCase } from './testCaseApi'
+import { versionName, type TestCaseVersionSummary, type VersionGroup } from './testCaseVersions'
+import { VersionTreeDialog } from './VersionTreeDialog'
+
+/**
+ * 새 케이스를 넣을 버전을 고르는 데 쓰는 것(ARTEL-1032). 버전이 있는 프로젝트에서만 준다 — 없으면 버전 칸이 없다.
+ * [defaultId] 는 처음 고른 버전이고, null 이면 "버전 없음"이다.
+ */
+export type VersionChoice = {
+  versions: readonly TestCaseVersionSummary[]
+  groups: readonly VersionGroup[]
+  defaultId: string | null
+}
 import {
   DEFAULT_VERIFICATION_STATUS,
   VERIFICATION_STATUSES,
@@ -75,6 +87,7 @@ export function TestCaseEditor({
   folderId = null,
   projectId,
   testCase,
+  versionChoice,
   onCreated,
   onDelete,
   onDone,
@@ -86,6 +99,8 @@ export function TestCaseEditor({
   folderId?: string | null
   projectId: string
   testCase: TestCase | null
+  /** 있으면 새 케이스를 넣을 버전 칸이 생긴다(ARTEL-1032). 고친 케이스의 저장에는 실리지 않는다. */
+  versionChoice?: VersionChoice
   onCreated: (created: TestCase) => void
   onDelete: () => void
   onDone: () => void
@@ -101,6 +116,9 @@ export function TestCaseEditor({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [failure, setFailure] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
+  const [versionId, setVersionId] = useState<string | null>(versionChoice?.defaultId ?? null)
+  const [pickingVersion, setPickingVersion] = useState(false)
+  const chosenVersion = versionChoice?.versions.find((version) => version.gameBuildId === versionId)
 
   const sceneId = useId()
   const stepId = useId()
@@ -115,9 +133,23 @@ export function TestCaseEditor({
 
   function validate(): Record<string, string> {
     const errors: Record<string, string> = {}
+    // 화면은 서버가 반드시 받는 칸이다. 비우고 보내면 서버의 개발자용 문장("scene is required")이 그대로 보였다.
+    if (draft.scene.trim().length === 0) errors.scene = m.sceneRequired
     if (draft.step.trim().length === 0) errors.step = m.stepRequired
     if (draft.expectedValue.trim().length === 0) errors.expectedValue = m.expectedValueRequired
     return errors
+  }
+
+  /**
+   * 저장 실패를 사용자가 고칠 수 있는 말로 바꾼다. 서버 문장은 개발자를 위한 것이라("x is required", 영어 · 내부 이름)
+   * 그대로 보이면 무엇이 문제인지 알 수 없다. 화면이 스스로 감지한 실패(`CLIENT_*`, 예: 연결 끊김)만 그 번역을 쓴다.
+   */
+  function failureFor(error: ProjectApiError): string {
+    if (error.code !== null && error.code.startsWith('CLIENT_')) return apiErrorMessage(error, t)
+    if (error.status === 400) return m.invalidInput
+    if (error.status === 404) return creating ? m.targetGone : m.caseGone
+    if (error.status === 403) return m.forbidden
+    return m.saveFailed
   }
 
   async function submit(event: React.FormEvent) {
@@ -138,6 +170,7 @@ export function TestCaseEditor({
           expectedValue: draft.expectedValue.trim(),
           verificationStatus: draft.verificationStatus,
           folderId,
+          gameBuildId: versionChoice === undefined ? null : versionId,
         })
         onCreated(created)
         return
@@ -148,10 +181,13 @@ export function TestCaseEditor({
       setDraft(toDraft(saved))
     } catch (error: unknown) {
       if (error instanceof ProjectApiError) {
-        setFieldErrors(error.fields)
-        setFailure(
-          Object.keys(error.fields).length > 0 ? null : apiErrorMessage(error, t),
+        // 서버가 칸을 짚어 주면 그 칸에 이 화면의 문장을 단다. 서버 문장은 개발자용이라 그대로 쓰지 않는다.
+        const known: Record<string, string> = { scene: m.sceneRequired, step: m.stepRequired, expectedValue: m.expectedValueRequired }
+        const fields = Object.fromEntries(
+          Object.keys(error.fields).filter((name) => name in known).map((name) => [name, known[name]]),
         )
+        setFieldErrors(fields)
+        setFailure(Object.keys(fields).length > 0 ? null : failureFor(error))
       } else {
         setFailure(m.saveFailed)
       }
@@ -163,6 +199,7 @@ export function TestCaseEditor({
   }
 
   return (
+    <>
     <form className="tcl-editor" noValidate onSubmit={(event) => void submit(event)}>
       <header className="tcl-editor-head">
         <h3>{creating ? m.newTitle : m.editTitle}</h3>
@@ -239,10 +276,31 @@ export function TestCaseEditor({
       </ol>
 
       <div className="tce-meta">
+        {creating && versionChoice !== undefined && (
+          <div className="tce-field tce-field--full">
+            <span className="tce-label">{m.version}</span>
+            <div className="tce-version">
+              <span className={'tce-version-name' + (chosenVersion === undefined ? ' is-none' : '')}>
+                {chosenVersion === undefined ? t.testCases.versions.unversioned : versionName(chosenVersion)}
+              </span>
+              <button
+                className="button button--secondary button--compact"
+                disabled={pending}
+                onClick={() => setPickingVersion(true)}
+                type="button"
+              >
+                {m.changeVersion}
+              </button>
+            </div>
+            <p className="field-hint">{m.versionHint}</p>
+          </div>
+        )}
         <div className="tce-field">
           <label className="tce-label" htmlFor={sceneId}>{m.scene}</label>
           <input
-            className="tce-input tce-input--one"
+            aria-describedby={fieldErrors.scene ? `${sceneId}-error` : undefined}
+            aria-invalid={fieldErrors.scene ? true : undefined}
+            className={'tce-input tce-input--one' + (fieldErrors.scene ? ' is-bad' : '')}
             disabled={pending}
             id={sceneId}
             list={sceneListId}
@@ -250,6 +308,9 @@ export function TestCaseEditor({
             placeholder={m.scenePlaceholder}
             value={draft.scene}
           />
+          {fieldErrors.scene && (
+            <p className="field-error" id={`${sceneId}-error`}>{fieldErrors.scene}</p>
+          )}
           {knownScenes.length > 0 && (
             <div className="tce-known">
               <span className="tce-known-label">{m.sceneKnown}</span>
@@ -271,6 +332,13 @@ export function TestCaseEditor({
           </datalist>
         </div>
 
+        {/* 새 케이스는 늘 미검증으로 시작한다(서버가 정한다). 만들 때 고르게 하면 고른 값이 말없이 버려졌다. */}
+        {creating ? (
+          <div className="tce-field">
+            <span className="tce-label">{m.verification}</span>
+            <p className="field-hint">{m.newCaseStatus}</p>
+          </div>
+        ) : (
         <div className="tce-field">
           <span className="tce-label" id={verificationId}>{m.verification}</span>
           {/* 값이 셋뿐이다. 드롭다운은 고르기 전에는 무엇이 있는지 감추는데, 셋은 다 보여도 된다. */}
@@ -291,6 +359,7 @@ export function TestCaseEditor({
             ))}
           </div>
         </div>
+        )}
       </div>
 
       <div className="tcl-editor-actions">
@@ -326,5 +395,23 @@ export function TestCaseEditor({
         </button>
       </div>
     </form>
+    {/* 폼 밖에 둔다. dialog 는 body 로 뜨지만 React 의 submit 이벤트는 컴포넌트 트리를 따라 올라와, 폼 안에 두면
+        "고르기" 가 이 편집기까지 제출했다. */}
+    {pickingVersion && versionChoice !== undefined && (
+      <VersionTreeDialog
+        allowNone
+        confirmLabel={m.pickVersion}
+        groups={versionChoice.groups}
+        initialId={versionId}
+        onClose={() => setPickingVersion(false)}
+        onConfirm={(next) => {
+          setVersionId(next)
+          setPickingVersion(false)
+        }}
+        title={m.pickVersionTitle}
+        versions={versionChoice.versions}
+      />
+    )}
+    </>
   )
 }

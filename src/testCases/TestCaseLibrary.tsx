@@ -8,15 +8,29 @@ import { ProjectApiError } from '../projects/projectApi'
 import { CaseSceneFilter } from './CaseSceneFilter'
 import { SceneChip } from './SceneChip'
 import { SpecGradeChip } from './SpecGradeChip'
-import { CaseSelectionBar } from './CaseSelectionBar'
-import { FolderPane } from './FolderPane'
+import { CaseSelectionBar, type SelectionAction } from './CaseSelectionBar'
+import {
+  addItemsCommand,
+  cloneFolderCommand,
+  createFolderCommand,
+  deleteFolderCommand,
+  moveItemsCommand,
+  removeItemsCommand,
+  setHiddenCommand,
+  updateFolderCommand,
+} from './folderCommands'
+import { writeCasesDrag } from './folderDrag'
+import { FolderPane, type FolderOperations } from './FolderPane'
 import { MoveCasesDialog } from './MoveCasesDialog'
+import { Picker } from './Picker'
+import { SearchField } from './SearchField'
 import { hasPointerMoved, type PointerPosition } from './pointerMovement'
-import { bulkDeleteTestCases, deleteTestCase, moveTestCases } from './testCaseApi'
+import { bulkDeleteTestCases, deleteTestCase } from './testCaseApi'
 import {
   ALL_FOLDERS,
   buildFolderTree,
-  countCasesByFolder,
+  collectDescendantIds,
+  countFromFolders,
   filterByFolder,
   flattenFolderTree,
   parseFolderSelection,
@@ -37,8 +51,36 @@ import {
   type TestCaseTally,
 } from './testCaseLibrary'
 import { VERIFICATION_STATUSES, type TestCase, type VerificationStatus } from './testCaseTypes'
+import { useFolderHistory } from './useFolderHistory'
+import { useFolderItems } from './useFolderItems'
 import { useTestCaseFolders } from './useTestCaseFolders'
 import { useTestCaseLibrary } from './useTestCaseLibrary'
+import {
+  absenceNote,
+  isBuildId,
+  isRegression,
+  resolveCompare,
+  resolveVersion,
+  UNVERSIONED,
+  versionName,
+  type TestCaseVersionSummary,
+} from './testCaseVersions'
+import { useTestCaseVersionList, useVersionCases } from './useTestCaseVersions'
+import {
+  addToVersionCommand,
+  assignGroupCommand,
+  copyVersionCommand,
+  createGroupCommand,
+  deleteGroupCommand,
+  hideVersionCommand,
+  renameGroupCommand,
+} from './versionCommands'
+import { VersionList, type VersionOperations } from './VersionList'
+import { VersionTreeDialog } from './VersionTreeDialog'
+import { ImportManualCasesDialog } from './ImportManualCasesDialog'
+import { CoachTour } from './tour/CoachTour'
+import { CASE_LIBRARY_TOUR, caseLibraryTourSteps } from './tour/caseLibraryTour'
+import { useTour } from './tour/useTour'
 
 /** `vdot` 와 결과 pill 이 상태마다 쓰는 CSS 접미사. 대문자 상태값을 클래스에 그대로 넣지 않는다. */
 const STATUS_CLASS: Record<VerificationStatus, string> = {
@@ -71,18 +113,29 @@ export function TestCaseLibrary({
   const m = t.testCases
 
   const library = useTestCaseLibrary(projectId)
-  const folderList = useTestCaseFolders(projectId)
-  const [searchParams, setSearchParams] = useSearchParams()
-  const [filters, setFilters] = useState<TestCaseFilters>(NO_FILTERS)
-  const [sort, setSort] = useState<TestCaseSort>('FAILING_FIRST')
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [creating, setCreating] = useState(false)
-  const [deleting, setDeleting] = useState<TestCase | null>(null)
-  const [isBulkDeleting, setIsBulkDeleting] = useState(false)
-  const [isMoving, setIsMoving] = useState(false)
   // 편집기는 고른 케이스가 바뀔 때마다 다시 마운트되므로, 안내 문구를 그 안에 두면
   // 새 케이스를 추가한 직후 그 문구가 마운트와 함께 사라져 screen reader 에 닿지 않는다.
   const [announcement, setAnnouncement] = useState('')
+  const [searchParams, setSearchParams] = useSearchParams()
+  // 버전 보기(ARTEL-1022). 버전이 있는 프로젝트는 고른 버전의 표를 그린다. 주소의 `?version=` 이 없으면 최신
+  // 버전이고, `?compare=` 를 주면 그 버전과 비교한다. 버전이 하나도 없으면 예전처럼 케이스 목록을 그린다.
+  const versionList = useTestCaseVersionList(projectId)
+  const selectedVersionId = resolveVersion(versionList.versions, searchParams.get('version'))
+  const compareVersionId = resolveCompare(versionList.versions, selectedVersionId, searchParams.get('compare'))
+  const versionCases = useVersionCases(projectId, selectedVersionId, compareVersionId)
+  const versionsMode = versionList.status === 'ready' && versionList.versions.length > 0
+  const selectedVersion = versionList.versions.find((version) => version.gameBuildId === selectedVersionId)
+  const compareVersion = versionList.versions.find((version) => version.gameBuildId === compareVersionId)
+  const latestVersion = versionList.versions.find((version) => version.latest)
+  const [onlyRegressions, setOnlyRegressions] = useState(false)
+  // 폴더 수는 고른 버전에서 보이는 항목 수다(ARTEL-1024).
+  // "버전 없음" 은 build 가 아니라 폴더 수 · 폴더 항목을 그것으로 풀 수 없다. 그때는 가장 최근 버전으로 푼다.
+  const selectedBuildId = versionsMode && isBuildId(selectedVersionId) ? selectedVersionId : null
+  const folderList = useTestCaseFolders(projectId, selectedBuildId)
+  const rowById = useMemo(
+    () => new Map(versionCases.rows.map((row) => [row.testCase.id, row])),
+    [versionCases.rows],
+  )
 
   // 주소의 `?folder=` 가 보는 범위다(ARTEL-972 의 링크가 여기로 온다). 폴더 목록을 읽기 전에는
   // 폴더 id 가 있는지 알 수 없으므로 없는 id 를 전체로 돌리는 일도 읽은 뒤에만 한다. 읽지
@@ -93,17 +146,44 @@ export function TestCaseLibrary({
     folderList.status,
     folderList.folders,
   )
-  // 폴더 링크로 들어왔는데 폴더 목록이 아직 없으면, 전체 목록을 잠깐 보여 주지 않는다. 그 목록에서
-  // 고르고 지우면 주소가 말한 폴더와 다른 것을 만지게 된다.
-  const waitsForFolder = requestedFolder.kind === 'folder' && folderList.status === 'loading'
-  const selectFolder = useCallback(
-    (next: FolderSelection) => {
+  // 폴더를 고르면 그 폴더가 담은 케이스를 고른 버전으로 풀어 그린다(ARTEL-1024). 같은 케이스가 여러 폴더에
+  // 들 수 있어 케이스의 `folderId` 로는 거를 수 없다. 폴더 안 보기는 비교하지 않는다.
+  const openFolderId = folderSelection.kind === 'folder' ? folderSelection.id : null
+  const folderItems = useFolderItems(projectId, openFolderId, selectedBuildId)
+  const folderView = openFolderId !== null
+  const comparing = !folderView && compareVersionId !== null
+  const shownCompare = comparing ? compareVersion : undefined
+  const [showHidden, setShowHidden] = useState(false)
+  const itemById = useMemo(
+    () => new Map(folderItems.items.map((item) => [item.testCase.id, item])),
+    [folderItems.items],
+  )
+  const hiddenCount = useMemo(() => folderItems.items.filter((item) => item.hidden).length, [folderItems.items])
+  const baseCases = useMemo(() => {
+    if (folderView) {
+      return folderItems.items
+        .filter((item) => showHidden || !item.hidden)
+        .map((item) => item.testCase)
+    }
+    const all = versionsMode ? versionCases.rows.map((row) => row.testCase) : library.cases
+    if (!onlyRegressions || compareVersionId === null) return all
+    return all.filter((testCase) => {
+      const row = rowById.get(testCase.id)
+      return row !== undefined && isRegression(row)
+    })
+  }, [folderView, folderItems.items, showHidden, versionsMode, versionCases.rows, library.cases, onlyRegressions, compareVersionId, rowById])
+  // 주소의 `version` · `compare` · `folder` 를 **한 번에** 고친다. 둘로 나눠 연달아 부르면 두 번째가 첫 번째 결과를
+  // 보지 못하고 옛 주소 위에 써서, 버전을 눌러도 바뀌지 않았다.
+  const setLibraryParams = useCallback(
+    (patch: { version?: string | null; compare?: string | null; folder?: string | null }) => {
       setSearchParams(
         (current) => {
           const params = new URLSearchParams(current)
-          const value = toFolderParam(next)
-          if (value === null) params.delete('folder')
-          else params.set('folder', value)
+          for (const [key, value] of Object.entries(patch)) {
+            if (value === undefined) continue
+            if (value === null) params.delete(key)
+            else params.set(key, value)
+          }
           return params
         },
         { replace: true },
@@ -111,9 +191,90 @@ export function TestCaseLibrary({
     },
     [setSearchParams],
   )
+  const setVersionParams = useCallback(
+    (version: string | null, compare: string | null) => setLibraryParams({ version, compare }),
+    [setLibraryParams],
+  )
+  const { refresh: refreshVersionList } = versionList
+  const { refresh: refreshVersionCases } = versionCases
+  const refreshVersions = useCallback(() => {
+    refreshVersionList()
+    refreshVersionCases()
+  }, [refreshVersionList, refreshVersionCases])
+  const { refresh: refreshFolders } = folderList
+  const { refresh: refreshFolderItems } = folderItems
+  const { refresh: refreshLibrary } = library
+  // 폴더 작업 뒤에는 tree 의 수, 폴더 안 목록, 케이스의 처음 폴더(폴더 없음 판정)가 함께 바뀐다.
+  const refreshAfterFolderChange = useCallback(() => {
+    refreshFolders()
+    refreshFolderItems()
+    refreshLibrary()
+    refreshVersions()
+  }, [refreshFolders, refreshFolderItems, refreshLibrary, refreshVersions])
+  const h = m.folders.history
+  const folderHistory = useFolderHistory(projectId, refreshAfterFolderChange, () => setAnnouncement(m.folders.failed))
+  const { step: stepFolderHistory } = folderHistory
+
+  // 폴더 작업 단축키. 글자를 쓰는 칸 밖에서만 받는다 — 거기서는 브라우저의 글자 되돌리기가 이긴다.
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (!(event.metaKey || event.ctrlKey)) return
+      const target = event.target as HTMLElement | null
+      if (target !== null && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable)) {
+        return
+      }
+      if (target?.closest('[role="dialog"]') != null) return
+      const key = event.key.toLowerCase()
+      if (key === 'z' && !event.shiftKey) {
+        event.preventDefault()
+        void stepFolderHistory('undo').then((command) => {
+          if (command !== null) setAnnouncement(m.folders.announce.undone(command.label))
+        })
+      } else if ((key === 'z' && event.shiftKey) || key === 'y') {
+        event.preventDefault()
+        void stepFolderHistory('redo').then((command) => {
+          if (command !== null) setAnnouncement(m.folders.announce.redone(command.label))
+        })
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [stepFolderHistory, m.folders.announce])
+  const [filters, setFilters] = useState<TestCaseFilters>(NO_FILTERS)
+  const [sort, setSort] = useState<TestCaseSort>('FAILING_FIRST')
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [creating, setCreating] = useState(false)
+  const [deleting, setDeleting] = useState<TestCase | null>(null)
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false)
+  const [isMoving, setIsMoving] = useState(false)
+  const [isAddingToVersion, setIsAddingToVersion] = useState(false)
+  const [importTarget, setImportTarget] = useState<TestCaseVersionSummary | null>(null)
+  const [sideCollapsed, setSideCollapsed] = useState(false)
+  // 왼쪽 창과 목록을 화면 끝까지 채운다. 높이는 "화면 − 이 화면이 시작하는 자리 − 아래 여백" 이다. 시작 자리는
+  // 위의 페이지 제목 줄에 따라 달라 CSS 만으로는 정할 수 없어 잰다. 못 재면 CSS 의 기본값을 쓴다.
+  // React 19 의 ref callback 은 정리 함수를 돌려줄 수 있다. 목록이 처음 그려질 때(읽기가 끝난 뒤) 재기 시작한다.
+  const rootRef = useCallback((root: HTMLDivElement | null) => {
+    if (root === null) return undefined
+    const measure = () => {
+      const scroller = root.closest<HTMLElement>('.workspace-body')
+      const top = root.getBoundingClientRect().top + (scroller?.scrollTop ?? 0)
+      root.style.setProperty('--tcl-top', `${Math.round(top)}px`)
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [])
+
+  // 폴더 링크로 들어왔는데 폴더 목록이 아직 없으면, 전체 목록을 잠깐 보여 주지 않는다. 그 목록에서
+  // 고르고 지우면 주소가 말한 폴더와 다른 것을 만지게 된다.
+  const waitsForFolder = requestedFolder.kind === 'folder' && folderList.status === 'loading'
+  const selectFolder = useCallback(
+    (next: FolderSelection) => setLibraryParams({ folder: toFolderParam(next) }),
+    [setLibraryParams],
+  )
   const folderCounts = useMemo(
-    () => countCasesByFolder(library.cases, folderList.folders),
-    [library.cases, folderList.folders],
+    () => countFromFolders(versionsMode ? versionCases.rows.map((row) => row.testCase) : library.cases, folderList.folders),
+    [versionsMode, versionCases.rows, library.cases, folderList.folders],
   )
   const moveTargets = useMemo(
     () => flattenFolderTree(buildFolderTree(folderList.folders)),
@@ -122,13 +283,22 @@ export function TestCaseLibrary({
   // 폴더로 먼저 좁힌 목록을 목록, 집계, 화면 필터가 함께 읽는다. 그래야 "N건 중 M건" 과 chip 의
   // 수가 같은 범위를 말한다.
   const inFolder = useMemo(
-    () => filterByFolder(library.cases, folderSelection, folderList.folders),
-    [library.cases, folderSelection, folderList.folders],
+    () => (folderView ? baseCases : filterByFolder(baseCases, folderSelection, folderList.folders)),
+    [folderView, baseCases, folderSelection, folderList.folders],
   )
-  const shown = useMemo(
-    () => selectTestCases(inFolder, filters, sort),
-    [inFolder, filters, sort],
-  )
+  // 비교할 때 한쪽 버전에만 있는 줄은 정렬과 상관없이 표 아래로 모은다. 빗금 줄이 표 중간중간에 끼면 두 버전에
+  // 다 있는 케이스를 읽다가 끊긴다.
+  const shown = useMemo(() => {
+    const sorted = selectTestCases(inFolder, filters, sort)
+    // 폴더 안에서는 이 버전에 없는 케이스가 아래로 간다(ARTEL-1024).
+    const onlyOneSide = folderView
+      ? (testCase: TestCase) => itemById.get(testCase.id)?.inVersion === false
+      : compareVersionId === null
+        ? null
+        : (testCase: TestCase) => (rowById.get(testCase.id)?.presence ?? 'BOTH') !== 'BOTH'
+    if (onlyOneSide === null) return sorted
+    return [...sorted.filter((testCase) => !onlyOneSide(testCase)), ...sorted.filter(onlyOneSide)]
+  }, [inFolder, filters, sort, folderView, itemById, compareVersionId, rowById])
   const tally = useMemo(() => tallyTestCases(inFolder), [inFolder])
   // 선택은 지금 보이는 줄에 묶인다. 필터가 줄을 숨기면 hook 이 그 줄을 선택에서 뺀다.
   const visibleIds = useMemo(() => shown.map((testCase) => testCase.id), [shown])
@@ -168,7 +338,7 @@ export function TestCaseLibrary({
   const closeSheet = useCallback(() => {
     setCreating(false)
     setSelectedId(null)
-  }, [])
+  }, [setCreating, setSelectedId])
   // 화면 이름은 대부분 이미 쓰던 것 중 하나다. 편집기에 넘겨 칩으로 고르게 한다.
   const knownScenes = useMemo(
     () => [...new Set(library.cases.map((one) => one.scene.trim()).filter((one) => one.length > 0))].sort(),
@@ -252,7 +422,7 @@ export function TestCaseLibrary({
 
     library.removeCases(caseIds)
     // 서버 값으로 맞춘다. 실패해도 위에서 이미 지운 목록이 남는다.
-    library.refresh()
+    refreshAfterFolderChange()
     clearSelection()
     setActive(0)
     if (selectedId !== null && caseIds.includes(selectedId)) setSelectedId(null)
@@ -260,17 +430,130 @@ export function TestCaseLibrary({
     setAnnouncement(m.bulkDelete.done(deleted > 0 ? deleted : caseIds.length))
   }
 
-  async function moveSelected(folderId: string | null) {
-    const caseIds = [...selection.selectedIds]
-    const moved = await moveTestCases(projectId, caseIds, folderId)
+  const folderName = (folderId: string) => folderList.folders.find((one) => one.id === folderId)?.name ?? ''
 
-    library.applyMoved(caseIds, folderId)
-    library.refresh()
+  /** 고른 케이스를 폴더에 담거나(폴더 밖 보기) 다른 폴더로 옮긴다(폴더 안 보기). */
+  async function placeSelected(folderId: string | null) {
+    if (folderId === null) return
+    const caseIds = [...selection.selectedIds]
+    await placeCases(folderId, caseIds)
     clearSelection()
     setIsMoving(false)
-    const destination =
-      moveTargets.find((row) => row.folder.id === folderId)?.folder.name ?? m.moveCases.noFolder
-    setAnnouncement(m.moveCases.done(moved, destination))
+  }
+
+  async function placeCases(folderId: string, caseIds: readonly string[]) {
+    if (openFolderId !== null) {
+      if (openFolderId === folderId) return
+      await folderHistory.execute(
+        moveItemsCommand(projectId, openFolderId, folderId, caseIds, folderItems.items, h.moveItems),
+      )
+      setAnnouncement(m.folderItems.moved(caseIds.length, folderName(folderId)))
+      return
+    }
+    await folderHistory.execute(addItemsCommand(projectId, folderId, caseIds, h.addItems))
+    setAnnouncement(m.folderItems.added(caseIds.length, folderName(folderId)))
+  }
+
+  async function removeSelectedFromFolder() {
+    if (openFolderId === null) return
+    const caseIds = [...selection.selectedIds]
+    await folderHistory.execute(removeItemsCommand(projectId, openFolderId, caseIds, folderItems.items, h.removeItems))
+    clearSelection()
+    setAnnouncement(m.folderItems.removed(caseIds.length))
+  }
+
+  async function setSelectedHidden(hidden: boolean) {
+    if (openFolderId === null || selectedVersionId === null) return
+    const caseIds = [...selection.selectedIds]
+    await folderHistory.execute(
+      setHiddenCommand(projectId, openFolderId, caseIds, selectedVersionId, hidden, hidden ? h.hide : h.show),
+    )
+    clearSelection()
+    setAnnouncement(hidden ? m.folderItems.hiddenNow(caseIds.length) : m.folderItems.shownNow(caseIds.length))
+  }
+
+  const announceFailure = () => setAnnouncement(m.folders.failed)
+  const runQuietly = (work: Promise<unknown>) => {
+    work.catch(announceFailure)
+  }
+
+  const versionOperations: VersionOperations = {
+    createGroup: async (name) => {
+      await folderHistory.execute(createGroupCommand(projectId, name, h.createGroup, () => {}))
+    },
+    renameGroup: async (group, name) => {
+      await folderHistory.execute(renameGroupCommand(projectId, group, name, h.renameGroup))
+    },
+    deleteGroup: async (group) => {
+      const members = versionList.versions.filter((version) => version.groupId === group.id).map((version) => version.gameBuildId)
+      await folderHistory.execute(deleteGroupCommand(projectId, group, members, h.deleteGroup))
+    },
+    assignGroup: async (version, groupId) => {
+      runQuietly(folderHistory.execute(assignGroupCommand(projectId, version.gameBuildId, version.groupId, groupId, h.assignGroup)))
+    },
+    setHidden: async (version, hidden) => {
+      runQuietly(
+        folderHistory.execute(hideVersionCommand(projectId, version.gameBuildId, hidden, hidden ? h.hideVersion : h.showVersion)),
+      )
+    },
+    copyToFolder: async (version) => {
+      runQuietly(
+        folderHistory.execute(
+          copyVersionCommand(projectId, version.gameBuildId, h.copyVersion, (folder) => {
+            folderList.applyUpserted(folder)
+            setAnnouncement(m.folders.announce.versionCopied(folder.name))
+          }),
+        ),
+      )
+    },
+    importManual: (version) => setImportTarget(version),
+  }
+
+  /** 고른 사용자 생성 케이스를 고른 버전에 넣는다(ARTEL-1032). */
+  async function addSelectedToVersion(gameBuildId: string) {
+    const target = versionList.versions.find((version) => version.gameBuildId === gameBuildId)
+    await folderHistory.execute(
+      addToVersionCommand(projectId, gameBuildId, selectedManualIds, h.addToVersion, (added) =>
+        setAnnouncement(m.addToVersion.done(added, target === undefined ? '' : versionName(target))),
+      ),
+    )
+    clearSelection()
+    setIsAddingToVersion(false)
+  }
+
+  const operations: FolderOperations = {
+    create: async (input) => {
+      await folderHistory.execute(
+        createFolderCommand(projectId, input, h.create, (created) => {
+          folderList.applyUpserted(created)
+          selectFolder({ kind: 'folder', id: created.id })
+          setAnnouncement(m.folders.announce.created(created.name))
+        }),
+      )
+    },
+    update: async (folder, next, kind) => {
+      await folderHistory.execute(updateFolderCommand(projectId, folder, next, kind === 'rename' ? h.rename : h.move))
+      setAnnouncement(kind === 'rename' ? m.folders.announce.renamed(next.name) : m.folders.announce.moved(folder.name))
+    },
+    remove: async (folder) => {
+      const removed = new Set([folder.id, ...collectDescendantIds(folderList.folders, folder.id)])
+      await folderHistory.execute(deleteFolderCommand(projectId, folder, folderList.folders, h.delete))
+      if (openFolderId !== null && removed.has(openFolderId)) selectFolder(ALL_FOLDERS)
+      setAnnouncement(m.folders.announce.deleted(folder.name))
+    },
+    clone: async (folder) => {
+      runQuietly(
+        folderHistory.execute(
+          cloneFolderCommand(projectId, folder.id, h.clone, (clone) => {
+            folderList.applyUpserted(clone)
+            setAnnouncement(m.folders.announce.cloned(clone.name))
+          }),
+        ),
+      )
+    },
+    dropCases: async (folderId, caseIds) => {
+      runQuietly(placeCases(folderId, caseIds).then(() => clearSelection()))
+    },
   }
 
   function select(testCase: TestCase) {
@@ -278,7 +561,47 @@ export function TestCaseLibrary({
     setSelectedId(testCase.id)
   }
 
-  if (library.status === 'loading' || waitsForFolder) {
+  const selectedItems = [...selection.selectedIds]
+    .map((caseId) => itemById.get(caseId))
+    .filter((item) => item !== undefined)
+  const caseOrigins = new Map(shown.map((testCase) => [testCase.id, testCase.origin]))
+  const selectedManualIds = [...selection.selectedIds].filter((caseId) => caseOrigins.get(caseId) === 'MANUAL')
+  const addToVersionAction: SelectionAction[] =
+    versionsMode && selectedManualIds.length > 0
+      ? [{ label: m.addToVersion.action, onClick: () => setIsAddingToVersion(true) }]
+      : []
+  const selectionActions: SelectionAction[] = folderView
+    ? [
+        ...addToVersionAction,
+        { label: m.folderItems.remove, onClick: () => runQuietly(removeSelectedFromFolder()) },
+        ...(versionsMode && selectedItems.some((item) => !item.hidden)
+          ? [{ label: m.folderItems.hide, onClick: () => runQuietly(setSelectedHidden(true)) }]
+          : []),
+        ...(versionsMode && selectedItems.some((item) => item.hidden)
+          ? [{ label: m.folderItems.show, onClick: () => runQuietly(setSelectedHidden(false)) }]
+          : []),
+      ]
+    : addToVersionAction
+
+  const undoFolder = async () => {
+    const command = await folderHistory.step('undo')
+    if (command !== null) setAnnouncement(m.folders.announce.undone(command.label))
+  }
+  const redoFolder = async () => {
+    const command = await folderHistory.step('redo')
+    if (command !== null) setAnnouncement(m.folders.announce.redone(command.label))
+  }
+
+  // 처음 라이브러리를 여는 사람에게 튜토리얼을 한 번 보인다(ARTEL-1033). 버전과 표가 다 그려진 뒤에 연다.
+  const tourReady = library.status === 'ready' && versionList.status !== 'loading' && (!versionsMode || versionCases.loadedOnce)
+  const tour = useTour(CASE_LIBRARY_TOUR, tourReady)
+  const tourSteps = useMemo(() => caseLibraryTourSteps(t), [t])
+
+  const waitsForVersion =
+    versionList.status === 'loading' || (versionsMode && !versionCases.loadedOnce && !versionCases.failed)
+  // 버전을 바꾸는 중: 표 자리만 기다린다.
+  const switchingVersion = versionsMode && !versionCases.ready && !versionCases.failed
+  if (library.status === 'loading' || waitsForFolder || waitsForVersion) {
     return (
       <div className="section-single">
         <section className="panel" aria-busy="true">
@@ -306,26 +629,62 @@ export function TestCaseLibrary({
   const filtered = hasActiveFilters(filters)
 
   return (
-    <div className={'tcl cp-scope' + (sheetOpen ? ' has-sheet' : '')}>
+    <div className={'tcl cp-scope' + (sheetOpen ? ' has-sheet' : '') + (sideCollapsed ? ' is-side-collapsed' : '')} ref={rootRef}>
       <FolderPane
+        collapsed={sideCollapsed}
+        collapsedLabel={
+          [
+            folderSelection.kind !== 'all'
+              ? null
+              : selectedVersionId === UNVERSIONED
+                ? m.versions.unversioned
+                : selectedVersion !== undefined
+                  ? versionName(selectedVersion)
+                  : null,
+            folderSelection.kind === 'none'
+              ? m.folders.none
+              : folderSelection.kind === 'folder'
+                ? (folderList.folders.find((folder) => folder.id === folderSelection.id)?.name ?? null)
+                : null,
+          ]
+            .filter((part): part is string => part !== null)
+            .join(' · ')
+        }
+        onToggleCollapsed={() => setSideCollapsed((value) => !value)}
+        top={
+          versionsMode ? (
+            <VersionList
+              groups={versionList.groups}
+              onSelect={(gameBuildId) => {
+                // 버전을 고르는 것이 곧 그 버전 전체를 보는 것이다. 폴더 필터와 비교는 푼다.
+                setOnlyRegressions(false)
+                setLibraryParams({ version: gameBuildId, compare: null, folder: null })
+              }}
+              operations={versionOperations}
+              selectedId={folderSelection.kind === 'all' ? selectedVersionId : null}
+              unversionedTotal={versionList.unversionedTotal}
+              versions={versionList.versions}
+            />
+          ) : undefined
+        }
         counts={folderCounts}
         folders={folderList.folders}
-        onAnnounce={setAnnouncement}
-        onChanged={({ deletedFolderIds }) => {
-          folderList.refresh()
-          // 지운 폴더 안의 test case 는 서버에서 폴더 없음이 됐다.
-          if (deletedFolderIds.length > 0) {
-            library.refresh()
-            if (folderSelection.kind === 'folder' && deletedFolderIds.includes(folderSelection.id)) {
-              selectFolder(ALL_FOLDERS)
-            }
-          }
+        history={{
+          canUndo: folderHistory.canUndo,
+          canRedo: folderHistory.canRedo,
+          busy: folderHistory.busy,
+          undo: () => void undoFolder(),
+          redo: () => void redoFolder(),
         }}
         onRetry={folderList.reload}
-        onUpsert={folderList.applyUpserted}
-        onSelect={selectFolder}
-        projectId={projectId}
+        onSelect={(next) => {
+          setShowHidden(false)
+          selectFolder(next)
+        }}
+        operations={operations}
         selection={folderSelection}
+        // 버전이 있으면 "폴더 없음" 대신 버전 쪽의 "버전 없음" 을 쓴다(ARTEL-1024).
+        showUnfiled={!versionsMode}
         status={folderList.status}
       />
       <section
@@ -358,9 +717,17 @@ export function TestCaseLibrary({
         }}
       >
         <header className="panel-header panel-header--split">
-          <h2>{m.section.title}</h2>
+          <h2 className="tcl-title">
+            {m.section.title}
+            {latestVersion !== undefined && (
+              <span className="tcl-current-version" title={m.versions.currentTitle}>
+                {m.versions.current} <strong>{versionName(latestVersion)}</strong>
+              </span>
+            )}
+          </h2>
           <button
             className="button button--primary button--compact"
+            data-tour="new-case"
             onClick={startCreating}
             type="button"
           >
@@ -370,31 +737,61 @@ export function TestCaseLibrary({
         <p className="section-intro">{m.section.subtitle}</p>
 
         <div className="tcl-filters">
-          <label className="tcl-filter tcl-filter--grow">
-            <span className="field-label">{m.filters.search}</span>
-            <input
-              className="field-input"
-              onChange={(event) => setFilters({ ...filters, query: event.target.value })}
+          <div className="tcl-filter tcl-filter--grow" data-tour="search">
+            <SearchField
+              clearLabel={m.filters.clearSearch}
+              label={m.filters.search}
+              onChange={(query) => setFilters({ ...filters, query })}
               placeholder={m.filters.searchPlaceholder}
-              type="search"
               value={filters.query}
             />
-          </label>
+          </div>
 
-          <label className="tcl-filter">
-            <span className="field-label">{m.filters.sort}</span>
-            <select
-              className="field-input"
-              onChange={(event) => setSort(event.target.value as TestCaseSort)}
+          {versionsMode && folderView && (
+            <div className="tcl-filter">
+              <Picker
+                label={m.folderItems.versionLabel}
+                onChange={(next) => setVersionParams(next, null)}
+                options={versionList.versions.map((version) => ({ value: version.gameBuildId, label: versionName(version) }))}
+                value={selectedVersionId ?? ''}
+              />
+            </div>
+          )}
+
+          {versionsMode && !folderView && selectedBuildId !== null && (
+            <div className="tcl-filter" data-tour="compare">
+              <Picker
+                label={m.versions.compareLabel}
+                onChange={(raw) => {
+                  const next = raw.length > 0 ? raw : null
+                  if (next === null) setOnlyRegressions(false)
+                  setVersionParams(selectedVersionId, next)
+                }}
+                options={[
+                  { value: '', label: m.versions.noCompare },
+                  ...versionList.versions
+                    .filter((version) => version.gameBuildId !== selectedVersionId)
+                    .map((version) => ({ value: version.gameBuildId, label: versionName(version) })),
+                ]}
+                value={compareVersionId ?? ''}
+              />
+            </div>
+          )}
+
+          <div className="tcl-filter">
+            <Picker
+              label={m.filters.sort}
+              onChange={(next) => setSort(next as TestCaseSort)}
+              options={[
+                { value: 'FAILING_FIRST', label: m.filters.sortFailingFirst },
+                { value: 'NEWEST', label: m.filters.sortNewest },
+              ]}
               value={sort}
-            >
-              <option value="FAILING_FIRST">{m.filters.sortFailingFirst}</option>
-              <option value="NEWEST">{m.filters.sortNewest}</option>
-            </select>
-          </label>
+            />
+          </div>
         </div>
 
-        <div className="tcl-status-row">
+        <div className="tcl-status-row" data-tour="chips">
           <span className="field-label">{m.filters.status}</span>
           <div className="tcl-chips">
             <button
@@ -415,6 +812,41 @@ export function TestCaseLibrary({
                 {m.outcome[status]} {countOf(tally, status)}
               </button>
             ))}
+            <span className="tcl-chips-sep" aria-hidden="true" />
+            <span className="field-label">{m.origin.label}</span>
+            {(['ALL', 'MAP', 'MANUAL'] as const).map((origin) => (
+              <button
+                aria-pressed={filters.origin === origin}
+                className={filters.origin === origin ? 'fchip on' : 'fchip'}
+                key={origin}
+                onClick={() => setFilters({ ...filters, origin })}
+                type="button"
+              >
+                {origin === 'ALL' ? m.origin.all : m.origin[origin]}
+              </button>
+            ))}
+            {folderView && hiddenCount > 0 && (
+              <button
+                aria-pressed={showHidden}
+                className={showHidden ? 'fchip on' : 'fchip'}
+                onClick={() => setShowHidden((value) => !value)}
+                title={m.folderItems.hiddenTitle}
+                type="button"
+              >
+                {m.folderItems.showHidden(hiddenCount)}
+              </button>
+            )}
+            {comparing && (
+              <button
+                aria-pressed={onlyRegressions}
+                className={onlyRegressions ? 'fchip fchip--regress on' : 'fchip fchip--regress'}
+                onClick={() => setOnlyRegressions((value) => !value)}
+                title={m.versions.onlyRegressionsTitle}
+                type="button"
+              >
+                {m.versions.onlyRegressions}
+              </button>
+            )}
           </div>
         </div>
 
@@ -435,9 +867,11 @@ export function TestCaseLibrary({
         <div className="tcl-selection-slot">
           {selection.count > 0 ? (
             <CaseSelectionBar
+              actions={selectionActions}
               count={selection.count}
               isLimitReached={selection.isLimitReached}
               limitNoteId={limitNoteId}
+              moveLabel={folderView ? m.folderItems.moveTo : m.folderItems.add}
               onClear={clearSelection}
               onDelete={() => setIsBulkDeleting(true)}
               onMove={() => setIsMoving(true)}
@@ -447,7 +881,18 @@ export function TestCaseLibrary({
           )}
         </div>
 
-        {shown.length === 0 ? (
+        {folderView && folderItems.failed ? (
+          <div className="panel-empty-block" role="alert">
+            <p className="panel-empty">{m.folderItems.loadFailed}</p>
+            <button className="button button--secondary button--compact" onClick={folderItems.refresh} type="button">
+              {m.section.retry}
+            </button>
+          </div>
+        ) : (folderView ? !folderItems.ready : switchingVersion) ? (
+          <div className="panel-empty-block" aria-busy="true">
+            <p className="panel-empty">{m.section.loading}</p>
+          </div>
+        ) : shown.length === 0 ? (
           <div className="panel-empty-block">
             <p className="panel-empty">
               {filtered
@@ -471,6 +916,7 @@ export function TestCaseLibrary({
             className={
               'cp-listwrap' + (edge.top ? ' at-top' : '') + (edge.bottom ? ' at-bottom' : '')
             }
+            data-tour="table"
           >
             <div className="cp-fade cp-fade--top" aria-hidden="true"><span className="cp-fade-hint">▴</span></div>
             <div className="cp-list tcl-scroll" onScroll={onScroll} ref={listRef}>
@@ -481,6 +927,7 @@ export function TestCaseLibrary({
                   <col className="tct-c-scene" />
                   <col className="tct-c-spec" />
                   <col className="tct-c-res" />
+                  {comparing && <col className="tct-c-res" />}
                   <col className="tct-c-exp" />
                   <col className="tct-c-added" />
                 </colgroup>
@@ -500,24 +947,57 @@ export function TestCaseLibrary({
                     <th scope="col">{m.editor.step}</th>
                     <th scope="col">{m.editor.scene}</th>
                     <th scope="col">{m.editor.specGrade}</th>
-                    <th scope="col">{m.filters.status}</th>
+                    <th scope="col">
+                      {versionsMode && selectedVersion !== undefined
+                        ? m.versions.statusOn(versionName(selectedVersion))
+                        : m.filters.status}
+                    </th>
+                    {shownCompare !== undefined && (
+                      <th scope="col">{m.versions.statusOn(versionName(shownCompare))}</th>
+                    )}
                     <th scope="col">{m.editor.expectedValue}</th>
                     <th scope="col">{m.outcome.added}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {shown.map((testCase, index) => (
+                  {shown.map((testCase, index) => {
+                    const item = folderView ? itemById.get(testCase.id) : undefined
+                    const versionRow = folderView ? undefined : rowById.get(testCase.id)
+                    const note =
+                      item !== undefined
+                        ? (item.inVersion ? null : m.folderItems.notInVersion)
+                        : versionRow === undefined
+                          ? null
+                          : (() => {
+                              const kind = absenceNote(versionRow.presence, selectedVersion, shownCompare)
+                              return kind === null ? null : m.versions.absence[kind]
+                            })()
+                    const result =
+                      item !== undefined
+                        ? item.verificationStatus
+                        : versionRow === undefined
+                          ? testCase.verificationStatus
+                          : versionRow.verificationStatus
+                    return (
                     <tr
                       aria-current={testCase.id === selectedId ? true : undefined}
                       className={
                         'tct-row' +
                         (index === active ? ' active' : '') +
                         (testCase.id === selectedId ? ' picked' : '') +
-                        (selection.isSelected(testCase.id) ? ' chosen' : '')
+                        (selection.isSelected(testCase.id) ? ' chosen' : '') +
+                        (note !== null ? ' tct-row--absent' : '') +
+                        (item?.hidden === true ? ' tct-row--hidden' : '')
                       }
                       data-index={index}
+                      draggable
                       key={testCase.id}
                       onClick={(event) => clickRow(event, testCase, index)}
+                      onDragStart={(event) => {
+                        // 고른 줄을 끌면 고른 것 전부를, 아니면 그 줄 하나를 옮긴다.
+                        const ids = selection.isSelected(testCase.id) ? [...selection.selectedIds] : [testCase.id]
+                        writeCasesDrag(event.dataTransfer, ids)
+                      }}
                       onMouseDown={(event) => {
                         // Shift 클릭이 브라우저의 글자 선택을 함께 만들면 범위 선택이 파랗게 번진다.
                         // preventDefault 는 focus 이동도 막으므로, 이후 Shift+화살표와 Delete 가 이 panel
@@ -555,25 +1035,41 @@ export function TestCaseLibrary({
                             나머지 칸과 0.5px 어긋나고 높이도 5.5px 짧아진다. 안에서 편다. */}
                         <span className="tct-step-in">
                           <span className={`vdot ${testCase.verificationStatus}`} />
+                          {/* 출처 라벨은 스텝 앞에 둔다. 뒤에 두면 긴 스텝의 말줄임표에 잘린다. */}
+                          {testCase.origin !== undefined && (
+                            <span
+                              className={'tct-origin tct-origin--' + testCase.origin.toLowerCase()}
+                              title={testCase.origin === 'MAP' ? m.origin.mapTitle : m.origin.manualTitle}
+                            >
+                              {m.origin[testCase.origin]}
+                            </span>
+                          )}
                           <span className="tct-step-text">
                             {testCase.step.length > 0 ? testCase.step : m.row.untitled}
+                            {note !== null && <span className="tct-absent-note">{note}</span>}
+                            {item?.hidden === true && (
+                              <span className="tct-hidden-tag" title={m.folderItems.hiddenTitle}>{m.folderItems.hiddenTag}</span>
+                            )}
                           </span>
                         </span>
                       </td>
                       <td><SceneChip scene={testCase.scene} /></td>
                       <td><SpecGradeChip bare status={testCase.status} /></td>
                       <td>
-                        <span className={`vpill ${testCase.verificationStatus}`}>
-                          <span className={`vdot ${testCase.verificationStatus}`} />
-                          {m.outcome[testCase.verificationStatus]}
-                        </span>
+                        <StatusPill labels={m} status={result} />
                       </td>
+                      {comparing && (
+                        <td>
+                          <StatusPill labels={m} status={versionRow?.compareVerificationStatus ?? null} />
+                        </td>
+                      )}
                       <td className="tct-quiet">
                         {testCase.expectedValue.length > 0 ? testCase.expectedValue : m.row.noExpectedValue}
                       </td>
                       <td className="tct-quiet mono">{formatDate(testCase.createdAt)}</td>
                     </tr>
-                  ))}
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
@@ -595,6 +1091,9 @@ export function TestCaseLibrary({
           onClose={closeSheet}
           onCreated={(created) => {
             library.applyCreated(created)
+            refreshVersions()
+            refreshFolderItems()
+            refreshFolders()
             setCreating(false)
             setSelectedId(created.id)
             setAnnouncement(m.editor.created)
@@ -602,22 +1101,85 @@ export function TestCaseLibrary({
           onDelete={() => setDeleting(selected)}
           onSaved={(saved) => {
             library.applySaved(saved)
+            refreshVersions()
             setAnnouncement(m.editor.saved)
           }}
           projectId={projectId}
           testCase={selected}
+          // 새 케이스는 기본으로 현재 버전(가장 최근)에 넣는다(ARTEL-1032). 폴더에서 만든 케이스도 버전 라이브러리에 바로 보인다.
+          versionChoice={
+            versionsMode
+              ? { versions: versionList.versions, groups: versionList.groups, defaultId: latestVersion?.gameBuildId ?? null }
+              : undefined
+          }
         />
       )}
 
       <p aria-live="polite" className="visually-hidden" role="status">{announcement}</p>
 
+      {/* 튜토리얼을 다시 보는 길(ARTEL-1033). 라이브러리 왼쪽 아래, 폴더 창 밑의 빈자리에 회색으로 둔다. */}
+      <button
+        className="tcl-help"
+        data-tour="help"
+        onClick={tour.start}
+        title={m.tour.helpTitle}
+        type="button"
+      >
+        <svg aria-hidden="true" viewBox="0 0 16 16">
+          <circle cx="8" cy="8" fill="none" r="6.5" stroke="currentColor" strokeWidth="1.4" />
+          <path d="M6.3 6.2a1.8 1.8 0 1 1 2.6 1.6c-.6.3-.9.7-.9 1.3v.3" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.4" />
+          <circle cx="8" cy="11.6" fill="currentColor" r=".8" />
+        </svg>
+        {m.tour.help}
+      </button>
+
+      {tour.open && (
+        <CoachTour index={tour.index} onFinish={tour.finish} onIndex={tour.setIndex} steps={tourSteps} />
+      )}
+
+      {importTarget !== null && (
+        <ImportManualCasesDialog
+          folders={folderList.folders}
+          groups={versionList.groups}
+          onClose={() => setImportTarget(null)}
+          onConfirm={async (caseIds) => {
+            const target = importTarget
+            await folderHistory.execute(
+              addToVersionCommand(projectId, target.gameBuildId, caseIds, h.addToVersion, (added) =>
+                setAnnouncement(m.addToVersion.done(added, versionName(target))),
+              ),
+            )
+            setImportTarget(null)
+          }}
+          projectId={projectId}
+          target={importTarget}
+          versions={versionList.versions}
+        />
+      )}
+
+      {isAddingToVersion && (
+        <VersionTreeDialog
+          confirmLabel={m.addToVersion.confirm(selectedManualIds.length)}
+          groups={versionList.groups}
+          hint={m.addToVersion.hint}
+          initialId={selectedBuildId ?? latestVersion?.gameBuildId ?? null}
+          onClose={() => setIsAddingToVersion(false)}
+          onConfirm={async (gameBuildId) => {
+            if (gameBuildId !== null) await addSelectedToVersion(gameBuildId)
+          }}
+          title={m.addToVersion.title(selectedManualIds.length)}
+          versions={versionList.versions}
+        />
+      )}
+
       {isMoving && (
         <MoveCasesDialog
           count={selection.count}
-          initialFolderId={folderSelection.kind === 'folder' ? folderSelection.id : null}
+          initialFolderId={null}
+          mode={folderView ? 'moveItems' : 'add'}
           onClose={() => setIsMoving(false)}
-          onConfirm={moveSelected}
-          rows={moveTargets}
+          onConfirm={placeSelected}
+          rows={folderView ? moveTargets.filter((row) => row.folder.id !== openFolderId) : moveTargets}
         />
       )}
 
@@ -681,4 +1243,21 @@ function countOf(tally: TestCaseTally, status: VerificationStatus): number {
   if (status === 'REGRESSION') return tally.regression
   if (status === 'BROKEN') return tally.broken
   return tally.draft
+}
+
+/** 한 버전의 판정 칸. 그 버전에 없는 케이스(null)는 "없음" 이다. */
+function StatusPill({
+  labels,
+  status,
+}: {
+  labels: ReturnType<typeof useI18n>['t']['testCases']
+  status: VerificationStatus | null
+}) {
+  if (status === null) return <span className="vpill vpill--absent">{labels.versions.absent}</span>
+  return (
+    <span className={`vpill ${status}`}>
+      <span className={`vdot ${status}`} />
+      {labels.outcome[status]}
+    </span>
+  )
 }

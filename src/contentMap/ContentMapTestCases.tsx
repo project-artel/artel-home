@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
+import { readCarryOver, storeCarryOver } from './carryOverChoice'
 import { generateContentMapTestCases, type GeneratedTestCases } from './generateContentMapTestCases'
 import {
   classifyGenerationFailure,
@@ -25,10 +26,12 @@ type Generation =
  */
 export function ContentMapTestCases({
   buildId,
+  isEditor,
   projectId,
   view,
 }: {
   buildId: string
+  isEditor: boolean
   projectId: string
   view: ContentMapView
 }) {
@@ -37,8 +40,9 @@ export function ContentMapTestCases({
   const [generation, setGeneration] = useState<Generation>({ phase: 'idle' })
   // 같은 tick 의 두 번째 click 은 `disabled` 가 반영되기 전에 들어올 수 있다.
   const inFlight = useRef(false)
+  const [carryOver, setCarryOver] = useState(readCarryOver)
 
-  const block = describeGenerationBlock(view)
+  const block = describeGenerationBlock(view, isEditor)
   const isRunning = generation.phase === 'running'
 
   async function generate() {
@@ -47,7 +51,7 @@ export function ContentMapTestCases({
     setGeneration({ phase: 'running' })
 
     try {
-      const result = await generateContentMapTestCases(projectId, buildId)
+      const result = await generateContentMapTestCases(projectId, buildId, carryOver)
       setGeneration({ phase: 'done', result })
     } catch (error: unknown) {
       setGeneration({ phase: 'failed', failure: classifyGenerationFailure(error) })
@@ -74,6 +78,21 @@ export function ContentMapTestCases({
         >
           {isRunning ? copy.running : copy.action}
         </button>
+        <label className="cm-generate-carry">
+          <input
+            checked={carryOver}
+            disabled={isRunning}
+            onChange={(event) => {
+              setCarryOver(event.target.checked)
+              storeCarryOver(event.target.checked)
+            }}
+            type="checkbox"
+          />
+          <span>
+            {copy.carryOver}
+            <small>{copy.carryOverHint}</small>
+          </span>
+        </label>
       </div>
 
       {block !== null && (

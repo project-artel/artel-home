@@ -6,6 +6,9 @@ import {
   createTestCaseFolder,
   deleteTestCaseFolder,
   listTestCaseFolders,
+  moveFolderItems,
+  parseFolderItems,
+  parseItemsChange,
   parseTestCaseFolders,
   updateTestCaseFolder,
 } from './testCaseFolderApi.ts'
@@ -45,14 +48,14 @@ function jsonResponse(body: unknown, status = 200): Response {
   })
 }
 
-const documented = { id: '3', parentId: null, name: 'Arena', contentMapId: '9', gameBuildId: '4' }
+const documented = { id: '3', parentId: null, name: 'Arena', caseCount: 4, visibleCount: 3 }
 
 test('폴더 목록은 items 로 싸여 오고 id 는 문자열이다', () => {
-  const folders = parseTestCaseFolders({ items: [documented, { id: '4', parentId: '3', name: 'Pit', contentMapId: null, gameBuildId: null }] })
+  const folders = parseTestCaseFolders({ items: [documented, { id: '4', parentId: '3', name: 'Pit', caseCount: 0, visibleCount: null }] })
 
-  assert.deepEqual(folders[0], { id: '3', parentId: null, name: 'Arena', contentMapId: '9', gameBuildId: '4' })
+  assert.deepEqual(folders[0], { id: '3', parentId: null, name: 'Arena', caseCount: 4, visibleCount: 3 })
   assert.equal(folders[1].parentId, '3')
-  assert.equal(folders[1].contentMapId, null)
+  assert.equal(folders[1].visibleCount, null)
 })
 
 test('id 나 이름이 없는 폴더 하나만 버린다', () => {
@@ -149,6 +152,64 @@ test('이동도 0건이나 500건 초과는 요청을 보내지 않는다', asyn
     async (calls) => {
       await assert.rejects(moveTestCases('7', [], null), RangeError)
       assert.equal(calls.length, 0)
+    },
+  )
+})
+
+test('폴더 목록을 버전으로 읽으면 gameBuildId 를 싣는다', async () => {
+  await withMockedFetch(
+    () => jsonResponse({ items: [documented] }),
+    async (calls) => {
+      await listTestCaseFolders('7', undefined, '12')
+      assert.ok(calls[0].url.endsWith('/api/projects/7/test-case-folders?gameBuildId=12'))
+    },
+  )
+})
+
+test('폴더 항목은 버전에 없는 케이스와 숨김을 함께 싣는다', () => {
+  const list = parseFolderItems(
+    {
+      folderId: '3',
+      gameBuildId: '12',
+      items: [
+        { testCaseId: '41', position: 0, hidden: false, hiddenGameBuildIds: [], inVersion: true, origin: 'MAP',
+          scene: 'Title', step: '시작', precondition: null, expectedValue: '넘어간다', status: 'runnable',
+          verificationStatus: 'FAILED', createdAt: '2026-10-13T00:00:00Z' },
+        { testCaseId: '42', position: 1, hidden: true, hiddenGameBuildIds: ['12', '9'], inVersion: false, origin: 'MAP',
+          scene: 'Map', step: '옛 기능', precondition: null, expectedValue: '열린다', status: null,
+          verificationStatus: null, createdAt: '2026-10-12T00:00:00Z' },
+        { position: 2 },
+      ],
+    },
+    '7',
+  )
+
+  assert.equal(list.gameBuildId, '12')
+  assert.deepEqual(list.items.map((item) => item.testCase.id), ['41', '42'])
+  assert.equal(list.items[0].verificationStatus, 'FAILED')
+  assert.equal(list.items[1].verificationStatus, null)
+  assert.equal(list.items[1].inVersion, false)
+  assert.deepEqual(list.items[1].hiddenGameBuildIds, ['12', '9'])
+  assert.equal(list.items[1].testCase.folderId, '3')
+})
+
+test('항목 쓰기 응답은 실제로 바뀐 케이스만 낸다', () => {
+  assert.deepEqual(parseItemsChange({ changed: 2, caseIds: ['1'], droppedCaseIds: ['2'] }), {
+    caseIds: ['1'],
+    droppedCaseIds: ['2'],
+  })
+  assert.deepEqual(parseItemsChange({ changed: 0 }), { caseIds: [], droppedCaseIds: [] })
+})
+
+test('항목 옮기기는 대상 폴더를 본문에 싣는다', async () => {
+  await withMockedFetch(
+    () => jsonResponse({ changed: 1, caseIds: ['5'], droppedCaseIds: [] }),
+    async (calls) => {
+      const change = await moveFolderItems('7', '3', ['5'], '8')
+      assert.deepEqual(change.caseIds, ['5'])
+      assert.ok(calls[0].url.endsWith('/api/projects/7/test-case-folders/3/items/moves'))
+      assert.equal(calls[0].init?.method, 'POST')
+      assert.deepEqual(JSON.parse(String(calls[0].init?.body)), { caseIds: ['5'], targetFolderId: '8' })
     },
   )
 })
