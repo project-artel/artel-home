@@ -10731,3 +10731,24 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
 .qa-rail-steps--free .qa-rail-step{ grid-template-columns:14px auto minmax(0,1fr); }
 .qa-rail-steps--free .qa-rail-step--neutral{ grid-template-columns:auto minmax(0,1fr); }
 .qa-rail-steps .free-badge{ margin-right:4px; }
+
+/* 지도에서 TC 생성 (ARTEL-1041) — 라이브러리 헤더 버튼, 빌드 고르기 모달, 화면 지도의 스캔하고 TC 생성 */
+.tcl-head-actions{ display:flex; align-items:center; gap:var(--space-2); flex-wrap:wrap; }
+.gen-list{ max-height:min(52vh, 420px); overflow:auto; border:1px solid var(--color-border-subtle); border-radius:8px; padding:4px; }
+.gen-option{ gap:10px; }
+.gen-option:disabled{ cursor:not-allowed; }
+.gen-option:disabled:hover{ background:none; }
+.gen-option.is-blocked .vtree-name{ color:var(--color-text-muted); }
+.gen-option.is-blocked .vtree-radio{ opacity:.35; }
+.gen-label{ color:var(--color-text-secondary); font-weight:400; }
+.gen-outcome{ flex:none; font-size:12px; color:var(--color-text-muted); }
+.gen-outcome--create{ color:var(--color-text-primary); }
+.gen-carry{ margin-top:var(--space-2); max-width:none; }
+.cm-scan-tc{ margin:6px 0 0; font-size:13px; color:var(--color-text-secondary); display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
+.cm-scan-tc--failed{ color:var(--color-status-critical); }
+.gen-outcome--overwrite{ color:var(--color-status-warning, var(--color-text-secondary)); }
+.gen-warning{ margin:var(--space-2) 0 0; padding-left:18px; display:flex; flex-direction:column; gap:4px; color:var(--color-text-secondary); font-size:13px; }
+.mimp-picked{ display:flex; align-items:center; justify-content:space-between; gap:var(--space-2); margin-top:var(--space-2); font-size:13px; color:var(--color-text-secondary); }
+.tcl-notice{ display:flex; align-items:center; justify-content:space-between; gap:var(--space-2); margin:var(--space-2) 0 0; padding:8px 12px; border:1px solid var(--color-border-subtle); border-left:3px solid var(--color-brand-accent); border-radius:6px; font-size:13px; color:var(--color-text-primary); }
+.tcl-notice-close{ background:none; border:0; color:var(--color-text-muted); cursor:pointer; font-size:12px; padding:2px 6px; }
+.tcl-notice-close:hover{ color:var(--color-text-primary); }

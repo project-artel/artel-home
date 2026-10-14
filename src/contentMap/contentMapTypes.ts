@@ -476,6 +476,21 @@ export type LastScan = {
   ingestedDocuments: number | null
   /** `state` 가 `FAILED` 일 때 사람에게 보여 줄 사유. */
   error: string | null
+  /** "스캔하고 TC 생성" 으로 시킨 스캔의 TC 쪽 결과(ARTEL-1041). 그냥 스캔이면 null 이다. */
+  testCases: ScanTestCases | null
+}
+
+export const SCAN_TEST_CASE_STATES = ['PENDING', 'GENERATED', 'SKIPPED', 'FAILED'] as const
+
+/**
+ * 스캔 뒤 TC 생성의 결과. `PENDING` 은 스캔이 아직 안 끝났거나 스캔이 깨져 만들지 않았다는 뜻이고, `SKIPPED` 는 그사이
+ * 이 빌드의 TC 가 만들어져 건너뛰었다는 뜻이다.
+ */
+export type ScanTestCases = {
+  state: (typeof SCAN_TEST_CASE_STATES)[number]
+  created: number | null
+  carriedOver: number | null
+  reason: string | null
 }
 
 /** 스캔이 `REQUESTED` 상태로 흐른 시간(초). `finishedAt` 이 있으면 거기까지, 없으면 `nowMs` 까지. */

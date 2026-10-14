@@ -6,7 +6,6 @@ import { useKnowledgeGraph } from '../knowledge/useKnowledgeGraph'
 import { formatDateTime } from '../projects/formatters'
 import { CanvasViewportControls } from './CanvasViewportControls'
 import { ContentMapInspector } from './ContentMapInspector'
-import { ContentMapTestCases } from './ContentMapTestCases'
 import { describeGenerationBlock } from './contentMapTestCases'
 import { ContentMapTree } from './ContentMapTree.tsx'
 import { CaptureHeader, ContentMapSummary } from './ContentMapSummary'
@@ -63,12 +62,9 @@ export function ContentMapRedirect() {
  */
 export function ContentMapReport({
   buildId,
-  isEditor = false,
   projectId,
 }: {
   buildId: string
-  /** editor build 면 TC 를 만들지 않는다(ARTEL-1036). */
-  isEditor?: boolean
   projectId: string
 }) {
   const { t } = useI18n()
@@ -169,8 +165,6 @@ export function ContentMapReport({
         projectId={projectId}
         refreshToken={reloadToken}
       />
-
-      <ContentMapTestCases buildId={buildId} isEditor={isEditor} projectId={projectId} view={view} />
 
       <ContentMapBody projectId={projectId} view={view} />
     </section>

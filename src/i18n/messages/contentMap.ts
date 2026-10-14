@@ -70,6 +70,7 @@ export const contentMapEn = {
     instanceLabel: 'Game to scan',
     noInstanceOption: 'No connected game at the last check',
     action: 'Rescan evidence',
+    actionWithTestCases: 'Scan and create test cases',
     running: 'Asking the game…',
     // No "refresh to pick that up" here anymore: the scan status and ingest
     // progress below now update themselves from the events stream, so telling
@@ -94,30 +95,8 @@ export const contentMapEn = {
     },
   },
   generate: {
-    title: 'Test cases',
-    copy: 'Creates this version’s test cases from the content map, updates the ones it created before, and removes the ones whose screen is gone.',
-    action: 'Create test cases',
-    running: 'Creating test cases…',
     carryOver: 'Bring along user-created test cases from the previous version',
     carryOverHint: 'User-created test cases in the previous game build that this build does not have yet are added too.',
-    blocked: {
-      editorBuild: 'The editor build is not a game version, so it does not get test cases. Its content map is kept as game knowledge. Create test cases from a game build.',
-      notUploaded: 'Nothing has been scanned for this build, so there is no content map to create test cases from.',
-      noDocuments: 'This build has a content map but no evidence document has been uploaded for it. Scan the game above first.',
-      notIngested: 'The evidence is uploaded but has not been read yet. Create test cases once the content map is read.',
-    },
-    result: (counts: { created: number; updated: number; deleted: number; broken: number; carriedOver?: number }) =>
-      counts.created + counts.updated + counts.deleted + counts.broken + (counts.carriedOver ?? 0) === 0
-        ? 'Nothing changed: the test cases already match this content map.'
-        : `Created ${counts.created}, updated ${counts.updated}, deleted ${counts.deleted}, marked ${counts.broken} as BROKEN.` +
-          ((counts.carriedOver ?? 0) > 0 ? ` Carried over ${counts.carriedOver} user-created cases from the previous version.` : ''),
-    openLibrary: 'Open the test case library',
-    failure: {
-      editorBuild: 'The editor build is not a game version, so no test cases were created. Create them from a game build.',
-      notIngested: 'This build has no content map that has been read yet, so no test cases were created. Press Refresh at the top of the page, then try again.',
-      buildMissing: 'This build no longer exists, so no test cases were created.',
-      other: 'Test cases could not be created. Nothing was altered.',
-    },
   },
   // Live scan state and the events-stream connection it rides on. Deliberately
   // no progress bar here — `ScanState` is only REQUESTED/SUCCEEDED/FAILED and
@@ -141,6 +120,15 @@ export const contentMapEn = {
     streamLive: 'Live',
     streamDegraded: 'Live updates interrupted. Reconnecting…',
     streamOffline: 'Live updates lost. Reload the page to reconnect.',
+    testCases: {
+      pending: 'Test cases will be created once the scan finishes and the map is read.',
+      generated: (created: number, carriedOver: number) =>
+        `Created ${created} test cases from this scan` + (carriedOver > 0 ? `, and carried over ${carriedOver} user-created ones.` : '.'),
+      skipped: 'This build already had test cases, so none were created.',
+      failed: 'The scan finished but test cases could not be created.',
+      notMade: 'The scan did not finish cleanly, so no test cases were created.',
+      openLibrary: 'Open the case library',
+    },
   },
   summary: {
     scenes: (count: number) => `${count} scene${count === 1 ? '' : 's'}`,
@@ -603,6 +591,7 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
     instanceLabel: '스캔할 게임',
     noInstanceOption: '마지막 확인 때 붙어 있는 게임 없음',
     action: '근거 다시 스캔',
+    actionWithTestCases: '스캔하고 TC 생성',
     running: '게임에 요청하는 중…',
     requested: '스캔을 요청했습니다. 게임이 응답하면 아래에 상태가 나타납니다.',
     failed: '스캔을 시작하지 못했습니다.',
@@ -618,30 +607,8 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
     },
   },
   generate: {
-    title: '테스트 케이스',
-    copy: '이 콘텐츠 맵에서 이 버전의 테스트 케이스를 만듭니다. 전에 만든 것은 갱신하고, 화면이 사라진 것은 지웁니다.',
-    action: '테스트 케이스 생성',
-    running: '테스트 케이스를 만드는 중…',
     carryOver: '이전 버전의 사용자 생성 TC 이어 넣기',
     carryOverHint: '바로 앞 게임 빌드에 있던 사용자 생성 TC 중 이 빌드에 아직 없는 것을 함께 넣습니다.',
-    blocked: {
-      editorBuild: 'editor 는 게임 버전이 아니라서 테스트 케이스를 만들지 않습니다. 이 콘텐츠 맵은 게임 지식으로만 쓰입니다. 게임 빌드를 골라 만들어 주세요.',
-      notUploaded: '이 빌드는 아직 스캔된 적이 없어 테스트 케이스를 만들 콘텐츠 맵이 없습니다.',
-      noDocuments: '이 빌드에는 콘텐츠 맵이 있지만 올라온 증거 문서가 없습니다. 위에서 게임을 스캔한 뒤에 만들 수 있습니다.',
-      notIngested: '증거는 올라왔지만 아직 읽히지 않았습니다. 콘텐츠 맵이 읽힌 뒤에 만들 수 있습니다.',
-    },
-    result: (counts: { created: number; updated: number; deleted: number; broken: number; carriedOver?: number }) =>
-      counts.created + counts.updated + counts.deleted + counts.broken + (counts.carriedOver ?? 0) === 0
-        ? '바뀐 것이 없습니다. 테스트 케이스가 이미 이 콘텐츠 맵과 같습니다.'
-        : `생성 ${counts.created}건, 갱신 ${counts.updated}건, 삭제 ${counts.deleted}건, BROKEN 처리 ${counts.broken}건.` +
-          ((counts.carriedOver ?? 0) > 0 ? ` 앞 버전의 사용자 생성 케이스 ${counts.carriedOver}건을 이어 넣었습니다.` : ''),
-    openLibrary: '테스트 케이스 라이브러리에서 열기',
-    failure: {
-      editorBuild: 'editor 는 게임 버전이 아니라서 테스트 케이스를 만들지 않았습니다. 게임 빌드를 골라 만들어 주세요.',
-      notIngested: '이 빌드에 읽힌 콘텐츠 맵이 아직 없어 테스트 케이스를 만들지 못했습니다. 위쪽의 새로고침을 누른 뒤 다시 시도해 주세요.',
-      buildMissing: '이 빌드가 더는 없어 테스트 케이스를 만들지 못했습니다.',
-      other: '테스트 케이스를 만들지 못했습니다. 아무것도 바뀌지 않았습니다.',
-    },
   },
   scanStatus: {
     requested: '스캔하는 중…',
@@ -656,6 +623,15 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
     streamLive: '실시간 연결됨',
     streamDegraded: '실시간 갱신 연결이 끊어졌습니다. 다시 연결하는 중…',
     streamOffline: '실시간 갱신 연결이 끊겼습니다. 새로고침하면 다시 연결됩니다.',
+    testCases: {
+      pending: '스캔이 끝나고 지도가 읽히면 TC 를 만듭니다.',
+      generated: (created: number, carriedOver: number) =>
+        `이 스캔으로 TC ${created}건을 만들었습니다` + (carriedOver > 0 ? `. 사용자 생성 TC ${carriedOver}건을 이어 넣었습니다.` : '.'),
+      skipped: '이 빌드에는 이미 TC 가 있어 만들지 않았습니다.',
+      failed: '스캔은 끝났지만 TC 를 만들지 못했습니다.',
+      notMade: '스캔이 깨끗하게 끝나지 않아 TC 를 만들지 않았습니다.',
+      openLibrary: '케이스 라이브러리 열기',
+    },
   },
   summary: {
     scenes: (count: number) => `씬 ${count}개`,

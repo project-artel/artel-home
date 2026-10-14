@@ -69,7 +69,6 @@ export function ContentMapSection() {
       ) : (
         <ContentMapReport
           buildId={selectedBuild.id}
-          isEditor={selectedBuild.isEditor}
           key={selectedBuild.id}
           projectId={projectId}
         />
