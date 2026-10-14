@@ -40,8 +40,6 @@ export type StepEditor = {
    */
   replaceStep: (index: number, steps: ScenarioStep[]) => void
   removeStep: (index: number) => void
-  /** Add steps at the end — a FREE scenario takes more test cases this way. */
-  appendSteps: (steps: ScenarioStep[]) => void
   moveStep: (from: number, to: number) => void
   undo: () => void
   redo: () => void
@@ -150,10 +148,6 @@ export function useStepEditor(testScenarioId: number, initial: ScenarioDraft): S
   const removeStep = useCallback(
     (index: number) =>
       mutate((d) => ({ ...d, steps: d.steps.filter((_, i) => i !== index) })),
-    [mutate],
-  )
-  const appendSteps = useCallback(
-    (steps: ScenarioStep[]) => mutate((d) => ({ ...d, steps: [...d.steps, ...steps] })),
     [mutate],
   )
   const moveStep = useCallback(
@@ -276,7 +270,6 @@ export function useStepEditor(testScenarioId: number, initial: ScenarioDraft): S
     insertStep,
     replaceStep,
     removeStep,
-    appendSteps,
     moveStep,
     undo,
     redo,

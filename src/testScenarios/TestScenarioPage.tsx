@@ -12,10 +12,9 @@ import { useRunChatSession } from '../testRuns/useRunChatSession'
 import { ApproveScenarioDialog } from './ApproveScenarioDialog'
 import { DeleteScenarioDialog } from './DeleteScenarioDialog'
 import { getTestScenario } from './scenarioApi'
-import { FreeScenarioEditor } from './FreeScenarioEditor'
 import { ScenarioList } from './ScenarioList'
 import { ScenarioStepEditor } from './ScenarioStepEditor'
-import { EMPTY_SCENARIO_DRAFT, isFreeScenario } from './scenarioTypes'
+import { EMPTY_SCENARIO_DRAFT } from './scenarioTypes'
 import { useChatWidth } from './useChatWidth'
 import { useStepEditor } from './useStepEditor'
 
@@ -170,7 +169,6 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
 
   const e = t.scenarios.stepsEditor
   const saveState = editor.saving ? 'saving' : editor.dirty ? 'unsaved' : 'saved'
-  const isFree = isFreeScenario(editor.working)
   const title = editor.working.title.length > 0 ? editor.working.title : t.scenarios.page.untitled
 
   return (
@@ -217,17 +215,13 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
       <div className="st-edit">
         <ScenarioList activeId={scenarioId} projectId={projectId} refreshToken={railToken} runId={fromRun} />
         {status === 'ready' ? (
-          isFree
-            ? <FreeScenarioEditor editor={editor} projectId={projectId} />
-            : <ScenarioStepEditor projectId={projectId} editor={editor} />
+          <ScenarioStepEditor projectId={projectId} editor={editor} />
         ) : (
           <div className="edoc-shell at-top at-bottom"><main className="edoc-wrap"><div className="edoc" /></main></div>
         )}
         <SplitHandle label={t.scenarios.chat.widthHandle} {...split.handle} />
         <aside className="st-chat">
-          {isFree && status === 'ready'
-            ? <p className="free-chat-note">{t.scenarios.free.chatUnavailable}</p>
-            : fromRun !== null && <RunChat session={runChat} />}
+          {fromRun !== null && <RunChat session={runChat} />}
         </aside>
       </div>
 

@@ -10705,29 +10705,3 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
 .llm-key-form {
   margin-top: var(--space-3);
 }
-
-/* FREE 시나리오(ARTEL-1030). 표시는 DESIGN.md 의 semantic token 만 쓴다. */
-.free-badge{
-  flex:none; display:inline-flex; align-items:center; padding:0 6px; border:1px solid var(--color-agent-reasoning); border-radius:999px;
-  font-size:10px; font-weight:700; letter-spacing:.06em; line-height:16px;
-  color:var(--color-agent-reasoning); background:transparent; white-space:nowrap;
-}
-.free-hint{ margin:0 0 var(--space-3); font-size:12px; color:var(--color-text-muted); }
-.free-heading{ display:flex; align-items:center; gap:var(--space-2); margin:var(--space-3) 0 var(--space-2); font-size:13px; font-weight:600; color:var(--color-text-primary); }
-.free-case-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:var(--space-2); }
-.free-case{ display:flex; align-items:flex-start; gap:var(--space-3); padding:var(--space-3); border:1px solid var(--color-border-subtle); border-radius:var(--radius-md); background:var(--color-bg-surface); }
-.free-case-body{ flex:1; min-width:0; display:flex; flex-direction:column; gap:var(--space-1); }
-.free-case-head{ display:flex; align-items:center; flex-wrap:wrap; gap:var(--space-2); }
-.free-case-label{ font-family:var(--font-mono); font-size:11px; font-weight:700; color:var(--color-text-muted); }
-.free-case-title{ min-width:0; overflow-wrap:anywhere; font-size:13px; font-weight:600; color:var(--color-text-primary); }
-.free-case-expected{ margin:0; font-size:12px; line-height:1.5; color:var(--color-text-secondary); overflow-wrap:anywhere; }
-.free-case-expected-label{ font-weight:600; color:var(--color-text-muted); }
-.free-chat-note{ margin:0; padding:var(--space-4); font-size:12px; line-height:1.5; color:var(--color-text-muted); }
-.free-add-list{ list-style:none; margin:0; padding:0; max-height:50vh; overflow-y:auto; border:1px solid var(--color-border-subtle); border-radius:var(--radius-md); }
-.free-add-row{ display:flex; align-items:center; gap:var(--space-2); min-height:40px; padding:var(--space-2) var(--space-3); cursor:pointer; font-size:13px; color:var(--color-text-primary); }
-.free-add-row:hover{ background:var(--color-bg-hover); }
-.free-add-row:focus-within{ outline:2px solid var(--color-brand-accent); outline-offset:-2px; }
-.free-add-text{ flex:1; min-width:0; overflow-wrap:anywhere; }
-.qa-rail-steps--free .qa-rail-step{ grid-template-columns:14px auto minmax(0,1fr); }
-.qa-rail-steps--free .qa-rail-step--neutral{ grid-template-columns:auto minmax(0,1fr); }
-.qa-rail-steps .free-badge{ margin-right:4px; }

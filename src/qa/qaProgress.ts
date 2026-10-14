@@ -1,5 +1,5 @@
 import { asRecord, asString } from '../projects/projectApi'
-import type { ExecutionMode, ScenarioStep } from '../testScenarios/scenarioTypes'
+import type { ScenarioStep } from '../testScenarios/scenarioTypes'
 import { asVerificationStatus, type VerificationStatus } from '../testCases/testCaseTypes'
 import { isTerminalQaStatus, type QaLog, type QaTryStatus } from './qaTypes'
 
@@ -170,18 +170,11 @@ function collectVerdicts(logs: QaLog[]): {
  */
 export function deriveQaProgress({
   scenarioSteps,
-  executionMode = 'ORDERED',
   logs,
   status,
   historyComplete,
 }: {
   scenarioSteps: ScenarioStep[]
-  /**
-   * In a `FREE` scenario the agent picks the order, so a verdict for step 5 says nothing
-   * about steps 1 to 4: there is no frontier, and a step without a verdict is simply not
-   * judged yet (`pending`) until the run ends.
-   */
-  executionMode?: ExecutionMode
   logs: QaLog[]
   status: QaTryStatus
   historyComplete: boolean
@@ -198,7 +191,6 @@ export function deriveQaProgress({
   // rollup of what it judged.
   const settled = historyComplete || summarySeen
   const frontier = highestReported + 1
-  const isFree = executionMode === 'FREE'
 
   const steps: QaStepProgress[] = []
   let passed = 0
@@ -234,9 +226,7 @@ export function deriveQaProgress({
       ? settled
         ? 'unreported'
         : 'unknown'
-      : isFree
-        ? 'pending'
-        : step >= frontier
+      : step >= frontier
         ? // `STARTING` has no Agent session yet, so nothing is under way: the
           // frontier is only where work *would* resume, not where it is.
           step === frontier && status === 'RUNNING'

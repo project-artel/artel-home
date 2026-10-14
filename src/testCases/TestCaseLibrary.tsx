@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
 import { useI18n } from '../i18n/useI18n'
 import { formatDate } from '../projects/formatters'
 import type { GameBuild } from '../projects/gameTypes'
 import { ProjectApiError } from '../projects/projectApi'
-import { CreateFreeScenarioDialog } from '../testScenarios/CreateFreeScenarioDialog'
 import { CaseSceneFilter } from './CaseSceneFilter'
 import { SceneChip } from './SceneChip'
 import { SpecGradeChip } from './SpecGradeChip'
@@ -248,8 +247,6 @@ export function TestCaseLibrary({
   const [deleting, setDeleting] = useState<TestCase | null>(null)
   const [isBulkDeleting, setIsBulkDeleting] = useState(false)
   const [isMoving, setIsMoving] = useState(false)
-  const [isCreatingFree, setIsCreatingFree] = useState(false)
-  const navigate = useNavigate()
   const [isAddingToVersion, setIsAddingToVersion] = useState(false)
   const [importTarget, setImportTarget] = useState<TestCaseVersionSummary | null>(null)
   const [sideCollapsed, setSideCollapsed] = useState(false)
@@ -876,7 +873,6 @@ export function TestCaseLibrary({
               limitNoteId={limitNoteId}
               moveLabel={folderView ? m.folderItems.moveTo : m.folderItems.add}
               onClear={clearSelection}
-              onCreateFreeScenario={() => setIsCreatingFree(true)}
               onDelete={() => setIsBulkDeleting(true)}
               onMove={() => setIsMoving(true)}
             />
@@ -1173,17 +1169,6 @@ export function TestCaseLibrary({
           }}
           title={m.addToVersion.title(selectedManualIds.length)}
           versions={versionList.versions}
-        />
-      )}
-
-      {isCreatingFree && (
-        <CreateFreeScenarioDialog
-          // 목록에 보이는 순서대로 담는다. 선택한 순서는 Set 에 남은 클릭 순서일 뿐이다.
-          cases={shown.filter((testCase) => selection.isSelected(testCase.id))}
-          onClose={() => setIsCreatingFree(false)}
-          onCreated={(testScenarioId) =>
-            navigate(`/projects/${encodeURIComponent(projectId)}/test-scenarios/${testScenarioId}`)}
-          projectId={projectId}
         />
       )}
 

@@ -10,9 +10,7 @@ import {
 import {
   EMPTY_SCENARIO_DRAFT,
   USER_MESSAGE_TYPE,
-  buildFreeScenarioDraft,
   type ChatMessage,
-  type ExecutionMode,
   type ScenarioDraft,
   type ScenarioRole,
   type ScenarioStep,
@@ -99,11 +97,6 @@ export function parseSteps(data: unknown): ScenarioStep[] {
   return steps.map(parseStep).filter((step): step is ScenarioStep => step !== null)
 }
 
-/** Anything but exactly `FREE` is `ORDERED`: a server without the field never sends it. */
-export function parseExecutionMode(value: unknown): ExecutionMode {
-  return value === 'FREE' ? 'FREE' : 'ORDERED'
-}
-
 export function parseScenarioDraft(data: unknown): ScenarioDraft {
   const record = asRecord(data)
   if (record === null) return EMPTY_SCENARIO_DRAFT
@@ -112,7 +105,6 @@ export function parseScenarioDraft(data: unknown): ScenarioDraft {
     title: asString(record.title),
     description: asString(record.description),
     steps: parseSteps(record.steps),
-    execution_mode: parseExecutionMode(record.execution_mode),
   }
 }
 
@@ -165,7 +157,7 @@ function toItemArray(data: unknown): unknown[] {
  * an empty string, because a scenario the user cannot open again is a worse
  * outcome than a row with a blank title or timestamp.
  */
-export function parseScenarioSummary(data: unknown): TestScenarioSummary | null {
+function parseScenarioSummary(data: unknown): TestScenarioSummary | null {
   const record = asRecord(data)
   if (record === null) return null
 
@@ -176,7 +168,6 @@ export function parseScenarioSummary(data: unknown): TestScenarioSummary | null 
     title: asString(record.title),
     createdAt: asString(record.createdAt),
     updatedAt: asString(record.updatedAt),
-    executionMode: parseExecutionMode(record.execution_mode),
   }
 }
 
@@ -216,22 +207,6 @@ export async function createTestScenario(projectId: number): Promise<number> {
     )
   }
 
-  return testScenarioId
-}
-
-/**
- * Makes a FREE scenario from the chosen test cases: creates it, then writes the draft
- * through the same `PUT` the editor autosaves with. The `PUT` already stores the draft as
- * the scenario's `payload`, and approve is that same write, so no approve call follows.
- * Returns the new scenario's id.
- */
-export async function createFreeScenario(
-  projectId: number,
-  title: string,
-  caseIds: readonly string[],
-): Promise<number> {
-  const testScenarioId = await createTestScenario(projectId)
-  await updateScenario(testScenarioId, buildFreeScenarioDraft(title, caseIds))
   return testScenarioId
 }
 

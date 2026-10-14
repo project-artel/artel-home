@@ -1,15 +1,9 @@
 import { useEffect, useState } from 'react'
 import { getTestScenario } from '../testScenarios/scenarioApi'
-import type { ExecutionMode, ScenarioStep } from '../testScenarios/scenarioTypes'
-
-export type ScenarioStepsView = {
-  steps: ScenarioStep[]
-  /** `ORDERED` until the scenario has been read: a FREE one is only known once it arrives. */
-  executionMode: ExecutionMode
-}
+import type { ScenarioStep } from '../testScenarios/scenarioTypes'
 
 /** Shared so an unresolved read keeps the same identity across renders. */
-const NOT_LOADED: ScenarioStepsView = { steps: [], executionMode: 'ORDERED' }
+const NO_STEPS: ScenarioStep[] = []
 
 /**
  * The steps of the scenario a QA Try is executing, for their titles and count.
@@ -19,11 +13,11 @@ const NOT_LOADED: ScenarioStepsView = { steps: [], executionMode: 'ORDERED' }
  * numbered steps, which is worse to read but still the whole truth about state,
  * and a scenario that will not load is not a reason to hide the run's progress.
  */
-export function useScenarioSteps(testScenarioId: string | null): ScenarioStepsView {
+export function useScenarioSteps(testScenarioId: string | null): ScenarioStep[] {
   // The id is kept beside the steps rather than cleared when it changes: the
   // read below discards a stale result, so the effect never has to setState
   // synchronously just to blank the previous scenario.
-  const [loaded, setLoaded] = useState<{ id: string; view: ScenarioStepsView } | null>(null)
+  const [loaded, setLoaded] = useState<{ id: string; steps: ScenarioStep[] } | null>(null)
 
   useEffect(() => {
     if (testScenarioId === null) return undefined
@@ -34,10 +28,7 @@ export function useScenarioSteps(testScenarioId: string | null): ScenarioStepsVi
     getTestScenario(numericId, controller.signal)
       .then((scenario) => {
         if (!controller.signal.aborted) {
-          setLoaded({
-            id: testScenarioId,
-            view: { steps: scenario.payload.steps, executionMode: scenario.payload.execution_mode },
-          })
+          setLoaded({ id: testScenarioId, steps: scenario.payload.steps })
         }
       })
       .catch(() => {})
@@ -45,5 +36,5 @@ export function useScenarioSteps(testScenarioId: string | null): ScenarioStepsVi
     return () => controller.abort()
   }, [testScenarioId])
 
-  return loaded !== null && loaded.id === testScenarioId ? loaded.view : NOT_LOADED
+  return loaded !== null && loaded.id === testScenarioId ? loaded.steps : NO_STEPS
 }

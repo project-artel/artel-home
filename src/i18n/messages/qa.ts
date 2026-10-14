@@ -67,8 +67,6 @@ export const qaEn = {
     jumpHint: 'Select a judged step to open the log entry that judged it.',
     jump: (step: number) => `Go to the log for step ${step}`,
     caseLabel: (n: number) => `TC ${n}`,
-    freeNote: 'FREE scenario: the agent picks the order, so verdicts can arrive in any order.',
-    freeBadge: 'FREE',
     savedTitle: (status: string) => `Saved to the test case as ${status}`,
     verification: 'Verification',
     casesSummary: (passed: number, failed: number, total: number) =>
@@ -354,8 +352,6 @@ export const qaKo: Localized<typeof qaEn> = {
     jumpHint: '판정된 스텝을 선택하면 그 판정을 남긴 로그로 이동합니다.',
     jump: (step: number) => `스텝 ${step}의 로그로 이동`,
     caseLabel: (n: number) => `TC ${n}`,
-    freeNote: 'FREE 시나리오: agent 가 순서를 정하므로 판정이 어떤 순서로든 올 수 있습니다.',
-    freeBadge: 'FREE',
     savedTitle: (status: string) => `테스트 케이스에 ${status}(으)로 저장됨`,
     verification: '검증',
     casesSummary: (passed: number, failed: number, total: number) =>
