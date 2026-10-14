@@ -16,6 +16,8 @@ export const qaEn = {
     gameLabel: 'Game',
     gamePlaceholder: 'Select a game',
     runLabel: 'Test run',
+    versionMismatch: (run: string, game: string) =>
+      `This run follows the test cases of ${run}, but the game is running ${game}. You can still run it — the verdicts are recorded on ${game}.`,
     runPlaceholder: 'Select a test run',
     noRuns: 'Create a test run first.',
     scenarioLabel: 'Scenario',
@@ -303,6 +305,8 @@ export const qaKo: Localized<typeof qaEn> = {
     gameLabel: '게임',
     gamePlaceholder: '게임을 선택하세요',
     runLabel: '테스트 런',
+    versionMismatch: (run: string, game: string) =>
+      `이 TR 은 ${run} 의 TC 를 따르는데, 켜진 게임은 ${game} 입니다. 그대로 돌릴 수 있고, 판정은 ${game} 에 적힙니다.`,
     runPlaceholder: '테스트 런을 선택하세요',
     noRuns: '테스트 런을 먼저 만드세요.',
     scenarioLabel: '시나리오',

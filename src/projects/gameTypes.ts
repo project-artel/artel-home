@@ -48,6 +48,18 @@ export type GameInstance = {
   lastConnectedAt: string
   createdAt: string
   updatedAt: string
+  /**
+   * The build this instance last registered with (ARTEL-1049), or `null` when it never has. The QA start panel compares it
+   * with the run's case version. For an editor build `version` is what the editor reported from Player Settings.
+   */
+  lastGameBuild: InstanceBuild | null
+}
+
+export type InstanceBuild = {
+  gameBuildId: string
+  version: string
+  label: string | null
+  isEditor: boolean
 }
 
 export type GameBuild = {

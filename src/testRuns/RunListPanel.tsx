@@ -1,27 +1,43 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { formatDate } from '../projects/formatters'
 import { ProjectApiError } from '../projects/projectApi'
 import type { ExtrasStatus } from '../projects/workspace/workspaceContext'
+import { ContextMenu, type ContextMenuItem } from '../testCases/ContextMenu'
 import {
-  createTestRun,
+  arrangeVersions,
+  hiddenVersions,
+  versionName,
+  type TestCaseVersionSummary,
+} from '../testCases/testCaseVersions'
+import { useTestCaseVersionList } from '../testCases/useTestCaseVersions'
+import { VersionTreeDialog } from '../testCases/VersionTreeDialog'
+import { NewRunDialog } from './NewRunDialog'
+import { bucketOf, countRuns, initialBucket, NO_VERSION, runsIn, strayBuilds } from './runLibrary'
+import {
+  changeRunGameBuild,
   deleteTestRun,
+  gameBuildName,
   getRunDeletionPreview,
   type RunDeletionPreview,
+  type RunLastQa,
   type TestRun,
 } from './testRunApi'
-import { RunVersionChip } from './RunVersionChip'
+
+/** TR 을 끌어 다른 버전에 놓을 때 싣는 형식. 다른 끌기(파일 등)와 섞이지 않게 따로 둔다. */
+const RUN_DRAG = 'application/x-artel-test-run'
 
 /**
- * The project's TestRuns — the entry point into the run map. A run bundles
- * scenarios (which bundle cases), so the project screen lists runs, not
- * scenarios: opening one navigates to its map, where its scenarios and their
- * cases are laid out and edited.
+ * The project's TestRuns (ARTEL-1049). A run follows one case version — the game build whose test cases its scenarios
+ * are written from — so the screen is a version tree on the left and the chosen version's runs as a table on the right,
+ * the same split as the case library. Groups and hidden versions are the library's own, so a `1.X` group made there
+ * shows here too.
  *
- * The list is handed in rather than read here: the workspace loads it once for
- * the dashboard and this section together, so returning to this section does
- * not re-fetch what is already on screen.
+ * A run moves to another version by dragging its row onto the version, or from its menu. Its scenarios stay; authoring
+ * follows the new version from the next turn.
+ *
+ * The list is handed in rather than read here: the workspace loads it once for the dashboard and this section together.
  */
 export function RunListPanel({
   onChanged,
@@ -30,7 +46,7 @@ export function RunListPanel({
   runs,
   status,
 }: {
-  /** Re-read the list after this panel creates or deletes a run. */
+  /** Re-read the list after this panel creates, moves or deletes a run. */
   onChanged: () => Promise<void>
   onReload: () => void
   projectId: string
@@ -39,12 +55,22 @@ export function RunListPanel({
 }) {
   const { t } = useI18n()
   const r = t.scenarios.runList
+  const v = t.testCases.versions
   const navigate = useNavigate()
   // 대시보드의 "이 케이스로 시나리오 만들기"가 실어 보낸 요청문. 런을 여는 길에 함께 넘겨
   // 입력창까지 도달시킨다 — 여기서 잃으면 버튼이 목적지 없는 링크가 된다.
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const draft = searchParams.get('draft')
+  const versionList = useTestCaseVersionList(projectId)
+  const versions = versionList.versions
+  const bucket = initialBucket(searchParams.get('version'), versions, runs)
+  const [folded, setFolded] = useState<ReadonlySet<string>>(new Set())
+  const [showHidden, setShowHidden] = useState(false)
   const [creating, setCreating] = useState(false)
+  const [moving, setMoving] = useState<TestRun | null>(null)
+  const [menu, setMenu] = useState<{ run: TestRun; x: number; y: number } | null>(null)
+  const [dropTarget, setDropTarget] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const [failure, setFailure] = useState<string | null>(null)
   const [pendingDelete, setPendingDelete] = useState<TestRun | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -54,6 +80,16 @@ export function RunListPanel({
   // 함께 지울지. 기본은 지우는 쪽이다 — 남겨 두면 어느 런에도 없는 시나리오가 케이스 커버리지를
   // 계속 채워, 사용자는 지웠는데 숫자가 그대로인 것을 본다. 되돌리기는 체크 해제 한 번이다.
   const [dropScenarios, setDropScenarios] = useState(true)
+
+  const counts = useMemo(() => countRuns(runs), [runs])
+  const entries = useMemo(() => arrangeVersions(versions, versionList.groups), [versions, versionList.groups])
+  const hidden = useMemo(() => hiddenVersions(versions), [versions])
+  const strays = useMemo(() => strayBuilds(runs, versions), [runs, versions])
+  const shown = useMemo(
+    () => [...runsIn(runs, bucket)].sort((left, right) => right.createdAt.localeCompare(left.createdAt)),
+    [runs, bucket],
+  )
+  const bucketLabel = bucketName(bucket)
 
   useEffect(() => {
     if (pendingDelete === null) return
@@ -67,6 +103,24 @@ export function RunListPanel({
       })
     return () => controller.abort()
   }, [pendingDelete, projectId])
+
+  function bucketName(key: string): string {
+    if (key === NO_VERSION) return v.unversioned
+    const known = versions.find((version) => version.gameBuildId === key)
+    if (known !== undefined) return versionName(known)
+    const stray = strays.find((build) => build.gameBuildId === key)
+    return stray === undefined ? key : gameBuildName(stray)
+  }
+
+  function selectBucket(key: string) {
+    setSearchParams(
+      (params) => {
+        params.set('version', key)
+        return params
+      },
+      { replace: true },
+    )
+  }
 
   async function confirmDelete() {
     if (pendingDelete === null || deleting) return
@@ -91,18 +145,72 @@ export function RunListPanel({
     navigate(draft === null ? base : `${base}?draft=${encodeURIComponent(draft)}`)
   }
 
-  async function create() {
-    if (creating) return
-    setCreating(true)
+  /** TR 을 다른 TC 버전으로 옮긴다. 같은 칸이면 아무것도 하지 않는다. */
+  async function moveRun(run: TestRun, target: string) {
+    if (bucketOf(run) === target) return
     setFailure(null)
     try {
-      const run = await createTestRun(projectId, { name: r.newName })
-      openRun(run.id)
+      await changeRunGameBuild(projectId, run.id, target === NO_VERSION ? null : target)
+      await onChanged()
+      setNotice(r.moved(run.name.length > 0 ? run.name : r.untitled, bucketName(target)))
     } catch (error: unknown) {
-      setFailure(error instanceof ProjectApiError ? error.message : r.createFailed)
-      setCreating(false)
+      setFailure(error instanceof ProjectApiError && error.status === 409 ? r.moveEditor : r.moveFailed)
     }
   }
+
+  function menuItems(run: TestRun): ContextMenuItem[] {
+    return [
+      { label: r.menu.open, onSelect: () => openRun(run.id) },
+      { label: r.menu.changeVersion, onSelect: () => setMoving(run) },
+      { label: r.delete, onSelect: () => setPendingDelete(run), danger: true },
+    ]
+  }
+
+  function lastQaText(lastQa: RunLastQa | null): string {
+    if (lastQa === null) return r.lastQa.never
+    if (lastQa.status === 'RUNNING' || lastQa.status === 'STARTING') return r.lastQa.running
+    const result = r.lastQa.result(lastQa.passed, lastQa.failed, lastQa.total)
+    return lastQa.status === 'CANCELLED' ? r.lastQa.cancelled(result) : result
+  }
+
+  const node = (key: string, label: string, options: { latest?: boolean; hidden?: boolean } = {}) => {
+    const on = key === bucket
+    return (
+      <li key={key}>
+        <button
+          aria-current={on ? 'true' : undefined}
+          className={
+            'trl-node' + (on ? ' is-current' : '') + (options.hidden === true ? ' is-hidden' : '') + (dropTarget === key ? ' is-drop' : '')
+          }
+          onClick={() => selectBucket(key)}
+          onDragLeave={() => setDropTarget((current) => (current === key ? null : current))}
+          onDragOver={(event) => {
+            if (!event.dataTransfer.types.includes(RUN_DRAG)) return
+            event.preventDefault()
+            event.dataTransfer.dropEffect = 'move'
+            setDropTarget(key)
+          }}
+          onDrop={(event) => {
+            const runId = event.dataTransfer.getData(RUN_DRAG)
+            setDropTarget(null)
+            const dragged = runs.find((one) => one.id === runId)
+            if (dragged === undefined) return
+            event.preventDefault()
+            void moveRun(dragged, key)
+          }}
+          type="button"
+        >
+          <FolderIcon />
+          <span className="trl-node-name">{label}</span>
+          {options.latest === true && <span className="tcl-version-latest">{v.latest}</span>}
+          <span className="trl-node-count">{counts.get(key) ?? 0}</span>
+        </button>
+      </li>
+    )
+  }
+
+  const versionNode = (version: TestCaseVersionSummary) =>
+    node(version.gameBuildId, versionName(version), { latest: version.latest, hidden: version.hidden })
 
   return (
     <section className="panel" aria-labelledby="test-runs-title">
@@ -111,11 +219,19 @@ export function RunListPanel({
           <h2 id="test-runs-title">{r.title}</h2>
           <p className="scenario-hint">{r.hint}</p>
         </div>
-        <button className="button button--primary button--compact" disabled={creating} onClick={create} type="button">
-          {creating ? r.creating : r.newButton}
+        <button className="button button--primary button--compact" onClick={() => setCreating(true)} type="button">
+          {r.newButton}
         </button>
       </header>
 
+      {notice !== null && (
+        <p className="trl-notice">
+          <span>{notice}</span>
+          <button aria-label={r.dismiss} className="trl-notice-close" onClick={() => setNotice(null)} type="button">
+            ✕
+          </button>
+        </p>
+      )}
       {failure !== null && (
         <div className="inline-error" role="alert"><span aria-hidden="true">!</span>{failure}</div>
       )}
@@ -128,28 +244,157 @@ export function RunListPanel({
         </div>
       )}
       {status === 'ready' && (
-        runs.length === 0 ? (
-          <p className="panel-empty">{r.empty}</p>
-        ) : (
-          <ul className="scenario-list">
-            {runs.map((run) => (
-              <li className="scenario-row run-row" key={run.id}>
-                <div className="scenario-row-main run-row-main">
-                  <button className="scenario-name scenario-name--button" onClick={() => openRun(run.id)} type="button">
-                    {run.name.length > 0 ? run.name : r.untitled}
-                  </button>
-                  {run.description !== null && run.description.length > 0 && (
-                    <p className="scenario-row-desc">{run.description}</p>
-                  )}
-                </div>
-                <p className="scenario-row-meta">
-                  <RunVersionChip build={run.gameBuild} /> {r.created(formatDate(run.createdAt))}
-                </p>
-                <button className="run-del-icon" onClick={() => setPendingDelete(run)} aria-label={r.delete} title={r.delete} type="button">✕</button>
-              </li>
-            ))}
-          </ul>
-        )
+        <div className="trl">
+          <nav aria-label={r.versionsTitle} className="trl-side">
+            <p className="trl-side-title">{r.versionsTitle}</p>
+            <ul className="trl-tree">
+              {strays.map((build) => node(build.gameBuildId, gameBuildName(build)))}
+              {entries.map((entry) => {
+                if (entry.kind === 'version') return versionNode(entry.version)
+                const group = entry.group
+                const isFolded = folded.has(group.id)
+                return (
+                  <li key={`group:${group.id}`}>
+                    <button
+                      aria-expanded={!isFolded}
+                      className="trl-group"
+                      onClick={() =>
+                        setFolded((current) => {
+                          const next = new Set(current)
+                          if (next.has(group.id)) next.delete(group.id)
+                          else next.add(group.id)
+                          return next
+                        })
+                      }
+                      type="button"
+                    >
+                      <Chevron open={!isFolded} />
+                      <span className="trl-node-name">{group.name}</span>
+                      <span className="trl-node-count">
+                        {entry.versions.reduce((sum, version) => sum + (counts.get(version.gameBuildId) ?? 0), 0)}
+                      </span>
+                    </button>
+                    {!isFolded && entry.versions.length > 0 && (
+                      <ul className="trl-tree trl-tree--nested">{entry.versions.map(versionNode)}</ul>
+                    )}
+                  </li>
+                )
+              })}
+              {node(NO_VERSION, v.unversioned)}
+            </ul>
+            {hidden.length > 0 && (
+              <>
+                <button
+                  aria-expanded={showHidden}
+                  className="trl-group trl-group--hidden"
+                  onClick={() => setShowHidden((value) => !value)}
+                  type="button"
+                >
+                  <Chevron open={showHidden} />
+                  <span className="trl-node-name">{v.hiddenVersions(hidden.length)}</span>
+                </button>
+                {showHidden && <ul className="trl-tree trl-tree--nested">{hidden.map(versionNode)}</ul>}
+              </>
+            )}
+            <p className="trl-side-hint">{r.dragHint}</p>
+          </nav>
+
+          <div className="trl-main">
+            <h3 className="trl-main-title">{r.runsOf(bucketLabel, shown.length)}</h3>
+            {shown.length === 0 ? (
+              <p className="panel-empty">{runs.length === 0 ? r.empty : r.emptyVersion}</p>
+            ) : (
+              <table className="trl-table">
+                <thead>
+                  <tr>
+                    <th scope="col">{r.columns.name}</th>
+                    <th scope="col" className="trl-num">{r.columns.scenarios}</th>
+                    <th scope="col">{r.columns.lastQa}</th>
+                    <th scope="col">{r.columns.created}</th>
+                    <th scope="col"><span className="visually-hidden">{r.columns.actions}</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {shown.map((run) => (
+                    <tr
+                      className="trl-row"
+                      draggable
+                      key={run.id}
+                      onContextMenu={(event) => {
+                        event.preventDefault()
+                        setMenu({ run, x: event.clientX, y: event.clientY })
+                      }}
+                      onDragStart={(event) => {
+                        event.dataTransfer.setData(RUN_DRAG, run.id)
+                        event.dataTransfer.effectAllowed = 'move'
+                      }}
+                    >
+                      <td>
+                        <button className="trl-name" onClick={() => openRun(run.id)} type="button">
+                          {run.name.length > 0 ? run.name : r.untitled}
+                        </button>
+                        {run.description !== null && run.description.length > 0 && (
+                          <p className="trl-desc">{run.description}</p>
+                        )}
+                      </td>
+                      <td className="trl-num">{run.scenarioCount ?? '—'}</td>
+                      <td className={'trl-qa' + (run.lastQaRun !== null && run.lastQaRun.failed > 0 ? ' has-failed' : '')}>
+                        {lastQaText(run.lastQaRun)}
+                      </td>
+                      <td className="trl-date">{formatDate(run.createdAt)}</td>
+                      <td className="trl-actions">
+                        <button
+                          aria-label={r.menu.label}
+                          className="trl-more"
+                          onClick={(event) => {
+                            const box = event.currentTarget.getBoundingClientRect()
+                            setMenu({ run, x: box.left, y: box.bottom + 4 })
+                          }}
+                          type="button"
+                        >
+                          ⋯
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      )}
+
+      {menu !== null && (
+        <ContextMenu items={menuItems(menu.run)} label={r.menu.label} onClose={() => setMenu(null)} x={menu.x} y={menu.y} />
+      )}
+
+      {creating && (
+        <NewRunDialog
+          groups={versionList.groups}
+          initialVersionId={bucket === NO_VERSION ? null : bucket}
+          onClose={() => setCreating(false)}
+          onCreated={(run) => openRun(run.id)}
+          projectId={projectId}
+          versions={versions}
+        />
+      )}
+
+      {moving !== null && (
+        <VersionTreeDialog
+          allowNone
+          confirmLabel={r.changeVersion.confirm}
+          groups={versionList.groups}
+          hint={r.changeVersion.hint}
+          initialId={moving.gameBuild?.gameBuildId ?? null}
+          onClose={() => setMoving(null)}
+          onConfirm={async (gameBuildId) => {
+            const run = moving
+            setMoving(null)
+            await moveRun(run, gameBuildId ?? NO_VERSION)
+          }}
+          title={r.changeVersion.title(moving.name.length > 0 ? moving.name : r.untitled)}
+          versions={versions}
+        />
       )}
 
       {pendingDelete !== null && (
@@ -183,5 +428,21 @@ export function RunListPanel({
         </div>
       )}
     </section>
+  )
+}
+
+function Chevron({ open }: { open: boolean }) {
+  return (
+    <svg aria-hidden="true" className={'tcl-chevron' + (open ? ' is-open' : '')} viewBox="0 0 16 16">
+      <path d="M6 4l4 4-4 4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" />
+    </svg>
+  )
+}
+
+function FolderIcon() {
+  return (
+    <svg aria-hidden="true" className="trl-folder" viewBox="0 0 16 16">
+      <path d="M1.75 4.25a1 1 0 0 1 1-1h3.4l1.4 1.5h5.7a1 1 0 0 1 1 1v6.5a1 1 0 0 1-1 1H2.75a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.3" />
+    </svg>
   )
 }

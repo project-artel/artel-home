@@ -20,8 +20,36 @@ export type TestRun = {
   name: string
   description: string | null
   createdAt: string
-  /** null — build 가 없던 프로젝트의 TR, 또는 한 번도 QA 를 돌리지 않은 옛 TR. */
+  /** 이 TR 이 따르는 TC 버전(ARTEL-1049). null 은 버전 없음이다. */
   gameBuild: RunGameBuild | null
+  /** 담은 시나리오 수. 목록 응답에만 있고, 단건 응답이면 null 이다. */
+  scenarioCount: number | null
+  /** 마지막 QA 실행 요약. 돌린 적이 없거나 단건 응답이면 null 이다. */
+  lastQaRun: RunLastQa | null
+}
+
+/** TR 의 마지막 QA 실행. `passed` · `failed` 는 그 실행의 시나리오 결과 수다. */
+export type RunLastQa = {
+  qaRunId: string
+  status: string
+  startedAt: string
+  passed: number
+  failed: number
+  total: number
+}
+
+function parseRunLastQa(data: unknown): RunLastQa | null {
+  const record = asRecord(data)
+  const qaRunId = record === null ? '' : asString(record.qaRunId)
+  if (record === null || qaRunId.length === 0) return null
+  return {
+    qaRunId,
+    status: asString(record.status),
+    startedAt: asString(record.startedAt),
+    passed: asCount(record.passed),
+    failed: asCount(record.failed),
+    total: asCount(record.total),
+  }
 }
 
 export function parseRunGameBuild(data: unknown): RunGameBuild | null {
@@ -59,6 +87,8 @@ export function parseTestRun(data: unknown): TestRun | null {
     description: asNullableString(record.description),
     createdAt: asString(record.createdAt),
     gameBuild: parseRunGameBuild(record.gameBuild),
+    scenarioCount: typeof record.scenarioCount === 'number' ? asCount(record.scenarioCount) : null,
+    lastQaRun: parseRunLastQa(record.lastQaRun),
   }
 }
 
@@ -76,10 +106,13 @@ export async function listTestRuns(projectId: string, signal?: AbortSignal): Pro
     .filter((run): run is TestRun => run !== null)
 }
 
-/** `POST /api/projects/{projectId}/test-runs` — create an empty run. */
+/**
+ * `POST /api/projects/{projectId}/test-runs` — create an empty run. `gameBuildId` picks the case version it follows
+ * (ARTEL-1049); `unversioned` makes it follow none. Without either the server picks the newest game build.
+ */
 export async function createTestRun(
   projectId: string,
-  body: { name?: string; description?: string } = {},
+  body: { name?: string; description?: string; gameBuildId?: string; unversioned?: boolean } = {},
 ): Promise<TestRun> {
   const response = await apiFetch(runsRoot(projectId), { method: 'POST', ...jsonRequest(body) })
   if (!response.ok) throw await toApiError(response)
@@ -300,4 +333,19 @@ export async function getRunCoverage(
     { signal },
   )
   return parseRunCoverage(await readJson(response))
+}
+
+/**
+ * `PUT /api/projects/{projectId}/test-runs/{runId}/game-build` — move the run to another case version (ARTEL-1049).
+ * `null` means no version. Its scenarios stay; authoring follows the new version from the next turn.
+ */
+export async function changeRunGameBuild(projectId: string, runId: string, gameBuildId: string | null): Promise<TestRun> {
+  const response = await apiFetch(`${runsRoot(projectId)}/${encodeURIComponent(runId)}/game-build`, {
+    method: 'PUT',
+    ...jsonRequest({ gameBuildId }),
+  })
+  if (!response.ok) throw await toApiError(response)
+  const run = parseTestRun(await readJson(response))
+  if (run === null) throw new Error('The server did not return a run.')
+  return run
 }

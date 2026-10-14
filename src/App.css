@@ -10705,3 +10705,47 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
 .llm-key-form {
   margin-top: var(--space-3);
 }
+/* QA 시작: TR 버전과 켜진 게임 빌드가 다를 때 (ARTEL-1049) */
+.qa-version-mismatch{ display:flex; align-items:flex-start; gap:8px; margin:0; padding:8px 10px; border:1px solid var(--color-status-warning); border-radius:6px; font-size:12px; color:var(--color-text-primary); background:color-mix(in srgb, var(--color-status-warning) 10%, transparent); grid-column:1/-1; }
+.qa-version-mismatch > span{ color:var(--color-status-warning); font-weight:700; }
+
+/* 테스트 런: 왼쪽 TC 버전 트리 + 오른쪽 그 버전의 런 표 (ARTEL-1049) */
+.trl{ display:grid; grid-template-columns:240px minmax(0,1fr); gap:var(--space-4); margin-top:var(--space-3); }
+.trl-side{ border-right:1px solid var(--color-border-subtle); padding-right:var(--space-3); display:flex; flex-direction:column; gap:4px; min-width:0; }
+.trl-side-title{ margin:0 0 4px; font-size:11px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--color-text-muted); }
+.trl-side-hint{ margin:var(--space-3) 0 0; font-size:11px; color:var(--color-text-muted); }
+.trl-tree{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px; }
+.trl-tree--nested{ padding-left:14px; }
+.trl-node, .trl-group{ display:flex; align-items:center; gap:8px; width:100%; padding:6px 8px; border:1px solid transparent; border-radius:6px; background:none; color:var(--color-text-primary); font:inherit; font-size:13px; text-align:left; cursor:pointer; }
+.trl-node:hover, .trl-group:hover{ background:var(--color-bg-hover); }
+.trl-node:focus-visible, .trl-group:focus-visible{ outline:2px solid var(--color-brand-accent); outline-offset:-2px; }
+.trl-node.is-current{ background:color-mix(in srgb, var(--color-brand-accent) 14%, transparent); font-weight:600; }
+.trl-node.is-hidden{ opacity:.65; }
+.trl-node.is-drop{ border-color:var(--color-brand-accent); border-style:dashed; }
+.trl-group{ color:var(--color-text-secondary); font-weight:600; }
+.trl-group--hidden{ margin-top:var(--space-2); font-weight:400; }
+.trl-folder{ width:15px; height:15px; flex:none; color:var(--color-text-secondary); }
+.trl-node-name{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.trl-node-count{ flex:none; font-size:11px; color:var(--color-text-muted); font-variant-numeric:tabular-nums; }
+.trl-main{ min-width:0; }
+.trl-main-title{ margin:0 0 var(--space-2); font-size:14px; }
+.trl-table{ width:100%; border-collapse:collapse; font-size:13px; }
+.trl-table th{ text-align:left; font-size:11px; font-weight:600; color:var(--color-text-muted); padding:6px 10px; border-bottom:1px solid var(--color-border-subtle); }
+.trl-table td{ padding:8px 10px; border-bottom:1px solid var(--color-border-subtle); vertical-align:top; }
+.trl-row:hover{ background:var(--color-bg-hover); }
+.trl-row[draggable="true"]{ cursor:grab; }
+.trl-num{ text-align:right; font-variant-numeric:tabular-nums; width:72px; }
+.trl-name{ background:none; border:0; padding:0; color:var(--color-text-primary); font:inherit; font-weight:600; cursor:pointer; text-align:left; }
+.trl-name:hover{ text-decoration:underline; }
+.trl-desc{ margin:2px 0 0; font-size:12px; color:var(--color-text-secondary); }
+.trl-qa{ color:var(--color-text-secondary); white-space:nowrap; }
+.trl-qa.has-failed{ color:var(--color-status-critical); }
+.trl-date{ color:var(--color-text-secondary); white-space:nowrap; }
+.trl-actions{ width:36px; text-align:right; }
+.trl-more{ background:none; border:0; color:var(--color-text-muted); cursor:pointer; font-size:16px; line-height:1; padding:2px 6px; border-radius:4px; }
+.trl-more:hover{ background:var(--color-bg-hover); color:var(--color-text-primary); }
+.nrd-version{ display:flex; align-items:center; gap:var(--space-2); }
+@media (max-width: 720px){ .trl{ grid-template-columns:1fr; } .trl-side{ border-right:0; padding-right:0; border-bottom:1px solid var(--color-border-subtle); padding-bottom:var(--space-3); } }
+.trl-notice{ display:flex; align-items:center; justify-content:space-between; gap:var(--space-2); margin:var(--space-2) 0 0; padding:8px 12px; border:1px solid var(--color-border-subtle); border-left:3px solid var(--color-brand-accent); border-radius:6px; font-size:13px; color:var(--color-text-primary); }
+.trl-notice-close{ background:none; border:0; color:var(--color-text-muted); cursor:pointer; font-size:12px; padding:2px 6px; }
+.nrd-field{ margin-top:var(--space-3); }
