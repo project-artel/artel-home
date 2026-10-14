@@ -352,7 +352,9 @@ export function TestCaseLibrary({
   }
 
   const waitsForVersion =
-    versionList.status === 'loading' || (versionsMode && !versionCases.ready && !versionCases.failed)
+    versionList.status === 'loading' || (versionsMode && !versionCases.loadedOnce && !versionCases.failed)
+  // 버전을 바꾸는 중: 표 자리만 기다린다.
+  const switchingVersion = versionsMode && !versionCases.ready && !versionCases.failed
   if (library.status === 'loading' || waitsForFolder || waitsForVersion) {
     return (
       <div className="section-single">
@@ -587,7 +589,11 @@ export function TestCaseLibrary({
           )}
         </div>
 
-        {shown.length === 0 ? (
+        {switchingVersion ? (
+          <div className="panel-empty-block" aria-busy="true">
+            <p className="panel-empty">{m.section.loading}</p>
+          </div>
+        ) : shown.length === 0 ? (
           <div className="panel-empty-block">
             <p className="panel-empty">
               {filtered

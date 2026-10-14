@@ -59,5 +59,8 @@ export function useVersionCases(projectId: string, gameBuildId: string | null, c
   const refresh = useCallback(() => setReloadKey((value) => value + 1), [])
   // 다른 버전으로 넘어간 직후에는 앞 버전의 줄을 보이지 않는다.
   const ready = key !== null && loadedKey === key
-  return { rows: ready ? rows : [], ready, failed, refresh }
+  // 한 번이라도 읽었으면 화면 전체를 다시 기다리게 하지 않는다. 버전을 바꿀 때 표 자리만 기다린다 — 화면 전체가
+  // "불러오는 중" 으로 바뀌면 버전을 누를 때마다 페이지를 새로 여는 것처럼 보였다.
+  const loadedOnce = loadedKey !== null
+  return { rows: ready ? rows : [], ready, loadedOnce, failed, refresh }
 }
