@@ -156,3 +156,40 @@ test('TC 상태 저장 기록은 case_id 별 마지막 상태로 읽는다', () 
 
   assert.deepEqual([...verdicts.entries()], [['7', 'VERIFIED'], ['8', 'VERIFIED']])
 })
+
+test('a FREE scenario has no frontier: a later verdict does not make earlier steps unreported', () => {
+  const freeSteps = [step('a'), step('b'), step('c')]
+  const progress = deriveQaProgress({
+    scenarioSteps: freeSteps,
+    executionMode: 'FREE',
+    logs: [verdict('l1', 3, true), verdict('l2', 1, false)],
+    status: 'RUNNING',
+    historyComplete: true,
+  })
+
+  assert.deepEqual(progress.steps.map((entry) => entry.state), ['failed', 'pending', 'passed'])
+  assert.equal(progress.reported, 2)
+})
+
+test('an ORDERED scenario still reads steps behind the frontier as unreported', () => {
+  const progress = deriveQaProgress({
+    scenarioSteps: [step('a'), step('b'), step('c')],
+    logs: [verdict('l1', 3, true)],
+    status: 'RUNNING',
+    historyComplete: true,
+  })
+
+  assert.deepEqual(progress.steps.map((entry) => entry.state), ['unreported', 'unreported', 'passed'])
+})
+
+test('a finished FREE run leaves unjudged steps unreported', () => {
+  const progress = deriveQaProgress({
+    scenarioSteps: [step('a'), step('b')],
+    executionMode: 'FREE',
+    logs: [verdict('l1', 2, true)],
+    status: 'COMPLETED',
+    historyComplete: true,
+  })
+
+  assert.deepEqual(progress.steps.map((entry) => entry.state), ['unreported', 'passed'])
+})

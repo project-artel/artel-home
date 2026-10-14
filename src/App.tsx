@@ -1,7 +1,9 @@
-import { useEffect, useRef } from 'react'
+import { lazy, useEffect, useRef } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import './App.css'
 import { AccountSettingsPage } from './account/AccountSettingsPage'
+import { AdminLayout } from './admin/AdminLayout'
+import { RequireAdmin } from './admin/RequireAdmin'
 import { LoginPage } from './LoginPage'
 import { NotFoundPage } from './NotFoundPage'
 import { useAuth } from './auth/useAuth'
@@ -36,6 +38,15 @@ import { AppShell } from './shell/AppShell'
 import { RunEditRoute } from './testRuns/RunEditPage'
 import { RunMapRoute } from './testRuns/RunMapPage'
 import { TestScenarioRoute } from './testScenarios/TestScenarioPage'
+
+// The admin screens load on first visit. See `AdminLayout`.
+const AdminQaPage = lazy(() => import('./admin/qa/QaPage'))
+const AdminUsagePage = lazy(() => import('./admin/usage/UsagePage'))
+const AdminKnowledgePage = lazy(() => import('./admin/knowledge/KnowledgePage'))
+const AdminGraphPage = lazy(() => import('./admin/graph/GraphPage'))
+const AdminLabelsPage = lazy(() => import('./admin/labels/LabelsPage'))
+const AdminUsersPage = lazy(() => import('./admin/settings/UsersPage'))
+const AdminSettingsPage = lazy(() => import('./admin/settings/SettingsPage'))
 
 export function App() {
   const auth = useAuth()
@@ -100,6 +111,24 @@ export function App() {
           <Route path="/account" element={<AccountSettingsPage />} />
           <Route path="/projects" element={<ProjectListPage />} />
           <Route path="/setup" element={<SetupPage />} />
+          {/* Only an ADMIN gets past RequireAdmin; everyone else sees the not-found page. */}
+          <Route
+            path="/admin"
+            element={
+              <RequireAdmin>
+                <AdminLayout />
+              </RequireAdmin>
+            }
+          >
+            <Route index element={<Navigate replace to="qa" />} />
+            <Route path="qa" element={<AdminQaPage />} />
+            <Route path="usage" element={<AdminUsagePage />} />
+            <Route path="knowledge" element={<AdminKnowledgePage />} />
+            <Route path="graph" element={<AdminGraphPage />} />
+            <Route path="labels" element={<AdminLabelsPage />} />
+            <Route path="users" element={<AdminUsersPage />} />
+            <Route path="settings" element={<AdminSettingsPage />} />
+          </Route>
           {/* One project, split by question asked. The layout loads the
               project once and keeps it mounted, so moving between sections
               costs a re-render and no request. */}

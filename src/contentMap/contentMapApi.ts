@@ -14,6 +14,8 @@ import {
   type ContentMapView,
   type IngestProgress,
   type LastScan,
+  SCAN_TEST_CASE_STATES,
+  type ScanTestCases,
   type PendingDocument,
   type ScanState,
   type SceneCapability,
@@ -644,6 +646,19 @@ export function parseLastScan(data: unknown): LastScan | null {
     ingestedDocuments:
       typeof record.ingestedDocuments === 'number' ? asCount(record.ingestedDocuments) : null,
     error: asNullableString(record.error),
+    testCases: parseScanTestCases(record.testCases),
+  }
+}
+
+/** 스캔 뒤 TC 생성 결과. 없거나 모르는 상태면 null 이다 — 그냥 스캔으로 그린다. */
+export function parseScanTestCases(data: unknown): ScanTestCases | null {
+  const record = asRecord(data)
+  if (record === null || !isOneOf(record.state, SCAN_TEST_CASE_STATES)) return null
+  return {
+    state: record.state,
+    created: typeof record.created === 'number' ? asCount(record.created) : null,
+    carriedOver: typeof record.carriedOver === 'number' ? asCount(record.carriedOver) : null,
+    reason: asNullableString(record.reason),
   }
 }
 

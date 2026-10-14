@@ -1,4 +1,5 @@
 import { useEffect, useId, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { apiErrorMessage } from '../projects/apiErrorMessage'
 import { formatDateTime } from '../projects/formatters'
@@ -12,6 +13,8 @@ import {
   type LastScan,
 } from './contentMapTypes'
 import type { ContentMapEventsState } from './useContentMapEvents'
+import { readCarryOver } from './carryOverChoice'
+import { testCaseLibraryPath } from './contentMapTestCases'
 import { requestEvidenceScan } from './requestEvidenceScan'
 
 /**
@@ -28,7 +31,7 @@ import { requestEvidenceScan } from './requestEvidenceScan'
 
 type ScanState =
   | { phase: 'idle' }
-  | { phase: 'running' }
+  | { phase: 'running'; withTestCases: boolean }
   | { phase: 'requested' }
   | { phase: 'failed'; message: string }
 
@@ -115,12 +118,18 @@ export function EvidenceScanPanel({
     return copy.disabled[reason]
   }
 
-  async function start() {
+  async function start(withTestCases: boolean) {
     if (instanceId === '') return
-    setScanRun({ token: refreshToken, scan: { phase: 'running' } })
+    setScanRun({ token: refreshToken, scan: { phase: 'running', withTestCases } })
 
     try {
-      await requestEvidenceScan({ projectId, gameBuildId: buildId })
+      // 이어 넣기는 라이브러리 모달에서 마지막으로 고른 값을 따른다(ARTEL-1041).
+      await requestEvidenceScan({
+        projectId,
+        gameBuildId: buildId,
+        generateTestCases: withTestCases,
+        carryOver: readCarryOver(),
+      })
       setScanRun({ token: refreshToken, scan: { phase: 'requested' } })
     } catch (error: unknown) {
       setScanRun({
@@ -168,10 +177,19 @@ export function EvidenceScanPanel({
         <button
           className="button button--primary"
           disabled={disabled}
-          onClick={() => void start()}
+          onClick={() => void start(false)}
           type="button"
         >
-          {scan.phase === 'running' ? copy.running : copy.action}
+          {scan.phase === 'running' && !scan.withTestCases ? copy.running : copy.action}
+        </button>
+        {/* 스캔이 끝나 지도가 다 읽히면 서버가 그 빌드의 TC 도 만든다(ARTEL-1041). */}
+        <button
+          className="button button--secondary"
+          disabled={disabled}
+          onClick={() => void start(true)}
+          type="button"
+        >
+          {scan.phase === 'running' && scan.withTestCases ? copy.running : copy.actionWithTestCases}
         </button>
       </div>
 
@@ -196,7 +214,7 @@ export function EvidenceScanPanel({
         </div>
       )}
 
-      <ScanStatusPanel events={events} />
+      <ScanStatusPanel events={events} projectId={projectId} />
       <IngestStatus events={events} />
 
       {/* 요청이 받아들여졌다는 사실만 알린다. 실패는 바로 위 role="alert" 가
@@ -217,6 +235,21 @@ function describeBlock(instances: InstancesState, connectedCount: number): Block
   if (instances.instances.length === 0) return 'noInstances'
   if (connectedCount === 0) return 'noneConnected'
   return null
+}
+
+/**
+ * 스캔 뒤 TC 생성 한 줄. 스캔이 실패해 TC 를 만들지 않았으면 `PENDING` 으로 남으므로, 그때는 "기다린다" 가 아니라
+ * "만들지 않았다" 로 읽는다.
+ */
+function scanTestCasesLabel(
+  copy: ReturnType<typeof useI18n>['t']['contentMap']['scanStatus']['testCases'],
+  scanState: LastScan['state'],
+  testCases: NonNullable<LastScan['testCases']>,
+): string {
+  if (testCases.state === 'GENERATED') return copy.generated(testCases.created ?? 0, testCases.carriedOver ?? 0)
+  if (testCases.state === 'SKIPPED') return copy.skipped
+  if (testCases.state === 'FAILED') return testCases.reason ?? copy.failed
+  return scanState === 'REQUESTED' ? copy.pending : copy.notMade
 }
 
 /** 스캔 상태 label 이 밟는 세 갈래에 맞춰 상태 점 색을 고른다. */
@@ -262,7 +295,7 @@ function useTickingNow(active: boolean): number {
  * `scan === null` 은 "이 서버가 이 빌드의 스캔을 모른다"는 사실이고,
  * `contract-contentmap.md` 가 못 박은 대로 영원한 진행 중으로 그리지 않는다.
  */
-function ScanStatusPanel({ events }: { events: ContentMapEventsState }) {
+function ScanStatusPanel({ events, projectId }: { events: ContentMapEventsState; projectId: string }) {
   const { t } = useI18n()
   const copy = t.contentMap.scanStatus
   const now = useTickingNow(events.scan?.state === 'REQUESTED')
@@ -308,6 +341,16 @@ function ScanStatusPanel({ events }: { events: ContentMapEventsState }) {
       </p>
       {scan.state === 'FAILED' && scan.error !== null && (
         <p className="cm-pending-error">{scan.error}</p>
+      )}
+      {scan.testCases !== null && (
+        <p className={'cm-scan-tc' + (scan.testCases.state === 'FAILED' ? ' cm-scan-tc--failed' : '')}>
+          <span>{scanTestCasesLabel(copy.testCases, scan.state, scan.testCases)}</span>
+          {scan.testCases.state === 'GENERATED' && (
+            <Link className="button button--secondary button--compact" to={testCaseLibraryPath(projectId, null)}>
+              {copy.testCases.openLibrary}
+            </Link>
+          )}
+        </p>
       )}
       <p className="cm-scan-connection mono">{streamStateLabel(copy, events.streamState)}</p>
     </div>

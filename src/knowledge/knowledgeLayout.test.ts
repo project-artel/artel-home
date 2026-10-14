@@ -32,7 +32,7 @@ function edge(from: string, to: string, relation = 'LEADS_TO', note: string | nu
 }
 
 function graph(nodes: KnowledgeNode[], edges: KnowledgeEdge[]): KnowledgeGraph {
-  return { projectId: '1', nodes, edges, truncated: false, nodeLimit: 200 }
+  return { projectId: '1', nodes, edges, droppedEdges: 0, truncated: false, nodeLimit: 200 }
 }
 
 test('an empty graph lays out without producing a degenerate view box', () => {

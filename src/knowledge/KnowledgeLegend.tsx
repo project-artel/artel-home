@@ -1,6 +1,7 @@
 import { useI18n } from '../i18n/useI18n'
 import { nodeShape, relationLabel, relationShape, sourceLabel } from './knowledgeLabels'
 import type { KnowledgeEdge, KnowledgeNode, RelationStyle } from './knowledgeTypes'
+import { countBy } from './knowledgeCounts'
 import { documentNodeIds, relationStyle } from './knowledgeTypes'
 
 /**
@@ -10,15 +11,27 @@ import { documentNodeIds, relationStyle } from './knowledgeTypes'
  * this project has never recorded teaches the reader to look for something that
  * is not there. Every row names the line pattern in words as well as drawing it,
  * so the legend still works when the colours are indistinguishable.
+ *
+ * With `formatCount` (the admin graph screen) every relation and source row also
+ * says how many of it are drawn. Without it the rows are exactly as before.
  */
 export function KnowledgeLegend({
   edges,
   nodes,
+  formatCount,
 }: {
   edges: KnowledgeEdge[]
   nodes: KnowledgeNode[]
+  formatCount?: (value: number) => string
 }) {
   const { t } = useI18n()
+  const relationCounts = formatCount === undefined ? null : countBy(edges, (edge) => relationStyle(edge.relation))
+  const sourceCounts = formatCount === undefined ? null : countBy(nodes, (node) => node.source)
+  const countCell = (counts: ReadonlyMap<string, number> | null, key: string) =>
+    counts === null || formatCount === undefined ? null : (
+      <span className="kg-legend-count">{formatCount(counts.get(key) ?? 0)}</span>
+    )
+  const rowClass = formatCount === undefined ? undefined : 'kg-legend-row--counted'
 
   // One row per style, but the raw names are kept so an unrecognised relation
   // is listed as the server spelled it rather than as "unknown" three times.
@@ -40,7 +53,7 @@ export function KnowledgeLegend({
           <h3>{t.knowledge.legend.relationTitle}</h3>
           <ul>
             {[...byStyle.entries()].map(([style, names]) => (
-              <li key={style}>
+              <li className={rowClass} key={style}>
                 <svg aria-hidden="true" className="kg-legend-line" viewBox="0 0 44 12">
                   <path className={`kg-edge-line kg-edge--${style}`} d="M 2 6 L 42 6" />
                 </svg>
@@ -51,6 +64,7 @@ export function KnowledgeLegend({
                     .join(' · ')}
                 </span>
                 <span className="kg-legend-shape">{relationShape(t, style)}</span>
+                {countCell(relationCounts, style)}
               </li>
             ))}
           </ul>
@@ -64,7 +78,7 @@ export function KnowledgeLegend({
             {sources.map((source) => {
               const shape = nodeShape(source)
               return (
-                <li key={source}>
+                <li className={rowClass} key={source}>
                   <svg aria-hidden="true" className="kg-legend-line" viewBox="0 0 44 12">
                     {shape === 'circle' && <circle className="kg-legend-mark" cx="22" cy="6" r="5" />}
                     {shape === 'square' && (
@@ -89,6 +103,7 @@ export function KnowledgeLegend({
                         ? t.knowledge.sourceShapes.DOCS
                         : t.knowledge.sourceShapes.OTHER}
                   </span>
+                  {countCell(sourceCounts, source)}
                 </li>
               )
             })}

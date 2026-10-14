@@ -1,0 +1,193 @@
+.admin-console {
+  /* Users and Settings tabs. Reuses the shell, table, status, and notice classes from qaStats/dashboard.css;
+     only what those do not cover is defined here. Colors come from tokens.css. */
+
+  .adm-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: var(--space-3);
+    margin-bottom: var(--space-3);
+  }
+
+  .adm-field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  .adm-field--wide {
+    flex: 1 1 360px;
+    max-width: 560px;
+  }
+
+  .adm-input {
+    min-height: 32px;
+    width: 100%;
+    min-width: 180px;
+  }
+
+  .adm-actions,
+  .adm-confirm {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .adm-danger {
+    color: var(--color-text-primary);
+    border-color: var(--color-status-critical);
+    background: var(--color-status-critical-muted);
+  }
+
+  .adm-facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-6);
+    margin: 0 0 var(--space-4);
+  }
+
+  .adm-facts dt {
+    font-size: 11px;
+    line-height: 16px;
+    color: var(--color-text-muted);
+  }
+
+  .adm-facts dd {
+    margin: 0;
+    font-size: 13px;
+    line-height: 20px;
+  }
+
+  .adm-check {
+    margin-top: var(--space-3);
+  }
+
+  /* The one-time password. Warning amber plus a "!" mark and text, so it never relies on color alone. */
+  .adm-secret {
+    padding: var(--space-4);
+    border: 1px solid var(--color-status-warning);
+    border-radius: var(--radius-md);
+    background: var(--color-status-warning-muted);
+    color: var(--color-text-primary);
+  }
+
+  .adm-secret__title {
+    margin: 0 0 var(--space-2);
+    font-size: 15px;
+    line-height: 22px;
+    font-weight: 600;
+  }
+
+  .adm-secret__warning {
+    margin: 0 0 var(--space-3);
+    font-size: 13px;
+    line-height: 20px;
+  }
+
+  .adm-secret__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .adm-secret__value {
+    padding: var(--space-2) var(--space-3);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--color-bg-surface);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    user-select: all;
+    overflow-wrap: anywhere;
+  }
+
+  .adm-secret__status {
+    min-height: 16px;
+    margin: var(--space-2) 0 0;
+    font-size: 11px;
+    line-height: 16px;
+  }
+
+  .adm-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  /* Model catalog rows: label, badges, and the on/off switch. */
+  .adm-model {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) 0;
+    border-bottom: 1px solid var(--color-border-subtle);
+  }
+
+  .adm-model__name {
+    flex: 1 1 240px;
+    min-width: 0;
+  }
+
+  .adm-model__label {
+    font-size: 13px;
+    line-height: 20px;
+    font-weight: 600;
+  }
+
+  .adm-model__meta {
+    font-size: 11px;
+    line-height: 16px;
+    color: var(--color-text-muted);
+    overflow-wrap: anywhere;
+  }
+
+  .adm-badge {
+    padding: 0 var(--space-2);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-sm);
+    font-size: 11px;
+    line-height: 16px;
+    color: var(--color-text-secondary);
+  }
+
+  .adm-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: 13px;
+    line-height: 20px;
+    cursor: pointer;
+  }
+
+  .adm-switch input {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--color-action-primary);
+  }
+
+  .adm-switch input:disabled {
+    cursor: not-allowed;
+  }
+
+  .adm-switch input:focus-visible {
+    outline: 2px solid var(--color-action-primary);
+    outline-offset: 2px;
+  }
+
+  .adm-models {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* An action row placed right under a block hint, as in the Bedrock key section. */
+  .section__note--block + .adm-actions {
+    margin-top: var(--space-3);
+  }
+}

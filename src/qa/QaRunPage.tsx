@@ -215,6 +215,7 @@ function QaRunPage({
   }
 
   const rail: QaScenarioRailProps = {
+    projectId,
     tries: run.tries,
     activeTryId,
     focusedTryId,
@@ -284,7 +285,7 @@ function QaRunPage({
 function FocusedTry({ qaRun, rail, tryId }: { qaRun: QaRun; rail: QaScenarioRailProps; tryId: string }) {
   const { t } = useI18n()
   const session = useQaTry(tryId)
-  const scenarioSteps = useScenarioSteps(session.qaTry?.testScenarioId ?? null)
+  const { steps: scenarioSteps, executionMode } = useScenarioSteps(session.qaTry?.testScenarioId ?? null)
   const [logView, setLogView] = useState<'flow' | 'raw' | 'issues'>('flow')
   const [focusRequest, setFocusRequest] = useState<QaLogFocusRequest | null>(null)
 
@@ -292,11 +293,12 @@ function FocusedTry({ qaRun, rail, tryId }: { qaRun: QaRun; rail: QaScenarioRail
     () =>
       deriveQaProgress({
         scenarioSteps,
+        executionMode,
         logs: session.logs,
         status: session.qaTry?.status ?? 'STARTING',
         historyComplete: !session.hasMore,
       }),
-    [scenarioSteps, session.hasMore, session.logs, session.qaTry?.status],
+    [scenarioSteps, executionMode, session.hasMore, session.logs, session.qaTry?.status],
   )
 
   const contextUsage = useMemo(() => deriveQaContextUsage(session.logs), [session.logs])
@@ -366,6 +368,7 @@ function FocusedTry({ qaRun, rail, tryId }: { qaRun: QaRun; rail: QaScenarioRail
           active,
           progress,
           scenarioSteps,
+          executionMode,
           onJump: jumpToLog,
           caseVerdicts,
         }}

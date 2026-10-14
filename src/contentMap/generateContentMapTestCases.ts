@@ -39,14 +39,17 @@ export function parseGeneratedTestCases(data: unknown): GeneratedTestCases {
  * 갱신하고 사라진 것은 지운다. build 가 없으면 404, 적재된 content map 이 없으면 409.
  *
  * [carryOver] 가 false 면 앞 버전의 사용자 생성 TC 를 이어 넣지 않는다(`?carryOver=false`). 서버 기본값은 이어
- * 넣기라 true 일 때는 싣지 않는다.
+ * 넣기라 true 일 때는 싣지 않는다. [overwrite] 면 이미 TC 를 만든 빌드의 지도 TC 를 덮어쓴다(ARTEL-1041) — 화면이
+ * 경고를 보인 뒤에만 보낸다.
  */
 export async function generateContentMapTestCases(
   projectId: string,
   buildId: string,
   carryOver = true,
+  overwrite = false,
 ): Promise<GeneratedTestCases> {
-  const query = carryOver ? '' : '?carryOver=false'
+  const params = [...(carryOver ? [] : ['carryOver=false']), ...(overwrite ? ['overwrite=true'] : [])]
+  const query = params.length === 0 ? '' : `?${params.join('&')}`
   const response = await apiFetch(contentMapPath(projectId, buildId, '/test-cases') + query, {
     method: 'POST',
   })

@@ -36,6 +36,7 @@ test('parseLastScan 은 REQUESTED 스캔을 읽는다', () => {
     finishedAt: null,
     ingestedDocuments: null,
     error: null,
+    testCases: null,
   })
 
   assert.deepEqual(scan, {
@@ -46,6 +47,7 @@ test('parseLastScan 은 REQUESTED 스캔을 읽는다', () => {
     finishedAt: null,
     ingestedDocuments: null,
     error: null,
+    testCases: null,
   })
 })
 
@@ -251,6 +253,7 @@ test('parseContentMapScanEvent 는 정상 스캔을 읽는다', () => {
       finishedAt: '2026-09-03T01:00:05Z',
       ingestedDocuments: null,
       error: 'SDK disconnected mid-scan',
+      testCases: null,
     },
   })
 })

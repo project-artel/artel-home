@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
 import { useI18n } from '../i18n/useI18n'
 import { formatDate } from '../projects/formatters'
 import type { GameBuild } from '../projects/gameTypes'
 import { ProjectApiError } from '../projects/projectApi'
+import { CreateFreeScenarioDialog } from '../testScenarios/CreateFreeScenarioDialog'
 import { CaseSceneFilter } from './CaseSceneFilter'
 import { SceneChip } from './SceneChip'
 import { SpecGradeChip } from './SpecGradeChip'
@@ -77,6 +78,7 @@ import {
 } from './versionCommands'
 import { VersionList, type VersionOperations } from './VersionList'
 import { VersionTreeDialog } from './VersionTreeDialog'
+import { GenerateTestCasesDialog } from './GenerateTestCasesDialog'
 import { ImportManualCasesDialog } from './ImportManualCasesDialog'
 import { CoachTour } from './tour/CoachTour'
 import { CASE_LIBRARY_TOUR, caseLibraryTourSteps } from './tour/caseLibraryTour'
@@ -247,8 +249,13 @@ export function TestCaseLibrary({
   const [deleting, setDeleting] = useState<TestCase | null>(null)
   const [isBulkDeleting, setIsBulkDeleting] = useState(false)
   const [isMoving, setIsMoving] = useState(false)
+  const [isCreatingFree, setIsCreatingFree] = useState(false)
+  const navigate = useNavigate()
   const [isAddingToVersion, setIsAddingToVersion] = useState(false)
   const [importTarget, setImportTarget] = useState<TestCaseVersionSummary | null>(null)
+  const [isGenerating, setIsGenerating] = useState(false)
+  // 지도에서 만들거나 덮어쓴 결과. 낭독용 알림과 달리 눈에 보이게 헤더 아래 한 줄로 남긴다(ARTEL-1041).
+  const [generationNotice, setGenerationNotice] = useState<string | null>(null)
   const [sideCollapsed, setSideCollapsed] = useState(false)
   // 왼쪽 창과 목록을 화면 끝까지 채운다. 높이는 "화면 − 이 화면이 시작하는 자리 − 아래 여백" 이다. 시작 자리는
   // 위의 페이지 제목 줄에 따라 달라 CSS 만으로는 정할 수 없어 잰다. 못 재면 CSS 의 기본값을 쓴다.
@@ -725,16 +732,35 @@ export function TestCaseLibrary({
               </span>
             )}
           </h2>
-          <button
-            className="button button--primary button--compact"
-            data-tour="new-case"
-            onClick={startCreating}
-            type="button"
-          >
-            {m.section.newCase}
-          </button>
+          <div className="tcl-head-actions">
+            {/* 화면 지도에 있던 TC 생성을 라이브러리로 옮겼다(ARTEL-1041). 빌드는 모달에서 고른다. */}
+            <button
+              className="button button--secondary button--compact"
+              data-tour="generate-from-map"
+              onClick={() => setIsGenerating(true)}
+              type="button"
+            >
+              {m.section.generateFromMap}
+            </button>
+            <button
+              className="button button--primary button--compact"
+              data-tour="new-case"
+              onClick={startCreating}
+              type="button"
+            >
+              {m.section.newCase}
+            </button>
+          </div>
         </header>
         <p className="section-intro">{m.section.subtitle}</p>
+        {generationNotice !== null && (
+          <p className="tcl-notice">
+            <span>{generationNotice}</span>
+            <button aria-label={m.generate.dismiss} className="tcl-notice-close" onClick={() => setGenerationNotice(null)} type="button">
+              ✕
+            </button>
+          </p>
+        )}
 
         <div className="tcl-filters">
           <div className="tcl-filter tcl-filter--grow" data-tour="search">
@@ -873,6 +899,7 @@ export function TestCaseLibrary({
               limitNoteId={limitNoteId}
               moveLabel={folderView ? m.folderItems.moveTo : m.folderItems.add}
               onClear={clearSelection}
+              onCreateFreeScenario={() => setIsCreatingFree(true)}
               onDelete={() => setIsBulkDeleting(true)}
               onMove={() => setIsMoving(true)}
             />
@@ -1137,6 +1164,27 @@ export function TestCaseLibrary({
         <CoachTour index={tour.index} onFinish={tour.finish} onIndex={tour.setIndex} steps={tourSteps} />
       )}
 
+      {isGenerating && (
+        <GenerateTestCasesDialog
+          groups={versionList.groups}
+          onClose={() => setIsGenerating(false)}
+          onGenerated={(candidate, result) => {
+            setIsGenerating(false)
+            refreshLibrary()
+            refreshVersions()
+            // 방금 만든 버전을 연다. 그 버전이 목록에 새로 생겼다.
+            setVersionParams(candidate.gameBuildId, null)
+            const notice = candidate.generated
+              ? m.generate.overwritten(candidate.version, result.created, result.updated, result.deleted + result.broken)
+              : m.generate.done(candidate.version, result.created, result.carriedOver)
+            setGenerationNotice(notice)
+            setAnnouncement(notice)
+          }}
+          projectId={projectId}
+          versions={versionList.versions}
+        />
+      )}
+
       {importTarget !== null && (
         <ImportManualCasesDialog
           folders={folderList.folders}
@@ -1169,6 +1217,17 @@ export function TestCaseLibrary({
           }}
           title={m.addToVersion.title(selectedManualIds.length)}
           versions={versionList.versions}
+        />
+      )}
+
+      {isCreatingFree && (
+        <CreateFreeScenarioDialog
+          // 목록에 보이는 순서대로 담는다. 선택한 순서는 Set 에 남은 클릭 순서일 뿐이다.
+          cases={shown.filter((testCase) => selection.isSelected(testCase.id))}
+          onClose={() => setIsCreatingFree(false)}
+          onCreated={(testScenarioId) =>
+            navigate(`/projects/${encodeURIComponent(projectId)}/test-scenarios/${testScenarioId}`)}
+          projectId={projectId}
         />
       )}
 

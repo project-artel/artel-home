@@ -16,13 +16,16 @@ import {
 /** 가져올 곳: 다른 버전, "버전 없음", 또는 폴더. */
 type Source = { kind: 'version'; id: string } | { kind: 'folder'; id: string }
 
-type Loaded = { key: string; cases: TestCase[] } | { key: string; failed: true }
+type Loaded = { cases: TestCase[] } | { failed: true }
 
 /**
  * 다른 라이브러리(다른 버전 · 버전 없음 · 폴더)의 사용자 생성 TC 를 이 버전에 가져온다(ARTEL-1032).
  *
- * 왼쪽에서 출처를 고르면 오른쪽에 그 출처의 사용자 생성 TC 중 **이 버전에 아직 없는 것**만 보인다. 처음에는 전부 골라져
- * 있다. 자동 생성 TC 는 버전마다 콘텐츠 맵을 따르므로 보이지 않는다.
+ * 왼쪽에서 출처를 고르면 오른쪽에 그 출처의 사용자 생성 TC 중 **이 버전에 아직 없는 것**만 보인다. 자동 생성 TC 는 버전마다
+ * 콘텐츠 맵을 따르므로 보이지 않는다.
+ *
+ * 고른 TC 는 출처를 옮겨도 남는다(ARTEL-1041). 그래서 여러 버전 · 폴더에서 골라 한 번에 가져온다. 출처마다 고른 수를 왼쪽에
+ * 보이고, 처음 연 출처라도 저절로 고르지 않는다 — 출처를 둘러볼 때마다 고른 것이 늘어나면 무엇을 고른 건지 알 수 없다.
  */
 export function ImportManualCasesDialog({
   folders,
@@ -51,9 +54,10 @@ export function ImportManualCasesDialog({
   const entries = useMemo(() => arrangeVersions(others, groups), [others, groups])
   const folderRows = useMemo(() => flattenFolderTree(buildFolderTree(folders)), [folders])
   const [source, setSource] = useState<Source | null>(null)
-  const [loaded, setLoaded] = useState<Loaded | null>(null)
+  // 출처마다 읽은 목록. 다시 고르면 다시 읽지 않고, 왼쪽의 "고른 수" 도 여기서 센다.
+  const [loadedBySource, setLoadedBySource] = useState<ReadonlyMap<string, Loaded>>(new Map())
   const [targetIds, setTargetIds] = useState<ReadonlySet<string> | null>(null)
-  const [picked, setPicked] = useState<ReadonlySet<string>>(new Set())
+  const [picked, setPicked] = useState<ReadonlyMap<string, TestCase>>(new Map())
   const [pending, setPending] = useState(false)
   const [failure, setFailure] = useState<string | null>(null)
   const sourceKey = source === null ? null : `${source.kind}:${source.id}`
@@ -68,7 +72,7 @@ export function ImportManualCasesDialog({
   }, [projectId, target.gameBuildId])
 
   useEffect(() => {
-    if (source === null || sourceKey === null) return undefined
+    if (source === null || sourceKey === null || loadedBySource.has(sourceKey)) return undefined
     const controller = new AbortController()
     const read =
       source.kind === 'version'
@@ -79,26 +83,37 @@ export function ImportManualCasesDialog({
             list.items.filter((item) => item.origin === 'MANUAL').map((item) => item.testCase),
           )
     read
-      .then((cases) => {
-        setLoaded({ key: sourceKey, cases })
-        setPicked(new Set(cases.map((one) => one.id)))
-      })
+      .then((cases) => setLoadedBySource((current) => new Map(current).set(sourceKey, { cases })))
       .catch((cause: unknown) => {
         if (cause instanceof DOMException && cause.name === 'AbortError') return
-        setLoaded({ key: sourceKey, failed: true })
+        setLoadedBySource((current) => new Map(current).set(sourceKey, { failed: true }))
       })
     return () => controller.abort()
-  }, [projectId, source, sourceKey, target.gameBuildId])
+  }, [projectId, source, sourceKey, target.gameBuildId, loadedBySource])
 
-  const current = loaded !== null && loaded.key === sourceKey ? loaded : null
-  const candidates = useMemo(
-    () => (current === null || 'failed' in current || targetIds === null ? [] : current.cases.filter((one) => !targetIds.has(one.id))),
-    [current, targetIds],
-  )
-  const chosen = candidates.filter((one) => picked.has(one.id))
+  const current = sourceKey === null ? null : (loadedBySource.get(sourceKey) ?? null)
+  const candidates = useMemo(() => visibleCases(current, targetIds), [current, targetIds])
+  const chosenHere = candidates.filter((one) => picked.has(one.id))
+  // 이 버전에 이미 있는 것은 고를 수 없다. 목록을 읽기 전에 고른 것이 그사이 들어갔을 일은 없지만 한 번 더 거른다.
+  const chosen = [...picked.values()].filter((one) => targetIds === null || !targetIds.has(one.id))
 
-  const sourceButton = (key: Source, label: string, extra?: string) => {
+  const pickedIn = (key: Source) =>
+    visibleCases(loadedBySource.get(`${key.kind}:${key.id}`), targetIds).filter((one) => picked.has(one.id)).length
+
+  const toggle = (cases: readonly TestCase[], on: boolean) =>
+    setPicked((currentPicked) => {
+      const next = new Map(currentPicked)
+      for (const one of cases) {
+        if (on) next.set(one.id, one)
+        else next.delete(one.id)
+      }
+      return next
+    })
+
+  const sourceButton = (key: Source, label: string) => {
     const on = source !== null && source.kind === key.kind && source.id === key.id
+    const count = pickedIn(key)
+    const extra = count > 0 ? m.pickedIn(count) : undefined
     return (
       <button
         aria-pressed={on}
@@ -153,10 +168,8 @@ export function ImportManualCasesDialog({
               <>
                 <label className="mimp-all">
                   <input
-                    checked={chosen.length === candidates.length}
-                    onChange={() =>
-                      setPicked(chosen.length === candidates.length ? new Set() : new Set(candidates.map((one) => one.id)))
-                    }
+                    checked={chosenHere.length === candidates.length}
+                    onChange={() => toggle(candidates, chosenHere.length !== candidates.length)}
                     type="checkbox"
                   />
                   {m.selectAll(candidates.length)}
@@ -167,14 +180,7 @@ export function ImportManualCasesDialog({
                       <label className="mimp-case">
                         <input
                           checked={picked.has(one.id)}
-                          onChange={() =>
-                            setPicked((currentPicked) => {
-                              const next = new Set(currentPicked)
-                              if (next.has(one.id)) next.delete(one.id)
-                              else next.add(one.id)
-                              return next
-                            })
-                          }
+                          onChange={() => toggle([one], !picked.has(one.id))}
                           type="checkbox"
                         />
                         <span className="mimp-case-step">{one.step.length > 0 ? one.step : t.testCases.row.untitled}</span>
@@ -186,6 +192,15 @@ export function ImportManualCasesDialog({
               </>
             )}
           </section>
+        </div>
+        {/* 출처를 옮겨도 남는 선택. 무엇을 몇 건 골랐는지 늘 보인다. */}
+        <div className="mimp-picked" aria-live="polite">
+          <span>{chosen.length === 0 ? m.pickedNone : m.pickedTotal(chosen.length)}</span>
+          {chosen.length > 0 && (
+            <button className="button button--secondary button--compact" disabled={pending} onClick={() => setPicked(new Map())} type="button">
+              {m.clearPicked}
+            </button>
+          )}
         </div>
         {failure !== null && (
           <div className="inline-error" role="alert">
@@ -216,4 +231,10 @@ export function ImportManualCasesDialog({
       </div>
     </Dialog>
   )
+}
+
+/** 출처 목록에서 이 버전에 아직 없는 것. 읽지 못했거나 아직 읽는 중이면 빈 목록이다. */
+function visibleCases(loaded: Loaded | null | undefined, targetIds: ReadonlySet<string> | null): TestCase[] {
+  if (loaded === null || loaded === undefined || 'failed' in loaded || targetIds === null) return []
+  return loaded.cases.filter((one) => !targetIds.has(one.id))
 }

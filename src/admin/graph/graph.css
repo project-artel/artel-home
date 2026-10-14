@@ -1,0 +1,61 @@
+/* The admin graph screen. The drawing's own rules are the project route's (`.kg-*` in App.css);
+   these are only the parts the admin screen adds. Nested under .admin-console like shared/dashboard.css. */
+.admin-console {
+  /* The legend row gains a fourth column when it carries a count. */
+  .kg-legend-group li.kg-legend-row--counted {
+    grid-template-columns: 44px minmax(0, auto) minmax(0, 1fr) auto;
+  }
+
+  .kg-legend-count {
+    color: var(--color-text-secondary);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
+  /* The dropped-edge notice sits above the summary line, outside the canvas panel's gap. */
+  .kg-notice--spaced {
+    margin: 0 0 var(--space-4);
+  }
+
+  .kg-relations {
+    margin-top: var(--space-8);
+  }
+
+  /* ── 관계 목록 ─────────────────────────────────────────────────────── */
+
+  /* 간선이 수백 개면 표가 화면을 통째로 밀어낸다. 높이를 묶고 안에서 스크롤한다. */
+  .table-scroll--tall {
+    max-height: 420px;
+    overflow-y: auto;
+  }
+
+  .table tbody tr.is-selected {
+    background: var(--color-bg-hover);
+  }
+
+  .relation__note {
+    white-space: normal;
+    max-width: 44ch;
+    color: var(--color-text-secondary);
+  }
+
+  .link-button {
+    padding: 0;
+    min-height: 24px;
+    color: var(--color-text-primary);
+    background: none;
+    border: 0;
+    font-size: 13px;
+    text-align: left;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+  }
+
+  .link-button[aria-pressed='true'] {
+    font-weight: 600;
+    color: var(--color-action-primary);
+  }
+}

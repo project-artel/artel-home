@@ -72,16 +72,52 @@ export function createHumanStep(): ScenarioStep {
   return { ...createEmptyStep(), step_source: 'HUMAN', step_kind: 'ACTION' }
 }
 
+/**
+ * How a run walks a scenario (ARTEL-1030).
+ *
+ * `ORDERED` is the scenario this app always had: steps the QA agent runs top to bottom.
+ * `FREE` is a bundle of test cases (one step per TC, `{ action: '', case_id }`) that the
+ * agent verifies in whatever order and way it chooses. A server that predates the field
+ * sends none, and that means `ORDERED`.
+ */
+export type ExecutionMode = 'ORDERED' | 'FREE'
+
 export type ScenarioDraft = {
   title: string
   description: string
   steps: ScenarioStep[]
+  /** Wire name, snake_case like the step fields: the draft is sent to the server verbatim. */
+  execution_mode: ExecutionMode
 }
 
 export const EMPTY_SCENARIO_DRAFT: ScenarioDraft = {
   title: '',
   description: '',
   steps: [],
+  execution_mode: 'ORDERED',
+}
+
+export function isFreeScenario(draft: Pick<ScenarioDraft, 'execution_mode'>): boolean {
+  return draft.execution_mode === 'FREE'
+}
+
+/**
+ * The draft of a FREE scenario made from the chosen test cases: one step per TC, in the
+ * order given, with a blank `action` (the server fills it from the TC's step text when a
+ * run starts). A case id appears once however many times it is passed, because the server
+ * rejects a duplicate `case_id` with 400.
+ */
+export function buildFreeScenarioDraft(title: string, caseIds: readonly string[]): ScenarioDraft {
+  return {
+    title,
+    description: '',
+    steps: buildFreeCaseSteps(caseIds),
+    execution_mode: 'FREE',
+  }
+}
+
+export function buildFreeCaseSteps(caseIds: readonly string[]): ScenarioStep[] {
+  return [...new Set(caseIds)].map((caseId) => ({ ...createEmptyStep(), case_id: Number(caseId) }))
 }
 
 export type ScenarioRole = 'USER' | 'ASSISTANT'
@@ -157,6 +193,7 @@ export type TestScenarioSummary = {
   title: string
   createdAt: string
   updatedAt: string
+  executionMode: ExecutionMode
 }
 
 /** The server ignores `type` today; it is sent because the contract declares it. */

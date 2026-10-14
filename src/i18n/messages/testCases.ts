@@ -12,6 +12,7 @@ export const testCasesEn = {
     subtitle:
       'Every reusable case in this project. The result column is the verification recorded on the case; a QA run\'s per-step verdicts are not rolled up here.',
     newCase: 'New case',
+    generateFromMap: 'Create from content map',
     shownOf: (shown: number, total: number) => `${shown} of ${total}`,
     loading: 'Loading cases…',
     loadFailed: 'Cases could not be loaded.',
@@ -337,6 +338,10 @@ export const testCasesEn = {
         title: 'The case table',
         body: 'Click a row to edit it. Tick boxes (or Shift/Ctrl+click) to select several, then add them to a folder or a version. Drag selected rows onto a folder in the side pane.',
       },
+      generateFromMap: {
+        title: 'Create test cases from a content map',
+        body: 'Pick a game build and its content map becomes that version’s test cases. Each row says first what will happen — builds that already have test cases, or whose map is not read yet, cannot be picked.',
+      },
       newCase: {
         title: 'New case',
         body: 'Write a case by hand. It goes into the current version by default — change the version in the editor if needed. A new case starts as Unverified.',
@@ -347,9 +352,53 @@ export const testCasesEn = {
       },
     },
   },
+  generate: {
+    title: 'Create test cases from a content map',
+    hint: 'Pick a game build. Its content map becomes that version’s test cases. Picking a build that already has test cases overwrites them, after a warning.',
+    listLabel: 'Game builds',
+    loading: 'Loading game builds…',
+    loadFailed: 'The game builds could not be loaded.',
+    empty: 'No game build has registered yet. Run the game with the SDK once.',
+    outcome: {
+      create: (version: string) => `Creates ${version}`,
+      overwrite: () => 'Overwrites existing test cases',
+      alreadyGenerated: () => 'Has test cases · map not read',
+      notRead: () => 'Map not read yet',
+      noMap: () => 'Not scanned yet',
+    },
+    cancel: 'Cancel',
+    confirm: 'Create',
+    pending: 'Creating…',
+    overwrite: {
+      open: 'Overwrite…',
+      title: (version: string) => `Overwrite the test cases of ${version}?`,
+      lead: (version: string, mapCases: number, judged: number) =>
+        `${version} already has ${mapCases} test cases from its content map, ${judged} of them with a verdict. They are rebuilt from the current map; no new version is made.`,
+      kept: 'Test cases still in the map keep their verdict.',
+      removed: 'Test cases no longer in the map are removed from this version, and their verdict with them.',
+      edited: 'Changes you made by hand to map test cases are replaced by the map’s content.',
+      manual: 'User-created test cases are not touched.',
+      confirm: 'Overwrite',
+    },
+    done: (version: string, created: number, carriedOver: number) =>
+      `Created ${created} test cases in ${version}` + (carriedOver > 0 ? `, and carried over ${carriedOver} user-created ones.` : '.'),
+    overwritten: (version: string, created: number, updated: number, removed: number) =>
+      `Overwrote ${version}: ${created} new, ${updated} rewritten, ${removed} removed.`,
+    dismiss: 'Dismiss',
+    failure: {
+      alreadyGenerated: 'This build already has test cases. Pick another build.',
+      notReady: 'This build has no content map that has been read yet.',
+      buildMissing: 'This build no longer exists.',
+      other: 'Test cases could not be created. Nothing was changed.',
+    },
+  },
   importManual: {
     title: (version: string) => `Import user-created cases into ${version}`,
-    hint: 'Pick a library on the left, then the user-created cases to add to this version. Cases already in this version are not listed.',
+    hint: 'Pick a library on the left, then the user-created cases to add to this version. What you pick stays picked when you move to another library, so you can gather cases from several versions and folders at once. Cases already in this version are not listed.',
+    pickedIn: (count: number) => `${count} picked`,
+    pickedNone: 'Nothing picked yet.',
+    pickedTotal: (count: number) => `${count} picked across libraries`,
+    clearPicked: 'Clear',
     sources: 'Libraries',
     versions: 'Versions',
     folders: 'Folders',
@@ -413,7 +462,19 @@ export const testCasesEn = {
     failed: 'The cases could not be moved. Nothing was altered.',
     done: (count: number, destination: string) => `${count} cases were moved to ${destination}.`,
   },
+  createFree: {
+    action: 'Create FREE scenario',
+    title: (count: number) => `Create a FREE scenario from ${count} case${count === 1 ? '' : 's'}`,
+    copy: 'A FREE scenario is a bundle of test cases. The QA agent verifies them in whatever order and way it chooses.',
+    titleLabel: 'Scenario title',
+    titlePlaceholder: 'For example: Shop screen checks',
+    cancel: 'Cancel',
+    confirm: 'Create scenario',
+    pending: 'Creating…',
+    failed: 'The scenario could not be created. Please try again.',
+  },
 }
+
 
 export const testCasesKo: Localized<typeof testCasesEn> = {
   section: {
@@ -421,6 +482,7 @@ export const testCasesKo: Localized<typeof testCasesEn> = {
     subtitle:
       '이 프로젝트의 재사용 테스트 케이스 전부입니다. 결과 칸은 케이스에 기록된 검증 상태이고, QA 런이 스텝마다 내린 판정을 케이스 단위로 접은 값은 아닙니다.',
     newCase: '새 케이스',
+    generateFromMap: '지도에서 TC 생성',
     shownOf: (shown: number, total: number) => `${total}건 중 ${shown}건`,
     loading: '케이스를 불러오는 중…',
     loadFailed: '케이스를 불러오지 못했습니다.',
@@ -743,6 +805,10 @@ export const testCasesKo: Localized<typeof testCasesEn> = {
         title: 'TC 표',
         body: '줄을 누르면 편집합니다. 체크하거나 Shift · Ctrl+클릭으로 여러 줄을 골라 폴더나 버전에 넣습니다. 고른 줄을 왼쪽 폴더에 끌어 놓아도 됩니다.',
       },
+      generateFromMap: {
+        title: '지도에서 TC 만들기',
+        body: '게임 빌드를 고르면 그 빌드의 화면 지도로 그 버전의 TC 를 만듭니다. 줄마다 무슨 일이 생기는지 먼저 보이고, 이미 TC 가 있거나 지도가 아직 안 읽힌 빌드는 고를 수 없습니다.',
+      },
       newCase: {
         title: '새 케이스',
         body: 'TC 를 직접 씁니다. 기본으로 현재 버전에 들어가고, 편집기에서 다른 버전을 고를 수 있습니다. 새 TC 는 미검증으로 시작합니다.',
@@ -753,9 +819,53 @@ export const testCasesKo: Localized<typeof testCasesEn> = {
       },
     },
   },
+  generate: {
+    title: '지도에서 TC 생성',
+    hint: '게임 빌드를 고르세요. 그 빌드의 화면 지도로 그 버전의 TC 를 만듭니다. 이미 TC 가 있는 빌드를 고르면 경고를 보인 뒤 덮어씁니다.',
+    listLabel: '게임 빌드',
+    loading: '게임 빌드를 불러오는 중…',
+    loadFailed: '게임 빌드를 불러오지 못했습니다.',
+    empty: '등록된 게임 빌드가 없습니다. SDK 를 붙여 게임을 한 번 실행해 주세요.',
+    outcome: {
+      create: (version: string) => `${version} 으로 만듭니다`,
+      overwrite: () => '이미 TC 가 있음 · 덮어씀',
+      alreadyGenerated: () => 'TC 가 있지만 지도가 안 읽힘',
+      notRead: () => '지도가 아직 안 읽힘',
+      noMap: () => '아직 스캔 안 됨',
+    },
+    cancel: '취소',
+    confirm: '생성',
+    pending: '만드는 중…',
+    overwrite: {
+      open: '덮어쓰기…',
+      title: (version: string) => `${version} 의 TC 를 덮어쓸까요?`,
+      lead: (version: string, mapCases: number, judged: number) =>
+        `${version} 에는 지도로 만든 TC ${mapCases}건이 있고, 그중 ${judged}건은 판정이 났습니다. 지금 지도로 다시 만들며, 새 버전을 따로 만들지는 않습니다.`,
+      kept: '지도에 그대로 있는 TC 는 판정이 남습니다.',
+      removed: '지도에서 사라진 TC 는 이 버전에서 빠지고, 그 판정도 함께 사라집니다.',
+      edited: '지도 TC 를 손으로 고친 내용은 지도 내용으로 돌아갑니다.',
+      manual: '사용자 생성 TC 는 건드리지 않습니다.',
+      confirm: '덮어쓰기',
+    },
+    done: (version: string, created: number, carriedOver: number) =>
+      `${version} 에 TC ${created}건을 만들었습니다` + (carriedOver > 0 ? `. 사용자 생성 TC ${carriedOver}건을 이어 넣었습니다.` : '.'),
+    overwritten: (version: string, created: number, updated: number, removed: number) =>
+      `${version} 의 TC 를 덮어썼습니다. 새로 ${created}건, 다시 쓴 것 ${updated}건, 빠진 것 ${removed}건.`,
+    dismiss: '닫기',
+    failure: {
+      alreadyGenerated: '이 빌드는 이미 TC 가 있습니다. 다른 빌드를 골라 주세요.',
+      notReady: '이 빌드에는 읽힌 화면 지도가 아직 없습니다.',
+      buildMissing: '이 빌드가 더는 없습니다.',
+      other: 'TC 를 만들지 못했습니다. 아무것도 바뀌지 않았습니다.',
+    },
+  },
   importManual: {
     title: (version: string) => `${version} 에 사용자 생성 TC 가져오기`,
-    hint: '왼쪽에서 라이브러리를 고르고, 이 버전에 넣을 사용자 생성 TC 를 고르세요. 이 버전에 이미 있는 것은 보이지 않습니다.',
+    hint: '왼쪽에서 라이브러리를 고르고, 이 버전에 넣을 사용자 생성 TC 를 고르세요. 다른 라이브러리로 옮겨도 고른 것은 남아서, 여러 버전 · 폴더에서 한 번에 모아 가져올 수 있습니다. 이 버전에 이미 있는 것은 보이지 않습니다.',
+    pickedIn: (count: number) => `${count}건 고름`,
+    pickedNone: '아직 고른 TC 가 없습니다.',
+    pickedTotal: (count: number) => `여러 라이브러리에서 ${count}건 고름`,
+    clearPicked: '모두 해제',
     sources: '라이브러리',
     versions: '버전',
     folders: '폴더',
@@ -819,4 +929,16 @@ export const testCasesKo: Localized<typeof testCasesEn> = {
     failed: '케이스를 이동하지 못했습니다. 아무것도 바뀌지 않았습니다.',
     done: (count: number, destination: string) => `케이스 ${count}건을 ${destination}(으)로 옮겼습니다.`,
   },
+  createFree: {
+    action: 'FREE 시나리오 만들기',
+    title: (count: number) => `케이스 ${count}건으로 FREE 시나리오 만들기`,
+    copy: 'FREE 시나리오는 테스트 케이스 묶음입니다. QA agent 가 순서와 방법을 스스로 정해 하나씩 검증합니다.',
+    titleLabel: '시나리오 제목',
+    titlePlaceholder: '예: 상점 화면 점검',
+    cancel: '취소',
+    confirm: '시나리오 만들기',
+    pending: '만드는 중…',
+    failed: '시나리오를 만들지 못했습니다. 다시 시도해 주세요.',
+  },
 }
+
