@@ -144,6 +144,7 @@ export const testCasesEn = {
       renameGroup: 'Rename',
       deleteGroup: 'Delete group',
       copyToFolder: 'Copy into a new folder',
+      carryManual: 'Bring user-created cases from the previous version',
       moveToGroup: 'Move to group…',
       ungroup: 'Take out of group',
       hide: 'Hide version',
@@ -246,8 +247,32 @@ export const testCasesEn = {
       hideVersion: 'hide version',
       showVersion: 'show version',
       copyVersion: 'copy version into a folder',
+      addToVersion: 'add user-created cases to a version',
     },
     failed: 'The folder change did not go through. Folders were reloaded.',
+  },
+  origin: {
+    label: 'Source',
+    all: 'All',
+    MAP: 'Auto-generated',
+    MANUAL: 'User-created',
+    mapTitle: 'Generated from the content map',
+    manualTitle: 'Written by a person',
+  },
+  addToVersion: {
+    action: 'Add to version',
+    title: (count: number) => `Add ${count} user-created cases to a version`,
+    hint: 'Only user-created cases are added. Auto-generated cases follow the content map of each version.',
+    version: 'Version',
+    confirm: (count: number) => `Add ${count}`,
+    pending: 'Adding…',
+    cancel: 'Cancel',
+    failed: 'The cases could not be added to the version.',
+    done: (count: number, version: string) => `${count} user-created cases were added to ${version}.`,
+    carried: (count: number, version: string) =>
+      count === 0
+        ? `The previous version has no user-created cases missing from ${version}.`
+        : `${count} user-created cases from the previous version were added to ${version}.`,
   },
   folderItems: {
     add: 'Add to folder',
@@ -420,6 +445,7 @@ export const testCasesKo: Localized<typeof testCasesEn> = {
       renameGroup: '이름 변경',
       deleteGroup: '묶음 삭제',
       copyToFolder: '새 폴더로 복제',
+      carryManual: '앞 버전의 사용자 생성 케이스 가져오기',
       moveToGroup: '묶음으로 이동…',
       ungroup: '묶음에서 빼기',
       hide: '버전 숨기기',
@@ -522,8 +548,32 @@ export const testCasesKo: Localized<typeof testCasesEn> = {
       hideVersion: '버전 숨기기',
       showVersion: '버전 다시 보이기',
       copyVersion: '버전을 폴더로 복제',
+      addToVersion: '사용자 생성 케이스를 버전에 넣기',
     },
     failed: '폴더 작업이 반영되지 않았습니다. 폴더를 다시 읽었습니다.',
+  },
+  origin: {
+    label: '출처',
+    all: '전체',
+    MAP: '자동 생성',
+    MANUAL: '사용자 생성',
+    mapTitle: '콘텐츠 맵에서 자동으로 만든 케이스',
+    manualTitle: '사용자가 직접 만든 케이스',
+  },
+  addToVersion: {
+    action: '버전에 넣기',
+    title: (count: number) => `사용자 생성 케이스 ${count}건을 버전에 넣기`,
+    hint: '사용자 생성 케이스만 들어갑니다. 자동 생성 케이스는 버전마다 콘텐츠 맵을 따릅니다.',
+    version: '넣을 버전',
+    confirm: (count: number) => `${count}건 넣기`,
+    pending: '넣는 중…',
+    cancel: '취소',
+    failed: '케이스를 버전에 넣지 못했습니다.',
+    done: (count: number, version: string) => `사용자 생성 케이스 ${count}건을 ${version}에 넣었습니다.`,
+    carried: (count: number, version: string) =>
+      count === 0
+        ? `앞 버전에 ${version}에 없는 사용자 생성 케이스가 없습니다.`
+        : `앞 버전의 사용자 생성 케이스 ${count}건을 ${version}에 넣었습니다.`,
   },
   folderItems: {
     add: '폴더에 담기',

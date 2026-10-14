@@ -33,6 +33,16 @@ export function asVerificationStatus(value: unknown): VerificationStatus {
   return VERIFICATION_STATUSES.includes(value as VerificationStatus) ? (value as VerificationStatus) : 'DRAFT'
 }
 
+/**
+ * 케이스의 출처(ARTEL-1032). `MAP` 은 콘텐츠 맵에서 자동 생성된 것, `MANUAL` 은 사용자가 만든 것이다.
+ * 서버가 싣지 않은 응답(예전 서버)에서는 비어 있다.
+ */
+export type CaseOrigin = 'MAP' | 'MANUAL'
+
+export function asCaseOrigin(value: unknown): CaseOrigin | undefined {
+  return value === 'MAP' || value === 'MANUAL' ? value : undefined
+}
+
 export type TestCase = {
   id: string
   projectId: string
@@ -58,6 +68,8 @@ export type TestCase = {
   createdAt: string
   /** The folder holding this case, or `null` for a case outside every folder. */
   folderId: string | null
+  /** 자동 생성(`MAP`) · 사용자 생성(`MANUAL`). 모르면 없다. */
+  origin?: CaseOrigin
   /**
    * Why the spec side graded this case the way it did — reason codes from
    * `metadata.source.evidence_gaps`, empty when there is nothing to say.

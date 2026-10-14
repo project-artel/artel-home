@@ -95,7 +95,7 @@ export const contentMapEn = {
   },
   generate: {
     title: 'Test cases',
-    copy: 'Creates test cases from this content map in a folder of their own, updates the ones it created before, and removes the ones whose screen is gone.',
+    copy: 'Creates this version’s test cases from the content map, updates the ones it created before, and removes the ones whose screen is gone. User-created test cases from the previous version come along.',
     action: 'Create test cases',
     running: 'Creating test cases…',
     blocked: {
@@ -103,10 +103,11 @@ export const contentMapEn = {
       noDocuments: 'This build has a content map but no evidence document has been uploaded for it. Scan the game above first.',
       notIngested: 'The evidence is uploaded but has not been read yet. Create test cases once the content map is read.',
     },
-    result: (counts: { created: number; updated: number; deleted: number; broken: number }) =>
-      counts.created + counts.updated + counts.deleted + counts.broken === 0
+    result: (counts: { created: number; updated: number; deleted: number; broken: number; carriedOver?: number }) =>
+      counts.created + counts.updated + counts.deleted + counts.broken + (counts.carriedOver ?? 0) === 0
         ? 'Nothing changed: the test cases already match this content map.'
-        : `Created ${counts.created}, updated ${counts.updated}, deleted ${counts.deleted}, marked ${counts.broken} as BROKEN.`,
+        : `Created ${counts.created}, updated ${counts.updated}, deleted ${counts.deleted}, marked ${counts.broken} as BROKEN.` +
+          ((counts.carriedOver ?? 0) > 0 ? ` Carried over ${counts.carriedOver} user-created cases from the previous version.` : ''),
     openLibrary: 'Open the test case library',
     failure: {
       notIngested: 'This build has no content map that has been read yet, so no test cases were created. Press Refresh at the top of the page, then try again.',
@@ -614,7 +615,7 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
   },
   generate: {
     title: '테스트 케이스',
-    copy: '이 콘텐츠 맵에서 테스트 케이스를 전용 폴더에 만듭니다. 전에 만든 것은 갱신하고, 화면이 사라진 것은 지웁니다.',
+    copy: '이 콘텐츠 맵에서 이 버전의 테스트 케이스를 만듭니다. 전에 만든 것은 갱신하고, 화면이 사라진 것은 지웁니다. 바로 앞 버전의 사용자 생성 케이스도 함께 넣습니다.',
     action: '테스트 케이스 생성',
     running: '테스트 케이스를 만드는 중…',
     blocked: {
@@ -622,10 +623,11 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
       noDocuments: '이 빌드에는 콘텐츠 맵이 있지만 올라온 증거 문서가 없습니다. 위에서 게임을 스캔한 뒤에 만들 수 있습니다.',
       notIngested: '증거는 올라왔지만 아직 읽히지 않았습니다. 콘텐츠 맵이 읽힌 뒤에 만들 수 있습니다.',
     },
-    result: (counts: { created: number; updated: number; deleted: number; broken: number }) =>
-      counts.created + counts.updated + counts.deleted + counts.broken === 0
+    result: (counts: { created: number; updated: number; deleted: number; broken: number; carriedOver?: number }) =>
+      counts.created + counts.updated + counts.deleted + counts.broken + (counts.carriedOver ?? 0) === 0
         ? '바뀐 것이 없습니다. 테스트 케이스가 이미 이 콘텐츠 맵과 같습니다.'
-        : `생성 ${counts.created}건, 갱신 ${counts.updated}건, 삭제 ${counts.deleted}건, BROKEN 처리 ${counts.broken}건.`,
+        : `생성 ${counts.created}건, 갱신 ${counts.updated}건, 삭제 ${counts.deleted}건, BROKEN 처리 ${counts.broken}건.` +
+          ((counts.carriedOver ?? 0) > 0 ? ` 앞 버전의 사용자 생성 케이스 ${counts.carriedOver}건을 이어 넣었습니다.` : ''),
     openLibrary: '테스트 케이스 라이브러리에서 열기',
     failure: {
       notIngested: '이 빌드에 읽힌 콘텐츠 맵이 아직 없어 테스트 케이스를 만들지 못했습니다. 위쪽의 새로고침을 누른 뒤 다시 시도해 주세요.',

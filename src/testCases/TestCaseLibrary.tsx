@@ -21,6 +21,7 @@ import {
 } from './folderCommands'
 import { writeCasesDrag } from './folderDrag'
 import { FolderPane, type FolderOperations } from './FolderPane'
+import { AddToVersionDialog } from './AddToVersionDialog'
 import { MoveCasesDialog } from './MoveCasesDialog'
 import { Picker } from './Picker'
 import { SearchField } from './SearchField'
@@ -59,6 +60,8 @@ import {
   absenceNote,
   isBuildId,
   isRegression,
+  listVersionCases,
+  previousVersion,
   resolveCompare,
   resolveVersion,
   UNVERSIONED,
@@ -66,6 +69,7 @@ import {
 } from './testCaseVersions'
 import { useTestCaseVersionList, useVersionCases } from './useTestCaseVersions'
 import {
+  addToVersionCommand,
   assignGroupCommand,
   copyVersionCommand,
   createGroupCommand,
@@ -240,6 +244,7 @@ export function TestCaseLibrary({
   const [deleting, setDeleting] = useState<TestCase | null>(null)
   const [isBulkDeleting, setIsBulkDeleting] = useState(false)
   const [isMoving, setIsMoving] = useState(false)
+  const [isAddingToVersion, setIsAddingToVersion] = useState(false)
   const [sideCollapsed, setSideCollapsed] = useState(false)
   // 왼쪽 창과 목록을 화면 끝까지 채운다. 높이는 "화면 − 이 화면이 시작하는 자리 − 아래 여백" 이다. 시작 자리는
   // 위의 페이지 제목 줄에 따라 달라 CSS 만으로는 정할 수 없어 잰다. 못 재면 CSS 의 기본값을 쓴다.
@@ -497,6 +502,38 @@ export function TestCaseLibrary({
         ),
       )
     },
+    // 바로 앞 버전의 사용자 생성 케이스 중 이 버전에 없는 것을 넣는다(ARTEL-1032). TC 생성 때 서버가 하는 일을 사람이
+    // 원할 때 하는 길이다 — 생성을 다시 누를 일이 없는 버전에도 쓴다.
+    carryManual: async (version) => {
+      const previous = previousVersion(versionList.versions, version.gameBuildId)
+      if (previous === undefined) return
+      const run = async () => {
+        const rows = await listVersionCases(projectId, previous.gameBuildId, null)
+        const manualIds = rows.filter((row) => row.origin === 'MANUAL').map((row) => row.testCase.id)
+        if (manualIds.length === 0) {
+          setAnnouncement(m.addToVersion.carried(0, versionName(version)))
+          return
+        }
+        await folderHistory.execute(
+          addToVersionCommand(projectId, version.gameBuildId, manualIds, h.addToVersion, (added) =>
+            setAnnouncement(m.addToVersion.carried(added, versionName(version))),
+          ),
+        )
+      }
+      runQuietly(run())
+    },
+  }
+
+  /** 고른 사용자 생성 케이스를 고른 버전에 넣는다(ARTEL-1032). */
+  async function addSelectedToVersion(gameBuildId: string) {
+    const target = versionList.versions.find((version) => version.gameBuildId === gameBuildId)
+    await folderHistory.execute(
+      addToVersionCommand(projectId, gameBuildId, selectedManualIds, h.addToVersion, (added) =>
+        setAnnouncement(m.addToVersion.done(added, target === undefined ? '' : versionName(target))),
+      ),
+    )
+    clearSelection()
+    setIsAddingToVersion(false)
   }
 
   const operations: FolderOperations = {
@@ -542,8 +579,15 @@ export function TestCaseLibrary({
   const selectedItems = [...selection.selectedIds]
     .map((caseId) => itemById.get(caseId))
     .filter((item) => item !== undefined)
+  const caseOrigins = new Map(shown.map((testCase) => [testCase.id, testCase.origin]))
+  const selectedManualIds = [...selection.selectedIds].filter((caseId) => caseOrigins.get(caseId) === 'MANUAL')
+  const addToVersionAction: SelectionAction[] =
+    versionsMode && selectedManualIds.length > 0
+      ? [{ label: m.addToVersion.action, onClick: () => setIsAddingToVersion(true) }]
+      : []
   const selectionActions: SelectionAction[] = folderView
     ? [
+        ...addToVersionAction,
         { label: m.folderItems.remove, onClick: () => runQuietly(removeSelectedFromFolder()) },
         ...(versionsMode && selectedItems.some((item) => !item.hidden)
           ? [{ label: m.folderItems.hide, onClick: () => runQuietly(setSelectedHidden(true)) }]
@@ -552,7 +596,7 @@ export function TestCaseLibrary({
           ? [{ label: m.folderItems.show, onClick: () => runQuietly(setSelectedHidden(false)) }]
           : []),
       ]
-    : []
+    : addToVersionAction
 
   const undoFolder = async () => {
     const command = await folderHistory.step('undo')
@@ -777,6 +821,19 @@ export function TestCaseLibrary({
                 {m.outcome[status]} {countOf(tally, status)}
               </button>
             ))}
+            <span className="tcl-chips-sep" aria-hidden="true" />
+            <span className="field-label">{m.origin.label}</span>
+            {(['ALL', 'MAP', 'MANUAL'] as const).map((origin) => (
+              <button
+                aria-pressed={filters.origin === origin}
+                className={filters.origin === origin ? 'fchip on' : 'fchip'}
+                key={origin}
+                onClick={() => setFilters({ ...filters, origin })}
+                type="button"
+              >
+                {origin === 'ALL' ? m.origin.all : m.origin[origin]}
+              </button>
+            ))}
             {folderView && hiddenCount > 0 && (
               <button
                 aria-pressed={showHidden}
@@ -986,6 +1043,15 @@ export function TestCaseLibrary({
                             나머지 칸과 0.5px 어긋나고 높이도 5.5px 짧아진다. 안에서 편다. */}
                         <span className="tct-step-in">
                           <span className={`vdot ${testCase.verificationStatus}`} />
+                          {/* 출처 라벨은 스텝 앞에 둔다. 뒤에 두면 긴 스텝의 말줄임표에 잘린다. */}
+                          {testCase.origin !== undefined && (
+                            <span
+                              className={'tct-origin tct-origin--' + testCase.origin.toLowerCase()}
+                              title={testCase.origin === 'MAP' ? m.origin.mapTitle : m.origin.manualTitle}
+                            >
+                              {m.origin[testCase.origin]}
+                            </span>
+                          )}
                           <span className="tct-step-text">
                             {testCase.step.length > 0 ? testCase.step : m.row.untitled}
                             {note !== null && <span className="tct-absent-note">{note}</span>}
@@ -1052,6 +1118,16 @@ export function TestCaseLibrary({
       )}
 
       <p aria-live="polite" className="visually-hidden" role="status">{announcement}</p>
+
+      {isAddingToVersion && (
+        <AddToVersionDialog
+          initialVersionId={selectedBuildId}
+          manualCount={selectedManualIds.length}
+          onClose={() => setIsAddingToVersion(false)}
+          onConfirm={addSelectedToVersion}
+          versions={versionList.versions}
+        />
+      )}
 
       {isMoving && (
         <MoveCasesDialog

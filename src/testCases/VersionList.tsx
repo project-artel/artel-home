@@ -22,6 +22,8 @@ export type VersionOperations = {
   assignGroup: (version: TestCaseVersionSummary, groupId: string | null) => Promise<void>
   setHidden: (version: TestCaseVersionSummary, hidden: boolean) => Promise<void>
   copyToFolder: (version: TestCaseVersionSummary) => Promise<void>
+  /** 바로 앞 버전에 있던 사용자 생성 케이스를 이 버전에 넣는다(ARTEL-1032). 앞 버전이 없으면 메뉴에 없다. */
+  carryManual?: (version: TestCaseVersionSummary) => Promise<void>
 }
 
 /** 끄는 버전. 폴더 끌기와 섞이지 않게 형식을 따로 쓴다. */
@@ -109,8 +111,11 @@ export function VersionList({
         { label: m.menu.copyToFolder, onSelect: () => void operations.copyToFolder(version) },
       ]
     }
+    const carry = operations.carryManual
+    const hasPrevious = versions.some((one) => one.createdAt.localeCompare(version.createdAt) < 0)
     return [
       { label: m.menu.copyToFolder, onSelect: () => void operations.copyToFolder(version) },
+      ...(carry === undefined || !hasPrevious ? [] : [{ label: m.menu.carryManual, onSelect: () => void carry(version) }]),
       { label: m.menu.moveToGroup, disabled: groups.length === 0, onSelect: () => setMoving(version) },
       ...(version.groupId === null
         ? []

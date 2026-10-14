@@ -130,6 +130,7 @@ export function parseVersionCases(data: unknown, projectId: string): VersionCase
           createdAt: asString(record?.createdAt),
           folderId: asNullableString(record?.folderId),
           evidenceGaps: [],
+          origin: record?.origin === 'MANUAL' ? 'MANUAL' : 'MAP',
         },
         origin: record?.origin === 'MANUAL' ? 'MANUAL' : 'MAP',
         verificationStatus,
@@ -328,4 +329,45 @@ export function arrangeVersions(
 /** 숨긴 버전, 최근 것이 위. */
 export function hiddenVersions(versions: readonly TestCaseVersionSummary[]): TestCaseVersionSummary[] {
   return versions.filter((version) => version.hidden).sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+}
+
+async function writeVersionCases(
+  projectId: string,
+  gameBuildId: string,
+  suffix: string,
+  caseIds: readonly string[],
+): Promise<string[]> {
+  const response = await apiFetch(`${versionsRoot(projectId)}/${encodeURIComponent(gameBuildId)}/cases${suffix}`, {
+    method: 'POST',
+    ...jsonRequest({ caseIds }),
+  })
+  await expectOk(response)
+  return asArray(asRecord(await readJson(response))?.caseIds)
+    .map((one) => asString(one))
+    .filter((one) => one.length > 0)
+}
+
+/**
+ * 사용자 생성 케이스를 이 버전에 넣는다(ARTEL-1032). 자동 생성 케이스와 이미 든 것은 서버가 건너뛴다. 실제로 넣은 id 를
+ * 돌려준다 — Undo 는 그것만 뺀다.
+ */
+export function addCasesToVersion(projectId: string, gameBuildId: string, caseIds: readonly string[]) {
+  return writeVersionCases(projectId, gameBuildId, '', caseIds)
+}
+
+/** 사용자 생성 케이스를 이 버전에서 뺀다. 그 버전에서 받은 판정도 함께 지워진다. */
+export function removeCasesFromVersion(projectId: string, gameBuildId: string, caseIds: readonly string[]) {
+  return writeVersionCases(projectId, gameBuildId, '/removals', caseIds)
+}
+
+/** [gameBuildId] 바로 앞(만든 순서) 버전. 없으면 undefined. */
+export function previousVersion(
+  versions: readonly TestCaseVersionSummary[],
+  gameBuildId: string,
+): TestCaseVersionSummary | undefined {
+  const current = versions.find((version) => version.gameBuildId === gameBuildId)
+  if (current === undefined) return undefined
+  return [...versions]
+    .filter((version) => version.createdAt.localeCompare(current.createdAt) < 0)
+    .sort((left, right) => right.createdAt.localeCompare(left.createdAt))[0]
 }

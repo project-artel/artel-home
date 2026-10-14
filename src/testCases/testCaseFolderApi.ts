@@ -182,6 +182,7 @@ export function parseFolderItems(data: unknown, projectId: string): FolderItemLi
           createdAt: asString(item?.createdAt),
           folderId: asString(record?.folderId),
           evidenceGaps: [],
+          origin: item?.origin === 'MAP' ? 'MAP' : 'MANUAL',
         },
         position: typeof item?.position === 'number' ? item.position : 0,
         hidden: item?.hidden === true,

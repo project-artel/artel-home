@@ -1,10 +1,12 @@
 import type { FolderCommand, HistoryContext } from './folderHistory'
 import { deleteTestCaseFolder, type TestCaseFolder } from './testCaseFolderApi'
 import {
+  addCasesToVersion,
   assignVersionGroup,
   copyVersionToFolder,
   createVersionGroup,
   deleteVersionGroup,
+  removeCasesFromVersion,
   renameVersionGroup,
   setVersionHidden,
   type VersionGroup,
@@ -109,5 +111,30 @@ export function copyVersionCommand(
       }
     },
     undo: async (context) => deleteTestCaseFolder(projectId, context.resolve(folderId as string)),
+  }
+}
+
+/**
+ * 사용자 생성 케이스를 [gameBuildId] 버전에 넣는다(ARTEL-1032). Undo 는 이번에 실제로 넣은 것만 뺀다. [onDone] 은
+ * 실행할 때마다 넣은 수로 부른다.
+ */
+export function addToVersionCommand(
+  projectId: string,
+  gameBuildId: string,
+  caseIds: readonly string[],
+  label: string,
+  onDone: (added: number) => void,
+): FolderCommand {
+  let added: string[] = []
+  const run = async () => {
+    added = await addCasesToVersion(projectId, gameBuildId, caseIds)
+    onDone(added.length)
+  }
+  return {
+    label,
+    run,
+    undo: async () => {
+      if (added.length > 0) await removeCasesFromVersion(projectId, gameBuildId, added)
+    },
   }
 }

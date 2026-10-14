@@ -17,6 +17,8 @@ export type GeneratedTestCases = {
   updated: number
   deleted: number
   broken: number
+  /** 바로 앞 버전에 있던 사용자 생성 케이스를 이 버전에 이어 넣은 수(ARTEL-1032). */
+  carriedOver: number
 }
 
 export function parseGeneratedTestCases(data: unknown): GeneratedTestCases {
@@ -28,6 +30,7 @@ export function parseGeneratedTestCases(data: unknown): GeneratedTestCases {
     updated: asCount(record?.updated),
     deleted: asCount(record?.deleted),
     broken: asCount(record?.broken),
+    carriedOver: asCount(record?.carriedOver),
   }
 }
 
