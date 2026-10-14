@@ -1072,10 +1072,12 @@ h1 {
 
 /* ── Dialog ──────────────────────────────────────────────────────────────── */
 
+/* dialog 는 body 로 뜬다(Dialog.tsx). 그래서 여는 쪽의 층을 물려받지 못하고 이 값으로만 선다. 라이브러리 편집 시트(41)와
+   그 뒤 막(40)보다 위여야 한다 — 아래면 막이 dialog 의 누르기를 가져가 시트째 닫혔다. */
 .dialog-scrim {
   position: fixed;
   inset: 0;
-  z-index: 10;
+  z-index: 200;
   display: grid;
   place-items: center;
   padding: var(--space-4);
