@@ -33,9 +33,13 @@ export type LlmKey = {
 /**
  * Why a key was not registered.
  *
- * `invalid`, `permission_denied` and `no_credit` are the provider's answer about
- * the key — refuse it and say why. `unverified` means the provider could not be
- * asked, so nothing is known about the key and the user should try again rather
- * than be told it is wrong. `failed` is anything else.
+ * `invalid` and `permission_denied` are the provider's answer about the key —
+ * refuse it and say why. `unverified` means the provider could not be asked, so
+ * nothing is known about the key and the user should try again rather than be
+ * told it is wrong. `failed` is anything else.
+ *
+ * There is no "no credit": the server checks a key with a read (a models list,
+ * or OpenRouter's key info), which answers the same for an account that cannot
+ * pay. Such a key is stored and its first run fails.
  */
-export type LlmKeyRefusal = 'invalid' | 'permission_denied' | 'no_credit' | 'unverified' | 'failed'
+export type LlmKeyRefusal = 'invalid' | 'permission_denied' | 'unverified' | 'failed'

@@ -26,9 +26,8 @@ test('parseLlmKeys reads anything but an array as no keys', () => {
  * provider was not reached, so nothing is known about the key.
  */
 test('llmKeyRefusal reads the reason from the code, and 503 as unverified', () => {
-  assert.equal(llmKeyRefusal(new ProjectApiError(422, 'x', 'llm_key_invalid')), 'invalid')
-  assert.equal(llmKeyRefusal(new ProjectApiError(422, 'x', 'llm_key_permission_denied')), 'permission_denied')
-  assert.equal(llmKeyRefusal(new ProjectApiError(422, 'x', 'llm_key_no_credit')), 'no_credit')
+  assert.equal(llmKeyRefusal(new ProjectApiError(400, 'x', 'llm_key_invalid')), 'invalid')
+  assert.equal(llmKeyRefusal(new ProjectApiError(400, 'x', 'llm_key_permission_denied')), 'permission_denied')
   assert.equal(llmKeyRefusal(new ProjectApiError(503, 'x', 'llm_key_invalid')), 'unverified')
   assert.equal(llmKeyRefusal(new ProjectApiError(500, 'x')), 'failed')
   assert.equal(llmKeyRefusal(new Error('network')), 'failed')

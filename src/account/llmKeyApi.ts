@@ -11,8 +11,9 @@ import { LLM_KEY_SERVICES, type LlmKey, type LlmKeyRefusal, type LlmKeyService }
 
 /*
  * 사용자가 등록한 LLM API 키 (ARTEL-1035). 원본과 검증은 orchestration 몫이다 — 등록 요청을
- * 받으면 그 서비스에 키로 한 번 호출해 보고(agent-server 의 `/internal/llm-credentials/.../check`),
- * 통과한 키만 암호화해 저장한다. 이 화면은 원문을 보내기만 하고 다시 받지 않는다.
+ * 받으면 그 서비스에 키가 있어야 하는 읽기 호출을 한 번 해 보고(Claude · GPT 는 `GET /v1/models`,
+ * OpenRouter 는 `GET /api/v1/key`), 통과한 키만 암호화해 저장한다. 이 화면은 원문을 보내기만 하고
+ * 다시 받지 않는다.
  */
 const ROOT = '/api/auth/me/llm-keys'
 
@@ -20,7 +21,6 @@ const ROOT = '/api/auth/me/llm-keys'
 const REFUSAL_CODES: Record<string, LlmKeyRefusal> = {
   llm_key_invalid: 'invalid',
   llm_key_permission_denied: 'permission_denied',
-  llm_key_no_credit: 'no_credit',
 }
 
 /** 서비스를 모르거나 가린 키가 없는 줄은 버린다 — 무엇이 등록됐는지 말할 수 없다. */

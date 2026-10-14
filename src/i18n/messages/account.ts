@@ -133,7 +133,6 @@ export const accountEn = {
     refused: {
       invalid: 'This key is not valid. Check it and try again.',
       permission_denied: 'This key is not allowed to call models.',
-      no_credit: "This key's account has no credit left.",
       unverified: "The key couldn't be checked right now. Try again in a moment.",
       failed: "The key couldn't be saved. Try again.",
     },
@@ -271,7 +270,6 @@ export const accountKo: Localized<typeof accountEn> = {
     refused: {
       invalid: '올바른 키가 아닙니다. 확인하고 다시 넣어 주세요.',
       permission_denied: '이 키로는 모델을 부를 권한이 없습니다.',
-      no_credit: '이 키의 계정에 남은 크레딧이 없습니다.',
       unverified: '지금은 키를 확인할 수 없습니다. 잠시 후 다시 시도하세요.',
       failed: '키를 저장하지 못했습니다. 다시 시도하세요.',
     },
