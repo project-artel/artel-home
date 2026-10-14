@@ -254,6 +254,8 @@ export function TestCaseLibrary({
   const [isAddingToVersion, setIsAddingToVersion] = useState(false)
   const [importTarget, setImportTarget] = useState<TestCaseVersionSummary | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
+  // 지도에서 만들거나 덮어쓴 결과. 낭독용 알림과 달리 눈에 보이게 헤더 아래 한 줄로 남긴다(ARTEL-1041).
+  const [generationNotice, setGenerationNotice] = useState<string | null>(null)
   const [sideCollapsed, setSideCollapsed] = useState(false)
   // 왼쪽 창과 목록을 화면 끝까지 채운다. 높이는 "화면 − 이 화면이 시작하는 자리 − 아래 여백" 이다. 시작 자리는
   // 위의 페이지 제목 줄에 따라 달라 CSS 만으로는 정할 수 없어 잰다. 못 재면 CSS 의 기본값을 쓴다.
@@ -751,6 +753,14 @@ export function TestCaseLibrary({
           </div>
         </header>
         <p className="section-intro">{m.section.subtitle}</p>
+        {generationNotice !== null && (
+          <p className="tcl-notice">
+            <span>{generationNotice}</span>
+            <button aria-label={m.generate.dismiss} className="tcl-notice-close" onClick={() => setGenerationNotice(null)} type="button">
+              ✕
+            </button>
+          </p>
+        )}
 
         <div className="tcl-filters">
           <div className="tcl-filter tcl-filter--grow" data-tour="search">
@@ -1156,6 +1166,7 @@ export function TestCaseLibrary({
 
       {isGenerating && (
         <GenerateTestCasesDialog
+          groups={versionList.groups}
           onClose={() => setIsGenerating(false)}
           onGenerated={(candidate, result) => {
             setIsGenerating(false)
@@ -1163,9 +1174,14 @@ export function TestCaseLibrary({
             refreshVersions()
             // 방금 만든 버전을 연다. 그 버전이 목록에 새로 생겼다.
             setVersionParams(candidate.gameBuildId, null)
-            setAnnouncement(m.generate.done(candidate.version, result.created, result.carriedOver))
+            const notice = candidate.generated
+              ? m.generate.overwritten(candidate.version, result.created, result.updated, result.deleted + result.broken)
+              : m.generate.done(candidate.version, result.created, result.carriedOver)
+            setGenerationNotice(notice)
+            setAnnouncement(notice)
           }}
           projectId={projectId}
+          versions={versionList.versions}
         />
       )}
 
