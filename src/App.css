@@ -406,8 +406,13 @@ h1 {
 }
 
 .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
   min-height: 36px;
   padding: 0 var(--space-4);
+  text-decoration: none;
   border: 1px solid transparent;
   border-radius: var(--radius-md);
   font-size: 13px;
