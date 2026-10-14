@@ -35,6 +35,7 @@ import type { TestCaseFoldersStatus } from './useTestCaseFolders'
  */
 export function FolderPane({
   collapsed = false,
+  collapsedLabel = '',
   counts,
   folders,
   onAnnounce,
@@ -48,8 +49,10 @@ export function FolderPane({
   onToggleCollapsed,
   top,
 }: {
-  /** 접힌 창은 펼침 버튼만 남는다(ARTEL-1022). */
+  /** 접힌 창은 펼침 막대만 남는다(ARTEL-1022). */
   collapsed?: boolean
+  /** 접힌 막대에 세로로 적는 지금 보는 범위. 예: `1.1-e2e`, `회귀 묶음` */
+  collapsedLabel?: string
   counts: FolderCounts
   folders: readonly TestCaseFolder[]
   onAnnounce: (message: string) => void
@@ -131,19 +134,36 @@ export function FolderPane({
 
   const collapseButton = onToggleCollapsed === undefined ? null : (
     <button
-      aria-expanded={!collapsed}
-      aria-label={collapsed ? m.expandPane : m.collapsePane}
+      aria-expanded
+      aria-label={m.collapsePane}
       className="tcl-side-toggle"
       onClick={onToggleCollapsed}
-      title={collapsed ? m.expandPane : m.collapsePane}
+      title={m.collapsePane}
       type="button"
     >
-      <span aria-hidden="true">{collapsed ? '›' : '‹'}</span>
+      <PaneIcon collapsed={false} />
     </button>
   )
 
+  // 접힌 창은 막대 전체가 펴기 단추다. 위에 펴기 표시를, 그 아래에 지금 보는 범위를 세로로 적는다 — 화살표 하나만
+  // 긴 막대 위에 떠 있으면 무엇이 접혔는지 알 수 없다.
   if (collapsed) {
-    return <aside aria-labelledby={headingId} className="tcl-folders tcl-folders--collapsed">{collapseButton}<span className="visually-hidden" id={headingId}>{m.title}</span></aside>
+    return (
+      <aside aria-labelledby={headingId} className="tcl-folders tcl-folders--collapsed">
+        <span className="visually-hidden" id={headingId}>{m.title}</span>
+        <button
+          aria-expanded={false}
+          aria-label={m.expandPane}
+          className="tcl-rail"
+          onClick={onToggleCollapsed}
+          title={m.expandPane}
+          type="button"
+        >
+          <span className="tcl-rail-icon"><PaneIcon collapsed /></span>
+          {collapsedLabel.length > 0 && <span className="tcl-rail-label">{collapsedLabel}</span>}
+        </button>
+      </aside>
+    )
   }
 
   return (
@@ -340,5 +360,23 @@ function FolderBranch({
         </li>
       ))}
     </ul>
+  )
+}
+
+/** 왼쪽 창 접기 · 펴기 그림. 창 모양 안에 방향 표시를 넣어 "창을 접는다" 로 읽히게 한다. */
+function PaneIcon({ collapsed }: { collapsed: boolean }) {
+  return (
+    <svg aria-hidden="true" className="tcl-pane-icon" viewBox="0 0 20 20">
+      <rect fill="none" height="14" rx="2.5" stroke="currentColor" strokeWidth="1.5" width="16" x="2" y="3" />
+      <path d="M7.5 3v14" stroke="currentColor" strokeWidth="1.5" />
+      <path
+        d={collapsed ? 'M11.5 8l2 2-2 2' : 'M13.5 8l-2 2 2 2'}
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="1.5"
+      />
+    </svg>
   )
 }

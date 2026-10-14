@@ -23,6 +23,7 @@ export const testCasesEn = {
   },
   filters: {
     search: 'Search',
+    clearSearch: 'Clear the search',
     searchPlaceholder: 'Step, screen, precondition, expected value',
     scene: 'Screen',
     allScenes: 'Every screen',
@@ -215,6 +216,7 @@ export const testCasesKo: Localized<typeof testCasesEn> = {
   },
   filters: {
     search: '검색',
+    clearSearch: '검색어 지우기',
     searchPlaceholder: '스텝, 화면, 사전조건, 기대결과',
     scene: '화면',
     allScenes: '전체 화면',

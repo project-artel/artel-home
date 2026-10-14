@@ -9955,18 +9955,42 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
 .tc-gap .vdot{ display:inline-block; width:8px; height:8px; border-radius:999px; vertical-align:middle; }
 
 /* ── 케이스 라이브러리 버전 보기(ARTEL-1022) ─────────────────────────────────────
-   왼쪽 창과 목록은 내용 수와 상관없이 화면 높이에 고정한다. 왼쪽 창은 접을 수 있다. */
+   왼쪽 창과 목록은 내용 수와 상관없이 화면 높이에 고정한다. 왼쪽 창은 접을 수 있다.
+   높이는 "화면 − 이 화면이 시작하는 자리(--tcl-top, 스크립트가 잰다) − 아래 여백" 이다. 위의 페이지 제목 줄을
+   빼지 않으면 그만큼 바깥 스크롤이 생긴다. */
 @media (min-width: 1440px) {
   .tcl-folders,
-  .tcl-list-panel{ height:calc(100vh - var(--shell-topbar-h) - var(--space-6) * 2); max-height:none; }
-  .tcl.is-side-collapsed{ grid-template-columns:40px minmax(0, 1fr); }
+  .tcl-list-panel{ height:calc(100dvh - var(--tcl-top, 108px) - var(--space-6) * 2); max-height:none; }
+  .tcl{ transition:grid-template-columns .22s cubic-bezier(.2,.7,.2,1); }
+  .tcl.is-side-collapsed{ grid-template-columns:44px minmax(0, 1fr); }
 }
-.tcl-folders{ position:relative; }
-.tcl-folders--collapsed{ align-items:center; padding:var(--space-2) 0; overflow:hidden; }
-.tcl-side-head{ display:flex; align-items:flex-start; gap:var(--space-2); }
-.tcl-side-head > .tcl-versions{ flex:1; min-width:0; }
+@media (prefers-reduced-motion: reduce) {
+  .tcl{ transition:none; }
+}
+.tcl-folders{ position:relative; overflow:hidden; }
+.tcl-folders > *{ animation:tcl-pane-in .2s ease both; }
+@keyframes tcl-pane-in{ from{ opacity:0; } to{ opacity:1; } }
+.tcl-folders--collapsed{ padding:0; }
+/* 접힌 막대: 막대 전체가 펴기 단추다. 위에 창 그림, 아래에 지금 보는 범위를 세로로 적는다. */
+.tcl-rail{
+  display:flex; flex-direction:column; align-items:center; gap:var(--space-3);
+  width:100%; height:100%; padding:var(--space-3) 0; border:0; border-radius:inherit;
+  background:transparent; color:var(--color-text-secondary); cursor:pointer;
+}
+.tcl-rail:hover{ background:var(--color-bg-hover); color:var(--color-text-primary); }
+.tcl-rail:focus-visible{ outline:2px solid var(--color-brand-accent); outline-offset:-2px; }
+.tcl-rail-icon{ width:28px; height:28px; display:grid; place-items:center; border:1px solid var(--color-border-subtle); border-radius:6px; }
+.tcl-rail-label{
+  writing-mode:vertical-rl; max-height:60%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  font-size:12px; font-weight:600; letter-spacing:.04em; color:var(--color-text-primary);
+}
+.tcl-pane-icon{ width:18px; height:18px; display:block; }
+/* 접기 단추는 창 오른쪽 위 구석에 둔다. 버전 목록 옆에 붙이면 버전 줄이 폴더 줄보다 좁아졌다. */
+.tcl-side-head{ position:relative; }
+.tcl-side-head > .tcl-side-toggle{ position:absolute; top:-2px; right:0; }
+.tcl-side-head .tcl-versions > .tcl-folders-title{ padding-right:36px; min-height:28px; display:flex; align-items:center; }
 .tcl-folders-head{ display:flex; align-items:center; justify-content:space-between; gap:var(--space-2); }
-.tcl-side-toggle{ flex:none; width:28px; height:28px; display:grid; place-items:center; border:1px solid var(--color-border-subtle); border-radius:6px; background:transparent; color:var(--color-text-secondary); cursor:pointer; font-size:16px; line-height:0; }
+.tcl-side-toggle{ flex:none; width:28px; height:28px; display:grid; place-items:center; padding:0; border:1px solid var(--color-border-subtle); border-radius:6px; background:transparent; color:var(--color-text-secondary); cursor:pointer; }
 .tcl-side-toggle:hover{ background:var(--color-bg-hover); color:var(--color-text-primary); }
 .tcl-versions{ display:flex; flex-direction:column; gap:var(--space-2); padding-bottom:var(--space-3); border-bottom:1px solid var(--color-border-subtle); }
 .tcl-version .tcl-folder-name{ font-family:var(--font-display); font-weight:600; }
@@ -9979,9 +10003,64 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
 .fchip--regress.on{ background:var(--color-status-critical-muted); border-color:var(--color-status-critical); color:var(--color-status-critical); }
 .vpill--absent{ display:inline-flex; align-items:center; padding:1px 8px; border:1px dashed var(--color-border-strong); border-radius:999px; font-size:11px; color:var(--color-text-muted); white-space:nowrap; }
 
-/* 한쪽 버전에만 있는 줄: 게임의 경고 띠처럼 빗금을 깐다. 글자는 흐리게 하되 읽을 수 있게 둔다. */
-.tct-row--absent td{
+/* 한쪽 버전에만 있는 줄: 게임의 경고 띠처럼 빗금을 깐다. 글자는 흐리게 하되 읽을 수 있게 둔다.
+   빗금은 칸(td)이 아니라 줄(tr)에 깐다. 칸마다 깔면 칸마다 무늬가 새로 시작해 칸 경계에서 끊겨 보였다.
+   줄에 마우스를 올려도 빗금이 보이게 칸의 배경은 반투명으로 둔다. */
+.tct-row--absent{
   background-image:repeating-linear-gradient(-45deg, color-mix(in srgb, var(--color-status-warning) 16%, transparent) 0 10px, transparent 10px 20px);
+}
+.tct-row--absent td{ background:transparent; }
+.tct-row--absent:hover td, .tct-row--absent.active td, .tct-row--absent.chosen td, .tct-row--absent.picked td{
+  background:color-mix(in srgb, var(--color-bg-hover) 55%, transparent);
 }
 .tct-row--absent .tct-step-text, .tct-row--absent .tct-quiet{ opacity:.7; }
 .tct-absent-note{ display:block; margin-top:2px; font-size:11px; font-weight:600; color:var(--color-status-warning); letter-spacing:.01em; }
+
+/* 라이브러리 검색 칸과 고르기 상자 — 브라우저 기본 컨트롤 대신 직접 그린다 (ARTEL-1022) */
+.sfield-wrap, .pick-field{ display:flex; flex-direction:column; gap:var(--space-2); min-width:0; }
+.sfield{
+  position:relative; display:flex; align-items:center; min-height:36px;
+  border:1px solid var(--color-border-strong); border-radius:999px; background:var(--color-bg-raised);
+  transition:border-color .15s, box-shadow .15s;
+}
+.sfield:hover{ border-color:color-mix(in srgb, var(--color-text-muted) 60%, var(--color-border-strong)); }
+.sfield:focus-within{ border-color:var(--color-brand-accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--color-brand-accent) 22%, transparent); }
+.sfield-icon{ flex:none; width:16px; height:16px; margin-left:14px; color:var(--color-text-muted); }
+.sfield-input{
+  flex:1; min-width:0; height:34px; padding:0 10px; border:0; background:transparent; outline:none;
+  color:var(--color-text-primary); font:inherit; font-size:13px;
+}
+.sfield-input::placeholder{ color:var(--color-text-muted); }
+.sfield-clear{
+  flex:none; width:24px; height:24px; margin-right:6px; display:grid; place-items:center; padding:0;
+  border:0; border-radius:999px; background:var(--color-bg-hover); color:var(--color-text-secondary); cursor:pointer;
+}
+.sfield-clear svg{ width:12px; height:12px; }
+.sfield-clear:hover{ color:var(--color-text-primary); }
+
+.pick{
+  display:flex; align-items:center; justify-content:space-between; gap:var(--space-3);
+  min-width:160px; min-height:36px; padding:0 12px 0 14px;
+  border:1px solid var(--color-border-strong); border-radius:999px; background:var(--color-bg-raised);
+  color:var(--color-text-primary); font:inherit; font-size:13px; text-align:left; cursor:pointer;
+  transition:border-color .15s, box-shadow .15s;
+}
+.pick:hover{ border-color:color-mix(in srgb, var(--color-text-muted) 60%, var(--color-border-strong)); }
+.pick:focus-visible, .pick.is-open{ outline:none; border-color:var(--color-brand-accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--color-brand-accent) 22%, transparent); }
+.pick-value{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.pick-chevron{ flex:none; width:14px; height:14px; color:var(--color-text-muted); transition:transform .15s; }
+.pick.is-open .pick-chevron{ transform:rotate(180deg); }
+.pick-menu{
+  position:fixed; z-index:1000; max-height:280px; overflow-y:auto; margin:0; padding:4px; list-style:none;
+  border:1px solid var(--color-border-strong); border-radius:12px; background:var(--color-bg-raised);
+  box-shadow:0 12px 32px rgba(0,0,0,.35); outline:none;
+  animation:pick-in .12s ease-out both;
+}
+@keyframes pick-in{ from{ opacity:0; transform:translateY(-4px); } to{ opacity:1; transform:none; } }
+.pick-option{
+  display:flex; align-items:center; justify-content:space-between; gap:var(--space-3);
+  padding:7px 10px; border-radius:8px; font-size:13px; color:var(--color-text-primary); cursor:pointer;
+}
+.pick-option.is-active{ background:var(--color-bg-hover); }
+.pick-option[aria-selected="true"]{ font-weight:600; }
+.pick-check{ flex:none; width:14px; height:14px; color:var(--color-brand-accent); }

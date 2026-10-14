@@ -11,6 +11,8 @@ import { SpecGradeChip } from './SpecGradeChip'
 import { CaseSelectionBar } from './CaseSelectionBar'
 import { FolderPane } from './FolderPane'
 import { MoveCasesDialog } from './MoveCasesDialog'
+import { Picker } from './Picker'
+import { SearchField } from './SearchField'
 import { hasPointerMoved, type PointerPosition } from './pointerMovement'
 import { bulkDeleteTestCases, deleteTestCase, moveTestCases } from './testCaseApi'
 import {
@@ -105,21 +107,28 @@ export function TestCaseLibrary({
       return row !== undefined && isRegression(row)
     })
   }, [versionsMode, versionCases.rows, library.cases, onlyRegressions, compareVersionId, rowById])
-  const setVersionParams = useCallback(
-    (version: string | null, compare: string | null) => {
+  // 주소의 `version` · `compare` · `folder` 를 **한 번에** 고친다. 둘로 나눠 연달아 부르면 두 번째가 첫 번째 결과를
+  // 보지 못하고 옛 주소 위에 써서, 버전을 눌러도 바뀌지 않았다.
+  const setLibraryParams = useCallback(
+    (patch: { version?: string | null; compare?: string | null; folder?: string | null }) => {
       setSearchParams(
         (current) => {
           const params = new URLSearchParams(current)
-          if (version === null) params.delete('version')
-          else params.set('version', version)
-          if (compare === null) params.delete('compare')
-          else params.set('compare', compare)
+          for (const [key, value] of Object.entries(patch)) {
+            if (value === undefined) continue
+            if (value === null) params.delete(key)
+            else params.set(key, value)
+          }
           return params
         },
         { replace: true },
       )
     },
     [setSearchParams],
+  )
+  const setVersionParams = useCallback(
+    (version: string | null, compare: string | null) => setLibraryParams({ version, compare }),
+    [setLibraryParams],
   )
   const { refresh: refreshVersionList } = versionList
   const { refresh: refreshVersionCases } = versionCases
@@ -138,6 +147,20 @@ export function TestCaseLibrary({
   // 새 케이스를 추가한 직후 그 문구가 마운트와 함께 사라져 screen reader 에 닿지 않는다.
   const [announcement, setAnnouncement] = useState('')
   const [sideCollapsed, setSideCollapsed] = useState(false)
+  // 왼쪽 창과 목록을 화면 끝까지 채운다. 높이는 "화면 − 이 화면이 시작하는 자리 − 아래 여백" 이다. 시작 자리는
+  // 위의 페이지 제목 줄에 따라 달라 CSS 만으로는 정할 수 없어 잰다. 못 재면 CSS 의 기본값을 쓴다.
+  // React 19 의 ref callback 은 정리 함수를 돌려줄 수 있다. 목록이 처음 그려질 때(읽기가 끝난 뒤) 재기 시작한다.
+  const rootRef = useCallback((root: HTMLDivElement | null) => {
+    if (root === null) return undefined
+    const measure = () => {
+      const scroller = root.closest<HTMLElement>('.workspace-body')
+      const top = root.getBoundingClientRect().top + (scroller?.scrollTop ?? 0)
+      root.style.setProperty('--tcl-top', `${Math.round(top)}px`)
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [])
 
   // 주소의 `?folder=` 가 보는 범위다(ARTEL-972 의 링크가 여기로 온다). 폴더 목록을 읽기 전에는
   // 폴더 id 가 있는지 알 수 없으므로 없는 id 를 전체로 돌리는 일도 읽은 뒤에만 한다. 읽지
@@ -152,19 +175,8 @@ export function TestCaseLibrary({
   // 고르고 지우면 주소가 말한 폴더와 다른 것을 만지게 된다.
   const waitsForFolder = requestedFolder.kind === 'folder' && folderList.status === 'loading'
   const selectFolder = useCallback(
-    (next: FolderSelection) => {
-      setSearchParams(
-        (current) => {
-          const params = new URLSearchParams(current)
-          const value = toFolderParam(next)
-          if (value === null) params.delete('folder')
-          else params.set('folder', value)
-          return params
-        },
-        { replace: true },
-      )
-    },
-    [setSearchParams],
+    (next: FolderSelection) => setLibraryParams({ folder: toFolderParam(next) }),
+    [setLibraryParams],
   )
   const folderCounts = useMemo(
     () => countCasesByFolder(baseCases, folderList.folders),
@@ -180,10 +192,14 @@ export function TestCaseLibrary({
     () => filterByFolder(baseCases, folderSelection, folderList.folders),
     [baseCases, folderSelection, folderList.folders],
   )
-  const shown = useMemo(
-    () => selectTestCases(inFolder, filters, sort),
-    [inFolder, filters, sort],
-  )
+  // 비교할 때 한쪽 버전에만 있는 줄은 정렬과 상관없이 표 아래로 모은다. 빗금 줄이 표 중간중간에 끼면 두 버전에
+  // 다 있는 케이스를 읽다가 끊긴다.
+  const shown = useMemo(() => {
+    const sorted = selectTestCases(inFolder, filters, sort)
+    if (compareVersionId === null) return sorted
+    const onlyOneSide = (testCase: TestCase) => (rowById.get(testCase.id)?.presence ?? 'BOTH') !== 'BOTH'
+    return [...sorted.filter((testCase) => !onlyOneSide(testCase)), ...sorted.filter(onlyOneSide)]
+  }, [inFolder, filters, sort, compareVersionId, rowById])
   const tally = useMemo(() => tallyTestCases(inFolder), [inFolder])
   // 선택은 지금 보이는 줄에 묶인다. 필터가 줄을 숨기면 hook 이 그 줄을 선택에서 뺀다.
   const visibleIds = useMemo(() => shown.map((testCase) => testCase.id), [shown])
@@ -365,9 +381,21 @@ export function TestCaseLibrary({
   const filtered = hasActiveFilters(filters)
 
   return (
-    <div className={'tcl cp-scope' + (sheetOpen ? ' has-sheet' : '') + (sideCollapsed ? ' is-side-collapsed' : '')}>
+    <div className={'tcl cp-scope' + (sheetOpen ? ' has-sheet' : '') + (sideCollapsed ? ' is-side-collapsed' : '')} ref={rootRef}>
       <FolderPane
         collapsed={sideCollapsed}
+        collapsedLabel={
+          [
+            selectedVersion !== undefined && folderSelection.kind === 'all' ? versionName(selectedVersion) : null,
+            folderSelection.kind === 'none'
+              ? m.folders.none
+              : folderSelection.kind === 'folder'
+                ? (folderList.folders.find((folder) => folder.id === folderSelection.id)?.name ?? null)
+                : null,
+          ]
+            .filter((part): part is string => part !== null)
+            .join(' · ')
+        }
         onToggleCollapsed={() => setSideCollapsed((value) => !value)}
         top={
           versionsMode ? (
@@ -375,8 +403,7 @@ export function TestCaseLibrary({
               onSelect={(gameBuildId) => {
                 // 버전을 고르는 것이 곧 그 버전 전체를 보는 것이다. 폴더 필터와 비교는 푼다.
                 setOnlyRegressions(false)
-                setVersionParams(gameBuildId, null)
-                selectFolder(ALL_FOLDERS)
+                setLibraryParams({ version: gameBuildId, compare: null, folder: null })
               }}
               selectedId={folderSelection.kind === 'all' ? selectedVersionId : null}
               versions={versionList.versions}
@@ -453,52 +480,47 @@ export function TestCaseLibrary({
         <p className="section-intro">{m.section.subtitle}</p>
 
         <div className="tcl-filters">
-          <label className="tcl-filter tcl-filter--grow">
-            <span className="field-label">{m.filters.search}</span>
-            <input
-              className="field-input"
-              onChange={(event) => setFilters({ ...filters, query: event.target.value })}
+          <div className="tcl-filter tcl-filter--grow">
+            <SearchField
+              clearLabel={m.filters.clearSearch}
+              label={m.filters.search}
+              onChange={(query) => setFilters({ ...filters, query })}
               placeholder={m.filters.searchPlaceholder}
-              type="search"
               value={filters.query}
             />
-          </label>
+          </div>
 
           {versionsMode && (
-            <label className="tcl-filter">
-              <span className="field-label">{m.versions.compareLabel}</span>
-              <select
-                className="field-input"
-                onChange={(event) => {
-                  const next = event.target.value.length > 0 ? event.target.value : null
+            <div className="tcl-filter">
+              <Picker
+                label={m.versions.compareLabel}
+                onChange={(raw) => {
+                  const next = raw.length > 0 ? raw : null
                   if (next === null) setOnlyRegressions(false)
                   setVersionParams(selectedVersionId, next)
                 }}
+                options={[
+                  { value: '', label: m.versions.noCompare },
+                  ...versionList.versions
+                    .filter((version) => version.gameBuildId !== selectedVersionId)
+                    .map((version) => ({ value: version.gameBuildId, label: versionName(version) })),
+                ]}
                 value={compareVersionId ?? ''}
-              >
-                <option value="">{m.versions.noCompare}</option>
-                {versionList.versions
-                  .filter((version) => version.gameBuildId !== selectedVersionId)
-                  .map((version) => (
-                    <option key={version.gameBuildId} value={version.gameBuildId}>
-                      {versionName(version)}
-                    </option>
-                  ))}
-              </select>
-            </label>
+              />
+            </div>
           )}
 
-          <label className="tcl-filter">
-            <span className="field-label">{m.filters.sort}</span>
-            <select
-              className="field-input"
-              onChange={(event) => setSort(event.target.value as TestCaseSort)}
+          <div className="tcl-filter">
+            <Picker
+              label={m.filters.sort}
+              onChange={(next) => setSort(next as TestCaseSort)}
+              options={[
+                { value: 'FAILING_FIRST', label: m.filters.sortFailingFirst },
+                { value: 'NEWEST', label: m.filters.sortNewest },
+              ]}
               value={sort}
-            >
-              <option value="FAILING_FIRST">{m.filters.sortFailingFirst}</option>
-              <option value="NEWEST">{m.filters.sortNewest}</option>
-            </select>
-          </label>
+            />
+          </div>
         </div>
 
         <div className="tcl-status-row">
