@@ -9,6 +9,7 @@ import {
   readJson,
   toApiError,
 } from './projectApi'
+import { parseGameFunctionCatalog, type GameFunctionCatalog } from './gameFunctions'
 import {
   DEFAULT_GAME_PLATFORM,
   type GameBuild,
@@ -211,4 +212,26 @@ export async function updateGameBuild(
     ...jsonRequest(patch),
   })
   return requireBuild(await readJson(response), response.status)
+}
+
+/**
+ * `GET .../game-builds/{buildId}/game-functions` — the cheats and behaviors the game
+ * registered (ARTEL-1051). A build that never sent a catalog answers `200` with
+ * `revision: 0` and two empty lists, so an empty catalog is an ordinary answer.
+ */
+export async function getGameFunctionCatalog(
+  projectId: string,
+  buildId: string,
+  signal?: AbortSignal,
+): Promise<GameFunctionCatalog> {
+  const response = await apiFetch(`${buildPath(projectId, buildId)}/game-functions`, { signal })
+  const catalog = parseGameFunctionCatalog(await readJson(response))
+  if (catalog === null) {
+    throw new ProjectApiError(
+      response.status,
+      'The server described the game functions oddly.',
+      'CLIENT_MALFORMED_GAME_FUNCTIONS',
+    )
+  }
+  return catalog
 }
