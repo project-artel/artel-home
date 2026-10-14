@@ -30,6 +30,7 @@ export function caseLibraryTourSteps(t: Messages): TourStep[] {
     step('compare', 'compare'),
     step('chips', 'chips'),
     step('table', 'table'),
+    step('generateFromMap', 'generate-from-map'),
     step('newCase', 'new-case'),
     step('help', 'help'),
   ]

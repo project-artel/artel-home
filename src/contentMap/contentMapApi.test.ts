@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { parseContentMapView } from './contentMapApi.ts'
+import { parseContentMapView, parseLastScan } from './contentMapApi.ts'
 import { sumCapabilities, transitionKindStyle } from './contentMapTypes.ts'
 
 /*
@@ -484,4 +484,14 @@ test('씬의 capability 목록은 id 로 접히고 서버 철자를 그대로 �
   assert.equal(list[1].verification, 'pending')
   // 절이 없는 씬은 빈 배열이다. 색인의 재료일 뿐이라 `null` 을 따로 두지 않는다.
   assert.deepEqual(parseContentMapView({ scenes: [{ id: 2, name: 'X' }] }).scenes[0].capabilityList, [])
+})
+
+test('스캔하고 TC 생성의 결과를 읽고, 그냥 스캔이나 모르는 상태는 null 이다', () => {
+  const base = { state: 'SUCCEEDED', gameInstanceId: 3, gameInstanceName: 'PC', requestedAt: '2026-10-14T00:00:00Z' }
+  const generated = parseLastScan({ ...base, testCases: { carryOver: true, state: 'GENERATED', created: 12, carriedOver: 2 } })
+  assert.deepEqual(generated?.testCases, { state: 'GENERATED', created: 12, carriedOver: 2, reason: null })
+  const skipped = parseLastScan({ ...base, testCases: { state: 'SKIPPED', reason: '이미 있음' } })
+  assert.deepEqual(skipped?.testCases, { state: 'SKIPPED', created: null, carriedOver: null, reason: '이미 있음' })
+  assert.equal(parseLastScan(base)?.testCases, null)
+  assert.equal(parseLastScan({ ...base, testCases: { state: 'WHAT' } })?.testCases, null)
 })

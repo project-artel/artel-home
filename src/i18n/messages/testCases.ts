@@ -12,6 +12,7 @@ export const testCasesEn = {
     subtitle:
       'Every reusable case in this project. The result column is the verification recorded on the case; a QA run\'s per-step verdicts are not rolled up here.',
     newCase: 'New case',
+    generateFromMap: 'Create from content map',
     shownOf: (shown: number, total: number) => `${shown} of ${total}`,
     loading: 'Loading cases…',
     loadFailed: 'Cases could not be loaded.',
@@ -337,6 +338,10 @@ export const testCasesEn = {
         title: 'The case table',
         body: 'Click a row to edit it. Tick boxes (or Shift/Ctrl+click) to select several, then add them to a folder or a version. Drag selected rows onto a folder in the side pane.',
       },
+      generateFromMap: {
+        title: 'Create test cases from a content map',
+        body: 'Pick a game build and its content map becomes that version’s test cases. Each row says first what will happen — builds that already have test cases, or whose map is not read yet, cannot be picked.',
+      },
       newCase: {
         title: 'New case',
         body: 'Write a case by hand. It goes into the current version by default — change the version in the editor if needed. A new case starts as Unverified.',
@@ -345,6 +350,31 @@ export const testCasesEn = {
         title: 'See this again',
         body: 'This grey Help button replays the tutorial whenever you need it.',
       },
+    },
+  },
+  generate: {
+    title: 'Create test cases from a content map',
+    hint: 'Pick a game build. Its content map becomes that version’s test cases. A build that already has test cases cannot be created again yet.',
+    listLabel: 'Game builds',
+    loading: 'Loading game builds…',
+    loadFailed: 'The game builds could not be loaded.',
+    empty: 'No game build has registered yet. Run the game with the SDK once.',
+    outcome: {
+      create: (version: string) => `Creates ${version}`,
+      alreadyGenerated: () => 'Already has test cases',
+      notRead: () => 'Map not read yet',
+      noMap: () => 'Not scanned yet',
+    },
+    cancel: 'Cancel',
+    confirm: 'Create',
+    pending: 'Creating…',
+    done: (version: string, created: number, carriedOver: number) =>
+      `Created ${created} test cases in ${version}` + (carriedOver > 0 ? `, and carried over ${carriedOver} user-created ones.` : '.'),
+    failure: {
+      alreadyGenerated: 'This build already has test cases. Pick another build.',
+      notReady: 'This build has no content map that has been read yet.',
+      buildMissing: 'This build no longer exists.',
+      other: 'Test cases could not be created. Nothing was changed.',
     },
   },
   importManual: {
@@ -433,6 +463,7 @@ export const testCasesKo: Localized<typeof testCasesEn> = {
     subtitle:
       '이 프로젝트의 재사용 테스트 케이스 전부입니다. 결과 칸은 케이스에 기록된 검증 상태이고, QA 런이 스텝마다 내린 판정을 케이스 단위로 접은 값은 아닙니다.',
     newCase: '새 케이스',
+    generateFromMap: '지도에서 TC 생성',
     shownOf: (shown: number, total: number) => `${total}건 중 ${shown}건`,
     loading: '케이스를 불러오는 중…',
     loadFailed: '케이스를 불러오지 못했습니다.',
@@ -755,6 +786,10 @@ export const testCasesKo: Localized<typeof testCasesEn> = {
         title: 'TC 표',
         body: '줄을 누르면 편집합니다. 체크하거나 Shift · Ctrl+클릭으로 여러 줄을 골라 폴더나 버전에 넣습니다. 고른 줄을 왼쪽 폴더에 끌어 놓아도 됩니다.',
       },
+      generateFromMap: {
+        title: '지도에서 TC 만들기',
+        body: '게임 빌드를 고르면 그 빌드의 화면 지도로 그 버전의 TC 를 만듭니다. 줄마다 무슨 일이 생기는지 먼저 보이고, 이미 TC 가 있거나 지도가 아직 안 읽힌 빌드는 고를 수 없습니다.',
+      },
       newCase: {
         title: '새 케이스',
         body: 'TC 를 직접 씁니다. 기본으로 현재 버전에 들어가고, 편집기에서 다른 버전을 고를 수 있습니다. 새 TC 는 미검증으로 시작합니다.',
@@ -763,6 +798,31 @@ export const testCasesKo: Localized<typeof testCasesEn> = {
         title: '다시 보고 싶을 때',
         body: '이 회색 도움말 버튼을 누르면 언제든 튜토리얼을 다시 봅니다.',
       },
+    },
+  },
+  generate: {
+    title: '지도에서 TC 생성',
+    hint: '게임 빌드를 고르세요. 그 빌드의 화면 지도로 그 버전의 TC 를 만듭니다. 이미 TC 가 있는 빌드는 아직 다시 만들 수 없습니다.',
+    listLabel: '게임 빌드',
+    loading: '게임 빌드를 불러오는 중…',
+    loadFailed: '게임 빌드를 불러오지 못했습니다.',
+    empty: '등록된 게임 빌드가 없습니다. SDK 를 붙여 게임을 한 번 실행해 주세요.',
+    outcome: {
+      create: (version: string) => `${version} 으로 만듭니다`,
+      alreadyGenerated: () => '이미 TC 가 있음',
+      notRead: () => '지도가 아직 안 읽힘',
+      noMap: () => '아직 스캔 안 됨',
+    },
+    cancel: '취소',
+    confirm: '생성',
+    pending: '만드는 중…',
+    done: (version: string, created: number, carriedOver: number) =>
+      `${version} 에 TC ${created}건을 만들었습니다` + (carriedOver > 0 ? `. 사용자 생성 TC ${carriedOver}건을 이어 넣었습니다.` : '.'),
+    failure: {
+      alreadyGenerated: '이 빌드는 이미 TC 가 있습니다. 다른 빌드를 골라 주세요.',
+      notReady: '이 빌드에는 읽힌 화면 지도가 아직 없습니다.',
+      buildMissing: '이 빌드가 더는 없습니다.',
+      other: 'TC 를 만들지 못했습니다. 아무것도 바뀌지 않았습니다.',
     },
   },
   importManual: {

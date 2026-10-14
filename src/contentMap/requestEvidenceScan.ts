@@ -29,13 +29,21 @@ export interface ScanRequested {
  *
  * 붙어 있는 게임이 없으면 **409** 다. 404(빌드 없음·프로젝트 불일치)와 갈라져 있어야
  * 화면이 "게임을 켜라"와 "이 빌드가 없다"를 다른 말로 할 수 있다.
+ *
+ * `generateTestCases` 면 스캔 문서가 다 읽힌 뒤 서버가 TC 도 만든다(ARTEL-1041). 결과는 `lastScan.testCases` 로 온다.
+ * 이미 TC 가 있는 빌드면 스캔을 보내기 전에 409 다.
  */
 export async function requestEvidenceScan(options: {
   projectId: string
   gameBuildId: string
+  generateTestCases?: boolean
+  carryOver?: boolean
 }): Promise<ScanRequested> {
+  const query = options.generateTestCases === true
+    ? `?generateTestCases=true&carryOver=${options.carryOver === false ? 'false' : 'true'}`
+    : ''
   const response = await apiFetch(
-    contentMapPath(options.projectId, options.gameBuildId, '/scan'),
+    contentMapPath(options.projectId, options.gameBuildId, '/scan') + query,
     { method: 'POST' },
   )
   const record = (await readJson(response)) as Record<string, unknown> | null
