@@ -9,7 +9,14 @@ import type { ExtrasStatus } from '../projects/workspace/workspaceContext'
 import type { TestRun } from '../testRuns/testRunApi'
 import { createQaRun, qaStartConflict } from './qaApi'
 import { byAscendingEffort } from './reasoningEfforts'
-import { qaRunPath, type QaModel, type QaReasoningSelection, type QaTry } from './qaTypes'
+import { QaModelPicker } from './QaModelPicker'
+import {
+  qaModelOptionKey,
+  qaRunPath,
+  type QaModel,
+  type QaReasoningSelection,
+  type QaTry,
+} from './qaTypes'
 import { TakeOverQaRunDialog } from './TakeOverQaRunDialog'
 
 /** How many recent runs the panel shows before deferring to the history section. */
@@ -43,7 +50,7 @@ export function QaTryPanel({
 }) {
   const [instanceId, setInstanceId] = useState('')
   const [runId, setRunId] = useState('')
-  const [selectedModelId, setSelectedModelId] = useState('')
+  const [selectedModelKey, setSelectedModelKey] = useState('')
   const [reasoningEnabled, setReasoningEnabled] = useState(false)
   const [reasoningValue, setReasoningValue] = useState(0)
   const [starting, setStarting] = useState(false)
@@ -57,17 +64,20 @@ export function QaTryPanel({
   const modelSelectId = useId()
   const reasoningControlId = useId()
 
-  // The first model is the default, but the list arrives after the first
-  // render. Deriving the effective id keeps that out of an effect, which would
-  // otherwise paint one frame with an empty select.
-  const modelId = selectedModelId || models[0]?.id || ''
+  // The first model that can run is the default, but the list arrives after the
+  // first render. Deriving the effective key keeps that out of an effect, which
+  // would otherwise paint one frame with an empty picker. A model on a provider
+  // with no key is listed but never the default.
+  const defaultModel = models.find((model) => model.keyRegistered)
+  const modelKey = selectedModelKey || (defaultModel ? qaModelOptionKey(defaultModel) : '')
+  const selectedModel = models.find((model) => qaModelOptionKey(model) === modelKey) ?? null
 
   /**
    * @param force end whatever QA still holds the game and take its place. Only
    *   ever true on the second attempt, after the operator answered the dialog.
    */
   async function run(force = false) {
-    if (instanceId === '' || runId === '' || modelId === '') {
+    if (instanceId === '' || runId === '' || selectedModel === null) {
       setFailure(t.qa.errors.missingSelection)
       return
     }
@@ -78,7 +88,14 @@ export function QaTryPanel({
     try {
       // TR 단위 실행: 런의 모든 시나리오를 순차 실행한다(사이 게임 리셋). 시나리오 없는 런은
       // 백엔드가 409로 거부한다.
-      const run = await createQaRun(runId, instanceId, modelId, selectedReasoning, force)
+      const run = await createQaRun(
+        runId,
+        instanceId,
+        selectedModel.id,
+        selectedModel.keySource,
+        selectedReasoning,
+        force,
+      )
       setTakeoverOpen(false)
       navigate(
         `/projects/${encodeURIComponent(projectId)}/qa-runs/${encodeURIComponent(run.id)}`,
@@ -112,7 +129,6 @@ export function QaTryPanel({
 
   const ready = status === 'ready'
   const runnable = ready && instances.length > 0 && runs.length > 0 && models.length > 0
-  const selectedModel = models.find((model) => model.id === modelId) ?? null
   const reasoning = selectedModel?.reasoning ?? null
   const sliderEfforts =
     reasoning?.kind === 'effort' ? byAscendingEffort(reasoning.efforts) : []
@@ -123,9 +139,9 @@ export function QaTryPanel({
         ? { effort: sliderEfforts[reasoningValue] ?? sliderEfforts[0] }
         : { maxTokens: reasoningValue }
 
-  function selectModel(nextId: string) {
-    const next = models.find((model) => model.id === nextId)
-    setSelectedModelId(nextId)
+  function selectModel(nextKey: string) {
+    const next = models.find((model) => qaModelOptionKey(model) === nextKey)
+    setSelectedModelKey(nextKey)
     setReasoningEnabled(false)
     setReasoningValue(
       next?.reasoning?.kind === 'effort'
@@ -183,22 +199,16 @@ export function QaTryPanel({
             </select>
           </label>
 
-          <label className="qa-start-field" htmlFor={modelSelectId}>
-            <span>{t.qa.panel.modelLabel}</span>
-            <select
+          <div className="qa-start-field qa-start-field--model">
+            <label htmlFor={modelSelectId}>{t.qa.panel.modelLabel}</label>
+            <QaModelPicker
               disabled={models.length === 0}
               id={modelSelectId}
-              onChange={(event) => selectModel(event.target.value)}
-              value={modelId}
-            >
-              <option value="">{t.qa.panel.modelPlaceholder}</option>
-              {models.map((model) => (
-                <option key={model.id} value={model.id}>
-                  {model.label} · {model.provider}
-                </option>
-              ))}
-            </select>
-          </label>
+              models={models}
+              onChange={selectModel}
+              value={modelKey}
+            />
+          </div>
 
           {selectedModel !== null && (
             <div className="qa-model-config">
