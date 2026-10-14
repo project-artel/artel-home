@@ -82,7 +82,7 @@ export function CliTokenPanel() {
       </header>
       <p className="section-intro">{copy.intro}</p>
 
-      <CliInstallSteps onResult={setAnnouncement}>
+      <CliInstallSteps collapsed onResult={setAnnouncement}>
         <p className="guide-copy">
           {copy.install.ciBefore}
           <code className="mono">ARTEL_TOKEN</code>

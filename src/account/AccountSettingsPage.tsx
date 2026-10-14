@@ -33,7 +33,8 @@ function toFormDraft(user: AuthUser): ProfileFormDraft {
  * reshaping the page. `ARTEL-781` adds `CliTokenPanel` as a third sibling for
  * the same reason — this page has no tabs or sub-routes yet, and one feature
  * is not a reason to introduce them. `ARTEL-1035` adds `LlmKeysPanel` the same
- * way.
+ * way, under the email it sits closest to in use — both are things the account
+ * brings to a project.
  */
 export function AccountSettingsPage() {
   const auth = useAuth()
@@ -62,8 +63,8 @@ export function AccountSettingsPage() {
           applyPendingEmail={auth.applyPendingEmail}
           user={auth.user}
         />
-        <CliTokenPanel />
         <LlmKeysPanel />
+        <CliTokenPanel />
       </div>
     </section>
   )

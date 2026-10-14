@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
-import { llmKeyServiceName } from '../account/llmKeyTypes'
+import { Link } from 'react-router-dom'
+import { LLM_KEY_SERVICES, llmKeyServiceName } from '../account/llmKeyTypes'
 import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../i18n/useI18n'
 import {
@@ -83,15 +84,24 @@ export function QaModelPicker({
     ...(all.platform.length > 0
       ? [{ id: PLATFORM_TAB, count: all.platform.length, registered: true, keyHint: null }]
       : []),
-    ...all.user.map((group) => ({
-      id: group.provider,
-      count: group.models.length,
-      registered: group.registered,
-      keyHint: group.keyHint,
-    })),
+    // 키를 넣을 수 있는 서비스는 서버가 그 모델을 하나도 보내지 않아도 탭으로 둔다. 키가 없다는 것과
+    // 어디서 넣는지를 말하는 자리가 이 탭이다 — 감추면 사용자는 키를 넣을 수 있다는 것부터 모른다.
+    ...[
+      ...LLM_KEY_SERVICES,
+      ...all.user
+        .map((group) => group.provider)
+        .filter((service) => !(LLM_KEY_SERVICES as readonly string[]).includes(service)),
+    ].map((service) => {
+      const group = all.user.find((entry) => entry.provider === service)
+      return {
+        id: service,
+        count: group?.models.length ?? 0,
+        registered: group?.registered ?? false,
+        keyHint: group?.keyHint ?? null,
+      }
+    }),
   ]
-  // 탭이 하나뿐이면 고를 것이 없다 — 지금 orchestration 응답이 그렇다.
-  const tabbed = query.trim() === '' && tabs.length > 1
+  const tabbed = query.trim() === ''
   const shownTab = tabs.find((entry) => entry.id === tab) ?? tabs[0]
   const matched = useMemo(() => groupQaModels(models, query), [models, query])
   const groups = useMemo(
@@ -314,7 +324,16 @@ export function QaModelPicker({
             <p className="qa-model-tab-hint">
               {shownTab.id === PLATFORM_TAB
                 ? p.platformSectionHint
-                : keyStatus(shownTab.registered, shownTab.keyHint)}
+                : (
+                  <>
+                    {keyStatus(shownTab.registered, shownTab.keyHint)}
+                    {!shownTab.registered && (
+                      <Link className="qa-model-register-link" to="/account">
+                        {p.registerKey}
+                      </Link>
+                    )}
+                  </>
+                )}
             </p>
           )}
           <ul aria-label={p.modelLabel} className="qa-model-list" id={listId} ref={setListNode} role="listbox">
@@ -364,7 +383,11 @@ export function QaModelPicker({
             )}
 
             {groups.platform.length === 0 && groups.user.length === 0 && (
-              <li className="qa-model-empty" role="presentation">{p.modelNoMatch}</li>
+              <li className="qa-model-empty" role="presentation">
+                {tabbed && shownTab !== undefined && shownTab.id !== PLATFORM_TAB
+                  ? p.keyTabEmpty(llmKeyServiceName(shownTab.id))
+                  : p.modelNoMatch}
+              </li>
             )}
           </ul>
           <EdgeScrollbar label={p.modelLabel} scroller={listNode} side="right" />

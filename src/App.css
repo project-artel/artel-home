@@ -1455,6 +1455,17 @@ a.instance-name:hover {
   margin: 0 0 var(--space-1);
 }
 
+.cli-install-guide--collapsible > summary {
+  width: fit-content;
+  min-height: 32px;
+  padding: 6px 0;
+  cursor: pointer;
+}
+
+.cli-install-guide--collapsible[open] > summary {
+  margin-bottom: var(--space-2);
+}
+
 .cli-install-guide .copy-line {
   margin-bottom: var(--space-2);
 }
@@ -2757,7 +2768,15 @@ a.instance-name:hover {
   line-height: 16px;
 }
 
+.qa-model-register-link {
+  margin-left: var(--space-2);
+  color: var(--color-action-primary);
+  font-weight: 600;
+}
+
 .qa-model-tab-hint {
+  display: flex;
+  align-items: center;
   margin: 0;
   padding: 0 var(--space-3) var(--space-2);
   color: var(--color-text-muted);

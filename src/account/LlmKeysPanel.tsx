@@ -104,7 +104,7 @@ export function LlmKeysPanel() {
       <header className="panel-header">
         <h2 id="llm-keys-title">{copy.title}</h2>
       </header>
-      <p className="field-hint">{copy.intro}</p>
+      <p className="section-intro">{copy.intro}</p>
 
       {state.status === 'loading' && <p className="panel-empty">{copy.loading}</p>}
 
