@@ -133,7 +133,32 @@ test('Bedrock models are not offered on the platform key', () => {
 })
 
 test('Anthropic models drop "Claude" from their name and others keep theirs', () => {
-  assert.equal(qaModelDisplayLabel({ label: 'Claude Opus 5.5', provider: 'anthropic' }), 'Opus 5.5')
-  assert.equal(qaModelDisplayLabel({ label: 'GPT-6 Luna', provider: 'openai' }), 'GPT-6 Luna')
-  assert.equal(qaModelDisplayLabel({ label: 'Claude-ish', provider: 'acme' }), 'Claude-ish')
+  const platform = { keySource: 'platform', keyProvider: null } as const
+  assert.equal(qaModelDisplayLabel({ ...platform, label: 'Claude Opus 5.5', provider: 'anthropic' }), 'Opus 5.5')
+  assert.equal(qaModelDisplayLabel({ ...platform, label: 'GPT-6 Luna', provider: 'openai' }), 'GPT-6 Luna')
+  assert.equal(qaModelDisplayLabel({ ...platform, label: 'Claude-ish', provider: 'acme' }), 'Claude-ish')
+})
+
+test('"(free)" is dropped from a name', () => {
+  assert.equal(
+    qaModelDisplayLabel({ label: 'Gemma 4 (free)', provider: 'google', keySource: 'platform', keyProvider: null }),
+    'Gemma 4',
+  )
+})
+
+test('only a model on the user\'s OpenRouter key names its route', () => {
+  const sonnet = { label: 'Claude Sonnet 5.5', provider: 'anthropic' }
+  assert.equal(qaModelDisplayLabel({ ...sonnet, keySource: 'platform', keyProvider: null }), 'Sonnet 5.5')
+  assert.equal(
+    qaModelDisplayLabel({ ...sonnet, keySource: 'user', keyProvider: 'openrouter' }),
+    'Sonnet 5.5 (OpenRouter API)',
+  )
+  assert.equal(
+    qaModelDisplayLabel({ label: 'Gemma 4 (free)', provider: 'google', keySource: 'user', keyProvider: 'openrouter' }),
+    'Gemma 4 (OpenRouter API)',
+  )
+  assert.equal(
+    qaModelDisplayLabel({ label: 'Claude Opus 5.5 (Claude API)', provider: 'anthropic', keySource: 'user', keyProvider: 'anthropic' }),
+    'Opus 5.5 (Claude API)',
+  )
 })

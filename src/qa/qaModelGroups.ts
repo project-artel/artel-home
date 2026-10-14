@@ -83,11 +83,25 @@ export function offeredQaModels(models: QaModel[]): QaModel[] {
 }
 
 /**
- * The name a picker row shows. "Claude" is dropped from Anthropic models — the
- * provider beside the name already says it — so they read `Opus 5.5`.
+ * The name a picker row shows, from the catalog's `label`.
+ *
+ * - "Claude" is dropped from Anthropic models — the provider beside the name
+ *   already says it — so they read `Opus 5.5`.
+ * - "(free)" is dropped. It names OpenRouter's free tier of a model, which says
+ *   nothing to someone choosing between keys, and under "Free for testers" it
+ *   read as a second, different "free".
+ * - On a user's OpenRouter key the name gains "(OpenRouter API)". The other key
+ *   routes carry theirs in the catalog label (`(Claude API)`, `(OpenAI API)`);
+ *   OpenRouter rows do not, because the same rows are also offered on the
+ *   platform key, where the route needs no saying.
  */
-export function qaModelDisplayLabel(model: Pick<QaModel, 'label' | 'provider'>): string {
-  return model.provider === 'anthropic' ? model.label.replace(/^Claude\s+/, '') : model.label
+export function qaModelDisplayLabel(
+  model: Pick<QaModel, 'label' | 'provider' | 'keySource' | 'keyProvider'>,
+): string {
+  let label = model.label.replace(/\s*\(free\)/i, '')
+  if (model.provider === 'anthropic') label = label.replace(/^Claude\s+/, '')
+  if (model.keySource === 'user' && model.keyProvider === 'openrouter') label += ' (OpenRouter API)'
+  return label
 }
 
 /** The option keys the keyboard walks, in the order they are drawn. */
