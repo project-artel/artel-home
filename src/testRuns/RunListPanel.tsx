@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type DragEvent, type ReactNode } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { formatDate } from '../projects/formatters'
@@ -15,13 +15,34 @@ import {
 import { useTestCaseVersionList } from '../testCases/useTestCaseVersions'
 import { VersionTreeDialog } from '../testCases/VersionTreeDialog'
 import { ClipboardListIcon } from '../testScenarios/scenarioIcons'
+import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
+import { NameDialog } from '../testCases/NameDialog'
 import { NewRunDialog } from './NewRunDialog'
-import { bucketOf, countRuns, initialBucket, NO_VERSION, runsIn, strayBuilds } from './runLibrary'
+import {
+  bucketOf,
+  childFolders,
+  countRuns,
+  countRunsUnder,
+  folderBucket,
+  folderPath,
+  initialBucket,
+  NO_VERSION,
+  runsAt,
+  strayBuilds,
+} from './runLibrary'
+import {
+  createRunFolder,
+  deleteRunFolder,
+  listRunFolders,
+  renameRunFolder,
+  type RunFolder,
+} from './testRunFolders'
 import {
   changeRunGameBuild,
   deleteTestRun,
   gameBuildName,
   getRunDeletionPreview,
+  updateTestRun,
   type RunDeletionPreview,
   type RunLastQa,
   type TestRun,
@@ -31,7 +52,7 @@ import {
 const RUN_DRAG = 'application/x-artel-test-run'
 
 /**
- * The project's TestRuns (ARTEL-1049). A run follows one case version — the game build whose test cases its scenarios
+ * The project's TestRuns (ARTEL-1049). A run follows one build version — the game build whose test cases its scenarios
  * are written from — so the screen is a version tree on the left and the chosen version's runs as a table on the right,
  * the same split as the case library. Groups and hidden versions are the library's own, so a `1.X` group made there
  * shows here too.
@@ -65,14 +86,26 @@ export function RunListPanel({
   const draft = searchParams.get('draft')
   const versionList = useTestCaseVersionList(projectId)
   const versions = versionList.versions
-  const bucket = initialBucket(searchParams.get('version'), versions, runs)
+  // 빌드 버전 안의 폴더(ARTEL-1049). 폴더를 고르면 칸(버전)도 그 폴더의 것이다.
+  const [folders, setFolders] = useState<RunFolder[]>([])
+  const [foldersKey, setFoldersKey] = useState(0)
+  const selectedFolder = folders.find((folder) => folder.id === searchParams.get('folder')) ?? null
+  const bucket = selectedFolder !== null ? folderBucket(selectedFolder) : initialBucket(searchParams.get('version'), versions, runs)
+  const [naming, setNaming] = useState<
+    | { kind: 'createFolder'; bucket: string; parentId: string | null }
+    | { kind: 'renameFolder'; folder: RunFolder }
+    | { kind: 'renameRun'; run: TestRun }
+    | null
+  >(null)
+  const [deletingFolder, setDeletingFolder] = useState<RunFolder | null>(null)
+  const [folderMenu, setFolderMenu] = useState<{ folder: RunFolder; x: number; y: number } | null>(null)
   const [folded, setFolded] = useState<ReadonlySet<string>>(new Set())
   const [showHidden, setShowHidden] = useState(false)
   const [creating, setCreating] = useState(false)
   const [moving, setMoving] = useState<TestRun | null>(null)
   const [menu, setMenu] = useState<{ run: TestRun; x: number; y: number } | null>(null)
   // 버전 칸의 우클릭 메뉴. 숨기기는 케이스 라이브러리와 같은 설정이라 거기서도 숨는다.
-  const [versionMenu, setVersionMenu] = useState<{ version: TestCaseVersionSummary; x: number; y: number } | null>(null)
+  const [versionMenu, setVersionMenu] = useState<{ bucket: string; version: TestCaseVersionSummary | null; x: number; y: number } | null>(null)
   const [dropTarget, setDropTarget] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [query, setQuery] = useState('')
@@ -93,10 +126,21 @@ export function RunListPanel({
   const hidden = useMemo(() => hiddenVersions(versions), [versions])
   const strays = useMemo(() => strayBuilds(runs, versions), [runs, versions])
   const shown = useMemo(
-    () => [...runsIn(runs, bucket)].sort((left, right) => right.createdAt.localeCompare(left.createdAt)),
-    [runs, bucket],
+    () => [...runsAt(runs, bucket, selectedFolder?.id ?? null)].sort((left, right) => right.createdAt.localeCompare(left.createdAt)),
+    [runs, bucket, selectedFolder],
   )
+  const shownFolders = useMemo(() => childFolders(folders, bucket, selectedFolder?.id ?? null), [folders, bucket, selectedFolder])
   const bucketLabel = bucketName(bucket)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    listRunFolders(projectId, controller.signal)
+      .then(setFolders)
+      .catch(() => {
+        // 폴더를 못 읽어도 런은 버전 칸으로 보인다. 폴더만 빈다.
+      })
+    return () => controller.abort()
+  }, [projectId, foldersKey])
 
   useEffect(() => {
     if (frame === null) return undefined
@@ -131,10 +175,27 @@ export function RunListPanel({
     setSearchParams(
       (params) => {
         params.set('version', key)
+        params.delete('folder')
         return params
       },
       { replace: true },
     )
+  }
+
+  function selectFolder(folder: RunFolder) {
+    setSearchParams(
+      (params) => {
+        params.set('version', folderBucket(folder))
+        params.set('folder', folder.id)
+        return params
+      },
+      { replace: true },
+    )
+  }
+
+  async function refreshAll() {
+    setFoldersKey((key) => key + 1)
+    await onChanged()
   }
 
   async function confirmDelete() {
@@ -160,14 +221,17 @@ export function RunListPanel({
     navigate(draft === null ? base : `${base}?draft=${encodeURIComponent(draft)}`)
   }
 
-  /** TR 을 다른 TC 버전으로 옮긴다. 같은 칸이면 아무것도 하지 않는다. */
-  async function moveRun(run: TestRun, target: string) {
-    if (bucketOf(run) === target) return
+  /** 런을 다른 빌드 버전 바로 아래, 또는 폴더 안으로 옮긴다. 이미 거기 있으면 아무것도 하지 않는다. */
+  async function moveRun(run: TestRun, target: string, folder: RunFolder | null = null) {
+    if (bucketOf(run) === target && (run.folderId ?? null) === (folder?.id ?? null)) return
     setFailure(null)
     try {
-      await changeRunGameBuild(projectId, run.id, target === NO_VERSION ? null : target)
+      await changeRunGameBuild(projectId, run.id, target === NO_VERSION ? null : target, folder?.id ?? null)
       await onChanged()
-      setNotice(r.moved(run.name.length > 0 ? run.name : r.untitled, bucketName(target)))
+      const name = run.name.length > 0 ? run.name : r.untitled
+      const place = folder === null ? bucketName(target) : `${bucketName(target)} › ${folder.name}`
+      // 같은 빌드 버전 안에서 폴더만 바꿨으면 저작이 보는 것은 그대로다. 그 말은 버전이 바뀔 때만 한다.
+      setNotice(bucketOf(run) === target ? r.movedWithin(name, place) : r.moved(name, place))
     } catch (error: unknown) {
       setFailure(error instanceof ProjectApiError && error.status === 409 ? r.moveEditor : r.moveFailed)
     }
@@ -176,6 +240,7 @@ export function RunListPanel({
   function menuItems(run: TestRun): ContextMenuItem[] {
     return [
       { label: r.menu.open, onSelect: () => openRun(run.id) },
+      { label: r.menu.rename, onSelect: () => setNaming({ kind: 'renameRun', run }) },
       { label: r.menu.changeVersion, onSelect: () => setMoving(run) },
       { label: r.delete, onSelect: () => setPendingDelete(run), danger: true },
     ]
@@ -192,6 +257,79 @@ export function RunListPanel({
     }
   }
 
+  function versionMenuItems(target: { bucket: string; version: TestCaseVersionSummary | null }): ContextMenuItem[] {
+    const items: ContextMenuItem[] = [
+      { label: r.folders.newFolder, onSelect: () => setNaming({ kind: 'createFolder', bucket: target.bucket, parentId: null }) },
+    ]
+    const version = target.version
+    if (version !== null) {
+      items.push({ label: version.hidden ? v.menu.show : v.menu.hide, onSelect: () => void toggleHidden(version) })
+    }
+    return items
+  }
+
+  function folderMenuItems(folder: RunFolder): ContextMenuItem[] {
+    return [
+      { label: r.folders.newSubfolder, onSelect: () => setNaming({ kind: 'createFolder', bucket: folderBucket(folder), parentId: folder.id }) },
+      { label: r.folders.rename, onSelect: () => setNaming({ kind: 'renameFolder', folder }) },
+      { label: r.folders.delete, onSelect: () => setDeletingFolder(folder), danger: true },
+    ]
+  }
+
+  /** 끌어 온 런을 이 자리(버전 바로 아래 또는 폴더)에 놓는 핸들러. */
+  function dropProps(key: string, target: string, folder: RunFolder | null) {
+    return {
+      onDragLeave: () => setDropTarget((current) => (current === key ? null : current)),
+      onDragOver: (event: DragEvent) => {
+        if (!event.dataTransfer.types.includes(RUN_DRAG)) return
+        event.preventDefault()
+        event.dataTransfer.dropEffect = 'move'
+        setDropTarget(key)
+      },
+      onDrop: (event: DragEvent) => {
+        const runId = event.dataTransfer.getData(RUN_DRAG)
+        setDropTarget(null)
+        const dragged = runs.find((one) => one.id === runId)
+        if (dragged === undefined) return
+        event.preventDefault()
+        void moveRun(dragged, target, folder)
+      },
+    }
+  }
+
+  const folderNodes = (target: string, parentId: string | null): ReactNode => {
+    const children = childFolders(folders, target, parentId)
+    if (children.length === 0) return null
+    return (
+      <ul className="trl-tree trl-tree--folders">
+        {children.map((folder) => {
+          const key = `folder:${folder.id}`
+          const on = selectedFolder?.id === folder.id
+          return (
+            <li key={key}>
+              <button
+                aria-current={on ? 'true' : undefined}
+                className={'trl-fnode' + (on ? ' is-current' : '') + (dropTarget === key ? ' is-drop' : '')}
+                onClick={() => selectFolder(folder)}
+                onContextMenu={(event) => {
+                  event.preventDefault()
+                  setFolderMenu({ folder, x: event.clientX, y: event.clientY })
+                }}
+                type="button"
+                {...dropProps(key, target, folder)}
+              >
+                <SmallFolderIcon />
+                <span className="trl-fnode-name">{folder.name}</span>
+                <span className="trl-muted">{countRunsUnder(runs, folders, folder.id)}</span>
+              </button>
+              {folderNodes(target, folder.id)}
+            </li>
+          )
+        })}
+      </ul>
+    )
+  }
+
   function lastQaText(lastQa: RunLastQa | null): string {
     if (lastQa === null) return r.lastQa.never
     if (lastQa.status === 'RUNNING' || lastQa.status === 'STARTING') return r.lastQa.running
@@ -200,7 +338,7 @@ export function RunListPanel({
   }
 
   const node = (key: string, label: string, options: { latest?: boolean; hidden?: boolean; version?: TestCaseVersionSummary } = {}) => {
-    const on = key === bucket
+    const on = key === bucket && selectedFolder === null
     const count = counts.get(key) ?? 0
     return (
       <li key={key}>
@@ -211,35 +349,20 @@ export function RunListPanel({
           }
           onClick={() => selectBucket(key)}
           onContextMenu={(event) => {
-            const version = options.version
-            if (version === undefined) return
             event.preventDefault()
-            setVersionMenu({ version, x: event.clientX, y: event.clientY })
-          }}
-          onDragLeave={() => setDropTarget((current) => (current === key ? null : current))}
-          onDragOver={(event) => {
-            if (!event.dataTransfer.types.includes(RUN_DRAG)) return
-            event.preventDefault()
-            event.dataTransfer.dropEffect = 'move'
-            setDropTarget(key)
-          }}
-          onDrop={(event) => {
-            const runId = event.dataTransfer.getData(RUN_DRAG)
-            setDropTarget(null)
-            const dragged = runs.find((one) => one.id === runId)
-            if (dragged === undefined) return
-            event.preventDefault()
-            void moveRun(dragged, key)
+            setVersionMenu({ bucket: key, version: options.version ?? null, x: event.clientX, y: event.clientY })
           }}
           type="button"
+          {...dropProps(key, key, null)}
         >
-          <FolderIcon open={on} />
+          <FolderIcon open={key === bucket} />
           <span className="trl-node-text">
             <span className="trl-node-name">{label}</span>
             <span className="trl-muted">{r.runCount(count)}</span>
           </span>
           {options.latest === true && <span className="trl-badge">{v.latest}</span>}
         </button>
+        {folderNodes(key, null)}
       </li>
     )
   }
@@ -249,6 +372,7 @@ export function RunListPanel({
 
   const needle = query.trim().toLowerCase()
   const listed = needle === '' ? shown : shown.filter((run) => `${run.name} ${run.description ?? ''}`.toLowerCase().includes(needle))
+  const listedFolders = needle === '' ? shownFolders : shownFolders.filter((folder) => folder.name.toLowerCase().includes(needle))
 
   return (
     <section aria-labelledby="test-runs-title" className="trl-page">
@@ -338,15 +462,35 @@ export function RunListPanel({
           <main className="trl-main">
             <div className="trl-main-head">
               <div className="trl-main-title">
-                <span className="trl-muted">{r.runsOfKicker}</span>
-                <h3>{bucketLabel}</h3>
+                {/* 폴더 안이면 위의 버전과 폴더를 길로 보이고 누르면 그리로 간다. 버전이면 이 칸이 무엇인지만 말한다. */}
+                {selectedFolder === null ? (
+                  <span className="trl-muted">{r.runsOfKicker}</span>
+                ) : (
+                  <span className="trl-crumbs">
+                    <button className="trl-crumb" onClick={() => selectBucket(bucket)} type="button">{bucketLabel}</button>
+                    {folderPath(folders, selectedFolder.id).map((folder) => (
+                      <span key={folder.id}>
+                        {' › '}
+                        <button className="trl-crumb" onClick={() => selectFolder(folder)} type="button">{folder.name}</button>
+                      </span>
+                    ))}
+                  </span>
+                )}
+                <h3>{selectedFolder?.name ?? bucketLabel}</h3>
               </div>
               <span className="trl-chip">{r.runCount(shown.length)}</span>
+              <button
+                className="button button--secondary button--compact"
+                onClick={() => setNaming({ kind: 'createFolder', bucket, parentId: selectedFolder?.id ?? null })}
+                type="button"
+              >
+                {r.folders.newFolder}
+              </button>
               <button className="button button--primary button--compact" onClick={() => setCreating(true)} type="button">
                 {r.newButton}
               </button>
             </div>
-            {shown.length > 0 && (
+            {shown.length + shownFolders.length > 0 && (
               <>
                 <label className="trl-search">
                   <SearchIcon />
@@ -369,13 +513,51 @@ export function RunListPanel({
               </>
             )}
             <div className="trl-scroll">
-              {shown.length === 0 ? (
+              {shown.length + shownFolders.length === 0 ? (
                 <div className="trl-empty">
                   <ClipboardListIcon size={40} />
-                  <p>{runs.length === 0 ? r.empty : r.emptyVersion}</p>
+                  <p>{runs.length === 0 ? r.empty : selectedFolder === null ? r.emptyVersion : r.folders.empty}</p>
                 </div>
               ) : (
                 <ul aria-label={r.columns.name} className="trl-list">
+                  {listedFolders.map((folder) => (
+                    <li key={`folder:${folder.id}`}>
+                      <div
+                        className={'trl-row trl-row--folder' + (dropTarget === `row:${folder.id}` ? ' is-drop' : '')}
+                        onClick={() => selectFolder(folder)}
+                        onContextMenu={(event) => {
+                          event.preventDefault()
+                          setFolderMenu({ folder, x: event.clientX, y: event.clientY })
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') selectFolder(folder)
+                        }}
+                        role="button"
+                        tabIndex={0}
+                        {...dropProps(`row:${folder.id}`, bucket, folder)}
+                      >
+                        <SmallFolderIcon />
+                        <span className="trl-row-title">
+                          <span className="trl-row-name">{folder.name}</span>
+                        </span>
+                        <span className="trl-num">{countRunsUnder(runs, folders, folder.id)}</span>
+                        <span className="trl-qa">{r.folders.rowKind}</span>
+                        <span className="trl-date" />
+                        <button
+                          aria-label={r.folders.menuLabel}
+                          className="trl-more"
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            const box = event.currentTarget.getBoundingClientRect()
+                            setFolderMenu({ folder, x: box.left, y: box.bottom + 4 })
+                          }}
+                          type="button"
+                        >
+                          ⋯
+                        </button>
+                      </div>
+                    </li>
+                  ))}
                   {listed.map((run) => (
                     <li key={run.id}>
                       <div
@@ -423,7 +605,7 @@ export function RunListPanel({
                       </div>
                     </li>
                   ))}
-                  {listed.length === 0 && <li className="trl-nomatch">{r.noMatch(query.trim())}</li>}
+                  {listed.length + listedFolders.length === 0 && <li className="trl-nomatch">{r.noMatch(query.trim())}</li>}
                 </ul>
               )}
             </div>
@@ -433,16 +615,78 @@ export function RunListPanel({
 
       {versionMenu !== null && (
         <ContextMenu
-          items={[
-            {
-              label: versionMenu.version.hidden ? v.menu.show : v.menu.hide,
-              onSelect: () => void toggleHidden(versionMenu.version),
-            },
-          ]}
+          items={versionMenuItems(versionMenu)}
           label={r.versionMenuLabel}
           onClose={() => setVersionMenu(null)}
           x={versionMenu.x}
           y={versionMenu.y}
+        />
+      )}
+
+      {folderMenu !== null && (
+        <ContextMenu
+          items={folderMenuItems(folderMenu.folder)}
+          label={r.folders.menuLabel}
+          onClose={() => setFolderMenu(null)}
+          x={folderMenu.x}
+          y={folderMenu.y}
+        />
+      )}
+
+      {naming !== null && (
+        <NameDialog
+          initialName={naming.kind === 'createFolder' ? r.folders.defaultName : naming.kind === 'renameFolder' ? naming.folder.name : naming.run.name}
+          messages={naming.kind === 'renameRun' ? r.renameRun.messages : r.folders.messages}
+          onClose={() => setNaming(null)}
+          onSubmit={async (name) => {
+            if (naming.kind === 'createFolder') {
+              const folder = await createRunFolder(projectId, {
+                name,
+                gameBuildId: naming.bucket === NO_VERSION ? null : naming.bucket,
+                parentId: naming.parentId,
+              })
+              setNaming(null)
+              setFoldersKey((key) => key + 1)
+              selectFolder(folder)
+            } else if (naming.kind === 'renameFolder') {
+              await renameRunFolder(projectId, naming.folder.id, name)
+              setNaming(null)
+              setFoldersKey((key) => key + 1)
+            } else {
+              await updateTestRun(projectId, naming.run.id, { name })
+              setNaming(null)
+              await onChanged()
+            }
+          }}
+          submitLabel={naming.kind === 'createFolder' ? r.folders.create : r.folders.renameConfirm}
+          title={
+            naming.kind === 'createFolder'
+              ? r.folders.createTitle
+              : naming.kind === 'renameFolder'
+                ? r.folders.renameTitle
+                : r.renameRun.title
+          }
+        />
+      )}
+
+      {deletingFolder !== null && (
+        <ConfirmActionDialog
+          body={<p>{r.folders.deleteCopy(deletingFolder.name, countRunsUnder(runs, folders, deletingFolder.id))}</p>}
+          cancelLabel={r.cancel}
+          confirmLabel={r.folders.delete}
+          onClose={() => setDeletingFolder(null)}
+          onConfirm={async () => {
+            const folder = deletingFolder
+            await deleteRunFolder(projectId, folder.id)
+            setDeletingFolder(null)
+            if (selectedFolder !== null && (selectedFolder.id === folder.id || folderPath(folders, selectedFolder.id).some((one) => one.id === folder.id))) {
+              selectBucket(folderBucket(folder))
+            }
+            await refreshAll()
+          }}
+          pendingLabel={r.deleting}
+          title={r.folders.deleteTitle}
+          toFailureMessage={() => r.folders.deleteFailed}
         />
       )}
 
@@ -452,6 +696,7 @@ export function RunListPanel({
 
       {creating && (
         <NewRunDialog
+          folder={selectedFolder}
           groups={versionList.groups}
           initialVersionId={bucket === NO_VERSION ? null : bucket}
           onClose={() => setCreating(false)}
@@ -526,6 +771,14 @@ function FolderIcon({ open }: { open: boolean }) {
     <svg aria-hidden="true" className="trl-folder" fill="none" height="22" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" viewBox="0 0 24 24" width="22">
       <path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.6l2 2.2h8.4A1.5 1.5 0 0 1 21 8.7v9.8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z" />
       {open ? <path d="M9 13.5h6" /> : <path d="M9 13.5h6M12 10.5v6" />}
+    </svg>
+  )
+}
+
+function SmallFolderIcon() {
+  return (
+    <svg aria-hidden="true" className="trl-folder trl-folder--small" fill="none" height="17" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" viewBox="0 0 24 24" width="17">
+      <path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.6l2 2.2h8.4A1.5 1.5 0 0 1 21 8.7v9.8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z" />
     </svg>
   )
 }

@@ -2,16 +2,29 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import type { GameInstance } from '../projects/gameTypes.ts'
 import type { TestCaseVersionSummary } from '../testCases/testCaseVersions.ts'
-import { countRuns, initialBucket, NO_VERSION, runsIn, strayBuilds, versionMismatch } from './runLibrary.ts'
+import {
+  childFolders,
+  countRuns,
+  countRunsUnder,
+  folderPath,
+  initialBucket,
+  NO_VERSION,
+  runsAt,
+  runsIn,
+  strayBuilds,
+  versionMismatch,
+} from './runLibrary.ts'
+import type { RunFolder } from './testRunFolders.ts'
 import type { TestRun } from './testRunApi.ts'
 
-const run = (id: string, gameBuildId: string | null, version = 'v'): TestRun => ({
+const run = (id: string, gameBuildId: string | null, version = 'v', folderId: string | null = null): TestRun => ({
   id,
   projectId: '1',
   name: id,
   description: null,
   createdAt: '2026-10-14T00:00:00Z',
   gameBuild: gameBuildId === null ? null : { gameBuildId, version, label: null },
+  folderId,
   scenarioCount: 0,
   lastQaRun: null,
 })
@@ -58,4 +71,18 @@ test('켜진 게임이 TR 버전과 다르면 둘을 알리고, editor 는 버�
   assert.equal(versionMismatch(target, instance('99', '1.4.0', true)), null)
   assert.deepEqual(versionMismatch(target, instance('99', '1.5.0', true)), { run: '1.4.0', game: '1.5.0' })
   assert.equal(versionMismatch(run('b', null), instance('2', '1.5.0')), null)
+})
+
+const folder = (id: string, gameBuildId: string | null, parentId: string | null, name = id): RunFolder => ({ id, gameBuildId, parentId, name })
+
+test('폴더는 자기 버전 칸에만 보이고, 런은 든 폴더 바로 아래에만 보인다', () => {
+  const folders = [folder('f1', '1', null, '회귀'), folder('f2', '1', 'f1', '상점'), folder('f3', '2', null, '회귀'), folder('f4', null, null, '옛것')]
+  assert.deepEqual(childFolders(folders, '1', null).map((one) => one.id), ['f1'])
+  assert.deepEqual(childFolders(folders, '1', 'f1').map((one) => one.id), ['f2'])
+  assert.deepEqual(childFolders(folders, NO_VERSION, null).map((one) => one.id), ['f4'])
+  const runs = [run('a', '1'), run('b', '1', 'v', 'f1'), run('c', '1', 'v', 'f2'), run('d', '2', 'v', 'f3')]
+  assert.deepEqual(runsAt(runs, '1', null).map((one) => one.id), ['a'])
+  assert.deepEqual(runsAt(runs, '1', 'f1').map((one) => one.id), ['b'])
+  assert.equal(countRunsUnder(runs, folders, 'f1'), 2)
+  assert.deepEqual(folderPath(folders, 'f2').map((one) => one.name), ['회귀'])
 })

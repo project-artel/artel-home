@@ -5,12 +5,14 @@ import { ProjectApiError } from '../projects/projectApi'
 import { versionName, type TestCaseVersionSummary, type VersionGroup } from '../testCases/testCaseVersions'
 import { VersionTreeDialog } from '../testCases/VersionTreeDialog'
 import { createTestRun, type TestRun } from './testRunApi'
+import type { RunFolder } from './testRunFolders'
 
 /**
- * 새 TR(ARTEL-1049). 이름과 이 TR 이 따를 TC 버전을 고른다. 버전은 기본으로 테스트 런 화면에서 고른 칸이고, 바꾸려면
+ * 새 TR(ARTEL-1049). 이름과 이 TR 이 따를 빌드 버전을 고른다. 버전은 기본으로 테스트 런 화면에서 고른 칸이고, 바꾸려면
  * 라이브러리와 같은 버전 트리 모달을 연다. 이 버전의 TC 와 지도로 시나리오를 쓴다.
  */
 export function NewRunDialog({
+  folder,
   groups,
   initialVersionId,
   onClose,
@@ -18,6 +20,8 @@ export function NewRunDialog({
   projectId,
   versions,
 }: {
+  /** 화면에서 고른 폴더. 버전을 바꾸지 않으면 그 폴더 안에 만든다. */
+  folder: RunFolder | null
   groups: readonly VersionGroup[]
   /** 처음 고른 버전. null 은 버전 없음이다. */
   initialVersionId: string | null
@@ -36,6 +40,8 @@ export function NewRunDialog({
   const [pending, setPending] = useState(false)
   const [failure, setFailure] = useState<string | null>(null)
   const chosen = versions.find((version) => version.gameBuildId === versionId)
+  // 폴더는 그 버전 안에만 있다. 버전을 다른 것으로 바꾸면 폴더 밖, 그 버전 바로 아래에 만든다.
+  const inFolder = folder !== null && (folder.gameBuildId ?? null) === versionId ? folder : null
   const chosenLabel = versionId === null ? t.testCases.versions.unversioned : chosen !== undefined ? versionName(chosen) : versionId
 
   async function create() {
@@ -48,7 +54,11 @@ export function NewRunDialog({
     try {
       const run = await createTestRun(
         projectId,
-        versionId === null ? { name: name.trim(), unversioned: true } : { name: name.trim(), gameBuildId: versionId },
+        inFolder !== null
+          ? { name: name.trim(), folderId: inFolder.id }
+          : versionId === null
+            ? { name: name.trim(), unversioned: true }
+            : { name: name.trim(), gameBuildId: versionId },
       )
       onCreated(run)
     } catch (error: unknown) {
@@ -89,6 +99,7 @@ export function NewRunDialog({
                 {r.newDialog.changeVersion}
               </button>
             </div>
+            {inFolder !== null && <p className="field-hint">{r.newDialog.inFolder(inFolder.name)}</p>}
             <p className="field-hint">{r.newDialog.versionHint}</p>
           </div>
           {failure !== null && (

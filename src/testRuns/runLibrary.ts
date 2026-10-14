@@ -1,6 +1,7 @@
 import type { GameInstance } from '../projects/gameTypes'
 import type { TestCaseVersionSummary } from '../testCases/testCaseVersions'
 import type { TestRun } from './testRunApi'
+import type { RunFolder } from './testRunFolders'
 
 /*
  * 테스트 런 화면의 판정(ARTEL-1049). 왼쪽 버전 트리의 한 칸이 어느 TR 을 담는지, QA 를 시작할 때 켜진 게임이 TR 의 버전과
@@ -53,7 +54,7 @@ export function strayBuilds(runs: readonly TestRun[], versions: readonly TestCas
 }
 
 /**
- * QA 를 돌릴 게임이 TR 의 TC 버전과 다른 빌드인가(ARTEL-1049). 다르면 경고만 하고 막지 않는다 — 판정은 켜진 게임의 빌드에
+ * QA 를 돌릴 게임이 TR 의 빌드 버전과 다른 빌드인가(ARTEL-1049). 다르면 경고만 하고 막지 않는다 — 판정은 켜진 게임의 빌드에
  * 적힌다. editor 는 보고한 버전 문자열로 견준다(editor 판정은 같은 버전의 게임 빌드 몫이다). 어느 한쪽을 모르면 다르다고
  * 하지 않는다.
  */
@@ -63,4 +64,53 @@ export function versionMismatch(run: TestRun | undefined, instance: GameInstance
   if (runBuild === null || gameBuild === null) return null
   const same = gameBuild.isEditor ? gameBuild.version === runBuild.version : gameBuild.gameBuildId === runBuild.gameBuildId
   return same ? null : { run: runBuild.label ?? runBuild.version, game: gameBuild.label ?? gameBuild.version }
+}
+
+/** 폴더가 든 칸. */
+export function folderBucket(folder: RunFolder): string {
+  return folder.gameBuildId ?? NO_VERSION
+}
+
+/** 한 칸(버전)의 [parentId] 바로 아래 폴더. 이름순이다. */
+export function childFolders(folders: readonly RunFolder[], bucket: string, parentId: string | null): RunFolder[] {
+  return folders
+    .filter((folder) => folderBucket(folder) === bucket && folder.parentId === parentId)
+    .sort((left, right) => left.name.localeCompare(right.name) || left.id.localeCompare(right.id))
+}
+
+/** 칸(버전)의 [folderId] 바로 아래 런. null 이면 버전 바로 아래 — 어느 폴더에도 들지 않은 런이다. */
+export function runsAt(runs: readonly TestRun[], bucket: string, folderId: string | null): TestRun[] {
+  return runs.filter((run) => bucketOf(run) === bucket && (run.folderId ?? null) === folderId)
+}
+
+/** 폴더 안(하위 폴더 포함)의 런 수. 트리의 수 칸에 쓴다. */
+export function countRunsUnder(runs: readonly TestRun[], folders: readonly RunFolder[], folderId: string): number {
+  const ids = new Set([folderId])
+  let grew = true
+  while (grew) {
+    grew = false
+    for (const folder of folders) {
+      if (folder.parentId !== null && ids.has(folder.parentId) && !ids.has(folder.id)) {
+        ids.add(folder.id)
+        grew = true
+      }
+    }
+  }
+  return runs.filter((run) => run.folderId !== null && ids.has(run.folderId)).length
+}
+
+/** 폴더의 위 폴더들. 바깥부터 순서대로이고 자기는 빼며, 끊긴 고리는 거기서 멈춘다. */
+export function folderPath(folders: readonly RunFolder[], folderId: string): RunFolder[] {
+  const byId = new Map(folders.map((folder) => [folder.id, folder]))
+  const path: RunFolder[] = []
+  const seen = new Set<string>()
+  let current = byId.get(folderId)?.parentId ?? null
+  while (current !== null && !seen.has(current)) {
+    seen.add(current)
+    const folder = byId.get(current)
+    if (folder === undefined) break
+    path.unshift(folder)
+    current = folder.parentId
+  }
+  return path
 }

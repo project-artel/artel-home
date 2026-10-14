@@ -20,8 +20,10 @@ export type TestRun = {
   name: string
   description: string | null
   createdAt: string
-  /** 이 TR 이 따르는 TC 버전(ARTEL-1049). null 은 버전 없음이다. */
+  /** 이 TR 이 따르는 빌드 버전(ARTEL-1049). null 은 버전 없음이다. */
   gameBuild: RunGameBuild | null
+  /** 든 폴더. 폴더는 그 빌드 버전 안에만 있다. null 이면 버전 바로 아래다. */
+  folderId: string | null
   /** 담은 시나리오 수. 목록 응답에만 있고, 단건 응답이면 null 이다. */
   scenarioCount: number | null
   /** 마지막 QA 실행 요약. 돌린 적이 없거나 단건 응답이면 null 이다. */
@@ -87,6 +89,7 @@ export function parseTestRun(data: unknown): TestRun | null {
     description: asNullableString(record.description),
     createdAt: asString(record.createdAt),
     gameBuild: parseRunGameBuild(record.gameBuild),
+    folderId: asNullableString(record.folderId),
     scenarioCount: typeof record.scenarioCount === 'number' ? asCount(record.scenarioCount) : null,
     lastQaRun: parseRunLastQa(record.lastQaRun),
   }
@@ -112,7 +115,7 @@ export async function listTestRuns(projectId: string, signal?: AbortSignal): Pro
  */
 export async function createTestRun(
   projectId: string,
-  body: { name?: string; description?: string; gameBuildId?: string; unversioned?: boolean } = {},
+  body: { name?: string; description?: string; gameBuildId?: string; unversioned?: boolean; folderId?: string } = {},
 ): Promise<TestRun> {
   const response = await apiFetch(runsRoot(projectId), { method: 'POST', ...jsonRequest(body) })
   if (!response.ok) throw await toApiError(response)
@@ -336,13 +339,19 @@ export async function getRunCoverage(
 }
 
 /**
- * `PUT /api/projects/{projectId}/test-runs/{runId}/game-build` — move the run to another case version (ARTEL-1049).
+ * `PUT /api/projects/{projectId}/test-runs/{runId}/game-build` — move the run to another build version or folder (ARTEL-1049).
  * `null` means no version. Its scenarios stay; authoring follows the new version from the next turn.
  */
-export async function changeRunGameBuild(projectId: string, runId: string, gameBuildId: string | null): Promise<TestRun> {
+export async function changeRunGameBuild(
+  projectId: string,
+  runId: string,
+  gameBuildId: string | null,
+  folderId: string | null = null,
+): Promise<TestRun> {
+  // 폴더를 주면 그 폴더 안으로 가고, 빌드 버전도 폴더의 것이 된다(ARTEL-1049).
   const response = await apiFetch(`${runsRoot(projectId)}/${encodeURIComponent(runId)}/game-build`, {
     method: 'PUT',
-    ...jsonRequest({ gameBuildId }),
+    ...jsonRequest({ gameBuildId, folderId }),
   })
   if (!response.ok) throw await toApiError(response)
   const run = parseTestRun(await readJson(response))

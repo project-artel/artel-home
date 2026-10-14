@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
 import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../i18n/useI18n'
+import { ContextMenu, type ContextMenuItem } from '../testCases/ContextMenu'
 import { getRunScenarios, setRunScenarios } from '../testRuns/testRunApi'
-import { createTestScenario, listTestScenarios } from './scenarioApi'
+import { createTestScenario, deleteTestScenario, listTestScenarios } from './scenarioApi'
 import type { ScenarioImportResult } from './scenarioLibrary'
 import { PlaylistAddIcon, PlusIcon } from './scenarioIcons'
 import { ScenarioImportDialog } from './ScenarioImportDialog'
@@ -47,6 +49,9 @@ export function ScenarioList({
   const [reload, setReload] = useState(0)
   const [importing, setImporting] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
+  // 줄의 우클릭 메뉴(ARTEL-1049)와, 메뉴에서 고른 삭제의 확인.
+  const [menu, setMenu] = useState<{ item: TestScenarioSummary; x: number; y: number } | null>(null)
+  const [deleting, setDeleting] = useState<TestScenarioSummary | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -91,6 +96,36 @@ export function ScenarioList({
     } finally {
       setCreating(false)
     }
+  }
+
+  /** 지금 편집 중인 시나리오를 목록에서 없앴으면 런의 빈 자리로 간다. 안 그러면 없는 시나리오를 보고 있게 된다. */
+  function leaveIfActive(id: number) {
+    if (id !== activeId) return
+    if (runId !== null) navigate(`/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(runId)}/edit`)
+  }
+
+  async function removeFromRun(item: TestScenarioSummary) {
+    if (runId === null) return
+    try {
+      const existing = await getRunScenarios(projectId, runId)
+      await setRunScenarios(
+        projectId,
+        runId,
+        existing.map((one) => one.testScenarioId).filter((id) => id !== String(item.testScenarioId)),
+      )
+      setNotice(s.menu.removed(item.title.length > 0 ? item.title : s.untitled))
+      setReload((n) => n + 1)
+      leaveIfActive(item.testScenarioId)
+    } catch {
+      setNotice(s.menu.removeFailed)
+    }
+  }
+
+  function menuItems(item: TestScenarioSummary): ContextMenuItem[] {
+    const items: ContextMenuItem[] = [{ label: s.menu.open, onSelect: () => open(item.testScenarioId) }]
+    if (runId !== null) items.push({ label: s.menu.removeFromRun, onSelect: () => void removeFromRun(item) })
+    items.push({ label: s.menu.delete, onSelect: () => setDeleting(item), danger: true })
+    return items
   }
 
   function imported(result: ScenarioImportResult) {
@@ -138,6 +173,10 @@ export function ScenarioList({
               className={'scnrow' + (item.testScenarioId === activeId ? ' sel' : '')}
               key={item.testScenarioId}
               onClick={() => open(item.testScenarioId)}
+              onContextMenu={(event) => {
+                event.preventDefault()
+                setMenu({ item, x: event.clientX, y: event.clientY })
+              }}
               type="button"
             >
               <span className="vdot DRAFT" />
@@ -151,6 +190,27 @@ export function ScenarioList({
         )}
       </div>
       <EdgeScrollbar label={s.heading} scroller={listNode} side="left" />
+      {menu !== null && (
+        <ContextMenu items={menuItems(menu.item)} label={s.menu.label} onClose={() => setMenu(null)} x={menu.x} y={menu.y} />
+      )}
+      {deleting !== null && (
+        <ConfirmActionDialog
+          body={<p>{s.menu.deleteCopy(deleting.title.length > 0 ? deleting.title : s.untitled)}</p>}
+          cancelLabel={s.menu.cancel}
+          confirmLabel={s.menu.delete}
+          onClose={() => setDeleting(null)}
+          onConfirm={async () => {
+            const item = deleting
+            await deleteTestScenario(item.testScenarioId)
+            setDeleting(null)
+            setReload((n) => n + 1)
+            leaveIfActive(item.testScenarioId)
+          }}
+          pendingLabel={s.menu.deleting}
+          title={s.menu.deleteTitle}
+          toFailureMessage={() => s.menu.deleteFailed}
+        />
+      )}
     </aside>
   )
 }
