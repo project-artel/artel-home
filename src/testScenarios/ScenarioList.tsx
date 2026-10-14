@@ -5,6 +5,7 @@ import { useI18n } from '../i18n/useI18n'
 import { getRunScenarios, setRunScenarios } from '../testRuns/testRunApi'
 import { createTestScenario, listTestScenarios } from './scenarioApi'
 import type { ScenarioImportResult } from './scenarioLibrary'
+import { FreeScenarioBadge } from './FreeScenarioBadge'
 import { PlaylistAddIcon, PlusIcon } from './scenarioIcons'
 import { ScenarioImportDialog } from './ScenarioImportDialog'
 import type { TestScenarioSummary } from './scenarioTypes'
@@ -145,7 +146,7 @@ export function ScenarioList({
                 <span className="scnrow-name">{item.title.length > 0 ? item.title : s.untitled}</span>
                 <span className="scnrow-meta">{formatDay(item.updatedAt || item.createdAt)}</span>
               </span>
-              <span />
+              {item.executionMode === 'FREE' ? <FreeScenarioBadge /> : <span />}
             </button>
           ))
         )}
