@@ -22,6 +22,20 @@ export function llmKeyServiceName(service: string): string {
   return LLM_KEY_SERVICE_NAMES[service] ?? service
 }
 
+/**
+ * The API a key calls, as the closed model picker names it after a model is
+ * chosen: the badge says which bill the run lands on.
+ */
+const LLM_KEY_API_NAMES: Record<string, string> = {
+  anthropic: 'Claude API',
+  openai: 'OpenAI API',
+  openrouter: 'OpenRouter API',
+}
+
+export function llmKeyApiName(service: string): string {
+  return LLM_KEY_API_NAMES[service] ?? `${llmKeyServiceName(service)} API`
+}
+
 /** A key the server has verified and stored. The key itself never comes back. */
 export type LlmKey = {
   service: LlmKeyService

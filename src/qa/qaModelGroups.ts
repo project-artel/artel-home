@@ -85,22 +85,16 @@ export function offeredQaModels(models: QaModel[]): QaModel[] {
 /**
  * The name a picker row shows, from the catalog's `label`.
  *
+ * - Anything in parentheses is dropped: `(Claude API)`, `(OpenAI API)`,
+ *   `(AWS Bedrock)`, `(free)`. The tab a row sits in already says which key it
+ *   runs on, and once a model is chosen the trigger's badge says it again
+ *   (`llmKeyApiName`), so in the list the suffixes only made the names long.
  * - "Claude" is dropped from Anthropic models — the provider beside the name
  *   already says it — so they read `Opus 5.5`.
- * - "(free)" is dropped. It names OpenRouter's free tier of a model, which says
- *   nothing to someone choosing between keys, and under "Free for testers" it
- *   read as a second, different "free".
- * - On a user's OpenRouter key the name gains "(OpenRouter API)". The other key
- *   routes carry theirs in the catalog label (`(Claude API)`, `(OpenAI API)`);
- *   OpenRouter rows do not, because the same rows are also offered on the
- *   platform key, where the route needs no saying.
  */
-export function qaModelDisplayLabel(
-  model: Pick<QaModel, 'label' | 'provider' | 'keySource' | 'keyProvider'>,
-): string {
-  let label = model.label.replace(/\s*\(free\)/i, '')
+export function qaModelDisplayLabel(model: Pick<QaModel, 'label' | 'provider'>): string {
+  let label = model.label.replace(/\s*\([^)]*\)/g, '').trim()
   if (model.provider === 'anthropic') label = label.replace(/^Claude\s+/, '')
-  if (model.keySource === 'user' && model.keyProvider === 'openrouter') label += ' (OpenRouter API)'
   return label
 }
 

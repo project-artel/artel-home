@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { LLM_KEY_SERVICES, llmKeyServiceName } from '../account/llmKeyTypes'
+import { LLM_KEY_SERVICES, llmKeyApiName, llmKeyServiceName } from '../account/llmKeyTypes'
 import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../i18n/useI18n'
 import {
@@ -258,7 +258,7 @@ export function QaModelPicker({
             ) : (
               <span className="qa-model-badge qa-model-badge--user">
                 <KeyIcon size={14} />
-                {p.userBadge(llmKeyServiceName(qaKeyServiceOf(selected)))}
+                {llmKeyApiName(qaKeyServiceOf(selected))}
               </span>
             )}
             <span className="qa-model-trigger-label">{qaModelDisplayLabel(selected)}</span>
