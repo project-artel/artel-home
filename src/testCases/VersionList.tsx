@@ -157,6 +157,8 @@ export function VersionList({
         <button
           aria-current={current ? 'true' : undefined}
           className={'tcl-folder tcl-version' + (current ? ' is-current' : '') + (version.hidden ? ' is-hidden' : '')}
+          // 튜토리얼이 "다른 라이브러리에서 가져오기" 를 설명할 때 밝게 두는 줄(ARTEL-1033).
+          data-tour={version.latest && !version.hidden ? 'latest-version' : undefined}
           draggable={!version.hidden}
           onClick={() => onSelect(version.gameBuildId)}
           onContextMenu={(event) => openMenu(event, { kind: 'version', version })}
@@ -180,9 +182,14 @@ export function VersionList({
     <section
       aria-label={m.heading}
       className="tcl-versions"
+      data-tour="versions"
       onContextMenu={(event) => openMenu(event, { kind: 'root' })}
     >
-      <div className={'tcl-versions-head' + (dropTarget === 'root' ? ' is-drop-target' : '')} {...dropHandlers('root', null)}>
+      <div
+        className={'tcl-versions-head' + (dropTarget === 'root' ? ' is-drop-target' : '')}
+        data-tour="version-head"
+        {...dropHandlers('root', null)}
+      >
         <h2 className="tcl-folders-title" title={m.dropToUngroup}>{m.heading}</h2>
         <button
           aria-label={m.menu.createGroup}
@@ -232,6 +239,7 @@ export function VersionList({
           <button
             aria-current={selectedId === UNVERSIONED ? 'true' : undefined}
             className={'tcl-folder tcl-version tcl-version--none' + (selectedId === UNVERSIONED ? ' is-current' : '')}
+            data-tour="unversioned"
             onClick={() => onSelect(UNVERSIONED)}
             title={m.unversionedTitle}
             type="button"

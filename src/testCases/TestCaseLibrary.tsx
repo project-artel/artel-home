@@ -78,6 +78,9 @@ import {
 import { VersionList, type VersionOperations } from './VersionList'
 import { VersionTreeDialog } from './VersionTreeDialog'
 import { ImportManualCasesDialog } from './ImportManualCasesDialog'
+import { CoachTour } from './tour/CoachTour'
+import { CASE_LIBRARY_TOUR, caseLibraryTourSteps } from './tour/caseLibraryTour'
+import { useTour } from './tour/useTour'
 
 /** `vdot` 와 결과 pill 이 상태마다 쓰는 CSS 접미사. 대문자 상태값을 클래스에 그대로 넣지 않는다. */
 const STATUS_CLASS: Record<VerificationStatus, string> = {
@@ -589,6 +592,11 @@ export function TestCaseLibrary({
     if (command !== null) setAnnouncement(m.folders.announce.redone(command.label))
   }
 
+  // 처음 라이브러리를 여는 사람에게 튜토리얼을 한 번 보인다(ARTEL-1033). 버전과 표가 다 그려진 뒤에 연다.
+  const tourReady = library.status === 'ready' && versionList.status !== 'loading' && (!versionsMode || versionCases.loadedOnce)
+  const tour = useTour(CASE_LIBRARY_TOUR, tourReady)
+  const tourSteps = useMemo(() => caseLibraryTourSteps(t), [t])
+
   const waitsForVersion =
     versionList.status === 'loading' || (versionsMode && !versionCases.loadedOnce && !versionCases.failed)
   // 버전을 바꾸는 중: 표 자리만 기다린다.
@@ -719,6 +727,7 @@ export function TestCaseLibrary({
           </h2>
           <button
             className="button button--primary button--compact"
+            data-tour="new-case"
             onClick={startCreating}
             type="button"
           >
@@ -728,7 +737,7 @@ export function TestCaseLibrary({
         <p className="section-intro">{m.section.subtitle}</p>
 
         <div className="tcl-filters">
-          <div className="tcl-filter tcl-filter--grow">
+          <div className="tcl-filter tcl-filter--grow" data-tour="search">
             <SearchField
               clearLabel={m.filters.clearSearch}
               label={m.filters.search}
@@ -750,7 +759,7 @@ export function TestCaseLibrary({
           )}
 
           {versionsMode && !folderView && selectedBuildId !== null && (
-            <div className="tcl-filter">
+            <div className="tcl-filter" data-tour="compare">
               <Picker
                 label={m.versions.compareLabel}
                 onChange={(raw) => {
@@ -782,7 +791,7 @@ export function TestCaseLibrary({
           </div>
         </div>
 
-        <div className="tcl-status-row">
+        <div className="tcl-status-row" data-tour="chips">
           <span className="field-label">{m.filters.status}</span>
           <div className="tcl-chips">
             <button
@@ -907,6 +916,7 @@ export function TestCaseLibrary({
             className={
               'cp-listwrap' + (edge.top ? ' at-top' : '') + (edge.bottom ? ' at-bottom' : '')
             }
+            data-tour="table"
           >
             <div className="cp-fade cp-fade--top" aria-hidden="true"><span className="cp-fade-hint">▴</span></div>
             <div className="cp-list tcl-scroll" onScroll={onScroll} ref={listRef}>
@@ -1106,6 +1116,26 @@ export function TestCaseLibrary({
       )}
 
       <p aria-live="polite" className="visually-hidden" role="status">{announcement}</p>
+
+      {/* 튜토리얼을 다시 보는 길(ARTEL-1033). 라이브러리 왼쪽 아래, 폴더 창 밑의 빈자리에 회색으로 둔다. */}
+      <button
+        className="tcl-help"
+        data-tour="help"
+        onClick={tour.start}
+        title={m.tour.helpTitle}
+        type="button"
+      >
+        <svg aria-hidden="true" viewBox="0 0 16 16">
+          <circle cx="8" cy="8" fill="none" r="6.5" stroke="currentColor" strokeWidth="1.4" />
+          <path d="M6.3 6.2a1.8 1.8 0 1 1 2.6 1.6c-.6.3-.9.7-.9 1.3v.3" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.4" />
+          <circle cx="8" cy="11.6" fill="currentColor" r=".8" />
+        </svg>
+        {m.tour.help}
+      </button>
+
+      {tour.open && (
+        <CoachTour index={tour.index} onFinish={tour.finish} onIndex={tour.setIndex} steps={tourSteps} />
+      )}
 
       {importTarget !== null && (
         <ImportManualCasesDialog
