@@ -6,8 +6,8 @@ import {
   readJson,
   toApiError,
 } from '../projects/projectApi'
-import { parseSteps } from '../testScenarios/scenarioApi'
-import type { ChatMessage, ScenarioRole, ScenarioStep } from '../testScenarios/scenarioTypes'
+import { parseExecutionMode, parseSteps } from '../testScenarios/scenarioApi'
+import type { ChatMessage, ExecutionMode, ScenarioRole, ScenarioStep } from '../testScenarios/scenarioTypes'
 
 /*
  * Run-scoped authoring chat (ARTEL-206 Step 6). The conversation belongs to a
@@ -34,6 +34,8 @@ export type ScenarioProposal = {
   title: string
   description: string
   steps: ScenarioStep[]
+  /** A missing value reads as `ORDERED`. `FREE` proposals carry one blank-action step per test case. */
+  executionMode: ExecutionMode
 }
 
 export type RunChatResult = {
@@ -438,12 +440,7 @@ export async function commitRunScenarios(
   const response = await apiFetch(path, {
     method: 'POST',
     ...jsonRequest({
-      scenarios: scenarios.map((s) => ({
-        scenario_id: s.scenarioId,
-        title: s.title,
-        description: s.description,
-        steps: s.steps,
-      })),
+      scenarios: buildCommitScenarios(scenarios),
     }),
   })
   if (!response.ok) {
@@ -451,7 +448,18 @@ export async function commitRunScenarios(
   }
 }
 
-function parseProposal(value: unknown): ScenarioProposal {
+/** The commit body's `scenarios[]`, snake_case. `execution_mode` is always sent so a FREE proposal stays FREE. */
+export function buildCommitScenarios(scenarios: readonly ScenarioProposal[]) {
+  return scenarios.map((s) => ({
+    scenario_id: s.scenarioId,
+    title: s.title,
+    description: s.description,
+    steps: s.steps,
+    execution_mode: s.executionMode,
+  }))
+}
+
+export function parseProposal(value: unknown): ScenarioProposal {
   const record = asRecord(value) ?? {}
   const rawId = record.scenario_id
   const scenarioId =
@@ -461,6 +469,7 @@ function parseProposal(value: unknown): ScenarioProposal {
     title: asString(record.title),
     description: asString(record.description),
     steps: parseSteps(record.steps),
+    executionMode: parseExecutionMode(record.execution_mode),
   }
 }
 

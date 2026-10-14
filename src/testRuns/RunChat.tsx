@@ -15,6 +15,7 @@ import type { TestCase, TestCaseCoverage } from '../testCases/testCaseTypes'
 import { TestCaseSheet } from '../testCases/TestCaseSheet'
 import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
 import { ProjectApiError } from '../projects/projectApi'
+import { FreeScenarioBadge } from '../testScenarios/FreeScenarioBadge'
 import { getRunCoverage } from './testRunApi'
 import type { RunCoverage } from './testRunApi'
 import type { RunChatSession } from './useRunChatSession'
@@ -755,7 +756,10 @@ function ProposalCard({
           ⤢
         </button>
       </div>
-      <p className="run-chat-card-title">{proposal.title}</p>
+      <p className="run-chat-card-title">
+        {proposal.title}
+        {proposal.executionMode === 'FREE' && <> <FreeScenarioBadge /></>}
+      </p>
       {proposal.description.length > 0 && (
         <p className="run-chat-card-desc">{proposal.description}</p>
       )}
