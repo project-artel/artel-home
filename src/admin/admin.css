@@ -1,6 +1,15 @@
 /* The /admin frame. The screens' own rules live in shared/dashboard.css and each screen's file. */
 
+/* The shell centers whatever it holds; the admin tables want the full width, as `.page` screens do. */
+.workspace:has(.admin-console) {
+  place-items: start stretch;
+  padding: var(--space-8) var(--space-6);
+  overflow-y: auto;
+}
+
 .admin-console {
+  width: 100%;
+  min-width: 0;
   color: var(--color-text-primary);
 }
 
