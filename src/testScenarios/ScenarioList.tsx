@@ -9,6 +9,7 @@ import { createTestScenario, deleteTestScenario, listTestScenarios } from './sce
 import type { ScenarioImportResult } from './scenarioLibrary'
 import { FreeScenarioBadge } from './FreeScenarioBadge'
 import { PlaylistAddIcon, PlusIcon } from './scenarioIcons'
+import { NewScenarioDialog } from './NewScenarioDialog'
 import { ScenarioImportDialog } from './ScenarioImportDialog'
 import type { TestScenarioSummary } from './scenarioTypes'
 
@@ -49,6 +50,7 @@ export function ScenarioList({
   const [creating, setCreating] = useState(false)
   const [reload, setReload] = useState(0)
   const [importing, setImporting] = useState(false)
+  const [choosingKind, setChoosingKind] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   // 줄의 우클릭 메뉴(ARTEL-1049)와, 메뉴에서 고른 삭제의 확인.
   const [menu, setMenu] = useState<{ item: TestScenarioSummary; x: number; y: number } | null>(null)
@@ -81,6 +83,7 @@ export function ScenarioList({
 
   async function create() {
     if (creating) return
+    setChoosingKind(false)
     setCreating(true)
     try {
       const id = await createTestScenario(Number(projectId))
@@ -149,13 +152,32 @@ export function ScenarioList({
             <span aria-hidden="true" className="tip">{s.import}</span>
           </button>
         )}
-        <button className="mini-add tip-btn" onClick={create} disabled={creating} aria-label={s.new} type="button">
+        <button
+          className="mini-add tip-btn"
+          onClick={runId !== null ? () => setChoosingKind(true) : create}
+          disabled={creating}
+          aria-label={s.new}
+          type="button"
+        >
           <PlusIcon />
           <span aria-hidden="true" className="tip">{s.new}</span>
         </button>
       </div>
       {notice !== null && (
         <p className="empty-note" role="status">{notice}</p>
+      )}
+      {choosingKind && runId !== null && (
+        <NewScenarioDialog
+          onClose={() => setChoosingKind(false)}
+          onCreated={(id) => {
+            setChoosingKind(false)
+            setReload((n) => n + 1)
+            open(id)
+          }}
+          onOrdered={() => void create()}
+          projectId={projectId}
+          runId={runId}
+        />
       )}
       {importing && runId !== null && (
         <ScenarioImportDialog

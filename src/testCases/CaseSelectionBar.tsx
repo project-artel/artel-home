@@ -12,7 +12,6 @@ export function CaseSelectionBar({
   limitNoteId,
   moveLabel,
   onClear,
-  onCreateFreeScenario,
   onDelete,
   onMove,
 }: {
@@ -24,7 +23,6 @@ export function CaseSelectionBar({
   /** 비활성이 된 행 checkbox 의 `aria-describedby` 가 가리키는 안내 문구의 id. */
   limitNoteId: string
   onClear: () => void
-  onCreateFreeScenario: () => void
   onDelete: () => void
   onMove: () => void
 }) {
@@ -42,9 +40,6 @@ export function CaseSelectionBar({
       <span className="tcl-selection-spacer" />
       <button className="button button--secondary button--compact" onClick={onClear} type="button">
         {m.selection.clear}
-      </button>
-      <button className="button button--secondary button--compact" onClick={onCreateFreeScenario} type="button">
-        {m.createFree.action}
       </button>
       <button className="button button--secondary button--compact" onClick={onMove} type="button">
         {moveLabel ?? m.moveCases.action}
