@@ -2,10 +2,10 @@ import { useCallback, useEffect, useState } from 'react'
 import { getKnowledgeGraph } from './knowledgeApi'
 import { KNOWLEDGE_NODE_LIMIT, type KnowledgeGraph } from './knowledgeTypes'
 
-type LoadStatus = 'loading' | 'ready' | 'error'
+export type KnowledgeGraphStatus = 'loading' | 'ready' | 'error'
 
 type LoadedState = {
-  status: Exclude<LoadStatus, 'loading'>
+  status: Exclude<KnowledgeGraphStatus, 'loading'>
   graph: KnowledgeGraph | null
   /**
    * Which request produced this. State whose source is not the current one
@@ -27,15 +27,15 @@ const initialState: LoadedState = { status: 'ready', graph: null, source: '' }
  * token rather than calling the fetch again by hand, so retry and refresh take
  * the same path as the first load and cannot drift from it.
  */
-export function useKnowledgeGraph(projectId: string) {
+export function useKnowledgeGraph(projectId: string, nodeLimit = KNOWLEDGE_NODE_LIMIT) {
   const [reloadToken, setReloadToken] = useState(0)
   const [state, setState] = useState<LoadedState>(initialState)
-  const source = `${projectId}#${reloadToken}`
+  const source = `${projectId}#${nodeLimit}#${reloadToken}`
 
   useEffect(() => {
     const controller = new AbortController()
 
-    getKnowledgeGraph(projectId, KNOWLEDGE_NODE_LIMIT, controller.signal)
+    getKnowledgeGraph(projectId, nodeLimit, controller.signal)
       .then((graph) => setState({ status: 'ready', graph, source }))
       .catch((error: unknown) => {
         // An abort means this effect was replaced; a newer request owns the
@@ -45,7 +45,7 @@ export function useKnowledgeGraph(projectId: string) {
       })
 
     return () => controller.abort()
-  }, [projectId, source])
+  }, [projectId, nodeLimit, source])
 
   const settled = state.source === source
   const reload = useCallback(() => setReloadToken((token) => token + 1), [])
@@ -54,7 +54,7 @@ export function useKnowledgeGraph(projectId: string) {
   // be a different project's knowledge under this project's heading.
   return {
     graph: settled ? state.graph : null,
-    status: settled ? state.status : ('loading' as LoadStatus),
+    status: settled ? state.status : ('loading' as KnowledgeGraphStatus),
     reload,
   }
 }

@@ -171,6 +171,30 @@ test('an edge pointing at an item that is not in the response is dropped', () =>
   )
 
   assert.deepEqual(parsed.edges, [])
+  assert.equal(parsed.droppedEdges, 1)
+})
+
+test('only edges with a missing endpoint count as dropped', () => {
+  // Duplicates and unreadable rows also leave the list, but neither is a
+  // relation the reader is missing: the duplicate is drawn once, and the
+  // unreadable row never described a relation at all.
+  const parsed = parseKnowledgeGraph(
+    {
+      ...sample,
+      edges: [
+        { from: '1', to: '2', relation: 'LEADS_TO', note: null },
+        { from: '1', to: '2', relation: 'LEADS_TO', note: 'again' },
+        { from: '999', to: '2', relation: 'LEADS_TO', note: null },
+        { from: '1', to: '998', relation: 'REFINES', note: null },
+        'nonsense',
+      ],
+    },
+    '1',
+  )
+
+  assert.equal(parsed.edges.length, 1)
+  assert.equal(parsed.droppedEdges, 2)
+  assert.equal(parseKnowledgeGraph(sample, '1').droppedEdges, 0)
 })
 
 test('duplicate ids and duplicate relations collapse', () => {
@@ -205,6 +229,11 @@ test('a missing or nonsensical node limit falls back to what was asked for', () 
   assert.equal(parseKnowledgeGraph({ ...sample, nodeLimit: undefined }, '1').nodeLimit, KNOWLEDGE_NODE_LIMIT)
   assert.equal(parseKnowledgeGraph({ ...sample, nodeLimit: 0 }, '1').nodeLimit, KNOWLEDGE_NODE_LIMIT)
   assert.equal(parseKnowledgeGraph({ ...sample, nodeLimit: 50 }, '1').nodeLimit, 50)
+})
+
+test('the fallback node limit is the one the request asked for', () => {
+  assert.equal(parseKnowledgeGraph({ ...sample, nodeLimit: undefined }, '1', 500).nodeLimit, 500)
+  assert.equal(parseKnowledgeGraph({ ...sample, nodeLimit: 50 }, '1', 500).nodeLimit, 50)
 })
 
 test('an unreadable body becomes an empty graph for the project that was asked about', () => {

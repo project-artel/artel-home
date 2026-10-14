@@ -4,10 +4,11 @@ import { useWorkspace } from '../projects/workspace/workspaceContext'
 import { KnowledgeGraphCanvas, type Selection } from './KnowledgeGraphCanvas'
 import { KnowledgeInspector } from './KnowledgeInspector'
 import { KnowledgeLegend } from './KnowledgeLegend'
+import { KnowledgeRelationTable } from './KnowledgeRelationTable'
 import { LABEL_NODE_LIMIT } from './knowledgeLayout'
 import type { KnowledgeGraph } from './knowledgeTypes'
 import { useKnowledgeDrag } from './useKnowledgeDrag'
-import { useKnowledgeGraph } from './useKnowledgeGraph'
+import { useKnowledgeGraph, type KnowledgeGraphStatus } from './useKnowledgeGraph'
 
 /**
  * The project's knowledge base, drawn.
@@ -43,6 +44,42 @@ export function KnowledgeSection() {
         </button>
       </div>
 
+      <KnowledgeGraphContent graph={graph} projectId={projectId} reload={reload} status={status} />
+    </div>
+  )
+}
+
+/**
+ * Parts of the screen only the admin graph screen (`/admin/graph`) turns on.
+ * The project route passes none of them and draws exactly what it drew before.
+ */
+export type KnowledgeGraphDiagnostics = {
+  /** Formats the counts these parts add, in the console's locale. */
+  formatCount: (value: number) => string
+}
+
+/**
+ * The loading, error and ready states of one graph read, below whatever toolbar
+ * the caller draws. The caller owns the read (`useKnowledgeGraph`) so its own
+ * refresh button and the retry here reload the same request.
+ */
+export function KnowledgeGraphContent({
+  graph,
+  status,
+  reload,
+  projectId,
+  diagnostics,
+}: {
+  graph: KnowledgeGraph | null
+  status: KnowledgeGraphStatus
+  reload: () => void
+  projectId: string
+  diagnostics?: KnowledgeGraphDiagnostics
+}) {
+  const { t } = useI18n()
+
+  return (
+    <>
       {status === 'loading' && (
         <section className="panel">
           <p aria-busy="true" className="panel-empty">
@@ -62,12 +99,22 @@ export function KnowledgeSection() {
         </section>
       )}
 
-      {status === 'ready' && graph !== null && <KnowledgeGraphView graph={graph} projectId={projectId} />}
-    </div>
+      {status === 'ready' && graph !== null && (
+        <KnowledgeGraphView diagnostics={diagnostics} graph={graph} projectId={projectId} />
+      )}
+    </>
   )
 }
 
-function KnowledgeGraphView({ graph, projectId }: { graph: KnowledgeGraph; projectId: string }) {
+function KnowledgeGraphView({
+  graph,
+  projectId,
+  diagnostics,
+}: {
+  graph: KnowledgeGraph
+  projectId: string
+  diagnostics?: KnowledgeGraphDiagnostics
+}) {
   const { t } = useI18n()
   const [selection, setSelection] = useState<Selection>(null)
 
@@ -92,6 +139,17 @@ function KnowledgeGraphView({ graph, projectId }: { graph: KnowledgeGraph; proje
     </div>
   ) : null
 
+  // The parser removes an edge whose endpoint is not in the response before the
+  // layout sees it. Only the admin screen says how many, as a diagnostic.
+  const droppedEdgesNotice =
+    diagnostics !== undefined && graph.droppedEdges > 0 ? (
+      <div className="kg-notice kg-notice--spaced" role="status">
+        <p className="kg-notice-copy">
+          {t.adminGraph.droppedEdges(diagnostics.formatCount(graph.droppedEdges))}
+        </p>
+      </div>
+    ) : null
+
   // Nothing has been learned yet. Different from "learned, but nothing linked":
   // this one is answered by running QA or uploading a document, and the graph
   // area would be an empty box with nothing to say.
@@ -99,6 +157,7 @@ function KnowledgeGraphView({ graph, projectId }: { graph: KnowledgeGraph; proje
     return (
       <section className="panel">
         {truncatedBanner}
+        {droppedEdgesNotice}
         <div className="panel-message">
           <h2>{t.knowledge.empty.noItemsTitle}</h2>
           <p className="panel-message-copy">{t.knowledge.empty.noItemsCopy}</p>
@@ -110,6 +169,7 @@ function KnowledgeGraphView({ graph, projectId }: { graph: KnowledgeGraph; proje
   return (
     <>
       {truncatedBanner}
+      {droppedEdgesNotice}
 
       <p className="kg-summary">
         <span>{t.knowledge.summary.items(graph.nodes.length)}</span>
@@ -154,7 +214,11 @@ function KnowledgeGraphView({ graph, projectId }: { graph: KnowledgeGraph; proje
             <p className="kg-canvas-note">{t.knowledge.legend.labelNote}</p>
           )}
 
-          <KnowledgeLegend edges={graph.edges} nodes={graph.nodes} />
+          <KnowledgeLegend
+            edges={graph.edges}
+            formatCount={diagnostics?.formatCount}
+            nodes={graph.nodes}
+          />
         </section>
 
         <aside className="panel kg-inspector-panel">
@@ -169,6 +233,15 @@ function KnowledgeGraphView({ graph, projectId }: { graph: KnowledgeGraph; proje
           />
         </aside>
       </div>
+
+      {diagnostics !== undefined && layout.edges.length > 0 && (
+        <KnowledgeRelationTable
+          edges={layout.edges}
+          nodesById={nodesById}
+          onSelectEdge={(id) => setSelection({ kind: 'edge', id })}
+          selection={selection}
+        />
+      )}
     </>
   )
 }

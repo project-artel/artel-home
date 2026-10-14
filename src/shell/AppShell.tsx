@@ -39,6 +39,12 @@ export function AppShell() {
           <NavLink className="top-bar-link" to="/setup">
             {t.common.shell.setupGuide}
           </NavLink>
+          {/* The admin screens are hidden from everyone but an ADMIN; the server still decides what each API returns. */}
+          {auth.user.platformRole === 'ADMIN' && (
+            <NavLink className="top-bar-link" to="/admin">
+              {t.admin.shellLink}
+            </NavLink>
+          )}
           <ThemeToggle
             toDarkLabel={t.common.shell.switchToDark}
             toLightLabel={t.common.shell.switchToLight}

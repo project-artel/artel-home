@@ -1,0 +1,449 @@
+/* Moved from admin-page. Every rule is nested under .admin-console so the class names (.field, .control, .table, ...) never reach the rest of the console. */
+.admin-console {
+  /* Blueprint Paper. 깊이는 그림자가 아니라 1px 선과 배경 단계로만 만든다(DESIGN.md).
+     카드 격자를 쓰지 않는 이유도 같은 문서다 — 반복되는 둥근 카드와 일반적인 KPI 타일은
+     금지되어 있고, 이 화면이 실제로 필요한 것은 밀도 높은 표다. */
+  
+  .shell {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    color: var(--color-text-primary);
+  }
+  
+  /* ── 상단 바 ───────────────────────────────────────────────────────── */
+  
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    min-height: 48px;
+    padding: 0 var(--space-5);
+    background: var(--color-bg-surface);
+    border-bottom: 1px solid var(--color-border-subtle);
+    flex-wrap: wrap;
+  }
+  
+  .topbar__brand {
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+  
+  .topbar__spacer {
+    flex: 1 1 auto;
+  }
+  
+  .field {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+  
+  .field__label {
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 16px;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+  }
+  
+  .control {
+    min-height: 32px;
+    padding: 0 var(--space-2);
+    color: var(--color-text-primary);
+    background: var(--color-bg-canvas);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+  }
+  
+  .control:hover:not(:disabled) {
+    background: var(--color-bg-hover);
+  }
+  
+  .control:disabled {
+    color: var(--color-text-muted);
+    cursor: not-allowed;
+  }
+  
+  .control--date {
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+  
+  .control--action {
+    border-color: var(--color-border-strong);
+    font-weight: 500;
+  }
+  
+  /* ── 본문 ─────────────────────────────────────────────────────────── */
+  
+  .main {
+    flex: 1 1 auto;
+    width: 100%;
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: var(--space-6) var(--space-5) var(--space-12);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+  }
+  
+  .section__head {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-3);
+    padding-bottom: var(--space-2);
+    border-bottom: 1px solid var(--color-border-strong);
+    margin-bottom: var(--space-4);
+  }
+  
+  .section__title {
+    margin: 0;
+    font-size: 18px;
+    line-height: 26px;
+    font-weight: 600;
+  }
+  
+  .section__note {
+    font-size: 11px;
+    line-height: 16px;
+    color: var(--color-text-muted);
+  }
+  
+  /* 표 아래에 붙는 규약 한 줄. 헤드 안의 note와 달리 자기 줄을 차지하고 줄바꿈된다. */
+  .section__note--block {
+    display: block;
+    margin: var(--space-2) 0 0;
+    max-width: 76ch;
+  }
+  
+  /* ── 총계 레일 ─────────────────────────────────────────────────────── */
+  
+  /* 타일이 아니라 레일이다. 칸을 나누는 것은 배경이 아니라 세로 헤어라인 하나뿐이다. */
+  .rail {
+    display: flex;
+    flex-wrap: wrap;
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-surface);
+  }
+  
+  .rail__item {
+    flex: 1 1 150px;
+    padding: var(--space-3) var(--space-4);
+    border-left: 1px solid var(--color-border-subtle);
+  }
+  
+  .rail__item:first-child {
+    border-left: 0;
+  }
+  
+  .rail__label {
+    display: block;
+    font-size: 11px;
+    line-height: 16px;
+    font-weight: 500;
+    color: var(--color-text-muted);
+  }
+  
+  .rail__value {
+    display: block;
+    margin-top: var(--space-1);
+    font-family: var(--font-mono);
+    font-size: 18px;
+    line-height: 26px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  
+  .rail__hint {
+    display: block;
+    font-size: 11px;
+    line-height: 16px;
+    color: var(--color-text-secondary);
+  }
+  
+  /* ── 표 ───────────────────────────────────────────────────────────── */
+  
+  .table-scroll {
+    overflow-x: auto;
+  }
+  
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    line-height: 20px;
+  }
+  
+  .table th,
+  .table td {
+    padding: var(--space-2) var(--space-3);
+    text-align: left;
+    border-bottom: 1px solid var(--color-border-subtle);
+    white-space: nowrap;
+  }
+  
+  .table thead th {
+    font-size: 11px;
+    line-height: 16px;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    border-bottom-color: var(--color-border-strong);
+  }
+  
+  .table td.num,
+  .table th.num {
+    text-align: right;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+  
+  .table tbody tr:hover {
+    background: var(--color-bg-hover);
+  }
+  
+  .table tfoot td {
+    font-weight: 600;
+    border-bottom: 0;
+    border-top: 1px solid var(--color-border-strong);
+  }
+  
+  .axis-value {
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+  
+  .axis-value--unknown {
+    font-family: var(--font-sans);
+    color: var(--color-text-muted);
+    font-style: italic;
+  }
+  
+  /* ── 완주율 막대 ───────────────────────────────────────────────────── */
+  
+  /* 막대는 숫자의 장식이다. 값은 언제나 옆 글자가 말하고, 막대는 aria-hidden이다 —
+     색과 길이만으로 말하면 색각 이상과 스크린리더 양쪽에서 사라진다. */
+  .rate {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-2);
+  }
+  
+  .rate__track {
+    width: 56px;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--color-bg-hover);
+    border: 1px solid var(--color-border-subtle);
+    overflow: hidden;
+    flex: 0 0 auto;
+  }
+  
+  .rate__fill {
+    display: block;
+    height: 100%;
+    background: var(--color-status-success);
+  }
+  
+  .rate__fill--poor {
+    background: var(--color-status-critical);
+  }
+  
+  .rate__fill--mixed {
+    background: var(--color-status-warning);
+  }
+  
+  /* ── 커버리지 ─────────────────────────────────────────────────────── */
+  
+  /* 비율 옆에 분자/분모를 늘 함께 쓴다. 백분율만 두면 그것이 몇 건 위에 얹힌 값인지가 사라지고,
+     1/1과 40/40이 같은 100%로 읽힌다. */
+  .coverage {
+    display: inline-flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    justify-content: flex-end;
+    font-variant-numeric: tabular-nums;
+  }
+  
+  .coverage__detail {
+    font-size: 11px;
+    line-height: 16px;
+    color: var(--color-text-secondary);
+  }
+  
+  /* 일부만 채워진 커버리지. 색은 보조 표시이고 뜻은 옆 숫자가 진다(DESIGN.md). */
+  .coverage--partial {
+    color: var(--color-status-warning);
+  }
+  
+  /* 0건. 백분율 대신 글자를 쓴다 — `0.0%`는 옆 칸의 `—`와 함께 읽히면 "점수가 0"으로 읽힌다. */
+  .coverage--none {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    line-height: 16px;
+    color: var(--color-text-muted);
+    font-style: italic;
+  }
+  
+  /* ── 축 분해 그리드 ────────────────────────────────────────────────── */
+  
+  .axis-grid {
+    display: grid;
+    gap: var(--space-6);
+    grid-template-columns: 1fr;
+  }
+  
+  @media (min-width: 1240px) {
+    .axis-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  
+  .panel__title {
+    margin: 0 0 var(--space-2);
+    font-size: 15px;
+    line-height: 22px;
+    font-weight: 600;
+  }
+  
+  /* ── 매트릭스 ─────────────────────────────────────────────────────── */
+  
+  .matrix td.cell {
+    text-align: right;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+  
+  .matrix .cell__runs {
+    font-size: 13px;
+  }
+  
+  .matrix .cell__rate {
+    display: block;
+    font-size: 11px;
+    line-height: 16px;
+    color: var(--color-text-secondary);
+  }
+  
+  /* 지표가 얹힌 표본 수. 비율 바로 아래에 둔다 — 다섯 번 돌렸는데 하나만 채점된 조합과 다섯 번
+     다 채점된 조합이 같은 비율을 낼 수 있고, 그 둘이 같은 칸으로 보이면 표본 하나짜리 결과가
+     다섯 번의 결과로 읽힌다. */
+  .matrix .cell__coverage {
+    display: block;
+    font-size: 11px;
+    line-height: 16px;
+    color: var(--color-text-muted);
+  }
+  
+  /* 그 지표를 낼 표본이 하나도 없다. 비율 자리는 이미 `—`이고 이 줄이 이유를 진다. */
+  .matrix .cell__coverage--none {
+    font-family: var(--font-sans);
+    font-style: italic;
+  }
+  
+  /* 빈 조합. 0건과 다르다 — 돌려 본 적이 없다는 뜻이라 숫자를 쓰지 않는다. */
+  .matrix .cell--empty {
+    color: var(--color-text-muted);
+  }
+  
+  .matrix th[scope='row'] {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 500;
+  }
+  
+  /* ── 상태 표시 ─────────────────────────────────────────────────────── */
+  
+  /* 점은 보조 표시이고 뜻은 항상 옆 글자가 진다(DESIGN.md: 색만으로 상태를 말하지 않는다). */
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: 12px;
+    line-height: 18px;
+  }
+  
+  .status__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    flex: 0 0 auto;
+  }
+  
+  .status__dot--completed {
+    background: var(--color-status-success);
+  }
+  
+  .status__dot--failed {
+    background: var(--color-status-critical);
+  }
+  
+  .status__dot--cancelled {
+    background: var(--color-status-offline);
+  }
+  
+  .status__dot--active {
+    background: var(--color-status-warning);
+  }
+  
+  /* ── 상태 화면 ─────────────────────────────────────────────────────── */
+  
+  .notice {
+    padding: var(--space-5);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-surface);
+    font-size: 13px;
+    line-height: 20px;
+    color: var(--color-text-secondary);
+  }
+  
+  .notice--critical {
+    border-color: var(--color-status-critical);
+    background: var(--color-status-critical-muted);
+    color: var(--color-text-primary);
+  }
+  
+  .notice__title {
+    margin: 0 0 var(--space-2);
+    font-family: var(--font-display);
+    font-size: 15px;
+    line-height: 22px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+  }
+  
+  .boundary {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: var(--space-6);
+  }
+  
+  .boundary__inner {
+    max-width: 420px;
+  }
+  
+  .link {
+    color: var(--color-action-primary);
+    font-weight: 500;
+  }
+  
+  .mono {
+    font-family: var(--font-mono);
+    font-size: 12px;
+  }
+  
+  .muted {
+    color: var(--color-text-muted);
+  }
+}
