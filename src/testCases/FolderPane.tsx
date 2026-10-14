@@ -215,6 +215,7 @@ export function FolderPane({
       aria-expanded
       aria-label={m.collapsePane}
       className="tcl-side-toggle"
+      data-tour="collapse"
       onClick={onToggleCollapsed}
       title={m.collapsePane}
       type="button"
@@ -252,7 +253,7 @@ export function FolderPane({
         {...dropHandlers(null)}
       >
         <h2 className="tcl-folders-title" id={headingId} title={m.dropToRoot}>{m.title}</h2>
-        <div className="tcl-folders-actions" role="group" aria-label={m.toolbar.label}>
+        <div className="tcl-folders-actions" data-tour="folder-actions" role="group" aria-label={m.toolbar.label}>
           <button
             aria-label={m.toolbar.undo}
             className="iconbtn"
@@ -290,6 +291,7 @@ export function FolderPane({
         aria-label={m.treeLabel}
         aria-busy={status === 'loading' || history.busy || undefined}
         className="tcl-folder-tree"
+        data-tour="folders"
         onContextMenu={(event) => openMenu(event, null)}
         ref={treeRef}
       >

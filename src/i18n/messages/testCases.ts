@@ -274,6 +274,75 @@ export const testCasesEn = {
     mapTitle: 'Generated from the content map',
     manualTitle: 'Written by a person',
   },
+  tour: {
+    help: 'Help',
+    helpTitle: 'Show the case library tutorial again',
+    controls: {
+      count: (step: number, total: number) => `Step ${step} of ${total}`,
+      skipAll: 'Skip tutorial',
+      steps: 'Tutorial steps',
+      goTo: (step: number, title: string) => `Go to step ${step}: ${title}`,
+      previous: 'Back',
+      skipStep: 'Skip this step',
+      skipStepTitle: 'Move on without reading this step',
+      next: 'Next',
+      done: 'Done',
+    },
+    steps: {
+      welcome: {
+        title: 'Welcome to the case library',
+        body: 'Every reusable test case of this project lives here. You can look at them per game version, collect them in folders, and see what changed between versions. This short tour shows where things are.',
+      },
+      versions: {
+        title: 'Versions',
+        body: 'Each game version has its own case table. The newest version is on top and marked Current. Click a version to see its cases and their results in that version.',
+      },
+      versionTools: {
+        title: 'Group, hide and copy versions',
+        body: 'Use + to make a version group such as 1.X, then drag versions into it. Right-click a version to copy it into a folder, import user-created cases from another library, move it to a group or hide it.',
+      },
+      unversioned: {
+        title: 'No version',
+        body: 'Cases that belong to no version yet — usually user-created cases before any QA run. Put them into a version from here.',
+      },
+      folders: {
+        title: 'Your folders',
+        body: 'Collect cases from any version. Drag rows from the table onto a folder, or drag a folder onto another to nest it. Right-click a folder to rename, move, duplicate or delete it.',
+      },
+      folderTools: {
+        title: 'Undo, redo and new folder',
+        body: 'Every folder and version change can be undone with ↶ (⌘Z) and redone with ↷ (⇧⌘Z). + makes a new top-level folder.',
+      },
+      collapse: {
+        title: 'Make room',
+        body: 'Fold the side pane to give the table the whole width. Click the folded bar to open it again.',
+      },
+      search: {
+        title: 'Search',
+        body: 'Type part of a step, screen, precondition or expected result. Esc clears it.',
+      },
+      compare: {
+        title: 'Compare with another version',
+        body: 'Pick a version to see both results side by side. Cases that exist in only one version move to the bottom with warning stripes, and “Regressions only” keeps the cases that passed before and fail now.',
+      },
+      chips: {
+        title: 'Filter by result and source',
+        body: 'Result chips narrow the table to one verdict. Source chips split auto-generated cases (from the content map) from user-created ones.',
+      },
+      table: {
+        title: 'The case table',
+        body: 'Click a row to edit it. Tick boxes (or Shift/Ctrl+click) to select several, then add them to a folder or a version. Drag selected rows onto a folder in the side pane.',
+      },
+      newCase: {
+        title: 'New case',
+        body: 'Write a case by hand. It goes into the current version by default — change the version in the editor if needed. A new case starts as Unverified.',
+      },
+      help: {
+        title: 'See this again',
+        body: 'This grey Help button replays the tutorial whenever you need it.',
+      },
+    },
+  },
   importManual: {
     title: (version: string) => `Import user-created cases into ${version}`,
     hint: 'Pick a library on the left, then the user-created cases to add to this version. Cases already in this version are not listed.',
@@ -606,6 +675,75 @@ export const testCasesKo: Localized<typeof testCasesEn> = {
     MANUAL: '사용자 생성',
     mapTitle: '콘텐츠 맵에서 자동으로 만든 케이스',
     manualTitle: '사용자가 직접 만든 케이스',
+  },
+  tour: {
+    help: '도움말',
+    helpTitle: '케이스 라이브러리 튜토리얼을 다시 봅니다',
+    controls: {
+      count: (step: number, total: number) => `${total}단계 중 ${step}단계`,
+      skipAll: '튜토리얼 건너뛰기',
+      steps: '튜토리얼 단계',
+      goTo: (step: number, title: string) => `${step}단계로: ${title}`,
+      previous: '이전',
+      skipStep: '이 단계 건너뛰기',
+      skipStepTitle: '이 단계를 읽지 않고 다음으로 넘어갑니다',
+      next: '다음',
+      done: '마치기',
+    },
+    steps: {
+      welcome: {
+        title: '케이스 라이브러리에 오신 것을 환영합니다',
+        body: '이 프로젝트의 재사용 테스트 케이스(TC)가 모두 여기 있습니다. 게임 버전마다 나눠 보고, 폴더로 모으고, 버전 사이에 무엇이 바뀌었는지 볼 수 있습니다. 어디에 무엇이 있는지 짧게 둘러봅니다.',
+      },
+      versions: {
+        title: '버전',
+        body: '게임 버전마다 TC 표가 따로 있습니다. 가장 최근 버전이 맨 위에 있고 “현재” 표시가 붙습니다. 버전을 누르면 그 버전의 TC 와 그 버전에서 받은 결과가 보입니다.',
+      },
+      versionTools: {
+        title: '버전 묶기 · 숨기기 · 복제',
+        body: '+ 로 1.X 같은 버전 묶음을 만들고 버전을 끌어 넣습니다. 버전을 우클릭하면 새 폴더로 복제, 다른 라이브러리에서 사용자 생성 TC 가져오기, 묶음으로 이동, 숨기기를 할 수 있습니다.',
+      },
+      unversioned: {
+        title: '버전 없음',
+        body: '아직 어느 버전에도 들지 않은 TC 입니다. 보통 QA 실행 전의 사용자 생성 TC 입니다. 여기서 골라 버전에 넣을 수 있습니다.',
+      },
+      folders: {
+        title: '내 폴더',
+        body: '어느 버전의 TC 든 모아 둡니다. 표의 줄을 폴더에 끌어 놓으면 담기고, 폴더를 다른 폴더에 끌어 놓으면 그 안으로 들어갑니다. 폴더를 우클릭하면 이름 변경 · 이동 · 복제 · 삭제가 있습니다.',
+      },
+      folderTools: {
+        title: '되돌리기 · 다시 하기 · 새 폴더',
+        body: '폴더와 버전에 한 작업은 ↶(⌘Z)로 되돌리고 ↷(⇧⌘Z)로 다시 할 수 있습니다. + 는 최상위에 새 폴더를 만듭니다.',
+      },
+      collapse: {
+        title: '표를 넓게',
+        body: '왼쪽 창을 접으면 표가 화면 폭을 다 씁니다. 접힌 막대를 누르면 다시 펴집니다.',
+      },
+      search: {
+        title: '검색',
+        body: '스텝 · 화면 · 사전조건 · 기대결과의 일부를 적습니다. Esc 로 지웁니다.',
+      },
+      compare: {
+        title: '다른 버전과 비교',
+        body: '버전을 고르면 두 버전의 결과가 나란히 보입니다. 한쪽 버전에만 있는 TC 는 경고 빗금으로 표 아래에 모이고, “회귀만” 은 전에 통과했는데 지금 실패한 TC 만 남깁니다.',
+      },
+      chips: {
+        title: '결과 · 출처로 거르기',
+        body: '결과 칩은 판정 하나로 표를 좁힙니다. 출처 칩은 콘텐츠 맵에서 자동 생성된 TC 와 사용자 생성 TC 를 가릅니다.',
+      },
+      table: {
+        title: 'TC 표',
+        body: '줄을 누르면 편집합니다. 체크하거나 Shift · Ctrl+클릭으로 여러 줄을 골라 폴더나 버전에 넣습니다. 고른 줄을 왼쪽 폴더에 끌어 놓아도 됩니다.',
+      },
+      newCase: {
+        title: '새 케이스',
+        body: 'TC 를 직접 씁니다. 기본으로 현재 버전에 들어가고, 편집기에서 다른 버전을 고를 수 있습니다. 새 TC 는 미검증으로 시작합니다.',
+      },
+      help: {
+        title: '다시 보고 싶을 때',
+        body: '이 회색 도움말 버튼을 누르면 언제든 튜토리얼을 다시 봅니다.',
+      },
+    },
   },
   importManual: {
     title: (version: string) => `${version} 에 사용자 생성 TC 가져오기`,

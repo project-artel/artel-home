@@ -180,9 +180,14 @@ export function VersionList({
     <section
       aria-label={m.heading}
       className="tcl-versions"
+      data-tour="versions"
       onContextMenu={(event) => openMenu(event, { kind: 'root' })}
     >
-      <div className={'tcl-versions-head' + (dropTarget === 'root' ? ' is-drop-target' : '')} {...dropHandlers('root', null)}>
+      <div
+        className={'tcl-versions-head' + (dropTarget === 'root' ? ' is-drop-target' : '')}
+        data-tour="version-head"
+        {...dropHandlers('root', null)}
+      >
         <h2 className="tcl-folders-title" title={m.dropToUngroup}>{m.heading}</h2>
         <button
           aria-label={m.menu.createGroup}
@@ -232,6 +237,7 @@ export function VersionList({
           <button
             aria-current={selectedId === UNVERSIONED ? 'true' : undefined}
             className={'tcl-folder tcl-version tcl-version--none' + (selectedId === UNVERSIONED ? ' is-current' : '')}
+            data-tour="unversioned"
             onClick={() => onSelect(UNVERSIONED)}
             title={m.unversionedTitle}
             type="button"
