@@ -210,7 +210,11 @@ export function QaTryPanel({
           {mismatch !== null && (
             <p className="qa-version-mismatch" role="status">
               <span aria-hidden="true">!</span>
-              {t.qa.panel.versionMismatch(mismatch.run, mismatch.game)}
+              {/* 무엇이 다른지와, 그래도 돌리면 어떻게 되는지를 줄을 나눠 말한다. */}
+              <span className="qa-version-mismatch-text">
+                <span>{t.qa.panel.versionMismatch.basis(mismatch.run, mismatch.game)}</span>
+                <span>{t.qa.panel.versionMismatch.record(mismatch.game)}</span>
+              </span>
             </p>
           )}
 

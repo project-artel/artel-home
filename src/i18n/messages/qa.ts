@@ -16,8 +16,11 @@ export const qaEn = {
     gameLabel: 'Game',
     gamePlaceholder: 'Select a game',
     runLabel: 'Test run',
-    versionMismatch: (run: string, game: string) =>
-      `This run follows build version ${run}, but the game is running ${game}. You can still run it — the verdicts are recorded on ${game}.`,
+    versionMismatch: {
+      basis: (run: string, game: string) =>
+        `This test is based on the cases of version ${run}. The game that is on now is version ${game}.`,
+      record: (game: string) => `You can still run QA, but the results are recorded on the cases of version ${game}.`,
+    },
     runPlaceholder: 'Select a test run',
     noRuns: 'Create a test run first.',
     scenarioLabel: 'Scenario',
@@ -307,8 +310,11 @@ export const qaKo: Localized<typeof qaEn> = {
     gameLabel: '게임',
     gamePlaceholder: '게임을 선택하세요',
     runLabel: '테스트 런',
-    versionMismatch: (run: string, game: string) =>
-      `이 TR 은 빌드 버전 ${run} 을 따르는데, 켜진 게임은 ${game} 입니다. 그대로 돌릴 수 있고, 판정은 ${game} 에 적힙니다.`,
+    versionMismatch: {
+      basis: (run: string, game: string) =>
+        `이 테스트는 ${run} 버전의 케이스를 기반으로 하고 있습니다. 현재 켜진 게임의 버전은 ${game}입니다.`,
+      record: (game: string) => `QA 진행은 가능하나, ${game} 버전의 케이스에 기록이 남습니다.`,
+    },
     runPlaceholder: '테스트 런을 선택하세요',
     noRuns: '테스트 런을 먼저 만드세요.',
     scenarioLabel: '시나리오',
