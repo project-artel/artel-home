@@ -281,6 +281,7 @@ export function QaLaunch() {
 
       <LaunchPanel
         arch={arch}
+        builds={builds}
         etaMs={lastDuration}
         instanceId={instanceId}
         instances={instances}
