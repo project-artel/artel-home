@@ -15,6 +15,7 @@ import {
   type GameBuildPatch,
   type GameInstance,
   type GameInstancePatch,
+  type InstanceBuild,
 } from './gameTypes'
 
 /*
@@ -70,6 +71,19 @@ function parseInstance(data: unknown): GameInstance | null {
     lastConnectedAt: asString(record.lastConnectedAt),
     createdAt: asString(record.createdAt),
     updatedAt: asString(record.updatedAt),
+    lastGameBuild: parseInstanceBuild(record.lastGameBuild),
+  }
+}
+
+function parseInstanceBuild(data: unknown): InstanceBuild | null {
+  const record = asRecord(data)
+  const gameBuildId = record === null ? null : asNullableString(record.gameBuildId)
+  if (record === null || gameBuildId === null || gameBuildId.length === 0) return null
+  return {
+    gameBuildId,
+    version: asString(record.version),
+    label: asNullableString(record.label),
+    isEditor: asBoolean(record.isEditor),
   }
 }
 

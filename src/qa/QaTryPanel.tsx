@@ -6,6 +6,7 @@ import type { GameInstance } from '../projects/gameTypes'
 import { ProjectApiError } from '../projects/projectApi'
 import { sectionHref } from '../projects/workspace/sections'
 import type { ExtrasStatus } from '../projects/workspace/workspaceContext'
+import { versionMismatch } from '../testRuns/runLibrary'
 import type { TestRun } from '../testRuns/testRunApi'
 import { createQaRun, qaStartConflict } from './qaApi'
 import { byAscendingEffort } from './reasoningEfforts'
@@ -73,6 +74,11 @@ export function QaTryPanel({
   const defaultModel = offered.find((model) => model.keyRegistered)
   const modelKey = selectedModelKey || (defaultModel ? qaModelOptionKey(defaultModel) : '')
   const selectedModel = offered.find((model) => qaModelOptionKey(model) === modelKey) ?? null
+  // 켜진 게임이 TR 의 빌드 버전과 다른 빌드면 알린다(ARTEL-1049). 막지는 않는다 — 판정은 켜진 게임의 빌드에 적힌다.
+  const mismatch = versionMismatch(
+    runs.find((one) => one.id === runId),
+    instances.find((one) => one.id === instanceId),
+  )
 
   /**
    * @param force end whatever QA still holds the game and take its place. Only
@@ -200,6 +206,13 @@ export function QaTryPanel({
               ))}
             </select>
           </label>
+
+          {mismatch !== null && (
+            <p className="qa-version-mismatch" role="status">
+              <span aria-hidden="true">!</span>
+              {t.qa.panel.versionMismatch(mismatch.run, mismatch.game)}
+            </p>
+          )}
 
           <div className="qa-start-field qa-start-field--model">
             <label htmlFor={modelSelectId}>{t.qa.panel.modelLabel}</label>
