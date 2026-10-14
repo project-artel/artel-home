@@ -9,6 +9,7 @@ import type { ExtrasStatus } from '../projects/workspace/workspaceContext'
 import type { TestRun } from '../testRuns/testRunApi'
 import { createQaRun, qaStartConflict } from './qaApi'
 import { byAscendingEffort } from './reasoningEfforts'
+import { offeredQaModels } from './qaModelGroups'
 import { QaModelPicker } from './QaModelPicker'
 import {
   qaModelOptionKey,
@@ -68,9 +69,10 @@ export function QaTryPanel({
   // first render. Deriving the effective key keeps that out of an effect, which
   // would otherwise paint one frame with an empty picker. A model on a provider
   // with no key is listed but never the default.
-  const defaultModel = models.find((model) => model.keyRegistered)
+  const offered = offeredQaModels(models)
+  const defaultModel = offered.find((model) => model.keyRegistered)
   const modelKey = selectedModelKey || (defaultModel ? qaModelOptionKey(defaultModel) : '')
-  const selectedModel = models.find((model) => qaModelOptionKey(model) === modelKey) ?? null
+  const selectedModel = offered.find((model) => qaModelOptionKey(model) === modelKey) ?? null
 
   /**
    * @param force end whatever QA still holds the game and take its place. Only
@@ -128,7 +130,7 @@ export function QaTryPanel({
   }
 
   const ready = status === 'ready'
-  const runnable = ready && instances.length > 0 && runs.length > 0 && models.length > 0
+  const runnable = ready && instances.length > 0 && runs.length > 0 && offered.length > 0
   const reasoning = selectedModel?.reasoning ?? null
   const sliderEfforts =
     reasoning?.kind === 'effort' ? byAscendingEffort(reasoning.efforts) : []
@@ -140,7 +142,7 @@ export function QaTryPanel({
         : { maxTokens: reasoningValue }
 
   function selectModel(nextKey: string) {
-    const next = models.find((model) => qaModelOptionKey(model) === nextKey)
+    const next = offered.find((model) => qaModelOptionKey(model) === nextKey)
     setSelectedModelKey(nextKey)
     setReasoningEnabled(false)
     setReasoningValue(
@@ -202,9 +204,9 @@ export function QaTryPanel({
           <div className="qa-start-field qa-start-field--model">
             <label htmlFor={modelSelectId}>{t.qa.panel.modelLabel}</label>
             <QaModelPicker
-              disabled={models.length === 0}
+              disabled={offered.length === 0}
               id={modelSelectId}
-              models={models}
+              models={offered}
               onChange={selectModel}
               value={modelKey}
             />

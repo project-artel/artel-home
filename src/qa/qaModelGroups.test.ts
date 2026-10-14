@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { groupQaModels, selectableQaModelKeys } from './qaModelGroups'
+import {
+  groupQaModels,
+  offeredQaModels,
+  qaModelDisplayLabel,
+  selectableQaModelKeys,
+} from './qaModelGroups'
 import type { QaModel } from './qaTypes'
 
 function model(fields: Partial<QaModel> & Pick<QaModel, 'id'>): QaModel {
@@ -69,11 +74,15 @@ test('platform models and user models land in their own sections', () => {
   )
 })
 
-test('a key service without a key is listed after the ones that have one', () => {
-  const groups = groupQaModels(CATALOG)
+test('key services keep a fixed order, with or without a key', () => {
+  const groups = groupQaModels([
+    model({ id: 'or/x', keySource: 'user', keyProvider: 'openrouter' }),
+    model({ id: 'acme/x', keySource: 'user', keyProvider: 'acme' }),
+    model({ id: 'oa/x', keySource: 'user', keyProvider: 'openai', keyRegistered: false }),
+    model({ id: 'an/x', keySource: 'user', keyProvider: 'anthropic', keyRegistered: false }),
+  ])
 
-  assert.equal(groups.user[0].provider, 'anthropic')
-  assert.equal(groups.user.at(-1)?.provider, 'openrouter')
+  assert.deepEqual(groups.user.map((g) => g.provider), ['anthropic', 'openai', 'openrouter', 'acme'])
 })
 
 test('one OpenRouter key groups models from several makers', () => {
@@ -112,4 +121,19 @@ test('the search matches label, provider or id, ignoring case', () => {
   assert.equal(groupQaModels(CATALOG, 'anthropic').platform.length, 1)
   assert.equal(groupQaModels(CATALOG, 'gpt-6.1').user[0].models[0].id, 'openai/gpt-6.1-sol')
   assert.deepEqual(groupQaModels(CATALOG, 'nothing like this'), { platform: [], user: [] })
+})
+
+test('Bedrock models are not offered on the platform key', () => {
+  const offered = offeredQaModels([
+    model({ id: 'bedrock/us.anthropic.claude-haiku-4-5-20251001-v1:0', provider: 'anthropic' }),
+    model({ id: 'openai/gpt-6-luna' }),
+  ])
+
+  assert.deepEqual(offered.map((m) => m.id), ['openai/gpt-6-luna'])
+})
+
+test('Anthropic models drop "Claude" from their name and others keep theirs', () => {
+  assert.equal(qaModelDisplayLabel({ label: 'Claude Opus 5.5', provider: 'anthropic' }), 'Opus 5.5')
+  assert.equal(qaModelDisplayLabel({ label: 'GPT-6 Luna', provider: 'openai' }), 'GPT-6 Luna')
+  assert.equal(qaModelDisplayLabel({ label: 'Claude-ish', provider: 'acme' }), 'Claude-ish')
 })

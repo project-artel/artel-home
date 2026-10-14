@@ -2713,6 +2713,57 @@ a.instance-name:hover {
   background: var(--color-bg-surface);
 }
 
+/* 두 구획을 가르는 탭. 개수가 붙어 있어 다른 쪽에 무엇이 있는지 늘 보인다. */
+.qa-model-tabs {
+  display: flex;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-2) 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.qa-model-tab {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: -1px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-secondary);
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.qa-model-tab:hover {
+  color: var(--color-text-primary);
+}
+
+.qa-model-tab.is-active {
+  border-bottom-color: var(--color-action-primary);
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.qa-model-tab-count {
+  padding: 0 6px;
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  background: var(--color-bg-raised);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  line-height: 16px;
+}
+
+.qa-model-tab-hint {
+  margin: 0;
+  padding: 0 var(--space-3) var(--space-2);
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
 .qa-model-search {
   display: flex;
   align-items: center;
@@ -2768,6 +2819,10 @@ a.instance-name:hover {
 }
 
 /* 구획 제목은 그 구획을 지나는 동안 위에 붙어 있다. 길게 내려가도 지금 어느 쪽 키를 보는지 놓치지 않는다. */
+.qa-model-section[hidden] {
+  display: none;
+}
+
 .qa-model-section {
   position: sticky;
   z-index: 1;
@@ -2799,13 +2854,18 @@ a.instance-name:hover {
   font-size: 11px;
 }
 
-.qa-model-key-hint {
-  color: var(--color-status-success);
-  font-family: var(--font-mono);
+.qa-model-key-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
 }
 
-.qa-model-key-missing {
-  color: var(--color-text-muted);
+.qa-model-key-status--ok {
+  color: var(--color-status-success);
+}
+
+.qa-model-key-status--missing {
+  color: var(--color-status-critical);
 }
 
 .qa-model-option {
@@ -10267,3 +10327,61 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
 .qa-diff-fold{ display:block; width:100%; min-height:24px; font:inherit; text-align:left; padding:2px 12px; cursor:pointer; background:var(--color-bg-raised); border:0; border-block:1px solid var(--color-border-subtle); color:var(--color-text-secondary); }
 .qa-diff-fold:hover{ background:var(--color-bg-hover); }
 .tc-gap .vdot{ display:inline-block; width:8px; height:8px; border-radius:999px; vertical-align:middle; }
+
+/* 계정 화면의 LLM API 키 (ARTEL-1035). 서비스마다 한 줄이고, 등록 폼은 그 줄 안에서 열린다. */
+.llm-key-list {
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.llm-key-row {
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.llm-key-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+}
+
+.llm-key-name {
+  display: flex;
+  min-width: 160px;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+}
+
+.llm-key-name span {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+/* 키 상태는 색만으로 말하지 않는다 — 아이콘과 글자가 함께 간다. 모델 선택의 탭 아래 줄과 같은 모양이다. */
+.llm-key-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: 12px;
+}
+
+.llm-key-status--ok {
+  color: var(--color-status-success);
+}
+
+.llm-key-status--missing {
+  color: var(--color-status-critical);
+}
+
+.llm-key-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+.llm-key-form {
+  margin-top: var(--space-3);
+}

@@ -1,9 +1,27 @@
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { llmKeyServiceName } from '../account/llmKeyTypes'
 import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../i18n/useI18n'
-import { groupQaModels, selectableQaModelKeys } from './qaModelGroups'
-import { CheckIcon, ChevronDownIcon, GiftIcon, KeyIcon, LockIcon, SearchIcon } from './qaModelIcons'
+import {
+  groupQaModels,
+  qaKeyServiceOf,
+  qaModelDisplayLabel,
+  selectableQaModelKeys,
+} from './qaModelGroups'
+import {
+  CheckIcon,
+  ChevronDownIcon,
+  CircleCheckIcon,
+  CircleXIcon,
+  GiftIcon,
+  KeyIcon,
+  LockIcon,
+  SearchIcon,
+} from './qaModelIcons'
 import { qaModelOptionKey, type QaModel } from './qaTypes'
+
+/** The platform tab; every other tab is a key service (`LLM_KEY_SERVICES`). */
+const PLATFORM_TAB = 'platform'
 
 const PRICE = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 })
 
@@ -18,6 +36,17 @@ const PRICE = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 })
  *
  * A model on a provider with no key is still listed, locked, rather than hidden —
  * a user deciding whether to register a key needs to see what it would unlock.
+ *
+ * The sections are tabs — the platform key, then one per key service the user
+ * can register (Claude, GPT, OpenRouter) — rather than one long list or a
+ * scrolling pane per section. The platform section alone runs past a dozen
+ * rows, so stacked it buried the user's own keys below the fold; a pane per
+ * section put a scroller inside a scroller, where the wheel catches on the
+ * first. And an OpenRouter key reaches Claude and GPT models through rows of its
+ * own, so one "your keys" list repeated them. Tabs keep one list and one
+ * scrollbar, and their counts still say what the others hold. A search ignores
+ * the tabs and shows every section, because "is this model on my key too?" is
+ * exactly the question a search asks.
  *
  * `value` is an option key (`qaModelOptionKey`), not a model id: the same model
  * can be offered on both keys and those are two different choices.
@@ -41,13 +70,40 @@ export function QaModelPicker({
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [active, setActive] = useState('')
+  const [tab, setTab] = useState<string>(PLATFORM_TAB)
   // 노드를 state 로 든다 — {@link EdgeScrollbar} 가 붙는 시점을 알아야 한다.
   const [listNode, setListNode] = useState<HTMLUListElement | null>(null)
   const rootRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
+  const searchRef = useRef<HTMLInputElement>(null)
   const listId = useId()
 
-  const groups = useMemo(() => groupQaModels(models, query), [models, query])
+  const all = useMemo(() => groupQaModels(models), [models])
+  const tabs = [
+    ...(all.platform.length > 0
+      ? [{ id: PLATFORM_TAB, count: all.platform.length, registered: true, keyHint: null }]
+      : []),
+    ...all.user.map((group) => ({
+      id: group.provider,
+      count: group.models.length,
+      registered: group.registered,
+      keyHint: group.keyHint,
+    })),
+  ]
+  // 탭이 하나뿐이면 고를 것이 없다 — 지금 orchestration 응답이 그렇다.
+  const tabbed = query.trim() === '' && tabs.length > 1
+  const shownTab = tabs.find((entry) => entry.id === tab) ?? tabs[0]
+  const matched = useMemo(() => groupQaModels(models, query), [models, query])
+  const groups = useMemo(
+    () =>
+      tabbed
+        ? {
+            platform: tab === PLATFORM_TAB ? matched.platform : [],
+            user: matched.user.filter((group) => group.provider === tab),
+          }
+        : matched,
+    [tabbed, tab, matched],
+  )
   const keys = useMemo(() => selectableQaModelKeys(groups), [groups])
   const selected = models.find((model) => qaModelOptionKey(model) === value) ?? null
   // 검색이 바뀌면 가리키던 행이 목록에서 빠질 수 있다. effect 로 고치면 한 프레임 동안 아무것도
@@ -75,6 +131,11 @@ export function QaModelPicker({
 
   function show() {
     setQuery('')
+    setTab(
+      selected === null || selected.keySource === 'platform'
+        ? PLATFORM_TAB
+        : qaKeyServiceOf(selected),
+    )
     setActive(value)
     setOpen(true)
   }
@@ -92,6 +153,12 @@ export function QaModelPicker({
       if (keys.length === 0) return
       const step = event.key === 'ArrowDown' ? 1 : -1
       setActive(keys[(at + step + keys.length) % keys.length])
+    } else if (tabbed && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
+      // 탭은 검색어가 비어 있을 때만 보이므로, 좌우 화살표가 커서 이동을 빼앗지 않는다.
+      event.preventDefault()
+      const at = tabs.findIndex((entry) => entry.id === shownTab?.id)
+      const step = event.key === 'ArrowRight' ? 1 : -1
+      setTab(tabs[(at + step + tabs.length) % tabs.length].id)
     } else if (event.key === 'Enter') {
       event.preventDefault()
       if (current !== '') choose(current)
@@ -102,6 +169,21 @@ export function QaModelPicker({
     } else if (event.key === 'Tab') {
       setOpen(false)
     }
+  }
+
+  /** Whether a key service has a key. An icon and the words, never the color alone. */
+  function keyStatus(registered: boolean, keyHint: string | null) {
+    return registered ? (
+      <span className="qa-model-key-status qa-model-key-status--ok">
+        <CircleCheckIcon size={13} />
+        {p.keyVerified(keyHint ?? '')}
+      </span>
+    ) : (
+      <span className="qa-model-key-status qa-model-key-status--missing">
+        <CircleXIcon size={13} />
+        {p.keyMissing}
+      </span>
+    )
   }
 
   function option(model: QaModel, trailing: string, service = model.provider) {
@@ -122,12 +204,12 @@ export function QaModelPicker({
         onClick={locked ? undefined : () => choose(key)}
         onMouseEnter={locked ? undefined : () => setActive(key)}
         role="option"
-        title={locked ? p.keyMissingHint(service) : undefined}
+        title={locked ? p.keyMissingHint(llmKeyServiceName(service)) : undefined}
       >
         <span className="qa-model-option-mark">
           {key === value ? <CheckIcon /> : locked ? <LockIcon size={14} /> : null}
         </span>
-        <span className="qa-model-option-label">{model.label}</span>
+        <span className="qa-model-option-label">{qaModelDisplayLabel(model)}</span>
         {model.multimodal && <span className="qa-model-tag">{p.multimodal}</span>}
         {model.reasoning !== null && <span className="qa-model-tag">{p.reasoningTag}</span>}
         <span className="qa-model-option-trailing">{trailing}</span>
@@ -166,10 +248,10 @@ export function QaModelPicker({
             ) : (
               <span className="qa-model-badge qa-model-badge--user">
                 <KeyIcon size={14} />
-                {p.userBadge}
+                {p.userBadge(llmKeyServiceName(qaKeyServiceOf(selected)))}
               </span>
             )}
-            <span className="qa-model-trigger-label">{selected.label}</span>
+            <span className="qa-model-trigger-label">{qaModelDisplayLabel(selected)}</span>
             <span className="qa-model-trigger-provider">{selected.provider}</span>
           </>
         )}
@@ -178,6 +260,37 @@ export function QaModelPicker({
 
       {open && (
         <div className="qa-model-popover">
+          {tabbed && (
+            <div aria-label={p.modelLabel} className="qa-model-tabs" role="tablist">
+              {tabs.map((entry) => (
+                <button
+                  aria-controls={listId}
+                  aria-selected={entry.id === shownTab?.id}
+                  className={'qa-model-tab' + (entry.id === shownTab?.id ? ' is-active' : '')}
+                  key={entry.id}
+                  onClick={() => {
+                    setTab(entry.id)
+                    searchRef.current?.focus()
+                  }}
+                  // 누르는 동안 검색칸이 포커스를 잃지 않게 한다 — 화살표와 Enter 가 거기서 받는다.
+                  onMouseDown={(event) => event.preventDefault()}
+                  role="tab"
+                  tabIndex={-1}
+                  type="button"
+                >
+                  {entry.id === PLATFORM_TAB ? (
+                    <GiftIcon size={14} />
+                  ) : entry.registered ? (
+                    <KeyIcon size={14} />
+                  ) : (
+                    <LockIcon size={14} />
+                  )}
+                  {entry.id === PLATFORM_TAB ? p.platformSection : llmKeyServiceName(entry.id)}
+                  <span className="qa-model-tab-count">{entry.count}</span>
+                </button>
+              ))}
+            </div>
+          )}
           <label className="qa-model-search">
             <SearchIcon size={15} />
             <input
@@ -190,16 +303,24 @@ export function QaModelPicker({
               onChange={(event) => setQuery(event.target.value)}
               onKeyDown={onSearchKeyDown}
               placeholder={p.modelSearch}
+              ref={searchRef}
               role="combobox"
               type="text"
               value={query}
             />
           </label>
 
+          {tabbed && shownTab !== undefined && (
+            <p className="qa-model-tab-hint">
+              {shownTab.id === PLATFORM_TAB
+                ? p.platformSectionHint
+                : keyStatus(shownTab.registered, shownTab.keyHint)}
+            </p>
+          )}
           <ul aria-label={p.modelLabel} className="qa-model-list" id={listId} ref={setListNode} role="listbox">
             {groups.platform.length > 0 && (
               <li className="qa-model-group" role="presentation">
-                <div className="qa-model-section">
+                <div className="qa-model-section" hidden={tabbed}>
                   <GiftIcon className="qa-model-section-icon--platform" size={15} />
                   <span className="qa-model-section-title">{p.platformSection}</span>
                   <span>· {p.platformSectionHint}</span>
@@ -212,20 +333,21 @@ export function QaModelPicker({
 
             {groups.user.length > 0 && (
               <li className="qa-model-group" role="presentation">
-                <div className="qa-model-section">
+                <div className="qa-model-section" hidden={tabbed}>
                   <KeyIcon size={15} />
                   <span className="qa-model-section-title">{p.userSection}</span>
                   <span>· {p.userSectionHint}</span>
                 </div>
                 {groups.user.map((group) => (
-                  <ul aria-label={`${p.userSection} · ${group.provider}`} key={group.provider} role="group">
-                    <li className="qa-model-provider" role="presentation">
-                      <span>{group.provider}</span>
-                      {group.registered ? (
-                        <span className="qa-model-key-hint">{group.keyHint}</span>
-                      ) : (
-                        <span className="qa-model-key-missing">{p.keyMissing}</span>
-                      )}
+                  <ul
+                    aria-label={`${p.userSection} · ${llmKeyServiceName(group.provider)}`}
+                    key={group.provider}
+                    role="group"
+                  >
+                    {/* 탭 아래 안내 줄이 같은 것을 말하므로, 탭으로 볼 때는 감춘다. */}
+                    <li className="qa-model-provider" hidden={tabbed} role="presentation">
+                      <span>{llmKeyServiceName(group.provider)}</span>
+                      {keyStatus(group.registered, group.keyHint)}
                     </li>
                     {group.models.map((model) =>
                       option(
