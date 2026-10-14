@@ -359,15 +359,3 @@ export function addCasesToVersion(projectId: string, gameBuildId: string, caseId
 export function removeCasesFromVersion(projectId: string, gameBuildId: string, caseIds: readonly string[]) {
   return writeVersionCases(projectId, gameBuildId, '/removals', caseIds)
 }
-
-/** [gameBuildId] 바로 앞(만든 순서) 버전. 없으면 undefined. */
-export function previousVersion(
-  versions: readonly TestCaseVersionSummary[],
-  gameBuildId: string,
-): TestCaseVersionSummary | undefined {
-  const current = versions.find((version) => version.gameBuildId === gameBuildId)
-  if (current === undefined) return undefined
-  return [...versions]
-    .filter((version) => version.createdAt.localeCompare(current.createdAt) < 0)
-    .sort((left, right) => right.createdAt.localeCompare(left.createdAt))[0]
-}

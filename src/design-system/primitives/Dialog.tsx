@@ -70,9 +70,19 @@ export function Dialog({
   }, [onClose])
 
   return createPortal(
-    <div className="dialog-scrim" onMouseDown={(event) => {
-      if (event.target === event.currentTarget) onClose()
-    }}>
+    <div
+      className="dialog-scrim"
+      // body 로 떴어도 React 의 키 이벤트는 여는 쪽(예: 편집 시트)까지 올라간다. 시트도 Escape 로 닫히므로, 여기서
+      // 닫고 멈추지 않으면 Escape 한 번에 dialog 와 시트가 함께 닫혀 쓰던 내용이 사라졌다.
+      onKeyDown={(event) => {
+        if (event.key !== 'Escape') return
+        event.stopPropagation()
+        onClose()
+      }}
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose()
+      }}
+    >
       <div
         className="dialog-panel"
         role="dialog"

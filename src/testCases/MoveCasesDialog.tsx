@@ -60,6 +60,9 @@ export function MoveCasesDialog({
   return (
     <Dialog labelledBy={titleId} onClose={onClose} title={m.title(count)}>
       <form className="form" onSubmit={(event) => void confirm(event)}>
+        {!allowsNone && rows.length === 0 && (
+          <p className="field-hint" role="status">{mode === 'add' ? items.noFolders : items.noOtherFolders}</p>
+        )}
         <div className="field">
           <FolderPicker
             label={m.destination}

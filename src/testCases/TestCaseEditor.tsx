@@ -133,9 +133,23 @@ export function TestCaseEditor({
 
   function validate(): Record<string, string> {
     const errors: Record<string, string> = {}
+    // 화면은 서버가 반드시 받는 칸이다. 비우고 보내면 서버의 개발자용 문장("scene is required")이 그대로 보였다.
+    if (draft.scene.trim().length === 0) errors.scene = m.sceneRequired
     if (draft.step.trim().length === 0) errors.step = m.stepRequired
     if (draft.expectedValue.trim().length === 0) errors.expectedValue = m.expectedValueRequired
     return errors
+  }
+
+  /**
+   * 저장 실패를 사용자가 고칠 수 있는 말로 바꾼다. 서버 문장은 개발자를 위한 것이라("x is required", 영어 · 내부 이름)
+   * 그대로 보이면 무엇이 문제인지 알 수 없다. 화면이 스스로 감지한 실패(`CLIENT_*`, 예: 연결 끊김)만 그 번역을 쓴다.
+   */
+  function failureFor(error: ProjectApiError): string {
+    if (error.code !== null && error.code.startsWith('CLIENT_')) return apiErrorMessage(error, t)
+    if (error.status === 400) return m.invalidInput
+    if (error.status === 404) return creating ? m.targetGone : m.caseGone
+    if (error.status === 403) return m.forbidden
+    return m.saveFailed
   }
 
   async function submit(event: React.FormEvent) {
@@ -167,10 +181,13 @@ export function TestCaseEditor({
       setDraft(toDraft(saved))
     } catch (error: unknown) {
       if (error instanceof ProjectApiError) {
-        setFieldErrors(error.fields)
-        setFailure(
-          Object.keys(error.fields).length > 0 ? null : apiErrorMessage(error, t),
+        // 서버가 칸을 짚어 주면 그 칸에 이 화면의 문장을 단다. 서버 문장은 개발자용이라 그대로 쓰지 않는다.
+        const known: Record<string, string> = { scene: m.sceneRequired, step: m.stepRequired, expectedValue: m.expectedValueRequired }
+        const fields = Object.fromEntries(
+          Object.keys(error.fields).filter((name) => name in known).map((name) => [name, known[name]]),
         )
+        setFieldErrors(fields)
+        setFailure(Object.keys(fields).length > 0 ? null : failureFor(error))
       } else {
         setFailure(m.saveFailed)
       }
@@ -281,7 +298,9 @@ export function TestCaseEditor({
         <div className="tce-field">
           <label className="tce-label" htmlFor={sceneId}>{m.scene}</label>
           <input
-            className="tce-input tce-input--one"
+            aria-describedby={fieldErrors.scene ? `${sceneId}-error` : undefined}
+            aria-invalid={fieldErrors.scene ? true : undefined}
+            className={'tce-input tce-input--one' + (fieldErrors.scene ? ' is-bad' : '')}
             disabled={pending}
             id={sceneId}
             list={sceneListId}
@@ -289,6 +308,9 @@ export function TestCaseEditor({
             placeholder={m.scenePlaceholder}
             value={draft.scene}
           />
+          {fieldErrors.scene && (
+            <p className="field-error" id={`${sceneId}-error`}>{fieldErrors.scene}</p>
+          )}
           {knownScenes.length > 0 && (
             <div className="tce-known">
               <span className="tce-known-label">{m.sceneKnown}</span>
@@ -310,6 +332,13 @@ export function TestCaseEditor({
           </datalist>
         </div>
 
+        {/* 새 케이스는 늘 미검증으로 시작한다(서버가 정한다). 만들 때 고르게 하면 고른 값이 말없이 버려졌다. */}
+        {creating ? (
+          <div className="tce-field">
+            <span className="tce-label">{m.verification}</span>
+            <p className="field-hint">{m.newCaseStatus}</p>
+          </div>
+        ) : (
         <div className="tce-field">
           <span className="tce-label" id={verificationId}>{m.verification}</span>
           {/* 값이 셋뿐이다. 드롭다운은 고르기 전에는 무엇이 있는지 감추는데, 셋은 다 보여도 된다. */}
@@ -330,6 +359,7 @@ export function TestCaseEditor({
             ))}
           </div>
         </div>
+        )}
       </div>
 
       <div className="tcl-editor-actions">

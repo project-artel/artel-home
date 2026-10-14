@@ -172,7 +172,9 @@ function PickerList({
           event.stopPropagation()
           onClose(true)
         } else if (event.key === 'Tab') {
-          onClose(false)
+          // 목록은 body 에 떠 있어, 그대로 두면 Tab 이 dialog 밖(문서 끝)으로 빠져나갔다. 닫고 단추로 돌아온다.
+          event.preventDefault()
+          onClose(true)
         }
       }}
       ref={listRef}

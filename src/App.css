@@ -10156,3 +10156,27 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
 .tce-version{ display:flex; align-items:center; gap:var(--space-2); }
 .tce-version-name{ padding:3px 10px; border:1px solid var(--color-border-strong); border-radius:999px; font-size:12px; font-weight:600; }
 .tce-version-name.is-none{ font-weight:400; color:var(--color-text-secondary); }
+
+/* 다른 라이브러리에서 사용자 생성 TC 가져오기 (ARTEL-1032) */
+.dialog-panel:has(.mimp){ width:min(100%, 860px); }
+.mimp{ display:flex; flex-direction:column; gap:var(--space-3); }
+.mimp-body{ display:grid; grid-template-columns:240px minmax(0, 1fr); gap:var(--space-3); height:min(52vh, 460px); }
+.mimp-sources, .mimp-cases{
+  min-height:0; overflow-y:auto; padding:6px;
+  border:1px solid var(--color-border-subtle); border-radius:var(--radius-md); background:var(--color-bg-surface);
+}
+.mimp-heading{ margin:6px 6px 4px; font-size:11px; font-weight:600; color:var(--color-text-muted); }
+.mimp-group-name{ margin:4px 8px 2px; font-size:12px; font-weight:600; color:var(--color-text-secondary); }
+.mimp-group{ padding-left:8px; }
+.mimp-source{
+  display:flex; align-items:center; gap:var(--space-2); width:100%; min-height:32px; padding:4px var(--space-2);
+  border:0; border-radius:var(--radius-md); background:transparent; color:var(--color-text-primary); font-size:13px; text-align:left; cursor:pointer;
+}
+.mimp-source:hover{ background:var(--color-bg-hover); }
+.mimp-source.is-current{ background:var(--color-bg-hover); box-shadow:inset 3px 0 0 var(--color-brand-accent); font-weight:600; }
+.mimp-all{ display:flex; align-items:center; gap:8px; padding:6px 8px; font-size:12px; color:var(--color-text-secondary); border-bottom:1px solid var(--color-border-subtle); }
+.mimp-list{ list-style:none; margin:0; padding:0; }
+.mimp-case{ display:grid; grid-template-columns:auto minmax(0, 1fr) auto; align-items:center; gap:8px; padding:7px 8px; border-radius:6px; font-size:13px; cursor:pointer; }
+.mimp-case:hover{ background:var(--color-bg-hover); }
+.mimp-case-step{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mimp-case-scene{ font-size:11px; color:var(--color-text-muted); }

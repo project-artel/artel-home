@@ -59,12 +59,11 @@ import {
   absenceNote,
   isBuildId,
   isRegression,
-  listVersionCases,
-  previousVersion,
   resolveCompare,
   resolveVersion,
   UNVERSIONED,
   versionName,
+  type TestCaseVersionSummary,
 } from './testCaseVersions'
 import { useTestCaseVersionList, useVersionCases } from './useTestCaseVersions'
 import {
@@ -78,6 +77,7 @@ import {
 } from './versionCommands'
 import { VersionList, type VersionOperations } from './VersionList'
 import { VersionTreeDialog } from './VersionTreeDialog'
+import { ImportManualCasesDialog } from './ImportManualCasesDialog'
 
 /** `vdot` 와 결과 pill 이 상태마다 쓰는 CSS 접미사. 대문자 상태값을 클래스에 그대로 넣지 않는다. */
 const STATUS_CLASS: Record<VerificationStatus, string> = {
@@ -245,6 +245,7 @@ export function TestCaseLibrary({
   const [isBulkDeleting, setIsBulkDeleting] = useState(false)
   const [isMoving, setIsMoving] = useState(false)
   const [isAddingToVersion, setIsAddingToVersion] = useState(false)
+  const [importTarget, setImportTarget] = useState<TestCaseVersionSummary | null>(null)
   const [sideCollapsed, setSideCollapsed] = useState(false)
   // 왼쪽 창과 목록을 화면 끝까지 채운다. 높이는 "화면 − 이 화면이 시작하는 자리 − 아래 여백" 이다. 시작 자리는
   // 위의 페이지 제목 줄에 따라 달라 CSS 만으로는 정할 수 없어 잰다. 못 재면 CSS 의 기본값을 쓴다.
@@ -502,26 +503,7 @@ export function TestCaseLibrary({
         ),
       )
     },
-    // 바로 앞 버전의 사용자 생성 케이스 중 이 버전에 없는 것을 넣는다(ARTEL-1032). TC 생성 때 서버가 하는 일을 사람이
-    // 원할 때 하는 길이다 — 생성을 다시 누를 일이 없는 버전에도 쓴다.
-    carryManual: async (version) => {
-      const previous = previousVersion(versionList.versions, version.gameBuildId)
-      if (previous === undefined) return
-      const run = async () => {
-        const rows = await listVersionCases(projectId, previous.gameBuildId, null)
-        const manualIds = rows.filter((row) => row.origin === 'MANUAL').map((row) => row.testCase.id)
-        if (manualIds.length === 0) {
-          setAnnouncement(m.addToVersion.carried(0, versionName(version)))
-          return
-        }
-        await folderHistory.execute(
-          addToVersionCommand(projectId, version.gameBuildId, manualIds, h.addToVersion, (added) =>
-            setAnnouncement(m.addToVersion.carried(added, versionName(version))),
-          ),
-        )
-      }
-      runQuietly(run())
-    },
+    importManual: (version) => setImportTarget(version),
   }
 
   /** 고른 사용자 생성 케이스를 고른 버전에 넣는다(ARTEL-1032). */
@@ -1124,6 +1106,26 @@ export function TestCaseLibrary({
       )}
 
       <p aria-live="polite" className="visually-hidden" role="status">{announcement}</p>
+
+      {importTarget !== null && (
+        <ImportManualCasesDialog
+          folders={folderList.folders}
+          groups={versionList.groups}
+          onClose={() => setImportTarget(null)}
+          onConfirm={async (caseIds) => {
+            const target = importTarget
+            await folderHistory.execute(
+              addToVersionCommand(projectId, target.gameBuildId, caseIds, h.addToVersion, (added) =>
+                setAnnouncement(m.addToVersion.done(added, versionName(target))),
+              ),
+            )
+            setImportTarget(null)
+          }}
+          projectId={projectId}
+          target={importTarget}
+          versions={versionList.versions}
+        />
+      )}
 
       {isAddingToVersion && (
         <VersionTreeDialog

@@ -11,9 +11,12 @@ export function NameDialog({
   initialName,
   onClose,
   onSubmit,
+  messages,
   submitLabel,
   title,
 }: {
+  /** 이 이름이 무엇의 이름인지에 맞춘 오류 문장. 폴더 문장을 빌려 쓰면 묶음 dialog 에 "폴더" 가 떴다. */
+  messages: { nameRequired: string; duplicateName: string; invalidName: string; failed: string }
   initialName: string
   onClose: () => void
   onSubmit: (name: string) => Promise<void>
@@ -21,7 +24,7 @@ export function NameDialog({
   title: string
 }) {
   const { t } = useI18n()
-  const m = t.testCases.folders.dialog
+  const m = { ...t.testCases.folders.dialog, ...messages }
   const titleId = useId()
   const nameId = useId()
   const [name, setName] = useState(initialName)
@@ -40,7 +43,13 @@ export function NameDialog({
     try {
       await onSubmit(trimmed)
     } catch (error: unknown) {
-      setFailure(error instanceof ProjectApiError && error.status === 409 ? m.duplicateName : m.failed)
+      setFailure(
+        error instanceof ProjectApiError && error.status === 409
+          ? m.duplicateName
+          : error instanceof ProjectApiError && error.status === 400
+            ? m.invalidName
+            : m.failed,
+      )
       setPending(false)
     }
   }
@@ -54,6 +63,7 @@ export function NameDialog({
             autoComplete="off"
             className="field-input"
             id={nameId}
+            maxLength={200}
             onChange={(event) => setName(event.target.value)}
             value={name}
           />
@@ -70,7 +80,8 @@ export function NameDialog({
           </button>
           <button
             className="button button--primary"
-            disabled={pending || name.trim() === initialName.trim()}
+            // 이름을 바꾸는데 그대로면 누를 것이 없다. 비었을 때는 눌러서 왜 안 되는지 듣게 둔다.
+            disabled={pending || (initialName.trim().length > 0 && name.trim() === initialName.trim())}
             type="submit"
           >
             {pending ? m.pending : submitLabel}
