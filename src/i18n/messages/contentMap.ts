@@ -95,9 +95,11 @@ export const contentMapEn = {
   },
   generate: {
     title: 'Test cases',
-    copy: 'Creates this version’s test cases from the content map, updates the ones it created before, and removes the ones whose screen is gone. User-created test cases from the previous version come along.',
+    copy: 'Creates this version’s test cases from the content map, updates the ones it created before, and removes the ones whose screen is gone.',
     action: 'Create test cases',
     running: 'Creating test cases…',
+    carryOver: 'Bring along user-created test cases from the previous version',
+    carryOverHint: 'User-created test cases in the previous game build that this build does not have yet are added too.',
     blocked: {
       notUploaded: 'Nothing has been scanned for this build, so there is no content map to create test cases from.',
       noDocuments: 'This build has a content map but no evidence document has been uploaded for it. Scan the game above first.',
@@ -615,9 +617,11 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
   },
   generate: {
     title: '테스트 케이스',
-    copy: '이 콘텐츠 맵에서 이 버전의 테스트 케이스를 만듭니다. 전에 만든 것은 갱신하고, 화면이 사라진 것은 지웁니다. 바로 앞 버전의 사용자 생성 케이스도 함께 넣습니다.',
+    copy: '이 콘텐츠 맵에서 이 버전의 테스트 케이스를 만듭니다. 전에 만든 것은 갱신하고, 화면이 사라진 것은 지웁니다.',
     action: '테스트 케이스 생성',
     running: '테스트 케이스를 만드는 중…',
+    carryOver: '이전 버전의 사용자 생성 TC 이어 넣기',
+    carryOverHint: '바로 앞 게임 빌드에 있던 사용자 생성 TC 중 이 빌드에 아직 없는 것을 함께 넣습니다.',
     blocked: {
       notUploaded: '이 빌드는 아직 스캔된 적이 없어 테스트 케이스를 만들 콘텐츠 맵이 없습니다.',
       noDocuments: '이 빌드에는 콘텐츠 맵이 있지만 올라온 증거 문서가 없습니다. 위에서 게임을 스캔한 뒤에 만들 수 있습니다.',

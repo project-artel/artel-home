@@ -10180,3 +10180,9 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
 .mimp-case:hover{ background:var(--color-bg-hover); }
 .mimp-case-step{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .mimp-case-scene{ font-size:11px; color:var(--color-text-muted); }
+
+/* TC 생성 때 이전 버전 사용자 생성 TC 이어 넣기 (ARTEL-1031) */
+.cm-generate-carry{ display:flex; align-items:flex-start; gap:8px; max-width:420px; font-size:13px; color:var(--color-text-primary); cursor:pointer; align-self:center; }
+.cm-generate-carry input{ margin:2px 0 0; width:16px; height:16px; flex:none; accent-color:var(--color-brand-accent); cursor:pointer; }
+.cm-generate-carry span{ display:flex; flex-direction:column; gap:2px; }
+.cm-generate-carry small{ font-size:12px; color:var(--color-text-muted); }
