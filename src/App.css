@@ -10066,3 +10066,32 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
 .pick-option.is-active{ background:var(--color-bg-hover); }
 .pick-option[aria-selected="true"]{ font-weight:600; }
 .pick-check{ flex:none; width:14px; height:14px; color:var(--color-brand-accent); }
+
+/* 사용자 폴더 — 우클릭 메뉴, 끌어 놓기, Undo/Redo, 버전별 숨김 (ARTEL-1024) */
+.tcl-folders-actions{ display:flex; align-items:center; gap:4px; margin-left:auto; }
+.tcl-folders-actions .iconbtn{ width:26px; height:26px; display:grid; place-items:center; padding:0; border:1px solid var(--color-border-subtle); border-radius:6px; background:transparent; color:var(--color-text-secondary); font-size:14px; line-height:1; cursor:pointer; }
+.tcl-folders-actions .iconbtn:hover:not(:disabled){ background:var(--color-bg-hover); color:var(--color-text-primary); }
+.tcl-folders-actions .iconbtn:disabled{ opacity:.35; cursor:default; }
+.tcl-folders-head{ border-radius:var(--radius-md); padding:2px 0; }
+.tcl-folders-head.is-drop-target{ outline:2px dashed var(--color-brand-accent); outline-offset:2px; }
+.tcl-folder-tree{ flex:1; min-height:0; display:flex; flex-direction:column; gap:2px; }
+.tcl-folder[draggable="true"]{ cursor:grab; }
+.tcl-folder.is-drop-target{ background:color-mix(in srgb, var(--color-brand-accent) 16%, transparent); box-shadow:inset 0 0 0 1px var(--color-brand-accent); }
+.tcl-folder-hint{ margin:auto 0 0; padding-top:var(--space-3); font-size:11px; line-height:1.5; color:var(--color-text-muted); }
+.tct-row[draggable="true"]{ cursor:default; }
+.tct-row--hidden td{ opacity:.55; }
+.tct-hidden-tag{ display:inline-block; margin-left:6px; padding:0 6px; border:1px dashed var(--color-border-strong); border-radius:999px; font-size:10px; font-weight:600; color:var(--color-text-muted); vertical-align:1px; }
+
+.ctx-menu{
+  position:fixed; z-index:1000; min-width:168px; padding:4px;
+  display:flex; flex-direction:column;
+  border:1px solid var(--color-border-strong); border-radius:var(--radius-md);
+  background:var(--color-bg-raised); box-shadow:0 10px 28px rgba(0,0,0,.35);
+}
+.ctx-menu-item{
+  display:block; width:100%; padding:7px 10px; border:0; border-radius:6px;
+  background:transparent; color:var(--color-text-primary); font-size:13px; text-align:left; cursor:pointer;
+}
+.ctx-menu-item:hover, .ctx-menu-item:focus-visible{ background:var(--color-bg-hover); outline:none; }
+.ctx-menu-item--danger{ color:var(--color-status-critical); }
+.ctx-menu-item:disabled{ opacity:.4; cursor:default; }

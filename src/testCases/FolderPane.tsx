@@ -1,8 +1,10 @@
-import { useId, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useId, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
 import { useI18n } from '../i18n/useI18n'
 import { ProjectApiError } from '../projects/projectApi'
+import { ContextMenu, type ContextMenuItem } from './ContextMenu'
 import { FolderDialog, type FolderDialogMode, type FolderDraft } from './FolderDialog'
+import { currentFolderDrag, dragKind, endFolderDrag, readDrag, writeFolderDrag, type DragPayload } from './folderDrag'
 import {
   ALL_FOLDERS,
   buildFolderTree,
@@ -15,35 +17,56 @@ import {
   type FolderNode,
   type FolderSelection,
 } from './testCaseFolders'
-import {
-  createTestCaseFolder,
-  deleteTestCaseFolder,
-  updateTestCaseFolder,
-  type TestCaseFolder,
-} from './testCaseFolderApi'
+import type { TestCaseFolder } from './testCaseFolderApi'
 import type { TestCaseFoldersStatus } from './useTestCaseFolders'
 
 /**
- * 라이브러리 왼쪽의 폴더 tree 와 그 폴더를 만지는 도구줄, 그리고 거기서 뜨는 dialog 들.
+ * 폴더를 바꾸는 작업. 부르는 쪽(라이브러리)이 Undo 기록에 실어 실행한다(ARTEL-1024). 실패는 부르는 쪽이
+ * 알리고, 여기서는 기다리기만 한다.
+ */
+export type FolderOperations = {
+  create: (input: { name: string; parentId: string | null }) => Promise<void>
+  update: (folder: TestCaseFolder, next: { name: string; parentId: string | null }, kind: 'rename' | 'move') => Promise<void>
+  remove: (folder: TestCaseFolder) => Promise<void>
+  clone: (folder: TestCaseFolder) => Promise<void>
+  /** 표에서 끈 케이스를 [folderId] 에 놓았다. */
+  dropCases: (folderId: string, caseIds: readonly string[]) => Promise<void>
+}
+
+export type FolderHistoryControls = {
+  canUndo: boolean
+  canRedo: boolean
+  busy: boolean
+  undo: () => void
+  redo: () => void
+}
+
+type MenuState = { x: number; y: number; folder: TestCaseFolder | null }
+
+type DropHandlers = {
+  onDragOver: (event: React.DragEvent) => void
+  onDragLeave: (event: React.DragEvent) => void
+  onDrop: (event: React.DragEvent) => void
+}
+
+/**
+ * 라이브러리 왼쪽의 폴더 tree.
  *
- * 폴더를 만지는 일은 모두 여기서 끝난다. 밖으로 나가는 것은 둘이다. `onSelect` 는 어느 범위를
- * 볼지, `onChanged` 는 서버 상태가 바뀌었으니 다시 읽으라는 알림이다. 폴더를 지우면 그 안의
- * test case 의 `folderId` 도 서버에서 바뀌므로 부른 쪽이 test case 목록도 다시 읽는다.
+ * 폴더 줄을 우클릭하면 새 폴더 · 이름 변경 · 이동 · 복제 · 삭제 메뉴가 뜬다. 빈 자리를 우클릭하면 최상위에 새
+ * 폴더를 만든다. 표의 케이스를 폴더에 끌어 놓으면 담기고, 폴더를 다른 폴더에 끌어 놓으면 그 아래로 옮겨진다.
+ * "폴더" 제목에 놓으면 최상위로 옮긴다.
  *
- * 도구줄은 tree 에서 고른 폴더 하나에 걸린다. 줄마다 메뉴를 달면 키보드로 닿는 순서와 popup
- * 관리가 줄 수만큼 늘어난다.
+ * 쓰기는 모두 [FolderOperations] 로 나간다. 그래야 Undo 기록이 한 곳에 쌓인다.
  */
 export function FolderPane({
   collapsed = false,
   collapsedLabel = '',
   counts,
   folders,
-  onAnnounce,
-  onChanged,
+  history,
   onRetry,
   onSelect,
-  onUpsert,
-  projectId,
+  operations,
   selection,
   status,
   onToggleCollapsed,
@@ -55,13 +78,10 @@ export function FolderPane({
   collapsedLabel?: string
   counts: FolderCounts
   folders: readonly TestCaseFolder[]
-  onAnnounce: (message: string) => void
-  onChanged: (change: { deletedFolderIds: readonly string[] }) => void
+  history: FolderHistoryControls
   onRetry: () => void
   onSelect: (selection: FolderSelection) => void
-  /** 서버가 돌려준 폴더를 목록에 바로 끼운다. 다시 읽기보다 먼저 tree 를 맞춘다. */
-  onUpsert: (folder: TestCaseFolder) => void
-  projectId: string
+  operations: FolderOperations
   selection: FolderSelection
   status: TestCaseFoldersStatus
   onToggleCollapsed?: () => void
@@ -74,45 +94,104 @@ export function FolderPane({
   const { t } = useI18n()
   const m = t.testCases.folders
   const headingId = useId()
-  const [dialog, setDialog] = useState<FolderDialogMode | null>(null)
-  const [deleting, setDeleting] = useState(false)
+  const [dialog, setDialog] = useState<{ mode: FolderDialogMode; folder: TestCaseFolder | null } | null>(null)
+  const [deleting, setDeleting] = useState<TestCaseFolder | null>(null)
+  const [menu, setMenu] = useState<MenuState | null>(null)
+  const [dropTarget, setDropTarget] = useState<string | null>(null)
   const treeRef = useRef<HTMLElement | null>(null)
 
   const tree = useMemo(() => buildFolderTree(folders), [folders])
-  const selectedFolder =
-    selection.kind === 'folder'
-      ? (folders.find((folder) => folder.id === selection.id) ?? null)
-      : null
+  const closeMenu = useCallback(() => setMenu(null), [])
 
   const parentRows = useMemo(() => {
-    if (dialog === 'move' && selectedFolder !== null) return listMoveTargets(folders, selectedFolder.id)
+    if (dialog?.mode === 'move' && dialog.folder !== null) return listMoveTargets(folders, dialog.folder.id)
     return flattenFolderTree(tree)
-  }, [dialog, folders, selectedFolder, tree])
+  }, [dialog, folders, tree])
 
   async function submit(draft: FolderDraft) {
-    if (dialog === 'create') {
-      const created = await createTestCaseFolder(projectId, draft)
-      onUpsert(created)
-      onChanged({ deletedFolderIds: [] })
-      onSelect({ kind: 'folder', id: created.id })
-      onAnnounce(m.announce.created(created.name))
-    } else if (selectedFolder !== null) {
-      const next = dialog === 'rename'
-        ? { name: draft.name, parentId: selectedFolder.parentId }
-        : { name: selectedFolder.name, parentId: draft.parentId }
-      const updated = await updateTestCaseFolder(projectId, selectedFolder.id, next)
-      onUpsert(updated)
-      onChanged({ deletedFolderIds: [] })
-      onAnnounce(dialog === 'rename' ? m.announce.renamed(updated.name) : m.announce.moved(updated.name))
+    if (dialog === null) return
+    const folder = dialog.folder
+    if (dialog.mode === 'create') {
+      await operations.create({ name: draft.name, parentId: draft.parentId })
+    } else if (folder !== null) {
+      const next = dialog.mode === 'rename'
+        ? { name: draft.name, parentId: folder.parentId }
+        : { name: folder.name, parentId: draft.parentId }
+      await operations.update(folder, next, dialog.mode === 'rename' ? 'rename' : 'move')
     }
     setDialog(null)
   }
 
-  // 부모가 목록에 없는 폴더(고아)를 옮길 때 select 는 첫 항목을 보이는데 상태는 옛 id 를 쥐고
-  // 있으면 안 되므로, 고를 수 없는 부모는 최상위로 본다.
-  const wantedParentId =
-    dialog === 'move' ? (selectedFolder?.parentId ?? null) : (selectedFolder?.id ?? null)
-  const initialParentId = parentRows.some((row) => row.folder.id === wantedParentId) ? wantedParentId : null
+  function openMenu(event: React.MouseEvent | React.KeyboardEvent, folder: TestCaseFolder | null) {
+    event.preventDefault()
+    event.stopPropagation()
+    // 키보드로 열면 누른 자리가 없다. 그 줄 아래에 띄운다.
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+    const point = 'clientX' in event && (event.clientX !== 0 || event.clientY !== 0)
+      ? { x: event.clientX, y: event.clientY }
+      : { x: rect.left + 24, y: rect.bottom }
+    if (folder !== null) onSelect({ kind: 'folder', id: folder.id })
+    setMenu({ ...point, folder })
+  }
+
+  function menuItems(folder: TestCaseFolder | null): ContextMenuItem[] {
+    if (folder === null) {
+      return [{ label: m.menu.createTop, onSelect: () => setDialog({ mode: 'create', folder: null }) }]
+    }
+    return [
+      { label: m.menu.createInside, onSelect: () => setDialog({ mode: 'create', folder }) },
+      { label: m.menu.rename, onSelect: () => setDialog({ mode: 'rename', folder }) },
+      { label: m.menu.move, onSelect: () => setDialog({ mode: 'move', folder }) },
+      { label: m.menu.clone, onSelect: () => void operations.clone(folder) },
+      { label: m.menu.delete, danger: true, onSelect: () => setDeleting(folder) },
+    ]
+  }
+
+  /** [targetId] 에 놓을 수 있나. 폴더는 자기와 하위 폴더 안으로 옮길 수 없다. null 은 최상위다. */
+  function canDrop(payload: DragPayload | DragPayload['kind'], targetId: string | null): boolean {
+    const kind = typeof payload === 'string' ? payload : payload.kind
+    if (kind === 'cases') return targetId !== null
+    if (typeof payload === 'string' || payload.kind !== 'folder') return true
+    if (targetId === null) return folders.find((one) => one.id === payload.folderId)?.parentId !== null
+    return payload.folderId !== targetId && !collectDescendantIds(folders, payload.folderId).has(targetId)
+  }
+
+  function dropHandlers(targetId: string | null): DropHandlers {
+    const key = targetId ?? 'root'
+    return {
+      onDragOver: (event) => {
+        const kind = dragKind([...event.dataTransfer.types])
+        const folderId = kind === 'folder' ? currentFolderDrag() : null
+        const known: DragPayload | DragPayload['kind'] | null = folderId !== null ? { kind: 'folder', folderId } : kind
+        if (known === null || !canDrop(known, targetId)) return
+        event.preventDefault()
+        event.stopPropagation()
+        event.dataTransfer.dropEffect = 'move'
+        if (dropTarget !== key) setDropTarget(key)
+      },
+      onDragLeave: (event) => {
+        if (!(event.currentTarget as HTMLElement).contains(event.relatedTarget as Node | null)) {
+          setDropTarget((current) => (current === key ? null : current))
+        }
+      },
+      onDrop: (event) => {
+        setDropTarget(null)
+        const payload = readDrag(event.dataTransfer)
+        if (payload === null || !canDrop(payload, targetId)) return
+        event.preventDefault()
+        event.stopPropagation()
+        if (payload.kind === 'cases' && targetId !== null) {
+          void operations.dropCases(targetId, payload.caseIds)
+          return
+        }
+        if (payload.kind === 'folder') {
+          const moving = folders.find((one) => one.id === payload.folderId)
+          if (moving === undefined || moving.parentId === targetId) return
+          void operations.update(moving, { name: moving.name, parentId: targetId }, 'move')
+        }
+      },
+    }
+  }
 
   if (status === 'failed') {
     return (
@@ -127,10 +206,6 @@ export function FolderPane({
       </aside>
     )
   }
-
-  const hasFolder = selectedFolder !== null
-  // 전체나 폴더 없음을 골랐을 때 `새 폴더` 는 최상위에 만든다. 어디에 만드는지 이름이 말한다.
-  const createLabel = hasFolder ? m.toolbar.createInside : m.toolbar.createTop
 
   const collapseButton = onToggleCollapsed === undefined ? null : (
     <button
@@ -169,12 +244,52 @@ export function FolderPane({
   return (
     <aside aria-labelledby={headingId} className="tcl-folders">
       {top !== undefined && <div className="tcl-side-head">{top}{collapseButton}</div>}
-      <div className="tcl-folders-head">
-        <h2 className="tcl-folders-title" id={headingId}>{m.title}</h2>
+      <div
+        className={'tcl-folders-head' + (dropTarget === 'root' ? ' is-drop-target' : '')}
+        {...dropHandlers(null)}
+      >
+        <h2 className="tcl-folders-title" id={headingId} title={m.dropToRoot}>{m.title}</h2>
+        <div className="tcl-folders-actions" role="group" aria-label={m.toolbar.label}>
+          <button
+            aria-label={m.toolbar.undo}
+            className="iconbtn"
+            disabled={!history.canUndo || history.busy}
+            onClick={history.undo}
+            title={m.toolbar.undo}
+            type="button"
+          >
+            ↶
+          </button>
+          <button
+            aria-label={m.toolbar.redo}
+            className="iconbtn"
+            disabled={!history.canRedo || history.busy}
+            onClick={history.redo}
+            title={m.toolbar.redo}
+            type="button"
+          >
+            ↷
+          </button>
+          <button
+            aria-label={m.toolbar.createTop}
+            className="iconbtn"
+            onClick={() => setDialog({ mode: 'create', folder: null })}
+            title={m.toolbar.createTop}
+            type="button"
+          >
+            +
+          </button>
+        </div>
         {top === undefined && collapseButton}
       </div>
 
-      <nav aria-label={m.treeLabel} aria-busy={status === 'loading' || undefined} ref={treeRef}>
+      <nav
+        aria-label={m.treeLabel}
+        aria-busy={status === 'loading' || history.busy || undefined}
+        className="tcl-folder-tree"
+        onContextMenu={(event) => openMenu(event, null)}
+        ref={treeRef}
+      >
         <ul className="tcl-folder-list">
           {top === undefined && (
             <li>
@@ -198,90 +313,59 @@ export function FolderPane({
         {tree.length > 0 && (
           <FolderBranch
             counts={counts}
+            dropHandlers={dropHandlers}
+            dropTarget={dropTarget}
             nodes={tree}
+            onContextMenu={openMenu}
             onSelect={onSelect}
             selectedId={selection.kind === 'folder' ? selection.id : null}
           />
         )}
+        <p className="tcl-folder-hint">{m.menuHint}</p>
       </nav>
 
-      <div className="tcl-folder-tools" role="group" aria-label={m.toolbar.label}>
-        <button
-          className="button button--secondary button--compact"
-          onClick={() => setDialog('create')}
-          type="button"
-        >
-          {createLabel}
-        </button>
-        <button
-          className="button button--secondary button--compact"
-          disabled={!hasFolder}
-          onClick={() => setDialog('rename')}
-          type="button"
-        >
-          {m.toolbar.rename}
-        </button>
-        <button
-          className="button button--secondary button--compact"
-          disabled={!hasFolder}
-          onClick={() => setDialog('move')}
-          type="button"
-        >
-          {m.toolbar.move}
-        </button>
-        <button
-          className="button button--danger button--compact"
-          disabled={!hasFolder}
-          onClick={() => setDeleting(true)}
-          type="button"
-        >
-          {m.toolbar.delete}
-        </button>
-      </div>
-      {!hasFolder && <p className="field-hint">{m.toolbar.pickHint}</p>}
+      {menu !== null && (
+        <ContextMenu
+          items={menuItems(menu.folder)}
+          label={menu.folder === null ? m.menu.label : m.menu.labelFor(menu.folder.name)}
+          onClose={closeMenu}
+          x={menu.x}
+          y={menu.y}
+        />
+      )}
 
       {dialog !== null && (
         <FolderDialog
           initial={{
-            name: dialog === 'rename' && selectedFolder !== null ? selectedFolder.name : '',
-            parentId: initialParentId,
+            name: dialog.mode === 'rename' && dialog.folder !== null ? dialog.folder.name : '',
+            parentId: initialParentId(dialog, parentRows),
           }}
-          mode={dialog}
+          mode={dialog.mode}
           onClose={() => setDialog(null)}
           onSubmit={submit}
           parentRows={parentRows}
         />
       )}
 
-      {deleting && selectedFolder !== null && (
+      {deleting !== null && (
         <ConfirmActionDialog
           body={
             <>
-              <strong>{selectedFolder.name}</strong>
-              {m.delete.copySuffix(countFolderDescendants(folders, selectedFolder.id))}
+              <strong>{deleting.name}</strong>
+              {m.delete.copySuffix(countFolderDescendants(folders, deleting.id))}
             </>
           }
           cancelLabel={m.delete.cancel}
           confirmLabel={m.delete.confirm}
-          onClose={() => setDeleting(false)}
+          onClose={() => setDeleting(null)}
           onConfirm={async () => {
-            const removedIds = [selectedFolder.id, ...collectDescendantIds(folders, selectedFolder.id)]
-            try {
-              await deleteTestCaseFolder(projectId, selectedFolder.id)
-            } catch (error: unknown) {
-              // 이미 지워진 폴더면 tree 가 낡은 것이다. 다시 읽어 맞춘다.
-              if (error instanceof ProjectApiError && error.isNotFound) onChanged({ deletedFolderIds: [] })
-              throw error
-            }
-            onChanged({ deletedFolderIds: removedIds })
-            onAnnounce(m.announce.deleted(selectedFolder.name))
-            setDeleting(false)
-            // 지운 폴더의 도구줄 button 은 비활성이 되므로 dialog 가 돌려줄 focus 자리가 없다.
-            // 목록의 첫 항목으로 옮긴다.
+            await operations.remove(deleting)
+            setDeleting(null)
+            // 지운 폴더 줄이 사라지므로 dialog 가 돌려줄 focus 자리가 없다. 목록의 첫 항목으로 옮긴다.
             window.setTimeout(() => treeRef.current?.querySelector<HTMLElement>('button')?.focus(), 0)
           }}
           pendingLabel={m.delete.pending}
-          title={m.delete.title(selectedFolder.name)}
+          title={m.delete.title(deleting.name)}
           toFailureMessage={(error) =>
             error instanceof ProjectApiError && error.isNotFound ? m.delete.gone : m.delete.failed
           }
@@ -291,34 +375,57 @@ export function FolderPane({
   )
 }
 
+/**
+ * dialog 가 처음 고를 부모. 만들기는 메뉴를 연 폴더(없으면 최상위), 옮기기는 지금 부모다. 부모가 목록에 없는
+ * 폴더(고아)를 옮길 때 select 는 첫 항목을 보이는데 상태가 옛 id 를 쥐면 안 되므로, 고를 수 없는 부모는 최상위로 본다.
+ */
+function initialParentId(
+  dialog: { mode: FolderDialogMode; folder: TestCaseFolder | null },
+  rows: readonly { folder: TestCaseFolder }[],
+): string | null {
+  const wanted = dialog.mode === 'move' ? (dialog.folder?.parentId ?? null) : (dialog.folder?.id ?? null)
+  return rows.some((row) => row.folder.id === wanted) ? wanted : null
+}
+
 function FolderItem({
-  contentMap = false,
   count,
   current,
+  dragFolderId,
+  dropping = false,
   label,
   onClick,
+  onContextMenu,
 }: {
-  contentMap?: boolean
   count: number
   current: boolean
+  /** 있으면 이 줄을 끌어 다른 폴더로 옮길 수 있다. */
+  dragFolderId?: string
+  dropping?: boolean
   label: string
   onClick: () => void
+  onContextMenu?: (event: React.MouseEvent | React.KeyboardEvent) => void
 }) {
-  const { t } = useI18n()
-  const m = t.testCases.folders
-
   return (
     <button
       aria-current={current ? 'true' : undefined}
-      className={'tcl-folder' + (current ? ' is-current' : '')}
+      className={'tcl-folder' + (current ? ' is-current' : '') + (dropping ? ' is-drop-target' : '')}
+      draggable={dragFolderId !== undefined}
       onClick={onClick}
+      onContextMenu={onContextMenu}
+      onDragStart={
+        dragFolderId === undefined ? undefined : (event) => writeFolderDrag(event.dataTransfer, dragFolderId)
+      }
+      onDragEnd={dragFolderId === undefined ? undefined : endFolderDrag}
+      onKeyDown={(event) => {
+        // 키보드로 메뉴를 여는 두 길: 메뉴 키와 Shift+F10.
+        if (onContextMenu !== undefined && (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10'))) {
+          onContextMenu(event)
+        }
+      }}
       title={label}
       type="button"
     >
       <span className="tcl-folder-name">{label}</span>
-      {contentMap && (
-        <span className="tcl-folder-badge" title={m.contentMapTitle}>{m.contentMapBadge}</span>
-      )}
       <span className="tcl-folder-count mono">{count}</span>
     </button>
   )
@@ -326,33 +433,44 @@ function FolderItem({
 
 function FolderBranch({
   counts,
+  dropHandlers,
+  dropTarget,
   nested = false,
   nodes,
+  onContextMenu,
   onSelect,
   selectedId,
 }: {
   counts: FolderCounts
+  dropHandlers: (targetId: string) => DropHandlers
+  dropTarget: string | null
   nested?: boolean
   nodes: readonly FolderNode[]
+  onContextMenu: (event: React.MouseEvent | React.KeyboardEvent, folder: TestCaseFolder) => void
   onSelect: (selection: FolderSelection) => void
   selectedId: string | null
 }) {
   return (
     <ul className={'tcl-folder-list' + (nested ? ' tcl-folder-list--nested' : '')}>
       {nodes.map((node) => (
-        <li key={node.folder.id}>
+        <li key={node.folder.id} {...dropHandlers(node.folder.id)}>
           <FolderItem
-            contentMap={node.folder.contentMapId !== null}
             count={counts.byFolder.get(node.folder.id) ?? 0}
             current={node.folder.id === selectedId}
+            dragFolderId={node.folder.id}
+            dropping={dropTarget === node.folder.id}
             label={node.folder.name}
             onClick={() => onSelect({ kind: 'folder', id: node.folder.id })}
+            onContextMenu={(event) => onContextMenu(event, node.folder)}
           />
           {node.children.length > 0 && (
             <FolderBranch
               counts={counts}
+              dropHandlers={dropHandlers}
+              dropTarget={dropTarget}
               nested
               nodes={node.children}
+              onContextMenu={onContextMenu}
               onSelect={onSelect}
               selectedId={selectedId}
             />

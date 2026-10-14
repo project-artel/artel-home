@@ -25,8 +25,11 @@ const NOTHING_LOADED: LoadedFolders = { folders: [], failed: false, source: null
 /**
  * 프로젝트의 폴더 전량. 폴더는 test case 보다 훨씬 적어 한 번에 읽는다.
  * 읽기에 실패하면 test case 목록은 그대로 그리고, 폴더 tree 자리만 오류를 말한다.
+ *
+ * [gameBuildId] 를 주면 폴더마다 그 버전에서 보이는 항목 수를 함께 읽는다(ARTEL-1024). 버전을 바꿔도 tree 를
+ * `loading` 으로 돌리지 않는다 — 수만 바뀌는데 tree 가 깜박이면 고른 폴더가 잠깐 풀린다.
  */
-export function useTestCaseFolders(projectId: string): TestCaseFolders {
+export function useTestCaseFolders(projectId: string, gameBuildId: string | null = null): TestCaseFolders {
   const [loaded, setLoaded] = useState<LoadedFolders>(NOTHING_LOADED)
   const [reloadToken, setReloadToken] = useState(0)
   const source = `${projectId}#${reloadToken}`
@@ -34,7 +37,7 @@ export function useTestCaseFolders(projectId: string): TestCaseFolders {
   useEffect(() => {
     const controller = new AbortController()
 
-    listTestCaseFolders(projectId, controller.signal)
+    listTestCaseFolders(projectId, controller.signal, gameBuildId)
       .then((folders) => setLoaded({ folders, failed: false, source }))
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === 'AbortError') return
@@ -42,7 +45,7 @@ export function useTestCaseFolders(projectId: string): TestCaseFolders {
       })
 
     return () => controller.abort()
-  }, [projectId, source])
+  }, [projectId, source, gameBuildId])
 
   // 다시 읽기가 겹칠 때 먼저 보낸 느린 답이 나중 답을 덮지 않게 번호를 매긴다.
   const latestRefresh = useRef(0)
@@ -60,7 +63,7 @@ export function useTestCaseFolders(projectId: string): TestCaseFolders {
 
   const refresh = useCallback(() => {
     const ticket = ++latestRefresh.current
-    listTestCaseFolders(projectId)
+    listTestCaseFolders(projectId, undefined, gameBuildId)
       .then((folders) => {
         if (ticket !== latestRefresh.current) return
         setLoaded((current) =>
@@ -70,7 +73,7 @@ export function useTestCaseFolders(projectId: string): TestCaseFolders {
       .catch(() => {
         // 지금 tree 는 직전 읽기의 값이다. 다시 읽기가 실패했다고 tree 를 오류로 바꾸지 않는다.
       })
-  }, [projectId, source])
+  }, [projectId, source, gameBuildId])
 
   const status: TestCaseFoldersStatus =
     loaded.source !== source ? 'loading' : loaded.failed ? 'failed' : 'ready'
