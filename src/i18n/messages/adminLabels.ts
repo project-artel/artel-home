@@ -1,6 +1,46 @@
 import type { Localized } from '../messages'
 
-/** Strings for `src/admin/labels/*`, the admin labels screen. See `common.ts` for the typing convention. */
-export const adminLabelsEn = {}
+/** Strings for the admin expected-label screen. */
+export const adminLabelsEn = {
+  intro: 'An agent grades its own step verdicts, so a lenient model can score highly by marking everything as passed. Set which steps should pass or fail to make that strategy score poorly. Step content is read only here.',
+  scenariosLabel: 'Scenarios',
+  noScenarios: 'No scenarios.',
+  untitled: '(Untitled)',
+  chooseScenario: 'Choose a scenario.',
+  saving: 'Saving…',
+  saveFailed: 'The labels could not be saved. Your changes are still here; try again.',
+  save: (count: string) => `Save (${count})`,
+  unsaved: (count: string) => `${count} unsaved changes`,
+  noSteps: 'This scenario has no steps.',
+  emptyStep: '(Empty step)',
+  testCaseBadge: 'TC',
+  stepVerdict: (step: string) => `Expected verdict for step ${step}`,
+  states: { unset: 'Unset', pass: 'Expected pass', fail: 'Expected fail' },
+  shortStates: { unset: '—', pass: 'Pass', fail: 'Fail' },
+  expectedFailures: (count: string) => `${count} steps expected to fail`,
+  gradedSteps: (labelled: string, total: string) => `${labelled} graded / ${total} total`,
+  noFailuresNote: 'With no steps expected to fail, this scenario scores a lenient agent and a careful agent the same. Mark at least one step as “Expected fail”.',
+  cutoffNote: (step: string) => `Step ${step} is expected to fail, so execution may stop there. Later steps may not be reached; unreached steps are scored as unreported, not incorrect.`,
+} as const
 
-export const adminLabelsKo: Localized<typeof adminLabelsEn> = {}
+export const adminLabelsKo: Localized<typeof adminLabelsEn> = {
+  intro: 'QA 에이전트의 스텝 판정은 자기채점이라, 관대한 모델이 높은 점수를 받고 “전부 통과”라고 답하는 전략이 만점이 됩니다. 여기서 각 스텝이 통과해야 하는지 실패해야 하는지를 사람이 정해 두면 그 전략이 최악 점수가 됩니다. 스텝 본문은 여기서 고칠 수 없습니다.',
+  scenariosLabel: '시나리오',
+  noScenarios: '시나리오가 없습니다.',
+  untitled: '(제목 없음)',
+  chooseScenario: '시나리오를 고르세요.',
+  saving: '저장 중…',
+  saveFailed: '라벨을 저장하지 못했습니다. 바꾼 내용은 그대로 있으니 다시 저장하세요.',
+  save: (count: string) => `저장 (${count})`,
+  unsaved: (count: string) => `저장하지 않은 변경 ${count}개`,
+  noSteps: '이 시나리오에는 스텝이 없습니다.',
+  emptyStep: '(빈 스텝)',
+  testCaseBadge: 'TC',
+  stepVerdict: (step: string) => `${step}번 스텝 기대 판정`,
+  states: { unset: '미지정', pass: '통과 기대', fail: '실패 기대' },
+  shortStates: { unset: '—', pass: '통과', fail: '실패' },
+  expectedFailures: (count: string) => `실패 기대 스텝 ${count}개`,
+  gradedSteps: (labelled: string, total: string) => `채점 대상 ${labelled} / 전체 ${total}`,
+  noFailuresNote: '실패 기대 스텝이 없어, 이 시나리오는 관대한 에이전트와 꼼꼼한 에이전트를 같은 점수로 봅니다. 최소 한 스텝을 “실패 기대”로 지정하세요.',
+  cutoffNote: (step: string) => `${step}번 스텝이 실패 기대라 실행이 거기서 끝날 수 있습니다. 뒤 스텝은 도달하지 못할 수 있고, 도달하지 못한 스텝은 틀린 것이 아니라 미보고로 채점됩니다.`,
+}
