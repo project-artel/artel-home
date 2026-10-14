@@ -13,6 +13,7 @@ import {
 } from '../testCases/testCaseVersions'
 import { useTestCaseVersionList } from '../testCases/useTestCaseVersions'
 import { VersionTreeDialog } from '../testCases/VersionTreeDialog'
+import { ClipboardListIcon } from '../testScenarios/scenarioIcons'
 import { NewRunDialog } from './NewRunDialog'
 import { bucketOf, countRuns, initialBucket, NO_VERSION, runsIn, strayBuilds } from './runLibrary'
 import {
@@ -71,6 +72,9 @@ export function RunListPanel({
   const [menu, setMenu] = useState<{ run: TestRun; x: number; y: number } | null>(null)
   const [dropTarget, setDropTarget] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [query, setQuery] = useState('')
+  // 틀이 화면 아래까지 꽉 차게, 이 틀이 시작하는 높이를 잰다(케이스 라이브러리의 --tcl-top 과 같은 방식).
+  const [frame, setFrame] = useState<HTMLDivElement | null>(null)
   const [failure, setFailure] = useState<string | null>(null)
   const [pendingDelete, setPendingDelete] = useState<TestRun | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -90,6 +94,14 @@ export function RunListPanel({
     [runs, bucket],
   )
   const bucketLabel = bucketName(bucket)
+
+  useEffect(() => {
+    if (frame === null) return undefined
+    const measure = () => frame.style.setProperty('--trl-top', `${Math.round(frame.getBoundingClientRect().top + window.scrollY)}px`)
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [frame, notice, failure])
 
   useEffect(() => {
     if (pendingDelete === null) return
@@ -175,6 +187,7 @@ export function RunListPanel({
 
   const node = (key: string, label: string, options: { latest?: boolean; hidden?: boolean } = {}) => {
     const on = key === bucket
+    const count = counts.get(key) ?? 0
     return (
       <li key={key}>
         <button
@@ -200,10 +213,12 @@ export function RunListPanel({
           }}
           type="button"
         >
-          <FolderIcon />
-          <span className="trl-node-name">{label}</span>
-          {options.latest === true && <span className="tcl-version-latest">{v.latest}</span>}
-          <span className="trl-node-count">{counts.get(key) ?? 0}</span>
+          <FolderIcon open={on} />
+          <span className="trl-node-text">
+            <span className="trl-node-name">{label}</span>
+            <span className="trl-muted">{r.runCount(count)}</span>
+          </span>
+          {options.latest === true && <span className="trl-badge">{v.latest}</span>}
         </button>
       </li>
     )
@@ -212,12 +227,16 @@ export function RunListPanel({
   const versionNode = (version: TestCaseVersionSummary) =>
     node(version.gameBuildId, versionName(version), { latest: version.latest, hidden: version.hidden })
 
+  const needle = query.trim().toLowerCase()
+  const listed = needle === '' ? shown : shown.filter((run) => `${run.name} ${run.description ?? ''}`.toLowerCase().includes(needle))
+
   return (
-    <section className="panel" aria-labelledby="test-runs-title">
-      <header className="panel-header panel-header--split">
+    <section aria-labelledby="test-runs-title" className="trl-page">
+      <header className="trl-page-head">
         <div>
-          <h2 id="test-runs-title">{r.title}</h2>
-          <p className="scenario-hint">{r.hint}</p>
+          {/* 위의 작업공간 제목이 이미 "테스트 런" 이다. 같은 말을 두 번 보이지 않고, 낭독기에만 남긴다. */}
+          <h2 className="visually-hidden" id="test-runs-title">{r.title}</h2>
+          <p className="trl-page-hint">{r.hint}</p>
         </div>
         <button className="button button--primary button--compact" onClick={() => setCreating(true)} type="button">
           {r.newButton}
@@ -244,109 +263,141 @@ export function RunListPanel({
         </div>
       )}
       {status === 'ready' && (
-        <div className="trl">
+        <div className="trl" ref={setFrame}>
           <nav aria-label={r.versionsTitle} className="trl-side">
-            <p className="trl-side-title">{r.versionsTitle}</p>
-            <ul className="trl-tree">
-              {strays.map((build) => node(build.gameBuildId, gameBuildName(build)))}
-              {entries.map((entry) => {
-                if (entry.kind === 'version') return versionNode(entry.version)
-                const group = entry.group
-                const isFolded = folded.has(group.id)
-                return (
-                  <li key={`group:${group.id}`}>
-                    <button
-                      aria-expanded={!isFolded}
-                      className="trl-group"
-                      onClick={() =>
-                        setFolded((current) => {
-                          const next = new Set(current)
-                          if (next.has(group.id)) next.delete(group.id)
-                          else next.add(group.id)
-                          return next
-                        })
-                      }
-                      type="button"
-                    >
-                      <Chevron open={!isFolded} />
-                      <span className="trl-node-name">{group.name}</span>
-                      <span className="trl-node-count">
-                        {entry.versions.reduce((sum, version) => sum + (counts.get(version.gameBuildId) ?? 0), 0)}
-                      </span>
-                    </button>
-                    {!isFolded && entry.versions.length > 0 && (
-                      <ul className="trl-tree trl-tree--nested">{entry.versions.map(versionNode)}</ul>
-                    )}
-                  </li>
-                )
-              })}
-              {node(NO_VERSION, v.unversioned)}
-            </ul>
-            {hidden.length > 0 && (
-              <>
-                <button
-                  aria-expanded={showHidden}
-                  className="trl-group trl-group--hidden"
-                  onClick={() => setShowHidden((value) => !value)}
-                  type="button"
-                >
-                  <Chevron open={showHidden} />
-                  <span className="trl-node-name">{v.hiddenVersions(hidden.length)}</span>
-                </button>
-                {showHidden && <ul className="trl-tree trl-tree--nested">{hidden.map(versionNode)}</ul>}
-              </>
-            )}
+            <div className="trl-side-head">
+              <span>{r.versionsTitle}</span>
+              <span className="trl-muted">{r.newestFirst}</span>
+            </div>
+            <div className="trl-scroll">
+              <ul className="trl-tree">
+                {strays.map((build) => node(build.gameBuildId, gameBuildName(build)))}
+                {entries.map((entry) => {
+                  if (entry.kind === 'version') return versionNode(entry.version)
+                  const group = entry.group
+                  const isFolded = folded.has(group.id)
+                  return (
+                    <li key={`group:${group.id}`}>
+                      <button
+                        aria-expanded={!isFolded}
+                        className="trl-group"
+                        onClick={() =>
+                          setFolded((current) => {
+                            const next = new Set(current)
+                            if (next.has(group.id)) next.delete(group.id)
+                            else next.add(group.id)
+                            return next
+                          })
+                        }
+                        type="button"
+                      >
+                        <Chevron open={!isFolded} />
+                        <span className="trl-group-name">{group.name}</span>
+                        <span className="trl-muted">
+                          {r.runCount(entry.versions.reduce((sum, version) => sum + (counts.get(version.gameBuildId) ?? 0), 0))}
+                        </span>
+                      </button>
+                      {!isFolded && entry.versions.length > 0 && (
+                        <ul className="trl-tree trl-tree--nested">{entry.versions.map(versionNode)}</ul>
+                      )}
+                    </li>
+                  )
+                })}
+                {node(NO_VERSION, v.unversioned)}
+              </ul>
+              {hidden.length > 0 && (
+                <>
+                  <button
+                    aria-expanded={showHidden}
+                    className="trl-group trl-group--hidden"
+                    onClick={() => setShowHidden((value) => !value)}
+                    type="button"
+                  >
+                    <Chevron open={showHidden} />
+                    <span className="trl-group-name">{v.hiddenVersions(hidden.length)}</span>
+                  </button>
+                  {showHidden && <ul className="trl-tree trl-tree--nested">{hidden.map(versionNode)}</ul>}
+                </>
+              )}
+            </div>
             <p className="trl-side-hint">{r.dragHint}</p>
           </nav>
 
-          <div className="trl-main">
-            <h3 className="trl-main-title">{r.runsOf(bucketLabel, shown.length)}</h3>
-            {shown.length === 0 ? (
-              <p className="panel-empty">{runs.length === 0 ? r.empty : r.emptyVersion}</p>
-            ) : (
-              <table className="trl-table">
-                <thead>
-                  <tr>
-                    <th scope="col">{r.columns.name}</th>
-                    <th scope="col" className="trl-num">{r.columns.scenarios}</th>
-                    <th scope="col">{r.columns.lastQa}</th>
-                    <th scope="col">{r.columns.created}</th>
-                    <th scope="col"><span className="visually-hidden">{r.columns.actions}</span></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {shown.map((run) => (
-                    <tr
-                      className="trl-row"
-                      draggable
-                      key={run.id}
-                      onContextMenu={(event) => {
-                        event.preventDefault()
-                        setMenu({ run, x: event.clientX, y: event.clientY })
-                      }}
-                      onDragStart={(event) => {
-                        event.dataTransfer.setData(RUN_DRAG, run.id)
-                        event.dataTransfer.effectAllowed = 'move'
-                      }}
-                    >
-                      <td>
-                        <button className="trl-name" onClick={() => openRun(run.id)} type="button">
-                          {run.name.length > 0 ? run.name : r.untitled}
-                        </button>
-                        {run.description !== null && run.description.length > 0 && (
-                          <p className="trl-desc">{run.description}</p>
-                        )}
-                      </td>
-                      <td className="trl-num">{run.scenarioCount ?? '—'}</td>
-                      <td className={'trl-qa' + (run.lastQaRun !== null && run.lastQaRun.failed > 0 ? ' has-failed' : '')}>
-                        {lastQaText(run.lastQaRun)}
-                      </td>
-                      <td className="trl-date">{formatDate(run.createdAt)}</td>
-                      <td className="trl-actions">
+          <main className="trl-main">
+            <div className="trl-main-head">
+              <div className="trl-main-title">
+                <span className="trl-muted">{r.runsOfKicker}</span>
+                <h3>{bucketLabel}</h3>
+              </div>
+              <span className="trl-chip">{r.runCount(shown.length)}</span>
+            </div>
+            {shown.length > 0 && (
+              <>
+                <label className="trl-search">
+                  <SearchIcon />
+                  <input
+                    aria-label={r.search}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder={r.searchPlaceholder}
+                    type="search"
+                    value={query}
+                  />
+                </label>
+                <div aria-hidden="true" className="trl-cols">
+                  <span />
+                  <span>{r.columns.name}</span>
+                  <span className="trl-num">{r.columns.scenarios}</span>
+                  <span>{r.columns.lastQa}</span>
+                  <span className="trl-date">{r.columns.created}</span>
+                  <span />
+                </div>
+              </>
+            )}
+            <div className="trl-scroll">
+              {shown.length === 0 ? (
+                <div className="trl-empty">
+                  <ClipboardListIcon size={40} />
+                  <p>{runs.length === 0 ? r.empty : r.emptyVersion}</p>
+                </div>
+              ) : (
+                <ul aria-label={r.columns.name} className="trl-list">
+                  {listed.map((run) => (
+                    <li key={run.id}>
+                      <div
+                        className="trl-row"
+                        draggable
+                        onClick={() => openRun(run.id)}
+                        onContextMenu={(event) => {
+                          event.preventDefault()
+                          setMenu({ run, x: event.clientX, y: event.clientY })
+                        }}
+                        onDragStart={(event) => {
+                          event.dataTransfer.setData(RUN_DRAG, run.id)
+                          event.dataTransfer.effectAllowed = 'move'
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') openRun(run.id)
+                        }}
+                        role="button"
+                        tabIndex={0}
+                      >
+                        <ClipboardListIcon className="trl-row-icon" />
+                        <span className="trl-row-title">
+                          <span className="trl-row-name">{run.name.length > 0 ? run.name : r.untitled}</span>
+                          {run.description !== null && run.description.length > 0 && (
+                            <span className="trl-row-desc">{run.description}</span>
+                          )}
+                        </span>
+                        <span className="trl-num">{run.scenarioCount ?? '—'}</span>
+                        <span className={'trl-qa' + (run.lastQaRun !== null && run.lastQaRun.failed > 0 ? ' has-failed' : '')}>
+                          {lastQaText(run.lastQaRun)}
+                        </span>
+                        <span className="trl-date">{formatDate(run.createdAt)}</span>
                         <button
                           aria-label={r.menu.label}
                           className="trl-more"
                           onClick={(event) => {
+                            event.stopPropagation()
                             const box = event.currentTarget.getBoundingClientRect()
                             setMenu({ run, x: box.left, y: box.bottom + 4 })
                           }}
@@ -354,13 +405,14 @@ export function RunListPanel({
                         >
                           ⋯
                         </button>
-                      </td>
-                    </tr>
+                      </div>
+                    </li>
                   ))}
-                </tbody>
-              </table>
-            )}
-          </div>
+                  {listed.length === 0 && <li className="trl-nomatch">{r.noMatch(query.trim())}</li>}
+                </ul>
+              )}
+            </div>
+          </main>
         </div>
       )}
 
@@ -439,10 +491,20 @@ function Chevron({ open }: { open: boolean }) {
   )
 }
 
-function FolderIcon() {
+function FolderIcon({ open }: { open: boolean }) {
   return (
-    <svg aria-hidden="true" className="trl-folder" viewBox="0 0 16 16">
-      <path d="M1.75 4.25a1 1 0 0 1 1-1h3.4l1.4 1.5h5.7a1 1 0 0 1 1 1v6.5a1 1 0 0 1-1 1H2.75a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.3" />
+    <svg aria-hidden="true" className="trl-folder" fill="none" height="22" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" viewBox="0 0 24 24" width="22">
+      <path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.6l2 2.2h8.4A1.5 1.5 0 0 1 21 8.7v9.8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z" />
+      {open ? <path d="M9 13.5h6" /> : <path d="M9 13.5h6M12 10.5v6" />}
+    </svg>
+  )
+}
+
+function SearchIcon() {
+  return (
+    <svg aria-hidden="true" fill="none" height="18" stroke="currentColor" strokeLinecap="round" strokeWidth="2" viewBox="0 0 24 24" width="18">
+      <circle cx="11" cy="11" r="6.5" />
+      <path d="M20 20l-4-4" />
     </svg>
   )
 }
