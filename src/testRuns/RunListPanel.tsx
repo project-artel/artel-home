@@ -233,11 +233,8 @@ export function RunListPanel({
   return (
     <section aria-labelledby="test-runs-title" className="trl-page">
       <header className="trl-page-head">
-        <div>
-          {/* 위의 작업공간 제목이 이미 "테스트 런" 이다. 같은 말을 두 번 보이지 않고, 낭독기에만 남긴다. */}
-          <h2 className="visually-hidden" id="test-runs-title">{r.title}</h2>
-          <p className="trl-page-hint">{r.hint}</p>
-        </div>
+        {/* 위의 작업공간 제목이 이미 "테스트 런" 이다. 같은 말을 두 번 보이지 않고, 낭독기에만 남긴다. */}
+        <h2 className="visually-hidden" id="test-runs-title">{r.title}</h2>
         <button className="button button--primary button--compact" onClick={() => setCreating(true)} type="button">
           {r.newButton}
         </button>

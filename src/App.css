@@ -10719,9 +10719,8 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
 .section-content:has(.trl-page){ width:100%; }
 .workspace-body:has(.trl-page) .section-header{ width:100%; }
 .trl-page{ display:flex; flex-direction:column; gap:var(--space-3); min-width:0; }
-.trl-page-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:var(--space-4); }
+.trl-page-head{ display:flex; align-items:center; justify-content:flex-end; gap:var(--space-4); }
 .trl-page-head h2{ margin:0; font-size:18px; }
-.trl-page-hint{ margin:0; font-size:13px; line-height:20px; color:var(--color-text-secondary); max-width:760px; }
 .trl{ display:flex; min-height:420px; height:calc(100dvh - var(--trl-top, 180px) - var(--space-6)); border:1px solid var(--color-border-subtle); border-radius:14px; background:var(--color-bg-surface); overflow:hidden; }
 .trl-muted{ font-size:12px; color:var(--color-text-muted); font-weight:400; }
 .trl-scroll{ position:relative; flex:1; min-height:0; overflow-y:auto; }
