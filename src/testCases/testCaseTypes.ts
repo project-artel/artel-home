@@ -125,6 +125,8 @@ export type TestCaseInput = {
   verificationStatus?: VerificationStatus
   /** Only a create sends this; moving an existing case goes through `moveTestCases`. */
   folderId?: string | null
+  /** 만들면서 넣을 버전(ARTEL-1032). 만들 때만 보낸다. null 이면 "버전 없음"이다. */
+  gameBuildId?: string | null
 }
 
 /** One position in a scenario's ordered case composition (`/cases`). */

@@ -5,7 +5,7 @@ import { formatDate } from '../projects/formatters'
 import type { GameBuild } from '../projects/gameTypes'
 import { SceneChip } from './SceneChip'
 import { SpecGradeChip } from './SpecGradeChip'
-import { TestCaseEditor } from './TestCaseEditor'
+import { TestCaseEditor, type VersionChoice } from './TestCaseEditor'
 import { describeVerifiedBuild } from './testCaseLibrary'
 import type { TestCase } from './testCaseTypes'
 
@@ -22,6 +22,7 @@ export function TestCaseSheet({
   knownScenes = [],
   projectId,
   testCase,
+  versionChoice,
   onClose,
   onCreated = () => {},
   onDelete,
@@ -33,6 +34,8 @@ export function TestCaseSheet({
   folderId?: string | null
   projectId: string
   testCase: TestCase | null
+  /** 새 케이스를 넣을 버전 고르기(ARTEL-1032). */
+  versionChoice?: VersionChoice
   onClose: () => void
   onCreated?: (created: TestCase) => void
   onDelete: () => void
@@ -98,6 +101,7 @@ export function TestCaseSheet({
           onSaved={onSaved}
           projectId={projectId}
           testCase={testCase}
+          versionChoice={versionChoice}
         />
       </aside>
     </>

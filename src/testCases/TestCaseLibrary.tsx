@@ -21,7 +21,6 @@ import {
 } from './folderCommands'
 import { writeCasesDrag } from './folderDrag'
 import { FolderPane, type FolderOperations } from './FolderPane'
-import { AddToVersionDialog } from './AddToVersionDialog'
 import { MoveCasesDialog } from './MoveCasesDialog'
 import { Picker } from './Picker'
 import { SearchField } from './SearchField'
@@ -78,6 +77,7 @@ import {
   renameGroupCommand,
 } from './versionCommands'
 import { VersionList, type VersionOperations } from './VersionList'
+import { VersionTreeDialog } from './VersionTreeDialog'
 
 /** `vdot` 와 결과 pill 이 상태마다 쓰는 CSS 접미사. 대문자 상태값을 클래스에 그대로 넣지 않는다. */
 const STATUS_CLASS: Record<VerificationStatus, string> = {
@@ -1114,17 +1114,28 @@ export function TestCaseLibrary({
           }}
           projectId={projectId}
           testCase={selected}
+          // 새 케이스는 기본으로 현재 버전(가장 최근)에 넣는다(ARTEL-1032). 폴더에서 만든 케이스도 버전 라이브러리에 바로 보인다.
+          versionChoice={
+            versionsMode
+              ? { versions: versionList.versions, groups: versionList.groups, defaultId: latestVersion?.gameBuildId ?? null }
+              : undefined
+          }
         />
       )}
 
       <p aria-live="polite" className="visually-hidden" role="status">{announcement}</p>
 
       {isAddingToVersion && (
-        <AddToVersionDialog
-          initialVersionId={selectedBuildId}
-          manualCount={selectedManualIds.length}
+        <VersionTreeDialog
+          confirmLabel={m.addToVersion.confirm(selectedManualIds.length)}
+          groups={versionList.groups}
+          hint={m.addToVersion.hint}
+          initialId={selectedBuildId ?? latestVersion?.gameBuildId ?? null}
           onClose={() => setIsAddingToVersion(false)}
-          onConfirm={addSelectedToVersion}
+          onConfirm={async (gameBuildId) => {
+            if (gameBuildId !== null) await addSelectedToVersion(gameBuildId)
+          }}
+          title={m.addToVersion.title(selectedManualIds.length)}
           versions={versionList.versions}
         />
       )}

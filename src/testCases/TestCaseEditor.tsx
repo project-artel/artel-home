@@ -3,6 +3,18 @@ import { useI18n } from '../i18n/useI18n'
 import { apiErrorMessage } from '../projects/apiErrorMessage'
 import { ProjectApiError } from '../projects/projectApi'
 import { createTestCase, updateTestCase } from './testCaseApi'
+import { versionName, type TestCaseVersionSummary, type VersionGroup } from './testCaseVersions'
+import { VersionTreeDialog } from './VersionTreeDialog'
+
+/**
+ * 새 케이스를 넣을 버전을 고르는 데 쓰는 것(ARTEL-1032). 버전이 있는 프로젝트에서만 준다 — 없으면 버전 칸이 없다.
+ * [defaultId] 는 처음 고른 버전이고, null 이면 "버전 없음"이다.
+ */
+export type VersionChoice = {
+  versions: readonly TestCaseVersionSummary[]
+  groups: readonly VersionGroup[]
+  defaultId: string | null
+}
 import {
   DEFAULT_VERIFICATION_STATUS,
   VERIFICATION_STATUSES,
@@ -75,6 +87,7 @@ export function TestCaseEditor({
   folderId = null,
   projectId,
   testCase,
+  versionChoice,
   onCreated,
   onDelete,
   onDone,
@@ -86,6 +99,8 @@ export function TestCaseEditor({
   folderId?: string | null
   projectId: string
   testCase: TestCase | null
+  /** 있으면 새 케이스를 넣을 버전 칸이 생긴다(ARTEL-1032). 고친 케이스의 저장에는 실리지 않는다. */
+  versionChoice?: VersionChoice
   onCreated: (created: TestCase) => void
   onDelete: () => void
   onDone: () => void
@@ -101,6 +116,9 @@ export function TestCaseEditor({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [failure, setFailure] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
+  const [versionId, setVersionId] = useState<string | null>(versionChoice?.defaultId ?? null)
+  const [pickingVersion, setPickingVersion] = useState(false)
+  const chosenVersion = versionChoice?.versions.find((version) => version.gameBuildId === versionId)
 
   const sceneId = useId()
   const stepId = useId()
@@ -138,6 +156,7 @@ export function TestCaseEditor({
           expectedValue: draft.expectedValue.trim(),
           verificationStatus: draft.verificationStatus,
           folderId,
+          gameBuildId: versionChoice === undefined ? null : versionId,
         })
         onCreated(created)
         return
@@ -163,6 +182,7 @@ export function TestCaseEditor({
   }
 
   return (
+    <>
     <form className="tcl-editor" noValidate onSubmit={(event) => void submit(event)}>
       <header className="tcl-editor-head">
         <h3>{creating ? m.newTitle : m.editTitle}</h3>
@@ -239,6 +259,25 @@ export function TestCaseEditor({
       </ol>
 
       <div className="tce-meta">
+        {creating && versionChoice !== undefined && (
+          <div className="tce-field tce-field--full">
+            <span className="tce-label">{m.version}</span>
+            <div className="tce-version">
+              <span className={'tce-version-name' + (chosenVersion === undefined ? ' is-none' : '')}>
+                {chosenVersion === undefined ? t.testCases.versions.unversioned : versionName(chosenVersion)}
+              </span>
+              <button
+                className="button button--secondary button--compact"
+                disabled={pending}
+                onClick={() => setPickingVersion(true)}
+                type="button"
+              >
+                {m.changeVersion}
+              </button>
+            </div>
+            <p className="field-hint">{m.versionHint}</p>
+          </div>
+        )}
         <div className="tce-field">
           <label className="tce-label" htmlFor={sceneId}>{m.scene}</label>
           <input
@@ -326,5 +365,23 @@ export function TestCaseEditor({
         </button>
       </div>
     </form>
+    {/* 폼 밖에 둔다. dialog 는 body 로 뜨지만 React 의 submit 이벤트는 컴포넌트 트리를 따라 올라와, 폼 안에 두면
+        "고르기" 가 이 편집기까지 제출했다. */}
+    {pickingVersion && versionChoice !== undefined && (
+      <VersionTreeDialog
+        allowNone
+        confirmLabel={m.pickVersion}
+        groups={versionChoice.groups}
+        initialId={versionId}
+        onClose={() => setPickingVersion(false)}
+        onConfirm={(next) => {
+          setVersionId(next)
+          setPickingVersion(false)
+        }}
+        title={m.pickVersionTitle}
+        versions={versionChoice.versions}
+      />
+    )}
+    </>
   )
 }

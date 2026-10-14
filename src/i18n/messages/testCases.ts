@@ -70,6 +70,11 @@ export const testCasesEn = {
     expectedValue: 'Expected value',
     expectedValuePlaceholder: 'What has to happen for this case to pass',
     verification: 'Result',
+    version: 'Version',
+    changeVersion: 'Change',
+    versionHint: 'The new case is added to this version, so it shows in that version’s library right away.',
+    pickVersion: 'Choose',
+    pickVersionTitle: 'Version for the new case',
     /** The grade the spec author set. Read-only: nothing here owns that value. */
     /* The three fields are one ordered sentence — the state before, the act, the judgement.
        Numbering them says so; three identical boxes stacked do not. */
@@ -259,15 +264,17 @@ export const testCasesEn = {
     mapTitle: 'Generated from the content map',
     manualTitle: 'Written by a person',
   },
+  versionTree: {
+    label: 'Versions',
+    cancel: 'Cancel',
+    pending: 'Saving…',
+    failed: 'This could not be saved.',
+  },
   addToVersion: {
     action: 'Add to version',
     title: (count: number) => `Add ${count} user-created cases to a version`,
     hint: 'Only user-created cases are added. Auto-generated cases follow the content map of each version.',
-    version: 'Version',
     confirm: (count: number) => `Add ${count}`,
-    pending: 'Adding…',
-    cancel: 'Cancel',
-    failed: 'The cases could not be added to the version.',
     done: (count: number, version: string) => `${count} user-created cases were added to ${version}.`,
     carried: (count: number, version: string) =>
       count === 0
@@ -374,6 +381,11 @@ export const testCasesKo: Localized<typeof testCasesEn> = {
     expectedValue: '기대결과',
     expectedValuePlaceholder: '이 케이스가 통과하려면 일어나야 하는 일',
     verification: '결과',
+    version: '버전',
+    changeVersion: '바꾸기',
+    versionHint: '새 케이스를 이 버전에 넣습니다. 그 버전 라이브러리에 바로 보입니다.',
+    pickVersion: '고르기',
+    pickVersionTitle: '새 케이스를 넣을 버전',
     content: '내용',
     sceneKnown: '이미 쓰고 있는 화면',
     specGrade: '명세 등급',
@@ -560,15 +572,17 @@ export const testCasesKo: Localized<typeof testCasesEn> = {
     mapTitle: '콘텐츠 맵에서 자동으로 만든 케이스',
     manualTitle: '사용자가 직접 만든 케이스',
   },
+  versionTree: {
+    label: '버전',
+    cancel: '취소',
+    pending: '저장하는 중…',
+    failed: '저장하지 못했습니다.',
+  },
   addToVersion: {
     action: '버전에 넣기',
     title: (count: number) => `사용자 생성 케이스 ${count}건을 버전에 넣기`,
     hint: '사용자 생성 케이스만 들어갑니다. 자동 생성 케이스는 버전마다 콘텐츠 맵을 따릅니다.',
-    version: '넣을 버전',
     confirm: (count: number) => `${count}건 넣기`,
-    pending: '넣는 중…',
-    cancel: '취소',
-    failed: '케이스를 버전에 넣지 못했습니다.',
     done: (count: number, version: string) => `사용자 생성 케이스 ${count}건을 ${version}에 넣었습니다.`,
     carried: (count: number, version: string) =>
       count === 0
