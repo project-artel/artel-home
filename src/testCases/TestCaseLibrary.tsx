@@ -57,13 +57,23 @@ import { useTestCaseFolders } from './useTestCaseFolders'
 import { useTestCaseLibrary } from './useTestCaseLibrary'
 import {
   absenceNote,
+  isBuildId,
   isRegression,
   resolveCompare,
   resolveVersion,
+  UNVERSIONED,
   versionName,
 } from './testCaseVersions'
 import { useTestCaseVersionList, useVersionCases } from './useTestCaseVersions'
-import { VersionList } from './VersionList'
+import {
+  assignGroupCommand,
+  copyVersionCommand,
+  createGroupCommand,
+  deleteGroupCommand,
+  hideVersionCommand,
+  renameGroupCommand,
+} from './versionCommands'
+import { VersionList, type VersionOperations } from './VersionList'
 
 /** `vdot` 와 결과 pill 이 상태마다 쓰는 CSS 접미사. 대문자 상태값을 클래스에 그대로 넣지 않는다. */
 const STATUS_CLASS: Record<VerificationStatus, string> = {
@@ -112,7 +122,9 @@ export function TestCaseLibrary({
   const latestVersion = versionList.versions.find((version) => version.latest)
   const [onlyRegressions, setOnlyRegressions] = useState(false)
   // 폴더 수는 고른 버전에서 보이는 항목 수다(ARTEL-1024).
-  const folderList = useTestCaseFolders(projectId, versionsMode ? selectedVersionId : null)
+  // "버전 없음" 은 build 가 아니라 폴더 수 · 폴더 항목을 그것으로 풀 수 없다. 그때는 가장 최근 버전으로 푼다.
+  const selectedBuildId = versionsMode && isBuildId(selectedVersionId) ? selectedVersionId : null
+  const folderList = useTestCaseFolders(projectId, selectedBuildId)
   const rowById = useMemo(
     () => new Map(versionCases.rows.map((row) => [row.testCase.id, row])),
     [versionCases.rows],
@@ -130,7 +142,7 @@ export function TestCaseLibrary({
   // 폴더를 고르면 그 폴더가 담은 케이스를 고른 버전으로 풀어 그린다(ARTEL-1024). 같은 케이스가 여러 폴더에
   // 들 수 있어 케이스의 `folderId` 로는 거를 수 없다. 폴더 안 보기는 비교하지 않는다.
   const openFolderId = folderSelection.kind === 'folder' ? folderSelection.id : null
-  const folderItems = useFolderItems(projectId, openFolderId, versionsMode ? selectedVersionId : null)
+  const folderItems = useFolderItems(projectId, openFolderId, selectedBuildId)
   const folderView = openFolderId !== null
   const comparing = !folderView && compareVersionId !== null
   const shownCompare = comparing ? compareVersion : undefined
@@ -269,10 +281,15 @@ export function TestCaseLibrary({
   // 다 있는 케이스를 읽다가 끊긴다.
   const shown = useMemo(() => {
     const sorted = selectTestCases(inFolder, filters, sort)
-    if (compareVersionId === null) return sorted
-    const onlyOneSide = (testCase: TestCase) => (rowById.get(testCase.id)?.presence ?? 'BOTH') !== 'BOTH'
+    // 폴더 안에서는 이 버전에 없는 케이스가 아래로 간다(ARTEL-1024).
+    const onlyOneSide = folderView
+      ? (testCase: TestCase) => itemById.get(testCase.id)?.inVersion === false
+      : compareVersionId === null
+        ? null
+        : (testCase: TestCase) => (rowById.get(testCase.id)?.presence ?? 'BOTH') !== 'BOTH'
+    if (onlyOneSide === null) return sorted
     return [...sorted.filter((testCase) => !onlyOneSide(testCase)), ...sorted.filter(onlyOneSide)]
-  }, [inFolder, filters, sort, compareVersionId, rowById])
+  }, [inFolder, filters, sort, folderView, itemById, compareVersionId, rowById])
   const tally = useMemo(() => tallyTestCases(inFolder), [inFolder])
   // 선택은 지금 보이는 줄에 묶인다. 필터가 줄을 숨기면 hook 이 그 줄을 선택에서 뺀다.
   const visibleIds = useMemo(() => shown.map((testCase) => testCase.id), [shown])
@@ -451,6 +468,37 @@ export function TestCaseLibrary({
     work.catch(announceFailure)
   }
 
+  const versionOperations: VersionOperations = {
+    createGroup: async (name) => {
+      await folderHistory.execute(createGroupCommand(projectId, name, h.createGroup, () => {}))
+    },
+    renameGroup: async (group, name) => {
+      await folderHistory.execute(renameGroupCommand(projectId, group, name, h.renameGroup))
+    },
+    deleteGroup: async (group) => {
+      const members = versionList.versions.filter((version) => version.groupId === group.id).map((version) => version.gameBuildId)
+      await folderHistory.execute(deleteGroupCommand(projectId, group, members, h.deleteGroup))
+    },
+    assignGroup: async (version, groupId) => {
+      runQuietly(folderHistory.execute(assignGroupCommand(projectId, version.gameBuildId, version.groupId, groupId, h.assignGroup)))
+    },
+    setHidden: async (version, hidden) => {
+      runQuietly(
+        folderHistory.execute(hideVersionCommand(projectId, version.gameBuildId, hidden, hidden ? h.hideVersion : h.showVersion)),
+      )
+    },
+    copyToFolder: async (version) => {
+      runQuietly(
+        folderHistory.execute(
+          copyVersionCommand(projectId, version.gameBuildId, h.copyVersion, (folder) => {
+            folderList.applyUpserted(folder)
+            setAnnouncement(m.folders.announce.versionCopied(folder.name))
+          }),
+        ),
+      )
+    },
+  }
+
   const operations: FolderOperations = {
     create: async (input) => {
       await folderHistory.execute(
@@ -552,7 +600,13 @@ export function TestCaseLibrary({
         collapsed={sideCollapsed}
         collapsedLabel={
           [
-            selectedVersion !== undefined && folderSelection.kind === 'all' ? versionName(selectedVersion) : null,
+            folderSelection.kind !== 'all'
+              ? null
+              : selectedVersionId === UNVERSIONED
+                ? m.versions.unversioned
+                : selectedVersion !== undefined
+                  ? versionName(selectedVersion)
+                  : null,
             folderSelection.kind === 'none'
               ? m.folders.none
               : folderSelection.kind === 'folder'
@@ -566,12 +620,15 @@ export function TestCaseLibrary({
         top={
           versionsMode ? (
             <VersionList
+              groups={versionList.groups}
               onSelect={(gameBuildId) => {
                 // 버전을 고르는 것이 곧 그 버전 전체를 보는 것이다. 폴더 필터와 비교는 푼다.
                 setOnlyRegressions(false)
                 setLibraryParams({ version: gameBuildId, compare: null, folder: null })
               }}
+              operations={versionOperations}
               selectedId={folderSelection.kind === 'all' ? selectedVersionId : null}
+              unversionedTotal={versionList.unversionedTotal}
               versions={versionList.versions}
             />
           ) : undefined
@@ -592,6 +649,8 @@ export function TestCaseLibrary({
         }}
         operations={operations}
         selection={folderSelection}
+        // 버전이 있으면 "폴더 없음" 대신 버전 쪽의 "버전 없음" 을 쓴다(ARTEL-1024).
+        showUnfiled={!versionsMode}
         status={folderList.status}
       />
       <section
@@ -664,7 +723,7 @@ export function TestCaseLibrary({
             </div>
           )}
 
-          {versionsMode && !folderView && (
+          {versionsMode && !folderView && selectedBuildId !== null && (
             <div className="tcl-filter">
               <Picker
                 label={m.versions.compareLabel}

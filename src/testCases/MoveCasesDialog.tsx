@@ -36,7 +36,6 @@ export function MoveCasesDialog({
       ? { ...moveLabels, title: items.addTitle, destination: items.destination, confirm: items.addConfirm, pending: items.addPending, failed: items.addFailed }
       : moveLabels
   const titleId = useId()
-  const pickerId = useId()
   const allowsNone = mode === 'move'
   const [folderId, setFolderId] = useState<string | null>(
     allowsNone || rows.some((row) => row.folder.id === initialFolderId)
@@ -62,9 +61,8 @@ export function MoveCasesDialog({
     <Dialog labelledBy={titleId} onClose={onClose} title={m.title(count)}>
       <form className="form" onSubmit={(event) => void confirm(event)}>
         <div className="field">
-          <label className="field-label" htmlFor={pickerId}>{m.destination}</label>
           <FolderPicker
-            id={pickerId}
+            label={m.destination}
             noneLabel={allowsNone ? m.noFolder : undefined}
             onChange={setFolderId}
             rows={rows}

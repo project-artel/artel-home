@@ -2,23 +2,28 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   listTestCaseVersions,
   listVersionCases,
-  type TestCaseVersionSummary,
   type VersionCaseRow,
+  type VersionLibrary,
 } from './testCaseVersions'
 
 export type VersionsStatus = 'loading' | 'ready' | 'failed'
 
-/** 프로젝트의 버전 목록(ARTEL-1022). 버전이 없는 프로젝트는 빈 목록이고, 라이브러리는 예전처럼 정체 목록을 그린다. */
+const EMPTY_LIBRARY: VersionLibrary = { versions: [], groups: [], unversionedTotal: 0 }
+
+/**
+ * 프로젝트의 버전 목록(ARTEL-1022)과 버전 묶음 · "버전 없음" 수(ARTEL-1024). 버전이 없는 프로젝트는 빈 목록이고,
+ * 라이브러리는 예전처럼 정체 목록을 그린다.
+ */
 export function useTestCaseVersionList(projectId: string) {
-  const [versions, setVersions] = useState<TestCaseVersionSummary[]>([])
+  const [library, setLibrary] = useState<VersionLibrary>(EMPTY_LIBRARY)
   const [status, setStatus] = useState<VersionsStatus>('loading')
   const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     const controller = new AbortController()
     listTestCaseVersions(projectId, controller.signal)
-      .then((items) => {
-        setVersions(items)
+      .then((loaded) => {
+        setLibrary(loaded)
         setStatus('ready')
       })
       .catch((cause: unknown) => {
@@ -29,7 +34,7 @@ export function useTestCaseVersionList(projectId: string) {
   }, [projectId, reloadKey])
 
   const refresh = useCallback(() => setReloadKey((key) => key + 1), [])
-  return { versions, status, refresh }
+  return { ...library, status, refresh }
 }
 
 /** 고른 버전의 케이스 표. [gameBuildId] 가 null 이면 아무것도 읽지 않는다. */

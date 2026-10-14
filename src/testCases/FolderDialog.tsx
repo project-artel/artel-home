@@ -34,7 +34,6 @@ export function FolderDialog({
   const m = t.testCases.folders.dialog
   const titleId = useId()
   const nameId = useId()
-  const parentId = useId()
   const [name, setName] = useState(initial.name)
   const [parent, setParent] = useState<string | null>(initial.parentId)
   const [failure, setFailure] = useState<string | null>(null)
@@ -80,9 +79,8 @@ export function FolderDialog({
         )}
         {showsParent && (
           <div className="field">
-            <label className="field-label" htmlFor={parentId}>{m.parent}</label>
             <FolderPicker
-              id={parentId}
+              label={m.parent}
               noneLabel={m.topLevel}
               onChange={setParent}
               rows={parentRows}

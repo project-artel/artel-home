@@ -68,6 +68,7 @@ export function FolderPane({
   onSelect,
   operations,
   selection,
+  showUnfiled = true,
   status,
   onToggleCollapsed,
   top,
@@ -83,6 +84,8 @@ export function FolderPane({
   onSelect: (selection: FolderSelection) => void
   operations: FolderOperations
   selection: FolderSelection
+  /** "폴더 없음" 줄. 버전이 있는 프로젝트는 버전 쪽 "버전 없음" 이 대신하므로 그리지 않는다(ARTEL-1024). */
+  showUnfiled?: boolean
   status: TestCaseFoldersStatus
   onToggleCollapsed?: () => void
   /**
@@ -301,14 +304,16 @@ export function FolderPane({
               />
             </li>
           )}
-          <li>
-            <FolderItem
-              count={counts.unfiled}
-              current={selection.kind === 'none'}
-              label={m.none}
-              onClick={() => onSelect(NO_FOLDER)}
-            />
-          </li>
+          {showUnfiled && (
+            <li>
+              <FolderItem
+                count={counts.unfiled}
+                current={selection.kind === 'none'}
+                label={m.none}
+                onClick={() => onSelect(NO_FOLDER)}
+              />
+            </li>
+          )}
         </ul>
         {tree.length > 0 && (
           <FolderBranch

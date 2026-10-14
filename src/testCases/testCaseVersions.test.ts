@@ -2,11 +2,16 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   absenceNote,
+  arrangeVersions,
+  hiddenVersions,
+  isBuildId,
   isRegression,
+  parseVersionLibrary,
   parseVersionCases,
   parseVersionList,
   resolveCompare,
   resolveVersion,
+  UNVERSIONED,
   versionName,
 } from './testCaseVersions'
 
@@ -72,4 +77,37 @@ test('회귀는 비교 버전 통과 → 이 버전 실패 또는 재검증', ()
   assert.equal(isRegression({ verificationStatus: 'REGRESSION', compareVerificationStatus: 'VERIFIED' }), true)
   assert.equal(isRegression({ verificationStatus: 'FAILED', compareVerificationStatus: 'FAILED' }), false)
   assert.equal(isRegression({ verificationStatus: 'VERIFIED', compareVerificationStatus: 'VERIFIED' }), false)
+})
+
+test('버전 묶음은 안의 가장 최근 버전 자리에 서고, 숨긴 버전은 따로 모인다', () => {
+  const library = parseVersionLibrary({
+    items: [
+      { gameBuildId: '9', version: '2.1', createdAt: '2026-10-20T00:00:00Z', groupId: 'g2', hidden: false, counts: {} },
+      { gameBuildId: '8', version: '1.2', createdAt: '2026-10-18T00:00:00Z', groupId: 'g1', hidden: false, counts: {} },
+      { gameBuildId: '7', version: '2.0', createdAt: '2026-10-15T00:00:00Z', groupId: 'g2', hidden: false, counts: {} },
+      { gameBuildId: '6', version: '1.1-test', createdAt: '2026-10-14T00:00:00Z', groupId: null, hidden: false, counts: {} },
+      { gameBuildId: '5', version: '1.1', createdAt: '2026-10-12T00:00:00Z', groupId: 'g1', hidden: true, counts: {} },
+    ],
+    groups: [{ id: 'g1', name: '1.X' }, { id: 'g2', name: '2.X' }, { id: 'g3', name: '3.X' }, { id: '', name: 'x' }],
+    unversionedTotal: 4,
+  })
+
+  assert.equal(library.unversionedTotal, 4)
+  assert.equal(library.groups.length, 3)
+  const shape = arrangeVersions(library.versions, library.groups).map((entry) =>
+    entry.kind === 'group'
+      ? `${entry.group.name}[${entry.versions.map((version) => version.version).join(',')}]`
+      : entry.version.version,
+  )
+  assert.deepEqual(shape, ['2.X[2.1,2.0]', '1.X[1.2]', '1.1-test', '3.X[]'])
+  assert.deepEqual(hiddenVersions(library.versions).map((version) => version.version), ['1.1'])
+})
+
+test('버전 없음은 주소의 낱말로 고르고 비교하지 않는다', () => {
+  assert.equal(resolveVersion(list, UNVERSIONED), UNVERSIONED)
+  assert.equal(resolveVersion([], UNVERSIONED), null)
+  assert.equal(resolveCompare(list, UNVERSIONED, '2'), null)
+  assert.equal(isBuildId(UNVERSIONED), false)
+  assert.equal(isBuildId('12'), true)
+  assert.equal(isBuildId(null), false)
 })

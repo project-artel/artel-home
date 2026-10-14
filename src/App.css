@@ -9990,7 +9990,7 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
 /* 접기 단추는 창 오른쪽 위 구석에 둔다. 버전 목록 옆에 붙이면 버전 줄이 폴더 줄보다 좁아졌다. */
 .tcl-side-head{ position:relative; }
 .tcl-side-head > .tcl-side-toggle{ position:absolute; top:-2px; right:0; }
-.tcl-side-head .tcl-versions > .tcl-folders-title{ padding-right:36px; min-height:28px; display:flex; align-items:center; }
+.tcl-side-head .tcl-versions-head{ padding-right:36px; }
 .tcl-folders-head{ display:flex; align-items:center; justify-content:space-between; gap:var(--space-2); }
 .tcl-side-toggle{ flex:none; width:28px; height:28px; display:grid; place-items:center; padding:0; border:1px solid var(--color-border-subtle); border-radius:6px; background:transparent; color:var(--color-text-secondary); cursor:pointer; }
 .tcl-side-toggle:hover{ background:var(--color-bg-hover); color:var(--color-text-primary); }
@@ -10095,3 +10095,23 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
 .ctx-menu-item:hover, .ctx-menu-item:focus-visible{ background:var(--color-bg-hover); outline:none; }
 .ctx-menu-item--danger{ color:var(--color-status-critical); }
 .ctx-menu-item:disabled{ opacity:.4; cursor:default; }
+
+/* 버전 묶음 · 숨긴 버전 · 버전 없음 (ARTEL-1024) */
+.tcl-versions-head{ display:flex; align-items:center; gap:4px; min-height:28px; border-radius:var(--radius-md); }
+.tcl-versions-head .tcl-folders-title{ flex:1; }
+.tcl-versions-head.is-drop-target{ outline:2px dashed var(--color-brand-accent); outline-offset:2px; }
+.tcl-versions-add{ width:26px; height:26px; display:grid; place-items:center; padding:0; border:1px solid var(--color-border-subtle); border-radius:6px; background:transparent; color:var(--color-text-secondary); font-size:14px; line-height:1; cursor:pointer; }
+.tcl-versions-add:hover{ background:var(--color-bg-hover); color:var(--color-text-primary); }
+.tcl-version[draggable="true"]{ cursor:grab; }
+.tcl-version-group{ color:var(--color-text-secondary); font-weight:600; }
+.tcl-version-group.is-drop-target{ background:color-mix(in srgb, var(--color-brand-accent) 16%, transparent); box-shadow:inset 0 0 0 1px var(--color-brand-accent); }
+.tcl-chevron{ flex:none; width:14px; height:14px; color:var(--color-text-muted); transition:transform .15s; }
+.tcl-chevron.is-open{ transform:rotate(90deg); }
+.tcl-version--none .tcl-folder-name{ font-family:inherit; font-weight:400; color:var(--color-text-secondary); }
+.tcl-version.is-hidden{ opacity:.6; }
+.tcl-hidden-versions{ display:flex; flex-direction:column; gap:2px; }
+.tcl-hidden-toggle{
+  display:flex; align-items:center; gap:6px; padding:4px var(--space-2); border:0; border-radius:var(--radius-md);
+  background:transparent; color:var(--color-text-muted); font-size:12px; text-align:left; cursor:pointer;
+}
+.tcl-hidden-toggle:hover{ background:var(--color-bg-hover); color:var(--color-text-secondary); }

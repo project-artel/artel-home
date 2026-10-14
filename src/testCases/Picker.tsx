@@ -167,7 +167,9 @@ function PickerList({
           event.preventDefault()
           onChoose(active)
         } else if (event.key === 'Escape') {
+          // dialog 안의 고르기 상자면 Escape 가 dialog 까지 닫지 않게 여기서 멈춘다.
           event.preventDefault()
+          event.stopPropagation()
           onClose(true)
         } else if (event.key === 'Tab') {
           onClose(false)
