@@ -12,7 +12,7 @@ import { getQaTryDetail } from './qaTryDetailApi'
 export function QaFunctionOptionsSummary({ options }: { options: QaTryFunctionOptions | null }) {
   const { t } = useI18n()
   const m = t.gameFunctions.summary
-  if (options === null) return null
+  if (options === null || isUninformative(options)) return null
 
   return (
     <section className="gf-summary" aria-label={m.title}>
@@ -32,6 +32,23 @@ export function QaFunctionOptionsSummary({ options }: { options: QaTryFunctionOp
         />
       </dl>
     </section>
+  )
+}
+
+/**
+ * orchestration 은 이 기능 이전의 run 에도 `cheatMode: "on"` 과 빈 `effective*` 를 돌려준다(키가 없으면 기본값을
+ * 채운다). 그 응답과 "catalog 가 없는 빌드에서 기본값으로 시작한 run" 은 구별되지 않고, 둘 다 에이전트에게 간 이름이
+ * 없다는 것 말고는 말할 것이 없다. 그래서 두 mode 가 모두 `on` 이고 고른 목록도 간 이름도 없으면 그리지 않는다.
+ * `off` 를 고른 run 은 사용자가 정한 것이므로 그린다.
+ */
+function isUninformative(options: QaTryFunctionOptions): boolean {
+  return (
+    options.cheatMode !== 'off' &&
+    options.behaviorMode !== 'off' &&
+    options.allowedCheats === null &&
+    options.allowedBehaviors === null &&
+    (options.effectiveCheats ?? []).length === 0 &&
+    (options.effectiveBehaviors ?? []).length === 0
   )
 }
 
