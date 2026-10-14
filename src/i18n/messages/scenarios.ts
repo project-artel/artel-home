@@ -393,6 +393,7 @@ export const scenariosEn = {
       deleteCopy: (name: string, runs: number) =>
         `“${name}” and the folders inside it are removed. Its ${runs} run${runs === 1 ? '' : 's'} stay in this build version, outside any folder.`,
       deleteFailed: 'The folder could not be deleted. Please try again.',
+      gone: (name: string) => `The folder “${name}” no longer exists — it was deleted elsewhere. The list has been refreshed.`,
       empty: 'This folder is empty. Drag runs here, or make a run while this folder is open.',
       rowKind: 'Folder',
       messages: {
@@ -965,6 +966,7 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
       deleteCopy: (name: string, runs: number) =>
         `“${name}” 과 그 안의 폴더가 지워집니다. 안의 런 ${runs}개는 지워지지 않고, 이 빌드 버전 바로 아래로 나옵니다.`,
       deleteFailed: '폴더를 지우지 못했습니다. 다시 시도해 주세요.',
+      gone: (name: string) => `“${name}” 폴더는 이미 지워졌습니다(다른 화면에서). 목록을 다시 읽었습니다.`,
       empty: '빈 폴더입니다. 런을 끌어 놓거나, 이 폴더를 연 채로 새 런을 만드세요.',
       rowKind: '폴더',
       messages: {

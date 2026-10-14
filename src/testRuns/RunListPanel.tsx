@@ -233,6 +233,12 @@ export function RunListPanel({
       // 같은 빌드 버전 안에서 폴더만 바꿨으면 저작이 보는 것은 그대로다. 그 말은 버전이 바뀔 때만 한다.
       setNotice(bucketOf(run) === target ? r.movedWithin(name, place) : r.moved(name, place))
     } catch (error: unknown) {
+      if (error instanceof ProjectApiError && error.status === 404 && folder !== null) {
+        // 다른 화면(다른 사람 · 다른 탭)이 그새 그 폴더를 지웠다. 들고 있던 폴더 목록이 낡은 것이니 다시 읽는다.
+        setFoldersKey((key) => key + 1)
+        setFailure(r.folders.gone(folder.name))
+        return
+      }
       setFailure(error instanceof ProjectApiError && error.status === 409 ? r.moveEditor : r.moveFailed)
     }
   }
@@ -637,7 +643,11 @@ export function RunListPanel({
         <NameDialog
           initialName={naming.kind === 'createFolder' ? r.folders.defaultName : naming.kind === 'renameFolder' ? naming.folder.name : naming.run.name}
           messages={naming.kind === 'renameRun' ? r.renameRun.messages : r.folders.messages}
-          onClose={() => setNaming(null)}
+          onClose={() => {
+            setNaming(null)
+            // 실패한 채 닫았을 수도 있다. 폴더가 그새 지워졌으면 목록을 맞춘다.
+            setFoldersKey((key) => key + 1)
+          }}
           onSubmit={async (name) => {
             if (naming.kind === 'createFolder') {
               const folder = await createRunFolder(projectId, {
