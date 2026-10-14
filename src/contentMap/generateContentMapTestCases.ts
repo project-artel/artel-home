@@ -17,6 +17,8 @@ export type GeneratedTestCases = {
   updated: number
   deleted: number
   broken: number
+  /** 바로 앞 버전에 있던 사용자 생성 케이스를 이 버전에 이어 넣은 수(ARTEL-1032). */
+  carriedOver: number
 }
 
 export function parseGeneratedTestCases(data: unknown): GeneratedTestCases {
@@ -28,18 +30,24 @@ export function parseGeneratedTestCases(data: unknown): GeneratedTestCases {
     updated: asCount(record?.updated),
     deleted: asCount(record?.deleted),
     broken: asCount(record?.broken),
+    carriedOver: asCount(record?.carriedOver),
   }
 }
 
 /**
  * `POST .../content-map/test-cases` — 적재된 content map 에서 test case 를 만든다. 이미 있는 것은
  * 갱신하고 사라진 것은 지운다. build 가 없으면 404, 적재된 content map 이 없으면 409.
+ *
+ * [carryOver] 가 false 면 앞 버전의 사용자 생성 TC 를 이어 넣지 않는다(`?carryOver=false`). 서버 기본값은 이어
+ * 넣기라 true 일 때는 싣지 않는다.
  */
 export async function generateContentMapTestCases(
   projectId: string,
   buildId: string,
+  carryOver = true,
 ): Promise<GeneratedTestCases> {
-  const response = await apiFetch(contentMapPath(projectId, buildId, '/test-cases'), {
+  const query = carryOver ? '' : '?carryOver=false'
+  const response = await apiFetch(contentMapPath(projectId, buildId, '/test-cases') + query, {
     method: 'POST',
   })
   if (!response.ok) throw await toApiError(response)

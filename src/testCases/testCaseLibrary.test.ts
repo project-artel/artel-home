@@ -86,7 +86,7 @@ test('씬과 검증 상태 필터는 함께 걸린다', () => {
     makeCase('3', { scene: 'Shop', verificationStatus: 'BROKEN' }),
   ]
 
-  const filters = { query: '', scene: 'Lobby', status: 'BROKEN' as VerificationStatus }
+  const filters = { query: '', scene: 'Lobby', status: 'BROKEN' as VerificationStatus, origin: 'ALL' as const }
   assert.deepEqual(idsOf(selectTestCases(cases, filters, 'NEWEST')), ['1'])
   assert.equal(hasActiveFilters(filters), true)
 })
@@ -170,4 +170,18 @@ test('editor build 는 label 이나 version 이 있어도 Editor 로 부른다',
   const builds = [makeBuild('20', { isEditor: true, label: '내 label', version: '1.6.0' })]
 
   assert.equal(describeVerifiedBuild('20', builds, 'Editor'), 'Editor')
+})
+
+test('출처 필터는 자동 생성 · 사용자 생성을 가르고, 출처를 모르는 케이스는 전체에서만 보인다', () => {
+  const cases = [
+    makeCase('1', { origin: 'MAP' }),
+    makeCase('2', { origin: 'MANUAL' }),
+    makeCase('3'),
+  ]
+  const only = (origin: 'ALL' | 'MAP' | 'MANUAL') => idsOf(selectTestCases(cases, { ...NO_FILTERS, origin }, 'NEWEST'))
+
+  assert.deepEqual(only('ALL'), ['1', '2', '3'])
+  assert.deepEqual(only('MAP'), ['1'])
+  assert.deepEqual(only('MANUAL'), ['2'])
+  assert.equal(hasActiveFilters({ ...NO_FILTERS, origin: 'MANUAL' }), true)
 })

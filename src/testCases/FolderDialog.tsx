@@ -34,7 +34,6 @@ export function FolderDialog({
   const m = t.testCases.folders.dialog
   const titleId = useId()
   const nameId = useId()
-  const parentId = useId()
   const [name, setName] = useState(initial.name)
   const [parent, setParent] = useState<string | null>(initial.parentId)
   const [failure, setFailure] = useState<string | null>(null)
@@ -58,7 +57,7 @@ export function FolderDialog({
     try {
       await onSubmit({ name: trimmed, parentId: parent })
     } catch (error: unknown) {
-      setFailure(toFailureMessage(error, m))
+      setFailure(toFailureMessage(error, m, mode))
       setPending(false)
     }
   }
@@ -73,6 +72,7 @@ export function FolderDialog({
               autoComplete="off"
               className="field-input"
               id={nameId}
+              maxLength={NAME_MAX_LENGTH}
               onChange={(event) => setName(event.target.value)}
               value={name}
             />
@@ -80,9 +80,8 @@ export function FolderDialog({
         )}
         {showsParent && (
           <div className="field">
-            <label className="field-label" htmlFor={parentId}>{m.parent}</label>
             <FolderPicker
-              id={parentId}
+              label={m.parent}
               noneLabel={m.topLevel}
               onChange={setParent}
               rows={parentRows}
@@ -111,13 +110,21 @@ export function FolderDialog({
   )
 }
 
+/** 서버의 `test_case_folder.name` 길이와 같다. 넘으면 서버가 400 을 낸다. */
+const NAME_MAX_LENGTH = 200
+
+/**
+ * 400 은 옮기기에서만 "그 자리에 둘 수 없음"(자기 · 하위 폴더 밑)이다. 만들기 · 이름 바꾸기의 400 은 이름 문제다 — 예전에는
+ * 둘을 가리지 않아 이름이 길어도 "그 위치에 둘 수 없습니다" 가 떴다.
+ */
 function toFailureMessage(
   error: unknown,
-  m: { duplicateName: string; invalidLocation: string; failed: string },
+  m: { duplicateName: string; invalidLocation: string; invalidName: string; failed: string },
+  mode: FolderDialogMode,
 ): string {
   if (error instanceof ProjectApiError) {
     if (error.status === 409) return m.duplicateName
-    if (error.status === 400) return m.invalidLocation
+    if (error.status === 400) return mode === 'move' ? m.invalidLocation : m.invalidName
   }
   return m.failed
 }

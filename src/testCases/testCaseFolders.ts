@@ -194,6 +194,24 @@ export function countCasesByFolder(
 }
 
 /**
+ * 폴더가 케이스를 담은 뒤의 건수(ARTEL-1024). 폴더 수는 서버가 센 **바로 담긴** 항목 수다 — 버전으로 읽었으면
+ * 그 버전에서 보이는 수(`visibleCount`), 아니면 담긴 수 전부(`caseCount`). 같은 케이스가 여러 폴더에 들 수
+ * 있어 케이스 목록으로는 셀 수 없다.
+ *
+ * 전체와 폴더 없음은 지금 표의 케이스로 센다. 케이스의 `folderId` 는 처음 담긴 폴더라, null 이면 어느 폴더에도 없다.
+ */
+export function countFromFolders(
+  cases: readonly TestCase[],
+  folders: readonly TestCaseFolder[],
+): FolderCounts {
+  return {
+    total: cases.length,
+    unfiled: cases.filter((testCase) => testCase.folderId === null).length,
+    byFolder: new Map(folders.map((folder) => [folder.id, folder.visibleCount ?? folder.caseCount])),
+  }
+}
+
+/**
  * 폴더를 옮길 때 부모로 고를 수 있는 폴더. 자기와 하위 폴더 밑으로는 옮길 수 없다(서버도 400).
  * 이름순 tree 의 읽는 순서로 낸다.
  */

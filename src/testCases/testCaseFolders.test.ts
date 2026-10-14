@@ -8,6 +8,7 @@ import {
   buildFolderTree,
   collectDescendantIds,
   countCasesByFolder,
+  countFromFolders,
   countFolderDescendants,
   effectiveFolderSelection,
   filterByFolder,
@@ -21,7 +22,7 @@ import {
 import type { TestCase } from './testCaseTypes.ts'
 
 function makeFolder(id: string, name: string, parentId: string | null = null): TestCaseFolder {
-  return { id, parentId, name, contentMapId: null, gameBuildId: null }
+  return { id, parentId, name, caseCount: 0, visibleCount: null }
 }
 
 function makeCase(id: string, folderId: string | null, extra: Partial<TestCase> = {}): TestCase {
@@ -179,4 +180,19 @@ test('폴더 목록을 읽기 전에는 폴더 id 를 걸지 않고, 읽은 뒤�
   assert.deepEqual(effectiveFolderSelection(requested, 'ready', folders), requested)
   assert.deepEqual(effectiveFolderSelection({ kind: 'folder', id: '404' }, 'ready', folders), ALL_FOLDERS)
   assert.deepEqual(effectiveFolderSelection(NO_FOLDER, 'loading', []), NO_FOLDER)
+})
+
+test('폴더 수는 서버가 센 바로 담긴 수이고, 버전으로 읽었으면 그 버전에서 보이는 수다', () => {
+  const counts = countFromFolders(
+    [makeCase('1', null), makeCase('2', '7'), makeCase('3', null)],
+    [
+      { ...makeFolder('7', 'Combat'), caseCount: 5, visibleCount: 3 },
+      { ...makeFolder('8', 'Shop'), caseCount: 2, visibleCount: null },
+    ],
+  )
+
+  assert.equal(counts.total, 3)
+  assert.equal(counts.unfiled, 2)
+  assert.equal(counts.byFolder.get('7'), 3)
+  assert.equal(counts.byFolder.get('8'), 2)
 })
