@@ -5094,6 +5094,7 @@ a.instance-name:hover {
 .qa-rail-step-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:1px; }
 .qa-rail-step{ position:relative; width:100%; display:grid; grid-template-columns:14px 20px minmax(0,1fr); align-items:baseline; gap:4px; padding:4px 6px 4px 8px; border:0; border-radius:4px; background:transparent; color:var(--color-text-secondary); font:inherit; font-size:12px; line-height:18px; text-align:left; }
 .qa-rail-step--neutral{ grid-template-columns:20px minmax(0,1fr); }
+.qa-rail-step--cheat{ grid-template-columns:14px 20px minmax(0,1fr) auto; }
 button.qa-rail-step--linked{ cursor:pointer; }
 button.qa-rail-step--linked:hover{ background:var(--color-bg-hover); }
 .qa-rail-step-glyph{ font-size:12px; text-align:center; }

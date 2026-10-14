@@ -48,7 +48,7 @@ export const gameFunctionsEn = {
     off: 'Off',
     unknown: 'Not recorded',
     allowed: 'Allowed',
-    allInCatalog: 'Everything in the catalog',
+    allInCatalog: 'All in the catalog',
     effective: 'Sent to the agent',
     none: 'None',
   },
@@ -60,7 +60,7 @@ export const gameFunctionsEn = {
     lanesTitle: 'Behaviors',
     lanesCount: (count: number) => (count === 1 ? '1 run' : `${count} runs`),
     lanesLabel: 'Behavior runs over time',
-    stillRunning: 'Still running',
+    stillRunning: 'Running',
     noDetail: 'No detail reported.',
     jumpToStart: 'Show where it started in the log',
     barLabel: (name: string, reason: string, seconds: string | null) =>
@@ -155,7 +155,7 @@ export const gameFunctionsKo: Localized<typeof gameFunctionsEn> = {
     lanesTitle: 'Behavior',
     lanesCount: (count: number) => `${count}회`,
     lanesLabel: '시간에 따른 behavior 실행',
-    stillRunning: '아직 실행 중',
+    stillRunning: '실행 중',
     noDetail: '보고된 내용이 없습니다.',
     jumpToStart: '로그에서 시작한 곳 보기',
     barLabel: (name: string, reason: string, seconds: string | null) =>

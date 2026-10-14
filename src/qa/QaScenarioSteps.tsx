@@ -150,7 +150,7 @@ export function QaScenarioSteps({
         <span className="visually-hidden">{s.stateLabels[step.state]}</span>
       </>
     )
-    const className = `qa-rail-step ${toneClass('qa-rail-step', step.state, step.grade)}`
+    const className = `qa-rail-step ${toneClass('qa-rail-step', step.state, step.grade)}${step.usedCheats.length > 0 ? ' qa-rail-step--cheat' : ''}`
     const verdictLogId = step.verdictLogId
     return (
       <li key={row.step}>
