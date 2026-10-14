@@ -12,8 +12,9 @@ import { useProjectCases } from './useProjectCases'
  * The body of a FREE scenario: its test cases, with no order to edit and no step text.
  *
  * Reads and writes the same draft as {@link ScenarioStepEditor}, so title edits, removals
- * and additions all go through the studio's autosave and undo. The numbers (`TC n`) are
- * only the listing order here; the QA agent picks its own.
+ * and additions all go through the studio's autosave and undo. The number in the badge is
+ * only the listing order here, and the QA agent picks its own; `TC #id` names the case
+ * itself, so the badge and the label do not repeat one number.
  */
 export function FreeScenarioEditor({ editor, projectId }: { editor: StepEditor; projectId: string }) {
   const { t } = useI18n()
@@ -56,7 +57,7 @@ export function FreeScenarioEditor({ editor, projectId }: { editor: StepEditor; 
                   <div className="free-case-body">
                     <div className="free-case-head">
                       {row.testCase !== null && <span className={`vdot ${row.testCase.verificationStatus}`} />}
-                      <span className="free-case-label">{m.tcLabel(row.number)}</span>
+                      <span className="free-case-label">{m.tcLabel(row.caseId)}</span>
                       <span className="free-case-title">
                         {row.testCase === null ? m.missingCase : row.testCase.step || m.missingCase}
                       </span>
@@ -70,7 +71,7 @@ export function FreeScenarioEditor({ editor, projectId }: { editor: StepEditor; 
                     )}
                   </div>
                   <button
-                    aria-label={`${m.remove}: ${m.tcLabel(row.number)}`}
+                    aria-label={`${m.remove}: ${m.tcLabel(row.caseId)}`}
                     className="iconbtn iconbtn--danger"
                     onClick={() => editor.removeStep(row.index)}
                     title={m.remove}

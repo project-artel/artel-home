@@ -11,7 +11,7 @@ import type { ScenarioStep } from './scenarioTypes'
 export type FreeCaseRow = {
   /** 0-based index into the scenario's `steps`. */
   index: number
-  /** 1-based number shown as `TC n`. */
+  /** 1-based listing order, shown in the row's badge. */
   number: number
   caseId: string
   testCase: TestCase | null
