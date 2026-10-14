@@ -1,4 +1,5 @@
-/** Placeholder until the screen moves over from admin-page (ARTEL-1043). */
+import { KnowledgeStatsDashboard } from './KnowledgeStatsDashboard'
+
 export default function KnowledgePage() {
-  return null
+  return <KnowledgeStatsDashboard />
 }
