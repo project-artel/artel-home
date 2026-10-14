@@ -157,6 +157,8 @@ export function VersionList({
         <button
           aria-current={current ? 'true' : undefined}
           className={'tcl-folder tcl-version' + (current ? ' is-current' : '') + (version.hidden ? ' is-hidden' : '')}
+          // 튜토리얼이 "다른 라이브러리에서 가져오기" 를 설명할 때 밝게 두는 줄(ARTEL-1033).
+          data-tour={version.latest && !version.hidden ? 'latest-version' : undefined}
           draggable={!version.hidden}
           onClick={() => onSelect(version.gameBuildId)}
           onContextMenu={(event) => openMenu(event, { kind: 'version', version })}

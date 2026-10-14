@@ -299,7 +299,11 @@ export const testCasesEn = {
       },
       versionTools: {
         title: 'Group, hide and copy versions',
-        body: 'Use + to make a version group such as 1.X, then drag versions into it. Right-click a version to copy it into a folder, import user-created cases from another library, move it to a group or hide it.',
+        body: 'Use + to make a version group such as 1.X, then drag versions into it. Right-click a version to copy it into a folder, move it to a group or hide it.',
+      },
+      importManual: {
+        title: 'Import cases from another library',
+        body: 'Right-click a version and choose “Import user-created cases from another library…”. Pick another version, No version or a folder on the left, tick the user-created cases you want, and they are added to this version. Cases already in this version are not listed, and ⌘Z undoes the import.',
       },
       unversioned: {
         title: 'No version',
@@ -701,7 +705,11 @@ export const testCasesKo: Localized<typeof testCasesEn> = {
       },
       versionTools: {
         title: '버전 묶기 · 숨기기 · 복제',
-        body: '+ 로 1.X 같은 버전 묶음을 만들고 버전을 끌어 넣습니다. 버전을 우클릭하면 새 폴더로 복제, 다른 라이브러리에서 사용자 생성 TC 가져오기, 묶음으로 이동, 숨기기를 할 수 있습니다.',
+        body: '+ 로 1.X 같은 버전 묶음을 만들고 버전을 끌어 넣습니다. 버전을 우클릭하면 새 폴더로 복제, 묶음으로 이동, 숨기기를 할 수 있습니다.',
+      },
+      importManual: {
+        title: '다른 라이브러리에서 TC 가져오기',
+        body: '버전을 우클릭하고 “다른 라이브러리에서 사용자 생성 TC 가져오기…” 를 고릅니다. 왼쪽에서 다른 버전 · 버전 없음 · 폴더를 고르고, 가져올 사용자 생성 TC 에 체크하면 이 버전에 들어갑니다. 이 버전에 이미 있는 TC 는 보이지 않고, ⌘Z 로 되돌릴 수 있습니다.',
       },
       unversioned: {
         title: '버전 없음',

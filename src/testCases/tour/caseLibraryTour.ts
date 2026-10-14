@@ -21,6 +21,7 @@ export function caseLibraryTourSteps(t: Messages): TourStep[] {
     step('welcome'),
     step('versions', 'versions'),
     step('versionTools', 'version-head'),
+    step('importManual', 'latest-version'),
     step('unversioned', 'unversioned'),
     step('folders', 'folders'),
     step('folderTools', 'folder-actions'),
