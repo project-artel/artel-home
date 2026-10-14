@@ -58,6 +58,12 @@ describe('selectBuild', () => {
     assert.equal(selectBuild([editor], null)?.id, '3')
   })
 
+  it('createdAt 이 같으면 목록에서 앞선 build 를 고른다', () => {
+    const first = makeBuild('4', { createdAt: '2026-09-01T00:00:00.000Z' })
+    const second = makeBuild('5', { createdAt: '2026-09-01T00:00:00.000Z' })
+    assert.equal(selectBuild([first, second], null)?.id, '4')
+  })
+
   it('목록이 비면 undefined 를 낸다', () => {
     assert.equal(selectBuild([], null), undefined)
   })
@@ -84,5 +90,6 @@ describe('buildOptionText', () => {
     assert.equal(buildOptionText(makeBuild('1', { label: 'QA' }), 'Editor'), '1.4.0 · QA')
     assert.equal(buildOptionText(makeBuild('1', { label: '' }), 'Editor'), '1.4.0')
     assert.equal(buildOptionText(makeBuild('1', { label: null }), 'Editor'), '1.4.0')
+    assert.equal(buildOptionText(makeBuild('1', { label: '   ' }), 'Editor'), '1.4.0')
   })
 })

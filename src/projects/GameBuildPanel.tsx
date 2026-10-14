@@ -46,7 +46,9 @@ export function GameBuildPanel({
       </header>
 
       {versions.length === 0 ? (
-        <p className="panel-empty">{t.projects.builds.empty}</p>
+        <p className="panel-empty">
+          {builds.length > 0 ? t.projects.builds.emptyEditorOnly : t.projects.builds.empty}
+        </p>
       ) : (
         <ul className="build-list">
           {versions.map((build) => (
