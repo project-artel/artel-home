@@ -142,6 +142,9 @@ export const projectsEn = {
     title: 'Game builds',
     empty:
       'No build has reported in yet. A row appears here the first time a game runs with a connected instance, using the version from Unity’s Player Settings.',
+    /** Shown when only the Unity editor has registered: its build is not a game version, so this list stays empty. */
+    emptyEditorOnly:
+      'No game version has reported in yet. Only the Unity editor has connected, and the editor build is not listed as a version. Run a development build to add one.',
     updatedAnnouncement: 'Build updated.',
     saveFailed: 'The build could not be saved. Please try again.',
     /** Rendered around the monospace version value. */
@@ -152,6 +155,8 @@ export const projectsEn = {
     notesLabel: 'Notes',
     notesHint: 'Clearing this field removes the notes.',
     versionField: 'Version',
+    /** Names the editor build in pickers and test case outcomes; the editor build is not a game version. */
+    editorLabel: 'Editor',
     noLabel: 'No label',
     noNotes: 'No notes',
     firstReportedField: 'First reported',
@@ -579,6 +584,8 @@ export const projectsKo: Localized<typeof projectsEn> = {
     title: '게임 빌드',
     empty:
       '아직 보고된 빌드가 없습니다. 연결된 인스턴스로 게임을 처음 실행하면 Unity Player Settings의 버전으로 여기에 행이 나타납니다.',
+    emptyEditorOnly:
+      '아직 보고된 게임 버전이 없습니다. Unity editor 만 연결되었고, editor build 는 버전으로 나열하지 않습니다. development build 를 실행하면 버전이 추가됩니다.',
     updatedAnnouncement: '빌드를 업데이트했습니다.',
     saveFailed: '빌드를 저장하지 못했습니다. 다시 시도해 주세요.',
     versionNoteBefore: '버전 ',
@@ -588,6 +595,7 @@ export const projectsKo: Localized<typeof projectsEn> = {
     notesLabel: '메모',
     notesHint: '이 칸을 비우면 메모가 삭제됩니다.',
     versionField: '버전',
+    editorLabel: 'Editor',
     noLabel: '레이블 없음',
     noNotes: '메모 없음',
     firstReportedField: '최초 보고',

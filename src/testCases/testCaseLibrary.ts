@@ -131,16 +131,21 @@ export function tallyTestCases(cases: TestCase[]): TestCaseTally {
  *
  * `lastVerifiedBuildId` 가 가리키는 build 가 이미 지워졌을 수 있어 `null` 을 낸다 — 그때
  * 화면은 build 칸을 비운다. 없는 build 의 id 를 그대로 적어 주면 사용자가 확인할 방법이
- * 없는 숫자만 남는다.
+ * 없는 숫자만 남는다. editor build 는 version 대신 [editorLabel] 로 부른다.
  */
 export function describeVerifiedBuild(
   buildId: string | null,
   builds: GameBuild[],
+  editorLabel: string,
 ): string | null {
   if (buildId === null) return null
 
   const build = builds.find((candidate) => candidate.id === buildId)
   if (build === undefined) return null
+
+  // editor build 의 version 은 마지막으로 보고된 값일 뿐이라, 그 build 에서 검증했다는 말의
+  // 이름으로는 맞지 않다.
+  if (build.isEditor) return editorLabel
 
   const label = build.label?.trim() ?? ''
   return label.length > 0 ? label : build.version

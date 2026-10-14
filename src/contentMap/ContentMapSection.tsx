@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
+import { buildOptionText, selectBuild } from '../projects/gameBuilds'
 import { useWorkspace } from '../projects/workspace/workspaceContext'
 import { ContentMapReport } from './ContentMapPage'
 
@@ -24,9 +25,10 @@ export function ContentMapSection() {
   const { builds, projectId } = useWorkspace()
   const { t } = useI18n()
   const copy = t.contentMap.section
+  const editorLabel = t.projects.builds.editorLabel
   const [searchParams, setSearchParams] = useSearchParams()
   const requestedBuildId = searchParams.get('build')
-  const selectedBuild = builds.find((build) => build.id === requestedBuildId) ?? builds[0]
+  const selectedBuild = selectBuild(builds, requestedBuildId)
 
   // 주소가 늘 고른 빌드를 말하게 한다. `replace` 라 기본 빌드가 채워지는 것이 뒤로 가기
   // 한 걸음을 잡아먹지 않는다.
@@ -51,9 +53,7 @@ export function ContentMapSection() {
             >
               {builds.map((build) => (
                 <option key={build.id} value={build.id}>
-                  {build.label === null || build.label.length === 0
-                    ? build.version
-                    : `${build.version} · ${build.label}`}
+                  {buildOptionText(build, editorLabel)}
                 </option>
               ))}
             </select>
