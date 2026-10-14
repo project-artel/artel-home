@@ -82,6 +82,8 @@ export type KnowledgeGraph = {
   projectId: string
   nodes: KnowledgeNode[]
   edges: KnowledgeEdge[]
+  /** Edges omitted because an endpoint is absent from the response. */
+  droppedEdges: number
   /**
    * True when the node budget cut the result. Edges touching a cut node are gone
    * too, so a truncated graph is not a smaller drawing of the same shape — it is
