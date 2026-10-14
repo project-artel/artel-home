@@ -10719,8 +10719,6 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
 .section-content:has(.trl-page){ width:100%; }
 .workspace-body:has(.trl-page) .section-header{ width:100%; }
 .trl-page{ display:flex; flex-direction:column; gap:var(--space-3); min-width:0; }
-.trl-page-head{ display:flex; align-items:center; justify-content:flex-end; gap:var(--space-4); }
-.trl-page-head h2{ margin:0; font-size:18px; }
 .trl{ display:flex; min-height:420px; height:calc(100dvh - var(--trl-top, 180px) - var(--space-6)); border:1px solid var(--color-border-subtle); border-radius:14px; background:var(--color-bg-surface); overflow:hidden; }
 .trl-muted{ font-size:12px; color:var(--color-text-muted); font-weight:400; }
 .trl-scroll{ position:relative; flex:1; min-height:0; overflow-y:auto; }
@@ -10745,7 +10743,7 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
 .trl-group-name{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .trl-group--hidden{ margin:8px 16px 0 12px; width:auto; font-weight:400; }
 .trl-main{ flex:1; min-width:0; display:flex; flex-direction:column; min-height:0; }
-.trl-main-head{ flex:none; display:flex; align-items:flex-end; gap:16px; padding:22px 28px 14px; }
+.trl-main-head{ flex:none; display:flex; align-items:center; gap:12px; padding:22px 28px 14px; }
 .trl-main-title{ flex:1; min-width:0; display:flex; flex-direction:column; gap:4px; }
 .trl-main-title h3{ margin:0; font-family:var(--font-display); font-size:26px; line-height:32px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .trl-chip{ flex:none; padding:4px 12px; border-radius:999px; background:var(--color-bg-hover); color:var(--color-text-secondary); font-size:12px; white-space:nowrap; }
@@ -10755,8 +10753,9 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
 .trl-cols{ flex:none; padding:0 40px 8px; font-size:12px; color:var(--color-text-muted); }
 .trl-list{ list-style:none; margin:0; padding:0 28px 16px; }
 .trl-row{ min-height:56px; padding:6px 12px; border-radius:10px; cursor:pointer; color:var(--color-text-primary); }
-.trl-list > li:nth-child(odd) .trl-row{ background:color-mix(in srgb, var(--color-bg-raised) 55%, transparent); }
-.trl-row:hover, .trl-list > li:nth-child(odd) .trl-row:hover{ background:var(--color-bg-hover); }
+/* 글자색을 옅게 섞어 줄무늬를 낸다 — 다크에서는 밝은 회색, 라이트에서는 어두운 회색이 되어 두 테마 모두에서 갈린다. */
+.trl-list > li:nth-child(odd) .trl-row{ background:color-mix(in srgb, var(--color-text-primary) 7%, transparent); }
+.trl-row:hover, .trl-list > li:nth-child(odd) .trl-row:hover{ background:color-mix(in srgb, var(--color-text-primary) 12%, transparent); }
 .trl-row[draggable="true"]:active{ cursor:grabbing; }
 .trl-row-icon{ flex:none; color:var(--color-text-secondary); }
 .trl-row-title{ min-width:0; display:flex; flex-direction:column; }

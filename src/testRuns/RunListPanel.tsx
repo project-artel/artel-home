@@ -8,6 +8,7 @@ import { ContextMenu, type ContextMenuItem } from '../testCases/ContextMenu'
 import {
   arrangeVersions,
   hiddenVersions,
+  setVersionHidden,
   versionName,
   type TestCaseVersionSummary,
 } from '../testCases/testCaseVersions'
@@ -70,6 +71,8 @@ export function RunListPanel({
   const [creating, setCreating] = useState(false)
   const [moving, setMoving] = useState<TestRun | null>(null)
   const [menu, setMenu] = useState<{ run: TestRun; x: number; y: number } | null>(null)
+  // 버전 칸의 우클릭 메뉴. 숨기기는 케이스 라이브러리와 같은 설정이라 거기서도 숨는다.
+  const [versionMenu, setVersionMenu] = useState<{ version: TestCaseVersionSummary; x: number; y: number } | null>(null)
   const [dropTarget, setDropTarget] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [query, setQuery] = useState('')
@@ -178,6 +181,17 @@ export function RunListPanel({
     ]
   }
 
+  async function toggleHidden(version: TestCaseVersionSummary) {
+    setFailure(null)
+    try {
+      await setVersionHidden(projectId, version.gameBuildId, !version.hidden)
+      versionList.refresh()
+      if (!version.hidden) setShowHidden(true)
+    } catch {
+      setFailure(r.hideFailed)
+    }
+  }
+
   function lastQaText(lastQa: RunLastQa | null): string {
     if (lastQa === null) return r.lastQa.never
     if (lastQa.status === 'RUNNING' || lastQa.status === 'STARTING') return r.lastQa.running
@@ -185,7 +199,7 @@ export function RunListPanel({
     return lastQa.status === 'CANCELLED' ? r.lastQa.cancelled(result) : result
   }
 
-  const node = (key: string, label: string, options: { latest?: boolean; hidden?: boolean } = {}) => {
+  const node = (key: string, label: string, options: { latest?: boolean; hidden?: boolean; version?: TestCaseVersionSummary } = {}) => {
     const on = key === bucket
     const count = counts.get(key) ?? 0
     return (
@@ -196,6 +210,12 @@ export function RunListPanel({
             'trl-node' + (on ? ' is-current' : '') + (options.hidden === true ? ' is-hidden' : '') + (dropTarget === key ? ' is-drop' : '')
           }
           onClick={() => selectBucket(key)}
+          onContextMenu={(event) => {
+            const version = options.version
+            if (version === undefined) return
+            event.preventDefault()
+            setVersionMenu({ version, x: event.clientX, y: event.clientY })
+          }}
           onDragLeave={() => setDropTarget((current) => (current === key ? null : current))}
           onDragOver={(event) => {
             if (!event.dataTransfer.types.includes(RUN_DRAG)) return
@@ -225,20 +245,15 @@ export function RunListPanel({
   }
 
   const versionNode = (version: TestCaseVersionSummary) =>
-    node(version.gameBuildId, versionName(version), { latest: version.latest, hidden: version.hidden })
+    node(version.gameBuildId, versionName(version), { latest: version.latest, hidden: version.hidden, version })
 
   const needle = query.trim().toLowerCase()
   const listed = needle === '' ? shown : shown.filter((run) => `${run.name} ${run.description ?? ''}`.toLowerCase().includes(needle))
 
   return (
     <section aria-labelledby="test-runs-title" className="trl-page">
-      <header className="trl-page-head">
-        {/* 위의 작업공간 제목이 이미 "테스트 런" 이다. 같은 말을 두 번 보이지 않고, 낭독기에만 남긴다. */}
-        <h2 className="visually-hidden" id="test-runs-title">{r.title}</h2>
-        <button className="button button--primary button--compact" onClick={() => setCreating(true)} type="button">
-          {r.newButton}
-        </button>
-      </header>
+      {/* 위의 작업공간 제목이 이미 "테스트 런" 이다. 같은 말을 두 번 보이지 않고, 낭독기에만 남긴다. */}
+      <h2 className="visually-hidden" id="test-runs-title">{r.title}</h2>
 
       {notice !== null && (
         <p className="trl-notice">
@@ -327,6 +342,9 @@ export function RunListPanel({
                 <h3>{bucketLabel}</h3>
               </div>
               <span className="trl-chip">{r.runCount(shown.length)}</span>
+              <button className="button button--primary button--compact" onClick={() => setCreating(true)} type="button">
+                {r.newButton}
+              </button>
             </div>
             {shown.length > 0 && (
               <>
@@ -411,6 +429,21 @@ export function RunListPanel({
             </div>
           </main>
         </div>
+      )}
+
+      {versionMenu !== null && (
+        <ContextMenu
+          items={[
+            {
+              label: versionMenu.version.hidden ? v.menu.show : v.menu.hide,
+              onSelect: () => void toggleHidden(versionMenu.version),
+            },
+          ]}
+          label={r.versionMenuLabel}
+          onClose={() => setVersionMenu(null)}
+          x={versionMenu.x}
+          y={versionMenu.y}
+        />
       )}
 
       {menu !== null && (
