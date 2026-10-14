@@ -99,6 +99,7 @@ export const contentMapEn = {
     action: 'Create test cases',
     running: 'Creating test cases…',
     blocked: {
+      editorBuild: 'The editor build is not a game version, so it does not get test cases. Its content map is kept as game knowledge. Create test cases from a game build.',
       notUploaded: 'Nothing has been scanned for this build, so there is no content map to create test cases from.',
       noDocuments: 'This build has a content map but no evidence document has been uploaded for it. Scan the game above first.',
       notIngested: 'The evidence is uploaded but has not been read yet. Create test cases once the content map is read.',
@@ -109,6 +110,7 @@ export const contentMapEn = {
         : `Created ${counts.created}, updated ${counts.updated}, deleted ${counts.deleted}, marked ${counts.broken} as BROKEN.`,
     openLibrary: 'Open the test case library',
     failure: {
+      editorBuild: 'The editor build is not a game version, so no test cases were created. Create them from a game build.',
       notIngested: 'This build has no content map that has been read yet, so no test cases were created. Press Refresh at the top of the page, then try again.',
       buildMissing: 'This build no longer exists, so no test cases were created.',
       other: 'Test cases could not be created. Nothing was altered.',
@@ -618,6 +620,7 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
     action: '테스트 케이스 생성',
     running: '테스트 케이스를 만드는 중…',
     blocked: {
+      editorBuild: 'editor 는 게임 버전이 아니라서 테스트 케이스를 만들지 않습니다. 이 콘텐츠 맵은 게임 지식으로만 쓰입니다. 게임 빌드를 골라 만들어 주세요.',
       notUploaded: '이 빌드는 아직 스캔된 적이 없어 테스트 케이스를 만들 콘텐츠 맵이 없습니다.',
       noDocuments: '이 빌드에는 콘텐츠 맵이 있지만 올라온 증거 문서가 없습니다. 위에서 게임을 스캔한 뒤에 만들 수 있습니다.',
       notIngested: '증거는 올라왔지만 아직 읽히지 않았습니다. 콘텐츠 맵이 읽힌 뒤에 만들 수 있습니다.',
@@ -628,6 +631,7 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
         : `생성 ${counts.created}건, 갱신 ${counts.updated}건, 삭제 ${counts.deleted}건, BROKEN 처리 ${counts.broken}건.`,
     openLibrary: '테스트 케이스 라이브러리에서 열기',
     failure: {
+      editorBuild: 'editor 는 게임 버전이 아니라서 테스트 케이스를 만들지 않았습니다. 게임 빌드를 골라 만들어 주세요.',
       notIngested: '이 빌드에 읽힌 콘텐츠 맵이 아직 없어 테스트 케이스를 만들지 못했습니다. 위쪽의 새로고침을 누른 뒤 다시 시도해 주세요.',
       buildMissing: '이 빌드가 더는 없어 테스트 케이스를 만들지 못했습니다.',
       other: '테스트 케이스를 만들지 못했습니다. 아무것도 바뀌지 않았습니다.',

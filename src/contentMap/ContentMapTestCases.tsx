@@ -25,10 +25,12 @@ type Generation =
  */
 export function ContentMapTestCases({
   buildId,
+  isEditor,
   projectId,
   view,
 }: {
   buildId: string
+  isEditor: boolean
   projectId: string
   view: ContentMapView
 }) {
@@ -38,7 +40,7 @@ export function ContentMapTestCases({
   // 같은 tick 의 두 번째 click 은 `disabled` 가 반영되기 전에 들어올 수 있다.
   const inFlight = useRef(false)
 
-  const block = describeGenerationBlock(view)
+  const block = describeGenerationBlock(view, isEditor)
   const isRunning = generation.phase === 'running'
 
   async function generate() {
