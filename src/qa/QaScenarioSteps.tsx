@@ -121,9 +121,11 @@ export function QaScenarioSteps({
       step.expectedPassed === null ? null : step.expectedPassed ? s.expected.passed : s.expected.failed
     // The tooltip is where an inverted colour is explained, so it names all three:
     // what happened, what was expected, and which way they went.
+    const cheatNames = step.usedCheats.map((used) => used.name)
     const label = [
       `${numberLabel}. ${title} · ${s.stateLabels[step.state]}`,
       expectation,
+      cheatNames.length === 0 ? null : `${t.gameFunctions.timeline.usedCheats(cheatNames.length)}: ${cheatNames.join(', ')}`,
       step.grade === null ? null : s.gradeLabels[step.grade],
     ]
       .filter((part): part is string => part !== null)
@@ -139,6 +141,12 @@ export function QaScenarioSteps({
         <span aria-hidden="true" className="qa-rail-step-glyph">{STATE_GLYPHS[step.state]}</span>
         <span className="qa-rail-step-no">{numberLabel}</span>
         <span className="qa-rail-step-title">{title}</span>
+        {step.usedCheats.length > 0 && (
+          <span className="gf-badge" translate="no">
+            {t.gameFunctions.timeline.cheatBadge}
+            {step.usedCheats.length > 1 && <span className="mono"> ×{step.usedCheats.length}</span>}
+          </span>
+        )}
         <span className="visually-hidden">{s.stateLabels[step.state]}</span>
       </>
     )
