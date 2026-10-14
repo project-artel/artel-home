@@ -1,4 +1,11 @@
 import { accountEn, accountKo } from './messages/account'
+import { adminEn, adminKo } from './messages/admin'
+import { adminGraphEn, adminGraphKo } from './messages/adminGraph'
+import { adminKnowledgeEn, adminKnowledgeKo } from './messages/adminKnowledge'
+import { adminLabelsEn, adminLabelsKo } from './messages/adminLabels'
+import { adminQaEn, adminQaKo } from './messages/adminQa'
+import { adminSettingsEn, adminSettingsKo } from './messages/adminSettings'
+import { adminUsageEn, adminUsageKo } from './messages/adminUsage'
 import { commonEn, commonKo } from './messages/common'
 import { contentMapEn, contentMapKo } from './messages/contentMap'
 import { issuesEn, issuesKo } from './messages/issues'
@@ -27,6 +34,13 @@ export type Localized<T> = {
 export const messages = {
   en: {
     account: accountEn,
+    admin: adminEn,
+    adminGraph: adminGraphEn,
+    adminKnowledge: adminKnowledgeEn,
+    adminLabels: adminLabelsEn,
+    adminQa: adminQaEn,
+    adminSettings: adminSettingsEn,
+    adminUsage: adminUsageEn,
     common: commonEn,
     contentMap: contentMapEn,
     issues: issuesEn,
@@ -42,6 +56,13 @@ export const messages = {
   },
   ko: {
     account: accountKo,
+    admin: adminKo,
+    adminGraph: adminGraphKo,
+    adminKnowledge: adminKnowledgeKo,
+    adminLabels: adminLabelsKo,
+    adminQa: adminQaKo,
+    adminSettings: adminSettingsKo,
+    adminUsage: adminUsageKo,
     common: commonKo,
     contentMap: contentMapKo,
     issues: issuesKo,
