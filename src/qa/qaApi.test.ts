@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { ProjectApiError } from '../projects/projectApi'
-import { parseQaTry, qaStartConflict } from './qaApi'
+import { parseQaModels, parseQaTry, qaStartConflict } from './qaApi'
 
 const QA_TRY_FIELDS = {
   id: '41',
@@ -65,4 +65,56 @@ test('is null for anything that is not a start conflict', () => {
   assert.equal(qaStartConflict(new ProjectApiError(409, 'other', 'conflict')), null)
   assert.equal(qaStartConflict(new Error('network down')), null)
   assert.equal(qaStartConflict(null), null)
+})
+
+const MODEL_FIELDS = {
+  id: 'openai/gpt-6-luna',
+  label: 'GPT-6 Luna',
+  provider: 'openai',
+  supportsVision: true,
+  multimodal: true,
+  inputModalities: ['text', 'image'],
+  reasoning: null,
+}
+
+/**
+ * The key fields are new and optional: today's `/api/qa-models` sends none of
+ * them, and the picker has to keep offering every model — on the platform key,
+ * which is what the server does with them now.
+ */
+test('parseQaModels reads a model without key fields as offered on the platform key', () => {
+  const [parsed] = parseQaModels([MODEL_FIELDS], 200)
+
+  assert.equal(parsed.keySource, 'platform')
+  assert.equal(parsed.keyProvider, null)
+  assert.equal(parsed.keyRegistered, true)
+  assert.equal(parsed.keyHint, null)
+  assert.equal(parsed.pricing, null)
+})
+
+test('parseQaModels reads a user model with its key and price', () => {
+  const [parsed] = parseQaModels([{
+    ...MODEL_FIELDS,
+    keySource: 'user',
+    keyProvider: 'anthropic',
+    keyRegistered: true,
+    keyHint: 'sk-ant-…4f2a',
+    pricing: { inputPerMtok: 2, outputPerMtok: 10, asOf: '2026-10-07' },
+  }], 200)
+
+  assert.equal(parsed.keySource, 'user')
+  assert.equal(parsed.keyProvider, 'anthropic')
+  assert.equal(parsed.keyRegistered, true)
+  assert.equal(parsed.keyHint, 'sk-ant-…4f2a')
+  assert.deepEqual(parsed.pricing, { inputPerMtok: 2, outputPerMtok: 10 })
+})
+
+test('parseQaModels does not treat a user model with no keyRegistered flag as callable', () => {
+  const [parsed] = parseQaModels([{ ...MODEL_FIELDS, keySource: 'user' }], 200)
+
+  assert.equal(parsed.keyRegistered, false)
+})
+
+test('parseQaModels reads an unknown keySource as the platform key', () => {
+  assert.equal(parseQaModels([{ ...MODEL_FIELDS, keySource: 'team' }], 200)[0].keySource, 'platform')
 })

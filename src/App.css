@@ -1457,6 +1457,17 @@ a.instance-name:hover {
   margin: 0 0 var(--space-1);
 }
 
+.cli-install-guide--collapsible > summary {
+  width: fit-content;
+  min-height: 32px;
+  padding: 6px 0;
+  cursor: pointer;
+}
+
+.cli-install-guide--collapsible[open] > summary {
+  margin-bottom: var(--space-2);
+}
+
 .cli-install-guide .copy-line {
   margin-bottom: var(--space-2);
 }
@@ -2606,6 +2617,388 @@ a.instance-name:hover {
 
 .qa-start-controls .button {
   min-height: 44px;
+}
+
+/* 모델 선택(ARTEL-1035). 네이티브 `select` 가 아니라 직접 그린 목록이다 — OS 가 그리는 팝업은
+   테마를 무시하고 구획·배지·잠긴 행을 그릴 수 없어, 누구 키로 도는지 말할 자리가 없었다. */
+.qa-start-field--model {
+  flex-basis: 100%;
+}
+
+.qa-model-picker {
+  position: relative;
+}
+
+.qa-model-trigger {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  background: var(--color-bg-raised);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.qa-model-trigger:hover:not(:disabled) {
+  background: var(--color-bg-hover);
+}
+
+.qa-model-trigger[aria-expanded='true'],
+.qa-model-trigger:focus-visible {
+  border-color: var(--color-action-primary);
+  outline: none;
+}
+
+.qa-model-trigger:disabled {
+  color: var(--color-text-muted);
+  cursor: default;
+}
+
+.qa-model-trigger-placeholder {
+  color: var(--color-text-muted);
+}
+
+.qa-model-trigger-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qa-model-trigger-provider {
+  margin-left: auto;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.qa-model-trigger-chevron {
+  flex: none;
+  color: var(--color-text-secondary);
+  transition: transform var(--motion-fast) var(--ease-standard);
+}
+
+.qa-model-trigger-placeholder + .qa-model-trigger-chevron {
+  margin-left: auto;
+}
+
+.qa-model-trigger[aria-expanded='true'] .qa-model-trigger-chevron {
+  transform: rotate(180deg);
+}
+
+/* 누구 키로 도는지는 색만으로 말하지 않는다 — 아이콘과 글자가 함께 간다. */
+.qa-model-badge {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 1px 7px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+}
+
+.qa-model-badge--platform {
+  color: var(--color-action-primary);
+}
+
+.qa-model-badge--user {
+  color: var(--color-text-secondary);
+}
+
+/* 그림자 없이 배경 한 단계와 1px 선으로 띄운다(DESIGN.md). */
+.qa-model-popover {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + var(--space-1));
+  right: 0;
+  left: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
+}
+
+/* 두 구획을 가르는 탭. 개수가 붙어 있어 다른 쪽에 무엇이 있는지 늘 보인다. */
+.qa-model-tabs {
+  display: flex;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-2) 0;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.qa-model-tab {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: -1px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--color-text-secondary);
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.qa-model-tab:hover {
+  color: var(--color-text-primary);
+}
+
+.qa-model-tab.is-active {
+  border-bottom-color: var(--color-action-primary);
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.qa-model-tab-count {
+  padding: 0 6px;
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  background: var(--color-bg-raised);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  line-height: 16px;
+}
+
+.qa-model-register-link {
+  margin-left: var(--space-2);
+  color: var(--color-action-primary);
+  font-weight: 600;
+}
+
+.qa-model-tab-hint {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 0 var(--space-3) var(--space-2);
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.qa-model-search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-2);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  background: var(--color-bg-raised);
+}
+
+.qa-model-search:focus-within {
+  border-color: var(--color-action-primary);
+}
+
+.qa-model-search input {
+  min-width: 0;
+  height: 34px;
+  flex: 1;
+  border: 0;
+  outline: none;
+  color: var(--color-text-primary);
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+}
+
+/* 막대는 네이티브가 아니라 EdgeScrollbar 가 그린다 — 시나리오 rail 과 같은 막대다. */
+.qa-model-list {
+  max-height: 340px;
+  margin: 0;
+  overflow-y: auto;
+  padding: 0 0 var(--space-2);
+  border-top: 1px solid var(--color-border-subtle);
+  list-style: none;
+  scrollbar-width: none;
+}
+
+.qa-model-list::-webkit-scrollbar {
+  display: none;
+}
+
+.qa-model-list ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.qa-model-group + .qa-model-group {
+  margin-top: var(--space-2);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+/* 구획 제목은 그 구획을 지나는 동안 위에 붙어 있다. 길게 내려가도 지금 어느 쪽 키를 보는지 놓치지 않는다. */
+.qa-model-section[hidden] {
+  display: none;
+}
+
+.qa-model-section {
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-3) var(--space-2);
+  color: var(--color-text-muted);
+  background: var(--color-bg-surface);
+  font-size: 12px;
+}
+
+.qa-model-section-title {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.qa-model-section-icon--platform {
+  color: var(--color-action-primary);
+}
+
+.qa-model-provider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3) var(--space-1) 40px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.qa-model-key-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.qa-model-key-status--ok {
+  color: var(--color-status-success);
+}
+
+.qa-model-key-status--missing {
+  color: var(--color-status-critical);
+}
+
+.qa-model-option {
+  display: flex;
+  min-height: 36px;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  color: var(--color-text-primary);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.qa-model-option.is-active {
+  background: var(--color-bg-hover);
+}
+
+.qa-model-option.is-selected {
+  color: var(--color-action-primary);
+}
+
+.qa-model-option.is-locked {
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+.qa-model-option-mark {
+  display: inline-flex;
+  width: 20px;
+  flex: none;
+  justify-content: center;
+}
+
+.qa-model-option-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qa-model-tag {
+  flex: none;
+  padding: 0 6px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.qa-model-option.is-locked .qa-model-tag {
+  color: var(--color-text-muted);
+}
+
+.qa-model-option-trailing {
+  margin-left: auto;
+  padding-left: var(--space-3);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.qa-model-empty {
+  padding: var(--space-4) var(--space-3);
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.qa-model-footnote {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-top: 1px solid var(--color-border-subtle);
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+/* EdgeScrollbar 의 막대. `.scenario-studio` 아래 규칙과 같은 모양을 앱 공통 토큰으로 쓴다. */
+.qa-model-popover .edgebar {
+  position: absolute;
+  z-index: 2;
+  right: 0;
+  width: 18px;
+  pointer-events: none;
+}
+
+.qa-model-popover .edgebar-thumb {
+  position: absolute;
+  right: 0;
+  left: 0;
+  cursor: grab;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.qa-model-popover .edgebar-thumb:active {
+  cursor: grabbing;
+}
+
+.qa-model-popover .edgebar-fill {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--color-action-primary);
+  transition: width 120ms var(--ease-standard), background 120ms var(--ease-standard);
+}
+
+.qa-model-popover .edgebar.is-near .edgebar-fill {
+  width: 11px;
+  background: var(--color-action-primary-strong);
 }
 
 .qa-model-config {
@@ -10254,3 +10647,61 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
 .tcl-help:hover{ color:var(--color-text-primary); border-color:var(--color-border-strong); }
 .tcl-help:focus-visible{ outline:2px solid var(--color-brand-accent); outline-offset:2px; }
 @media (max-width: 1439px){ .tcl-help{ position:static; justify-self:start; } }
+
+/* 계정 화면의 LLM API 키 (ARTEL-1035). 서비스마다 한 줄이고, 등록 폼은 그 줄 안에서 열린다. */
+.llm-key-list {
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.llm-key-row {
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.llm-key-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+}
+
+.llm-key-name {
+  display: flex;
+  min-width: 160px;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+}
+
+.llm-key-name span {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+/* 키 상태는 색만으로 말하지 않는다 — 아이콘과 글자가 함께 간다. 모델 선택의 탭 아래 줄과 같은 모양이다. */
+.llm-key-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: 12px;
+}
+
+.llm-key-status--ok {
+  color: var(--color-status-success);
+}
+
+.llm-key-status--missing {
+  color: var(--color-status-critical);
+}
+
+.llm-key-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+.llm-key-form {
+  margin-top: var(--space-3);
+}

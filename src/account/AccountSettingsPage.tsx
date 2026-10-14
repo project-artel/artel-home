@@ -12,6 +12,7 @@ import {
 import { CliTokenPanel } from '../auth/CliTokenPanel'
 import { useAuth } from '../auth/useAuth'
 import { useI18n } from '../i18n/useI18n'
+import { LlmKeysPanel } from './LlmKeysPanel'
 
 type ProfileFormDraft = {
   nickname: string
@@ -31,7 +32,9 @@ function toFormDraft(user: AuthUser): ProfileFormDraft {
  * `section-columns` list, rather than folding email into `ProfilePanel` or
  * reshaping the page. `ARTEL-781` adds `CliTokenPanel` as a third sibling for
  * the same reason — this page has no tabs or sub-routes yet, and one feature
- * is not a reason to introduce them.
+ * is not a reason to introduce them. `ARTEL-1035` adds `LlmKeysPanel` the same
+ * way, under the email it sits closest to in use — both are things the account
+ * brings to a project.
  */
 export function AccountSettingsPage() {
   const auth = useAuth()
@@ -60,6 +63,7 @@ export function AccountSettingsPage() {
           applyPendingEmail={auth.applyPendingEmail}
           user={auth.user}
         />
+        <LlmKeysPanel />
         <CliTokenPanel />
       </div>
     </section>

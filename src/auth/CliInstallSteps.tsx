@@ -46,9 +46,17 @@ export function CliCopyLine({
  */
 export function CliInstallSteps({
   children,
+  collapsed = false,
   onResult,
 }: {
   children?: ReactNode
+  /**
+   * Starts folded under its title. The account page folds it: the steps are a
+   * one-time tutorial beside a token form people come back to, and open they
+   * pushed everything below them a screen down. The setup guide, which exists
+   * to teach them, leaves them open.
+   */
+  collapsed?: boolean
   onResult: (message: string) => void
 }) {
   const { t } = useI18n()
@@ -56,9 +64,8 @@ export function CliInstallSteps({
   const titleId = useId()
   const agentPrompt = copy.agentPrompt(CLI_AGENT_GUIDE_URL)
 
-  return (
-    <div aria-labelledby={titleId} className="cli-install-guide" role="group">
-      <h3 className="guide-copy cli-install-title" id={titleId}>{copy.title}</h3>
+  const steps = (
+    <>
       <p className="guide-copy">{copy.requirement}</p>
       <CliCopyLine
         copiedMessage={copy.installCopied}
@@ -81,6 +88,22 @@ export function CliInstallSteps({
         text={CLI_LOGIN_COMMAND}
       />
       {children}
+    </>
+  )
+
+  if (collapsed) {
+    return (
+      <details className="cli-install-guide cli-install-guide--collapsible">
+        <summary className="guide-copy cli-install-title">{copy.title}</summary>
+        {steps}
+      </details>
+    )
+  }
+
+  return (
+    <div aria-labelledby={titleId} className="cli-install-guide" role="group">
+      <h3 className="guide-copy cli-install-title" id={titleId}>{copy.title}</h3>
+      {steps}
     </div>
   )
 }

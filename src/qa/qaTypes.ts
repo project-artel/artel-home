@@ -87,6 +87,24 @@ export type QaReasoningCapability =
       step: number
     }
 
+/**
+ * Whose API key a run's model calls are billed to.
+ *
+ * `platform` is the key an administrator registered — the platform pays, and
+ * while testers are being recruited the picker offers these as free. `user` is a
+ * key the signed-in user registered for one provider — they pay for the calls.
+ * The same model can appear once under each, so a model's identity in the picker
+ * is the pair, not the id (`qaModelOptionKey`).
+ */
+export const QA_KEY_SOURCES = ['platform', 'user'] as const
+export type QaKeySource = (typeof QA_KEY_SOURCES)[number]
+
+/** USD per million tokens, the unit `llm_model.pricing` is stored in. */
+export type QaModelPricing = {
+  inputPerMtok: number
+  outputPerMtok: number
+}
+
 export type QaModel = {
   id: string
   label: string
@@ -95,6 +113,24 @@ export type QaModel = {
   inputModalities: string[]
   multimodal: boolean
   reasoning: QaReasoningCapability | null
+  keySource: QaKeySource
+  /**
+   * The service a `user` key is registered with — `anthropic` for a key that
+   * calls Anthropic directly, `openrouter` for one that reaches many vendors'
+   * models. Not `provider`: that is who made the model, and one OpenRouter key
+   * unlocks models from several of them. Null on platform models.
+   */
+  keyProvider: string | null
+  /** False only for a `user` model whose key service has no key registered yet. */
+  keyRegistered: boolean
+  /** The registered key with all but its ends masked, as the server shows it. */
+  keyHint: string | null
+  pricing: QaModelPricing | null
+}
+
+/** A model's identity in the picker: the same id can be offered on both keys. */
+export function qaModelOptionKey(model: Pick<QaModel, 'id' | 'keySource'>): string {
+  return `${model.keySource}:${model.id}`
 }
 
 export type QaReasoningSelection =

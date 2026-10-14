@@ -10,6 +10,7 @@ import {
   toApiError,
 } from '../projects/projectApi'
 import {
+  QA_KEY_SOURCES,
   QA_LOG_DIRECTIONS,
   QA_LOG_TYPES,
   QA_TRY_STATUSES,
@@ -17,7 +18,9 @@ import {
   type QaLogDirection,
   type QaLogPage,
   type QaLogType,
+  type QaKeySource,
   type QaModel,
+  type QaModelPricing,
   type QaReasoningSelection,
   type QaRun,
   type QaTry,
@@ -175,12 +178,13 @@ export async function createQaRun(
   testRunId: string,
   gameInstanceId: string,
   model: string,
+  keySource: QaKeySource,
   reasoning: QaReasoningSelection | null,
   force = false,
 ): Promise<QaRun> {
   const response = await apiFetch(QA_RUNS_ROOT, {
     method: 'POST',
-    ...jsonRequest({ testRunId, gameInstanceId, model, reasoning, force }),
+    ...jsonRequest({ testRunId, gameInstanceId, model, keySource, reasoning, force }),
   })
   return parseQaRun(await readJson(response), response.status)
 }
@@ -202,9 +206,17 @@ export async function cancelQaRun(qaRunId: string): Promise<void> {
 
 export async function listQaModels(signal?: AbortSignal): Promise<QaModel[]> {
   const response = await apiFetch(QA_MODELS_ROOT, { signal })
-  const data: unknown = await readJson(response)
+  return parseQaModels(await readJson(response), response.status)
+}
+
+/**
+ * The model catalog. `keySource`, `keyProvider`, `keyRegistered`, `keyHint` and `pricing` are
+ * optional: a server that does not send them yet offers every model on the
+ * platform key, which is what it does today.
+ */
+export function parseQaModels(data: unknown, status: number): QaModel[] {
   if (!Array.isArray(data)) {
-    throw new ProjectApiError(response.status, 'The server returned an unreadable model catalog.')
+    throw new ProjectApiError(status, 'The server returned an unreadable model catalog.')
   }
   return data.flatMap((item) => {
     const record = asRecord(item)
@@ -221,6 +233,10 @@ export async function listQaModels(signal?: AbortSignal): Promise<QaModel[]> {
     ) {
       return []
     }
+
+    const keySource: QaKeySource = isOneOf(record.keySource, QA_KEY_SOURCES)
+      ? record.keySource
+      : 'platform'
 
     let parsedReasoning: QaModel['reasoning'] = null
     if (
@@ -259,8 +275,26 @@ export async function listQaModels(signal?: AbortSignal): Promise<QaModel[]> {
       inputModalities: record.inputModalities,
       multimodal: record.multimodal,
       reasoning: parsedReasoning,
+      keySource,
+      keyProvider: keySource === 'user' && typeof record.keyProvider === 'string'
+        ? record.keyProvider
+        : null,
+      // A user model is only callable once its provider has a key; a missing
+      // flag must not turn into a run that fails on its first call.
+      keyRegistered: keySource === 'platform' || record.keyRegistered === true,
+      keyHint: typeof record.keyHint === 'string' ? record.keyHint : null,
+      pricing: parsePricing(record.pricing),
     }]
   })
+}
+
+function parsePricing(value: unknown): QaModelPricing | null {
+  const record = asRecord(value)
+  return record !== null &&
+    typeof record.inputPerMtok === 'number' &&
+    typeof record.outputPerMtok === 'number'
+    ? { inputPerMtok: record.inputPerMtok, outputPerMtok: record.outputPerMtok }
+    : null
 }
 
 export function isQaConflict(error: unknown): error is ProjectApiError {
