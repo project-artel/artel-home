@@ -78,6 +78,8 @@ export function VersionList({
   const closeMenu = useCallback(() => setMenu(null), [])
 
   function openMenu(event: React.MouseEvent | React.KeyboardEvent, target: MenuTarget) {
+    // dialog 는 body 로 뜨지만 React 이벤트는 이 목록까지 올라온다. dialog 안의 우클릭은 메뉴를 열지 않는다.
+    if ((event.target as HTMLElement).closest('[role="dialog"]') !== null) return
     event.preventDefault()
     event.stopPropagation()
     // 키보드로 열면 누른 자리가 없다. 그 줄 아래에 띄운다.
