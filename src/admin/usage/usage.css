@@ -1,0 +1,90 @@
+/* Moved from admin-page. Every rule is nested under .admin-console so the class names never reach the rest of the console. */
+.admin-console {
+  /* 토큰 사용량 화면이 dashboard.css에 없는 것만 여기 둔다. 레일·표·notice·막대는 QA 화면과
+     같은 클래스를 그대로 쓴다 — 두 화면이 다른 껍데기를 갖는 순간 같은 뜻의 열이 다르게 보인다. */
+
+  /* 축 값 아래의 원문. 모델 축의 provider, 기능 축의 service 원문이 여기 온다.
+     라벨만 두면 서버가 새 값을 늘렸을 때 화면이 그것을 이름 없는 줄로 만든다. */
+  .usage-sublabel {
+    display: block;
+    font-size: 11px;
+    line-height: 16px;
+    color: var(--color-text-muted);
+  }
+
+  /* 금액이 하한이라는 표시. 색이 아니라 글자(+)가 뜻을 지고, 색은 눈에 띄게만 한다(DESIGN.md). */
+  .usage-partial {
+    margin-left: 2px;
+    color: var(--color-status-warning);
+    font-weight: 600;
+  }
+
+  /* ── 일별 추이 ─────────────────────────────────────────────────────── */
+
+  /* 차트 라이브러리를 쓰지 않는다. 필요한 것은 높이가 값에 비례하는 막대 한 줄뿐이고,
+     그것을 위해 라이브러리를 넣으면 이 화면 하나 때문에 번들이 몇 배가 된다. */
+  .trend {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 96px;
+    margin: 0;
+    padding: var(--space-2);
+    list-style: none;
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-sm);
+    overflow-x: auto;
+  }
+
+  .trend__day {
+    flex: 1 1 0;
+    /* 날짜 수가 많아도 막대가 실선으로 뭉개지지 않게 한다. 창을 366일까지 열 수 있어
+       이 하한이 없으면 막대 하나가 1px 미만이 된다. */
+    min-width: 3px;
+    height: 100%;
+    display: flex;
+    align-items: flex-end;
+  }
+
+  .trend__bar {
+    display: flex;
+    align-items: flex-end;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* 중립 회색이다. `--color-action-primary`는 이 테마에서 #f04b3a라 critical(#ff634f)과 사실상
+     같은 색이고, 그것으로 그리면 평범한 지출 추이가 실패한 무엇으로 읽힌다. DESIGN.md의
+     "Calm until critical"이 막는 것이 이것이다 — 뜻은 옆의 숫자가 진다. */
+  .trend__fill {
+    display: block;
+    width: 100%;
+    min-height: 1px;
+    background: var(--color-text-secondary);
+    border-radius: 1px;
+  }
+
+  /* 호출이 없던 날. 바닥선 1px을 남겨 "그 날이 표에 없다"와 구분한다. 값이 있는 날보다 연해야
+     한눈에 갈린다. */
+  .trend__fill--empty {
+    background: var(--color-border-subtle);
+  }
+
+  .trend__day:hover .trend__fill {
+    background: var(--color-text-primary);
+  }
+
+  /* 막대의 뜻은 스크린 리더에도 글자로 간다. 길이만으로 값을 말하지 않는다(DESIGN.md). */
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+}
