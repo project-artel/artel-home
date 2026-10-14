@@ -26,10 +26,12 @@ type Generation =
  */
 export function ContentMapTestCases({
   buildId,
+  isEditor,
   projectId,
   view,
 }: {
   buildId: string
+  isEditor: boolean
   projectId: string
   view: ContentMapView
 }) {
@@ -40,7 +42,7 @@ export function ContentMapTestCases({
   const inFlight = useRef(false)
   const [carryOver, setCarryOver] = useState(readCarryOver)
 
-  const block = describeGenerationBlock(view)
+  const block = describeGenerationBlock(view, isEditor)
   const isRunning = generation.phase === 'running'
 
   async function generate() {

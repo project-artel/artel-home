@@ -47,10 +47,19 @@ test('content map 이 없으면 notUploaded, 문서가 없으면 noDocuments, �
   assert.equal(describeGenerationBlock(makeView(header('2026-10-13T00:00:00Z'))), null)
 })
 
+test('editor build 는 적재된 지도가 있어도 editorBuild 로 막는다', () => {
+  assert.equal(describeGenerationBlock(makeView(header('2026-10-13T00:00:00Z')), true), 'editorBuild')
+  assert.equal(describeGenerationBlock(makeView(null), true), 'editorBuild')
+})
+
 test('409 는 notIngested, 404 는 buildMissing, 그 밖은 other 다', () => {
   const failure = (status: number) => new ProjectApiError(status, 'x', 'X')
 
   assert.equal(classifyGenerationFailure(failure(409)), 'notIngested')
+  assert.equal(
+    classifyGenerationFailure(new ProjectApiError(409, 'x', 'EDITOR_BUILD_HAS_NO_TEST_CASES')),
+    'editorBuild',
+  )
   assert.equal(classifyGenerationFailure(failure(404)), 'buildMissing')
   assert.equal(classifyGenerationFailure(failure(500)), 'other')
   assert.equal(classifyGenerationFailure(new TypeError('network')), 'other')
@@ -125,9 +134,9 @@ test('409 와 그 밖의 오류는 서로 다른 문구다', () => {
   }
 })
 
-test('세 가지 막힌 이유는 서로 다른 문구다', () => {
+test('네 가지 막힌 이유는 서로 다른 문구다', () => {
   for (const copy of [contentMapKo.generate.blocked, contentMapEn.generate.blocked]) {
-    assert.equal(new Set(Object.values(copy)).size, 3)
+    assert.equal(new Set(Object.values(copy)).size, 4)
   }
   // 문서가 없는데 "올라왔지만 아직 읽히지 않았다" 고 말하면 거짓이다.
   assert.doesNotMatch(contentMapKo.generate.blocked.noDocuments, /올라왔/)

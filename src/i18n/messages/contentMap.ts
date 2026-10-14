@@ -101,6 +101,7 @@ export const contentMapEn = {
     carryOver: 'Bring along user-created test cases from the previous version',
     carryOverHint: 'User-created test cases in the previous game build that this build does not have yet are added too.',
     blocked: {
+      editorBuild: 'The editor build is not a game version, so it does not get test cases. Its content map is kept as game knowledge. Create test cases from a game build.',
       notUploaded: 'Nothing has been scanned for this build, so there is no content map to create test cases from.',
       noDocuments: 'This build has a content map but no evidence document has been uploaded for it. Scan the game above first.',
       notIngested: 'The evidence is uploaded but has not been read yet. Create test cases once the content map is read.',
@@ -112,6 +113,7 @@ export const contentMapEn = {
           ((counts.carriedOver ?? 0) > 0 ? ` Carried over ${counts.carriedOver} user-created cases from the previous version.` : ''),
     openLibrary: 'Open the test case library',
     failure: {
+      editorBuild: 'The editor build is not a game version, so no test cases were created. Create them from a game build.',
       notIngested: 'This build has no content map that has been read yet, so no test cases were created. Press Refresh at the top of the page, then try again.',
       buildMissing: 'This build no longer exists, so no test cases were created.',
       other: 'Test cases could not be created. Nothing was altered.',
@@ -623,6 +625,7 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
     carryOver: '이전 버전의 사용자 생성 TC 이어 넣기',
     carryOverHint: '바로 앞 게임 빌드에 있던 사용자 생성 TC 중 이 빌드에 아직 없는 것을 함께 넣습니다.',
     blocked: {
+      editorBuild: 'editor 는 게임 버전이 아니라서 테스트 케이스를 만들지 않습니다. 이 콘텐츠 맵은 게임 지식으로만 쓰입니다. 게임 빌드를 골라 만들어 주세요.',
       notUploaded: '이 빌드는 아직 스캔된 적이 없어 테스트 케이스를 만들 콘텐츠 맵이 없습니다.',
       noDocuments: '이 빌드에는 콘텐츠 맵이 있지만 올라온 증거 문서가 없습니다. 위에서 게임을 스캔한 뒤에 만들 수 있습니다.',
       notIngested: '증거는 올라왔지만 아직 읽히지 않았습니다. 콘텐츠 맵이 읽힌 뒤에 만들 수 있습니다.',
@@ -634,6 +637,7 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
           ((counts.carriedOver ?? 0) > 0 ? ` 앞 버전의 사용자 생성 케이스 ${counts.carriedOver}건을 이어 넣었습니다.` : ''),
     openLibrary: '테스트 케이스 라이브러리에서 열기',
     failure: {
+      editorBuild: 'editor 는 게임 버전이 아니라서 테스트 케이스를 만들지 않았습니다. 게임 빌드를 골라 만들어 주세요.',
       notIngested: '이 빌드에 읽힌 콘텐츠 맵이 아직 없어 테스트 케이스를 만들지 못했습니다. 위쪽의 새로고침을 누른 뒤 다시 시도해 주세요.',
       buildMissing: '이 빌드가 더는 없어 테스트 케이스를 만들지 못했습니다.',
       other: '테스트 케이스를 만들지 못했습니다. 아무것도 바뀌지 않았습니다.',
