@@ -1,6 +1,7 @@
 import { useCallback, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
+import { buildOptionText, selectBuild } from '../projects/gameBuilds'
 import { useWorkspace } from '../projects/workspace/workspaceContext'
 import { MacroDetail } from './MacroDetail'
 import { MacroList } from './MacroList'
@@ -33,9 +34,10 @@ export function MacroSection() {
   const { builds, projectId } = useWorkspace()
   const { t } = useI18n()
   const copy = t.macros.section
+  const editorLabel = t.projects.builds.editorLabel
   const [searchParams, setSearchParams] = useSearchParams()
   const requestedBuildId = searchParams.get('build')
-  const selectedBuild = builds.find((build) => build.id === requestedBuildId) ?? builds[0]
+  const selectedBuild = selectBuild(builds, requestedBuildId)
 
   // 주소가 늘 고른 빌드를 말하게 한다. **`macro` 는 남긴다** — `?macro=7` 만 달린
   // 주소를 붙여 넣었을 때 mount 하자마자 선택이 사라지면, 그 주소를 받은 사람은 보낸
@@ -79,9 +81,7 @@ export function MacroSection() {
             <select onChange={(event) => changeBuild(event.target.value)} value={selectedBuild.id}>
               {builds.map((build) => (
                 <option key={build.id} value={build.id}>
-                  {build.label === null || build.label.length === 0
-                    ? build.version
-                    : `${build.version} · ${build.label}`}
+                  {buildOptionText(build, editorLabel)}
                 </option>
               ))}
             </select>

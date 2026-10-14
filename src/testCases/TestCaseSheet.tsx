@@ -85,7 +85,7 @@ export function TestCaseSheet({
         </header>
         {testCase !== null && (
           <p className="tcl-sheet-meta">
-            {buildNote(testCase, builds, m)} · {m.outcome.addedAt(formatDate(testCase.createdAt))}
+            {buildNote(testCase, builds, m, t.projects.builds.editorLabel)} · {m.outcome.addedAt(formatDate(testCase.createdAt))}
           </p>
         )}
         <TestCaseEditor
@@ -112,8 +112,13 @@ function buildNote(
   testCase: TestCase,
   builds: GameBuild[],
   m: Messages['testCases'],
+  editorLabel: string,
 ): string {
-  const build = describeVerifiedBuild(testCase.lastVerifiedBuildId, builds)
+  const build = describeVerifiedBuild(
+    testCase.lastVerifiedBuildId,
+    builds,
+    editorLabel,
+  )
   if (build !== null) return m.outcome.onBuild(build)
   return testCase.lastVerifiedBuildId !== null ? m.outcome.buildGone : m.outcome.neverRun
 }

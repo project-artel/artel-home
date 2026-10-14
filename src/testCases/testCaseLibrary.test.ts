@@ -36,6 +36,7 @@ function makeBuild(id: string, extra: Partial<GameBuild> = {}): GameBuild {
     version: '1.4.0',
     label: null,
     notes: null,
+    isEditor: false,
     createdAt: '2026-08-27T00:00:00.000Z',
     updatedAt: '2026-08-27T00:00:00.000Z',
     ...extra,
@@ -152,11 +153,17 @@ test('build 이름은 label 을 쓰고, 없으면 version 으로 떨어진다', 
     makeBuild('11', { label: '   ', version: '1.5.2' }),
   ]
 
-  assert.equal(describeVerifiedBuild('10', builds), '1차 QA 빌드')
-  assert.equal(describeVerifiedBuild('11', builds), '1.5.2')
+  assert.equal(describeVerifiedBuild('10', builds, 'Editor'), '1차 QA 빌드')
+  assert.equal(describeVerifiedBuild('11', builds, 'Editor'), '1.5.2')
 })
 
 test('가리키는 build 가 없으면 이름 대신 null 을 낸다', () => {
-  assert.equal(describeVerifiedBuild(null, [makeBuild('10')]), null)
-  assert.equal(describeVerifiedBuild('99', [makeBuild('10')]), null)
+  assert.equal(describeVerifiedBuild(null, [makeBuild('10')], 'Editor'), null)
+  assert.equal(describeVerifiedBuild('99', [makeBuild('10')], 'Editor'), null)
+})
+
+test('editor build 는 label 이나 version 이 있어도 Editor 로 부른다', () => {
+  const builds = [makeBuild('20', { isEditor: true, label: '내 label', version: '1.6.0' })]
+
+  assert.equal(describeVerifiedBuild('20', builds, 'Editor'), 'Editor')
 })

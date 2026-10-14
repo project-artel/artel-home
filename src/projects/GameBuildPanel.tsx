@@ -2,6 +2,7 @@ import { useId, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { apiErrorMessage } from './apiErrorMessage'
 import { formatDate, PLACEHOLDER } from './formatters'
+import { versionBuilds } from './gameBuilds'
 import { updateGameBuild } from './gameApi'
 import { useI18n } from '../i18n/useI18n'
 import { ProjectApiError } from './projectApi'
@@ -18,7 +19,7 @@ import {
  * Builds are never created or deleted from here: a row appears when a running
  * game registers its version, and deleting one would only make it reappear on
  * the next registration. The panel exists so a version can be given a human
- * label and some notes.
+ * label and some notes. The editor build is not a version and is not listed.
  *
  * A build's detail is an expanded row, not a route. There is no nested-layout
  * precedent in this app — `AppShell`'s `Outlet` is the whole workspace — and a
@@ -36,6 +37,7 @@ export function GameBuildPanel({
 }) {
   const [announcement, setAnnouncement] = useState('')
   const { t } = useI18n()
+  const versions = versionBuilds(builds)
 
   return (
     <section className="panel" aria-labelledby="builds-title">
@@ -43,11 +45,11 @@ export function GameBuildPanel({
         <h2 id="builds-title">{t.projects.builds.title}</h2>
       </header>
 
-      {builds.length === 0 ? (
+      {versions.length === 0 ? (
         <p className="panel-empty">{t.projects.builds.empty}</p>
       ) : (
         <ul className="build-list">
-          {builds.map((build) => (
+          {versions.map((build) => (
             <GameBuildRow
               build={build}
               key={build.id}

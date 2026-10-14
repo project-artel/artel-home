@@ -61,6 +61,12 @@ export type GameBuild = {
   version: string
   label: string | null
   notes: string | null
+  /**
+   * The one build per project that the Unity editor reports. It shares a version
+   * string with development builds but is not a game version, so version lists
+   * skip it. Servers that predate ARTEL-1014 omit the field; it parses as `false`.
+   */
+  isEditor: boolean
   createdAt: string
   updatedAt: string
 }

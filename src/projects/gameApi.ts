@@ -74,7 +74,7 @@ function parseInstance(data: unknown): GameInstance | null {
 }
 
 /** `version` is the build's identity to the user, so it is required alongside `id`. */
-function parseBuild(data: unknown): GameBuild | null {
+export function parseBuild(data: unknown): GameBuild | null {
   const record = asRecord(data)
   if (record === null) return null
 
@@ -88,6 +88,7 @@ function parseBuild(data: unknown): GameBuild | null {
     version,
     label: asNullableString(record.label),
     notes: asNullableString(record.notes),
+    isEditor: asBoolean(record.isEditor),
     createdAt: asString(record.createdAt),
     updatedAt: asString(record.updatedAt),
   }

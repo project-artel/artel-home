@@ -152,6 +152,8 @@ export const projectsEn = {
     notesLabel: 'Notes',
     notesHint: 'Clearing this field removes the notes.',
     versionField: 'Version',
+    /** Names the editor build in pickers and test case outcomes; the editor build is not a game version. */
+    editorLabel: 'Editor',
     noLabel: 'No label',
     noNotes: 'No notes',
     firstReportedField: 'First reported',
@@ -588,6 +590,7 @@ export const projectsKo: Localized<typeof projectsEn> = {
     notesLabel: '메모',
     notesHint: '이 칸을 비우면 메모가 삭제됩니다.',
     versionField: '버전',
+    editorLabel: 'Editor',
     noLabel: '레이블 없음',
     noNotes: '메모 없음',
     firstReportedField: '최초 보고',
