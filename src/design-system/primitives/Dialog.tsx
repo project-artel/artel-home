@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
@@ -11,6 +12,11 @@ const FOCUSABLE =
  * Deliberately not `<dialog>`: its native backdrop cannot be styled with our
  * scrim token consistently across browsers, and `showModal()` needs an effect
  * to stay in sync with React state anyway.
+ *
+ * Rendered into `document.body`, not where it is declared. A dialog opened from
+ * inside a clipped or animated panel (the case library's side pane has
+ * `overflow: hidden` and a fade-in) otherwise stays inside that panel's stacking
+ * context — the table beside it painted over the scrim and took the clicks.
  */
 export function Dialog({
   title,
@@ -63,7 +69,7 @@ export function Dialog({
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [onClose])
 
-  return (
+  return createPortal(
     <div className="dialog-scrim" onMouseDown={(event) => {
       if (event.target === event.currentTarget) onClose()
     }}>
@@ -77,6 +83,7 @@ export function Dialog({
         <h2 className="dialog-title" id={labelledBy}>{title}</h2>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
