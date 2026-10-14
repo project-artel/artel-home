@@ -413,7 +413,19 @@ export const testCasesEn = {
     failed: 'The cases could not be moved. Nothing was altered.',
     done: (count: number, destination: string) => `${count} cases were moved to ${destination}.`,
   },
+  createFree: {
+    action: 'Create FREE scenario',
+    title: (count: number) => `Create a FREE scenario from ${count} case${count === 1 ? '' : 's'}`,
+    copy: 'A FREE scenario is a bundle of test cases. The QA agent verifies them in whatever order and way it chooses.',
+    titleLabel: 'Scenario title',
+    titlePlaceholder: 'For example: Shop screen checks',
+    cancel: 'Cancel',
+    confirm: 'Create scenario',
+    pending: 'Creating…',
+    failed: 'The scenario could not be created. Please try again.',
+  },
 }
+
 
 export const testCasesKo: Localized<typeof testCasesEn> = {
   section: {
@@ -819,4 +831,16 @@ export const testCasesKo: Localized<typeof testCasesEn> = {
     failed: '케이스를 이동하지 못했습니다. 아무것도 바뀌지 않았습니다.',
     done: (count: number, destination: string) => `케이스 ${count}건을 ${destination}(으)로 옮겼습니다.`,
   },
+  createFree: {
+    action: 'FREE 시나리오 만들기',
+    title: (count: number) => `케이스 ${count}건으로 FREE 시나리오 만들기`,
+    copy: 'FREE 시나리오는 테스트 케이스 묶음입니다. QA agent 가 순서와 방법을 스스로 정해 하나씩 검증합니다.',
+    titleLabel: '시나리오 제목',
+    titlePlaceholder: '예: 상점 화면 점검',
+    cancel: '취소',
+    confirm: '시나리오 만들기',
+    pending: '만드는 중…',
+    failed: '시나리오를 만들지 못했습니다. 다시 시도해 주세요.',
+  },
 }
+
