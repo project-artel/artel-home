@@ -3767,25 +3767,35 @@ a.instance-name:hover {
    좁아져 "자동 적용" 이 두 줄로 접혔고, 두 줄이 된 글자가 머리 높이를 밀어 올렸다. */
 .run-chat-toggle{ display:flex; align-items:center; gap:6px; font-size:11px; color:var(--st-muted); text-transform:none; letter-spacing:normal; cursor:pointer; white-space:nowrap; }
 .run-chat-toggle input{ accent-color:var(--st-action); }
-.run-chat-proposals{ flex:none; border-top:1px solid var(--st-border); padding:12px; display:flex; flex-direction:column; gap:10px; max-height:45%; overflow-y:auto; }
-.run-chat-proposals-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
-.run-chat-proposals-title{ font-size:11px; font-weight:600; letter-spacing:.02em; text-transform:uppercase; color:var(--st-text-2); margin:0; }
-.run-chat-cards{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
-.run-chat-card{ border:1px solid var(--st-border-strong); border-left-width:3px; border-radius:8px; background:var(--st-raised); padding:10px 12px; }
-.run-chat-card--new{ border-left-color:var(--st-action); }
-.run-chat-card--edit{ border-left-color:var(--st-verified); }
-.run-chat-card-kind{ display:inline-block; font-size:11px; font-weight:700; letter-spacing:.02em; padding:2px 9px; border-radius:999px; margin:0 0 4px; color:#fff; }
-.run-chat-card--new .run-chat-card-kind{ background:var(--st-action); }
-.run-chat-card--edit .run-chat-card-kind{ background:var(--st-verified); }
-.run-chat-card-title{ font-size:13px; font-weight:600; color:var(--st-text); margin:0 0 3px; }
-.run-chat-card-desc{ font-size:12px; line-height:1.5; color:var(--st-text-2); margin:0 0 6px; }
-.run-chat-card-cases{ font-size:11px; color:var(--st-muted); font-family:var(--st-mono); margin:0 0 8px; }
-.run-chat-card-actions{ display:flex; justify-content:flex-end; gap:8px; }
-/* 카드 상단: 종류 라벨 + 크게보기(⤢) */
-.run-chat-card-top{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin:0 0 4px; }
-.run-chat-card-top .run-chat-card-kind{ margin:0; }
-.run-chat-expand{ flex:none; width:24px; height:24px; display:grid; place-items:center; border-radius:6px; border:1px solid var(--st-border); background:var(--st-surface); color:var(--st-muted); cursor:pointer; font-size:13px; line-height:1; }
-.run-chat-expand:hover{ color:var(--st-action); border-color:var(--st-action); background:var(--st-hover); }
+/* 자동저장을 끈 저작 결과(ARTEL-1075). 저장된 것과 섞여 읽히지 않게, 점선 테두리와 종류 띠로
+   "아직 저장 안 된 미리보기" 임을 보인다. 새로 생김=초록, 바뀜=노랑, 합쳐져 빠짐=지운 줄. */
+.run-chat-draft-note{ flex:none; margin:0; padding:8px 12px; border-top:1px solid var(--st-border); font-size:12px; line-height:1.5; color:var(--st-text-2); background:var(--st-draft-dim); }
+.scenario-studio .draft-bar{ display:flex; flex-direction:column; gap:8px; margin:8px 10px 0; padding:10px; border:1px dashed var(--st-draft); border-radius:8px; background:var(--st-draft-dim); }
+.scenario-studio .draft-bar-text{ margin:0; display:flex; flex-direction:column; gap:2px; font-size:12px; line-height:1.45; color:var(--st-text-2); }
+.scenario-studio .draft-bar-text strong{ font-size:12.5px; color:var(--st-text); }
+.scenario-studio .draft-bar-acts{ display:flex; justify-content:flex-end; gap:6px; }
+.scenario-studio .draft-row{ position:relative; margin-bottom:2px; border:1px dashed var(--st-border-strong); border-radius:6px; }
+.scenario-studio .draft-row--new{ border-color:var(--st-verified); background:var(--st-verified-dim); }
+.scenario-studio .draft-row--edit{ border-color:var(--st-draft); background:var(--st-draft-dim); }
+.scenario-studio .draft-row > .scnrow{ margin-bottom:0; padding-right:64px; }
+.scenario-studio .draft-acts{ position:absolute; top:8px; right:6px; display:flex; gap:4px; }
+.scenario-studio .draft-act{ width:24px; height:24px; display:grid; place-items:center; border-radius:6px; border:1px solid var(--st-border-strong); background:var(--st-surface); color:var(--st-text-2); font-size:12px; line-height:1; cursor:pointer; }
+.scenario-studio .draft-act:hover:not(:disabled){ border-color:var(--st-action); color:var(--st-action); }
+.scenario-studio .draft-act--ok{ color:var(--st-verified); }
+.scenario-studio .draft-act:disabled{ opacity:.5; cursor:not-allowed; }
+.scenario-studio .draft-tag{ align-self:flex-start; margin-top:3px; padding:0 6px; border-radius:999px; font-size:10.5px; font-weight:700; line-height:16px; border:1px solid currentColor; }
+.scenario-studio .draft-tag--new{ color:var(--st-verified); }
+.scenario-studio .draft-tag--edit{ color:var(--st-draft); }
+.scenario-studio .draft-tag--gone{ color:var(--st-broken); }
+.scenario-studio .scnrow--gone{ opacity:.65; border:1px dashed var(--st-broken); }
+.scenario-studio .scnrow--gone .scnrow-name{ text-decoration:line-through; }
+.scenario-studio .draft-banner{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin:0 0 16px; padding:12px 14px; border:1px dashed var(--st-border-strong); border-radius:8px; }
+.scenario-studio .draft-banner--new{ border-color:var(--st-verified); background:var(--st-verified-dim); }
+.scenario-studio .draft-banner--edit{ border-color:var(--st-draft); background:var(--st-draft-dim); }
+.scenario-studio .draft-banner-text{ min-width:0; }
+.scenario-studio .draft-banner-text strong{ font-size:13px; color:var(--st-text); }
+.scenario-studio .draft-banner-text p{ margin:4px 0 0; font-size:12px; line-height:1.55; color:var(--st-text-2); }
+.scenario-studio .draft-banner-acts{ flex:none; display:flex; gap:6px; }
 /* Artel 응답 대기 타이핑 인디케이터 */
 .run-chat-typing{ display:inline-flex; gap:5px; align-items:center; padding:11px 13px; border-radius:8px; background:var(--st-raised); border:1px solid var(--st-border); }
 .run-chat-typing span{ width:6px; height:6px; border-radius:999px; background:var(--st-muted); animation:run-chat-bounce 1.2s ease-in-out infinite; }
@@ -3833,37 +3843,6 @@ a.instance-name:hover {
 .authoring-progress-toggle:hover{ color:var(--st-text); }
 @keyframes authoring-progress-pulse{ 0%,100%{ opacity:.35; } 50%{ opacity:1; } }
 @media (prefers-reduced-motion: reduce){ .authoring-progress-step.is-live .authoring-progress-dot{ animation:none; } }
-/* 제안 카드 상세 모달 — 담긴 TC 목록 */
-.run-chat-modal-scrim{ position:fixed; inset:0; background:var(--color-overlay-scrim); display:flex; align-items:flex-start; justify-content:center; padding:8vh 16px; z-index:70; }
-.run-chat-modal{ width:min(560px,100%); max-height:80vh; overflow-y:auto; background:var(--color-bg-surface); border:1px solid var(--color-border-strong); border-radius:12px; box-shadow:0 30px 80px -24px rgba(0,0,0,.4); }
-.run-chat-modal-head{ position:sticky; top:0; background:var(--color-bg-surface); display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:18px 20px 12px; border-bottom:1px solid var(--color-border-subtle); }
-.run-chat-modal-kind{ font-size:11px; font-weight:600; margin:0 0 4px; }
-.run-chat-modal-head--new .run-chat-modal-kind{ color:var(--color-action-primary); }
-.run-chat-modal-head--edit .run-chat-modal-kind{ color:var(--color-status-success); }
-.run-chat-modal-head h3{ margin:0; font-size:16px; font-weight:700; }
-.run-chat-modal-sub{ margin:6px 0 0; font-size:12.5px; color:var(--color-text-secondary); line-height:1.5; }
-.run-chat-modal-close{ flex:none; width:30px; height:30px; border-radius:6px; border:1px solid var(--color-border-strong); background:transparent; color:var(--color-text-secondary); cursor:pointer; font-size:15px; }
-.run-chat-modal-close:hover{ background:var(--color-bg-hover); color:var(--color-text-primary); }
-.run-chat-modal-meta{ font-size:11px; color:var(--color-text-muted); font-family:var(--st-mono); padding:12px 20px 0; margin:0; }
-.run-chat-tc-list{ list-style:none; margin:0; padding:10px 20px 20px; display:flex; flex-direction:column; gap:10px; }
-/* 카드 전체보기 — steps 가시성 개선 (ARTEL-285): 번호 칩·검증 배지·TC 박스 */
-.rc-steps{ list-style:none; margin:0; padding:10px 20px 20px; display:flex; flex-direction:column; gap:8px; }
-.rc-tc{ border:1px solid var(--color-border-subtle); border-radius:10px; background:var(--color-bg-raised); padding:10px 12px; }
-.rc-tc-head{ display:flex; align-items:center; gap:8px; margin-bottom:8px; }
-.rc-tc-badge{ font-size:10px; font-weight:800; color:#fff; background:var(--color-action-primary,#4c8bf5); border-radius:4px; padding:1px 6px; letter-spacing:.05em; }
-.rc-tc-id{ font-size:13px; font-weight:700; color:var(--color-text-primary); font-variant-numeric:tabular-nums; }
-.rc-tc-count{ font-size:11px; color:var(--color-text-muted); }
-.rc-tc-steps{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:4px; }
-.rc-step{ display:flex; align-items:flex-start; gap:8px; }
-.rc-step--plain{ padding:6px 8px; border-radius:8px; background:var(--color-bg-subtle, rgba(127,127,127,0.06)); }
-.rc-step-no{ flex:none; width:20px; height:20px; display:inline-flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:var(--color-text-secondary); background:var(--color-bg-subtle, rgba(127,127,127,0.12)); border-radius:6px; font-variant-numeric:tabular-nums; }
-.rc-step-body{ display:flex; flex-wrap:wrap; align-items:baseline; gap:6px; line-height:1.5; }
-.rc-step-action{ font-size:13px; color:var(--color-text-primary); }
-.rc-step--verify .rc-step-action{ font-weight:650; }
-.rc-step-badge{ flex:none; font-size:10px; font-weight:700; color:var(--color-action-primary,#4c8bf5); border:1px solid var(--color-action-primary,#4c8bf5); border-radius:4px; padding:0 5px; text-transform:uppercase; letter-spacing:.04em; }
-.rc-step-hint{ font-size:11px; color:var(--color-text-muted); }
-.run-chat-tc{ border:1px solid var(--color-border-subtle); border-radius:8px; background:var(--color-bg-raised); padding:12px 14px; }
-.run-chat-tc-missing{ margin:0; font-size:12px; color:var(--color-text-muted); }
 .run-chat-tc-h{ display:flex; align-items:center; gap:8px; margin:0 0 6px; }
 .run-chat-cat{ font-size:10.5px; font-weight:700; letter-spacing:.03em; padding:2px 8px; border-radius:999px; font-family:var(--st-mono); color:var(--color-text-secondary); background:var(--color-bg-hover); }
 .run-chat-cat--RULE{ color:var(--color-action-primary); background:color-mix(in srgb, var(--color-action-primary) 12%, transparent); }

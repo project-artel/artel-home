@@ -1,30 +1,35 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ChatMessage } from '../testScenarios/scenarioTypes'
 import {
+  applyRunChatDraft,
   cancelRunChat,
   closeRunChat,
-  commitRunScenarios,
+  discardRunChatDraft,
+  getRunChatDraft,
   listRunChatMessages,
   parseRunStreamEvent,
   runChatStreamUrl,
   sendRunChatMessage,
   STAGE_STALL_MS,
   TERMINAL_STAGES,
+  updateRunChatDraft,
   type AuthoringStage,
-  type ScenarioProposal,
+  type DraftApplyResult,
+  type DraftScenario,
   type RunChatAnswer,
 } from './runChatApi'
+import type { ScenarioDraft } from '../testScenarios/scenarioTypes'
 
 /*
  * Run-scoped authoring chat (ARTEL-206 Step 6). The conversation belongs to the
  * run, so this hook keeps the messaging + SSE parts of the old per-scenario chat
  * but drops its single step-draft/undo — scenario bodies are the case
- * composition, a separate hook. The agent's results surface as proposal cards;
- * whether they were already saved depends on the autoApply toggle sent with the
- * message.
+ * composition, a separate hook. Whether the agent's results are saved depends on
+ * the autoApply toggle sent with the message: on, the server saves them; off, they
+ * stay a draft the user approves from the scenario list (ARTEL-1075).
  */
 
-// Default OFF = card review ON (the user reviews before anything is written).
+// Default OFF = draft review ON (the user reviews before anything is written).
 const AUTO_APPLY_KEY = 'artel.run-chat.autoApply'
 
 function readAutoApply(): boolean {
@@ -74,7 +79,13 @@ export function useRunChatSession(
   onTurnEnded?: () => void,
 ) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [proposals, setProposals] = useState<ScenarioProposal[]>([])
+  /**
+   * 자동저장을 끈 턴이 남긴 draft(ARTEL-1075). 서버가 들고 있고 바뀔 때마다 전부를 보낸다 —
+   * 여기서는 받은 것으로 갈아 끼우기만 한다.
+   */
+  const [drafts, setDrafts] = useState<DraftScenario[]>([])
+  // 처음 읽기가 끝났는가. 그전의 빈 배열은 "없다" 가 아니라 "아직 모른다" 다.
+  const [draftsLoaded, setDraftsLoaded] = useState(false)
   const [connected, setConnected] = useState(false)
   const [awaitingReply, setAwaitingReply] = useState(false)
   const [sending, setSending] = useState(false)
@@ -140,6 +151,15 @@ export function useRunChatSession(
       .catch(() => {
         // A fresh run has no thread yet; leave it empty.
       })
+    // 새로고침해도 draft 는 서버에 남아 있다. 되찾지 않으면 승인할 길이 없다.
+    void getRunChatDraft(projectId, runId, controller.signal)
+      .then(setDrafts)
+      .catch(() => {
+        // 옛 서버는 이 창구를 모른다. draft 가 없는 것과 같다.
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setDraftsLoaded(true)
+      })
 
     source = new EventSource(runChatStreamUrl(projectId, runId), { withCredentials: true })
     source.addEventListener('open', () => setConnected(true))
@@ -160,7 +180,7 @@ export function useRunChatSession(
           refs: parsed.refs,
         },
       ])
-      // In card-review mode the result IS the end of the turn — no audit runs, so
+      // In draft mode the result IS the end of the turn — no audit runs, so
       // no terminal stage will arrive and the indicator has to close itself here.
       // Under auto-apply, checking/saved still follow: leave it up.
       if (!inFlightAutoApply.current) {
@@ -168,15 +188,17 @@ export function useRunChatSession(
         setCount(null)
         setTurnStartedAt(null)
       }
-      if (parsed.scenarios.length > 0) {
-        if (inFlightAutoApply.current) {
-          // Server already reconciled these; reflect them in the composition/rail.
-          onAppliedRef.current?.()
-        } else {
-          // Card-review mode: surface as proposals for the user to apply or drop.
-          setProposals((previous) => [...previous, ...parsed.scenarios])
-        }
+      // Server already reconciled these; reflect them in the composition/rail. In
+      // draft mode they arrive as a `draft` frame instead (below).
+      if (parsed.scenarios.length > 0 && inFlightAutoApply.current) {
+        onAppliedRef.current?.()
       }
+    })
+    source.addEventListener('draft', (event: Event) => {
+      if (!(event instanceof MessageEvent)) return
+      const parsed = parseRunStreamEvent(event.data)
+      if (parsed === null || parsed.type !== 'draft') return
+      setDrafts(parsed.drafts)
     })
     source.addEventListener('progress', (event: Event) => {
       if (!(event instanceof MessageEvent)) return
@@ -352,20 +374,56 @@ export function useRunChatSession(
     [projectId, runId, sending, autoApply],
   )
 
-  const applyProposals = useCallback(
-    async (toApply: ScenarioProposal[]): Promise<boolean> => {
-      if (runId === null || toApply.length === 0 || applying) return false
+  /**
+   * 고른 draft 를 승인한다(ARTEL-1075). 자동저장과 같은 엔진으로 반영된다.
+   *
+   * @return 서버의 답. 실패하면 null 이다 — 그때 draft 는 그대로 남는다.
+   */
+  const applyDrafts = useCallback(
+    async (draftIds: string[]): Promise<DraftApplyResult | null> => {
+      if (runId === null || draftIds.length === 0 || applying) return null
       setApplying(true)
       setApplyFailure(null)
       try {
-        await commitRunScenarios(projectId, runId, toApply)
-        setProposals((previous) => previous.filter((p) => !toApply.includes(p)))
+        const result = await applyRunChatDraft(projectId, runId, draftIds)
+        setDrafts(result.drafts)
         onAppliedRef.current?.()
+        // 무엇이 되고 무엇이 안 됐는지는 대화에 남긴다. 목록만 보고는 막힌 것이 왜 남았는지 모른다.
+        const lines = [...result.absorbed.map((title) => `'${title}' 은 합치면서 런에서 뺐습니다.`), ...result.kept, ...result.refused]
+        if (lines.length > 0) {
+          setMessages((previous) => [
+            ...previous,
+            {
+              id: `draft-applied-${previous.length}`,
+              role: 'ASSISTANT' as const,
+              content: lines.join('\n'),
+              createdAt: null,
+              pending: false,
+            },
+          ])
+        }
+        return result
+      } catch {
+        // **실패를 말한다.** 화면에서는 누른 적이 없는 것과 구분되지 않아 사용자는 계속 다시 누른다.
+        // 실제로 이렇게 잃었다: 열어 둔 런이 지워져 커밋이 404 였는데, 화면은 아무 말도 안 했다.
+        setApplyFailure('apply-failed')
+        return null
+      } finally {
+        setApplying(false)
+      }
+    },
+    [projectId, runId, applying],
+  )
+
+  const discardDrafts = useCallback(
+    async (draftIds: string[]): Promise<boolean> => {
+      if (runId === null || draftIds.length === 0 || applying) return false
+      setApplying(true)
+      setApplyFailure(null)
+      try {
+        setDrafts(await discardRunChatDraft(projectId, runId, draftIds))
         return true
       } catch {
-        // **실패를 말한다.** 부르는 쪽은 이 boolean 을 버리고(`void applyProposals(…)`), 카드는
-        // 그대로 남는다 — 화면에서는 누른 적이 없는 것과 구분되지 않아 사용자는 계속 다시 누른다.
-        // 실제로 이렇게 잃었다: 열어 둔 런이 지워져 커밋이 404 였는데, 화면은 아무 말도 안 했다.
         setApplyFailure('apply-failed')
         return false
       } finally {
@@ -375,9 +433,14 @@ export function useRunChatSession(
     [projectId, runId, applying],
   )
 
-  const dropProposal = useCallback((proposal: ScenarioProposal) => {
-    setProposals((previous) => previous.filter((p) => p !== proposal))
-  }, [])
+  /** 사용자가 고친 draft 본문을 서버 draft 에 쓴다. 시나리오에는 쓰지 않는다. */
+  const saveDraft = useCallback(
+    async (draftId: string, body: ScenarioDraft): Promise<void> => {
+      if (runId === null) return
+      await updateRunChatDraft(projectId, runId, draftId, body)
+    },
+    [projectId, runId],
+  )
 
   /**
    * 지금 단계의 한도를 넘기면 끊긴 것으로 본다 (ARTEL-952).
@@ -456,7 +519,8 @@ export function useRunChatSession(
     // 밖으로 내보내 프롭을 하나 더 엮지 않는다.
     projectId,
     messages,
-    proposals,
+    drafts,
+    draftsLoaded,
     connected,
     // 지금 단계의 n/N 과, 한도를 넘겨 끊긴 것으로 보이는지 (ARTEL-952).
     count,
@@ -474,8 +538,9 @@ export function useRunChatSession(
     setAutoApply,
     send,
     cancel,
-    applyProposals,
-    dropProposal,
+    applyDrafts,
+    discardDrafts,
+    saveDraft,
     close,
   }
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { TestCaseModal } from '../testCases/TestCaseModal'
 import { listTestCases } from '../testCases/testCaseApi'
@@ -21,9 +21,12 @@ import type { StepEditor } from './useStepEditor'
 export function ScenarioStepEditor({
   projectId,
   editor,
+  banner,
 }: {
   projectId: string
   editor: StepEditor
+  /** Drawn above the title — the studio says here that what is open is a draft (ARTEL-1075). */
+  banner?: ReactNode
 }) {
   const { t } = useI18n()
   const e = t.scenarios.stepsEditor
@@ -85,6 +88,7 @@ export function ScenarioStepEditor({
       <div className="edoc-fade edoc-fade--top" aria-hidden="true"><span className="edoc-fade-hint">▴</span></div>
       <main className="edoc-wrap" onScroll={(event) => readEdge(event.currentTarget)} ref={bodyRef}>
       <div className="edoc st-editor">
+        {banner}
         <header className="st-editor-head">
           <input
             className="st-editor-title"
