@@ -3,6 +3,7 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import './admin.css'
 import './shared/dashboard.css'
+import { InfoHint } from '../design-system/primitives/InfoHint'
 
 /** The tab order. Reading screens first, then the two that run the installation. */
 const ADMIN_TABS = ['qa', 'usage', 'knowledge', 'graph', 'labels', 'users', 'settings'] as const
@@ -21,8 +22,10 @@ export function AdminLayout() {
   return (
     <div className="admin-console">
       <header className="admin-console__head">
-        <h1 className="admin-console__title">{t.admin.title}</h1>
-        <p className="admin-console__subtitle">{t.admin.subtitle}</p>
+        <h1 className="admin-console__title">
+          {t.admin.title}
+          <InfoHint>{t.admin.subtitle}</InfoHint>
+        </h1>
         <nav className="admin-console__tabs" aria-label={t.admin.tabsLabel}>
           {ADMIN_TABS.map((tab) => (
             <NavLink

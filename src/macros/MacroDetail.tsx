@@ -1,3 +1,4 @@
+import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
 import { formatDateTime } from '../projects/formatters'
 import { macroScreenLabel, macroSignature, type MacroDetail as Macro } from './macroTypes'
@@ -100,8 +101,8 @@ export function MacroDetail({
         <div className="macro-source-head">
           <h4 className="macro-detail-subtitle" id="macro-source-title">
             {copy.sourceLabel}
+            <InfoHint>{copy.readOnly}</InfoHint>
           </h4>
-          <p className="macro-source-note">{copy.readOnly}</p>
         </div>
         {macro.source.length === 0 ? (
           <p className="panel-empty">{copy.sourceEmpty}</p>

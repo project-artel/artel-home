@@ -9,6 +9,7 @@ import { KnowledgeAxisBreakdown } from './AxisBreakdown'
 import { KnowledgeTotalsRail } from './TotalsRail'
 import { fetchKnowledgeStats } from './knowledgeStatsApi'
 import { AXES, type KnowledgeStats } from './knowledgeStatsTypes'
+import { InfoHint } from '../../design-system/primitives/InfoHint'
 
 /**
  * QA 집계(30일)보다 넓다. 지식은 만들어진 뒤 후속 런이 지우거나 인용해야 신호가 생기는데 그
@@ -201,11 +202,9 @@ export function KnowledgeStatsDashboard() {
               <div className="section__head">
                 <h2 className="section__title" id="knowledge-axes-title">
                   {strings.axesTitle}
+                  {/* 이 화면에서 가장 오해받기 쉬운 두 숫자라 제목 옆에 둔다. */}
+                  <InfoHint>{strings.axesNote}</InfoHint>
                 </h2>
-                {/* 이 화면에서 가장 오해받기 쉬운 두 숫자라 제목 옆에 못박는다. */}
-                <span className="section__note">
-                  {strings.axesNote}
-                </span>
               </div>
               <div className="axis-grid">
                 {AXES.map((axis) => (

@@ -3,6 +3,7 @@ import { adminFormat } from '../shared/format'
 import type { AdminFormat } from '../shared/format'
 import type { UsageTotals } from './llmUsageTypes'
 import { byTokensDesc, isPartiallyPriced, share, sumTotals, totalTokens } from './usage'
+import { InfoHint } from '../../design-system/primitives/InfoHint'
 
 /** 표 한 줄. 축이 무엇이든 이름 하나와 합계 한 벌이다. */
 export interface BreakdownRow {
@@ -49,8 +50,8 @@ export function BreakdownTable({
       <div className="section__head">
         <h3 className="panel__title" id={titleId}>
           {title}
+          {note !== undefined && <InfoHint>{note}</InfoHint>}
         </h3>
-        {note !== undefined && <span className="section__note">{note}</span>}
       </div>
 
       <div className="table-scroll">

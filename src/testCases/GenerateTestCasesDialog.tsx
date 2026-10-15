@@ -127,7 +127,7 @@ export function GenerateTestCasesDialog({
 
   return (
     <>
-      <Dialog labelledBy={titleId} onClose={onClose} title={m.title}>
+      <Dialog hint={m.hint} labelledBy={titleId} onClose={onClose} title={m.title}>
         <form
           className="form"
           onSubmit={(event) => {
@@ -137,7 +137,6 @@ export function GenerateTestCasesDialog({
             void submit(chosen)
           }}
         >
-          <p className="field-hint">{m.hint}</p>
           {loaded.status === 'loading' && <p className="panel-empty" aria-busy="true">{m.loading}</p>}
           {loaded.status === 'failed' && <p className="panel-empty" role="alert">{m.loadFailed}</p>}
           {loaded.status === 'ready' && candidates.length === 0 && <p className="panel-empty">{m.empty}</p>}

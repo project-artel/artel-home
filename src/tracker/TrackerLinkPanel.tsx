@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { InfoHint } from '../design-system/primitives/InfoHint'
 import { ISSUE_SEVERITIES, type IssueSeverity } from '../issues/issueTypes'
 import type { Messages } from '../i18n/messages'
 import { useI18n } from '../i18n/useI18n'
@@ -338,9 +339,11 @@ export function TrackerLinkPanel() {
   return (
     <section className="panel" aria-labelledby="tracker-title">
       <header className="panel-header">
-        <h2 id="tracker-title">{t.tracker.panel.title}</h2>
+        <h2 id="tracker-title">
+          {t.tracker.panel.title}
+          <InfoHint>{t.tracker.panel.subtitle}</InfoHint>
+        </h2>
       </header>
-      <p className="section-intro">{t.tracker.panel.subtitle}</p>
 
       {installFailedNotice && (
         <div className="inline-error" role="alert">
@@ -740,8 +743,10 @@ function Connected({
         )}
       </p>
 
-      <p className="panel-subtitle">{t.tracker.panel.autoSyncTitle}</p>
-      <p className="section-intro">{t.tracker.panel.autoSyncHint}</p>
+      <p className="panel-subtitle">
+        {t.tracker.panel.autoSyncTitle}
+        <InfoHint>{t.tracker.panel.autoSyncHint}</InfoHint>
+      </p>
 
       {severityFailure !== null && (
         <div className="inline-error" role="alert">

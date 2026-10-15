@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
 import { apiErrorMessage } from './apiErrorMessage'
 import { formatDate } from './formatters'
@@ -78,10 +79,12 @@ export function InvitationInbox({ onAccepted }: { onAccepted: () => void }) {
     return (
       <section className="panel invitation-inbox" aria-labelledby="inbox-title">
         <header className="panel-header panel-header--split">
-          <h2 id="inbox-title">{copy.title}</h2>
+          <h2 id="inbox-title">
+            {copy.title}
+            <InfoHint>{copy.copy}</InfoHint>
+          </h2>
           <span className="badge">{copy.count(invitations.length)}</span>
         </header>
-        <p className="section-intro">{copy.copy}</p>
 
         <ul className="invitation-list">
           {invitations.map((invitation) => (

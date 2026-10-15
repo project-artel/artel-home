@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
 import { MetricGroupList } from './MetricGroupPanel'
 import { PerformanceChart, type ChartSeries } from './PerformanceChart'
@@ -80,8 +81,10 @@ export function RunPerformanceRoute() {
             {copy.back}
           </Link>
           <p className="performance-eyebrow">{copy.eyebrow(data.runId)}</p>
-          <h1>{copy.title}</h1>
-          <p>{copy.bucketNote(data.series.bucketMs)}</p>
+          <h1>
+            {copy.title}
+            <InfoHint>{copy.bucketNote(data.series.bucketMs)}</InfoHint>
+          </h1>
         </div>
       </header>
 
@@ -129,7 +132,7 @@ function MetricGroupPanel({ groups }: { groups: PerformanceSummary['groups'] }) 
   const copy = t.performance.groups
 
   return (
-    <Panel subtitle={copy.subtitle} title={copy.title}>
+    <Panel hint={copy.subtitle} title={copy.title}>
       <MetricGroupList groups={groups} />
     </Panel>
   )
@@ -199,7 +202,7 @@ function FrameChartPanel({
   ]
 
   return (
-    <Panel title={copy.frameTitle} subtitle={copy.frameSubtitle}>
+    <Panel title={copy.frameTitle} hint={copy.frameSubtitle}>
       <PerformanceChart budgetMs={summary.budgetMs} points={points} series={series} showHitches />
     </Panel>
   )
@@ -262,7 +265,7 @@ function BucketTable({ points }: { points: PerformancePoint[] }) {
   const unmeasured = t.performance.unmeasured
 
   return (
-    <Panel title={copy.tableTitle} subtitle={copy.tableSubtitle}>
+    <Panel title={copy.tableTitle} hint={copy.tableSubtitle}>
       <div className="performance-table-wrap">
         <table className="performance-table">
           <thead>
@@ -311,7 +314,7 @@ function DevicePanel({ device }: { device: PerformanceDevice | null }) {
 
   if (device === null) {
     return (
-      <Panel title={copy.deviceTitle} subtitle={copy.deviceSubtitle}>
+      <Panel title={copy.deviceTitle} hint={copy.deviceSubtitle}>
         <p className="performance-unmeasured">{copy.deviceMissing}</p>
       </Panel>
     )
@@ -349,7 +352,7 @@ function DevicePanel({ device }: { device: PerformanceDevice | null }) {
   ]
 
   return (
-    <Panel title={copy.deviceTitle} subtitle={copy.deviceSubtitle}>
+    <Panel title={copy.deviceTitle} hint={copy.deviceSubtitle}>
       <div className="performance-device">
         {device.isEditor !== null && (
           <p className="performance-device-kind">
@@ -389,17 +392,22 @@ function Metric({
   )
 }
 
+/** `hint` 는 늘 같은 설명이라 info 아이콘으로, `subtitle` 은 이 run 의 측정 상태라 화면에 그대로 둔다. */
 function Panel({
   title,
+  hint,
   subtitle,
   children,
-}: React.PropsWithChildren<{ title: string; subtitle: string }>) {
+}: React.PropsWithChildren<{ title: string; hint?: string; subtitle?: string }>) {
   return (
     <section className="performance-panel">
       <header>
         <div>
-          <h2>{title}</h2>
-          <p>{subtitle}</p>
+          <h2>
+            {title}
+            {hint !== undefined && <InfoHint>{hint}</InfoHint>}
+          </h2>
+          {subtitle !== undefined && <p>{subtitle}</p>}
         </div>
       </header>
       {children}

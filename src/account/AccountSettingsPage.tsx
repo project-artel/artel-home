@@ -11,6 +11,7 @@ import {
 } from '../auth/authTypes'
 import { CliTokenPanel } from '../auth/CliTokenPanel'
 import { useAuth } from '../auth/useAuth'
+import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
 import { LlmKeysPanel } from './LlmKeysPanel'
 
@@ -164,7 +165,10 @@ function ProfilePanel({
           )}
 
           <div className="field">
-            <label className="field-label" htmlFor={nicknameId}>{copy.nicknameLabel}</label>
+            <label className="field-label" htmlFor={nicknameId}>
+              {copy.nicknameLabel}
+              <InfoHint>{copy.userTagHint}</InfoHint>
+            </label>
             <input
               aria-describedby={nicknameError !== null ? `${nicknameId}-error` : undefined}
               aria-invalid={nicknameError !== null || undefined}
@@ -180,7 +184,6 @@ function ProfilePanel({
             ) : (
               <p className="field-hint">{copy.nicknameHint}</p>
             )}
-            <p className="field-hint">{copy.userTagHint}</p>
           </div>
 
           <div className="form-actions">
@@ -452,7 +455,10 @@ function EmailPanel({
             )}
 
             <div className="field">
-              <label className="field-label" htmlFor={tokenId}>{copy.tokenLabel}</label>
+              <label className="field-label" htmlFor={tokenId}>
+                {copy.tokenLabel}
+                <InfoHint>{copy.tokenHint}</InfoHint>
+              </label>
               <input
                 className="field-input mono"
                 disabled={verifying}
@@ -461,7 +467,6 @@ function EmailPanel({
                 placeholder={copy.tokenPlaceholder}
                 value={tokenDraft}
               />
-              <p className="field-hint">{copy.tokenHint}</p>
             </div>
 
             <div className="form-actions">

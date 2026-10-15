@@ -22,6 +22,7 @@ import {
   type TestCaseInput,
   type VerificationStatus,
 } from './testCaseTypes'
+import { InfoHint } from '../design-system/primitives/InfoHint'
 
 type Draft = {
   scene: string
@@ -278,7 +279,7 @@ export function TestCaseEditor({
       <div className="tce-meta">
         {creating && versionChoice !== undefined && (
           <div className="tce-field tce-field--full">
-            <span className="tce-label">{m.version}</span>
+            <span className="tce-label">{m.version}<InfoHint>{m.versionHint}</InfoHint></span>
             <div className="tce-version">
               <span className={'tce-version-name' + (chosenVersion === undefined ? ' is-none' : '')}>
                 {chosenVersion === undefined ? t.testCases.versions.unversioned : versionName(chosenVersion)}
@@ -292,7 +293,6 @@ export function TestCaseEditor({
                 {m.changeVersion}
               </button>
             </div>
-            <p className="field-hint">{m.versionHint}</p>
           </div>
         )}
         <div className="tce-field">

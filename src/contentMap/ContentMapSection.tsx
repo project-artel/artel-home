@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
+import { InfoHint } from '../design-system/primitives/InfoHint'
 import { buildOptionText, selectBuild } from '../projects/gameBuilds'
 import { useWorkspace } from '../projects/workspace/workspaceContext'
 import { ContentMapReport } from './ContentMapPage'
@@ -41,8 +42,10 @@ export function ContentMapSection() {
     <section className="cm-section">
       <header className="cm-section-head">
         <div>
-          <h2>{copy.title}</h2>
-          <p className="section-intro">{copy.subtitle}</p>
+          <h2>
+            {copy.title}
+            <InfoHint>{copy.subtitle}</InfoHint>
+          </h2>
         </div>
         {selectedBuild !== undefined && (
           <label className="cm-build-picker">

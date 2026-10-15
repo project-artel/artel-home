@@ -47,6 +47,7 @@ import {
   type RunLastQa,
   type TestRun,
 } from './testRunApi'
+import { InfoHint } from '../design-system/primitives/InfoHint'
 
 /** TR 을 끌어 다른 버전에 놓을 때 싣는 형식. 다른 끌기(파일 등)와 섞이지 않게 따로 둔다. */
 const RUN_DRAG = 'application/x-artel-test-run'
@@ -408,7 +409,7 @@ export function RunListPanel({
         <div className="trl" ref={setFrame}>
           <nav aria-label={r.versionsTitle} className="trl-side">
             <div className="trl-side-head">
-              <span>{r.versionsTitle}</span>
+              <span>{r.versionsTitle}<InfoHint>{r.dragHint}</InfoHint></span>
               <span className="trl-muted">{r.newestFirst}</span>
             </div>
             <div className="trl-scroll">
@@ -462,7 +463,6 @@ export function RunListPanel({
                 </>
               )}
             </div>
-            <p className="trl-side-hint">{r.dragHint}</p>
           </nav>
 
           <main className="trl-main">

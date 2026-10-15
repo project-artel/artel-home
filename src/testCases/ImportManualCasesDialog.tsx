@@ -129,9 +129,8 @@ export function ImportManualCasesDialog({
   }
 
   return (
-    <Dialog labelledBy={titleId} onClose={onClose} title={m.title(versionName(target))}>
+    <Dialog hint={m.hint} labelledBy={titleId} onClose={onClose} title={m.title(versionName(target))}>
       <div className="mimp">
-        <p className="field-hint">{m.hint}</p>
         <div className="mimp-body">
           <nav aria-label={m.sources} className="mimp-sources">
             <p className="mimp-heading">{m.versions}</p>

@@ -9,6 +9,7 @@ import {
 } from './pivot'
 import { AXES, type Axis, type QaStatsCell, type QaStatsTotals } from './qaStatsTypes'
 import { useQa } from './useQa'
+import { InfoHint } from '../../design-system/primitives/InfoHint'
 
 /**
  * 칸에 무엇을 쓸지.
@@ -92,8 +93,10 @@ export function CombinationMatrix({ cells }: { cells: QaStatsCell[] }) {
       <div className="section__head">
         <h2 className="section__title" id="matrix-title">
           {t.matrix.title}
+          <InfoHint>
+            {metricText.note}. {t.matrix.emptyCellsNote}
+          </InfoHint>
         </h2>
-        <span className="section__note">{metricText.note}. {t.matrix.emptyCellsNote}</span>
         <span className="topbar__spacer" />
         <span className="field">
           <label className="field__label" htmlFor={metricId}>

@@ -19,6 +19,7 @@ import {
 } from './testCaseFolders'
 import type { TestCaseFolder } from './testCaseFolderApi'
 import type { TestCaseFoldersStatus } from './useTestCaseFolders'
+import { InfoHint } from '../design-system/primitives/InfoHint'
 
 /**
  * 폴더를 바꾸는 작업. 부르는 쪽(라이브러리)이 Undo 기록에 실어 실행한다(ARTEL-1024). 실패는 부르는 쪽이
@@ -252,7 +253,10 @@ export function FolderPane({
         className={'tcl-folders-head' + (dropTarget === 'root' ? ' is-drop-target' : '')}
         {...dropHandlers(null)}
       >
-        <h2 className="tcl-folders-title" id={headingId} title={m.dropToRoot}>{m.title}</h2>
+        <div className="tcl-folders-titlewrap">
+          <h2 className="tcl-folders-title" id={headingId} title={m.dropToRoot}>{m.title}</h2>
+          <InfoHint>{m.menuHint}</InfoHint>
+        </div>
         <div className="tcl-folders-actions" data-tour="folder-actions" role="group" aria-label={m.toolbar.label}>
           <button
             aria-label={m.toolbar.undo}
@@ -328,7 +332,6 @@ export function FolderPane({
             selectedId={selection.kind === 'folder' ? selection.id : null}
           />
         )}
-        <p className="tcl-folder-hint">{m.menuHint}</p>
       </nav>
 
       {menu !== null && (

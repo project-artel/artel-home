@@ -15,6 +15,7 @@ import {
 import { AXES, type Axis, type QaStatsCell } from './qaStatsTypes'
 import { emphasize } from './emphasize'
 import { useQa } from './useQa'
+import { InfoHint } from '../../design-system/primitives/InfoHint'
 
 /**
  * "그래서 QA를 잘했나"를 축 하나로 접어 보는 표.
@@ -39,8 +40,12 @@ export function ScoreBreakdown({ cells }: { cells: QaStatsCell[] }) {
       <div className="section__head">
         <h2 className="section__title" id="score-title">
           {t.score.title}
+          <InfoHint>
+            {t.score.note}
+            <br />
+            {emphasize(t.score.footnote)}
+          </InfoHint>
         </h2>
-        <span className="section__note">{t.score.note}</span>
         <span className="topbar__spacer" />
         <span className="field">
           <label className="field__label" htmlFor={axisFieldId}>
@@ -112,11 +117,6 @@ export function ScoreBreakdown({ cells }: { cells: QaStatsCell[] }) {
           )}
         </table>
       </div>
-
-      {/* 표에 없는 규약을 한 줄로 못박는다. 이 셋이 이 표에서 가장 오해받기 쉬운 자리다. */}
-      <p className="section__note section__note--block">
-        {emphasize(t.score.footnote)}
-      </p>
     </section>
   )
 }

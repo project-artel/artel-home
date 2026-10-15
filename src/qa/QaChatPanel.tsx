@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
 import { ProjectApiError } from '../projects/projectApi'
 import { sendQaMessage } from './qaApi'
@@ -92,8 +93,10 @@ export function QaChatPanel({
   return (
     <section className="panel qa-chat" aria-labelledby="qa-chat-title">
       <header className="panel-header">
-        <h2 id="qa-chat-title">{t.qa.chat.title}</h2>
-        <p className="scenario-hint">{t.qa.chat.hint}</p>
+        <h2 id="qa-chat-title">
+          {t.qa.chat.title}
+          <InfoHint>{t.qa.chat.hint}</InfoHint>
+        </h2>
       </header>
 
       <div className="qa-chat-thread" ref={viewportRef}>
