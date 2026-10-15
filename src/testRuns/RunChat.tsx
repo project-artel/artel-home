@@ -305,6 +305,9 @@ export function RunChat({ session }: { session: RunChatSession }) {
     session.stages.length,
   ])
 
+  // 승인 전 draft 가 있으면 입력은 draft 만 고친다(ARTEL-1075).
+  const draftMode = session.drafts.length > 0
+
   async function submit(event: React.FormEvent) {
     event.preventDefault()
     if (await session.send(input)) {
@@ -529,7 +532,15 @@ export function RunChat({ session }: { session: RunChatSession }) {
           <p className="chat-closed-copy">{c.closedExpired}</p>
         </div>
       ) : (
-        <form className="chat-composer" onSubmit={submit}>
+        <form className={draftMode ? 'chat-composer chat-composer--draft' : 'chat-composer'} onSubmit={submit}>
+          {/* 승인 전 draft 가 있는 동안 이 입력은 draft 만 고친다(ARTEL-1075). 새 요청은 draft 를 승인하거나
+              버린 뒤에 보낸다 — 서버도 그동안은 draft 만 고치는 말만 받는다. */}
+          {draftMode && (
+            <div className="chat-draft-mode" role="status">
+              <strong>{c.draftMode.title(session.drafts.length)}</strong>
+              <span>{c.draftMode.copy}</span>
+            </div>
+          )}
           {session.sendFailure !== null && (
             <div className="inline-error" role="alert">
               <span aria-hidden="true">!</span>
@@ -547,7 +558,7 @@ export function RunChat({ session }: { session: RunChatSession }) {
             id="run-chat-input"
             onChange={(event) => setInput(event.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={c.inputPlaceholder}
+            placeholder={draftMode ? c.draftMode.placeholder : c.inputPlaceholder}
             rows={3}
             value={input}
           />

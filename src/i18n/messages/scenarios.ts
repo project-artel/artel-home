@@ -100,6 +100,12 @@ export const scenariosEn = {
       `This conversation is closed: ${detail}. The transcript and the scenario below stay readable.`,
     inputLabel: 'Message to the agent',
     inputPlaceholder: 'Describe what should be tested',
+    // While unapproved drafts exist the input only edits them (ARTEL-1075).
+    draftMode: {
+      title: (n: number) => `Editing ${n} draft${n === 1 ? '' : 's'}`,
+      copy: 'What you send here only changes the drafts. Approve or discard them to make a new request.',
+      placeholder: 'Say what to change in the draft',
+    },
     shortcutHint: 'Enter to send · Shift+Enter for a new line',
     /*
      * 취소 안내(ARTEL-956). 기다리는 동안에만 전송 안내를 대신한다 — 한가할 때 보이면
@@ -725,6 +731,11 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
       `이 대화는 종료되었습니다: ${detail}. 대화 기록과 아래 시나리오는 계속 읽을 수 있습니다.`,
     inputLabel: '에이전트에게 보낼 메시지',
     inputPlaceholder: '테스트할 내용을 설명하세요',
+    draftMode: {
+      title: (n: number) => `draft ${n}개를 고치는 중`,
+      copy: '여기서 보내는 말은 draft 만 고칩니다. 새 요청은 draft 를 승인하거나 버린 뒤에 보낼 수 있습니다.',
+      placeholder: 'draft 에서 고칠 점을 말하세요',
+    },
     shortcutHint: 'Enter 전송 · Shift+Enter 줄바꿈',
     // 취소 안내(ARTEL-956). 기다리는 동안에만 전송 안내를 대신한다.
     cancelHint: 'ESC 두 번 누르면 요청 취소',

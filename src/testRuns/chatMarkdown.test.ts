@@ -187,3 +187,11 @@ test('표식과 강조가 한 줄에 같이 있다', () => {
 test('모양이 틀린 표식은 글자 그대로다', () => {
   assert.deepEqual(parseInline('[[tc:abc]]'), [{ kind: 'text', text: '[[tc:abc]]' }])
 })
+
+test('승인 전 draft 를 가리키는 음수 번호 표식도 ref 조각이다', () => {
+  assert.deepEqual(parseInline('기존 [[ts:-1]]과 같은 범위'), [
+    { kind: 'text', text: '기존 ' },
+    { kind: 'ref', refKind: 'ts', id: -1, text: '' },
+    { kind: 'text', text: '과 같은 범위' },
+  ])
+})

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { ProjectApiError } from '../projects/projectApi'
 import type { ChatMessage } from '../testScenarios/scenarioTypes'
 import {
   applyRunChatDraft,
@@ -356,9 +357,15 @@ export function useRunChatSession(
       setStages([])
       setTurnStartedAt(Date.now())
       try {
-        await sendRunChatMessage(projectId, runId, trimmed, autoApply, answer)
+        // draft 가 있는 동안은 draft 만 고친다(ARTEL-1075). 새 요청은 draft 를 승인하거나 버린 뒤에 보낸다.
+        await sendRunChatMessage(projectId, runId, trimmed, autoApply, answer, drafts.length > 0)
         return true
-      } catch {
+      } catch (error: unknown) {
+        // 서버가 아는 draft 와 화면의 것이 갈렸다(다른 탭에서 승인했거나 서버가 다시 떴다). draft 를 다시 읽어
+        // 입력창이 맞는 모드로 돌아가게 한다.
+        if (error instanceof ProjectApiError && error.status === 409) {
+          void getRunChatDraft(projectId, runId).then(setDrafts, () => undefined)
+        }
         // Drop the optimistic pending message and surface the failure.
         setMessages((previous) => previous.filter((m) => !m.pending))
         setAwaitingReply(false)
@@ -371,7 +378,7 @@ export function useRunChatSession(
         setSending(false)
       }
     },
-    [projectId, runId, sending, autoApply],
+    [projectId, runId, sending, autoApply, drafts.length],
   )
 
   /**

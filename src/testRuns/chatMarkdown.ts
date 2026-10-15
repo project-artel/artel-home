@@ -171,8 +171,11 @@ export function parseInline(line: string): Inline[] {
   return parts
 }
 
-/** `[[tc:5]]` / `[[ts:7]]`. A malformed one (`[[tc:abc]]`) does not match and stays text. */
-const MARKER = /\[\[(tc|ts):(\d+)\]\]/g
+/**
+ * `[[tc:5]]` / `[[ts:7]]`. A malformed one (`[[tc:abc]]`) does not match and stays text.
+ * A draft not yet approved is a negative number (`[[ts:-1]]`, ARTEL-1075); the chip opens that draft.
+ */
+const MARKER = /\[\[(tc|ts):(-?\d+)\]\]/g
 
 function parseRuns(line: string): Inline[] {
   const parts: Inline[] = []

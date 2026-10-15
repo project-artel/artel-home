@@ -319,12 +319,15 @@ export async function sendRunChatMessage(
   message: string,
   autoApply: boolean,
   answer?: RunChatAnswer,
+  draftOnly = false,
 ): Promise<void> {
   const response = await apiFetch(chatPath(projectId, runId, '/message'), {
     method: 'POST',
     ...jsonRequest({
       message,
       autoApply,
+      // 승인 전 draft 만 고치는 말(ARTEL-1075). draft 가 있는 동안 서버는 이 말만 받는다.
+      draftOnly,
       answer: answer
         ? { question_id: answer.questionId, option_ids: answer.optionIds, text: answer.text ?? null }
         : null,

@@ -10863,3 +10863,8 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
 .tcl-notice-close{ background:none; border:0; color:var(--color-text-muted); cursor:pointer; font-size:12px; padding:2px 6px; }
 .tcl-notice-close:hover{ color:var(--color-text-primary); }
 .qa-version-mismatch-text{ display:flex; flex-direction:column; gap:4px; }
+
+/* 승인 전 draft 를 고치는 입력(ARTEL-1075). draft 표시와 같은 색으로 지금 무엇을 고치는지 보인다. */
+.scenario-studio .st-chat .chat-composer--draft{ border-top:2px solid var(--color-status-warning); }
+.chat-draft-mode{ display:flex; flex-direction:column; gap:2px; padding:8px 10px; border-radius:var(--radius-md); background:color-mix(in srgb, var(--color-status-warning) 12%, transparent); font-size:12px; line-height:1.5; color:var(--color-text-secondary); }
+.chat-draft-mode strong{ color:var(--color-text-primary); font-size:13px; }
