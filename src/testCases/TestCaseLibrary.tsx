@@ -83,6 +83,7 @@ import { ImportManualCasesDialog } from './ImportManualCasesDialog'
 import { CoachTour } from './tour/CoachTour'
 import { CASE_LIBRARY_TOUR, caseLibraryTourSteps } from './tour/caseLibraryTour'
 import { useTour } from './tour/useTour'
+import { InfoHint } from '../design-system/primitives/InfoHint'
 
 /** `vdot` 와 결과 pill 이 상태마다 쓰는 CSS 접미사. 대문자 상태값을 클래스에 그대로 넣지 않는다. */
 const STATUS_CLASS: Record<VerificationStatus, string> = {
@@ -726,6 +727,7 @@ export function TestCaseLibrary({
         <header className="panel-header panel-header--split">
           <h2 className="tcl-title">
             {m.section.title}
+            <InfoHint>{m.section.subtitle}</InfoHint>
             {latestVersion !== undefined && (
               <span className="tcl-current-version" title={m.versions.currentTitle}>
                 {m.versions.current} <strong>{versionName(latestVersion)}</strong>
@@ -752,7 +754,6 @@ export function TestCaseLibrary({
             </button>
           </div>
         </header>
-        <p className="section-intro">{m.section.subtitle}</p>
         {generationNotice !== null && (
           <p className="tcl-notice">
             <span>{generationNotice}</span>

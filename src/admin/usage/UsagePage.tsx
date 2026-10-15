@@ -12,6 +12,7 @@ import { TotalsRail } from './TotalsRail'
 import { fetchLlmUsageStats, fetchQaRunUsage } from './llmUsageApi'
 import type { LlmUsageStats, QaRunUsage } from './llmUsageTypes'
 import './usage.css'
+import { InfoHint } from '../../design-system/primitives/InfoHint'
 
 const QA_RUN_COUNT = 50
 const DEFAULT_WINDOW_DAYS = 30
@@ -184,10 +185,12 @@ export default function UsagePage() {
 
             <section aria-labelledby="usage-axes">
               <div className="section__head">
-                <h2 className="section__title" id="usage-axes">{strings.axesTitle}</h2>
-                {/* 축이 서로 겹친다는 사실을 여기서 한 번만 말한다. QA 화면과 달리 이 셋은
-                    분할이 아니라 같은 호출을 세 번 접은 것이라, 두 축을 겹쳐 볼 수 없다. */}
-                <span className="section__note">{strings.axesNote}</span>
+                <h2 className="section__title" id="usage-axes">
+                  {strings.axesTitle}
+                  {/* 축이 서로 겹친다는 사실을 여기서 한 번만 말한다. QA 화면과 달리 이 셋은
+                      분할이 아니라 같은 호출을 세 번 접은 것이라, 두 축을 겹쳐 볼 수 없다. */}
+                  <InfoHint>{strings.axesNote}</InfoHint>
+                </h2>
               </div>
               <div className="axis-grid">
                 <BreakdownTable

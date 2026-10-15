@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CliCopyLine, CliInstallSteps, CLI_README_URL } from '../auth/CliInstallSteps'
+import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
 import { SdkInstallGuide } from './SdkInstallGuide'
 
@@ -24,9 +25,11 @@ export function SetupGuide({ projectId }: { projectId?: string }) {
     <div className="section-columns">
       <section className="panel" aria-labelledby="setup-sdk-title">
         <header className="panel-header">
-          <h2 id="setup-sdk-title">{copy.sdkTitle}</h2>
+          <h2 id="setup-sdk-title">
+            {copy.sdkTitle}
+            <InfoHint>{copy.sdkIntro}</InfoHint>
+          </h2>
         </header>
-        <p className="section-intro">{copy.sdkIntro}</p>
         <SdkInstallGuide />
       </section>
 
@@ -49,9 +52,11 @@ function CliSetupPanel({ projectId }: { projectId?: string }) {
   return (
     <section className="panel" aria-labelledby="setup-cli-title">
       <header className="panel-header">
-        <h2 id="setup-cli-title">{copy.cliTitle}</h2>
+        <h2 id="setup-cli-title">
+          {copy.cliTitle}
+          <InfoHint>{copy.cliIntro}</InfoHint>
+        </h2>
       </header>
-      <p className="section-intro">{copy.cliIntro}</p>
 
       <CliInstallSteps onResult={setAnnouncement}>
         <p className="guide-copy">

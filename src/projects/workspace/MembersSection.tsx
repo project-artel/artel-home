@@ -1,6 +1,7 @@
 import { useId, useRef, useState } from 'react'
 import { composeNicknameTag } from '../../auth/authTypes'
 import { ConfirmActionDialog } from '../../design-system/primitives/ConfirmActionDialog'
+import { InfoHint } from '../../design-system/primitives/InfoHint'
 import { useI18n } from '../../i18n/useI18n'
 import { apiErrorMessage } from '../apiErrorMessage'
 import { formatDate } from '../formatters'
@@ -236,9 +237,11 @@ function InvitePanel({
   return (
     <section className="panel" aria-labelledby="invite-title">
       <header className="panel-header">
-        <h2 id="invite-title">{copy.inviteTitle}</h2>
+        <h2 id="invite-title">
+          {copy.inviteTitle}
+          <InfoHint>{copy.inviteCopy}</InfoHint>
+        </h2>
       </header>
-      <p className="section-intro">{copy.inviteCopy}</p>
 
       <form className="invite-form" onSubmit={send} noValidate>
         {failure !== null && (

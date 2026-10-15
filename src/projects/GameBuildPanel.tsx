@@ -4,6 +4,7 @@ import { apiErrorMessage } from './apiErrorMessage'
 import { formatDate, PLACEHOLDER } from './formatters'
 import { versionBuilds } from './gameBuilds'
 import { updateGameBuild } from './gameApi'
+import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
 import { ProjectApiError } from './projectApi'
 import {
@@ -192,6 +193,7 @@ function GameBuildRow({
                 <div className="field">
                   <label className="field-label" htmlFor={labelId}>
                     {t.projects.builds.labelLabel}
+                    <InfoHint>{t.projects.builds.labelHint}</InfoHint>
                   </label>
                   <input
                     aria-describedby={fieldErrors.label ? `${labelId}-error` : undefined}
@@ -203,7 +205,6 @@ function GameBuildRow({
                     onChange={(event) => setDraft({ ...draft, label: event.target.value })}
                     value={draft.label}
                   />
-                  <p className="field-hint">{t.projects.builds.labelHint}</p>
                   {fieldErrors.label && (
                     <p className="field-error" id={`${labelId}-error`}>{fieldErrors.label}</p>
                   )}
@@ -212,6 +213,7 @@ function GameBuildRow({
                 <div className="field">
                   <label className="field-label" htmlFor={notesId}>
                     {t.projects.builds.notesLabel}
+                    <InfoHint>{t.projects.builds.notesHint}</InfoHint>
                   </label>
                   <textarea
                     aria-describedby={fieldErrors.notes ? `${notesId}-error` : undefined}
@@ -224,7 +226,6 @@ function GameBuildRow({
                     rows={3}
                     value={draft.notes}
                   />
-                  <p className="field-hint">{t.projects.builds.notesHint}</p>
                   {fieldErrors.notes && (
                     <p className="field-error" id={`${notesId}-error`}>{fieldErrors.notes}</p>
                   )}

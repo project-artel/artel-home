@@ -1009,12 +1009,6 @@ h1 {
   background: var(--color-bg-hover);
 }
 
-.upload-hint {
-  margin: 0;
-  color: var(--color-text-muted);
-  font-size: 12px;
-}
-
 .upload-progress {
   margin-top: var(--space-3);
 }
@@ -1117,6 +1111,74 @@ h1 {
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+/* ── InfoHint ────────────────────────────────────────────────────────────── */
+
+/* 제목 옆에 붙는 원 안의 i. 글줄 높이를 바꾸지 않도록 inline 으로 서고 세로 가운데에 맞춘다. */
+.info-hint {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  margin-inline-start: var(--space-1);
+}
+
+.info-hint__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: help;
+  transition: color 100ms cubic-bezier(.2, 0, 0, 1);
+}
+
+.info-hint__trigger:hover,
+.info-hint__trigger[aria-expanded="true"] {
+  color: var(--color-text-primary);
+}
+
+.info-hint__trigger:focus-visible {
+  outline: 2px solid var(--color-action-primary);
+  outline-offset: 1px;
+}
+
+.info-hint__icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* body 로 portal 된다(InfoHint.tsx). dialog(200) 안의 아이콘에서도 위에 떠야 하므로 그보다 높다. */
+.info-hint__bubble {
+  position: fixed;
+  z-index: 1100;
+  max-width: min(320px, calc(100vw - 16px));
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 6px;
+  background: var(--color-bg-raised);
+  color: var(--color-text-secondary);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+  text-align: start;
+  text-transform: none;
+  letter-spacing: normal;
+  white-space: normal;
+}
+
+.info-hint__bubble p {
+  margin: 0;
+}
+
+.info-hint__bubble p + p {
+  margin-top: var(--space-2);
 }
 
 @media (max-width: 1023px) {
@@ -1606,18 +1668,6 @@ a.instance-name:hover {
 }
 
 /* ── Test scenarios ──────────────────────────────────────────────────────── */
-
-.scenario-hint {
-  margin: var(--space-1) 0 var(--space-4);
-  max-width: 60ch;
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  line-height: 20px;
-}
-
-.panel-header--split .scenario-hint {
-  margin-bottom: 0;
-}
 
 /* Undo/Redo controls and the autosave badge, grouped on the canvas header's
    right so the buttons and the "Saving…/Unsaved" state read as one cluster. */
@@ -4912,6 +4962,7 @@ button.qa-rail-step--linked:hover{ background:var(--color-bg-hover); }
 .qa-usage-summary-figures{ margin-left:auto; font-size:11px; color:var(--color-text-secondary); }
 .qa-usage-body{ padding:0 14px 12px; }
 .qa-usage-body-head{ display:flex; align-items:flex-start; gap:8px; }
+.qa-usage-body-head > .button{ margin-left:auto; }
 .qa-usage-body-head .qa-usage-note{ flex:1; margin:0 0 10px; font-size:11px; line-height:16px; }
 .qa-console-rail-usage .qa-usage-grid{ grid-template-columns:1fr 1fr; gap:10px 12px; }
 .qa-console-rail-usage .qa-usage-item dd{ font-size:14px; line-height:20px; }
@@ -4959,7 +5010,6 @@ button.qa-rail-step--linked:hover{ background:var(--color-bg-hover); }
 .qa-stage-chat .qa-chat{ flex:1; min-height:0; margin:0; padding:10px 12px; gap:8px; border:0; border-radius:0; background:transparent; }
 .qa-stage-chat .qa-chat .panel-header{ margin:0; display:flex; align-items:baseline; gap:8px; }
 .qa-stage-chat .qa-chat .panel-header h2{ margin:0; font-size:13px; }
-.qa-stage-chat .qa-chat .scenario-hint{ margin:0; font-size:12px; color:var(--color-text-muted); }
 .qa-stage-chat .qa-chat-thread{ flex:1; min-height:0; max-height:none; border:1px solid var(--color-border-subtle); border-radius:4px; background:var(--color-bg-canvas); }
 .qa-stage-chat .qa-chat-thread .panel-empty{ padding:10px 12px; }
 .qa-stage-chat .qa-chat-composer{ padding:0; border-top:0; }
@@ -7322,16 +7372,6 @@ button.run-chat-coverage:hover {
   line-height: 20px;
   font-weight: 600;
   color: var(--color-text-primary);
-}
-/* 키보드 규칙을 적어 둔다. 화살표가 접고 펴는 tree 는 목록처럼 생겼지만 목록처럼 움직이지
-   않아서, 말해 두지 않으면 탭으로 스물아홉 줄을 지나려는 사람이 생긴다. */
-.cm-tree-hint {
-  flex: none;
-  margin: 0;
-  padding: 0 var(--space-4) var(--space-3);
-  font-size: 11px;
-  line-height: 16px;
-  color: var(--color-text-muted);
 }
 .cm-tree {
   flex: 1 1 auto;
@@ -10138,6 +10178,7 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
   background:var(--color-bg-raised);
 }
 .tcl-folders-title{ margin:0; font-size:13px; font-weight:600; color:var(--color-text-primary); }
+.tcl-folders-titlewrap{ display:flex; align-items:center; gap:var(--space-1); }
 .tcl-folder-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px; }
 .tcl-folder-list--nested{ margin-left:var(--space-3); padding-left:var(--space-2); border-left:1px solid var(--color-border-subtle); }
 .tcl-folder{
@@ -10470,7 +10511,6 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
 .tcl-folder-tree{ flex:1; min-height:0; display:flex; flex-direction:column; gap:2px; }
 .tcl-folder[draggable="true"]{ cursor:grab; }
 .tcl-folder.is-drop-target{ background:color-mix(in srgb, var(--color-brand-accent) 16%, transparent); box-shadow:inset 0 0 0 1px var(--color-brand-accent); }
-.tcl-folder-hint{ margin:auto 0 0; padding-top:var(--space-3); font-size:11px; line-height:1.5; color:var(--color-text-muted); }
 .tct-row[draggable="true"]{ cursor:default; }
 .tct-row--hidden td{ opacity:.55; }
 .tct-hidden-tag{ display:inline-block; margin-left:6px; padding:0 6px; border:1px dashed var(--color-border-strong); border-radius:999px; font-size:10px; font-weight:600; color:var(--color-text-muted); vertical-align:1px; }
@@ -10724,7 +10764,6 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
 .trl-scroll{ position:relative; flex:1; min-height:0; overflow-y:auto; }
 .trl-side{ width:340px; flex:none; display:flex; flex-direction:column; min-height:0; border-right:1px solid var(--color-border-subtle); }
 .trl-side-head{ flex:none; display:flex; align-items:baseline; justify-content:space-between; padding:18px 20px 10px; font-size:12px; font-weight:600; letter-spacing:.04em; color:var(--color-text-secondary); }
-.trl-side-hint{ flex:none; margin:0; padding:12px 20px 16px; font-size:12px; color:var(--color-text-muted); border-top:1px solid var(--color-border-subtle); }
 .trl-tree{ list-style:none; margin:0; padding:0 16px 8px 12px; display:flex; flex-direction:column; gap:2px; }
 .trl-tree--nested{ margin:2px 0 6px 21px; padding:0 0 0 12px; border-left:1px dashed var(--color-border-subtle); }
 .trl-node{ width:100%; min-height:52px; display:flex; align-items:center; gap:10px; padding:8px 10px; border:1px solid transparent; border-radius:10px; background:transparent; color:var(--color-text-primary); cursor:pointer; text-align:left; font:inherit; }
@@ -10799,7 +10838,6 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
   font-size:10px; font-weight:700; letter-spacing:.06em; line-height:16px;
   color:var(--color-agent-reasoning); background:transparent; white-space:nowrap;
 }
-.free-hint{ margin:0 0 var(--space-3); font-size:12px; color:var(--color-text-muted); }
 .free-heading{ display:flex; align-items:center; gap:var(--space-2); margin:var(--space-3) 0 var(--space-2); font-size:13px; font-weight:600; color:var(--color-text-primary); }
 .free-case-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:var(--space-2); }
 .free-case{ display:flex; align-items:flex-start; gap:var(--space-3); padding:var(--space-3); border:1px solid var(--color-border-subtle); border-radius:var(--radius-md); background:var(--color-bg-surface); }

@@ -1,6 +1,7 @@
 import { useEffect, useId, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
+import { InfoHint } from '../design-system/primitives/InfoHint'
 import { apiErrorMessage } from '../projects/apiErrorMessage'
 import { formatDateTime } from '../projects/formatters'
 import { listGameInstances } from '../projects/gameApi'
@@ -145,10 +146,11 @@ export function EvidenceScanPanel({
   return (
     <section className="panel cm-scan" aria-labelledby="cm-scan-title">
       <header className="panel-header">
-        <h2 id="cm-scan-title">{copy.title}</h2>
+        <h2 id="cm-scan-title">
+          {copy.title}
+          <InfoHint>{copy.copy}</InfoHint>
+        </h2>
       </header>
-
-      <p className="cm-scan-copy">{copy.copy}</p>
 
       <div className="cm-scan-actions">
         <div className="field cm-scan-field">

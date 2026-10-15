@@ -1,3 +1,4 @@
+import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
 import { dayTokens, type GrassDay, type GrassGrid } from './grass'
 
@@ -57,7 +58,7 @@ export function UsageGrass({ grid, zone }: { grid: GrassGrid; zone: string }) {
       </div>
 
       <div className="grass-legend">
-        <span className="grass-legend-note">{u.scaleNote}</span>
+        <InfoHint className="grass-legend-note">{u.scaleNote}</InfoHint>
         <span className="grass-legend-scale">
           <span>{u.less}</span>
           {[0, 1, 2, 3, 4].map((level) => (

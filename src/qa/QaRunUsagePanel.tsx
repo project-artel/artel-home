@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
 import { getQaRunUsage, usedTokens, type QaRunUsage } from './qaUsageApi'
 
@@ -69,7 +70,10 @@ export function QaRunUsagePanel({ qaTryId, active }: { qaTryId: string; active: 
           the two numbers someone opens this for. */}
       <details className="qa-usage-details">
         <summary className="qa-usage-summary">
-          <h2 id="qa-usage-title">{t.qa.usage.title}</h2>
+          <h2 id="qa-usage-title">
+            {t.qa.usage.title}
+            <InfoHint>{t.qa.usage.subtitle}</InfoHint>
+          </h2>
           {status === 'ready' && usage !== null && usage.calls > 0 && (
             <span className="qa-usage-summary-figures mono">
               {counts.format(tokens)} {t.qa.usage.tokens} · {formatCost(usage.costUsd, t.qa.usage.costUnknown)}
@@ -79,9 +83,8 @@ export function QaRunUsagePanel({ qaTryId, active }: { qaTryId: string; active: 
         </summary>
         <div className="qa-usage-body">
           <div className="qa-usage-body-head">
-            <p className="qa-usage-note">
-              {active ? t.qa.usage.stillRunning : t.qa.usage.subtitle}
-            </p>
+            {/* 진행 중이라는 안내는 지금 상태이므로 보이게 두고, 평소의 설명만 제목 옆으로 옮긴다. */}
+            {active && <p className="qa-usage-note">{t.qa.usage.stillRunning}</p>}
             <button
               className="button button--secondary button--compact"
               onClick={refresh}
@@ -145,10 +148,11 @@ export function QaRunUsagePanel({ qaTryId, active }: { qaTryId: string; active: 
               </div>
 
               <div className="qa-usage-item">
-                <dt>{t.qa.usage.cached}</dt>
+                <dt>
+                  {t.qa.usage.cached}
+                  <InfoHint>{t.qa.usage.cachedHint}</InfoHint>
+                </dt>
                 <dd className="mono">{counts.format(usage.cachedInputTokens)}</dd>
-                {/* A subset of input tokens, so it is not added to the total above. */}
-                <p className="qa-usage-hint">{t.qa.usage.cachedHint}</p>
               </div>
             </dl>
           )}

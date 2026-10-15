@@ -90,7 +90,7 @@ export function VersionTreeDialog({
   }
 
   return (
-    <Dialog labelledBy={titleId} onClose={onClose} title={title}>
+    <Dialog hint={hint} labelledBy={titleId} onClose={onClose} title={title}>
       <form
         className="form"
         onSubmit={(event) => {
@@ -100,7 +100,6 @@ export function VersionTreeDialog({
           void confirm(selected)
         }}
       >
-        {hint !== undefined && <p className="field-hint">{hint}</p>}
         <div aria-label={m.label} className="vtree" onKeyDown={moveSelection} role="radiogroup">
           <ul className="vtree-list">
             {entries.map((entry) => {

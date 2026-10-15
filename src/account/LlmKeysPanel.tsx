@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useState } from 'react'
 import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
+import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
 import { CircleCheckIcon, CircleXIcon } from '../qa/qaModelIcons'
 import { deleteLlmKey, listLlmKeys, llmKeyRefusal, registerLlmKey } from './llmKeyApi'
@@ -102,9 +103,11 @@ export function LlmKeysPanel() {
   return (
     <section className="panel" aria-labelledby="llm-keys-title">
       <header className="panel-header">
-        <h2 id="llm-keys-title">{copy.title}</h2>
+        <h2 id="llm-keys-title">
+          {copy.title}
+          <InfoHint>{copy.intro}</InfoHint>
+        </h2>
       </header>
-      <p className="section-intro">{copy.intro}</p>
 
       {state.status === 'loading' && <p className="panel-empty">{copy.loading}</p>}
 

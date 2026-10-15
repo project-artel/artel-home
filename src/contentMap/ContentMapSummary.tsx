@@ -1,4 +1,5 @@
 import { useI18n } from '../i18n/useI18n'
+import { InfoHint } from '../design-system/primitives/InfoHint'
 import { formatDateTime } from '../projects/formatters'
 import {
   KNOWN_CAPABILITY_STATUSES,
@@ -70,7 +71,10 @@ export function ContentMapSummary({ view }: { view: ContentMapView }) {
         </section>
 
         <section className="cm-summary-block">
-          <h3>{copy.gapsTitle}</h3>
+          <h3>
+            {copy.gapsTitle}
+            {view.gaps.length > 0 && <InfoHint>{copy.gapsNote}</InfoHint>}
+          </h3>
           {view.gaps.length === 0 ? (
             <p className="cm-summary-note">{copy.noGaps}</p>
           ) : (
@@ -85,7 +89,6 @@ export function ContentMapSummary({ view }: { view: ContentMapView }) {
                   </li>
                 ))}
               </ul>
-              <p className="cm-summary-note">{copy.gapsNote}</p>
             </>
           )}
         </section>

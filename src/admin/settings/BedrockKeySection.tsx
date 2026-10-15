@@ -10,6 +10,7 @@ import {
 } from './settingsApi'
 import { ConfirmButton } from './ConfirmButton'
 import { useAdminFailure } from './useAdminRequest'
+import { InfoHint } from '../../design-system/primitives/InfoHint'
 
 export function BedrockFacts({ settings }: { settings: BedrockSettings }) {
   const { t, locale } = useI18n()
@@ -158,8 +159,8 @@ export function BedrockKeySection() {
       <div className="section__head">
         <h2 className="section__title" id="adm-bedrock-title">
           {t.adminSettings.bedrock.title}
+          <InfoHint>{t.adminSettings.bedrock.hint}</InfoHint>
         </h2>
-        <span className="section__note">{t.adminSettings.bedrock.hint}</span>
       </div>
 
       {error !== null && (
@@ -178,6 +179,7 @@ export function BedrockKeySection() {
         <span className="adm-field adm-field--wide">
           <label className="field__label" htmlFor={keyFieldId}>
             {t.adminSettings.common.newKey}
+            <InfoHint>{t.adminSettings.bedrock.keyHint}</InfoHint>
           </label>
           <input
             id={keyFieldId}
@@ -187,7 +189,6 @@ export function BedrockKeySection() {
             spellCheck={false}
             value={keyInput}
             onChange={(event) => setKeyInput(event.target.value)}
-            aria-describedby={`${keyFieldId}-hint`}
           />
         </span>
         <button type="submit" className="control control--action" disabled={saving || keyInput.trim() === ''}>
@@ -202,9 +203,6 @@ export function BedrockKeySection() {
           />
         )}
       </form>
-      <span className="section__note section__note--block" id={`${keyFieldId}-hint`}>
-        {t.adminSettings.bedrock.keyHint}
-      </span>
 
       <div className="adm-actions">
         <button

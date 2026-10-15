@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
+import { InfoHint } from '../design-system/primitives/InfoHint'
 import { LABEL_NODE_LIMIT } from '../knowledge/knowledgeLayout'
 import { useKnowledgeGraph } from '../knowledge/useKnowledgeGraph'
 import { formatDateTime } from '../projects/formatters'
@@ -120,8 +121,10 @@ export function ContentMapReport({
             {copy.page.back}
           </Link>
           <p className="cm-eyebrow mono">{copy.page.eyebrow(buildId)}</p>
-          <h1>{copy.page.title}</h1>
-          <p className="section-intro">{copy.page.subtitle}</p>
+          <h1>
+            {copy.page.title}
+            <InfoHint>{copy.page.subtitle}</InfoHint>
+          </h1>
         </div>
         <div className="cm-page-actions">
           {readAt.length > 0 && <p className="cm-read-at">{copy.page.readAt(readAt)}</p>}
@@ -317,7 +320,10 @@ function SceneGraphView({ projectId, view }: { projectId: string; view: ContentM
 
       <section aria-labelledby="cm-graph-title" className="panel cm-canvas-panel">
         <header className="panel-header">
-          <h2 id="cm-graph-title">{copy.title}</h2>
+          <h2 id="cm-graph-title">
+            {copy.title}
+            <InfoHint>{t.contentMap.viewport.hint}</InfoHint>
+          </h2>
           <p className="cm-canvas-note">
             {screenCopy.counts(
               model.containers.length,
@@ -355,8 +361,6 @@ function SceneGraphView({ projectId, view }: { projectId: string; view: ContentM
             viewport={viewport}
           />
         </div>
-
-        <p className="cm-canvas-note">{t.contentMap.viewport.hint}</p>
 
         {model.unmappedScenes > 0 && (
           <p className="cm-canvas-note">{copy.unmappedNote(model.unmappedScenes)}</p>

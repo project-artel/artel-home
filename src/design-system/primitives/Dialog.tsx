@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { InfoHint } from './InfoHint'
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
@@ -23,19 +24,24 @@ export function Dialog({
   onClose,
   children,
   labelledBy,
+  hint,
 }: {
   title: string
   onClose: () => void
   children: ReactNode
   labelledBy: string
+  /** dialog 가 하는 일을 설명하는 고정 문구. 본문에 펼치지 않고 제목 옆 `InfoHint` 로 띄운다. */
+  hint?: ReactNode
 }) {
   const panel = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const previouslyFocused = document.activeElement as HTMLElement | null
 
+    // 제목 옆 `InfoHint` 는 건너뛴다. 그 아이콘은 focus 를 받으면 tooltip 을 열기 때문에, dialog 를 열자마자 설명이 덮인다.
     const focusables = panel.current?.querySelectorAll<HTMLElement>(FOCUSABLE)
-    focusables?.item(0)?.focus()
+    const initial = Array.from(focusables ?? []).find((element) => !element.classList.contains('info-hint__trigger'))
+    initial?.focus()
 
     return () => previouslyFocused?.focus()
   }, [])
@@ -90,7 +96,10 @@ export function Dialog({
         aria-labelledby={labelledBy}
         ref={panel}
       >
-        <h2 className="dialog-title" id={labelledBy}>{title}</h2>
+        <h2 className="dialog-title" id={labelledBy}>
+          {title}
+          {hint !== undefined && <InfoHint>{hint}</InfoHint>}
+        </h2>
         {children}
       </div>
     </div>,

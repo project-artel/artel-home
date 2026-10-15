@@ -3,6 +3,7 @@ import { useI18n } from '../../i18n/useI18n'
 import { adminFormat } from '../shared/format'
 import { listLlmModels, replaceLlmModel, setLlmModelEnabled, type AdminLlmModel } from './settingsApi'
 import { useAdminFailure } from './useAdminRequest'
+import { InfoHint } from '../../design-system/primitives/InfoHint'
 
 const ROUTE_LABEL = { openrouter: 'OpenRouter', bedrock: 'AWS Bedrock' } as const
 
@@ -87,10 +88,8 @@ export function LlmModelsSection() {
       <div className="section__head">
         <h2 className="section__title" id="adm-models-title">
           {t.adminSettings.models.title}
+          <InfoHint>{t.adminSettings.models.hint}</InfoHint>
         </h2>
-        <span className="section__note">
-          {t.adminSettings.models.hint}
-        </span>
       </div>
       {error !== null && (
         <p className="notice notice--critical" role="alert">

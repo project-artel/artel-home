@@ -1,3 +1,4 @@
+import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
 import { useWorkspace } from '../projects/workspace/workspaceContext'
 import { formatCost, totalTokens } from './format'
@@ -44,8 +45,10 @@ export function UsageSection() {
       <section className="panel" aria-labelledby="usage-window-title">
         <header className="panel-header panel-header--split">
           <div>
-            <h2 id="usage-window-title">{u.sectionTitle}</h2>
-            <p className="usage-note">{u.sectionSubtitle(usage.zone)}</p>
+            <h2 id="usage-window-title">
+              {u.sectionTitle}
+              <InfoHint>{u.sectionSubtitle(usage.zone)}</InfoHint>
+            </h2>
           </div>
           <button className="button button--secondary button--compact" onClick={reload} type="button">
             {u.refresh}
@@ -125,8 +128,10 @@ function Breakdown({
     <section className="panel" aria-labelledby={id}>
       <header className="panel-header panel-header--split">
         <div>
-          <h2 id={id}>{title}</h2>
-          {note !== undefined && <p className="usage-note">{note}</p>}
+          <h2 id={id}>
+            {title}
+            {note !== undefined && <InfoHint>{note}</InfoHint>}
+          </h2>
         </div>
       </header>
 

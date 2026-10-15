@@ -1,3 +1,4 @@
+import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
 import type { Selection } from './KnowledgeGraphCanvas'
 import { itemTitle, relationLabel, truncate } from './knowledgeLabels'
@@ -44,8 +45,8 @@ export function KnowledgeRelationTable({
       <div className="section__head">
         <h2 className="section__title" id="kg-relations-title">
           {strings.title}
+          <InfoHint>{strings.note}</InfoHint>
         </h2>
-        <span className="section__note">{strings.note}</span>
       </div>
 
       <div className="table-scroll table-scroll--tall">

@@ -1,3 +1,4 @@
+import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
 import { formatCost, totalTokens } from './format'
 import { dayAt, dayTokens, type GrassGrid, type DayTotals } from './grass'
@@ -47,10 +48,12 @@ export function UsageFigures({
       <DayFigure label={u.yesterday} totals={dayAt(grid, yesterdayOf(today))} />
 
       <div className="usage-figure">
-        <dt>{u.busiestDay}</dt>
+        <dt>
+          {u.busiestDay}
+          <InfoHint>{u.busiestHint}</InfoHint>
+        </dt>
         <dd className="mono">{grid.max === 0 ? u.dash : counts.format(grid.max)}</dd>
         {/* 이 값이 잔디 눈금의 위쪽 끝이다. 짙은 칸이 얼마쯤인지 숫자로 한 번은 나와야 한다. */}
-        <p className="usage-figure-hint">{u.busiestHint}</p>
       </div>
     </dl>
   )

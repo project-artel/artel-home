@@ -1,5 +1,6 @@
 import { useId, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
 import { formatDate } from '../projects/formatters'
 import type { GameInstance } from '../projects/gameTypes'
@@ -162,8 +163,10 @@ export function QaTryPanel({
     <section className="panel qa-panel" aria-labelledby="qa-runs-title">
       <header className="panel-header panel-header--split">
         <div>
-          <h2 id="qa-runs-title">{t.qa.panel.title}</h2>
-          <p className="scenario-hint">{t.qa.panel.hint}</p>
+          <h2 id="qa-runs-title">
+            {t.qa.panel.title}
+            <InfoHint>{t.qa.panel.hint}</InfoHint>
+          </h2>
         </div>
       </header>
 

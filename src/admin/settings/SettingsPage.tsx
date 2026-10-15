@@ -14,6 +14,7 @@ import { CacheInvalidationSection } from './CacheInvalidationSection'
 import { LlmModelsSection } from './LlmModelsSection'
 import { useAdminFailure } from './useAdminRequest'
 import './admin.css'
+import { InfoHint } from '../../design-system/primitives/InfoHint'
 
 /**
  * OpenRouter 키 설정. 서버는 저장된 키를 어떤 응답에도 싣지 않고 끝부분만 가린 값을 준다. 이
@@ -122,8 +123,8 @@ export default function SettingsPage() {
           <div className="section__head">
             <h2 className="section__title" id="adm-key-title">
               {t.adminSettings.settings.openRouterKey}
+              <InfoHint>{t.adminSettings.settings.openRouterHint}</InfoHint>
             </h2>
-            <span className="section__note">{t.adminSettings.settings.openRouterHint}</span>
           </div>
 
           {settings === null ? (
@@ -165,6 +166,7 @@ export default function SettingsPage() {
             <span className="adm-field adm-field--wide">
               <label className="field__label" htmlFor={keyFieldId}>
                 {t.adminSettings.common.newKey}
+                <InfoHint>{t.adminSettings.settings.keyHint}</InfoHint>
               </label>
               {/* `new-password` keeps browsers from autofilling or offering to save the key. */}
               <input
@@ -175,7 +177,6 @@ export default function SettingsPage() {
                 spellCheck={false}
                 value={keyInput}
                 onChange={(event) => setKeyInput(event.target.value)}
-                aria-describedby={`${keyFieldId}-hint`}
               />
             </span>
             <button
@@ -194,17 +195,14 @@ export default function SettingsPage() {
               />
             )}
           </form>
-          <span className="section__note section__note--block" id={`${keyFieldId}-hint`}>
-            {t.adminSettings.settings.keyHint}
-          </span>
         </section>
 
         <section aria-labelledby="adm-check-title">
           <div className="section__head">
             <h2 className="section__title" id="adm-check-title">
               {t.adminSettings.settings.checkTitle}
+              <InfoHint>{t.adminSettings.settings.checkHint}</InfoHint>
             </h2>
-            <span className="section__note">{t.adminSettings.settings.checkHint}</span>
           </div>
           <button
             type="button"

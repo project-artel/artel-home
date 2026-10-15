@@ -15,6 +15,7 @@ import { AXES, type QaStats, type QaTrySummary } from './qaStatsTypes'
 import { activeProjectId, listTestRuns, type TestRunSummary } from './testRunsApi'
 import { useI18n } from '../../i18n/useI18n'
 import { useQa } from './useQa'
+import { InfoHint } from '../../design-system/primitives/InfoHint'
 
 const RECENT_RUN_COUNT = 30
 const DEFAULT_WINDOW_DAYS = 30
@@ -388,9 +389,8 @@ export default function QaPage() {
               <div className="section__head">
                 <h2 className="section__title" id="axes-title">
                   {t.axesSection.title}
+                  <InfoHint>{t.axesSection.note}</InfoHint>
                 </h2>
-                {/* 이 화면에서 가장 오해받기 쉬운 숫자라 제목 옆에 못박는다. */}
-                <span className="section__note">{t.axesSection.note}</span>
               </div>
               <div className="axis-grid">
                 {AXES.map((axis) => (

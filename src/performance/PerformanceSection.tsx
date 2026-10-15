@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
 import { useWorkspace } from '../projects/workspace/workspaceContext'
 import { BuildPerformanceReport } from './BuildPerformancePage'
@@ -22,8 +23,10 @@ export function PerformanceSection() {
     <section className="performance-overview">
       <header className="performance-overview-head">
         <div>
-          <h2>{copy.overviewTitle}</h2>
-          <p>{copy.overviewSubtitle}</p>
+          <h2>
+            {copy.overviewTitle}
+            <InfoHint>{copy.overviewSubtitle}</InfoHint>
+          </h2>
         </div>
         {selectedBuild !== undefined && (
           <label className="performance-build-picker">

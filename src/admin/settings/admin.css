@@ -185,9 +185,4 @@
     padding: 0;
     list-style: none;
   }
-
-  /* An action row placed right under a block hint, as in the Bedrock key section. */
-  .section__note--block + .adm-actions {
-    margin-top: var(--space-3);
-  }
 }

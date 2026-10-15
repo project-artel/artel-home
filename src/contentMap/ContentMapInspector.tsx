@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
+import { InfoHint } from '../design-system/primitives/InfoHint'
 import type { Messages } from '../i18n/messages'
 import { truncate } from '../knowledge/knowledgeLabels'
 import type { KnowledgeNode } from '../knowledge/knowledgeTypes'
@@ -252,8 +253,10 @@ function ScreenDetail({
       <h4 className="cm-detail-subtitle">{copy.discriminatorHeading}</h4>
       <DiscriminatorView discriminator={evidence.discriminator} />
 
-      <h4 className="cm-detail-subtitle">{copy.capabilitiesHeading}</h4>
-      <p className="cm-detail-note">{copy.capabilitiesNote}</p>
+      <h4 className="cm-detail-subtitle">
+        {copy.capabilitiesHeading}
+        <InfoHint>{copy.capabilitiesNote}</InfoHint>
+      </h4>
       {evidence.capabilities.length === 0 ? (
         <p className="cm-inspector-hint">{copy.capabilitiesNone}</p>
       ) : (
@@ -699,9 +702,11 @@ function SceneDetail({
         </ul>
       )}
 
-      <h4 className="cm-detail-subtitle">{copy.gapsHeading}</h4>
+      <h4 className="cm-detail-subtitle">
+        {copy.gapsHeading}
+        <InfoHint>{copy.gapsNote}</InfoHint>
+      </h4>
       {/* 지도 전체의 집계다. 씬별로 가른 값이 응답에 없으므로 씬의 것인 척하지 않는다. */}
-      <p className="cm-detail-note">{copy.gapsNote}</p>
       {gaps.length === 0 ? (
         <p className="cm-inspector-hint">{copy.gapsNone}</p>
       ) : (
