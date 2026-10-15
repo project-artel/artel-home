@@ -19,6 +19,7 @@ import {
   LockIcon,
   SearchIcon,
 } from './qaModelIcons'
+import { ProviderLogo } from './launch/ProviderLogo'
 import { qaModelOptionKey, type QaModel } from './qaTypes'
 
 /** The platform tab; every other tab is a key service (`LLM_KEY_SERVICES`). */
@@ -219,6 +220,7 @@ export function QaModelPicker({
         <span className="qa-model-option-mark">
           {key === value ? <CheckIcon /> : locked ? <LockIcon size={14} /> : null}
         </span>
+        <ProviderLogo provider={model.provider} size={16} />
         <span className="qa-model-option-label">{qaModelDisplayLabel(model)}</span>
         {model.multimodal && <span className="qa-model-tag">{p.multimodal}</span>}
         {model.reasoning !== null && <span className="qa-model-tag">{p.reasoningTag}</span>}
@@ -261,6 +263,7 @@ export function QaModelPicker({
                 {llmKeyApiName(qaKeyServiceOf(selected))}
               </span>
             )}
+            <ProviderLogo provider={selected.provider} size={18} />
             <span className="qa-model-trigger-label">{qaModelDisplayLabel(selected)}</span>
             <span className="qa-model-trigger-provider">{selected.provider}</span>
           </>
