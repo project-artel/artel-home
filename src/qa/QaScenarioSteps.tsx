@@ -67,7 +67,7 @@ export function QaScenarioSteps({
    * matched by step number, so a verdict arriving out of order lands on its own row.
    */
   executionMode?: ExecutionMode
-  /** 판정 버전(ARTEL-1070). FREE 시나리오의 케이스 내용을 이 버전으로 읽는다. 없으면 최신이다. */
+  /** 판정 기준 버전(ARTEL-1070, TR 의 버전). FREE 시나리오의 케이스 내용을 이 버전으로 읽는다. 없으면 최신이다. */
   gameBuildId?: string | null
   projectId: string
   /** 서버가 TC 상태로 저장한 판정(ARTEL-995). TC 머리에 저장된 상태를 점으로 따로 보인다. */

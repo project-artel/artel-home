@@ -21,7 +21,7 @@ export type FocusedScenarioDetail = {
 
 export type QaScenarioRailProps = {
   projectId: string
-  /** 판정 버전(ARTEL-1070). FREE 시나리오의 케이스를 QA 가 판정한 그 버전의 내용으로 보인다. */
+  /** 판정 기준 버전(ARTEL-1070, TR 의 버전). FREE 시나리오의 케이스를 QA 가 판정한 그 내용으로 보인다. */
   gameBuildId: string | null
   tries: QaTry[]
   activeTryId: string | null
