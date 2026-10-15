@@ -243,7 +243,9 @@ export async function checkLlmModels(): Promise<LlmKeyCheck> {
   return parseLlmKeyCheck(await readJson(response))
 }
 
-export type LlmModelRoute = 'openrouter' | 'bedrock'
+export type LlmModelRoute = 'openrouter' | 'bedrock' | 'claude' | 'gpt'
+
+const LLM_MODEL_ROUTES: readonly LlmModelRoute[] = ['openrouter', 'bedrock', 'claude', 'gpt']
 
 /** One row of the model catalog. Only `enabled` can be changed from the admin page. */
 export interface AdminLlmModel {
@@ -257,6 +259,12 @@ export interface AdminLlmModel {
   updatedAt: string | null
 }
 
+function parseLlmModelRoute(value: unknown, id: string): LlmModelRoute {
+  const known = LLM_MODEL_ROUTES.find((route) => route === value)
+  if (known !== undefined) return known
+  return value === undefined && id.startsWith('bedrock/') ? 'bedrock' : 'openrouter'
+}
+
 export function parseAdminLlmModel(raw: unknown): AdminLlmModel {
   const row = asRecord(raw)
   const id = String(row.id ?? '')
@@ -265,7 +273,7 @@ export function parseAdminLlmModel(raw: unknown): AdminLlmModel {
     label: asNullableString(row.label) ?? id,
     provider: asNullableString(row.provider) ?? '',
     // The server derives the route from the id prefix; do the same when it is missing.
-    route: row.route === 'bedrock' || (row.route === undefined && id.startsWith('bedrock/')) ? 'bedrock' : 'openrouter',
+    route: parseLlmModelRoute(row.route, id),
     enabled: row.enabled === true,
     supportsVision: row.supportsVision === true,
     maxInputTokens: asNullableNumber(row.maxInputTokens),
@@ -365,6 +373,37 @@ export async function checkBedrockModels(): Promise<BedrockCheck> {
   return parseBedrockCheck(await readJson(response))
 }
 
+/** The direct TypeSafe (Jev) API key. Same status shape as the Anthropic key, without a model check. */
+export interface TypesafeSettings {
+  configured: boolean
+  /** The server's masked tail such as `****abcd`. The full key is never sent. */
+  maskedKey: string | null
+  updatedAt: string | null
+}
+
+export function parseTypesafeSettings(body: unknown): TypesafeSettings {
+  const record = asRecord(body)
+  return {
+    configured: record.configured === true,
+    maskedKey: asNullableString(record.maskedKey),
+    updatedAt: asNullableString(record.updatedAt),
+  }
+}
+
+export async function getTypesafeSettings(signal?: AbortSignal): Promise<TypesafeSettings> {
+  return parseTypesafeSettings(await readJson(await apiFetch('/api/admin/settings/typesafe', { signal })))
+}
+
+/** Sets the key, or deletes it when `apiKey` is `null`. */
+export async function putTypesafeKey(apiKey: string | null): Promise<TypesafeSettings> {
+  const response = await apiFetch('/api/admin/settings/typesafe', {
+    method: 'PUT',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ apiKey }),
+  })
+  return parseTypesafeSettings(await readJson(response))
+}
+
 export interface CacheInvalidation {
   agentServerInvalidated: boolean
   /** Why the agent-server call failed, or `null` when it did not. */
@@ -384,3 +423,44 @@ export async function invalidateLlmCache(): Promise<CacheInvalidation> {
   return parseCacheInvalidation(await readJson(response))
 }
 
+
+/** The `decisionModel` value that means the Jev decision interface on OpenRouter. */
+export const JEV_MODEL_ID = 'typesafe/jev-1.13'
+
+/** Which model each feature uses. `null` means the feature's own default. */
+export interface FeatureModels {
+  scenarioAuthoringModel: string | null
+  /** What the server uses while `scenarioAuthoringModel` is `null`; `null` means the agent-server default. */
+  scenarioAuthoringFallback: string | null
+  decisionModel: string | null
+  updatedAt: string | null
+}
+
+export function parseFeatureModels(body: unknown): FeatureModels {
+  const row = asRecord(body)
+  return {
+    scenarioAuthoringModel: asNullableString(row.scenarioAuthoringModel),
+    scenarioAuthoringFallback: asNullableString(row.scenarioAuthoringFallback),
+    decisionModel: asNullableString(row.decisionModel),
+    updatedAt: asNullableString(row.updatedAt),
+  }
+}
+
+export async function getFeatureModels(signal?: AbortSignal): Promise<FeatureModels> {
+  return parseFeatureModels(await readJson(await apiFetch('/api/admin/settings/models', { signal })))
+}
+
+/** Both fields are always sent; `null` clears that feature's choice. Answers the saved state. */
+export async function putFeatureModels(
+  request: Pick<FeatureModels, 'scenarioAuthoringModel' | 'decisionModel'>,
+): Promise<FeatureModels> {
+  const response = await apiFetch('/api/admin/settings/models', {
+    method: 'PUT',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({
+      scenarioAuthoringModel: request.scenarioAuthoringModel,
+      decisionModel: request.decisionModel,
+    }),
+  })
+  return parseFeatureModels(await readJson(response))
+}

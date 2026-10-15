@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react'
 import { useI18n } from '../../i18n/useI18n'
 import { adminFormat } from '../shared/format'
 import { listLlmModels, replaceLlmModel, setLlmModelEnabled, type AdminLlmModel } from './settingsApi'
+import { ROUTE_LABEL } from './routeLabel'
 import { useAdminFailure } from './useAdminRequest'
 import { InfoHint } from '../../design-system/primitives/InfoHint'
 
-const ROUTE_LABEL = { openrouter: 'OpenRouter', bedrock: 'AWS Bedrock' } as const
 
 export function ModelRow({
   model,

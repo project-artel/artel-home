@@ -12,6 +12,8 @@ import { ConfirmButton } from './ConfirmButton'
 import { BedrockKeySection } from './BedrockKeySection'
 import { CacheInvalidationSection } from './CacheInvalidationSection'
 import { LlmModelsSection } from './LlmModelsSection'
+import { TypesafeKeySection } from './TypesafeKeySection'
+import { FeatureModelsSection } from './FeatureModelsSection'
 import { useAdminFailure } from './useAdminRequest'
 import './admin.css'
 import { InfoHint } from '../../design-system/primitives/InfoHint'
@@ -29,6 +31,7 @@ export default function SettingsPage() {
   const [checking, setChecking] = useState(false)
   const [check, setCheck] = useState<LlmKeyCheck | null>(null)
   const [announcement, setAnnouncement] = useState('')
+  const [typesafeConfigured, setTypesafeConfigured] = useState<boolean | null>(null)
   const { error, setError, fail } = useAdminFailure()
   const keyFieldId = useId()
 
@@ -220,9 +223,15 @@ export default function SettingsPage() {
 
         <BedrockKeySection />
 
+        <TypesafeKeySection onConfiguredChange={setTypesafeConfigured} />
+
         <CacheInvalidationSection />
 
         <LlmModelsSection />
+
+        <FeatureModelsSection openRouterKeyConfigured={settings === null ? null : settings.configured}
+          typesafeKeyConfigured={typesafeConfigured}
+          onSaved={setAnnouncement} />
 
         <p className="adm-visually-hidden" aria-live="polite">
           {announcement}

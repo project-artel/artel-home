@@ -5,6 +5,12 @@ import {
   checkBedrockModels,
   checkLlmModels,
   getBedrockSettings,
+  getFeatureModels,
+  getTypesafeSettings,
+  parseTypesafeSettings,
+  putTypesafeKey,
+  parseFeatureModels,
+  putFeatureModels,
   invalidateLlmCache,
   parseBedrockSettings,
   parseCacheInvalidation,
@@ -310,5 +316,84 @@ describe('cache invalidation endpoint', () => {
   it('treats a missing flag as not invalidated and keeps the error text', () => {
     assert.deepEqual(parseCacheInvalidation({ error: 'timeout' }), { agentServerInvalidated: false, error: 'timeout' })
     assert.throws(() => parseCacheInvalidation(null))
+  })
+})
+
+describe('feature model endpoints', () => {
+  const body = {
+    scenarioAuthoringModel: 'anthropic/claude-sonnet-5.5',
+    scenarioAuthoringFallback: 'openai/gpt-6-luna',
+    decisionModel: null,
+    updatedAt: '2026-10-15T01:00:00Z',
+  }
+
+  it('reads nulls and strings as they are', () => {
+    assert.deepEqual(parseFeatureModels(body), body)
+    assert.deepEqual(parseFeatureModels({}), {
+      scenarioAuthoringModel: null,
+      scenarioAuthoringFallback: null,
+      decisionModel: null,
+      updatedAt: null,
+    })
+  })
+
+  it('gets from the models endpoint', async () => {
+    const fetchMock = stubFetch(body)
+    const result = await getFeatureModels()
+    assert.equal(fetchMock.mock.calls[0].arguments[0], 'http://localhost:8080/api/admin/settings/models')
+    assert.equal(result.scenarioAuthoringFallback, 'openai/gpt-6-luna')
+  })
+
+  it('puts both fields, sending null to clear one', async () => {
+    const fetchMock = stubFetch({ ...body, decisionModel: 'bedrock/x' })
+    const result = await putFeatureModels({ scenarioAuthoringModel: null, decisionModel: 'bedrock/x' })
+    const [, init] = fetchMock.mock.calls[0].arguments
+    assert.equal(init?.method, 'PUT')
+    assert.deepEqual(JSON.parse(init?.body as string), { scenarioAuthoringModel: null, decisionModel: 'bedrock/x' })
+    assert.equal(result.decisionModel, 'bedrock/x')
+  })
+
+  it('raises the server code when the model is disabled', async () => {
+    stubFetch({ code: 'llm_model_disabled', message: 'disabled' }, 400)
+    await assert.rejects(putFeatureModels({ scenarioAuthoringModel: 'x', decisionModel: null }), {
+      status: 400,
+      code: 'llm_model_disabled',
+    })
+  })
+})
+
+describe('model route', () => {
+  it('keeps the claude and gpt routes the server sends', () => {
+    assert.equal(parseAdminLlmModel({ id: 'a', route: 'claude' }).route, 'claude')
+    assert.equal(parseAdminLlmModel({ id: 'a', route: 'gpt' }).route, 'gpt')
+  })
+})
+
+describe('TypeSafe key endpoints', () => {
+  const body = { configured: true, maskedKey: '****abcd', updatedAt: '2026-10-15T00:00:00Z' }
+
+  it('parses the status and falls back for a malformed body', () => {
+    assert.deepEqual(parseTypesafeSettings(body), body)
+    assert.deepEqual(parseTypesafeSettings({ configured: 'yes' }), { configured: false, maskedKey: null, updatedAt: null })
+  })
+
+  it('gets from the typesafe endpoint', async () => {
+    const fetchMock = stubFetch(body)
+    assert.equal((await getTypesafeSettings()).maskedKey, '****abcd')
+    assert.equal(fetchMock.mock.calls[0].arguments[0], 'http://localhost:8080/api/admin/settings/typesafe')
+  })
+
+  it('puts the key, and null to delete it', async () => {
+    const fetchMock = stubFetch({ configured: false, maskedKey: null, updatedAt: null })
+    const result = await putTypesafeKey(null)
+    const [, init] = fetchMock.mock.calls[0].arguments
+    assert.equal(init?.method, 'PUT')
+    assert.deepEqual(JSON.parse(init?.body as string), { apiKey: null })
+    assert.equal(result.configured, false)
+  })
+
+  it('raises the server code on a bad key', async () => {
+    stubFetch({ code: 'invalid_api_key', message: 'bad' }, 400)
+    await assert.rejects(putTypesafeKey('x'), { status: 400, code: 'invalid_api_key' })
   })
 })
