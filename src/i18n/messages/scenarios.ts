@@ -121,8 +121,8 @@ export const scenariosEn = {
     stageSent: 'Request sent',
     // 워크플로 노드 (ARTEL-952). 사용자가 보는 말로 적는다 — 노드 이름(B·C·D)이 아니라
     // 그 노드가 하는 일로.
-    stageGrouping: 'Sorting the cases into journeys',
-    stageGrouped: 'Journeys decided',
+    stageGrouping: 'Grouping the cases into scenarios',
+    stageGrouped: 'Cases grouped',
     stageBridging: 'Fixing the order',
     stageSaving: 'Saving',
     stageModifying: 'Editing the scenario',
@@ -748,8 +748,8 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
      */
     stageSent: '요청 보냄',
     // 워크플로 노드 (ARTEL-952). 노드 이름(B·C·D)이 아니라 그 노드가 하는 일로 적는다.
-    stageGrouping: '케이스를 흐름으로 나누는 중',
-    stageGrouped: '흐름을 나눴어요',
+    stageGrouping: '케이스를 시나리오로 묶는 중',
+    stageGrouped: '케이스를 묶었어요',
     stageBridging: '순서를 고치는 중',
     stageSaving: '저장 중',
     stageModifying: '시나리오를 고치는 중',
