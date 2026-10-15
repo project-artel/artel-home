@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
+import { EdgeScrollbar } from '../../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../../i18n/useI18n'
 import type { GameInstance } from '../../projects/gameTypes'
 import { sectionHref } from '../../projects/workspace/sections'
@@ -10,7 +11,6 @@ import { ChevronDownIcon, SearchIcon } from '../qaModelIcons'
 import { offeredQaModels } from '../qaModelGroups'
 import { qaModelOptionKey, type QaModel } from '../qaTypes'
 import { byAscendingEffort } from '../reasoningEfforts'
-import { CommandPalette, type PaletteAction } from './CommandPalette'
 import { ConsolesDialog } from './ConsolesDialog'
 import { LaunchPanel } from './LaunchPanel'
 import { ProviderLogo } from './ProviderLogo'
@@ -73,7 +73,6 @@ function reasoningStart(model: QaModel | undefined): number {
 export function QaLaunch() {
   const { t } = useI18n()
   const l = t.qa.launch
-  const navigate = useNavigate()
   const { projectId, runs, instances, builds, models, refreshGameState, applyInstance, removeInstance, applyBuild } = useWorkspace()
   const offered = useMemo(() => offeredQaModels(models), [models])
 
@@ -87,7 +86,7 @@ export function QaLaunch() {
   const pickerAnchor = useRef<HTMLDivElement>(null)
   const closePicker = useCallback(() => setPickerOpen(false), [])
   useDismiss(pickerOpen, pickerAnchor, closePicker)
-  const [paletteOpen, setPaletteOpen] = useState(false)
+  const [mainScroller, setMainScroller] = useState<HTMLDivElement | null>(null)
   const [consolesOpen, setConsolesOpen] = useState(false)
   const [runShortcut, setRunShortcut] = useState(0)
 
@@ -112,7 +111,7 @@ export function QaLaunch() {
   }, [projectId])
 
   const liveRunIds = useMemo(() => new Set(runs.map((run) => run.id)), [runs])
-  const starts = useMemo(() => quickStarts(qaRuns, liveRunIds), [qaRuns, liveRunIds])
+  const starts = useMemo(() => quickStarts(qaRuns, liveRunIds, 5), [qaRuns, liveRunIds])
 
   // 첫 선택: 마지막 실행 조합 → 없으면 첫 런 · 연결된 게임 · 키 있는 첫 모델.
   const defaults = useMemo<Required<Choice>>(() => {
@@ -148,13 +147,13 @@ export function QaLaunch() {
   const since = run !== null && sinceOf?.runId === run.id ? sinceOf.value : null
   const sinceStatus: Load = run === null || sinceOf?.runId !== run.id ? 'loading' : sinceOf.value === null ? 'failed' : 'ready'
 
-  // ⌘K 찾기, ⌘↵ 실행. 입력 중이어도 듣는다 — 둘 다 글자를 넣는 조합이 아니다.
+  // ⌘K 런 찾기, ⌘↵ 실행. 입력 중이어도 듣는다 — 둘 다 글자를 넣는 조합이 아니다.
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if (!(event.metaKey || event.ctrlKey)) return
       if (event.key.toLowerCase() === 'k') {
         event.preventDefault()
-        setPaletteOpen(true)
+        if (runs.length > 0) setPickerOpen(true)
       } else if (event.key === 'Enter') {
         event.preventDefault()
         setRunShortcut((n) => n + 1)
@@ -162,12 +161,11 @@ export function QaLaunch() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [])
+  }, [runs.length])
 
   function pickRun(next: string) {
     setChoice((current) => ({ ...current, runId: next }))
     setPickerOpen(false)
-    setPaletteOpen(false)
   }
 
   function pickModel(next: string) {
@@ -179,13 +177,6 @@ export function QaLaunch() {
     }))
   }
 
-  function act(action: PaletteAction) {
-    setPaletteOpen(false)
-    if (action === 'new-run') navigate(sectionHref(projectId, 'test-runs'))
-    else if (action === 'install') navigate(sectionHref(projectId, 'setup'))
-    else setConsolesOpen(true)
-  }
-
   const runPath = run === null
     ? []
     : [run.gameBuild?.label ?? run.gameBuild?.version ?? l.noVersion, ...(run.folderId === null ? [] : [...folderPath(folders, run.folderId), ...folders.filter((folder) => folder.id === run.folderId)].map((folder) => folder.name))]
@@ -194,80 +185,101 @@ export function QaLaunch() {
 
   return (
     <div className="ql">
-      <div className="ql-main">
-        <div className="ql-head">
-          <div className="ql-head-row">
-            <div className="ql-run-anchor" ref={pickerAnchor}>
-              {runs.length === 0 ? (
-                <div className="ql-run-card is-empty">
-                  <span className="ql-run-kicker">{l.runKicker}</span>
-                  <span className="ql-run-name">{l.noRuns}</span>
-                  <Link className="ql-link" to={sectionHref(projectId, 'test-runs')}>{l.createRun}</Link>
-                </div>
-              ) : (
+      <div className="ql-main-frame">
+        <div className="ql-main" ref={setMainScroller}>
+          <div className="ql-head">
+            <div className="ql-head-row">
+              <div className="ql-run-anchor" ref={pickerAnchor}>
+                {runs.length === 0 ? (
+                  <div className="ql-run-card is-empty">
+                    <span className="ql-run-kicker">{l.runKicker}</span>
+                    <span className="ql-run-name">{l.noRuns}</span>
+                    <Link className="ql-link" to={sectionHref(projectId, 'test-runs')}>{l.createRun}</Link>
+                  </div>
+                ) : (
+                  <button
+                    aria-expanded={pickerOpen}
+                    aria-haspopup="dialog"
+                    aria-label={l.changeRun}
+                    className={'ql-run-card' + (pickerOpen ? ' is-open' : '')}
+                    onClick={() => setPickerOpen((open) => !open)}
+                    type="button"
+                  >
+                    <span className="ql-run-card-text">
+                      <span className="ql-run-kicker">
+                        {l.runKicker}
+                        {runPath.length > 0 && <span className="ql-run-path mono"> · {runPath.join(' / ')}</span>}
+                      </span>
+                      <span className="ql-run-name">{run?.name ?? l.changeRun}</span>
+                      {run !== null && <span className="ql-run-meta">{l.runMeta(run.scenarioCount)}</span>}
+                    </span>
+                    <span className="ql-run-chevron"><ChevronDownIcon size={20} /></span>
+                  </button>
+                )}
+                {pickerOpen && (
+                  <RunPicker
+                    builds={builds}
+                    folders={folders}
+                    onManageConsoles={() => {
+                      setPickerOpen(false)
+                      setConsolesOpen(true)
+                    }}
+                    onPick={pickRun}
+                    projectId={projectId}
+                    runs={runs}
+                    selectedRunId={runId}
+                  />
+                )}
+              </div>
+              {run !== null && (
+                <Link className="ql-edit-run" to={`/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(run.id)}/edit`}>
+                  {l.editRun}
+                </Link>
+              )}
+              {runs.length > 0 && (
                 <button
-                  aria-expanded={pickerOpen}
-                  aria-haspopup="dialog"
-                  aria-label={l.changeRun}
-                  className={'ql-run-card' + (pickerOpen ? ' is-open' : '')}
-                  onClick={() => setPickerOpen((open) => !open)}
+                  aria-keyshortcuts="Meta+K"
+                  aria-label={l.findRun}
+                  className="ql-find"
+                  onClick={() => setPickerOpen(true)}
+                  title={`${l.findRun} (⌘K)`}
                   type="button"
                 >
-                  <span className="ql-run-card-text">
-                    <span className="ql-run-kicker">
-                      {l.runKicker}
-                      {runPath.length > 0 && <span className="ql-run-path mono"> · {runPath.join(' / ')}</span>}
-                    </span>
-                    <span className="ql-run-name">{run?.name ?? l.changeRun}</span>
-                    {run !== null && <span className="ql-run-meta">{l.runMeta(run.scenarioCount)}</span>}
-                  </span>
-                  <span className="ql-run-chevron"><ChevronDownIcon size={20} /></span>
+                  <SearchIcon size={16} />
                 </button>
               )}
-              {pickerOpen && (
-                <RunPicker builds={builds} folders={folders} onPick={pickRun} projectId={projectId} runs={runs} selectedRunId={runId} />
-              )}
             </div>
-            {run !== null && (
-              <Link className="ql-edit-run" to={`/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(run.id)}/edit`}>
-                {l.editRun}
-              </Link>
+
+            {starts.length > 0 && (
+              <div className="ql-starts">
+                <span className="ql-starts-label">{l.quickStart}</span>
+                {starts.map((start) => {
+                  const rate = passRate(start.run)
+                  const model = modelOf(start.run.model)
+                  const active = start.run.testRunId === runId && start.run.gameInstanceId === instanceId && model !== undefined && qaModelOptionKey(model) === modelKey
+                  return (
+                    <button className={'ql-start' + (active ? ' is-active' : '')} key={start.run.id} onClick={() => applyStart(start)} type="button">
+                      {model !== undefined && <ProviderLogo provider={model.provider} size={16} />}
+                      <span className="ql-start-text">
+                        <span className="ql-start-title">{start.run.testRunName}</span>
+                        <span className="ql-start-sub">
+                          {[start.run.gameInstanceName, model?.label ?? start.run.model].filter(Boolean).join(' · ')}
+                        </span>
+                      </span>
+                      {rate !== null && <span className={'ql-start-rate mono' + (rate === 100 ? ' is-ok' : '')}>{`${start.run.casesPassed}/${start.run.casesTotal}`}</span>}
+                    </button>
+                  )
+                })}
+              </div>
             )}
-            <button className="ql-find" onClick={() => setPaletteOpen(true)} type="button">
-              <SearchIcon size={15} />
-              {l.find}
-              <kbd className="ql-kbd">⌘K</kbd>
-            </button>
           </div>
 
-          {starts.length > 0 && (
-            <div className="ql-starts">
-              <span className="ql-starts-label">{l.quickStart}</span>
-              {starts.map((start) => {
-                const rate = passRate(start.run)
-                const model = modelOf(start.run.model)
-                const active = start.run.testRunId === runId && start.run.gameInstanceId === instanceId && model !== undefined && qaModelOptionKey(model) === modelKey
-                return (
-                  <button className={'ql-start' + (active ? ' is-active' : '')} key={start.run.id} onClick={() => applyStart(start)} type="button">
-                    {model !== undefined && <ProviderLogo provider={model.provider} size={16} />}
-                    <span className="ql-start-text">
-                      <span className="ql-start-title">{start.run.testRunName}</span>
-                      <span className="ql-start-sub">
-                        {[start.run.gameInstanceName, model?.label ?? start.run.model].filter(Boolean).join(' · ')}
-                      </span>
-                    </span>
-                    {rate !== null && <span className={'ql-start-rate mono' + (rate === 100 ? ' is-ok' : '')}>{`${start.run.casesPassed}/${start.run.casesTotal}`}</span>}
-                  </button>
-                )
-              })}
-            </div>
+          {run !== null && (
+            <SinceLastRun onManageConsoles={() => setConsolesOpen(true)} projectId={projectId} runId={run.id} since={since} status={sinceStatus} />
           )}
+          <RecentRuns models={offered} projectId={projectId} runs={qaRuns} selectedRunId={runId} status={qaRunsStatus} />
         </div>
-
-        {run !== null && (
-          <SinceLastRun onManageConsoles={() => setConsolesOpen(true)} projectId={projectId} runId={run.id} since={since} status={sinceStatus} />
-        )}
-        <RecentRuns models={offered} projectId={projectId} runs={qaRuns} selectedRunId={runId} status={qaRunsStatus} />
+        <EdgeScrollbar label={l.runKicker} scroller={mainScroller} side="right" />
       </div>
 
       <LaunchPanel
@@ -289,20 +301,6 @@ export function QaLaunch() {
         runShortcut={runShortcut}
       />
 
-      {paletteOpen && (
-        <CommandPalette
-          modelLabel={(id) => modelOf(id)?.label ?? id ?? ''}
-          onAction={act}
-          onClose={() => setPaletteOpen(false)}
-          onPickRun={pickRun}
-          onPickStart={(start) => {
-            applyStart(start)
-            setPaletteOpen(false)
-          }}
-          runs={runs}
-          starts={starts}
-        />
-      )}
       {consolesOpen && (
         <ConsolesDialog
           builds={builds}

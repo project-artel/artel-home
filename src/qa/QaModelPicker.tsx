@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { LLM_KEY_SERVICES, llmKeyApiName, llmKeyServiceName } from '../account/llmKeyTypes'
 import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
@@ -59,7 +59,14 @@ export function QaModelPicker({
   models,
   onChange,
   value,
+  popoverWidth,
 }: {
+  /**
+   * 주면 목록을 트리거 폭이 아니라 이 폭으로, 트리거 오른쪽 끝에 맞춰 화면에 고정해 연다(ARTEL-1084).
+   * 좁은 패널 안에서 쓰면 트리거 폭으로는 탭(특히 OpenRouter)과 이름이 잘린다. 패널이 스크롤 영역이라
+   * CSS 로 넓히면 패널 밖이 잘리므로, 열 때 트리거 자리를 재서 `position: fixed` 로 띄운다.
+   */
+  popoverWidth?: number
   disabled: boolean
   /** Given to the trigger, so the field's `<label htmlFor>` names it. */
   id: string
@@ -70,6 +77,7 @@ export function QaModelPicker({
   const { t } = useI18n()
   const p = t.qa.panel
   const [open, setOpen] = useState(false)
+  const [popoverBox, setPopoverBox] = useState<CSSProperties | undefined>(undefined)
   const [query, setQuery] = useState('')
   const [active, setActive] = useState('')
   const [tab, setTab] = useState<string>(PLATFORM_TAB)
@@ -148,6 +156,19 @@ export function QaModelPicker({
         : qaKeyServiceOf(selected),
     )
     setActive(value)
+    const rect = triggerRef.current?.getBoundingClientRect()
+    setPopoverBox(
+      popoverWidth === undefined || rect === undefined
+        ? undefined
+        : {
+            position: 'fixed',
+            top: rect.bottom + 4,
+            left: Math.max(8, Math.min(rect.right, window.innerWidth - 8) - popoverWidth),
+            right: 'auto',
+            width: popoverWidth,
+            maxHeight: `calc(100vh - ${Math.round(rect.bottom) + 16}px)`,
+          },
+    )
     setOpen(true)
   }
 
@@ -272,7 +293,7 @@ export function QaModelPicker({
       </button>
 
       {open && (
-        <div className="qa-model-popover">
+        <div className="qa-model-popover" style={popoverBox}>
           {tabbed && (
             <div aria-label={p.modelLabel} className="qa-model-tabs" role="tablist">
               {tabs.map((entry) => (

@@ -28,6 +28,8 @@ type IssueListProps = {
    * `false` explicitly, rather than a default silently doing that for it.
    */
   trackerConnected: boolean
+  /** 펼쳐서 강조할 이슈(`?issue=`, ARTEL-1084). 없으면 null. */
+  focusId?: string | null
 }
 
 /**
@@ -47,6 +49,7 @@ export function IssueList({
   filtered,
   onRetry,
   trackerConnected,
+  focusId = null,
 }: IssueListProps) {
   const { t } = useI18n()
   const { toggle, pending, failedId } = useIssueResolution(patch)
@@ -83,6 +86,7 @@ export function IssueList({
         {issues.map((issue) => (
           <IssueRow
             failed={failedId === issue.id}
+            focused={issue.id === focusId}
             issue={issue}
             key={issue.id}
             onSync={(target) => void sync(target)}

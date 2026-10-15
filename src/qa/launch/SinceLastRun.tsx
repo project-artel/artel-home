@@ -15,7 +15,7 @@ import { CollapsibleSection } from './CollapsibleSection'
  * 다시 돌릴지, 돌리면 무엇을 볼지를 정하는 자리다. 두 칸은 높이를 맞추고 칸마다 서비스 스크롤바
  * (`EdgeScrollbar`)를 단다 — 한쪽만 길어서 화면이 출렁이지 않게.
  *
- * 이슈에는 사진이 없다. 제목만 나열하고, 누르면 그 실행의 그 시나리오로 간다.
+ * 이슈에는 사진이 없다. 제목만 나열하고, 누르면 이슈 화면에서 그 이슈를 펼친다.
  */
 export function SinceLastRun({
   projectId,
@@ -61,7 +61,7 @@ export function SinceLastRun({
                 <ul className="ql-rows">
                   {since.issues.map((issue) => (
                     <li key={issue.id}>
-                      <Link className="ql-issue" to={qaRunPath(projectId, last.id, issue.qaTryId)}>
+                      <Link className="ql-issue" to={issueHref(projectId, issue.id)}>
                         {issue.severity !== null && <span className={`ql-sev ql-sev--${issue.severity.toLowerCase()}`}>{t.issues.severityLabels[issue.severity as keyof typeof t.issues.severityLabels] ?? issue.severity}</span>}
                         <span className="ql-issue-title">{issue.title}</span>
                         <span className="ql-issue-meta">
@@ -91,11 +91,10 @@ export function SinceLastRun({
               )}
             </ScrollBox>
           </div>
-          <label className="ql-failed-only">
-            <input disabled type="checkbox" />
-            <span>{l.failedOnly}</span>
+          <div className="ql-failed-only">
+            <button className="ql-failed-only-button" disabled type="button">{l.failedOnly}</button>
             <InfoHint>{l.failedOnlyHint}</InfoHint>
-          </label>
+          </div>
         </>
       )}
     </CollapsibleSection>
@@ -135,11 +134,16 @@ function ChangeRow({
   }
   const to =
     change.kind === 'ISSUE_RESOLVED'
-      ? sectionHref(projectId, 'issues')
+      ? change.subjectId === null ? sectionHref(projectId, 'issues') : issueHref(projectId, change.subjectId)
       : change.kind === 'CASE_VERSION_ADDED'
         ? sectionHref(projectId, 'test-cases')
         : `/projects/${encodeURIComponent(projectId)}/test-scenarios/${encodeURIComponent(change.subjectId ?? '')}?run=${encodeURIComponent(runId)}`
   return <Link className="ql-tl-row" to={to}>{body}</Link>
+}
+
+/** 이슈 화면에서 그 이슈를 펼쳐 보이는 주소. */
+function issueHref(projectId: string, issueId: string): string {
+  return `${sectionHref(projectId, 'issues')}?issue=${encodeURIComponent(issueId)}`
 }
 
 /** 높이가 정해진 칸 하나. 네이티브 스크롤바는 숨기고 서비스 스크롤바를 단다. */

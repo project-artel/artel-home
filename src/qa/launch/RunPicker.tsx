@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { EdgeScrollbar } from '../../design-system/primitives/EdgeScrollbar'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
 import type { GameBuild } from '../../projects/gameTypes'
@@ -16,6 +17,9 @@ type Node = { bucket: string; folderId: string | null }
  *
  * 테스트 런 화면의 숨김 버전 · 버전 묶음은 여기서 다루지 않는다. 고르는 자리에서는 모든 런이 보여야
  * 하고, 정리는 그 화면이 한다.
+ *
+ * 아래 동작 줄은 런을 고르다 "맞는 런이 없다" 는 걸 알았을 때 갈 곳이다 — 새로 만들기 · 게임 연결 ·
+ * 콘솔 관리.
  */
 export function RunPicker({
   projectId,
@@ -24,6 +28,7 @@ export function RunPicker({
   builds,
   selectedRunId,
   onPick,
+  onManageConsoles,
 }: {
   projectId: string
   runs: TestRun[]
@@ -31,12 +36,15 @@ export function RunPicker({
   builds: GameBuild[]
   selectedRunId: string | null
   onPick: (runId: string) => void
+  onManageConsoles: () => void
 }) {
   const { t } = useI18n()
   const l = t.qa.launch
   const selected = runs.find((run) => run.id === selectedRunId) ?? null
   const [node, setNode] = useState<Node>({ bucket: selected === null ? NO_VERSION : bucketOf(selected), folderId: selected?.folderId ?? null })
   const [query, setQuery] = useState('')
+  const [treeScroller, setTreeScroller] = useState<HTMLElement | null>(null)
+  const [listScroller, setListScroller] = useState<HTMLDivElement | null>(null)
 
   // 버전: 빌드가 보고된 순서의 역순(최신 먼저). editor build 는 버전으로 나열하지 않는다. 런만 가리키는
   // 버전(빌드 목록에 없는 것)도 런이 있으면 보인다.
@@ -92,59 +100,71 @@ export function RunPicker({
         <Link className="ql-link" to={sectionHref(projectId, 'test-runs')}>{l.openRunsPage}</Link>
       </div>
       <div className="ql-picker-body">
-        <nav aria-label={l.versionsHeading} className="ql-tree">
-          <span className="ql-tree-heading">{l.versionsHeading}</span>
-          <ul>
-            {versions.map((version) => (
-              <li key={version.bucket}>
-                <button
-                  aria-current={node.bucket === version.bucket && node.folderId === null ? 'true' : undefined}
-                  className="ql-tree-row ql-tree-row--version"
-                  onClick={() => {
-                    setNode({ bucket: version.bucket, folderId: null })
-                    setQuery('')
-                  }}
-                  type="button"
-                >
-                  <span className="ql-tree-name mono">{version.name}</span>
-                  {version.bucket === latest && version.bucket !== NO_VERSION && <span className="ql-badge">{l.latest}</span>}
-                  <span className="ql-tree-count">{runsIn(runs, version.bucket).length}</span>
-                </button>
-                <ul>{folderRows(version.bucket, null, 1)}</ul>
-              </li>
-            ))}
-          </ul>
-        </nav>
-        <div className="ql-picker-list">
-          <div className="ql-picker-crumbs">
-            {searching ? <span>{l.searchRuns}</span> : crumbs.map((crumb, index) => (
-              <span className={index === crumbs.length - 1 ? 'is-current' : undefined} key={index}>
-                {crumb}{index < crumbs.length - 1 && <span aria-hidden="true"> / </span>}
-              </span>
-            ))}
-            <span className="ql-spacer" />
-            <span>{l.runsHere(shown.length)}</span>
-          </div>
-          {shown.length === 0 && <p className="ql-empty">{searching ? l.noMatch : l.emptyFolder}</p>}
-          <ul role="listbox" aria-label={l.changeRun}>
-            {shown.map((run) => (
-              <li aria-selected={run.id === selectedRunId} key={run.id} role="option">
-                <button className="ql-run-option" onClick={() => onPick(run.id)} type="button">
-                  <span className="ql-run-option-text">
-                    <span className="ql-run-option-name">{run.name}</span>
-                    <span className="ql-run-option-meta">
-                      {[run.gameBuild?.label ?? run.gameBuild?.version, l.runMeta(run.scenarioCount)].filter(Boolean).join(' · ')}
-                    </span>
-                  </span>
-                  <span className="ql-run-option-last">
-                    {run.lastQaRun === null ? l.neverRun : `${run.lastQaRun.passed}/${run.lastQaRun.total}`}
-                  </span>
-                  {run.id === selectedRunId ? <CheckIcon size={15} /> : <span aria-hidden="true" style={{ width: 15 }} />}
-                </button>
-              </li>
-            ))}
-          </ul>
+        <div className="ql-picker-pane">
+          <nav aria-label={l.versionsHeading} className="ql-tree" ref={setTreeScroller}>
+            <span className="ql-tree-heading">{l.versionsHeading}</span>
+            <ul>
+              {versions.map((version) => (
+                <li key={version.bucket}>
+                  <button
+                    aria-current={node.bucket === version.bucket && node.folderId === null ? 'true' : undefined}
+                    className="ql-tree-row ql-tree-row--version"
+                    onClick={() => {
+                      setNode({ bucket: version.bucket, folderId: null })
+                      setQuery('')
+                    }}
+                    type="button"
+                  >
+                    <span className="ql-tree-name mono">{version.name}</span>
+                    {version.bucket === latest && version.bucket !== NO_VERSION && <span className="ql-badge">{l.latest}</span>}
+                    <span className="ql-tree-count">{runsIn(runs, version.bucket).length}</span>
+                  </button>
+                  <ul>{folderRows(version.bucket, null, 1)}</ul>
+                </li>
+              ))}
+            </ul>
+          </nav>
+          <EdgeScrollbar label={l.versionsHeading} scroller={treeScroller} side="right" />
         </div>
+        <div className="ql-picker-pane">
+          <div className="ql-picker-list" ref={setListScroller}>
+            <div className="ql-picker-crumbs">
+              {searching ? <span>{l.searchRuns}</span> : crumbs.map((crumb, index) => (
+                <span className={index === crumbs.length - 1 ? 'is-current' : undefined} key={index}>
+                  {crumb}{index < crumbs.length - 1 && <span aria-hidden="true"> / </span>}
+                </span>
+              ))}
+              <span className="ql-spacer" />
+              <span>{l.runsHere(shown.length)}</span>
+            </div>
+            {shown.length === 0 && <p className="ql-empty">{searching ? l.noMatch : l.emptyFolder}</p>}
+            <ul role="listbox" aria-label={l.changeRun}>
+              {shown.map((run) => (
+                <li aria-selected={run.id === selectedRunId} key={run.id} role="option">
+                  <button className="ql-run-option" onClick={() => onPick(run.id)} type="button">
+                    <span className="ql-run-option-text">
+                      <span className="ql-run-option-name">{run.name}</span>
+                      <span className="ql-run-option-meta">
+                        {[run.gameBuild?.label ?? run.gameBuild?.version, l.runMeta(run.scenarioCount)].filter(Boolean).join(' · ')}
+                      </span>
+                    </span>
+                    <span className="ql-run-option-last">
+                      {run.lastQaRun === null ? l.neverRun : `${run.lastQaRun.passed}/${run.lastQaRun.total}`}
+                    </span>
+                    {run.id === selectedRunId ? <CheckIcon size={15} /> : <span aria-hidden="true" style={{ width: 15 }} />}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <EdgeScrollbar label={l.changeRun} scroller={listScroller} side="right" />
+        </div>
+      </div>
+      <div className="ql-picker-actions" role="group" aria-label={l.actionsHeading}>
+        <span className="ql-picker-actions-label">{l.actionsHeading}</span>
+        <Link className="ql-action" to={sectionHref(projectId, 'test-runs')}>{l.actionNewRun}</Link>
+        <Link className="ql-action" to={sectionHref(projectId, 'setup')}>{l.actionInstall}</Link>
+        <button className="ql-action" onClick={onManageConsoles} type="button">{l.actionConsoles}</button>
       </div>
     </div>
   )

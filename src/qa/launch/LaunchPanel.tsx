@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { EdgeScrollbar } from '../../design-system/primitives/EdgeScrollbar'
+import { InfoHint } from '../../design-system/primitives/InfoHint'
 import { useI18n } from '../../i18n/useI18n'
 import type { GameInstance } from '../../projects/gameTypes'
 import { ProjectApiError } from '../../projects/projectApi'
@@ -69,6 +71,7 @@ export function LaunchPanel({
   const modelSelectId = useId()
   const reasoningControlId = useId()
   const [consoleOpen, setConsoleOpen] = useState(false)
+  const [panelScroller, setPanelScroller] = useState<HTMLDivElement | null>(null)
   const consoleBox = useRef<HTMLDivElement>(null)
   const closeConsole = useCallback(() => setConsoleOpen(false), [])
   useDismiss(consoleOpen, consoleBox, closeConsole)
@@ -167,7 +170,7 @@ export function LaunchPanel({
 
   return (
     <aside aria-labelledby="ql-panel-title" className="ql-panel">
-      <div className="ql-panel-scroll">
+      <div className="ql-panel-scroll" ref={setPanelScroller}>
         <h2 className="ql-panel-title" id="ql-panel-title">{l.title}</h2>
 
         {run !== null && instance !== null && model !== null && (
@@ -239,35 +242,72 @@ export function LaunchPanel({
 
         <div className="ql-field">
           <label className="ql-field-label" htmlFor={modelSelectId}>{l.agentLabel}</label>
-          <QaModelPicker disabled={models.length === 0} id={modelSelectId} models={models} onChange={onModelChange} value={modelKey} />
-          {model !== null && (
-            reasoning === null ? (
-              <p className="qa-reasoning-unavailable">{p.reasoningUnavailable}</p>
+          <QaModelPicker disabled={models.length === 0} id={modelSelectId} models={models} onChange={onModelChange} popoverWidth={460} value={modelKey} />
+          {model !== null && reasoning === null && <p className="qa-reasoning-unavailable">{p.reasoningUnavailable}</p>}
+        </div>
+
+        {model !== null && reasoning !== null && (
+          <div className="ql-field">
+            <span className="ql-field-head">
+              <span className="ql-field-label">{l.reasoningTitle}</span>
+              <InfoHint>{l.reasoningHint}</InfoHint>
+            </span>
+            {reasoning.kind === 'effort' ? (
+              <div aria-label={l.reasoningTitle} className="ql-seg" role="radiogroup" style={{ gridTemplateColumns: `repeat(${segColumns(efforts.length + 1)}, minmax(0, 1fr))` }}>
+                {[l.reasoningOff, ...efforts].map((label, index) => {
+                  const on = index === 0 ? !reasoningEnabled : reasoningEnabled && reasoningValue === index - 1
+                  return (
+                    <button
+                      aria-checked={on}
+                      className={'ql-seg-item' + (on ? ' is-on' : '')}
+                      key={label}
+                      onClick={() => {
+                        onReasoningEnabled(index > 0)
+                        if (index > 0) onReasoningValue(index - 1)
+                      }}
+                      role="radio"
+                      type="button"
+                    >
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
             ) : (
               <div className="ql-reasoning">
-                <label className="qa-reasoning-toggle">
-                  <input checked={reasoningEnabled} onChange={(event) => onReasoningEnabled(event.target.checked)} type="checkbox" />
-                  {p.reasoningLabel}
-                </label>
+                <div aria-label={l.reasoningTitle} className="ql-seg" role="radiogroup" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+                  {[false, true].map((value) => (
+                    <button
+                      aria-checked={reasoningEnabled === value}
+                      className={'ql-seg-item' + (reasoningEnabled === value ? ' is-on' : '')}
+                      key={String(value)}
+                      onClick={() => onReasoningEnabled(value)}
+                      role="radio"
+                      type="button"
+                    >
+                      {value ? p.reasoningTag : l.reasoningOff}
+                    </button>
+                  ))}
+                </div>
                 {reasoningEnabled && (
                   <label className="qa-reasoning-slider" htmlFor={reasoningControlId}>
-                    <span>{reasoning.kind === 'effort' ? efforts[reasoningValue] : reasoningValue.toLocaleString()}</span>
+                    <span>{reasoningValue.toLocaleString()}</span>
                     <input
                       aria-label={p.reasoningControlLabel}
                       id={reasoningControlId}
-                      max={reasoning.kind === 'effort' ? efforts.length - 1 : reasoning.maxTokens}
-                      min={reasoning.kind === 'effort' ? 0 : reasoning.minTokens}
+                      max={reasoning.maxTokens}
+                      min={reasoning.minTokens}
                       onChange={(event) => onReasoningValue(Number(event.target.value))}
-                      step={reasoning.kind === 'effort' ? 1 : reasoning.step}
+                      step={reasoning.step}
                       type="range"
                       value={reasoningValue}
                     />
                   </label>
                 )}
               </div>
-            )
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         <div className="ql-field">
           <span className="ql-field-label">{l.checksTitle}</span>
@@ -288,6 +328,7 @@ export function LaunchPanel({
         </div>
       </div>
 
+      <EdgeScrollbar label={l.title} scroller={panelScroller} side="right" />
       <div className="ql-panel-foot">
         {failure !== null && !takeoverOpen && (
           <div className="inline-error" role="alert">
@@ -324,4 +365,9 @@ export function LaunchPanel({
 function formatEta(ms: number): string {
   const minutes = Math.max(1, Math.round(ms / 60_000))
   return minutes >= 60 ? `${Math.floor(minutes / 60)}h ${minutes % 60}m` : `${minutes}m`
+}
+
+/** 한 줄에 넷까지. 그보다 많으면 두 줄로 나눠 글자가 잘리지 않게 한다(끔 · low · medium · high · xhigh · max 는 3 × 2). */
+function segColumns(count: number): number {
+  return count <= 4 ? count : Math.ceil(count / 2)
 }
