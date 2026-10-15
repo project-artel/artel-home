@@ -192,7 +192,14 @@ function AuthoringProgress({
  * of — resolved from the project's case library by id, so the user sees exactly
  * what will be applied before committing.
  */
-export function RunChat({ session }: { session: RunChatSession }) {
+export function RunChat({
+  gameBuildId = null,
+  session,
+}: {
+  /** 런의 버전(ARTEL-1070). TC 칩으로 여는 케이스가 그 버전의 내용과 판정이다. 없으면 최신이다. */
+  gameBuildId?: string | null
+  session: RunChatSession
+}) {
   const { t } = useI18n()
   const u = t.projects.workspace.uncovered
   const c = t.scenarios.chat
@@ -211,8 +218,8 @@ export function RunChat({ session }: { session: RunChatSession }) {
   const projectId = session.projectId
   const openCase = useCallback((caseId: number) => {
     // 불러오지 못하면 열지 않는다 — 지워진 TC 를 가리키는 옛 답일 수 있다. 칩 자체는 남는다.
-    getTestCase(projectId, String(caseId)).then(setOpenedCase, () => setOpenedCase(null))
-  }, [projectId])
+    getTestCase(projectId, String(caseId), undefined, { gameBuildId }).then(setOpenedCase, () => setOpenedCase(null))
+  }, [projectId, gameBuildId])
   const [coverage, setCoverage] = useState<TestCaseCoverage | null>(null)
   // 이 런이 담은 것(ARTEL-904). 위의 `coverage` 와 **축이 다르다** — 저쪽은 프로젝트 전량이고
   // 이쪽은 지금 만들고 있는 것들이다.

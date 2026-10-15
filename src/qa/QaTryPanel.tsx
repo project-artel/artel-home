@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { formatDate } from '../projects/formatters'
@@ -7,7 +7,7 @@ import { ProjectApiError } from '../projects/projectApi'
 import { sectionHref } from '../projects/workspace/sections'
 import type { ExtrasStatus } from '../projects/workspace/workspaceContext'
 import { versionMismatch } from '../testRuns/runLibrary'
-import type { TestRun } from '../testRuns/testRunApi'
+import { getRunCasesOutsideBuild, type TestRun } from '../testRuns/testRunApi'
 import { createQaRun, qaStartConflict } from './qaApi'
 import { byAscendingEffort } from './reasoningEfforts'
 import { offeredQaModels } from './qaModelGroups'
@@ -79,6 +79,10 @@ export function QaTryPanel({
     runs.find((one) => one.id === runId),
     instances.find((one) => one.id === instanceId),
   )
+  // 켜진 게임 버전에 없는 이 TR 의 케이스 수(ARTEL-1070). QA 는 이 케이스들을 판정하지 않고 넘긴다. 못 읽으면 알리지 않는다.
+  const skipped = useCasesOutsideBuild(projectId, runId, instanceId)
+  const gameBuild = instances.find((one) => one.id === instanceId)?.lastGameBuild ?? null
+  const skippedGame = gameBuild === null ? null : gameBuild.label ?? gameBuild.version
 
   /**
    * @param force end whatever QA still holds the game and take its place. Only
@@ -207,13 +211,20 @@ export function QaTryPanel({
             </select>
           </label>
 
-          {mismatch !== null && (
+          {(mismatch !== null || (skipped > 0 && skippedGame !== null)) && (
             <p className="qa-version-mismatch" role="status">
               <span aria-hidden="true">!</span>
               {/* 무엇이 다른지와, 그래도 돌리면 어떻게 되는지를 줄을 나눠 말한다. */}
               <span className="qa-version-mismatch-text">
-                <span>{t.qa.panel.versionMismatch.basis(mismatch.run, mismatch.game)}</span>
-                <span>{t.qa.panel.versionMismatch.record(mismatch.game)}</span>
+                {mismatch !== null && (
+                  <>
+                    <span>{t.qa.panel.versionMismatch.basis(mismatch.run, mismatch.game)}</span>
+                    <span>{t.qa.panel.versionMismatch.record(mismatch.game)}</span>
+                  </>
+                )}
+                {skipped > 0 && skippedGame !== null && (
+                  <span>{t.qa.panel.versionMismatch.skipped(skipped, skippedGame)}</span>
+                )}
               </span>
             </p>
           )}
@@ -360,4 +371,22 @@ export function QaTryPanel({
       )}
     </section>
   )
+}
+
+/**
+ * 이 TR 의 케이스 중 켜진 게임의 버전에 없는 것의 수(ARTEL-1070). 게임이나 TR 을 고르지 않았거나 읽지 못하면 0 이다
+ * — 경고를 덧붙이는 정보라, 못 읽었다고 QA 를 막지 않는다.
+ */
+function useCasesOutsideBuild(projectId: string, runId: string, instanceId: string): number {
+  const [counted, setCounted] = useState<{ key: string; count: number } | null>(null)
+  const key = `${runId}:${instanceId}`
+  useEffect(() => {
+    if (runId === '' || instanceId === '') return undefined
+    const controller = new AbortController()
+    getRunCasesOutsideBuild(projectId, runId, instanceId, controller.signal)
+      .then((outside) => setCounted({ key: `${runId}:${instanceId}`, count: outside.testCaseIds.length }))
+      .catch(() => undefined)
+    return () => controller.abort()
+  }, [projectId, runId, instanceId])
+  return counted !== null && counted.key === key ? counted.count : 0
 }

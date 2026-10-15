@@ -198,7 +198,7 @@ function RunEditPage({ projectId, runId }: { projectId: string; runId: string })
         </main>
         <SplitHandle label={t.scenarios.chat.widthHandle} {...split.handle} />
         <aside className="st-chat">
-          <RunChat session={runChat} />
+          <RunChat gameBuildId={state.run.gameBuild?.gameBuildId ?? null} session={runChat} />
         </aside>
       </div>
     </div>

@@ -218,8 +218,8 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
         <ScenarioList activeId={scenarioId} projectId={projectId} refreshToken={railToken} runId={fromRun} />
         {status === 'ready' ? (
           isFree
-            ? <FreeScenarioEditor editor={editor} projectId={projectId} />
-            : <ScenarioStepEditor projectId={projectId} editor={editor} />
+            ? <FreeScenarioEditor editor={editor} gameBuildId={runBuild?.gameBuildId ?? null} projectId={projectId} />
+            : <ScenarioStepEditor projectId={projectId} editor={editor} gameBuildId={runBuild?.gameBuildId ?? null} />
         ) : (
           <div className="edoc-shell at-top at-bottom"><main className="edoc-wrap"><div className="edoc" /></main></div>
         )}
@@ -227,7 +227,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
         <aside className="st-chat">
           {isFree && status === 'ready'
             ? <p className="free-chat-note">{t.scenarios.free.chatUnavailable}</p>
-            : fromRun !== null && <RunChat session={runChat} />}
+            : fromRun !== null && <RunChat gameBuildId={runBuild?.gameBuildId ?? null} session={runChat} />}
         </aside>
       </div>
 

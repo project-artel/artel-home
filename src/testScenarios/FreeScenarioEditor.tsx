@@ -16,11 +16,20 @@ import { useProjectCases } from './useProjectCases'
  * only the listing order here, and the QA agent picks its own; `TC #id` names the case
  * itself, so the badge and the label do not repeat one number.
  */
-export function FreeScenarioEditor({ editor, projectId }: { editor: StepEditor; projectId: string }) {
+export function FreeScenarioEditor({
+  editor,
+  gameBuildId = null,
+  projectId,
+}: {
+  editor: StepEditor
+  /** TR 의 버전(ARTEL-1070). 그 버전에 든 케이스를 그 버전 내용으로 보이고 고른다. 없으면 최신이다. */
+  gameBuildId?: string | null
+  projectId: string
+}) {
   const { t } = useI18n()
   const m = t.scenarios.free
   const { working } = editor
-  const project = useProjectCases(projectId)
+  const project = useProjectCases(projectId, true, gameBuildId)
   const [adding, setAdding] = useState(false)
   const rows = useMemo(
     () => describeFreeCases(working.steps, indexCasesById(project.cases)),
