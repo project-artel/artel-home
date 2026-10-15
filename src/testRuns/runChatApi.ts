@@ -449,6 +449,11 @@ export type DraftScenario = {
   description: string
   steps: ScenarioStep[]
   absorbedScenarioIds: number[]
+  /**
+   * 이번 변경 전의 스텝(ARTEL-1075). 화면은 이것과 견줘 바뀐 스텝을 노랑, 새 스텝을 초록으로 칠한다.
+   * 처음 생긴 새 draft 는 견줄 것이 없어 null 이다.
+   */
+  baseSteps: ScenarioStep[] | null
 }
 
 export type DraftApplyResult = {
@@ -490,6 +495,7 @@ function parseDraft(value: unknown): DraftScenario | null {
     absorbedScenarioIds: Array.isArray(record.absorbed_scenario_ids)
       ? record.absorbed_scenario_ids.filter((id): id is number => typeof id === 'number')
       : [],
+    baseSteps: Array.isArray(record.base_steps) ? parseSteps(record.base_steps) : null,
   }
 }
 

@@ -10868,3 +10868,12 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
 .scenario-studio .st-chat .chat-composer--draft{ border-top:2px solid var(--color-status-warning); }
 .chat-draft-mode{ display:flex; flex-direction:column; gap:2px; padding:8px 10px; border-radius:var(--radius-md); background:color-mix(in srgb, var(--color-status-warning) 12%, transparent); font-size:12px; line-height:1.5; color:var(--color-text-secondary); }
 .chat-draft-mode strong{ color:var(--color-text-primary); font-size:13px; }
+
+/* draft 에서 바뀐 자리(ARTEL-1075): 바뀐 스텝은 노랑, 새로 들어온 스텝은 초록 테두리. */
+.scenario-studio .st-erow--changed{ border:1px solid var(--color-status-warning); box-shadow:0 0 0 1px var(--color-status-warning) inset; background:color-mix(in srgb, var(--color-status-warning) 6%, transparent); }
+.scenario-studio .st-erow--added{ border:1px solid var(--color-status-success); box-shadow:0 0 0 1px var(--color-status-success) inset; background:color-mix(in srgb, var(--color-status-success) 6%, transparent); }
+.draft-legend{ display:flex; flex-wrap:wrap; gap:12px; margin:6px 0 0; font-size:12px; color:var(--color-text-secondary); }
+.draft-legend-item{ display:inline-flex; align-items:center; gap:6px; }
+.draft-legend-item--changed::before, .draft-legend-item--added::before{ content:''; width:10px; height:10px; border-radius:3px; border:2px solid currentColor; }
+.draft-legend-item--changed::before{ color:var(--color-status-warning); }
+.draft-legend-item--added::before{ color:var(--color-status-success); }

@@ -309,6 +309,10 @@ export const scenariosEn = {
     bannerNew: 'Draft · new scenario',
     bannerEdit: 'Draft · changes to this scenario',
     bannerCopy: 'Edits here change the draft, not the scenario. Approve to save it, or keep talking to the agent — it sees this draft.',
+    // What this change did, against the draft before it (ARTEL-1075).
+    changed: (n: number) => `${n} changed`,
+    added: (n: number) => `${n} new`,
+    removed: (n: number) => `${n} removed`,
   },
   list: {
     heading: 'Test scenarios',
@@ -923,6 +927,9 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     bannerNew: 'draft · 새 시나리오',
     bannerEdit: 'draft · 이 시나리오의 변경',
     bannerCopy: '여기서 고치면 시나리오가 아니라 draft 가 바뀝니다. 승인하면 저장되고, Agent 에게 이어 말하면 Agent 는 이 draft 를 보고 고칩니다.',
+    changed: (n: number) => `바뀐 스텝 ${n}`,
+    added: (n: number) => `새 스텝 ${n}`,
+    removed: (n: number) => `빠진 스텝 ${n}`,
   },
   list: {
     heading: '테스트 시나리오',

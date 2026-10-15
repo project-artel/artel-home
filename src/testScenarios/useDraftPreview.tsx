@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { draftIdOfNumber, draftNumber, type DraftScenario } from '../testRuns/runChatApi'
 import type { RunChatSession } from '../testRuns/useRunChatSession'
+import { compareDraftSteps } from './draftChanges'
 import { ScenarioStepEditor } from './ScenarioStepEditor'
 import { EMPTY_SCENARIO_DRAFT, isScenarioDraftEqual, type ScenarioDraft } from './scenarioTypes'
 import { useStepEditor } from './useStepEditor'
@@ -92,15 +93,31 @@ export function useDraftPreview(projectId: string, runChat: RunChatSession) {
     onDiscardDrafts: (draftIds: string[]) => void discardDrafts(draftIds),
   }
 
+  // 바뀐 자리(ARTEL-1075). 편집기에 들어온 지금 스텝을 서버가 남긴 기준과 견준다 — 사람이 고친 것도 바로 칠해진다.
+  const changes = useMemo(
+    () => (activeDraft === null ? null : compareDraftSteps(activeDraft.baseSteps, editor.working.steps)),
+    [activeDraft, editor.working.steps],
+  )
+  const changedCount = changes?.marks.filter((mark) => mark === 'changed').length ?? 0
+  const addedCount = changes?.marks.filter((mark) => mark === 'added').length ?? 0
+
   const view = activeDraft === null ? null : (
     <ScenarioStepEditor
       projectId={projectId}
       editor={editor}
+      stepMarks={changes?.marks}
       banner={
         <div className={`draft-banner draft-banner--${activeDraft.scenarioId === null ? 'new' : 'edit'}`} role="note">
           <div className="draft-banner-text">
             <strong>{activeDraft.scenarioId === null ? d.bannerNew : d.bannerEdit}</strong>
             <p>{d.bannerCopy}</p>
+            {changes !== null && (
+              <p className="draft-legend">
+                <span className="draft-legend-item draft-legend-item--changed">{d.changed(changedCount)}</span>
+                <span className="draft-legend-item draft-legend-item--added">{d.added(addedCount)}</span>
+                {changes.removed > 0 && <span className="draft-legend-item">{d.removed(changes.removed)}</span>}
+              </p>
+            )}
           </div>
           <div className="draft-banner-acts">
             <button
