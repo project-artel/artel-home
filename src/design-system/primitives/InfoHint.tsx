@@ -2,14 +2,17 @@ import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type 
 import { createPortal } from 'react-dom'
 import { useI18n } from '../../i18n/useI18n'
 
-/** tooltip 과 아이콘 사이의 간격. */
-const GAP_PX = 6
+/** tooltip 상자의 모서리와 아이콘 사이의 세로 간격. */
+const GAP_PX = 4
 /** tooltip 이 viewport 가장자리에 붙지 않도록 남기는 여백. */
 const EDGE_PX = 8
 /** pointer 가 아이콘에서 tooltip 으로 넘어가는 동안 닫히지 않게 기다리는 시간. */
 const CLOSE_DELAY_MS = 120
 
-type Placement = { top: number; left: number }
+/** 아이콘 쪽에 놓인 상자의 모서리. CSS 가 이 모서리만 둥글기를 줄인다. */
+type Corner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+
+type Placement = { top: number; left: number; corner: Corner }
 
 /**
  * 원 안에 i 가 그려진 아이콘. 마우스를 올리거나 keyboard focus 가 닿으면 `children` 을 tooltip 으로 띄운다.
@@ -19,8 +22,10 @@ type Placement = { top: number; left: number }
  * 그대로 보여야 한다.
  *
  * tooltip 은 `document.body` 로 portal 된다. content map 의 inspector 처럼 `overflow: hidden` 인 pane 안에
- * 두면 tooltip 이 pane 경계에서 잘리기 때문이다. 위치는 아이콘의 `getBoundingClientRect` 로 계산하고,
- * 아래 공간이 모자라면 위로 띄우며, 좌우는 viewport 안으로 당긴다.
+ * 두면 tooltip 이 pane 경계에서 잘리기 때문이다. 위치는 아이콘의 `getBoundingClientRect` 로 계산한다.
+ * 상자의 한 모서리가 아이콘의 가로 가운데에 오도록 놓는다. 기본은 아이콘 아래 오른쪽으로 펼치는 왼쪽 위 모서리다.
+ * 오른쪽 공간이 모자라면 왼쪽으로 펼치고, 아래 공간이 모자라면 위로 펼친다. 아이콘 아래 가운데에 놓으면
+ * 상자 위쪽 변의 가운데에 아이콘이 걸려서, 상자가 어느 아이콘에서 나왔는지 눈에 덜 들어온다.
  *
  * 스크린 리더는 portal 된 tooltip 을 읽지 않는다. 같은 문구를 아이콘 옆 `hidden` span 에 늘 두고
  * `aria-describedby` 로 연결한다. `aria-describedby` 는 `hidden` 인 요소의 글도 읽는다. `visually-hidden` 으로
@@ -77,10 +82,11 @@ export function InfoHint({
     const fitsBelow = below + tip.height <= window.innerHeight - EDGE_PX
     const top = fitsBelow ? below : Math.max(EDGE_PX, anchor.top - GAP_PX - tip.height)
 
-    const centered = anchor.left + anchor.width / 2 - tip.width / 2
-    const left = Math.min(Math.max(EDGE_PX, centered), window.innerWidth - EDGE_PX - tip.width)
+    const corner = anchor.left + anchor.width / 2
+    const fitsRight = corner + tip.width <= window.innerWidth - EDGE_PX
+    const left = Math.max(EDGE_PX, fitsRight ? corner : corner - tip.width)
 
-    setPlacement({ top, left })
+    setPlacement({ top, left, corner: `${fitsBelow ? 'top' : 'bottom'}-${fitsRight ? 'left' : 'right'}` })
   }, [])
 
   useLayoutEffect(() => {
@@ -143,7 +149,8 @@ export function InfoHint({
             onPointerEnter={cancelClose}
             onPointerLeave={hideSoon}
             ref={bubble}
-            style={placement === null ? { visibility: 'hidden', top: 0, left: 0 } : placement}
+            data-corner={placement?.corner}
+            style={placement === null ? { visibility: 'hidden', top: 0, left: 0 } : { top: placement.top, left: placement.left }}
           >
             {children}
           </div>,

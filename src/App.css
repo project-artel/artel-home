@@ -1173,6 +1173,12 @@ h1 {
   white-space: normal;
 }
 
+/* 아이콘 쪽 모서리만 둥글기를 줄여서, 상자가 그 아이콘에서 나온 것으로 읽히게 한다. */
+.info-hint__bubble[data-corner="top-left"] { border-top-left-radius: 0; }
+.info-hint__bubble[data-corner="top-right"] { border-top-right-radius: 0; }
+.info-hint__bubble[data-corner="bottom-left"] { border-bottom-left-radius: 0; }
+.info-hint__bubble[data-corner="bottom-right"] { border-bottom-right-radius: 0; }
+
 .info-hint__bubble p {
   margin: 0;
 }
