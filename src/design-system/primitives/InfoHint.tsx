@@ -26,7 +26,7 @@ type Placement = { top: number; left: number }
  * `aria-describedby` 로 연결한다. `aria-describedby` 는 `hidden` 인 요소의 글도 읽는다. `visually-hidden` 으로
  * 두면 이 아이콘을 품은 heading 의 accessible name 에 설명 문구 전체가 붙는다.
  *
- * 터치 화면에는 hover 가 없으므로 click 으로도 열고 닫는다. `Escape` 는 열린 tooltip 을 닫는다.
+ * 터치 화면에는 hover 가 없으므로 눌러서 연다. 바깥을 누르면 blur 로 닫히고, `Escape` 도 열린 tooltip 을 닫는다.
  */
 export function InfoHint({
   children,
@@ -116,8 +116,9 @@ export function InfoHint({
           // `<summary>` 나 `<label>` 안에 놓이면 click 이 details 를 접거나 input 으로 focus 를 옮긴다. 아이콘을 누른 것은 설명을 보려는 것뿐이다.
           event.preventDefault()
           event.stopPropagation()
-          if (open) hide()
-          else show()
+          // toggle 하지 않는다. click 보다 먼저 오는 pointerenter 와 focus 가 이미 열어 두었으므로, toggle 하면 누른 순간 닫힌다.
+          // 닫는 것은 바깥을 눌러 생기는 blur, pointer 가 떠나는 것, `Escape` 가 맡는다.
+          show()
         }}
         onFocus={show}
         onPointerEnter={show}
