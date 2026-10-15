@@ -162,6 +162,7 @@ export function parseQaRun(data: unknown, status = 200): QaRun {
     startedAt: asNullableString(record.startedAt),
     completedAt: asNullableString(record.completedAt),
     tries,
+    judgedGameBuildId: asNullableString(record.judgedGameBuildId),
   }
 }
 

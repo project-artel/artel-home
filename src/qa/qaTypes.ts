@@ -69,6 +69,8 @@ export type QaRun = {
   startedAt: string | null
   completedAt: string | null
   tries: QaTry[]
+  /** 판정이 속한 게임 빌드(ARTEL-1070). 케이스 내용도 이 버전으로 판정했다. 게임 버전을 몰랐으면 null — 최신이다. */
+  judgedGameBuildId: string | null
 }
 
 export type QaReasoningCapability =

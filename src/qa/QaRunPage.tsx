@@ -216,6 +216,7 @@ function QaRunPage({
 
   const rail: QaScenarioRailProps = {
     projectId,
+    gameBuildId: run.judgedGameBuildId,
     tries: run.tries,
     activeTryId,
     focusedTryId,

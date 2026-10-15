@@ -55,6 +55,7 @@ function stepRows(
 export function QaScenarioSteps({
   caseVerdicts = new Map(),
   executionMode = 'ORDERED',
+  gameBuildId = null,
   onJump,
   progress,
   projectId,
@@ -66,6 +67,8 @@ export function QaScenarioSteps({
    * matched by step number, so a verdict arriving out of order lands on its own row.
    */
   executionMode?: ExecutionMode
+  /** 판정 버전(ARTEL-1070). FREE 시나리오의 케이스 내용을 이 버전으로 읽는다. 없으면 최신이다. */
+  gameBuildId?: string | null
   projectId: string
   /** 서버가 TC 상태로 저장한 판정(ARTEL-995). TC 머리에 저장된 상태를 점으로 따로 보인다. */
   caseVerdicts?: ReadonlyMap<string, VerificationStatus>
@@ -78,7 +81,7 @@ export function QaScenarioSteps({
   const isFree = executionMode === 'FREE'
   // The case list is read only for a FREE scenario, whose rows have no text of their own
   // until a run starts: the server fills a blank `action` from the case then.
-  const projectCases = useProjectCases(projectId, isFree)
+  const projectCases = useProjectCases(projectId, isFree, gameBuildId)
   const casesById = indexCasesById(projectCases.cases)
   const titleOf = (stepNumber: number, fallback: string): string => {
     if (!isFree) return fallback
