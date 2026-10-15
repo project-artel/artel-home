@@ -57,6 +57,13 @@ export const scenariosEn = {
     },
   },
   chat: {
+    // A failed turn, by the error code (ARTEL-1072). The raw error stays in the server logs.
+    errors: {
+      llm: 'Could not reach the model. Ask an administrator to check the LLM key settings.',
+      catalog: 'Could not load the model list. Please try again in a moment.',
+      busy: 'The previous request is still being handled. Send again once it finishes.',
+      generic: 'Could not handle the request. Please try again.',
+    },
     // The result box of an agent answer (ARTEL-938).
     changes: {
       created: 'Added',
@@ -678,6 +685,12 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     },
   },
   chat: {
+    errors: {
+      llm: '모델을 부르지 못했습니다. 관리자에게 LLM 키 설정을 확인해 달라고 해 주세요.',
+      catalog: '모델 목록을 불러오지 못했습니다. 잠시 뒤 다시 시도해 주세요.',
+      busy: '이전 요청을 아직 처리하고 있습니다. 끝난 뒤 다시 보내 주세요.',
+      generic: '요청을 처리하지 못했습니다. 다시 시도해 주세요.',
+    },
     changes: {
       created: '추가',
       updated: '수정',
