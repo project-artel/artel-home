@@ -87,7 +87,7 @@ export function NewScenarioDialog({
 
   return (
     <Dialog labelledBy={titleId} onClose={onClose} title={m.free.title}>
-      <form className="form" onSubmit={(event) => void create(event)}>
+      <form className="form new-free-form" onSubmit={(event) => void create(event)}>
         <div className="field">
           <label className="field-label" htmlFor={inputId}>{m.free.titleLabel}</label>
           <input
