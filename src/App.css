@@ -11110,38 +11110,39 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
    왼쪽 본문(현재 버전 · 새 버전 · 나온 knowledge) + 오른쪽 열(이전 버전 · 처리 안내).
    QA 실행 화면처럼 섹션 폭 제한을 풀어 전폭을 쓴다 — 좌우가 비던 것이 재설계의 이유다. */
 .workspace-body:has(.dw) .section-header { width: 100%; }
-.section-content:has(.dw) { width: 100%; padding: 0; }
-.dw { display: flex; flex-direction: column; min-height: 100%; border-top: 1px solid var(--color-border-subtle); }
+.section-content:has(.dw) { display: flex; flex: 1; flex-direction: column; width: 100%; padding: 0; }
+.dw { display: flex; flex: 1; flex-direction: column; border-top: 1px solid var(--color-border-subtle); }
 .dw-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--color-border-subtle); }
 .dw-bar-sub { color: var(--color-text-muted); font-size: 12px; }
 .dw-bar .is-disabled { pointer-events: none; opacity: .5; }
 .dw-spacer { flex: 1; }
 .dw-body { display: grid; flex: 1; grid-template-columns: minmax(0, 1fr) 360px; }
-.dw-main { display: flex; flex-direction: column; gap: var(--space-5); min-width: 0; padding: var(--space-6); }
-.dw-side { display: flex; flex-direction: column; gap: var(--space-6); padding: var(--space-5); border-left: 1px solid var(--color-border-subtle); background: var(--color-bg-surface); }
+.dw-main { display: flex; flex-direction: column; gap: var(--space-8); min-width: 0; padding: var(--space-8); }
+.dw-side { display: flex; flex-direction: column; gap: var(--space-6); padding: var(--space-6); border-left: 1px solid var(--color-border-subtle); background: var(--color-bg-surface); }
 .dw-side-section { display: flex; flex-direction: column; gap: var(--space-3); }
 .dw-side-section + .dw-side-section { padding-top: var(--space-5); border-top: 1px solid var(--color-border-subtle); }
-.dw-h2 { margin: 0; font-family: var(--font-display); font-size: 14px; font-weight: 650; }
+.dw-h2 { margin: 0; font-family: var(--font-display); font-size: 16px; font-weight: 650; }
 .dw-muted { margin: 0; color: var(--color-text-muted); font-size: 12px; line-height: 1.55; }
 .dw-ellipsis { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* 끌어다 놓기 */
-.dw-drop { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-4) var(--space-5); border: 1.5px dashed var(--color-border-strong); border-radius: var(--radius-lg); background: var(--color-bg-surface); transition: border-color var(--motion-fast) var(--ease-standard), background var(--motion-fast) var(--ease-standard); }
+.dw-drop { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-5) var(--space-6); border: 1.5px dashed var(--color-border-strong); border-radius: var(--radius-lg); background: var(--color-bg-surface); transition: border-color var(--motion-fast) var(--ease-standard), background var(--motion-fast) var(--ease-standard); }
 .dw-drop.is-dragging { border-color: var(--color-action-primary); background: color-mix(in srgb, var(--color-action-primary) 8%, var(--color-bg-surface)); }
 .dw-drop-icon { display: inline-flex; color: var(--color-text-secondary); }
 .dw-drop-text { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; }
 .dw-drop-text > span { color: var(--color-text-secondary); font-size: 12px; }
-.dw-drop--large { flex-direction: column; justify-content: center; gap: var(--space-3); min-height: 280px; text-align: center; }
+.dw-drop--large { flex-direction: column; justify-content: center; gap: var(--space-4); min-height: clamp(300px, 36vh, 460px); text-align: center; }
 .dw-drop--large .dw-drop-text { flex: none; align-items: center; gap: var(--space-2); }
-.dw-drop--large .dw-drop-text b { font-size: 16px; }
-.dw-drop--large .dw-drop-text > span { font-size: 13px; }
+.dw-drop--large .dw-drop-text b { font-size: 20px; }
+.dw-drop--large .dw-drop-text > span { font-size: 14px; }
+.dw-drop--large .button { height: 40px; padding: 0 var(--space-5); font-size: 14px; }
 
 /* 올리면 일어나는 일 */
-.dw-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4); margin: 0; padding: 0; list-style: none; }
-.dw-step { display: flex; flex-direction: column; gap: var(--space-2); font-size: 13px; }
+.dw-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-6); margin: 0; padding: 0; list-style: none; }
+.dw-step { display: flex; flex-direction: column; gap: var(--space-2); font-size: 15px; }
 .dw-step-head { display: flex; align-items: center; gap: var(--space-3); margin-bottom: 2px; }
-.dw-step-num { color: var(--color-text-muted); font-size: 11px; }
-.dw-step-body { color: var(--color-text-secondary); font-size: 12px; line-height: 1.5; }
+.dw-step-num { color: var(--color-text-muted); font-size: 12px; }
+.dw-step-body { color: var(--color-text-secondary); font-size: 13px; line-height: 1.55; }
 .dw-step-tile--store { color: var(--color-text-secondary); background: color-mix(in srgb, var(--color-text-muted) 18%, transparent); }
 .dw-step-tile--extract { color: var(--color-agent-reasoning); background: color-mix(in srgb, var(--color-agent-reasoning) 16%, transparent); }
 .dw-step-tile--knowledge { color: var(--color-status-warning); background: color-mix(in srgb, var(--color-status-warning) 16%, transparent); }
@@ -11149,17 +11150,17 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
 
 /* 현재 버전 */
 .dw-current { border: 1px solid var(--color-border-subtle); border-radius: var(--radius-lg); background: var(--color-bg-surface); }
-.dw-current-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--space-4); align-items: center; padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--color-border-subtle); }
-.dw-pdf { display: grid; width: 44px; height: 52px; place-items: center; border-radius: var(--radius-md); background: var(--color-bg-raised); color: var(--color-status-critical); font-size: 11px; font-weight: 700; }
+.dw-current-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--space-4); align-items: center; padding: var(--space-5) var(--space-6); border-bottom: 1px solid var(--color-border-subtle); }
+.dw-pdf { display: grid; width: 52px; height: 62px; place-items: center; border-radius: var(--radius-md); background: var(--color-bg-raised); color: var(--color-status-critical); font-size: 11px; font-weight: 700; }
 .dw-current-name { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.dw-current-title { display: flex; align-items: center; gap: var(--space-2); min-width: 0; font-size: 16px; font-weight: 700; }
+.dw-current-title { display: flex; align-items: center; gap: var(--space-2); min-width: 0; font-size: 18px; font-weight: 700; }
 .dw-actions { display: flex; gap: var(--space-2); }
 .dw-current > .dw-confirm { padding: var(--space-3) var(--space-5); border-bottom: 1px solid var(--color-border-subtle); }
 .dw-current-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; }
-.dw-current-facts > div { display: flex; flex-direction: column; gap: 6px; padding: var(--space-3) var(--space-5); }
+.dw-current-facts > div { display: flex; flex-direction: column; gap: 8px; padding: var(--space-4) var(--space-6); }
 .dw-current-facts > div + div { border-left: 1px solid var(--color-border-subtle); }
 .dw-current-facts dt { color: var(--color-text-secondary); font-size: 12px; }
-.dw-current-facts dd { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin: 0; font-size: 13px; font-weight: 600; }
+.dw-current-facts dd { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin: 0; font-size: 15px; font-weight: 600; }
 .dw-fact-note { flex-basis: 100%; color: var(--color-text-muted); font-size: 11px; font-weight: 400; }
 .dw-current > .document-parse-note { margin: 0; padding: var(--space-3) var(--space-5); border-top: 1px solid var(--color-border-subtle); }
 
@@ -11176,26 +11177,26 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
 .dw-text-button { padding: 0; border: 0; background: none; color: var(--color-action-primary); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
 .dw-text-button:hover { text-decoration: underline; text-underline-offset: 3px; }
 .dw-text-button--danger { color: var(--color-status-critical); }
-.dw-notice ul { display: flex; flex-direction: column; gap: var(--space-2); margin: 0; padding-left: 18px; color: var(--color-text-secondary); font-size: 12px; line-height: 1.55; }
+.dw-notice ul { display: flex; flex-direction: column; gap: var(--space-3); margin: 0; padding-left: 18px; color: var(--color-text-secondary); font-size: 13px; line-height: 1.6; }
 
 /* 나온 knowledge */
-.dw-knowledge { display: flex; flex-direction: column; gap: var(--space-3); }
+.dw-knowledge { display: flex; flex-direction: column; gap: var(--space-4); }
 .dw-knowledge.is-quiet .dw-cards { opacity: .6; }
 .dw-knowledge-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-3); }
 .dw-knowledge-head a, .dw-more { color: var(--color-action-primary); font-size: 12px; font-weight: 600; text-decoration: none; }
 .dw-knowledge-head a:hover, .dw-more:hover { text-decoration: underline; text-underline-offset: 3px; }
 .dw-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
-.dw-chip { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border: 1px solid var(--color-border-subtle); border-radius: 13px; background: transparent; font-size: 12px; }
+.dw-chip { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border: 1px solid var(--color-border-subtle); border-radius: 15px; background: transparent; font-size: 13px; }
 .dw-chip-label { color: var(--color-text-secondary); }
 .dw-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
-.dw-card { display: flex; gap: var(--space-3); align-items: flex-start; min-height: 76px; padding: var(--space-3) var(--space-4); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-lg); background: var(--color-bg-surface); box-sizing: border-box; }
+.dw-card { display: flex; gap: var(--space-4); align-items: flex-start; min-height: 96px; padding: var(--space-4) var(--space-5); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-lg); background: var(--color-bg-surface); box-sizing: border-box; }
 .dw-card-text { display: flex; flex: 1; flex-direction: column; gap: 4px; min-width: 0; }
-.dw-card-tag { font-size: 11px; font-weight: 700; }
-.dw-card-summary { font-size: 13px; line-height: 1.5; }
+.dw-card-tag { font-size: 12px; font-weight: 700; }
+.dw-card-summary { font-size: 15px; line-height: 1.55; }
 .dw-card-anchors { display: flex; flex-wrap: wrap; gap: 4px; }
 .dw-card-anchors > span { padding: 0 6px; border-radius: var(--radius-sm); background: var(--color-bg-raised); color: var(--color-text-secondary); font-size: 11px; }
-.dw-tile { display: grid; flex: none; width: 36px; height: 36px; place-items: center; border-radius: 8px; }
-.dw-tile--lg { width: 44px; height: 44px; border-radius: 10px; }
+.dw-tile { display: grid; flex: none; width: 44px; height: 44px; place-items: center; border-radius: 10px; }
+.dw-tile--lg { width: 56px; height: 56px; border-radius: 12px; }
 
 /* 태그 색은 지식 그래프(`.kg-tag--*`)와 같은 짝이다. 한 knowledge 가 두 화면에서 다른 색이면 안 된다. */
 .dw-tone--CONTROL { color: var(--color-action-primary); background: color-mix(in srgb, var(--color-action-primary) 14%, transparent); }
@@ -11214,7 +11215,7 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
 
 @keyframes dw-shimmer { 0% { opacity: .45; } 50% { opacity: .9; } 100% { opacity: .45; } }
 .dw-skel { display: block; height: 10px; border-radius: 5px; background: var(--color-bg-raised); animation: dw-shimmer 1.6s infinite; }
-.dw-skel.dw-tile { height: 36px; border-radius: 8px; }
+.dw-skel.dw-tile { height: 44px; border-radius: 10px; }
 
 @media (max-width: 1100px) {
   .dw-body { grid-template-columns: minmax(0, 1fr); }

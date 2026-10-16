@@ -154,6 +154,8 @@ export const projectsEn = {
         { tag: 'CONTROL', summary: 'Space jumps; holding it jumps higher.' },
         { tag: 'OBJECTIVE', summary: 'Defeating the boss clears the stage.' },
         { tag: 'UI', summary: 'Remaining health is shown at the top left.' },
+        { tag: 'CONTROL', summary: 'I opens the inventory; Esc closes it.' },
+        { tag: 'MISC', summary: 'The tutorial only appears on the first run.' },
       ],
     },
     /** One `parseStatus` value each, plus the two that need more than a label (ARTEL-761). */
@@ -640,6 +642,8 @@ export const projectsKo: Localized<typeof projectsEn> = {
         { tag: 'CONTROL', summary: 'Space 키로 점프하고, 길게 누르면 더 높이 뛴다.' },
         { tag: 'OBJECTIVE', summary: '보스를 쓰러뜨리면 스테이지가 클리어된다.' },
         { tag: 'UI', summary: '남은 체력은 화면 왼쪽 위에 표시된다.' },
+        { tag: 'CONTROL', summary: 'I 키로 인벤토리를 열고 Esc 로 닫는다.' },
+        { tag: 'MISC', summary: '튜토리얼은 처음 실행할 때만 나온다.' },
       ],
     },
     parseStatus: {
