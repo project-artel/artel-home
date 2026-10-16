@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { CliCopyLine, CliInstallSteps, CLI_README_URL } from '../auth/CliInstallSteps'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
+import { AgentSkillsInstall } from './AgentSkillsInstall'
 import { SdkInstallGuide } from './SdkInstallGuide'
 
 /** Stands in for the id on the global page, in the same form as the other placeholders. */
@@ -22,19 +23,22 @@ export function SetupGuide({ projectId }: { projectId?: string }) {
   const copy = t.projects.setup
 
   return (
-    <div className="section-columns">
-      <section className="panel" aria-labelledby="setup-sdk-title">
-        <header className="panel-header">
-          <h2 id="setup-sdk-title">
-            {copy.sdkTitle}
-            <InfoHint>{copy.sdkIntro}</InfoHint>
-          </h2>
-        </header>
-        <SdkInstallGuide />
-      </section>
+    <>
+      <div className="section-columns">
+        <section className="panel" aria-labelledby="setup-sdk-title">
+          <header className="panel-header">
+            <h2 id="setup-sdk-title">
+              {copy.sdkTitle}
+              <InfoHint>{copy.sdkIntro}</InfoHint>
+            </h2>
+          </header>
+          <SdkInstallGuide />
+        </section>
 
-      <CliSetupPanel projectId={projectId} />
-    </div>
+        <CliSetupPanel projectId={projectId} />
+      </div>
+      <AgentSkillsInstall />
+    </>
   )
 }
 

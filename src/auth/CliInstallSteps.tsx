@@ -5,8 +5,6 @@ import { useI18n } from '../i18n/useI18n'
 export const CLI_INSTALL_COMMAND = 'npm install -g @project-artel/cli@alpha'
 export const CLI_LOGIN_COMMAND = 'artel auth login'
 export const CLI_AGENT_GUIDE_URL = 'https://artel.kr/cli.md'
-/** Installs the four ARTEL agent skills (project scope); `-g` makes them global. */
-export const SKILLS_INSTALL_COMMAND = 'npx skills add project-artel/artel-skills'
 export const CLI_README_URL = 'https://github.com/project-artel/artel-cli#readme'
 
 /**
@@ -81,13 +79,6 @@ export function CliInstallSteps({
         copyLabel={copy.copyAgentPrompt}
         onResult={onResult}
         text={agentPrompt}
-      />
-      <p className="guide-copy">{copy.skillsIntro}</p>
-      <CliCopyLine
-        copiedMessage={copy.skillsCopied}
-        copyLabel={copy.copySkills}
-        onResult={onResult}
-        text={SKILLS_INSTALL_COMMAND}
       />
       <p className="guide-copy">{copy.signIn}</p>
       <CliCopyLine

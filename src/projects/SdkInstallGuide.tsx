@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { CopyButton } from './CopyButton'
-import { CliCopyLine, SKILLS_INSTALL_COMMAND } from '../auth/CliInstallSteps'
 import { useI18n } from '../i18n/useI18n'
 import addPackageFromGitUrlShot from '../assets/sdk-guide/step1-add-package-from-git-url.png'
 import gitUrlInputShot from '../assets/sdk-guide/step1-git-url-input.png'
@@ -201,17 +200,9 @@ export function SdkInstallGuide() {
         </button>
       </div>
 
-      {/* Same command as the CLI install steps: one install covers the SDK
-          setup (`artel-unity-sdk`) and the cheats and behaviors (`artel-cheats`, `artel-behaviors`). */}
-      <div className="cli-install-guide guide-skills">
-        <p className="guide-copy">{t.projects.guide.skillsIntro}</p>
-        <CliCopyLine
-          copiedMessage={t.projects.guide.skillsCopied}
-          copyLabel={t.projects.guide.copySkills}
-          onResult={setAnnouncement}
-          text={SKILLS_INSTALL_COMMAND}
-        />
-      </div>
+      {/* Only names the skills that matter for this guide; the install command
+          lives in the agent skills block below it (`AgentSkillsInstall`). */}
+      <p className="guide-copy guide-skills">{t.projects.guide.skillsIntro}</p>
 
       {/* The key is durable and has no re-issue endpoint, so it is worth saying
           plainly that closing this view does not lose it. */}
