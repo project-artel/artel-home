@@ -202,7 +202,7 @@ export function SdkInstallGuide() {
       </div>
 
       {/* Same command as the CLI install steps: one install covers the SDK
-          setup (`artel-unity-sdk`) and the cheats (`artel-game-functions`). */}
+          setup (`artel-unity-sdk`) and the cheats and behaviors (`artel-cheats`, `artel-behaviors`). */}
       <div className="cli-install-guide guide-skills">
         <p className="guide-copy">{t.projects.guide.skillsIntro}</p>
         <CliCopyLine
