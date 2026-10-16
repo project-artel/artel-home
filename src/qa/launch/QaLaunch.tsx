@@ -7,7 +7,7 @@ import { sectionHref } from '../../projects/workspace/sections'
 import { useWorkspace } from '../../projects/workspace/workspaceContext'
 import { folderPath } from '../../testRuns/runLibrary'
 import { listRunFolders, type RunFolder } from '../../testRuns/testRunFolders'
-import { ChevronDownIcon, SearchIcon } from '../qaModelIcons'
+import { ChevronDownIcon, PencilIcon } from '../qaModelIcons'
 import { offeredQaModels } from '../qaModelGroups'
 import { qaModelOptionKey, type QaModel } from '../qaTypes'
 import { byAscendingEffort } from '../reasoningEfforts'
@@ -232,21 +232,14 @@ export function QaLaunch() {
                 )}
               </div>
               {run !== null && (
-                <Link className="ql-edit-run" to={`/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(run.id)}/edit`}>
-                  {l.editRun}
-                </Link>
-              )}
-              {runs.length > 0 && (
-                <button
-                  aria-keyshortcuts="Meta+K"
-                  aria-label={l.findRun}
-                  className="ql-find"
-                  onClick={() => setPickerOpen(true)}
-                  title={`${l.findRun} (⌘K)`}
-                  type="button"
+                <Link
+                  aria-label={l.editRun}
+                  className="ql-icon-button"
+                  title={l.editRun}
+                  to={`/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(run.id)}/edit`}
                 >
-                  <SearchIcon size={16} />
-                </button>
+                  <PencilIcon size={18} />
+                </Link>
               )}
             </div>
 
