@@ -11420,11 +11420,14 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
 .scenario-studio .st-chat .chat-md-table-expand { display: inline-flex; align-items: center; gap: 5px; margin-top: 6px; padding: 3px 8px; border: 1px solid var(--st-border); border-radius: var(--radius-md); background: none; color: var(--st-text-2); font: inherit; font-size: 11.5px; cursor: pointer; }
 .scenario-studio .st-chat .chat-md-table-expand:hover { border-color: var(--st-action); color: var(--st-action); }
 .dialog-panel:has(.chat-table-dialog) { width: min(100%, 1100px); overflow: hidden; display: flex; flex-direction: column; }
-.chat-table-dialog { position: relative; display: flex; min-height: 0; }
+.scenario-studio.chat-table-scope { display: block; height: auto; overflow: visible; background: none; }
+.scenario-studio .st-chat.chat-table-dialog { position: relative; display: flex; min-height: 0; overflow: visible; border: 0; background: none; }
 .chat-table-dialog-scroll { flex: 1; max-height: calc(100vh - 200px); overflow: auto; scrollbar-width: none; }
 .chat-table-dialog-scroll::-webkit-scrollbar { display: none; }
-.chat-table-dialog .chat-md-table { width: 100%; border-collapse: collapse; font-size: 13px; color: var(--color-text-primary); }
-.chat-table-dialog .chat-md-table th,
-.chat-table-dialog .chat-md-table td { padding: 8px 12px; border: 1px solid var(--color-border-subtle); text-align: left; vertical-align: top; line-height: 1.6; word-break: keep-all; overflow-wrap: break-word; }
-.chat-table-dialog .chat-md-table th { background: var(--color-bg-surface); color: var(--color-text-secondary); font-weight: 600; }
-.chat-table-dialog .chat-md-code { padding: 1px 5px; border: 1px solid var(--color-border-subtle); border-radius: 4px; background: var(--color-bg-surface); font-family: var(--font-mono); font-size: .9em; }
+.scenario-studio .st-chat.chat-table-dialog .chat-md-table { width: 100%; font-size: 13px; }
+.scenario-studio .st-chat.chat-table-dialog .chat-md-table th,
+.scenario-studio .st-chat.chat-table-dialog .chat-md-table td { max-width: none; padding: 8px 12px; }
+/* 칩 이름에 띄어쓰기 없는 긴 코드(`CompareTag(SpellObj.target.gameObject.tag)`)가 오면 칸을 넘어 옆 칸을 덮었다.
+   `anywhere` 는 칸이 줄어들 수 있는 폭까지 바꿔서, 칩이 든 칸은 최소 폭을 넓혀 함께 둔다. */
+.scenario-studio .st-chat .chat-md-table td:has(.chat-ref) { min-width: 14em; }
+.scenario-studio .st-chat .chat-md-table td .chat-ref { overflow-wrap: anywhere; }

@@ -214,9 +214,12 @@ function ChatTable({ header, rows }: { header: Inline[][]; rows: Inline[][][] })
       )}
       {wide && (
         <Dialog labelledBy={titleId} onClose={() => setWide(false)} title={c.tableTitle}>
-          <div className="chat-table-dialog">
-            <div className="chat-table-dialog-scroll" ref={setDialogScroller}>{table}</div>
-            <EdgeScrollbar label={c.tableTitle} scroller={dialogScroller} side="right" />
+          {/* 창은 body 로 뜬다. 칩 · 코드 모양이 대화 칸과 같게, 대화 칸의 범위 이름을 함께 단다. */}
+          <div className="scenario-studio chat-table-scope">
+            <div className="st-chat chat-table-dialog">
+              <div className="chat-table-dialog-scroll" ref={setDialogScroller}>{table}</div>
+              <EdgeScrollbar label={c.tableTitle} scroller={dialogScroller} side="right" />
+            </div>
           </div>
         </Dialog>
       )}
