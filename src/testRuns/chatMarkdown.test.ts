@@ -211,3 +211,10 @@ test('사전조건 · 기대 결과 머리말은 label 조각이 된다', () => 
   ])
   assert.deepEqual(parseInline('기대 결과: `TurnBattleScene` 으로 넘어간다')[0], { kind: 'label', tone: 'expected', text: '기대 결과' })
 })
+
+test('표 칸에서는 사전조건 · 기대 결과 머리말을 떼어 낸다', () => {
+  const blocks = parseChatMarkdown('| 케이스 | 사전조건 |\n|---|---|\n| a | 사전조건: 타이틀 |')
+  const table = blocks[0]
+  assert.equal(table.kind, 'table')
+  if (table.kind === 'table') assert.deepEqual(table.rows[0][1], [{ kind: 'text', text: '타이틀' }])
+})

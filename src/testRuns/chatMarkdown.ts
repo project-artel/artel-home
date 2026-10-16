@@ -118,7 +118,8 @@ export function parseChatMarkdown(body: string): Block[] {
       index += 2
       while (index < lines.length && isTableRow(lines[index])) {
         const cells = tableCells(lines[index])
-        rows.push(header.map((_, column) => parseInline(cells[column] ?? '')))
+        // 표 칸에서는 머리말 라벨을 떼어 낸다 — 열 이름이 이미 "사전조건" · "기대 결과" 다(ARTEL-1097).
+        rows.push(header.map((_, column) => parseInline(cells[column] ?? '').filter((part) => part.kind !== 'label')))
         index += 1
       }
       index -= 1
