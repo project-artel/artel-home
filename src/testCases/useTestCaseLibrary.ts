@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useProjectChange } from '../live/useProjectChange'
 import { listTestCases } from './testCaseApi'
 import type { TestCase } from './testCaseTypes'
 
@@ -43,6 +44,10 @@ const NOTHING_LOADED: LoadedCases = { cases: [], failed: false, source: null }
  * 세 endpoint 모두 저장된 케이스를 돌려주므로 그것으로 행 하나만 갈아 끼우면 된다.
  *
  * 이 화면 말고는 전량 목록을 읽는 곳이 없어 workspace 가 아니라 여기서 읽는다.
+ *
+ * 프로젝트 변경 stream 이 `TEST_CASES` 를 알리면 `refresh` 로 다시 읽는다. 정렬은 화면이
+ * 하므로 다시 읽어도 순서는 그대로다. polling 은 없다 — stream 이 끊긴 동안에는 편집 뒤의
+ * `refresh` 와 stream 이 다시 붙을 때의 `ready` 가 목록을 맞춘다.
  */
 export function useTestCaseLibrary(projectId: string): TestCaseLibrary {
   const [loaded, setLoaded] = useState<LoadedCases>(NOTHING_LOADED)
@@ -108,6 +113,8 @@ export function useTestCaseLibrary(projectId: string): TestCaseLibrary {
         // 바꾸면 성공한 삭제가 실패처럼 보인다.
       })
   }, [projectId, source])
+
+  useProjectChange(projectId, 'TEST_CASES', refresh)
 
   const status: TestCaseLibraryStatus =
     loaded.source !== source ? 'loading' : loaded.failed ? 'failed' : 'ready'
