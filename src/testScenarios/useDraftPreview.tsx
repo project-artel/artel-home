@@ -6,6 +6,7 @@ import type { RunChatSession } from '../testRuns/useRunChatSession'
 import { compareDraftSteps } from './draftChanges'
 import { ScenarioStepEditor } from './ScenarioStepEditor'
 import { EMPTY_SCENARIO_DRAFT, isScenarioDraftEqual, type ScenarioDraft } from './scenarioTypes'
+import type { RunGameBuild } from '../testRuns/testRunApi'
 import { useStepEditor } from './useStepEditor'
 
 /** A draft as the step editor holds it. Drafts are always ordered — FREE is a person's choice. */
@@ -24,7 +25,7 @@ function draftBody(draft: DraftScenario): ScenarioDraft {
  * @return `listProps` 는 {@link import('./ScenarioList').ScenarioList} 에 그대로 넘긴다. `view` 는 draft 를
  *   열었을 때 가운데에 그릴 것이고, 안 열었으면 null 이다. `editor` 는 헤더의 되돌리기 · 저장 표시가 쓴다.
  */
-export function useDraftPreview(projectId: string, runChat: RunChatSession) {
+export function useDraftPreview(projectId: string, runChat: RunChatSession, caseBuild: RunGameBuild | null = null) {
   const { t } = useI18n()
   const d = t.scenarios.draft
   const [searchParams, setSearchParams] = useSearchParams()
@@ -103,6 +104,7 @@ export function useDraftPreview(projectId: string, runChat: RunChatSession) {
 
   const view = activeDraft === null ? null : (
     <ScenarioStepEditor
+      caseBuild={caseBuild}
       projectId={projectId}
       editor={editor}
       stepMarks={changes?.marks}

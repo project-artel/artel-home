@@ -4,12 +4,14 @@ import { SplitHandle } from '../design-system/primitives/SplitHandle'
 import { useI18n } from '../i18n/useI18n'
 import type { StepMark } from './draftChanges'
 import { TestCaseModal } from '../testCases/TestCaseModal'
-import { listTestCases } from '../testCases/testCaseApi'
+import type { RunGameBuild } from '../testRuns/testRunApi'
+import { TestCaseSpecModal } from '../testCases/TestCaseSpecModal'
 import type { TestCase, VerificationStatus } from '../testCases/testCaseTypes'
 import { GapFillModal } from './GapFillModal'
 import { groupStepsByCase, isGapStep, type ScenarioStep } from './scenarioTypes'
 import { StudioIcon } from './studioIcons'
 import { StepsSketch } from './studioSketches'
+import { useRunCases } from './useRunCases'
 import type { StepEditor } from './useStepEditor'
 
 /** 이보다 단계가 많으면 바닥에 구간 점프를 단다. */
@@ -47,6 +49,7 @@ export function ScenarioStepEditor({
   editor,
   banner,
   stepMarks,
+  caseBuild = null,
 }: {
   projectId: string
   editor: StepEditor
@@ -54,6 +57,11 @@ export function ScenarioStepEditor({
   banner?: ReactNode
   /** One per step: a draft paints what changed yellow and what is new green (ARTEL-1075). */
   stepMarks?: readonly StepMark[]
+  /**
+   * 런이 따르는 빌드 버전(ARTEL-1115). 있으면 TC 내용 · 판정과 연결할 수 있는 TC 를 그 버전에서 읽는다 — QA 가
+   * 그 버전으로 실행하기 때문이다. 없으면(버전 없는 런, 런 밖) 프로젝트의 TC 를 쓴다.
+   */
+  caseBuild?: RunGameBuild | null
 }) {
   const { t } = useI18n()
   const e = t.scenarios.stepsEditor
@@ -61,8 +69,9 @@ export function ScenarioStepEditor({
   const statusLabel = t.scenarios.composition.status
   const { working } = editor
   const steps = working.steps
-  const cases = useCaseIndex(projectId)
+  const cases = useRunCases(projectId, caseBuild?.gameBuildId ?? null)
   const sceneMatcher = useMemo(() => scenePattern(cases), [cases])
+  const caseList = useMemo(() => [...cases.values()], [cases])
   const [detailHeight, setDetailHeight] = useDetailHeight()
 
   const [selected, setSelected] = useState<number | null>(null)
@@ -74,6 +83,7 @@ export function ScenarioStepEditor({
   const [fresh, setFresh] = useState<number | null>(null)
   const [dropped, setDropped] = useState<number | null>(null)
   const [tcView, setTcView] = useState<{ caseId: number; label: string } | null>(null)
+  const [linking, setLinking] = useState<number | null>(null)
   const [gapFill, setGapFill] = useState<{ index: number; blockedBy: string | null; detail: string } | null>(null)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [overIndex, setOverIndex] = useState<number | null>(null)
@@ -149,6 +159,15 @@ export function ScenarioStepEditor({
     clearPicked()
     setSelected(left <= 0 || current === null ? null : Math.min(current, left - 1))
     if (left <= 0) setDetail(false)
+  }
+
+  /**
+   * 스텝의 TC 를 붙이거나 바꾸거나 뗀다(ARTEL-1115). 기대 판정 라벨은 다른 TC 에 대한 것이 되므로 비운다 — 서버도
+   * `case_id` 가 바뀐 스텝의 라벨을 버린다. 사람이 쓴 스텝의 `HUMAN` 표시는 글을 누가 썼는지라 그대로 둔다.
+   */
+  function linkCase(index: number, caseId: number | null) {
+    editor.updateStep(index, { case_id: caseId, expected_passed: null })
+    setLinking(null)
   }
 
   function moveStep(from: number, to: number) {
@@ -452,7 +471,18 @@ export function ScenarioStepEditor({
                         {gap ? (
                           <span className="se-muted">—</span>
                         ) : tcNo === undefined || step.case_id === null ? (
-                          <span className="se-general" title={b.generalStepHelp}>{b.generalStep}</span>
+                          <button
+                            className="se-general"
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              select(index)
+                              setLinking(index)
+                            }}
+                            title={`${b.generalStepHelp} ${b.linkCaseHint}`}
+                            type="button"
+                          >
+                            {b.generalStep}
+                          </button>
                         ) : (
                           <button
                             className="se-tc"
@@ -473,6 +503,8 @@ export function ScenarioStepEditor({
                       <span className="se-row-verdict">
                         {gap ? (
                           <span className="se-needs">{b.needsInput}</span>
+                        ) : step.case_id !== null && testCase === undefined && cases.size > 0 ? (
+                          <span className="se-needs" title={b.caseMissing}>{b.caseMissingShort}</span>
                         ) : testCase !== undefined ? (
                           <span className="se-verdict">
                             <span aria-hidden="true" className={`se-dot se-dot--${testCase.verificationStatus}`} />
@@ -542,7 +574,10 @@ export function ScenarioStepEditor({
             number={numbering.actionNo[current]}
             onAddBelow={() => insertAt(current + 1)}
             onClose={() => setDetail(false)}
+            caseMissing={openStep.case_id !== null && cases.size > 0 && !cases.has(String(openStep.case_id))}
             onFillGap={() => setGapFill({ index: current, blockedBy: openStep.step_unknown_reason, detail: openStep.action })}
+            onLinkCase={() => setLinking(current)}
+            onUnlinkCase={() => linkCase(current, null)}
             onMove={(to) => moveStep(current, to)}
             onRemove={() => removeStep(current)}
             onSelect={(to) => select(to)}
@@ -565,6 +600,17 @@ export function ScenarioStepEditor({
           }}
         />
       )}
+      {linking !== null && linking < steps.length && (
+        // TC 를 고르는 창은 ⌘K 의 TC 명세 창을 그대로 쓴다 — 같은 검색 · 상태 · 씬 거르기 · 미리 보기다.
+        <TestCaseSpecModal
+          cases={caseList}
+          currentCaseId={steps[linking].case_id}
+          onClose={() => setLinking(null)}
+          onPick={(testCase) => linkCase(linking, Number(testCase.id))}
+          projectId={projectId}
+          scope={caseBuild === null ? b.pickAll : b.pickVersion(caseBuild.label ?? caseBuild.version)}
+        />
+      )}
       {tcView !== null && (
         <TestCaseModal caseId={tcView.caseId} label={tcView.label} onClose={() => setTcView(null)} projectId={projectId} />
       )}
@@ -575,6 +621,9 @@ export function ScenarioStepEditor({
 
 /** 고른 단계 하나. 왼쪽은 고치는 칸, 오른쪽은 연결된 TC 명세(읽기 전용). */
 function StepInspector({
+  caseMissing,
+  onLinkCase,
+  onUnlinkCase,
   autoFocus,
   height,
   onAddBelow,
@@ -592,6 +641,10 @@ function StepInspector({
   onFillGap,
   onViewCase,
 }: {
+  /** 연결된 TC 가 런의 빌드 버전에 없다 — QA 는 이 연결을 지우고 실행한다. */
+  caseMissing: boolean
+  onLinkCase: () => void
+  onUnlinkCase: () => void
   /** 방금 넣은 빈 단계라면 바로 쓸 수 있게 글 칸에 초점을 준다. */
   autoFocus: boolean
   height: number
@@ -620,7 +673,9 @@ function StepInspector({
     ? b.gapChip
     : caseOrdinal === null
       ? b.noTcAction
-      : b.caseChip(caseOrdinal, testCase?.scene ?? '')
+      : testCase?.scene
+        ? b.caseChip(caseOrdinal, testCase.scene)
+        : b.caseOrdinal(caseOrdinal)
 
   return (
     <section aria-label={gap ? b.gapRowPlain : b.stepLabel(number ?? index + 1)} className="se-detail" style={{ height }}>
@@ -719,13 +774,40 @@ function StepInspector({
               </button>
             )}
           </div>
+          {!gap && (
+            <div className="se-case-actions">
+              {step.case_id === null ? (
+                <button className="button button--secondary button--compact" onClick={onLinkCase} type="button">
+                  <StudioIcon name="plus" size={14} />
+                  {b.linkCase}
+                </button>
+              ) : (
+                <>
+                  <button className="button button--secondary button--compact" onClick={onLinkCase} type="button">
+                    <StudioIcon name="refresh" size={14} />
+                    {b.changeCase}
+                  </button>
+                  <button className="button button--danger-quiet button--compact" onClick={onUnlinkCase} type="button">
+                    <StudioIcon name="close" size={14} />
+                    {b.unlinkCase}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+          {caseMissing && (
+            <p className="se-case-missing" role="note">
+              <StudioIcon name="alert" size={14} />
+              {b.caseMissing}
+            </p>
+          )}
           {gap ? (
             <>
               {step.step_unknown_reason !== null && <p className="mono se-case-where">{step.step_unknown_reason}</p>}
               <p className="se-muted">{b.gapExplain}</p>
             </>
           ) : testCase === undefined ? (
-            <p className="se-muted">{b.notLinked}</p>
+            !caseMissing && <p className="se-muted">{b.notLinked}</p>
           ) : (
             <dl className="se-case">
               <dt>{b.precondition}</dt>
@@ -940,18 +1022,3 @@ function StepAction({
   )
 }
 
-/**
- * 프로젝트 TC 의 id → TC. 화면이 열릴 때 한 번 읽는다 — 스텝마다 따로 부르면 TC 수만큼 요청이 나간다.
- * 목록의 씬 · 판정 칸과 아래 칸의 사전조건 · 기대 결과가 모두 이것을 읽는다. 못 읽으면 칸이 비어 있다.
- */
-function useCaseIndex(projectId: string): ReadonlyMap<string, TestCase> {
-  const [cases, setCases] = useState<ReadonlyMap<string, TestCase>>(new Map())
-  useEffect(() => {
-    const controller = new AbortController()
-    listTestCases(projectId, controller.signal)
-      .then((list) => setCases(new Map(list.map((testCase) => [testCase.id, testCase]))))
-      .catch(() => undefined)
-    return () => controller.abort()
-  }, [projectId])
-  return cases
-}
