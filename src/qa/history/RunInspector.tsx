@@ -7,6 +7,7 @@ import { QaStatusPill } from '../../projects/workspace/QaStatusPill'
 import { QA_TRY_STATUSES, qaRunPath, type QaTry, type QaTryStatus } from '../qaTypes'
 import type { QaRunSummary } from '../launch/qaLaunchApi'
 import { ringOf, shortWhen } from './historyModel'
+import { PickSketch } from './HistorySketch'
 
 /**
  * 고른 실행 하나(ARTEL-1100). 위는 그 실행의 결과를 숫자 셋과 큰 링으로, 아래는 시나리오마다 예전
@@ -33,7 +34,11 @@ export function RunInspector({
   if (run === null) {
     return (
       <aside aria-label={b.pickRun} className="qh-inspector">
-        <p className="qh-inspector-empty">{b.pickRun}</p>
+        <div className="qh-inspector-empty">
+          <PickSketch />
+          <b>{b.pickTitle}</b>
+          <span>{b.pickRun}</span>
+        </div>
       </aside>
     )
   }

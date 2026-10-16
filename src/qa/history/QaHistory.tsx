@@ -12,6 +12,7 @@ import { listRunFolders, type RunFolder } from '../../testRuns/testRunFolders'
 import { offeredQaModels } from '../qaModelGroups'
 import type { QaRunSummary } from '../launch/qaLaunchApi'
 import { countByFilter, runOrdinals, testRunsUnder, type HistoryFilter } from './historyModel'
+import { BoardSketch } from './HistorySketch'
 import { RunCard } from './RunCard'
 import { RunInspector } from './RunInspector'
 import { useHistoryRuns } from './useHistoryRuns'
@@ -235,6 +236,7 @@ export function QaHistory() {
 
           {cardRuns.length === 0 ? (
             <div className="qh-empty-inline">
+              <BoardSketch />
               <b>{b.emptyVersionTitle}</b>
               <span>{b.emptyVersionBody}</span>
             </div>
@@ -293,28 +295,7 @@ function HistoryEmpty({ projectId }: { projectId: string }) {
   const b = t.qa.history.board
   return (
     <div className="qh-empty">
-      <svg aria-hidden="true" className="qh-empty-art" fill="none" viewBox="0 0 320 140">
-        <rect className="qh-art-card" height="112" rx="10" width="296" x="12" y="14" />
-        <rect className="qh-art-line" height="8" rx="4" width="120" x="32" y="32" />
-        <rect className="qh-art-line qh-art-line--soft" height="8" rx="4" width="48" x="160" y="32" />
-        {[0, 1, 2, 3].map((index) => (
-          <g key={index} transform={`translate(${32 + index * 68} 54)`}>
-            <rect className="qh-art-tile" height="58" rx="8" width="56" />
-            <circle className="qh-art-ring-track" cx="28" cy="26" r="13" strokeWidth="4" />
-            <circle
-              className={`qh-art-ring qh-art-ring--${index}`}
-              cx="28"
-              cy="26"
-              r="13"
-              strokeDasharray={`${[70, 58, 52, 30][index]} 82`}
-              strokeLinecap="round"
-              strokeWidth="4"
-              transform="rotate(-90 28 26)"
-            />
-            <rect className="qh-art-line qh-art-line--soft" height="5" rx="2.5" width="30" x="13" y="45" />
-          </g>
-        ))}
-      </svg>
+      <BoardSketch />
       <h2>{b.emptyTitle}</h2>
       <p>{b.emptyBody}</p>
       <Link className="button button--primary" to={sectionHref(projectId, 'qa')}>{b.emptyAction}</Link>
