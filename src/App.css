@@ -11484,3 +11484,34 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
 .scenario-studio .st-chat :is(.chat-message, .chat-table-dialog) .chat-ref:focus-visible { outline: 2px solid var(--st-action); outline-offset: 2px; }
 .scenario-studio .st-chat :is(.chat-message, .chat-table-dialog) .chat-ref-tag { display: inline-block; margin-right: 4px; font: 700 0.7em var(--st-mono); letter-spacing: .04em; color: var(--st-action); vertical-align: 1px; }
 .scenario-studio .st-chat :is(.chat-message, .chat-table-dialog) .chat-ref-label { display: inline; max-width: none; overflow: visible; white-space: normal; }
+
+/* TC 연결(ARTEL-1115). `일반` 라벨은 이제 눌린다 — 가져다 대면 서비스 색 테두리로 TC 를 붙일 수 있음을 알린다. */
+.scenario-studio button.se-general { background: none; font: inherit; font-size: 10.5px; cursor: pointer; }
+.scenario-studio button.se-general:hover,
+.scenario-studio button.se-general:focus-visible { border-color: var(--st-action); border-style: solid; color: var(--st-action); outline: none; }
+.scenario-studio .se-case-actions { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 10px; }
+.scenario-studio .se-case-actions .button { gap: 5px; }
+.scenario-studio .se-case-missing { display: flex; align-items: flex-start; gap: 6px; margin: 0 0 10px; padding: 8px 10px; border-radius: var(--radius-md); background: var(--st-draft-dim); color: var(--st-text-2); font-size: 12px; line-height: 1.5; }
+.scenario-studio .se-case-missing svg { flex: none; margin-top: 2px; color: var(--st-draft); }
+
+/* 창은 body 로 뜬다. 스튜디오 범위 이름을 단 칸은 스튜디오의 판 배치를 벗는다. */
+.scenario-studio.studio-portal { display: block; height: auto; min-height: 0; overflow: visible; background: none; }
+.dialog-panel:has(.case-link) { width: min(100%, 760px); display: flex; flex-direction: column; overflow: hidden; }
+.scenario-studio .case-link { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+.scenario-studio .case-link-scope { margin: -8px 0 0; color: var(--st-muted); font-size: 12px; }
+.scenario-studio .case-link-find { display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 10px; border: 1px solid var(--st-border); border-radius: var(--radius-md); background: var(--st-canvas); color: var(--st-muted); }
+.scenario-studio .case-link-find:focus-within { border-color: var(--st-action); }
+.scenario-studio .case-link-find input { flex: 1; min-width: 0; border: 0; outline: none; background: none; color: var(--st-text); font: inherit; font-size: 13px; }
+.scenario-studio .case-link-count { font: 10px var(--st-mono); white-space: nowrap; }
+.scenario-studio .case-link-frame { position: relative; display: flex; min-height: 0; }
+.scenario-studio .case-link-list { flex: 1; max-height: min(52vh, 520px); margin: 0; padding: 0; overflow-y: auto; list-style: none; border: 1px solid var(--st-border); border-radius: var(--radius-md); scrollbar-width: none; }
+.scenario-studio .case-link-list::-webkit-scrollbar { display: none; }
+.scenario-studio .case-link-row { display: grid; grid-template-columns: 130px minmax(0, 1fr) auto; gap: 12px; align-items: center; width: 100%; padding: 10px 12px; border: 0; border-bottom: 1px solid var(--st-border); background: none; color: var(--st-text); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.scenario-studio .case-link-list li:last-child .case-link-row { border-bottom: 0; }
+.scenario-studio .case-link-row:hover, .scenario-studio .case-link-row:focus-visible { background: color-mix(in srgb, var(--st-action) 8%, transparent); outline: none; }
+.scenario-studio .case-link-row.is-current { background: color-mix(in srgb, var(--st-action) 12%, transparent); box-shadow: inset 3px 0 0 var(--st-action); }
+.scenario-studio .case-link-scene { overflow: hidden; padding: 1px 7px; border: 1px solid var(--st-border-strong); border-radius: 4px; color: var(--st-text); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; justify-self: start; max-width: 100%; }
+.scenario-studio .case-link-step { line-height: 1.5; overflow-wrap: anywhere; }
+.scenario-studio .case-link-verdict { display: inline-flex; align-items: center; gap: 6px; color: var(--st-text-2); font-size: 11px; white-space: nowrap; }
+.scenario-studio .case-link-current { grid-column: 2 / -1; color: var(--st-action); font-size: 11px; font-weight: 600; }
+.scenario-studio .case-link-empty { flex: 1; margin: 0; padding: 32px 12px; border: 1px dashed var(--st-border-strong); border-radius: var(--radius-md); color: var(--st-muted); font-size: 13px; text-align: center; }
