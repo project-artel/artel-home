@@ -12007,3 +12007,16 @@ button.gf-bar:focus-visible {
 .dw-confirm { flex: none; align-items: flex-start; min-width: 0; padding: var(--space-3); border-radius: var(--radius-md); background: var(--color-status-critical-muted); }
 .dw-confirm .document-confirm-copy { text-align: left; }
 .dw-current > .dw-confirm { border-radius: 0; }
+/* 업로드 원형 진행 표시(ARTEL-1098). 채워지는 호는 브랜드 강조색, 바탕 원은 경계선 색. */
+.dw-ring { position: relative; display: inline-grid; flex: none; place-items: center; }
+.dw-ring svg { position: absolute; inset: 0; }
+.dw-ring-track { stroke: var(--color-border-subtle); }
+.dw-ring-fill { stroke: var(--color-action-primary); transition: stroke-dasharray 160ms var(--ease-standard); }
+.dw-ring.is-indeterminate svg { animation: dw-spin 1s linear infinite; }
+.dw-ring-label { position: relative; font-size: 18px; font-weight: 600; }
+.dw-drop.is-uploading { border-style: solid; border-color: var(--color-action-primary); }
+@keyframes dw-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .dw-ring-fill { transition: none; }
+  .dw-ring.is-indeterminate svg { animation-duration: 3s; }
+}

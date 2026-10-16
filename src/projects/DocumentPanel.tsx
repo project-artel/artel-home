@@ -183,7 +183,13 @@ export function DocumentPanel({
         <div className="dw-main">
           {current === undefined ? (
             <>
-              <DropZone disabled={uploading} hint={w.dropHint} large onFile={(file) => void start(file)} title={w.dropTitle} />
+              <DropZone
+                hint={w.dropHint}
+                large
+                onFile={(file) => void start(file)}
+                progress={uploading ? { ratio: upload.ratio, fileName: pendingFile?.name ?? '' } : null}
+                title={w.dropTitle}
+              />
               <ol aria-label={w.stepsLabel} className="dw-steps">
                 {STEPS.map((step, index) => (
                   <li className="dw-step" key={step}>
@@ -203,35 +209,12 @@ export function DocumentPanel({
             <>
               <CurrentDocument actions={actions} document={current} />
               <DropZone
-                disabled={uploading}
                 hint={w.dropNewHint(current.version + 1)}
                 onFile={(file) => void start(file)}
+                progress={uploading ? { ratio: upload.ratio, fileName: pendingFile?.name ?? '' } : null}
                 title={w.dropNewTitle}
               />
             </>
-          )}
-
-          {uploading && (
-            <div className="upload-progress">
-              <div
-                aria-label={t.projects.documents.progressLabel}
-                aria-valuemax={100}
-                aria-valuemin={0}
-                aria-valuenow={upload.ratio === null ? undefined : Math.round(upload.ratio * 100)}
-                className="progress-track"
-                role="progressbar"
-              >
-                <span
-                  className="progress-fill"
-                  style={{ width: upload.ratio === null ? '100%' : `${upload.ratio * 100}%` }}
-                />
-              </div>
-              <p className="upload-status">
-                {upload.ratio === null
-                  ? t.projects.documents.uploading
-                  : t.projects.documents.uploadingPercent(Math.round(upload.ratio * 100))}
-              </p>
-            </div>
           )}
 
           {upload.phase === 'failed' && (
@@ -293,33 +276,36 @@ function DropZone({
   title,
   hint,
   large = false,
-  disabled,
+  progress,
   onFile,
 }: {
   title: string
   hint: string
   large?: boolean
-  disabled: boolean
+  /** 올리는 중이면 그 진행률. 이때는 그림 자리에 원형 진행 표시가 서고 새 파일을 받지 않는다. */
+  progress: { ratio: number | null; fileName: string } | null
   onFile: (file: File) => void
 }) {
   const { t } = useI18n()
   const [dragging, setDragging] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
   const iconSize = large ? 56 : 24
+  const disabled = progress !== null
+  const percent = progress?.ratio == null ? null : Math.round(progress.ratio * 100)
 
   return (
     <div
-      className={`dw-drop${large ? ' dw-drop--large' : ''}${dragging ? ' is-dragging' : ''}`}
+      className={`dw-drop${large ? ' dw-drop--large' : ''}${dragging ? ' is-dragging' : ''}${disabled ? ' is-uploading' : ''}`}
       onDragLeave={() => setDragging(false)}
       onDragOver={(event) => {
         event.preventDefault()
-        setDragging(true)
+        if (!disabled) setDragging(true)
       }}
       onDrop={(event) => {
         event.preventDefault()
         setDragging(false)
         const file = event.dataTransfer.files.item(0)
-        if (file !== null) onFile(file)
+        if (file !== null && !disabled) onFile(file)
       }}
     >
       <input
@@ -336,19 +322,74 @@ function DropZone({
         ref={fileInput}
         type="file"
       />
-      <span aria-hidden="true" className="dw-drop-icon">
-        <svg fill="none" height={iconSize} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" viewBox="0 0 24 24" width={iconSize}>
-          <path d="M14 3v4a1 1 0 0 0 1 1h4 M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z M12 11v6 M9.5 13.5l2.5 -2.5l2.5 2.5" />
-        </svg>
-      </span>
+      {progress === null ? (
+        <span aria-hidden="true" className="dw-drop-icon">
+          <svg fill="none" height={iconSize} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" viewBox="0 0 24 24" width={iconSize}>
+            <path d="M14 3v4a1 1 0 0 0 1 1h4 M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z M12 11v6 M9.5 13.5l2.5 -2.5l2.5 2.5" />
+          </svg>
+        </span>
+      ) : (
+        <ProgressRing percent={percent} size={large ? 96 : 44} />
+      )}
       <span className="dw-drop-text">
-        <b>{title}</b>
-        <span>{hint}</span>
+        {progress === null ? (
+          <>
+            <b>{title}</b>
+            <span>{hint}</span>
+          </>
+        ) : (
+          <>
+            <b>{percent === null ? t.projects.documents.uploading : t.projects.documents.uploadingPercent(percent)}</b>
+            <span className="dw-ellipsis">{progress.fileName}</span>
+          </>
+        )}
       </span>
-      <label className={`button ${large ? 'button--primary' : 'button--secondary'} button--compact`} htmlFor="document-file">
-        {t.projects.documents.workbench.chooseFile}
-      </label>
+      {progress === null && (
+        <label className={`button ${large ? 'button--primary' : 'button--secondary'} button--compact`} htmlFor="document-file">
+          {t.projects.documents.workbench.chooseFile}
+        </label>
+      )}
     </div>
+  )
+}
+
+/**
+ * 원형 진행 표시. 업로드는 `XMLHttpRequest` 의 진행 이벤트로 비율을 알 때가 많아 그만큼 원을 채우고,
+ * 비율을 모르면(`null`) 4분의 1 호가 돈다 — 멈춘 0% 로 그리면 걸린 것처럼 보인다.
+ */
+function ProgressRing({ percent, size }: { percent: number | null; size: number }) {
+  const { t } = useI18n()
+  const stroke = size >= 80 ? 6 : 4
+  const radius = (size - stroke) / 2
+  const circumference = 2 * Math.PI * radius
+  const filled = percent === null ? circumference * 0.25 : (circumference * percent) / 100
+
+  return (
+    <span
+      aria-label={t.projects.documents.progressLabel}
+      aria-valuemax={100}
+      aria-valuemin={0}
+      aria-valuenow={percent ?? undefined}
+      className={`dw-ring${percent === null ? ' is-indeterminate' : ''}`}
+      role="progressbar"
+      style={{ width: size, height: size }}
+    >
+      <svg aria-hidden="true" height={size} viewBox={`0 0 ${size} ${size}`} width={size}>
+        <circle className="dw-ring-track" cx={size / 2} cy={size / 2} fill="none" r={radius} strokeWidth={stroke} />
+        <circle
+          className="dw-ring-fill"
+          cx={size / 2}
+          cy={size / 2}
+          fill="none"
+          r={radius}
+          strokeDasharray={`${filled} ${circumference}`}
+          strokeLinecap="round"
+          strokeWidth={stroke}
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
+        />
+      </svg>
+      {percent !== null && size >= 80 && <span className="dw-ring-label mono">{percent}%</span>}
+    </span>
   )
 }
 
