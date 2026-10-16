@@ -14,7 +14,7 @@ import type { StepEditor } from './useStepEditor'
 /** 이보다 단계가 많으면 바닥에 구간 점프를 단다. */
 const JUMP_SIZE = 20
 
-/** 판정 점의 순서. 범례도 이 순서로 선다. */
+/** 판정의 순서. 범례도 이 순서로 선다. */
 const VERDICTS: readonly VerificationStatus[] = ['VERIFIED', 'DRAFT', 'REGRESSION', 'FAILED', 'BROKEN']
 
 const DETAIL_HEIGHT_KEY = 'artel.studio.stepDetailHeight'
@@ -472,12 +472,10 @@ export function ScenarioStepEditor({
                         {gap ? (
                           <span className="se-needs">{b.needsInput}</span>
                         ) : testCase !== undefined ? (
-                          <span
-                            aria-label={statusLabel[testCase.verificationStatus] ?? testCase.verificationStatus}
-                            className={`se-dot se-dot--${testCase.verificationStatus}`}
-                            role="img"
-                            title={statusLabel[testCase.verificationStatus] ?? testCase.verificationStatus}
-                          />
+                          <span className="se-verdict">
+                            <span aria-hidden="true" className={`se-dot se-dot--${testCase.verificationStatus}`} />
+                            {statusLabel[testCase.verificationStatus] ?? testCase.verificationStatus}
+                          </span>
                         ) : (
                           <span className="se-muted">—</span>
                         )}

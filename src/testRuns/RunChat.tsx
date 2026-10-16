@@ -7,6 +7,7 @@ import { ChatMessageBody, ChatReplyBody } from './ChatMessageBody'
 import { ChatLinkContext } from './chatRefContext'
 import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { StudioIcon } from '../testScenarios/studioIcons'
+import { ChatSketch } from '../testScenarios/studioSketches'
 import { formatDateTime } from '../projects/formatters'
 import type { AuthoringStage, ChatRef, RunChatQuestion } from './runChatApi'
 import { ESC_WINDOW_MS, pressEscape } from './escCancel'
@@ -427,7 +428,10 @@ export function RunChat({ session }: { session: RunChatSession }) {
       </header>
 
       {session.messages.length === 0 && !session.closed ? (
-        <p className="panel-empty">{c.emptyCopy}</p>
+        <div className="run-chat-empty">
+          <ChatSketch />
+          <p>{c.emptyTitle}</p>
+        </div>
       ) : (
         <ol className="chat-thread" ref={setThread}>
           {session.messages.map((message) => (
