@@ -63,3 +63,32 @@ export function sectionIdFromPath(projectId: string, pathname: string): Workspac
 export function sectionLabel(t: Messages, id: WorkspaceSectionId): string {
   return t.projects.workspace.nav[id]
 }
+
+/**
+ * Whether a pathname is one of the project's deep pages (an instance, a
+ * scenario, a test run, a QA run, a performance report) rather than a section.
+ * A deep page brings its own header and back link, so the workspace renders it
+ * without the section heading.
+ *
+ * Only paths under this project count; a path of another project, or the
+ * redirect-only `game-builds/:buildId/content-map`, is not deep.
+ */
+export function isDeepPath(projectId: string, pathname: string): boolean {
+  const base = `/projects/${encodeURIComponent(projectId)}/`
+  if (!pathname.startsWith(base)) return false
+  const parts = pathname.slice(base.length).replace(/\/+$/, '').split('/')
+  const [head, , tail] = parts
+  switch (head) {
+    case 'instances':
+    case 'test-scenarios':
+      return parts.length === 2
+    case 'test-runs':
+      return parts.length === 2 || (parts.length === 3 && tail === 'edit')
+    case 'qa-runs':
+      return parts.length === 2 || (parts.length === 3 && tail === 'performance')
+    case 'game-builds':
+      return parts.length === 3 && tail === 'performance'
+    default:
+      return false
+  }
+}

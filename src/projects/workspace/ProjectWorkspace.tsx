@@ -1,12 +1,20 @@
-import { useMemo } from 'react'
+import { useMemo, type CSSProperties } from 'react'
 import { Link, Outlet, useLocation, useParams } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
+import { AgentChatPanel, AgentReopenButton, AgentSplitHandle } from '../../projectAgent/AgentDock'
+import { useAgentDock } from '../../projectAgent/useAgentDock'
 import { formatDate } from '../formatters'
 import { useProject } from '../useProject'
 import { ProjectNav } from './ProjectNav'
-import { sectionIdFromPath } from './sections'
+import { isDeepPath, sectionIdFromPath } from './sections'
 import { useWorkspaceExtras } from './useWorkspaceExtras'
 import { WorkspaceContext, type WorkspaceValue } from './workspaceContext'
+
+/**
+ * 펼친 rail 폭. 대화창 폭의 상한은 이 값으로 계산한다. rail 을 접으면 페이지 칸이 168px 넓어질
+ * 뿐이라, 접힘 상태를 따라가지 않고 넓은 쪽 하나로 계산한다.
+ */
+const RAIL_PX = 216
 
 /**
  * Keyed by the project id so switching projects remounts rather than reusing
@@ -49,6 +57,7 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
   const extras = useWorkspaceExtras(projectId)
   const { t } = useI18n()
   const { pathname } = useLocation()
+  const dock = useAgentDock(projectId, pathname, RAIL_PX)
 
   const {
     applyTrackerLink,
@@ -158,12 +167,24 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
   }
 
   const sectionId = sectionIdFromPath(projectId, pathname)
+  const deep = isDeepPath(projectId, pathname)
   // A count the user cannot trust yet is worse than no count: `null` keeps the
   // badge off the row until its read lands.
   const settled = extrasStatus === 'ready'
 
+  // index 화면에서 대화창이 열려 있으면 페이지 칸을 숨기고 대화창이 그 자리를 넓게 쓴다.
+  // DashboardSection 은 그대로 그려 두어, 720px 미만에서 대화창을 숨길 때 다시 보이게 한다.
+  const agentHome = dock.open && dock.isIndex
+  const workspaceClass =
+    'project-workspace' +
+    (dock.open ? (agentHome ? ' has-agent-home' : ' has-agent') : '') +
+    (dock.splitting ? ' is-splitting' : '')
+
   return (
-    <div className="project-workspace">
+    <div
+      className={workspaceClass}
+      style={dock.open ? ({ '--agent-chat-w': `${dock.chatWidth}px` } as CSSProperties) : undefined}
+    >
       <ProjectNav
         counts={{
           documents: documents.length,
@@ -178,24 +199,36 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
       />
 
       <div className="workspace-body">
-        <header className="section-header">
-          <div className="section-heading">
-            <h1>{t.projects.workspace.nav[sectionId]}</h1>
-            <Link className="section-project-link" to="/projects">
-              {t.projects.workspace.allProjects}
-            </Link>
-          </div>
-          <p className="section-updated">
-            {t.projects.shared.updated(formatDate(project.updatedAt))}
-          </p>
-        </header>
+        <WorkspaceContext.Provider value={value}>
+          {deep ? (
+            <div className="workspace-deep">
+              <Outlet />
+            </div>
+          ) : (
+            <>
+              <header className="section-header">
+                <div className="section-heading">
+                  <h1>{t.projects.workspace.nav[sectionId]}</h1>
+                  <Link className="section-project-link" to="/projects">
+                    {t.projects.workspace.allProjects}
+                  </Link>
+                </div>
+                <p className="section-updated">
+                  {t.projects.shared.updated(formatDate(project.updatedAt))}
+                </p>
+              </header>
 
-        <div className="section-content">
-          <WorkspaceContext.Provider value={value}>
-            <Outlet />
-          </WorkspaceContext.Provider>
-        </div>
+              <div className="section-content">
+                <Outlet />
+              </div>
+            </>
+          )}
+        </WorkspaceContext.Provider>
       </div>
+
+      {dock.open && !agentHome && <AgentSplitHandle {...dock.handle} />}
+      {dock.open && <AgentChatPanel onClose={dock.closeChat} wide={agentHome} />}
+      {dock.enabled && !dock.open && <AgentReopenButton onOpen={dock.openChat} />}
     </div>
   )
 }

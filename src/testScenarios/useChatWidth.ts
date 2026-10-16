@@ -11,6 +11,8 @@ const CHAT_WIDTH_MAX = 720
 /** 대화가 아무리 넓어져도 가운데 STEP 은 이만큼 남는다. */
 const STEPS_MIN_PX = 420
 const RAIL_PX = 280
+/** 저작 화면은 project workspace 안에서 열리므로, 그 왼쪽의 project rail 폭도 뺀다. */
+const PROJECT_RAIL_PX = 216
 const SPLIT_PX = 6
 
 function readChatWidth(): number {
@@ -25,7 +27,7 @@ function readChatWidth(): number {
 
 /** 창이 좁으면 저장된 폭을 그대로 못 쓴다 — STEP 이 설 자리부터 뺀다. */
 function chatWidthCeiling(): number {
-  const room = window.innerWidth - RAIL_PX - SPLIT_PX - STEPS_MIN_PX
+  const room = window.innerWidth - PROJECT_RAIL_PX - RAIL_PX - SPLIT_PX - STEPS_MIN_PX
   return Math.max(CHAT_WIDTH_MIN, Math.min(CHAT_WIDTH_MAX, room))
 }
 

@@ -5253,6 +5253,9 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   background: none;
   min-height: 0;
   overflow: hidden;
+  /* `.workspace:has(.scenario-studio)` 가 쓰는 `height` 를 되돌린다. 깊은 화면이 이 칸 안에
+     들어와도 높이는 `.project-workspace` 하나가 정한다. */
+  height: auto;
 }
 
 /* The height is fixed to the viewport minus the top bar rather than left at
@@ -5273,6 +5276,26 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
    포인터 타깃을 유지한다. */
 .project-workspace:has(.project-nav--collapsed) {
   grid-template-columns: 48px minmax(0, 1fr);
+}
+
+/* project agent 대화창(ARTEL-1113). 열려 있으면 rail, 페이지, 경계 handle, 대화창 순서의 4칸이다.
+   대화창 폭은 `useAgentDock` 이 계산해 `--agent-chat-w` 로 넘긴다. */
+.project-workspace.has-agent {
+  grid-template-columns: 216px minmax(0, 1fr) 6px var(--agent-chat-w);
+}
+
+.project-workspace.has-agent:has(.project-nav--collapsed) {
+  grid-template-columns: 48px minmax(0, 1fr) 6px var(--agent-chat-w);
+}
+
+/* index 화면에서는 보여 줄 페이지가 없다. 페이지 칸을 숨기고 대화창이 rail 옆을 모두 쓴다. */
+.project-workspace.has-agent-home > .workspace-body {
+  display: none;
+}
+
+.project-workspace.is-splitting {
+  cursor: col-resize;
+  user-select: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -5481,6 +5504,34 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   min-width: 0;
   min-height: 0;
   flex-direction: column;
+  overflow-y: auto;
+}
+
+/* 깊은 화면(작업 화면 일곱 개)이 들어가는 칸. `.workspace-body` 가 `calc(100dvh - 48px)` 높이
+   칸이므로, 이 칸이 그 높이를 그대로 받아 자식에게 넘긴다. 화면 높이를 뷰포트에 직접 맞추던
+   `calc(100dvh - 48px)` 규칙은 여기서 `flex` 로 대체한다. 바깥 스크롤바가 하나 더 생기지 않도록
+   이 칸은 `overflow: hidden` 이고, 스크롤은 각 화면이 전에 하던 자리에서 한다. */
+.workspace-deep {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 0;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.workspace-deep > .scenario-studio,
+.workspace-deep > .qa-console,
+.workspace-deep > .run-map,
+.workspace-deep > .run-map-shell {
+  flex: 1 1 0;
+  height: auto;
+  min-height: 0;
+}
+
+/* `.page` 를 쓰는 화면은 `.workspace:has(.page)` 가 바깥 칸에 주던 여백과 스크롤을 이 칸 안에서 받는다. */
+.workspace-deep:has(> .page) {
+  padding: var(--space-8) var(--space-6);
   overflow-y: auto;
 }
 
@@ -6023,6 +6074,24 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
      남고, 레일은 화면 너비를 그대로 쓴다. */
   .project-workspace:has(.project-nav--collapsed) {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* 좁은 화면에는 페이지와 대화창을 나란히 둘 폭이 없다. 대화창을 숨기고 지금 화면을 그대로 쓴다. */
+  .project-workspace.has-agent,
+  .project-workspace.has-agent-home,
+  .project-workspace.has-agent:has(.project-nav--collapsed),
+  .project-workspace.has-agent-home:has(.project-nav--collapsed) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .project-workspace.has-agent-home > .workspace-body {
+    display: flex;
+  }
+
+  .project-workspace > .agent-panel,
+  .project-workspace > .agent-dock-split,
+  .project-workspace > .agent-reopen {
+    display: none;
   }
 }
 
