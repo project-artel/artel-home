@@ -9,6 +9,7 @@ import type { TestCase, VerificationStatus } from '../testCases/testCaseTypes'
 import { GapFillModal } from './GapFillModal'
 import { groupStepsByCase, isGapStep, type ScenarioStep } from './scenarioTypes'
 import { StudioIcon } from './studioIcons'
+import { StepsSketch } from './studioSketches'
 import type { StepEditor } from './useStepEditor'
 
 /** 이보다 단계가 많으면 바닥에 구간 점프를 단다. */
@@ -349,6 +350,7 @@ export function ScenarioStepEditor({
         <div className={`se-list${expanded ? ' is-expanded' : ''}`} ref={setScroller}>
           {steps.length === 0 ? (
             <div className="se-empty">
+              <StepsSketch />
               <b>{b.emptyTitle}</b>
               <span>{b.emptyBody}</span>
               <button className="button button--primary button--compact" onClick={() => insertAt(0)} type="button">{e.addStep}</button>

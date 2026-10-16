@@ -61,3 +61,29 @@ export function ScenarioSketch() {
     </svg>
   )
 }
+
+const ROW = (y: number) => `M34 ${y} Q33 ${y - 6} 40 ${y - 6} L226 ${y - 7} Q233 ${y - 6} 233 ${y} L234 ${y + 18} Q233 ${y + 24} 226 ${y + 24} L41 ${y + 25} Q34 ${y + 24} 34 ${y + 18} Z`
+
+/** 시나리오에 스텝이 없을 때: 아직 빈 스텝 줄 셋, 마지막 줄 자리에 더하기. */
+export function StepsSketch() {
+  const rows = [30, 70]
+  return (
+    <svg aria-hidden="true" className="st-sketch" fill="none" viewBox="0 0 270 170">
+      {rows.map((y) => (
+        <g key={y}>
+          <path className="st-sketch-depth" d={ROW(y)} transform="translate(7 8)" />
+          <path className="st-sketch-edge" d={`M233 ${y} L240 ${y + 8} M234 ${y + 18} L241 ${y + 26} M34 ${y + 18} L41 ${y + 26}`} />
+          <path className="st-sketch-face" d={ROW(y)} />
+          <circle cx="52" cy={y + 9} r="6" />
+          <path className={y === 30 ? undefined : 'st-sketch-soft'} d={`M68 ${y + 9} Q120 ${y + 8} ${y === 30 ? 170 : 150} ${y + 9}`} />
+          <path className="st-sketch-dash" d={`M190 ${y + 9} L214 ${y + 9}`} />
+        </g>
+      ))}
+      <path className="st-sketch-dash" d={ROW(110)} />
+      <circle className="st-sketch-face" cx="133" cy="119" r="9" />
+      <path d="M133 114 l0 10 M128 119 l10 0" />
+      <path className="st-sketch-soft" d="M250 14 l0 9 M245.5 18.5 l9 0" />
+      <ellipse className="st-sketch-shade" cx="137" cy="160" rx="108" ry="5" />
+    </svg>
+  )
+}
