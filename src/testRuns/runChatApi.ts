@@ -456,6 +456,7 @@ export type DraftScenario = {
    * 처음 생긴 새 draft 는 견줄 것이 없어 null 이다.
    */
   baseSteps: ScenarioStep[] | null
+  executionMode: ExecutionMode
 }
 
 export type DraftApplyResult = {
@@ -498,6 +499,7 @@ function parseDraft(value: unknown): DraftScenario | null {
       ? record.absorbed_scenario_ids.filter((id): id is number => typeof id === 'number')
       : [],
     baseSteps: Array.isArray(record.base_steps) ? parseSteps(record.base_steps) : null,
+    executionMode: parseExecutionMode(record.execution_mode),
   }
 }
 
