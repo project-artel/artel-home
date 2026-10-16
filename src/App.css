@@ -10294,6 +10294,13 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
 .sil .edgebar-thumb{ position:absolute; left:0; right:0; pointer-events:auto; cursor:grab; touch-action:none; }
 .sil .edgebar-fill{ position:absolute; top:0; bottom:0; right:0; width:4px; border-radius:2px; background:var(--color-brand-accent); transition:width 120ms; }
 .sil .edgebar.is-near .edgebar-fill{ width:11px; background:var(--color-brand-accent-strong); }
+/* QA 실행 화면(ARTEL-1084)의 막대도 같은 방식으로 띄운다. 이 규칙이 없으면 막대가 `.ql-panel` 의 세로 flex
+   흐름에 들어가 높이를 차지하고, 스크롤 영역이 줄어 막대가 사라졌다가 다시 넘쳐 나타나기를 매 프레임
+   반복한다(ARTEL-1106). 위치를 잡는 부모는 `.ql-main-frame`, `.ql-panel`, `.ql-picker-pane` 이다. */
+.ql .edgebar, .ql-picker .edgebar{ position:absolute; width:18px; pointer-events:none; z-index:3; right:0; }
+.ql .edgebar-thumb, .ql-picker .edgebar-thumb{ position:absolute; left:0; right:0; pointer-events:auto; cursor:grab; touch-action:none; }
+.ql .edgebar-fill, .ql-picker .edgebar-fill{ position:absolute; top:0; bottom:0; right:0; width:4px; border-radius:2px; background:var(--color-brand-accent); transition:width 120ms; }
+.ql .edgebar.is-near .edgebar-fill, .ql-picker .edgebar.is-near .edgebar-fill{ width:11px; background:var(--color-brand-accent-strong); }
 
 .sil-tree{ list-style:none; margin:0; padding:0 16px 16px 12px; }
 .sil-tree > li{ margin-bottom:4px; }
