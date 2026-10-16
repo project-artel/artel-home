@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useProjectChange } from '../live/useProjectChange'
 import { usePolling } from '../live/usePolling'
 import type { DocumentParseStatusEvent } from './documentEventsApi'
 import { listGameBuilds, listGameInstances } from './gameApi'
@@ -129,12 +130,14 @@ export function useProject(projectId: string) {
   }, [projectId])
 
   /**
-   * Re-reads the two lists a game launch changes, on a timer.
+   * Re-reads the two lists a game launch changes.
    *
-   * `connected` is whatever the server saw when the list was last fetched, and
-   * nothing pushes a change — a game that connects after the page loaded would
-   * keep reading as offline. Builds move on the same event: a launch reporting a
-   * new version creates one, so both lists are read together.
+   * `connected` is whatever the server saw when the list was last fetched — a
+   * game that connects after the page loaded would keep reading as offline
+   * without a re-read. The project change stream drives it (`GAME_INSTANCES`,
+   * `GAME_BUILDS`), and a timer takes over only while the stream is down. Builds
+   * move on the same event: a launch reporting a new version creates one, so
+   * both lists are read together.
    *
    * `reload` would cover both by blanking the whole screen back to its loading
    * state. This leaves the project and its documents alone and keeps the old
@@ -161,7 +164,11 @@ export function useProject(projectId: string) {
         pollingRef.current = false
       })
   }, [projectId])
-  usePolling(pollGameState, undefined, state.status === 'ready')
+  const ready = state.status === 'ready'
+  const live = useProjectChange(projectId, ['GAME_INSTANCES', 'GAME_BUILDS'], () => {
+    if (ready) pollGameState()
+  })
+  usePolling(pollGameState, undefined, ready && !live)
 
   /** Applies a server response the caller already holds, avoiding a second fetch. */
   const applyProject = useCallback((project: ProjectDetail) => {
