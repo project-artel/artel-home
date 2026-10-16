@@ -11735,3 +11735,9 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
 .scenario-studio .se-gap-more summary { width: max-content; cursor: pointer; color: var(--st-text-2); }
 .scenario-studio .se-gap-more summary:hover { color: var(--st-action); }
 .scenario-studio .se-gap-more p { margin: 6px 0 0; line-height: 1.6; }
+
+/* 질문이 하나 · 둘일 때의 보기 칩(ARTEL-1118) — 선택 박스 대신 답 말풍선 안에서 바로 고른다. */
+.scenario-studio .st-chat .chat-ask-options { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.scenario-studio .st-chat .chat-ask-option { padding: 4px 11px; border: 1px solid var(--st-border-strong); border-radius: 999px; background: none; color: var(--st-text); font: inherit; font-size: 12px; line-height: 1.5; cursor: pointer; transition: border-color 120ms var(--ease-standard), color 120ms var(--ease-standard); }
+.scenario-studio .st-chat .chat-ask-option:hover,
+.scenario-studio .st-chat .chat-ask-option:focus-visible { border-color: var(--st-action); color: var(--st-action); outline: none; }

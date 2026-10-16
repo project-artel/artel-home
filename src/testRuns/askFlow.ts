@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent } from 'react'
+import { useState } from 'react'
 import type { RunChatQuestion } from './runChatApi'
 
 /**
@@ -8,6 +8,21 @@ import type { RunChatQuestion } from './runChatApi'
  * ↑↓ · 숫자로 고르고 Enter 로 정한다. 입력 칸에 글을 쓰고 Enter 하면 그 글이 이 질문의 답이다. 다 답하면
  * 모아서 **평범한 대화 한 줄로** 보낸다 — 저작은 대화를 기억하므로 답을 따로 잇는 장치가 없다.
  */
+
+/**
+ * 선택 박스를 세우는 질문 수(ARTEL-1118). 하나 · 둘은 답 말풍선의 보기 칩으로 충분하다 — 고를 것이 많을 때만
+ * 하나씩 넘기는 박스가 읽기 쉽다.
+ */
+export const DOCK_MIN_QUESTIONS = 3
+
+/** 입력 칸의 React 키 이벤트든 창의 키 이벤트든 — 필요한 것만. */
+export type KeyLike = {
+  key: string
+  shiftKey: boolean
+  preventDefault: () => void
+  isComposing?: boolean
+  nativeEvent?: { isComposing?: boolean }
+}
 
 /** 질문 하나에 대한 답. 보기를 골랐거나, 직접 썼거나, 건너뛰었다. */
 export type AskAnswer = { kind: 'option'; text: string } | { kind: 'text'; text: string } | { kind: 'skip' }
@@ -49,8 +64,8 @@ export type AskFlow = {
   pick: (index: number) => void
   answerText: (text: string) => void
   setHighlight: (index: number) => void
-  /** 입력 칸의 키를 먼저 본다. 처리했으면 true — 그때 입력 칸은 아무것도 하지 않는다. */
-  onKey: (event: KeyboardEvent<HTMLTextAreaElement>, inputText: string) => boolean
+  /** 키를 먼저 본다(입력 칸이든 창이든). 처리했으면 true — 그때 부른 쪽은 아무것도 하지 않는다. */
+  onKey: (event: KeyLike, inputText: string) => boolean
   dismiss: () => void
 }
 
@@ -112,8 +127,8 @@ export function useAskFlow(
   const setHighlight = (index: number) => setState({ ...live, highlight: index, typing: false })
   const dismiss = () => setState({ ...live, closed: true })
 
-  function onKey(event: KeyboardEvent<HTMLTextAreaElement>, inputText: string): boolean {
-    if (current === null || event.nativeEvent.isComposing) return false
+  function onKey(event: KeyLike, inputText: string): boolean {
+    if (current === null || event.isComposing === true || event.nativeEvent?.isComposing === true) return false
     const empty = inputText.length === 0
     if (event.key === 'Escape') {
       event.preventDefault()

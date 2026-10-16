@@ -8,7 +8,7 @@ import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { StudioIcon } from '../testScenarios/studioIcons'
 import { ChatSketch } from '../testScenarios/studioSketches'
 import { AskDock } from './AskDock'
-import { useAskFlow, type AskAnswer } from './askFlow'
+import { DOCK_MIN_QUESTIONS, useAskFlow, type AskAnswer } from './askFlow'
 import type { RunChatQuestion as AskQuestion } from './runChatApi'
 
 const NO_ASKS: AskQuestion[] = []
@@ -343,15 +343,43 @@ export function RunChat({ session }: { session: RunChatSession }) {
       if (sent) setInput('')
     })
   }, [session])
-  const agentFlow = useAskFlow(agentSource?.id ?? null, agentSource?.reply?.asks ?? NO_ASKS, sendAnswers)
+  const agentAsks = agentSource?.reply?.asks ?? NO_ASKS
+  // 선택 박스는 고를 것이 많을 때만(ARTEL-1118). 하나 · 둘이면 답 말풍선의 보기 칩으로 답한다.
+  const codeDock = codeAsks.length >= DOCK_MIN_QUESTIONS
+  const agentDock = agentAsks.length >= DOCK_MIN_QUESTIONS
+  const agentFlow = useAskFlow(agentDock ? agentSource?.id ?? null : null, agentAsks, sendAnswers)
   // 남은 질문이 바뀌면(하나 답해 줄었으면) 처음부터 — 늘 남은 것의 첫째를 묻는다.
   const codeFlow = useAskFlow(
-    codeSource === null ? null : `${codeSource.id}:${codeAsks.map((ask) => ask.id).join(',')}`,
+    codeSource === null || !codeDock ? null : `${codeSource.id}:${codeAsks.map((ask) => ask.id).join(',')}`,
     codeAsks,
     sendAnswers,
     answerCode,
   )
   const askFlow = codeSource !== null ? codeFlow : agentFlow
+  // 박스 없이 칩으로 답하는 줄. 모델의 질문은 그 말을 입력 칸에 채우고(보내는 것은 사용자다), 오케의 질문은
+  // 그 자리에 바로 들어가도록 질문 · 보기를 실어 보낸다.
+  const pickAgentAsk = useCallback((_question: AskQuestion, option: AskQuestion['options'][number]) => {
+    setInput(option.label)
+    inputNode?.focus()
+  }, [inputNode])
+  const pickCodeAsk = useCallback((question: AskQuestion, option: AskQuestion['options'][number]) => {
+    answerCode(question, { kind: 'option', text: option.label }, option.id)
+  }, [answerCode])
+
+  // 선택 박스가 떠 있으면 커서가 입력 칸에 없어도 ↑↓ · 숫자 · Enter · Esc 를 받는다. 다른 입력 칸에 쓰는 중이거나
+  // 다른 창이 떠 있으면 손대지 않는다. 박스의 보기 단추에 초점이 있으면 Enter · Space 는 그 단추가 받는다.
+  useEffect(() => {
+    if (askFlow.current === null) return undefined
+    function onWindowKey(event: KeyboardEvent) {
+      const target = event.target instanceof HTMLElement ? event.target : null
+      if (target !== null && target === inputNode) return
+      if (target?.closest('input, textarea, select, [contenteditable="true"], [role="dialog"]')) return
+      if (target?.closest('.ask-dock') && (event.key === 'Enter' || event.key === ' ')) return
+      askFlow.onKey(event, '')
+    }
+    window.addEventListener('keydown', onWindowKey)
+    return () => window.removeEventListener('keydown', onWindowKey)
+  }, [askFlow, inputNode])
   const setThread = useCallback((node: HTMLOListElement | null) => {
     threadRef.current = node
     setThreadNode(node)
@@ -526,9 +554,13 @@ export function RunChat({ session }: { session: RunChatSession }) {
               {message.role === 'USER'
                 ? <p className="chat-body">{message.content}</p>
                 : codeQuestionsOf(message).length > 0
-                  ? <ChatAsks asks={codeQuestionsOf(message)} />
+                  ? <ChatAsks asks={codeQuestionsOf(message)} onPick={message.id === codeSource?.id && !codeDock ? pickCodeAsk : undefined} />
                   : message.reply != null
-                  ? <ChatReplyBody reply={message.reply} refs={message.refs} />
+                  ? <ChatReplyBody
+                        onPickAsk={message.id === agentSource?.id && !agentDock ? pickAgentAsk : undefined}
+                        refs={message.refs}
+                        reply={message.reply}
+                      />
                     : <ChatMessageBody body={message.content} refs={message.refs} />}
             </li>
             </Fragment>

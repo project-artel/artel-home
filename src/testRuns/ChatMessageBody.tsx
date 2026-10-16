@@ -28,7 +28,12 @@ import type { ChatRef, ChatReply, RunChatQuestion, ScenarioChange } from './runC
  * own shape (sentences, a list, a table) for whatever it has to say. Questions are not
  * here: they hang off the same line and open the question modal.
  */
-export function ChatReplyBody({ reply, refs = [] }: { reply: ChatReply; refs?: ChatRef[] }) {
+export function ChatReplyBody({ reply, refs = [], onPickAsk }: {
+  reply: ChatReply
+  refs?: ChatRef[]
+  /** 이 답의 질문에 보기 칩을 단다(ARTEL-1118) — 질문이 적어 선택 박스를 세우지 않을 때. */
+  onPickAsk?: (question: RunChatQuestion, option: RunChatQuestion['options'][number]) => void
+}) {
   return (
     <ChatRefsContext.Provider value={refs}>
     <div className="chat-reply">
@@ -42,7 +47,7 @@ export function ChatReplyBody({ reply, refs = [] }: { reply: ChatReply; refs?: C
         </div>
       )}
       {reply.detail.trim().length > 0 && <ChatMessageBody body={reply.detail} refs={refs} />}
-      {reply.asks.length > 0 && <ChatAsks asks={reply.asks} />}
+      {reply.asks.length > 0 && <ChatAsks asks={reply.asks} onPick={onPickAsk} />}
     </div>
     </ChatRefsContext.Provider>
   )
@@ -55,7 +60,11 @@ export function ChatReplyBody({ reply, refs = [] }: { reply: ChatReply; refs?: C
  * 대화로 답하면 된다. 질문이 여럿이면 여기 다 펼치면 읽히지 않으므로 **글만** 남기고, 고르는 것은 입력 칸
  * 위의 선택 박스([AskDock])가 하나씩 맡는다.
  */
-export function ChatAsks({ asks }: { asks: RunChatQuestion[] }) {
+export function ChatAsks({ asks, onPick }: {
+  asks: RunChatQuestion[]
+  /** 있으면 보기를 누를 수 있는 칩으로 단다 — 질문이 하나 · 둘이라 선택 박스를 세우지 않을 때(ARTEL-1118). */
+  onPick?: (question: RunChatQuestion, option: RunChatQuestion['options'][number]) => void
+}) {
   const { t } = useI18n()
   const c = t.scenarios.chat
   return (
@@ -66,6 +75,15 @@ export function ChatAsks({ asks }: { asks: RunChatQuestion[] }) {
           <li className="chat-ask" key={ask.id}>
             <p className="chat-ask-text"><InlineRun parts={parseInline(ask.text)} /></p>
             {ask.why !== null && <p className="chat-ask-why"><InlineRun parts={parseInline(ask.why)} /></p>}
+            {onPick !== undefined && ask.options.length > 0 && (
+              <div className="chat-ask-options">
+                {ask.options.map((option) => (
+                  <button className="chat-ask-option" key={option.id} onClick={() => onPick(ask, option)} type="button">
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </li>
         ))}
       </ol>
