@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
+import { useProjectChange } from '../live/useProjectChange'
 import { usePolling } from '../live/usePolling'
 import { getQaRunUsage, usedTokens, type QaRunUsage } from './qaUsageApi'
 
@@ -21,14 +22,23 @@ function formatCost(value: number | null, unknown: string): string {
 /**
  * What this run cost, beside what it did.
  *
- * Polled, not streamed. The agent batches usage and posts it after the calls
- * happen, so a running run's numbers trail the log by up to a flush interval —
- * and a failed batch is dropped rather than retried. Streaming this would draw a
- * total that jumps backwards relative to the timeline, so it re-reads on an
- * interval instead, and the panel says plainly that a run still going has not
- * finished reporting.
+ * Not drawn from the run's log stream. The agent batches usage and posts it
+ * after the calls happen, so a running run's numbers trail the log by up to a
+ * flush interval — and a failed batch is dropped rather than retried. Drawing
+ * it from the log would show a total that jumps backwards relative to the
+ * timeline, so the panel re-reads the totals when the project change stream
+ * reports `USAGE` (any run of the project), polls while that stream is down,
+ * and says plainly that a run still going has not finished reporting.
  */
-export function QaRunUsagePanel({ qaTryId, active }: { qaTryId: string; active: boolean }) {
+export function QaRunUsagePanel({
+  projectId,
+  qaTryId,
+  active,
+}: {
+  projectId: string
+  qaTryId: string
+  active: boolean
+}) {
   const { t } = useI18n()
   const [usage, setUsage] = useState<QaRunUsage | null>(null)
   const [status, setStatus] = useState<LoadStatus>('loading')
@@ -59,7 +69,8 @@ export function QaRunUsagePanel({ qaTryId, active }: { qaTryId: string; active: 
     return () => inFlight.current?.abort()
   }, [load])
 
-  usePolling(load)
+  const live = useProjectChange(projectId || null, 'USAGE', load)
+  usePolling(load, undefined, !live)
 
   const tokens = usage === null ? 0 : usedTokens(usage)
   // The amount stands on fewer calls than the run made, so it is a floor.
