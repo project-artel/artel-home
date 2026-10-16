@@ -1,7 +1,7 @@
 import { useContext } from 'react'
 import { Link } from 'react-router-dom'
 import { ChatLinkContext, ChatRefsContext } from './chatRefContext'
-import { draftIdOfNumber } from './runChatApi'
+import { draftIdOfNumber, type ChatRefKind } from './runChatApi'
 
 /**
  * TC·TS references inside an agent answer (ARTEL-933).
@@ -13,7 +13,7 @@ import { draftIdOfNumber } from './runChatApi'
  * A TS chip opens the scenario; a TC chip opens the TC library's detail sheet.
  */
 
-export function ChatRefChip({ refKind, id }: { refKind: 'tc' | 'ts'; id: number }) {
+export function ChatRefChip({ refKind, id }: { refKind: ChatRefKind; id: number }) {
   const refs = useContext(ChatRefsContext)
   const link = useContext(ChatLinkContext)
   const ref = refs.find((one) => one.kind === refKind && one.id === id)
@@ -23,6 +23,13 @@ export function ChatRefChip({ refKind, id }: { refKind: 'tc' | 'ts'; id: number 
   // 이름은 모델·명세가 쓴 글이라 `Canvas/continue` 같은 코드 표시가 섞여 온다. 칩은 한 덩어리
   // 이름이라 그 백틱이 글자로 보이기만 하므로 걷어 낸다.
   const label = ref.label.replace(/`/g, '')
+
+  // 테스트 런 · QA 실행 · 이슈 · 빌드는 그 페이지로 보낸다(ARTEL-1097). 프로젝트를 모르는 자리에서는 이름만 보인다.
+  const page = link === null ? null : pageOf(refKind, id, link.projectId)
+  if (page !== undefined) {
+    if (page === null) return <span className={`chat-ref chat-ref--${refKind}`}>{tag}{label}</span>
+    return <Link className={`chat-ref chat-ref--${refKind}`} to={page}>{tag}{label}</Link>
+  }
 
   if (refKind === 'ts') {
     if (link === null) {
@@ -60,4 +67,19 @@ export function ChatRefChip({ refKind, id }: { refKind: 'tc' | 'ts'; id: number 
       {tag}{label}
     </button>
   )
+}
+
+/**
+ * 페이지로 가는 표식의 주소(ARTEL-1097). TC · TS 는 저마다 여는 방식이 있어 여기서 다루지 않는다(undefined).
+ * 이슈 화면은 아직 한 건을 고르는 주소가 없어 목록으로 보낸다.
+ */
+function pageOf(kind: ChatRefKind, id: number, projectId: string): string | undefined {
+  const project = `/projects/${encodeURIComponent(projectId)}`
+  switch (kind) {
+    case 'tr': return `${project}/test-runs/${id}/edit`
+    case 'qa': return `${project}/qa-runs/${id}`
+    case 'issue': return `${project}/issues?issue=${id}`
+    case 'build': return `${project}/game-builds/${id}/content-map`
+    default: return undefined
+  }
 }

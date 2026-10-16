@@ -195,3 +195,19 @@ test('승인 전 draft 를 가리키는 음수 번호 표식도 ref 조각이다
     { kind: 'text', text: '과 같은 범위' },
   ])
 })
+
+test('질문 답의 페이지 표식(테스트 런 · QA 실행 · 이슈 · 빌드)도 ref 조각이다', () => {
+  assert.deepEqual(parseInline('[[qa:17]] 에서 [[issue:9]]'), [
+    { kind: 'ref', refKind: 'qa', id: 17, text: '' },
+    { kind: 'text', text: ' 에서 ' },
+    { kind: 'ref', refKind: 'issue', id: 9, text: '' },
+  ])
+})
+
+test('사전조건 · 기대 결과 머리말은 label 조각이 된다', () => {
+  assert.deepEqual(parseInline('- 사전조건: 타이틀 화면'), [
+    { kind: 'label', tone: 'precondition', text: '사전조건' },
+    { kind: 'text', text: '타이틀 화면' },
+  ])
+  assert.deepEqual(parseInline('기대 결과: `TurnBattleScene` 으로 넘어간다')[0], { kind: 'label', tone: 'expected', text: '기대 결과' })
+})
