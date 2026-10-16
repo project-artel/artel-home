@@ -1,53 +1,9 @@
-import { QaTryPanel } from '../../qa/QaTryPanel'
-import { GameBuildPanel } from '../GameBuildPanel'
-import { GameInstancePanel } from '../GameInstancePanel'
-import { useWorkspace } from './workspaceContext'
+import { QaLaunch } from '../../qa/launch/QaLaunch'
 
 /**
- * Starting a run, and the two things a run needs to be startable.
- *
- * Instances and builds share this screen with the start form because they are
- * its preconditions: "no game is connected" and "no build has reported" are
- * both answered here, next to the control that is refusing to run.
+ * QA 실행(ARTEL-1084). 테스트 런 · 게임 · 에이전트를 골라 돌리는 워크벤치와, 그 실행의 전제(게임
+ * 연결 · 빌드)를 다루는 콘솔 관리가 한 화면에 있다 — 화면은 {@link QaLaunch} 가 그린다.
  */
 export function QaSection() {
-  const {
-    applyBuild,
-    applyInstance,
-    builds,
-    extrasStatus,
-    instances,
-    models,
-    projectId,
-    refreshGameState,
-    reloadExtras,
-    removeInstance,
-    runs,
-    tries,
-  } = useWorkspace()
-
-  return (
-    <div className="section-columns">
-      <QaTryPanel
-        instances={instances}
-        models={models}
-        onReload={reloadExtras}
-        projectId={projectId}
-        runs={runs}
-        status={extrasStatus}
-        tries={tries}
-      />
-
-      <div className="section-stack">
-        <GameInstancePanel
-          instances={instances}
-          onRefresh={refreshGameState}
-          onRemoved={removeInstance}
-          onSaved={applyInstance}
-          projectId={projectId}
-        />
-        <GameBuildPanel builds={builds} onSaved={applyBuild} projectId={projectId} />
-      </div>
-    </div>
-  )
+  return <QaLaunch />
 }
