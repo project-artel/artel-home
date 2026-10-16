@@ -11428,7 +11428,7 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
 .scenario-studio .st-chat.chat-table-dialog .chat-md-table td { max-width: none; padding: 8px 12px; }
 /* 칩 이름에 띄어쓰기 없는 긴 코드(`CompareTag(SpellObj.target.gameObject.tag)`)가 오면 칸을 넘어 옆 칸을 덮었다.
    `anywhere` 는 칸이 줄어들 수 있는 폭까지 바꿔서, 칩이 든 칸은 최소 폭을 넓혀 함께 둔다. */
-.scenario-studio .st-chat .chat-md-table td:has(.chat-ref) { min-width: 14em; }
+.scenario-studio .st-chat .chat-md-table td:has(.chat-ref) { min-width: 12em; }
 .scenario-studio .st-chat .chat-md-table td .chat-ref { overflow-wrap: anywhere; }
 
 /* 런에 시나리오가 없을 때는 가운데 칸 한가운데에 그림 · 문구 · 버튼을 모은다. 대화 칸의 빈 자리와 같은 자리 잡기다. */
