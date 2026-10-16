@@ -111,10 +111,12 @@ export function RunInspector({
 
         {ordered.map((qaTry, index) => (
           <section className="qh-scenario" key={qaTry.id}>
-            <h3 className="qh-scenario-head">
-              <Link to={qaRunPath(projectId, run.id, qaTry.id)}>{b.scenarioFallback(index + 1)}</Link>
-            </h3>
-            <QaHistoryDetail qaTryId={qaTry.id} />
+            <QaHistoryDetail
+              collapsible
+              label={b.scenarioFallback(index + 1)}
+              qaTryId={qaTry.id}
+            />
+            <Link className="qh-scenario-link" to={qaRunPath(projectId, run.id, qaTry.id)}>{b.scenarioTimeline}</Link>
           </section>
         ))}
       </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useI18n } from '../../i18n/useI18n'
 import { elapsedSeconds, getQaTryDetail, type QaTryDetail } from '../../qa/qaTryDetailApi'
 import { formatCost } from '../../usage/format'
@@ -17,8 +17,22 @@ const counts = new Intl.NumberFormat()
  * 취소된 run 과 도는 중인 run 은 결과 자리에 수를 안 낸다. 앞쪽은 `stepsTotal` 이 없어 어떤
  * 분모도 지어낸 것이 되고, 뒤쪽은 여기 선 수가 열었을 때의 것이라 그대로 멈춰 있다.
  */
-export function QaHistoryDetail({ qaTryId }: { qaTryId: string }) {
+export function QaHistoryDetail({
+  qaTryId,
+  label,
+  collapsible = false,
+}: {
+  qaTryId: string
+  /** 제목 위에 붙는 작은 표지(QA 히스토리의 "시나리오 1"). */
+  label?: ReactNode
+  /**
+   * 제목 줄을 눌러 접고 펼친다(ARTEL-1100). 접으면 표지와 시나리오 제목만 남는다 — 시나리오가 여럿인
+   * 실행에서 원하는 것만 펼쳐 보려는 것이다.
+   */
+  collapsible?: boolean
+}) {
   const { t } = useI18n()
+  const [open, setOpen] = useState(true)
   const [detail, setDetail] = useState<QaTryDetail | null>(null)
   const [status, setStatus] = useState<LoadStatus>('loading')
 
@@ -60,15 +74,40 @@ export function QaHistoryDetail({ qaTryId }: { qaTryId: string }) {
     )
   }
 
+  const heading = (
+    <>
+      {label !== undefined && <span className="run-detail-tag">{label}</span>}
+      <span className="run-detail-name">{detail.scenarioTitle || PLACEHOLDER}</span>
+      {open && (
+        <span className="run-detail-model mono" translate="no">
+          {runSettings(detail)}
+        </span>
+      )}
+    </>
+  )
+
+  if (collapsible && !open) {
+    return (
+      <div className="run-detail run-detail--collapsed">
+        <button aria-expanded={false} className="run-detail-scenario run-detail-toggle" onClick={() => setOpen(true)} type="button">
+          <Chevron open={false} />
+          <span className="run-detail-heading">{heading}</span>
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div className="run-detail">
       <div>
-        <div className="run-detail-scenario">
-          <div className="run-detail-name">{detail.scenarioTitle || PLACEHOLDER}</div>
-          <div className="run-detail-model mono" translate="no">
-            {runSettings(detail)}
-          </div>
-        </div>
+        {collapsible ? (
+          <button aria-expanded className="run-detail-scenario run-detail-toggle" onClick={() => setOpen(false)} type="button">
+            <Chevron open />
+            <span className="run-detail-heading">{heading}</span>
+          </button>
+        ) : (
+          <div className="run-detail-scenario">{heading}</div>
+        )}
 
         <RunDetailResult detail={detail} />
         <RunDetailCost detail={detail} />
@@ -169,12 +208,8 @@ function RunDetailCost({ detail }: { detail: QaTryDetail }) {
           <dd className="run-detail-fact-value mono">{counts.format(usage.inputTokens)}</dd>
           {usage.cachedInputTokens > 0 && (
             <div className="run-detail-nested">
-              <div className="run-detail-nested-track">
-                <div
-                  className="run-detail-nested-fill"
-                  style={{ inlineSize: `${Math.min(100, cachedPercent)}%` }}
-                />
-              </div>
+              {/* 막대는 뺐다(ARTEL-1100). 길이가 캐시 적중률이라 어느 실행이든 97% 안팎으로 같았고,
+                  사용량이 다섯 배 달라도 같은 막대로 그려져 비교하는 것처럼 읽혔다. */}
               <div className="run-detail-nested-label">
                 {t.qa.history.detail.cachedTokens(
                   counts.format(usage.cachedInputTokens),
@@ -265,5 +300,13 @@ function Fact({
       <dt className="run-detail-fact-label">{label}</dt>
       <dd className={`run-detail-fact-value mono${tone}`}>{children}</dd>
     </div>
+  )
+}
+
+function Chevron({ open }: { open: boolean }) {
+  return (
+    <svg aria-hidden="true" className={`run-detail-chevron${open ? ' is-open' : ''}`} fill="none" height="14" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="14">
+      <path d="M9 6l6 6l-6 6" />
+    </svg>
   )
 }
