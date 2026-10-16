@@ -87,9 +87,10 @@ export const commonEn = {
     eyebrow: 'ARTEL MCP',
     title: 'Connect an agent',
     signInCopy: 'Sign in to decide whether the agent that opened this page may use your Artel account.',
-    unnamedClient: 'An unnamed agent',
     /** 앞에 `client_name` 이 굵게 붙는다. */
     requestSuffix: ' wants to read and write the developer macros in your Artel projects.',
+    /** `client_name` 이 없을 때 쓰는 문장 전체. */
+    unnamedRequest: 'An unnamed agent wants to read and write the developer macros in your Artel projects.',
     canTitle: 'It will be able to',
     canReadProjects: 'Read your project list and build list',
     canManageMacros: 'Read, check, register, and delete developer macros',
@@ -195,8 +196,9 @@ export const commonKo: Localized<typeof commonEn> = {
     eyebrow: 'ARTEL MCP',
     title: '에이전트 연결',
     signInCopy: '로그인하면 이 페이지를 연 에이전트가 내 Artel 계정을 쓰도록 허용할지 정할 수 있습니다.',
-    unnamedClient: '이름 없는 에이전트',
-    requestSuffix: ' 이 내 Artel 프로젝트의 개발자 macro 를 읽고 쓰려 합니다.',
+    // 조사가 `client_name` 의 받침에 따라 바뀌지 않도록 '에이전트가' 를 붙인다.
+    requestSuffix: ' 에이전트가 내 Artel 프로젝트의 개발자 macro 를 읽고 쓰려 합니다.',
+    unnamedRequest: '이름 없는 에이전트가 내 Artel 프로젝트의 개발자 macro 를 읽고 쓰려 합니다.',
     canTitle: '할 수 있는 것',
     canReadProjects: '프로젝트 목록·빌드 목록 읽기',
     canManageMacros: '개발자 macro 읽기·검사·등록·삭제',

@@ -115,9 +115,15 @@ function McpConsent({ request, user }: { request: McpConnectRequest; user: AuthU
   return (
     <McpConnectFrame>
       <p className="login-copy">
-        {/* `client_name` 은 클라이언트가 정한 값이다. text node 로만 넣는다. */}
-        <strong className="mcp-connect-client">{request.clientName ?? copy.unnamedClient}</strong>
-        {copy.requestSuffix}
+        {request.clientName === null ? (
+          copy.unnamedRequest
+        ) : (
+          <>
+            {/* `client_name` 은 클라이언트가 정한 값이다. text node 로만 넣는다. */}
+            <strong className="mcp-connect-client">{request.clientName}</strong>
+            {copy.requestSuffix}
+          </>
+        )}
       </p>
 
       <div className="mcp-connect-scope">
