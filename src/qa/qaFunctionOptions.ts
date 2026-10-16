@@ -1,3 +1,4 @@
+import type { FunctionChoiceKind } from '../projects/gameFunctions'
 import { asRecord } from '../projects/projectApi'
 
 /**
@@ -40,22 +41,92 @@ export function allowedNames(allowed: string[] | null, catalogNames: readonly st
   return allowed === null ? [...catalogNames] : catalogNames.filter((name) => allowed.includes(name))
 }
 
+export type QaFunctionAxis = 'cheats' | 'behaviors'
+
+const AXIS_FIELDS = {
+  cheats: { mode: 'cheatMode', allowed: 'allowedCheats' },
+  behaviors: { mode: 'behaviorMode', allowed: 'allowedBehaviors' },
+} as const
+
+/** 화면의 세 가지 중 지금 어느 것인가. mode 가 꺼져 있으면 `none`, 목록이 `null` 이면 `all` 이다. */
+export function runChoiceKind(options: QaFunctionOptions, axis: QaFunctionAxis): FunctionChoiceKind {
+  const fields = AXIS_FIELDS[axis]
+  if (options[fields.mode] === 'off') return 'none'
+  return options[fields.allowed] === null ? 'all' : 'chosen'
+}
+
 /**
- * 이름 하나를 켜고 끈다.
- *
- * 결과가 catalog 전부면 목록이 아니라 `null` 로 돌려준다. "전부" 와 "전부를 나열한 목록" 은 지금은 같지만,
- * 다음 revision 에 항목이 늘면 앞의 것은 새 항목을 포함하고 뒤의 것은 포함하지 않는다.
+ * 세 가지 중 하나로 바꾼다. `none` 은 mode 를 끄고, `all` 은 mode 를 켜고 목록을 `null` 로 둔다.
+ * `chosen` 은 이미 고른 목록이 있으면 이어받고, 없으면 catalog 전부가 체크된 목록에서 시작한다 —
+ * 대개 몇 개를 빼려고 여는 것이라서다.
  */
-export function toggleAllowedName(
+export function changeRunChoiceKind(
+  options: QaFunctionOptions,
+  axis: QaFunctionAxis,
+  kind: FunctionChoiceKind,
+  catalogNames: readonly string[],
+): QaFunctionOptions {
+  const fields = AXIS_FIELDS[axis]
+  if (kind === 'none') return { ...options, [fields.mode]: 'off' }
+  if (kind === 'all') return { ...options, [fields.mode]: 'on', [fields.allowed]: null }
+  const current = options[fields.allowed]
+  return { ...options, [fields.mode]: 'on', [fields.allowed]: current ?? [...catalogNames] }
+}
+
+/**
+ * 직접 고른 목록에서 이름 하나를 켜고 끈다. 목록은 catalog 순서를 따르고, catalog 에 없는 이름은 떨어진다.
+ *
+ * 전부를 다시 체크해도 `null` 로 바꾸지 않는다. "전부" 와 "전부를 나열한 목록" 은 지금은 같지만, 다음
+ * revision 에 항목이 늘면 앞의 것은 새 항목을 포함하고 뒤의 것은 포함하지 않는다. 사용자가 "직접 선택" 을
+ * 골랐으면 뒤의 것이다.
+ */
+export function toggleChosenRunName(
   allowed: string[] | null,
   catalogNames: readonly string[],
   name: string,
-): string[] | null {
+): string[] {
   const current = allowedNames(allowed, catalogNames)
-  const next = current.includes(name)
+  return current.includes(name)
     ? current.filter((candidate) => candidate !== name)
     : catalogNames.filter((candidate) => candidate === name || current.includes(candidate))
-  return next.length === catalogNames.length ? null : next
+}
+
+/** 접힌 고급 설정에 보이는 한 줄의 문구. */
+export type FunctionOptionsSummaryText = {
+  /** 둘 다 전부 허용. catalog 를 모르면 개수는 null. */
+  allAllowed: (cheats: number | null, behaviors: number | null) => string
+  axisName: Record<QaFunctionAxis, string>
+  axisAll: (axis: string, total: number | null) => string
+  axisNone: (axis: string) => string
+  axisChosen: (axis: string, selected: number, total: number | null) => string
+}
+
+/**
+ * 접힌 고급 설정의 한 줄. 펼치지 않아도 이 run 에서 에이전트가 무엇을 받는지 알 수 있게 한다.
+ * `catalog` 는 이름을 읽어 온 빌드의 이름 목록이고, 모르면(빌드 없음 · 불러오는 중 · 실패) null 이다.
+ */
+export function functionOptionsSummary(
+  options: QaFunctionOptions,
+  catalog: Record<QaFunctionAxis, readonly string[]> | null,
+  text: FunctionOptionsSummaryText,
+): string {
+  const axes: QaFunctionAxis[] = ['cheats', 'behaviors']
+  const kinds = axes.map((axis) => runChoiceKind(options, axis))
+  if (kinds.every((kind) => kind === 'all')) {
+    return text.allAllowed(catalog?.cheats.length ?? null, catalog?.behaviors.length ?? null)
+  }
+  return axes
+    .map((axis, index) => {
+      const name = text.axisName[axis]
+      const total = catalog?.[axis].length ?? null
+      const kind = kinds[index]
+      if (kind === 'none') return text.axisNone(name)
+      if (kind === 'all') return text.axisAll(name, total)
+      const allowed = options[AXIS_FIELDS[axis].allowed] ?? []
+      const selected = catalog === null ? allowed.length : allowedNames(allowed, catalog[axis]).length
+      return text.axisChosen(name, selected, total)
+    })
+    .join(' · ')
 }
 
 /** run 상세 응답이 싣는 옵션. 옵션 필드가 하나도 없는 옛 run 은 이 값 자체가 null 이다. */

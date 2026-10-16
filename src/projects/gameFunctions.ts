@@ -7,6 +7,12 @@ import { asNullableString, asRecord, asString } from './projectApi'
  * 보낸 항목이 orchestration 을 거쳐 그대로 오므로 cheat 와 behavior 가 같은 모양을 쓴다.
  */
 
+/**
+ * cheat · behavior 를 얼마나 허락할지 고르는 세 가지(run 시작과 test case 편집기가 같이 쓴다).
+ * `chosen` 은 이름을 직접 고른 목록이다.
+ */
+export type FunctionChoiceKind = 'all' | 'none' | 'chosen'
+
 /** 인자 하나. `type` 은 계약상 다섯 값이지만 모르는 값이 와도 이름 그대로 보인다. */
 export type GameFunctionParam = {
   name: string

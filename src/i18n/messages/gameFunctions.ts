@@ -1,5 +1,9 @@
 import type { Localized } from '../messages'
 
+function plural(count: number, word: string): string {
+  return count === 1 ? `1 ${word}` : `${count} ${word}s`
+}
+
 /** Strings for the cheat and behavior screens (ARTEL-1051). See `common.ts` for the typing convention. */
 export const gameFunctionsEn = {
   build: {
@@ -23,22 +27,35 @@ export const gameFunctionsEn = {
     defaultValue: (value: string) => `default ${value}`,
   },
   run: {
+    advancedTitle: 'Advanced settings',
     title: 'Cheats and behaviors',
     hint: 'What the agent may call in the game during this run.',
     buildLabel: 'Catalog from build',
     noBuild: 'No build has reported yet.',
-    cheatMode: 'Allow cheats',
-    behaviorMode: 'Allow behaviors',
-    cheatsLabel: 'Allowed cheats',
-    behaviorsLabel: 'Allowed behaviors',
-    allSelected: (total: number) => `All ${total}`,
-    someSelected: (selected: number, total: number) => `${selected} of ${total}`,
-    selectAll: 'Select all',
+    cheats: 'Cheats',
+    behaviors: 'Behaviors',
     catalogLoading: 'Loading the catalog…',
     catalogFailed: 'The catalog could not be loaded. The run starts with every function the build registered.',
     catalogEmpty: 'This build has not reported any cheats or behaviors.',
     noneRegistered: 'None registered.',
     nothingSelected: 'Nothing is selected, so the agent gets none.',
+    summary: {
+      allAllowed: (cheats: number | null, behaviors: number | null) =>
+        cheats === null || behaviors === null
+          ? 'All cheats and behaviors allowed'
+          : `All allowed · ${plural(cheats, 'cheat')} · ${plural(behaviors, 'behavior')}`,
+      axisName: { cheats: 'Cheats', behaviors: 'Behaviors' },
+      axisAll: (axis: string, total: number | null) => (total === null ? `${axis}: all` : `${axis}: all ${total}`),
+      axisNone: (axis: string) => `${axis}: none`,
+      axisChosen: (axis: string, selected: number, total: number | null) =>
+        total === null ? `${axis}: ${selected} chosen` : `${axis}: ${selected} of ${total}`,
+    },
+  },
+  choice: {
+    all: 'All',
+    none: 'None',
+    chosen: 'Choose',
+    count: (selected: number, total: number) => `${selected} of ${total}`,
   },
   summary: {
     title: 'Cheats and behaviors',
@@ -84,9 +101,6 @@ export const gameFunctionsEn = {
     hint: 'This narrows the list set when the run starts. It never widens it.',
     cheats: 'Cheats',
     behaviors: 'Behaviors',
-    all: 'All',
-    none: 'None',
-    chosen: 'Choose',
     chosenNone: 'Nothing chosen yet. Saving now stores None.',
     namesFrom: (version: string) => `Names come from build ${version}.`,
     notInCatalog: 'not in this build',
@@ -118,22 +132,35 @@ export const gameFunctionsKo: Localized<typeof gameFunctionsEn> = {
     defaultValue: (value: string) => `기본값 ${value}`,
   },
   run: {
+    advancedTitle: '고급 설정',
     title: 'Cheat 와 behavior',
     hint: '이 run 에서 에이전트가 게임 안에서 부를 수 있는 것입니다.',
     buildLabel: 'catalog 를 읽을 빌드',
     noBuild: '아직 보고한 빌드가 없습니다.',
-    cheatMode: 'Cheat 허용',
-    behaviorMode: 'Behavior 허용',
-    cheatsLabel: '허용할 cheat',
-    behaviorsLabel: '허용할 behavior',
-    allSelected: (total: number) => `전체 ${total}개`,
-    someSelected: (selected: number, total: number) => `${total}개 중 ${selected}개`,
-    selectAll: '전체 선택',
+    cheats: 'Cheat',
+    behaviors: 'Behavior',
     catalogLoading: 'catalog 를 불러오는 중…',
     catalogFailed: 'catalog 를 불러오지 못했습니다. run 은 빌드가 등록한 함수 전부로 시작합니다.',
     catalogEmpty: '이 빌드는 cheat 도 behavior 도 보고하지 않았습니다.',
     noneRegistered: '등록된 것이 없습니다.',
     nothingSelected: '아무것도 고르지 않아서 에이전트는 하나도 받지 못합니다.',
+    summary: {
+      allAllowed: (cheats: number | null, behaviors: number | null) =>
+        cheats === null || behaviors === null
+          ? 'Cheat · Behavior 모두 허용'
+          : `Cheat ${cheats}개 · Behavior ${behaviors}개 모두 허용`,
+      axisName: { cheats: 'Cheat', behaviors: 'Behavior' },
+      axisAll: (axis: string, total: number | null) => (total === null ? `${axis} 모두` : `${axis} ${total}개 모두`),
+      axisNone: (axis: string) => `${axis} 없음`,
+      axisChosen: (axis: string, selected: number, total: number | null) =>
+        total === null ? `${axis} ${selected}개` : `${axis} ${total}개 중 ${selected}개`,
+    },
+  },
+  choice: {
+    all: '전부',
+    none: '없음',
+    chosen: '직접 선택',
+    count: (selected: number, total: number) => `${total}개 중 ${selected}개`,
   },
   summary: {
     title: 'Cheat 와 behavior',
@@ -179,9 +206,6 @@ export const gameFunctionsKo: Localized<typeof gameFunctionsEn> = {
     hint: 'run 을 시작할 때 정한 목록을 좁히기만 하고, 넓히지는 않습니다.',
     cheats: 'Cheat',
     behaviors: 'Behavior',
-    all: '전부',
-    none: '없음',
-    chosen: '골라서',
     chosenNone: '아직 고른 것이 없습니다. 지금 저장하면 없음으로 저장됩니다.',
     namesFrom: (version: string) => `이름은 빌드 ${version} 에서 가져왔습니다.`,
     notInCatalog: '이 빌드에 없음',

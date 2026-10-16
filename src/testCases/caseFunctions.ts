@@ -1,3 +1,4 @@
+import type { FunctionChoiceKind } from '../projects/gameFunctions'
 import { asRecord } from '../projects/projectApi'
 
 /**
@@ -30,7 +31,7 @@ export function parseCaseFunctions(data: unknown): CaseFunctions | null {
   return { cheats: asSelection(record.cheats), behaviors: asSelection(record.behaviors) }
 }
 
-export type SelectionKind = 'all' | 'none' | 'chosen'
+export type SelectionKind = FunctionChoiceKind
 
 export function selectionKind(selection: FunctionSelection): SelectionKind {
   return selection === 'all' || selection === 'none' ? selection : 'chosen'
