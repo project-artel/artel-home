@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { ProjectApiError } from '../projects/projectApi'
 import { parseQaLog, parseQaModels, parseQaTry, qaRunRequestBody, qaStartConflict } from './qaApi'
+import { toArchRequest } from './qaArch'
 
 const QA_TRY_FIELDS = {
   id: '41',
@@ -143,4 +144,10 @@ test('parseQaLog keeps a BEHAVIOR_ENDED row instead of dropping it as an unknown
   })
 
   assert.equal(log?.type, 'BEHAVIOR_ENDED')
+})
+
+test('planner_executer run 의 wire body 는 arch 에 engine 하나뿐이다', () => {
+  const arch = toArchRequest({ label: 'arm', engine: 'planner_executer', phase_cycle: 'off' })
+  const wire = JSON.parse(JSON.stringify(qaRunRequestBody('1', '2', 'm', 'platform', null, false, arch)))
+  assert.deepEqual(wire.arch, { engine: 'planner_executer' })
 })
