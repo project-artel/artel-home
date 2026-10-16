@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
 import { IssueList } from '../../issues/IssueList'
 import { ISSUE_SEVERITIES, ISSUE_STATUSES, type IssueFilters } from '../../issues/issueTypes'
@@ -18,7 +19,11 @@ import { useWorkspace } from './workspaceContext'
 export function IssuesSection() {
   const { t } = useI18n()
   const { extrasStatus, projectId, trackerLink } = useWorkspace()
-  const [filters, setFilters] = useState<IssueFilters>({ status: 'OPEN', severity: 'ALL' })
+  // 다른 화면이 이슈 하나를 가리켜 열면(`?issue=`, ARTEL-1084) 그 이슈가 이미 해결됐을 수 있다.
+  // 기본 필터(미해결)로 열면 가리킨 이슈가 안 보이므로 그때는 전체로 연다.
+  const [searchParams] = useSearchParams()
+  const focusId = searchParams.get('issue')
+  const [filters, setFilters] = useState<IssueFilters>({ status: focusId === null ? 'OPEN' : 'ALL', severity: 'ALL' })
   const [reloadToken, setReloadToken] = useState(0)
   const issues = useProjectIssues(projectId, filters, reloadToken)
   // `trackerLink` starts `null` until `useWorkspaceExtras`'s five-way read
@@ -77,6 +82,7 @@ export function IssuesSection() {
 
         <IssueList
           filtered={filters.status !== 'ALL' || filters.severity !== 'ALL'}
+          focusId={focusId}
           hasMore={issues.hasMore}
           issues={issues.items}
           loadingMore={issues.loadingMore}

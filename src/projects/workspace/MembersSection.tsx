@@ -10,6 +10,7 @@ import { removeMember, revokeInvitation, sendInvitation } from '../memberApi'
 import {
   INVITATION_CANDIDATE_QUERY_MIN_LENGTH,
   INVITATION_EMAIL_MAX_LENGTH,
+  invitationTargetLabel,
   isInvitationExpired,
   type InvitationCandidate,
   type ProjectInvitation,
@@ -523,7 +524,7 @@ function SentInvitationRow({
 
     try {
       await revokeInvitation(projectId, invitation.id)
-      onAnnounce(copy.revokedAnnouncement(invitation.email))
+      onAnnounce(copy.revokedAnnouncement(invitationTargetLabel(invitation)))
       onRevoked()
     } catch (error: unknown) {
       setFailure(error instanceof ProjectApiError ? apiErrorMessage(error, t) : copy.revokeFailed)
@@ -534,7 +535,7 @@ function SentInvitationRow({
   return (
     <li className="invitation-row">
       <div className="invitation-row-main">
-        <span className="invitation-row-email">{invitation.email}</span>
+        <span className="invitation-row-email">{invitationTargetLabel(invitation)}</span>
         <span className="invitation-row-meta">
           {expired ? copy.expired : copy.expires(formatDate(invitation.expiresAt))}
         </span>

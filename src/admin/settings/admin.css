@@ -40,6 +40,17 @@
     background: var(--color-status-critical-muted);
   }
 
+  /* A caution that is not a failure: amber border plus a "!" mark and text in the markup. */
+  .adm-warning {
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--color-status-warning);
+    border-radius: var(--radius-md);
+    background: var(--color-status-warning-muted);
+    color: var(--color-text-primary);
+    font-size: 13px;
+    line-height: 20px;
+  }
+
   .adm-facts {
     display: flex;
     flex-wrap: wrap;

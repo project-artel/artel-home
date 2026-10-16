@@ -277,6 +277,12 @@ export type RunChatApplied = {
   type: 'applied'
 }
 
+/** Every draft the conversation holds, sent whole whenever it changes (ARTEL-1075). */
+export type RunChatDraftEvent = {
+  type: 'draft'
+  drafts: DraftScenario[]
+}
+
 export type RunChatStreamEvent =
   | RunChatResult
   | RunChatFailure
@@ -284,6 +290,7 @@ export type RunChatStreamEvent =
   | RunChatNotice
   | RunChatQuestionEvent
   | RunChatApplied
+  | RunChatDraftEvent
 
 /** Absolute URL for the SSE stream (EventSource can't go through `apiFetch`). */
 export function runChatStreamUrl(projectId: string, runId: string): string {
@@ -314,12 +321,15 @@ export async function sendRunChatMessage(
   message: string,
   autoApply: boolean,
   answer?: RunChatAnswer,
+  draftOnly = false,
 ): Promise<void> {
   const response = await apiFetch(chatPath(projectId, runId, '/message'), {
     method: 'POST',
     ...jsonRequest({
       message,
       autoApply,
+      // 승인 전 draft 만 고치는 말(ARTEL-1075). draft 가 있는 동안 서버는 이 말만 받는다.
+      draftOnly,
       answer: answer
         ? { question_id: answer.questionId, option_ids: answer.optionIds, text: answer.text ?? null }
         : null,
@@ -427,36 +437,145 @@ export async function closeRunChat(projectId: string, runId: string): Promise<vo
 }
 
 /**
- * Applies user-approved proposals to the run (card-commit mode). Uses the same
- * reconcile engine as server auto-apply: `scenarioId` null inserts, a number
- * edits. Sent with snake_case keys to match the orchestration contract.
+ * What an authoring turn left unsaved because autosave was off (ARTEL-1075).
+ *
+ * `draftId` is `edit-<scenarioId>` for a change to an existing scenario and `new-<n>`
+ * for one that does not exist yet. `absorbedScenarioIds` are the scenarios approving it
+ * would fold into this one and take out of the run. Nothing here is saved until the
+ * user approves it.
  */
-export async function commitRunScenarios(
+export type DraftScenario = {
+  draftId: string
+  scenarioId: number | null
+  title: string
+  description: string
+  steps: ScenarioStep[]
+  absorbedScenarioIds: number[]
+  /**
+   * 이번 변경 전의 스텝(ARTEL-1075). 화면은 이것과 견줘 바뀐 스텝을 노랑, 새 스텝을 초록으로 칠한다.
+   * 처음 생긴 새 draft 는 견줄 것이 없어 null 이다.
+   */
+  baseSteps: ScenarioStep[] | null
+}
+
+export type DraftApplyResult = {
+  applied: number
+  absorbed: string[]
+  kept: string[]
+  refused: string[]
+  drafts: DraftScenario[]
+}
+
+/**
+ * The number a draft goes by: negative for a new one (`new-3` → -3), the scenario's own
+ * id for a change (`edit-7` → 7). It is what the agent sees in its current scenarios and
+ * what a `[[ts:-3]]` marker in its answer points at, so a chip can open the draft.
+ */
+export function draftNumber(draftId: string): number | null {
+  const match = /^(new|edit)-(\d+)$/.exec(draftId)
+  if (match === null) return null
+  const n = Number(match[2])
+  return match[1] === 'new' ? -n : n
+}
+
+export function draftIdOfNumber(n: number): string {
+  return n < 0 ? `new-${-n}` : `edit-${n}`
+}
+
+function parseDraft(value: unknown): DraftScenario | null {
+  const record = asRecord(value)
+  if (record === null) return null
+  const draftId = asString(record.draft_id)
+  if (draftId.length === 0) return null
+  const rawId = record.scenario_id
+  return {
+    draftId,
+    scenarioId: typeof rawId === 'number' && Number.isFinite(rawId) ? rawId : null,
+    title: asString(record.title),
+    description: asString(record.description),
+    steps: parseSteps(record.steps),
+    absorbedScenarioIds: Array.isArray(record.absorbed_scenario_ids)
+      ? record.absorbed_scenario_ids.filter((id): id is number => typeof id === 'number')
+      : [],
+    baseSteps: Array.isArray(record.base_steps) ? parseSteps(record.base_steps) : null,
+  }
+}
+
+export function parseDrafts(value: unknown): DraftScenario[] {
+  if (!Array.isArray(value)) return []
+  return value.map(parseDraft).filter((draft): draft is DraftScenario => draft !== null)
+}
+
+function asStrings(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((one): one is string => typeof one === 'string') : []
+}
+
+/** The draft the server holds for this conversation. Empty when there is none. */
+export async function getRunChatDraft(
   projectId: string,
   runId: string,
-  scenarios: ScenarioProposal[],
+  signal?: AbortSignal,
+): Promise<DraftScenario[]> {
+  const response = await apiFetch(chatPath(projectId, runId, '/draft'), { signal })
+  if (!response.ok) {
+    throw await toApiError(response)
+  }
+  return parseDrafts(await readJson(response))
+}
+
+/** Replaces a draft's body with the user's edit. The scenario itself is not written. */
+export async function updateRunChatDraft(
+  projectId: string,
+  runId: string,
+  draftId: string,
+  body: { title: string; description: string; steps: ScenarioStep[] },
 ): Promise<void> {
-  const path = `/api/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(runId)}/scenarios/commit`
-  const response = await apiFetch(path, {
-    method: 'POST',
-    ...jsonRequest({
-      scenarios: buildCommitScenarios(scenarios),
-    }),
+  const response = await apiFetch(chatPath(projectId, runId, `/draft/${encodeURIComponent(draftId)}`), {
+    method: 'PUT',
+    ...jsonRequest(body),
   })
   if (!response.ok) {
     throw await toApiError(response)
   }
 }
 
-/** The commit body's `scenarios[]`, snake_case. `execution_mode` is always sent so a FREE proposal stays FREE. */
-export function buildCommitScenarios(scenarios: readonly ScenarioProposal[]) {
-  return scenarios.map((s) => ({
-    scenario_id: s.scenarioId,
-    title: s.title,
-    description: s.description,
-    steps: s.steps,
-    execution_mode: s.executionMode,
-  }))
+/** Saves the chosen drafts through the same engine as autosave. */
+export async function applyRunChatDraft(
+  projectId: string,
+  runId: string,
+  draftIds: string[],
+): Promise<DraftApplyResult> {
+  const response = await apiFetch(chatPath(projectId, runId, '/draft/apply'), {
+    method: 'POST',
+    ...jsonRequest({ draft_ids: draftIds }),
+  })
+  if (!response.ok) {
+    throw await toApiError(response)
+  }
+  const raw = asRecord(await readJson(response)) ?? {}
+  return {
+    applied: Number(raw.applied ?? 0) || 0,
+    absorbed: asStrings(raw.absorbed),
+    kept: asStrings(raw.kept),
+    refused: asStrings(raw.refused),
+    drafts: parseDrafts(raw.drafts),
+  }
+}
+
+/** Throws the chosen drafts away and returns what is left. */
+export async function discardRunChatDraft(
+  projectId: string,
+  runId: string,
+  draftIds: string[],
+): Promise<DraftScenario[]> {
+  const response = await apiFetch(chatPath(projectId, runId, '/draft/discard'), {
+    method: 'POST',
+    ...jsonRequest({ draft_ids: draftIds }),
+  })
+  if (!response.ok) {
+    throw await toApiError(response)
+  }
+  return parseDrafts(await readJson(response))
 }
 
 export function parseProposal(value: unknown): ScenarioProposal {
@@ -580,6 +699,9 @@ export function parseRunStreamEvent(data: string): RunChatStreamEvent | null {
   }
   if (record.type === 'applied') {
     return { type: 'applied' }
+  }
+  if (record.type === 'draft') {
+    return { type: 'draft', drafts: parseDrafts(record.drafts) }
   }
   return null
 }
