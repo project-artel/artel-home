@@ -1,5 +1,4 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
-import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { SplitHandle } from '../design-system/primitives/SplitHandle'
 import { useI18n } from '../i18n/useI18n'
@@ -496,7 +495,7 @@ export function ScenarioStepEditor({
             </ol>
           )}
         </div>
-        <EdgeScrollbar label={b.columnAction} scroller={scroller} side="right" />
+        <ScrollFade scroller={scroller} />
       </div>
 
       <footer className="se-foot">
@@ -615,6 +614,8 @@ function StepInspector({
   const e = t.scenarios.stepsEditor
   const b = e.board
   const gap = isGapStep(step)
+  const [editScroller, setEditScroller] = useState<HTMLDivElement | null>(null)
+  const [caseScroller, setCaseScroller] = useState<HTMLDivElement | null>(null)
   const chip = gap
     ? b.gapChip
     : caseOrdinal === null
@@ -639,7 +640,9 @@ function StepInspector({
         </button>
       </header>
       <div className="se-detail-body">
-        <div className="se-detail-edit">
+        {/* 두 칸이 각자 스크롤한다. 가운데 칸이라 막대 대신 위아래 화살표다(`ScrollFade`). */}
+        <div className="se-detail-pane">
+        <div className="se-detail-edit" ref={setEditScroller}>
           <div className="se-field-title">
             <label htmlFor="se-action">{e.actionLabel}</label>
             {step.step_source === 'HUMAN' && <span className="se-muted">{e.humanStep}</span>}
@@ -701,7 +704,10 @@ function StepInspector({
             {!gap && <span className="se-muted">{b.autosaveNote}</span>}
           </div>
         </div>
-        <div className="se-detail-case">
+        <ScrollFade scroller={editScroller} />
+        </div>
+        <div className="se-detail-pane se-detail-pane--case">
+        <div className="se-detail-case" ref={setCaseScroller}>
           <div className="se-field-title">
             <strong>{b.linkedCase}</strong>
             <span className="se-muted">{b.readOnly}</span>
@@ -733,6 +739,8 @@ function StepInspector({
               {b.inputNote} · <code>{step.input}</code>
             </p>
           )}
+        </div>
+        <ScrollFade scroller={caseScroller} />
         </div>
       </div>
     </section>
@@ -790,6 +798,45 @@ function scenePattern(cases: ReadonlyMap<string, TestCase>): RegExp | null {
   names.sort((left, right) => right.length - left.length)
   const escaped = names.map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
   return new RegExp(`(?<![A-Za-z0-9_])(${escaped.join('|')})(?![A-Za-z0-9_])`)
+}
+
+/**
+ * 가운데 칸의 스크롤 표시. 스튜디오는 좌·우 칸에만 막대(`EdgeScrollbar`)를 두고 가운데는 위아래 끝의
+ * 옅은 가림과 화살표로 "더 있다"를 말한다 — 막대 셋이 나란히 서면 어느 것이 무엇인지 안 읽힌다.
+ * 끝에 닿은 쪽은 사라진다. 스크롤하는 칸의 위치 잡힌 부모 안에 둔다.
+ */
+function ScrollFade({ scroller }: { scroller: HTMLElement | null }) {
+  const [edge, setEdge] = useState({ top: true, bottom: true })
+  useEffect(() => {
+    if (scroller === null) return undefined
+    const element = scroller
+    function read() {
+      setEdge({
+        top: element.scrollTop <= 2,
+        bottom: element.scrollTop + element.clientHeight >= element.scrollHeight - 2,
+      })
+    }
+    read()
+    // 단계를 넣고 빼거나 창 크기가 바뀌어도 스크롤할 거리가 달라진다 — 내용까지 함께 본다.
+    const observer = new ResizeObserver(read)
+    observer.observe(element)
+    for (const child of element.children) observer.observe(child)
+    element.addEventListener('scroll', read, { passive: true })
+    return () => {
+      observer.disconnect()
+      element.removeEventListener('scroll', read)
+    }
+  }, [scroller])
+  return (
+    <>
+      <span aria-hidden="true" className={`se-fade se-fade--top${edge.top ? ' is-end' : ''}`}>
+        <StudioIcon name="chevronUp" size={14} />
+      </span>
+      <span aria-hidden="true" className={`se-fade se-fade--bottom${edge.bottom ? ' is-end' : ''}`}>
+        <StudioIcon name="chevronDown" size={14} />
+      </span>
+    </>
+  )
 }
 
 /** 아래 칸 높이. 사람마다 읽는 양이 달라 끌어서 바꾸고, 다음에 열 때도 그 높이로 연다. */

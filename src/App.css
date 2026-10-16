@@ -12253,11 +12253,13 @@ button.gf-bar:focus-visible {
 .scenario-studio .se-detail-marker { width: 5px; height: 14px; border-radius: 2px; background: var(--st-action); }
 .scenario-studio .se-chip { padding: 2px 6px; border: 1px solid var(--st-border); border-radius: 3px; color: var(--st-muted); font-size: 10px; }
 .scenario-studio .se-detail-body { display: grid; flex: 1; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); min-height: 0; }
-.scenario-studio .se-detail-edit, .scenario-studio .se-detail-case { display: flex; flex-direction: column; min-height: 0; overflow-y: auto; padding: 14px 20px; }
-.scenario-studio .se-detail-case { border-left: 1px solid var(--st-border); }
+.scenario-studio .se-detail-pane { position: relative; display: flex; min-width: 0; min-height: 0; }
+.scenario-studio .se-detail-pane--case { border-left: 1px solid var(--st-border); }
+.scenario-studio .se-detail-edit, .scenario-studio .se-detail-case { display: flex; flex: 1; flex-direction: column; min-width: 0; min-height: 0; overflow-y: auto; padding: 14px 20px; scrollbar-width: none; }
+.scenario-studio .se-detail-edit::-webkit-scrollbar, .scenario-studio .se-detail-case::-webkit-scrollbar { display: none; }
 .scenario-studio .se-field-title { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 11px; font-weight: 600; color: var(--st-text-2); }
 .scenario-studio .se-field-title .se-muted { font-size: 10px; font-weight: 400; }
-.scenario-studio .se-action { box-sizing: border-box; width: 100%; min-height: 64px; max-height: 160px; margin-bottom: 10px; padding: 10px; border: 1px solid var(--st-border); border-radius: var(--radius-md); outline: none; background: var(--st-canvas); color: var(--st-text); font: inherit; font-size: 13px; line-height: 1.6; resize: vertical; }
+.scenario-studio .se-action { box-sizing: border-box; width: 100%; min-height: 64px; flex: none; overflow: hidden; margin-bottom: 10px; padding: 10px; border: 1px solid var(--st-border); border-radius: var(--radius-md); outline: none; background: var(--st-canvas); color: var(--st-text); font: inherit; font-size: 13px; line-height: 1.6; resize: none; }
 .scenario-studio .se-hint { box-sizing: border-box; height: 32px; padding: 0 10px; border: 1px solid var(--st-border); border-radius: var(--radius-md); outline: none; background: var(--st-canvas); color: var(--st-text); font: inherit; font-size: 12px; }
 .scenario-studio .se-action:focus, .scenario-studio .se-hint:focus { border-color: var(--st-action); }
 .scenario-studio .se-detail-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 12px; }
@@ -12278,8 +12280,8 @@ button.gf-bar:focus-visible {
   .scenario-studio .se-find { width: 200px; }
 }
 @media (max-width: 1100px) {
-  .scenario-studio .se-detail-body { grid-template-columns: minmax(0, 1fr); overflow-y: auto; }
-  .scenario-studio .se-detail-case { border-top: 1px solid var(--st-border); border-left: 0; }
+  .scenario-studio .se-detail-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); }
+  .scenario-studio .se-detail-pane--case { border-top: 1px solid var(--st-border); border-left: 0; }
 }
 
 /* 대화 칸 (ARTEL-1107). 제목 줄과 상태 줄을 나누고, 말한 사람 표시는 별 아이콘과 이름으로.
@@ -12412,3 +12414,15 @@ button.gf-bar:focus-visible {
 .scenario-studio .st-split--row:hover .st-split-grip,
 .scenario-studio .st-split--row:focus-visible .st-split-grip,
 .scenario-studio .st-split--row.is-dragging .st-split-grip { width: 56px; height: 5px; }
+
+/* 가운데 칸의 스크롤 표시(`ScrollFade`). 예전 `.edoc-fade` 와 같은 말투 — 끝이 옅게 가려지고 화살표가 선다. */
+.scenario-studio .se-list-frame { --se-fade-bg: var(--st-canvas); }
+.scenario-studio .se-detail-pane { --se-fade-bg: var(--st-surface); }
+.scenario-studio .se-fade { position: absolute; left: 0; right: 0; z-index: 3; display: flex; justify-content: center; height: 32px; color: var(--st-action); pointer-events: none; transition: opacity 140ms var(--ease-standard); }
+.scenario-studio .se-fade--top { top: 0; align-items: flex-start; padding-top: 2px; background: linear-gradient(to top, transparent, var(--se-fade-bg) 78%); }
+.scenario-studio .se-fade--bottom { bottom: 0; align-items: flex-end; padding-bottom: 2px; background: linear-gradient(to bottom, transparent, var(--se-fade-bg) 78%); }
+.scenario-studio .se-fade.is-end { opacity: 0; }
+/* 대화 입력 칸: 네이티브 막대를 숨기고 `EdgeScrollbar` 를 얹는다. */
+.scenario-studio .st-chat .chat-input-frame { position: relative; display: flex; }
+.scenario-studio .st-chat .chat-input-frame .field-input--multiline { flex: 1; scrollbar-width: none; }
+.scenario-studio .st-chat .chat-input-frame .field-input--multiline::-webkit-scrollbar { display: none; }

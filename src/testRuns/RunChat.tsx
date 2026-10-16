@@ -288,6 +288,7 @@ export function RunChat({ session }: { session: RunChatSession }) {
   // state 여야 한다 — 첫 메시지가 오기 전에는 목록 자체가 DOM 에 없다.
   const threadRef = useRef<HTMLOListElement | null>(null)
   const [threadNode, setThreadNode] = useState<HTMLOListElement | null>(null)
+  const [inputNode, setInputNode] = useState<HTMLTextAreaElement | null>(null)
   const setThread = useCallback((node: HTMLOListElement | null) => {
     threadRef.current = node
     setThreadNode(node)
@@ -567,7 +568,10 @@ export function RunChat({ session }: { session: RunChatSession }) {
           <label className="visually-hidden" htmlFor="run-chat-input">
             {c.inputLabel}
           </label>
+          {/* 길게 쓰면 칸 안이 스크롤한다. 막대는 대화 목록과 같은 `EdgeScrollbar` 다. */}
+          <div className="chat-input-frame">
           <textarea
+            ref={setInputNode}
             className="field-input field-input--multiline"
             aria-describedby="run-chat-hint"
             disabled={session.sending}
@@ -578,6 +582,8 @@ export function RunChat({ session }: { session: RunChatSession }) {
             rows={3}
             value={input}
           />
+          <EdgeScrollbar label={c.inputLabel} scroller={inputNode} side="right" />
+          </div>
 
           <div className="chat-composer-actions">
             {/* 버튼을 두지 않은 것은 취소가 흔한 일이 아니기 때문이다(ARTEL-956) — 늘 보이는
