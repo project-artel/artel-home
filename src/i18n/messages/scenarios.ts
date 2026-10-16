@@ -92,6 +92,8 @@ export const scenariosEn = {
     you: 'You',
     agent: 'Artel',
     waitingForAgent: 'Waiting for Artel…',
+    tableExpand: 'Open the table wide',
+    tableTitle: 'Table from the conversation',
     closedTitle: 'Chat unavailable',
     closedExpired:
       'This conversation is closed. The agent session behind it is no longer available, so no new messages can be sent. The transcript and the scenario below stay readable.',
@@ -806,6 +808,8 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     you: '나',
     agent: 'Artel',
     waitingForAgent: 'Artel의 응답을 기다리는 중…',
+    tableExpand: '표 크게 보기',
+    tableTitle: '대화 속 표',
     closedTitle: '채팅을 사용할 수 없습니다',
     closedExpired:
       '이 대화는 종료되었습니다. 대화를 지원하던 에이전트 세션을 더 이상 사용할 수 없어 새 메시지를 보낼 수 없습니다. 대화 기록과 아래 시나리오는 계속 읽을 수 있습니다.',

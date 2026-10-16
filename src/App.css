@@ -11404,3 +11404,27 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
 .scenario-studio .run-chat-empty .st-sketch { width: min(100%, 220px); }
 .scenario-studio .run-chat-empty p { margin: 0; }
 .scenario-studio .run-empty > .st-sketch { width: min(100%, 300px); margin-bottom: 6px; }
+
+/* 대화 속 표(ARTEL-1107). 칸에 최소 폭을 두어 글자가 한두 자씩 쌓이지 않게 한다. 한국어는 낱말 중간에서
+   끊지 않고, 긴 코드 이름만 칸을 넘을 때 끊는다. 넘치는 쪽은 가림과 화살표, 넓게 읽기는 `표 크게 보기`. */
+.scenario-studio .st-chat .chat-md-table-frame { position: relative; --chat-table-fade: var(--st-surface); }
+.scenario-studio .st-chat .chat-md-table-wrap { overflow-x: auto; scrollbar-width: none; }
+.scenario-studio .st-chat .chat-md-table-wrap::-webkit-scrollbar { display: none; }
+.scenario-studio .st-chat .chat-md-table th,
+.scenario-studio .st-chat .chat-md-table td { min-width: 6.5em; max-width: 18em; word-break: keep-all; overflow-wrap: break-word; line-height: 1.55; }
+.scenario-studio .st-chat .chat-md-table .chat-md-code { overflow-wrap: break-word; word-break: normal; }
+.scenario-studio .st-chat .chat-md-table-fade { position: absolute; top: 0; bottom: 0; z-index: 2; display: flex; align-items: center; width: 28px; color: var(--st-action); pointer-events: none; transition: opacity 140ms var(--ease-standard); }
+.scenario-studio .st-chat .chat-md-table-fade--left { left: 0; justify-content: flex-start; background: linear-gradient(to left, transparent, var(--chat-table-fade) 75%); }
+.scenario-studio .st-chat .chat-md-table-fade--right { right: 0; justify-content: flex-end; background: linear-gradient(to right, transparent, var(--chat-table-fade) 75%); }
+.scenario-studio .st-chat .chat-md-table-fade.is-end { opacity: 0; }
+.scenario-studio .st-chat .chat-md-table-expand { display: inline-flex; align-items: center; gap: 5px; margin-top: 6px; padding: 3px 8px; border: 1px solid var(--st-border); border-radius: var(--radius-md); background: none; color: var(--st-text-2); font: inherit; font-size: 11.5px; cursor: pointer; }
+.scenario-studio .st-chat .chat-md-table-expand:hover { border-color: var(--st-action); color: var(--st-action); }
+.dialog-panel:has(.chat-table-dialog) { width: min(100%, 1100px); overflow: hidden; display: flex; flex-direction: column; }
+.chat-table-dialog { position: relative; display: flex; min-height: 0; }
+.chat-table-dialog-scroll { flex: 1; max-height: calc(100vh - 200px); overflow: auto; scrollbar-width: none; }
+.chat-table-dialog-scroll::-webkit-scrollbar { display: none; }
+.chat-table-dialog .chat-md-table { width: 100%; border-collapse: collapse; font-size: 13px; color: var(--color-text-primary); }
+.chat-table-dialog .chat-md-table th,
+.chat-table-dialog .chat-md-table td { padding: 8px 12px; border: 1px solid var(--color-border-subtle); text-align: left; vertical-align: top; line-height: 1.6; word-break: keep-all; overflow-wrap: break-word; }
+.chat-table-dialog .chat-md-table th { background: var(--color-bg-surface); color: var(--color-text-secondary); font-weight: 600; }
+.chat-table-dialog .chat-md-code { padding: 1px 5px; border: 1px solid var(--color-border-subtle); border-radius: 4px; background: var(--color-bg-surface); font-family: var(--font-mono); font-size: .9em; }
