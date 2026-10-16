@@ -26,6 +26,7 @@ import {
   type QaTry,
   type QaTryStatus,
 } from './qaTypes'
+import type { QaArchRequest } from './qaArch'
 
 const QA_ROOT = '/api/qa-tries'
 const QA_RUNS_ROOT = '/api/qa-runs'
@@ -165,6 +166,31 @@ export function parseQaRun(data: unknown, status = 200): QaRun {
   }
 }
 
+export type QaRunRequestBody = {
+  testRunId: string
+  gameInstanceId: string
+  model: string
+  keySource: QaKeySource
+  reasoning: QaReasoningSelection | null
+  force: boolean
+  arch?: QaArchRequest
+}
+
+/** `arch` 키는 구조를 바꾼 run 에만 실린다. 없으면 서버 기본 구조다. */
+export function qaRunRequestBody(
+  testRunId: string,
+  gameInstanceId: string,
+  model: string,
+  keySource: QaKeySource,
+  reasoning: QaReasoningSelection | null,
+  force: boolean,
+  arch: QaArchRequest | null,
+): QaRunRequestBody {
+  const body: QaRunRequestBody = { testRunId, gameInstanceId, model, keySource, reasoning, force }
+  if (arch !== null) body.arch = arch
+  return body
+}
+
 /**
  * `POST /api/qa-runs` — start a TR-unit run (all its scenarios, in order).
  *
@@ -181,10 +207,11 @@ export async function createQaRun(
   keySource: QaKeySource,
   reasoning: QaReasoningSelection | null,
   force = false,
+  arch: QaArchRequest | null = null,
 ): Promise<QaRun> {
   const response = await apiFetch(QA_RUNS_ROOT, {
     method: 'POST',
-    ...jsonRequest({ testRunId, gameInstanceId, model, keySource, reasoning, force }),
+    ...jsonRequest(qaRunRequestBody(testRunId, gameInstanceId, model, keySource, reasoning, force, arch)),
   })
   return parseQaRun(await readJson(response), response.status)
 }

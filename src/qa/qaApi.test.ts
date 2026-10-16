@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { ProjectApiError } from '../projects/projectApi'
-import { parseQaModels, parseQaTry, qaStartConflict } from './qaApi'
+import { parseQaModels, parseQaTry, qaRunRequestBody, qaStartConflict } from './qaApi'
 
 const QA_TRY_FIELDS = {
   id: '41',
@@ -117,4 +117,16 @@ test('parseQaModels does not treat a user model with no keyRegistered flag as ca
 
 test('parseQaModels reads an unknown keySource as the platform key', () => {
   assert.equal(parseQaModels([{ ...MODEL_FIELDS, keySource: 'team' }], 200)[0].keySource, 'platform')
+})
+
+test('qaRunRequestBody has no arch key when arch is null', () => {
+  const body = qaRunRequestBody('1', '2', 'm', 'platform', null, false, null)
+  assert.equal('arch' in body, false)
+})
+
+test('qaRunRequestBody carries arch verbatim when given', () => {
+  const arch = { label: 'x', phase_cycle: 'off' } as const
+  const body = qaRunRequestBody('1', '2', 'm', 'platform', null, true, arch)
+  assert.deepEqual(body.arch, arch)
+  assert.equal(body.force, true)
 })

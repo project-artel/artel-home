@@ -3109,6 +3109,111 @@ a.instance-name:hover {
   font-size: 12px;
 }
 
+/*
+ * QA 시작 폼의 고급 설정: agent 구조 선택 (ARTEL-1091).
+ * `details` 요소라서 기본값만 쓰는 동안에는 접힌 채로 조용히 있다.
+ */
+.qa-advanced {
+  margin-top: var(--space-3);
+  border-top: 1px solid var(--color-border-subtle);
+  padding-top: var(--space-3);
+}
+
+.qa-advanced > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 32px;
+  cursor: pointer;
+  color: var(--color-text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  list-style: none;
+}
+
+.qa-advanced > summary::-webkit-details-marker {
+  display: none;
+}
+
+.qa-advanced > summary::before {
+  content: '▸';
+  color: var(--color-text-muted);
+}
+
+.qa-advanced[open] > summary::before {
+  content: '▾';
+}
+
+.qa-advanced > summary:focus-visible {
+  outline: 2px solid var(--color-action-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.qa-advanced-count {
+  color: var(--color-action-primary);
+  font-weight: 650;
+}
+
+.qa-advanced-hint {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.qa-advanced-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.qa-advanced-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.qa-advanced-field code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text-primary);
+}
+
+.qa-advanced-field select,
+.qa-advanced-field input {
+  min-height: 32px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  background: var(--color-bg-raised);
+  font: inherit;
+  font-size: 13px;
+}
+
+.qa-advanced-field small {
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.qa-advanced-label {
+  grid-column: 1 / -1;
+}
+
+.qa-advanced-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-3);
+}
+
+/* 모양은 `.qa-version-mismatch` 를 그대로 쓰고 간격만 더한다. */
+.qa-advanced-locked {
+  margin-top: var(--space-2);
+}
+
 .qa-log-repeat {
   padding: 0 6px;
   border: 1px solid var(--color-border-strong);

@@ -11,6 +11,42 @@ export const qaEn = {
     CANCELLED: 'Cancelled',
   },
   panel: {
+    advanced: {
+      title: 'Advanced settings',
+      hint: 'Choose the structure of the QA agent. Anything left at "Server default" is not sent, so the server decides it.',
+      changed: (count: number) => `${count} changed`,
+      serverDefault: 'Server default',
+      on: 'On',
+      off: 'Off',
+      reset: 'Reset to server defaults',
+      labelLabel: 'Structure label',
+      labelHint:
+        'Required once any knob is changed. QA stats group runs by this label, so a changed structure needs its own name.',
+      visionLocked:
+        'This model does not read images, so vision=on and screen_capture other than on_demand are unavailable.',
+      axes: {
+        phase_cycle:
+          'How strictly the run follows OBSERVE → DECIDE → ACT → VERIFY → UPDATE_MEMORY. off is the free tool loop; lite adds a memory turn; full adds a decide turn.',
+        skills:
+          'off inlines every skill in the system prompt; on_demand loads them through a load_skill tool.',
+        macros: 'Whether the six macro tools and the macro skill are available.',
+        screen_capture:
+          'When a screenshot reaches the model: only when asked (on_demand), on every call, or two to four pictures by role.',
+        vision: 'Whether the model is shown screenshots. auto follows the model.',
+        pulse_relevance:
+          'Hide cosmetic members from the pulse view, asking the decision model once per member type.',
+        report_step_view: 'Attach a pulse view to the report_step result.',
+        fold_stale_scenes: 'Fold stale scene views into one line.',
+        fold_stale_knowledge: 'Fold the neighbour blocks a knowledge search volunteered.',
+        fold_stale_skills: 'Fold every loaded skill but the newest (on_demand only).',
+        fold_stale_macro_results:
+          'Fold old run_macro results into one line once their step is reported.',
+        fold_threshold_chars:
+          'How many characters of stale blocks pile up before one fold. 0 folds on every call.',
+        compaction:
+          'Rewrite what the model reads once the run grows past a fraction of its context.',
+      },
+    },
     title: 'QA runs',
     hint: 'Run a test run against a game. The game must be connected.',
     gameLabel: 'Game',
@@ -162,6 +198,7 @@ export const qaEn = {
       eta: (duration: string) => `About ${duration}, going by the last run`,
       etaNone: 'First run of this test run',
       blockedHint: 'Fix the items above and you can run.',
+      archLabelMissing: 'The changed agent structure needs a label',
     },
     consoles: { title: 'Game consoles and builds' },
   },
@@ -410,6 +447,40 @@ export const qaKo: Localized<typeof qaEn> = {
     CANCELLED: '취소됨',
   },
   panel: {
+    advanced: {
+      title: '고급 설정',
+      hint: 'QA agent 의 구조를 고릅니다. "서버 기본값" 으로 둔 항목은 보내지 않으므로 서버가 정합니다.',
+      changed: (count: number) => `${count}개 변경`,
+      serverDefault: '서버 기본값',
+      on: '켬',
+      off: '끔',
+      reset: '서버 기본값으로 되돌리기',
+      labelLabel: '구조 label',
+      labelHint:
+        'knob 을 하나라도 바꾸면 필요합니다. QA 통계가 이 label 로 run 을 묶으므로 바꾼 구조에는 이름이 따로 있어야 합니다.',
+      visionLocked:
+        '이 모델은 이미지를 읽지 않아 vision=on 과 on_demand 이외의 screen_capture 를 쓸 수 없습니다.',
+      axes: {
+        phase_cycle:
+          'run 이 OBSERVE → DECIDE → ACT → VERIFY → UPDATE_MEMORY 를 얼마나 엄격하게 따를지. off 는 자유로운 tool loop, lite 는 memory 턴 하나, full 은 decide 턴까지 더합니다.',
+        skills:
+          'off 는 모든 skill 을 system prompt 에 그대로 넣고, on_demand 는 load_skill tool 로 불러옵니다.',
+        macros: '여섯 개의 macro tool 과 macro skill 을 쓸 수 있는지.',
+        screen_capture:
+          'screenshot 이 모델에 전달되는 시점. 요청할 때만(on_demand), 매 호출마다, 또는 역할별로 두 장에서 네 장.',
+        vision: '모델에 screenshot 을 보여줄지. auto 는 모델에 따릅니다.',
+        pulse_relevance:
+          '꾸밈용 member 를 pulse view 에서 숨깁니다. member 종류마다 한 번 decision model 에 묻습니다.',
+        report_step_view: 'report_step 결과에 pulse view 를 붙입니다.',
+        fold_stale_scenes: '오래된 scene view 를 한 줄로 fold 합니다.',
+        fold_stale_knowledge: 'knowledge 검색이 덤으로 가져온 이웃 block 을 fold 합니다.',
+        fold_stale_skills: '가장 최근 것을 뺀 불러온 skill 을 모두 fold 합니다(on_demand 일 때만).',
+        fold_stale_macro_results:
+          '해당 step 을 report 한 뒤 오래된 run_macro 결과를 한 줄로 fold 합니다.',
+        fold_threshold_chars: '오래된 block 이 몇 글자 쌓이면 한 번에 fold 할지. 0 은 매 호출 fold 합니다.',
+        compaction: 'run 이 context 의 일정 비율을 넘으면 모델이 읽는 내용을 다시 씁니다.',
+      },
+    },
     title: 'QA 실행',
     hint: '테스트 런을 게임으로 실행합니다. 게임이 연결되어 있어야 합니다.',
     gameLabel: '게임',
@@ -561,6 +632,7 @@ export const qaKo: Localized<typeof qaEn> = {
       eta: (duration: string) => `지난 실행 기준 약 ${duration}`,
       etaNone: '처음 실행하는 런입니다',
       blockedHint: '막힌 항목을 해결하면 실행할 수 있습니다.',
+      archLabelMissing: '바꾼 agent 구조에 label 이 필요합니다',
     },
     consoles: { title: '게임 콘솔 · 빌드' },
   },
