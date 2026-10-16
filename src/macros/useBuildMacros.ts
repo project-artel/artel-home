@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { usePolling } from '../live/usePolling'
 import { getBuildMacro, listBuildMacros } from './macroApi'
 import type { MacroDetail, MacroSummary } from './macroTypes'
 
@@ -89,6 +90,30 @@ export function useBuildMacros(projectId: string, gameBuildId: string) {
 
   const settled = state.source === source
   const reload = useCallback(() => setReloadToken((token) => token + 1), [])
+
+  const polling = useRef<AbortController | null>(null)
+  useEffect(() => () => polling.current?.abort(), [])
+  usePolling(() => {
+    // Not before the first read has landed, and never two reads at once.
+    if (!settled || polling.current !== null) return
+    const controller = new AbortController()
+    polling.current = controller
+    listBuildMacros(projectId, gameBuildId, controller.signal)
+      .then((next) =>
+        setState((previous) => {
+          if (previous.source !== source) return previous
+          if (previous.status === 'ready' && JSON.stringify(previous.macros) === JSON.stringify(next)) {
+            return previous
+          }
+          return { status: 'ready', macros: next, source, scope }
+        }),
+      )
+      // A failed poll leaves the list on screen alone.
+      .catch(() => undefined)
+      .finally(() => {
+        if (polling.current === controller) polling.current = null
+      })
+  })
 
   /*
    * 새로고침 중에는 직전 목록이 그대로 남는다. 비우면 화면이 통째로 "불러오는 중" 으로
