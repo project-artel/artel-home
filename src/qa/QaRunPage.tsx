@@ -423,7 +423,7 @@ function FocusedTry({ qaRun, rail, tryId }: { qaRun: QaRun; rail: QaScenarioRail
           </div>
           <div className="qa-focus-logs-body">
             {logView === 'issues' ? (
-              <QaTryIssuePanel qaTryId={session.qaTry.id} />
+              <QaTryIssuePanel projectId={rail.projectId} qaTryId={session.qaTry.id} />
             ) : (
               <QaLogTimeline
                 focusRequest={focusRequest}

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useProjectChange } from '../live/useProjectChange'
 import { usePolling } from '../live/usePolling'
 import { listProjectIssues, listQaTryIssues } from './issueApi'
 import type { Issue, IssueFilters, IssuePage } from './issueTypes'
@@ -46,9 +47,11 @@ function isAbort(error: unknown): boolean {
  * With `poll` on, page one is re-read in the background. That read never flips
  * the status back to loading, a failed one keeps the rows on screen, and it
  * stands down once the reader has loaded more pages, since replacing page one
- * would drop the rows below it.
+ * would drop the rows below it. The project change stream (`ISSUES`) drives the
+ * re-read for `projectId`; a timer takes over only while the stream is down,
+ * and is the only driver when `projectId` is null.
  */
-function useIssuePages(load: Load, poll: boolean) {
+function useIssuePages(load: Load, poll: boolean, projectId: string | null) {
   const [state, setState] = useState<IssuesState>(emptyState)
   const [loadingMore, setLoadingMore] = useState(false)
 
@@ -113,40 +116,38 @@ function useIssuePages(load: Load, poll: boolean) {
 
   const polling = useRef<AbortController | null>(null)
   useEffect(() => () => polling.current?.abort(), [])
-  usePolling(
-    () => {
-      if (!settled || state.extended || loadingMore || polling.current !== null) return
-      const controller = new AbortController()
-      polling.current = controller
-      load(undefined, controller.signal)
-        .then((page) =>
-          setState((previous) => {
-            // The filter changed, or more pages were loaded, while this was in flight.
-            if (previous.source !== load || previous.extended) return previous
-            const same =
-              previous.status === 'ready' &&
-              previous.hasMore === page.hasMore &&
-              JSON.stringify(previous.items) === JSON.stringify(page.items)
-            if (same) return previous
-            return {
-              status: 'ready',
-              items: page.items,
-              nextBeforeId: page.nextBeforeId,
-              hasMore: page.hasMore,
-              source: load,
-              extended: false,
-            }
-          }),
-        )
-        // A failed poll leaves whatever is on screen alone.
-        .catch(() => undefined)
-        .finally(() => {
-          if (polling.current === controller) polling.current = null
-        })
-    },
-    undefined,
-    poll,
-  )
+  const refreshSilently = () => {
+    if (!settled || state.extended || loadingMore || polling.current !== null) return
+    const controller = new AbortController()
+    polling.current = controller
+    load(undefined, controller.signal)
+      .then((page) =>
+        setState((previous) => {
+          // The filter changed, or more pages were loaded, while this was in flight.
+          if (previous.source !== load || previous.extended) return previous
+          const same =
+            previous.status === 'ready' &&
+            previous.hasMore === page.hasMore &&
+            JSON.stringify(previous.items) === JSON.stringify(page.items)
+          if (same) return previous
+          return {
+            status: 'ready',
+            items: page.items,
+            nextBeforeId: page.nextBeforeId,
+            hasMore: page.hasMore,
+            source: load,
+            extended: false,
+          }
+        }),
+      )
+      // A failed poll leaves whatever is on screen alone.
+      .catch(() => undefined)
+      .finally(() => {
+        if (polling.current === controller) polling.current = null
+      })
+  }
+  const live = useProjectChange(poll ? projectId : null, 'ISSUES', refreshSilently)
+  usePolling(refreshSilently, undefined, poll && !live)
 
   const patch = useCallback((issueId: string, next: (issue: Issue) => Issue) => {
     setState((current) => ({
@@ -193,20 +194,21 @@ export function useProjectIssues(
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [projectId, status, severity, reloadToken],
   )
-  return useIssuePages(load, poll)
+  return useIssuePages(load, poll, projectId)
 }
 
 /**
  * What one run found. No filters: a single run's list is short by nature.
  *
  * `reloadToken` works as it does above, and matters more here — a run in flight
- * keeps filing issues while the panel is open, so this list is polled.
+ * keeps filing issues while the panel is open, so this list follows the run's
+ * project change stream, and polls while that stream is down.
  */
-export function useQaTryIssues(qaTryId: string, reloadToken: number) {
+export function useQaTryIssues(qaTryId: string, reloadToken: number, projectId: string | null) {
   const load = useCallback(
     (beforeId?: string, signal?: AbortSignal) => listQaTryIssues(qaTryId, beforeId, signal),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [qaTryId, reloadToken],
   )
-  return useIssuePages(load, true)
+  return useIssuePages(load, true, projectId)
 }
