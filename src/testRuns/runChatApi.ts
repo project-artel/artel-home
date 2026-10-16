@@ -92,8 +92,16 @@ function parseChanges(value: unknown): ScenarioChange[] {
  * `label`; a TC chip opens `detail` (precondition and expected result), since a TC has no
  * page of its own. A TS chip opens the scenario.
  */
+/**
+ * 표식이 가리킬 수 있는 것. `tc` · `ts` 에 더해, 질문 답(ARTEL-1097)은 테스트 런 · QA 실행 · 이슈 · 빌드를 가리켜 그 페이지로
+ * 보낸다.
+ */
+export type ChatRefKind = 'tc' | 'ts' | 'tr' | 'qa' | 'issue' | 'build'
+
+const CHAT_REF_KINDS: readonly ChatRefKind[] = ['tc', 'ts', 'tr', 'qa', 'issue', 'build']
+
 export type ChatRef = {
-  kind: 'tc' | 'ts'
+  kind: ChatRefKind
   id: number
   label: string
   detail: string | null
@@ -105,10 +113,10 @@ export function parseRefs(value: unknown): ChatRef[] {
   return value.flatMap((entry) => {
     const record = asRecord(entry)
     if (record === null) return []
-    const kind = record.kind
+    const kind = CHAT_REF_KINDS.find((one) => one === record.kind)
     const id = Number(record.id)
     const label = asString(record.label)
-    if ((kind !== 'tc' && kind !== 'ts') || !Number.isFinite(id) || label.length === 0) return []
+    if (kind === undefined || !Number.isFinite(id) || label.length === 0) return []
     const detail = asString(record.detail)
     return [{ kind, id, label, detail: detail.length > 0 ? detail : null }]
   })
@@ -148,6 +156,15 @@ export const AUTHORING_STAGES = [
   'bridging',
   'thinking',
   'looking_up_cases',
+  // 질문 답이 서비스 기록을 읽는 중 · 섞인 요청을 나누는 중 (ARTEL-1097)
+  'reading_cases',
+  'reading_versions',
+  'reading_verdicts',
+  'reading_qa_runs',
+  'reading_issues',
+  'reading_scenarios',
+  'reading_builds',
+  'splitting',
   'reading_case',
   'finding_path',
   'writing',
@@ -201,6 +218,14 @@ export const STAGE_STALL_MS: Record<AuthoringStage, number> = {
   bridging: 180_000,
   thinking: 180_000,
   looking_up_cases: 60_000,
+  reading_cases: 60_000,
+  reading_versions: 60_000,
+  reading_verdicts: 60_000,
+  reading_qa_runs: 60_000,
+  reading_issues: 60_000,
+  reading_scenarios: 60_000,
+  reading_builds: 60_000,
+  splitting: 60_000,
   reading_case: 60_000,
   finding_path: 60_000,
   writing: 180_000,

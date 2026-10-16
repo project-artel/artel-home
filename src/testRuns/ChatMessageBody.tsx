@@ -167,6 +167,7 @@ function InlineRun({ parts }: { parts: Inline[] }) {
         if (part.kind === 'bold') return <strong key={index}>{part.text}</strong>
         if (part.kind === 'code') return <code className="chat-md-code" key={index}>{part.text}</code>
         if (part.kind === 'ref') return <ChatRefChip key={index} refKind={part.refKind} id={part.id} />
+        if (part.kind === 'label') return <span className={`chat-label chat-label--${part.tone}`} key={index}>{part.text}</span>
         return <Fragment key={index}>{part.text}</Fragment>
       })}
     </>
