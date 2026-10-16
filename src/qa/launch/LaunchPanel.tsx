@@ -54,7 +54,6 @@ export function LaunchPanel({
   onArchChange,
   freeScenarios,
   etaMs,
-  onRefreshConsoles,
   onManageConsoles,
   runShortcut,
 }: {
@@ -77,7 +76,6 @@ export function LaunchPanel({
   /** `planner_executer` 는 ORDERED 만 돌리므로, FREE 가 있으면 점검이 실행을 막는다. `agent` 면 읽지 않는다. */
   freeScenarios: FreeScenarioCount
   etaMs: number | null
-  onRefreshConsoles: () => Promise<void>
   onManageConsoles: () => void
   /** ⌘↵ 가 눌린 횟수. 바뀔 때마다 실행을 시도한다 — 단축키는 화면이 듣고, 실행은 여기서 한다. */
   runShortcut: number
@@ -93,7 +91,6 @@ export function LaunchPanel({
   const consoleBox = useRef<HTMLDivElement>(null)
   const closeConsole = useCallback(() => setConsoleOpen(false), [])
   useDismiss(consoleOpen, consoleBox, closeConsole)
-  const [refreshing, setRefreshing] = useState(false)
   const [starting, setStarting] = useState(false)
   const [failure, setFailure] = useState<string | null>(null)
   const [takeoverOpen, setTakeoverOpen] = useState(false)
@@ -197,15 +194,6 @@ export function LaunchPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runShortcut])
 
-  async function refresh() {
-    setRefreshing(true)
-    try {
-      await onRefreshConsoles()
-    } finally {
-      setRefreshing(false)
-    }
-  }
-
   return (
     <aside aria-labelledby="ql-panel-title" className="ql-panel">
       <div className="ql-panel-scroll" ref={setPanelScroller}>
@@ -220,9 +208,6 @@ export function LaunchPanel({
         <div className="ql-field">
           <div className="ql-field-head">
             <span className="ql-field-label">{l.consoleLabel}</span>
-            <button className="ql-mini" disabled={refreshing} onClick={() => void refresh()} type="button">
-              {refreshing ? t.projects.instances.refreshing : l.refresh}
-            </button>
             <Link className="ql-mini" to={sectionHref(projectId, 'setup')}>{l.install}</Link>
             <button className="ql-mini ql-mini--accent" onClick={onManageConsoles} type="button">{l.manage}</button>
           </div>
