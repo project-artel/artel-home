@@ -310,6 +310,11 @@ export function RunChat({ session }: { session: RunChatSession }) {
   const threadRef = useRef<HTMLOListElement | null>(null)
   const [threadNode, setThreadNode] = useState<HTMLOListElement | null>(null)
   const [inputNode, setInputNode] = useState<HTMLTextAreaElement | null>(null)
+  // 질문의 보기를 누르면 그 말이 입력 칸에 들어간다(ARTEL-1118). 보내는 것은 사용자다 — 고쳐 보낼 수 있다.
+  const suggest = useCallback((text: string) => {
+    setInput(text)
+    inputNode?.focus()
+  }, [inputNode])
   const setThread = useCallback((node: HTMLOListElement | null) => {
     threadRef.current = node
     setThreadNode(node)
@@ -379,7 +384,7 @@ export function RunChat({ session }: { session: RunChatSession }) {
   }
 
   return (
-    <ChatLinkContext.Provider value={{ projectId: session.projectId, runId: session.runId, openCase }}>
+    <ChatLinkContext.Provider value={{ projectId: session.projectId, runId: session.runId, openCase, suggest }}>
     <section className="panel scenario-chat" aria-labelledby="run-chat-title">
       <header className="panel-header">
         <h2 id="run-chat-title">

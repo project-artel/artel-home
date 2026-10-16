@@ -12,4 +12,6 @@ export const ChatLinkContext = createContext<{
   projectId: string
   runId: string | null
   openCase?: (caseId: number) => void
+  /** Puts words into the chat input (ARTEL-1118) — an ask's option is the user's own reply. */
+  suggest?: (text: string) => void
 } | null>(null)

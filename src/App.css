@@ -11701,3 +11701,16 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
 .run-detail-label--cost .run-detail-label-icon { color: var(--color-status-warning); background: color-mix(in srgb, var(--color-status-warning) 16%, transparent); }
 .run-detail-label--tools .run-detail-label-icon { color: var(--color-agent-reasoning); background: color-mix(in srgb, var(--color-agent-reasoning) 16%, transparent); }
 .run-detail-label { font-size: 12px; font-weight: 600; color: var(--color-text-secondary); }
+
+/* 저작의 질문 칸(ARTEL-1118) — 답 맨 아래, 전구 하나 아래에 묻는 것을 모은다. 상자 대신 위 구분선과
+   왼쪽 전구로 가르고, 보기는 누르면 입력 칸에 그 말이 채워지는 작은 칩이다. */
+.scenario-studio .st-chat .chat-asks { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 10px; margin-top: 4px; padding-top: 12px; border-top: 1px dashed var(--st-border-strong); }
+.scenario-studio .st-chat .chat-asks-icon { margin-top: 2px; color: var(--st-draft); }
+.scenario-studio .st-chat .chat-asks-list { display: flex; flex-direction: column; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.scenario-studio .st-chat .chat-ask-text { margin: 0; color: var(--st-text); font-size: 13px; font-weight: 600; line-height: 1.6; }
+.scenario-studio .st-chat .chat-ask-why { margin: 2px 0 0; color: var(--st-muted); font-size: 12px; line-height: 1.55; }
+.scenario-studio .st-chat .chat-ask-options { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.scenario-studio .st-chat .chat-ask-option { padding: 3px 10px; border: 1px solid var(--st-border-strong); border-radius: 999px; background: none; color: var(--st-text-2); font: inherit; font-size: 12px; line-height: 1.5; }
+.scenario-studio .st-chat button.chat-ask-option { cursor: pointer; transition: border-color 120ms var(--ease-standard), color 120ms var(--ease-standard); }
+.scenario-studio .st-chat button.chat-ask-option:hover,
+.scenario-studio .st-chat button.chat-ask-option:focus-visible { border-color: var(--st-action); color: var(--st-action); outline: none; }

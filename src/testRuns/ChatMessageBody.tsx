@@ -7,7 +7,7 @@ import { StudioIcon } from '../testScenarios/studioIcons'
 import { parseChatMarkdown, parseInline, type Inline } from './chatMarkdown'
 import { ChatRefChip } from './ChatRefChip'
 import { ChatLinkContext, ChatRefsContext } from './chatRefContext'
-import type { ChatRef, ChatReply, ScenarioChange } from './runChatApi'
+import type { ChatRef, ChatReply, RunChatQuestion, ScenarioChange } from './runChatApi'
 
 /**
  * An agent message, with the structure it wrote left standing.
@@ -32,15 +32,64 @@ export function ChatReplyBody({ reply, refs = [] }: { reply: ChatReply; refs?: C
   return (
     <ChatRefsContext.Provider value={refs}>
     <div className="chat-reply">
-      <div className="chat-reply-result">
-        {reply.result.split('\n').map((line, index) => (
-          <p className="chat-reply-result-line" key={index}><InlineRun parts={parseInline(line)} /></p>
-        ))}
-        {reply.changes.length > 0 && <ChangeList changes={reply.changes} />}
-      </div>
+      {/* 결과 칸이 빈 답도 있다 — 예전에 질문만 따로 저장된 줄(ARTEL-1118)을 이 모양으로 그릴 때다. */}
+      {(reply.result.length > 0 || reply.changes.length > 0) && (
+        <div className="chat-reply-result">
+          {reply.result.split('\n').map((line, index) => (
+            <p className="chat-reply-result-line" key={index}><InlineRun parts={parseInline(line)} /></p>
+          ))}
+          {reply.changes.length > 0 && <ChangeList changes={reply.changes} />}
+        </div>
+      )}
       {reply.detail.trim().length > 0 && <ChatMessageBody body={reply.detail} refs={refs} />}
+      {reply.asks.length > 0 && <ChatAsks asks={reply.asks} />}
     </div>
     </ChatRefsContext.Provider>
+  )
+}
+
+/**
+ * 저작이 사용자에게 묻는 것(ARTEL-1118) — 답 맨 아래, 전구 하나 아래에.
+ *
+ * 예전에는 답과 따로 질문 메시지로 와서 "펼치기" 모달로 답했다. 저작이 대화를 기억하게 되어 평범한
+ * 대화로 답하면 된다. 그래서 여기에는 누를 단추가 아니라 **읽을 질문**이 있고, 보기는 그 사용자의 말을
+ * 입력 칸에 채워 줄 뿐이다 — 보낼지, 고쳐 보낼지는 사용자가 정한다.
+ */
+function ChatAsks({ asks }: { asks: RunChatQuestion[] }) {
+  const { t } = useI18n()
+  const c = t.scenarios.chat
+  const link = useContext(ChatLinkContext)
+  return (
+    <section aria-label={c.asksLabel} className="chat-asks">
+      <StudioIcon className="chat-asks-icon" name="bulb" size={16} />
+      <ul className="chat-asks-list">
+        {asks.map((ask) => (
+          <li className="chat-ask" key={ask.id}>
+            <p className="chat-ask-text"><InlineRun parts={parseInline(ask.text)} /></p>
+            {ask.why !== null && <p className="chat-ask-why"><InlineRun parts={parseInline(ask.why)} /></p>}
+            {ask.options.length > 0 && (
+              <div className="chat-ask-options">
+                {ask.options.map((option) =>
+                  link?.suggest === undefined ? (
+                    <span className="chat-ask-option" key={option.id}>{option.label}</span>
+                  ) : (
+                    <button
+                      className="chat-ask-option"
+                      key={option.id}
+                      onClick={() => link.suggest?.(option.label)}
+                      title={c.askFill}
+                      type="button"
+                    >
+                      {option.label}
+                    </button>
+                  ),
+                )}
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 

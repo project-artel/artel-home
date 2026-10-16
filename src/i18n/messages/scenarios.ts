@@ -93,6 +93,8 @@ export const scenariosEn = {
     agent: 'Artel',
     waitingForAgent: 'Waiting for Artel…',
     tableExpand: 'Open the table wide',
+    asksLabel: 'What to decide',
+    askFill: 'Put this into the message box',
     tableTitle: 'Table from the conversation',
     closedTitle: 'Chat unavailable',
     closedExpired:
@@ -809,6 +811,8 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     agent: 'Artel',
     waitingForAgent: 'Artel의 응답을 기다리는 중…',
     tableExpand: '표 크게 보기',
+    asksLabel: '정할 것',
+    askFill: '입력 칸에 넣기',
     tableTitle: '대화 속 표',
     closedTitle: '채팅을 사용할 수 없습니다',
     closedExpired:
