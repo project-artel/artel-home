@@ -1,5 +1,7 @@
 /** 프로젝트 agent 대화창이 쓰는 순수 로직. 저장소와 크기 계산만 있고 React 는 없다. */
 
+import { projectPathSegments } from '../projects/workspace/sections'
+
 const OPEN_KEY = 'artel.projectAgent.open'
 const WIDTH_KEY = 'artel.projectAgent.width'
 
@@ -66,10 +68,10 @@ export function clampChatWidth(width: number, viewportWidth: number, railWidth: 
  * 두 대화를 나란히 두지 않으려고 프로젝트 대화창은 이 경로에서 접힌다.
  */
 export function isFoldedRoute(projectId: string, pathname: string): boolean {
-  const segments = pathname.split('/').filter(Boolean)
-  if (segments[0] !== 'projects' || segments[1] !== projectId) return false
-  if (segments[2] === 'test-runs') return segments.length === 5 && segments[4] === 'edit'
-  if (segments[2] === 'test-scenarios') return segments.length === 4
+  const parts = projectPathSegments(projectId, pathname)
+  if (parts === null) return false
+  if (parts[0] === 'test-runs') return parts.length === 3 && parts[2] === 'edit'
+  if (parts[0] === 'test-scenarios') return parts.length === 2
   return false
 }
 

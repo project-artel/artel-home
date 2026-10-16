@@ -100,6 +100,7 @@ test('접히는 경로는 런 편집과 시나리오 상세뿐이다', () => {
   assert.equal(isFoldedRoute('p1', '/projects/p1/test-scenarios'), false)
   assert.equal(isFoldedRoute('p1', '/projects/p1'), false)
   assert.equal(isFoldedRoute('p1', '/projects/p2/test-scenarios/s1'), false)
+  assert.equal(isFoldedRoute('a b', '/projects/a%20b/test-runs/r1/edit'), true)
 })
 
 test('접힌 경로에서는 손으로 다시 연 경우에만 열린다', () => {

@@ -60,6 +60,20 @@ export function sectionIdFromPath(projectId: string, pathname: string): Workspac
   return match?.id ?? 'dashboard'
 }
 
+/** 펼친 project rail 의 폭. App.css 의 `.project-workspace` grid 첫 칸과 같은 값이다. */
+export const PROJECT_RAIL_PX = 216
+
+/**
+ * 이 project 아래 path 를 `/` 로 나눈 segment. index 는 `[]`, 다른 project 의 path 는 `null` 이다.
+ * React Router 의 `pathname` 은 인코딩된 채로 오므로 projectId 도 인코딩해 비교한다.
+ * 깊은 화면 판단과 대화창 접힘 판단이 모두 이 함수로 path 를 읽는다.
+ */
+export function projectPathSegments(projectId: string, pathname: string): string[] | null {
+  const base = `/projects/${encodeURIComponent(projectId)}`
+  if (pathname !== base && !pathname.startsWith(`${base}/`)) return null
+  return pathname.slice(base.length).split('/').filter(Boolean)
+}
+
 export function sectionLabel(t: Messages, id: WorkspaceSectionId): string {
   return t.projects.workspace.nav[id]
 }
@@ -74,9 +88,8 @@ export function sectionLabel(t: Messages, id: WorkspaceSectionId): string {
  * redirect-only `game-builds/:buildId/content-map`, is not deep.
  */
 export function isDeepPath(projectId: string, pathname: string): boolean {
-  const base = `/projects/${encodeURIComponent(projectId)}/`
-  if (!pathname.startsWith(base)) return false
-  const parts = pathname.slice(base.length).replace(/\/+$/, '').split('/')
+  const parts = projectPathSegments(projectId, pathname)
+  if (parts === null) return false
   const [head, , tail] = parts
   switch (head) {
     case 'instances':

@@ -53,19 +53,17 @@ export function AgentChatPanel({ onClose, wide = false }: { onClose: () => void;
 }
 
 /** 닫힌 대화창을 다시 여는 버튼. 오른쪽 화면 가장자리에 붙는다. */
-export function AgentReopenButton({ onOpen, badge }: { onOpen: () => void; badge?: number }) {
+export function AgentReopenButton({ onOpen }: { onOpen: () => void }) {
   const { t } = useI18n()
-  const hasBadge = badge !== undefined && badge > 0
   return (
     <button
-      aria-label={hasBadge ? t.projectAgent.reopenWithBadge(badge) : t.projectAgent.reopen}
+      aria-label={t.projectAgent.reopen}
       className="agent-reopen"
       onClick={onOpen}
       type="button"
     >
       <AgentIcon />
       <span className="agent-reopen__label">{t.projectAgent.agentName}</span>
-      {hasBadge ? <span aria-hidden="true" className="agent-reopen__badge">{badge}</span> : null}
     </button>
   )
 }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
+import { projectPathSegments } from '../projects/workspace/sections'
 import {
   CHAT_WIDTH_MIN,
   chatWidthCeiling,
@@ -65,8 +66,8 @@ export function useAgentDock(projectId: string, pathname: string, railWidth: num
     storeAgentWidth(next)
   }, [])
 
-  const projectRoot = `/projects/${projectId}`
-  const isIndex = pathname === projectRoot || pathname === `${projectRoot}/`
+  const chatWidth = clampChatWidth(storedWidth, viewportWidth, railWidth)
+  const isIndex = projectPathSegments(projectId, pathname)?.length === 0
 
   return {
     enabled,
@@ -76,14 +77,14 @@ export function useAgentDock(projectId: string, pathname: string, railWidth: num
     /** `SplitHandle` 에 그대로 펼쳐 넣는다. */
     handle: {
       label: t.projectAgent.resizeHandle,
-      value: clampChatWidth(storedWidth, viewportWidth, railWidth),
+      value: chatWidth,
       min: CHAT_WIDTH_MIN,
       max: chatWidthCeiling(viewportWidth, railWidth),
       onChange: onWidthChange,
       onDragState: setSplitting,
       sign: -1 as const,
     },
-    chatWidth: clampChatWidth(storedWidth, viewportWidth, railWidth),
+    chatWidth,
     /** 끄는 동안 true. 바깥 grid 에 `is-splitting` 을 붙여 글자 선택을 막는다. */
     splitting,
     isIndex,

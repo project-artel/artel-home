@@ -12,7 +12,6 @@ export const projectAgentEn = {
   composerPlaceholder: 'Ask the agent to do something',
   composerNote: 'The conversation will be connected in a later release.',
   reopen: 'Open agent conversation',
-  reopenWithBadge: (count: number) => `Open agent conversation, ${count} waiting`,
   resizeHandle: 'Resize agent conversation',
 }
 
@@ -27,6 +26,5 @@ export const projectAgentKo: Localized<typeof projectAgentEn> = {
   composerPlaceholder: 'agent 에게 일을 시켜 보세요',
   composerNote: '대화 연결은 다음 릴리스에서 제공합니다.',
   reopen: 'agent 대화창 열기',
-  reopenWithBadge: (count: number) => `agent 대화창 열기, 대기 ${count}건`,
   resizeHandle: 'agent 대화창 폭 조절',
 }

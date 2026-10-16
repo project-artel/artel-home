@@ -5279,7 +5279,8 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
 }
 
 /* project agent 대화창(ARTEL-1113). 열려 있으면 rail, 페이지, 경계 handle, 대화창 순서의 4칸이다.
-   대화창 폭은 `useAgentDock` 이 계산해 `--agent-chat-w` 로 넘긴다. */
+   대화창 폭은 `useAgentDock` 이 계산해 `--agent-chat-w` 로 넘긴다. 216px 와 6px 는
+   `PROJECT_RAIL_PX`(sections.ts) 와 `SPLIT_PX`(agentDockState.ts) 와 같은 값이어야 한다. */
 .project-workspace.has-agent {
   grid-template-columns: 216px minmax(0, 1fr) 6px var(--agent-chat-w);
 }
@@ -5507,10 +5508,7 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   overflow-y: auto;
 }
 
-/* 깊은 화면(작업 화면 일곱 개)이 들어가는 칸. `.workspace-body` 가 `calc(100dvh - 48px)` 높이
-   칸이므로, 이 칸이 그 높이를 그대로 받아 자식에게 넘긴다. 화면 높이를 뷰포트에 직접 맞추던
-   `calc(100dvh - 48px)` 규칙은 여기서 `flex` 로 대체한다. 바깥 스크롤바가 하나 더 생기지 않도록
-   이 칸은 `overflow: hidden` 이고, 스크롤은 각 화면이 전에 하던 자리에서 한다. */
+/* 상세 페이지 7개가 들어가는 칸. `.workspace-body` 높이를 그대로 받고, 스크롤은 각 페이지 안에서 한다. */
 .workspace-deep {
   display: flex;
   min-width: 0;

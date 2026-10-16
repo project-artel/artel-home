@@ -6,15 +6,9 @@ import { useAgentDock } from '../../projectAgent/useAgentDock'
 import { formatDate } from '../formatters'
 import { useProject } from '../useProject'
 import { ProjectNav } from './ProjectNav'
-import { isDeepPath, sectionIdFromPath } from './sections'
+import { isDeepPath, PROJECT_RAIL_PX, sectionIdFromPath } from './sections'
 import { useWorkspaceExtras } from './useWorkspaceExtras'
 import { WorkspaceContext, type WorkspaceValue } from './workspaceContext'
-
-/**
- * 펼친 rail 폭. 대화창 폭의 상한은 이 값으로 계산한다. rail 을 접으면 페이지 칸이 168px 넓어질
- * 뿐이라, 접힘 상태를 따라가지 않고 넓은 쪽 하나로 계산한다.
- */
-const RAIL_PX = 216
 
 /**
  * Keyed by the project id so switching projects remounts rather than reusing
@@ -57,7 +51,8 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
   const extras = useWorkspaceExtras(projectId)
   const { t } = useI18n()
   const { pathname } = useLocation()
-  const dock = useAgentDock(projectId, pathname, RAIL_PX)
+  // rail 을 접으면 페이지 칸이 168px 넓어질 뿐이라, 대화창 폭 상한은 펼친 rail 폭으로 계산한다.
+  const dock = useAgentDock(projectId, pathname, PROJECT_RAIL_PX)
 
   const {
     applyTrackerLink,
