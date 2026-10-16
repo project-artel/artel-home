@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { Dialog } from '../design-system/primitives/Dialog'
@@ -9,6 +9,26 @@ import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { StudioIcon } from '../testScenarios/studioIcons'
 import { ChatSketch } from '../testScenarios/studioSketches'
 import { formatDateTime } from '../projects/formatters'
+
+const dayFormatter = new Intl.DateTimeFormat(undefined, { month: 'long', day: 'numeric' })
+const timeFormatter = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' })
+
+function formatDay(value: string): string {
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? '' : dayFormatter.format(parsed)
+}
+
+function formatTime(value: string): string {
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? '' : timeFormatter.format(parsed)
+}
+
+/** 앞 말과 날짜(그 사람의 시간대 기준)가 다르면 구분선을 세운다. 첫 말은 늘 세운다. */
+function dayChanged(previous: string | null, current: string | null): boolean {
+  if (current === null) return false
+  if (previous === null) return true
+  return new Date(previous).toDateString() !== new Date(current).toDateString()
+}
 import type { AuthoringStage, ChatRef, RunChatQuestion } from './runChatApi'
 import { ESC_WINDOW_MS, pressEscape } from './escCancel'
 import { deleteTestCase, getCoverage, getTestCase } from '../testCases/testCaseApi'
@@ -434,16 +454,22 @@ export function RunChat({ session }: { session: RunChatSession }) {
         </div>
       ) : (
         <ol className="chat-thread" ref={setThread}>
-          {session.messages.map((message) => (
+          {session.messages.map((message, index) => (
+            <Fragment key={message.id}>
+            {/* 날짜는 바뀔 때 한 번만 가운데에 선다(ARTEL-1107). 줄마다 날짜를 붙이면 대화보다 시각이
+                먼저 읽혔다. 시각은 ARTEL 줄 오른쪽에, 내 말은 말풍선에 가져다 대면 나온다. */}
+            {dayChanged(session.messages[index - 1]?.createdAt ?? null, message.createdAt) && (
+              <li className="chat-day" role="separator">{formatDay(message.createdAt as string)}</li>
+            )}
             <li
               className={`chat-message chat-message--${message.role.toLowerCase()}`}
-              key={message.id}
+              title={message.role === 'USER' && message.createdAt !== null ? formatDateTime(message.createdAt) : undefined}
             >
-              <p className="chat-author">
-                {message.role !== 'USER' && <StudioIcon className="run-chat-star" name="sparkles" size={12} />}
+              <p className={message.role === 'USER' ? 'chat-author visually-hidden' : 'chat-author'}>
+                {message.role !== 'USER' && <StudioIcon className="run-chat-star" name="sparkles" size={13} />}
                 {message.role === 'USER' ? c.you : c.agent}
                 {message.createdAt !== null && (
-                  <span className="chat-time">{formatDateTime(message.createdAt)}</span>
+                  <span className="chat-time">{message.role === 'USER' ? formatDateTime(message.createdAt) : formatTime(message.createdAt)}</span>
                 )}
               </p>
               {/* 에이전트가 쓴 구조는 세워 두고, 사용자가 친 글자는 건드리지 않는다 —
@@ -483,6 +509,7 @@ export function RunChat({ session }: { session: RunChatSession }) {
                 </div>
               )}
             </li>
+            </Fragment>
           ))}
           {session.awaitingReply && (
             <li className="chat-message chat-message--agent">
@@ -598,11 +625,13 @@ export function RunChat({ session }: { session: RunChatSession }) {
               {session.awaitingReply ? c.cancelHint : c.shortcutHint}
             </p>
             <button
-              className="button button--primary button--compact"
+              aria-label={session.sending ? c.sending : c.send}
+              className="button button--primary button--compact chat-send"
               disabled={session.sending || input.trim().length === 0}
+              title={session.sending ? c.sending : c.send}
               type="submit"
             >
-              {session.sending ? c.sending : c.send}
+              <StudioIcon name="arrowUp" size={17} />
             </button>
           </div>
         </form>
