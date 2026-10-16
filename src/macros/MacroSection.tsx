@@ -1,26 +1,37 @@
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
 import { buildOptionText, selectBuild } from '../projects/gameBuilds'
+import type { GameBuild } from '../projects/gameTypes'
 import { useWorkspace } from '../projects/workspace/workspaceContext'
-import { DeveloperMacroSection } from './DeveloperMacroSection'
-import { MacroDetail } from './MacroDetail'
-import { MacroList } from './MacroList'
-import { useBuildMacros, useMacroSource } from './useBuildMacros'
+import { SearchField } from '../testCases/SearchField'
+import {
+  countByOrigin,
+  filterByOrigin,
+  formatMacroParam,
+  mergeMacros,
+  parseMacroParam,
+  searchMacros,
+  type OriginFilter,
+} from './macroLibrary'
+import { MacroLibraryList } from './MacroLibraryList'
+import { MacroSheet } from './MacroSheet'
+import { MacroVersionList } from './MacroVersionList'
+import { useBuildMacros } from './useBuildMacros'
+import { useDeveloperMacros } from './useDeveloperMacros'
 
 /*
- * 프로젝트 작업공간의 macro 섹션 (ARTEL-941).
+ * 프로젝트 작업공간의 Macro 라이브러리 (ARTEL-941, ARTEL-1102).
  *
- * 빌드 하나를 골라 그 빌드에 등록된 macro 를 목록으로 보고, 하나를 열어 source 를
- * 읽는다. 읽기만 한다 — 쓰는 길은 agent 의 frame 뿐이다.
+ * 케이스 라이브러리와 같은 모양이다 — 왼쪽에 "버전" 목록, 오른쪽에 검색 · 출처 필터 · 표가
+ * 든 라이브러리 카드, 줄을 누르면 오른쪽 sheet. 읽기만 한다. agent macro 를 쓰는 길은
+ * agent 의 frame 이고, developer macro 를 쓰는 길은 MCP 다.
  *
- * `ContentMapSection` / `ContentMapReport` 와 같은 분업이다. 빌드를 고르는 일만 바깥
- * 컴포넌트에 남고, 읽기와 상태는 `MacroReport` 가 진다.
- *
- * 그 아래에 프로젝트의 developer macro(ARTEL-1102)가 `DeveloperMacroSection` 으로 따로
- * 선다. build 에 속하지 않으므로 `MacroReport` 처럼 build id 를 `key` 로 받지 않고, 고른
- * build 는 각 줄의 relation 칩을 계산하는 데만 쓴다.
+ * agent macro(tool loop agent 가 build 마다 저장한 것)와 developer macro(개발자가 MCP 로
+ * 프로젝트에 등록한 것)는 같은 DSL 의 `def` 이고 한 목록에 선다. 출처는 필터일 뿐이다.
+ * 고른 build 가 바꾸는 것은 agent macro 쪽과, developer macro 줄의 `이전 버전` · `다른 버전`
+ * 칩이다. developer macro 는 build 에 속하지 않아 build 를 바꿔도 다시 읽지 않는다.
  *
  * ## 주소에 쓰는 자리는 전부 기존 parameter 를 보존한다
  *
@@ -30,22 +41,24 @@ import { useBuildMacros, useMacroSource } from './useBuildMacros'
  * macro 를 고르면 `build` 가 날아가고, `build` 가 없으니 아래 effect 가 기본 빌드를
  * 채우며 `macro` 를 날린다. 선택이 한 렌더도 살아남지 못한다.
  *
- * 그래서 네 자리 전부 `setSearchParams` 의 **함수형**을 쓴다. 직전 값을 react-router
- * 에게 받으므로, 같은 tick 에 둘이 쓰더라도 나중 것이 앞의 것을 덮지 않는다 —
- * 렌더에서 붙잡은 `searchParams` 로 짓는 것과 달리 경우를 따져서가 아니라 구조로
- * 막힌다. 아래 목록은 예외 명단이 아니다. 주소에 쓰는 자리를 새로 만들면 그것도
- * 같은 모양을 쓴다. `DeveloperMacroSection` 의 `developerMacro` 도 그렇게 쓴다.
+ * 그래서 주소에 쓰는 자리는 전부 `setSearchParams` 의 **함수형**을 쓴다. 직전 값을
+ * react-router 에게 받으므로, 같은 tick 에 둘이 쓰더라도 나중 것이 앞의 것을 덮지 않는다
+ * — 렌더에서 붙잡은 `searchParams` 로 짓는 것과 달리 경우를 따져서가 아니라 구조로
+ * 막힌다. 주소에 쓰는 자리를 새로 만들면 그것도 같은 모양을 쓴다.
+ *
+ * 주소가 싣는 것은 둘이다. `build` 는 고른 build id, `macro` 는 연 macro 다. `macro` 는 두
+ * 출처가 함께 쓰는 한 칸이라 `agent:<id>` · `developer:<name>` 처럼 출처를 앞에 단다
+ * (`formatMacroParam`).
  */
 export function MacroSection() {
   const { builds, projectId } = useWorkspace()
   const { t } = useI18n()
   const copy = t.macros.section
-  const editorLabel = t.projects.builds.editorLabel
   const [searchParams, setSearchParams] = useSearchParams()
   const requestedBuildId = searchParams.get('build')
   const selectedBuild = selectBuild(builds, requestedBuildId)
 
-  // 주소가 늘 고른 빌드를 말하게 한다. **`macro` 는 남긴다** — `?macro=7` 만 달린
+  // 주소가 늘 고른 빌드를 말하게 한다. **`macro` 는 남긴다** — `?macro=agent:7` 만 달린
   // 주소를 붙여 넣었을 때 mount 하자마자 선택이 사라지면, 그 주소를 받은 사람은 보낸
   // 사람이 가리킨 macro 를 영영 못 본다.
   useEffect(() => {
@@ -65,85 +78,86 @@ export function MacroSection() {
       setSearchParams((previous) => {
         const next = new URLSearchParams(previous)
         next.set('build', buildId)
-        // 다른 빌드의 macro id 는 뜻이 없다. 남겨 두면 그 빌드에 없는 id 가 되어
-        // 곧바로 지워지거나, 더 나쁘게는 엉뚱한 macro 를 연다. `developerMacro` 는
-        // 남긴다 — developer macro 는 build 에 속하지 않는다.
-        next.delete('macro')
+        // 다른 빌드의 agent macro id 는 뜻이 없다. 남겨 두면 그 빌드에 없는 id 가 되어
+        // 곧바로 지워지거나, 더 나쁘게는 엉뚱한 macro 를 연다. developer macro 는 build 에
+        // 속하지 않으므로 남긴다.
+        if (parseMacroParam(previous.get('macro'))?.origin === 'agent') next.delete('macro')
         return next
       })
     },
     [setSearchParams],
   )
 
-  return (
-    <section className="macro-section">
-      <header className="macro-section-head">
-        <div>
-          <h2>
-            {copy.title}
-            <InfoHint>{copy.subtitle}</InfoHint>
-          </h2>
-        </div>
-        {selectedBuild !== undefined && (
-          <label className="macro-build-picker">
-            <span>{copy.selectLabel}</span>
-            <select onChange={(event) => changeBuild(event.target.value)} value={selectedBuild.id}>
-              {builds.map((build) => (
-                <option key={build.id} value={build.id}>
-                  {buildOptionText(build, editorLabel)}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-      </header>
-
-      {selectedBuild === undefined ? (
+  if (selectedBuild === undefined) {
+    return (
+      <section className="panel">
         <div className="panel-message">
           <h3>{copy.noBuildsTitle}</h3>
           <p className="panel-message-copy">{copy.noBuildsCopy}</p>
         </div>
-      ) : (
-        /*
-         * `key` 가 빌드 id 다. 빌드를 바꾸면 `MacroReport` 가 통째로 새로 마운트되어
-         * 목록 state 가 초기값부터 시작한다 — 새로고침 중에는 직전 목록을 남기는
-         * `useBuildMacros` 가, 빌드를 바꿀 때만은 남기지 않게 되는 자리가 여기다.
-         */
-        <MacroReport buildId={selectedBuild.id} key={selectedBuild.id} projectId={projectId} />
-      )}
+      </section>
+    )
+  }
 
-      <DeveloperMacroSection builds={builds} projectId={projectId} selectedBuild={selectedBuild} />
-    </section>
+  return (
+    <MacroLibrary
+      builds={builds}
+      onSelectBuild={changeBuild}
+      projectId={projectId}
+      selectedBuild={selectedBuild}
+    />
   )
 }
 
-/** 한 빌드의 macro. 목록 읽기와 상태들, 그리고 `?macro=` 선택이 여기 산다. */
-function MacroReport({ buildId, projectId }: { buildId: string; projectId: string }) {
+/** 라이브러리 본체. 두 출처의 읽기, 검색과 필터, `?macro=` 선택이 여기 산다. */
+function MacroLibrary({
+  builds,
+  onSelectBuild,
+  projectId,
+  selectedBuild,
+}: {
+  builds: GameBuild[]
+  onSelectBuild: (buildId: string) => void
+  projectId: string
+  selectedBuild: GameBuild
+}) {
   const { t } = useI18n()
   const copy = t.macros
+  const caseCopy = t.testCases
+  const editorLabel = t.projects.builds.editorLabel
   const [searchParams, setSearchParams] = useSearchParams()
   const requestedMacro = searchParams.get('macro')
+  const [query, setQuery] = useState('')
+  const [origin, setOrigin] = useState<OriginFilter>('ALL')
 
-  const { macros, status, reload } = useBuildMacros(projectId, buildId)
-  const refreshing = status === 'loading'
+  // `useBuildMacros` 는 build 가 바뀌면 직전 build 의 목록을 내보내지 않는다(`scope`). 그래서
+  // 여기서 `key` 로 새로 마운트하지 않아도 다른 build 의 agent macro 가 섞이지 않고, 검색어와
+  // 필터는 build 를 바꿔도 남는다.
+  const agent = useBuildMacros(projectId, selectedBuild.id)
+  const developer = useDeveloperMacros(projectId)
 
-  // 주소가 가리키는 id 가 이 빌드의 목록에 실제로 있을 때만 선택으로 친다.
-  const selectedId =
-    requestedMacro !== null && macros.some((macro) => macro.id === requestedMacro)
-      ? requestedMacro
-      : null
+  const merged = useMemo(() => mergeMacros(agent.macros, developer.macros), [agent.macros, developer.macros])
+  const searched = useMemo(() => searchMacros(merged, query), [merged, query])
+  const counts = countByOrigin(searched)
+  const shown = filterByOrigin(searched, origin)
+  const filtered = query.trim().length > 0 || origin !== 'ALL'
 
-  // 목록에 없는 id 를 주소에서 지운다. **목록이 뜬 뒤에만 판정한다** — 아직 읽는
-  // 중에 지우면 멀쩡한 주소를 지우게 되고, 공유받은 링크가 그 한 번에 망가진다.
+  const selection = parseMacroParam(requestedMacro)
+  const selectedKey = selection === null ? null : formatMacroParam(selection)
+  const selectedItem = merged.find((item) => item.key === selectedKey)
+  const selectionListStatus =
+    selection === null ? 'ready' : selection.origin === 'agent' ? agent.status : developer.status
+
+  // 목록에 없는 macro 를 주소에서 지운다. **그 출처의 목록이 뜬 뒤에만 판정한다** — 아직
+  // 읽는 중에 지우면 멀쩡한 주소를 지우게 되고, 공유받은 링크가 그 한 번에 망가진다.
+  // 읽을 수 없는 값(`?macro=7` 같은 옛 주소)은 기다릴 것이 없어 바로 지운다.
   useEffect(() => {
-    if (status !== 'ready') return
-    if (requestedMacro === null || selectedId !== null) return
+    if (requestedMacro === null || selectedItem !== undefined) return
+    if (selectionListStatus !== 'ready') return
     setSearchParams(
       (previous) => {
-        // 위 조건은 렌더에서 붙잡은 `requestedMacro` 로 판단한 것이고, 이 updater 가
-        // 도는 시점에는 이미 다른 값이 들어와 있을 수 있다. 지우는 쓰기는 네 자리
-        // 중 여기뿐이므로, 지우기 직전에 "내가 보고 판단한 그 값이 맞는가" 를 한 번
-        // 더 본다. 아니면 아무것도 하지 않는다.
+        // 위 조건은 렌더에서 붙잡은 값으로 판단한 것이다. updater 가 도는 시점에 다른
+        // 값이 들어와 있으면 아무것도 하지 않는다.
         if (previous.get('macro') !== requestedMacro) return previous
         const next = new URLSearchParams(previous)
         next.delete('macro')
@@ -151,98 +165,204 @@ function MacroReport({ buildId, projectId }: { buildId: string; projectId: strin
       },
       { replace: true },
     )
-  }, [status, requestedMacro, selectedId, setSearchParams])
+  }, [requestedMacro, selectedItem, selectionListStatus, setSearchParams])
 
-  const selectMacro = useCallback(
-    (macroId: string) => {
+  const openMacro = useCallback(
+    (key: string) => {
       setSearchParams((previous) => {
         const next = new URLSearchParams(previous)
-        next.set('macro', macroId)
+        next.set('macro', key)
         return next
       })
     },
     [setSearchParams],
   )
 
-  const sourceRead = useMacroSource(projectId, buildId, selectedId)
+  const closeSheet = useCallback(() => {
+    setSearchParams((previous) => {
+      const next = new URLSearchParams(previous)
+      next.delete('macro')
+      return next
+    })
+  }, [setSearchParams])
 
-  // 첫 로드에만 화면을 비운다. 새로고침 중에는 직전 목록이 그대로 남고 `aria-busy` 만
-  // 붙는다 — 사용자가 누른 것은 새로고침이지 닫기가 아니다.
-  if (refreshing && macros.length === 0) {
-    return (
-      <section className="panel">
-        <p aria-busy="true" className="panel-empty">
-          {copy.states.loading}
-        </p>
-      </section>
-    )
+  const reloadAll = () => {
+    agent.reload()
+    developer.reload()
   }
 
-  // 되돌아갈 목록이 없는 실패. 빌드가 없거나 접근할 수 없을 때도 여기로 온다 —
-  // 서버가 404 의 세 이유를 가르지 않으므로 화면도 가르지 않는다.
-  if (status === 'error' && macros.length === 0) {
-    return (
-      <section className="panel">
-        <div className="panel-message" role="alert">
-          <p className="panel-message-copy">{copy.states.loadFailed}</p>
-          <button className="button button--secondary" onClick={reload} type="button">
-            {copy.states.retry}
-          </button>
-        </div>
-      </section>
-    )
-  }
+  // 케이스 라이브러리처럼 최신 game version build 에 `현재` 를 단다. editor build 만 있는
+  // 프로젝트에는 "현재 버전" 이 없다.
+  const newest = selectBuild(builds, null)
+  const latestBuild = newest !== undefined && !newest.isEditor ? newest : undefined
 
-  // 빌드는 있는데 macro 가 하나도 없다. 서버가 404 가 아니라 빈 목록으로 답하는
-  // 자리이고, 오류도 로딩도 아니다 — 아직 agent 가 저장할 만한 것을 못 만난 것이다.
-  if (macros.length === 0) {
-    return (
-      <section className="panel">
-        <div className="panel-message">
-          <h3>{copy.empty.title}</h3>
-          <p className="panel-message-copy">{copy.empty.copy}</p>
-        </div>
-      </section>
-    )
-  }
+  // 둘 다 첫 로드를 마치기 전에는 표 자리만 기다린다. 한쪽만 그리면 나머지 출처가 나중에
+  // 끼어들며 줄이 밀린다. build 를 바꾸면 agent 쪽 목록이 비므로 다시 여기로 온다.
+  const waiting =
+    (agent.status === 'loading' && agent.macros.length === 0) ||
+    (developer.status === 'loading' && developer.macros.length === 0)
+  const selectedCount =
+    agent.status === 'ready' && developer.status === 'ready'
+      ? agent.macros.length +
+        developer.macros.filter((macro) => macro.gameBuildId === selectedBuild.id).length
+      : null
 
   return (
-    <div aria-busy={refreshing || undefined}>
-      {/* 새로고침이 실패했고 직전 목록이 남아 있는 상태. 목록은 그대로 두되 지금의
-          사실인 척하지 않는다 — 마지막으로 받은 것을 살아 있는 것처럼 보이면 안 된다. */}
-      {status === 'error' && (
-        <div className="macro-banner" role="status">
-          <p className="macro-banner-title">{copy.states.refreshFailedTitle}</p>
-          <p className="macro-banner-copy">{copy.states.refreshFailedCopy}</p>
-        </div>
-      )}
+    <div className="tcl cp-scope macro-library">
+      <aside aria-label={caseCopy.versions.heading} className="tcl-folders">
+        <MacroVersionList
+          builds={builds}
+          latestBuildId={latestBuild?.id ?? null}
+          onSelect={onSelectBuild}
+          selectedCount={selectedCount}
+          selectedId={selectedBuild.id}
+        />
+      </aside>
 
-      <div className="macro-section-actions">
-        {/* 라벨이 바뀌지 않는다. 말줄임표가 붙은 상태 문장은 button 이름이 아니고,
-            누르는 순간 폭이 변해 포인터 밑에서 button 이 움직인다. 진행 중이라는
-            사실은 `disabled` 와 바깥의 `aria-busy` 가 이미 말한다. */}
-        <button
-          className="button button--secondary"
-          disabled={refreshing}
-          onClick={reload}
-          type="button"
-        >
-          {copy.section.refresh}
-        </button>
-      </div>
+      <section
+        aria-busy={agent.status === 'loading' || developer.status === 'loading' || undefined}
+        aria-label={copy.section.title}
+        className="panel tcl-list-panel"
+      >
+        <header className="panel-header panel-header--split">
+          <h2 className="tcl-title">
+            {copy.section.title}
+            <InfoHint>{copy.section.subtitle}</InfoHint>
+            {latestBuild !== undefined && (
+              <span className="tcl-current-version" title={caseCopy.versions.currentTitle}>
+                {caseCopy.versions.current} <strong>{buildOptionText(latestBuild, editorLabel)}</strong>
+              </span>
+            )}
+          </h2>
+          <div className="tcl-head-actions">
+            {/* 라벨이 바뀌지 않는다. 진행 중이라는 사실은 `disabled` 와 `aria-busy` 가 말한다. */}
+            <button
+              className="button button--secondary button--compact"
+              disabled={agent.status === 'loading' || developer.status === 'loading'}
+              onClick={reloadAll}
+              type="button"
+            >
+              {copy.section.refresh}
+            </button>
+          </div>
+        </header>
 
-      <div className="macro-workspace">
-        <section className="panel macro-list-panel">
-          <MacroList macros={macros} onSelect={selectMacro} selectedId={selectedId} />
-        </section>
-        <aside className="panel macro-detail-panel">
-          <MacroDetail
-            macro={sourceRead.macro}
-            onRetry={sourceRead.reload}
-            status={sourceRead.status}
+        {/* 한쪽 읽기가 실패해도 다른 쪽은 그린다. 실패한 쪽이 직전 목록을 들고 있으면 그것도
+            그대로 남는다(`useBuildMacros`, `useDeveloperMacros`). */}
+        {agent.status === 'error' && (
+          <LoadFailedNotice message={copy.section.agentLoadFailed} onRetry={agent.reload} retryLabel={copy.section.retry} />
+        )}
+        {developer.status === 'error' && (
+          <LoadFailedNotice
+            message={copy.section.developerLoadFailed}
+            onRetry={developer.reload}
+            retryLabel={copy.section.retry}
           />
-        </aside>
-      </div>
+        )}
+
+        <div className="tcl-filters">
+          <div className="tcl-filter tcl-filter--grow">
+            <SearchField
+              clearLabel={caseCopy.filters.clearSearch}
+              label={caseCopy.filters.search}
+              onChange={setQuery}
+              placeholder={copy.section.searchPlaceholder}
+              value={query}
+            />
+          </div>
+        </div>
+
+        <div className="tcl-status-row">
+          <span className="field-label">{caseCopy.origin.label}</span>
+          <div className="tcl-chips">
+            {(['ALL', 'AGENT', 'DEVELOPER'] as const).map((option) => (
+              <button
+                aria-pressed={origin === option}
+                className={origin === option ? 'fchip on' : 'fchip'}
+                key={option}
+                onClick={() => setOrigin(option)}
+                type="button"
+              >
+                {option === 'ALL'
+                  ? caseCopy.origin.all
+                  : option === 'AGENT'
+                    ? copy.origin.agent
+                    : copy.origin.developer}{' '}
+                {counts[option]}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {waiting ? (
+          <div aria-busy="true" className="panel-empty-block">
+            <p className="panel-empty">{copy.section.loading}</p>
+          </div>
+        ) : shown.length === 0 ? (
+          <div className="panel-empty-block">
+            <p className="panel-empty">{filtered ? copy.section.emptyFiltered : copy.section.empty}</p>
+            {filtered && (
+              <button
+                className="button button--secondary button--compact"
+                onClick={() => {
+                  setQuery('')
+                  setOrigin('ALL')
+                }}
+                type="button"
+              >
+                {caseCopy.section.clearFilters}
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="cp-listwrap">
+            <div className="cp-list tcl-scroll">
+              <MacroLibraryList
+                builds={builds}
+                items={shown}
+                onOpen={openMacro}
+                selectedBuild={selectedBuild}
+                selectedKey={selectedItem?.key ?? null}
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="cp-foot">
+          <span />
+          <span>{copy.section.shownOf(shown.length, merged.length)}</span>
+        </div>
+      </section>
+
+      {selectedItem !== undefined && (
+        <MacroSheet
+          builds={builds}
+          item={selectedItem}
+          key={selectedItem.key}
+          onClose={closeSheet}
+          projectId={projectId}
+          selectedBuild={selectedBuild}
+        />
+      )}
     </div>
+  )
+}
+
+function LoadFailedNotice({
+  message,
+  onRetry,
+  retryLabel,
+}: {
+  message: string
+  onRetry: () => void
+  retryLabel: string
+}) {
+  return (
+    <p className="tcl-notice" role="alert">
+      <span>{message}</span>
+      <button className="button button--secondary button--compact" onClick={onRetry} type="button">
+        {retryLabel}
+      </button>
+    </p>
   )
 }
