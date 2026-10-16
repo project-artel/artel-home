@@ -15,14 +15,12 @@ export function DocumentsSection() {
   const streamState = useDocumentEvents(projectId, applyDocumentStatus)
 
   return (
-    <div className="section-single">
-      <DocumentPanel
-        documents={documents}
-        onDeleted={applyRemovedDocument}
-        onUploaded={applyNewDocument}
-        projectId={projectId}
-        streamState={streamState}
-      />
-    </div>
+    <DocumentPanel
+      documents={documents}
+      onDeleted={applyRemovedDocument}
+      onUploaded={applyNewDocument}
+      projectId={projectId}
+      streamState={streamState}
+    />
   )
 }
