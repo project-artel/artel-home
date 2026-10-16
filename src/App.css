@@ -11312,7 +11312,9 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
 /* TC 가 붙은 줄은 왼쪽 띠로 세운다. 고른 줄의 굵은 띠가 그 위에 덮인다. */
 .scenario-studio .se-row.is-tc .se-row-main { box-shadow: inset 2px 0 0 color-mix(in srgb, var(--st-action) 55%, transparent); }
 .scenario-studio .se-row.is-tc .se-row-main:focus-visible { box-shadow: inset 0 0 0 2px var(--st-action); }
-.scenario-studio .se-tc { padding: 2px 7px; border: 0; border-radius: 4px; background: var(--st-action); color: var(--color-text-on-accent); font: 700 10.5px var(--st-mono); letter-spacing: .02em; cursor: pointer; }
+/* 라벨 글씨는 흰색이다(사용자 요청). 잉크색은 이 빨강 위에서 두 테마 모두 잘 안 읽혔다. 흰 글씨의 대비는 3.6:1 로
+   작은 글씨 기준보다 낮아, 굵기를 한 단 올려 보탠다. */
+.scenario-studio .se-tc { padding: 2px 7px; border: 0; border-radius: 4px; background: var(--st-action); color: #fff; font: 800 10.5px var(--st-mono); letter-spacing: .03em; cursor: pointer; }
 .scenario-studio .se-tc:hover { background: var(--st-action-strong); }
 .scenario-studio .se-tc:focus-visible { outline: 2px solid var(--st-action); outline-offset: 2px; }
 .scenario-studio .se-row-case.is-continued .se-tc { background: color-mix(in srgb, var(--st-action) 18%, transparent); color: var(--st-action); }
