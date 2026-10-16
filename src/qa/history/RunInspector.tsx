@@ -100,6 +100,12 @@ export function RunInspector({
         </div>
 
         <div className="qh-inspector-links">
+          <Link
+            className="button button--primary button--compact"
+            to={`/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(run.testRunId)}/edit`}
+          >
+            {b.openTestRun}
+          </Link>
           <Link className="button button--secondary button--compact" to={qaRunPath(projectId, run.id)}>{b.timeline}</Link>
           <Link
             className="button button--secondary button--compact"
@@ -116,7 +122,14 @@ export function RunInspector({
               label={b.scenarioFallback(index + 1)}
               qaTryId={qaTry.id}
             />
-            <Link className="qh-scenario-link" to={qaRunPath(projectId, run.id, qaTry.id)}>{b.scenarioTimeline}</Link>
+            <div className="qh-scenario-links">
+              <Link
+                to={`/projects/${encodeURIComponent(projectId)}/test-scenarios/${encodeURIComponent(qaTry.testScenarioId)}?run=${encodeURIComponent(run.testRunId)}`}
+              >
+                {b.openScenario}
+              </Link>
+              <Link to={qaRunPath(projectId, run.id, qaTry.id)}>{b.scenarioTimeline}</Link>
+            </div>
           </section>
         ))}
       </div>

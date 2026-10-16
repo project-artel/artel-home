@@ -9435,6 +9435,9 @@ button.run-chat-coverage:hover {
 }
 
 .run-detail-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   margin: 0 0 var(--space-3);
   color: var(--color-text-muted);
   font-family: var(--font-sans);
@@ -11214,9 +11217,15 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
 .qh-figures .is-bad b { color: var(--color-status-critical); }
 .qh-inspector-links { display: flex; gap: var(--space-2); padding: var(--space-3) var(--space-5) var(--space-4); border-bottom: 1px solid var(--color-border-subtle); }
 .qh-scenario { padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--color-border-subtle); }
-.qh-scenario-link { display: inline-block; margin-top: var(--space-3); color: var(--color-action-primary); font-size: 12px; font-weight: 600; text-decoration: none; }
-.qh-scenario-link:hover { text-decoration: underline; text-underline-offset: 3px; }
-.qh-scenario:has(.run-detail--collapsed) .qh-scenario-link { display: none; }
+.qh-scenario-links { display: flex; gap: var(--space-4); margin-top: var(--space-4); padding-top: var(--space-3); border-top: 1px dashed var(--color-border-subtle); }
+.qh-scenario-links a { color: var(--color-action-primary); font-size: 12px; font-weight: 600; text-decoration: none; }
+.qh-scenario-links a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.qh-scenario:has(.run-detail--collapsed) .qh-scenario-links { display: none; }
+/* 오른쪽 칸 안의 시나리오 상세 — 결과 · 비용 · 도구 호출을 구역으로 가른다 */
+.qh-inspector .run-detail-group + .run-detail-group,
+.qh-inspector .run-detail-tools { margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--color-border-subtle); }
+.qh-inspector .run-detail-tools-head { padding-bottom: 0; border-bottom: 0; }
+.qh-scenario:nth-of-type(even) { background: color-mix(in srgb, var(--color-bg-raised) 45%, transparent); }
 /* 시나리오 접기(ARTEL-1100) — 제목 줄이 버튼이다 */
 .run-detail-toggle { display: flex; flex-direction: row; width: 100%; align-items: flex-start; gap: var(--space-2); border: 0; border-bottom: 1px solid var(--color-border-subtle); background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .run-detail--collapsed .run-detail-toggle { margin: 0; padding: 0; border-bottom: 0; }
@@ -11258,3 +11267,10 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
   .qh-tone--running svg { animation-duration: 3s; }
   .qh .edgebar-fill { transition: none; }
 }
+
+/* 시도 상세의 구역 아이콘(ARTEL-1100) */
+.run-detail-label-icon { display: inline-grid; width: 22px; height: 22px; place-items: center; border-radius: 6px; }
+.run-detail-label--result .run-detail-label-icon { color: var(--color-status-success); background: color-mix(in srgb, var(--color-status-success) 16%, transparent); }
+.run-detail-label--cost .run-detail-label-icon { color: var(--color-status-warning); background: color-mix(in srgb, var(--color-status-warning) 16%, transparent); }
+.run-detail-label--tools .run-detail-label-icon { color: var(--color-agent-reasoning); background: color-mix(in srgb, var(--color-agent-reasoning) 16%, transparent); }
+.run-detail-label { font-size: 12px; font-weight: 600; color: var(--color-text-secondary); }

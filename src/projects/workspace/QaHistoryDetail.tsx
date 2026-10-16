@@ -140,7 +140,7 @@ function RunDetailResult({ detail }: { detail: QaTryDetail }) {
   if (detail.status === 'CANCELLED' || (detail.status === 'FAILED' && detail.stepsTotal === null)) {
     return (
       <section className="run-detail-group">
-        <h3 className="run-detail-label">{t.qa.history.detail.resultGroup}</h3>
+        <SectionTitle kind="result">{t.qa.history.detail.resultGroup}</SectionTitle>
         <p className="run-detail-note">
           {detail.status === 'CANCELLED' ? t.qa.history.detail.cancelled : t.qa.history.detail.failedNoResult}
         </p>
@@ -151,7 +151,7 @@ function RunDetailResult({ detail }: { detail: QaTryDetail }) {
   if (detail.stepsTotal === null) {
     return (
       <section className="run-detail-group">
-        <h3 className="run-detail-label">{t.qa.history.detail.resultGroup}</h3>
+        <SectionTitle kind="result">{t.qa.history.detail.resultGroup}</SectionTitle>
         <p className="run-detail-note">{t.qa.history.detail.running}</p>
       </section>
     )
@@ -159,7 +159,7 @@ function RunDetailResult({ detail }: { detail: QaTryDetail }) {
 
   return (
     <section className="run-detail-group">
-      <h3 className="run-detail-label">{t.qa.history.detail.resultGroup}</h3>
+      <SectionTitle kind="result">{t.qa.history.detail.resultGroup}</SectionTitle>
       <dl className="run-detail-facts">
         <Fact label={t.qa.history.detail.steps}>
           {counts.format(detail.stepsPassed ?? 0)}
@@ -191,7 +191,7 @@ function RunDetailCost({ detail }: { detail: QaTryDetail }) {
 
   return (
     <section className="run-detail-group">
-      <h3 className="run-detail-label">{t.qa.history.detail.costGroup}</h3>
+      <SectionTitle kind="cost">{t.qa.history.detail.costGroup}</SectionTitle>
       <dl className="run-detail-facts">
         <Fact label={t.qa.history.detail.calls}>{counts.format(usage.calls)}</Fact>
         <Fact label={t.qa.history.detail.cost}>
@@ -254,7 +254,7 @@ function RunDetailTools({ detail }: { detail: QaTryDetail }) {
   return (
     <section className="run-detail-tools">
       <div className="run-detail-tools-head">
-        <h3 className="run-detail-label">{t.qa.history.detail.toolCalls}</h3>
+        <SectionTitle kind="tools">{t.qa.history.detail.toolCalls}</SectionTitle>
         <span className="mono" translate="no">
           {counts.format(total)}
         </span>
@@ -308,5 +308,28 @@ function Chevron({ open }: { open: boolean }) {
     <svg aria-hidden="true" className={`run-detail-chevron${open ? ' is-open' : ''}`} fill="none" height="14" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="14">
       <path d="M9 6l6 6l-6 6" />
     </svg>
+  )
+}
+
+/**
+ * 구역 제목(ARTEL-1100). 결과 · 비용 · 도구 호출이 같은 회색 글자로만 갈려 한 덩어리로 읽혀서,
+ * 구역마다 색 타일 아이콘(Tabler: `checklist` · `coin` · `tool`)을 붙인다.
+ */
+const SECTION_ICONS = {
+  result: 'M9.615 20h-2.615a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v8 M14 19l2 2l4 -4 M9 8h4 M9 12h2',
+  cost: 'M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0 M14.8 9a2 2 0 0 0 -1.8 -1h-2a2 2 0 1 0 0 4h2a2 2 0 1 1 0 4h-2a2 2 0 0 1 -1.8 -1 M12 7v10',
+  tools: 'M7 10h3v-3l-3.5 -3.5a6 6 0 0 1 8 8l6 6a2 2 0 0 1 -3 3l-6 -6a6 6 0 0 1 -8 -8l3.5 3.5',
+} as const
+
+function SectionTitle({ kind, children }: { kind: keyof typeof SECTION_ICONS; children: ReactNode }) {
+  return (
+    <h3 className={`run-detail-label run-detail-label--${kind}`}>
+      <span aria-hidden="true" className="run-detail-label-icon">
+        <svg fill="none" height="13" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="13">
+          <path d={SECTION_ICONS[kind]} />
+        </svg>
+      </span>
+      {children}
+    </h3>
   )
 }
