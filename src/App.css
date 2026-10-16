@@ -11251,3 +11251,10 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
   .dw-ring-fill { transition: none; }
   .dw-ring.is-indeterminate svg { animation-duration: 3s; }
 }
+/* 추출 중(ARTEL-1098). 진행률이 없는 일이라 원은 돌기만 하고, 얼마나 지났는지를 옆에 쓴다. */
+.dw-extracting { display: flex; align-items: center; gap: var(--space-5); padding: var(--space-5) var(--space-6); border: 1px solid color-mix(in srgb, var(--color-action-primary) 40%, var(--color-border-subtle)); border-radius: var(--radius-lg); background: color-mix(in srgb, var(--color-action-primary) 6%, var(--color-bg-surface)); }
+.dw-extracting-text { display: flex; flex-direction: column; gap: 4px; }
+.dw-extracting-text b { font-size: 16px; }
+.dw-extracting-text > span { color: var(--color-text-secondary); font-size: 13px; }
+.dw-extracting .document-parse-elapsed { color: var(--color-text-primary); }
+.dw-current-facts .dw-ring { margin-right: 2px; }

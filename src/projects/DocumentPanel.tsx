@@ -357,7 +357,7 @@ function DropZone({
  * 원형 진행 표시. 업로드는 `XMLHttpRequest` 의 진행 이벤트로 비율을 알 때가 많아 그만큼 원을 채우고,
  * 비율을 모르면(`null`) 4분의 1 호가 돈다 — 멈춘 0% 로 그리면 걸린 것처럼 보인다.
  */
-function ProgressRing({ percent, size }: { percent: number | null; size: number }) {
+function ProgressRing({ percent, size, label }: { percent: number | null; size: number; label?: string }) {
   const { t } = useI18n()
   const stroke = size >= 80 ? 6 : 4
   const radius = (size - stroke) / 2
@@ -366,7 +366,7 @@ function ProgressRing({ percent, size }: { percent: number | null; size: number 
 
   return (
     <span
-      aria-label={t.projects.documents.progressLabel}
+      aria-label={label ?? t.projects.documents.progressLabel}
       aria-valuemax={100}
       aria-valuemin={0}
       aria-valuenow={percent ?? undefined}
@@ -427,6 +427,7 @@ function CurrentDocument({ document, actions }: { document: ProjectDocument; act
         <div>
           <dt>{w.statusLabel}</dt>
           <dd>
+            {extracting(document) && <ProgressRing label={t.projects.documents.parseStatus.extracting} percent={null} size={20} />}
             <ParseStatusBadge document={document} />
             {document.parseStatus === 'EXTRACTING' && !document.stale && <ExtractingElapsed since={document.uploadedAt} />}
             {document.parseStatus === 'EXTRACTED' && <span className="dw-fact-note">{w.extractedNote}</span>}
@@ -508,6 +509,11 @@ function DeleteConfirm({ document, actions }: { document: ProjectDocument; actio
   )
 }
 
+/** 추출을 기다리는 중인가. 서버가 작업을 잃은(`stale`) 것은 기다리는 것이 아니다. */
+function extracting(document: ProjectDocument): boolean {
+  return document.parseStatus === 'PENDING' || (document.parseStatus === 'EXTRACTING' && !document.stale)
+}
+
 /** FAILED 이거나 EXTRACTING+stale 인 문서만. 지우고 다시 올리는 길은 이미 있는 삭제 버튼이다. */
 function parseNote(document: ProjectDocument, t: ReturnType<typeof useI18n>['t']) {
   if (document.parseStatus === 'FAILED') return { variant: 'failed', copy: t.projects.documents.parseStatus.failedCopy }
@@ -544,10 +550,20 @@ function KnowledgePreview({
     )
   }
 
-  const waiting = current.parseStatus === 'PENDING' || (current.parseStatus === 'EXTRACTING' && !current.stale)
-  if (waiting) {
+  if (extracting(current)) {
     return (
-      <KnowledgeSection link={graphLink} note={w.knowledgeWaiting(current.version)} title={w.knowledgeTitle}>
+      <KnowledgeSection link={graphLink} title={w.knowledgeTitle}>
+        <div className="dw-extracting">
+          <ProgressRing label={t.projects.documents.parseStatus.extracting} percent={null} size={64} />
+          <span className="dw-extracting-text">
+            <b>{w.extractingTitle(current.version)}</b>
+            <span>
+              {current.parseStatus === 'EXTRACTING' ? <ExtractingElapsed since={current.uploadedAt} /> : t.projects.documents.parseStatus.pending}
+              {' · '}
+              {w.knowledgeWaiting(current.version)}
+            </span>
+          </span>
+        </div>
         <div aria-hidden="true" className="dw-cards">
           {Array.from({ length: 6 }, (_, index) => (
             <div className="dw-card" key={index}>
