@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useId, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { useAuth } from '../../auth/useAuth'
 import { useI18n } from '../../i18n/useI18n'
+import { usePolling } from '../../live/usePolling'
 import { adminFormat } from '../shared/format'
 import {
   PLATFORM_ROLES,
@@ -56,6 +57,21 @@ export default function UsersPage() {
     return () => controller.abort()
   }, [reloadToken, fail, setError])
 
+  // A poll only replaces the list. It leaves `loading`, `error`, the create form and the
+  // temporary password notice alone, and a failed poll keeps the list already shown.
+  const pollController = useRef<AbortController | null>(null)
+  useEffect(() => () => pollController.current?.abort(), [reloadToken])
+  usePolling(() => {
+    pollController.current?.abort()
+    const controller = new AbortController()
+    pollController.current = controller
+    listAdminUsers(controller.signal)
+      .then((list) => {
+        if (!controller.signal.aborted) setUsers(list)
+      })
+      .catch(() => {})
+  })
+
   // `loading` belongs to the event that causes the reload, not to the effect.
   const reload = useCallback(() => {
     setLoading(true)
@@ -77,13 +93,6 @@ export default function UsersPage() {
 
   return (
     <div className="shell">
-      <header className="topbar">
-        <span className="topbar__spacer" />
-        <button type="button" className="control control--action" disabled={loading} onClick={reload}>
-          {loading ? t.adminSettings.users.loading : t.adminSettings.users.refresh}
-        </button>
-      </header>
-
       <main className="main">
         {issued !== null && (
           <TemporaryPasswordNotice

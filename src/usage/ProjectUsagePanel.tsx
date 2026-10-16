@@ -16,7 +16,7 @@ import { useProjectUsage } from './useProjectUsage'
 export function ProjectUsagePanel({ projectId }: { projectId: string }) {
   const { t } = useI18n()
   const u = t.usage
-  const { status, usage, grid, today, reload } = useProjectUsage(projectId)
+  const { status, usage, grid, today } = useProjectUsage(projectId)
 
   return (
     <section className="panel usage-panel" aria-labelledby="usage-panel-title">
@@ -31,13 +31,6 @@ export function ProjectUsagePanel({ projectId }: { projectId: string }) {
           <Link className="button button--secondary button--compact" to={sectionHref(projectId, 'usage')}>
             {u.seeAll}
           </Link>
-          <button
-            className="button button--secondary button--compact"
-            onClick={reload}
-            type="button"
-          >
-            {u.refresh}
-          </button>
         </div>
       </header>
 
