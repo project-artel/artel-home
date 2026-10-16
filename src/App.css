@@ -289,6 +289,72 @@
   text-align: center;
 }
 
+/* `/mcp/connect` 동의 화면. 판은 `.login-panel` 을 그대로 쓴다. */
+.mcp-connect-client {
+  color: var(--color-text-primary);
+  /* 공백 없는 긴 `client_name` 이 판 밖으로 나가지 않게 한다. */
+  overflow-wrap: anywhere;
+}
+
+.mcp-connect-scope {
+  margin-top: var(--space-5);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-raised);
+}
+
+.mcp-connect-scope h2 {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.mcp-connect-scope ul {
+  margin: var(--space-1) 0 var(--space-3);
+  padding-left: var(--space-5);
+  color: var(--color-text-primary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.mcp-connect-scope ul:last-child {
+  margin-bottom: 0;
+}
+
+.mcp-connect-account {
+  display: grid;
+  gap: var(--space-1);
+  margin: var(--space-4) 0 0;
+  font-size: 13px;
+}
+
+.mcp-connect-account dt {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.mcp-connect-account dd {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+
+.mcp-connect-email {
+  color: var(--color-text-secondary);
+}
+
+.mcp-connect-status {
+  min-height: 18px;
+  margin: var(--space-4) 0 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
 .brand {
   display: inline-flex;
   align-items: center;
