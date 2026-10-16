@@ -11120,3 +11120,138 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
 /* 설명 툴팁은 줄바꿈으로 문장을 나눈다(ARTEL-1084). 대시로 이어 붙이지 않는다. */
 .info-hint__bubble { white-space: pre-line; }
 .issue-row--focused { outline: 2px solid var(--color-action-primary); outline-offset: 2px; }
+
+/* ── 시나리오 단계 편집기 (ARTEL-1107) ──────────────────────────────────────────
+   목록은 한 줄씩 훑고, 고른 단계는 아래 칸에서 깊게 읽는다. 상세가 열려도 행 높이는 그대로다. */
+.scenario-studio .st-edit > .se { min-height: 0; height: 100%; overflow: hidden; }
+.scenario-studio .se { display: flex; flex-direction: column; min-width: 0; background: var(--st-canvas); }
+.scenario-studio .se-head { flex: none; padding: 18px 26px 12px; }
+.scenario-studio .se-head .draft-banner { margin: 0 0 12px; }
+.scenario-studio .se-eyebrow { display: flex; align-items: center; gap: 8px; color: var(--st-muted); font-size: 11px; letter-spacing: .02em; }
+.scenario-studio .se-mode-dot { width: 7px; height: 7px; border: 1.5px solid var(--st-muted); border-radius: 50%; }
+.scenario-studio .se-title { display: block; box-sizing: border-box; width: 100%; margin: 6px 0 4px; padding: 0; border: 0; border-bottom: 1px solid transparent; outline: none; background: none; color: var(--st-text); font: 650 22px/30px var(--font-display); letter-spacing: -.01em; }
+.scenario-studio .se-title:hover { border-bottom-color: var(--st-border); }
+.scenario-studio .se-title:focus { border-bottom-color: var(--st-action); }
+.scenario-studio .se-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--st-text-2); font-size: 12px; }
+.scenario-studio .se-muted { color: var(--st-muted); font-size: 12px; }
+.scenario-studio .se-spacer { flex: 1; }
+.scenario-studio .se-error { display: flex; align-items: center; gap: 8px; margin: 0 26px 10px; padding: 10px 12px; border-radius: var(--radius-md); background: var(--color-status-critical-muted); color: var(--color-status-critical); font-size: 12px; }
+
+.scenario-studio .se-toolbar { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 24px; border-top: 1px solid var(--st-border); }
+.scenario-studio .se-find { display: flex; align-items: center; gap: 8px; width: 280px; height: 34px; padding: 0 4px 0 10px; border: 1px solid var(--st-border); border-radius: var(--radius-md); background: var(--st-surface); color: var(--st-muted); }
+.scenario-studio .se-find:focus-within { border-color: var(--st-action); }
+.scenario-studio .se-find input { flex: 1; min-width: 0; border: 0; outline: none; background: none; color: var(--st-text); font: inherit; font-size: 12px; }
+.scenario-studio .se-find-count { font-size: 10px; white-space: nowrap; }
+.scenario-studio .se-icon-button { display: inline-grid; flex: none; width: 28px; height: 28px; place-items: center; padding: 0; border: 0; border-radius: var(--radius-md); background: none; color: var(--st-text-2); cursor: pointer; }
+.scenario-studio .se-icon-button:hover:not(:disabled) { background: var(--st-hover); color: var(--st-text); }
+.scenario-studio .se-icon-button:disabled { opacity: .35; cursor: default; }
+.scenario-studio .se-gap-jump { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border: 1px solid color-mix(in srgb, var(--st-draft) 45%, var(--st-border)); border-radius: var(--radius-md); background: color-mix(in srgb, var(--st-draft) 8%, transparent); color: var(--st-draft); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.scenario-studio .se-seg { display: inline-flex; padding: 2px; border-radius: var(--radius-lg); background: var(--st-raised); }
+.scenario-studio .se-seg button { height: 28px; padding: 0 10px; border: 0; border-radius: var(--radius-md); background: none; color: var(--st-text-2); font: inherit; font-size: 12px; cursor: pointer; }
+.scenario-studio .se-seg button.is-on { background: var(--st-surface); color: var(--st-text); font-weight: 600; }
+.scenario-studio .se-add { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border: 1px solid var(--st-border); border-radius: var(--radius-md); background: var(--st-surface); color: var(--st-text); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.scenario-studio .se-add:hover { border-color: var(--st-border-strong); }
+
+/* 열: 순서 · 실행할 내용 · 연결 TC · 씬 · TC 판정. 문장 칸은 너무 길어지지 않게 상한을 둔다. */
+.scenario-studio .se-columns,
+.scenario-studio .se-row-main { display: grid; grid-template-columns: 44px minmax(0, 1fr) 64px minmax(96px, 140px) 92px; gap: 12px; align-items: center; padding: 0 26px 0 30px; }
+.scenario-studio .se-columns { flex: none; height: 34px; border-block: 1px solid var(--st-border); background: var(--st-surface); color: var(--st-muted); font-size: 11px; }
+.scenario-studio .se-columns-verdict { display: inline-flex; align-items: center; gap: 2px; }
+.scenario-studio .se-list-frame { position: relative; flex: 1; min-height: 90px; }
+.scenario-studio .se-list { height: 100%; overflow-y: auto; scrollbar-width: none; }
+.scenario-studio .se-list::-webkit-scrollbar { display: none; }
+.scenario-studio .se-rows { margin: 0; padding: 0; list-style: none; }
+.scenario-studio .se-row { position: relative; border-bottom: 1px solid var(--st-border); }
+.scenario-studio .se-row-main { width: 100%; min-height: 56px; border: 0; background: none; color: var(--st-text); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.scenario-studio .se-row:hover .se-row-main { background: var(--st-surface); }
+.scenario-studio .se-row.is-selected .se-row-main { background: color-mix(in srgb, var(--st-action) 8%, var(--st-canvas)); }
+.scenario-studio .se-row.is-selected::before { content: ''; position: absolute; top: 0; bottom: 0; left: 0; z-index: 1; width: 3px; background: var(--st-action); }
+.scenario-studio .se-row.is-over { box-shadow: inset 0 2px 0 var(--st-action); }
+.scenario-studio .se-grip { position: absolute; top: 50%; left: 8px; z-index: 2; display: grid; place-items: center; width: 18px; height: 28px; color: var(--st-border-strong); cursor: grab; opacity: 0; transform: translateY(-50%); }
+.scenario-studio .se-row:hover .se-grip, .scenario-studio .se-row:focus-within .se-grip { opacity: 1; }
+.scenario-studio .se-row-no { display: flex; align-items: center; color: var(--st-muted); font-size: 11px; }
+.scenario-studio .se-row-action { display: -webkit-box; min-width: 0; overflow: hidden; line-height: 20px; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.scenario-studio .se-row-action code, .scenario-studio .se-detail code { padding: 0 3px; border-radius: 3px; background: color-mix(in srgb, var(--st-raised) 80%, transparent); font-family: var(--st-mono); font-size: .92em; }
+.scenario-studio .se-human { display: inline-block; margin-right: 6px; padding: 0 5px; border: 1px solid var(--st-border); border-radius: 3px; color: var(--st-text-2); font-size: 10px; line-height: 16px; vertical-align: 1px; }
+.scenario-studio .se-row-case { position: relative; color: var(--st-text-2); font-size: 11px; }
+.scenario-studio .se-row-case.is-continued::before { content: ''; position: absolute; top: -34px; left: -8px; height: 34px; border-left: 1px solid var(--st-border-strong); }
+.scenario-studio .se-row-scene { overflow: hidden; color: var(--st-muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.scenario-studio .se-row-verdict { display: flex; font-size: 11px; white-space: nowrap; }
+.scenario-studio .se-verdict { display: inline-flex; align-items: center; gap: 5px; color: var(--st-text-2); }
+.scenario-studio .se-verdict--VERIFIED svg { color: var(--st-verified); }
+.scenario-studio .se-verdict--FAILED svg { color: var(--st-broken); }
+.scenario-studio .se-verdict--REGRESSION svg { color: var(--st-draft); }
+.scenario-studio .se-verdict--DRAFT svg, .scenario-studio .se-verdict--BROKEN svg { color: var(--st-muted); }
+.scenario-studio .se-mark { padding: 1px 6px; border: 1px solid var(--st-border); border-radius: 3px; font-size: 10px; font-weight: 700; }
+.scenario-studio .se-mark--changed { color: var(--st-draft); }
+.scenario-studio .se-mark--added { color: var(--st-verified); }
+.scenario-studio .se-row.is-changed::after, .scenario-studio .se-row.is-added::after { content: ''; position: absolute; top: 12px; bottom: 12px; left: 0; width: 3px; background: var(--st-draft); }
+.scenario-studio .se-row.is-added::after { background: var(--st-verified); }
+.scenario-studio .se-row.is-gap .se-row-main { background: color-mix(in srgb, var(--st-draft) 6%, var(--st-canvas)); }
+.scenario-studio .se-row.is-gap .se-row-no, .scenario-studio .se-needs { color: var(--st-draft); }
+.scenario-studio .se-row.is-gap .se-row-action { font-weight: 500; }
+.scenario-studio .se-row.is-match .se-row-action { color: var(--st-action); }
+.scenario-studio .se-list.is-expanded .se-row-main { align-items: start; padding-block: 12px; }
+.scenario-studio .se-list.is-expanded .se-row-action { display: block; overflow: visible; }
+.scenario-studio .se-list.is-expanded .se-row-no, .scenario-studio .se-list.is-expanded .se-row-case, .scenario-studio .se-list.is-expanded .se-row-scene, .scenario-studio .se-list.is-expanded .se-row-verdict { padding-top: 2px; }
+.scenario-studio .se-row-expected { display: block; margin-top: 6px; color: var(--st-text-2); font-size: 12px; line-height: 1.6; }
+.scenario-studio .se-row-expected b { color: var(--st-muted); font-weight: 600; }
+.scenario-studio .se-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 64px 24px; text-align: center; color: var(--st-text-2); font-size: 13px; }
+.scenario-studio .se-empty b { color: var(--st-text); font-family: var(--font-display); font-size: 18px; }
+.scenario-studio .se-empty .button { margin-top: 8px; }
+
+.scenario-studio .se-foot { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 40px; padding: 0 24px; border-top: 1px solid var(--st-border); background: var(--st-surface); color: var(--st-muted); font-size: 11px; }
+.scenario-studio .se-jumps { display: flex; gap: 2px; }
+.scenario-studio .se-jumps button { height: 26px; padding: 0 8px; border: 0; border-radius: var(--radius-md); background: none; color: var(--st-muted); font: 10px var(--st-mono); cursor: pointer; }
+.scenario-studio .se-jumps button.is-on { background: var(--st-raised); color: var(--st-action); }
+.scenario-studio .se-detail-toggle { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 8px; border: 0; border-radius: var(--radius-md); background: none; color: var(--st-text-2); font: inherit; font-size: 12px; cursor: pointer; }
+.scenario-studio .se-detail-toggle:hover:not(:disabled) { background: var(--st-hover); color: var(--st-text); }
+
+/* 아래 칸 — 고른 단계 */
+.scenario-studio .se-detail { flex: none; display: flex; flex-direction: column; height: min(320px, 42%); border-top: 1px solid var(--st-border-strong); background: var(--st-surface); }
+.scenario-studio .se-detail-head { flex: none; display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 16px 0 20px; border-bottom: 1px solid var(--st-border); font-size: 12px; }
+.scenario-studio .se-detail-marker { width: 5px; height: 14px; border-radius: 2px; background: var(--st-action); }
+.scenario-studio .se-chip { padding: 2px 6px; border: 1px solid var(--st-border); border-radius: 3px; color: var(--st-muted); font-size: 10px; }
+.scenario-studio .se-detail-body { display: grid; flex: 1; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); min-height: 0; }
+.scenario-studio .se-detail-edit, .scenario-studio .se-detail-case { display: flex; flex-direction: column; min-height: 0; overflow-y: auto; padding: 14px 20px; }
+.scenario-studio .se-detail-case { border-left: 1px solid var(--st-border); }
+.scenario-studio .se-field-title { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 11px; font-weight: 600; color: var(--st-text-2); }
+.scenario-studio .se-field-title .se-muted { font-size: 10px; font-weight: 400; }
+.scenario-studio .se-action { box-sizing: border-box; width: 100%; min-height: 64px; max-height: 160px; margin-bottom: 10px; padding: 10px; border: 1px solid var(--st-border); border-radius: var(--radius-md); outline: none; background: var(--st-canvas); color: var(--st-text); font: inherit; font-size: 13px; line-height: 1.6; resize: vertical; }
+.scenario-studio .se-hint { box-sizing: border-box; height: 32px; padding: 0 10px; border: 1px solid var(--st-border); border-radius: var(--radius-md); outline: none; background: var(--st-canvas); color: var(--st-text); font: inherit; font-size: 12px; }
+.scenario-studio .se-action:focus, .scenario-studio .se-hint:focus { border-color: var(--st-action); }
+.scenario-studio .se-detail-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 12px; }
+.scenario-studio .se-detail-actions .button { gap: 5px; }
+.scenario-studio .se-gap-text { margin: 0 0 10px; color: var(--st-text); font-size: 13px; line-height: 1.6; }
+.scenario-studio .se-link { display: inline-flex; align-items: center; gap: 4px; padding: 0; border: 0; background: none; color: var(--st-action); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.scenario-studio .se-case { margin: 0; }
+.scenario-studio .se-case dt { margin: 10px 0 4px; color: var(--st-muted); font-size: 11px; }
+.scenario-studio .se-case dd { margin: 0; font-size: 12px; line-height: 1.65; overflow-wrap: anywhere; }
+.scenario-studio .se-case ul { margin: 0; padding-left: 16px; }
+.scenario-studio .se-case li { padding-bottom: 4px; }
+.scenario-studio .se-case-where { margin: 4px 0 8px; font-size: 12px; }
+.scenario-studio .se-input-note { margin: 12px 0 0; padding-top: 8px; border-top: 1px solid var(--st-border); color: var(--st-muted); font-size: 11px; }
+
+@media (max-width: 1390px) {
+  .scenario-studio .se-columns, .scenario-studio .se-row-main { grid-template-columns: 34px minmax(0, 1fr) 52px 84px 76px; gap: 8px; padding: 0 16px 0 24px; }
+  .scenario-studio .se-head, .scenario-studio .se-toolbar { padding-inline: 18px; }
+  .scenario-studio .se-find { width: 200px; }
+}
+@media (max-width: 1100px) {
+  .scenario-studio .se-detail-body { grid-template-columns: minmax(0, 1fr); overflow-y: auto; }
+  .scenario-studio .se-detail-case { border-top: 1px solid var(--st-border); border-left: 0; }
+}
+
+/* 대화 칸 (ARTEL-1107). 제목 줄과 상태 줄을 나누고, 말한 사람 표시는 별 아이콘과 이름으로.
+   결과 줄은 상자 대신 왼쪽 선 하나로 — 칸이 좁아 상자 테두리가 글자 자리를 먹었다. */
+.scenario-studio .st-chat .panel-header{ flex-direction:column; align-items:stretch; gap:0; padding:0; border-bottom:0; }
+.scenario-studio .st-chat .panel-header h2{ display:flex; align-items:center; gap:7px; height:52px; padding:0 16px; font-size:13px; font-weight:650; letter-spacing:0; text-transform:none; color:var(--st-text); }
+.scenario-studio .run-chat-star{ flex:none; color:var(--st-action); }
+.scenario-studio .run-chat-meta{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:9px 14px; border-block:1px solid var(--st-border); font-size:11px; }
+.scenario-studio .run-chat-meta .run-chat-toggle{ margin-left:auto; }
+.scenario-studio .st-chat .chat-author{ align-items:center; gap:6px; font-size:10.5px; letter-spacing:.04em; }
+.scenario-studio .st-chat .chat-message--user{ align-self:stretch; max-width:none; margin-left:14px; }
+.scenario-studio .st-chat .chat-message--user .chat-body{ border:0; border-radius:var(--radius-md); padding:12px 14px; background:var(--st-raised); font-size:13px; line-height:1.75; }
+.scenario-studio .st-chat .chat-reply-result{ border:0; border-left:2px solid var(--st-action); border-radius:0; background:none; padding:2px 0 2px 10px; }
+.scenario-studio .st-chat .chat-composer{ padding:14px; }
+.scenario-studio .st-chat .chat-composer .field-input--multiline{ min-height:76px; border-color:var(--st-border); border-radius:var(--radius-md); line-height:1.7; }

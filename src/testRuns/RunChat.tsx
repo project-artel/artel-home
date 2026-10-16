@@ -6,6 +6,7 @@ import { RunChatQuestionModal } from './RunChatQuestionModal'
 import { ChatMessageBody, ChatReplyBody } from './ChatMessageBody'
 import { ChatLinkContext } from './chatRefContext'
 import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
+import { StudioIcon } from '../testScenarios/studioIcons'
 import { formatDateTime } from '../projects/formatters'
 import type { AuthoringStage, ChatRef, RunChatQuestion } from './runChatApi'
 import { ESC_WINDOW_MS, pressEscape } from './escCancel'
@@ -359,7 +360,13 @@ export function RunChat({ session }: { session: RunChatSession }) {
     <ChatLinkContext.Provider value={{ projectId: session.projectId, runId: session.runId, openCase }}>
     <section className="panel scenario-chat" aria-labelledby="run-chat-title">
       <header className="panel-header">
-        <h2 id="run-chat-title">{c.title}</h2>
+        <h2 id="run-chat-title">
+          <StudioIcon className="run-chat-star" name="sparkles" size={15} />
+          {c.title}
+        </h2>
+        {/* 제목 줄과 상태 줄을 나눈다(ARTEL-1107). 셋이 제목 옆에 붙어 있으면 좁은 칸에서
+            제목이 밀리고, 커버리지와 자동 적용이 같은 무게로 읽혔다. */}
+        <div className="run-chat-meta">
         {/* 남은 케이스는 늘 보이되 아무것도 시키지 않는다 — 제안은 대화 끝의 칩이 하고, 이쪽은
             "지금 어디까지 왔나"만 말한다. 버튼과 나란히 두면 둘 다 도구처럼 읽힌다.
             폴링하지 않는다. 이 값은 이 페이지에서 일어난 일로만 바뀌고(턴이 끝나 저작이
@@ -411,6 +418,7 @@ export function RunChat({ session }: { session: RunChatSession }) {
           />
           {c.autoApplyLabel}
         </label>
+        </div>
       </header>
 
       {session.messages.length === 0 && !session.closed ? (
@@ -423,6 +431,7 @@ export function RunChat({ session }: { session: RunChatSession }) {
               key={message.id}
             >
               <p className="chat-author">
+                {message.role !== 'USER' && <StudioIcon className="run-chat-star" name="sparkles" size={12} />}
                 {message.role === 'USER' ? c.you : c.agent}
                 {message.createdAt !== null && (
                   <span className="chat-time">{formatDateTime(message.createdAt)}</span>
@@ -468,7 +477,10 @@ export function RunChat({ session }: { session: RunChatSession }) {
           ))}
           {session.awaitingReply && (
             <li className="chat-message chat-message--agent">
-              <p className="chat-author">{c.agent}</p>
+              <p className="chat-author">
+                <StudioIcon className="run-chat-star" name="sparkles" size={12} />
+                {c.agent}
+              </p>
               <div className="run-chat-typing" role="status" aria-label={c.awaitingReply}>
                 <span></span>
                 <span></span>

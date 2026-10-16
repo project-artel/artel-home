@@ -19,6 +19,7 @@ import { EMPTY_SCENARIO_DRAFT, isFreeScenario } from './scenarioTypes'
 import { useDraftPreview } from './useDraftPreview'
 import { useChatWidth } from './useChatWidth'
 import { useStepEditor } from './useStepEditor'
+import { StudioIcon } from './studioIcons'
 
 /**
  * Deliberately NOT keyed by the scenario id. It used to be, and opening another
@@ -203,8 +204,8 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
           {e.viewSpec} <kbd className="kbd">{shortcutLabel('K')}</kbd>
         </button>
         <div className="st-icons">
-          <button className="iconbtn" type="button" disabled={!active.canUndo} onClick={active.undo} title={e.undo}>↶</button>
-          <button className="iconbtn" type="button" disabled={!active.canRedo} onClick={active.redo} title={e.redo}>↷</button>
+          <button className="iconbtn" type="button" disabled={!active.canUndo} onClick={active.undo} title={e.undo} aria-label={e.undo}><StudioIcon name="undo" /></button>
+          <button className="iconbtn" type="button" disabled={!active.canRedo} onClick={active.redo} title={e.redo} aria-label={e.redo}><StudioIcon name="redo" /></button>
         </div>
         <span className={`savebadge ${saveState}`}>
           {saveState !== 'saved' && <span className="d" />}
