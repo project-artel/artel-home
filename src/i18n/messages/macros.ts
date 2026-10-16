@@ -55,24 +55,20 @@ export const macrosEn = {
     // Where these come from. The agent macros above carry no such chip, so the
     // two groups do not read as one list.
     originChip: 'MCP',
-    hint: 'Macros a game developer’s coding agent registered over the MCP connection. They belong to the project, not to a build, and the QA engine receives every one of them whichever build it runs. The chip on each shows the build it was written against.',
+    hint: 'Macros registered over the MCP connection. The QA engine receives all of them, whichever build it runs.',
     listLabel: 'Developer macros of this project',
     loading: 'Loading developer macros…',
     loadFailed: 'Developer macros could not be loaded.',
     emptyTitle: 'No developer macros yet',
     emptyCopy: 'Developer macros are registered over the MCP connection.',
     writtenAgainst: (build: string) => `Written against ${build}`,
-    // Says where the build sits, never whether to use the macro: the engine
-    // receives it either way.
+    // Shown only when the macro was written against another build than the
+    // selected one. Says where that build sits, never whether to use the macro:
+    // the engine receives it either way. A newer build, an editor build, and a
+    // build whose order is unknown all read `other`.
     relation: {
-      older: 'Older build',
-      newer: 'Newer build',
-      different: 'Different build',
-    },
-    relationTitle: {
-      older: 'Written against a build that came before the selected one.',
-      newer: 'Written against a build that came after the selected one.',
-      different: 'Written against another build. Its order relative to the selected one is unknown.',
+      older: 'Older version',
+      other: 'Other version',
     },
     registeredBy: (nickname: string, date: string) => `Registered by ${nickname} · ${date}`,
     registeredAt: (date: string) => `Registered ${date}`,
@@ -131,7 +127,7 @@ export const macrosKo: Localized<typeof macrosEn> = {
   developer: {
     title: '개발자 macro',
     originChip: 'MCP',
-    hint: '게임 개발자의 코딩 에이전트가 MCP 연결로 등록한 macro 입니다. 빌드가 아니라 프로젝트에 속하고, QA 엔진은 빌드와 상관없이 전부 받습니다. 각 macro 의 칩은 어느 빌드를 기준으로 썼는지 보여 줍니다.',
+    hint: 'MCP 연결로 등록한 macro 입니다. QA 엔진은 빌드와 상관없이 전부 받습니다.',
     listLabel: '이 프로젝트의 개발자 macro',
     loading: '개발자 macro 를 불러오는 중…',
     loadFailed: '개발자 macro 를 불러오지 못했습니다.',
@@ -139,14 +135,8 @@ export const macrosKo: Localized<typeof macrosEn> = {
     emptyCopy: '개발자 macro 는 MCP 연결로 등록됩니다.',
     writtenAgainst: (build: string) => `${build} 기준`,
     relation: {
-      older: '이전 빌드',
-      newer: '이후 빌드',
-      different: '다른 빌드',
-    },
-    relationTitle: {
-      older: '고른 빌드보다 먼저 올라온 빌드를 기준으로 썼습니다.',
-      newer: '고른 빌드보다 나중에 올라온 빌드를 기준으로 썼습니다.',
-      different: '고른 빌드와 다른 빌드를 기준으로 썼습니다. 둘의 순서는 알 수 없습니다.',
+      older: '이전 버전',
+      other: '다른 버전',
     },
     registeredBy: (nickname: string, date: string) => `${nickname} 등록 · ${date}`,
     registeredAt: (date: string) => `등록 ${date}`,

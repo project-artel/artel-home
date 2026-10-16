@@ -10132,11 +10132,10 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
   line-height: 18px;
   overflow-wrap: anywhere;
 }
-/* `.macro-screen-badge` 와 같은 모양이다. build 이름은 사람이 붙인 label 이 붙어 더
-   길어지므로 폭만 넓다. */
+/* `.macro-screen-badge` 와 같은 모양이다. 글은 `이전 버전` · `다른 버전` 한 단어뿐이다. */
 .macro-build-chip {
   display: inline-block;
-  max-width: 280px;
+  max-width: 220px;
   padding: 2px var(--space-2);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);

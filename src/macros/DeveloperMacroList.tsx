@@ -12,8 +12,8 @@ import { macroSignature } from './macroTypes'
  * 프로젝트의 developer macro 목록 (ARTEL-1102).
  *
  * 줄 모양은 `MacroList` 의 `MacroRow` 를 따른다. 같은 `.macro-row` 이고, 이름과 서명이
- * 등폭인 이유도 같다. 다른 것은 칩이다 — `screen` 대신 쓸 때 기준으로 삼은 build 와,
- * 그 build 가 고른 build 와 다를 때 그 관계(`WrittenBuildRelation`)를 말하는 칩이 선다.
+ * 등폭인 이유도 같다. 다른 것은 칩이다 — `screen` 대신, 쓸 때 기준으로 삼은 build 가
+ * 고른 build 와 다를 때만 그 관계(`WrittenBuildRelation`)를 말하는 칩 하나가 선다.
  *
  * `selectedBuild` 가 없으면(프로젝트에 build 가 하나도 없으면) 비교할 대상이 없으므로
  * relation 칩을 그리지 않는다.
@@ -95,7 +95,7 @@ function DeveloperMacroRow({
           <span className="macro-row-docstring">{macro.docstring}</span>
         )}
         <span className="macro-row-meta">
-          <DeveloperMacroBuildChips builds={builds} macro={macro} selectedBuild={selectedBuild} />
+          <DeveloperMacroBuildChip builds={builds} macro={macro} selectedBuild={selectedBuild} />
           <span className="macro-row-updated">
             <DeveloperMacroRegistered macro={macro} />
           </span>
@@ -106,12 +106,17 @@ function DeveloperMacroRow({
 }
 
 /**
- * 쓸 때 기준으로 삼은 build 칩과, 그 build 가 고른 build 와 다를 때의 relation 칩.
+ * 쓸 때 기준으로 삼은 build 가 고른 build 와 다를 때만 서는 칩 하나. 같으면 아무것도
+ * 그리지 않는다.
  *
- * relation 칩은 경고 색이지만 "쓰지 말라" 는 뜻이 아니다. QA 엔진은 build 와 상관없이 전부
- * 받으므로, 칩이 말하는 것은 build 의 앞뒤뿐이다. 색 하나로 말하지 않도록 글이 함께 간다.
+ * `older` 만 `이전 버전` 으로 따로 말하고, `newer` 와 `different` 는 둘 다 `다른 버전` 이다.
+ * 줄마다 칩이 길어지지 않게 한 단어로 줄였다. 어느 build 를 기준으로 썼는지는 `title` 에
+ * 남기고, 상세의 메타 줄에도 글로 적는다.
+ *
+ * 경고 색이지만 "쓰지 말라" 는 뜻이 아니다. QA 엔진은 build 와 상관없이 전부 받으므로,
+ * 칩이 말하는 것은 build 의 앞뒤뿐이다. 색 하나로 말하지 않도록 글이 함께 간다.
  */
-export function DeveloperMacroBuildChips({
+export function DeveloperMacroBuildChip({
   builds,
   macro,
   selectedBuild,
@@ -122,21 +127,16 @@ export function DeveloperMacroBuildChips({
 }) {
   const { t } = useI18n()
   const copy = t.macros.developer
-  const buildText = writtenBuildText(macro, builds, t.projects.builds.editorLabel)
-  const relation =
-    selectedBuild === undefined
-      ? 'same'
-      : relationToSelectedBuild(macro.gameBuildId, selectedBuild, builds)
+  if (selectedBuild === undefined) return null
 
+  const relation = relationToSelectedBuild(macro.gameBuildId, selectedBuild, builds)
+  if (relation === 'same') return null
+
+  const buildText = writtenBuildText(macro, builds, t.projects.builds.editorLabel)
   return (
-    <>
-      <span className="macro-build-chip">{copy.writtenAgainst(buildText)}</span>
-      {relation !== 'same' && (
-        <span className="macro-build-chip macro-build-chip--differs" title={copy.relationTitle[relation]}>
-          {copy.relation[relation]}
-        </span>
-      )}
-    </>
+    <span className="macro-build-chip macro-build-chip--differs" title={copy.writtenAgainst(buildText)}>
+      {relation === 'older' ? copy.relation.older : copy.relation.other}
+    </span>
   )
 }
 

@@ -2,8 +2,8 @@ import { useId } from 'react'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
 import type { GameBuild } from '../projects/gameTypes'
-import { DeveloperMacroBuildChips, DeveloperMacroRegistered } from './DeveloperMacroList'
-import type { DeveloperMacroDetail as DeveloperMacro } from './developerMacroTypes'
+import { DeveloperMacroBuildChip, DeveloperMacroRegistered } from './DeveloperMacroList'
+import { writtenBuildText, type DeveloperMacroDetail as DeveloperMacro } from './developerMacroTypes'
 import { macroSignature } from './macroTypes'
 import type { MacroSourceStatus } from './useBuildMacros'
 
@@ -14,6 +14,9 @@ import type { MacroSourceStatus } from './useBuildMacros'
  * 그쪽을 넓혀 쓰지 않은 이유는 보여 주는 칸이 다르기 때문이다 — agent macro 는 `screen`
  * 을, developer macro 는 docstring 과 쓸 때 기준으로 삼은 build 를 보여 준다. 한 컴포넌트에
  * 두 모양을 넣으면 분기마다 "어느 macro 인가" 를 묻게 된다.
+ *
+ * 기준 build 는 메타 줄에 글로 적는다 — `v1 · 0.1.0 기준 · nubuli 등록 · …`. 칩은 목록과
+ * 같이, 고른 build 와 다를 때만 하나 선다.
  *
  * heading 이 `MacroDetail` 보다 한 단계 낮다. 이 패널은 `DeveloperMacroSection` 의 `h3`
  * 아래에 있다. id 는 `useId` 로 만든다 — 같은 화면에 `MacroDetail` 이 함께 떠 있어 고정
@@ -84,14 +87,19 @@ export function DeveloperMacroDetail({
             {macroSignature(macro.parameters.map((name) => ({ name, type: null })))}
           </span>
         </h4>
+        {/* 기준 build 는 칩이 아니라 글로 적는다. 칩은 고른 build 와 다를 때 하나만 선다. */}
         <p className="macro-detail-updated">
           {macro.version !== null && `${t.macros.developer.version(macro.version)} · `}
+          {t.macros.developer.writtenAgainst(
+            writtenBuildText(macro, builds, t.projects.builds.editorLabel),
+          )}
+          {' · '}
           <DeveloperMacroRegistered macro={macro} />
         </p>
       </header>
 
       <div className="macro-row-meta">
-        <DeveloperMacroBuildChips builds={builds} macro={macro} selectedBuild={selectedBuild} />
+        <DeveloperMacroBuildChip builds={builds} macro={macro} selectedBuild={selectedBuild} />
       </div>
 
       {macro.docstring.length > 0 && (

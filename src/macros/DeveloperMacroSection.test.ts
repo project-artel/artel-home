@@ -7,6 +7,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { LocaleContext } from '../i18n/LocaleContext.ts'
 import { messages } from '../i18n/messages.ts'
 import type { GameBuild } from '../projects/gameTypes.ts'
+import { DeveloperMacroDetail } from './DeveloperMacroDetail.tsx'
 import { DeveloperMacroEmpty, DeveloperMacroList } from './DeveloperMacroList.tsx'
 import { DeveloperMacroSection } from './DeveloperMacroSection.tsx'
 import type { DeveloperMacroSummary } from './developerMacroTypes.ts'
@@ -84,36 +85,64 @@ describe('DeveloperMacroSection', () => {
 })
 
 describe('DeveloperMacroList', () => {
-  it('한 줄에 이름·parameter·docstring·기준 build·등록자를 싣는다', () => {
+  it('한 줄에 이름·parameter·docstring·등록자를 싣는다', () => {
     const html = renderList([makeMacro('open_shop', { gameBuildId: '2' })])
     assert.match(html, /<span class="macro-row-name">open_shop<\/span>\(item, count\)/)
     assert.match(html, /상점을 열고 item 을 count 개 산다\./)
-    assert.match(html, />0\.2\.0 · 베타 기준</)
     assert.match(html, /nubuli 등록 · /)
   })
 
-  it('고른 build 와 같으면 relation 칩을 그리지 않는다', () => {
+  it('고른 build 와 같으면 칩을 하나도 그리지 않는다', () => {
     const html = renderList([makeMacro('open_shop', { gameBuildId: '2' })])
-    assert.doesNotMatch(html, /macro-build-chip--differs/)
+    assert.doesNotMatch(html, /macro-build-chip/)
+    assert.doesNotMatch(html, /기준/)
   })
 
-  it('고른 build 와 다르면 이전 빌드 · 이후 빌드 · 다른 빌드 칩을 그린다', () => {
+  it('다르면 칩 하나만 선다. older 만 이전 버전이고 나머지는 다른 버전이다', () => {
     const html = renderList([
       makeMacro('a_older', { gameBuildId: '1' }),
       makeMacro('b_newer', { gameBuildId: '3' }),
       makeMacro('c_editor', { gameBuildId: '4' }),
+      makeMacro('d_missing', { gameBuildId: '999', buildVersion: '9.9.9' }),
     ])
-    const relationChips = [...html.matchAll(/macro-build-chip--differs"[^>]*>([^<]+)</g)].map(
+    const chips = [...html.matchAll(/class="macro-build-chip[^"]*"[^>]*>([^<]+)</g)].map(
       (match) => match[1],
     )
-    assert.deepEqual(relationChips, ['이전 빌드', '이후 빌드', '다른 빌드'])
-    assert.match(html, />Editor · 0\.3\.0 기준</)
+    assert.deepEqual(chips, ['이전 버전', '다른 버전', '다른 버전', '다른 버전'])
+    // 기준 build 는 칩 글이 아니라 `title` 에만 남는다.
+    assert.match(html, /title="Editor · 0\.3\.0 기준"/)
+    assert.match(html, /title="9\.9\.9 기준"/)
   })
 
   it('등록한 사람을 지웠으면 시각만 남는다', () => {
     const html = renderList([makeMacro('open_shop', { updatedBy: null })])
     assert.match(html, /등록 /)
     assert.doesNotMatch(html, /nubuli/)
+  })
+})
+
+describe('DeveloperMacroDetail', () => {
+  function renderDetail(gameBuildId: string): string {
+    return renderKorean(
+      createElement(DeveloperMacroDetail, {
+        builds,
+        macro: { ...makeMacro('open_shop', { gameBuildId }), source: 'def open_shop(item, count):\n    pass\n' },
+        onRetry: () => {},
+        selectedBuild: selected,
+        status: 'ready',
+      }),
+    )
+  }
+
+  it('기준 build 는 메타 줄의 글로 적는다', () => {
+    const html = renderDetail('1')
+    assert.match(html, /v1 · 0\.1\.0 기준 · nubuli 등록 · /)
+    assert.match(html, /def open_shop\(item, count\):/)
+  })
+
+  it('칩은 목록과 같이 다를 때만 하나 선다', () => {
+    assert.match(renderDetail('1'), /macro-build-chip--differs"[^>]*>이전 버전</)
+    assert.doesNotMatch(renderDetail('2'), /macro-build-chip/)
   })
 })
 

@@ -24,7 +24,7 @@ export const DEVELOPER_MACRO_PARAM = 'developerMacro'
  * 목록과 source 도 agent macro 와 다른 패널에 그린다. 읽기 전용이다 — 쓰는 길은 MCP 뿐이다.
  *
  * 프로젝트에 속한 자원이라 build 를 바꿔도 다시 읽지 않는다. build 가 바뀌면 각 줄의
- * relation 칩(`이전 빌드` · `이후 빌드` · `다른 빌드`)만 다시 계산된다.
+ * relation 칩(`이전 버전` · `다른 버전`)만 다시 계산된다.
  *
  * 주소에 쓰는 자리는 `MacroSection` 머리 주석의 규칙을 따라 전부 `setSearchParams` 의
  * 함수형을 쓴다. 여기서 쓰는 자리는 둘이다 — 고를 때와, 목록에 없는 이름을 지울 때.
