@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { shortcutLabel } from '../shell/platform'
@@ -19,6 +19,7 @@ import { EMPTY_SCENARIO_DRAFT, isFreeScenario } from './scenarioTypes'
 import { useDraftPreview } from './useDraftPreview'
 import { useChatWidth } from './useChatWidth'
 import { useStepEditor } from './useStepEditor'
+import { useRunCases } from './useRunCases'
 import { StudioIcon } from './studioIcons'
 
 /**
@@ -123,6 +124,9 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
       .catch(() => { /* leave the crumb blank on failure */ })
     return () => controller.abort()
   }, [projectId, fromRun])
+
+  const runCases = useRunCases(projectId, runBuild?.gameBuildId ?? null)
+  const runCaseList = useMemo(() => [...runCases.values()], [runCases])
 
   // 자동저장을 끈 턴의 draft(ARTEL-1075). 열어 두면 가운데와 헤더가 draft 를 따른다.
   const preview = useDraftPreview(projectId, runChat, runBuild)
@@ -252,7 +256,15 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
         </aside>
       </div>
 
-      {specOpen && <TestCaseSpecModal projectId={projectId} onClose={() => setSpecOpen(false)} />}
+      {/* ⌘K 명세 창도 이 런이 보는 TC 를 보인다(ARTEL-1115) — 런이 따르는 빌드 버전의 TC 와 그 버전의 판정이다. */}
+      {specOpen && (
+        <TestCaseSpecModal
+          cases={runCaseList}
+          onClose={() => setSpecOpen(false)}
+          projectId={projectId}
+          scope={fromRun === null ? undefined : runBuild === null ? t.scenarios.stepsEditor.board.pickAll : t.scenarios.stepsEditor.board.pickVersion(runBuild.label ?? runBuild.version)}
+        />
+      )}
 
       {dialog === 'approve' && (
         <ApproveScenarioDialog
