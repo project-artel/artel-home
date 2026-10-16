@@ -12,7 +12,6 @@ export const macrosEn = {
     title: 'Macro library',
     subtitle:
       'Pick a version on the left to see the agent macros the QA agent saved on that build, or pick Developer macros (MCP) to see the macros a developer registered for the project over the MCP connection. This screen only reads them.',
-    refresh: 'Refresh',
     noBuildsTitle: 'This project has no builds yet',
     noBuildsCopy: 'Register a build with the SDK, and the macros saved against it appear here.',
     loading: 'Loading macros…',
@@ -81,7 +80,6 @@ export const macrosKo: Localized<typeof macrosEn> = {
     title: 'Macro 라이브러리',
     subtitle:
       '왼쪽에서 버전을 고르면 QA 에이전트가 그 빌드에 저장한 agent macro 를, 개발자 macro (MCP) 를 고르면 개발자가 MCP 연결로 프로젝트에 등록한 macro 를 봅니다. 이 화면에서는 읽기만 합니다.',
-    refresh: '새로고침',
     noBuildsTitle: '이 프로젝트에는 아직 빌드가 없습니다',
     noBuildsCopy: 'SDK 로 빌드를 등록하면, 그 빌드에 저장된 macro 가 여기 나타납니다.',
     loading: 'macro 를 불러오는 중…',

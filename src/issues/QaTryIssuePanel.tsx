@@ -8,7 +8,7 @@ import { useQaTryIssues } from './useIssues'
  *
  * Not streamed. Issues arrive as the agent finds them, but the run's own log
  * stream is where a reader watches that happen live; this panel is for reading
- * the findings as a list, so a refresh button is the whole of its liveness.
+ * the findings as a list, so it polls the list instead (`useQaTryIssues`).
  */
 export function QaTryIssuePanel({ qaTryId }: { qaTryId: string }) {
   const { t } = useI18n()
@@ -27,9 +27,6 @@ export function QaTryIssuePanel({ qaTryId }: { qaTryId: string }) {
             <span className="qa-issue-count">{count}{issues.hasMore ? '+' : ''}</span>
           )}
         </div>
-        <button className="button button--secondary button--compact" onClick={reload} type="button">
-          {t.issues.panel.refresh}
-        </button>
       </header>
 
       <IssueList
