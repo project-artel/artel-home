@@ -8,9 +8,9 @@ import { ScenarioStepEditor } from './ScenarioStepEditor'
 import { EMPTY_SCENARIO_DRAFT, isScenarioDraftEqual, type ScenarioDraft } from './scenarioTypes'
 import { useStepEditor } from './useStepEditor'
 
-/** A draft as the step editor holds it. Drafts are always ordered — FREE is a person's choice. */
+/** A draft as the step editor holds it. */
 function draftBody(draft: DraftScenario): ScenarioDraft {
-  return { title: draft.title, description: draft.description, steps: draft.steps, execution_mode: 'ORDERED' }
+  return { title: draft.title, description: draft.description, steps: draft.steps, execution_mode: draft.executionMode }
 }
 
 /**
