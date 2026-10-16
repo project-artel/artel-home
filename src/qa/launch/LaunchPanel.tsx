@@ -8,12 +8,15 @@ import { ProjectApiError } from '../../projects/projectApi'
 import { sectionHref } from '../../projects/workspace/sections'
 import { versionMismatch } from '../../testRuns/runLibrary'
 import type { TestRun } from '../../testRuns/testRunApi'
+import { archLabelMissing, toArchRequest, withoutVisionKnobs, type QaArchSelection } from '../qaArch'
 import { createQaRun, qaStartConflict } from '../qaApi'
+import { storeLastArch } from '../qaStartChoices'
 import { CheckIcon, ChevronDownIcon, CircleCheckIcon, CircleXIcon } from '../qaModelIcons'
 import { QaModelPicker } from '../QaModelPicker'
 import type { QaModel, QaReasoningSelection } from '../qaTypes'
 import { byAscendingEffort } from '../reasoningEfforts'
 import { TakeOverQaRunDialog } from '../TakeOverQaRunDialog'
+import { ArchSettings } from './ArchSettings'
 import { useDismiss } from './useDismiss'
 
 type Check = { tone: 'ok' | 'warn' | 'bad'; title: string; detail?: string; fix?: { label: string; to: string } }
@@ -41,6 +44,8 @@ export function LaunchPanel({
   onReasoningEnabled,
   reasoningValue,
   onReasoningValue,
+  arch,
+  onArchChange,
   etaMs,
   onRefreshConsoles,
   onManageConsoles,
@@ -58,6 +63,9 @@ export function LaunchPanel({
   onReasoningEnabled: (value: boolean) => void
   reasoningValue: number
   onReasoningValue: (value: number) => void
+  /** agent 구조 고급 설정(ARTEL-1091). 바꾼 knob 이 없으면 요청에 실리지 않는다. */
+  arch: QaArchSelection
+  onArchChange: (next: QaArchSelection) => void
   etaMs: number | null
   onRefreshConsoles: () => Promise<void>
   onManageConsoles: () => void
@@ -94,6 +102,11 @@ export function LaunchPanel({
     ? null
     : 'effort' in selectedReasoning ? selectedReasoning.effort : selectedReasoning.maxTokens.toLocaleString()
 
+  // 이미지를 읽지 않는 모델이면 vision 이 필요한 knob 은 agent-server 가 422 로 거절한다. 고른 값을
+  // 지우는 대신 보낼 때 걷어 내므로, 모델을 되돌리면 고른 값이 그대로 살아 있다.
+  const readsImages = model?.multimodal ?? true
+  const effectiveArch = readsImages ? arch : withoutVisionKnobs(arch)
+
   const mismatch = versionMismatch(run ?? undefined, instance ?? undefined)
   const checks: Check[] = []
   if (instance === null) checks.push({ tone: 'bad', title: l.noGame })
@@ -117,6 +130,9 @@ export function LaunchPanel({
   if (model === null) checks.push({ tone: 'bad', title: l.noModel })
   else if (model.keyRegistered) checks.push({ tone: 'ok', title: l.keyOk })
   else checks.push({ tone: 'bad', title: l.keyMissing, fix: { label: l.fixKey, to: '/account' } })
+  // knob 을 바꾼 구조는 label 이 있어야 한다. 기본 label 로 보내면 `/api/qa-stats` 가 그 run 을 기본
+  // 구조와 한 묶음으로 세어, 비교하려던 두 구조가 통계에서 하나로 섞인다.
+  if (archLabelMissing(effectiveArch)) checks.push({ tone: 'bad', title: l.archLabelMissing, detail: p.advanced.labelHint })
   const blocked = run === null || checks.some((check) => check.tone === 'bad')
 
   async function start(force = false) {
@@ -124,7 +140,9 @@ export function LaunchPanel({
     setStarting(true)
     setFailure(null)
     try {
-      const created = await createQaRun(run.id, instance.id, model.id, model.keySource, selectedReasoning, force)
+      const created = await createQaRun(run.id, instance.id, model.id, model.keySource, selectedReasoning, force, toArchRequest(effectiveArch))
+      // 시작이 성공한 구조만 다음 폼의 기본값이 된다. 고르다 만 값은 남기지 않는다.
+      storeLastArch(effectiveArch)
       setTakeoverOpen(false)
       navigate(`/projects/${encodeURIComponent(projectId)}/qa-runs/${encodeURIComponent(created.id)}`)
     } catch (error: unknown) {
@@ -308,6 +326,10 @@ export function LaunchPanel({
             )}
           </div>
         )}
+
+        <div className="ql-field">
+          <ArchSettings onChange={onArchChange} readsImages={readsImages} selection={effectiveArch} />
+        </div>
 
         <div className="ql-field">
           <span className="ql-field-label">{l.checksTitle}</span>
