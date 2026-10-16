@@ -12467,3 +12467,8 @@ button.gf-bar:focus-visible {
    `anywhere` 는 칸이 줄어들 수 있는 폭까지 바꿔서, 칩이 든 칸은 최소 폭을 넓혀 함께 둔다. */
 .scenario-studio .st-chat .chat-md-table td:has(.chat-ref) { min-width: 14em; }
 .scenario-studio .st-chat .chat-md-table td .chat-ref { overflow-wrap: anywhere; }
+
+/* 런에 시나리오가 없을 때는 가운데 칸 한가운데에 그림 · 문구 · 버튼을 모은다. 대화 칸의 빈 자리와 같은 자리 잡기다. */
+.scenario-studio .edoc-wrap:has(> .run-empty) { display: flex; align-items: center; justify-content: center; }
+.scenario-studio .edoc.run-empty { align-items: center; margin: 0; padding: 0 24px 6vh; text-align: center; }
+.scenario-studio .run-empty .run-empty-copy { margin-inline: auto; }
