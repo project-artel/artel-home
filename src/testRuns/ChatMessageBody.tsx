@@ -49,46 +49,26 @@ export function ChatReplyBody({ reply, refs = [] }: { reply: ChatReply; refs?: C
 }
 
 /**
- * 저작이 사용자에게 묻는 것(ARTEL-1118) — 답 맨 아래, 전구 하나 아래에.
+ * 저작이 사용자에게 묻는 것(ARTEL-1118) — 답 맨 아래, 전구 하나 아래에 질문 글만.
  *
  * 예전에는 답과 따로 질문 메시지로 와서 "펼치기" 모달로 답했다. 저작이 대화를 기억하게 되어 평범한
- * 대화로 답하면 된다. 그래서 여기에는 누를 단추가 아니라 **읽을 질문**이 있고, 보기는 그 사용자의 말을
- * 입력 칸에 채워 줄 뿐이다 — 보낼지, 고쳐 보낼지는 사용자가 정한다.
+ * 대화로 답하면 된다. 질문이 여럿이면 여기 다 펼치면 읽히지 않으므로 **글만** 남기고, 고르는 것은 입력 칸
+ * 위의 선택 박스([AskDock])가 하나씩 맡는다.
  */
 function ChatAsks({ asks }: { asks: RunChatQuestion[] }) {
   const { t } = useI18n()
   const c = t.scenarios.chat
-  const link = useContext(ChatLinkContext)
   return (
     <section aria-label={c.asksLabel} className="chat-asks">
       <StudioIcon className="chat-asks-icon" name="bulb" size={16} />
-      <ul className="chat-asks-list">
+      <ol className={`chat-asks-list${asks.length > 1 ? ' is-numbered' : ''}`}>
         {asks.map((ask) => (
           <li className="chat-ask" key={ask.id}>
             <p className="chat-ask-text"><InlineRun parts={parseInline(ask.text)} /></p>
             {ask.why !== null && <p className="chat-ask-why"><InlineRun parts={parseInline(ask.why)} /></p>}
-            {ask.options.length > 0 && (
-              <div className="chat-ask-options">
-                {ask.options.map((option) =>
-                  link?.suggest === undefined ? (
-                    <span className="chat-ask-option" key={option.id}>{option.label}</span>
-                  ) : (
-                    <button
-                      className="chat-ask-option"
-                      key={option.id}
-                      onClick={() => link.suggest?.(option.label)}
-                      title={c.askFill}
-                      type="button"
-                    >
-                      {option.label}
-                    </button>
-                  ),
-                )}
-              </div>
-            )}
           </li>
         ))}
-      </ul>
+      </ol>
     </section>
   )
 }
@@ -276,7 +256,7 @@ function ChatTable({ header, rows }: { header: Inline[][]; rows: Inline[][][] })
   )
 }
 
-function InlineRun({ parts }: { parts: Inline[] }) {
+export function InlineRun({ parts }: { parts: Inline[] }) {
   return (
     <>
       {parts.map((part, index) => {

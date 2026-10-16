@@ -8,6 +8,11 @@ import { ChatLinkContext } from './chatRefContext'
 import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { StudioIcon } from '../testScenarios/studioIcons'
 import { ChatSketch } from '../testScenarios/studioSketches'
+import { AskDock } from './AskDock'
+import { useAskFlow } from './askFlow'
+import type { RunChatQuestion as AskQuestion } from './runChatApi'
+
+const NO_ASKS: AskQuestion[] = []
 import { formatDateTime } from '../projects/formatters'
 
 const dayFormatter = new Intl.DateTimeFormat(undefined, { month: 'long', day: 'numeric' })
@@ -310,11 +315,20 @@ export function RunChat({ session }: { session: RunChatSession }) {
   const threadRef = useRef<HTMLOListElement | null>(null)
   const [threadNode, setThreadNode] = useState<HTMLOListElement | null>(null)
   const [inputNode, setInputNode] = useState<HTMLTextAreaElement | null>(null)
-  // 질문의 보기를 누르면 그 말이 입력 칸에 들어간다(ARTEL-1118). 보내는 것은 사용자다 — 고쳐 보낼 수 있다.
-  const suggest = useCallback((text: string) => {
-    setInput(text)
-    inputNode?.focus()
-  }, [inputNode])
+  // 마지막 답이 물은 것(ARTEL-1118). 사용자가 그 뒤로 아무 말도 안 했을 때만 입력 칸 위에서 하나씩 묻는다 —
+  // 한 마디라도 했으면 대화가 이미 다음으로 넘어간 것이다.
+  const lastMessage = session.messages[session.messages.length - 1]
+  const askSource =
+    lastMessage !== undefined && lastMessage.role !== 'USER' && (lastMessage.reply?.asks.length ?? 0) > 0 &&
+    !session.awaitingReply && !session.sending && !session.closed
+      ? lastMessage
+      : null
+  const sendAnswers = useCallback((text: string) => {
+    void session.send(text).then((sent) => {
+      if (sent) setInput('')
+    })
+  }, [session])
+  const askFlow = useAskFlow(askSource?.id ?? null, askSource?.reply?.asks ?? NO_ASKS, sendAnswers)
   const setThread = useCallback((node: HTMLOListElement | null) => {
     threadRef.current = node
     setThreadNode(node)
@@ -378,13 +392,18 @@ export function RunChat({ session }: { session: RunChatSession }) {
 
   // Enter sends; Shift+Enter is a newline. `isComposing` guards IME input (Korean).
   function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+    // 질문 박스가 떠 있으면 키를 먼저 그쪽이 본다(ARTEL-1118). 글을 쓰고 Enter 하면 그 글이 지금 질문의 답이다.
+    if (askFlow.onKey(event, input)) {
+      if (event.key === 'Enter' && input.length > 0) setInput('')
+      return
+    }
     if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return
     event.preventDefault()
     void submit(event)
   }
 
   return (
-    <ChatLinkContext.Provider value={{ projectId: session.projectId, runId: session.runId, openCase, suggest }}>
+    <ChatLinkContext.Provider value={{ projectId: session.projectId, runId: session.runId, openCase }}>
     <section className="panel scenario-chat" aria-labelledby="run-chat-title">
       <header className="panel-header">
         <h2 id="run-chat-title">
@@ -588,6 +607,7 @@ export function RunChat({ session }: { session: RunChatSession }) {
         <form className={draftMode ? 'chat-composer chat-composer--draft' : 'chat-composer'} onSubmit={submit}>
           {/* 승인 전 draft 가 있는 동안 이 입력은 draft 만 고친다(ARTEL-1075). 새 요청은 draft 를 승인하거나
               버린 뒤에 보낸다 — 서버도 그동안은 draft 만 고치는 말만 받는다. */}
+          <AskDock flow={askFlow} />
           {draftMode && (
             <div className="chat-draft-mode" role="status">
               <strong>{c.draftMode.title(session.drafts.length)}</strong>
@@ -614,7 +634,7 @@ export function RunChat({ session }: { session: RunChatSession }) {
             id="run-chat-input"
             onChange={(event) => setInput(event.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={draftMode ? c.draftMode.placeholder : c.inputPlaceholder}
+            placeholder={askFlow.current !== null ? c.askPlaceholder : draftMode ? c.draftMode.placeholder : c.inputPlaceholder}
             rows={3}
             value={input}
           />
