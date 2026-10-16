@@ -96,11 +96,15 @@ function runSettings(detail: QaTryDetail): string {
 function RunDetailResult({ detail }: { detail: QaTryDetail }) {
   const { t } = useI18n()
 
-  if (detail.status === 'CANCELLED' || detail.status === 'FAILED') {
+  // 실패한 run 도 판정을 남긴다(스텝 · 케이스). 남겼으면 수를 보이고, 남기지 못했을 때만 문장으로 둔다 —
+  // 취소와 같은 문장으로 묶으면 "취소" 라고 거짓말을 하게 된다(ARTEL-1100).
+  if (detail.status === 'CANCELLED' || (detail.status === 'FAILED' && detail.stepsTotal === null)) {
     return (
       <section className="run-detail-group">
         <h3 className="run-detail-label">{t.qa.history.detail.resultGroup}</h3>
-        <p className="run-detail-note">{t.qa.history.detail.cancelled}</p>
+        <p className="run-detail-note">
+          {detail.status === 'CANCELLED' ? t.qa.history.detail.cancelled : t.qa.history.detail.failedNoResult}
+        </p>
       </section>
     )
   }

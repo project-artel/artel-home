@@ -5,9 +5,13 @@ const NEAR_PX = 32
 /** 목록이 아주 길어도 잡을 것은 남겨 둔다. */
 const MIN_THUMB_PX = 28
 
-type Box = { top: number; height: number; thumbTop: number; thumbHeight: number; scrollable: boolean }
+/**
+ * 막대가 서는 자리와 길이. 세로 막대(`left` · `right`)면 위에서부터의 거리와 높이, 가로 막대
+ * (`bottom`)면 왼쪽에서부터의 거리와 너비다 — 축만 다르고 계산은 같다.
+ */
+type Box = { start: number; length: number; thumbStart: number; thumbLength: number; scrollable: boolean }
 
-const EMPTY: Box = { top: 0, height: 0, thumbTop: 0, thumbHeight: 0, scrollable: false }
+const EMPTY: Box = { start: 0, length: 0, thumbStart: 0, thumbLength: 0, scrollable: false }
 
 /**
  * The scroll indicator for a panel that hides its native scrollbar — drawn as a
@@ -37,8 +41,11 @@ export function EdgeScrollbar({
   label,
 }: {
   scroller: HTMLElement | null
-  /** Which edge of the panel the bar sits on. The two rails point outward. */
-  side: 'left' | 'right'
+  /**
+   * Which edge of the panel the bar sits on. The two rails point outward. `bottom` is the
+   * horizontal bar for a row that scrolls sideways (QA history's run strip, ARTEL-1100).
+   */
+  side: 'left' | 'right' | 'bottom'
   label: string
 }) {
   const [box, setBox] = useState<Box>(EMPTY)
@@ -52,30 +59,33 @@ export function EdgeScrollbar({
   const measure = useCallback(() => {
     const el = scroller
     if (el === null) return
-    const room = el.scrollHeight - el.clientHeight
+    const horizontal = side === 'bottom'
+    const total = horizontal ? el.scrollWidth : el.scrollHeight
+    const length = horizontal ? el.clientWidth : el.clientHeight
+    const room = total - length
     if (room <= 1) {
       setBox((current) => (current.scrollable ? EMPTY : current))
       return
     }
-    const height = el.clientHeight
-    const thumbHeight = Math.max(MIN_THUMB_PX, Math.round(height * (height / el.scrollHeight)))
+    const thumbLength = Math.max(MIN_THUMB_PX, Math.round(length * (length / total)))
+    const offset = horizontal ? el.scrollLeft : el.scrollTop
     const next: Box = {
-      top: el.offsetTop,
-      height,
-      thumbHeight,
-      thumbTop: Math.round((el.scrollTop / room) * (height - thumbHeight)),
+      start: horizontal ? el.offsetLeft : el.offsetTop,
+      length,
+      thumbLength,
+      thumbStart: Math.round((offset / room) * (length - thumbLength)),
       scrollable: true,
     }
     setBox((current) =>
       current.scrollable
-      && current.top === next.top
-      && current.height === next.height
-      && current.thumbTop === next.thumbTop
-      && current.thumbHeight === next.thumbHeight
+      && current.start === next.start
+      && current.length === next.length
+      && current.thumbStart === next.thumbStart
+      && current.thumbLength === next.thumbLength
         ? current
         : next,
     )
-  }, [scroller])
+  }, [scroller, side])
 
   // Three different things move the thumb, and each needs its own listener.
   // Scrolling fires `scroll`. Resizing the panel fires the ResizeObserver. Content
@@ -118,7 +128,8 @@ export function EdgeScrollbar({
     if (el === null || !(panel instanceof HTMLElement)) return undefined
     function onMove(event: MouseEvent) {
       const rect = (el as HTMLElement).getBoundingClientRect()
-      const distance = side === 'left' ? event.clientX - rect.left : rect.right - event.clientX
+      const distance =
+        side === 'left' ? event.clientX - rect.left : side === 'right' ? rect.right - event.clientX : rect.bottom - event.clientY
       setNear(distance <= NEAR_PX)
     }
     const onLeave = () => setNear(false)
@@ -136,15 +147,17 @@ export function EdgeScrollbar({
     event.preventDefault()
     event.currentTarget.setPointerCapture(event.pointerId)
     setDragging(true)
-    const startY = event.clientY
-    const startTop = el.scrollTop
-    const travel = box.height - box.thumbHeight
-    const room = el.scrollHeight - el.clientHeight
+    const horizontal = side === 'bottom'
+    const startPointer = horizontal ? event.clientX : event.clientY
+    const startOffset = horizontal ? el.scrollLeft : el.scrollTop
+    const travel = box.length - box.thumbLength
+    const room = horizontal ? el.scrollWidth - el.clientWidth : el.scrollHeight - el.clientHeight
 
     function onMove(moveEvent: PointerEvent) {
       if (travel <= 0) return
-      const moved = ((moveEvent.clientY - startY) / travel) * room
-      ;(el as HTMLElement).scrollTop = startTop + moved
+      const moved = (((horizontal ? moveEvent.clientX : moveEvent.clientY) - startPointer) / travel) * room
+      if (horizontal) (el as HTMLElement).scrollLeft = startOffset + moved
+      else (el as HTMLElement).scrollTop = startOffset + moved
     }
     function onUp() {
       setDragging(false)
@@ -153,7 +166,7 @@ export function EdgeScrollbar({
     }
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
-  }, [scroller, box.height, box.thumbHeight])
+  }, [scroller, side, box.length, box.thumbLength])
 
   if (!box.scrollable) return null
 
@@ -161,7 +174,7 @@ export function EdgeScrollbar({
     <div
       aria-hidden="true"
       className={`edgebar edgebar--${side}` + (near || dragging ? ' is-near' : '')}
-      style={{ top: box.top, height: box.height }}
+      style={side === 'bottom' ? { left: box.start, width: box.length } : { top: box.start, height: box.length }}
     >
       {/* 잡는 면적과 그려지는 굵기를 나눈다. 4px 을 정확히 맞춰 누르라는 것은 무리고,
           그렇다고 늘 넓은 면적이 깔려 있으면 행의 왼쪽 끝 클릭을 삼킨다 — 그래서 면적은
@@ -169,7 +182,7 @@ export function EdgeScrollbar({
       <div
         className="edgebar-thumb"
         onPointerDown={onThumbDown}
-        style={{ top: box.thumbTop, height: box.thumbHeight }}
+        style={side === 'bottom' ? { left: box.thumbStart, width: box.thumbLength } : { top: box.thumbStart, height: box.thumbLength }}
         title={label}
       >
         <div className="edgebar-fill" />
