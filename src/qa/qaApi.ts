@@ -167,6 +167,7 @@ export function parseQaRun(data: unknown, status = 200): QaRun {
     id: requiredId(record.id, 'QA Run id', status),
     testRunId: requiredId(record.testRunId, 'test run id', status),
     gameInstanceId: requiredId(record.gameInstanceId, 'game instance id', status),
+    gameBuildId: optionalId(record.gameBuildId),
     status: parseStatus(record.status, status),
     startedAt: asNullableString(record.startedAt),
     completedAt: asNullableString(record.completedAt),
@@ -232,6 +233,38 @@ export async function createQaRun(
 export async function getQaRun(qaRunId: string, signal?: AbortSignal): Promise<QaRun> {
   const response = await apiFetch(`${QA_RUNS_ROOT}/${encodeURIComponent(qaRunId)}`, { signal })
   return parseQaRun(await readJson(response), response.status)
+}
+
+/**
+ * `{ items: QaRunResponse[] }` 를 읽는다. 한 run 이라도 읽을 수 없으면 목록 전체가 실패한다 — `parseQaRun` 이
+ * 상태를 모르면 던지는 것과 같은 규칙이다.
+ */
+export function parseQaRunList(data: unknown, status = 200): QaRun[] {
+  const items = asRecord(data)?.items
+  if (!Array.isArray(items)) {
+    throw new ProjectApiError(status, 'The server returned an unreadable QA Run list.')
+  }
+  return items.map((item) => parseQaRun(item, status))
+}
+
+/**
+ * `GET /api/projects/{projectId}/qa-runs`(ARTEL-1104) — 새 run 이 앞에 온다. `gameBuildId` 를 주면 그 빌드로 돈
+ * run 만 온다. `size` 는 서버가 1 이상 100 이하만 받는다.
+ */
+export async function listProjectQaRuns(
+  projectId: string,
+  options: { gameBuildId?: string; size?: number },
+  signal?: AbortSignal,
+): Promise<QaRun[]> {
+  const params = new URLSearchParams()
+  if (options.gameBuildId !== undefined) params.set('gameBuildId', options.gameBuildId)
+  if (options.size !== undefined) params.set('size', String(options.size))
+  const query = params.size === 0 ? '' : `?${params}`
+  const response = await apiFetch(
+    `/api/projects/${encodeURIComponent(projectId)}/qa-runs${query}`,
+    { signal },
+  )
+  return parseQaRunList(await readJson(response), response.status)
 }
 
 /** `POST /api/qa-runs/{id}/cancel` — cancel the whole run. */

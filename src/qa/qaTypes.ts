@@ -68,6 +68,8 @@ export type QaRun = {
   id: string
   testRunId: string
   gameInstanceId: string
+  /** 이 run 이 시작할 때 고정한 게임 빌드(ARTEL-1104). 빌드를 모르는 옛 run 이나 옛 서버면 null. */
+  gameBuildId: string | null
   status: QaTryStatus
   startedAt: string | null
   completedAt: string | null
