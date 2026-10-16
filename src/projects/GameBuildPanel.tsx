@@ -6,6 +6,7 @@ import { versionBuilds } from './gameBuilds'
 import { updateGameBuild } from './gameApi'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
+import { GameFunctionPanel } from './GameFunctionPanel'
 import { ProjectApiError } from './projectApi'
 import {
   BUILD_LABEL_MAX_LENGTH,
@@ -280,6 +281,8 @@ function GameBuildRow({
                 <dt>{t.projects.builds.updatedField}</dt>
                 <dd>{formatDate(build.updatedAt)}</dd>
               </dl>
+
+              <GameFunctionPanel buildId={build.id} projectId={projectId} />
 
               <div className="form-actions">
                 <Link

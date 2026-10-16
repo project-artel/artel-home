@@ -2560,6 +2560,7 @@ a.instance-name:hover {
 
 .qa-log-row--tool .qa-log-kind,
 .qa-log-row--tool_result .qa-log-kind,
+.qa-log-row--behavior_ended .qa-log-kind,
 .qa-log-row--action .qa-log-kind,
 .qa-log-row--action_result .qa-log-kind {
   color: var(--color-action-primary);
@@ -5093,6 +5094,7 @@ a.instance-name:hover {
 .qa-rail-step-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:1px; }
 .qa-rail-step{ position:relative; width:100%; display:grid; grid-template-columns:14px 20px minmax(0,1fr); align-items:baseline; gap:4px; padding:4px 6px 4px 8px; border:0; border-radius:4px; background:transparent; color:var(--color-text-secondary); font:inherit; font-size:12px; line-height:18px; text-align:left; }
 .qa-rail-step--neutral{ grid-template-columns:20px minmax(0,1fr); }
+.qa-rail-step--cheat{ grid-template-columns:14px 20px minmax(0,1fr) auto; }
 button.qa-rail-step--linked{ cursor:pointer; }
 button.qa-rail-step--linked:hover{ background:var(--color-bg-hover); }
 .qa-rail-step-glyph{ font-size:12px; text-align:center; }
@@ -11345,3 +11347,518 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
 .run-detail-label--cost .run-detail-label-icon { color: var(--color-status-warning); background: color-mix(in srgb, var(--color-status-warning) 16%, transparent); }
 .run-detail-label--tools .run-detail-label-icon { color: var(--color-agent-reasoning); background: color-mix(in srgb, var(--color-agent-reasoning) 16%, transparent); }
 .run-detail-label { font-size: 12px; font-weight: 600; color: var(--color-text-secondary); }
+
+/* ---- cheat 와 behavior (ARTEL-1051) ---------------------------------------- */
+
+.gf-note {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.gf-chip,
+.gf-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 6px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+/* 행에서 cheat 를 쓴 자리. 코랄은 에이전트의 조작에 쓰는 색이다. 글자도 함께 있어 색만으로 말하지 않는다. */
+.gf-badge {
+  border-color: var(--color-action-primary);
+  color: var(--color-action-primary);
+}
+
+/* 빌드 상세 */
+.gf-panel {
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.gf-title,
+.gf-group-title {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.gf-group-title {
+  margin-top: var(--space-3);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.gf-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.gf-list {
+  display: grid;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gf-item {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+}
+
+.gf-item-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.gf-name {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.gf-description {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.gf-params {
+  display: grid;
+  gap: 2px;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  list-style: none;
+}
+
+.gf-params-empty {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.gf-default {
+  color: var(--color-text-muted);
+}
+
+/* run 시작 */
+/* run 시작: 실행 설정 패널의 고급 설정 */
+.gf-advanced {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.gf-advanced-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: var(--space-2);
+  min-height: 28px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.gf-advanced-toggle:hover {
+  color: var(--color-text-primary);
+}
+
+.gf-advanced-toggle:focus-visible {
+  outline: 2px solid var(--color-action-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.gf-advanced-summary {
+  margin: 0;
+  padding-left: calc(16px + var(--space-2));
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.gf-run {
+  display: grid;
+  gap: var(--space-3);
+  min-width: 0;
+  margin: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.gf-run > .gf-note {
+  margin: 0;
+}
+
+.gf-run-title {
+  padding: 0 var(--space-1);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.gf-run-build {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.gf-run-build select {
+  min-height: 36px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  color: var(--color-text-primary);
+  background: var(--color-bg-raised);
+  font-size: 13px;
+}
+
+/* 전부 · 없음 · 직접 선택. run 시작과 test case 편집기가 같이 쓴다. */
+.gf-choice {
+  display: grid;
+  gap: var(--space-2);
+  max-width: 480px;
+}
+
+.gf-choice-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.gf-choice-label {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.gf-choice-count {
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.gf-seg {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-canvas);
+}
+
+.gf-seg-item {
+  min-width: 0;
+  height: 30px;
+  padding: 0 var(--space-1);
+  overflow: hidden;
+  border: 0;
+  border-radius: calc(var(--radius-md) - 2px);
+  background: none;
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.gf-seg-item:hover {
+  color: var(--color-text-primary);
+}
+
+.gf-seg-item.is-on {
+  background: var(--color-bg-raised);
+  color: var(--color-action-primary);
+  font-weight: 650;
+  box-shadow: 0 0 0 1px var(--color-border-strong);
+}
+
+.gf-seg-item:focus-visible {
+  outline: 2px solid var(--color-action-primary);
+  outline-offset: -2px;
+}
+
+.gf-seg-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.gf-choice-list {
+  display: grid;
+  max-height: 240px;
+  margin: 0;
+  padding: var(--space-1) 0;
+  overflow-y: auto;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-raised);
+  list-style: none;
+}
+
+.gf-choice-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  column-gap: var(--space-2);
+  padding: 6px var(--space-3);
+  cursor: pointer;
+}
+
+.gf-choice-item:hover {
+  background: var(--color-bg-hover);
+}
+
+.gf-choice-item input {
+  margin: 2px 0 0;
+  accent-color: var(--color-action-primary);
+}
+
+.gf-choice-text {
+  display: grid;
+  min-width: 0;
+}
+
+.gf-choice-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-primary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.gf-choice-desc {
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gf-choice .gf-note {
+  margin: 0;
+}
+
+/* run 옵션 요약 */
+.gf-logs-extras {
+  flex: none;
+  max-height: 40%;
+  overflow-y: auto;
+}
+
+.gf-summary {
+  padding: var(--space-2) 14px;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.gf-summary-title {
+  margin: 0 0 var(--space-1);
+  color: var(--color-text-muted);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.gf-summary-list {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+}
+
+.gf-summary-row {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: var(--space-2);
+  font-size: 12px;
+}
+
+.gf-summary-row dt {
+  color: var(--color-text-muted);
+}
+
+.gf-summary-row dd {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+
+.gf-summary-key {
+  margin-inline-end: var(--space-1);
+  color: var(--color-text-muted);
+}
+
+.gf-mode {
+  font-weight: 650;
+}
+
+.gf-mode--on {
+  color: var(--color-status-success);
+}
+
+.gf-mode--off,
+.gf-mode--unknown {
+  color: var(--color-text-muted);
+}
+
+/* behavior 줄 */
+.gf-lanes {
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.gf-lanes > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 32px;
+  padding: 0 14px;
+  cursor: pointer;
+}
+
+.gf-lanes > summary:focus-visible {
+  outline: 2px solid var(--color-action-primary);
+  outline-offset: -2px;
+}
+
+.gf-lanes-title {
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.gf-lanes-count {
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.gf-lanes-body {
+  display: grid;
+  gap: var(--space-2);
+  padding: 0 14px var(--space-3);
+}
+
+.gf-lane {
+  display: grid;
+  gap: 2px;
+}
+
+.gf-lane-name {
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gf-lane-track {
+  position: relative;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-raised);
+}
+
+.gf-bar {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  min-width: 6px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  padding: 0 var(--space-1);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  background: var(--color-bg-hover);
+  font: inherit;
+  font-size: 11px;
+  white-space: nowrap;
+  cursor: default;
+}
+
+button.gf-bar {
+  cursor: pointer;
+}
+
+button.gf-bar:focus-visible {
+  outline: 2px solid var(--color-action-primary);
+  outline-offset: 1px;
+}
+
+.gf-bar-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gf-bar--success {
+  border-color: var(--color-status-success);
+  background: var(--color-status-success-muted);
+}
+
+.gf-bar--warning {
+  border-color: var(--color-status-warning);
+  background: var(--color-status-warning-muted);
+}
+
+.gf-bar--critical {
+  border-color: var(--color-status-critical);
+  background: var(--color-status-critical-muted);
+}
+
+/* 아직 도는 것은 점선으로, 끝난 것과 모양으로도 구분한다. */
+.gf-bar--running {
+  border-style: dashed;
+  border-color: var(--color-action-primary);
+  background: var(--color-bg-surface);
+}
+
+/* test case 편집기 */
+.gf-case {
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.gf-case .gf-choice {
+  margin-top: var(--space-3);
+}

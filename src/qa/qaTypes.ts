@@ -26,6 +26,9 @@ export const QA_LOG_TYPES = [
   'CHAT',
   // QA 판정을 TC 상태에 반영했다는 서버 기록(ARTEL-995). payload 는 `case_id` · `verification_status`.
   'CASE_VERDICT',
+  // behavior 하나가 끝났다는 기록(ARTEL-1051). payload 는 `behaviorId` · `name` · `target` · `reason` ·
+  // `detail` · `seconds` · `frame`.
+  'BEHAVIOR_ENDED',
 ] as const
 
 export type QaLogType = (typeof QA_LOG_TYPES)[number]
