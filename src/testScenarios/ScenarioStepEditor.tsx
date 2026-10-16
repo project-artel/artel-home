@@ -22,11 +22,14 @@ import type { StepEditor } from './useStepEditor'
 export function ScenarioStepEditor({
   projectId,
   editor,
+  gameBuildId = null,
   banner,
   stepMarks,
 }: {
   projectId: string
   editor: StepEditor
+  /** TR 의 버전(ARTEL-1070). TC 배지와 상세가 그 버전의 내용과 판정을 보인다. 없으면 최신이다. */
+  gameBuildId?: string | null
   /** Drawn above the title — the studio says here that what is open is a draft (ARTEL-1075). */
   banner?: ReactNode
   /** One per step: a draft paints what changed yellow and what is new green (ARTEL-1075). */
@@ -45,7 +48,7 @@ export function ScenarioStepEditor({
   const [overIndex, setOverIndex] = useState<number | null>(null)
   // TC 배지에 붙일 검증 상태(ARTEL-995). 프로젝트 목록을 한 번 받아 id 로 찾는다 — 스텝마다 따로
   // 부르면 TC 수만큼 요청이 나간다. 못 읽으면 점 없이 배지만 그린다.
-  const caseStatuses = useCaseStatuses(projectId)
+  const caseStatuses = useCaseStatuses(projectId, gameBuildId)
 
   // The centre column hides its scrollbar and marks the two edges instead, the
   // way the TC spec list does — three bars on one screen was one too many, and
@@ -218,6 +221,7 @@ export function ScenarioStepEditor({
         <TestCaseModal
           projectId={projectId}
           caseId={tcView.caseId}
+          gameBuildId={gameBuildId}
           label={tcView.label}
           onClose={() => setTcView(null)}
         />
@@ -295,16 +299,16 @@ function StepAction({
   )
 }
 
-/** 프로젝트 TC 의 id → 검증 상태. 화면이 열릴 때 한 번 읽는다. */
-function useCaseStatuses(projectId: string): Map<string, VerificationStatus> {
+/** 프로젝트 TC 의 id → 검증 상태. 화면이 열릴 때 한 번 읽는다. 버전을 주면 그 버전의 판정이다. */
+function useCaseStatuses(projectId: string, gameBuildId: string | null): Map<string, VerificationStatus> {
   const [statuses, setStatuses] = useState<Map<string, VerificationStatus>>(new Map())
   useEffect(() => {
     const controller = new AbortController()
-    listTestCases(projectId, controller.signal)
+    listTestCases(projectId, controller.signal, { gameBuildId })
       .then((cases) => setStatuses(new Map(cases.map((testCase) => [testCase.id, testCase.verificationStatus]))))
       .catch(() => undefined)
     return () => controller.abort()
-  }, [projectId])
+  }, [projectId, gameBuildId])
   return statuses
 }
 

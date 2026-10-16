@@ -69,6 +69,8 @@ export type QaRun = {
   startedAt: string | null
   completedAt: string | null
   tries: QaTry[]
+  /** 판정 기준이 된 케이스 내용의 버전 — TR 이 따르는 게임 빌드다(ARTEL-1070). TR 에 버전이 없으면 null — 최신이다. */
+  testRunGameBuildId: string | null
 }
 
 export type QaReasoningCapability =

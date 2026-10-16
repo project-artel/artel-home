@@ -238,14 +238,14 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
           preview.view
         ) : status === 'ready' ? (
           isFree
-            ? <FreeScenarioEditor editor={editor} projectId={projectId} />
-            : <ScenarioStepEditor projectId={projectId} editor={editor} />
+            ? <FreeScenarioEditor editor={editor} gameBuildId={runBuild?.gameBuildId ?? null} projectId={projectId} />
+            : <ScenarioStepEditor projectId={projectId} editor={editor} gameBuildId={runBuild?.gameBuildId ?? null} />
         ) : (
           <div className="edoc-shell at-top at-bottom"><main className="edoc-wrap"><div className="edoc" /></main></div>
         )}
         <SplitHandle label={t.scenarios.chat.widthHandle} {...split.handle} />
         <aside className="st-chat">
-          {fromRun !== null && <RunChat session={runChat} />}
+          {fromRun !== null && <RunChat gameBuildId={runBuild?.gameBuildId ?? null} session={runChat} />}
         </aside>
       </div>
 
