@@ -27,13 +27,13 @@ export function ChatRefChip({ refKind, id }: { refKind: ChatRefKind; id: number 
   // 테스트 런 · QA 실행 · 이슈 · 빌드는 그 페이지로 보낸다(ARTEL-1097). 프로젝트를 모르는 자리에서는 이름만 보인다.
   const page = link === null ? null : pageOf(refKind, id, link.projectId)
   if (page !== undefined) {
-    if (page === null) return <span className={`chat-ref chat-ref--${refKind}`}>{tag}{label}</span>
-    return <Link className={`chat-ref chat-ref--${refKind}`} to={page}>{tag}{label}</Link>
+    if (page === null) return <span className={`chat-ref chat-ref--${refKind}`}>{tag}<span className="chat-ref-label" title={label}>{label}</span></span>
+    return <Link className={`chat-ref chat-ref--${refKind}`} to={page}>{tag}<span className="chat-ref-label" title={label}>{label}</span></Link>
   }
 
   if (refKind === 'ts') {
     if (link === null) {
-      return <span className="chat-ref chat-ref--ts">{tag}{label}</span>
+      return <span className="chat-ref chat-ref--ts">{tag}<span className="chat-ref-label" title={label}>{label}</span></span>
     }
     const run = link.runId !== null ? `?run=${encodeURIComponent(link.runId)}` : ''
     // 음수 번호는 아직 저장되지 않은 draft 다(ARTEL-1075). 시나리오 주소가 없으니 지금 화면에서
@@ -42,7 +42,7 @@ export function ChatRefChip({ refKind, id }: { refKind: ChatRefKind; id: number 
       const search = `?run=${encodeURIComponent(link.runId)}&preview=${encodeURIComponent(draftIdOfNumber(id))}`
       return (
         <Link className="chat-ref chat-ref--ts" to={{ search }}>
-          {tag}{label}
+          {tag}<span className="chat-ref-label" title={label}>{label}</span>
         </Link>
       )
     }
@@ -51,7 +51,7 @@ export function ChatRefChip({ refKind, id }: { refKind: ChatRefKind; id: number 
         className="chat-ref chat-ref--ts"
         to={`/projects/${encodeURIComponent(link.projectId)}/test-scenarios/${id}${run}`}
       >
-        {tag}{label}
+        {tag}<span className="chat-ref-label" title={label}>{label}</span>
       </Link>
     )
   }
@@ -60,11 +60,11 @@ export function ChatRefChip({ refKind, id }: { refKind: ChatRefKind; id: number 
   // 그 시트와 어긋나게 된다.
   const openCase = link?.openCase
   if (openCase === undefined) {
-    return <span className="chat-ref chat-ref--tc">{tag}{label}</span>
+    return <span className="chat-ref chat-ref--tc">{tag}<span className="chat-ref-label" title={label}>{label}</span></span>
   }
   return (
     <button type="button" className="chat-ref chat-ref--tc" onClick={() => openCase(id)}>
-      {tag}{label}
+      {tag}<span className="chat-ref-label" title={label}>{label}</span>
     </button>
   )
 }

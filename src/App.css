@@ -11110,3 +11110,8 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
 .chat-label{ display:inline-block; margin-right:6px; padding:0 6px; border-radius:4px; font-size:11px; font-weight:700; line-height:18px; vertical-align:1px; }
 .chat-label--precondition{ color:var(--color-status-warning); background:color-mix(in srgb, var(--color-status-warning) 14%, transparent); }
 .chat-label--expected{ color:var(--color-status-success); background:color-mix(in srgb, var(--color-status-success) 14%, transparent); }
+
+/* 칩은 한 줄로(ARTEL-1097). 케이스 이름이 길어 칩이 여러 줄 상자가 되면 글이 읽히지 않는다 — 이름은 줄이고 전체는 마우스를 올려 본다. */
+.scenario-studio .st-chat .chat-ref{ display:inline-flex; align-items:baseline; max-width:100%; vertical-align:bottom; overflow-wrap:normal; }
+.scenario-studio .st-chat .chat-ref-label{ display:inline-block; max-width:22em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; vertical-align:bottom; }
+.scenario-studio .st-chat .chat-md-table .chat-ref-label{ max-width:16em; }
