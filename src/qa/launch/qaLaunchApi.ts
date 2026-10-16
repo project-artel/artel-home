@@ -131,8 +131,16 @@ export function parseSinceLastQa(data: unknown): SinceLastQa {
   }
 }
 
-export async function listProjectQaRuns(projectId: string, limit: number, signal?: AbortSignal): Promise<QaRunSummary[]> {
-  const response = await apiFetch(`/api/projects/${encodeURIComponent(projectId)}/qa-runs?limit=${limit}`, { signal })
+/** 프로젝트의 실행, 최신순. [testRunId] 를 주면 그 테스트 런의 실행만(QA 히스토리, ARTEL-1100). */
+export async function listProjectQaRuns(
+  projectId: string,
+  limit: number,
+  signal?: AbortSignal,
+  testRunId?: string,
+): Promise<QaRunSummary[]> {
+  const query = new URLSearchParams({ limit: String(limit) })
+  if (testRunId !== undefined) query.set('testRunId', testRunId)
+  const response = await apiFetch(`/api/projects/${encodeURIComponent(projectId)}/qa-runs?${query}`, { signal })
   if (!response.ok) throw await toApiError(response)
   const items = asRecord(await readJson(response))?.items
   return Array.isArray(items) ? items.map(parseQaRunSummary).filter((run): run is QaRunSummary => run !== null) : []
