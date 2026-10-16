@@ -12,6 +12,7 @@ import { FreeScenarioBadge } from './FreeScenarioBadge'
 import { PlaylistAddIcon, PlusIcon } from './scenarioIcons'
 import { NewScenarioDialog } from './NewScenarioDialog'
 import { ScenarioImportDialog } from './ScenarioImportDialog'
+import { StudioIcon } from './studioIcons'
 import type { TestScenarioSummary } from './scenarioTypes'
 
 /**
@@ -174,7 +175,8 @@ export function ScenarioList({
           onClick={() => onDiscardDrafts?.([draft.draftId])}
           type="button"
         >
-          ✕<span aria-hidden="true" className="tip">{d.discard}</span>
+          <StudioIcon name="close" size={13} />
+          <span aria-hidden="true" className="tip">{d.discard}</span>
         </button>
       </span>
     )
