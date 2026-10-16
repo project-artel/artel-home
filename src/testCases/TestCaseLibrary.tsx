@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
 import { useI18n } from '../i18n/useI18n'
 import { formatDate } from '../projects/formatters'
 import type { GameBuild } from '../projects/gameTypes'
 import { ProjectApiError } from '../projects/projectApi'
-import { CreateFreeScenarioDialog } from '../testScenarios/CreateFreeScenarioDialog'
 import { CaseSceneFilter } from './CaseSceneFilter'
 import { SceneChip } from './SceneChip'
 import { SpecGradeChip } from './SpecGradeChip'
@@ -83,6 +82,7 @@ import { ImportManualCasesDialog } from './ImportManualCasesDialog'
 import { CoachTour } from './tour/CoachTour'
 import { CASE_LIBRARY_TOUR, caseLibraryTourSteps } from './tour/caseLibraryTour'
 import { useTour } from './tour/useTour'
+import { InfoHint } from '../design-system/primitives/InfoHint'
 
 /** `vdot` 와 결과 pill 이 상태마다 쓰는 CSS 접미사. 대문자 상태값을 클래스에 그대로 넣지 않는다. */
 const STATUS_CLASS: Record<VerificationStatus, string> = {
@@ -249,8 +249,6 @@ export function TestCaseLibrary({
   const [deleting, setDeleting] = useState<TestCase | null>(null)
   const [isBulkDeleting, setIsBulkDeleting] = useState(false)
   const [isMoving, setIsMoving] = useState(false)
-  const [isCreatingFree, setIsCreatingFree] = useState(false)
-  const navigate = useNavigate()
   const [isAddingToVersion, setIsAddingToVersion] = useState(false)
   const [importTarget, setImportTarget] = useState<TestCaseVersionSummary | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
@@ -726,6 +724,7 @@ export function TestCaseLibrary({
         <header className="panel-header panel-header--split">
           <h2 className="tcl-title">
             {m.section.title}
+            <InfoHint>{m.section.subtitle}</InfoHint>
             {latestVersion !== undefined && (
               <span className="tcl-current-version" title={m.versions.currentTitle}>
                 {m.versions.current} <strong>{versionName(latestVersion)}</strong>
@@ -752,7 +751,6 @@ export function TestCaseLibrary({
             </button>
           </div>
         </header>
-        <p className="section-intro">{m.section.subtitle}</p>
         {generationNotice !== null && (
           <p className="tcl-notice">
             <span>{generationNotice}</span>
@@ -899,7 +897,6 @@ export function TestCaseLibrary({
               limitNoteId={limitNoteId}
               moveLabel={folderView ? m.folderItems.moveTo : m.folderItems.add}
               onClear={clearSelection}
-              onCreateFreeScenario={() => setIsCreatingFree(true)}
               onDelete={() => setIsBulkDeleting(true)}
               onMove={() => setIsMoving(true)}
             />
@@ -1217,17 +1214,6 @@ export function TestCaseLibrary({
           }}
           title={m.addToVersion.title(selectedManualIds.length)}
           versions={versionList.versions}
-        />
-      )}
-
-      {isCreatingFree && (
-        <CreateFreeScenarioDialog
-          // 목록에 보이는 순서대로 담는다. 선택한 순서는 Set 에 남은 클릭 순서일 뿐이다.
-          cases={shown.filter((testCase) => selection.isSelected(testCase.id))}
-          onClose={() => setIsCreatingFree(false)}
-          onCreated={(testScenarioId) =>
-            navigate(`/projects/${encodeURIComponent(projectId)}/test-scenarios/${testScenarioId}`)}
-          projectId={projectId}
         />
       )}
 

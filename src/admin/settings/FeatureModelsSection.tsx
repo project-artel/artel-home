@@ -1,0 +1,180 @@
+import { useEffect, useId, useState, type FormEvent } from 'react'
+import { useI18n } from '../../i18n/useI18n'
+import { InfoHint } from '../../design-system/primitives/InfoHint'
+import {
+  JEV_MODEL_ID,
+  getFeatureModels,
+  listLlmModels,
+  putFeatureModels,
+  type AdminLlmModel,
+  type FeatureModels,
+} from './settingsApi'
+import { ROUTE_LABEL } from './routeLabel'
+import { useAdminFailure } from './useAdminRequest'
+
+/** A select value of `''` stands for `null`, the feature's own default. */
+const DEFAULT_VALUE = ''
+
+function toValue(modelId: string | null): string {
+  return modelId === null || modelId === JEV_MODEL_ID ? DEFAULT_VALUE : modelId
+}
+
+function toModelId(value: string): string | null {
+  return value === DEFAULT_VALUE ? null : value
+}
+
+function ModelOptions({ models, selected }: { models: AdminLlmModel[]; selected: string }) {
+  const { t } = useI18n()
+  const catalogModel = models.find((model) => model.id === selected)
+  // A stored model that was turned off afterwards must stay visible, not silently vanish.
+  const orphan = selected !== DEFAULT_VALUE && (catalogModel === undefined || !catalogModel.enabled)
+  return (
+    <>
+      {models
+        .filter((model) => model.enabled)
+        .map((model) => (
+          <option key={model.id} value={model.id}>
+            {model.label} · {ROUTE_LABEL[model.route]}
+          </option>
+        ))}
+      {orphan && (
+        <option value={selected} disabled>
+          {t.adminSettings.featureModels.disabledInCatalog(catalogModel?.label ?? selected)}
+        </option>
+      )}
+    </>
+  )
+}
+
+/** Which model the scenario authoring agent uses, and which one answers the Jev decision questions. */
+export function FeatureModelsSection({
+  openRouterKeyConfigured,
+  typesafeKeyConfigured,
+  onSaved,
+}: {
+  /** `null` while the OpenRouter key state is still loading. */
+  openRouterKeyConfigured: boolean | null
+  /** `null` while the TypeSafe key state is still loading. */
+  typesafeKeyConfigured: boolean | null
+  onSaved: (message: string) => void
+}) {
+  const { t } = useI18n()
+  const [models, setModels] = useState<AdminLlmModel[] | null>(null)
+  const [saved, setSaved] = useState<FeatureModels | null>(null)
+  const [authoring, setAuthoring] = useState(DEFAULT_VALUE)
+  const [decision, setDecision] = useState(DEFAULT_VALUE)
+  const [saving, setSaving] = useState(false)
+  const { error, setError, fail } = useAdminFailure()
+  const authoringId = useId()
+  const decisionId = useId()
+  const warningId = useId()
+
+  useEffect(() => {
+    const controller = new AbortController()
+    Promise.all([listLlmModels(controller.signal), getFeatureModels(controller.signal)])
+      .then(([loadedModels, loaded]) => {
+        setModels(loadedModels)
+        setSaved(loaded)
+        setAuthoring(toValue(loaded.scenarioAuthoringModel))
+        setDecision(toValue(loaded.decisionModel))
+      })
+      .catch((cause) => {
+        if (!controller.signal.aborted) fail(cause)
+      })
+    return () => controller.abort()
+  }, [fail])
+
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (saving) return
+    setSaving(true)
+    setError(null)
+    try {
+      const result = await putFeatureModels({
+        scenarioAuthoringModel: toModelId(authoring),
+        decisionModel: toModelId(decision),
+      })
+      setSaved(result)
+      setAuthoring(toValue(result.scenarioAuthoringModel))
+      setDecision(toValue(result.decisionModel))
+      onSaved(t.adminSettings.featureModels.saved)
+    } catch (cause) {
+      fail(cause)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const fallback = saved?.scenarioAuthoringFallback ?? null
+  const showJevWarning = decision === DEFAULT_VALUE && openRouterKeyConfigured === false && typesafeKeyConfigured === false
+  const unchanged =
+    saved !== null &&
+    authoring === toValue(saved.scenarioAuthoringModel) &&
+    decision === toValue(saved.decisionModel)
+
+  return (
+    <section aria-labelledby="adm-feature-models-title">
+      <div className="section__head">
+        <h2 className="section__title" id="adm-feature-models-title">
+          {t.adminSettings.featureModels.title}
+          <InfoHint>{t.adminSettings.featureModels.hint}</InfoHint>
+        </h2>
+      </div>
+      {error !== null && (
+        <p className="notice notice--critical" role="alert">
+          {error}
+        </p>
+      )}
+      {models === null || saved === null ? (
+        <p className="notice">
+          {error === null ? t.adminSettings.featureModels.loading : t.adminSettings.featureModels.failed}
+        </p>
+      ) : (
+        <form className="adm-form" onSubmit={save}>
+          <span className="adm-field adm-field--wide">
+            <label className="field__label" htmlFor={authoringId}>
+              {t.adminSettings.featureModels.authoring}
+              <InfoHint>{t.adminSettings.featureModels.authoringHint}</InfoHint>
+            </label>
+            <select
+              id={authoringId}
+              className="control adm-input"
+              value={authoring}
+              disabled={saving}
+              onChange={(event) => setAuthoring(event.target.value)}
+            >
+              <option value={DEFAULT_VALUE}>{t.adminSettings.featureModels.serverDefault(fallback)}</option>
+              <ModelOptions models={models} selected={authoring} />
+            </select>
+          </span>
+          <span className="adm-field adm-field--wide">
+            <label className="field__label" htmlFor={decisionId}>
+              {t.adminSettings.featureModels.decision}
+              <InfoHint>{t.adminSettings.featureModels.decisionHint}</InfoHint>
+            </label>
+            <select
+              id={decisionId}
+              className="control adm-input"
+              value={decision}
+              disabled={saving}
+              aria-describedby={showJevWarning ? warningId : undefined}
+              onChange={(event) => setDecision(event.target.value)}
+            >
+              <option value={DEFAULT_VALUE}>{t.adminSettings.featureModels.jev(typesafeKeyConfigured === true)}</option>
+              <ModelOptions models={models} selected={decision} />
+            </select>
+          </span>
+          <button type="submit" className="control control--action" disabled={saving || unchanged}>
+            {saving ? t.adminSettings.common.saving : t.adminSettings.featureModels.save}
+          </button>
+          {showJevWarning && (
+            <p className="adm-warning" id={warningId} role="status">
+              <strong>! {t.adminSettings.featureModels.jevKeyMissingTitle}</strong>{' '}
+              {t.adminSettings.featureModels.jevKeyMissing}
+            </p>
+          )}
+        </form>
+      )}
+    </section>
+  )
+}

@@ -7,6 +7,7 @@ import { FreeScenarioBadge } from './FreeScenarioBadge'
 import { buildFreeCaseSteps } from './scenarioTypes'
 import type { StepEditor } from './useStepEditor'
 import { useProjectCases } from './useProjectCases'
+import { InfoHint } from '../design-system/primitives/InfoHint'
 
 /**
  * The body of a FREE scenario: its test cases, with no order to edit and no step text.
@@ -49,8 +50,8 @@ export function FreeScenarioEditor({
               value={working.title}
             />
             <FreeScenarioBadge />
+            <InfoHint>{m.hint}</InfoHint>
           </header>
-          <p className="free-hint">{m.hint}</p>
           {editor.saveError !== null && <p className="st-editor-error">{t.scenarios.stepsEditor.saveFailed}</p>}
 
           <h2 className="free-heading">

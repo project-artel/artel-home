@@ -8,6 +8,7 @@ import { adminFormat } from '../shared/format'
 import { ProjectPicker } from '../shared/projects/ProjectPicker'
 import { listProjects, type ProjectSummary } from '../shared/projects/projectsApi'
 import './graph.css'
+import { InfoHint } from '../../design-system/primitives/InfoHint'
 
 /**
  * 지식창고 그래프.
@@ -103,8 +104,8 @@ function ProjectGraph(props: ToolbarProps & { projectId: string }) {
           <div className="section__head">
             <h2 className="section__title" id="graph-title">
               {t.adminGraph.graph.title}
+              <InfoHint>{t.adminGraph.graph.note}</InfoHint>
             </h2>
-            <span className="section__note">{t.adminGraph.graph.note}</span>
           </div>
           <KnowledgeGraphContent
             diagnostics={diagnostics}

@@ -7,7 +7,7 @@ import {
   searchInvitationCandidates,
   sendInvitation,
 } from './memberApi'
-import { isInvitationExpired, type ProjectInvitation } from './memberTypes'
+import { invitationTargetLabel, isInvitationExpired, type ProjectInvitation } from './memberTypes'
 
 /*
  * 이 화면에서 실제로 틀릴 수 있는 논리는 서버 응답을 좁히는 규칙 하나다. 어느 필드가 없을 때 줄을
@@ -52,11 +52,22 @@ const invitation = {
   projectId: '35',
   projectName: 'Demo Day',
   email: 'hubot@example.com',
+  nickname: null,
+  userTag: null,
+  displayName: null,
   role: 'MEMBER',
   status: 'PENDING',
   invitedBy: 'octocat',
   createdAt: '2026-08-30T00:00:00Z',
   expiresAt: '2026-09-13T00:00:00Z',
+}
+
+const accountInvitation = {
+  ...invitation,
+  email: null,
+  nickname: 'Hubot',
+  userTag: '0042',
+  displayName: 'hubot',
 }
 
 describe('parseMember', () => {
@@ -108,6 +119,9 @@ describe('parseInvitation', () => {
       projectId: '35',
       projectName: 'Demo Day',
       email: 'hubot@example.com',
+      nickname: null,
+      userTag: null,
+      displayName: null,
       role: 'MEMBER',
       status: 'PENDING',
       invitedBy: 'octocat',
@@ -116,9 +130,20 @@ describe('parseInvitation', () => {
     })
   })
 
+  // 자동완성에서 고른 계정에 보낸 초대. 서버는 그 계정의 주소를 싣지 않는다.
+  it('reads an invitation sent to an account', () => {
+    const parsed = parseInvitation({ ...accountInvitation })
+    assert.equal(parsed?.email, null)
+    assert.equal(parsed?.nickname, 'Hubot')
+    assert.equal(parsed?.userTag, '0042')
+    assert.equal(parsed?.displayName, 'hubot')
+  })
+
   it('drops a row with nothing to answer or nobody to name', () => {
     assert.equal(parseInvitation({ ...invitation, id: undefined }), null)
     assert.equal(parseInvitation({ ...invitation, email: undefined }), null)
+    assert.equal(parseInvitation({ ...accountInvitation, nickname: null }), null)
+    assert.equal(parseInvitation({ ...accountInvitation, userTag: null }), null)
     assert.equal(parseInvitation(undefined), null)
   })
 
@@ -134,6 +159,20 @@ describe('parseInvitation', () => {
 
   it('degrades an unknown role to MEMBER', () => {
     assert.equal(parseInvitation({ ...invitation, role: 'ADMIN' })?.role, 'MEMBER')
+  })
+})
+
+describe('invitationTargetLabel', () => {
+  it('names an email invitation by its address', () => {
+    const parsed = parseInvitation(invitation)
+    assert.ok(parsed)
+    assert.equal(invitationTargetLabel(parsed), 'hubot@example.com')
+  })
+
+  it('names an account invitation by nickname#userTag', () => {
+    const parsed = parseInvitation(accountInvitation)
+    assert.ok(parsed)
+    assert.equal(invitationTargetLabel(parsed), 'Hubot#0042')
   })
 })
 
@@ -259,10 +298,10 @@ describe('sendInvitation', () => {
   it('sends only appUserId for an appUserId-kind draft', async () => {
     const calls: { url: string; init: RequestInit }[] = []
 
-    await withMockedFetch(
+    const sent = await withMockedFetch(
       (url, init) => {
         calls.push({ url, init })
-        return new Response(JSON.stringify(invitation), { status: 200 })
+        return new Response(JSON.stringify(accountInvitation), { status: 200 })
       },
       () => sendInvitation('35', { kind: 'appUserId', appUserId: '60', role: 'MEMBER' }),
     )
@@ -272,5 +311,8 @@ describe('sendInvitation', () => {
       appUserId: '60',
       role: 'MEMBER',
     })
+    // 서버는 계정 초대의 응답에 `email: null` 을 싣는다. 그 응답을 오류로 읽으면 초대는 저장됐는데
+    // 화면은 실패로 표시한다.
+    assert.equal(sent?.nickname, 'Hubot')
   })
 })

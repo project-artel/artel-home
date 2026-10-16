@@ -13,6 +13,7 @@ export const commonEn = {
     languageLabel: 'Language',
     switchToDark: 'Switch to dark theme',
     switchToLight: 'Switch to light theme',
+    moreInfo: 'More information',
   },
   session: {
     checking: 'Checking your session…',
@@ -97,6 +98,7 @@ export const commonKo: Localized<typeof commonEn> = {
     languageLabel: '언어',
     switchToDark: '다크 테마로 전환',
     switchToLight: '라이트 테마로 전환',
+    moreInfo: '설명 보기',
   },
   session: {
     checking: '세션을 확인하는 중…',

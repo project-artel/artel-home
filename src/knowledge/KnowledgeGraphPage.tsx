@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
 import { useWorkspace } from '../projects/workspace/workspaceContext'
 import { KnowledgeGraphCanvas, type Selection } from './KnowledgeGraphCanvas'
@@ -31,9 +32,8 @@ export function KnowledgeSection() {
 
   return (
     <div className="kg-section">
-      <p className="section-intro">{t.knowledge.page.subtitle}</p>
-
       <div className="kg-section-actions">
+        <InfoHint>{t.knowledge.page.subtitle}</InfoHint>
         <button
           className="button button--secondary"
           disabled={status === 'loading'}

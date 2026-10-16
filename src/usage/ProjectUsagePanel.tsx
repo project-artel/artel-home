@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
 import { sectionHref } from '../projects/workspace/sections'
 import { UsageFigures } from './UsageFigures'
@@ -21,8 +22,10 @@ export function ProjectUsagePanel({ projectId }: { projectId: string }) {
     <section className="panel usage-panel" aria-labelledby="usage-panel-title">
       <header className="panel-header panel-header--split">
         <div>
-          <h2 id="usage-panel-title">{u.panelTitle}</h2>
-          <p className="usage-note">{u.panelSubtitle}</p>
+          <h2 id="usage-panel-title">
+            {u.panelTitle}
+            <InfoHint>{u.panelSubtitle}</InfoHint>
+          </h2>
         </div>
         <div className="usage-panel-actions">
           <Link className="button button--secondary button--compact" to={sectionHref(projectId, 'usage')}>

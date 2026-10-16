@@ -1,4 +1,5 @@
 import { useId, type ReactNode } from 'react'
+import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
 import {
   DESCRIPTION_MAX_LENGTH,
@@ -76,6 +77,7 @@ export function ProjectForm({
       <div className="field">
         <label className="field-label" htmlFor={descriptionId}>
           {t.projects.form.descriptionLabel}
+          <InfoHint>{t.projects.form.descriptionHint}</InfoHint>
         </label>
         <textarea
           className="field-input field-input--multiline"
@@ -86,7 +88,6 @@ export function ProjectForm({
           rows={4}
           value={draft.description}
         />
-        <p className="field-hint">{t.projects.form.descriptionHint}</p>
         {fieldErrors.description && <p className="field-error">{fieldErrors.description}</p>}
       </div>
 

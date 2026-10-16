@@ -10,6 +10,7 @@ import {
   type DocumentDeleteState,
 } from './documentDeleteState'
 import { formatBytes, formatDate, formatElapsedSeconds } from './formatters'
+import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
 import { DOCUMENT_ACCEPT, describeFileProblem, uploadDocument } from './uploadDocument'
 import type { DocumentStreamState } from './useDocumentEvents'
@@ -148,7 +149,10 @@ export function DocumentPanel({
   return (
     <section className="panel" aria-labelledby="documents-title">
       <header className="panel-header panel-header--split">
-        <h2 id="documents-title">{t.projects.documents.title}</h2>
+        <h2 id="documents-title">
+          {t.projects.documents.title}
+          <InfoHint>{t.projects.documents.hint}</InfoHint>
+        </h2>
         <DocumentStreamIndicator streamState={streamState} />
       </header>
 
@@ -201,7 +205,6 @@ export function DocumentPanel({
             ? t.projects.documents.uploadFirst
             : t.projects.documents.uploadNew}
         </label>
-        <p className="upload-hint">{t.projects.documents.hint}</p>
       </div>
 
       <DocumentDataNotice />

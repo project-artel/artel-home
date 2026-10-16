@@ -1,6 +1,7 @@
 import { useId, useRef, useState } from 'react'
 import { composeNicknameTag } from '../../auth/authTypes'
 import { ConfirmActionDialog } from '../../design-system/primitives/ConfirmActionDialog'
+import { InfoHint } from '../../design-system/primitives/InfoHint'
 import { useI18n } from '../../i18n/useI18n'
 import { apiErrorMessage } from '../apiErrorMessage'
 import { formatDate } from '../formatters'
@@ -9,6 +10,7 @@ import { removeMember, revokeInvitation, sendInvitation } from '../memberApi'
 import {
   INVITATION_CANDIDATE_QUERY_MIN_LENGTH,
   INVITATION_EMAIL_MAX_LENGTH,
+  invitationTargetLabel,
   isInvitationExpired,
   type InvitationCandidate,
   type ProjectInvitation,
@@ -236,9 +238,11 @@ function InvitePanel({
   return (
     <section className="panel" aria-labelledby="invite-title">
       <header className="panel-header">
-        <h2 id="invite-title">{copy.inviteTitle}</h2>
+        <h2 id="invite-title">
+          {copy.inviteTitle}
+          <InfoHint>{copy.inviteCopy}</InfoHint>
+        </h2>
       </header>
-      <p className="section-intro">{copy.inviteCopy}</p>
 
       <form className="invite-form" onSubmit={send} noValidate>
         {failure !== null && (
@@ -520,7 +524,7 @@ function SentInvitationRow({
 
     try {
       await revokeInvitation(projectId, invitation.id)
-      onAnnounce(copy.revokedAnnouncement(invitation.email))
+      onAnnounce(copy.revokedAnnouncement(invitationTargetLabel(invitation)))
       onRevoked()
     } catch (error: unknown) {
       setFailure(error instanceof ProjectApiError ? apiErrorMessage(error, t) : copy.revokeFailed)
@@ -531,7 +535,7 @@ function SentInvitationRow({
   return (
     <li className="invitation-row">
       <div className="invitation-row-main">
-        <span className="invitation-row-email">{invitation.email}</span>
+        <span className="invitation-row-email">{invitationTargetLabel(invitation)}</span>
         <span className="invitation-row-meta">
           {expired ? copy.expired : copy.expires(formatDate(invitation.expiresAt))}
         </span>

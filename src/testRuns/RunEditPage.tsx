@@ -3,8 +3,10 @@ import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { SplitHandle } from '../design-system/primitives/SplitHandle'
 import { listTestScenarios } from '../testScenarios/scenarioApi'
+import { NewScenarioDialog } from '../testScenarios/NewScenarioDialog'
 import { ScenarioImportDialog } from '../testScenarios/ScenarioImportDialog'
 import { ScenarioList } from '../testScenarios/ScenarioList'
+import { useDraftPreview } from '../testScenarios/useDraftPreview'
 import { PlaylistAddIcon } from '../testScenarios/scenarioIcons'
 import type { ScenarioImportResult } from '../testScenarios/scenarioLibrary'
 import { useChatWidth } from '../testScenarios/useChatWidth'
@@ -44,6 +46,7 @@ function RunEditPage({ projectId, runId }: { projectId: string; runId: string })
     | { kind: 'missing' }
   >({ kind: 'loading' })
   const [creating, setCreating] = useState(false)
+  const [choosingKind, setChoosingKind] = useState(false)
   const [importing, setImporting] = useState(false)
   const [importNotice, setImportNotice] = useState<string | null>(null)
   // Bumped after the chat applies a proposal, so the rail re-fetches. Only the
@@ -56,6 +59,8 @@ function RunEditPage({ projectId, runId }: { projectId: string; runId: string })
   // 있고, 그때 새 시나리오가 새로고침 전까지 안 보였다(ARTEL-882).
   const reloadList = () => setReloadKey((k) => k + 1)
   const runChat = useRunChatSession(projectId, runId, reloadList, reloadList)
+  // 빈 런의 첫 저작도 자동저장을 끄면 draft 로 남는다(ARTEL-1075). 열면 가운데가 그 draft 다.
+  const preview = useDraftPreview(projectId, runChat)
   const split = useChatWidth()
 
   useEffect(() => {
@@ -92,6 +97,7 @@ function RunEditPage({ projectId, runId }: { projectId: string; runId: string })
 
   async function createFirst() {
     if (creating) return
+    setChoosingKind(false)
     setCreating(true)
     try {
       const id = await createTestScenario(Number(projectId))
@@ -162,7 +168,8 @@ function RunEditPage({ projectId, runId }: { projectId: string; runId: string })
       </header>
 
       <div className="st-edit">
-        <ScenarioList key={reloadKey} projectId={projectId} activeId={-1} runId={runId} />
+        <ScenarioList key={reloadKey} projectId={projectId} activeId={-1} runId={runId} {...preview.listProps} />
+        {preview.view ?? (
         <main className="edoc-wrap">
           <div className="edoc run-empty">
             {state.hasScenarios ? (
@@ -175,7 +182,7 @@ function RunEditPage({ projectId, runId }: { projectId: string; runId: string })
                 <h1 className="run-empty-title">{e.emptyTitle}</h1>
                 <p className="run-empty-copy">{e.emptyCopy}</p>
                 <div className="run-empty-actions">
-                  <button className="st-btn st-btn--primary" disabled={creating} onClick={createFirst} type="button">
+                  <button className="st-btn st-btn--primary" disabled={creating} onClick={() => setChoosingKind(true)} type="button">
                     {creating ? e.creating : e.createFirst}
                   </button>
                   <button className="st-btn st-btn--icon" disabled={creating} onClick={() => setImporting(true)} type="button">
@@ -187,6 +194,16 @@ function RunEditPage({ projectId, runId }: { projectId: string; runId: string })
             )}
             {importNotice !== null && <p className="run-empty-copy" role="status">{importNotice}</p>}
           </div>
+          {choosingKind && (
+            <NewScenarioDialog
+              onClose={() => setChoosingKind(false)}
+              onCreated={(id) =>
+                navigate(`/projects/${encodeURIComponent(projectId)}/test-scenarios/${id}?run=${encodeURIComponent(runId)}`)}
+              onOrdered={() => void createFirst()}
+              projectId={projectId}
+              runId={runId}
+            />
+          )}
           {importing && (
             <ScenarioImportDialog
               onClose={() => setImporting(false)}
@@ -196,6 +213,7 @@ function RunEditPage({ projectId, runId }: { projectId: string; runId: string })
             />
           )}
         </main>
+        )}
         <SplitHandle label={t.scenarios.chat.widthHandle} {...split.handle} />
         <aside className="st-chat">
           <RunChat gameBuildId={state.run.gameBuild?.gameBuildId ?? null} session={runChat} />

@@ -6,6 +6,7 @@ import { versionName, type TestCaseVersionSummary, type VersionGroup } from '../
 import { VersionTreeDialog } from '../testCases/VersionTreeDialog'
 import { createTestRun, type TestRun } from './testRunApi'
 import type { RunFolder } from './testRunFolders'
+import { InfoHint } from '../design-system/primitives/InfoHint'
 
 /**
  * 새 TR(ARTEL-1049). 이름과 이 TR 이 따를 빌드 버전을 고른다. 버전은 기본으로 테스트 런 화면에서 고른 칸이고, 바꾸려면
@@ -91,7 +92,7 @@ export function NewRunDialog({
             />
           </div>
           <div className="field nrd-field">
-            <span className="field-label">{r.newDialog.versionLabel}</span>
+            <span className="field-label">{r.newDialog.versionLabel}<InfoHint>{r.newDialog.versionHint}</InfoHint></span>
             <div className="nrd-version">
               <strong>{chosenLabel}</strong>
               {chosen?.latest === true && <span className="tcl-version-latest">{t.testCases.versions.latest}</span>}
@@ -100,7 +101,6 @@ export function NewRunDialog({
               </button>
             </div>
             {inFolder !== null && <p className="field-hint">{r.newDialog.inFolder(inFolder.name)}</p>}
-            <p className="field-hint">{r.newDialog.versionHint}</p>
           </div>
           {failure !== null && (
             <div className="inline-error" role="alert">

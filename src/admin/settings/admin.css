@@ -40,6 +40,17 @@
     background: var(--color-status-critical-muted);
   }
 
+  /* A caution that is not a failure: amber border plus a "!" mark and text in the markup. */
+  .adm-warning {
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--color-status-warning);
+    border-radius: var(--radius-md);
+    background: var(--color-status-warning-muted);
+    color: var(--color-text-primary);
+    font-size: 13px;
+    line-height: 20px;
+  }
+
   .adm-facts {
     display: flex;
     flex-wrap: wrap;
@@ -184,10 +195,5 @@
     margin: 0;
     padding: 0;
     list-style: none;
-  }
-
-  /* An action row placed right under a block hint, as in the Bedrock key section. */
-  .section__note--block + .adm-actions {
-    margin-top: var(--space-3);
   }
 }

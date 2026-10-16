@@ -2,6 +2,7 @@ import { useI18n } from '../../i18n/useI18n'
 import { adminFormat } from '../shared/format'
 import type { LlmUsageStats } from './llmUsageTypes'
 import { isPartiallyPriced, totalTokens } from './usage'
+import { InfoHint } from '../../design-system/primitives/InfoHint'
 
 /**
  * 기간 전체 합계.
@@ -45,22 +46,23 @@ export function TotalsRail({ stats }: { stats: LlmUsageStats }) {
       </div>
 
       <div className="rail__item">
-        <span className="rail__label">{strings.cachedInput}</span>
+        <span className="rail__label">
+          {strings.cachedInput}
+          <InfoHint>{strings.cachedHint}</InfoHint>
+        </span>
         <span className="rail__value" title={format.count(total.cachedInputTokens)}>
           {format.tokens(total.cachedInputTokens)}
         </span>
-        {/* 입력 토큰의 부분집합이라 전체 토큰에 더해지지 않는다. 캐시에서 읽은 몫이 클수록
-            같은 토큰 수라도 싸다. */}
-        <span className="rail__hint">{strings.cachedHint}</span>
       </div>
 
       <div className="rail__item">
-        <span className="rail__label">{strings.reasoning}</span>
+        <span className="rail__label">
+          {strings.reasoning}
+          <InfoHint>{strings.reasoningHint}</InfoHint>
+        </span>
         <span className="rail__value" title={format.count(total.reasoningTokens)}>
           {format.tokens(total.reasoningTokens)}
         </span>
-        {/* 이쪽은 출력 토큰의 부분집합이다. */}
-        <span className="rail__hint">{strings.reasoningHint}</span>
       </div>
 
       <div className="rail__item">

@@ -2,6 +2,7 @@ import { useId, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CopyButton } from '../projects/CopyButton'
 import { formatDateTime } from '../projects/formatters'
+import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
 import { CliInstallSteps, CLI_README_URL } from './CliInstallSteps'
 import { createCliToken } from './cliTokenApi'
@@ -78,9 +79,11 @@ export function CliTokenPanel() {
   return (
     <section className="panel" aria-labelledby="cli-tokens-title">
       <header className="panel-header">
-        <h2 id="cli-tokens-title">{copy.title}</h2>
+        <h2 id="cli-tokens-title">
+          {copy.title}
+          <InfoHint>{copy.intro}</InfoHint>
+        </h2>
       </header>
-      <p className="section-intro">{copy.intro}</p>
 
       <CliInstallSteps collapsed onResult={setAnnouncement}>
         <p className="guide-copy">

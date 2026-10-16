@@ -2,6 +2,7 @@ import { useI18n } from '../../i18n/useI18n'
 import { adminFormat, EMPTY_MARK } from '../shared/format'
 import { citationCoverage, citationRate, repudiationRate } from './pivot'
 import type { KnowledgeStatsTotals } from './knowledgeStatsTypes'
+import { InfoHint } from '../../design-system/primitives/InfoHint'
 
 /**
  * 기간 전체 합계.
@@ -20,10 +21,11 @@ export function KnowledgeTotalsRail({ total }: { total: KnowledgeStatsTotals }) 
   return (
     <div className="rail">
       <div className="rail__item">
-        <span className="rail__label">{strings.createdVersions}</span>
+        <span className="rail__label">
+          {strings.createdVersions}
+          <InfoHint>{strings.versionsNotEntries}</InfoHint>
+        </span>
         <span className="rail__value">{format.count(total.entryVersions)}</span>
-        {/* 항목 수가 아니다. 한 항목을 두 번 고치면 세 버전이다. */}
-        <span className="rail__hint">{strings.versionsNotEntries}</span>
       </div>
 
       <div className="rail__item">
@@ -44,9 +46,11 @@ export function KnowledgeTotalsRail({ total }: { total: KnowledgeStatsTotals }) 
       </div>
 
       <div className="rail__item">
-        <span className="rail__label">{strings.retrievals}</span>
+        <span className="rail__label">
+          {strings.retrievals}
+          <InfoHint>{strings.retrievalHint}</InfoHint>
+        </span>
         <span className="rail__value">{format.count(total.retrievalTotal)}</span>
-        <span className="rail__hint">{strings.retrievalHint}</span>
       </div>
 
       <div className="rail__item">

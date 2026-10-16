@@ -1,7 +1,7 @@
 /*
  * 모델 선택 드롭다운(ARTEL-1035)에 쓰는 아이콘. 그리지 않고 Tabler Icons(MIT, https://tabler.io/icons)
  * 의 outline 세트에서 그대로 가져왔다 — `gift`, `key`, `lock`, `search`, `check`,
- * `circle-check`, `circle-x`, `chevron-down`.
+ * `circle-check`, `circle-x`, `chevron-down`, `pencil`.
  * 모두 `currentColor` 선 아이콘이라 둘러싼 글자색을 따르고, 옆 글자가 같은 것을 말하므로 `aria-hidden` 이다.
  */
 
@@ -86,6 +86,15 @@ export function CircleXIcon(props: IconProps) {
     <Icon {...props}>
       <path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" />
       <path d="M10 10l4 4m0 -4l-4 4" />
+    </Icon>
+  )
+}
+
+export function PencilIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
     </Icon>
   )
 }

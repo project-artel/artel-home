@@ -62,7 +62,9 @@ export function parseMember(data: unknown): ProjectMember | null {
 /**
  * 초대 한 건.
  *
- * `id` 와 `email` 이 없으면 버린다 — 무엇을 수락할지도, 누구에게 간 것인지도 말할 수 없다.
+ * `id` 가 없거나 대상을 말할 수 없으면 버린다. 무엇을 수락할지도, 누구에게 간 것인지도 말할 수
+ * 없다. 대상은 `email` 하나, 또는 `nickname` 과 `userTag` 둘이다. 자동완성에서 고른 계정에 보낸
+ * 초대는 서버가 `email` 을 null 로 보내므로, `email` 만 요구하면 그 초대를 전부 버리게 된다.
  * 모르는 status 는 `PENDING` 으로 본다. 서버가 목록에 실어 보낸 것은 아직 답을 기다리는 것뿐이라
  * 그쪽이 맞고, 반대로 떨어뜨리면 답할 수 있는 초대가 화면에서 사라진다.
  */
@@ -72,13 +74,19 @@ export function parseInvitation(data: unknown): ProjectInvitation | null {
 
   const id = asNullableString(record.id)
   const email = asNullableString(record.email)
-  if (id === null || email === null) return null
+  const nickname = asNullableString(record.nickname)
+  const userTag = asNullableString(record.userTag)
+  if (id === null) return null
+  if (email === null && (nickname === null || userTag === null)) return null
 
   return {
     id,
     projectId: asString(record.projectId),
     projectName: asString(record.projectName),
     email,
+    nickname,
+    userTag,
+    displayName: asNullableString(record.displayName),
     role: asRole(record.role),
     status: isInvitationStatus(record.status) ? record.status : 'PENDING',
     invitedBy: asNullableString(record.invitedBy),

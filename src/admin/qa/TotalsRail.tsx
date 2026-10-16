@@ -3,6 +3,7 @@ import { ScoreRate } from './ScoreRate'
 import { scoreCoverage, stepPassRate, verdictCoverage } from './pivot'
 import type { QaStatsTotals } from './qaStatsTypes'
 import { useQa } from './useQa'
+import { InfoHint } from '../../design-system/primitives/InfoHint'
 
 /**
  * 기간 전체 합계.
@@ -83,10 +84,11 @@ export function TotalsRail({ total }: { total: QaStatsTotals }) {
         </span>
       </div>
       <div className="rail__item">
-        <span className="rail__label">{t.rail.avgDuration}</span>
+        <span className="rail__label">
+          {t.rail.avgDuration}
+          <InfoHint>{t.rail.completedOnly}</InfoHint>
+        </span>
         <span className="rail__value">{fmt.duration(total.avgCompletedDurationMs)}</span>
-        {/* 실패·취소를 섞으면 즉시 실패가 "빨라졌다"로 읽힌다. */}
-        <span className="rail__hint">{t.rail.completedOnly}</span>
       </div>
     </div>
   )

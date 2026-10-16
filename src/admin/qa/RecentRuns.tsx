@@ -1,6 +1,7 @@
 import { EMPTY_MARK } from '../shared/format'
 import type { QaTryStatus, QaTrySummary } from './qaStatsTypes'
 import { useQa } from './useQa'
+import { InfoHint } from '../../design-system/primitives/InfoHint'
 
 const STATUS_TONES: Record<QaTryStatus, string> = {
   STARTING: 'active',
@@ -40,8 +41,8 @@ export function RecentRuns({ runs }: { runs: QaTrySummary[] }) {
       <div className="section__head">
         <h2 className="section__title" id="recent-title">
           {t.recent.title}
+          <InfoHint>{t.recent.note}</InfoHint>
         </h2>
-        <span className="section__note">{t.recent.note}</span>
       </div>
 
       <div className="table-scroll">

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useI18n } from '../../i18n/useI18n'
 import { invalidateLlmCache, type CacheInvalidation } from './settingsApi'
 import { useAdminFailure } from './useAdminRequest'
+import { InfoHint } from '../../design-system/primitives/InfoHint'
 
 /**
  * Drops the keys and catalog that agent-server cached. Saving a key or toggling
@@ -31,10 +32,8 @@ export function CacheInvalidationSection() {
       <div className="section__head">
         <h2 className="section__title" id="adm-cache-title">
           {t.adminSettings.cache.title}
+          <InfoHint>{t.adminSettings.cache.hint}</InfoHint>
         </h2>
-        <span className="section__note">
-          {t.adminSettings.cache.hint}
-        </span>
       </div>
       <div className="adm-actions">
         <button type="button" className="control" disabled={busy} onClick={() => void run()}>

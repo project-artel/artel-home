@@ -1,5 +1,6 @@
 import { useCallback, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
 import { buildOptionText, selectBuild } from '../projects/gameBuilds'
 import { useWorkspace } from '../projects/workspace/workspaceContext'
@@ -72,8 +73,10 @@ export function MacroSection() {
     <section className="macro-section">
       <header className="macro-section-head">
         <div>
-          <h2>{copy.title}</h2>
-          <p className="section-intro">{copy.subtitle}</p>
+          <h2>
+            {copy.title}
+            <InfoHint>{copy.subtitle}</InfoHint>
+          </h2>
         </div>
         {selectedBuild !== undefined && (
           <label className="macro-build-picker">

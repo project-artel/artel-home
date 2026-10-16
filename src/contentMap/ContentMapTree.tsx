@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { useI18n } from '../i18n/useI18n'
+import { InfoHint } from '../design-system/primitives/InfoHint'
 import { truncate } from '../knowledge/knowledgeLabels'
 import { SceneChip } from '../testCases/SceneChip'
 import {
@@ -136,12 +137,9 @@ export function ContentMapTree({
     <div className="cm-tree-panel">
       <h3 className="cm-tree-title" id="cm-tree-title">
         {copy.title}
+        <InfoHint>{copy.keyboardHint}</InfoHint>
       </h3>
-      <p className="cm-tree-hint" id="cm-tree-hint">
-        {copy.keyboardHint}
-      </p>
       <ul
-        aria-describedby="cm-tree-hint"
         aria-labelledby="cm-tree-title"
         className="cm-tree"
         onKeyDown={handleKeyDown}

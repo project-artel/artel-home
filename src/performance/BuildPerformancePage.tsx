@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
 import { sortByStartedAt, splitTrustedSegments } from './chartModel'
 import { getBuildPerformance } from './performanceApi'
@@ -97,8 +98,10 @@ export function BuildPerformanceReport({
             {copy.back}
           </Link>
           <p className="performance-eyebrow">{copy.eyebrow(data.gameBuildId)}</p>
-          <h1>{copy.title}</h1>
-          <p>{copy.subtitle}</p>
+          <h1>
+            {copy.title}
+            <InfoHint>{copy.subtitle}</InfoHint>
+          </h1>
         </div>
       </header>}
 
@@ -111,8 +114,11 @@ export function BuildPerformanceReport({
         <section className="performance-panel">
           <header>
             <div>
-              <h2>{copy.panelTitle}</h2>
-              <p>{runs.length === 1 ? copy.singleRun : copy.manyRuns}</p>
+              <h2>
+                {copy.panelTitle}
+                {runs.length > 1 && <InfoHint>{copy.manyRuns}</InfoHint>}
+              </h2>
+              {runs.length === 1 && <p>{copy.singleRun}</p>}
             </div>
           </header>
           <TrendChart runs={runs} />

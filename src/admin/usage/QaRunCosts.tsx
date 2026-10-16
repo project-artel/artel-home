@@ -2,6 +2,7 @@ import { useI18n } from '../../i18n/useI18n'
 import { EMPTY_MARK, adminFormat } from '../shared/format'
 import type { QaRunStatus, QaRunUsage } from './llmUsageTypes'
 import { isPartiallyPriced, totalTokens } from './usage'
+import { InfoHint } from '../../design-system/primitives/InfoHint'
 
 const STATUS_TONES: Record<QaRunStatus, string> = {
   STARTING: 'active',
@@ -50,8 +51,8 @@ export function QaRunCosts({ runs }: { runs: QaRunUsage[] }) {
       <div className="section__head">
         <h2 className="section__title" id="usage-qa-runs">
           {strings.runs.title}
+          <InfoHint>{strings.runs.note}</InfoHint>
         </h2>
-        <span className="section__note">{strings.runs.note}</span>
       </div>
 
       <div className="table-scroll">
