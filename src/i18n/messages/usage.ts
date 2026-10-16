@@ -8,7 +8,6 @@ export const usageEn = {
   sectionSubtitle: (zone: string) =>
     `The last twelve weeks. A day starts at midnight in ${zone}, and the window counts when a model was called — not when the record reached us.`,
   seeAll: 'Breakdown',
-  refresh: 'Refresh',
   loading: 'Loading spend…',
   loadFailed: 'Spend could not be loaded.',
   nothingYet: 'No model call has been recorded for this project yet.',
@@ -72,7 +71,6 @@ export const usageKo: Localized<typeof usageEn> = {
   sectionSubtitle: (zone: string) =>
     `최근 12주입니다. 하루는 ${zone} 자정에 시작하고, 기간은 모델을 호출한 시각 기준입니다 — 기록이 우리에게 도착한 시각이 아닙니다.`,
   seeAll: '자세히',
-  refresh: '새로고침',
   loading: '지출을 불러오는 중…',
   loadFailed: '지출을 불러오지 못했습니다.',
   nothingYet: '이 프로젝트에 아직 기록된 모델 호출이 없습니다.',
