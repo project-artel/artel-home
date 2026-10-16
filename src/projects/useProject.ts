@@ -143,11 +143,17 @@ export function useProject(projectId: string) {
    * suppresses the next one, so a slow server is not stacked with requests.
    */
   const pollingRef = useRef(false)
+  const currentProjectRef = useRef(projectId)
+  useEffect(() => {
+    currentProjectRef.current = projectId
+  }, [projectId])
   const pollGameState = useCallback(() => {
     if (pollingRef.current) return
     pollingRef.current = true
     Promise.all([listGameInstances(projectId), listGameBuilds(projectId)])
       .then(([instances, builds]) => {
+        // A poll that started before the user switched projects answers for the old one.
+        if (currentProjectRef.current !== projectId) return
         setState((previous) => ({ ...previous, instances, builds }))
       })
       .catch(() => {})
