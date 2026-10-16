@@ -107,10 +107,6 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
   const onTurnEnded = useCallback(() => setRailToken((token) => token + 1), [])
   const runChat = useRunChatSession(projectId, fromRun, onProposalApplied, onTurnEnded)
 
-  // 자동저장을 끈 턴의 draft(ARTEL-1075). 열어 두면 가운데와 헤더가 draft 를 따른다.
-  const preview = useDraftPreview(projectId, runChat)
-  const activeDraft = preview.activeDraft
-
   // The run's name for the crumb, when the studio was opened from a run. Fetched
   // here because the studio only carries the run id (?run=), not its name.
   const [runName, setRunName] = useState('')
@@ -127,6 +123,11 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
       .catch(() => { /* leave the crumb blank on failure */ })
     return () => controller.abort()
   }, [projectId, fromRun])
+
+  // 자동저장을 끈 턴의 draft(ARTEL-1075). 열어 두면 가운데와 헤더가 draft 를 따른다.
+  const preview = useDraftPreview(projectId, runChat, runBuild)
+  const activeDraft = preview.activeDraft
+
 
   // Header shortcuts (outside text fields, where the browser's own text-undo wins):
   // ⌘/Ctrl+Z undo, ⇧+Z (or Ctrl+Y) redo, ⌘/Ctrl+K opens the TC spec.
@@ -241,7 +242,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
         ) : status === 'ready' ? (
           isFree
             ? <FreeScenarioEditor editor={editor} projectId={projectId} />
-            : <ScenarioStepEditor projectId={projectId} editor={editor} />
+            : <ScenarioStepEditor caseBuild={runBuild} projectId={projectId} editor={editor} />
         ) : (
           <div className="edoc-shell at-top at-bottom"><main className="edoc-wrap"><div className="edoc" /></main></div>
         )}
