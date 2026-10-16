@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { CopyButton } from './CopyButton'
+import { CliCopyLine, SKILLS_INSTALL_COMMAND } from '../auth/CliInstallSteps'
 import { useI18n } from '../i18n/useI18n'
 import addPackageFromGitUrlShot from '../assets/sdk-guide/step1-add-package-from-git-url.png'
 import gitUrlInputShot from '../assets/sdk-guide/step1-git-url-input.png'
@@ -198,6 +199,18 @@ export function SdkInstallGuide() {
         >
           {t.projects.guide.nextStep}
         </button>
+      </div>
+
+      {/* Same command as the CLI install steps: one install covers the SDK
+          setup (`artel-unity-sdk`) and the cheats (`artel-game-functions`). */}
+      <div className="cli-install-guide guide-skills">
+        <p className="guide-copy">{t.projects.guide.skillsIntro}</p>
+        <CliCopyLine
+          copiedMessage={t.projects.guide.skillsCopied}
+          copyLabel={t.projects.guide.copySkills}
+          onResult={setAnnouncement}
+          text={SKILLS_INSTALL_COMMAND}
+        />
       </div>
 
       {/* The key is durable and has no re-issue endpoint, so it is worth saying

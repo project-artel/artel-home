@@ -1595,6 +1595,10 @@ a.instance-name:hover {
   margin-inline: auto;
 }
 
+.guide-skills {
+  margin-top: var(--space-5);
+}
+
 .guide-note {
   margin: var(--space-5) 0 var(--space-4);
   color: var(--color-text-muted);

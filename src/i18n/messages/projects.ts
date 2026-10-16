@@ -229,6 +229,10 @@ export const projectsEn = {
       'The Artel sign-in page in the browser, saying that signing in approves the SDK waiting on this machine.',
     shot4ProjectPickerAlt: 'The Artel SDK screen in the game listing projects to connect to.',
     shot4InstanceConnectedAlt: 'The game instance list in Artel showing the new instance as Connected.',
+    skillsIntro:
+      'An AI coding agent can do this setup for you. Install the ARTEL agent skills in your game project: artel-unity-sdk installs the SDK and registers the game, and artel-game-functions adds cheats and behaviors so the QA agent can jump to a scene, defeat enemies, or reach the ending.',
+    copySkills: 'Copy skills install command',
+    skillsCopied: 'Skills install command copied.',
     note: 'There is no key to keep. The SDK remembers the sign-in on that machine, and the instance is created by the first report.',
   },
   /**
@@ -656,6 +660,10 @@ export const projectsKo: Localized<typeof projectsEn> = {
     shot3BrowserSignInAlt: '로그인하면 이 컴퓨터에서 기다리는 SDK를 승인한다고 안내하는 브라우저의 Artel 로그인 페이지.',
     shot4ProjectPickerAlt: '게임 안의 Artel SDK 화면에 연결할 프로젝트 목록이 표시된 화면.',
     shot4InstanceConnectedAlt: 'Artel의 게임 인스턴스 목록에 새 인스턴스가 연결됨으로 표시된 화면.',
+    skillsIntro:
+      'AI 코딩 에이전트가 이 설치를 대신할 수 있습니다. 게임 프로젝트에 ARTEL agent skills 를 설치하세요. artel-unity-sdk 는 SDK 설치와 게임 등록을, artel-game-functions 는 QA 에이전트가 장면 이동, 적 처치, 엔딩 확인을 할 수 있게 치트와 behavior 추가를 맡습니다.',
+    copySkills: 'skills 설치 명령 복사',
+    skillsCopied: 'skills 설치 명령을 복사했습니다.',
     note: '따로 보관할 키는 없습니다. SDK가 해당 머신의 로그인을 기억하며, 인스턴스는 첫 보고 시점에 만들어집니다.',
   },
   setup: {
