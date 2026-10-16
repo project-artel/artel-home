@@ -11318,11 +11318,12 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
 .scenario-studio .se-row-case.is-continued .se-tc { background: color-mix(in srgb, var(--st-action) 18%, transparent); color: var(--st-action); }
 .scenario-studio .se-general { padding: 1px 7px; border: 1px dashed var(--st-border-strong); border-radius: 4px; color: var(--st-muted); font-size: 10.5px; cursor: help; }
 
-/* 씬과 오브젝트. 씬은 씬 색(`--st-scene`) — 칩도 글 속 이름도 같은 색이다. 오브젝트(백틱)는 회색 상자다.
-   씬 색은 청록이다. 빨강은 TC 라벨이, 초록·노랑·보라·빨강은 판정이 이미 쓴다. */
-.scenario-studio .se-scene { display: inline-block; max-width: 100%; overflow: hidden; padding: 1px 7px; border: 1px solid color-mix(in srgb, var(--st-scene) 45%, var(--st-border)); border-radius: 4px; background: color-mix(in srgb, var(--st-scene) 8%, transparent); color: var(--st-scene); font-weight: 600; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
-.scenario-studio .se-scene-ref { color: var(--st-scene); font-weight: 600; }
+/* 씬과 오브젝트. 씬 칸은 테두리 칩이다. 스텝 글 속의 씬 이름은 서비스 색에 굵게, 오브젝트(백틱)는 회색 상자다. */
+.scenario-studio .se-scene { display: inline-block; max-width: 100%; overflow: hidden; padding: 1px 7px; border: 1px solid var(--st-border-strong); border-radius: 4px; background: var(--st-surface); color: var(--st-text); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
+.scenario-studio .se-scene-ref { color: var(--st-action); font-weight: 700; }
+/* 백틱으로 감싼 씬 이름도 씬이다 — 오브젝트 상자를 벗기고 같은 색 · 굵기로. */
 .scenario-studio .se-row-action code, .scenario-studio .se-detail code { border: 1px solid var(--st-border); border-radius: 4px; padding: 0 4px; background: var(--st-raised); color: var(--st-text); }
+.scenario-studio .se-row-action code.se-scene-ref, .scenario-studio .se-detail code.se-scene-ref { padding: 0; border: 0; background: none; color: var(--st-action); font-family: inherit; font-size: inherit; }
 
 /* 판정은 색 점과 상태 이름. 머리의 (i) 에 범례가 있다. */
 .scenario-studio .se-columns-verdict { white-space: nowrap; }
@@ -11387,10 +11388,6 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
 .scenario-studio .st-chat .chat-input-frame { position: relative; display: flex; }
 .scenario-studio .st-chat .chat-input-frame .field-input--multiline { flex: 1; scrollbar-width: none; }
 .scenario-studio .st-chat .chat-input-frame .field-input--multiline::-webkit-scrollbar { display: none; }
-
-/* 씬 색. 팔레트에 남은 색이 없어 스튜디오 안에서만 하나 정했다 — 두 테마 모두 바탕 위 4.5:1 을 넘는다. */
-.scenario-studio { --st-scene: #0b737a; }
-:root[data-theme='dark'] .scenario-studio { --st-scene: #5ccbd0; }
 
 /* 빈 자리 그림(`studioSketches`). QA 히스토리의 빈 자리와 같은 손그림 선과 두께. */
 .scenario-studio .st-sketch { stroke: var(--st-border-strong); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; opacity: .55; }
