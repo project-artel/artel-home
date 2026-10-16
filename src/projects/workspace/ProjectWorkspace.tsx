@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { Link, Outlet, useLocation, useParams } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
 import { formatDate } from '../formatters'
+import { versionBuilds } from '../gameBuilds'
 import { useProject } from '../useProject'
 import { ProjectNav } from './ProjectNav'
 import { sectionIdFromPath } from './sections'
@@ -170,6 +171,8 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
           testCases: settled ? coverage.total : null,
           testRuns: settled ? runs.length : null,
           qaHistory: settled ? tries.length : null,
+          // editor 빌드는 게임 버전이 아니라 세지 않는다. `GameBuildPanel` 의 빈 상태와 같은 기준이다.
+          gameBuilds: versionBuilds(builds).length,
           issues: settled ? openIssues.length : null,
         }}
         genreLabel={t.projects.genreLabels[project.genre]}
