@@ -1,6 +1,7 @@
 import { useContext } from 'react'
 import { Link } from 'react-router-dom'
 import { ChatLinkContext, ChatRefsContext } from './chatRefContext'
+import { draftIdOfNumber } from './runChatApi'
 
 /**
  * TC·TS references inside an agent answer (ARTEL-933).
@@ -28,6 +29,16 @@ export function ChatRefChip({ refKind, id }: { refKind: 'tc' | 'ts'; id: number 
       return <span className="chat-ref chat-ref--ts">{tag}{label}</span>
     }
     const run = link.runId !== null ? `?run=${encodeURIComponent(link.runId)}` : ''
+    // 음수 번호는 아직 저장되지 않은 draft 다(ARTEL-1075). 시나리오 주소가 없으니 지금 화면에서
+    // 그 draft 를 연다.
+    if (id < 0 && link.runId !== null) {
+      const search = `?run=${encodeURIComponent(link.runId)}&preview=${encodeURIComponent(draftIdOfNumber(id))}`
+      return (
+        <Link className="chat-ref chat-ref--ts" to={{ search }}>
+          {tag}{label}
+        </Link>
+      )
+    }
     return (
       <Link
         className="chat-ref chat-ref--ts"

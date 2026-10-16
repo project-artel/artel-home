@@ -16,6 +16,7 @@ import { FreeScenarioEditor } from './FreeScenarioEditor'
 import { ScenarioList } from './ScenarioList'
 import { ScenarioStepEditor } from './ScenarioStepEditor'
 import { EMPTY_SCENARIO_DRAFT, isFreeScenario } from './scenarioTypes'
+import { useDraftPreview } from './useDraftPreview'
 import { useChatWidth } from './useChatWidth'
 import { useStepEditor } from './useStepEditor'
 
@@ -104,6 +105,10 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
   const onTurnEnded = useCallback(() => setRailToken((token) => token + 1), [])
   const runChat = useRunChatSession(projectId, fromRun, onProposalApplied, onTurnEnded)
 
+  // 자동저장을 끈 턴의 draft(ARTEL-1075). 열어 두면 가운데와 헤더가 draft 를 따른다.
+  const preview = useDraftPreview(projectId, runChat)
+  const activeDraft = preview.activeDraft
+
   // The run's name for the crumb, when the studio was opened from a run. Fetched
   // here because the studio only carries the run id (?run=), not its name.
   const [runName, setRunName] = useState('')
@@ -123,7 +128,8 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
 
   // Header shortcuts (outside text fields, where the browser's own text-undo wins):
   // ⌘/Ctrl+Z undo, ⇧+Z (or Ctrl+Y) redo, ⌘/Ctrl+K opens the TC spec.
-  const { undo, redo } = editor
+  const active = activeDraft !== null ? preview.editor : editor
+  const { undo, redo } = active
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if (!(event.metaKey || event.ctrlKey)) return
@@ -169,9 +175,9 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
   }
 
   const e = t.scenarios.stepsEditor
-  const saveState = editor.saving ? 'saving' : editor.dirty ? 'unsaved' : 'saved'
-  const isFree = isFreeScenario(editor.working)
-  const title = editor.working.title.length > 0 ? editor.working.title : t.scenarios.page.untitled
+  const saveState = active.saving ? 'saving' : active.dirty ? 'unsaved' : 'saved'
+  const isFree = activeDraft === null && isFreeScenario(editor.working)
+  const title = active.working.title.length > 0 ? active.working.title : t.scenarios.page.untitled
 
   return (
     <div {...split.studio}>
@@ -197,8 +203,8 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
           {e.viewSpec} <kbd className="kbd">{shortcutLabel('K')}</kbd>
         </button>
         <div className="st-icons">
-          <button className="iconbtn" type="button" disabled={!editor.canUndo} onClick={editor.undo} title={e.undo}>↶</button>
-          <button className="iconbtn" type="button" disabled={!editor.canRedo} onClick={editor.redo} title={e.redo}>↷</button>
+          <button className="iconbtn" type="button" disabled={!active.canUndo} onClick={active.undo} title={e.undo}>↶</button>
+          <button className="iconbtn" type="button" disabled={!active.canRedo} onClick={active.redo} title={e.redo}>↷</button>
         </div>
         <span className={`savebadge ${saveState}`}>
           {saveState !== 'saved' && <span className="d" />}
@@ -210,13 +216,27 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
             <button onClick={() => navigate(`/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(fromRun)}`)} type="button">{t.scenarios.map.mapView}</button>
           </div>
         )}
-        <button className="st-btn st-btn--danger" onClick={() => setDialog('delete')} type="button">{t.scenarios.page.delete}</button>
-        <button className="st-btn st-btn--primary" onClick={() => setDialog('approve')} type="button">{t.scenarios.page.approve}</button>
+        {/* draft 를 열어 둔 동안 저장된 시나리오를 지우거나 승인하는 버튼은 숨긴다. 무엇에 대한
+            버튼인지 헷갈린다 — draft 의 승인 · 버리기는 가운데 띠에 있다. */}
+        {activeDraft === null && (
+          <>
+            <button className="st-btn st-btn--danger" onClick={() => setDialog('delete')} type="button">{t.scenarios.page.delete}</button>
+            <button className="st-btn st-btn--primary" onClick={() => setDialog('approve')} type="button">{t.scenarios.page.approve}</button>
+          </>
+        )}
       </header>
 
       <div className="st-edit">
-        <ScenarioList activeId={scenarioId} projectId={projectId} refreshToken={railToken} runId={fromRun} />
-        {status === 'ready' ? (
+        <ScenarioList
+          activeId={scenarioId}
+          projectId={projectId}
+          refreshToken={railToken}
+          runId={fromRun}
+          {...preview.listProps}
+        />
+        {preview.view !== null ? (
+          preview.view
+        ) : status === 'ready' ? (
           isFree
             ? <FreeScenarioEditor editor={editor} projectId={projectId} />
             : <ScenarioStepEditor projectId={projectId} editor={editor} />
@@ -225,9 +245,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
         )}
         <SplitHandle label={t.scenarios.chat.widthHandle} {...split.handle} />
         <aside className="st-chat">
-          {isFree && status === 'ready'
-            ? <p className="free-chat-note">{t.scenarios.free.chatUnavailable}</p>
-            : fromRun !== null && <RunChat session={runChat} />}
+          {fromRun !== null && <RunChat session={runChat} />}
         </aside>
       </div>
 

@@ -60,8 +60,23 @@ export type StepEditor = {
   rebase: (draft: ScenarioDraft) => void
 }
 
-export function useStepEditor(testScenarioId: number, initial: ScenarioDraft): StepEditor {
+/**
+ * @param write where a commit goes. The scenario itself by default; a draft the
+ *   authoring chat left unsaved writes to that draft instead (ARTEL-1075), so editing
+ *   it before approval never touches the scenario.
+ */
+export function useStepEditor(
+  testScenarioId: number,
+  initial: ScenarioDraft,
+  write: (testScenarioId: number, draft: ScenarioDraft) => Promise<unknown> = updateScenario,
+): StepEditor {
   const [working, setWorking] = useState<ScenarioDraft>(initial)
+  // A ref, so the hand-off on leaving a scenario writes through the same sink without
+  // re-running when the caller passes a fresh function.
+  const writeRef = useRef(write)
+  useEffect(() => {
+    writeRef.current = write
+  }, [write])
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
 
@@ -182,7 +197,7 @@ export function useStepEditor(testScenarioId: number, initial: ScenarioDraft): S
       setSaving(true)
       setSaveError(null)
       try {
-        await updateScenario(testScenarioId, draft)
+        await writeRef.current(testScenarioId, draft)
         baseline.current = draft
         recordCommit(draft)
         setSavedTick((n) => n + 1)
@@ -224,7 +239,7 @@ export function useStepEditor(testScenarioId: number, initial: ScenarioDraft): S
       const pending = pendingRef.current
       if (pending === null) return
       pendingRef.current = null
-      void updateScenario(pending.id, pending.draft).catch(() => {
+      void writeRef.current(pending.id, pending.draft).catch(() => {
         // The editor has already moved on; there is no longer a screen to correct.
       })
     }

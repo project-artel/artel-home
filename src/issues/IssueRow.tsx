@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { formatDateTime } from '../projects/formatters'
@@ -22,6 +22,8 @@ type IssueRowProps = {
   /** Whether the project has a connected tracker at all — never derived from `issue.tracker` alone (see `IssueList`). */
   trackerConnected: boolean
   onSync: (issue: Issue) => void
+  /** 다른 화면이 이 이슈를 가리켜 열었다(`?issue=`, ARTEL-1084). 펼친 채 그 자리로 스크롤하고 강조한다. */
+  focused?: boolean
   syncPending: boolean
   syncFailed: boolean
 }
@@ -43,9 +45,14 @@ export function IssueRow({
   onSync,
   syncPending,
   syncFailed,
+  focused = false,
 }: IssueRowProps) {
   const { t } = useI18n()
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(focused)
+  const rowRef = useRef<HTMLLIElement>(null)
+  useEffect(() => {
+    if (focused) rowRef.current?.scrollIntoView({ block: 'center' })
+  }, [focused])
   const detailId = useId()
   const detail = parseIssueDetail(issue.detail)
   const resolved = issue.status === 'RESOLVED'
@@ -58,7 +65,7 @@ export function IssueRow({
     issue.detail !== null
 
   return (
-    <li className={`issue-row ${resolved ? 'issue-row--resolved' : ''}`}>
+    <li className={`issue-row ${resolved ? 'issue-row--resolved' : ''}${focused ? ' issue-row--focused' : ''}`} ref={rowRef}>
       <div className="issue-row-head">
         <SeverityTag severity={issue.severity} />
         <span className="issue-row-title">{issue.title}</span>

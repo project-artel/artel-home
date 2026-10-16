@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { useI18n } from '../i18n/useI18n'
+import type { StepMark } from './draftChanges'
 import { TestCaseModal } from '../testCases/TestCaseModal'
 import { listTestCases } from '../testCases/testCaseApi'
 import type { VerificationStatus } from '../testCases/testCaseTypes'
@@ -21,9 +22,15 @@ import type { StepEditor } from './useStepEditor'
 export function ScenarioStepEditor({
   projectId,
   editor,
+  banner,
+  stepMarks,
 }: {
   projectId: string
   editor: StepEditor
+  /** Drawn above the title — the studio says here that what is open is a draft (ARTEL-1075). */
+  banner?: ReactNode
+  /** One per step: a draft paints what changed yellow and what is new green (ARTEL-1075). */
+  stepMarks?: readonly StepMark[]
 }) {
   const { t } = useI18n()
   const e = t.scenarios.stepsEditor
@@ -85,6 +92,7 @@ export function ScenarioStepEditor({
       <div className="edoc-fade edoc-fade--top" aria-hidden="true"><span className="edoc-fade-hint">▴</span></div>
       <main className="edoc-wrap" onScroll={(event) => readEdge(event.currentTarget)} ref={bodyRef}>
       <div className="edoc st-editor">
+        {banner}
         <header className="st-editor-head">
           <input
             className="st-editor-title"
@@ -106,7 +114,7 @@ export function ScenarioStepEditor({
             // nobody could perform, and to record that as a failure.
             if (isGapStep(step)) {
               return (
-                <li key={index} className="st-erow st-erow--gap">
+                <li key={index} className={`st-erow st-erow--gap${markClass(stepMarks?.[index])}`}>
                   <span className="st-gap-mark" aria-hidden="true">⚠</span>
                   <div className="st-gap-body">
                     <span className="st-gap-title">{e.gapTitle}</span>
@@ -133,7 +141,7 @@ export function ScenarioStepEditor({
             return (
               <li
                 key={index}
-                className={`st-erow${step.case_id !== null ? ' st-erow--tc' : ''}${overIndex === index && dragIndex !== null ? ' st-erow--over' : ''}`}
+                className={`st-erow${step.case_id !== null ? ' st-erow--tc' : ''}${overIndex === index && dragIndex !== null ? ' st-erow--over' : ''}${markClass(stepMarks?.[index])}`}
                 onDragOver={(ev) => { ev.preventDefault(); setOverIndex(index) }}
                 onDrop={() => onDrop(index)}
               >
@@ -298,4 +306,11 @@ function useCaseStatuses(projectId: string): Map<string, VerificationStatus> {
     return () => controller.abort()
   }, [projectId])
   return statuses
+}
+
+/** draft 에서 바뀐 스텝 · 새 스텝의 칠(ARTEL-1075). 그대로인 스텝과 draft 가 아닌 편집기는 칠하지 않는다. */
+function markClass(mark: StepMark | undefined): string {
+  if (mark === 'changed') return ' st-erow--changed'
+  if (mark === 'added') return ' st-erow--added'
+  return ''
 }

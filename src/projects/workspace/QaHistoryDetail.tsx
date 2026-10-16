@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useI18n } from '../../i18n/useI18n'
 import { elapsedSeconds, getQaTryDetail, type QaTryDetail } from '../../qa/qaTryDetailApi'
 import { formatCost } from '../../usage/format'
@@ -17,8 +17,22 @@ const counts = new Intl.NumberFormat()
  * 취소된 run 과 도는 중인 run 은 결과 자리에 수를 안 낸다. 앞쪽은 `stepsTotal` 이 없어 어떤
  * 분모도 지어낸 것이 되고, 뒤쪽은 여기 선 수가 열었을 때의 것이라 그대로 멈춰 있다.
  */
-export function QaHistoryDetail({ qaTryId }: { qaTryId: string }) {
+export function QaHistoryDetail({
+  qaTryId,
+  label,
+  collapsible = false,
+}: {
+  qaTryId: string
+  /** 제목 위에 붙는 작은 표지(QA 히스토리의 "시나리오 1"). */
+  label?: ReactNode
+  /**
+   * 제목 줄을 눌러 접고 펼친다(ARTEL-1100). 접으면 표지와 시나리오 제목만 남는다 — 시나리오가 여럿인
+   * 실행에서 원하는 것만 펼쳐 보려는 것이다.
+   */
+  collapsible?: boolean
+}) {
   const { t } = useI18n()
+  const [open, setOpen] = useState(true)
   const [detail, setDetail] = useState<QaTryDetail | null>(null)
   const [status, setStatus] = useState<LoadStatus>('loading')
 
@@ -60,15 +74,40 @@ export function QaHistoryDetail({ qaTryId }: { qaTryId: string }) {
     )
   }
 
+  const heading = (
+    <>
+      {label !== undefined && <span className="run-detail-tag">{label}</span>}
+      <span className="run-detail-name">{detail.scenarioTitle || PLACEHOLDER}</span>
+      {open && (
+        <span className="run-detail-model mono" translate="no">
+          {runSettings(detail)}
+        </span>
+      )}
+    </>
+  )
+
+  if (collapsible && !open) {
+    return (
+      <div className="run-detail run-detail--collapsed">
+        <button aria-expanded={false} className="run-detail-scenario run-detail-toggle" onClick={() => setOpen(true)} type="button">
+          <Chevron open={false} />
+          <span className="run-detail-heading">{heading}</span>
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div className="run-detail">
       <div>
-        <div className="run-detail-scenario">
-          <div className="run-detail-name">{detail.scenarioTitle || PLACEHOLDER}</div>
-          <div className="run-detail-model mono" translate="no">
-            {runSettings(detail)}
-          </div>
-        </div>
+        {collapsible ? (
+          <button aria-expanded className="run-detail-scenario run-detail-toggle" onClick={() => setOpen(false)} type="button">
+            <Chevron open />
+            <span className="run-detail-heading">{heading}</span>
+          </button>
+        ) : (
+          <div className="run-detail-scenario">{heading}</div>
+        )}
 
         <RunDetailResult detail={detail} />
         <RunDetailCost detail={detail} />
@@ -96,11 +135,15 @@ function runSettings(detail: QaTryDetail): string {
 function RunDetailResult({ detail }: { detail: QaTryDetail }) {
   const { t } = useI18n()
 
-  if (detail.status === 'CANCELLED' || detail.status === 'FAILED') {
+  // 실패한 run 도 판정을 남긴다(스텝 · 케이스). 남겼으면 수를 보이고, 남기지 못했을 때만 문장으로 둔다 —
+  // 취소와 같은 문장으로 묶으면 "취소" 라고 거짓말을 하게 된다(ARTEL-1100).
+  if (detail.status === 'CANCELLED' || (detail.status === 'FAILED' && detail.stepsTotal === null)) {
     return (
       <section className="run-detail-group">
-        <h3 className="run-detail-label">{t.qa.history.detail.resultGroup}</h3>
-        <p className="run-detail-note">{t.qa.history.detail.cancelled}</p>
+        <SectionTitle kind="result">{t.qa.history.detail.resultGroup}</SectionTitle>
+        <p className="run-detail-note">
+          {detail.status === 'CANCELLED' ? t.qa.history.detail.cancelled : t.qa.history.detail.failedNoResult}
+        </p>
       </section>
     )
   }
@@ -108,7 +151,7 @@ function RunDetailResult({ detail }: { detail: QaTryDetail }) {
   if (detail.stepsTotal === null) {
     return (
       <section className="run-detail-group">
-        <h3 className="run-detail-label">{t.qa.history.detail.resultGroup}</h3>
+        <SectionTitle kind="result">{t.qa.history.detail.resultGroup}</SectionTitle>
         <p className="run-detail-note">{t.qa.history.detail.running}</p>
       </section>
     )
@@ -116,7 +159,7 @@ function RunDetailResult({ detail }: { detail: QaTryDetail }) {
 
   return (
     <section className="run-detail-group">
-      <h3 className="run-detail-label">{t.qa.history.detail.resultGroup}</h3>
+      <SectionTitle kind="result">{t.qa.history.detail.resultGroup}</SectionTitle>
       <dl className="run-detail-facts">
         <Fact label={t.qa.history.detail.steps}>
           {counts.format(detail.stepsPassed ?? 0)}
@@ -148,7 +191,7 @@ function RunDetailCost({ detail }: { detail: QaTryDetail }) {
 
   return (
     <section className="run-detail-group">
-      <h3 className="run-detail-label">{t.qa.history.detail.costGroup}</h3>
+      <SectionTitle kind="cost">{t.qa.history.detail.costGroup}</SectionTitle>
       <dl className="run-detail-facts">
         <Fact label={t.qa.history.detail.calls}>{counts.format(usage.calls)}</Fact>
         <Fact label={t.qa.history.detail.cost}>
@@ -165,12 +208,8 @@ function RunDetailCost({ detail }: { detail: QaTryDetail }) {
           <dd className="run-detail-fact-value mono">{counts.format(usage.inputTokens)}</dd>
           {usage.cachedInputTokens > 0 && (
             <div className="run-detail-nested">
-              <div className="run-detail-nested-track">
-                <div
-                  className="run-detail-nested-fill"
-                  style={{ inlineSize: `${Math.min(100, cachedPercent)}%` }}
-                />
-              </div>
+              {/* 막대는 뺐다(ARTEL-1100). 길이가 캐시 적중률이라 어느 실행이든 97% 안팎으로 같았고,
+                  사용량이 다섯 배 달라도 같은 막대로 그려져 비교하는 것처럼 읽혔다. */}
               <div className="run-detail-nested-label">
                 {t.qa.history.detail.cachedTokens(
                   counts.format(usage.cachedInputTokens),
@@ -215,7 +254,7 @@ function RunDetailTools({ detail }: { detail: QaTryDetail }) {
   return (
     <section className="run-detail-tools">
       <div className="run-detail-tools-head">
-        <h3 className="run-detail-label">{t.qa.history.detail.toolCalls}</h3>
+        <SectionTitle kind="tools">{t.qa.history.detail.toolCalls}</SectionTitle>
         <span className="mono" translate="no">
           {counts.format(total)}
         </span>
@@ -261,5 +300,36 @@ function Fact({
       <dt className="run-detail-fact-label">{label}</dt>
       <dd className={`run-detail-fact-value mono${tone}`}>{children}</dd>
     </div>
+  )
+}
+
+function Chevron({ open }: { open: boolean }) {
+  return (
+    <svg aria-hidden="true" className={`run-detail-chevron${open ? ' is-open' : ''}`} fill="none" height="14" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="14">
+      <path d="M9 6l6 6l-6 6" />
+    </svg>
+  )
+}
+
+/**
+ * 구역 제목(ARTEL-1100). 결과 · 비용 · 도구 호출이 같은 회색 글자로만 갈려 한 덩어리로 읽혀서,
+ * 구역마다 색 타일 아이콘(Tabler: `checklist` · `coin` · `tool`)을 붙인다.
+ */
+const SECTION_ICONS = {
+  result: 'M9.615 20h-2.615a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v8 M14 19l2 2l4 -4 M9 8h4 M9 12h2',
+  cost: 'M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0 M14.8 9a2 2 0 0 0 -1.8 -1h-2a2 2 0 1 0 0 4h2a2 2 0 1 1 0 4h-2a2 2 0 0 1 -1.8 -1 M12 7v10',
+  tools: 'M7 10h3v-3l-3.5 -3.5a6 6 0 0 1 8 8l6 6a2 2 0 0 1 -3 3l-6 -6a6 6 0 0 1 -8 -8l3.5 3.5',
+} as const
+
+function SectionTitle({ kind, children }: { kind: keyof typeof SECTION_ICONS; children: ReactNode }) {
+  return (
+    <h3 className={`run-detail-label run-detail-label--${kind}`}>
+      <span aria-hidden="true" className="run-detail-label-icon">
+        <svg fill="none" height="13" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="13">
+          <path d={SECTION_ICONS[kind]} />
+        </svg>
+      </span>
+      {children}
+    </h3>
   )
 }
