@@ -1,6 +1,9 @@
-import { Fragment, useContext, useState } from 'react'
+import { Fragment, useContext, useEffect, useId, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Dialog } from '../design-system/primitives/Dialog'
+import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../i18n/useI18n'
+import { StudioIcon } from '../testScenarios/studioIcons'
 import { parseChatMarkdown, parseInline, type Inline } from './chatMarkdown'
 import { ChatRefChip } from './ChatRefChip'
 import { ChatLinkContext, ChatRefsContext } from './chatRefContext'
@@ -113,29 +116,7 @@ export function ChatMessageBody({ body, refs = [] }: { body: string; refs?: Chat
           )
         }
         if (block.kind === 'table') {
-          // 좁은 대화 칸에서 넘치면 가로로 밀린다 — 칸을 줄이면 글자가 세로로 쌓여 못 읽는다.
-          return (
-            <div className="chat-md-table-wrap" key={index}>
-              <table className="chat-md-table">
-                <thead>
-                  <tr>
-                    {block.header.map((cell, cellIndex) => (
-                      <th key={cellIndex}><InlineRun parts={cell} /></th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {block.rows.map((row, rowIndex) => (
-                    <tr key={rowIndex}>
-                      {row.map((cell, cellIndex) => (
-                        <td key={cellIndex}><InlineRun parts={cell} /></td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )
+          return <ChatTable header={block.header} key={index} rows={block.rows} />
         }
         const List = block.ordered ? 'ol' : 'ul'
         return (
@@ -157,6 +138,92 @@ export function ChatMessageBody({ body, refs = [] }: { body: string; refs?: Chat
       })}
     </div>
     </ChatRefsContext.Provider>
+  )
+}
+
+/**
+ * 대화 속 표(ARTEL-1107). 칸마다 최소 폭을 두어 글자가 한두 자씩 세로로 쌓이지 않게 하고, 그래서 대화 칸보다
+ * 넓어지면 가로로 밀린다. 밀리는 쪽은 네이티브 막대 대신 끝의 가림과 화살표로 알리고, 넓게 읽고 싶으면
+ * "표 크게 보기" 로 같은 표를 창 크기로 연다.
+ */
+function ChatTable({ header, rows }: { header: Inline[][]; rows: Inline[][][] }) {
+  const { t } = useI18n()
+  const c = t.scenarios.chat
+  const titleId = useId()
+  const [wrap, setWrap] = useState<HTMLDivElement | null>(null)
+  const [edge, setEdge] = useState({ left: true, right: true })
+  const [wide, setWide] = useState(false)
+  const [dialogScroller, setDialogScroller] = useState<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (wrap === null) return undefined
+    const element = wrap
+    function read() {
+      setEdge({
+        left: element.scrollLeft <= 2,
+        right: element.scrollLeft + element.clientWidth >= element.scrollWidth - 2,
+      })
+    }
+    read()
+    const observer = new ResizeObserver(read)
+    observer.observe(element)
+    if (element.firstElementChild !== null) observer.observe(element.firstElementChild)
+    element.addEventListener('scroll', read, { passive: true })
+    return () => {
+      observer.disconnect()
+      element.removeEventListener('scroll', read)
+    }
+  }, [wrap])
+
+  const overflowing = !(edge.left && edge.right)
+  const table = (
+    <table className="chat-md-table">
+      <thead>
+        <tr>
+          {header.map((cell, cellIndex) => (
+            <th key={cellIndex}><InlineRun parts={cell} /></th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row, rowIndex) => (
+          <tr key={rowIndex}>
+            {row.map((cell, cellIndex) => (
+              <td key={cellIndex}><InlineRun parts={cell} /></td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+
+  return (
+    <div className={`chat-md-table-frame${overflowing ? ' is-overflowing' : ''}`}>
+      <div className="chat-md-table-wrap" ref={setWrap}>{table}</div>
+      <span aria-hidden="true" className={`chat-md-table-fade chat-md-table-fade--left${edge.left ? ' is-end' : ''}`}>
+        <StudioIcon name="chevronLeft" size={14} />
+      </span>
+      <span aria-hidden="true" className={`chat-md-table-fade chat-md-table-fade--right${edge.right ? ' is-end' : ''}`}>
+        <StudioIcon name="chevronRight" size={14} />
+      </span>
+      {overflowing && (
+        <button className="chat-md-table-expand" onClick={() => setWide(true)} type="button">
+          <StudioIcon name="maximize" size={13} />
+          {c.tableExpand}
+        </button>
+      )}
+      {wide && (
+        <Dialog labelledBy={titleId} onClose={() => setWide(false)} title={c.tableTitle}>
+          {/* 창은 body 로 뜬다. 칩 · 코드 모양이 대화 칸과 같게, 대화 칸의 범위 이름을 함께 단다. */}
+          <div className="scenario-studio chat-table-scope">
+            <div className="st-chat chat-table-dialog">
+              <div className="chat-table-dialog-scroll" ref={setDialogScroller}>{table}</div>
+              <EdgeScrollbar label={c.tableTitle} scroller={dialogScroller} side="right" />
+            </div>
+          </div>
+        </Dialog>
+      )}
+    </div>
   )
 }
 

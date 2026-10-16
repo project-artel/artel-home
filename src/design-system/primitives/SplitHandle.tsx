@@ -26,6 +26,8 @@ export function SplitHandle({
   onDragState,
   /** `-1` when dragging right must SHRINK the value — the handle left of the column it sizes. */
   sign = 1,
+  /** `horizontal` lies between two rows and sizes a height (ARTEL-1107); the default sits between columns. */
+  orientation = 'vertical',
 }: {
   label: string
   value: number
@@ -34,7 +36,11 @@ export function SplitHandle({
   onChange: (next: number) => void
   onDragState?: (dragging: boolean) => void
   sign?: 1 | -1
+  orientation?: 'vertical' | 'horizontal'
 }) {
+  const rows = orientation === 'horizontal'
+  const less = rows ? 'ArrowUp' : 'ArrowLeft'
+  const more = rows ? 'ArrowDown' : 'ArrowRight'
   const [dragging, setDragging] = useState(false)
 
   const clamp = useCallback((next: number) => Math.min(max, Math.max(min, Math.round(next))), [min, max])
@@ -47,11 +53,11 @@ export function SplitHandle({
     event.currentTarget.setPointerCapture(event.pointerId)
     setDragging(true)
     onDragState?.(true)
-    const startX = event.clientX
+    const start = rows ? event.clientY : event.clientX
     const startValue = value
 
     function onMove(moveEvent: PointerEvent) {
-      onChange(clamp(startValue + sign * (moveEvent.clientX - startX)))
+      onChange(clamp(startValue + sign * ((rows ? moveEvent.clientY : moveEvent.clientX) - start)))
     }
     function onUp() {
       setDragging(false)
@@ -61,26 +67,26 @@ export function SplitHandle({
     }
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
-  }, [value, sign, clamp, onChange, onDragState])
+  }, [value, sign, rows, clamp, onChange, onDragState])
 
   const onKeyDown = useCallback((event: ReactKeyboardEvent<HTMLDivElement>) => {
     const step = event.shiftKey ? COARSE_STEP_PX : STEP_PX
-    if (event.key === 'ArrowLeft') { event.preventDefault(); onChange(clamp(value - sign * step)); return }
-    if (event.key === 'ArrowRight') { event.preventDefault(); onChange(clamp(value + sign * step)); return }
+    if (event.key === less) { event.preventDefault(); onChange(clamp(value - sign * step)); return }
+    if (event.key === more) { event.preventDefault(); onChange(clamp(value + sign * step)); return }
     // Home/End 는 축이 아니라 칸 크기다 — WAI-ARIA 의 window splitter 가 그렇게 정한다.
     // 경계가 어느 쪽에 붙어 있든 Home 은 가장 좁게, End 는 가장 넓게다.
     if (event.key === 'Home') { event.preventDefault(); onChange(min); return }
     if (event.key === 'End') { event.preventDefault(); onChange(max) }
-  }, [value, sign, min, max, clamp, onChange])
+  }, [value, sign, min, max, less, more, clamp, onChange])
 
   return (
     <div
       aria-label={label}
-      aria-orientation="vertical"
+      aria-orientation={rows ? 'horizontal' : 'vertical'}
       aria-valuemax={max}
       aria-valuemin={min}
       aria-valuenow={value}
-      className={'st-split' + (dragging ? ' is-dragging' : '')}
+      className={'st-split' + (rows ? ' st-split--row' : '') + (dragging ? ' is-dragging' : '')}
       onKeyDown={onKeyDown}
       onPointerDown={onPointerDown}
       role="separator"

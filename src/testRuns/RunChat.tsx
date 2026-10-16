@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { Dialog } from '../design-system/primitives/Dialog'
@@ -6,7 +6,29 @@ import { RunChatQuestionModal } from './RunChatQuestionModal'
 import { ChatMessageBody, ChatReplyBody } from './ChatMessageBody'
 import { ChatLinkContext } from './chatRefContext'
 import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
+import { StudioIcon } from '../testScenarios/studioIcons'
+import { ChatSketch } from '../testScenarios/studioSketches'
 import { formatDateTime } from '../projects/formatters'
+
+const dayFormatter = new Intl.DateTimeFormat(undefined, { month: 'long', day: 'numeric' })
+const timeFormatter = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' })
+
+function formatDay(value: string): string {
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? '' : dayFormatter.format(parsed)
+}
+
+function formatTime(value: string): string {
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? '' : timeFormatter.format(parsed)
+}
+
+/** 앞 말과 날짜(그 사람의 시간대 기준)가 다르면 구분선을 세운다. 첫 말은 늘 세운다. */
+function dayChanged(previous: string | null, current: string | null): boolean {
+  if (current === null) return false
+  if (previous === null) return true
+  return new Date(previous).toDateString() !== new Date(current).toDateString()
+}
 import type { AuthoringStage, ChatRef, RunChatQuestion } from './runChatApi'
 import { ESC_WINDOW_MS, pressEscape } from './escCancel'
 import { deleteTestCase, getCoverage, getTestCase } from '../testCases/testCaseApi'
@@ -287,6 +309,7 @@ export function RunChat({ session }: { session: RunChatSession }) {
   // state 여야 한다 — 첫 메시지가 오기 전에는 목록 자체가 DOM 에 없다.
   const threadRef = useRef<HTMLOListElement | null>(null)
   const [threadNode, setThreadNode] = useState<HTMLOListElement | null>(null)
+  const [inputNode, setInputNode] = useState<HTMLTextAreaElement | null>(null)
   const setThread = useCallback((node: HTMLOListElement | null) => {
     threadRef.current = node
     setThreadNode(node)
@@ -359,7 +382,13 @@ export function RunChat({ session }: { session: RunChatSession }) {
     <ChatLinkContext.Provider value={{ projectId: session.projectId, runId: session.runId, openCase }}>
     <section className="panel scenario-chat" aria-labelledby="run-chat-title">
       <header className="panel-header">
-        <h2 id="run-chat-title">{c.title}</h2>
+        <h2 id="run-chat-title">
+          <StudioIcon className="run-chat-star" name="sparkles" size={15} />
+          {c.title}
+        </h2>
+        {/* 제목 줄과 상태 줄을 나눈다(ARTEL-1107). 셋이 제목 옆에 붙어 있으면 좁은 칸에서
+            제목이 밀리고, 커버리지와 자동 적용이 같은 무게로 읽혔다. */}
+        <div className="run-chat-meta">
         {/* 남은 케이스는 늘 보이되 아무것도 시키지 않는다 — 제안은 대화 끝의 칩이 하고, 이쪽은
             "지금 어디까지 왔나"만 말한다. 버튼과 나란히 두면 둘 다 도구처럼 읽힌다.
             폴링하지 않는다. 이 값은 이 페이지에서 일어난 일로만 바뀌고(턴이 끝나 저작이
@@ -406,26 +435,41 @@ export function RunChat({ session }: { session: RunChatSession }) {
         <label className="run-chat-toggle">
           <input
             type="checkbox"
+            role="switch"
             checked={session.autoApply}
             onChange={(event) => session.setAutoApply(event.target.checked)}
           />
           {c.autoApplyLabel}
+          <span className="run-chat-coverage-tip" role="tooltip">
+            {c.autoApplyHelp}
+          </span>
         </label>
+        </div>
       </header>
 
       {session.messages.length === 0 && !session.closed ? (
-        <p className="panel-empty">{c.emptyCopy}</p>
+        <div className="run-chat-empty">
+          <ChatSketch />
+          <p>{c.emptyTitle}</p>
+        </div>
       ) : (
         <ol className="chat-thread" ref={setThread}>
-          {session.messages.map((message) => (
+          {session.messages.map((message, index) => (
+            <Fragment key={message.id}>
+            {/* 날짜는 바뀔 때 한 번만 가운데에 선다(ARTEL-1107). 줄마다 날짜를 붙이면 대화보다 시각이
+                먼저 읽혔다. 시각은 ARTEL 줄 오른쪽에, 내 말은 말풍선에 가져다 대면 나온다. */}
+            {dayChanged(session.messages[index - 1]?.createdAt ?? null, message.createdAt) && (
+              <li className="chat-day" role="separator">{formatDay(message.createdAt as string)}</li>
+            )}
             <li
               className={`chat-message chat-message--${message.role.toLowerCase()}`}
-              key={message.id}
+              title={message.role === 'USER' && message.createdAt !== null ? formatDateTime(message.createdAt) : undefined}
             >
-              <p className="chat-author">
+              <p className={message.role === 'USER' ? 'chat-author visually-hidden' : 'chat-author'}>
+                {message.role !== 'USER' && <StudioIcon className="run-chat-star" name="sparkles" size={13} />}
                 {message.role === 'USER' ? c.you : c.agent}
                 {message.createdAt !== null && (
-                  <span className="chat-time">{formatDateTime(message.createdAt)}</span>
+                  <span className="chat-time">{message.role === 'USER' ? formatDateTime(message.createdAt) : formatTime(message.createdAt)}</span>
                 )}
               </p>
               {/* 에이전트가 쓴 구조는 세워 두고, 사용자가 친 글자는 건드리지 않는다 —
@@ -465,10 +509,14 @@ export function RunChat({ session }: { session: RunChatSession }) {
                 </div>
               )}
             </li>
+            </Fragment>
           ))}
           {session.awaitingReply && (
             <li className="chat-message chat-message--agent">
-              <p className="chat-author">{c.agent}</p>
+              <p className="chat-author">
+                <StudioIcon className="run-chat-star" name="sparkles" size={12} />
+                {c.agent}
+              </p>
               <div className="run-chat-typing" role="status" aria-label={c.awaitingReply}>
                 <span></span>
                 <span></span>
@@ -551,7 +599,10 @@ export function RunChat({ session }: { session: RunChatSession }) {
           <label className="visually-hidden" htmlFor="run-chat-input">
             {c.inputLabel}
           </label>
+          {/* 길게 쓰면 칸 안이 스크롤한다. 막대는 대화 목록과 같은 `EdgeScrollbar` 다. */}
+          <div className="chat-input-frame">
           <textarea
+            ref={setInputNode}
             className="field-input field-input--multiline"
             aria-describedby="run-chat-hint"
             disabled={session.sending}
@@ -562,6 +613,8 @@ export function RunChat({ session }: { session: RunChatSession }) {
             rows={3}
             value={input}
           />
+          <EdgeScrollbar label={c.inputLabel} scroller={inputNode} side="right" />
+          </div>
 
           <div className="chat-composer-actions">
             {/* 버튼을 두지 않은 것은 취소가 흔한 일이 아니기 때문이다(ARTEL-956) — 늘 보이는
@@ -572,11 +625,13 @@ export function RunChat({ session }: { session: RunChatSession }) {
               {session.awaitingReply ? c.cancelHint : c.shortcutHint}
             </p>
             <button
-              className="button button--primary button--compact"
+              aria-label={session.sending ? c.sending : c.send}
+              className="button button--primary button--compact chat-send"
               disabled={session.sending || input.trim().length === 0}
+              title={session.sending ? c.sending : c.send}
               type="submit"
             >
-              {session.sending ? c.sending : c.send}
+              <StudioIcon name="arrowUp" size={17} />
             </button>
           </div>
         </form>

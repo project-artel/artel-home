@@ -55,9 +55,21 @@ export function ChatRefChip({ refKind, id }: { refKind: 'tc' | 'ts'; id: number 
   if (openCase === undefined) {
     return <span className="chat-ref chat-ref--tc">{tag}{label}</span>
   }
+  // `<button>` 은 글줄 안에서 줄을 넘겨 흐르지 못해, 이름이 길면 앞뒤 문장을 끊고 한 덩어리로 섰다
+  // (ARTEL-1107). 글 속 링크처럼 흐르도록 글 요소에 버튼 역할과 키를 준다.
   return (
-    <button type="button" className="chat-ref chat-ref--tc" onClick={() => openCase(id)}>
+    <span
+      className="chat-ref chat-ref--tc"
+      onClick={() => openCase(id)}
+      onKeyDown={(event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return
+        event.preventDefault()
+        openCase(id)
+      }}
+      role="button"
+      tabIndex={0}
+    >
       {tag}{label}
-    </button>
+    </span>
   )
 }
