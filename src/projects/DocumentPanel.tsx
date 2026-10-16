@@ -189,7 +189,7 @@ export function DocumentPanel({
                   <li className="dw-step" key={step}>
                     <span className="dw-step-head">
                       <span className={`dw-tile dw-tile--lg dw-step-tile--${step}`}>
-                        <DocumentStepGlyph step={step} />
+                        <DocumentStepGlyph size={28} step={step} />
                       </span>
                       <span className="mono dw-step-num">{String(index + 1).padStart(2, '0')}</span>
                     </span>
@@ -305,7 +305,7 @@ function DropZone({
   const { t } = useI18n()
   const [dragging, setDragging] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
-  const iconSize = large ? 44 : 22
+  const iconSize = large ? 56 : 24
 
   return (
     <div
@@ -508,7 +508,7 @@ function KnowledgePreview({
     return (
       <KnowledgeSection link={graphLink} note={w.knowledgeWaiting(current.version)} title={w.knowledgeTitle}>
         <div aria-hidden="true" className="dw-cards">
-          {Array.from({ length: 4 }, (_, index) => (
+          {Array.from({ length: 6 }, (_, index) => (
             <div className="dw-card" key={index}>
               <span className="dw-skel dw-tile" />
               <span className="dw-card-text">
@@ -605,7 +605,7 @@ function KnowledgeCards({ items }: { items: Pick<KnowledgeNode, 'id' | 'tag' | '
       {items.map((item) => (
         <li className="dw-card" key={item.id}>
           <span className={`dw-tile dw-tone--${toneOf(item.tag)}`}>
-            <KnowledgeTagGlyph tag={item.tag} />
+            <KnowledgeTagGlyph size={24} tag={item.tag} />
           </span>
           <span className="dw-card-text">
             <span className={`dw-card-tag dw-tone-text--${toneOf(item.tag)}`}>{tagLabel(t, item.tag)}</span>
