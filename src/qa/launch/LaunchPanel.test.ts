@@ -104,6 +104,7 @@ describe('LaunchPanel', () => {
       createElement(LaunchPanel, {
         projectId: '1',
         run,
+        builds: [],
         instances: [instance],
         instanceId: '3',
         onInstanceChange: () => {},

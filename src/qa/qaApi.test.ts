@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { ProjectApiError } from '../projects/projectApi'
-import { parseQaModels, parseQaTry, qaRunRequestBody, qaStartConflict } from './qaApi'
+import { parseQaLog, parseQaModels, parseQaTry, qaRunRequestBody, qaStartConflict } from './qaApi'
 import { toArchRequest } from './qaArch'
 
 const QA_TRY_FIELDS = {
@@ -130,6 +130,20 @@ test('qaRunRequestBody carries arch verbatim when given', () => {
   const body = qaRunRequestBody('1', '2', 'm', 'platform', null, true, arch)
   assert.deepEqual(body.arch, arch)
   assert.equal(body.force, true)
+})
+
+test('parseQaLog keeps a BEHAVIOR_ENDED row instead of dropping it as an unknown type', () => {
+  const log = parseQaLog({
+    id: '70',
+    qaTryId: '41',
+    direction: 'SDK_TO_ORCHE',
+    type: 'BEHAVIOR_ENDED',
+    message: '',
+    payload: { behaviorId: 7, name: 'auto_attack', reason: 'completed', seconds: 12.4 },
+    createdAt: '2026-10-14T08:00:00Z',
+  })
+
+  assert.equal(log?.type, 'BEHAVIOR_ENDED')
 })
 
 test('planner_executer run 의 wire body 는 arch 에 engine 하나뿐이다', () => {

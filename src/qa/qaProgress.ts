@@ -1,6 +1,7 @@
 import { asRecord, asString } from '../projects/projectApi'
 import type { ExecutionMode, ScenarioStep } from '../testScenarios/scenarioTypes'
 import { asVerificationStatus, type VerificationStatus } from '../testCases/testCaseTypes'
+import { usedCheatsOf, type UsedCheat } from './qaFunctionTimeline'
 import { isTerminalQaStatus, type QaLog, type QaTryStatus } from './qaTypes'
 
 /**
@@ -51,6 +52,11 @@ export type QaStepProgress = {
   /** What the step was supposed to do, or `null` where nobody said. */
   expectedPassed: boolean | null
   grade: QaStepGrade
+  /**
+   * The cheats the agent invoked during this step, from the verdict's `used_cheats`
+   * (ARTEL-1051). Empty for a step without a verdict and for a run from before the field.
+   */
+  usedCheats: UsedCheat[]
 }
 
 export type QaProgress = {
@@ -96,6 +102,7 @@ type Verdict = {
   passed: boolean
   message: string
   logId: string | null
+  usedCheats: UsedCheat[]
 }
 
 function collectVerdicts(logs: QaLog[]): {
@@ -122,6 +129,7 @@ function collectVerdicts(logs: QaLog[]): {
           passed: status === 'COMPLETED',
           message: asString(payload.message),
           logId: log.id,
+          usedCheats: usedCheatsOf(payload),
         })
       }
       continue
@@ -156,6 +164,7 @@ function collectVerdicts(logs: QaLog[]): {
         passed: record.passed,
         message: asString(record.message, known?.message ?? ''),
         logId: known?.logId ?? null,
+        usedCheats: known?.usedCheats ?? [],
       })
     }
   }
@@ -226,6 +235,7 @@ export function deriveQaProgress({
         verdictLogId: verdict.logId,
         expectedPassed,
         grade,
+        usedCheats: verdict.usedCheats,
       })
       continue
     }
@@ -257,6 +267,7 @@ export function deriveQaProgress({
       expectedPassed,
       // No verdict, so nothing to compare the expectation against.
       grade: null,
+      usedCheats: [],
     })
   }
 
