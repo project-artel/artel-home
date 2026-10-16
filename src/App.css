@@ -11433,3 +11433,8 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
 .scenario-studio .edoc-wrap:has(> .run-empty) { display: flex; align-items: center; justify-content: center; }
 .scenario-studio .edoc.run-empty { align-items: center; margin: 0; padding: 0 24px 6vh; text-align: center; }
 .scenario-studio .run-empty .run-empty-copy { margin-inline: auto; }
+
+/* 스텝이 없을 때도 가운데 칸 한가운데에 그림 · 문구 · 버튼을 모은다. */
+.scenario-studio .se-list:has(> .se-empty) { display: flex; }
+.scenario-studio .se-empty { flex: 1; justify-content: center; box-sizing: border-box; min-height: 100%; padding: 24px 24px 6vh; }
+.scenario-studio .se-empty .st-sketch { width: min(100%, 260px); margin-bottom: 8px; }
