@@ -4,6 +4,7 @@ import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
 import { buildOptionText, selectBuild } from '../projects/gameBuilds'
 import { useWorkspace } from '../projects/workspace/workspaceContext'
+import { DeveloperMacroSection } from './DeveloperMacroSection'
 import { MacroDetail } from './MacroDetail'
 import { MacroList } from './MacroList'
 import { useBuildMacros, useMacroSource } from './useBuildMacros'
@@ -17,6 +18,10 @@ import { useBuildMacros, useMacroSource } from './useBuildMacros'
  * `ContentMapSection` / `ContentMapReport` 와 같은 분업이다. 빌드를 고르는 일만 바깥
  * 컴포넌트에 남고, 읽기와 상태는 `MacroReport` 가 진다.
  *
+ * 그 아래에 프로젝트의 developer macro(ARTEL-1102)가 `DeveloperMacroSection` 으로 따로
+ * 선다. build 에 속하지 않으므로 `MacroReport` 처럼 build id 를 `key` 로 받지 않고, 고른
+ * build 는 각 줄의 relation 칩을 계산하는 데만 쓴다.
+ *
  * ## 주소에 쓰는 자리는 전부 기존 parameter 를 보존한다
  *
  * `ContentMapSection` 과 `PerformanceSection` 은 `setSearchParams({ build })` 를 민
@@ -29,7 +34,7 @@ import { useBuildMacros, useMacroSource } from './useBuildMacros'
  * 에게 받으므로, 같은 tick 에 둘이 쓰더라도 나중 것이 앞의 것을 덮지 않는다 —
  * 렌더에서 붙잡은 `searchParams` 로 짓는 것과 달리 경우를 따져서가 아니라 구조로
  * 막힌다. 아래 목록은 예외 명단이 아니다. 주소에 쓰는 자리를 새로 만들면 그것도
- * 같은 모양을 쓴다.
+ * 같은 모양을 쓴다. `DeveloperMacroSection` 의 `developerMacro` 도 그렇게 쓴다.
  */
 export function MacroSection() {
   const { builds, projectId } = useWorkspace()
@@ -61,7 +66,8 @@ export function MacroSection() {
         const next = new URLSearchParams(previous)
         next.set('build', buildId)
         // 다른 빌드의 macro id 는 뜻이 없다. 남겨 두면 그 빌드에 없는 id 가 되어
-        // 곧바로 지워지거나, 더 나쁘게는 엉뚱한 macro 를 연다.
+        // 곧바로 지워지거나, 더 나쁘게는 엉뚱한 macro 를 연다. `developerMacro` 는
+        // 남긴다 — developer macro 는 build 에 속하지 않는다.
         next.delete('macro')
         return next
       })
@@ -105,6 +111,8 @@ export function MacroSection() {
          */
         <MacroReport buildId={selectedBuild.id} key={selectedBuild.id} projectId={projectId} />
       )}
+
+      <DeveloperMacroSection builds={builds} projectId={projectId} selectedBuild={selectedBuild} />
     </section>
   )
 }

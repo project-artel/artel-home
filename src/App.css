@@ -10078,6 +10078,111 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
   line-height: 18px;
 }
 
+/* ── Developer macro (ARTEL-1102) ────────────────────────────────────────────
+   게임 개발자가 MCP 로 등록한 프로젝트의 macro. agent macro 아래에 가로선을 하나 두고
+   따로 선다. 머리글의 `MCP` 칩이 출처를 말하고, 줄 모양(`.macro-row`)과 source 패널은
+   agent macro 의 것을 그대로 쓴다. */
+.macro-developer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-top: var(--space-8);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--color-border-subtle);
+}
+.macro-developer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+.macro-developer-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+/* 출처 칩. 상태가 아니라 분류라서 semantic 색을 쓰지 않는다 — coral 은 선택과 focus 의
+   색이라 여기 쓰면 눌린 것처럼 읽힌다. */
+.macro-origin-chip {
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 999px;
+  background: var(--color-bg-raised);
+  color: var(--color-text-secondary);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  line-height: 18px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.macro-row-docstring {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+  overflow-wrap: anywhere;
+}
+/* `.macro-screen-badge` 와 같은 모양이다. build 이름은 사람이 붙인 label 이 붙어 더
+   길어지므로 폭만 넓다. */
+.macro-build-chip {
+  display: inline-block;
+  max-width: 280px;
+  padding: 2px var(--space-2);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  line-height: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* 고른 build 와 다른 build 를 기준으로 썼을 때. amber 는 "확인해 볼 것" 이지 실패가
+   아니다. 글자는 ink 로 둔다 — amber 글자는 cream 위에서 4.5:1 에 한참 못 미친다. */
+.macro-build-chip--differs {
+  border-color: var(--color-status-warning);
+  background: var(--color-status-warning-muted);
+  color: var(--color-text-primary);
+}
+.macro-detail-docstring {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+/* 빈 상태. agent macro 의 `.panel-message` 보다 작고, `.macro-detail-unattached` 와 같은
+   모양이다. */
+.macro-developer-empty {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-raised);
+}
+.macro-developer-empty-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.macro-developer-empty-copy {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
 /* Email and password sign-in, shown above the provider buttons. */
 .login-form {
   display: flex;

@@ -50,6 +50,40 @@ export const macrosEn = {
     sourceLoading: 'Loading the source…',
     sourceFailed: 'The source could not be loaded.',
   },
+  developer: {
+    title: 'Developer macros',
+    // Where these come from. The agent macros above carry no such chip, so the
+    // two groups do not read as one list.
+    originChip: 'MCP',
+    hint: 'Macros a game developer’s coding agent registered over the MCP connection. They belong to the project, not to a build, and the QA engine receives every one of them whichever build it runs. The chip on each shows the build it was written against.',
+    listLabel: 'Developer macros of this project',
+    loading: 'Loading developer macros…',
+    loadFailed: 'Developer macros could not be loaded.',
+    emptyTitle: 'No developer macros yet',
+    emptyCopy: 'Developer macros are registered over the MCP connection.',
+    writtenAgainst: (build: string) => `Written against ${build}`,
+    // Says where the build sits, never whether to use the macro: the engine
+    // receives it either way.
+    relation: {
+      older: 'Older build',
+      newer: 'Newer build',
+      different: 'Different build',
+    },
+    relationTitle: {
+      older: 'Written against a build that came before the selected one.',
+      newer: 'Written against a build that came after the selected one.',
+      different: 'Written against another build. Its order relative to the selected one is unknown.',
+    },
+    registeredBy: (nickname: string, date: string) => `Registered by ${nickname} · ${date}`,
+    registeredAt: (date: string) => `Registered ${date}`,
+    version: (version: number) => `v${version}`,
+    detail: {
+      title: 'Developer macro',
+      hint: 'Pick a developer macro to read its source.',
+      docstringLabel: 'Docstring',
+      readOnly: 'Read-only. A developer macro is registered and changed over the MCP connection, not from this screen.',
+    },
+  },
 } as const
 
 export const macrosKo: Localized<typeof macrosEn> = {
@@ -93,5 +127,35 @@ export const macrosKo: Localized<typeof macrosEn> = {
     sourceEmpty: '이 macro 에는 source 가 없습니다.',
     sourceLoading: 'source 를 불러오는 중…',
     sourceFailed: 'source 를 불러오지 못했습니다.',
+  },
+  developer: {
+    title: '개발자 macro',
+    originChip: 'MCP',
+    hint: '게임 개발자의 코딩 에이전트가 MCP 연결로 등록한 macro 입니다. 빌드가 아니라 프로젝트에 속하고, QA 엔진은 빌드와 상관없이 전부 받습니다. 각 macro 의 칩은 어느 빌드를 기준으로 썼는지 보여 줍니다.',
+    listLabel: '이 프로젝트의 개발자 macro',
+    loading: '개발자 macro 를 불러오는 중…',
+    loadFailed: '개발자 macro 를 불러오지 못했습니다.',
+    emptyTitle: '등록된 개발자 macro 가 없습니다',
+    emptyCopy: '개발자 macro 는 MCP 연결로 등록됩니다.',
+    writtenAgainst: (build: string) => `${build} 기준`,
+    relation: {
+      older: '이전 빌드',
+      newer: '이후 빌드',
+      different: '다른 빌드',
+    },
+    relationTitle: {
+      older: '고른 빌드보다 먼저 올라온 빌드를 기준으로 썼습니다.',
+      newer: '고른 빌드보다 나중에 올라온 빌드를 기준으로 썼습니다.',
+      different: '고른 빌드와 다른 빌드를 기준으로 썼습니다. 둘의 순서는 알 수 없습니다.',
+    },
+    registeredBy: (nickname: string, date: string) => `${nickname} 등록 · ${date}`,
+    registeredAt: (date: string) => `등록 ${date}`,
+    version: (version: number) => `v${version}`,
+    detail: {
+      title: '개발자 macro',
+      hint: '개발자 macro 를 하나 고르면 source 를 읽을 수 있습니다.',
+      docstringLabel: 'Docstring',
+      readOnly: '읽기 전용입니다. 개발자 macro 는 MCP 연결로 등록하고 고치며, 이 화면에서는 고치지 않습니다.',
+    },
   },
 }
