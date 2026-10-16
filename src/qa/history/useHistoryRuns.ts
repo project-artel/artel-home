@@ -29,8 +29,11 @@ export function useHistoryRuns(projectId: string, testRunIds: readonly string[],
     for (const testRunId of missing.split(',')) {
       listProjectQaRuns(projectId, RUNS_PER_TEST_RUN, controller.signal, testRunId)
         .then((runs) => store(testRunId, { status: 'ready', runs, complete: runs.length < RUNS_PER_TEST_RUN }))
-        .catch((error: unknown) => {
-          if (error instanceof DOMException && error.name === 'AbortError') return
+        .catch(() => {
+          // 취소는 오류가 아니다. 앞 런의 결과가 와서 남은 목록이 바뀌면 이 묶음을 취소하고 다시
+          // 보내는데, 취소된 요청이 `AbortError` 가 아닌 모양으로 올라올 때가 있어 오류 종류가 아니라
+          // "내가 취소했나" 로 가른다 — 그러지 않으면 아직 읽는 중인 카드가 실패로 굳는다.
+          if (controller.signal.aborted) return
           store(testRunId, { status: 'error' })
         })
     }
