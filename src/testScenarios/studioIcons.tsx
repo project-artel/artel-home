@@ -11,6 +11,9 @@ const PATHS = {
   search: ['M3 10a7 7 0 1 0 14 0a7 7 0 1 0 -14 0', 'M21 21l-6 -6'],
   chevronUp: ['M6 15l6 -6l6 6'],
   chevronDown: ['M6 9l6 6l6 -6'],
+  chevronLeft: ['M15 6l-6 6l6 6'],
+  chevronRight: ['M9 6l6 6l-6 6'],
+  maximize: ['M16 4l4 0l0 4', 'M14 10l6 -6', 'M8 20l-4 0l0 -4', 'M4 20l6 -6'],
   close: ['M18 6l-12 12', 'M6 6l12 12'],
   grip: [
     'M8 5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0', 'M8 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0', 'M8 19a1 1 0 1 0 2 0a1 1 0 1 0 -2 0',
