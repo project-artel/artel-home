@@ -11117,7 +11117,7 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
 .scenario-studio .st-chat .chat-md-table .chat-ref-label{ max-width:16em; }
 
 /* 칩은 둘레 글의 크기 · 굵기를 따른다(ARTEL-1097). 큰 결론 줄 안에서 칩만 작으면 어긋나 보인다. */
-.scenario-studio .st-chat .chat-ref{ font-size:inherit; font-weight:inherit; line-height:1.35; padding:0 4px; vertical-align:baseline; align-items:baseline; }
+.scenario-studio .st-chat .chat-ref{ font-size:inherit; font-weight:inherit; line-height:1.35; padding:0 4px; margin:0 0.2em; vertical-align:baseline; align-items:baseline; }
 .scenario-studio .st-chat .chat-ref-tag{ font-size:0.72em; }
 /* 표 안에서는 칩 이름을 자르지 않는다 — 잘리면 이웃 케이스와 구분되지 않는다. */
 .scenario-studio .st-chat .chat-md-table .chat-ref{ display:inline; }
