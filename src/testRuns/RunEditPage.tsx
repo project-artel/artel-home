@@ -15,6 +15,7 @@ import { createTestScenario } from '../testScenarios/scenarioApi'
 import { RunChat } from './RunChat'
 import { RunNameCrumb } from './RunNameCrumb'
 import { RunVersionChip } from './RunVersionChip'
+import { ScenarioSketch } from '../testScenarios/studioSketches'
 import { useRunChatSession } from './useRunChatSession'
 
 /**
@@ -147,7 +148,7 @@ function RunEditPage({ projectId, runId }: { projectId: string; runId: string })
   return (
     <div {...split.studio}>
       <header className="st-top">
-        <Link className="st-back" to={`/projects/${encodeURIComponent(projectId)}`}>{t.scenarios.page.backToProject}</Link>
+        <Link className="st-back" to={`/projects/${encodeURIComponent(projectId)}/test-runs`}>{t.scenarios.page.backToTestRuns}</Link>
         <div className="st-crumb">
           <RunNameCrumb
             projectId={projectId}
@@ -179,6 +180,7 @@ function RunEditPage({ projectId, runId }: { projectId: string; runId: string })
               </>
             ) : (
               <>
+                <ScenarioSketch />
                 <h1 className="run-empty-title">{e.emptyTitle}</h1>
                 <p className="run-empty-copy">{e.emptyCopy}</p>
                 <div className="run-empty-actions">

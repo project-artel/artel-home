@@ -34,8 +34,9 @@ export function TestScenarioRoute() {
   return <TestScenarioPage projectId={projectId} testScenarioId={testScenarioId} />
 }
 
+/** 스튜디오에서 나가면 테스트 런 목록이다 — 시나리오는 런 안에서 쓰기 때문이다. */
 function backLink(projectId: string) {
-  return `/projects/${encodeURIComponent(projectId)}`
+  return `/projects/${encodeURIComponent(projectId)}/test-runs`
 }
 
 /**
@@ -161,7 +162,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
       <section className="page"><div className="panel-message">
         <h1>{t.scenarios.page.notFoundTitle}</h1>
         <p className="panel-message-copy">{t.scenarios.page.invalidAddress}</p>
-        <Link className="button button--secondary" to={backLink(projectId)}>{t.scenarios.page.backToProject}</Link>
+        <Link className="button button--secondary" to={backLink(projectId)}>{t.scenarios.page.backToTestRuns}</Link>
       </div></section>
     )
   }
@@ -170,7 +171,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
       <section className="page"><div className="panel-message">
         <h1>{t.scenarios.page.notFoundTitle}</h1>
         <p className="panel-message-copy">{t.scenarios.page.missingCopy}</p>
-        <Link className="button button--secondary" to={backLink(projectId)}>{t.scenarios.page.backToProject}</Link>
+        <Link className="button button--secondary" to={backLink(projectId)}>{t.scenarios.page.backToTestRuns}</Link>
       </div></section>
     )
   }
@@ -183,7 +184,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
   return (
     <div {...split.studio}>
       <header className="st-top">
-        <Link className="st-back" to={backLink(projectId)}>{t.scenarios.page.backToProject}</Link>
+        <Link className="st-back" to={backLink(projectId)}>{t.scenarios.page.backToTestRuns}</Link>
         <div className="st-crumb">
           {fromRun !== null && (
             <>

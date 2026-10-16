@@ -5,7 +5,7 @@ export const scenariosEn = {
   page: {
     notFoundTitle: 'Scenario not found',
     invalidAddress: 'That address does not name a scenario.',
-    backToProject: 'Back to the project',
+    backToTestRuns: 'Back to test runs',
     loading: 'Loading scenario…',
     missingCopy: 'It may have been deleted, or you may not have access to it.',
     loadFailed: 'This scenario could not be loaded.',
@@ -95,8 +95,7 @@ export const scenariosEn = {
     title: 'Conversation',
     // Doubles as the handle's tooltip and its accessible name, so it says what dragging does.
     widthHandle: 'Drag to resize the conversation',
-    emptyCopy:
-      'Describe the behaviour you want covered — for example, “Write a scenario for finishing the tutorial without taking damage.” The agent answers with a scenario you can edit.',
+    emptyTitle: 'No conversation yet',
     you: 'You',
     agent: 'Artel',
     waitingForAgent: 'Waiting for Artel…',
@@ -733,7 +732,7 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
   page: {
     notFoundTitle: '시나리오를 찾을 수 없습니다',
     invalidAddress: '주소가 시나리오를 가리키지 않습니다.',
-    backToProject: '프로젝트로 돌아가기',
+    backToTestRuns: '테스트 런으로 돌아가기',
     loading: '시나리오를 불러오는 중…',
     missingCopy: '삭제되었거나 접근 권한이 없을 수 있습니다.',
     loadFailed: '시나리오를 불러오지 못했습니다.',
@@ -816,8 +815,7 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     title: '대화',
     // 손잡이의 툴팁이자 screen reader 가 읽는 이름이다. 이름이 아니라 무엇을 하는지가 온다.
     widthHandle: '끌어서 대화 칸 폭 조절',
-    emptyCopy:
-      '다루고 싶은 동작을 설명하세요 — 예: “피해를 입지 않고 튜토리얼을 끝내는 시나리오를 작성해 줘.” 에이전트가 편집할 수 있는 시나리오로 답합니다.',
+    emptyTitle: '아직 대화가 없습니다',
     you: '나',
     agent: 'Artel',
     waitingForAgent: 'Artel의 응답을 기다리는 중…',
