@@ -413,10 +413,14 @@ export function RunChat({ session }: { session: RunChatSession }) {
         <label className="run-chat-toggle">
           <input
             type="checkbox"
+            role="switch"
             checked={session.autoApply}
             onChange={(event) => session.setAutoApply(event.target.checked)}
           />
           {c.autoApplyLabel}
+          <span className="run-chat-coverage-tip" role="tooltip">
+            {c.autoApplyHelp}
+          </span>
         </label>
         </div>
       </header>

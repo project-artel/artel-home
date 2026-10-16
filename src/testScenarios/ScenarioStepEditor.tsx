@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
 import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { InfoHint } from '../design-system/primitives/InfoHint'
+import { SplitHandle } from '../design-system/primitives/SplitHandle'
 import { useI18n } from '../i18n/useI18n'
 import type { StepMark } from './draftChanges'
 import { TestCaseModal } from '../testCases/TestCaseModal'
@@ -8,19 +9,22 @@ import { listTestCases } from '../testCases/testCaseApi'
 import type { TestCase, VerificationStatus } from '../testCases/testCaseTypes'
 import { GapFillModal } from './GapFillModal'
 import { groupStepsByCase, isGapStep, type ScenarioStep } from './scenarioTypes'
-import { StudioIcon, type StudioIconName } from './studioIcons'
+import { StudioIcon } from './studioIcons'
 import type { StepEditor } from './useStepEditor'
 
 /** 이보다 단계가 많으면 바닥에 구간 점프를 단다. */
 const JUMP_SIZE = 20
 
-const STATUS_ICON: Record<VerificationStatus, StudioIconName> = {
-  VERIFIED: 'check',
-  FAILED: 'close',
-  REGRESSION: 'refresh',
-  DRAFT: 'circle',
-  BROKEN: 'minus',
-}
+/** 판정 점의 순서. 범례도 이 순서로 선다. */
+const VERDICTS: readonly VerificationStatus[] = ['VERIFIED', 'DRAFT', 'REGRESSION', 'FAILED', 'BROKEN']
+
+const DETAIL_HEIGHT_KEY = 'artel.studio.stepDetailHeight'
+const DETAIL_HEIGHT_DEFAULT = 300
+const DETAIL_HEIGHT_MIN = 180
+const DETAIL_HEIGHT_MAX = 640
+
+/** 글 속의 씬 이름을 찾는 식. 프로젝트 TC 의 씬에서 만든다 — 없으면 아무것도 칠하지 않는다. */
+const SceneContext = createContext<RegExp | null>(null)
 
 /**
  * Editable steps of a scenario (ARTEL-289, 배치는 ARTEL-1107).
@@ -30,9 +34,10 @@ const STATUS_ICON: Record<VerificationStatus, StudioIconName> = {
  * 씬 · TC 판정)로 두고, 고친 것은 고른 단계의 아래 칸에서 한다 — 상세가 열려도 목록의 행 높이는
  * 그대로다.
  *
- * 하는 일은 예전 그대로다: 제목 · 내용 · 힌트를 고치고, 단계를 더하고 지우고, 위아래로 옮기거나 끌어
- * 옮긴다. TC 는 내부 id 대신 등장 순번으로 부르고 전체 명세를 연다. 경로 공백은 번호 없이 서고 그 자리를
- * 채우는 단계를 받는다(`GapFillModal`). 사람이 쓴 단계는 표시한다. draft 는 바뀐 줄을 칠한다.
+ * 하는 일은 예전 그대로다: 제목 · 내용 · 힌트를 고치고, 단계를 원하는 자리에 넣고 지우고, 위아래로
+ * 옮기거나 끌어 옮긴다. 여러 단계를 골라 한 번에 지운다. TC 는 내부 id 대신 등장 순번으로 부르고 그
+ * 자리에서 명세를 연다. 경로 공백은 번호 없이 서고 그 자리를 채우는 단계를 받는다(`GapFillModal`).
+ * 사람이 쓴 단계는 표시한다. draft 는 바뀐 줄을 칠한다.
  *
  * This is a controlled view: undo/redo, autosave state, and the ⌘K TC spec live
  * on the studio header ({@link TestScenarioPage}), because they are run-scoped.
@@ -53,23 +58,32 @@ export function ScenarioStepEditor({
   const { t } = useI18n()
   const e = t.scenarios.stepsEditor
   const b = e.board
+  const statusLabel = t.scenarios.composition.status
   const { working } = editor
   const steps = working.steps
   const cases = useCaseIndex(projectId)
+  const sceneMatcher = useMemo(() => scenePattern(cases), [cases])
+  const [detailHeight, setDetailHeight] = useDetailHeight()
 
   const [selected, setSelected] = useState<number | null>(null)
   const [detail, setDetail] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [query, setQuery] = useState('')
+  const [picked, setPicked] = useState<ReadonlySet<number>>(new Set())
+  const [anchor, setAnchor] = useState<number | null>(null)
+  const [fresh, setFresh] = useState<number | null>(null)
+  const [dropped, setDropped] = useState<number | null>(null)
   const [tcView, setTcView] = useState<{ caseId: number; label: string } | null>(null)
   const [gapFill, setGapFill] = useState<{ index: number; blockedBy: string | null; detail: string } | null>(null)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [overIndex, setOverIndex] = useState<number | null>(null)
   const [scroller, setScroller] = useState<HTMLDivElement | null>(null)
-  const rowRefs = useRef(new Map<number, HTMLButtonElement>())
+  const [titleField, setTitleField] = useState<HTMLInputElement | null>(null)
+  const rowRefs = useRef(new Map<number, HTMLDivElement>())
 
   // 고른 자리가 목록 밖으로 밀리면(단계를 지우거나 다른 시나리오로 바뀌면) 놓는다.
   const current = selected !== null && selected < steps.length ? selected : null
+  const pickedNow = [...picked].filter((index) => index < steps.length)
 
   // 순번: 경로 공백은 번호가 없고, 이어지는 같은 case_id 는 한 TC 다(내부 id 는 보이지 않는다).
   const numbering = useMemo(() => {
@@ -109,44 +123,110 @@ export function ScenarioStepEditor({
     select(after ?? list[0], detail)
   }
 
-  function addStep() {
-    editor.addStep()
-    select(steps.length)
+  /** 자리가 바뀌면 고른 묶음의 번호가 다른 단계를 가리키게 된다 — 그래서 놓는다. */
+  function clearPicked() {
+    setPicked(new Set())
+    setAnchor(null)
+  }
+
+  function insertAt(index: number) {
+    editor.insertStep(index)
+    clearPicked()
+    setFresh(index)
+    select(index)
   }
 
   function removeStep(index: number) {
     editor.removeStep(index)
+    clearPicked()
     setSelected(steps.length <= 1 ? null : Math.min(index, steps.length - 2))
+  }
+
+  function removePicked() {
+    // 뒤에서부터 지운다 — 앞을 먼저 지우면 뒤 번호가 한 칸씩 당겨져 엉뚱한 단계가 지워진다.
+    for (const index of [...pickedNow].sort((left, right) => right - left)) editor.removeStep(index)
+    const left = steps.length - pickedNow.length
+    clearPicked()
+    setSelected(left <= 0 || current === null ? null : Math.min(current, left - 1))
+    if (left <= 0) setDetail(false)
   }
 
   function moveStep(from: number, to: number) {
     if (to < 0 || to >= steps.length) return
     editor.moveStep(from, to)
+    clearPicked()
     setSelected(to)
+    setDropped(to)
   }
 
-  function onDrop(target: number) {
-    if (dragIndex !== null && dragIndex !== target) moveStep(dragIndex, target)
+  function onDragStart(event: DragEvent<HTMLLIElement>, index: number) {
+    event.dataTransfer.effectAllowed = 'move'
+    // Firefox 는 실린 값이 없으면 끌기를 시작하지 않는다.
+    event.dataTransfer.setData('text/plain', String(index))
+    event.dataTransfer.setDragImage(event.currentTarget, 28, 22)
+    setDragIndex(index)
+  }
+
+  function endDrag() {
     setDragIndex(null)
     setOverIndex(null)
   }
 
-  function onRowKey(event: KeyboardEvent<HTMLButtonElement>, index: number) {
+  function onDrop(target: number) {
+    if (dragIndex !== null && dragIndex !== target) moveStep(dragIndex, target)
+    endDrag()
+  }
+
+  function pick(index: number, range: boolean) {
+    setPicked((before) => {
+      const next = new Set([...before].filter((value) => value < steps.length))
+      if (range && anchor !== null) {
+        const [from, to] = anchor < index ? [anchor, index] : [index, anchor]
+        for (let value = from; value <= to; value += 1) next.add(value)
+      } else if (next.has(index)) {
+        next.delete(index)
+      } else {
+        next.add(index)
+      }
+      return next
+    })
+    if (!range || anchor === null) setAnchor(index)
+  }
+
+  function onRowClick(event: MouseEvent<HTMLDivElement>, index: number) {
+    // ⌘/Ctrl 는 하나씩, Shift 는 이어서 고른다 — 파일 목록이 쓰는 그대로다.
+    if (event.metaKey || event.ctrlKey || event.shiftKey) {
+      event.preventDefault()
+      pick(index, event.shiftKey)
+      return
+    }
+    setFresh(null)
+    select(index)
+  }
+
+  function onRowKey(event: KeyboardEvent<HTMLDivElement>, index: number) {
+    if (event.target !== event.currentTarget) return
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault()
       const next = index + (event.key === 'ArrowDown' ? 1 : -1)
       if (next < 0 || next >= steps.length) return
       select(next, detail)
       rowRefs.current.get(next)?.focus({ preventScroll: true })
+    } else if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      select(index)
     } else if (event.key === 'Escape') {
       setDetail(false)
     }
   }
 
   const openStep = current === null ? undefined : steps[current]
+  const allPicked = steps.length > 0 && pickedNow.length === steps.length
+  const picking = pickedNow.length > 0
 
   return (
-    <div className={`se${detail && openStep !== undefined ? ' has-detail' : ''}`}>
+    <SceneContext.Provider value={sceneMatcher}>
+    <div className={`se${detail && openStep !== undefined ? ' has-detail' : ''}${picking ? ' is-picking' : ''}${dragIndex !== null ? ' is-dragging' : ''}`}>
       <section className="se-head">
         {banner}
         <div className="se-eyebrow">
@@ -155,19 +235,23 @@ export function ScenarioStepEditor({
           <span aria-hidden="true">/</span>
           {b.kicker}
         </div>
-        <input
-          aria-label={e.titleLabel}
-          className="se-title"
-          onChange={(event) => editor.setTitle(event.target.value)}
-          placeholder={t.scenarios.page.untitled}
-          value={working.title}
-        />
+        {/* 제목은 고칠 수 있다는 것이 늘 보여야 한다 — 평소엔 연필과 점선, 가져다 대면 칸이 선다. */}
+        <div className="se-title-wrap" title={b.titleEdit}>
+          <input
+            aria-label={e.titleLabel}
+            className="se-title"
+            onChange={(event) => editor.setTitle(event.target.value)}
+            placeholder={t.scenarios.page.untitled}
+            ref={setTitleField}
+            value={working.title}
+          />
+          <button aria-label={b.titleEdit} className="se-title-edit" onClick={() => titleField?.select()} tabIndex={-1} type="button">
+            <StudioIcon name="pencil" size={15} />
+          </button>
+        </div>
         <div className="se-summary">
-          <span>{b.stepCount(numbering.actions)}</span>
-          <span aria-hidden="true">·</span>
-          <span>{b.caseRegions(numbering.regions)}</span>
-          <span aria-hidden="true">·</span>
-          <span className="se-muted">{b.selectHint}</span>
+          <span className="se-tag">{b.stepTag} <b>{numbering.actions}</b></span>
+          <span className="se-tag se-tag--tc">{b.tcTag} <b>{numbering.regions}</b></span>
         </div>
       </section>
 
@@ -199,6 +283,16 @@ export function ScenarioStepEditor({
             <StudioIcon name="chevronDown" size={15} />
           </button>
         </label>
+        {picking && (
+          <div className="se-picked" role="group" aria-label={b.selectedCount(pickedNow.length)}>
+            <strong>{b.selectedCount(pickedNow.length)}</strong>
+            <button className="se-picked-delete" onClick={removePicked} type="button">
+              <StudioIcon name="trash" size={14} />
+              {b.deleteSelected}
+            </button>
+            <button className="se-picked-clear" onClick={clearPicked} type="button">{b.clearSelection}</button>
+          </div>
+        )}
         <span className="se-spacer" />
         {gaps.length > 0 && (
           <button className="se-gap-jump" onClick={() => cycle(gaps)} type="button">
@@ -210,20 +304,45 @@ export function ScenarioStepEditor({
           <button aria-pressed={!expanded} className={expanded ? '' : 'is-on'} onClick={() => setExpanded(false)} type="button">{b.compact}</button>
           <button aria-pressed={expanded} className={expanded ? 'is-on' : ''} onClick={() => setExpanded(true)} type="button">{b.expanded}</button>
         </div>
-        <button className="se-add" onClick={addStep} type="button">
+        {/* 고른 단계가 있으면 그 아래에, 없으면 끝에 넣는다. 원하는 자리는 행 사이의 + 가 맡는다. */}
+        <button className="se-add" onClick={() => insertAt(current === null ? steps.length : current + 1)} type="button">
           <StudioIcon name="plus" size={14} />
-          {e.addStep}
+          {current === null ? e.addStep : b.addBelow}
         </button>
       </div>
 
       <div className="se-columns">
-        <span>{b.columnOrder}</span>
+        <span className="se-columns-order">
+          <input
+            aria-label={b.selectAll}
+            checked={allPicked}
+            className="se-pick"
+            disabled={steps.length === 0}
+            onChange={() => {
+              if (allPicked) clearPicked()
+              else setPicked(new Set(steps.map((_, index) => index)))
+            }}
+            title={b.selectAll}
+            type="checkbox"
+          />
+          <span className="se-columns-order-label">{b.columnOrder}</span>
+        </span>
         <span>{b.columnAction}</span>
         <span>{b.columnCase}</span>
         <span>{b.columnScene}</span>
         <span className="se-columns-verdict">
           {b.columnVerdict}
-          <InfoHint>{b.verdictHelp}</InfoHint>
+          <InfoHint label={b.columnVerdict}>
+            <span className="se-legend">
+              <span>{b.verdictHelp}</span>
+              {VERDICTS.map((status) => (
+                <span className="se-legend-row" key={status}>
+                  <span aria-hidden="true" className={`se-dot se-dot--${status}`} />
+                  {statusLabel[status]}
+                </span>
+              ))}
+            </span>
+          </InfoHint>
         </span>
       </div>
 
@@ -233,7 +352,7 @@ export function ScenarioStepEditor({
             <div className="se-empty">
               <b>{b.emptyTitle}</b>
               <span>{b.emptyBody}</span>
-              <button className="button button--primary button--compact" onClick={addStep} type="button">{e.addStep}</button>
+              <button className="button button--primary button--compact" onClick={() => insertAt(0)} type="button">{e.addStep}</button>
             </div>
           ) : (
             <ol className="se-rows">
@@ -243,57 +362,80 @@ export function ScenarioStepEditor({
                 const tcNo = numbering.tcNo.get(index)
                 const continued = tcNo !== undefined && numbering.tcNo.get(index - 1) === tcNo
                 const mark = stepMarks?.[index]
+                const over = overIndex === index && dragIndex !== null && dragIndex !== index
                 const classes = [
                   'se-row',
                   index === current ? 'is-selected' : '',
+                  picked.has(index) ? 'is-picked' : '',
                   gap ? 'is-gap' : '',
+                  tcNo !== undefined ? 'is-tc' : '',
                   mark === 'changed' ? 'is-changed' : mark === 'added' ? 'is-added' : '',
                   needle !== '' && matches.includes(index) ? 'is-match' : '',
-                  overIndex === index && dragIndex !== null ? 'is-over' : '',
+                  dragIndex === index ? 'is-lifted' : '',
+                  over ? (dragIndex < index ? 'is-over-after' : 'is-over-before') : '',
+                  dropped === index ? 'is-dropped' : '',
                 ].filter(Boolean).join(' ')
                 return (
                   <li
                     className={classes}
+                    draggable={!gap}
                     key={index}
+                    onAnimationEnd={() => setDropped(null)}
+                    onDragEnd={endDrag}
                     onDragOver={(event) => {
+                      if (dragIndex === null) return
                       event.preventDefault()
-                      setOverIndex(index)
+                      event.dataTransfer.dropEffect = 'move'
+                      if (overIndex !== index) setOverIndex(index)
                     }}
-                    onDrop={() => onDrop(index)}
+                    onDragStart={(event) => onDragStart(event, index)}
+                    onDrop={(event) => {
+                      event.preventDefault()
+                      onDrop(index)
+                    }}
                   >
+                    <button aria-label={b.insertHere} className="se-insert" onClick={() => insertAt(index)} title={b.insertHere} type="button">
+                      <StudioIcon name="plus" size={12} />
+                    </button>
                     {!gap && (
-                      <span
-                        aria-label={e.drag}
-                        className="se-grip"
-                        draggable
-                        onDragEnd={() => {
-                          setDragIndex(null)
-                          setOverIndex(null)
-                        }}
-                        onDragStart={() => setDragIndex(index)}
-                        role="img"
-                        title={e.drag}
-                      >
+                      <span aria-hidden="true" className="se-grip" title={e.drag}>
                         <StudioIcon name="grip" size={14} />
                       </span>
                     )}
-                    <button
+                    <div
                       aria-pressed={index === current}
                       className="se-row-main"
-                      onClick={() => select(index)}
+                      onClick={(event) => onRowClick(event, index)}
                       onKeyDown={(event) => onRowKey(event, index)}
                       ref={(node) => {
                         if (node === null) rowRefs.current.delete(index)
                         else rowRefs.current.set(index, node)
                       }}
+                      role="button"
+                      tabIndex={0}
                       title={step.action}
-                      type="button"
                     >
                       <span className="se-row-no mono">
-                        {gap ? <StudioIcon name="alert" size={14} /> : String(numbering.actionNo[index]).padStart(2, '0')}
+                        <input
+                          aria-label={b.selectStep(numbering.actionNo[index] ?? index + 1)}
+                          checked={picked.has(index)}
+                          className="se-pick"
+                          onChange={() => undefined}
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            pick(index, event.shiftKey)
+                          }}
+                          type="checkbox"
+                        />
+                        <span className="se-row-no-label">
+                          {gap ? <StudioIcon name="alert" size={14} /> : String(numbering.actionNo[index]).padStart(2, '0')}
+                        </span>
                       </span>
                       <span className="se-row-action">
                         {step.step_source === 'HUMAN' && <span className="se-human" title={e.humanStepHelp}>{e.humanStep}</span>}
+                        {(mark === 'changed' || mark === 'added') && (
+                          <span className={`se-mark se-mark--${mark}`}>{mark === 'changed' ? b.changed : b.added}</span>
+                        )}
                         {gap ? (
                           step.step_unknown_reason === null ? b.gapRowPlain : b.gapRow(step.step_unknown_reason)
                         ) : (
@@ -305,28 +447,52 @@ export function ScenarioStepEditor({
                           </span>
                         )}
                       </span>
-                      <span className={`se-row-case mono${continued ? ' is-continued' : ''}`}>
-                        {tcNo === undefined ? '—' : b.caseOrdinal(tcNo)}
+                      <span className={`se-row-case${continued ? ' is-continued' : ''}`}>
+                        {gap ? (
+                          <span className="se-muted">—</span>
+                        ) : tcNo === undefined || step.case_id === null ? (
+                          <span className="se-general" title={b.generalStepHelp}>{b.generalStep}</span>
+                        ) : (
+                          <button
+                            className="se-tc"
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              setTcView({ caseId: step.case_id as number, label: b.caseOrdinal(tcNo) })
+                            }}
+                            title={b.openCase(b.caseOrdinal(tcNo))}
+                            type="button"
+                          >
+                            {b.caseOrdinal(tcNo)}
+                          </button>
+                        )}
                       </span>
-                      <span className="se-row-scene" title={testCase?.scene}>{testCase?.scene ?? '—'}</span>
+                      <span className="se-row-scene">
+                        {testCase?.scene ? <span className="se-scene" title={testCase.scene}>{testCase.scene}</span> : <span className="se-muted">—</span>}
+                      </span>
                       <span className="se-row-verdict">
                         {gap ? (
                           <span className="se-needs">{b.needsInput}</span>
-                        ) : mark === 'changed' || mark === 'added' ? (
-                          <span className={`se-mark se-mark--${mark}`}>{mark === 'changed' ? b.changed : b.added}</span>
                         ) : testCase !== undefined ? (
-                          <span className={`se-verdict se-verdict--${testCase.verificationStatus}`}>
-                            <StudioIcon name={STATUS_ICON[testCase.verificationStatus] ?? 'circle'} size={13} />
-                            {t.scenarios.composition.status[testCase.verificationStatus] ?? testCase.verificationStatus}
-                          </span>
+                          <span
+                            aria-label={statusLabel[testCase.verificationStatus] ?? testCase.verificationStatus}
+                            className={`se-dot se-dot--${testCase.verificationStatus}`}
+                            role="img"
+                            title={statusLabel[testCase.verificationStatus] ?? testCase.verificationStatus}
+                          />
                         ) : (
-                          <span className="se-muted">{b.noCase}</span>
+                          <span className="se-muted">—</span>
                         )}
                       </span>
-                    </button>
+                    </div>
                   </li>
                 )
               })}
+              <li className="se-row-end">
+                <button className="se-add-row" onClick={() => insertAt(steps.length)} type="button">
+                  <StudioIcon name="plus" size={14} />
+                  {e.addStep}
+                </button>
+              </li>
             </ol>
           )}
         </div>
@@ -358,21 +524,35 @@ export function ScenarioStepEditor({
       </footer>
 
       {detail && openStep !== undefined && current !== null && (
-        <StepInspector
-          caseOrdinal={numbering.tcNo.get(current) ?? null}
-          editor={editor}
-          index={current}
-          number={numbering.actionNo[current]}
-          onClose={() => setDetail(false)}
-          onFillGap={() => setGapFill({ index: current, blockedBy: openStep.step_unknown_reason, detail: openStep.action })}
-          onMove={(to) => moveStep(current, to)}
-          onRemove={() => removeStep(current)}
-          onSelect={(to) => select(to)}
-          onViewCase={(caseId, label) => setTcView({ caseId, label })}
-          step={openStep}
-          stepCount={steps.length}
-          testCase={openStep.case_id === null ? undefined : cases.get(String(openStep.case_id))}
-        />
+        <>
+          <SplitHandle
+            label={b.resizeDetail}
+            max={DETAIL_HEIGHT_MAX}
+            min={DETAIL_HEIGHT_MIN}
+            onChange={setDetailHeight}
+            orientation="horizontal"
+            sign={-1}
+            value={detailHeight}
+          />
+          <StepInspector
+            autoFocus={fresh === current}
+            caseOrdinal={numbering.tcNo.get(current) ?? null}
+            editor={editor}
+            height={detailHeight}
+            index={current}
+            number={numbering.actionNo[current]}
+            onAddBelow={() => insertAt(current + 1)}
+            onClose={() => setDetail(false)}
+            onFillGap={() => setGapFill({ index: current, blockedBy: openStep.step_unknown_reason, detail: openStep.action })}
+            onMove={(to) => moveStep(current, to)}
+            onRemove={() => removeStep(current)}
+            onSelect={(to) => select(to)}
+            onViewCase={(caseId, label) => setTcView({ caseId, label })}
+            step={openStep}
+            stepCount={steps.length}
+            testCase={openStep.case_id === null ? undefined : cases.get(String(openStep.case_id))}
+          />
+        </>
       )}
 
       {gapFill !== null && (
@@ -390,11 +570,15 @@ export function ScenarioStepEditor({
         <TestCaseModal caseId={tcView.caseId} label={tcView.label} onClose={() => setTcView(null)} projectId={projectId} />
       )}
     </div>
+    </SceneContext.Provider>
   )
 }
 
 /** 고른 단계 하나. 왼쪽은 고치는 칸, 오른쪽은 연결된 TC 명세(읽기 전용). */
 function StepInspector({
+  autoFocus,
+  height,
+  onAddBelow,
   step,
   index,
   number,
@@ -409,6 +593,10 @@ function StepInspector({
   onFillGap,
   onViewCase,
 }: {
+  /** 방금 넣은 빈 단계라면 바로 쓸 수 있게 글 칸에 초점을 준다. */
+  autoFocus: boolean
+  height: number
+  onAddBelow: () => void
   step: ScenarioStep
   index: number
   number: number | null
@@ -434,7 +622,7 @@ function StepInspector({
       : b.caseChip(caseOrdinal, testCase?.scene ?? '')
 
   return (
-    <section aria-label={gap ? b.gapRowPlain : b.stepLabel(number ?? index + 1)} className="se-detail">
+    <section aria-label={gap ? b.gapRowPlain : b.stepLabel(number ?? index + 1)} className="se-detail" style={{ height }}>
       <header className="se-detail-head">
         <span aria-hidden="true" className="se-detail-marker" />
         <strong>{gap ? b.gapRowPlain : b.stepLabel(number ?? index + 1)}</strong>
@@ -461,6 +649,7 @@ function StepInspector({
             <p className="se-gap-text"><RichText text={step.action} /></p>
           ) : (
             <StepAction
+              autoFocus={autoFocus}
               id="se-action"
               label={e.actionLabel}
               onChange={(action) => editor.updateStep(index, { action })}
@@ -497,6 +686,10 @@ function StepInspector({
                 <button className="button button--secondary button--compact" disabled={index === stepCount - 1} onClick={() => onMove(index + 1)} type="button">
                   <StudioIcon name="arrowDown" size={14} />
                   {e.moveDown}
+                </button>
+                <button className="button button--secondary button--compact" onClick={onAddBelow} type="button">
+                  <StudioIcon name="plus" size={14} />
+                  {b.addBelow}
                 </button>
               </>
             )}
@@ -559,16 +752,65 @@ function Expected({ text }: { text: string }) {
   )
 }
 
-/** 백틱으로 감싼 이름(`Canvas/Stage`)을 코드 글꼴로. 나머지는 글 그대로다. */
+/**
+ * 백틱으로 감싼 이름(`Canvas/Stage`)은 오브젝트 상자로, 프로젝트 TC 에 나오는 씬 이름은 씬 색으로 세운다.
+ * 둘 다 단계를 훑을 때 눈이 먼저 찾는 것이다. 나머지는 글 그대로다.
+ */
 function RichText({ text }: { text: string }) {
+  const scenes = useContext(SceneContext)
   const parts = text.split(/(`[^`]+`)/g)
   return (
     <>
-      {parts.map((part, index) =>
-        part.startsWith('`') && part.endsWith('`') && part.length > 2 ? <code key={index}>{part.slice(1, -1)}</code> : part,
-      )}
+      {parts.map((part, index) => {
+        if (part.startsWith('`') && part.endsWith('`') && part.length > 2) {
+          const name = part.slice(1, -1)
+          return <code className={scenes !== null && wholeMatch(scenes, name) ? 'se-scene-ref' : undefined} key={index}>{name}</code>
+        }
+        if (scenes === null) return part
+        return part.split(scenes).map((piece, inner) =>
+          inner % 2 === 1 ? <span className="se-scene-ref" key={`${index}-${inner}`}>{piece}</span> : piece,
+        )
+      })}
     </>
   )
+}
+
+function wholeMatch(pattern: RegExp, text: string): boolean {
+  const parts = text.split(pattern)
+  return parts.length === 3 && parts[0] === '' && parts[2] === ''
+}
+
+/**
+ * 프로젝트 TC 의 씬 이름으로 만든 찾기 식. 긴 이름부터 맞춰 `Map_scene` 이 `Map` 에 먹히지 않게 하고,
+ * 앞뒤가 영숫자이면 이름의 일부로 보고 건너뛴다. 세 글자보다 짧은 이름은 흔한 낱말과 겹쳐 뺀다.
+ */
+function scenePattern(cases: ReadonlyMap<string, TestCase>): RegExp | null {
+  const names = [...new Set([...cases.values()].map((testCase) => testCase.scene).filter((scene): scene is string => typeof scene === 'string' && scene.length >= 3))]
+  if (names.length === 0) return null
+  names.sort((left, right) => right.length - left.length)
+  const escaped = names.map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+  return new RegExp(`(?<![A-Za-z0-9_])(${escaped.join('|')})(?![A-Za-z0-9_])`)
+}
+
+/** 아래 칸 높이. 사람마다 읽는 양이 달라 끌어서 바꾸고, 다음에 열 때도 그 높이로 연다. */
+function useDetailHeight(): [number, (next: number) => void] {
+  const [height, setHeight] = useState(() => {
+    try {
+      const saved = Number(window.localStorage.getItem(DETAIL_HEIGHT_KEY))
+      return Number.isFinite(saved) && saved > 0 ? Math.min(DETAIL_HEIGHT_MAX, Math.max(DETAIL_HEIGHT_MIN, saved)) : DETAIL_HEIGHT_DEFAULT
+    } catch {
+      return DETAIL_HEIGHT_DEFAULT
+    }
+  })
+  const update = useCallback((next: number) => {
+    setHeight(next)
+    try {
+      window.localStorage.setItem(DETAIL_HEIGHT_KEY, String(next))
+    } catch {
+      // 저장소를 못 쓰면 이번 화면에서만 그 높이다.
+    }
+  }, [])
+  return [height, update]
 }
 
 /** 검색이 보는 글: 단계의 내용 · 힌트 · 입력 · 공백 사유와, 연결된 TC 의 씬 · 사전조건 · 기대 결과. */
@@ -591,12 +833,14 @@ function stepText(step: ScenarioStep, cases: ReadonlyMap<string, TestCase>): str
  * 세로까지 보면 높이를 고치는 것이 다시 관찰을 부르는 되먹임이 된다.
  */
 function StepAction({
+  autoFocus,
   id,
   value,
   placeholder,
   label,
   onChange,
 }: {
+  autoFocus: boolean
   id: string
   value: string
   placeholder: string
@@ -618,6 +862,9 @@ function StepAction({
   }, [])
 
   useLayoutEffect(() => { fit() }, [fit, node, value])
+  useEffect(() => {
+    if (autoFocus) node?.focus()
+  }, [autoFocus, node])
 
   const lastWidth = useRef(0)
   useEffect(() => {
