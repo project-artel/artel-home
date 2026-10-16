@@ -59,7 +59,16 @@ export type AskFlow = {
  * @param asks 지금 답을 기다리는 질문들. 비었으면 흐름이 없다.
  * @param send 다 답했을 때 보낼 한 줄.
  */
-export function useAskFlow(key: string | null, asks: readonly RunChatQuestion[], send: (text: string) => void): AskFlow {
+export function useAskFlow(
+  key: string | null,
+  asks: readonly RunChatQuestion[],
+  send: (text: string) => void,
+  /**
+   * 하나 답할 때마다 바로 보낸다. 오케가 계산으로 낸 질문(경로 공백)이 이 길이다 — 답이 그 자리에 스텝으로
+   * 들어가야 해서, 어느 질문 · 어느 보기인지를 그대로 실어 보낸다. 없으면 다 답한 뒤 한 줄로 모아 보낸다.
+   */
+  answerEach?: (question: RunChatQuestion, answer: AskAnswer, optionId: string | null) => void,
+): AskFlow {
   const [state, setState] = useState<{ key: string | null; step: number; answers: AskAnswer[]; highlight: number; typing: boolean; closed: boolean }>({
     key: null, step: 0, answers: [], highlight: 0, typing: false, closed: false,
   })
@@ -69,11 +78,15 @@ export function useAskFlow(key: string | null, asks: readonly RunChatQuestion[],
   const current = open ? asks[live.step] : null
   const choices = current === null ? [] : choicesOf(current)
 
-  function advance(answer: AskAnswer) {
+  function advance(answer: AskAnswer, optionId: string | null = null) {
     const answers = [...live.answers]
     answers[live.step] = answer
     const step = live.step + 1
     setState({ ...live, answers, step, highlight: 0, typing: false })
+    if (answerEach !== undefined) {
+      if (current !== null && answer.kind !== 'skip') answerEach(current, answer, optionId)
+      return
+    }
     if (step >= asks.length) {
       const message = composeAnswers(asks, answers)
       if (message !== null) send(message)
@@ -87,7 +100,8 @@ export function useAskFlow(key: string | null, asks: readonly RunChatQuestion[],
       setState({ ...live, highlight: index, typing: true })
       return
     }
-    advance(choice.kind === 'skip' ? { kind: 'skip' } : { kind: 'option', text: choice.label })
+    if (choice.kind === 'skip') advance({ kind: 'skip' })
+    else advance({ kind: 'option', text: choice.label }, current?.options.find((option) => option.label === choice.label)?.id ?? null)
   }
 
   function answerText(text: string) {

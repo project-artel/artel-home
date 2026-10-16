@@ -11729,3 +11729,9 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
 .scenario-studio .st-chat .ask-dock-choice.is-meta .ask-dock-label { color: var(--st-text-2); }
 .scenario-studio .st-chat .ask-dock-key { display: inline-grid; flex: none; width: 18px; height: 18px; place-items: center; border: 1px solid var(--st-border-strong); border-radius: 4px; color: var(--st-muted); font: 600 10.5px var(--st-mono); }
 .scenario-studio .st-chat .ask-dock-hint { margin: 2px 0 0; color: var(--st-muted); font-size: 11px; }
+
+/* 경로 공백의 원문(ARTEL-1118) — 결론 한 줄 아래, 펼쳐야 보인다. */
+.scenario-studio .se-gap-more { margin: 0 0 10px; color: var(--st-muted); font-size: 12px; }
+.scenario-studio .se-gap-more summary { width: max-content; cursor: pointer; color: var(--st-text-2); }
+.scenario-studio .se-gap-more summary:hover { color: var(--st-action); }
+.scenario-studio .se-gap-more p { margin: 6px 0 0; line-height: 1.6; }

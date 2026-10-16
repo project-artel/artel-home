@@ -55,7 +55,7 @@ export function ChatReplyBody({ reply, refs = [] }: { reply: ChatReply; refs?: C
  * 대화로 답하면 된다. 질문이 여럿이면 여기 다 펼치면 읽히지 않으므로 **글만** 남기고, 고르는 것은 입력 칸
  * 위의 선택 박스([AskDock])가 하나씩 맡는다.
  */
-function ChatAsks({ asks }: { asks: RunChatQuestion[] }) {
+export function ChatAsks({ asks }: { asks: RunChatQuestion[] }) {
   const { t } = useI18n()
   const c = t.scenarios.chat
   return (
