@@ -8,6 +8,7 @@ import type { Issue } from './issueTypes'
 import { SeverityTag } from './SeverityTag'
 
 type IssueRowProps = {
+  selection?: { checked: boolean; onToggle: () => void; disabled: boolean }
   issue: Issue
   /**
    * Builds the run console address from `issue.qaRunId` and `issue.qaTryId`.
@@ -37,6 +38,7 @@ type IssueRowProps = {
  */
 export function IssueRow({
   issue,
+  selection,
   runHref,
   onToggle,
   pending,
@@ -66,6 +68,12 @@ export function IssueRow({
 
   return (
     <li className={`issue-row ${resolved ? 'issue-row--resolved' : ''}${focused ? ' issue-row--focused' : ''}`} ref={rowRef}>
+      {selection && (
+        <label className="discussion-select-label">
+          <input type="checkbox" checked={selection.checked} disabled={selection.disabled} onChange={selection.onToggle} />
+          {t.discussions.selectIssue} #{issue.id}
+        </label>
+      )}
       <div className="issue-row-head">
         <SeverityTag severity={issue.severity} />
         <span className="issue-row-title">{issue.title}</span>

@@ -1,3 +1,4 @@
+import { discussionsEn, discussionsKo } from './messages/discussions'
 import { accountEn, accountKo } from './messages/account'
 import { adminEn, adminKo } from './messages/admin'
 import { adminGraphEn, adminGraphKo } from './messages/adminGraph'
@@ -44,6 +45,7 @@ export const messages = {
     common: commonEn,
     contentMap: contentMapEn,
     issues: issuesEn,
+    discussions: discussionsEn,
     knowledge: knowledgeEn,
     macros: macrosEn,
     performance: performanceEn,
@@ -66,6 +68,7 @@ export const messages = {
     common: commonKo,
     contentMap: contentMapKo,
     issues: issuesKo,
+    discussions: discussionsKo,
     knowledge: knowledgeKo,
     macros: macrosKo,
     performance: performanceKo,

@@ -28,6 +28,7 @@ type IssueListProps = {
    * `false` explicitly, rather than a default silently doing that for it.
    */
   trackerConnected: boolean
+  selection?: { ids: string[]; onToggle: (issue: Issue) => void }
   /** 펼쳐서 강조할 이슈(`?issue=`, ARTEL-1084). 없으면 null. */
   focusId?: string | null
 }
@@ -50,6 +51,7 @@ export function IssueList({
   onRetry,
   trackerConnected,
   focusId = null,
+  selection,
 }: IssueListProps) {
   const { t } = useI18n()
   const { toggle, pending, failedId } = useIssueResolution(patch)
@@ -85,6 +87,11 @@ export function IssueList({
       <ul className="issue-list">
         {issues.map((issue) => (
           <IssueRow
+            selection={selection ? {
+              checked: selection.ids.includes(issue.id),
+              onToggle: () => selection.onToggle(issue),
+              disabled: selection.ids.length >= 50 && !selection.ids.includes(issue.id),
+            } : undefined}
             failed={failedId === issue.id}
             focused={issue.id === focusId}
             issue={issue}
