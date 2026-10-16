@@ -60,7 +60,7 @@ export type MacroSummary = {
    *
    * **빈 배열은 "아직 어디서 쓸지 모른다" 는 뜻이지 "아무 데서나 된다" 가 아니다.**
    * 이 둘을 섞으면 사용자는 미정인 macro 를 어디서나 불러도 되는 것으로 읽는다.
-   * 화면이 두 묶음을 갈라 그리는 이유가 이것이고, 그 뜻은 `MacroList` 가 글로도 적는다.
+   * 그래서 `MacroSheet` 는 빈 `screens` 를 "아직 screen 미정" 이라는 글과 그 뜻으로 그린다.
    */
   screens: MacroScreen[]
   /**
@@ -117,22 +117,4 @@ export function macroScreenLabel(screen: MacroScreen): string {
     (part) => part.length > 0,
   )
   return parts.join(' · ')
-}
-
-/**
- * 목록의 정렬. 이름 오름차순, 같으면 id 오름차순.
- *
- * 서버도 이름 오름차순으로 주지만 화면이 목록을 두 묶음으로 가르면서 다시 늘어놓으므로,
- * 각 묶음 안의 순서를 여기서 정한다. id 는 숫자다 — 문자열로 비교하면 10 이 2 보다
- * 앞에 선다. 숫자로 읽히지 않는 값이 오면 0 으로 보고 이름 순서를 그대로 둔다
- * (`NaN` 을 돌려주면 정렬 결과가 구현에 따라 달라진다).
- */
-export function compareMacros(left: MacroSummary, right: MacroSummary): number {
-  const byName = left.name.localeCompare(right.name)
-  if (byName !== 0) return byName
-
-  const leftId = Number(left.id)
-  const rightId = Number(right.id)
-  if (!Number.isFinite(leftId) || !Number.isFinite(rightId)) return 0
-  return leftId - rightId
 }
