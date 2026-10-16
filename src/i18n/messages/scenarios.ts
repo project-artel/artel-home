@@ -127,8 +127,8 @@ export const scenariosEn = {
     stageSent: 'Request sent',
     // 워크플로 노드 (ARTEL-952). 사용자가 보는 말로 적는다 — 노드 이름(B·C·D)이 아니라
     // 그 노드가 하는 일로.
-    stageGrouping: 'Sorting the cases into journeys',
-    stageGrouped: 'Journeys decided',
+    stageGrouping: 'Grouping the cases into scenarios',
+    stageGrouped: 'Cases grouped',
     stageBridging: 'Fixing the order',
     stageSaving: 'Saving',
     stageModifying: 'Editing the scenario',
@@ -612,6 +612,23 @@ export const scenariosEn = {
     infoPre: 'Precondition',
     infoExp: 'Expected',
   },
+  newDialog: {
+    title: 'New scenario',
+    copy: 'Choose how the scenario is written.',
+    ordered: { name: 'Ordered scenario', hint: 'Steps run in the order written. You or the authoring chat write the steps.' },
+    free: {
+      name: 'FREE scenario',
+      hint: 'A bundle of test cases. The QA agent verifies them in whatever order and way it chooses.',
+      title: 'New FREE scenario',
+      titleLabel: 'Scenario title',
+      titlePlaceholder: 'For example: Shop screen checks',
+      back: 'Back',
+      confirm: (count: number) => `Create with ${count} test case${count === 1 ? '' : 's'}`,
+      pending: 'Creating…',
+      failed: 'The scenario could not be created. Please try again.',
+    },
+    cancel: 'Cancel',
+  },
   free: {
     badge: 'FREE',
     badgeHint: 'FREE scenario: the QA agent verifies these test cases in an order of its own choosing.',
@@ -626,7 +643,6 @@ export const scenariosEn = {
     missingCase: 'This test case no longer exists in the project.',
     remove: 'Remove from scenario',
     add: 'Add test cases',
-    chatUnavailable: 'The authoring chat is not available for a FREE scenario. Add or remove test cases here instead.',
     addDialog: {
       title: 'Add test cases',
       search: 'Search test cases',
@@ -756,8 +772,8 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
      */
     stageSent: '요청 보냄',
     // 워크플로 노드 (ARTEL-952). 노드 이름(B·C·D)이 아니라 그 노드가 하는 일로 적는다.
-    stageGrouping: '케이스를 흐름으로 나누는 중',
-    stageGrouped: '흐름을 나눴어요',
+    stageGrouping: '케이스를 시나리오로 묶는 중',
+    stageGrouped: '케이스를 묶었어요',
     stageBridging: '순서를 고치는 중',
     stageSaving: '저장 중',
     stageModifying: '시나리오를 고치는 중',
@@ -1215,6 +1231,23 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     infoPre: '사전조건',
     infoExp: '기대효과',
   },
+  newDialog: {
+    title: '새 시나리오',
+    copy: '시나리오를 쓰는 방식을 고릅니다.',
+    ordered: { name: '순서 있는 시나리오', hint: '적은 순서대로 스텝을 실행합니다. 스텝은 직접 쓰거나 작성 chat 이 씁니다.' },
+    free: {
+      name: 'FREE 시나리오',
+      hint: '테스트 케이스 묶음입니다. QA agent 가 순서와 방법을 스스로 정해 하나씩 검증합니다.',
+      title: '새 FREE 시나리오',
+      titleLabel: '시나리오 제목',
+      titlePlaceholder: '예: 상점 화면 점검',
+      back: '뒤로',
+      confirm: (count: number) => `테스트 케이스 ${count}건으로 만들기`,
+      pending: '만드는 중…',
+      failed: '시나리오를 만들지 못했습니다. 다시 시도해 주세요.',
+    },
+    cancel: '취소',
+  },
   free: {
     badge: 'FREE',
     badgeHint: 'FREE 시나리오: QA agent 가 순서를 스스로 정해 이 테스트 케이스들을 검증합니다.',
@@ -1229,7 +1262,6 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     missingCase: '이 테스트 케이스는 프로젝트에 더 이상 없습니다.',
     remove: '시나리오에서 빼기',
     add: '테스트 케이스 추가',
-    chatUnavailable: 'FREE 시나리오는 작성 chat 을 쓸 수 없습니다. 테스트 케이스는 이 화면에서 추가하거나 뺍니다.',
     addDialog: {
       title: '테스트 케이스 추가',
       search: '테스트 케이스 검색',

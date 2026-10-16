@@ -245,9 +245,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
         )}
         <SplitHandle label={t.scenarios.chat.widthHandle} {...split.handle} />
         <aside className="st-chat">
-          {isFree && status === 'ready'
-            ? <p className="free-chat-note">{t.scenarios.free.chatUnavailable}</p>
-            : fromRun !== null && <RunChat session={runChat} />}
+          {fromRun !== null && <RunChat session={runChat} />}
         </aside>
       </div>
 

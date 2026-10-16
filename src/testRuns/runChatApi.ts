@@ -6,8 +6,8 @@ import {
   readJson,
   toApiError,
 } from '../projects/projectApi'
-import { parseSteps } from '../testScenarios/scenarioApi'
-import type { ChatMessage, ScenarioRole, ScenarioStep } from '../testScenarios/scenarioTypes'
+import { parseExecutionMode, parseSteps } from '../testScenarios/scenarioApi'
+import type { ChatMessage, ExecutionMode, ScenarioRole, ScenarioStep } from '../testScenarios/scenarioTypes'
 
 /*
  * Run-scoped authoring chat (ARTEL-206 Step 6). The conversation belongs to a
@@ -34,6 +34,8 @@ export type ScenarioProposal = {
   title: string
   description: string
   steps: ScenarioStep[]
+  /** A missing value reads as `ORDERED`. `FREE` proposals carry one blank-action step per test case. */
+  executionMode: ExecutionMode
 }
 
 export type RunChatResult = {
@@ -576,7 +578,7 @@ export async function discardRunChatDraft(
   return parseDrafts(await readJson(response))
 }
 
-function parseProposal(value: unknown): ScenarioProposal {
+export function parseProposal(value: unknown): ScenarioProposal {
   const record = asRecord(value) ?? {}
   const rawId = record.scenario_id
   const scenarioId =
@@ -586,6 +588,7 @@ function parseProposal(value: unknown): ScenarioProposal {
     title: asString(record.title),
     description: asString(record.description),
     steps: parseSteps(record.steps),
+    executionMode: parseExecutionMode(record.execution_mode),
   }
 }
 
