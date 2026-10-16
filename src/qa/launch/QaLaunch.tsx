@@ -8,7 +8,9 @@ import { useWorkspace } from '../../projects/workspace/workspaceContext'
 import { folderPath } from '../../testRuns/runLibrary'
 import { listRunFolders, type RunFolder } from '../../testRuns/testRunFolders'
 import { ChevronDownIcon, PencilIcon } from '../qaModelIcons'
+import type { QaArchSelection } from '../qaArch'
 import { offeredQaModels } from '../qaModelGroups'
+import { readLastArch } from '../qaStartChoices'
 import { qaModelOptionKey, type QaModel } from '../qaTypes'
 import { byAscendingEffort } from '../reasoningEfforts'
 import { ConsolesDialog } from './ConsolesDialog'
@@ -81,6 +83,8 @@ export function QaLaunch() {
    * 밀어 넣으면 목록이 늦게 도착할 때마다 덮어쓰기 경쟁이 생긴다.
    */
   const [choice, setChoice] = useState<Choice>({})
+  // agent 구조는 서버의 실행 기록에 없으므로(ARTEL-1091) 마지막으로 시작한 값을 이 브라우저에서 읽는다.
+  const [arch, setArch] = useState<QaArchSelection>(() => readLastArch())
 
   const [pickerOpen, setPickerOpen] = useState(false)
   const pickerAnchor = useRef<HTMLDivElement>(null)
@@ -276,12 +280,14 @@ export function QaLaunch() {
       </div>
 
       <LaunchPanel
+        arch={arch}
         etaMs={lastDuration}
         instanceId={instanceId}
         instances={instances}
         modelKey={modelKey}
         models={offered}
         onInstanceChange={(next) => setChoice((current) => ({ ...current, instanceId: next }))}
+        onArchChange={setArch}
         onManageConsoles={() => setConsolesOpen(true)}
         onModelChange={pickModel}
         onReasoningEnabled={(value) => setChoice((current) => ({ ...current, reasoningEnabled: value }))}
