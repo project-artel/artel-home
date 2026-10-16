@@ -12,6 +12,10 @@
  *
  * 필드 이름과 값은 agent-server 의 `QaArchSpec` 과 같다. 여기에 없는 knob 은 폼이 다루지 않는
  * 것이다.
+ *
+ * `engine`(ARTEL-1119)은 위 knob 들과 축이 다르다. 13개 knob 은 모두 `agent` 엔진(tool loop)의
+ * 것이고, `planner_executer` 는 그중 아무것도 읽지 않는다. 그래서 `QA_ARCH_AXES` 에 넣지 않고 따로
+ * 둔다 — 넣으면 바꾼 knob 수와 label 요구에 엔진이 섞인다.
  */
 
 export type QaPhaseCycle = 'off' | 'in_verdict' | 'lite' | 'full'
@@ -19,6 +23,9 @@ export type QaSkillsMode = 'off' | 'on_demand'
 export type QaMacrosMode = 'off' | 'on'
 export type QaScreenCapture = 'on_demand' | 'every_call' | 'by_role'
 export type QaVisionMode = 'auto' | 'on' | 'off'
+export type QaEngine = 'agent' | 'planner_executer'
+
+export const QA_ENGINES: readonly QaEngine[] = ['agent', 'planner_executer']
 
 /** 폼에서 고른 값. `undefined` 는 서버 기본값을 그대로 쓴다는 뜻이다. */
 export type QaArchSelection = {
@@ -36,11 +43,20 @@ export type QaArchSelection = {
   fold_stale_macro_results?: boolean
   fold_threshold_chars?: number
   compaction?: boolean
+  /** 없으면 `agent` 다. `engine` 이 생기기 전에 저장된 값도 그렇게 읽힌다. */
+  engine?: QaEngine
 }
 
-/** 서버로 보내는 body. label 과 바꾼 knob 만 있다. 모양은 QaArchSelection 과 같다. */
-export type QaArchRequest = QaArchSelection
-export type QaArchKnobKey = Exclude<keyof QaArchSelection, 'label'>
+/**
+ * 서버로 보내는 body.
+ *
+ * `agent` 는 label 과 바꾼 knob 만 있고 `engine` 키는 없다 — 서버 기본 엔진이다.
+ * `planner_executer` 는 `engine` 하나뿐이다. 그 run 의 `agent_arch` 는 서버가 planner label 로
+ * 적으므로 top-level label 이 필요 없고, tool loop knob 은 보내도 기록만 되고 쓰이지 않는다. 쓰이지
+ * 않는 값이 run 기록에 남으면 그 run 을 읽는 사람이 그 값으로 돌았다고 오해한다.
+ */
+export type QaArchRequest = Omit<QaArchSelection, 'engine'> | { engine: 'planner_executer' }
+export type QaArchKnobKey = Exclude<keyof QaArchSelection, 'label' | 'engine'>
 
 export type QaArchAxis =
   | { key: QaArchKnobKey; kind: 'choice'; values: readonly string[]; visionOnlyValues?: readonly string[] }
@@ -86,13 +102,37 @@ export function changedKnobCount(selection: QaArchSelection): number {
   return changedKnobs(selection).length
 }
 
-/** 바꾼 knob 이 하나라도 있는데 label 이 공백뿐이면 true. */
+/**
+ * 고급 설정 제목 옆의 "n개 변경". `planner_executer` 면 엔진 하나만 센다 — 남겨 둔 tool loop knob 은
+ * 그 run 에 쓰이지 않으므로 바뀐 것으로 세지 않는다.
+ */
+export function changedSettingCount(selection: QaArchSelection): number {
+  return archEngine(selection) === 'planner_executer' ? 1 : changedKnobCount(selection)
+}
+
+export function archEngine(selection: QaArchSelection): QaEngine {
+  return selection.engine ?? 'agent'
+}
+
+/** 엔진을 바꾼 새 selection. knob 과 label 은 그대로 둔다 — `agent` 로 돌아오면 고른 값이 다시 산다. `agent` 면 키를 지운다. */
+export function withEngine(selection: QaArchSelection, engine: QaEngine): QaArchSelection {
+  const next: QaArchSelection = { ...selection, engine }
+  if (engine === 'agent') delete next.engine
+  return next
+}
+
+/** `agent` 엔진에서 바꾼 knob 이 하나라도 있는데 label 이 공백뿐이면 true. `planner_executer` 는 knob 을 보내지 않으므로 늘 false. */
 export function archLabelMissing(selection: QaArchSelection): boolean {
+  if (archEngine(selection) === 'planner_executer') return false
   return changedKnobCount(selection) > 0 && selection.label.trim() === ''
 }
 
-/** 바꾼 knob 이 없으면 null. 있으면 label(trim) 과 바꾼 knob 만 담은 object. */
+/**
+ * `planner_executer` 면 `{ engine }` 만. `agent` 는 바꾼 knob 이 없으면 null, 있으면 label(trim) 과
+ * 바꾼 knob 만 담은 object.
+ */
 export function toArchRequest(selection: QaArchSelection): QaArchRequest | null {
+  if (archEngine(selection) === 'planner_executer') return { engine: 'planner_executer' }
   const changed = changedKnobs(selection)
   if (changed.length === 0) return null
   return { label: selection.label.trim(), ...Object.fromEntries(changed) }
@@ -141,12 +181,16 @@ function axisAccepts(axis: QaArchAxis, value: unknown): boolean {
   }
 }
 
-/** localStorage 등에서 읽은 unknown 을 selection 으로. 모르는 키, 축에 없는 값, 범위 밖 숫자는 버린다. object 가 아니면 null. label 이 string 이 아니면 ''. */
+/**
+ * localStorage 등에서 읽은 unknown 을 selection 으로. 모르는 키, 축에 없는 값, 범위 밖 숫자는 버린다. object 가 아니면 null. label 이 string 이 아니면 ''.
+ * `engine` 이 없거나 모르는 값이면 `agent` 다(키를 두지 않는다).
+ */
 export function parseArchSelection(raw: unknown): QaArchSelection | null {
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return null
   const fields = new Map(Object.entries(raw))
   const label = fields.get('label')
   let result: QaArchSelection = { label: typeof label === 'string' ? label : '' }
+  if (fields.get('engine') === 'planner_executer') result = { ...result, engine: 'planner_executer' }
   for (const axis of QA_ARCH_AXES) {
     const value = fields.get(axis.key)
     if (value !== undefined && axisAccepts(axis, value)) {
