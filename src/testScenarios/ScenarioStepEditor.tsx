@@ -7,7 +7,7 @@ import { TestCaseModal } from '../testCases/TestCaseModal'
 import { listTestCases } from '../testCases/testCaseApi'
 import { listVersionCases } from '../testCases/testCaseVersions'
 import type { RunGameBuild } from '../testRuns/testRunApi'
-import { CaseLinkDialog } from './CaseLinkDialog'
+import { TestCaseSpecModal } from '../testCases/TestCaseSpecModal'
 import type { TestCase, VerificationStatus } from '../testCases/testCaseTypes'
 import { GapFillModal } from './GapFillModal'
 import { groupStepsByCase, isGapStep, type ScenarioStep } from './scenarioTypes'
@@ -72,6 +72,7 @@ export function ScenarioStepEditor({
   const steps = working.steps
   const cases = useCaseIndex(projectId, caseBuild?.gameBuildId ?? null)
   const sceneMatcher = useMemo(() => scenePattern(cases), [cases])
+  const caseList = useMemo(() => [...cases.values()], [cases])
   const [detailHeight, setDetailHeight] = useDetailHeight()
 
   const [selected, setSelected] = useState<number | null>(null)
@@ -601,11 +602,13 @@ export function ScenarioStepEditor({
         />
       )}
       {linking !== null && linking < steps.length && (
-        <CaseLinkDialog
-          cases={cases}
+        // TC 를 고르는 창은 ⌘K 의 TC 명세 창을 그대로 쓴다 — 같은 검색 · 상태 · 씬 거르기 · 미리 보기다.
+        <TestCaseSpecModal
+          cases={caseList}
           currentCaseId={steps[linking].case_id}
           onClose={() => setLinking(null)}
-          onPick={(caseId) => linkCase(linking, caseId)}
+          onPick={(testCase) => linkCase(linking, Number(testCase.id))}
+          projectId={projectId}
           scope={caseBuild === null ? b.pickAll : b.pickVersion(caseBuild.label ?? caseBuild.version)}
         />
       )}
