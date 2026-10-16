@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useProjectChange } from '../live/useProjectChange'
 import { usePolling } from '../live/usePolling'
 import { getBuildMacro, listBuildMacros } from './macroApi'
 import type { MacroDetail, MacroSummary } from './macroTypes'
@@ -93,7 +94,9 @@ export function useBuildMacros(projectId: string, gameBuildId: string) {
 
   const polling = useRef<AbortController | null>(null)
   useEffect(() => () => polling.current?.abort(), [])
-  usePolling(() => {
+  // The project change stream (`MACROS`) drives the re-read; polling runs only
+  // while the stream is down.
+  const refreshSilently = () => {
     // Not before the first read has landed, and never two reads at once.
     if (!settled || polling.current !== null) return
     const controller = new AbortController()
@@ -113,7 +116,9 @@ export function useBuildMacros(projectId: string, gameBuildId: string) {
       .finally(() => {
         if (polling.current === controller) polling.current = null
       })
-  })
+  }
+  const live = useProjectChange(projectId, 'MACROS', refreshSilently)
+  usePolling(refreshSilently, undefined, !live)
 
   /*
    * 새로고침 중에는 직전 목록이 그대로 남는다. 비우면 화면이 통째로 "불러오는 중" 으로
