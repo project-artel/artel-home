@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { buildOptionText } from '../projects/gameBuilds'
 import type { GameBuild } from '../projects/gameTypes'
-import { orderLibraryBuilds } from './macroLibrary'
+import { DEVELOPER_VIEW, orderLibraryBuilds } from './macroLibrary'
 
 /**
  * Macro 라이브러리 왼쪽의 "버전" 목록 (ARTEL-1102).
@@ -11,22 +11,32 @@ import { orderLibraryBuilds } from './macroLibrary'
  * 쓴다. `VersionList` 를 그대로 쓰지 않은 이유는 그쪽이 버전 묶음 · 숨기기 · 폴더로 복제 ·
  * 끌어 놓기를 함께 지고 있어서다. macro 에는 그런 정리가 없고 읽기만 한다.
  *
- * 최신 game version build 에 `현재` 가 붙는다(`latestBuildId`). 수는 고른 build 에만 붙는다 —
- * 다른 build 의 agent macro 수를 알려면 build 마다 요청을 하나씩 보내야 해서 세지 않는다.
+ * 최신 game version build 에 `현재` 가 붙는다(`latestBuildId`). build 의 수는 고른 build 에만
+ * 붙는다 — 다른 build 의 agent macro 수를 알려면 build 마다 요청을 하나씩 보내야 해서 세지
+ * 않는다.
+ *
+ * 맨 아래 줄은 `개발자 macro (MCP)` 다. 케이스 라이브러리의 `버전 없음` 처럼 build 줄과 같은
+ * 목록의 끝에 서고, 같은 `tcl-version--none` 모양으로 build 가 아니라는 것을 보인다. 수는
+ * 늘 붙는다 — developer macro 는 화면을 열 때 이미 전부 읽어 둔다.
  */
 export function MacroVersionList({
   builds,
+  developerCount,
   latestBuildId,
   onSelect,
   selectedCount,
-  selectedId,
+  selectedView,
 }: {
   builds: GameBuild[]
+  /** 프로젝트의 developer macro 수. 아직 읽지 못했으면 `null`. */
+  developerCount: number | null
   latestBuildId: string | null
-  onSelect: (buildId: string) => void
-  /** 고른 build 의 macro 수. 아직 다 읽지 못했으면 `null` 이고 수를 그리지 않는다. */
+  /** build id, 또는 developer macro 줄이면 `DEVELOPER_VIEW`. */
+  onSelect: (buildParam: string) => void
+  /** 고른 build 의 agent macro 수. 아직 읽지 못했으면 `null` 이고 수를 그리지 않는다. */
   selectedCount: number | null
-  selectedId: string
+  /** 고른 build id, 또는 `DEVELOPER_VIEW`. */
+  selectedView: string
 }) {
   const { t } = useI18n()
   const versionCopy = t.testCases.versions
@@ -40,7 +50,7 @@ export function MacroVersionList({
       </div>
       <ul className="tcl-folder-list">
         {ordered.map((build) => {
-          const current = build.id === selectedId
+          const current = build.id === selectedView
           const name = buildOptionText(build, editorLabel)
           return (
             <li key={build.id}>
@@ -59,6 +69,20 @@ export function MacroVersionList({
             </li>
           )
         })}
+        <li>
+          <button
+            aria-current={selectedView === DEVELOPER_VIEW ? 'true' : undefined}
+            className={
+              'tcl-folder tcl-version tcl-version--none' + (selectedView === DEVELOPER_VIEW ? ' is-current' : '')
+            }
+            onClick={() => onSelect(DEVELOPER_VIEW)}
+            title={t.macros.versions.developerTitle}
+            type="button"
+          >
+            <span className="tcl-folder-name">{t.macros.versions.developer}</span>
+            {developerCount !== null && <span className="tcl-folder-count">{developerCount}</span>}
+          </button>
+        </li>
       </ul>
     </section>
   )

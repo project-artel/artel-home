@@ -5,7 +5,7 @@ import { formatDateTime } from '../projects/formatters'
 import type { GameBuild } from '../projects/gameTypes'
 import { writtenBuildText } from './developerMacroTypes'
 import { libraryParameterNames, type LibraryMacro } from './macroLibrary'
-import { MacroOriginChip, MacroRelationChip } from './MacroLibraryList'
+import { MacroRelationChip } from './MacroLibraryList'
 import { macroScreenLabel, macroSignature } from './macroTypes'
 import { useMacroSource, type MacroSourceStatus } from './useBuildMacros'
 import { useDeveloperMacroSource } from './useDeveloperMacros'
@@ -21,17 +21,21 @@ import { useDeveloperMacroSource } from './useDeveloperMacros'
  * `source` 하나뿐이고, 그 읽기는 출처에 맞는 hook 하나만 실제로 요청을 보낸다.
  */
 export function MacroSheet({
+  agentBuildId,
   builds,
   item,
   onClose,
   projectId,
-  selectedBuild,
+  referenceBuild,
 }: {
+  /** agent macro 가 저장된 build. agent macro 의 source 를 읽는 경로에 들어간다. */
+  agentBuildId: string | null
   builds: GameBuild[]
   item: LibraryMacro
   onClose: () => void
   projectId: string
-  selectedBuild: GameBuild
+  /** developer macro 의 기준 build 와 비교할 `현재` build. */
+  referenceBuild: GameBuild | undefined
 }) {
   const { t } = useI18n()
   const copy = t.macros
@@ -39,7 +43,11 @@ export function MacroSheet({
   const sourceTitleId = useId()
   const closeRef = useRef<HTMLButtonElement | null>(null)
 
-  const agentRead = useMacroSource(projectId, selectedBuild.id, item.origin === 'agent' ? item.macro.id : null)
+  const agentRead = useMacroSource(
+    projectId,
+    agentBuildId ?? '',
+    item.origin === 'agent' && agentBuildId !== null ? item.macro.id : null,
+  )
   const developerRead = useDeveloperMacroSource(projectId, item.origin === 'developer' ? item.macro.name : null)
   const sourceRead = item.origin === 'agent' ? agentRead : developerRead
 
@@ -65,9 +73,8 @@ export function MacroSheet({
       >
         <header className="tcl-sheet-head">
           <div className="tcl-sheet-tags">
-            <MacroOriginChip origin={item.origin} />
             {item.origin === 'developer' && (
-              <MacroRelationChip builds={builds} macro={item.macro} selectedBuild={selectedBuild} />
+              <MacroRelationChip builds={builds} macro={item.macro} referenceBuild={referenceBuild} />
             )}
           </div>
           <button aria-label={copy.sheet.close} className="tcl-sheet-close" onClick={onClose} ref={closeRef} type="button">

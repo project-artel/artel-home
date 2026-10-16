@@ -9803,7 +9803,7 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
 
 /* ── Macro 라이브러리 (ARTEL-941, ARTEL-1102) ─────────────────────────────────
    케이스 라이브러리(`.tcl`)의 틀과 class 를 그대로 쓴다. 여기 있는 것은 macro 에만 있는
-   조각뿐이다 — 서명, 출처 칩 두 가지, build 칩, sheet 의 본문, source.
+   조각뿐이다 — 서명, build 칩, sheet 의 본문, source.
 
    **여기서 `--font-mono` 를 DESIGN.md 가 허용한 범위 밖에 쓴다.** 그 문서는 mono 를
    timestamp·id·log·input event 에만 쓰라고 적었는데, macro 의 source 와 parameter
@@ -10434,10 +10434,8 @@ col.mct-c-updated { width: 12%; }
   flex:none; display:inline-block; padding:0 7px; border-radius:999px;
   font-size:10px; font-weight:600; letter-spacing:.01em; white-space:nowrap;
 }
-/* macro 의 출처 칩(ARTEL-1102)도 같은 두 모양을 쓴다. agent 가 저장한 것은 자동 생성처럼, 사람이 MCP 로
-   등록한 것은 사용자 생성처럼 보인다. */
-.tct-origin--map, .tct-origin--agent{ border:1px solid var(--color-border-subtle); color:var(--color-text-muted); }
-.tct-origin--manual, .tct-origin--developer{
+.tct-origin--map{ border:1px solid var(--color-border-subtle); color:var(--color-text-muted); }
+.tct-origin--manual{
   border:1px solid color-mix(in srgb, var(--color-brand-accent) 55%, transparent);
   background:color-mix(in srgb, var(--color-brand-accent) 14%, transparent);
   color:var(--color-text-primary);

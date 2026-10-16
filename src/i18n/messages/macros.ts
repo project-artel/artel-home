@@ -4,14 +4,14 @@ import type { Localized } from '../messages'
  * Strings for `src/macros/*`. See `common.ts` for the typing convention.
  *
  * The library mirrors the case library, so the words both screens share — the
- * version heading, `현재`, the search label, the `출처` label — are read from
- * `testCases` rather than repeated here.
+ * version heading, `현재`, `현재 버전`, the search label, `조건 지우기` — are
+ * read from `testCases` rather than repeated here.
  */
 export const macrosEn = {
   section: {
     title: 'Macro library',
     subtitle:
-      'Agent macros the QA agent saved on each build, and developer macros a developer registered for the project over the MCP connection. The QA engine receives every developer macro, whichever build it runs. This screen only reads them.',
+      'Pick a version on the left to see the agent macros the QA agent saved on that build, or pick Developer macros (MCP) to see the macros a developer registered for the project over the MCP connection. This screen only reads them.',
     refresh: 'Refresh',
     noBuildsTitle: 'This project has no builds yet',
     noBuildsCopy: 'Register a build with the SDK, and the macros saved against it appear here.',
@@ -22,17 +22,19 @@ export const macrosEn = {
     agentLoadFailed: 'This version’s agent macros could not be loaded.',
     developerLoadFailed: 'Developer macros could not be loaded.',
     empty: 'This version has no macros yet.',
+    developerEmpty: 'No developer macros are registered. They are registered over the MCP connection.',
+    developerChip: 'Developer macros',
+    developerChipTitle:
+      'Every developer macro of the project. The QA engine receives all of them, whichever build it runs. Each one’s build is compared with the current version.',
     emptyFiltered: 'No macro matches these filters.',
     searchPlaceholder: 'Name, parameter, docstring',
     shownOf: (shown: number, total: number) => `${shown} of ${total}`,
     listLabel: 'Macros',
   },
-  origin: {
-    agent: 'agent',
-    developer: 'Developer (MCP)',
-    agentTitle: 'Saved on this version by the QA agent',
+  versions: {
+    developer: 'Developer macros (MCP)',
     developerTitle:
-      'Registered for the project by a developer over the MCP connection. The QA engine receives it whichever build it runs.',
+      'Macros a developer registered for the project over the MCP connection. The QA engine receives all of them, whichever build it runs.',
   },
   columns: {
     macro: 'Macro',
@@ -40,7 +42,7 @@ export const macrosEn = {
     updated: 'Updated',
   },
   // Shown only on a developer macro written against another build than the
-  // selected one. Says where that build sits, never whether to use the macro:
+  // current version (the newest non-editor build). Says where that build sits, never whether to use the macro:
   // the engine receives it either way. A newer build, an editor build, and a
   // build whose order is unknown all read `other`.
   relation: {
@@ -78,7 +80,7 @@ export const macrosKo: Localized<typeof macrosEn> = {
   section: {
     title: 'Macro 라이브러리',
     subtitle:
-      'QA 에이전트가 빌드마다 저장한 agent macro 와, 개발자가 MCP 연결로 프로젝트에 등록한 개발자 macro 입니다. QA 엔진은 개발자 macro 를 빌드와 상관없이 전부 받습니다. 이 화면에서는 읽기만 합니다.',
+      '왼쪽에서 버전을 고르면 QA 에이전트가 그 빌드에 저장한 agent macro 를, 개발자 macro (MCP) 를 고르면 개발자가 MCP 연결로 프로젝트에 등록한 macro 를 봅니다. 이 화면에서는 읽기만 합니다.',
     refresh: '새로고침',
     noBuildsTitle: '이 프로젝트에는 아직 빌드가 없습니다',
     noBuildsCopy: 'SDK 로 빌드를 등록하면, 그 빌드에 저장된 macro 가 여기 나타납니다.',
@@ -87,16 +89,18 @@ export const macrosKo: Localized<typeof macrosEn> = {
     agentLoadFailed: '이 버전의 agent macro 를 불러오지 못했습니다.',
     developerLoadFailed: '개발자 macro 를 불러오지 못했습니다.',
     empty: '이 버전에는 아직 macro 가 없습니다.',
+    developerEmpty: '등록된 개발자 macro 가 없습니다. MCP 연결로 등록됩니다.',
+    developerChip: '개발자 macro',
+    developerChipTitle:
+      '프로젝트의 개발자 macro 전부입니다. QA 엔진은 빌드와 상관없이 전부 받습니다. 각 macro 의 기준 버전은 현재 버전과 비교합니다.',
     emptyFiltered: '이 조건에 맞는 macro 가 없습니다.',
     searchPlaceholder: '이름, parameter, docstring',
     shownOf: (shown: number, total: number) => `${total}개 중 ${shown}개`,
     listLabel: 'Macro 목록',
   },
-  origin: {
-    agent: 'agent',
-    developer: '개발자(MCP)',
-    agentTitle: 'QA 에이전트가 이 버전에 저장한 macro',
-    developerTitle: '개발자가 MCP 연결로 프로젝트에 등록한 macro. QA 엔진은 빌드와 상관없이 받습니다.',
+  versions: {
+    developer: '개발자 macro (MCP)',
+    developerTitle: '개발자가 MCP 연결로 프로젝트에 등록한 macro. QA 엔진은 빌드와 상관없이 전부 받습니다.',
   },
   columns: {
     macro: 'Macro',
