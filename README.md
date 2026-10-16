@@ -93,6 +93,11 @@ browser does not persist or read the raw token.
 Set `VITE_ORCHESTRATION_URL` to the public orchestration-server origin. It
 defaults to `http://localhost:8080` for local development.
 
+`VITE_MCP_BASE_URL` is the public origin of `artel-macro-mcp`. Only the deny
+button on `/mcp/connect` uses it, to send the browser to
+`{VITE_MCP_BASE_URL}/oauth/handoff/deny`. It is optional: when unset, denying
+shows a message instead of redirecting.
+
 OAuth providers are declared in `src/auth/oauthProviders.ts`. GitHub is the
 only enabled provider today; adding another provider requires a corresponding
 Spring Security client registration and identity mapper on the orchestration

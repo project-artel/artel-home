@@ -16,6 +16,8 @@ COPY . .
 # 빌드해 두고, docker-entrypoint.sh 가 container 기동 시점에 빌드 산출물 안의 그
 # 문자열을 실제 값으로 치환한다.
 ENV VITE_ORCHESTRATION_URL=__ARTEL_ORCHESTRATION_URL__
+# mcpConnectRequest.ts 가 읽는 MCP 서버 주소도 같은 방식이다. 이 값은 없어도 된다.
+ENV VITE_MCP_BASE_URL=__ARTEL_MCP_BASE_URL__
 RUN npm run build
 
 FROM nginx:1.27-alpine
