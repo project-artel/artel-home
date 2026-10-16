@@ -164,13 +164,9 @@ export const projectsEn = {
   },
   instances: {
     title: 'Game instances',
-    refresh: 'Refresh',
-    refreshing: 'Refreshing…',
-    refreshedAnnouncement: 'Instances and builds refreshed.',
-    refreshFailed: 'The instance list could not be refreshed.',
     empty:
       'An instance is one installation of the Artel SDK — usually one machine running one build. Sign in from the SDK, pick this project, and run the game: the instance appears here on its own.',
-    note: 'Connection state is from the last read. Refresh re-reads instances and builds — both change when a game starts.',
+    note: 'Instances and builds update automatically while this tab is open.',
     deletedAnnouncement: 'Instance deleted.',
     savedAnnouncement: 'Instance saved.',
     saveFailed: 'The instance could not be saved. Please try again.',
@@ -583,7 +579,7 @@ export const projectsKo: Localized<typeof projectsEn> = {
       connecting: '실시간 갱신에 연결하는 중…',
       live: '실시간 갱신 연결됨',
       degraded: '실시간 갱신 연결이 끊어졌습니다. 다시 연결하는 중…',
-      offline: '실시간 갱신 연결이 끊겼습니다. 새로고침하면 다시 연결됩니다.',
+      offline: '실시간 갱신 연결이 끊겼습니다. 페이지를 다시 열면 다시 연결됩니다.',
     },
   },
   builds: {
@@ -609,13 +605,9 @@ export const projectsKo: Localized<typeof projectsEn> = {
   },
   instances: {
     title: '게임 인스턴스',
-    refresh: '새로고침',
-    refreshing: '새로고침 중…',
-    refreshedAnnouncement: '인스턴스와 빌드를 새로고침했습니다.',
-    refreshFailed: '인스턴스 목록을 새로고침하지 못했습니다.',
     empty:
       '인스턴스는 Artel SDK 설치 하나를 뜻하며, 보통 한 대의 머신에서 실행되는 하나의 빌드입니다. SDK에서 로그인하고 이 프로젝트를 선택한 뒤 게임을 실행하면 여기에 나타납니다.',
-    note: '연결 상태는 마지막으로 읽은 시점의 값입니다. 새로고침하면 인스턴스와 빌드를 다시 읽어 오며, 둘 다 게임이 시작될 때 바뀝니다.',
+    note: '인스턴스와 빌드는 이 탭이 열려 있는 동안 자동으로 갱신됩니다.',
     deletedAnnouncement: '인스턴스를 삭제했습니다.',
     savedAnnouncement: '인스턴스를 저장했습니다.',
     saveFailed: '인스턴스를 저장하지 못했습니다. 다시 시도해 주세요.',

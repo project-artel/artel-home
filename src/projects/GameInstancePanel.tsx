@@ -31,71 +31,32 @@ import {
  */
 export function GameInstancePanel({
   instances,
-  onRefresh,
   onRemoved,
   onSaved,
   projectId,
 }: {
   instances: GameInstance[]
-  onRefresh: () => Promise<void>
   onRemoved: (instanceId: string) => void
   onSaved: (instance: GameInstance) => void
   projectId: string
 }) {
   const [announcement, setAnnouncement] = useState('')
   const [deleting, setDeleting] = useState<GameInstance | null>(null)
-  const [refreshing, setRefreshing] = useState(false)
-  const [refreshFailure, setRefreshFailure] = useState<string | null>(null)
   const { t } = useI18n()
   // The guide is about the project, not about a row: with no key to paste there
   // is nothing per-instance in it, so it is the project's setup section.
   const guideHref = sectionHref(projectId, 'setup')
-
-  /**
-   * The one question this panel cannot answer on its own is "has the game
-   * connected yet". Nothing pushes that, so the user needs a way to ask again
-   * without reloading the page and losing anything else in progress.
-   */
-  function refresh() {
-    setRefreshing(true)
-    setRefreshFailure(null)
-    onRefresh()
-      .then(() => setAnnouncement(t.projects.instances.refreshedAnnouncement))
-      .catch((error: unknown) =>
-        setRefreshFailure(
-          error instanceof ProjectApiError
-            ? apiErrorMessage(error, t)
-            : t.projects.instances.refreshFailed,
-        ),
-      )
-      .finally(() => setRefreshing(false))
-  }
 
   return (
     <section className="panel" aria-labelledby="instances-title">
       <header className="panel-header panel-header--split">
         <h2 id="instances-title">{t.projects.instances.title}</h2>
         <div className="panel-header-actions">
-          <button
-            className="button button--secondary button--compact"
-            disabled={refreshing}
-            onClick={refresh}
-            type="button"
-          >
-            {refreshing ? t.projects.instances.refreshing : t.projects.instances.refresh}
-          </button>
           <Link className="button button--primary button--compact" to={guideHref}>
             {t.projects.instances.installGuide}
           </Link>
         </div>
       </header>
-
-      {refreshFailure !== null && (
-        <div className="inline-error" role="alert">
-          <span aria-hidden="true">!</span>
-          {refreshFailure}
-        </div>
-      )}
 
       {instances.length === 0 ? (
         <div className="panel-empty-block">
@@ -119,9 +80,8 @@ export function GameInstancePanel({
         </ul>
       )}
 
-      {/* Nothing polls the server, so the state on each row is whatever the
-          last read said. Saying so is cheaper than a live indicator that is
-          quietly wrong. */}
+      {/* The workspace re-reads instances on a timer, so the rows follow the
+          game connecting without a manual refresh. */}
       {instances.length > 0 && (
         <p className="panel-note">{t.projects.instances.note}</p>
       )}
