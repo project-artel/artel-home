@@ -11520,18 +11520,18 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
    문장을 끊었고, 점선 밑줄은 안 보였고, 꽉 찬 서비스 색은 답 전체를 붉게 만들었다. 글씨는 본문색 그대로, 바탕만
    서비스 색을 옅게 깔고 줄을 넘기면 줄마다 이어진다. 누를 수 없는 참조는 회색 형광펜이다.
    선택자를 한 단 높여 두어 칩 규칙이 어디에 붙든 이쪽이 이긴다. */
-.scenario-studio .st-chat :is(.chat-message, .chat-table-dialog) .chat-ref {
+.scenario-studio :is(.st-chat .chat-message, .st-chat.chat-table-dialog) .chat-ref {
   display: inline; max-width: none; margin: 0 1px; padding: 1px 4px; border: 0; border-radius: 3px;
   background: color-mix(in srgb, var(--st-action) 18%, transparent); color: var(--st-text);
   font: inherit; font-weight: 600; line-height: inherit; text-align: inherit; text-decoration: none; vertical-align: baseline;
   -webkit-box-decoration-break: clone; box-decoration-break: clone; overflow-wrap: anywhere; cursor: pointer;
   transition: background 120ms var(--ease-standard);
 }
-.scenario-studio .st-chat :is(.chat-message, .chat-table-dialog) span.chat-ref:not([role='button']) { background: var(--st-raised); color: var(--st-text); cursor: default; }
-.scenario-studio .st-chat :is(.chat-message, .chat-table-dialog) :is(a, [role='button']).chat-ref:hover { background: color-mix(in srgb, var(--st-action) 30%, transparent); }
-.scenario-studio .st-chat :is(.chat-message, .chat-table-dialog) .chat-ref:focus-visible { outline: 2px solid var(--st-action); outline-offset: 2px; }
-.scenario-studio .st-chat :is(.chat-message, .chat-table-dialog) .chat-ref-tag { display: inline-block; margin-right: 4px; font: 700 0.7em var(--st-mono); letter-spacing: .04em; color: var(--st-action); vertical-align: 1px; }
-.scenario-studio .st-chat :is(.chat-message, .chat-table-dialog) .chat-ref-label { display: inline; max-width: none; overflow: visible; white-space: normal; }
+.scenario-studio :is(.st-chat .chat-message, .st-chat.chat-table-dialog) span.chat-ref:not([role='button']) { background: var(--st-raised); color: var(--st-text); cursor: default; }
+.scenario-studio :is(.st-chat .chat-message, .st-chat.chat-table-dialog) :is(a, [role='button']).chat-ref:hover { background: color-mix(in srgb, var(--st-action) 30%, transparent); }
+.scenario-studio :is(.st-chat .chat-message, .st-chat.chat-table-dialog) .chat-ref:focus-visible { outline: 2px solid var(--st-action); outline-offset: 2px; }
+.scenario-studio :is(.st-chat .chat-message, .st-chat.chat-table-dialog) .chat-ref-tag { display: inline-block; margin-right: 4px; font: 700 0.7em var(--st-mono); letter-spacing: .04em; color: var(--st-action); vertical-align: 1px; }
+.scenario-studio :is(.st-chat .chat-message, .st-chat.chat-table-dialog) .chat-ref-label { display: inline; max-width: none; overflow: visible; white-space: normal; }
 /* ── QA 히스토리 (ARTEL-1100) ─────────────────────────────────────────────────
    왼쪽 버전 트리 · 가운데 테스트 런 카드 · 오른쪽 고른 실행. 섹션 폭 제한을 풀어 전폭을 쓴다. */
 .workspace-body:has(.qh), .workspace-body:has(.qh-empty) { overflow: hidden; }
