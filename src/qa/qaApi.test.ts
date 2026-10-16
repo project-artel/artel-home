@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { ProjectApiError } from '../projects/projectApi'
-import { parseQaLog, parseQaModels, parseQaTry, qaRunRequestBody, qaStartConflict } from './qaApi'
+import { parseQaLog, parseQaModels, parseQaRun, parseQaRunList, parseQaTry, qaRunRequestBody, qaStartConflict } from './qaApi'
 
 const QA_TRY_FIELDS = {
   id: '41',
@@ -143,4 +143,26 @@ test('parseQaLog keeps a BEHAVIOR_ENDED row instead of dropping it as an unknown
   })
 
   assert.equal(log?.type, 'BEHAVIOR_ENDED')
+})
+
+const QA_RUN_FIELDS = {
+  id: '88',
+  testRunId: '5',
+  gameInstanceId: '3',
+  status: 'COMPLETED',
+  startedAt: '2026-10-15T10:00:00Z',
+  completedAt: '2026-10-15T10:20:00Z',
+  tries: [{ ...QA_TRY_FIELDS, status: 'COMPLETED', qaRunId: '88' }],
+}
+
+test('parseQaRun reads gameBuildId (ARTEL-1104) and reads it as null on an older server', () => {
+  assert.equal(parseQaRun({ ...QA_RUN_FIELDS, gameBuildId: '12' }).gameBuildId, '12')
+  assert.equal(parseQaRun({ ...QA_RUN_FIELDS }).gameBuildId, null)
+  assert.equal(parseQaRun({ ...QA_RUN_FIELDS, gameBuildId: null }).gameBuildId, null)
+})
+
+test('parseQaRunList reads the items envelope and rejects anything else', () => {
+  const runs = parseQaRunList({ items: [{ ...QA_RUN_FIELDS, gameBuildId: '12' }] })
+  assert.deepEqual(runs.map((run) => [run.id, run.gameBuildId, run.tries.length]), [['88', '12', 1]])
+  assert.throws(() => parseQaRunList([QA_RUN_FIELDS]), ProjectApiError)
 })
