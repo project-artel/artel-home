@@ -12699,3 +12699,42 @@ button.gf-bar:focus-visible {
 .not-found-code { margin: 0; color: var(--color-text-primary); font-family: var(--font-mono); font-size: 64px; font-weight: 700; letter-spacing: -0.02em; line-height: 1; }
 .not-found-code span { color: var(--color-action-primary); }
 .not-found-path { padding: 2px 8px; border: 1px solid var(--color-border-subtle); border-radius: var(--radius-sm); color: var(--color-text-muted); font-family: var(--font-mono); font-size: 12px; overflow-wrap: anywhere; }
+
+/* 404 그림 — 백열전구 빛 아래 금 간 ARTEL 로고(ARTEL-1162). 빛 색만 테마마다 다르고 나머지는 토큰을 따른다. */
+.nf-scene { --nf-light: #ffc56b; width: min(100%, 460px); margin-bottom: var(--space-2); overflow: visible; }
+:root[data-theme='light'] .nf-scene { --nf-light: #f0a53a; }
+@media (prefers-color-scheme: light) { :root:not([data-theme='dark']) .nf-scene { --nf-light: #f0a53a; } }
+.nf-cord { stroke: var(--color-border-strong); stroke-width: 2; }
+/* 줄을 화면 위 끝까지 잇는다: 위 칸이 늘어나는 만큼 줄이 길어지고, 아래 칸이 글을 화면 가운데쯤에 둔다. */
+.not-found .sketch-empty { justify-content: flex-start; padding-top: 0; gap: var(--space-2); }
+.nf-hang { flex: 1 1 0; width: 2px; min-height: 24px; margin-bottom: calc(-1 * var(--space-2) - 1px); background: var(--color-border-strong); }
+.nf-after { flex: 1.4 1 0; }
+.not-found .nf-scene { margin-top: 0; }
+.nf-shade { fill: var(--color-bg-raised); stroke: var(--color-border-strong); stroke-width: 1.6; stroke-linejoin: round; }
+.nf-bulb-halo { fill: var(--nf-light); opacity: .22; }
+.nf-floor { fill: var(--color-text-muted); opacity: .14; }
+.nf-chip { fill: var(--color-text-primary); opacity: .55; }
+.nf-chip--accent { fill: var(--color-brand-accent); opacity: .8; }
+.nf-mark { stroke: var(--color-text-primary); stroke-width: 9; stroke-linejoin: miter; }
+.nf-mark-accent { stroke: var(--color-brand-accent); stroke-width: 9; }
+.nf-crack { stroke: var(--color-bg-canvas); stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
+.nf-crack--thin { stroke-width: .9; }
+/* 오래된 전구처럼 가끔 한 번 흐려진다. */
+.nf-light, .nf-bulb-halo { animation: nf-flicker 6s steps(1, end) infinite; }
+@keyframes nf-flicker {
+  0%, 100% { opacity: 1; }
+  91% { opacity: 1; }
+  92% { opacity: .55; }
+  93% { opacity: 1; }
+  95% { opacity: .7; }
+  96% { opacity: 1; }
+}
+.nf-bulb-halo { animation-name: nf-flicker-halo; }
+@keyframes nf-flicker-halo {
+  0%, 100% { opacity: .22; }
+  92% { opacity: .1; }
+  93% { opacity: .22; }
+  95% { opacity: .14; }
+  96% { opacity: .22; }
+}
+@media (prefers-reduced-motion: reduce) { .nf-light, .nf-bulb-halo { animation: none; } }

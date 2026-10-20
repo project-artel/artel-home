@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { NotFoundSketch } from './emptyStates/sketches'
+import { BrokenLogoScene } from './emptyStates/BrokenLogoScene'
 import { useI18n } from './i18n/useI18n'
 
 /**
@@ -26,7 +26,9 @@ export function NotFoundPage({
   return (
     <section aria-labelledby="not-found-title" className="page not-found">
       <div className="sketch-empty">
-        <NotFoundSketch />
+        {/* 전구 줄은 화면 맨 위에서 내려온다. */}
+        <span aria-hidden="true" className="nf-hang" />
+        <BrokenLogoScene />
         <p className="not-found-code" aria-hidden="true">
           4<span>0</span>4
         </p>
@@ -50,6 +52,7 @@ export function NotFoundPage({
             </Link>
           )}
         </span>
+        <span aria-hidden="true" className="nf-after" />
       </div>
     </section>
   )

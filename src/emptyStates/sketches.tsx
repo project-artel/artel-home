@@ -69,36 +69,3 @@ export function MacroSketch() {
     </svg>
   )
 }
-
-const PAGE = 'M2 6 Q1 0 8 0 L122 1 L148 26 L147 150 Q147 157 140 157 L8 156 Q1 156 1 149 Z'
-
-/** 없는 주소: 접힌 모서리의 빈 페이지와 돋보기, 닿지 않고 끊긴 길. */
-export function NotFoundSketch() {
-  return (
-    <svg aria-hidden="true" className="qh-sketch" fill="none" viewBox="0 0 330 210">
-      <g transform="translate(78 18)">
-        <path className="qh-sketch-depth" d={PAGE} transform="translate(10 12)" />
-        <path className="qh-sketch-edge" d="M147 150 L157 162 M1 149 L11 161" />
-        <path className="qh-sketch-face" d={PAGE} />
-        <path d="M122 1 L123 25 L148 26" />
-        {/* 비어 있는 줄 */}
-        <path className="qh-sketch-dash" d="M20 34 L96 34" />
-        <path className="qh-sketch-dash" d="M20 52 L120 52" />
-        <path className="qh-sketch-dash" d="M20 70 L84 70" />
-        <path className="qh-sketch-soft" d="M58 104 q16 -14 32 0" />
-        <circle cx="56" cy="92" r="2" />
-        <circle cx="92" cy="92" r="2" />
-      </g>
-      {/* 돋보기 */}
-      <circle className="qh-sketch-depth" cx="248" cy="132" r="26" />
-      <circle className="qh-sketch-face" cx="244" cy="126" r="26" />
-      <path d="M263 145 L286 170" />
-      <path className="qh-sketch-soft" d="M232 116 q6 -8 16 -6" />
-      {/* 끊긴 길 */}
-      <path className="qh-sketch-dash" d="M24 176 Q52 160 70 170" />
-      <path className="qh-sketch-soft" d="M74 166 l6 -6 M74 172 l8 2" />
-      <path className="qh-sketch-soft" d="M30 30 l0 10 M25 35 l10 0" />
-      <ellipse className="qh-sketch-shade" cx="168" cy="196" rx="128" ry="6" />
-    </svg>
-  )
-}
