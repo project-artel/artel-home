@@ -124,3 +124,22 @@ test('elapsedSeconds measures the run it was given', () => {
 test('elapsedSeconds is null while a run is still going', () => {
   assert.equal(elapsedSeconds(parse({ status: 'RUNNING', completedAt: null })), null)
 })
+
+test('parseQaTryDetail reads the function options a run was started with', () => {
+  const detail = parse({
+    cheatMode: 'on',
+    behaviorMode: 'off',
+    allowedCheats: null,
+    allowedBehaviors: null,
+    effectiveCheats: ['give_gold'],
+    effectiveBehaviors: [],
+  })
+
+  assert.equal(detail.functionOptions?.cheatMode, 'on')
+  assert.equal(detail.functionOptions?.behaviorMode, 'off')
+  assert.deepEqual(detail.functionOptions?.effectiveCheats, ['give_gold'])
+})
+
+test('parseQaTryDetail leaves functionOptions null for a run from before the feature', () => {
+  assert.equal(parse().functionOptions, null)
+})

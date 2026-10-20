@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { EdgeScrollbar } from '../../design-system/primitives/EdgeScrollbar'
 import { InfoHint } from '../../design-system/primitives/InfoHint'
 import { useI18n } from '../../i18n/useI18n'
-import type { GameInstance } from '../../projects/gameTypes'
+import type { GameBuild, GameInstance } from '../../projects/gameTypes'
 import { ProjectApiError } from '../../projects/projectApi'
 import { sectionHref } from '../../projects/workspace/sections'
 import { versionMismatch } from '../../testRuns/runLibrary'
@@ -11,6 +11,8 @@ import type { TestRun } from '../../testRuns/testRunApi'
 import { archEngine, archLabelMissing, toArchRequest, withoutVisionKnobs, type QaArchSelection } from '../qaArch'
 import { createQaRun, qaStartConflict } from '../qaApi'
 import { storeLastArch } from '../qaStartChoices'
+import { DEFAULT_QA_FUNCTION_OPTIONS, type QaFunctionOptions } from '../qaFunctionOptions'
+import { QaFunctionOptionsFields } from '../QaFunctionOptionsFields'
 import { CheckIcon, ChevronDownIcon, CircleCheckIcon, CircleXIcon } from '../qaModelIcons'
 import { QaModelPicker } from '../QaModelPicker'
 import type { QaModel, QaReasoningSelection } from '../qaTypes'
@@ -37,6 +39,7 @@ export type FreeScenarioCount = number | 'loading' | 'failed'
 export function LaunchPanel({
   projectId,
   run,
+  builds,
   instances,
   instanceId,
   onInstanceChange,
@@ -57,6 +60,7 @@ export function LaunchPanel({
 }: {
   projectId: string
   run: TestRun | null
+  builds: GameBuild[]
   instances: GameInstance[]
   instanceId: string
   onInstanceChange: (instanceId: string) => void
@@ -93,6 +97,7 @@ export function LaunchPanel({
   const [starting, setStarting] = useState(false)
   const [failure, setFailure] = useState<string | null>(null)
   const [takeoverOpen, setTakeoverOpen] = useState(false)
+  const [functionOptions, setFunctionOptions] = useState<QaFunctionOptions>(DEFAULT_QA_FUNCTION_OPTIONS)
 
   const instance = instances.find((one) => one.id === instanceId) ?? null
   const model = models.find((one) => `${one.keySource}:${one.id}` === modelKey) ?? null
@@ -155,7 +160,7 @@ export function LaunchPanel({
     setStarting(true)
     setFailure(null)
     try {
-      const created = await createQaRun(run.id, instance.id, model.id, model.keySource, selectedReasoning, force, toArchRequest(effectiveArch))
+      const created = await createQaRun(run.id, instance.id, model.id, model.keySource, selectedReasoning, force, toArchRequest(effectiveArch), functionOptions)
       // 시작이 성공한 구조만 다음 폼의 기본값이 된다. 고르다 만 값은 남기지 않는다.
       storeLastArch(effectiveArch)
       setTakeoverOpen(false)
@@ -341,6 +346,14 @@ export function LaunchPanel({
             )}
           </div>
         )}
+
+        <QaFunctionOptionsFields
+          builds={builds}
+          disabled={starting}
+          onChange={setFunctionOptions}
+          projectId={projectId}
+          value={functionOptions}
+        />
 
         <div className="ql-field">
           <ArchSettings onChange={onArchChange} readsImages={readsImages} selection={effectiveArch} />

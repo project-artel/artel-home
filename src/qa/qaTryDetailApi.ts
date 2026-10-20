@@ -1,5 +1,6 @@
 import { apiFetch } from '../auth/authApi'
 import { asRecord, asNullableString, asString, ProjectApiError, readJson } from '../projects/projectApi'
+import { parseQaTryFunctionOptions, type QaTryFunctionOptions } from './qaFunctionOptions'
 
 /**
  * 한 run 을 히스토리에서 펼쳤을 때 그 자리에 서는 것(ARTEL-819).
@@ -26,6 +27,11 @@ export interface QaTryDetail {
   feedback: number
   usage: QaTryDetailUsage
   toolCalls: QaTryToolCall[]
+  /**
+   * 시작할 때 고른 cheat · behavior 옵션과 에이전트에게 실제로 간 이름(ARTEL-1051). 이 기능 이전의
+   * run 은 응답에 해당 필드가 없어 null 이다.
+   */
+  functionOptions: QaTryFunctionOptions | null
 }
 
 /**
@@ -168,6 +174,7 @@ export function parseQaTryDetail(
     feedback: asNumber(body.feedback, 0),
     usage: parseUsage(body.usage, responseStatus),
     toolCalls: parseToolCalls(body.toolCalls),
+    functionOptions: parseQaTryFunctionOptions(body),
   }
 }
 

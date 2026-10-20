@@ -300,6 +300,7 @@ export function QaLaunch() {
 
       <LaunchPanel
         arch={arch}
+        builds={builds}
         etaMs={lastDuration}
         freeScenarios={freeScenarios}
         instanceId={instanceId}
