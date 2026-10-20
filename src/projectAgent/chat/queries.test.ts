@@ -52,6 +52,8 @@ test('trimQaRun trims scenarios to 20 rows', () => {
     id: '55',
     testRunId: '3',
     gameInstanceId: '9',
+    gameBuildId: null,
+    testRunGameBuildId: null,
     status: 'RUNNING',
     startedAt: 's',
     completedAt: null,

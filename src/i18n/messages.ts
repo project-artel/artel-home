@@ -8,6 +8,7 @@ import { adminSettingsEn, adminSettingsKo } from './messages/adminSettings'
 import { adminUsageEn, adminUsageKo } from './messages/adminUsage'
 import { commonEn, commonKo } from './messages/common'
 import { contentMapEn, contentMapKo } from './messages/contentMap'
+import { gameBuildsEn, gameBuildsKo } from './messages/gameBuilds'
 import { gameFunctionsEn, gameFunctionsKo } from './messages/gameFunctions'
 import { issuesEn, issuesKo } from './messages/issues'
 import { knowledgeEn, knowledgeKo } from './messages/knowledge'
@@ -45,6 +46,7 @@ export const messages = {
     adminUsage: adminUsageEn,
     common: commonEn,
     contentMap: contentMapEn,
+    gameBuilds: gameBuildsEn,
     gameFunctions: gameFunctionsEn,
     issues: issuesEn,
     knowledge: knowledgeEn,
@@ -69,6 +71,7 @@ export const messages = {
     adminUsage: adminUsageKo,
     common: commonKo,
     contentMap: contentMapKo,
+    gameBuilds: gameBuildsKo,
     gameFunctions: gameFunctionsKo,
     issues: issuesKo,
     knowledge: knowledgeKo,

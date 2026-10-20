@@ -9,6 +9,7 @@ import {
   readJson,
   toApiError,
 } from './projectApi'
+import { parseGameBuildSummaryList, type GameBuildSummary } from './gameBuildSummary'
 import { parseGameFunctionCatalog, type GameFunctionCatalog } from './gameFunctions'
 import {
   DEFAULT_GAME_PLATFORM,
@@ -195,6 +196,26 @@ export async function listGameBuilds(
   return toItemArray(await readJson(response))
     .map(parseBuild)
     .filter((build): build is GameBuild => build !== null)
+}
+
+/**
+ * 옛 서버가 `/summary` 를 모를 때 돌려주는 상태. `GET /game-builds/summary` 는 `PATCH /game-builds/{buildId}` 와
+ * 경로가 겹쳐 404 대신 405 가 온다.
+ */
+const SUMMARY_UNSUPPORTED_STATUSES = new Set([404, 405])
+
+/**
+ * `GET .../game-builds/summary`(ARTEL-1104) — 빌드마다 instance · catalog · QA run 수를 붙인 목록.
+ * 이 엔드포인트가 없는 서버면 `null` 이다. 화면은 그때 workspace 의 빌드 목록으로 그리고 모르는 수는 `—` 로 둔다.
+ * 그 밖의 실패는 그대로 던진다 — 5xx 를 `—` 로 덮으면 고장이 "아직 없음" 으로 읽힌다.
+ */
+export async function listGameBuildSummaries(
+  projectId: string,
+  signal?: AbortSignal,
+): Promise<GameBuildSummary[] | null> {
+  const response = await apiFetch(projectPath(projectId, '/game-builds/summary'), { signal })
+  if (SUMMARY_UNSUPPORTED_STATUSES.has(response.status)) return null
+  return parseGameBuildSummaryList(await readJson(response))
 }
 
 /**

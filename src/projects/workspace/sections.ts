@@ -18,6 +18,7 @@ export const WORKSPACE_SECTIONS = [
   { id: 'testRuns', path: 'test-runs' },
   { id: 'qa', path: 'qa' },
   { id: 'qaHistory', path: 'qa-history' },
+  { id: 'gameBuilds', path: 'game-builds' },
   { id: 'contentMap', path: 'content-map' },
   { id: 'macros', path: 'macros' },
   { id: 'performance', path: 'performance' },
@@ -42,6 +43,18 @@ export type WorkspaceSectionId =
 export function sectionHref(projectId: string, path: string): string {
   const base = `/projects/${encodeURIComponent(projectId)}`
   return path.length === 0 ? base : `${base}/${path}`
+}
+
+/**
+ * 게임 빌드 섹션 안에서 한 빌드의 상세를 여는 query(ARTEL-1105). 화면 지도 · 성능 섹션과 같은 `?build=` 관용구다.
+ */
+export function gameBuildDetailSearch(buildId: string): string {
+  return `?${new URLSearchParams({ build: buildId })}`
+}
+
+/** 한 빌드 상세의 절대 주소. 콘솔 dialog 의 빌드 패널처럼 섹션 밖에서 거는 링크가 쓴다. */
+export function gameBuildDetailHref(projectId: string, buildId: string): string {
+  return `${sectionHref(projectId, 'game-builds')}${gameBuildDetailSearch(buildId)}`
 }
 
 /**

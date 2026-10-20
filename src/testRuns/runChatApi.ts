@@ -61,6 +61,11 @@ export type ChatReply = {
   detail: string
   /** What this turn changed (ARTEL-938), drawn as a coloured list under `result`. */
   changes: ScenarioChange[]
+  /**
+   * What the agent asks the user (ARTEL-1118), drawn at the bottom of the answer with a
+   * bulb. The user answers in the chat; an option only fills the input with its words.
+   */
+  asks: RunChatQuestion[]
 }
 
 /**
@@ -123,7 +128,10 @@ export function parseReply(value: unknown): ChatReply | null {
   if (record.kind !== undefined && record.kind !== 'reply') return null
   const result = asString(record.result)
   if (result.length === 0) return null
-  return { result, detail: asString(record.detail), changes: parseChanges(record.changes) }
+  const asks = Array.isArray(record.asks)
+    ? record.asks.map(parseQuestion).filter((ask): ask is RunChatQuestion => ask !== null)
+    : []
+  return { result, detail: asString(record.detail), changes: parseChanges(record.changes), asks }
 }
 
 export type RunChatFailure = {
@@ -350,6 +358,13 @@ export async function listRunChatMessages(
   const response = await apiFetch(chatPath(projectId, runId, '/messages'), { signal })
   const raw = await readJson(response)
   if (!Array.isArray(raw)) return []
+  return parseStoredMessages(raw)
+}
+
+/**
+ * 저장된 대화 줄을 화면의 줄로(되살릴 때). 네트워크 없이 시험하려고 떼어 냈다.
+ */
+export function parseStoredMessages(raw: unknown[]): ChatMessage[] {
   // Questions the user has already answered. The server writes an `answered` payload
   // when it closes one, and without this the buttons come back on every reload — the
   // in-session strip (see the hook) only knows about answers made in that session.
@@ -366,6 +381,23 @@ export async function listRunChatMessages(
     const record = asRecord(entry) ?? {}
     const role = asString(record.role) === 'USER' ? 'USER' : 'ASSISTANT'
     const payload = asRecord(record.payload)
+    // 예전에 모델이 물은 것(ARTEL-1118 전)은 따로 된 질문 줄로 저장돼 있다. 이제 모델의 질문은 답 맨 아래
+    // 전구 칸이고 대화로 답하므로, 그 줄도 같은 모양으로 그린다 — 열 모달도, 누를 보기도 없다.
+    if (payload?.kind === 'question' && payload.source === 'agent') {
+      const asks = (Array.isArray(payload.questions) ? payload.questions : [payload])
+        .map(parseQuestion)
+        .filter((one): one is RunChatQuestion => one !== null)
+      return {
+        id: `msg-${index}`,
+        role: role as ScenarioRole,
+        content: asString(record.content),
+        createdAt: typeof record.createdAt === 'string' ? record.createdAt : null,
+        pending: false,
+        question: null,
+        reply: asks.length > 0 ? { result: '', detail: '', changes: [], asks } : null,
+        refs: parseRefs(payload.refs),
+      }
+    }
     const question = payload?.kind === 'question' ? parseQuestion(payload) : null
     // **되살릴 때도 함께 낸 것을 다 읽는다**(ARTEL-677). 스트림은 `questions` 를 읽는데 여기서는
     // 첫 것만 읽고 있었다 — 새로고침 한 번에 여섯 건이 한 건으로 줄어 있었고, 나머지 다섯은

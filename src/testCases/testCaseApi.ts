@@ -90,6 +90,16 @@ function toItemArray(data: unknown): unknown[] {
 }
 
 /**
+ * 어느 버전의 내용으로 읽는가(ARTEL-1070). `gameBuildId` 를 주면 목록은 그 버전에 든 케이스만, 단건은 그 버전의
+ * 내용과 판정이다. TR 화면이 TR 의 버전으로 읽을 때 준다. 없거나 null 이면 최신이다.
+ */
+export type CaseVersionOption = { gameBuildId?: string | null }
+
+function versionQuery({ gameBuildId }: CaseVersionOption): string {
+  return gameBuildId ? `?gameBuildId=${encodeURIComponent(gameBuildId)}` : ''
+}
+
+/**
  * `GET /api/projects/{projectId}/test-cases` — every reusable case in the
  * project, newest first.
  *
@@ -102,8 +112,9 @@ function toItemArray(data: unknown): unknown[] {
 export async function listTestCases(
   projectId: string,
   signal?: AbortSignal,
+  options: CaseVersionOption = {},
 ): Promise<TestCase[]> {
-  const response = await apiFetch(casesRoot(projectId), { signal })
+  const response = await apiFetch(casesRoot(projectId) + versionQuery(options), { signal })
   return toItemArray(await readJson(response))
     .map(parseTestCase)
     .filter((testCase): testCase is TestCase => testCase !== null)
@@ -133,8 +144,9 @@ export async function getTestCase(
   projectId: string,
   caseId: string,
   signal?: AbortSignal,
+  options: CaseVersionOption = {},
 ): Promise<TestCase> {
-  const response = await apiFetch(casePath(projectId, caseId), { signal })
+  const response = await apiFetch(casePath(projectId, caseId) + versionQuery(options), { signal })
   return requireCase(await readJson(response), response.status)
 }
 

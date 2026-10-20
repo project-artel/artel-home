@@ -21,6 +21,7 @@ import { FreeScenarioBadge } from './FreeScenarioBadge'
 import { PlaylistAddIcon, PlusIcon } from './scenarioIcons'
 import { NewScenarioDialog } from './NewScenarioDialog'
 import { ScenarioImportDialog } from './ScenarioImportDialog'
+import { StudioIcon } from './studioIcons'
 import type { TestScenarioSummary } from './scenarioTypes'
 
 /** 런 밖의 목록에는 agent 가 쓸 수 있는 길이 없다. 화면에 해당하는 문구가 없어 agent 에게만 보인다. */
@@ -198,7 +199,8 @@ export function ScenarioList({
           onClick={() => onDiscardDrafts?.([draft.draftId])}
           type="button"
         >
-          ✕<span aria-hidden="true" className="tip">{d.discard}</span>
+          <StudioIcon name="close" size={13} />
+          <span aria-hidden="true" className="tip">{d.discard}</span>
         </button>
       </span>
     )

@@ -33,7 +33,7 @@ test('progress frames read as the stage name with an optional count', () => {
 test('a result frame uses the reply, or the plain message when there is no reply', () => {
   const changes = [{ action: 'created' as const, title: 'Login', scenarioId: 8 }]
   assert.deepEqual(
-    interpretFrame({ type: 'result', message: 'long text', scenarios: [], reply: { result: '1 scenario saved', detail: '', changes }, refs: [] }, copy()),
+    interpretFrame({ type: 'result', message: 'long text', scenarios: [], reply: { result: '1 scenario saved', detail: '', changes, asks: [] }, refs: [] }, copy()),
     { kind: 'result', summary: '1 scenario saved', changes },
   )
   assert.deepEqual(interpretFrame({ type: 'result', message: 'Hello', scenarios: [], reply: null, refs: [] }, copy()), {
@@ -106,7 +106,7 @@ test('the instruction goes out once, progress frames update the card, and the re
     type: 'result',
     message: 'ignored',
     scenarios: [],
-    reply: { result: '2 scenarios saved', detail: '', changes: [{ action: 'created', title: 'Login', scenarioId: 8 }] },
+    reply: { result: '2 scenarios saved', detail: '', changes: [{ action: 'created', title: 'Login', scenarioId: 8 }], asks: [] },
     refs: [],
   })
   const body = await outcome
@@ -143,7 +143,7 @@ test('a question goes to askChoice and the picked option is sent back as the ans
   await flushMicrotasks()
   assert.equal(h.asked.length, 1)
 
-  h.emit({ type: 'result', message: 'Done', scenarios: [], reply: { result: 'Saved', detail: '', changes: [] }, refs: [] })
+  h.emit({ type: 'result', message: 'Done', scenarios: [], reply: { result: 'Saved', detail: '', changes: [], asks: [] }, refs: [] })
   assert.equal((await outcome).status, 'ok')
 })
 

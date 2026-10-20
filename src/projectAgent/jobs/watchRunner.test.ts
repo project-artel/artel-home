@@ -33,6 +33,8 @@ function run(status: QaRun['status'], completed: number, total: number): QaRun {
     id: '55',
     testRunId: '3',
     gameInstanceId: '1',
+    gameBuildId: null,
+    testRunGameBuildId: null,
     status,
     startedAt: null,
     completedAt: null,

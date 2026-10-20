@@ -15,19 +15,35 @@ type Filter = 'ALL' | VerificationStatus
  * pre-Step-model command palette design (씬 chips + verification-status
  * filter + detail panel) — 조회 전용이라 시나리오에 담고 빼는 토글은 없다. Internal
  * ids stay hidden (rows number by position). Keyboard: ↑↓ move, Esc close.
+ *
+ * **고르기(ARTEL-1115).** `onPick` 을 주면 스텝에 붙일 TC 를 고르는 창이 된다 — 가져다 대면 오른쪽에 미리 보고,
+ * 누르거나 Enter 로 고른다. 이때 목록은 부르는 쪽이 넘긴 `cases`(런이 따르는 빌드 버전의 TC)이고, 다른 버전의
+ * TC 는 처음부터 보이지 않는다. QA 는 런 버전에 없는 TC 의 연결을 지우기 때문이다.
  */
 export function TestCaseSpecModal({
   projectId,
   onClose,
+  cases: givenCases,
+  onPick,
+  currentCaseId = null,
+  scope,
 }: {
   projectId: string
   onClose: () => void
+  /** 미리 읽어 둔 TC. 주면 프로젝트 전량을 따로 읽지 않는다. */
+  cases?: TestCase[]
+  onPick?: (testCase: TestCase) => void
+  /** 고르기 창에서 지금 연결된 TC — 미리 보기에 표시한다. */
+  currentCaseId?: number | null
+  /** 고르기 창의 범위 안내 — "이 런이 따르는 1.1 버전의 TC" 처럼. */
+  scope?: string
 }) {
   const { t } = useI18n()
   const p = t.scenarios.palette
   const statusLabel = t.scenarios.composition.status
 
-  const [cases, setCases] = useState<TestCase[]>([])
+  const [loadedCases, setCases] = useState<TestCase[]>([])
+  const cases = givenCases ?? loadedCases
   const [loadFailed, setLoadFailed] = useState(false)
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<Filter>('ALL')
@@ -36,6 +52,7 @@ export function TestCaseSpecModal({
 
   useEffect(() => {
     inputRef.current?.focus()
+    if (givenCases !== undefined) return undefined
     const controller = new AbortController()
     listTestCases(projectId, controller.signal)
       .then(setCases)
@@ -44,20 +61,19 @@ export function TestCaseSpecModal({
         setLoadFailed(true)
       })
     return () => controller.abort()
-  }, [projectId])
+  }, [projectId, givenCases])
 
-  const q = query.trim().toLowerCase()
+  const q = query.replace(/`/g, '').trim().toLowerCase()
   const shown = useMemo(
     () =>
       cases.filter(
         (testCase) =>
           (status === 'ALL' || testCase.verificationStatus === status) &&
           (scene === '' || testCase.scene === scene) &&
+          // 명세 글은 이름을 백틱으로 감싼다. 쳐 넣는 사람은 백틱을 치지 않으니 빼고 맞춘다.
           (q === '' ||
-            testCase.step.toLowerCase().includes(q) ||
-            testCase.scene.toLowerCase().includes(q) ||
-            (testCase.precondition ?? '').toLowerCase().includes(q) ||
-            testCase.expectedValue.toLowerCase().includes(q)),
+            [testCase.step, testCase.scene, testCase.precondition ?? '', testCase.expectedValue]
+              .some((part) => part.replace(/`/g, '').toLowerCase().includes(q))),
       ),
     [cases, status, scene, q],
   )
@@ -67,12 +83,18 @@ export function TestCaseSpecModal({
 
   function onKeyDown(event: React.KeyboardEvent) {
     if (event.key === 'Escape') { event.preventDefault(); onClose(); return }
+    if (event.key === 'Enter' && onPick !== undefined && shown[active] !== undefined && !event.nativeEvent.isComposing) {
+      event.preventDefault()
+      onPick(shown[active])
+      return
+    }
     nav.onKeyDown(event)
   }
 
   return (
     <div className="cp-overlay" onClick={onClose}>
-      <div className="cp" onClick={(event) => event.stopPropagation()} onKeyDown={onKeyDown} role="dialog" aria-modal="true">
+      <div className={onPick !== undefined ? 'cp cp--pick' : 'cp'} onClick={(event) => event.stopPropagation()} onKeyDown={onKeyDown} role="dialog" aria-modal="true">
+        {scope !== undefined && <p className="cp-pick-scope">{scope}</p>}
         <div className="cp-search">
           <span className="cp-search-icon" aria-hidden="true">⌕</span>
           <input className="cp-input" onChange={(event) => setQuery(event.target.value)} placeholder={p.searchPlaceholder} ref={inputRef} value={query} />
@@ -110,7 +132,7 @@ export function TestCaseSpecModal({
                     fallbackTitle={`TC ${index + 1}`}
                     index={index}
                     key={testCase.id}
-                    onClick={() => setActive(index)}
+                    onClick={() => (onPick !== undefined ? onPick(testCase) : setActive(index))}
                     onMouseEnter={() => setActive(index)}
                     statusLabel={statusLabel[testCase.verificationStatus]}
                     testCase={testCase}
@@ -139,6 +161,7 @@ export function TestCaseSpecModal({
                           `evidenceGaps` does NOT: the list response omits it by
                           design, and this pane reads from the list. */}
                       <SpecGradeChip status={info.status} />
+                      {currentCaseId !== null && String(currentCaseId) === info.id && <span className="cp-info-current">{p.pickCurrent}</span>}
                     </div>
                     <dl className="cp-info-fields">
                       <dt>{p.infoPre}</dt>
@@ -146,6 +169,11 @@ export function TestCaseSpecModal({
                       <dt>{p.infoExp}</dt>
                       <dd>{info.expectedValue.length > 0 ? info.expectedValue : <span className="cp-info-none">—</span>}</dd>
                     </dl>
+                    {onPick !== undefined && (
+                      <button className="button button--primary button--compact cp-pick" onClick={() => onPick(info)} type="button">
+                        {p.pickThis}
+                      </button>
+                    )}
                   </>
                 )
               })()}
@@ -154,7 +182,7 @@ export function TestCaseSpecModal({
         </div>
 
         <div className="cp-foot">
-          <span>↑↓ {p.hintNav} · esc {p.hintClose}</span>
+          <span>↑↓ {p.hintNav}{onPick !== undefined && ` · enter ${p.hintPick}`} · esc {p.hintClose}</span>
           <span>{shown.length} / {cases.length}</span>
         </div>
 
