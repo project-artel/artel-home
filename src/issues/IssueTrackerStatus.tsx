@@ -42,7 +42,7 @@ export function IssueTrackerStatus({ tracker }: { tracker: IssueTracker | null }
       {/* `url` is nullable in the contract even for a synced export; a label
           with nowhere to send the reader is still worth showing as text. */}
       {tracker.url !== null ? (
-        <a className="issue-row-link" href={tracker.url} rel="noopener noreferrer" target="_blank">
+        <a className="issue-row-link" data-issue-action="tracker" href={tracker.url} rel="noopener noreferrer" target="_blank">
           {label}
         </a>
       ) : (

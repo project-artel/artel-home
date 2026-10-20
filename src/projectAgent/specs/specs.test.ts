@@ -52,6 +52,15 @@ test('actions that start paid or destructive work need approval', () => {
     'contentMap.scan': 'auto',
     'contentMap.scanAndGenerateTestCases': 'auto',
     'contentMap.overwriteTestCases': 'approve',
+    'qaHistory.openRun': 'auto',
+    'issues.open': 'auto',
+    'issues.setStatus': 'auto',
+    'issues.openTracker': 'auto',
+    'issues.createTrackerTicket': 'approve',
+    'qaRun.selectScenario': 'auto',
+    'qaRun.cancel': 'approve',
+    'qaRun.openPerformance': 'auto',
+    'qaRun.switchLogView': 'auto',
   })
 })
 

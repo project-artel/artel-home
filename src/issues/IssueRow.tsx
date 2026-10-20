@@ -49,6 +49,13 @@ export function IssueRow({
 }: IssueRowProps) {
   const { t } = useI18n()
   const [open, setOpen] = useState(focused)
+  // The project agent can point at an issue after the row is mounted (ARTEL-1139), so opening
+  // follows the flag as well as seeding the initial state.
+  const [seenFocused, setSeenFocused] = useState(focused)
+  if (focused !== seenFocused) {
+    setSeenFocused(focused)
+    if (focused) setOpen(true)
+  }
   const rowRef = useRef<HTMLLIElement>(null)
   useEffect(() => {
     if (focused) rowRef.current?.scrollIntoView({ block: 'center' })
@@ -65,7 +72,7 @@ export function IssueRow({
     issue.detail !== null
 
   return (
-    <li className={`issue-row ${resolved ? 'issue-row--resolved' : ''}${focused ? ' issue-row--focused' : ''}`} ref={rowRef}>
+    <li className={`issue-row ${resolved ? 'issue-row--resolved' : ''}${focused ? ' issue-row--focused' : ''}`} data-issue-id={issue.id} ref={rowRef}>
       <div className="issue-row-head">
         <SeverityTag severity={issue.severity} />
         <span className="issue-row-title">{issue.title}</span>
@@ -100,6 +107,7 @@ export function IssueRow({
         {trackerConnected && (issue.tracker === null || issue.tracker.syncState === 'FAILED') ? (
           <button
             className="button button--secondary button--compact"
+            data-issue-action="export"
             disabled={syncPending}
             onClick={() => onSync(issue)}
             type="button"
@@ -116,6 +124,7 @@ export function IssueRow({
             aria-controls={detailId}
             aria-expanded={open}
             className="button button--secondary button--compact"
+            data-issue-action="detail"
             onClick={() => setOpen((current) => !current)}
             type="button"
           >
@@ -124,6 +133,7 @@ export function IssueRow({
         ) : null}
         <button
           className="button button--secondary button--compact"
+          data-issue-action="resolve"
           disabled={pending}
           onClick={() => onToggle(issue)}
           type="button"
