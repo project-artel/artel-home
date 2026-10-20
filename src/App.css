@@ -11874,3 +11874,156 @@ button.gf-bar:focus-visible {
 .gf-case .gf-choice {
   margin-top: var(--space-3);
 }
+
+/* ── 기획 문서 (ARTEL-1098) ───────────────────────────────────────────────────
+   왼쪽 본문(현재 버전 · 새 버전 · 나온 knowledge) + 오른쪽 열(이전 버전 · 처리 안내).
+   QA 실행 화면처럼 섹션 폭 제한을 풀어 전폭을 쓴다 — 좌우가 비던 것이 재설계의 이유다. */
+.workspace-body:has(.dw) .section-header { width: 100%; }
+.section-content:has(.dw) { display: flex; flex: 1; flex-direction: column; width: 100%; padding: 0; }
+.dw { display: flex; flex: 1; flex-direction: column; border-top: 1px solid var(--color-border-subtle); }
+.dw-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--color-border-subtle); }
+.dw-bar-sub { color: var(--color-text-muted); font-size: 12px; }
+.dw-bar .is-disabled { pointer-events: none; opacity: .5; }
+.dw-spacer { flex: 1; }
+.dw-body { display: grid; flex: 1; grid-template-columns: minmax(0, 1fr) 360px; }
+.dw-main { display: flex; flex-direction: column; gap: var(--space-8); min-width: 0; padding: var(--space-8); }
+.dw-side { display: flex; flex-direction: column; gap: var(--space-6); padding: var(--space-6); border-left: 1px solid var(--color-border-subtle); background: var(--color-bg-surface); }
+.dw-side-section { display: flex; flex-direction: column; gap: var(--space-3); }
+.dw-side-section + .dw-side-section { padding-top: var(--space-5); border-top: 1px solid var(--color-border-subtle); }
+.dw-h2 { margin: 0; font-family: var(--font-display); font-size: 16px; font-weight: 650; }
+.dw-muted { margin: 0; color: var(--color-text-muted); font-size: 12px; line-height: 1.55; }
+.dw-ellipsis { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* 끌어다 놓기 */
+.dw-drop { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-5) var(--space-6); border: 1.5px dashed var(--color-border-strong); border-radius: var(--radius-lg); background: var(--color-bg-surface); transition: border-color var(--motion-fast) var(--ease-standard), background var(--motion-fast) var(--ease-standard); }
+.dw-drop.is-dragging { border-color: var(--color-action-primary); background: color-mix(in srgb, var(--color-action-primary) 8%, var(--color-bg-surface)); }
+.dw-drop-icon { display: inline-flex; color: var(--color-text-secondary); }
+.dw-drop-text { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; }
+.dw-drop-text > span { color: var(--color-text-secondary); font-size: 12px; }
+.dw-drop--large { flex-direction: column; justify-content: center; gap: var(--space-4); min-height: clamp(300px, 36vh, 460px); text-align: center; }
+.dw-drop--large .dw-drop-text { flex: none; align-items: center; gap: var(--space-2); }
+.dw-drop--large .dw-drop-text b { font-size: 20px; }
+.dw-drop--large .dw-drop-text > span { font-size: 14px; }
+.dw-drop--large .button { height: 40px; padding: 0 var(--space-5); font-size: 14px; }
+
+/* 올리면 일어나는 일 */
+.dw-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-6); margin: 0; padding: 0; list-style: none; }
+.dw-step { display: flex; flex-direction: column; gap: var(--space-2); font-size: 15px; }
+.dw-step-head { display: flex; align-items: center; gap: var(--space-3); margin-bottom: 2px; }
+.dw-step-num { color: var(--color-text-muted); font-size: 12px; }
+.dw-step-body { color: var(--color-text-secondary); font-size: 13px; line-height: 1.55; }
+.dw-step-tile--store { color: var(--color-text-secondary); background: color-mix(in srgb, var(--color-text-muted) 18%, transparent); }
+.dw-step-tile--extract { color: var(--color-agent-reasoning); background: color-mix(in srgb, var(--color-agent-reasoning) 16%, transparent); }
+.dw-step-tile--knowledge { color: var(--color-status-warning); background: color-mix(in srgb, var(--color-status-warning) 16%, transparent); }
+.dw-step-tile--qa { color: var(--color-status-success); background: color-mix(in srgb, var(--color-status-success) 16%, transparent); }
+
+/* 현재 버전 */
+.dw-current { border: 1px solid var(--color-border-subtle); border-radius: var(--radius-lg); background: var(--color-bg-surface); }
+.dw-current-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--space-4); align-items: center; padding: var(--space-5) var(--space-6); border-bottom: 1px solid var(--color-border-subtle); }
+.dw-pdf { display: grid; width: 52px; height: 62px; place-items: center; border-radius: var(--radius-md); background: var(--color-bg-raised); color: var(--color-status-critical); font-size: 11px; font-weight: 700; }
+.dw-current-name { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.dw-current-title { display: flex; align-items: center; gap: var(--space-2); min-width: 0; font-size: 18px; font-weight: 700; }
+.dw-actions { display: flex; gap: var(--space-2); }
+.dw-current > .dw-confirm { padding: var(--space-3) var(--space-5); border-bottom: 1px solid var(--color-border-subtle); }
+.dw-current-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; }
+.dw-current-facts > div { display: flex; flex-direction: column; gap: 8px; padding: var(--space-4) var(--space-6); }
+.dw-current-facts > div + div { border-left: 1px solid var(--color-border-subtle); }
+.dw-current-facts dt { color: var(--color-text-secondary); font-size: 12px; }
+.dw-current-facts dd { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); margin: 0; font-size: 15px; font-weight: 600; }
+.dw-fact-note { flex-basis: 100%; color: var(--color-text-muted); font-size: 11px; font-weight: 400; }
+.dw-current > .document-parse-note { margin: 0; padding: var(--space-3) var(--space-5); border-top: 1px solid var(--color-border-subtle); }
+
+/* 이전 버전 */
+.dw-history { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
+.dw-history > li + li { border-top: 1px solid var(--color-border-subtle); }
+.dw-history-line { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: var(--space-3); padding: var(--space-3) 0; }
+.dw-history-dot { width: 9px; height: 9px; margin-top: 5px; border-radius: 50%; background: var(--color-border-strong); }
+.dw-history-dot.is-failed { background: var(--color-status-critical); }
+.dw-history-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.dw-history-head { display: flex; align-items: center; gap: var(--space-2); }
+.dw-history-note { color: var(--color-text-muted); font-size: 11px; line-height: 1.5; }
+.dw-history-actions { display: flex; gap: var(--space-3); align-self: start; }
+.dw-text-button { padding: 0; border: 0; background: none; color: var(--color-action-primary); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.dw-text-button:hover { text-decoration: underline; text-underline-offset: 3px; }
+.dw-text-button--danger { color: var(--color-status-critical); }
+.dw-notice ul { display: flex; flex-direction: column; gap: var(--space-3); margin: 0; padding-left: 18px; color: var(--color-text-secondary); font-size: 13px; line-height: 1.6; }
+
+/* 나온 knowledge */
+.dw-knowledge { display: flex; flex-direction: column; gap: var(--space-4); }
+.dw-knowledge.is-quiet .dw-cards { opacity: .6; }
+.dw-knowledge-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-3); }
+.dw-knowledge-head a, .dw-more { color: var(--color-action-primary); font-size: 12px; font-weight: 600; text-decoration: none; }
+.dw-knowledge-head a:hover, .dw-more:hover { text-decoration: underline; text-underline-offset: 3px; }
+.dw-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.dw-chip { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border: 1px solid var(--color-border-subtle); border-radius: 15px; background: transparent; font-size: 13px; }
+.dw-chip-label { color: var(--color-text-secondary); }
+.dw-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
+.dw-card { display: flex; gap: var(--space-4); align-items: flex-start; min-height: 96px; padding: var(--space-4) var(--space-5); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-lg); background: var(--color-bg-surface); box-sizing: border-box; }
+.dw-card-text { display: flex; flex: 1; flex-direction: column; gap: 4px; min-width: 0; }
+.dw-card-tag { font-size: 12px; font-weight: 700; }
+.dw-card-summary { font-size: 15px; line-height: 1.55; }
+.dw-card-anchors { display: flex; flex-wrap: wrap; gap: 4px; }
+.dw-card-anchors > span { padding: 0 6px; border-radius: var(--radius-sm); background: var(--color-bg-raised); color: var(--color-text-secondary); font-size: 11px; }
+.dw-tile { display: grid; flex: none; width: 44px; height: 44px; place-items: center; border-radius: 10px; }
+.dw-tile--lg { width: 56px; height: 56px; border-radius: 12px; }
+
+/* 태그 색은 지식 그래프(`.kg-tag--*`)와 같은 짝이다. 한 knowledge 가 두 화면에서 다른 색이면 안 된다. */
+.dw-tone--CONTROL { color: var(--color-action-primary); background: color-mix(in srgb, var(--color-action-primary) 14%, transparent); }
+.dw-tone--INFO { color: var(--color-agent-reasoning); background: color-mix(in srgb, var(--color-agent-reasoning) 16%, transparent); }
+.dw-tone--RULE { color: var(--color-status-warning); background: color-mix(in srgb, var(--color-status-warning) 16%, transparent); }
+.dw-tone--OBJECTIVE { color: var(--color-status-success); background: color-mix(in srgb, var(--color-status-success) 16%, transparent); }
+.dw-tone--UI { color: var(--color-text-secondary); background: color-mix(in srgb, var(--color-border-strong) 22%, transparent); }
+.dw-tone--MISC { color: var(--color-text-muted); background: color-mix(in srgb, var(--color-text-muted) 14%, transparent); }
+.dw-chip[class*='dw-tone--'] { background: transparent; }
+.dw-chip[class*='dw-tone--'] .dw-chip-label, .dw-chip[class*='dw-tone--'] b { color: var(--color-text-primary); }
+.dw-tone-text--CONTROL { color: var(--color-action-primary); }
+.dw-tone-text--INFO { color: var(--color-agent-reasoning); }
+.dw-tone-text--RULE { color: var(--color-status-warning); }
+.dw-tone-text--OBJECTIVE { color: var(--color-status-success); }
+.dw-tone-text--UI, .dw-tone-text--MISC { color: var(--color-text-secondary); }
+
+@keyframes dw-shimmer { 0% { opacity: .45; } 50% { opacity: .9; } 100% { opacity: .45; } }
+.dw-skel { display: block; height: 10px; border-radius: 5px; background: var(--color-bg-raised); animation: dw-shimmer 1.6s infinite; }
+.dw-skel.dw-tile { height: 44px; border-radius: 10px; }
+
+@media (max-width: 1100px) {
+  .dw-body { grid-template-columns: minmax(0, 1fr); }
+  .dw-side { border-top: 1px solid var(--color-border-subtle); border-left: 0; }
+  .dw-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 720px) {
+  .dw-cards, .dw-current-facts { grid-template-columns: minmax(0, 1fr); }
+  .dw-current-facts > div + div { border-top: 1px solid var(--color-border-subtle); border-left: 0; }
+  .dw-current-head { grid-template-columns: auto minmax(0, 1fr); }
+  .dw-actions { grid-column: 1 / -1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dw-skel { animation: none; }
+  .dw-drop { transition: none; }
+}
+.dw-version { color: var(--color-text-secondary); font-size: 13px; font-weight: 600; }
+/* `.document-confirm` 은 옛 가로 줄에서 오른쪽에 붙던 블록이다(flex-basis 260px). 이 화면은 세로로
+   쌓으므로 그 값이 높이로 읽혀 열이 부푼다 — 여기서는 왼쪽 정렬, 제 높이만. */
+.dw-confirm { flex: none; align-items: flex-start; min-width: 0; padding: var(--space-3); border-radius: var(--radius-md); background: var(--color-status-critical-muted); }
+.dw-confirm .document-confirm-copy { text-align: left; }
+.dw-current > .dw-confirm { border-radius: 0; }
+/* 업로드 원형 진행 표시(ARTEL-1098). 채워지는 호는 브랜드 강조색, 바탕 원은 경계선 색. */
+.dw-ring { position: relative; display: inline-grid; flex: none; place-items: center; }
+.dw-ring svg { position: absolute; inset: 0; }
+.dw-ring-track { stroke: var(--color-border-subtle); }
+.dw-ring-fill { stroke: var(--color-action-primary); transition: stroke-dasharray 160ms var(--ease-standard); }
+.dw-ring.is-indeterminate svg { animation: dw-spin 1s linear infinite; }
+.dw-ring-label { position: relative; font-size: 18px; font-weight: 600; }
+.dw-drop.is-uploading { border-style: solid; border-color: var(--color-action-primary); }
+@keyframes dw-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .dw-ring-fill { transition: none; }
+  .dw-ring.is-indeterminate svg { animation-duration: 3s; }
+}
+/* 추출 중(ARTEL-1098). 진행률이 없는 일이라 원은 돌기만 하고, 얼마나 지났는지를 옆에 쓴다. */
+.dw-extracting { display: flex; align-items: center; gap: var(--space-5); padding: var(--space-5) var(--space-6); border: 1px solid color-mix(in srgb, var(--color-action-primary) 40%, var(--color-border-subtle)); border-radius: var(--radius-lg); background: color-mix(in srgb, var(--color-action-primary) 6%, var(--color-bg-surface)); }
+.dw-extracting-text { display: flex; flex-direction: column; gap: 4px; }
+.dw-extracting-text b { font-size: 16px; }
+.dw-extracting-text > span { color: var(--color-text-secondary); font-size: 13px; }
+.dw-extracting .document-parse-elapsed { color: var(--color-text-primary); }
+.dw-current-facts .dw-ring { margin-right: 2px; }
