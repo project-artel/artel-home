@@ -3,9 +3,9 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import type { Issue } from '../../issues/issueTypes.ts'
 import type { QaRunSummary } from '../../qa/launch/qaLaunchApi.ts'
-import type { QaRun } from '../../qa/qaTypes.ts'
+import type { QaRun, QaTry } from '../../qa/qaTypes.ts'
 import type { ProjectUsage, UsageTotals } from '../../usage/usageApi.ts'
-import { QUERY_ROW_LIMIT, runQuery, trimIssues, trimQaHistory, trimQaRun, trimUsage } from './queries.ts'
+import { QUERY_ROW_LIMIT, runQuery, trimIssues, trimQaHistory, trimQaRun, trimQaTryHistory, trimUsage } from './queries.ts'
 
 function summary(index: number): QaRunSummary {
   return {
@@ -125,4 +125,23 @@ test('trimUsage keeps cost, calls and tokens per service and model', () => {
 test('runQuery rejects an unknown kind without a request', async () => {
   const result = await runQuery('1', { kind: 'everything' }, new AbortController().signal)
   assert.equal(result.status, 'error')
+})
+
+test('trimQaTryHistory groups tries by QA run and marks a run failed when any try failed', () => {
+  const qaTry = (id: string, qaRunId: string | null, status: QaTry['status']): QaTry => ({
+    id,
+    testScenarioId: 's',
+    gameInstanceId: 'g',
+    agentSessionId: null,
+    status,
+    startedAt: '2026-10-20T00:00:00Z',
+    completedAt: null,
+    qaRunId,
+  })
+  const result = trimQaTryHistory([qaTry('1', '55', 'COMPLETED'), qaTry('2', '55', 'FAILED'), qaTry('3', null, 'COMPLETED')])
+  assert.deepEqual(
+    result.rows.map((row) => [row.qaRunId, row.status, row.scenarios]),
+    [['55', 'FAILED', 2], [null, 'COMPLETED', 1]],
+  )
+  assert.equal(result.truncated, false)
 })

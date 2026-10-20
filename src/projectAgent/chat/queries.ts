@@ -1,8 +1,9 @@
 import { listProjectIssues } from '../../issues/issueApi'
 import { ISSUE_SEVERITIES, ISSUE_STATUSES, type Issue, type IssueSeverity, type IssueStatus } from '../../issues/issueTypes'
-import { getQaRun } from '../../qa/qaApi'
+import { getQaRun, listQaTries } from '../../qa/qaApi'
 import { listProjectQaRuns, type QaRunSummary } from '../../qa/launch/qaLaunchApi'
-import type { QaRun } from '../../qa/qaTypes'
+import type { QaRun, QaTry } from '../../qa/qaTypes'
+import { ProjectApiError } from '../../projects/projectApi'
 import { fetchProjectUsage, type ProjectUsage, type UsageTotals } from '../../usage/usageApi'
 import type { ToolResultBody } from './toolTypes'
 
@@ -52,6 +53,42 @@ export function trimQaHistory(runs: readonly QaRunSummary[]): QueryRows<QaHistor
       issueCount: run.issueCount,
     })),
   )
+}
+
+/**
+ * `GET /api/projects/:id/qa-runs` 가 아직 없는 서버에서 쓰는 대체 결과. QA 히스토리 화면이 읽는
+ * QA Try 목록을 QA 실행 단위로 묶는다. 시나리오별 판정 수는 이 목록에 없다.
+ */
+export type QaTryHistoryRow = {
+  qaRunId: string | null
+  status: string
+  startedAt: string | null
+  completedAt: string | null
+  scenarios: number
+}
+
+export function trimQaTryHistory(tries: readonly QaTry[]): QueryRows<QaTryHistoryRow> {
+  const rows: QaTryHistoryRow[] = []
+  const byRun = new Map<string, QaTryHistoryRow>()
+  for (const qaTry of tries) {
+    const existing = qaTry.qaRunId === null ? undefined : byRun.get(qaTry.qaRunId)
+    if (existing !== undefined) {
+      existing.scenarios += 1
+      // 묶음의 상태는 가장 나쁜 쪽을 따른다. 하나라도 실패하면 그 실행은 실패로 읽는다.
+      if (qaTry.status === 'FAILED') existing.status = 'FAILED'
+      continue
+    }
+    const row: QaTryHistoryRow = {
+      qaRunId: qaTry.qaRunId,
+      status: qaTry.status,
+      startedAt: qaTry.startedAt,
+      completedAt: qaTry.completedAt,
+      scenarios: 1,
+    }
+    rows.push(row)
+    if (qaTry.qaRunId !== null) byRun.set(qaTry.qaRunId, row)
+  }
+  return limitRows(rows)
 }
 
 export type QaRunDetail = {
@@ -171,8 +208,13 @@ async function queryResult(
   signal: AbortSignal,
 ): Promise<unknown> {
   if (kind === 'qa_history') {
-    const runs = await listProjectQaRuns(projectId, QUERY_ROW_LIMIT + 1, signal, stringArg(args, 'testRunId'))
-    return trimQaHistory(runs)
+    try {
+      const runs = await listProjectQaRuns(projectId, QUERY_ROW_LIMIT + 1, signal, stringArg(args, 'testRunId'))
+      return trimQaHistory(runs)
+    } catch (error) {
+      if (!(error instanceof ProjectApiError) || !error.isNotFound) throw error
+      return trimQaTryHistory(await listQaTries(projectId, signal))
+    }
   }
   if (kind === 'qa_run') {
     const qaRunId = stringArg(args, 'qaRunId') ?? stringArg(args, 'id')
