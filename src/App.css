@@ -11427,11 +11427,11 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
 .qv-captures img { width: 100%; border-radius: 6px; border: 1px solid var(--color-border-subtle); display: block; }
 .qv-sheet-links { padding: var(--space-4) var(--space-5); }
 
-/* QA 히스토리 오른쪽 칸의 요약 */
-.qh-verdicts { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--color-border-subtle); font-size: 13px; }
-.qh-verdicts-head { display: flex; justify-content: space-between; align-items: baseline; }
-.qh-verdicts-head a { font-size: 12px; color: var(--color-action-primary); }
-.qh-verdicts-tally { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; }
+/* QA 히스토리 시나리오 상세의 판정 근거 묶음 */
+.run-detail-label--evidence .run-detail-label-icon { color: var(--color-action-primary); background: color-mix(in srgb, var(--color-action-primary) 16%, transparent); }
+.run-detail-group-head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-2); }
+.run-detail-group-link { font-size: 12px; color: var(--color-action-primary); white-space: nowrap; }
+.qh-verdicts-tally { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
 .qh-verdicts-label { font: 600 11px/16px var(--font-mono); letter-spacing: .06em; color: var(--color-text-muted); }
 .qh-verdicts-list { display: flex; flex-direction: column; margin: 0; padding: 0; list-style: none; }
 .qh-verdicts-list a { display: flex; align-items: center; gap: var(--space-2); padding: 5px 0; color: var(--color-text-primary); text-decoration: none; }

@@ -29,7 +29,8 @@ export function QaVerdictsRoute() {
   const [state, setState] = useState<'loading' | 'ready' | 'gone' | 'error'>('loading')
   const [verdictFilter, setVerdictFilter] = useState<VerdictFilter>('ALL')
   const [evidenceFilter, setEvidenceFilter] = useState<EvidenceFilter>('ALL')
-  const [scenarioFilter, setScenarioFilter] = useState<string>('ALL')
+  // 시나리오 상세에서 들어오면(`?scenario=`) 그 시나리오로 걸러서 연다.
+  const [scenarioFilter, setScenarioFilter] = useState<string>(() => searchParams.get('scenario') ?? 'ALL')
   const [onlyChecks, setOnlyChecks] = useState(true)
   const [tableScroller, setTableScroller] = useState<HTMLDivElement | null>(null)
 
@@ -72,7 +73,16 @@ export function QaVerdictsRoute() {
   const manyScenarios = (data?.tries.length ?? 0) > 1
   const picked = searchParams.get('try') !== null ? `${searchParams.get('try')}:${searchParams.get('step')}` : null
   const selected = rows.find((row) => rowKey(row) === picked) ?? null
-  const select = (row: VerdictRow) => setSearchParams({ try: row.qaTryId, step: String(row.step) }, { replace: true })
+  const select = (row: VerdictRow) =>
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current)
+        next.set('try', row.qaTryId)
+        next.set('step', String(row.step))
+        return next
+      },
+      { replace: true },
+    )
 
   const back = (
     <Link className="back-link" to={qaRunPath(projectId, qaRunId)}>

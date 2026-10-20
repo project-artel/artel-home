@@ -1,6 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
 import { elapsedSeconds, getQaTryDetail, type QaTryDetail } from '../../qa/qaTryDetailApi'
+import { tallyVerdicts, type QaStepVerdict } from '../../qa/qaVerdictApi'
 import { formatCost } from '../../usage/format'
 import { formatElapsedSeconds, PLACEHOLDER } from '../formatters'
 
@@ -21,8 +23,17 @@ export function QaHistoryDetail({
   qaTryId,
   label,
   collapsible = false,
+  verdicts,
+  verdictsHref,
 }: {
   qaTryId: string
+  /**
+   * 이 시나리오 실행의 판정(ARTEL-1135). 주면 결과 아래에 판정 근거 묶음이 선다. 판정은 시나리오 단위로 보는 것이라
+   * 시나리오마다 이 자리에 둔다. `undefined` 면 아직 모르거나 근거를 안 보이는 화면이다.
+   */
+  verdicts?: QaStepVerdict[]
+  /** 판정 근거 페이지에서 이 시나리오로 거른 주소. 줄을 누르면 거기에 `try` · `step` 을 붙여 그 판정을 연다. */
+  verdictsHref?: string
   /** 제목 위에 붙는 작은 표지(QA 히스토리의 "시나리오 1"). */
   label?: ReactNode
   /**
@@ -110,6 +121,9 @@ export function QaHistoryDetail({
         )}
 
         <RunDetailResult detail={detail} />
+        {verdicts !== undefined && verdictsHref !== undefined && (
+          <RunDetailVerdicts href={verdictsHref} qaTryId={qaTryId} verdicts={verdicts} />
+        )}
         <RunDetailCost detail={detail} />
       </div>
 
@@ -172,6 +186,63 @@ function RunDetailResult({ detail }: { detail: QaTryDetail }) {
           {counts.format(detail.feedback)}
         </Fact>
       </dl>
+    </section>
+  )
+}
+
+const FLAGGED_SHOWN = 4
+
+/**
+ * 이 시나리오의 판정 근거(ARTEL-1135): 근거 상태별 수와, 먼저 볼 판정 — 실패했거나 근거가 기록과 어긋난 것.
+ * 전부는 판정 근거 페이지에 이 시나리오로 걸러져 있다.
+ */
+function RunDetailVerdicts({ href, qaTryId, verdicts }: { href: string; qaTryId: string; verdicts: QaStepVerdict[] }) {
+  const { t } = useI18n()
+  const copy = t.qa.verdicts
+  const tally = tallyVerdicts(verdicts)
+  if (tally.judged === 0) return null
+  const flagged = verdicts.filter((verdict) => verdict.isVerification && (!verdict.passed || verdict.detail.status === 'uncertain'))
+
+  return (
+    <section className="run-detail-group">
+      <div className="run-detail-group-head">
+        <SectionTitle kind="evidence">{copy.inspector.title}</SectionTitle>
+        <Link className="run-detail-group-link" to={href}>{copy.inspector.open} →</Link>
+      </div>
+      <p className="qh-verdicts-tally mono">
+        {(['verified', 'uncertain', 'none'] as const).map((status) => (
+          <span className={`qv-ev qv-ev--${status}`} key={status} title={copy.evidenceHint[status]}>
+            {copy.evidence[status]} {tally[status]}
+          </span>
+        ))}
+      </p>
+      {flagged.length === 0 ? (
+        <p className="run-detail-note">
+          {tally.uncertain === 0 && tally.none === 0 ? copy.inspector.allClear : copy.summary(tally.judged, tally.passed, tally.failed)}
+        </p>
+      ) : (
+        <>
+          <span className="qh-verdicts-label">{copy.inspector.review}</span>
+          <ul className="qh-verdicts-list">
+            {flagged.slice(0, FLAGGED_SHOWN).map((verdict) => (
+              <li key={verdict.step}>
+                <Link to={`${href}&try=${encodeURIComponent(qaTryId)}&step=${verdict.step}`}>
+                  <span className={`vdot vdot--${verdict.passed ? 'verified' : 'failed'}`} />
+                  <span className="qh-verdicts-text">
+                    <span className="qh-muted">{copy.stepLabel(verdict.step)}</span> {verdict.detail.message}
+                  </span>
+                  {verdict.detail.status === 'uncertain' && (
+                    <span className="qv-ev qv-ev--uncertain">{copy.evidence.uncertain}</span>
+                  )}
+                </Link>
+              </li>
+            ))}
+          </ul>
+          {flagged.length > FLAGGED_SHOWN && (
+            <Link className="qh-muted" to={href}>{copy.inspector.more(flagged.length - FLAGGED_SHOWN)}</Link>
+          )}
+        </>
+      )}
     </section>
   )
 }
@@ -319,6 +390,7 @@ const SECTION_ICONS = {
   result: 'M9.615 20h-2.615a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v8 M14 19l2 2l4 -4 M9 8h4 M9 12h2',
   cost: 'M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0 M14.8 9a2 2 0 0 0 -1.8 -1h-2a2 2 0 1 0 0 4h2a2 2 0 1 1 0 4h-2a2 2 0 0 1 -1.8 -1 M12 7v10',
   tools: 'M7 10h3v-3l-3.5 -3.5a6 6 0 0 1 8 8l6 6a2 2 0 0 1 -3 3l-6 -6a6 6 0 0 1 -8 -8l3.5 3.5',
+  evidence: 'M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0 M21 21l-6 -6 M7 10l2 2l4 -4',
 } as const
 
 function SectionTitle({ kind, children }: { kind: keyof typeof SECTION_ICONS; children: ReactNode }) {

@@ -8,7 +8,7 @@ import { QA_TRY_STATUSES, qaRunPath, type QaTry, type QaTryStatus } from '../qaT
 import type { QaRunSummary } from '../launch/qaLaunchApi'
 import { ringOf, shortWhen } from './historyModel'
 import { PickSketch } from './HistorySketch'
-import { RunVerdictSummary } from './RunVerdictSummary'
+import { useRunVerdicts } from './useRunVerdicts'
 
 /**
  * 고른 실행 하나(ARTEL-1100). 위는 그 실행의 결과를 숫자 셋과 큰 링으로, 아래는 시나리오마다 예전
@@ -31,6 +31,7 @@ export function RunInspector({
   const { t } = useI18n()
   const b = t.qa.history.board
   const [scroller, setScroller] = useState<HTMLDivElement | null>(null)
+  const verdicts = useRunVerdicts(run?.id ?? '')
 
   if (run === null) {
     return (
@@ -116,14 +117,14 @@ export function RunInspector({
           </Link>
         </div>
 
-        <RunVerdictSummary key={run.id} projectId={projectId} qaRunId={run.id} />
-
         {ordered.map((qaTry, index) => (
           <section className="qh-scenario" key={qaTry.id}>
             <QaHistoryDetail
               collapsible
               label={b.scenarioFallback(index + 1)}
               qaTryId={qaTry.id}
+              verdicts={verdicts?.get(qaTry.id)}
+              verdictsHref={`/projects/${encodeURIComponent(projectId)}/qa-runs/${encodeURIComponent(run.id)}/verdicts?scenario=${encodeURIComponent(qaTry.id)}`}
             />
             <div className="qh-scenario-links">
               <Link
