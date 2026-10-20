@@ -44,7 +44,7 @@ function ThreadRow({ item }: { item: ThreadItem }) {
     case 'assistant':
       return (
         <li className="agent-msg agent-msg--assistant">
-          <ChatMessageBody body={item.text} />
+          <ChatMessageBody body={item.text} markdown={{ links: true, fences: true }} />
         </li>
       )
     case 'steps':

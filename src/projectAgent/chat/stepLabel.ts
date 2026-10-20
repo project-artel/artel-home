@@ -33,6 +33,8 @@ export function stepTarget(tool: string, args: Record<string, unknown>): string 
       const label = text(args.label)
       return shorten(label.length > 0 ? label : [text(args.kind), text(args.id)].filter(Boolean).join(' '))
     }
+    case 'read_guide':
+      return shorten(text(args.topic))
     case 'author_scenarios': {
       const runId = text(args.run_id)
       return runId.length > 0 ? `test run ${runId}` : ''

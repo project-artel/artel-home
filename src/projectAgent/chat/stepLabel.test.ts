@@ -9,6 +9,7 @@ test('stepTarget names the page, field, action or query', () => {
   assert.equal(stepTarget('call_action', { action: 'qa.startRun' }), 'qa.startRun')
   assert.equal(stepTarget('query', { kind: 'issues' }), 'issues')
   assert.equal(stepTarget('watch_job', { kind: 'qa_run', id: 55 }), 'qa_run 55')
+  assert.equal(stepTarget('read_guide', { topic: 'cli-install' }), 'cli-install')
   assert.equal(stepTarget('read_page', {}), '')
 })
 

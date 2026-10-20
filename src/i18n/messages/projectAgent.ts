@@ -27,6 +27,8 @@ export const projectAgentEn = {
     suggestionIssues: 'Show the open issues',
     suggestionUsage: 'How much have we spent recently?',
     stepsLabel: 'Agent steps',
+    copyCode: 'Copy code',
+    copiedCode: 'Copied',
     tools: {
       open_page: 'Open page',
       read_page: 'Read page',
@@ -36,6 +38,7 @@ export const projectAgentEn = {
       query: 'Look up',
       watch_job: 'Watch job',
       author_scenarios: 'Write scenarios',
+      read_guide: 'Read guide',
       unknown: 'Tool',
     },
     stepState: {
@@ -183,6 +186,8 @@ export const projectAgentKo: Localized<typeof projectAgentEn> = {
     suggestionIssues: '열린 이슈를 보여 줘',
     suggestionUsage: '최근 사용 비용이 얼마야?',
     stepsLabel: 'agent 작업 단계',
+    copyCode: '코드 복사',
+    copiedCode: '복사됨',
     tools: {
       open_page: '페이지 열기',
       read_page: '페이지 읽기',
@@ -192,6 +197,7 @@ export const projectAgentKo: Localized<typeof projectAgentEn> = {
       query: '조회',
       watch_job: '작업 지켜보기',
       author_scenarios: '시나리오 작성',
+      read_guide: '안내 문서 읽기',
       unknown: 'tool',
     },
     stepState: {
