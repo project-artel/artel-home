@@ -73,6 +73,18 @@ export function sectionIdFromPath(projectId: string, pathname: string): Workspac
   return match?.id ?? 'dashboard'
 }
 
+/**
+ * 이 path 가 섹션 화면(머리글이 있는 화면)인가. 아니고 깊은 화면도 아니면 프로젝트 안의 없는 주소다 — 그때는
+ * "대시보드" 머리글 없이 404 만 그린다(ARTEL-1162). 끝의 `/` 는 같은 섹션으로 읽는다.
+ */
+export function isSectionPath(projectId: string, pathname: string): boolean {
+  const parts = projectPathSegments(projectId, pathname)
+  if (parts === null || parts.length > 1) return false
+  if (parts.length === 0) return true
+  const [rest] = parts
+  return ['setup', 'usage', 'members', 'settings'].includes(rest) || WORKSPACE_SECTIONS.some((section) => section.path === rest)
+}
+
 /** 펼친 project rail 의 폭. App.css 의 `.project-workspace` grid 첫 칸과 같은 값이다. */
 export const PROJECT_RAIL_PX = 216
 

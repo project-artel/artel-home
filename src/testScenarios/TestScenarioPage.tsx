@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { NotFoundPage } from '../NotFoundPage'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { useActionBinding } from '../projectAgent/bindings'
@@ -192,20 +193,20 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
 
   if (!validId) {
     return (
-      <section className="page"><div className="panel-message">
-        <h1>{t.scenarios.page.notFoundTitle}</h1>
-        <p className="panel-message-copy">{t.scenarios.page.invalidAddress}</p>
-        <Link className="button button--secondary" to={backLink(projectId)}>{t.scenarios.page.backToTestRuns}</Link>
-      </div></section>
+      <NotFoundPage
+        back={{ to: backLink(projectId), label: t.scenarios.page.backToTestRuns }}
+        copy={t.scenarios.page.invalidAddress}
+        title={t.scenarios.page.notFoundTitle}
+      />
     )
   }
   if (status === 'missing') {
     return (
-      <section className="page"><div className="panel-message">
-        <h1>{t.scenarios.page.notFoundTitle}</h1>
-        <p className="panel-message-copy">{t.scenarios.page.missingCopy}</p>
-        <Link className="button button--secondary" to={backLink(projectId)}>{t.scenarios.page.backToTestRuns}</Link>
-      </div></section>
+      <NotFoundPage
+        back={{ to: backLink(projectId), label: t.scenarios.page.backToTestRuns }}
+        copy={t.scenarios.page.missingCopy}
+        title={t.scenarios.page.notFoundTitle}
+      />
     )
   }
 

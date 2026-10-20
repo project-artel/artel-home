@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { NotFoundPage } from '../NotFoundPage'
 import { Link, useParams } from 'react-router-dom'
 import { GameStreamView } from '../streaming/GameStreamView'
 import { listGameInstances } from './gameApi'
@@ -93,15 +94,11 @@ function GameInstanceDetailPage({
   // which are already handled; the test is what narrows the type.
   if (status === 'missing' || instance === null) {
     return (
-      <section className="page">
-        <div className="panel-message">
-          <h1>{t.projects.instanceDetail.notFoundTitle}</h1>
-          <p className="panel-message-copy">{t.projects.shared.missingCopy}</p>
-          <Link className="button button--secondary" to={projectLink(projectId)}>
-            {t.projects.shared.backToProject}
-          </Link>
-        </div>
-      </section>
+      <NotFoundPage
+        back={{ to: projectLink(projectId), label: t.projects.shared.backToProject }}
+        copy={t.projects.shared.missingCopy}
+        title={t.projects.instanceDetail.notFoundTitle}
+      />
     )
   }
 

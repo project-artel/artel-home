@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { isDeepPath, projectPathSegments } from './sections'
+import { isDeepPath, isSectionPath, projectPathSegments } from './sections'
 
 describe('isDeepPath', () => {
   it('깊은 화면 일곱 개를 깊은 경로로 본다', () => {
@@ -43,5 +43,20 @@ describe('projectPathSegments', () => {
   it('인코딩이 필요한 projectId 도 인코딩된 pathname 과 맞춘다', () => {
     assert.deepEqual(projectPathSegments('a b', '/projects/a%20b/test-runs/r1/edit'), ['test-runs', 'r1', 'edit'])
     assert.equal(isDeepPath('a b', '/projects/a%20b/qa-runs/q1'), true)
+  })
+})
+
+describe('isSectionPath', () => {
+  it('reads the index and every section as a section screen', () => {
+    for (const rest of ['', 'qa', 'macros', 'issues', 'settings', 'members', 'test-runs'])
+      assert.equal(isSectionPath('p1', `/projects/p1/${rest}`), true, rest)
+    assert.equal(isSectionPath('p1', '/projects/p1'), true)
+    assert.equal(isSectionPath('p1', '/projects/p1/macros/'), true)
+  })
+
+  it('does not read an unknown or deeper path as a section', () => {
+    for (const rest of ['whatever', 'qa/extra', 'test-runs/r1', 'macro'])
+      assert.equal(isSectionPath('p1', `/projects/p1/${rest}`), false, rest)
+    assert.equal(isSectionPath('p1', '/projects/p2/qa'), false)
   })
 })

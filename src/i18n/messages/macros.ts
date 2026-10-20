@@ -20,8 +20,10 @@ export const macrosEn = {
     // missing, belongs to another project, or simply has no map.
     agentLoadFailed: 'This version’s agent macros could not be loaded.',
     developerLoadFailed: 'Developer macros could not be loaded.',
-    empty: 'This version has no macros yet.',
-    developerEmpty: 'No developer macros are registered. They are registered over the MCP connection.',
+    emptyTitle: 'No macros in this version yet',
+    emptyHelp: 'When the QA agent saves a macro while playing this build, it shows up here.',
+    developerEmptyTitle: 'No developer macros yet',
+    developerEmptyHelp: 'Macros a developer registers over the MCP connection show up here, for every build.',
     developerChip: 'Developer macros',
     developerChipTitle:
       'Every developer macro of the project. The QA engine receives all of them, whichever build it runs. Each one’s build is compared with the current version.',
@@ -86,8 +88,10 @@ export const macrosKo: Localized<typeof macrosEn> = {
     retry: '다시 시도',
     agentLoadFailed: '이 버전의 agent macro 를 불러오지 못했습니다.',
     developerLoadFailed: '개발자 macro 를 불러오지 못했습니다.',
-    empty: '이 버전에는 아직 macro 가 없습니다.',
-    developerEmpty: '등록된 개발자 macro 가 없습니다. MCP 연결로 등록됩니다.',
+    emptyTitle: '이 버전에는 아직 macro 가 없습니다',
+    emptyHelp: 'QA 에이전트가 이 빌드를 플레이하며 macro 를 저장하면 여기 쌓입니다.',
+    developerEmptyTitle: '등록된 개발자 macro 가 없습니다',
+    developerEmptyHelp: '개발자가 MCP 연결로 등록한 macro 가 빌드와 상관없이 여기 나타납니다.',
     developerChip: '개발자 macro',
     developerChipTitle:
       '프로젝트의 개발자 macro 전부입니다. QA 엔진은 빌드와 상관없이 전부 받습니다. 각 macro 의 기준 버전은 현재 버전과 비교합니다.',

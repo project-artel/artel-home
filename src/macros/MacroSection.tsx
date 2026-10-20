@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { SketchEmpty } from '../emptyStates/SketchEmpty'
+import { MacroSketch } from '../emptyStates/sketches'
 import { useSearchParams } from 'react-router-dom'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
@@ -143,7 +145,8 @@ function BuildMacroView({ build, ...shared }: SharedViewProps & { build: GameBui
     <MacroLibraryView
       {...shared}
       agentBuildId={build.id}
-      emptyText={copy.empty}
+      emptyHelp={copy.emptyHelp}
+      emptyText={copy.emptyTitle}
       items={items}
       loadFailedText={copy.agentLoadFailed}
       onReload={agent.reload}
@@ -177,7 +180,8 @@ function DeveloperMacroView({
     <MacroLibraryView
       {...shared}
       agentBuildId={null}
-      emptyText={copy.developerEmpty}
+      emptyHelp={copy.developerEmptyHelp}
+      emptyText={copy.developerEmptyTitle}
       items={items}
       loadFailedText={copy.developerLoadFailed}
       onReload={onReload}
@@ -203,6 +207,7 @@ function MacroLibraryView({
   builds,
   developerCount,
   emptyText,
+  emptyHelp,
   items,
   loadFailedText,
   onReload,
@@ -216,6 +221,8 @@ function MacroLibraryView({
 }: SharedViewProps & {
   agentBuildId: string | null
   emptyText: string
+  /** 비었을 때 macro 가 어디서 생기는지. */
+  emptyHelp: string
   items: LibraryMacro[]
   loadFailedText: string
   onReload: () => void
@@ -358,14 +365,15 @@ function MacroLibraryView({
           <div aria-busy="true" className="panel-empty-block">
             <p className="panel-empty">{copy.section.loading}</p>
           </div>
-        ) : status === 'error' && items.length === 0 ? null : shown.length === 0 ? (
+        ) : status === 'error' && items.length === 0 ? null : shown.length === 0 && !filtered ? (
+          // 이 버전에 macro 가 하나도 없다. 글 한 줄 대신 그림과 어디서 생기는지를 보인다(ARTEL-1162).
+          <SketchEmpty body={emptyHelp} sketch={<MacroSketch />} surface title={emptyText} />
+        ) : shown.length === 0 ? (
           <div className="panel-empty-block">
-            <p className="panel-empty">{filtered ? copy.section.emptyFiltered : emptyText}</p>
-            {filtered && (
-              <button className="button button--secondary button--compact" onClick={() => setQuery('')} type="button">
-                {caseCopy.section.clearFilters}
-              </button>
-            )}
+            <p className="panel-empty">{copy.section.emptyFiltered}</p>
+            <button className="button button--secondary button--compact" onClick={() => setQuery('')} type="button">
+              {caseCopy.section.clearFilters}
+            </button>
           </div>
         ) : (
           <div className="cp-listwrap" ref={listRef}>

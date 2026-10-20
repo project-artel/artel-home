@@ -12679,3 +12679,23 @@ button.gf-bar:focus-visible {
 .cp-pick-scope { margin: 0; padding: 10px 18px 0; color: var(--color-text-muted); font-size: 12px; }
 .cp-info-current { padding: 1px 8px; border: 1px solid var(--color-action-primary); border-radius: 999px; color: var(--color-action-primary); font-size: 11px; font-weight: 600; }
 .cp .cp-pick { align-self: flex-start; margin-top: 16px; }
+
+/* ── 그림이 있는 빈 화면 · 404 (ARTEL-1162) ───────────────────────────────────
+   QA 히스토리의 빈 화면(`.qh-empty-inline`)과 같은 크기 · 말투. 남은 자리를 채우고 가운데에 둔다. */
+.sketch-empty { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-2); min-height: 420px; padding: var(--space-8) var(--space-6); text-align: center; }
+.sketch-empty--surface { --qh-sketch-ground: var(--color-bg-surface); }
+.sketch-empty .qh-sketch { width: min(100%, 440px); margin-bottom: var(--space-4); }
+.sketch-empty-title { color: var(--color-text-secondary); font-family: var(--font-display); font-size: 24px; font-weight: 700; }
+.sketch-empty-body { max-width: 520px; color: var(--color-text-muted); font-size: 15px; line-height: 1.6; }
+.sketch-empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2); margin-top: var(--space-3); }
+.sketch-empty--compact { min-height: 280px; padding: var(--space-6) var(--space-4); }
+.sketch-empty--compact .qh-sketch { width: min(100%, 300px); margin-bottom: var(--space-3); }
+.sketch-empty--compact .sketch-empty-title { font-size: 18px; }
+.sketch-empty--compact .sketch-empty-body { font-size: 13px; }
+
+/* 404 — 숫자를 크게, 돌아갈 길을 바로 아래에 */
+.not-found { display: flex; flex: 1; min-height: calc(100vh - 120px); }
+.not-found .sketch-empty { min-height: 0; }
+.not-found-code { margin: 0; color: var(--color-text-primary); font-family: var(--font-mono); font-size: 64px; font-weight: 700; letter-spacing: -0.02em; line-height: 1; }
+.not-found-code span { color: var(--color-action-primary); }
+.not-found-path { padding: 2px 8px; border: 1px solid var(--color-border-subtle); border-radius: var(--radius-sm); color: var(--color-text-muted); font-family: var(--font-mono); font-size: 12px; overflow-wrap: anywhere; }

@@ -175,6 +175,8 @@ export function App() {
             <Route path="qa-runs/:qaRunId" element={<QaRunRoute />} />
             <Route path="qa-runs/:qaRunId/performance" element={<RunPerformanceRoute />} />
             <Route path="game-builds/:buildId/performance" element={<BuildPerformanceRoute />} />
+            {/* 프로젝트 안의 없는 경로. 비워 두면 레일만 남고 본문이 빈다(ARTEL-1162). */}
+            <Route path="*" element={<NotFoundPage />} />
           </Route>
           {/* 콘텐츠 맵 화면은 작업공간 안에 하나뿐이다. 빌드 패널의 링크와 밖에서 붙여 넣은
               주소가 계속 살아 있도록, 옛 경로는 그 하나로 넘긴다. */}
