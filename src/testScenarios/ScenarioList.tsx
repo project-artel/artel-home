@@ -193,7 +193,7 @@ export function ScenarioList({
             <span className="scnrow-name">{draft.title.length > 0 ? draft.title : s.untitled}</span>
             <span className={`draft-tag draft-tag--${kind}`}>{kind === 'new' ? d.kindNew : d.kindEdit}</span>
           </span>
-          <span />
+          {draft.executionMode === 'FREE' ? <FreeScenarioBadge /> : <span />}
         </button>
         {draftActions(draft)}
       </div>

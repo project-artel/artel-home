@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useI18n } from '../i18n/useI18n'
 import { ProjectApiError } from '../projects/projectApi'
 import type { ChatMessage } from '../testScenarios/scenarioTypes'
+import { chatErrorText } from './chatErrors'
 import {
   applyRunChatDraft,
   cancelRunChat,
@@ -79,6 +81,12 @@ export function useRunChatSession(
   onApplied?: () => void,
   onTurnEnded?: () => void,
 ) {
+  const { t } = useI18n()
+  // 실패한 턴의 안내 문구(ARTEL-1072). 스트림 구독은 런이 바뀔 때만 다시 거므로 최신 언어를 ref 로 읽는다.
+  const errorMessagesRef = useRef(t.scenarios.chat.errors)
+  useEffect(() => {
+    errorMessagesRef.current = t.scenarios.chat.errors
+  }, [t])
   const [messages, setMessages] = useState<ChatMessage[]>([])
   /**
    * 자동저장을 끈 턴이 남긴 draft(ARTEL-1075). 서버가 들고 있고 바뀔 때마다 전부를 보낸다 —
@@ -302,7 +310,8 @@ export function useRunChatSession(
             {
               id: `err-${previous.length}`,
               role: 'ASSISTANT' as const,
-              content: parsed.detail.length > 0 ? parsed.detail : '요청을 처리하지 못했습니다. 다시 시도해 주세요.',
+              // 원문(모델 예외 등)은 보이지 않는다. code 로 안내를 고른다.
+              content: chatErrorText(parsed.code, parsed.detail, errorMessagesRef.current),
               createdAt: null,
               pending: false,
             },

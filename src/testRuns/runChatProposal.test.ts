@@ -1,7 +1,7 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { parseProposal, parseRunStreamEvent } from './runChatApi.ts'
+import { parseDrafts, parseProposal, parseRunStreamEvent } from './runChatApi.ts'
 
 test('a proposal without execution_mode is ORDERED', () => {
   const proposal = parseProposal({ scenario_id: 4, title: 'old', steps: [{ action: 'Open' }] })
@@ -33,3 +33,11 @@ test('a result frame carries the mode of each proposal', () => {
   assert.deepEqual(event.scenarios.map((s) => s.executionMode), ['FREE', 'ORDERED'])
 })
 
+test('a draft keeps FREE, and one without execution_mode is ORDERED', () => {
+  const [free, plain] = parseDrafts([
+    { draft_id: 'new-1', title: 'Shop checks', steps: [], execution_mode: 'FREE' },
+    { draft_id: 'edit-2', scenario_id: 2, title: 'old', steps: [] },
+  ])
+  assert.equal(free?.executionMode, 'FREE')
+  assert.equal(plain?.executionMode, 'ORDERED')
+})

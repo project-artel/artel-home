@@ -39,7 +39,7 @@ import type { MacroDetail, MacroParameter, MacroScreen, MacroSummary } from './m
  * 무엇이 있는지 알아낼 수 있기 때문이다. 화면도 가르지 않는다.
  *
  * **macro 가 없는 빌드는 404 가 아니라 `{ "items": [] }` 다.** 빈 상태와 없음은 다른
- * 화면이고, 그 구분이 `MacroReport` 의 분기에 그대로 있다.
+ * 화면이다. Macro 라이브러리는 실패를 `tcl-notice` 로, 빈 목록을 빈 줄 문구로 그린다.
  *
  * ## 관대하게 읽는다
  *

@@ -71,8 +71,8 @@ export function useBuildMacros(projectId: string, gameBuildId: string) {
         if (error instanceof DOMException && error.name === 'AbortError') return
         // 직전 목록을 들고 간다. 비우면 새로고침이 실패했을 때 화면이 통째로 오류로
         // 떨어지는데, 그때 보여 줘야 할 것은 "마지막으로 불러온 목록 + 그것이 지금의
-        // 사실이 아니라는 banner" 다. 첫 로드 실패에서는 들고 갈 것이 없어 빈 배열이
-        // 그대로 남고, `MacroReport` 가 그 둘을 목록 길이로 가른다.
+        // 사실이 아니라는 알림" 이다. 첫 로드 실패에서는 들고 갈 것이 없어 빈 배열이
+        // 그대로 남는다.
         //
         // 범위가 바뀌어 실패한 경우에는 들고 가지 않는다. 그때 남은 목록은 이 빌드의
         // 것이 아니다.
