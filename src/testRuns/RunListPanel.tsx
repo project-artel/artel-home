@@ -1,6 +1,9 @@
-import { useEffect, useMemo, useState, type DragEvent, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type DragEvent, type ReactNode } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
+import { useActionBinding } from '../projectAgent/bindings'
+import { tasksCopy } from '../projectAgent/tasksCopy'
+import { TEST_RUNS_CREATE_ACTION } from '../projectAgent/specs/testRuns'
 import { formatDate } from '../projects/formatters'
 import { ProjectApiError } from '../projects/projectApi'
 import type { ExtrasStatus } from '../projects/workspace/workspaceContext'
@@ -39,6 +42,7 @@ import {
 } from './testRunFolders'
 import {
   changeRunGameBuild,
+  createTestRun,
   deleteTestRun,
   gameBuildName,
   getRunDeletionPreview,
@@ -103,6 +107,7 @@ export function RunListPanel({
   const [folded, setFolded] = useState<ReadonlySet<string>>(new Set())
   const [showHidden, setShowHidden] = useState(false)
   const [creating, setCreating] = useState(false)
+  const newRunButton = useRef<HTMLButtonElement>(null)
   const [moving, setMoving] = useState<TestRun | null>(null)
   const [menu, setMenu] = useState<{ run: TestRun; x: number; y: number } | null>(null)
   // 버전 칸의 우클릭 메뉴. 숨기기는 케이스 라이브러리와 같은 설정이라 거기서도 숨는다.
@@ -214,6 +219,24 @@ export function RunListPanel({
       setDeleting(false)
     }
   }
+
+  // agent 가 런을 만드는 길. 새 런 대화상자와 같은 `createTestRun` 을 부르고, 대화상자와 달리 런을 열지
+  // 않는다 — 대화창이 이어서 시나리오를 쓰게 하려면 사용자가 이 페이지에 남아 있어야 한다.
+  useActionBinding(TEST_RUNS_CREATE_ACTION, {
+    target: () => newRunButton.current,
+    blocked: () => null,
+    run: async (args) => {
+      const name = typeof args.name === 'string' ? args.name.trim() : ''
+      if (name.length === 0) throw new Error(tasksCopy().errors.nameRequired)
+      const run = await createTestRun(projectId, {
+        name,
+        ...(typeof args.gameBuildId === 'string' && args.gameBuildId.length > 0 ? { gameBuildId: args.gameBuildId } : {}),
+        ...(typeof args.description === 'string' && args.description.length > 0 ? { description: args.description } : {}),
+      })
+      await onChanged()
+      return { runId: run.id }
+    },
+  })
 
   // Opening a run always lands in the run's edit entry, which decides between the
   // empty-run shell and the newest scenario's studio (see RunEditPage).
@@ -492,7 +515,7 @@ export function RunListPanel({
               >
                 {r.folders.newFolder}
               </button>
-              <button className="button button--primary button--compact" onClick={() => setCreating(true)} type="button">
+              <button className="button button--primary button--compact" onClick={() => setCreating(true)} ref={newRunButton} type="button">
                 {r.newButton}
               </button>
             </div>
