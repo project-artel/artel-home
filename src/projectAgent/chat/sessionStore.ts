@@ -1,26 +1,19 @@
 import { wireCatalog } from '../catalog'
 import type { AgentRegistryApi, PendingApproval } from '../registry/types'
+import { browserLockManager, conversationLockName, isLockHeld, runIfLockAvailable, type LockManagerLike } from '../webLocks'
+import * as conversationApi from './conversationApi'
 import {
-  cancelConversation,
   conversationStreamUrl,
-  createConversation,
-  deleteConversation,
-  getConversation,
   isConflict,
-  listConversations,
-  listMessages,
   parseConversationEvent,
   parseMessageEvent,
-  sendEvent,
-  sendMessage,
-  sendToolResult,
   type AgentMessage,
   type Conversation,
   type ToolCall,
 } from './conversationApi'
 import { readyEvents, removeEvent, type JobEventKind, type QueuedEvent } from './eventQueue'
 import { projectRoute } from './pagePath'
-import { isBusy, isOwnedAssistant, lastMessageId, mergeMessages, pendingToolCalls } from './threadState'
+import { isBusy, isOwnedAssistant, lastMessageId, mergeMessages, needsResume, pendingToolCalls } from './threadState'
 import { executeToolCall } from './toolExecutor'
 import type { ChoiceOption, JobState, ToolContext } from './toolTypes'
 
@@ -41,11 +34,19 @@ export type Thread = {
   load: ThreadLoad
 }
 
-/** 이 탭이 실행할 책임이 있는 ASSISTANT 메시지. `isOwnedAssistant` 를 본다. */
+/**
+ * 이 탭이 실행할 책임이 있는 ASSISTANT 메시지. `isOwnedAssistant` 를 본다.
+ *
+ * `ownedAfterId` 는 이 탭이 POST 해서 저장된 입력(USER 메시지, EVENT, TOOL_RESULT)의 id 다. 그 뒤에
+ * 오는 ASSISTANT 는 이 탭이 보낸 입력에 대한 답이므로 이 탭이 실행한다. 대화가 IDLE 이나 ERROR 로
+ * 돌아오면 지운다.
+ */
 export type Ownership = {
   ownedAfterId: number | null
-  liveAssistantIds: number[]
 }
+
+/** 대화의 tool 호출 잠금을 다른 탭이 잡고 있는지. 아직 확인하지 않은 대화는 값이 없다. */
+export type ConversationLockState = 'held' | 'free'
 
 export type PendingChoice = {
   conversationId: number
@@ -60,8 +61,10 @@ export type SessionState = {
   currentId: number | null
   threads: Record<number, Thread>
   ownership: Record<number, Ownership>
-  /** 이 탭이 실행을 시작한 tool 호출. 이어서 하기 카드를 숨기는 데 쓴다. */
-  startedCallIds: string[]
+  /** 대화마다 이 탭이 실행을 시작한 tool 호출. 이어서 하기 카드를 숨기는 데 쓴다. */
+  startedCallIds: Record<number, string[]>
+  /** 이어서 하기 카드를 그릴지 정하려고 확인한 tool 호출 잠금. */
+  conversationLocks: Record<number, ConversationLockState>
   runningCall: { conversationId: number; callId: string } | null
   choice: PendingChoice | null
   approval: PendingApproval | null
@@ -81,10 +84,70 @@ export type SessionDependencies = {
   navigate: (to: string) => void
 }
 
-/** job 이 끝났는데 대화가 바빠 보내지 못한 event 를 다시 시도하는 간격. */
-const EVENT_RETRY_MS = 5000
+/** 대화 stream 이 넘겨주는 것. EventSource 의 세 event 와 같다. */
+export type StreamHandlers = {
+  onMessage: (message: AgentMessage) => void
+  onConversation: (conversation: Conversation) => void
+  onOpen: () => void
+}
 
-const EMPTY_OWNERSHIP: Ownership = { ownedAfterId: null, liveAssistantIds: [] }
+/** 대화 API 가운데 store 가 부르는 것. 테스트가 가짜를 넣는다. */
+export type SessionConversationApi = Pick<
+  typeof conversationApi,
+  | 'cancelConversation'
+  | 'createConversation'
+  | 'deleteConversation'
+  | 'getConversation'
+  | 'listConversations'
+  | 'listMessages'
+  | 'sendEvent'
+  | 'sendMessage'
+  | 'sendToolResult'
+>
+
+/** 브라우저에 묶인 것들. 기본값은 실제 API, `navigator.locks`, EventSource, setInterval 이다. */
+export type SessionEnvironment = {
+  api: SessionConversationApi
+  lockManager: LockManagerLike | null
+  /** stream 을 열고 닫는 함수를 돌려준다. stream 을 열 수 없는 환경이면 null. */
+  connectStream: ((projectId: string, conversationId: number, handlers: StreamHandlers) => () => void) | null
+  executeTool: typeof executeToolCall
+  /** `callback` 을 반복해 부르고, 멈추는 함수를 돌려준다. */
+  repeat: (callback: () => void, milliseconds: number) => () => void
+}
+
+/** job 이 끝났는데 대화가 바빠 보내지 못한 event 를 다시 보내고, 다른 탭의 잠금을 다시 확인하는 간격. */
+const RETRY_MS = 5000
+
+const EMPTY_OWNERSHIP: Ownership = { ownedAfterId: null }
+const NO_CALL_IDS: string[] = []
+
+function connectEventSource(projectId: string, conversationId: number, handlers: StreamHandlers): () => void {
+  const source = new EventSource(conversationStreamUrl(projectId, conversationId), { withCredentials: true })
+  source.addEventListener('message', (event: MessageEvent) => {
+    const message = parseMessageEvent(String(event.data))
+    if (message !== null) handlers.onMessage(message)
+  })
+  source.addEventListener('conversation', (event: MessageEvent) => {
+    const conversation = parseConversationEvent(String(event.data))
+    if (conversation !== null) handlers.onConversation(conversation)
+  })
+  source.addEventListener('open', () => handlers.onOpen())
+  return () => source.close()
+}
+
+function browserEnvironment(): SessionEnvironment {
+  return {
+    api: conversationApi,
+    lockManager: browserLockManager(),
+    connectStream: typeof EventSource === 'undefined' ? null : connectEventSource,
+    executeTool: executeToolCall,
+    repeat: (callback, milliseconds) => {
+      const timer = setInterval(callback, milliseconds)
+      return () => clearInterval(timer)
+    },
+  }
+}
 
 function storageKey(projectId: string): string {
   return `artel.projectAgent.conversation.${projectId}`
@@ -117,31 +180,41 @@ function errorText(error: unknown): string {
 export class AgentSessionStore {
   private state: SessionState
   private dependencies: SessionDependencies
+  private readonly environment: SessionEnvironment
   private readonly listeners = new Set<() => void>()
-  private readonly streams = new Map<number, EventSource>()
+  /** 대화마다 열린 stream 을 닫는 함수. */
+  private readonly streams = new Map<number, () => void>()
   /** 지금 대화가 아니어도 이 탭이 답을 기다리는 대화. 답이 끝날 때까지 stream 을 연다. */
   private readonly backgroundStreamIds = new Set<number>()
   private readonly loadingThreadIds = new Set<number>()
   private readonly batchConversationIds = new Set<number>()
   private readonly batchControllers = new Map<number, AbortController>()
+  /** 대화마다 job 감시를 끊는 controller. 감시는 tool 호출 묶음보다 오래 살고, 멈추기나 삭제 때 끊는다. */
+  private readonly watchControllers = new Map<number, AbortController>()
+  /** 잠금 확인이 진행 중인 대화. */
+  private readonly lockQueriesInFlight = new Set<number>()
+  /** 대화마다 마지막으로 잠금을 확인한 ASSISTANT 메시지 id. 같은 호출을 거듭 확인하지 않는다. */
+  private readonly lockQueriedAssistant = new Map<number, number>()
   private choiceResolver: ((optionIds: string[] | null) => void) | null = null
   private eventQueue: QueuedEvent[] = []
   private readonly sendingEventSequences = new Set<number>()
   private eventSequence = 0
-  private eventTimer: ReturnType<typeof setInterval> | null = null
+  private stopRetryTimer: (() => void) | null = null
   private unsubscribeRegistry: (() => void) | null = null
   private reconcileScheduled = false
   private started = false
 
-  constructor(dependencies: SessionDependencies) {
+  constructor(dependencies: SessionDependencies, environment: Partial<SessionEnvironment> = {}) {
     this.dependencies = dependencies
+    this.environment = { ...browserEnvironment(), ...environment }
     this.state = {
       listLoad: 'loading',
       conversations: [],
       currentId: readStoredConversation(dependencies.projectId),
       threads: {},
       ownership: {},
-      startedCallIds: [],
+      startedCallIds: {},
+      conversationLocks: {},
       runningCall: null,
       choice: null,
       approval: null,
@@ -179,18 +252,22 @@ export class AgentSessionStore {
     if (this.started) return
     this.started = true
     this.watchRegistry()
-    this.eventTimer = setInterval(() => this.flushEvents(), EVENT_RETRY_MS)
+    this.stopRetryTimer = this.environment.repeat(() => this.onRetryTick(), RETRY_MS)
     void this.loadConversations()
     this.scheduleReconcile()
   }
 
+  /** stream, tool 실행, job 감시, event 재전송을 모두 멈춘다. 이 뒤로는 네트워크를 부르지 않는다. */
   dispose(): void {
     this.started = false
-    for (const source of this.streams.values()) source.close()
+    for (const close of this.streams.values()) close()
     this.streams.clear()
     for (const controller of this.batchControllers.values()) controller.abort()
-    if (this.eventTimer !== null) clearInterval(this.eventTimer)
-    this.eventTimer = null
+    // 감시만 끊는다. 이어서 볼 기록은 남겨 다시 mount 될 때 이어 본다.
+    for (const controller of this.watchControllers.values()) controller.abort()
+    this.watchControllers.clear()
+    this.stopRetryTimer?.()
+    this.stopRetryTimer = null
     this.unsubscribeRegistry?.()
     this.unsubscribeRegistry = null
   }
@@ -233,21 +310,24 @@ export class AgentSessionStore {
 
   async removeConversation(conversationId: number): Promise<void> {
     try {
-      await deleteConversation(this.dependencies.projectId, conversationId)
+      await this.environment.api.deleteConversation(this.dependencies.projectId, conversationId)
     } catch (error) {
       this.setState({ error: errorText(error) })
       return
     }
-    this.batchControllers.get(conversationId)?.abort()
+    this.stopBatch(conversationId)
     this.onConversationStopped(conversationId)
     this.backgroundStreamIds.delete(conversationId)
+    this.eventQueue = this.eventQueue.filter((event) => event.conversationId !== conversationId)
     if (this.state.currentId === conversationId) storeConversation(this.dependencies.projectId, null)
     this.setState((state) => {
-      const threads = { ...state.threads }
-      delete threads[conversationId]
+      const conversations = state.conversations.filter((conversation) => conversation.id !== conversationId)
+      const keepIds = new Set(Object.keys(state.threads).map(Number))
+      keepIds.delete(conversationId)
       return {
-        conversations: state.conversations.filter((conversation) => conversation.id !== conversationId),
-        threads,
+        ...pruneConversationState(state, keepIds),
+        threads: keepConversations(state.threads, keepIds),
+        conversations,
         currentId: state.currentId === conversationId ? null : state.currentId,
       }
     })
@@ -263,7 +343,7 @@ export class AgentSessionStore {
     try {
       let conversationId = this.state.currentId
       if (conversationId === null) {
-        const created = await createConversation(projectId, wireCatalog())
+        const created = await this.environment.api.createConversation(projectId, wireCatalog())
         conversationId = created.id
         storeConversation(projectId, created.id)
         this.setState((state) => ({
@@ -272,15 +352,15 @@ export class AgentSessionStore {
           currentId: created.id,
         }))
       }
-      // 이 메시지 뒤에 오는 ASSISTANT 는 이 탭이 실행한다. 보내기 전에 표시해 두어야 응답이
-      // stream 보다 먼저 와도 놓치지 않는다.
-      this.claimReplies(conversationId)
-      const stored = await sendMessage(projectId, conversationId, {
+      const stored = await this.environment.api.sendMessage(projectId, conversationId, {
         text: trimmed,
         pageCatalog: wireCatalog(),
         page: registry.snapshot(),
       })
       this.applyMessages(conversationId, [stored])
+      // 저장된 뒤에야 표시한다. 답이 POST 응답보다 먼저 stream 으로 와도 thread 에 남아 있으므로,
+      // 표시한 뒤의 reconcile 이 실행한다.
+      this.ownRepliesAfter(conversationId, stored.id)
       this.patchConversation(conversationId, (conversation) => ({
         ...conversation,
         status: 'RUNNING',
@@ -297,28 +377,28 @@ export class AgentSessionStore {
   async cancel(): Promise<void> {
     const conversationId = this.state.currentId
     if (conversationId === null) return
-    this.batchControllers.get(conversationId)?.abort()
-    if (this.state.choice?.conversationId === conversationId) this.resolveChoice(null)
-    this.dependencies.registry.pendingApproval()?.reject()
+    this.stopBatch(conversationId)
     this.onConversationStopped(conversationId)
     try {
-      const conversation = await cancelConversation(this.dependencies.projectId, conversationId)
+      const conversation = await this.environment.api.cancelConversation(this.dependencies.projectId, conversationId)
       this.applyConversation(conversation)
     } catch (error) {
       this.setState({ error: errorText(error) })
     }
   }
 
-  /** 이어서 하기. 답이 없는 호출을 이 탭이 맡아 실행한다. */
+  /**
+   * 이어서 하기. 답이 없는 호출을 이 탭이 맡아 실행한다. 그 사이 다른 탭이 잠금을 잡았으면
+   * 실행하지 않고 "다른 탭에서 진행 중" 으로 바뀐다.
+   */
   resume(): void {
     const conversationId = this.state.currentId
     if (conversationId === null) return
     const pending = pendingToolCalls(this.state.threads[conversationId]?.messages ?? [])
     if (pending === null) return
-    this.updateOwnership(conversationId, (ownership) => ({
-      ...ownership,
-      liveAssistantIds: [...ownership.liveAssistantIds, pending.assistantId],
-    }))
+    // 답이 없는 호출은 늘 가장 최근 ASSISTANT 의 것이라, 그 바로 앞 id 부터 맡으면 그 메시지와 그
+    // 뒤의 답만 맡는다.
+    this.updateOwnership(conversationId, () => ({ ownedAfterId: pending.assistantId - 1 }))
   }
 
   answerChoice(optionIds: string[]): void {
@@ -343,6 +423,10 @@ export class AgentSessionStore {
 
   private applyConversation(conversation: Conversation): void {
     if (!isBusy(conversation)) this.backgroundStreamIds.delete(conversation.id)
+    const previousStatus = this.state.threads[conversation.id]?.conversation?.status
+    // AWAITING_TOOL 을 벗어났으면 서버가 더는 이 호출들의 결과를 받지 않는다. 다른 탭이 답했거나
+    // 멈추기가 처리한 것이므로 실행 중인 묶음과 열린 선택, 승인 카드를 닫는다.
+    if (previousStatus === 'AWAITING_TOOL' && conversation.status !== 'AWAITING_TOOL') this.stopBatch(conversation.id)
     this.setState((state) => {
       const thread = state.threads[conversation.id] ?? { conversation: null, messages: [], load: 'loading' as const }
       const listed = state.conversations.some((one) => one.id === conversation.id)
@@ -351,6 +435,7 @@ export class AgentSessionStore {
         conversations: listed
           ? state.conversations.map((one) => (one.id === conversation.id ? conversation : one))
           : [conversation, ...state.conversations],
+        ownership: ownershipAfterStatus(state.ownership, conversation, thread.messages),
       }
     })
   }
@@ -366,28 +451,32 @@ export class AgentSessionStore {
     }))
   }
 
-  /** 지금까지의 마지막 메시지 뒤에 생기는 ASSISTANT 를 이 탭이 맡는다. */
-  private claimReplies(conversationId: number): void {
-    const lastId = lastMessageId(this.state.threads[conversationId]?.messages ?? [])
+  /** 이 탭이 POST 해서 저장된 입력 `inputMessageId` 뒤에 생기는 ASSISTANT 를 이 탭이 맡는다. */
+  private ownRepliesAfter(conversationId: number, inputMessageId: number): void {
     this.updateOwnership(conversationId, (ownership) => ({
-      ...ownership,
-      ownedAfterId: Math.max(ownership.ownedAfterId ?? 0, lastId),
+      ownedAfterId: Math.max(ownership.ownedAfterId ?? 0, inputMessageId),
     }))
     if (conversationId !== this.state.currentId) this.backgroundStreamIds.add(conversationId)
   }
 
   private async loadConversations(): Promise<void> {
     try {
-      const conversations = await listConversations(this.dependencies.projectId)
+      const conversations = await this.environment.api.listConversations(this.dependencies.projectId)
       const currentId = this.state.currentId
       // 지워졌거나 다른 사람의 대화가 저장되어 있으면 새 대화로 시작한다.
       const keepCurrent = currentId === null || conversations.some((one) => one.id === currentId) || currentId in this.state.threads
       if (!keepCurrent) storeConversation(this.dependencies.projectId, null)
-      this.setState((state) => ({
-        listLoad: 'ready',
-        conversations: mergeConversationLists(conversations, state.conversations),
-        currentId: keepCurrent ? state.currentId : null,
-      }))
+      this.setState((state) => {
+        const merged = mergeConversationLists(conversations, state.conversations)
+        const keepIds = new Set(merged.map((one) => one.id))
+        if (keepCurrent && state.currentId !== null) keepIds.add(state.currentId)
+        return {
+          ...pruneConversationState(state, keepIds),
+          listLoad: 'ready',
+          conversations: merged,
+          currentId: keepCurrent ? state.currentId : null,
+        }
+      })
     } catch {
       this.setState({ listLoad: 'error' })
     }
@@ -399,8 +488,8 @@ export class AgentSessionStore {
     const { projectId } = this.dependencies
     try {
       const [conversation, messages] = await Promise.all([
-        getConversation(projectId, conversationId),
-        listMessages(projectId, conversationId),
+        this.environment.api.getConversation(projectId, conversationId),
+        this.environment.api.listMessages(projectId, conversationId),
       ])
       this.applyMessages(conversationId, messages)
       this.applyConversation(conversation)
@@ -432,6 +521,7 @@ export class AgentSessionStore {
       this.loadMissingThreads()
       this.startOwnedBatches()
       this.flushEvents()
+      this.checkCurrentLock(false)
     })
   }
 
@@ -452,52 +542,38 @@ export class AgentSessionStore {
   }
 
   private syncStreams(): void {
-    if (typeof EventSource === 'undefined') return
+    const connect = this.environment.connectStream
+    if (connect === null) return
     const targets = this.streamTargets()
-    for (const [id, source] of this.streams) {
+    for (const [id, close] of this.streams) {
       if (!targets.has(id)) {
-        source.close()
+        close()
         this.streams.delete(id)
       }
     }
     for (const id of targets) {
-      if (!this.streams.has(id)) this.streams.set(id, this.openStream(id))
-    }
-  }
-
-  private openStream(conversationId: number): EventSource {
-    const source = new EventSource(conversationStreamUrl(this.dependencies.projectId, conversationId), {
-      withCredentials: true,
-    })
-    source.addEventListener('message', (event: MessageEvent) => {
-      const message = parseMessageEvent(String(event.data))
-      if (message === null) return
-      // SSE 로 바로 온 ASSISTANT 는 이 탭이 실행한다. stream 은 지난 메시지를 다시 보내지 않으므로
-      // 여기 오는 것은 방금 저장된 것뿐이다.
-      if (message.role === 'ASSISTANT' && message.toolCalls.length > 0) {
-        this.updateOwnership(conversationId, (ownership) => ({
-          ...ownership,
-          liveAssistantIds: [...ownership.liveAssistantIds, message.id],
-        }))
+      if (!this.streams.has(id)) {
+        this.streams.set(
+          id,
+          connect(this.dependencies.projectId, id, {
+            onMessage: (message) => this.applyMessages(id, [message]),
+            onConversation: (conversation) => this.applyConversation(conversation),
+            // 처음 `GET messages` 와 연결 사이, 그리고 다시 연결되는 사이에 저장된 메시지를 다시
+            // 읽는다. 처음 읽기가 아직 끝나지 않았어도 다시 읽는다. 그 읽기가 연결보다 먼저 DB 를
+            // 읽었을 수 있다.
+            onOpen: () => void this.refreshThread(id),
+          }),
+        )
       }
-      this.applyMessages(conversationId, [message])
-    })
-    source.addEventListener('conversation', (event: MessageEvent) => {
-      const conversation = parseConversationEvent(String(event.data))
-      if (conversation !== null) this.applyConversation(conversation)
-    })
-    // 처음 `GET messages` 와 연결 사이, 그리고 다시 연결되는 사이에 저장된 메시지를 다시 읽는다.
-    // 처음 읽기가 아직 끝나지 않았어도 다시 읽는다. 그 읽기가 연결보다 먼저 DB 를 읽었을 수 있다.
-    source.addEventListener('open', () => void this.refreshThread(conversationId))
-    return source
+    }
   }
 
   private async refreshThread(conversationId: number): Promise<void> {
     const { projectId } = this.dependencies
     try {
       const [conversation, messages] = await Promise.all([
-        getConversation(projectId, conversationId),
-        listMessages(projectId, conversationId),
+        this.environment.api.getConversation(projectId, conversationId),
+        this.environment.api.listMessages(projectId, conversationId),
       ])
       this.applyMessages(conversationId, messages)
       this.applyConversation(conversation)
@@ -516,59 +592,132 @@ export class AgentSessionStore {
       if (pending === null) continue
       const ownership = this.state.ownership[conversationId] ?? EMPTY_OWNERSHIP
       if (!isOwnedAssistant(pending.assistantId, ownership)) continue
-      if (pending.calls.some((call) => this.state.startedCallIds.includes(call.callId))) continue
-      void this.runBatch(conversationId, pending.assistantId, pending.calls)
+      const started = this.state.startedCallIds[conversationId] ?? NO_CALL_IDS
+      if (pending.calls.some((call) => started.includes(call.callId))) continue
+      void this.runBatch(conversationId, pending.calls)
     }
   }
 
-  private async runBatch(conversationId: number, assistantId: number, calls: ToolCall[]): Promise<void> {
+  /**
+   * 대화의 잠금을 잡은 동안만 실행한다. 다른 탭이 잡고 있으면 그 탭이 실행 중이므로 이 탭은 맡은
+   * 것을 내려놓고, 이어서 하기 카드 대신 "다른 탭에서 진행 중" 을 보여 준다.
+   */
+  private async runBatch(conversationId: number, calls: ToolCall[]): Promise<void> {
     this.batchConversationIds.add(conversationId)
     const controller = new AbortController()
     this.batchControllers.set(conversationId, controller)
-    const callIds = calls.map((call) => call.callId)
-    this.setState((state) => ({ startedCallIds: [...state.startedCallIds, ...callIds] }))
-    // 마지막 결과를 보내면 서버가 다음 step 을 부른다. 그 답도 이 탭이 이어서 실행한다.
-    this.updateOwnership(conversationId, (ownership) => ({
-      ...ownership,
-      ownedAfterId: Math.max(ownership.ownedAfterId ?? 0, assistantId),
-    }))
+    let granted = false
     try {
-      for (const call of calls) {
-        if (controller.signal.aborted) return
-        this.setState({ runningCall: { conversationId, callId: call.callId } })
-        const body = await executeToolCall(call, this.toolContext(conversationId, controller.signal))
-        if (controller.signal.aborted) return
-        try {
-          const stored = await sendToolResult(this.dependencies.projectId, conversationId, call.callId, body)
-          this.applyMessages(conversationId, [stored])
-        } catch (error) {
-          // 409 는 다른 탭이 먼저 답했거나 멈추기가 처리한 것이다. 이 묶음을 그만둔다.
-          if (isConflict(error)) return
-          this.releaseBatch(conversationId, callIds)
-          this.setState({ error: errorText(error) })
-          return
-        }
-      }
+      granted = await runIfLockAvailable(this.environment.lockManager, conversationLockName(conversationId), () =>
+        this.executeBatch(conversationId, calls, controller.signal),
+      )
     } finally {
       this.batchConversationIds.delete(conversationId)
-      this.batchControllers.delete(conversationId)
+      if (this.batchControllers.get(conversationId) === controller) this.batchControllers.delete(conversationId)
       this.setState((state) => ({
         runningCall: state.runningCall?.conversationId === conversationId ? null : state.runningCall,
+        ownership: granted ? state.ownership : withoutKey(state.ownership, conversationId),
       }))
     }
+    if (!granted) this.checkLock(conversationId, true)
+  }
+
+  private async executeBatch(conversationId: number, calls: ToolCall[], signal: AbortSignal): Promise<void> {
+    const callIds = calls.map((call) => call.callId)
+    this.setState((state) => ({
+      startedCallIds: {
+        ...state.startedCallIds,
+        [conversationId]: [...(state.startedCallIds[conversationId] ?? NO_CALL_IDS), ...callIds],
+      },
+    }))
+    for (const call of calls) {
+      if (signal.aborted) return
+      this.setState({ runningCall: { conversationId, callId: call.callId } })
+      // watch_job 이 시작한 감시는 결과를 보낸 뒤에도 돌아야 하므로 묶음의 signal 이 아니라 대화의
+      // 감시 signal 을 받는다. 멈추기, 삭제, dispose 가 그 signal 을 끊는다.
+      const callSignal = call.tool === 'watch_job' ? this.watchSignal(conversationId) : signal
+      const body = await this.environment.executeTool(call, this.toolContext(conversationId, callSignal))
+      if (signal.aborted) return
+      try {
+        const stored = await this.environment.api.sendToolResult(this.dependencies.projectId, conversationId, call.callId, body)
+        this.applyMessages(conversationId, [stored])
+        // 마지막 결과를 보내면 서버가 다음 step 을 부른다. 그 답도 이 탭이 이어서 실행한다.
+        this.ownRepliesAfter(conversationId, stored.id)
+      } catch (error) {
+        // 409 는 다른 탭이 먼저 답했거나 멈추기가 처리한 것이다. 이 묶음을 그만둔다.
+        if (isConflict(error)) return
+        this.releaseBatch(conversationId, callIds)
+        this.setState({ error: errorText(error) })
+        return
+      }
+    }
+  }
+
+  /** 실행 중인 묶음을 끊고, 그 대화의 선택 카드와 승인 카드를 닫는다. */
+  private stopBatch(conversationId: number): void {
+    const controller = this.batchControllers.get(conversationId)
+    if (controller === undefined) return
+    // tool 은 registry 에 이 signal 을 넘기므로 승인 대기는 abort 만으로 `cancelled` 로 끝난다.
+    controller.abort()
+    if (this.state.choice?.conversationId === conversationId) this.resolveChoice(null)
+    this.dependencies.registry.pendingApproval()?.reject()
   }
 
   /** 결과를 보내지 못했을 때 맡은 것을 내려놓는다. 그러면 이어서 하기 카드로 다시 시도할 수 있다. */
   private releaseBatch(conversationId: number, callIds: string[]): void {
     this.setState((state) => ({
-      startedCallIds: state.startedCallIds.filter((id) => !callIds.includes(id)),
-      ownership: { ...state.ownership, [conversationId]: EMPTY_OWNERSHIP },
+      startedCallIds: {
+        ...state.startedCallIds,
+        [conversationId]: (state.startedCallIds[conversationId] ?? NO_CALL_IDS).filter((id) => !callIds.includes(id)),
+      },
+      ownership: withoutKey(state.ownership, conversationId),
     }))
+  }
+
+  // ---- 내부: 다른 탭의 잠금 ----
+
+  private onRetryTick(): void {
+    this.flushEvents()
+    this.checkCurrentLock(true)
+  }
+
+  /** 지금 대화가 이어서 하기 카드를 그릴 상황이면 다른 탭이 잠금을 잡고 있는지 확인한다. */
+  private checkCurrentLock(force: boolean): void {
+    const conversationId = this.state.currentId
+    if (conversationId === null) return
+    const thread = this.state.threads[conversationId]
+    if (thread === undefined) return
+    const pending = needsResume(
+      thread.conversation,
+      thread.messages,
+      this.state.ownership[conversationId] ?? EMPTY_OWNERSHIP,
+      this.state.startedCallIds[conversationId] ?? NO_CALL_IDS,
+    )
+    if (pending === null) return
+    if (!force && this.lockQueriedAssistant.get(conversationId) === pending.assistantId) return
+    this.lockQueriedAssistant.set(conversationId, pending.assistantId)
+    this.checkLock(conversationId, force)
+  }
+
+  private checkLock(conversationId: number, force: boolean): void {
+    if (this.lockQueriesInFlight.has(conversationId)) return
+    if (!force && this.state.conversationLocks[conversationId] !== undefined) return
+    this.lockQueriesInFlight.add(conversationId)
+    void isLockHeld(this.environment.lockManager, conversationLockName(conversationId))
+      .catch(() => false)
+      .then((held) => {
+        this.lockQueriesInFlight.delete(conversationId)
+        if (!this.started) return
+        const lockState: ConversationLockState = held ? 'held' : 'free'
+        if (this.state.conversationLocks[conversationId] === lockState) return
+        this.setState((state) => ({ conversationLocks: { ...state.conversationLocks, [conversationId]: lockState } }))
+      })
   }
 
   /**
    * hook point: 대화를 처음 읽어 온 뒤 부른다. branch 를 합칠 때 `watchJob.ts` 의
-   * `resumeWatches(context)` 를 여기서 부른다(새로고침 뒤 job 진행 카드를 다시 지켜보게 한다).
+   * `resumeWatches(context)` 를 `this.watchSignal(conversationId)` 로 만든 context 와 함께 여기서
+   * 부른다(새로고침 뒤 job 진행 카드를 다시 지켜보게 한다).
    */
   private onConversationOpened(conversationId: number): void {
     const context = this.toolContext(conversationId, new AbortController().signal)
@@ -576,12 +725,22 @@ export class AgentSessionStore {
   }
 
   /**
-   * hook point: 사용자가 멈추기를 누르거나 대화를 지울 때 부른다. branch 를 합칠 때
-   * `watchJob.ts` 의 `forgetWatches(context)` 를 여기서 부른다.
+   * 사용자가 멈추기를 누르거나 대화를 지울 때 부른다. job 감시를 끊는다. hook point: branch 를
+   * 합칠 때 `watchJob.ts` 의 `forgetWatches(context)` 도 여기서 부른다.
    */
   private onConversationStopped(conversationId: number): void {
-    const context = this.toolContext(conversationId, new AbortController().signal)
-    void context
+    this.watchControllers.get(conversationId)?.abort()
+    this.watchControllers.delete(conversationId)
+  }
+
+  /** 대화의 job 감시 signal. 멈추기, 삭제, dispose 때 abort 된다. */
+  private watchSignal(conversationId: number): AbortSignal {
+    let controller = this.watchControllers.get(conversationId)
+    if (controller === undefined) {
+      controller = new AbortController()
+      this.watchControllers.set(conversationId, controller)
+    }
+    return controller.signal
   }
 
   private toolContext(conversationId: number, signal: AbortSignal): ToolContext {
@@ -605,13 +764,20 @@ export class AgentSessionStore {
     multiple: boolean,
     signal: AbortSignal,
   ): Promise<string[] | null> {
+    // 열린 선택 카드를 새 질문으로 덮으면 앞 질문의 답을 잃는다. 새 질문을 error 로 돌려보낸다.
+    if (this.choiceResolver !== null) return Promise.reject(new Error('another choice is open'))
+    if (signal.aborted) return Promise.resolve(null)
     return new Promise((resolve) => {
-      this.choiceResolver?.(null)
-      this.choiceResolver = resolve
+      const onAbort = () => {
+        if (this.choiceResolver === settle) this.resolveChoice(null)
+      }
+      const settle = (optionIds: string[] | null) => {
+        signal.removeEventListener('abort', onAbort)
+        resolve(optionIds)
+      }
+      this.choiceResolver = settle
       this.setState({ choice: { conversationId, question, options, multiple } })
-      signal.addEventListener('abort', () => {
-        if (this.choiceResolver === resolve) this.resolveChoice(null)
-      })
+      signal.addEventListener('abort', onAbort, { once: true })
     })
   }
 
@@ -641,6 +807,7 @@ export class AgentSessionStore {
   }
 
   private flushEvents(): void {
+    if (!this.started) return
     const statusOf = (conversationId: number) => this.state.threads[conversationId]?.conversation?.status
     for (const event of readyEvents(this.eventQueue, statusOf)) {
       if (this.sendingEventSequences.has(event.sequence)) continue
@@ -651,15 +818,16 @@ export class AgentSessionStore {
   private async sendQueuedEvent(event: QueuedEvent): Promise<void> {
     this.sendingEventSequences.add(event.sequence)
     const { conversationId } = event
-    this.claimReplies(conversationId)
     try {
-      const stored = await sendEvent(this.dependencies.projectId, conversationId, {
+      const stored = await this.environment.api.sendEvent(this.dependencies.projectId, conversationId, {
         kind: event.kind,
         summary: event.summary,
         data: event.data,
       })
       this.eventQueue = removeEvent(this.eventQueue, event.sequence)
       this.applyMessages(conversationId, [stored])
+      // 409 로 실패한 재시도는 여기까지 오지 않으므로 맡지 않는다.
+      this.ownRepliesAfter(conversationId, stored.id)
       this.patchConversation(conversationId, (conversation) => ({ ...conversation, status: 'RUNNING' }))
     } catch (error) {
       // 409 는 아직 바쁘다는 뜻이라 다음 시도까지 둔다. 그 밖의 오류(지워진 대화 등)는 버린다.
@@ -676,6 +844,46 @@ function finishedJobKeys(jobs: Record<number, JobState[]>): string[] {
     .flat()
     .filter((job) => job.state !== 'running')
     .map((job) => job.key)
+}
+
+function withoutKey<T>(record: Record<number, T>, key: number): Record<number, T> {
+  if (!(key in record)) return record
+  const next = { ...record }
+  delete next[key]
+  return next
+}
+
+/**
+ * 대화가 IDLE 이나 ERROR 로 돌아오면 그 차례의 답은 끝났으므로 맡은 것을 지운다. 다만 이 탭이 보낸
+ * 입력 뒤에 아직 아무 메시지도 없으면 지우지 않는다. 입력을 보내기 전에 읽은 IDLE 이 늦게 도착한
+ * 것일 수 있다.
+ */
+function ownershipAfterStatus(
+  ownership: Record<number, Ownership>,
+  conversation: Conversation,
+  messages: readonly AgentMessage[],
+): Record<number, Ownership> {
+  const owned = ownership[conversation.id]
+  if (owned === undefined || owned.ownedAfterId === null) return ownership
+  if (conversation.status !== 'IDLE' && conversation.status !== 'ERROR') return ownership
+  if (lastMessageId(messages) <= owned.ownedAfterId) return ownership
+  return withoutKey(ownership, conversation.id)
+}
+
+function keepConversations<T>(record: Record<number, T>, keepIds: ReadonlySet<number>): Record<number, T> {
+  return Object.fromEntries(Object.entries(record).filter(([key]) => keepIds.has(Number(key))))
+}
+
+/** `keepIds` 에 없는 대화의 맡은 것, 시작한 호출, 잠금 확인 결과를 지운다. */
+function pruneConversationState(
+  state: SessionState,
+  keepIds: ReadonlySet<number>,
+): Pick<SessionState, 'ownership' | 'startedCallIds' | 'conversationLocks'> {
+  return {
+    ownership: keepConversations(state.ownership, keepIds),
+    startedCallIds: keepConversations(state.startedCallIds, keepIds),
+    conversationLocks: keepConversations(state.conversationLocks, keepIds),
+  }
 }
 
 /** 서버 목록을 우선하되, 목록이 오기 전에 이 탭이 만든 대화는 남긴다. */

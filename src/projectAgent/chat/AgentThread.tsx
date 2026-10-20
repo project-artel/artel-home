@@ -87,7 +87,7 @@ export function AgentThread({ session }: { session: AgentSession }) {
   // 새 줄이나 카드가 생기면 맨 아래로 내린다.
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: 'end' })
-  }, [lastItemId, view.items.length, view.jobs.length, view.choice, state.approval, view.resume, running])
+  }, [lastItemId, view.items.length, view.jobs.length, view.choice, state.approval, view.resume, view.runningInOtherTab, running])
 
   return (
     <div className="agent-thread">
@@ -104,6 +104,7 @@ export function AgentThread({ session }: { session: AgentSession }) {
       {view.resume !== null && (
         <ResumeCard onResume={() => store.resume()} onStop={() => void store.cancel()} pending={view.resume} />
       )}
+      {view.runningInOtherTab && <p className="agent-other-tab">{copy.runningInOtherTab}</p>}
       <p aria-live="polite" className={running ? 'agent-working' : 'visually-hidden'}>
         {running ? copy.working : ''}
       </p>

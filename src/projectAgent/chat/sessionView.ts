@@ -29,13 +29,17 @@ export type CurrentView = {
   thread: Thread | null
   items: ThreadItem[]
   jobs: JobState[]
+  /** 이어서 하기 카드. 어느 탭도 이 대화의 잠금을 잡고 있지 않다고 확인했을 때만 있다. */
   resume: PendingCalls | null
+  /** 답이 없는 호출을 다른 탭이 실행 중이다. 카드 대신 한 줄로 알린다. */
+  runningInOtherTab: boolean
   busy: boolean
   /** 지금 대화의 선택 카드. 다른 대화의 선택은 그 대화로 가야 보인다. */
   choice: SessionState['choice']
 }
 
 const NO_JOBS: JobState[] = []
+const NO_CALL_IDS: string[] = []
 
 export function currentView(state: SessionState): CurrentView {
   const id = state.currentId
@@ -44,12 +48,17 @@ export function currentView(state: SessionState): CurrentView {
   const conversation = thread?.conversation ?? null
   const runningCallId =
     state.runningCall !== null && state.runningCall.conversationId === id ? state.runningCall.callId : null
-  const ownership = (id === null ? undefined : state.ownership[id]) ?? { ownedAfterId: null, liveAssistantIds: [] }
+  const ownership = (id === null ? undefined : state.ownership[id]) ?? { ownedAfterId: null }
+  const startedCallIds = (id === null ? undefined : state.startedCallIds[id]) ?? NO_CALL_IDS
+  const pending = needsResume(conversation, messages, ownership, startedCallIds)
+  // 잠금을 아직 확인하지 않았으면 둘 다 그리지 않는다. 확인은 곧 끝난다.
+  const lockState = id === null ? undefined : state.conversationLocks[id]
   return {
     thread,
     items: threadItems(messages, runningCallId),
     jobs: (id === null ? undefined : state.jobs[id]) ?? NO_JOBS,
-    resume: needsResume(conversation, messages, ownership, state.startedCallIds),
+    resume: pending !== null && lockState === 'free' ? pending : null,
+    runningInOtherTab: pending !== null && lockState === 'held',
     busy: state.sending || isBusy(conversation),
     choice: state.choice !== null && state.choice.conversationId === id ? state.choice : null,
   }

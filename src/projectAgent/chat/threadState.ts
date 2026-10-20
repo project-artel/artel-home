@@ -59,32 +59,23 @@ export function pendingToolCalls(messages: readonly AgentMessage[]): PendingCall
 }
 
 /**
- * 이 탭이 실행할 책임이 있는 ASSISTANT 메시지인지.
- *
- * - SSE 로 이 탭에 바로 도착했거나(`liveAssistantIds`),
- * - 이 탭이 메시지나 event 를 보낸 뒤에 생긴 것(`ownedAfterId` 보다 큰 id)이다.
- *
- * 둘째 조건은 `GET messages` 와 stream 연결 사이에 도착해 다시 읽기로만 받은 응답을 위한 것이다.
- * 그 응답은 SSE 로 오지 않았지만 이 탭이 보낸 말에 대한 답이다. 새로고침한 탭은 둘 다 없으므로
- * 이어서 하기 카드를 본다.
+ * 이 탭이 실행할 책임이 있는 ASSISTANT 메시지인지. 이 탭이 POST 한 입력(`ownedAfterId`) 뒤에 생긴
+ * 것만 맡는다. SSE 로 받았다는 것만으로는 맡지 않는다. 같은 대화를 연 탭은 모두 같은 SSE 를 받으므로,
+ * 그렇게 하면 모든 탭이 같은 호출을 실행한다. 새로고침한 탭은 맡은 것이 없으므로 이어서 하기 카드를
+ * 본다.
  */
-export function isOwnedAssistant(
-  assistantId: number,
-  ownership: { ownedAfterId: number | null; liveAssistantIds: readonly number[] },
-): boolean {
-  if (ownership.liveAssistantIds.includes(assistantId)) return true
+export function isOwnedAssistant(assistantId: number, ownership: { ownedAfterId: number | null }): boolean {
   return ownership.ownedAfterId !== null && assistantId > ownership.ownedAfterId
 }
 
 /**
- * 이어서 하기 카드를 보여 줄지. `AWAITING_TOOL` 이고 답이 없는 호출이 있는데, 이 탭이 그 호출을
- * 시작하지도 않았고 맡지도 않았을 때다. 다른 탭이 실행 중일 수도 있지만 그 탭은 알 수 없으므로
- * 카드를 보여 주고 사용자가 고르게 한다.
+ * 이어서 하기 카드의 후보. `AWAITING_TOOL` 이고 답이 없는 호출이 있는데, 이 탭이 그 호출을 시작하지도
+ * 않았고 맡지도 않았을 때다. 다른 탭이 실행 중인지는 잠금으로 따로 확인한다(`sessionView`).
  */
 export function needsResume(
   conversation: Conversation | null,
   messages: readonly AgentMessage[],
-  ownership: { ownedAfterId: number | null; liveAssistantIds: readonly number[] },
+  ownership: { ownedAfterId: number | null },
   startedCallIds: readonly string[],
 ): PendingCalls | null {
   if (conversation === null || conversation.status !== 'AWAITING_TOOL') return null

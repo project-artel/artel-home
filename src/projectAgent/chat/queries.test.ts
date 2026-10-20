@@ -127,6 +127,16 @@ test('runQuery rejects an unknown kind without a request', async () => {
   assert.equal(result.status, 'error')
 })
 
+test('runQuery rejects an unknown issue status or severity without a request', async () => {
+  const signal = new AbortController().signal
+  const badStatus = await runQuery('1', { kind: 'issues', args: { status: 'closed-ish' } }, signal)
+  assert.equal(badStatus.status, 'error')
+  assert.match(String(badStatus.error), /unknown status 'closed-ish'/)
+  const badSeverity = await runQuery('1', { kind: 'issues', args: { severity: 'urgent' } }, signal)
+  assert.equal(badSeverity.status, 'error')
+  assert.match(String(badSeverity.error), /unknown severity 'urgent'/)
+})
+
 test('trimQaTryHistory groups tries by QA run and marks a run failed when any try failed', () => {
   const qaTry = (id: string, qaRunId: string | null, status: QaTry['status']): QaTry => ({
     id,

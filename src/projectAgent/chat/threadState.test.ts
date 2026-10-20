@@ -64,29 +64,27 @@ test('pendingToolCalls is null when every call has a result', () => {
   assert.equal(pendingToolCalls([message(2, 'ASSISTANT', { toolCalls: [call('a')] }), result(3, 'a')]), null)
 })
 
-test('isOwnedAssistant accepts a live id or an id after ownedAfterId', () => {
-  assert.equal(isOwnedAssistant(5, { ownedAfterId: null, liveAssistantIds: [5] }), true)
-  assert.equal(isOwnedAssistant(5, { ownedAfterId: 4, liveAssistantIds: [] }), true)
-  assert.equal(isOwnedAssistant(5, { ownedAfterId: 5, liveAssistantIds: [] }), false)
-  assert.equal(isOwnedAssistant(5, { ownedAfterId: null, liveAssistantIds: [] }), false)
+test('isOwnedAssistant accepts only an id after ownedAfterId', () => {
+  assert.equal(isOwnedAssistant(5, { ownedAfterId: 4 }), true)
+  assert.equal(isOwnedAssistant(5, { ownedAfterId: 5 }), false)
+  assert.equal(isOwnedAssistant(5, { ownedAfterId: null }), false)
 })
 
 test('needsResume shows the card for a loaded AWAITING_TOOL conversation this tab does not own', () => {
   const messages = [message(1, 'USER'), message(2, 'ASSISTANT', { toolCalls: [call('a')] })]
-  const notOwned = { ownedAfterId: null, liveAssistantIds: [] }
+  const notOwned = { ownedAfterId: null }
   assert.deepEqual(needsResume(awaiting, messages, notOwned, []), { assistantId: 2, calls: [call('a')] })
 })
 
 test('needsResume hides the card when this tab owns or started the calls', () => {
   const messages = [message(1, 'USER'), message(2, 'ASSISTANT', { toolCalls: [call('a')] })]
-  assert.equal(needsResume(awaiting, messages, { ownedAfterId: 1, liveAssistantIds: [] }, []), null)
-  assert.equal(needsResume(awaiting, messages, { ownedAfterId: null, liveAssistantIds: [2] }, []), null)
-  assert.equal(needsResume(awaiting, messages, { ownedAfterId: null, liveAssistantIds: [] }, ['a']), null)
+  assert.equal(needsResume(awaiting, messages, { ownedAfterId: 1 }, []), null)
+  assert.equal(needsResume(awaiting, messages, { ownedAfterId: null }, ['a']), null)
 })
 
 test('needsResume hides the card unless the conversation is AWAITING_TOOL', () => {
   const messages = [message(2, 'ASSISTANT', { toolCalls: [call('a')] })]
-  const notOwned = { ownedAfterId: null, liveAssistantIds: [] }
+  const notOwned = { ownedAfterId: null }
   assert.equal(needsResume({ ...awaiting, status: 'RUNNING' }, messages, notOwned, []), null)
   assert.equal(needsResume(null, messages, notOwned, []), null)
 })

@@ -177,10 +177,17 @@ function stringArg(args: Record<string, unknown>, name: string): string | undefi
   return undefined
 }
 
-function oneOf<T extends string>(value: string | undefined, allowed: readonly T[]): T | undefined {
+/**
+ * 목록 filter 값. 없으면 undefined, 모르는 값이면 던진다. 모르는 값을 조용히 빼면 agent 는 filter 가
+ * 걸린 줄 알고 전체 목록을 읽는다.
+ */
+function filterArg<T extends string>(args: Record<string, unknown>, name: string, allowed: readonly T[]): T | undefined {
+  const value = stringArg(args, name)
   if (value === undefined) return undefined
   const upper = value.toUpperCase()
-  return allowed.find((one) => one === upper)
+  const matched = allowed.find((one) => one === upper)
+  if (matched === undefined) throw new Error(`unknown ${name} '${value}'. Use one of ${allowed.join(', ')}`)
+  return matched
 }
 
 /** `query` tool 의 실행. 실패는 던지지 않고 `error` 결과로 돌려준다. */
@@ -225,8 +232,8 @@ async function queryResult(
     const page = await listProjectIssues(
       projectId,
       {
-        status: oneOf(stringArg(args, 'status'), ISSUE_STATUSES),
-        severity: oneOf(stringArg(args, 'severity'), ISSUE_SEVERITIES),
+        status: filterArg(args, 'status', ISSUE_STATUSES),
+        severity: filterArg(args, 'severity', ISSUE_SEVERITIES),
       },
       undefined,
       signal,

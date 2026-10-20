@@ -1,4 +1,4 @@
-import { useMemo, type CSSProperties } from 'react'
+import { useMemo, type CSSProperties, type ReactNode } from 'react'
 import { Link, Outlet, useLocation, useParams } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
 import { AgentChatPanel, AgentReopenButton, AgentSplitHandle } from '../../projectAgent/AgentDock'
@@ -185,8 +185,7 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
 
   // 대화 session 은 대화창 밖에 둔다. 대화창을 닫아도 agent 가 하던 일을 계속한다.
   return (
-    <ActionRegistryProvider projectId={projectId}>
-    <AgentSessionProvider enabled={dock.enabled} panelOpen={dock.open} projectId={projectId}>
+    <ProjectAgentProviders enabled={dock.enabled} panelOpen={dock.open} projectId={projectId}>
     <div
       className={workspaceClass}
       style={dock.open ? ({ '--agent-chat-w': `${dock.chatWidth}px` } as CSSProperties) : undefined}
@@ -237,7 +236,32 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
       {dock.open && <AgentChatPanel onClose={dock.closeChat} wide={agentHome} />}
       {dock.enabled && !dock.open && <AgentReopenButton onOpen={dock.openChat} />}
     </div>
-    </AgentSessionProvider>
+    </ProjectAgentProviders>
+  )
+}
+
+/**
+ * 기능 flag 가 켜졌을 때만 registry 와 대화 session 을 둔다. 꺼져 있으면 강조 overlay, dev panel,
+ * location effect 가 하나도 생기지 않는다. 페이지의 hook 은 provider 가 없으면 아무도 읽지 않는
+ * 빈 registry 에 등록한다. flag 는 build 때 정해지므로 tree 모양이 실행 중에 바뀌지 않는다.
+ */
+function ProjectAgentProviders({
+  enabled,
+  panelOpen,
+  projectId,
+  children,
+}: {
+  enabled: boolean
+  panelOpen: boolean
+  projectId: string
+  children: ReactNode
+}) {
+  if (!enabled) return <>{children}</>
+  return (
+    <ActionRegistryProvider projectId={projectId}>
+      <AgentSessionProvider enabled panelOpen={panelOpen} projectId={projectId}>
+        {children}
+      </AgentSessionProvider>
     </ActionRegistryProvider>
   )
 }

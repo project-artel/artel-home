@@ -50,7 +50,7 @@ const setField: ToolHandler = async (args, context) => {
   if (typeof args.field !== 'string' || args.field.length === 0) {
     return { status: 'error', error: 'set_field needs a field name' }
   }
-  const outcome = await context.registry.setField(args.field, args.value)
+  const outcome = await context.registry.setField(args.field, args.value, context.signal)
   return outcomeToResult(outcome, context.registry.snapshot())
 }
 
@@ -58,7 +58,7 @@ const callAction: ToolHandler = async (args, context) => {
   if (typeof args.action !== 'string' || args.action.length === 0) {
     return { status: 'error', error: 'call_action needs an action id' }
   }
-  const outcome = await context.registry.callAction(args.action, asArgs(args.args))
+  const outcome = await context.registry.callAction(args.action, asArgs(args.args), context.signal)
   return outcomeToResult(outcome, context.registry.snapshot())
 }
 
