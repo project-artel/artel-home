@@ -78,10 +78,12 @@ type PendingRequest = {
 /**
  * field 의 `options` 나 지금 값의 type 에 맞지 않는 값이면 이유를, 맞으면 null 을 돌려준다.
  * options 는 select 의 value 처럼 문자열과 숫자가 섞여 오므로 문자열로 바꿔 비교한다.
+ * options 가 빈 배열이면 지금은 값을 나열하지 않는 칸(예: token 수를 받는 칸)이므로 검사를 page 의
+ * `write` 에 맡긴다.
  */
 function fieldValueError(binding: FieldBinding, value: unknown): string | null {
-  if (binding.options !== undefined) {
-    const allowedValues = binding.options().map((option) => option.value)
+  const allowedValues = binding.options?.().map((option) => option.value) ?? []
+  if (allowedValues.length > 0) {
     if (!allowedValues.some((allowed) => String(allowed) === String(value))) {
       const listed = allowedValues.map((allowed) => JSON.stringify(allowed)).join(', ')
       return `${binding.spec.name} must be one of ${listed}`

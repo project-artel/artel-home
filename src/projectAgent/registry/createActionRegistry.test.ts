@@ -219,6 +219,22 @@ test('setField compares options as strings, so a numeric option accepts its stri
   assert.equal(value, '0')
 })
 
+test('setField leaves an empty options list to the page writer', async () => {
+  const registry = createActionRegistry(fast)
+  let value: unknown = 1024
+  registry.registerField({
+    spec: { name: 'qa.reasoningValue', page: 'qa', description: 'token budget' },
+    target: () => null,
+    read: () => value,
+    options: () => [],
+    write: (next) => {
+      value = next
+    },
+  })
+  assert.equal((await registry.setField('qa.reasoningValue', 2048)).status, 'ok')
+  assert.equal(value, 2048)
+})
+
 test('aborting during the highlight cancels setField and callAction without writing or running', async () => {
   const registry = createActionRegistry({ ...fast, highlightMilliseconds: 200 })
   const field = makeField()
