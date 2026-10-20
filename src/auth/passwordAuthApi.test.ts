@@ -29,6 +29,7 @@ describe('parseAuthProviders', () => {
       password: true,
       github: false,
       signupOpen: true,
+      telemetryAvailable: false,
     })
   })
 
