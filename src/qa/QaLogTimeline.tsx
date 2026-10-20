@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { useI18n } from '../i18n/useI18n'
 import { groupStepsByCase, type ScenarioStep } from '../testScenarios/scenarioTypes'
 import { compareDecimalIds } from './qaApi'
+import { behaviorEndedOf, cheatNamesOf, usedCheatsOf } from './qaFunctionTimeline'
 import {
   anchorOf,
   buildTimelineRows,
@@ -55,6 +56,7 @@ const TYPE_LABELS: Record<QaLog['type'], string> = {
   ERROR: 'Error',
   CHAT: 'Chat',
   CASE_VERDICT: 'Case verdict',
+  BEHAVIOR_ENDED: 'Behavior ended',
 }
 
 /** Breathing room above a row scrolled to, so it does not sit flush at the edge. */
@@ -177,12 +179,27 @@ function QaLogRow({
   // TOOL 행은 `message` 가 tool 이름이다. 그것은 메타 줄의 칩으로 따로 보이므로, 본문
   // 자리에는 모델이 왜 불렀는지를 적은 `thought` 를 놓는다.
   const call = log.type === 'TOOL' ? toolCallOf(log) : null
+  // cheat 호출이 담긴 ACTION 행과, cheat 를 쓴 step 의 STATUS 행에 배지를 단다(ARTEL-1051).
+  const cheatNames = cheatNamesOf(log)
+  const usedCheats = log.type === 'STATUS' ? usedCheatsOf(log.payload) : []
+  const behaviorEnded = log.type === 'BEHAVIOR_ENDED' ? behaviorEndedOf(log.payload) : null
+  const functionText = t.gameFunctions.timeline
+  const behaviorEndedMessage =
+    behaviorEnded === null
+      ? null
+      : [
+          behaviorEnded.name,
+          behaviorEnded.reason === null ? functionText.unknownReason : functionText.endReason[behaviorEnded.reason],
+          behaviorEnded.detail,
+        ]
+          .filter((part): part is string => part !== null && part.length > 0)
+          .join(' · ')
   const message =
     call !== null
       ? (call.thought ?? 'No reason given')
       : log.message.length > 0
         ? log.message
-        : 'No message'
+        : (behaviorEndedMessage ?? 'No message')
   const focused = log.id === focusedLogId
 
   return (
@@ -201,6 +218,23 @@ function QaLogRow({
             <span className="qa-log-tool-name mono" translate="no">{call.tool}</span>
           )}
           {step !== null && <span className="qa-log-step">{t.qa.steps.short(step)}</span>}
+          {cheatNames.length > 0 && (
+            <span className="gf-badge" translate="no">
+              {cheatNames.length === 1 && cheatNames[0].length > 0
+                ? functionText.cheatBadgeNamed(cheatNames[0])
+                : functionText.cheatBadge}
+            </span>
+          )}
+          {usedCheats.length > 0 && (
+            <span
+              className="gf-badge"
+              title={usedCheats
+                .map((used) => (used.success ? used.name : `${used.name} (${functionText.usedCheatFailed})`))
+                .join(', ')}
+            >
+              {functionText.usedCheats(usedCheats.length)}
+            </span>
+          )}
           {repeats > 1 && (
             /* Counted, not just styled: the number is the information. */
             <span className="qa-log-repeat">×{repeats}</span>

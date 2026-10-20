@@ -1,3 +1,5 @@
+import type { CaseFunctions } from './caseFunctions'
+
 /**
  * The TestCase contract as the orchestration server defines it
  * (`/api/projects/{projectId}/test-cases`).
@@ -80,6 +82,11 @@ export type TestCase = {
    * time does not belong on every row of every list.
    */
   evidenceGaps: string[]
+  /**
+   * 이 케이스를 돌 때 에이전트에게 허락하는 cheat · behavior(ARTEL-1051). 서버가 이 필드를 아직 안 보내면
+   * 없다 — 그 경우와 "전부 허용" 을 같게 다루지만, 저장할 때 모르는 값을 덮어쓰지 않으려고 구분해 둔다.
+   */
+  functions?: CaseFunctions
 }
 
 /**
@@ -127,6 +134,8 @@ export type TestCaseInput = {
   folderId?: string | null
   /** 만들면서 넣을 버전(ARTEL-1032). 만들 때만 보낸다. null 이면 "버전 없음"이다. */
   gameBuildId?: string | null
+  /** 바꿨을 때만 보낸다. */
+  functions?: CaseFunctions
 }
 
 /** One position in a scenario's ordered case composition (`/cases`). */

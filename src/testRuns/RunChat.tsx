@@ -1,13 +1,44 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { Dialog } from '../design-system/primitives/Dialog'
-import { RunChatQuestionModal } from './RunChatQuestionModal'
-import { ChatMessageBody, ChatReplyBody } from './ChatMessageBody'
+import { ChatAsks, ChatMessageBody, ChatReplyBody } from './ChatMessageBody'
 import { ChatLinkContext } from './chatRefContext'
 import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
+import { StudioIcon } from '../testScenarios/studioIcons'
+import { ChatSketch } from '../testScenarios/studioSketches'
+import { AskDock } from './AskDock'
+import { DOCK_MIN_QUESTIONS, useAskFlow, type AskAnswer } from './askFlow'
+import type { RunChatQuestion as AskQuestion } from './runChatApi'
+
+const NO_ASKS: AskQuestion[] = []
+
+/** 이 줄에 남은, 오케가 계산으로 낸 질문(경로 공백). 답한 것은 훅이 걷어 낸다. */
+function codeQuestionsOf(message: { question?: AskQuestion | null; questions?: AskQuestion[] }): AskQuestion[] {
+  return message.questions ?? (message.question != null ? [message.question] : [])
+}
 import { formatDateTime } from '../projects/formatters'
-import type { AuthoringStage, ChatRef, RunChatQuestion } from './runChatApi'
+
+const dayFormatter = new Intl.DateTimeFormat(undefined, { month: 'long', day: 'numeric' })
+const timeFormatter = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' })
+
+function formatDay(value: string): string {
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? '' : dayFormatter.format(parsed)
+}
+
+function formatTime(value: string): string {
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? '' : timeFormatter.format(parsed)
+}
+
+/** 앞 말과 날짜(그 사람의 시간대 기준)가 다르면 구분선을 세운다. 첫 말은 늘 세운다. */
+function dayChanged(previous: string | null, current: string | null): boolean {
+  if (current === null) return false
+  if (previous === null) return true
+  return new Date(previous).toDateString() !== new Date(current).toDateString()
+}
+import type { AuthoringStage } from './runChatApi'
 import { ESC_WINDOW_MS, pressEscape } from './escCancel'
 import { deleteTestCase, getCoverage, getTestCase } from '../testCases/testCaseApi'
 import type { TestCase, TestCaseCoverage } from '../testCases/testCaseTypes'
@@ -192,9 +223,7 @@ export function RunChat({ session }: { session: RunChatSession }) {
   const [searchParams] = useSearchParams()
   const [input, setInput] = useState(() => searchParams.get('draft') ?? '')
   // 지금 화면 가운데에 띄워 둔 되묻기(ARTEL-677). 비어 있으면 모달이 없다.
-  const [asking, setAsking] = useState<RunChatQuestion[] | null>(null)
   // 질문 문장 속 표식의 이름(ARTEL-933). 그 질문이 붙은 줄의 것을 모달까지 들고 간다.
-  const [askingRefs, setAskingRefs] = useState<ChatRef[]>([])
   // TC 칩으로 연 케이스(ARTEL-940). 라이브러리와 같은 상세 시트로 보이고 거기서 고칠 수도 있다.
   const [openedCase, setOpenedCase] = useState<TestCase | null>(null)
   const [deletingCase, setDeletingCase] = useState<TestCase | null>(null)
@@ -231,7 +260,6 @@ export function RunChat({ session }: { session: RunChatSession }) {
   const escArmed = escArmedAt !== null && session.awaitingReply
   // 이 화면이 띄워 둔 모달. 열려 있으면 ESC 는 그것을 닫는 뜻이라 취소로 세지 않는다.
   const overlayOpen =
-    asking !== null ||
     openedCase !== null ||
     deletingCase !== null ||
     coverageOpen
@@ -287,6 +315,71 @@ export function RunChat({ session }: { session: RunChatSession }) {
   // state 여야 한다 — 첫 메시지가 오기 전에는 목록 자체가 DOM 에 없다.
   const threadRef = useRef<HTMLOListElement | null>(null)
   const [threadNode, setThreadNode] = useState<HTMLOListElement | null>(null)
+  const [inputNode, setInputNode] = useState<HTMLTextAreaElement | null>(null)
+  // 입력 칸 위에서 하나씩 물을 것(ARTEL-1118). 사용자가 마지막으로 말한 **뒤에** 온 질문만 — 한 마디라도 했으면
+  // 대화가 이미 다음으로 넘어간 것이다. 오케가 계산으로 낸 질문(경로 공백)이 먼저다: 답이 그 자리에 스텝으로
+  // 들어가므로 하나씩 바로 보내고, 모델의 질문은 다 답한 뒤 한 줄로 모아 보낸다.
+  const lastUserIndex = session.messages.map((message) => message.role).lastIndexOf('USER')
+  const sinceUser = session.messages.slice(lastUserIndex + 1)
+  const quiet = !session.awaitingReply && !session.sending && !session.closed
+  const codeSource = quiet ? [...sinceUser].reverse().find((message) => codeQuestionsOf(message).length > 0) ?? null : null
+  const agentSource = quiet && codeSource === null
+    ? [...sinceUser].reverse().find((message) => (message.reply?.asks.length ?? 0) > 0) ?? null
+    : null
+  const codeAsks = codeSource === null ? NO_ASKS : codeQuestionsOf(codeSource)
+  const sendAnswers = useCallback((text: string) => {
+    void session.send(text).then((sent) => {
+      if (sent) setInput('')
+    })
+  }, [session])
+  const answerCode = useCallback((question: AskQuestion, answer: AskAnswer, optionId: string | null) => {
+    if (answer.kind === 'skip') return
+    void session.send('', {
+      questionId: question.id,
+      optionIds: optionId === null ? [] : [optionId],
+      text: answer.kind === 'text' ? answer.text : undefined,
+      displayText: answer.text,
+    }).then((sent) => {
+      if (sent) setInput('')
+    })
+  }, [session])
+  const agentAsks = agentSource?.reply?.asks ?? NO_ASKS
+  // 선택 박스는 고를 것이 많을 때만(ARTEL-1118). 하나 · 둘이면 답 말풍선의 보기 칩으로 답한다.
+  const codeDock = codeAsks.length >= DOCK_MIN_QUESTIONS
+  const agentDock = agentAsks.length >= DOCK_MIN_QUESTIONS
+  const agentFlow = useAskFlow(agentDock ? agentSource?.id ?? null : null, agentAsks, sendAnswers)
+  // 남은 질문이 바뀌면(하나 답해 줄었으면) 처음부터 — 늘 남은 것의 첫째를 묻는다.
+  const codeFlow = useAskFlow(
+    codeSource === null || !codeDock ? null : `${codeSource.id}:${codeAsks.map((ask) => ask.id).join(',')}`,
+    codeAsks,
+    sendAnswers,
+    answerCode,
+  )
+  const askFlow = codeSource !== null ? codeFlow : agentFlow
+  // 박스 없이 칩으로 답하는 줄. 모델의 질문은 그 말을 입력 칸에 채우고(보내는 것은 사용자다), 오케의 질문은
+  // 그 자리에 바로 들어가도록 질문 · 보기를 실어 보낸다.
+  const pickAgentAsk = useCallback((_question: AskQuestion, option: AskQuestion['options'][number]) => {
+    setInput(option.label)
+    inputNode?.focus()
+  }, [inputNode])
+  const pickCodeAsk = useCallback((question: AskQuestion, option: AskQuestion['options'][number]) => {
+    answerCode(question, { kind: 'option', text: option.label }, option.id)
+  }, [answerCode])
+
+  // 선택 박스가 떠 있으면 커서가 입력 칸에 없어도 ↑↓ · 숫자 · Enter · Esc 를 받는다. 다른 입력 칸에 쓰는 중이거나
+  // 다른 창이 떠 있으면 손대지 않는다. 박스의 보기 단추에 초점이 있으면 Enter · Space 는 그 단추가 받는다.
+  useEffect(() => {
+    if (askFlow.current === null) return undefined
+    function onWindowKey(event: KeyboardEvent) {
+      const target = event.target instanceof HTMLElement ? event.target : null
+      if (target !== null && target === inputNode) return
+      if (target?.closest('input, textarea, select, [contenteditable="true"], [role="dialog"]')) return
+      if (target?.closest('.ask-dock') && (event.key === 'Enter' || event.key === ' ')) return
+      askFlow.onKey(event, '')
+    }
+    window.addEventListener('keydown', onWindowKey)
+    return () => window.removeEventListener('keydown', onWindowKey)
+  }, [askFlow, inputNode])
   const setThread = useCallback((node: HTMLOListElement | null) => {
     threadRef.current = node
     setThreadNode(node)
@@ -350,6 +443,11 @@ export function RunChat({ session }: { session: RunChatSession }) {
 
   // Enter sends; Shift+Enter is a newline. `isComposing` guards IME input (Korean).
   function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+    // 질문 박스가 떠 있으면 키를 먼저 그쪽이 본다(ARTEL-1118). 글을 쓰고 Enter 하면 그 글이 지금 질문의 답이다.
+    if (askFlow.onKey(event, input)) {
+      if (event.key === 'Enter' && input.length > 0) setInput('')
+      return
+    }
     if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return
     event.preventDefault()
     void submit(event)
@@ -359,7 +457,13 @@ export function RunChat({ session }: { session: RunChatSession }) {
     <ChatLinkContext.Provider value={{ projectId: session.projectId, runId: session.runId, openCase }}>
     <section className="panel scenario-chat" aria-labelledby="run-chat-title">
       <header className="panel-header">
-        <h2 id="run-chat-title">{c.title}</h2>
+        <h2 id="run-chat-title">
+          <StudioIcon className="run-chat-star" name="sparkles" size={15} />
+          {c.title}
+        </h2>
+        {/* 제목 줄과 상태 줄을 나눈다(ARTEL-1107). 셋이 제목 옆에 붙어 있으면 좁은 칸에서
+            제목이 밀리고, 커버리지와 자동 적용이 같은 무게로 읽혔다. */}
+        <div className="run-chat-meta">
         {/* 남은 케이스는 늘 보이되 아무것도 시키지 않는다 — 제안은 대화 끝의 칩이 하고, 이쪽은
             "지금 어디까지 왔나"만 말한다. 버튼과 나란히 두면 둘 다 도구처럼 읽힌다.
             폴링하지 않는다. 이 값은 이 페이지에서 일어난 일로만 바뀌고(턴이 끝나 저작이
@@ -406,69 +510,67 @@ export function RunChat({ session }: { session: RunChatSession }) {
         <label className="run-chat-toggle">
           <input
             type="checkbox"
+            role="switch"
             checked={session.autoApply}
             onChange={(event) => session.setAutoApply(event.target.checked)}
           />
           {c.autoApplyLabel}
+          <span className="run-chat-coverage-tip" role="tooltip">
+            {c.autoApplyHelp}
+          </span>
         </label>
+        </div>
       </header>
 
       {session.messages.length === 0 && !session.closed ? (
-        <p className="panel-empty">{c.emptyCopy}</p>
+        <div className="run-chat-empty">
+          <ChatSketch />
+          <p>{c.emptyTitle}</p>
+        </div>
       ) : (
         <ol className="chat-thread" ref={setThread}>
-          {session.messages.map((message) => (
+          {session.messages.map((message, index) => (
+            <Fragment key={message.id}>
+            {/* 날짜는 바뀔 때 한 번만 가운데에 선다(ARTEL-1107). 줄마다 날짜를 붙이면 대화보다 시각이
+                먼저 읽혔다. 시각은 ARTEL 줄 오른쪽에, 내 말은 말풍선에 가져다 대면 나온다. */}
+            {dayChanged(session.messages[index - 1]?.createdAt ?? null, message.createdAt) && (
+              <li className="chat-day" role="separator">{formatDay(message.createdAt as string)}</li>
+            )}
             <li
               className={`chat-message chat-message--${message.role.toLowerCase()}`}
-              key={message.id}
+              title={message.role === 'USER' && message.createdAt !== null ? formatDateTime(message.createdAt) : undefined}
             >
-              <p className="chat-author">
+              <p className={message.role === 'USER' ? 'chat-author visually-hidden' : 'chat-author'}>
+                {message.role !== 'USER' && <StudioIcon className="run-chat-star" name="sparkles" size={13} />}
                 {message.role === 'USER' ? c.you : c.agent}
                 {message.createdAt !== null && (
-                  <span className="chat-time">{formatDateTime(message.createdAt)}</span>
+                  <span className="chat-time">{message.role === 'USER' ? formatDateTime(message.createdAt) : formatTime(message.createdAt)}</span>
                 )}
               </p>
               {/* 에이전트가 쓴 구조는 세워 두고, 사용자가 친 글자는 건드리지 않는다 —
                   별표를 친 사람은 별표를 보려고 친 것이다. */}
+              {/* 오케가 계산으로 낸 질문(경로 공백)도 모델의 질문과 같은 전구 칸이다(ARTEL-1118). 예전의 "펼치기" 모달은
+                  걷었다 — 답은 입력 칸 위의 선택 박스가 받는다. 다 답하면 질문 글만 남는다. */}
               {message.role === 'USER'
                 ? <p className="chat-body">{message.content}</p>
-                : message.reply != null
-                  ? <ChatReplyBody reply={message.reply} refs={message.refs} />
-                  : <ChatMessageBody body={message.content} refs={message.refs} />}
-              {/* 물어본 줄에는 누를 것이 붙는다(ARTEL-487). 답하면 사라진다 — 이미 답한 질문에
-                  버튼이 남아 있으면 두 번 답하게 된다. */}
-              {/* **묻는 자리는 화면 가운데다**(ARTEL-677). 답이 시나리오를 실행 가능하게
-                  만드는지를 가르는데, 300px 대화 칸 안에 글줄로 쌓이면 아무도 안 읽는다.
-                  줄에는 여는 단추만 남기고, 질문과 그 답이 들어갈 자리는 모달이 보인다. */}
-              {(message.questions ?? (message.question != null ? [message.question] : [])).length > 0 && (
-                <div className="chat-question-ask">
-                  <p className="chat-question-hint">
-                    {t.scenarios.chat.question.openHint.replace(
-                      '{count}',
-                      String((message.questions ?? (message.question != null ? [message.question] : [])).length),
-                    )}
-                  </p>
-                  <button
-                    className="chat-question-open"
-                    type="button"
-                    disabled={session.sending || session.closed}
-                    onClick={() => {
-                      setAskingRefs(message.refs ?? [])
-                      setAsking(message.questions ?? (message.question != null ? [message.question] : []))
-                    }}
-                  >
-                    {t.scenarios.chat.question.openModal.replace(
-                      '{count}',
-                      String((message.questions ?? (message.question != null ? [message.question] : [])).length),
-                    )}
-                  </button>
-                </div>
-              )}
+                : codeQuestionsOf(message).length > 0
+                  ? <ChatAsks asks={codeQuestionsOf(message)} onPick={message.id === codeSource?.id && !codeDock ? pickCodeAsk : undefined} />
+                  : message.reply != null
+                  ? <ChatReplyBody
+                        onPickAsk={message.id === agentSource?.id && !agentDock ? pickAgentAsk : undefined}
+                        refs={message.refs}
+                        reply={message.reply}
+                      />
+                    : <ChatMessageBody body={message.content} refs={message.refs} />}
             </li>
+            </Fragment>
           ))}
           {session.awaitingReply && (
             <li className="chat-message chat-message--agent">
-              <p className="chat-author">{c.agent}</p>
+              <p className="chat-author">
+                <StudioIcon className="run-chat-star" name="sparkles" size={12} />
+                {c.agent}
+              </p>
               <div className="run-chat-typing" role="status" aria-label={c.awaitingReply}>
                 <span></span>
                 <span></span>
@@ -535,6 +637,7 @@ export function RunChat({ session }: { session: RunChatSession }) {
         <form className={draftMode ? 'chat-composer chat-composer--draft' : 'chat-composer'} onSubmit={submit}>
           {/* 승인 전 draft 가 있는 동안 이 입력은 draft 만 고친다(ARTEL-1075). 새 요청은 draft 를 승인하거나
               버린 뒤에 보낸다 — 서버도 그동안은 draft 만 고치는 말만 받는다. */}
+          <AskDock flow={askFlow} />
           {draftMode && (
             <div className="chat-draft-mode" role="status">
               <strong>{c.draftMode.title(session.drafts.length)}</strong>
@@ -551,17 +654,22 @@ export function RunChat({ session }: { session: RunChatSession }) {
           <label className="visually-hidden" htmlFor="run-chat-input">
             {c.inputLabel}
           </label>
+          {/* 길게 쓰면 칸 안이 스크롤한다. 막대는 대화 목록과 같은 `EdgeScrollbar` 다. */}
+          <div className="chat-input-frame">
           <textarea
+            ref={setInputNode}
             className="field-input field-input--multiline"
             aria-describedby="run-chat-hint"
             disabled={session.sending}
             id="run-chat-input"
             onChange={(event) => setInput(event.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={draftMode ? c.draftMode.placeholder : c.inputPlaceholder}
+            placeholder={askFlow.current !== null ? c.askPlaceholder : draftMode ? c.draftMode.placeholder : c.inputPlaceholder}
             rows={3}
             value={input}
           />
+          <EdgeScrollbar label={c.inputLabel} scroller={inputNode} side="right" />
+          </div>
 
           <div className="chat-composer-actions">
             {/* 버튼을 두지 않은 것은 취소가 흔한 일이 아니기 때문이다(ARTEL-956) — 늘 보이는
@@ -572,11 +680,13 @@ export function RunChat({ session }: { session: RunChatSession }) {
               {session.awaitingReply ? c.cancelHint : c.shortcutHint}
             </p>
             <button
-              className="button button--primary button--compact"
+              aria-label={session.sending ? c.sending : c.send}
+              className="button button--primary button--compact chat-send"
               disabled={session.sending || input.trim().length === 0}
+              title={session.sending ? c.sending : c.send}
               type="submit"
             >
-              {session.sending ? c.sending : c.send}
+              <StudioIcon name="arrowUp" size={17} />
             </button>
           </div>
         </form>
@@ -627,17 +737,6 @@ export function RunChat({ session }: { session: RunChatSession }) {
         </Dialog>
       )}
 
-      {asking !== null && session.runId !== null && (
-        <RunChatQuestionModal
-          projectId={session.projectId}
-          runId={session.runId}
-          questions={asking}
-          refs={askingRefs}
-          disabled={session.sending || session.closed}
-          onAnswer={(answer) => { void session.send('', answer) }}
-          onClose={() => setAsking(null)}
-        />
-      )}
       {openedCase !== null && (
         <TestCaseSheet
           onClose={() => setOpenedCase(null)}

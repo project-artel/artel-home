@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useProjectChange } from '../live/useProjectChange'
+import { usePolling } from '../live/usePolling'
 import { getDeveloperMacro, listDeveloperMacros } from './developerMacroApi'
 import type { DeveloperMacroDetail, DeveloperMacroSummary } from './developerMacroTypes'
 import type { MacroListStatus, MacroSourceStatus } from './useBuildMacros'
@@ -57,6 +59,34 @@ export function useDeveloperMacros(projectId: string) {
 
   const settled = state.source === source
   const reload = useCallback(() => setReloadToken((token) => token + 1), [])
+
+  const polling = useRef<AbortController | null>(null)
+  useEffect(() => () => polling.current?.abort(), [])
+  // The project change stream (`MACROS`) drives the re-read; polling runs only
+  // while the stream is down.
+  const refreshSilently = () => {
+    // Not before the first read has landed, and never two reads at once.
+    if (!settled || polling.current !== null) return
+    const controller = new AbortController()
+    polling.current = controller
+    listDeveloperMacros(projectId, controller.signal)
+      .then((next) =>
+        setState((previous) => {
+          if (previous.source !== source) return previous
+          if (previous.status === 'ready' && JSON.stringify(previous.macros) === JSON.stringify(next)) {
+            return previous
+          }
+          return { status: 'ready', macros: next, source, scope }
+        }),
+      )
+      // A failed poll leaves the list on screen alone.
+      .catch(() => undefined)
+      .finally(() => {
+        if (polling.current === controller) polling.current = null
+      })
+  }
+  const live = useProjectChange(projectId, 'MACROS', refreshSilently)
+  usePolling(refreshSilently, undefined, !live)
 
   return {
     macros: state.scope === scope ? state.macros : [],

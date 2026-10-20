@@ -21,7 +21,6 @@ export const issuesEn = {
   },
   panel: {
     title: 'Issues from this run',
-    refresh: 'Refresh',
   },
   filters: {
     status: 'Status',
@@ -177,7 +176,6 @@ export const issuesKo: Localized<typeof issuesEn> = {
   },
   panel: {
     title: '이 실행이 남긴 이슈',
-    refresh: '새로고침',
   },
   filters: {
     status: '상태',

@@ -1,5 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { usePolling } from '../live/usePolling'
 import { getContentMap } from './contentMapApi'
+import { shouldAdoptView } from './contentMapFreshness'
 import type { ContentMapView } from './contentMapTypes'
 
 export type ContentMapStatus = 'loading' | 'ready' | 'error'
@@ -9,6 +11,8 @@ type LoadedState = {
   view: ContentMapView | null
   /** 언제 읽어 온 값인지. 연결이 끊겼을 때 화면이 이 시각을 인용한다. */
   fetchedAt: number
+  /** 지금 들고 있는 `view` 를 채택한 시각. 서명된 캡처 주소가 얼마나 묵었는지 가늠하는 기준이다. */
+  viewSince: number
   /**
    * 어떤 요청이 만든 상태인지. 지금 것이 아니면 이전 빌드나 이전 새로고침의
    * 것이므로, `loading` 을 이펙트에서 쓰지 않고 렌더 중에 유도할 수 있다 —
@@ -18,7 +22,7 @@ type LoadedState = {
 }
 
 /** 실제 요청은 이 값을 만들 수 없다. 그래서 첫 렌더가 loading 으로 읽힌다. */
-const initialState: LoadedState = { status: 'ready', view: null, fetchedAt: 0, source: '' }
+const initialState: LoadedState = { status: 'ready', view: null, fetchedAt: 0, viewSince: 0, source: '' }
 
 /**
  * 한 빌드의 콘텐츠 맵.
@@ -53,7 +57,9 @@ export function useContentMap(projectId: string, buildId: string) {
     const controller = new AbortController()
 
     getContentMap(projectId, buildId, controller.signal)
-      .then((view) => setState({ status: 'ready', view, fetchedAt: Date.now(), source }))
+      .then((view) =>
+        setState({ status: 'ready', view, fetchedAt: Date.now(), viewSince: Date.now(), source }),
+      )
       .catch((error: unknown) => {
         // abort 는 이 이펙트가 교체됐다는 뜻이다. 더 새로운 요청이 상태를
         // 갖고 있으므로 여기서 에러를 쓰면 그 결과를 덮어쓰게 된다.
@@ -68,6 +74,7 @@ export function useContentMap(projectId: string, buildId: string) {
             status: 'error',
             view: sameBuild ? previous.view : null,
             fetchedAt: sameBuild ? previous.fetchedAt : 0,
+            viewSince: sameBuild ? previous.viewSince : 0,
             source,
           }
         })
@@ -80,6 +87,36 @@ export function useContentMap(projectId: string, buildId: string) {
   const sameBuild = state.source.startsWith(`${key}#`)
   const reload = useCallback(() => setReloadToken((token) => token + 1), [])
 
+  // 주기적으로 조용히 다시 읽는다. 상태를 loading 으로 돌리지 않고, 실패하면 직전
+  // 맵을 남긴 채 error 만 표시하며, 읽는 중에 또 읽지 않는다. 캡처 주소는 읽을 때마다
+  // 새로 서명되므로, 내용이 같을 때는 주소가 만료될 때만 view 를 바꿔 끼운다
+  // (`shouldAdoptView`). 매번 바꾸면 캔버스의 배치와 이미지가 10초마다 다시 만들어진다.
+  const polling = useRef<AbortController | null>(null)
+  useEffect(() => () => polling.current?.abort(), [])
+  usePolling(() => {
+    if (!settled || polling.current !== null) return
+    const controller = new AbortController()
+    polling.current = controller
+    getContentMap(projectId, buildId, controller.signal)
+      .then((next) =>
+        setState((previous) => {
+          if (previous.source !== source) return previous
+          const now = Date.now()
+          if (shouldAdoptView(previous.view, next, previous.viewSince, now)) {
+            return { status: 'ready', view: next, fetchedAt: now, viewSince: now, source }
+          }
+          return { ...previous, status: 'ready', fetchedAt: now }
+        }),
+      )
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === 'AbortError') return
+        setState((previous) => (previous.source === source ? { ...previous, status: 'error' } : previous))
+      })
+      .finally(() => {
+        if (polling.current === controller) polling.current = null
+      })
+  })
+
   return {
     // 같은 빌드의 직전 스냅샷은 새로고침이 도는 동안에도 남긴다. 새로고침이
     // 화면을 한 줄짜리 로딩으로 바꾸면 읽던 자리를 잃고, 레이아웃이 통째로
@@ -91,10 +128,9 @@ export function useContentMap(projectId: string, buildId: string) {
     online,
     reload,
     /**
-     * 새로고침이 몇 번째인지. 이 화면에는 콘텐츠 맵 말고도 다시 확인해야 하는
-     * 것이 하나 더 있다 — 어떤 게임이 붙어 있는지. 그 값도 스냅샷이라
-     * 새로고침 버튼이 둘 다 갱신하지 않으면 "붙어 있는 게임이 없습니다"가
-     * 페이지를 통째로 다시 열기 전까지 영영 풀리지 않는다.
+     * 재시도가 몇 번째인지. 이 화면에는 콘텐츠 맵 말고도 다시 확인해야 하는
+     * 것이 하나 더 있다 — 어떤 게임이 붙어 있는지. 그 값은 `EvidenceScanPanel` 이
+     * 따로 주기적으로 읽지만, 재시도할 때는 둘이 함께 처음부터 다시 읽는다.
      */
     reloadToken,
   }

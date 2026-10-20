@@ -86,3 +86,18 @@ test('id 없는 줄과 이상한 값은 버리거나 0 으로 읽는다', () => 
   assert.equal(coverage.covered, 0)
   assert.deepEqual(coverage.scenarios.map((row) => [row.title, row.steps, row.cases]), [['정상', 0, 0]])
 })
+
+/** QA 실행 화면이 `planner_executer` 를 막을 때 이 값을 센다(ARTEL-1119). 필드가 없던 서버는 ORDERED 로 읽는다. */
+test('시나리오마다 execution_mode 를 읽고, 없으면 ORDERED 다', () => {
+  const coverage = parseRunCoverage({
+    total: 3,
+    covered: 1,
+    uncovered: 2,
+    scenarios: [
+      { position: 0, testScenarioId: '1', title: '앞', execution_mode: 'FREE', steps: 1, cases: 1 },
+      { position: 1, testScenarioId: '2', title: '뒤', execution_mode: 'ORDERED', steps: 1, cases: 1 },
+      { position: 2, testScenarioId: '3', title: '옛', steps: 1, cases: 1 },
+    ],
+  })
+  assert.deepEqual(coverage.scenarios.map((row) => row.executionMode), ['FREE', 'ORDERED', 'ORDERED'])
+})

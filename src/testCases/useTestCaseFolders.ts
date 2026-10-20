@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useProjectChange } from '../live/useProjectChange'
 import { listTestCaseFolders, type TestCaseFolder } from './testCaseFolderApi'
 
 export type TestCaseFoldersStatus = 'loading' | 'ready' | 'failed'
@@ -74,6 +75,9 @@ export function useTestCaseFolders(projectId: string, gameBuildId: string | null
         // 지금 tree 는 직전 읽기의 값이다. 다시 읽기가 실패했다고 tree 를 오류로 바꾸지 않는다.
       })
   }, [projectId, source, gameBuildId])
+
+  // Another member's folder edit arrives over the project change stream.
+  useProjectChange(projectId, 'TEST_CASES', refresh)
 
   const status: TestCaseFoldersStatus =
     loaded.source !== source ? 'loading' : loaded.failed ? 'failed' : 'ready'

@@ -105,7 +105,7 @@ export function IssueBoard({
   })
   const [reloadToken, setReloadToken] = useState(0)
   const [facetToken, setFacetToken] = useState(0)
-  const issues = useProjectIssues(projectId, filters, reloadToken)
+  const issues = useProjectIssues(projectId, filters, reloadToken, true)
   const [openId, setOpenId] = useState<string | null>(focusId)
   const [facets, setFacets] = useState<IssueFacets | null>(null)
   const [sideCollapsed, setSideCollapsed] = useState(false)

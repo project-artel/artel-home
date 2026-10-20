@@ -12,22 +12,21 @@ export const contentMapEn = {
     title: 'Content map',
     subtitle:
       'What this build contains, as the server read it out of the evidence the SDK sent: its scenes, the capabilities in each one, and the transitions between them.',
-    refresh: 'Refresh',
     readAt: (time: string) => `Read at ${time}`,
   },
   states: {
     loading: 'Loading the content map…',
     loadFailed: 'The content map could not be loaded.',
     retry: 'Retry',
-    // Offline and "the refresh failed" are two different facts. In both cases
+    // Offline and "the last re-read failed" are two different facts. In both cases
     // whatever is already on screen stays there, marked with the time it was
     // read — never presented as the current state of the build.
     offlineTitle: 'This browser is offline',
     offlineCopy: (time: string) =>
       `Nothing below has been checked since ${time}. It may already be out of date.`,
-    staleTitle: 'The last refresh did not go through',
+    staleTitle: 'The last update did not go through',
     staleCopy: (time: string) =>
-      `What is shown is the content map as it was read at ${time}. Refresh to try again.`,
+      `What is shown is the content map as it was read at ${time}. It is read again automatically.`,
   },
   empty: {
     // Three different situations, three different next actions. Collapsing them
@@ -79,7 +78,7 @@ export const contentMapEn = {
     requested: 'The scan was requested. Its status appears below once the game responds.',
     failed: 'The scan could not be started.',
     checkedAt: (time: string) =>
-      `Connected games as of ${time}. Nothing is polling; refresh to check again.`,
+      `Connected games as of ${time}. This list is checked again automatically.`,
     // Four reasons, four different things to do about it. One "cannot scan"
     // line would erase the difference between waiting, retrying, installing
     // the SDK, and starting the game.
@@ -88,10 +87,10 @@ export const contentMapEn = {
       loadFailed: 'The connected games could not be checked, so a scan cannot be started yet.',
       noInstances:
         'No game has ever connected to this project. Install the SDK and run the game once, and it will appear here.',
-      // The instance list is a snapshot from the last check, not a live
-      // subscription, so the copy must not read as one.
+      // The instance list is a snapshot from the last check, polled rather than
+      // subscribed to, so the copy names the time instead of claiming it is live.
       noneConnected: (time: string) =>
-        `No game was connected as of ${time}. A scan runs inside the running game, so one has to be online — start the game and refresh.`,
+        `No game was connected as of ${time}. A scan runs inside the running game, so one has to be online — start the game and this list updates by itself.`,
     },
   },
   generate: {
@@ -211,8 +210,8 @@ export const contentMapEn = {
     unnamedScreen: 'Unnamed screen',
     observed: (count: number) => `${count}×`,
     // Two different facts, so two different sentences. "Not captured yet" is
-    // answered by running a QA run; "could not be loaded" is answered by a
-    // refresh, because the capture URL is short-lived and signed.
+    // answered by running a QA run; "could not be loaded" is usually an expired
+    // signature, which the next re-read of the content map replaces.
     noCapture: 'No capture yet',
     captureBroken: 'Capture could not be loaded',
     legend: {
@@ -294,7 +293,7 @@ export const contentMapEn = {
     // 할지 알 수 없다.
     thumbnailNone: 'This scan did not report a screen capture for this scene.',
     thumbnailUnavailable: (reason: string) => `The scan could not capture this screen (${reason}).`,
-    thumbnailBroken: 'The capture link expired or the image could not be loaded. Reload the page.',
+    thumbnailBroken: 'The capture link may have expired or the image could not be loaded. A new link is requested automatically.',
     thumbnailSize: (width: number, height: number) => `${width} × ${height}`,
     capabilitiesHeading: 'Capabilities',
     noCapabilities: 'No capabilities were recorded for this scene.',
@@ -342,7 +341,7 @@ export const contentMapEn = {
     captureNone: 'This screen has no capture yet',
     captureNoneCopy:
       'A QA run records that this screen was reached; the picture that goes with it is not being uploaded yet. Nothing failed, and there is nothing to wait for.',
-    captureBroken: 'The capture link expired or the image could not be loaded. Reload the page.',
+    captureBroken: 'The capture link may have expired or the image could not be loaded. A new link is requested automatically.',
     captureAt: (time: string) => `Captured ${time}`,
 
     discriminatorHeading: 'What identifies this screen',
@@ -543,7 +542,6 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
     title: '콘텐츠 맵',
     subtitle:
       'SDK가 보낸 증거 문서를 서버가 읽어 낸 결과입니다. 이 빌드에 어떤 씬이 있고, 씬마다 어떤 능력이 있으며, 씬 사이를 어떻게 오가는지 보여 줍니다.',
-    refresh: '새로고침',
     readAt: (time: string) => `${time} 기준`,
   },
   states: {
@@ -553,9 +551,9 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
     offlineTitle: '브라우저가 오프라인입니다',
     offlineCopy: (time: string) =>
       `${time} 이후로 아래 내용을 다시 확인하지 못했습니다. 이미 달라졌을 수 있습니다.`,
-    staleTitle: '마지막 새로고침이 실패했습니다',
+    staleTitle: '마지막 갱신이 실패했습니다',
     staleCopy: (time: string) =>
-      `아래는 ${time}에 읽어 둔 콘텐츠 맵입니다. 새로고침으로 다시 시도해 보세요.`,
+      `아래는 ${time}에 읽어 둔 콘텐츠 맵입니다. 자동으로 다시 읽습니다.`,
   },
   empty: {
     neverUploadedTitle: '이 빌드는 아직 한 번도 스캔되지 않았습니다',
@@ -596,14 +594,14 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
     requested: '스캔을 요청했습니다. 게임이 응답하면 아래에 상태가 나타납니다.',
     failed: '스캔을 시작하지 못했습니다.',
     checkedAt: (time: string) =>
-      `붙어 있는 게임 목록은 ${time} 기준입니다. 계속 지켜보고 있지는 않으니 새로고침으로 다시 확인하세요.`,
+      `붙어 있는 게임 목록은 ${time} 기준입니다. 이 목록은 자동으로 다시 확인합니다.`,
     disabled: {
       loading: '어떤 게임이 붙어 있는지 확인하는 중…',
       loadFailed: '붙어 있는 게임을 확인하지 못해 아직 스캔을 시작할 수 없습니다.',
       noInstances:
         '이 프로젝트에 붙은 적 있는 게임이 없습니다. SDK를 설치하고 게임을 한 번 실행하면 여기에 나타납니다.',
       noneConnected: (time: string) =>
-        `${time} 기준으로 붙어 있는 게임이 없었습니다. 스캔은 실행 중인 게임 안에서 돌기 때문에 한 대는 켜져 있어야 합니다 — 게임을 켜고 새로고침해 주세요.`,
+        `${time} 기준으로 붙어 있는 게임이 없었습니다. 스캔은 실행 중인 게임 안에서 돌기 때문에 한 대는 켜져 있어야 합니다 — 게임을 켜면 이 목록이 알아서 갱신됩니다.`,
     },
   },
   generate: {
@@ -622,7 +620,7 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
     streamConnecting: '실시간 갱신에 연결하는 중…',
     streamLive: '실시간 연결됨',
     streamDegraded: '실시간 갱신 연결이 끊어졌습니다. 다시 연결하는 중…',
-    streamOffline: '실시간 갱신 연결이 끊겼습니다. 새로고침하면 다시 연결됩니다.',
+    streamOffline: '실시간 갱신 연결이 끊겼습니다. 페이지를 다시 열면 다시 연결됩니다.',
     testCases: {
       pending: '스캔이 끝나고 지도가 읽히면 TC 를 만듭니다.',
       generated: (created: number, carriedOver: number) =>
@@ -770,7 +768,7 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
     thumbnailHeading: '화면',
     thumbnailNone: '이번 스캔은 이 씬의 화면 캡처를 신고하지 않았습니다.',
     thumbnailUnavailable: (reason: string) => `스캔이 이 화면을 캡처하지 못했습니다 (${reason}).`,
-    thumbnailBroken: '캡처 주소가 만료됐거나 이미지를 불러오지 못했습니다. 새로고침하세요.',
+    thumbnailBroken: '캡처 주소가 만료됐거나 이미지를 불러오지 못했습니다. 새 주소를 자동으로 다시 받습니다.',
     thumbnailSize: (width: number, height: number) => `${width} × ${height}`,
     capabilitiesHeading: '능력',
     noCapabilities: '이 씬에 기록된 능력이 없습니다.',
@@ -809,7 +807,7 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
     captureNone: '이 screen 은 아직 캡처가 없습니다',
     captureNoneCopy:
       'QA 런은 이 screen 에 닿았다는 것을 기록하지만, 그에 딸린 그림을 올리는 경로는 아직 없습니다. 실패한 것이 아니고, 기다릴 것도 없습니다.',
-    captureBroken: '캡처 주소가 만료됐거나 이미지를 불러오지 못했습니다. 새로고침하세요.',
+    captureBroken: '캡처 주소가 만료됐거나 이미지를 불러오지 못했습니다. 새 주소를 자동으로 다시 받습니다.',
     captureAt: (time: string) => `${time} 촬영`,
 
     discriminatorHeading: '이 screen 을 판정하는 것',
