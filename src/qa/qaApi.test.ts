@@ -1,7 +1,16 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { ProjectApiError } from '../projects/projectApi'
-import { parseQaLog, parseQaModels, parseQaRun, parseQaRunList, parseQaTry, qaRunRequestBody, qaStartConflict } from './qaApi'
+import {
+  listGameBuildQaRuns,
+  parseQaLog,
+  parseQaModels,
+  parseQaRun,
+  parseQaRunList,
+  parseQaTry,
+  qaRunRequestBody,
+  qaStartConflict,
+} from './qaApi'
 import { toArchRequest } from './qaArch'
 
 const QA_TRY_FIELDS = {
@@ -172,4 +181,25 @@ test('parseQaRunList reads the items envelope and rejects anything else', () => 
   const runs = parseQaRunList({ items: [{ ...QA_RUN_FIELDS, gameBuildId: '12' }] })
   assert.deepEqual(runs.map((run) => [run.id, run.gameBuildId, run.tries.length]), [['88', '12', 1]])
   assert.throws(() => parseQaRunList([QA_RUN_FIELDS]), ProjectApiError)
+})
+
+test('listGameBuildQaRuns calls the build path, not the project QA launch list (ARTEL-1155)', async () => {
+  const realFetch = globalThis.fetch
+  const urls: string[] = []
+  globalThis.fetch = (async (url: string) => {
+    urls.push(url)
+    return new Response(JSON.stringify({ items: [{ ...QA_RUN_FIELDS, gameBuildId: '12' }] }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }) as typeof fetch
+  try {
+    const runs = await listGameBuildQaRuns('7', '12', { size: 5 })
+    assert.deepEqual(runs.map((run) => run.id), ['88'])
+    await listGameBuildQaRuns('7', '12', {})
+  } finally {
+    globalThis.fetch = realFetch
+  }
+  assert.match(urls[0], /\/api\/projects\/7\/game-builds\/12\/qa-runs\?size=5$/)
+  assert.match(urls[1], /\/api\/projects\/7\/game-builds\/12\/qa-runs$/)
 })

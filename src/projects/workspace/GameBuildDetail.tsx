@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
-import { listProjectQaRuns } from '../../qa/qaApi'
+import { listGameBuildQaRuns } from '../../qa/qaApi'
 import { isTerminalQaStatus, qaRunPath, type QaRun } from '../../qa/qaTypes'
 import { listTestCaseVersions, type TestCaseVersionSummary } from '../../testCases/testCaseVersions'
 import type { VerificationStatus } from '../../testCases/testCaseTypes'
@@ -179,21 +179,17 @@ export function GameBuildDetail({
   )
 }
 
-/**
- * 이 빌드로 돈 QA run. 서버가 `gameBuildId` 로 거르지만 client 에서도 한 번 더 거른다 — 그 파라미터를 모르는
- * 서버는 조용히 무시하고 프로젝트의 run 전부를 돌려주는데, 그것을 그대로 그리면 다른 빌드의 run 이 이 빌드의
- * 것으로 읽힌다.
- */
+/** 이 빌드로 돈 QA run. */
 function BuildQaRuns({ buildId, projectId }: { buildId: string; projectId: string }) {
   const { t } = useI18n()
   const m = t.gameBuilds.detail
   const { read, reload } = useBlockRead(`runs/${projectId}/${buildId}`, (signal) =>
-    listProjectQaRuns(projectId, { gameBuildId: buildId, size: RUN_LIMIT }, signal),
+    listGameBuildQaRuns(projectId, buildId, { size: RUN_LIMIT }, signal),
     // 프로젝트는 workspace 가 이미 읽었으므로, 여기서 404 는 이 엔드포인트가 없는 옛 서버다.
     { notFoundMeansUnsupported: true },
   )
 
-  const runs = read.status === 'ready' ? read.value.filter((run) => run.gameBuildId === buildId) : []
+  const runs = read.status === 'ready' ? read.value : []
 
   return (
     <section aria-labelledby="gb-runs-title" className="panel panel--flush">
