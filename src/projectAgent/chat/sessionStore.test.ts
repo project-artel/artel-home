@@ -5,7 +5,7 @@ import { ProjectApiError } from '../../projects/projectApi.ts'
 import { createActionRegistry } from '../registry/createActionRegistry.ts'
 import type { LockManagerLike } from '../webLocks.ts'
 import type { AgentMessage, Conversation, ConversationStatus, ToolCall } from './conversationApi.ts'
-import { AgentSessionStore, type SessionConversationApi, type StreamHandlers } from './sessionStore.ts'
+import { AgentSessionStore, type OwnershipStorage, type SessionConversationApi, type StreamHandlers } from './sessionStore.ts'
 import { currentView } from './sessionView.ts'
 import { executeToolCall } from './toolExecutor.ts'
 import type { ToolContext, ToolResultBody } from './toolTypes.ts'
@@ -109,7 +109,22 @@ function makeLockManager(): LockManagerLike {
 
 type Tab = ReturnType<typeof makeTab>
 
-function makeTab(api: SessionConversationApi, lockManager: LockManagerLike | null = null) {
+/** 탭 하나의 `sessionStorage` 를 흉내 낸다. 새로고침은 같은 객체를 새 store 에 다시 넘겨 흉내 낸다. */
+function makeSessionStorage(seed: Iterable<[string, string]> = []): OwnershipStorage & { entries: Map<string, string> } {
+  const entries = new Map<string, string>(seed)
+  return {
+    entries,
+    getItem: (key) => entries.get(key) ?? null,
+    setItem: (key, value) => void entries.set(key, value),
+    removeItem: (key) => void entries.delete(key),
+  }
+}
+
+function makeTab(
+  api: SessionConversationApi,
+  lockManager: LockManagerLike | null = null,
+  ownershipStorage: OwnershipStorage | null = null,
+) {
   const registry = createActionRegistry({ highlightMilliseconds: 1, emptyPageGraceMilliseconds: 1 })
   const streams = new Map<number, StreamHandlers>()
   const executedCalls: string[] = []
@@ -120,6 +135,7 @@ function makeTab(api: SessionConversationApi, lockManager: LockManagerLike | nul
     {
       api,
       lockManager,
+      ownershipStorage,
       connectStream: (_projectId, conversationId, handlers) => {
         streams.set(conversationId, handlers)
         return () => streams.delete(conversationId)
@@ -398,4 +414,142 @@ test('dispose stops event flushing and the retry timer', async () => {
   context.postEvent('job_finished', 'late')
   await settle()
   assert.equal(server.eventAttempts, 0)
+})
+
+const ASK_CHOICE = call('c1', 'ask_choice', {
+  question: 'which?',
+  options: [
+    { id: 'a', label: 'A' },
+    { id: 'b', label: 'B' },
+  ],
+})
+
+/** 탭이 ask_choice 를 띄운 채 새로고침되기 직전까지 진행하고, 그 탭이 쓰던 sessionStorage 를 돌려준다. */
+async function startOwnedChoice() {
+  const world = makeServer()
+  const locks = makeLockManager()
+  const storage = makeSessionStorage()
+  const before = makeTab(world.api, locks, storage)
+  await openTab(before)
+  await before.store.send('ask me')
+  await settle()
+  deliver([before], world.server, assistant(world.nextMessageId(), ASK_CHOICE), 'AWAITING_TOOL')
+  await settle()
+  assert.notEqual(before.store.getSnapshot().choice, null)
+  return { ...world, locks, storage, before }
+}
+
+test('the tab that owned the turn runs the pending call again after a reload', async () => {
+  const { server, api, locks, storage, before } = await startOwnedChoice()
+  assert.equal(storage.entries.size, 1)
+
+  before.store.dispose()
+  await settle()
+  const after = makeTab(api, locks, storage)
+  await openTab(after)
+
+  assert.deepEqual(after.executedCalls, ['c1'])
+  assert.notEqual(after.store.getSnapshot().choice, null)
+  const view = currentView(after.store.getSnapshot())
+  assert.equal(view.resume, null)
+  assert.equal(view.runningInOtherTab, false)
+
+  after.store.answerChoice(['b'])
+  await settle()
+  assert.deepEqual(server.toolResults.map((one) => one.callId), ['c1'])
+})
+
+test('a reloaded tab asks for approval again instead of running the action', async () => {
+  const world = makeServer()
+  const storage = makeSessionStorage()
+  const ran: unknown[] = []
+  const register = (tab: Tab) =>
+    tab.registry.registerAction({
+      spec: { id: 'qa.startRun', page: 'qa', description: 'start', args: { type: 'object' }, risk: 'approve', summarize: () => 'start' },
+      target: () => null,
+      blocked: () => null,
+      run: async (args) => ran.push(args),
+    })
+  const before = makeTab(world.api, null, storage)
+  register(before)
+  await openTab(before)
+  await before.store.send('start')
+  await settle()
+  deliver([before], world.server, assistant(world.nextMessageId(), call('c1', 'call_action', { action: 'qa.startRun' })), 'AWAITING_TOOL')
+  await settle()
+  before.store.dispose()
+  await settle()
+
+  const after = makeTab(world.api, null, storage)
+  register(after)
+  await openTab(after)
+  assert.notEqual(after.registry.pendingApproval(), null)
+  assert.deepEqual(ran, [])
+  assert.deepEqual(world.server.toolResults, [])
+})
+
+test('a tab without a stored record shows the resume card after loading the same conversation', async () => {
+  const { api, locks, before } = await startOwnedChoice()
+  before.store.dispose()
+  await settle()
+  const other = makeTab(api, locks, makeSessionStorage())
+  await openTab(other)
+
+  assert.deepEqual(other.executedCalls, [])
+  assert.equal(other.store.getSnapshot().choice, null)
+  assert.notEqual(currentView(other.store.getSnapshot()).resume, null)
+})
+
+test('a reloaded tab does not run the call while another tab holds the lock', async () => {
+  const { api, locks, storage } = await startOwnedChoice()
+  // before 는 여전히 잠금을 잡고 있다. 같은 기록을 가진 새 탭이 따로 열렸다.
+  const after = makeTab(api, locks, makeSessionStorage(storage.entries))
+  await openTab(after)
+  after.tick()
+  await settle()
+
+  assert.deepEqual(after.executedCalls, [])
+  assert.equal(after.store.getSnapshot().choice, null)
+  const view = currentView(after.store.getSnapshot())
+  assert.equal(view.resume, null)
+  assert.equal(view.runningInOtherTab, true)
+})
+
+test('Stop clears the stored record', async () => {
+  const { storage, before } = await startOwnedChoice()
+  assert.equal(storage.entries.size, 1)
+  await before.store.cancel()
+  await settle()
+  assert.equal(storage.entries.size, 0)
+})
+
+test('the stored record is cleared when the conversation returns to IDLE', async () => {
+  const { server, nextMessageId, storage, before } = await startOwnedChoice()
+  before.store.answerChoice(['a'])
+  await settle()
+  deliver([before], server, message(nextMessageId(), 'ASSISTANT', { content: 'done' }), 'IDLE')
+  await settle()
+  assert.equal(storage.entries.size, 0)
+})
+
+test('storage that throws does not break running tools', async () => {
+  const { server, api, nextMessageId } = makeServer()
+  const broken: OwnershipStorage = {
+    getItem: () => {
+      throw new Error('blocked')
+    },
+    setItem: () => {
+      throw new Error('blocked')
+    },
+    removeItem: () => {
+      throw new Error('blocked')
+    },
+  }
+  const tab = makeTab(api, null, broken)
+  await openTab(tab)
+  await tab.store.send('go')
+  await settle()
+  deliver([tab], server, assistant(nextMessageId(), call('c1', 'read_page')), 'AWAITING_TOOL')
+  await settle()
+  assert.deepEqual(tab.executedCalls, ['c1'])
 })

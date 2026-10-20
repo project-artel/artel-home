@@ -113,9 +113,14 @@ export type SessionEnvironment = {
   /** stream 을 열고 닫는 함수를 돌려준다. stream 을 열 수 없는 환경이면 null. */
   connectStream: ((projectId: string, conversationId: number, handlers: StreamHandlers) => () => void) | null
   executeTool: typeof executeToolCall
+  /** 새로고침 뒤에 이 탭이 하던 실행을 이어 가려고 맡은 것을 적는 곳. 쓸 수 없으면 null. */
+  ownershipStorage: OwnershipStorage | null
   /** `callback` 을 반복해 부르고, 멈추는 함수를 돌려준다. */
   repeat: (callback: () => void, milliseconds: number) => () => void
 }
+
+/** 이 탭의 맡은 것을 적어 두는 storage. `sessionStorage` 는 탭마다 따로이고 새로고침을 넘어 남는다. */
+export type OwnershipStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>
 
 /** job 이 끝났는데 대화가 바빠 보내지 못한 event 를 다시 보내고, 다른 탭의 잠금을 다시 확인하는 간격. */
 const RETRY_MS = 5000
@@ -143,11 +148,25 @@ function browserEnvironment(): SessionEnvironment {
     lockManager: browserLockManager(),
     connectStream: typeof EventSource === 'undefined' ? null : connectEventSource,
     executeTool: executeToolCall,
+    ownershipStorage: browserSessionStorage(),
     repeat: (callback, milliseconds) => {
       const timer = setInterval(callback, milliseconds)
       return () => clearInterval(timer)
     },
   }
+}
+
+function browserSessionStorage(): OwnershipStorage | null {
+  try {
+    return window.sessionStorage
+  } catch {
+    // 접근만 해도 던지는 환경(저장소 차단)이면 새로고침 뒤 자동 이어가기만 포기한다.
+    return null
+  }
+}
+
+function ownershipStorageKey(projectId: string, conversationId: number): string {
+  return `artel.projectAgent.ownership.${projectId}.${conversationId}`
 }
 
 function storageKey(projectId: string): string {
@@ -242,9 +261,57 @@ export class AgentSessionStore {
 
   private setState(patch: Partial<SessionState> | ((state: SessionState) => Partial<SessionState>)): void {
     const next = typeof patch === 'function' ? patch(this.state) : patch
+    if (next.ownership !== undefined && next.ownership !== this.state.ownership) {
+      this.persistOwnership(this.state.ownership, next.ownership)
+    }
     this.state = { ...this.state, ...next }
     for (const listener of this.listeners) listener()
     this.scheduleReconcile()
+  }
+
+  /** 바뀐 대화의 맡은 것만 sessionStorage 에 쓰고, 사라진 대화의 기록은 지운다. */
+  private persistOwnership(previous: Record<number, Ownership>, next: Record<number, Ownership>): void {
+    const storage = this.environment.ownershipStorage
+    if (storage === null) return
+    const { projectId } = this.dependencies
+    try {
+      for (const [key, ownership] of Object.entries(next)) {
+        if (previous[Number(key)] === ownership) continue
+        const storageKey = ownershipStorageKey(projectId, Number(key))
+        if (ownership.ownedAfterId === null) storage.removeItem(storageKey)
+        else storage.setItem(storageKey, String(ownership.ownedAfterId))
+      }
+      for (const key of Object.keys(previous)) {
+        if (!(key in next)) storage.removeItem(ownershipStorageKey(projectId, Number(key)))
+      }
+    } catch {
+      // 쓰기가 막혀도 이번 방문의 실행에는 영향이 없다. 새로고침 뒤에 이어서 하기 카드가 나올 뿐이다.
+    }
+  }
+
+  private readStoredOwnership(conversationId: number): number | null {
+    try {
+      const raw = this.environment.ownershipStorage?.getItem(ownershipStorageKey(this.dependencies.projectId, conversationId))
+      const id = raw === null || raw === undefined ? Number.NaN : Number(raw)
+      return Number.isInteger(id) && id >= 0 ? id : null
+    } catch {
+      return null
+    }
+  }
+
+  /**
+   * 새로고침 전에 이 탭이 맡았던 대화면 맡은 것을 되살린다. 그러면 답이 없는 호출을 이 탭이
+   * 자동으로 다시 실행한다(잠금을 다른 탭이 잡고 있으면 `runBatch` 가 내려놓는다). 다른 탭에는
+   * 기록이 없으므로 이어서 하기 카드가 그대로 나온다.
+   */
+  private restoreOwnership(conversation: Conversation, messages: readonly AgentMessage[]): void {
+    const conversationId = conversation.id
+    if (this.state.ownership[conversationId] !== undefined) return
+    const ownedAfterId = this.readStoredOwnership(conversationId)
+    if (ownedAfterId === null) return
+    this.setState((state) => ({
+      ownership: ownershipAfterStatus({ ...state.ownership, [conversationId]: { ownedAfterId } }, conversation, messages),
+    }))
   }
 
   // ---- lifecycle ----
@@ -380,6 +447,7 @@ export class AgentSessionStore {
     if (conversationId === null) return
     this.stopBatch(conversationId)
     this.onConversationStopped(conversationId)
+    this.setState((state) => ({ ownership: withoutKey(state.ownership, conversationId) }))
     try {
       const conversation = await this.environment.api.cancelConversation(this.dependencies.projectId, conversationId)
       this.applyConversation(conversation)
@@ -492,6 +560,8 @@ export class AgentSessionStore {
         this.environment.api.getConversation(projectId, conversationId),
         this.environment.api.listMessages(projectId, conversationId),
       ])
+      // 이어서 하기 카드가 잠깐이라도 그려지지 않도록 thread 를 채우기 전에 되살린다.
+      this.restoreOwnership(conversation, messages)
       this.applyMessages(conversationId, messages)
       this.applyConversation(conversation)
       this.setThreadLoad(conversationId, 'ready')
