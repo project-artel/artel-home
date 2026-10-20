@@ -1,0 +1,487 @@
+/* 전체 이슈(ARTEL-1114): 거르기 칸 · 출처가 붙은 표 · 옆 시트. 케이스 라이브러리처럼 화면 폭을 다 쓴다. */
+
+.ib-quiet {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+.ib-pad {
+  padding: var(--space-6) var(--space-4);
+}
+.ib-error {
+  margin: 0;
+  color: var(--color-status-critical);
+  font-size: 12px;
+}
+.ib-mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+.ib-nowrap {
+  white-space: nowrap;
+}
+.ib-id {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+.ib-version {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 6px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+.ib-build-label {
+  margin-left: 6px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+/* ---- 왼쪽: 케이스 라이브러리의 사이드바. "모든 버전" 줄만 더한다 ---- */
+.ib-sev-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--color-text-muted);
+}
+.ib-sev-dot--blocker,
+.ib-sev-dot--critical {
+  background: var(--color-status-critical);
+}
+.ib-sev-dot--major {
+  background: var(--color-status-warning);
+}
+.ib-sev-dot--minor {
+  background: var(--color-text-secondary);
+}
+
+/* ---- 가운데 표 ---- */
+.ib-main {
+  min-width: 0;
+}
+.ib-main {
+  padding: var(--space-4);
+}
+.ib-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.ib-toolbar-spacer {
+  flex: 1;
+}
+.ib-toolbar .dc-segment {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ib-seg-count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+.ib-runs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: var(--space-3);
+}
+.ib-runs .dc-label {
+  margin-right: 4px;
+}
+.ib-run-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 320px;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 999px;
+  background: none;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+}
+.ib-run-chip:hover {
+  border-color: var(--color-border-strong);
+  color: var(--color-text-primary);
+}
+.ib-run-chip[aria-pressed='true'] {
+  border-color: var(--color-brand-accent);
+  background: color-mix(in srgb, var(--color-brand-accent) 10%, transparent);
+  color: var(--color-text-primary);
+}
+.ib-run-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ib-shown {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+.ib-hint {
+  margin-left: auto;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+.ib-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 13px;
+}
+col.ib-c-check { width: 40px; }
+col.ib-c-sev { width: 84px; }
+col.ib-c-issue { width: auto; }
+col.ib-c-scenario { width: 20%; }
+col.ib-c-build { width: 84px; }
+col.ib-c-tr { width: 17%; }
+col.ib-c-step { width: 56px; }
+col.ib-c-found { width: 132px; }
+col.ib-c-status { width: 76px; }
+.ib-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--color-border-strong);
+  background: var(--color-bg-surface);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+}
+.ib-table td {
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  vertical-align: middle;
+  color: var(--color-text-secondary);
+}
+.ib-row {
+  cursor: pointer;
+}
+.ib-row:hover td {
+  background: var(--color-bg-hover);
+}
+.ib-row:focus-visible {
+  outline: 2px solid var(--color-brand-accent);
+  outline-offset: -2px;
+}
+.ib-row.is-active td {
+  background: var(--color-bg-raised);
+}
+.ib-row.is-active td:first-child {
+  box-shadow: inset 2px 0 0 var(--color-brand-accent);
+}
+.ib-row.is-checked td {
+  background: color-mix(in srgb, var(--color-brand-accent) 7%, transparent);
+}
+.ib-row.is-resolved .ib-issue-title {
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+  text-decoration-color: var(--color-border-strong);
+}
+.ib-check.dc-row-select {
+  position: relative;
+  left: auto;
+  top: auto;
+}
+.ib-issue-cell {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  overflow: hidden;
+}
+.ib-issue-cell .ib-issue-title {
+  flex: 1;
+  min-width: 0;
+}
+.ib-row[draggable='true'] {
+  cursor: pointer;
+}
+.ib-row:active {
+  cursor: grabbing;
+}
+.ib-issue-title {
+  display: block;
+  overflow: hidden;
+  color: var(--color-text-primary);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ib-issue-sub {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin-top: 3px;
+  font-size: 12px;
+}
+.ib-scenario {
+  overflow: hidden;
+  color: var(--color-text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ib-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ib-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.ib-status::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.ib-status--open {
+  color: var(--color-status-warning);
+}
+.ib-status--resolved {
+  color: var(--color-status-success);
+}
+.ib-more {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-4);
+}
+.ib-message {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-6) var(--space-4);
+  color: var(--color-text-secondary);
+}
+
+/* ---- 상세 모달 ---- */
+.dialog-panel:has(.ib-sheet-body) {
+  width: min(100%, 860px);
+  padding: 0;
+}
+.dialog-panel:has(.ib-sheet-body) > .dialog-title {
+  margin: 0;
+  padding: var(--space-5) var(--space-5) 0;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.ib-sheet-foot {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--color-border-subtle);
+}
+.ib-sheet-body .ib-origin {
+  grid-template-columns: 110px minmax(0, 1fr) 110px minmax(0, 1fr);
+}
+.ib-sheet-body .ib-compare {
+  grid-template-columns: 1fr 1fr;
+}
+.ib-sheet-body {
+  display: flex;
+  flex-direction: column;
+}
+.ib-sheet-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+.ib-sheet-tags {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.ib-sheet-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+.ib-sheet-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.ib-sheet-section {
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+.ib-sheet-label {
+  margin: 0 0 var(--space-2);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.ib-origin {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 8px var(--space-3);
+  margin: 0;
+  font-size: 13px;
+}
+.ib-origin dt {
+  color: var(--color-text-muted);
+}
+.ib-origin dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-text-primary);
+}
+.ib-link {
+  color: var(--color-text-primary);
+  text-decoration: underline;
+  text-decoration-color: var(--color-border-strong);
+  text-underline-offset: 3px;
+}
+.ib-link:hover {
+  text-decoration-color: var(--color-brand-accent);
+}
+.ib-compare {
+  display: grid;
+  gap: var(--space-3);
+}
+.ib-compare-cell {
+  padding: var(--space-3);
+  border-left: 3px solid var(--color-border-strong);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  background: var(--color-bg-raised);
+}
+.ib-compare-cell--expected {
+  border-left-color: var(--color-status-success);
+}
+.ib-compare-cell--actual {
+  border-left-color: var(--color-status-critical);
+}
+.ib-compare-cell p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+}
+.ib-repro {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.ib-repro li::marker {
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.ib-raw {
+  padding: var(--space-4) var(--space-5);
+}
+.ib-raw summary {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+.ib-raw pre {
+  max-height: 260px;
+  margin: var(--space-3) 0 0;
+  padding: var(--space-3);
+  overflow: auto;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-canvas);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+@media (max-width: 760px) {
+  .ib-sheet-body .ib-origin {
+    grid-template-columns: 92px minmax(0, 1fr);
+  }
+  .ib-sheet-body .ib-compare {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---- 화면 아래까지 채우되 바닥 여백은 남긴다 ---- */
+/* `--ib-fill` 은 IssueBoard 가 잰 남은 높이다. 내용이 더 길면 칸이 늘어나 페이지가 스크롤된다. */
+.ib .ib-main {
+  min-height: var(--ib-fill, calc(100vh - 168px));
+}
+.ib .tcl-folders {
+  min-height: var(--ib-fill, calc(100vh - 168px));
+  max-height: var(--ib-fill, calc(100vh - 168px));
+  box-sizing: border-box;
+}
+.ib .ib-main {
+  box-sizing: border-box;
+}
+.ib-archive-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+}
+.ib-archive-toggle:hover {
+  color: var(--color-text-primary);
+}
+.ib-archive-toggle[aria-pressed='true'] {
+  border-color: var(--color-border-strong);
+  background: var(--color-bg-raised);
+  color: var(--color-text-primary);
+}
+.ib-archived-note {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-raised);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+.ib-issue-cell .icat-chip {
+  flex: none;
+}
+.ib-issue-cell .ib-id {
+  flex: none;
+  min-width: 26px;
+}
+.ib-sheet-head .icat-picker {
+  margin-top: 2px;
+}

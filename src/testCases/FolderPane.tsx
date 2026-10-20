@@ -44,6 +44,8 @@ export type FolderHistoryControls = {
 
 type MenuState = { x: number; y: number; folder: TestCaseFolder | null }
 
+export type FolderPaneMessages = ReturnType<typeof useI18n>['t']['testCases']['folders']
+
 type DropHandlers = {
   onDragOver: (event: React.DragEvent) => void
   onDragLeave: (event: React.DragEvent) => void
@@ -73,6 +75,7 @@ export function FolderPane({
   status,
   onToggleCollapsed,
   top,
+  messages,
 }: {
   /** 접힌 창은 펼침 막대만 남는다(ARTEL-1022). */
   collapsed?: boolean
@@ -94,9 +97,11 @@ export function FolderPane({
    * 것이 곧 전체를 보는 것이다.
    */
   top?: ReactNode
+  /** 문구를 바꿔 쓸 때(이슈 화면은 "케이스" 대신 "이슈", ARTEL-1114). 없으면 케이스 라이브러리 문구. */
+  messages?: FolderPaneMessages
 }) {
   const { t } = useI18n()
-  const m = t.testCases.folders
+  const m = messages ?? t.testCases.folders
   const headingId = useId()
   const [dialog, setDialog] = useState<{ mode: FolderDialogMode; folder: TestCaseFolder | null } | null>(null)
   const [deleting, setDeleting] = useState<TestCaseFolder | null>(null)

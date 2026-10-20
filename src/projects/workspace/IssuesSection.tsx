@@ -1,14 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
-import { IssueList } from '../../issues/IssueList'
-import {
-  ISSUE_SEVERITIES,
-  ISSUE_STATUSES,
-  type IssueFilters,
-} from '../../issues/issueTypes'
-import { useProjectIssues } from '../../issues/useIssues'
-import { qaRunPath } from '../../qa/qaTypes'
+import { IssueBoard } from '../../issues/IssueBoard'
+import { CategoryManager, CategoryWorkbench } from '../../issues/IssueCategories'
+import { useIssueCategories } from '../../issues/useIssueCategories'
 import { useWorkspace } from './workspaceContext'
 import { useAuth } from '../../auth/useAuth'
 import { listMembers } from '../memberApi'
@@ -22,110 +17,14 @@ import type {
   LinkedIssue,
 } from '../../issues/discussions/discussionTypes'
 import '../../issues/discussions/discussions.css'
+import { DiscussionIcon } from '../../issues/discussions/discussionIcons'
 
 /**
- * Every defect this project's runs have found.
+ * Every defect this project's runs have found, and the team board that discusses them (ARTEL-1114).
  *
- * The default filter is unresolved, because the question this section exists to
- * answer is "what is still wrong" — the resolved ones are history and are one
- * select away. Its own paged read stays here rather than moving to the
- * workspace: the filters change what is asked for, and the dashboard only ever
- * needs the unresolved head of the list.
+ * The all-issues tab is `IssueBoard`: a full-width table that says, on every row, which build, test run and
+ * scenario the defect came from, filtered by those same three.
  */
-function AllIssues({
-  selected,
-  onToggle,
-}: {
-  selected: Issue[]
-  onToggle: (issue: Issue) => void
-}) {
-  const { t } = useI18n()
-  const { extrasStatus, projectId, trackerLink } = useWorkspace()
-  // 다른 화면이 이슈 하나를 가리켜 열면(`?issue=`, ARTEL-1084) 그 이슈가 이미 해결됐을 수 있다.
-  // 기본 필터(미해결)로 열면 가리킨 이슈가 안 보이므로 그때는 전체로 연다.
-  const [searchParams] = useSearchParams()
-  const focusId = searchParams.get('issue')
-  const [filters, setFilters] = useState<IssueFilters>({
-    status: focusId === null ? 'OPEN' : 'ALL',
-    severity: 'ALL',
-  })
-  const [reloadToken, setReloadToken] = useState(0)
-  const issues = useProjectIssues(projectId, filters, reloadToken)
-  // `trackerLink` starts `null` until `useWorkspaceExtras`'s five-way read
-  // settles (see `DashboardSection`'s own `extrasStatus === 'ready'` guard);
-  // without this, a project with an existing connection would flash every
-  // row with no tracker UI for a moment before the badges appear.
-  const trackerConnected =
-    extrasStatus === 'ready' &&
-    trackerLink !== null &&
-    trackerLink.repository !== null
-
-  return (
-    <div className="section-single">
-      <section className="panel" aria-label={t.issues.page.title}>
-        <p className="section-intro">{t.issues.page.subtitle}</p>
-
-        <div className="issue-filters">
-          <label className="issue-filter">
-            <span>{t.issues.filters.status}</span>
-            <select
-              onChange={(event) =>
-                setFilters((current) => ({
-                  ...current,
-                  status: event.target.value as IssueFilters['status'],
-                }))
-              }
-              value={filters.status}
-            >
-              <option value="ALL">{t.issues.filters.all}</option>
-              {ISSUE_STATUSES.map((status) => (
-                <option key={status} value={status}>
-                  {t.issues.statusLabels[status]}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="issue-filter">
-            <span>{t.issues.filters.severity}</span>
-            <select
-              onChange={(event) =>
-                setFilters((current) => ({
-                  ...current,
-                  severity: event.target.value as IssueFilters['severity'],
-                }))
-              }
-              value={filters.severity}
-            >
-              <option value="ALL">{t.issues.filters.all}</option>
-              {ISSUE_SEVERITIES.map((severity) => (
-                <option key={severity} value={severity}>
-                  {t.issues.severityLabels[severity]}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-
-        <IssueList
-          selection={{ ids: selected.map((issue) => issue.id), onToggle }}
-          filtered={filters.status !== 'ALL' || filters.severity !== 'ALL'}
-          focusId={focusId}
-          hasMore={issues.hasMore}
-          issues={issues.items}
-          loadingMore={issues.loadingMore}
-          onLoadMore={issues.loadMore}
-          onRetry={() => setReloadToken((token) => token + 1)}
-          patch={issues.patch}
-          runHref={(qaRunId, qaTryId) => qaRunPath(projectId, qaRunId, qaTryId)}
-          status={issues.status}
-          trackerConnected={trackerConnected}
-        />
-      </section>
-    </div>
-  )
-}
-
 export function IssuesSection() {
   const { projectId } = useWorkspace()
   const auth = useAuth()
@@ -145,7 +44,15 @@ function IssueWorkspace() {
     trackerLink !== null &&
     trackerLink.repository !== null
   const [params, setParams] = useSearchParams()
-  const team = params.get('tab') === 'team'
+  // 팀 공유가 먼저다. 다른 화면이 이슈 하나를 가리켜 열면(`?issue=`) 전체 이슈로 연다.
+  const categoriesTab = params.get('tab') === 'categories' && params.get('compose') !== 'new'
+  const team =
+    !categoriesTab &&
+    (params.get('compose') === 'new' ||
+      params.get('tab') === 'team' ||
+      (params.get('tab') === null && params.get('issue') === null))
+  // 카테고리 탭에서 "목록 보기" 로 넘어오면 그 카테고리로 걸러 연다.
+  const categoryParam = params.get('category')
   const discussionId = params.get('discussion')
   const [members, setMembers] = useState<ProjectMember[]>([])
   const [membersFailed, setMembersFailed] = useState(false)
@@ -153,6 +60,8 @@ function IssueWorkspace() {
   const [compose, setCompose] = useState(false)
   const [editing, setEditing] = useState<DiscussionDetail | undefined>()
   const [revision, setRevision] = useState(0)
+  const { categories, reload: reloadCategories } = useIssueCategories(projectId)
+  const [managingCategories, setManagingCategories] = useState(false)
   useEffect(() => {
     const controller = new AbortController()
     void listMembers(projectId, controller.signal)
@@ -164,16 +73,26 @@ function IssueWorkspace() {
       })
     return () => controller.abort()
   }, [projectId])
-  function navigate(tab: 'issues' | 'team', id?: string) {
+  // 새 글은 창이 아니라 페이지에서 쓴다(`?compose=new`). 수정은 창으로 연다.
+  const composingNew = params.get('compose') === 'new'
+  function navigate(tab: 'issues' | 'team' | 'categories', id?: string, composeNew = false, categoryId?: string) {
     const next = new URLSearchParams(params)
     next.delete('issue')
     next.delete('discussion')
-    if (tab === 'team') next.set('tab', 'team')
-    else next.delete('tab')
+    next.delete('compose')
+    next.delete('category')
+    if (composeNew) next.set('compose', 'new')
+    if (tab === 'team') next.delete('tab')
+    else next.set('tab', tab)
+    if (categoryId) next.set('category', categoryId)
     if (id) next.set('discussion', id)
     setParams(next)
   }
   function openComposer(post?: DiscussionDetail) {
+    if (post === undefined) {
+      navigate('team', undefined, true)
+      return
+    }
     setEditing(post)
     setCompose(true)
   }
@@ -187,70 +106,118 @@ function IssueWorkspace() {
     )
   }
   const initialIssues: LinkedIssue[] = selected.map(
-    ({ id, title, severity, status, qaTryId, qaRunId }) => ({
+    ({ id, title, severity, status, qaTryId, qaRunId, number }) => ({
       id,
       title,
       severity,
       status,
       qaTryId,
       qaRunId,
+      number,
     }),
   )
   return (
-    <div className="discussion-workspace">
-      <header className="discussion-page-header">
-        <div>
-          <p>{text.intro}</p>
-        </div>
-        <button
-          type="button"
-          className="button button--primary"
-          onClick={() => openComposer()}
-        >
-          {text.newPost}
-        </button>
-      </header>
-      <nav className="discussion-tabs" aria-label={t.issues.page.title}>
-        <button
-          type="button"
-          aria-current={!team ? 'page' : undefined}
-          onClick={() => navigate('issues')}
-        >
-          {text.allIssues}
-        </button>
-        <button
-          type="button"
-          aria-current={team ? 'page' : undefined}
-          onClick={() => navigate('team')}
-        >
-          {text.team}
-        </button>
-        <small>{text.sharedWith}</small>
-      </nav>
-      {!team ? (
+    <div className="dc-workspace">
+      <div className="dc-tabs-row">
+        <nav aria-label={t.issues.page.title} className="dc-tabs">
+          <button
+            aria-current={team ? 'page' : undefined}
+            className="dc-tab"
+            onClick={() => navigate('team')}
+            type="button"
+          >
+            {text.team}
+          </button>
+          <button
+            aria-current={!team && !categoriesTab ? 'page' : undefined}
+            className="dc-tab"
+            onClick={() => navigate('issues')}
+            type="button"
+          >
+            {text.allIssues}
+          </button>
+          <button
+            aria-current={categoriesTab ? 'page' : undefined}
+            className="dc-tab"
+            onClick={() => navigate('categories')}
+            type="button"
+          >
+            {t.issues.board.categoriesTab}
+            <span className="dc-tab-count">{categories.length}</span>
+          </button>
+        </nav>
+        {!composingNew && !categoriesTab && (team || selected.length === 0) && (
+          <button
+            className="button button--primary dc-with-icon"
+            onClick={() => openComposer()}
+            type="button"
+          >
+            <DiscussionIcon name="plus" size={15} />
+            {text.newPost}
+          </button>
+        )}
+      </div>
+      {composingNew ? (
+        <DiscussionComposer
+          categories={categories}
+          initialIssues={initialIssues}
+          key="new"
+          members={members}
+          membersFailed={membersFailed}
+          mode="page"
+          onClose={() => navigate('team')}
+          onManageCategories={() => setManagingCategories(true)}
+          onCategoriesChanged={reloadCategories}
+          onSaved={(post) => {
+            setSelected([])
+            setRevision((value) => value + 1)
+            navigate('team', post.id)
+          }}
+          projectId={projectId}
+        />
+      ) : categoriesTab ? (
+        <section className="cm2-page" aria-label={t.issues.board.categoriesTab}>
+          <p className="dc-quiet">{t.issues.board.categoriesTabHelp}</p>
+          <CategoryWorkbench
+            categories={categories}
+            onChanged={reloadCategories}
+            onShowIssues={(category) => navigate('issues', undefined, false, category.id)}
+            onShowPosts={(category) => navigate('team', undefined, false, category.id)}
+            projectId={projectId}
+            variant="page"
+          />
+        </section>
+      ) : !team ? (
         <>
-          <div className="discussion-selection">
-            <span>
-              {selected.length
-                ? `${selected.length} ${text.selected}`
-                : text.selectionHint}
-            </span>
-            {selected.length > 0 && (
-              <>
-                <button
-                  className="button button--primary"
-                  type="button"
-                  onClick={() => openComposer()}
-                >
-                  {text.selectedShare}
-                </button>
-                <button type="button" onClick={() => setSelected([])}>
-                  {text.clear}
-                </button>
-              </>
-            )}
-          </div>
-          <AllIssues selected={selected} onToggle={toggle} />
+          {selected.length > 0 && (
+            <div className="dc-selection" role="status">
+              <span className="dc-selection-count">
+                {selected.length}
+                {text.selected}
+              </span>
+              <button className="dc-link-button" onClick={() => setSelected([])} type="button">
+                {text.clear}
+              </button>
+              <span className="dc-selection-spacer" />
+              <button className="button button--primary dc-with-icon" onClick={() => openComposer()} type="button">
+                <DiscussionIcon name="messages" size={15} />
+                {text.selectedShare}
+              </button>
+            </div>
+          )}
+          <IssueBoard
+            initialCategoryId={categoryParam}
+            key={categoryParam ?? 'all'}
+            categories={categories}
+            onCategoriesChanged={reloadCategories}
+            onManageCategories={() => setManagingCategories(true)}
+            focusId={params.get('issue')}
+            onClearSelected={() => setSelected([])}
+            onToggleSelected={toggle}
+            projectId={projectId}
+            selectedIds={selected.map((issue) => issue.id)}
+            trackerConnected={trackerConnected}
+          />
         </>
       ) : discussionId ? (
         <DiscussionThread
@@ -265,7 +232,9 @@ function IssueWorkspace() {
         />
       ) : (
         <DiscussionBoard
-          key={revision}
+          categories={categories}
+          initialCategoryId={categoryParam}
+          key={`${revision}:${categoryParam ?? ''}`}
           projectId={projectId}
           members={members}
           membersFailed={membersFailed}
@@ -273,7 +242,7 @@ function IssueWorkspace() {
           onNew={() => openComposer()}
         />
       )}
-      {compose && (
+      {compose && editing && (
         <DiscussionComposer
           key={editing?.id ?? 'new'}
           projectId={projectId}
@@ -281,6 +250,9 @@ function IssueWorkspace() {
           membersFailed={membersFailed}
           initialIssues={initialIssues}
           editing={editing}
+          categories={categories}
+          onCategoriesChanged={reloadCategories}
+          onManageCategories={() => setManagingCategories(true)}
           onClose={() => setCompose(false)}
           onSaved={(post) => {
             setCompose(false)
@@ -288,6 +260,14 @@ function IssueWorkspace() {
             setRevision((value) => value + 1)
             navigate('team', post.id)
           }}
+        />
+      )}
+      {managingCategories && (
+        <CategoryManager
+          categories={categories}
+          onChanged={reloadCategories}
+          onClose={() => setManagingCategories(false)}
+          projectId={projectId}
         />
       )}
     </div>

@@ -104,9 +104,11 @@ test('생성 재시도는 전달받은 요청 ID를 그대로 사용한다', asy
     const draft = {
       title: '공유',
       body: '본문',
-      purpose: 'SHARE' as const,
+      purpose: 'RESOLUTION' as const,
       issueIds: ['12'],
       mentionedUserIds: ['34'],
+      reviewerIds: [],
+      categoryIds: [],
     }
     await saveDiscussion('2', draft, 'same-request')
     await saveDiscussion('2', draft, 'same-request')

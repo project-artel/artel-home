@@ -1,5 +1,5 @@
 import { apiFetch } from '../../auth/authApi'
-import { asRecord, ProjectApiError, readJson } from '../../projects/projectApi'
+import { asRecord, ProjectApiError, readJson, toApiError } from '../../projects/projectApi'
 import { isDecimalId } from '../../qa/qaApi'
 import { parseIssue } from '../issueApi'
 import {
@@ -11,8 +11,10 @@ import {
   type Filter,
   type LinkedIssue,
   type Page,
+  type NumberedPage,
   type Person,
   type Purpose,
+  type CategoryTag,
 } from './discussionTypes'
 
 function invalid(): never {
@@ -54,7 +56,7 @@ export function parseDiscussion(value: unknown): Discussion {
   const row = record(value)
   if (
     !PURPOSES.includes(row.purpose as Purpose) ||
-    (row.state !== 'OPEN' && row.state !== 'CLOSED')
+    (row.state !== 'OPEN' && row.state !== 'CLOSED' && row.state !== 'DRAFT')
   )
     invalid()
   return {
@@ -71,7 +73,17 @@ export function parseDiscussion(value: unknown): Discussion {
     updatedAt: string(row.updatedAt),
     subscribed: bool(row.subscribed),
     version: count(row.version),
+    categories: Array.isArray(row.categories) ? row.categories.map(parseCategoryTag) : [],
+    reviewerCount: typeof row.reviewerCount === 'number' ? row.reviewerCount : 0,
+    approvalCount: typeof row.approvalCount === 'number' ? row.approvalCount : 0,
+    number: isDecimalId(row.number) ? row.number : null,
+    gameBuildId: isDecimalId(row.gameBuildId) ? row.gameBuildId : null,
+    buildVersion: typeof row.buildVersion === 'string' ? row.buildVersion : null,
   }
+}
+export function parseCategoryTag(value: unknown): CategoryTag {
+  const row = record(value)
+  return { id: id(row.id), name: string(row.name), color: string(row.color) }
 }
 export function parseLinkedIssue(value: unknown): LinkedIssue {
   const row = record(value)
@@ -82,6 +94,7 @@ export function parseLinkedIssue(value: unknown): LinkedIssue {
     status: string(row.status),
     qaTryId: id(row.qaTryId),
     qaRunId: row.qaRunId === null ? null : id(row.qaRunId),
+    number: typeof row.number === 'string' ? row.number : null,
   }
 }
 export function parseComment(value: unknown): Comment {
@@ -97,6 +110,8 @@ export function parseComment(value: unknown): Comment {
     reactionCount: count(row.reactionCount),
     reacted: bool(row.reacted),
     canEdit: bool(row.canEdit),
+    parentId: isDecimalId(row.parentId) ? row.parentId : null,
+    canDelete: row.canDelete === true,
   }
 }
 export function parseDiscussionDetail(value: unknown): DiscussionDetail {
@@ -109,6 +124,18 @@ export function parseDiscussionDetail(value: unknown): DiscussionDetail {
     decision: row.decision === null ? null : parseComment(row.decision),
     canEdit: bool(row.canEdit),
     canPin: bool(row.canPin),
+    reviewers: Array.isArray(row.reviewers)
+      ? row.reviewers.map((value) => {
+          const reviewer = record(value)
+          return {
+            person: person(reviewer.person),
+            approvedAt: typeof reviewer.approvedAt === 'string' ? reviewer.approvedAt : null,
+          }
+        })
+      : [],
+    approvalsRequired: typeof row.approvalsRequired === 'number' ? row.approvalsRequired : 1,
+    canManage: row.canManage === undefined ? bool(row.canEdit) : bool(row.canManage),
+    canApprove: row.canApprove === true,
   }
 }
 export function parsePage<T>(
@@ -148,8 +175,10 @@ export async function listDiscussions(
   query: string,
   cursor?: string,
   signal?: AbortSignal,
+  categoryId?: string | null,
 ): Promise<Page<Discussion>> {
   const params = new URLSearchParams({ size: '30' })
+  if (categoryId) params.set('categoryId', categoryId)
   if (filter === 'open' || filter === 'closed')
     params.set('state', filter.toUpperCase())
   if (filter === 'mine' || filter === 'subscribed') params.set(filter, 'true')
@@ -159,6 +188,31 @@ export async function listDiscussions(
     await request(`${root(projectId)}?${params}`, 'GET', undefined, signal),
     parseDiscussion,
   )
+}
+/** 게시판 한 쪽. [page] 는 1 부터. "논의 중"(OPEN)은 서버가 Draft 를 함께 준다. */
+export async function listDiscussionPage(
+  projectId: string,
+  filter: Filter,
+  query: string,
+  page: number,
+  size: number,
+  categoryId: string | null,
+  gameBuildId: string | null,
+  signal?: AbortSignal,
+): Promise<NumberedPage<Discussion>> {
+  const params = new URLSearchParams({ page: String(page), size: String(size) })
+  if (filter === 'open' || filter === 'closed') params.set('state', filter.toUpperCase())
+  if (filter === 'mine' || filter === 'subscribed') params.set(filter, 'true')
+  if (query.trim()) params.set('query', query.trim())
+  if (categoryId) params.set('categoryId', categoryId)
+  if (gameBuildId) params.set('gameBuildId', gameBuildId)
+  const row = record(await request(`${root(projectId)}/pages?${params}`, 'GET', undefined, signal))
+  return {
+    items: array(row.items, parseDiscussion),
+    page: count(row.page),
+    size: count(row.size),
+    total: count(row.total),
+  }
 }
 export async function getDiscussion(
   projectId: string,
@@ -197,7 +251,7 @@ export async function setDiscussion(
   action: 'state' | 'pin' | 'decision' | 'subscription',
   value:
     | { enabled: boolean }
-    | { state: 'OPEN' | 'CLOSED' }
+    | { state: 'DRAFT' | 'OPEN' | 'CLOSED' }
     | { commentId: string | null },
 ) {
   return parseDiscussionDetail(
@@ -229,6 +283,7 @@ export async function saveComment(
   mentionedUserIds: string[],
   clientRequestId: string,
   editing?: Comment,
+  parentId?: string | null,
 ) {
   return parseComment(
     await request(
@@ -237,10 +292,28 @@ export async function saveComment(
       {
         body,
         mentionedUserIds,
-        ...(editing ? { version: editing.version } : { clientRequestId }),
+        ...(editing ? { version: editing.version } : { clientRequestId, parentId: parentId ?? null }),
       },
     ),
   )
+}
+
+/** 검토자가 확인 요청을 승인하거나 승인을 거둔다. 승인 수가 차면 서버가 글을 해결한다. */
+export async function approveDiscussion(projectId: string, discussionId: string, approved: boolean) {
+  return parseDiscussionDetail(
+    await request(`${root(projectId)}/${encodeURIComponent(discussionId)}/approval`, 'PUT', { approved }),
+  )
+}
+
+/** 확인 요청이 해결되는 승인 수. 바꾸기는 프로젝트 OWNER 만. */
+export async function getDiscussionSettings(projectId: string, signal?: AbortSignal): Promise<{ approvalsRequired: number }> {
+  const row = record(await request(`${root(projectId)}/settings`, 'GET', undefined, signal))
+  return { approvalsRequired: count(row.approvalsRequired) }
+}
+
+export async function updateDiscussionSettings(projectId: string, approvalsRequired: number) {
+  const row = record(await request(`${root(projectId)}/settings`, 'PUT', { approvalsRequired }))
+  return { approvalsRequired: count(row.approvalsRequired) }
 }
 export async function reactToComment(
   projectId: string,
@@ -289,4 +362,12 @@ export async function getOriginalIssue(
       ),
     ) ?? invalid()
   )
+}
+
+/** 댓글을 지운다. 답글은 서버가 함께 지운다. */
+export async function deleteComment(projectId: string, discussionId: string, commentId: string): Promise<void> {
+  const response = await apiFetch(`${root(projectId)}/${encodeURIComponent(discussionId)}/comments/${encodeURIComponent(commentId)}`, {
+    method: 'DELETE',
+  })
+  if (!response.ok) throw await toApiError(response)
 }

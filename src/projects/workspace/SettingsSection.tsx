@@ -8,6 +8,8 @@ import { ProjectApiError, updateProject } from '../projectApi'
 import { ProjectForm } from '../ProjectForm'
 import type { ProjectDetail, ProjectDraft } from '../projectTypes'
 import { TrackerLinkPanel } from '../../tracker/TrackerLinkPanel'
+import { ReviewSettingsPanel } from '../../issues/discussions/ReviewSettingsPanel'
+import '../../issues/discussions/discussions.css'
 import { useWorkspace } from './workspaceContext'
 
 function toDraft(project: ProjectDetail): ProjectDraft {
@@ -167,6 +169,8 @@ export function SettingsSection() {
       </section>
 
       <TrackerLinkPanel />
+
+      <ReviewSettingsPanel canEdit={project.myRole === 'OWNER'} projectId={project.id} />
 
       {/* Members have no path to becoming an owner in this release, so a
           disabled control would be permanently dead UI. */}

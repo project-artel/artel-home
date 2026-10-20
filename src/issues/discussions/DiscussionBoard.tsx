@@ -1,181 +1,281 @@
-import { useCallback, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useI18n } from '../../i18n/useI18n'
 import { formatDateTime } from '../../projects/formatters'
 import type { ProjectMember } from '../../projects/memberTypes'
-import { listDiscussions } from './discussionApi'
-import type { Filter } from './discussionTypes'
-import { useDiscussionPage } from './useDiscussionPage'
+import { BuildVersionSelect } from '../BuildVersionSelect'
+import { CategoryFilter } from '../CategoryFilter'
+import { CategoryChip } from '../IssueCategories'
+import { BoardSketch } from '../issueSketches'
+import type { IssueCategory } from '../issueTypes'
+import { listDiscussionPage } from './discussionApi'
+import { plainMarkdown } from './discussionMarkdown'
+import { DiscussionIcon } from './discussionIcons'
+import { Avatar, PinnedMark, PurposeTag, StateTag } from './discussionParts'
+import type { Discussion, Filter, NumberedPage } from './discussionTypes'
+import { Pagination } from './Pagination'
 
+const PAGE_SIZE = 20
+
+/**
+ * 팀 공유 게시판(ARTEL-1114). 쪽 번호로 나눈다 — 글이 쌓이면 "더 보기" 로는 지난 글을 다시 찾아가기 어렵다.
+ * 기본 탭은 "논의 중" 이고, 아직 공개 전인 Draft 도 그 안에 함께 보인다.
+ */
 export function DiscussionBoard({
   projectId,
   members,
   membersFailed,
   onOpen,
   onNew,
+  categories,
+  initialCategoryId = null,
 }: {
   projectId: string
   members: ProjectMember[]
   membersFailed: boolean
   onOpen: (id: string) => void
   onNew: () => void
+  categories: readonly IssueCategory[]
+  /** 카테고리 탭의 "목록 보기" 로 열면 그 카테고리. */
+  initialCategoryId?: string | null
 }) {
   const { t } = useI18n()
   const text = t.discussions
-  const [filter, setFilter] = useState<Filter>('all')
+  const [filter, setFilter] = useState<Filter>('open')
   const [input, setInput] = useState('')
   const [query, setQuery] = useState('')
-  const load = useCallback(
-    (cursor: string | undefined, signal: AbortSignal) =>
-      listDiscussions(projectId, filter, query, cursor, signal),
-    [projectId, filter, query],
-  )
-  const page = useDiscussionPage(load)
-  const filters: Filter[] = ['all', 'open', 'closed', 'subscribed', 'mine']
+  const [categoryId, setCategoryId] = useState<string | null>(initialCategoryId)
+  const [gameBuildId, setGameBuildId] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
+  const [result, setResult] = useState<{ key: string; data: NumberedPage<Discussion> | null; failed: boolean } | null>(null)
+  const [revision, setRevision] = useState(0)
+  const key = `${filter}|${query}|${categoryId}|${gameBuildId}|${page}|${revision}`
+
+  useEffect(() => {
+    const controller = new AbortController()
+    listDiscussionPage(projectId, filter, query, page, PAGE_SIZE, categoryId, gameBuildId, controller.signal)
+      .then((data) => setResult({ key, data, failed: false }))
+      .catch(() => {
+        if (!controller.signal.aborted) setResult({ key, data: null, failed: true })
+      })
+    return () => controller.abort()
+  }, [projectId, filter, query, page, categoryId, gameBuildId, key])
+
+  const settled = result?.key === key ? result : null
+  const items = settled?.data?.items ?? []
+  const total = settled?.data?.total ?? 0
+  const filters: Filter[] = ['open', 'closed', 'subscribed', 'mine']
+
+  function changeFilter(next: Filter) {
+    setFilter(next)
+    setPage(1)
+  }
   function search(event: FormEvent) {
     event.preventDefault()
     setQuery(input)
+    setPage(1)
   }
+  const recent = [...items].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 3)
+  const narrowed = filter !== 'open' || query !== '' || categoryId !== null || gameBuildId !== null
+
   return (
-    <div className="discussion-board">
-      <main>
-        <div className="discussion-board-heading">
-          <div>
-            <h2>{text.title}</h2>
-            <p>{text.intro}</p>
-          </div>
-          <form className="discussion-search" onSubmit={search}>
-            <input
-              aria-label={text.search}
-              placeholder={text.search}
-              maxLength={200}
-              value={input}
-              onChange={(event) => setInput(event.target.value)}
-            />
-            <button>{text.search}</button>
-          </form>
-        </div>
-        <div className="discussion-filters">
-          <div>
+    <div className="dc-board">
+      <main className="dc-board-main">
+        <div className="dc-toolbar">
+          <div className="dc-segments" role="group" aria-label={text.title}>
             {filters.map((value) => (
               <button
-                key={value}
                 aria-pressed={value === filter}
+                className="dc-segment"
+                key={value}
+                onClick={() => changeFilter(value)}
                 type="button"
-                onClick={() => setFilter(value)}
               >
                 {text[value]}
               </button>
             ))}
           </div>
-          <small>{text.order}</small>
+          <span className="dc-toolbar-end">
+          <BuildVersionSelect
+            className="dc-input dc-version-filter"
+            emptyLabel={text.allVersions}
+            label={text.buildVersion}
+            onChange={(next) => {
+              setGameBuildId(next)
+              setPage(1)
+            }}
+            projectId={projectId}
+            value={gameBuildId}
+          />
+          <form className="dc-search" onSubmit={search} role="search">
+            <DiscussionIcon className="dc-search-icon" name="search" size={15} />
+            <input
+              aria-label={text.search}
+              maxLength={200}
+              onChange={(event) => setInput(event.target.value)}
+              placeholder={text.search}
+              type="search"
+              value={input}
+            />
+          </form>
+          </span>
         </div>
-        {page.status === 'loading' && (
-          <p className="discussion-empty" aria-busy="true">
+        <CategoryFilter
+          projectId={projectId}
+          allLabel={text.allCategories}
+          categories={categories}
+          countOf={(category) => category.discussionCount}
+          onChange={(next) => {
+            setCategoryId(next)
+            setPage(1)
+          }}
+          selected={categoryId}
+        />
+
+        {settled === null && (
+          <p aria-busy="true" className="dc-quiet dc-pad">
             {text.loading}
           </p>
         )}
-        {page.status === 'error' && (
-          <div className="discussion-empty" role="alert">
+        {settled?.failed && (
+          <div className="dc-empty" role="alert">
             <p>{text.failed}</p>
-            <button type="button" onClick={page.refresh}>
+            <button className="button button--secondary" onClick={() => setRevision((value) => value + 1)} type="button">
               {text.retry}
             </button>
           </div>
         )}
-        {page.status === 'ready' && page.items.length === 0 && (
-          <div className="discussion-empty">
-            <div className="discussion-empty-symbol" aria-hidden="true">
-              ↗
-            </div>
-            <h3>{filter === 'all' && !query ? text.empty : text.noResults}</h3>
+        {settled !== null && !settled.failed && items.length === 0 && (
+          <div className="dc-empty">
+            <BoardSketch />
+            <h3>{narrowed ? text.noResults : text.empty}</h3>
             <p>{text.emptyHelp}</p>
-            <button className="button button--primary" onClick={onNew}>
+            <button className="button button--primary dc-with-icon" onClick={onNew} type="button">
+              <DiscussionIcon name="plus" size={15} />
               {text.newPost}
             </button>
           </div>
         )}
-        <div className="discussion-posts">
-          {page.items.map((post) => (
-            <button
-              type="button"
-              className={`discussion-post ${post.pinned ? 'is-pinned' : ''}`}
-              key={post.id}
-              onClick={() => onOpen(post.id)}
-            >
-              <span className="discussion-avatar" aria-hidden="true">
-                {post.author.displayName.slice(0, 1)}
-              </span>
-              <span className="discussion-post-copy">
-                <span className="discussion-eyebrow">
-                  {text.purposes[post.purpose]}{' '}
-                  {post.pinned && <span>⌖ {text.pinned}</span>}
-                </span>
-                <strong>{post.title}</strong>
-                <span className="discussion-excerpt">{post.excerpt}</span>
-                <span className="discussion-meta">
-                  {post.author.displayName} · {text.linked} {post.issueCount} ·{' '}
-                  {text.comments} {post.commentCount}
-                  {post.subscribed && ` · ${text.subscribed}`}
-                </span>
-              </span>
-              <span className="discussion-post-side">
-                <span
-                  className={`discussion-state ${post.state === 'CLOSED' ? 'is-closed' : ''}`}
-                >
-                  {post.state === 'OPEN' ? text.open : `✓ ${text.closed}`}
-                </span>
-                <time>{formatDateTime(post.updatedAt)}</time>
-              </span>
-            </button>
-          ))}
-        </div>
-        {page.moreFailed && <p role="alert">{text.failed}</p>}
-        {page.hasMore && (
-          <button
-            className="button button--secondary discussion-more"
-            disabled={page.loadingMore}
-            onClick={() => void page.loadMore()}
-          >
-            {page.loadingMore ? text.loading : text.more}
-          </button>
+
+        {items.length > 0 && (
+          <>
+            <p className="dc-order">
+              {text.order} · {text.totalPosts(total)}
+            </p>
+            <ul className="dc-posts">
+              {items.map((post) => (
+                <li key={post.id}>
+                  <button
+                    className={`dc-post${post.pinned ? ' is-pinned' : ''}${post.state === 'CLOSED' ? ' is-closed' : ''}${post.state === 'DRAFT' ? ' is-draft' : ''}`}
+                    onClick={() => onOpen(post.id)}
+                    type="button"
+                  >
+                    <span className="dc-post-tags">
+                      {post.number && <span className="dc-post-no">#{post.number}</span>}
+                      <PurposeTag purpose={post.purpose} />
+                      {post.pinned && <PinnedMark />}
+                    </span>
+                    {/* 버전과 카테고리는 모든 줄의 같은 자리에 둔다. 없으면 없다고 보인다. */}
+                    <span className="dc-post-facets">
+                      <span className="dc-post-facet">
+                        <span className="dc-cap">{text.buildVersion}</span>
+                        {post.buildVersion ? (
+                          <span className="ib-version">{post.buildVersion}</span>
+                        ) : (
+                          <span className="dc-facet-empty">{text.noVersion}</span>
+                        )}
+                      </span>
+                      <span className="dc-post-facet">
+                        <span className="dc-cap">{text.categories}</span>
+                        <span className="dc-post-facet-chips">
+                          {post.categories.length === 0 ? (
+                            <span className="dc-facet-empty">—</span>
+                          ) : (
+                            <>
+                              {post.categories.slice(0, 3).map((category) => (
+                                <CategoryChip key={category.id} small tag={category} />
+                              ))}
+                              {post.categories.length > 3 && (
+                                <span className="dc-tag" title={post.categories.slice(3).map((category) => category.name).join(', ')}>
+                                  {text.moreCategories(post.categories.length - 3)}
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </span>
+                      </span>
+                    </span>
+                    <span className="dc-post-title">{post.title}</span>
+                    <span className="dc-post-excerpt">{plainMarkdown(post.excerpt)}</span>
+                    <span className="dc-post-meta">
+                      <Avatar person={post.author} size="sm" />
+                      <span>{post.author.displayName}</span>
+                      <span aria-hidden="true" className="dc-dot" />
+                      <time dateTime={post.updatedAt}>{formatDateTime(post.updatedAt)}</time>
+                      <span className="dc-count" title={text.linked}>
+                        <DiscussionIcon name="link" size={13} />
+                        <span className="visually-hidden">{text.linked}</span>
+                        {post.issueCount}
+                      </span>
+                      <span className="dc-count" title={text.comments}>
+                        <DiscussionIcon name="message" size={13} />
+                        <span className="visually-hidden">{text.comments}</span>
+                        {post.commentCount}
+                      </span>
+                      {post.subscribed && (
+                        <span className="dc-count" title={text.subscribed}>
+                          <DiscussionIcon name="bell" size={13} />
+                          <span className="visually-hidden">{text.subscribed}</span>
+                        </span>
+                      )}
+                    </span>
+                    <span className="dc-post-state">
+                      <StateTag state={post.state} />
+                      {post.purpose === 'QUESTION' && post.reviewerCount > 0 && (
+                        <span className="dc-approval-count">{text.approvals(post.approvalCount, post.reviewerCount)}</span>
+                      )}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <Pagination onChange={setPage} page={page} pageSize={PAGE_SIZE} total={total} />
+          </>
         )}
       </main>
-      <aside className="discussion-sidebar">
-        <section>
-          <h3>{text.latest}</h3>
-          {[...page.items]
-            .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
-            .slice(0, 3)
-            .map((post) => (
-              <button
-                className="discussion-activity"
-                key={post.id}
-                onClick={() => onOpen(post.id)}
-              >
-                <strong>{post.title}</strong>
-                <time>{formatDateTime(post.updatedAt)}</time>
-              </button>
-            ))}
-        </section>
-        <section>
-          <h3>{text.members}</h3>
-          {membersFailed ? (
-            <p>{text.mentionsFailed}</p>
+
+      <aside className="dc-side">
+        <section className="dc-side-section">
+          <h3 className="dc-side-title">{text.latest}</h3>
+          {recent.length === 0 ? (
+            <p className="dc-quiet">{text.noActivity}</p>
           ) : (
-            <div className="discussion-avatars">
-              {members.slice(0, 8).map((member) => (
-                <span
-                  className="discussion-avatar"
-                  key={member.userId}
-                  title={`${member.nickname}#${member.userTag}`}
-                >
-                  {member.nickname.slice(0, 1)}
-                </span>
+            <ul className="dc-activity">
+              {recent.map((post) => (
+                <li key={post.id}>
+                  <button onClick={() => onOpen(post.id)} type="button">
+                    <span className="dc-activity-title">{post.title}</span>
+                    <time dateTime={post.updatedAt}>{formatDateTime(post.updatedAt)}</time>
+                  </button>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
-          <p>{text.memberHelp}</p>
-          <small>{text.sharedWith}</small>
+        </section>
+        <section className="dc-side-section">
+          <h3 className="dc-side-title">{text.members}</h3>
+          {membersFailed ? (
+            <p className="dc-quiet">{text.mentionsFailed}</p>
+          ) : (
+            <ul className="dc-members">
+              {members.slice(0, 8).map((member) => (
+                <li key={member.userId}>
+                  <Avatar person={{ id: member.userId, displayName: member.nickname }} size="sm" />
+                  <span className="dc-member-name">{member.nickname}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="dc-quiet">{text.memberHelp}</p>
         </section>
       </aside>
     </div>

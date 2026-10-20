@@ -69,9 +69,10 @@ export function IssueRow({
   return (
     <li className={`issue-row ${resolved ? 'issue-row--resolved' : ''}${focused ? ' issue-row--focused' : ''}`} ref={rowRef}>
       {selection && (
-        <label className="discussion-select-label">
-          <input type="checkbox" checked={selection.checked} disabled={selection.disabled} onChange={selection.onToggle} />
-          {t.discussions.selectIssue} #{issue.id}
+        <label className="dc-row-select" title={`${t.discussions.selectIssue} #${issue.id}`}>
+          <input checked={selection.checked} disabled={selection.disabled} onChange={selection.onToggle} type="checkbox" />
+          <span aria-hidden="true" className="dc-check" />
+          <span className="visually-hidden">{t.discussions.selectIssue} #{issue.id}</span>
         </label>
       )}
       <div className="issue-row-head">
