@@ -1,15 +1,21 @@
 import { useId } from 'react'
 
-/** 로고 두 획(`public/artel-mark.svg` 와 같은 좌표, 64×64). */
-const MARK_BODY = 'M 52 40 L 52 18 L 32 6 L 12 18 L 12 46 L 30 56'
-const MARK_ACCENT = 'M 36 56 L 52 46'
+/**
+ * ARTEL 로고(64×64). 정육각형 고리를 두 조각으로 나눈 모양이다 — 회색 몸통과, 오른쪽 아래 변인 코랄 조각.
+ * 코랄 조각은 양 끝이 세로로 잘렸고, 몸통과는 아래 꼭짓점과 오른쪽 변 끝에서 가는 틈만큼 떨어져 있다.
+ * 브랜드 원본(artel-logo-symbol-transparent.png)에서 잰 비율이다. `public/artel-mark.svg` 는 선으로 그린 근사라 쓰지 않는다.
+ */
+const MARK_BODY =
+  'M 32 56 L 11.22 44 L 11.22 20 L 32 8 L 52.78 20 L 52.78 32.6 L 43.98 37.68 L 43.98 25.08 L 32 18.16 L 20.02 25.08 L 20.02 38.92 L 32 45.84 Z'
+const MARK_ACCENT = 'M 35.2 54.15 L 52.78 44 L 52.78 35.2 L 35.2 45.35 Z'
 
 /** 로고를 위에서 아래로 가르는 금. 왼쪽 조각과 오른쪽 조각이 이 선에서 나뉜다. */
 const CRACK = [
   [31, -2],
   [33, 4],
-  [30, 8],
+  [30, 9],
   [33, 13],
+  [30, 18],
   [28, 30],
   [27, 48],
   [29, 52],
@@ -59,8 +65,8 @@ export function BrokenLogoScene() {
         </clipPath>
         {/* 금은 로고 획 위에만 보인다 — 가운데 빈 자리에 그으면 금이 아니라 낙서다. */}
         <mask id={onMark} maskContentUnits="userSpaceOnUse" maskUnits="userSpaceOnUse" x="-10" y="-10" width="90" height="90">
-          <path d={MARK_BODY} stroke="#fff" strokeWidth="9" />
-          <path d={MARK_ACCENT} stroke="#fff" strokeWidth="9" />
+          <path d={MARK_BODY} fill="#fff" />
+          <path d={MARK_ACCENT} fill="#fff" />
         </mask>
       </defs>
 
@@ -95,7 +101,7 @@ export function BrokenLogoScene() {
         {/* 갈라진 틈과 가는 잔금 */}
         <g mask={`url(#${onMark})`}>
           <path className="nf-crack" d={crackPath} />
-          <path className="nf-crack nf-crack--thin" d="M 33 5 L 37 9 L 40 8 L 44 12 M 7 30 L 10 32 L 12 29 L 15 33 L 17 31 M 47 25 L 50 28 L 53 25 L 57 28 M 43 49 L 45 52 L 44 55" />
+          <path className="nf-crack nf-crack--thin" d="M 33 4 L 37 9 L 40 8 L 44 13 M 9 30 L 12 32 L 14 29 L 17 33 L 19 30 L 22 32 M 42 28 L 45 26 L 48 29 L 51 26 L 55 28 M 41 43 L 44 46 L 43 49 L 46 51" />
         </g>
       </g>
     </svg>

@@ -12715,8 +12715,8 @@ button.gf-bar:focus-visible {
 .nf-floor { fill: var(--color-text-muted); opacity: .14; }
 .nf-chip { fill: var(--color-text-primary); opacity: .55; }
 .nf-chip--accent { fill: var(--color-brand-accent); opacity: .8; }
-.nf-mark { stroke: var(--color-text-primary); stroke-width: 9; stroke-linejoin: miter; }
-.nf-mark-accent { stroke: var(--color-brand-accent); stroke-width: 9; }
+.nf-mark { fill: var(--color-text-primary); }
+.nf-mark-accent { fill: var(--color-brand-accent); }
 .nf-crack { stroke: var(--color-bg-canvas); stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
 .nf-crack--thin { stroke-width: .9; }
 /* 오래된 전구처럼 가끔 한 번 흐려진다. */
