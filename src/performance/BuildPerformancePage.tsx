@@ -1,7 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
+import { useActionBinding, useFieldBinding } from '../projectAgent/bindings'
+import { listedOptions, readOnlyListWrite } from '../projectAgent/specs/listedOptions'
+import { PERFORMANCE_LISTED_FIELD, PERFORMANCE_OPEN_RUN_REPORT_ACTION } from '../projectAgent/specs/performance'
+import { resolveExactEntry, runLookups } from '../projectAgent/specs/lookup'
 import { sortByStartedAt, splitTrustedSegments } from './chartModel'
 import { getBuildPerformance } from './performanceApi'
 import {
@@ -69,6 +73,36 @@ export function BuildPerformanceReport({
 
   const runs = useMemo(() => sortByStartedAt(data?.runs ?? []), [data])
 
+  // agent 가 run 의 상세 보고서를 여는 길. 표의 `detailLink` 와 같은 주소로 이동한다.
+  const navigate = useNavigate()
+  const reportRef = useRef<HTMLElement>(null)
+  useFieldBinding(PERFORMANCE_LISTED_FIELD, {
+    target: () => reportRef.current,
+    read: () => runs.length,
+    options: () =>
+      listedOptions(runs, (run) => ({
+        value: String(run.runId),
+        label: `Run ${run.runId} · ${run.startedAt} · ${run.hitchesPerMinute} hitches/min`,
+      })),
+    write: readOnlyListWrite(PERFORMANCE_LISTED_FIELD.name, 'use performance.openRunReport.'),
+  })
+  useActionBinding(PERFORMANCE_OPEN_RUN_REPORT_ACTION, {
+    target: () => reportRef.current?.querySelector<HTMLElement>('.performance-table a') ?? reportRef.current,
+    blocked: () => {
+      if (data === null) return copy.loading
+      return runs.length === 0 ? copy.emptyTitle : null
+    },
+    run: async (args) => {
+      const run = resolveExactEntry(
+        'performance run',
+        args.runId,
+        runLookups(runs, (one) => String(one.runId)),
+      )
+      navigate(runReportPath(projectId, String(run.runId)))
+      return { runId: String(run.runId) }
+    },
+  })
+
   if (failedFor === `${projectId}:${buildId}`) {
     return (
       <section className="page">
@@ -91,7 +125,7 @@ export function BuildPerformanceReport({
   }
 
   return (
-    <section className="page performance-page">
+    <section className="page performance-page" ref={reportRef}>
       {showHeader && <header className="performance-page-head">
         <div>
           <Link className="back-link" to={`/projects/${encodeURIComponent(projectId)}/qa`}>
@@ -127,6 +161,10 @@ export function BuildPerformanceReport({
       )}
     </section>
   )
+}
+
+function runReportPath(projectId: string, runId: string | number): string {
+  return `/projects/${encodeURIComponent(projectId)}/qa-runs/${runId}/performance`
 }
 
 const WIDTH = 900
@@ -251,9 +289,7 @@ function RunTable({ projectId, runs }: { projectId: string; runs: BuildPerforman
               <td>{renderSourceLabel(run, t.performance.groups)}</td>
               <td>{confidenceLabel(run, copy)}</td>
               <td>
-                <Link
-                  to={`/projects/${encodeURIComponent(projectId)}/qa-runs/${run.runId}/performance`}
-                >
+                <Link to={runReportPath(projectId, run.runId)}>
                   {copy.detailLink}
                 </Link>
               </td>

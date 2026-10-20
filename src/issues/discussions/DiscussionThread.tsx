@@ -6,6 +6,8 @@ import { useI18n } from '../../i18n/useI18n'
 import type { ProjectMember } from '../../projects/memberTypes'
 import { formatDateTime } from '../../projects/formatters'
 import { ProjectApiError } from '../../projects/projectApi'
+import { useTrackerSync } from '../../tracker/useTrackerSync'
+import { useIssueResolution } from '../useIssueResolution'
 import { qaRunPath } from '../../qa/qaTypes'
 import { IssueList } from '../IssueList'
 import type { Issue, IssueSeverity } from '../issueTypes'
@@ -75,6 +77,15 @@ export function OriginalReport({
       })
     return () => controller.abort()
   }, [projectId, issueId, revision])
+  // `IssueList` 는 해결 토글과 tracker 내보내기를 받아서 쓴다(develop, ARTEL-1139).
+  // 한 건짜리 목록이라 여기서 만들어 넘긴다 — `QaTryIssuePanel` 과 같은 방식이다.
+  const patch = useCallback(
+    (_id: string, next: (issue: Issue) => Issue) =>
+      setIssue((current) => (current === null ? current : next(current))),
+    [],
+  )
+  const resolution = useIssueResolution(patch)
+  const trackerSync = useTrackerSync(patch)
   return (
     <Dialog
       title={`${text.readReport} #${issueId}`}
@@ -87,9 +98,8 @@ export function OriginalReport({
         hasMore={false}
         loadingMore={false}
         onLoadMore={() => {}}
-        patch={(_, next) =>
-          setIssue((current) => (current ? next(current) : current))
-        }
+        resolution={resolution}
+        trackerSync={trackerSync}
         runHref={(runId, tryId) => qaRunPath(projectId, runId, tryId)}
         filtered={false}
         onRetry={() => {

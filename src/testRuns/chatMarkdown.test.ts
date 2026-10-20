@@ -9,6 +9,7 @@ function texts(block: Block): string[] {
   if (block.kind === 'list') {
     return block.items.map((item) => item.content.map((part) => part.text).join(''))
   }
+  if (block.kind === 'fence') return [block.text]
   return block.header.map((cell) => cell.map((part) => part.text).join(''))
 }
 
@@ -194,4 +195,80 @@ test('승인 전 draft 를 가리키는 음수 번호 표식도 ref 조각이다
     { kind: 'ref', refKind: 'ts', id: -1, text: '' },
     { kind: 'text', text: '과 같은 범위' },
   ])
+})
+
+const OPT = { links: true, fences: true }
+
+test('a fence keeps its lines and drops the language tag', () => {
+  const body = '아래를 실행하세요.\n```bash\nnpm i\n\n  npx artel\n```\n끝'
+  assert.deepEqual(parseChatMarkdown(body, OPT), [
+    { kind: 'paragraph', lines: [[{ kind: 'text', text: '아래를 실행하세요.' }]] },
+    { kind: 'fence', text: 'npm i\n\n  npx artel' },
+    { kind: 'paragraph', lines: [[{ kind: 'text', text: '끝' }]] },
+  ])
+})
+
+test('a fence without a language tag is a fence', () => {
+  assert.deepEqual(parseChatMarkdown('```\na\n```', OPT), [{ kind: 'fence', text: 'a' }])
+  assert.deepEqual(parseChatMarkdown('```text\n- not a list\n```', OPT), [{ kind: 'fence', text: '- not a list' }])
+})
+
+test('an unclosed fence takes the rest of the message as code', () => {
+  assert.deepEqual(parseChatMarkdown('```sh\nnpm i\n\nmore', OPT), [{ kind: 'fence', text: 'npm i\n\nmore' }])
+})
+
+test('links: app path, http(s) url', () => {
+  const [paragraph] = parseChatMarkdown('[계정 설정](/account) 와 [문서](https://example.com/a?b=1)', OPT)
+  assert.deepEqual(paragraph, {
+    kind: 'paragraph',
+    lines: [[
+      { kind: 'link', text: '계정 설정', href: '/account', target: 'internal' },
+      { kind: 'text', text: ' 와 ' },
+      { kind: 'link', text: '문서', href: 'https://example.com/a?b=1', target: 'external' },
+    ]],
+  })
+})
+
+test('links with another scheme stay plain text', () => {
+  for (const href of ['javascript:alert(1)', 'data:text/html,x', '//evil.example', '/\\evil', 'mailto:a@b.c', 'account']) {
+    const parts = parseInline(`[x](${href})`, OPT)
+    assert.ok(parts.every((part) => part.kind === 'text'), href)
+    assert.equal(parts.map((part) => part.text).join(''), `[x](${href})`)
+  }
+})
+
+test('code inside link text stays text', () => {
+  assert.deepEqual(parseInline('[`npm`](/a)', OPT), [{ kind: 'link', text: '`npm`', href: '/a', target: 'internal' }])
+})
+
+test('default parsing ignores fences and links', () => {
+  const body = '```bash\nnpm i\n```\n[계정 설정](/account) `code`'
+  const blocks = parseChatMarkdown(body)
+  assert.ok(blocks.every((block) => block.kind === 'paragraph'))
+  assert.deepEqual(parseChatMarkdown(body, {}), blocks)
+  assert.deepEqual(parseInline('[a](/b)'), [{ kind: 'text', text: '[a](/b)' }])
+  assert.deepEqual(parseInline('[a](/b) `c`'), [{ kind: 'text', text: '[a](/b) ' }, { kind: 'code', text: 'c' }])
+})
+
+test('질문 답의 페이지 표식(테스트 런 · QA 실행 · 이슈 · 빌드)도 ref 조각이다', () => {
+  assert.deepEqual(parseInline('[[qa:17]] 에서 [[issue:9]]'), [
+    { kind: 'ref', refKind: 'qa', id: 17, text: '' },
+    { kind: 'text', text: ' 에서 ' },
+    { kind: 'ref', refKind: 'issue', id: 9, text: '' },
+  ])
+})
+
+test('사전조건 · 기대 결과 머리말은 label 조각이 된다', () => {
+  assert.deepEqual(parseInline('- 사전조건: 타이틀 화면'), [
+    { kind: 'label', tone: 'precondition', text: '사전조건' },
+    { kind: 'text', text: '타이틀 화면' },
+  ])
+  assert.deepEqual(parseInline('기대 결과: `TurnBattleScene` 으로 넘어간다')[0], { kind: 'label', tone: 'expected', text: '기대 결과' })
+})
+
+test('표 칸에서는 사전조건 · 기대 결과 머리말을 떼어 낸다', () => {
+  const blocks = parseChatMarkdown('| 케이스 | 사전조건 |\n|---|---|\n| a | 사전조건: 타이틀 |')
+  const table = blocks[0]
+  assert.equal(table.kind, 'table')
+  if (table.kind === 'table') assert.deepEqual(table.rows[0][1], [{ kind: 'text', text: '타이틀' }])
 })

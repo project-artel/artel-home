@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Dialog } from '../design-system/primitives/Dialog'
 import { useI18n } from '../i18n/useI18n'
-import { ProjectApiError } from '../projects/projectApi'
+import { approveScenarioFailure } from './approveScenarioError'
 import { approveTestScenario } from './scenarioApi'
 import type { ScenarioDraft } from './scenarioTypes'
 
@@ -35,11 +35,7 @@ export function ApproveScenarioDialog({
       await approveTestScenario(testScenarioId, draft)
       onApproved()
     } catch (error: unknown) {
-      setFailure(
-        error instanceof ProjectApiError && error.isNotFound
-          ? t.scenarios.approve.gone
-          : t.scenarios.approve.failed,
-      )
+      setFailure(approveScenarioFailure(error, t.scenarios.approve))
       setPending(false)
     }
   }

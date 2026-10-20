@@ -10,6 +10,7 @@ import {
   firstDocstringLine,
   formatMacroParam,
   latestVersionBuild,
+  macroLookups,
   orderLibraryBuilds,
   parseMacroParam,
   resolveMacroView,
@@ -184,5 +185,15 @@ describe('firstDocstringLine', () => {
 describe('orderLibraryBuilds', () => {
   it('game version 은 최신부터, editor build 는 맨 아래다', () => {
     assert.deepEqual(orderLibraryBuilds(builds).map((build) => build.id), ['2', '1', '3'])
+  })
+})
+
+describe('macroLookups', () => {
+  it('agent 가 key 로도 이름으로도 macro 를 고를 수 있게 둘 다 정확히 맞는 key 로 낸다', () => {
+    const items = developerLibraryItems([developerMacro('buy_potion')])
+    const [lookup] = macroLookups(items)
+    assert.deepEqual(lookup.keys, ['developer:buy_potion', 'buy_potion'])
+    assert.equal(lookup.entry, items[0])
+    assert.equal(lookup.title, 'buy_potion')
   })
 })

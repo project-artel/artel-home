@@ -111,8 +111,9 @@ export const commonEn = {
   },
   notFound: {
     title: 'Page not found',
-    copy: 'That address does not match anything in the workspace.',
+    copy: 'This address does not exist, or you do not have access to it.',
     backToProjects: 'Back to projects',
+    goBack: 'Previous page',
   },
 } as const
 
@@ -219,7 +220,8 @@ export const commonKo: Localized<typeof commonEn> = {
   },
   notFound: {
     title: '페이지를 찾을 수 없습니다',
-    copy: '주소가 워크스페이스의 어떤 항목과도 일치하지 않습니다.',
+    copy: '없는 주소이거나, 볼 수 있는 권한이 없습니다.',
     backToProjects: '프로젝트 목록으로',
+    goBack: '이전 화면으로',
   },
 }

@@ -53,6 +53,8 @@ export function ScenarioStepEditor({
 }: {
   projectId: string
   editor: StepEditor
+  /** TR 의 버전(ARTEL-1070). TC 배지와 상세가 그 버전의 내용과 판정을 보인다. 없으면 최신이다. */
+  gameBuildId?: string | null
   /** Drawn above the title — the studio says here that what is open is a draft (ARTEL-1075). */
   banner?: ReactNode
   /** One per step: a draft paints what changed yellow and what is new green (ARTEL-1075). */
@@ -612,7 +614,7 @@ export function ScenarioStepEditor({
         />
       )}
       {tcView !== null && (
-        <TestCaseModal caseId={tcView.caseId} label={tcView.label} onClose={() => setTcView(null)} projectId={projectId} />
+        <TestCaseModal caseId={tcView.caseId} gameBuildId={caseBuild?.gameBuildId ?? null} label={tcView.label} onClose={() => setTcView(null)} projectId={projectId} />
       )}
     </div>
     </SceneContext.Provider>

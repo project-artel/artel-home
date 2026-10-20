@@ -1,8 +1,17 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
 import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../i18n/useI18n'
+import { useActionBinding, useFieldBinding } from '../projectAgent/bindings'
+import { resolveEntry, scenarioLookups } from '../projectAgent/specs/lookup'
+import { listedOptions, readOnlyListWrite } from '../projectAgent/specs/listedOptions'
+import {
+  TEST_RUN_EDIT_ADD_SCENARIO_ACTION,
+  TEST_RUN_EDIT_DELETE_SCENARIO_ACTION,
+  TEST_RUN_EDIT_SCENARIOS_FIELD,
+  TEST_RUN_EDIT_SELECT_SCENARIO_ACTION,
+} from '../projectAgent/specs/testRunEdit'
 import { ContextMenu, type ContextMenuItem } from '../testCases/ContextMenu'
 import type { DraftScenario } from '../testRuns/runChatApi'
 import { getRunScenarios, setRunScenarios } from '../testRuns/testRunApi'
@@ -14,6 +23,10 @@ import { NewScenarioDialog } from './NewScenarioDialog'
 import { ScenarioImportDialog } from './ScenarioImportDialog'
 import { StudioIcon } from './studioIcons'
 import type { TestScenarioSummary } from './scenarioTypes'
+
+/** 런 밖의 목록에는 agent 가 쓸 수 있는 길이 없다. 화면에 해당하는 문구가 없어 agent 에게만 보인다. */
+const NOT_IN_RUN = 'This list is not scoped to a test run, so scenarios cannot be changed from here.'
+const CREATE_FAILED = 'The scenario could not be created. Try again.'
 
 /**
  * The studio's left rail. When a `runId` is given the list is that run's
@@ -103,8 +116,9 @@ export function ScenarioList({
     navigate(`/projects/${encodeURIComponent(projectId)}/test-scenarios/${id}${suffix}`)
   }
 
-  async function create() {
-    if (creating) return
+  /** 만든 시나리오의 id. 만들지 못했으면 null — 화면은 조용히 그대로 두고, agent 는 이 값으로 실패를 안다. */
+  async function create(): Promise<number | null> {
+    if (creating) return null
     setChoosingKind(false)
     setCreating(true)
     try {
@@ -117,8 +131,10 @@ export function ScenarioList({
         setReload((n) => n + 1)
       }
       open(id)
+      return id
     } catch {
       // stay put; the topbar's own errors already cover a failed round trip
+      return null
     } finally {
       setCreating(false)
     }
@@ -128,6 +144,14 @@ export function ScenarioList({
   function leaveIfActive(id: number) {
     if (id !== activeId) return
     if (runId !== null) navigate(`/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(runId)}/edit`)
+  }
+
+  /** 확인 대화상자의 삭제 버튼과 agent 의 삭제 action 이 함께 쓴다. */
+  async function deleteScenario(item: TestScenarioSummary) {
+    await deleteTestScenario(item.testScenarioId)
+    setDeleting(null)
+    setReload((n) => n + 1)
+    leaveIfActive(item.testScenarioId)
   }
 
   async function removeFromRun(item: TestScenarioSummary) {
@@ -223,6 +247,58 @@ export function ScenarioList({
     if (first !== undefined) open(Number(first.testScenarioId))
   }
 
+  // agent 가 쓰는 길. 런 안에서만 연다 — 런 밖의 목록은 이 페이지의 것이 아니다.
+  const listRef = useRef<HTMLDivElement>(null)
+  const addButton = useRef<HTMLButtonElement>(null)
+  const lookups = scenarioLookups(
+    items,
+    (item) => String(item.testScenarioId),
+    (item) => (item.title.length > 0 ? item.title : s.untitled),
+  )
+  const rowOf = (id: number) => listRef.current?.querySelector<HTMLElement>(`[data-scenario-id="${id}"]`) ?? null
+  const pickedId = useRef<number | null>(null)
+  const scenarioBlockedReason = () => (runId === null ? NOT_IN_RUN : items.length === 0 ? s.empty : null)
+  useFieldBinding(TEST_RUN_EDIT_SCENARIOS_FIELD, {
+    target: () => listRef.current,
+    read: () => items.length,
+    options: () =>
+      listedOptions(items, (item) => ({ value: String(item.testScenarioId), label: item.title.length > 0 ? item.title : s.untitled })),
+    write: readOnlyListWrite(TEST_RUN_EDIT_SCENARIOS_FIELD.name, 'use testRunEdit.selectScenario or testRunEdit.deleteScenario.'),
+  })
+  useActionBinding(TEST_RUN_EDIT_SELECT_SCENARIO_ACTION, {
+    target: () => (pickedId.current === null ? listRef.current : rowOf(pickedId.current)),
+    blocked: scenarioBlockedReason,
+    run: async (args) => {
+      const item = resolveEntry('scenario', args.scenario, lookups)
+      pickedId.current = item.testScenarioId
+      open(item.testScenarioId)
+      return { id: item.testScenarioId, title: item.title }
+    },
+  })
+  useActionBinding(TEST_RUN_EDIT_ADD_SCENARIO_ACTION, {
+    target: () => addButton.current,
+    blocked: () => (runId === null ? NOT_IN_RUN : creating ? t.scenarios.runEdit.creating : null),
+    run: async () => {
+      const id = await create()
+      if (id === null) throw new Error(CREATE_FAILED)
+      return { id }
+    },
+  })
+  useActionBinding(TEST_RUN_EDIT_DELETE_SCENARIO_ACTION, {
+    target: () => (pickedId.current === null ? listRef.current : rowOf(pickedId.current)),
+    blocked: scenarioBlockedReason,
+    run: async (args) => {
+      const item = resolveEntry('scenario', args.scenario, lookups)
+      pickedId.current = item.testScenarioId
+      try {
+        await deleteScenario(item)
+      } catch {
+        throw new Error(s.menu.deleteFailed)
+      }
+      return { id: item.testScenarioId, title: item.title }
+    },
+  })
+
   return (
     <aside className="elist">
       <div className="elist-head">
@@ -236,7 +312,8 @@ export function ScenarioList({
         )}
         <button
           className="mini-add tip-btn"
-          onClick={runId !== null ? () => setChoosingKind(true) : create}
+          ref={addButton}
+          onClick={runId !== null ? () => setChoosingKind(true) : () => void create()}
           disabled={creating}
           aria-label={s.new}
           type="button"
@@ -295,7 +372,13 @@ export function ScenarioList({
           </div>
         </div>
       )}
-      <div className="scn-list" ref={setListNode}>
+      <div
+        className="scn-list"
+        ref={(node) => {
+          setListNode(node)
+          listRef.current = node
+        }}
+      >
         {added.map((draft) => draftRow(draft, 'new'))}
         {items.length === 0 && added.length === 0 ? (
           <p className="empty-note">{s.empty}</p>
@@ -312,6 +395,7 @@ export function ScenarioList({
                 + (absorber !== undefined ? ' scnrow--gone' : '')
               }
               key={item.testScenarioId}
+              data-scenario-id={item.testScenarioId}
               title={absorber !== undefined ? d.goneTip(absorber.title) : undefined}
               onClick={() => open(item.testScenarioId)}
               onContextMenu={(event) => {
@@ -345,13 +429,7 @@ export function ScenarioList({
           cancelLabel={s.menu.cancel}
           confirmLabel={s.menu.delete}
           onClose={() => setDeleting(null)}
-          onConfirm={async () => {
-            const item = deleting
-            await deleteTestScenario(item.testScenarioId)
-            setDeleting(null)
-            setReload((n) => n + 1)
-            leaveIfActive(item.testScenarioId)
-          }}
+          onConfirm={() => deleteScenario(deleting)}
           pendingLabel={s.menu.deleting}
           title={s.menu.deleteTitle}
           toFailureMessage={() => s.menu.deleteFailed}

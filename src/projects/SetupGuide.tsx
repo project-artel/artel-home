@@ -5,10 +5,14 @@ import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
 import { AgentSkillsInstall } from './AgentSkillsInstall'
 import { SdkInstallGuide } from './SdkInstallGuide'
+import {
+  PROJECT_ID_PLACEHOLDER,
+  PROJECT_LIST_COMMAND,
+  QA_RUN_COMMAND,
+  gameListCommand,
+  gameStartCommand,
+} from './setupCommands'
 
-/** Stands in for the id on the global page, in the same form as the other placeholders. */
-const PROJECT_ID_PLACEHOLDER = '<project id>'
-const PROJECT_LIST_COMMAND = 'artel project list'
 
 /**
  * Everything needed to connect a game and drive it from a terminal: the Unity
@@ -95,19 +99,19 @@ function CliSetupPanel({ projectId }: { projectId?: string }) {
           copiedMessage={copy.startCopied}
           copyLabel={copy.copyStart}
           onResult={setAnnouncement}
-          text={`artel game start --build ./Build/Game.exe --project ${id}`}
+          text={gameStartCommand(id)}
         />
         <CliCopyLine
           copiedMessage={copy.listCopied}
           copyLabel={copy.copyList}
           onResult={setAnnouncement}
-          text={`artel game list --project ${id}`}
+          text={gameListCommand(id)}
         />
         <CliCopyLine
           copiedMessage={copy.qaRunCopied}
           copyLabel={copy.copyQaRun}
           onResult={setAnnouncement}
-          text="artel qa run --test-run <test run id> --instance <instance id>"
+          text={QA_RUN_COMMAND}
         />
         <p className="guide-copy">{copy.commandsNote}</p>
         <p className="guide-copy">

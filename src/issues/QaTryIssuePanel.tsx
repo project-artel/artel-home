@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { IssueList } from './IssueList'
+import { useTrackerSync } from '../tracker/useTrackerSync'
+import { useIssueResolution } from './useIssueResolution'
 import { useQaTryIssues } from './useIssues'
 
 /**
@@ -15,6 +17,8 @@ export function QaTryIssuePanel({ projectId, qaTryId }: { projectId: string; qaT
   const { t } = useI18n()
   const [reloadToken, setReloadToken] = useState(0)
   const issues = useQaTryIssues(qaTryId, reloadToken, projectId || null)
+  const resolution = useIssueResolution(issues.patch)
+  const trackerSync = useTrackerSync(issues.patch)
   const reload = () => setReloadToken((token) => token + 1)
 
   const count = issues.items.length
@@ -37,7 +41,8 @@ export function QaTryIssuePanel({ projectId, qaTryId }: { projectId: string; qaT
         loadingMore={issues.loadingMore}
         onLoadMore={issues.loadMore}
         onRetry={reload}
-        patch={issues.patch}
+        resolution={resolution}
+        trackerSync={trackerSync}
         // The run is already on screen; a link back to it would go nowhere.
         runHref={null}
         status={issues.status}

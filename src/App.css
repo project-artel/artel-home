@@ -4915,7 +4915,8 @@ a.instance-name:hover {
 .scenario-studio .st-erow-hint{ font-size:12.5px; }
 .scenario-studio .st-erow-drag{ font-size:16px; opacity:.5; }
 .scenario-studio .st-erow:hover .st-erow-drag{ opacity:.9; }
-.scenario-studio .st-tc-badge{ font-size:11px; padding:2px 8px; letter-spacing:.06em; }
+/* 저작 화면이 project rail 옆으로 들어와 가운데 칸이 좁아져도 `TC 1` 이 두 줄로 꺾이지 않게 한다. */
+.scenario-studio .st-tc-badge{ font-size:11px; padding:2px 8px; letter-spacing:.06em; white-space:nowrap; flex:none; }
 
 /* Step→TC 상세 모달 가시성 강화 (ARTEL-289 #3) */
 .tc-modal{ width:min(560px,100%); }
@@ -5267,6 +5268,9 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   background: none;
   min-height: 0;
   overflow: hidden;
+  /* `.workspace:has(.scenario-studio)` 가 쓰는 `height` 를 되돌린다. 깊은 화면이 이 칸 안에
+     들어와도 높이는 `.project-workspace` 하나가 정한다. */
+  height: auto;
 }
 
 /* The height is fixed to the viewport minus the top bar rather than left at
@@ -5287,6 +5291,36 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
    포인터 타깃을 유지한다. */
 .project-workspace:has(.project-nav--collapsed) {
   grid-template-columns: 48px minmax(0, 1fr);
+}
+
+/* project agent 대화창(ARTEL-1113). 열려 있으면 rail, 페이지, 경계 handle, 대화창 순서의 4칸이다.
+   대화창 폭은 `useAgentDock` 이 계산해 `--agent-chat-w` 로 넘긴다. 216px 와 6px 는
+   `PROJECT_RAIL_PX`(sections.ts) 와 `SPLIT_PX`(agentDockState.ts) 와 같은 값이어야 한다. */
+.project-workspace.has-agent {
+  grid-template-columns: 216px minmax(0, 1fr) 6px var(--agent-chat-w);
+}
+
+.project-workspace.has-agent:has(.project-nav--collapsed) {
+  grid-template-columns: 48px minmax(0, 1fr) 6px var(--agent-chat-w);
+}
+
+/* 닫혀 있으면 오른쪽 40px 칸에 다시 열기 버튼만 남는다. */
+.project-workspace.has-agent-closed {
+  grid-template-columns: 216px minmax(0, 1fr) 40px;
+}
+
+.project-workspace.has-agent-closed:has(.project-nav--collapsed) {
+  grid-template-columns: 48px minmax(0, 1fr) 40px;
+}
+
+/* index 화면에서는 보여 줄 페이지가 없다. 페이지 칸을 숨기고 대화창이 rail 옆을 모두 쓴다. */
+.project-workspace.has-agent-home > .workspace-body {
+  display: none;
+}
+
+.project-workspace.is-splitting {
+  cursor: col-resize;
+  user-select: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -5495,6 +5529,37 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   min-width: 0;
   min-height: 0;
   flex-direction: column;
+  overflow-y: auto;
+}
+
+/* 상세 페이지 7개가 들어가는 칸. `.workspace-body` 높이를 그대로 받고, 스크롤은 각 페이지 안에서 한다. */
+.workspace-deep {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 0;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.workspace-deep > .scenario-studio,
+.workspace-deep > .qa-console,
+.workspace-deep > .run-map,
+.workspace-deep > .run-map-shell {
+  flex: 1 1 0;
+  height: auto;
+  min-height: 0;
+}
+
+/* 저작 화면의 grid 열은 기본값이 `auto` 라 상단 bar 내용 폭(1024px 창에서 약 1174px)만큼
+   넓어지고, 오른쪽 RunChat 칸이 잘린다. 칸 폭에 맞춘다. */
+.workspace-deep > .scenario-studio {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+/* `.page` 를 쓰는 화면은 `.workspace:has(.page)` 가 바깥 칸에 주던 여백과 스크롤을 이 칸 안에서 받는다. */
+.workspace-deep:has(> .page) {
+  padding: var(--space-8) var(--space-6);
   overflow-y: auto;
 }
 
@@ -6037,6 +6102,26 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
      남고, 레일은 화면 너비를 그대로 쓴다. */
   .project-workspace:has(.project-nav--collapsed) {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* 좁은 화면에는 페이지와 대화창을 나란히 둘 폭이 없다. 대화창을 숨기고 지금 화면을 그대로 쓴다. */
+  .project-workspace.has-agent,
+  .project-workspace.has-agent-home,
+  .project-workspace.has-agent:has(.project-nav--collapsed),
+  .project-workspace.has-agent-home:has(.project-nav--collapsed),
+  .project-workspace.has-agent-closed,
+  .project-workspace.has-agent-closed:has(.project-nav--collapsed) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .project-workspace.has-agent-home > .workspace-body {
+    display: flex;
+  }
+
+  .project-workspace > .agent-panel,
+  .project-workspace > .agent-dock-split,
+  .project-workspace > .agent-reopen-rail {
+    display: none;
   }
 }
 
@@ -11190,6 +11275,23 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
 .info-hint__bubble { white-space: pre-line; }
 .issue-row--focused { outline: 2px solid var(--color-action-primary); outline-offset: 2px; }
 
+/* 질문 답의 머리말(ARTEL-1097): 사전조건과 기대 결과를 색으로 가른다. */
+.chat-label{ display:inline-block; margin-right:6px; padding:0 6px; border-radius:4px; font-size:11px; font-weight:700; line-height:18px; vertical-align:1px; }
+.chat-label--precondition{ color:var(--color-status-warning); background:color-mix(in srgb, var(--color-status-warning) 14%, transparent); }
+.chat-label--expected{ color:var(--color-status-success); background:color-mix(in srgb, var(--color-status-success) 14%, transparent); }
+
+/* 칩은 한 줄로(ARTEL-1097). 케이스 이름이 길어 칩이 여러 줄 상자가 되면 글이 읽히지 않는다 — 이름은 줄이고 전체는 마우스를 올려 본다. */
+.scenario-studio .st-chat .chat-ref{ display:inline-flex; align-items:baseline; max-width:100%; vertical-align:bottom; overflow-wrap:normal; }
+.scenario-studio .st-chat .chat-ref-label{ display:inline-block; max-width:22em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; vertical-align:bottom; }
+.scenario-studio .st-chat .chat-md-table .chat-ref-label{ max-width:16em; }
+
+/* 칩은 둘레 글의 크기 · 굵기를 따른다(ARTEL-1097). 큰 결론 줄 안에서 칩만 작으면 어긋나 보인다. */
+.scenario-studio .st-chat .chat-ref{ font-size:inherit; font-weight:inherit; line-height:1.35; padding:0 4px; margin:0 0.2em; vertical-align:baseline; align-items:baseline; }
+.scenario-studio .st-chat .chat-ref-tag{ font-size:0.72em; }
+/* 표 안에서는 칩 이름을 자르지 않는다 — 잘리면 이웃 케이스와 구분되지 않는다. */
+.scenario-studio .st-chat .chat-md-table .chat-ref{ display:inline; }
+.scenario-studio .st-chat .chat-md-table .chat-ref-label{ max-width:none; white-space:normal; display:inline; }
+
 /* ── QA 히스토리 (ARTEL-1100) ─────────────────────────────────────────────────
    왼쪽 버전 트리 · 가운데 테스트 런 카드 · 오른쪽 고른 실행. 섹션 폭 제한을 풀어 전폭을 쓴다. */
 .workspace-body:has(.qh), .workspace-body:has(.qh-empty) { overflow: hidden; }
@@ -12577,3 +12679,64 @@ button.gf-bar:focus-visible {
 .cp-pick-scope { margin: 0; padding: 10px 18px 0; color: var(--color-text-muted); font-size: 12px; }
 .cp-info-current { padding: 1px 8px; border: 1px solid var(--color-action-primary); border-radius: 999px; color: var(--color-action-primary); font-size: 11px; font-weight: 600; }
 .cp .cp-pick { align-self: flex-start; margin-top: 16px; }
+
+/* ── 그림이 있는 빈 화면 · 404 (ARTEL-1162) ───────────────────────────────────
+   QA 히스토리의 빈 화면(`.qh-empty-inline`)과 같은 크기 · 말투. 남은 자리를 채우고 가운데에 둔다. */
+.sketch-empty { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-2); min-height: 420px; padding: var(--space-8) var(--space-6); text-align: center; }
+.sketch-empty--surface { --qh-sketch-ground: var(--color-bg-surface); }
+.sketch-empty .qh-sketch { width: min(100%, 440px); margin-bottom: var(--space-4); }
+.sketch-empty-title { color: var(--color-text-secondary); font-family: var(--font-display); font-size: 24px; font-weight: 700; }
+.sketch-empty-body { max-width: 520px; color: var(--color-text-muted); font-size: 15px; line-height: 1.6; }
+.sketch-empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2); margin-top: var(--space-3); }
+.sketch-empty--compact { min-height: 280px; padding: var(--space-6) var(--space-4); }
+.sketch-empty--compact .qh-sketch { width: min(100%, 300px); margin-bottom: var(--space-3); }
+.sketch-empty--compact .sketch-empty-title { font-size: 18px; }
+.sketch-empty--compact .sketch-empty-body { font-size: 13px; }
+
+/* 404 — 숫자를 크게, 돌아갈 길을 바로 아래에 */
+.not-found { display: flex; flex: 1; min-height: calc(100vh - 120px); }
+/* 404 에서는 바탕 격자를 끈다 — 빛 · 금 간 로고 말고는 아무것도 없는 어두운 방이어야 한다. */
+.workspace:has(.not-found) { background-image: none; }
+.not-found .sketch-empty { min-height: 0; }
+.not-found-code { margin: 0; color: var(--color-text-primary); font-family: var(--font-mono); font-size: 64px; font-weight: 700; letter-spacing: -0.02em; line-height: 1; }
+.not-found-code span { color: var(--color-action-primary); }
+.not-found-path { padding: 2px 8px; border: 1px solid var(--color-border-subtle); border-radius: var(--radius-sm); color: var(--color-text-muted); font-family: var(--font-mono); font-size: 12px; overflow-wrap: anywhere; }
+
+/* 404 그림 — 백열전구 빛 아래 금 간 ARTEL 로고(ARTEL-1162). 빛 색만 테마마다 다르고 나머지는 토큰을 따른다. */
+.nf-scene { --nf-light: #ffc56b; width: min(100%, 460px); margin-bottom: var(--space-2); overflow: visible; }
+:root[data-theme='light'] .nf-scene { --nf-light: #f0a53a; }
+@media (prefers-color-scheme: light) { :root:not([data-theme='dark']) .nf-scene { --nf-light: #f0a53a; } }
+.nf-cord { stroke: var(--color-border-strong); stroke-width: 2; }
+/* 줄을 화면 위 끝까지 잇는다: 위 칸이 늘어나는 만큼 줄이 길어지고, 아래 칸이 글을 화면 가운데쯤에 둔다. */
+.not-found .sketch-empty { justify-content: flex-start; padding-top: 0; gap: var(--space-2); }
+.nf-hang { flex: 1 1 0; width: 2px; min-height: 24px; margin-bottom: calc(-1 * var(--space-2) - 1px); background: var(--color-border-strong); }
+.nf-after { flex: 1.4 1 0; }
+.not-found .nf-scene { margin-top: 0; }
+.nf-shade { fill: var(--color-bg-raised); stroke: var(--color-border-strong); stroke-width: 1.6; stroke-linejoin: round; }
+.nf-bulb-halo { fill: var(--nf-light); opacity: .22; }
+.nf-floor { fill: var(--color-text-muted); opacity: .14; }
+.nf-chip { fill: var(--color-text-primary); opacity: .55; }
+.nf-chip--accent { fill: var(--color-brand-accent); opacity: .8; }
+.nf-mark { fill: var(--color-text-primary); }
+.nf-mark-accent { fill: var(--color-brand-accent); }
+.nf-crack { stroke: var(--color-bg-canvas); stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
+.nf-crack--thin { stroke-width: .9; }
+/* 오래된 전구처럼 가끔 한 번 흐려진다. */
+.nf-light, .nf-bulb-halo { animation: nf-flicker 6s steps(1, end) infinite; }
+@keyframes nf-flicker {
+  0%, 100% { opacity: 1; }
+  91% { opacity: 1; }
+  92% { opacity: .55; }
+  93% { opacity: 1; }
+  95% { opacity: .7; }
+  96% { opacity: 1; }
+}
+.nf-bulb-halo { animation-name: nf-flicker-halo; }
+@keyframes nf-flicker-halo {
+  0%, 100% { opacity: .22; }
+  92% { opacity: .1; }
+  93% { opacity: .22; }
+  95% { opacity: .14; }
+  96% { opacity: .22; }
+}
+@media (prefers-reduced-motion: reduce) { .nf-light, .nf-bulb-halo { animation: none; } }

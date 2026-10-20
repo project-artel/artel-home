@@ -73,6 +73,60 @@ export function sectionIdFromPath(projectId: string, pathname: string): Workspac
   return match?.id ?? 'dashboard'
 }
 
+/**
+ * 이 path 가 섹션 화면(머리글이 있는 화면)인가. 아니고 깊은 화면도 아니면 프로젝트 안의 없는 주소다 — 그때는
+ * "대시보드" 머리글 없이 404 만 그린다(ARTEL-1162). 끝의 `/` 는 같은 섹션으로 읽는다.
+ */
+export function isSectionPath(projectId: string, pathname: string): boolean {
+  const parts = projectPathSegments(projectId, pathname)
+  if (parts === null || parts.length > 1) return false
+  if (parts.length === 0) return true
+  const [rest] = parts
+  return ['setup', 'usage', 'members', 'settings'].includes(rest) || WORKSPACE_SECTIONS.some((section) => section.path === rest)
+}
+
+/** 펼친 project rail 의 폭. App.css 의 `.project-workspace` grid 첫 칸과 같은 값이다. */
+export const PROJECT_RAIL_PX = 216
+
+/**
+ * 이 project 아래 path 를 `/` 로 나눈 segment. index 는 `[]`, 다른 project 의 path 는 `null` 이다.
+ * React Router 의 `pathname` 은 인코딩된 채로 오므로 projectId 도 인코딩해 비교한다.
+ * 깊은 화면 판단과 대화창 접힘 판단이 모두 이 함수로 path 를 읽는다.
+ */
+export function projectPathSegments(projectId: string, pathname: string): string[] | null {
+  const base = `/projects/${encodeURIComponent(projectId)}`
+  if (pathname !== base && !pathname.startsWith(`${base}/`)) return null
+  return pathname.slice(base.length).split('/').filter(Boolean)
+}
+
 export function sectionLabel(t: Messages, id: WorkspaceSectionId): string {
   return t.projects.workspace.nav[id]
+}
+
+/**
+ * Whether a pathname is one of the project's deep pages (an instance, a
+ * scenario, a test run, a QA run, a performance report) rather than a section.
+ * A deep page brings its own header and back link, so the workspace renders it
+ * without the section heading.
+ *
+ * Only paths under this project count; a path of another project, or the
+ * redirect-only `game-builds/:buildId/content-map`, is not deep.
+ */
+export function isDeepPath(projectId: string, pathname: string): boolean {
+  const parts = projectPathSegments(projectId, pathname)
+  if (parts === null) return false
+  const [head, , tail] = parts
+  switch (head) {
+    case 'instances':
+    case 'test-scenarios':
+      return parts.length === 2
+    case 'test-runs':
+      return parts.length === 2 || (parts.length === 3 && tail === 'edit')
+    case 'qa-runs':
+      return parts.length === 2 || (parts.length === 3 && tail === 'performance')
+    case 'game-builds':
+      return parts.length === 3 && tail === 'performance'
+    default:
+      return false
+  }
 }

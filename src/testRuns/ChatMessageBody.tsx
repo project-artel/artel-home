@@ -4,7 +4,8 @@ import { Dialog } from '../design-system/primitives/Dialog'
 import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../i18n/useI18n'
 import { StudioIcon } from '../testScenarios/studioIcons'
-import { parseChatMarkdown, parseInline, type Inline } from './chatMarkdown'
+import { parseChatMarkdown, parseInline, type ChatMarkdownOptions, type Inline } from './chatMarkdown'
+import { ChatCodeBlock } from './ChatCodeBlock'
 import { ChatRefChip } from './ChatRefChip'
 import { ChatLinkContext, ChatRefsContext } from './chatRefContext'
 import type { ChatRef, ChatReply, RunChatQuestion, ScenarioChange } from './runChatApi'
@@ -143,8 +144,20 @@ export function ChatInline({ text, refs = [] }: { text: string; refs?: ChatRef[]
   )
 }
 
-export function ChatMessageBody({ body, refs = [] }: { body: string; refs?: ChatRef[] }) {
-  const blocks = parseChatMarkdown(body)
+/**
+ * `markdown` turns on syntax RunChat does not get (links, fenced code). Left out, the
+ * body is parsed and drawn exactly as before; only the project agent thread passes it.
+ */
+export function ChatMessageBody({
+  body,
+  refs = [],
+  markdown,
+}: {
+  body: string
+  refs?: ChatRef[]
+  markdown?: ChatMarkdownOptions
+}) {
+  const blocks = parseChatMarkdown(body, markdown)
 
   return (
     <ChatRefsContext.Provider value={refs}>
@@ -162,6 +175,7 @@ export function ChatMessageBody({ body, refs = [] }: { body: string; refs?: Chat
             </p>
           )
         }
+        if (block.kind === 'fence') return <ChatCodeBlock key={index} text={block.text} />
         if (block.kind === 'table') {
           return <ChatTable header={block.header} key={index} rows={block.rows} />
         }
@@ -280,7 +294,13 @@ export function InlineRun({ parts }: { parts: Inline[] }) {
       {parts.map((part, index) => {
         if (part.kind === 'bold') return <strong key={index}>{part.text}</strong>
         if (part.kind === 'code') return <code className="chat-md-code" key={index}>{part.text}</code>
+        if (part.kind === 'link') {
+          return part.target === 'internal'
+            ? <Link className="chat-md-link" key={index} to={part.href}>{part.text}</Link>
+            : <a className="chat-md-link" href={part.href} key={index} rel="noreferrer" target="_blank">{part.text}</a>
+        }
         if (part.kind === 'ref') return <ChatRefChip key={index} refKind={part.refKind} id={part.id} />
+        if (part.kind === 'label') return <span className={`chat-label chat-label--${part.tone}`} key={index}>{part.text}</span>
         return <Fragment key={index}>{part.text}</Fragment>
       })}
     </>

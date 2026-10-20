@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { SketchEmpty } from '../../emptyStates/SketchEmpty'
+import { TestRunSketch } from '../../emptyStates/sketches'
 import { Link } from 'react-router-dom'
 import { EdgeScrollbar } from '../../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../../i18n/useI18n'
+import { useFieldBinding } from '../../projectAgent/bindings'
+import { requireKnownId } from '../../projectAgent/specs/fieldWriters'
+import { QA_TEST_RUN_FIELD } from '../../projectAgent/specs/qa'
 import type { GameInstance } from '../../projects/gameTypes'
 import { sectionHref } from '../../projects/workspace/sections'
 import { useWorkspace } from '../../projects/workspace/workspaceContext'
@@ -200,6 +205,14 @@ export function QaLaunch() {
     }))
   }
 
+  // agent 가 런을 고르는 길. 런 선택 카드를 고르는 것과 같은 `pickRun` 이다.
+  useFieldBinding(QA_TEST_RUN_FIELD, {
+    target: () => pickerAnchor.current,
+    read: () => runId,
+    options: () => runs.map((one) => ({ value: one.id, label: one.name })),
+    write: (value) => pickRun(requireKnownId(QA_TEST_RUN_FIELD.name, value, runs.map((one) => one.id))),
+  })
+
   const runPath = run === null
     ? []
     : [run.gameBuild?.label ?? run.gameBuild?.version ?? l.noVersion, ...(run.folderId === null ? [] : [...folderPath(folders, run.folderId), ...folders.filter((folder) => folder.id === run.folderId)].map((folder) => folder.name))]
@@ -293,7 +306,22 @@ export function QaLaunch() {
           {run !== null && (
             <SinceLastRun onManageConsoles={() => setConsolesOpen(true)} projectId={projectId} runId={run.id} since={since} status={sinceStatus} />
           )}
-          <RecentRuns models={offered} projectId={projectId} runs={qaRuns} selectedRunId={runId} status={qaRunsStatus} />
+          {runs.length === 0 && (
+            // 테스트 런이 없으면 고를 것도, 쌓일 실행도 없다. 남은 자리를 그림과 할 일로 채운다(ARTEL-1162).
+            <SketchEmpty
+              actions={
+                <Link className="button button--primary" to={sectionHref(projectId, 'test-runs')}>
+                  {l.createRunButton}
+                </Link>
+              }
+              body={l.noRunsHelp}
+              sketch={<TestRunSketch />}
+              title={l.noRuns}
+            />
+          )}
+          {(runs.length > 0 || qaRuns.length > 0) && (
+            <RecentRuns models={offered} projectId={projectId} runs={qaRuns} selectedRunId={runId} status={qaRunsStatus} />
+          )}
         </div>
         <EdgeScrollbar label={l.runKicker} scroller={mainScroller} side="right" />
       </div>

@@ -1,6 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { NotFoundPage } from '../NotFoundPage'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
+import { useActionBinding, useFieldBinding } from '../projectAgent/bindings'
+import { requireKnownId } from '../projectAgent/specs/fieldWriters'
+import {
+  createCancelRunner,
+  QA_RUN_CANCEL_ACTION,
+  QA_RUN_OPEN_PERFORMANCE_ACTION,
+  QA_RUN_SCENARIO_FIELD,
+  QA_RUN_SELECT_SCENARIO_ACTION,
+  QA_RUN_SWITCH_LOG_VIEW_ACTION,
+  requireLogView,
+  requireTryId,
+} from '../projectAgent/specs/qaRun'
 import { GameStreamView } from '../streaming/GameStreamView'
 import { QaTryIssuePanel } from '../issues/QaTryIssuePanel'
 import { listTestScenarios } from '../testScenarios/scenarioApi'
@@ -37,20 +50,17 @@ export function QaRunRoute() {
   )
 }
 
+function runPerformancePath(projectId: string, qaRunId: string): string {
+  return `/projects/${encodeURIComponent(projectId)}/qa-runs/${encodeURIComponent(qaRunId)}/performance`
+}
+
 function projectLink(projectId: string): string {
   return `/projects/${encodeURIComponent(projectId)}`
 }
 
 function QaRunMissing({ projectId }: { projectId: string }) {
   const { t } = useI18n()
-  return (
-    <section className="page">
-      <div className="panel-message">
-        <h1>{t.qa.run.notFound}</h1>
-        <Link className="button button--secondary" to={projectLink(projectId)}>{t.qa.run.back}</Link>
-      </div>
-    </section>
-  )
+  return <NotFoundPage back={{ to: projectLink(projectId), label: t.qa.run.back }} title={t.qa.run.notFound} />
 }
 
 // Only these carry meaning for the compact "Flow" view; the rest (raw LOG lines,
@@ -108,6 +118,10 @@ function QaRunPage({
   const [titleById, setTitleById] = useState<Map<string, string>>(new Map())
   const stop = useRef(false)
   const refresh = useRef<() => void>(() => {})
+  const navigate = useNavigate()
+  const consoleRoot = useRef<HTMLElement>(null)
+  const cancelButton = useRef<HTMLButtonElement>(null)
+  const performanceLink = useRef<HTMLAnchorElement>(null)
 
   useEffect(() => {
     stop.current = false
@@ -160,7 +174,7 @@ function QaRunPage({
     return () => controller.abort()
   }, [projectId])
 
-  const onCancel = useCallback(async () => {
+  const onCancel = useCallback(async (): Promise<boolean> => {
     setCancelling(true)
     setCancelError(null)
     try {
@@ -168,8 +182,10 @@ function QaRunPage({
       // Read the run back now rather than waiting for the next poll: the button
       // is the one place the operator expects the page to answer immediately.
       refresh.current()
+      return true
     } catch {
       setCancelError(t.qa.run.cancelFailed)
+      return false
     } finally {
       setCancelling(false)
     }
@@ -202,6 +218,47 @@ function QaRunPage({
     setExpandedOverrides((current) => new Map(current).set(id, !expanded))
   }
 
+  const tryIds = run?.tries.map((entry) => entry.id) ?? []
+  function scenarioTitleOf(entry: QaTry, index: number): string {
+    const title = titleById.get(entry.testScenarioId)
+    return title !== undefined && title.length > 0 ? title : t.qa.run.scenario(index + 1)
+  }
+  const runActive = run !== null && !isTerminalQaStatus(run.status)
+
+  useFieldBinding(QA_RUN_SCENARIO_FIELD, {
+    target: () => consoleRoot.current?.querySelector<HTMLElement>('.qa-console-rail') ?? null,
+    read: () => focusedTryId,
+    options: () =>
+      run === null ? [] : run.tries.map((entry, index) => ({ value: entry.id, label: scenarioTitleOf(entry, index) })),
+    write: (value) => focusTry(requireKnownId(QA_RUN_SCENARIO_FIELD.name, value, tryIds)),
+  })
+
+  useActionBinding(QA_RUN_SELECT_SCENARIO_ACTION, {
+    target: () => consoleRoot.current?.querySelector<HTMLElement>('.qa-console-rail') ?? null,
+    blocked: () => (run === null ? t.qa.run.loading : null),
+    run: async (args) => {
+      const tryId = requireTryId(args, tryIds)
+      focusTry(tryId)
+      return { tryId }
+    },
+  })
+
+  // 취소 버튼은 진행 중일 때만 그려진다. 같은 `onCancel` 을 부르고, 실패하면 화면의 문구와 같은 것을 던진다.
+  useActionBinding(QA_RUN_CANCEL_ACTION, {
+    target: () => cancelButton.current,
+    blocked: () => (run === null ? t.qa.run.loading : runActive ? (cancelling ? t.qa.run.cancelling : null) : 'This QA run already finished.'),
+    run: () => createCancelRunner(onCancel, () => t.qa.run.cancelFailed)(),
+  })
+
+  useActionBinding(QA_RUN_OPEN_PERFORMANCE_ACTION, {
+    target: () => performanceLink.current,
+    blocked: () => (run === null ? t.qa.run.loading : null),
+    run: async () => {
+      navigate(runPerformancePath(projectId, qaRunId))
+      return { qaRunId }
+    },
+  })
+
   if (state === 'loading') {
     return <section className="page"><div className="panel-message"><p>{t.qa.run.loading}</p></div></section>
   }
@@ -213,13 +270,11 @@ function QaRunPage({
   const active = !isTerminalQaStatus(run.status)
   const focusedTry = run.tries.find((entry) => entry.id === focusedTryId) ?? null
 
-  function scenarioTitle(entry: QaTry, index: number): string {
-    const title = titleById.get(entry.testScenarioId)
-    return title !== undefined && title.length > 0 ? title : t.qa.run.scenario(index + 1)
-  }
+  const scenarioTitle = scenarioTitleOf
 
   const rail: QaScenarioRailProps = {
     projectId,
+    gameBuildId: run.testRunGameBuildId,
     tries: run.tries,
     activeTryId,
     focusedTryId,
@@ -230,7 +285,7 @@ function QaRunPage({
   }
 
   return (
-    <section className="qa-console">
+    <section className="qa-console" ref={consoleRoot}>
       <header className="qa-console-top">
         <Link className="st-back" to={projectLink(projectId)}>{t.qa.run.back}</Link>
         <div className="qa-console-title">
@@ -243,7 +298,8 @@ function QaRunPage({
         <div className="qa-console-top-actions">
           <Link
             className="button button--secondary button--compact"
-            to={`/projects/${encodeURIComponent(projectId)}/qa-runs/${encodeURIComponent(qaRunId)}/performance`}
+            ref={performanceLink}
+            to={runPerformancePath(projectId, qaRunId)}
           >
             {t.performance.entry.run}
           </Link>
@@ -256,7 +312,7 @@ function QaRunPage({
             {following ? t.qa.run.following : t.qa.run.follow}
           </button>
           {active && (
-            <button className="button button--secondary button--compact" disabled={cancelling} onClick={() => void onCancel()} type="button">
+            <button className="button button--secondary button--compact" disabled={cancelling} onClick={() => void onCancel()} ref={cancelButton} type="button">
               {cancelling ? t.qa.run.cancelling : t.qa.run.cancel}
             </button>
           )}
@@ -291,6 +347,7 @@ function FocusedTry({ qaRun, rail, tryId }: { qaRun: QaRun; rail: QaScenarioRail
   const session = useQaTry(tryId)
   const { steps: scenarioSteps, executionMode } = useScenarioSteps(session.qaTry?.testScenarioId ?? null)
   const [logView, setLogView] = useState<'flow' | 'raw' | 'issues'>('flow')
+  const logTabs = useRef<HTMLDivElement>(null)
   const [focusRequest, setFocusRequest] = useState<QaLogFocusRequest | null>(null)
 
   const progress = useMemo(
@@ -307,6 +364,17 @@ function FocusedTry({ qaRun, rail, tryId }: { qaRun: QaRun; rail: QaScenarioRail
 
   const contextUsage = useMemo(() => deriveQaContextUsage(session.logs), [session.logs])
   const caseVerdicts = useMemo(() => deriveCaseVerdicts(session.logs), [session.logs])
+
+  useActionBinding(QA_RUN_SWITCH_LOG_VIEW_ACTION, {
+    target: () => logTabs.current,
+    blocked: () =>
+      session.loadStatus === 'error' ? t.qa.run.loadFailed : session.qaTry === null ? t.qa.run.loading : null,
+    run: async (args) => {
+      const view = requireLogView(args)
+      setLogView(view)
+      return { view }
+    },
+  })
 
   const jumpToLog = useCallback((logId: string) => {
     setLogView('raw')
@@ -400,7 +468,7 @@ function FocusedTry({ qaRun, rail, tryId }: { qaRun: QaRun; rail: QaScenarioRail
 
         <aside className="qa-focus-logs-col" aria-label={t.qa.run.logsTitle}>
           <header className="qa-focus-logs-head">
-            <div className="qa-log-tabs" role="tablist">
+            <div className="qa-log-tabs" ref={logTabs} role="tablist">
               <button className={logView === 'flow' ? 'on' : ''} onClick={() => setLogView('flow')} role="tab" aria-selected={logView === 'flow'} type="button">{t.qa.run.logsFlow}</button>
               <button className={logView === 'raw' ? 'on' : ''} onClick={() => setLogView('raw')} role="tab" aria-selected={logView === 'raw'} type="button">{t.qa.run.logsRaw}</button>
               <button className={logView === 'issues' ? 'on' : ''} onClick={() => setLogView('issues')} role="tab" aria-selected={logView === 'issues'} type="button">{t.qa.run.tabIssues}</button>

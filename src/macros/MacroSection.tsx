@@ -1,9 +1,16 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { SketchEmpty } from '../emptyStates/SketchEmpty'
+import { MacroSketch } from '../emptyStates/sketches'
 import { useSearchParams } from 'react-router-dom'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
 import { buildOptionText } from '../projects/gameBuilds'
 import type { GameBuild } from '../projects/gameTypes'
+import { useActionBinding, useFieldBinding } from '../projectAgent/bindings'
+import { listedOptions, readOnlyListWrite } from '../projectAgent/specs/listedOptions'
+import { MACROS_BUILD_FIELD, MACROS_LISTED_FIELD, MACROS_OPEN_SOURCE_ACTION } from '../projectAgent/specs/macros'
+import { requireKnownId } from '../projectAgent/specs/fieldWriters'
+import { resolveEntry } from '../projectAgent/specs/lookup'
 import { useWorkspace } from '../projects/workspace/workspaceContext'
 import { SearchField } from '../testCases/SearchField'
 import type { DeveloperMacroSummary } from './developerMacroTypes'
@@ -13,6 +20,7 @@ import {
   developerLibraryItems,
   latestVersionBuild,
   resolveMacroView,
+  macroLookups,
   searchMacros,
   selectViewParams,
   type LibraryMacro,
@@ -137,7 +145,8 @@ function BuildMacroView({ build, ...shared }: SharedViewProps & { build: GameBui
     <MacroLibraryView
       {...shared}
       agentBuildId={build.id}
-      emptyText={copy.empty}
+      emptyHelp={copy.emptyHelp}
+      emptyText={copy.emptyTitle}
       items={items}
       loadFailedText={copy.agentLoadFailed}
       onReload={agent.reload}
@@ -171,7 +180,8 @@ function DeveloperMacroView({
     <MacroLibraryView
       {...shared}
       agentBuildId={null}
-      emptyText={copy.developerEmpty}
+      emptyHelp={copy.developerEmptyHelp}
+      emptyText={copy.developerEmptyTitle}
       items={items}
       loadFailedText={copy.developerLoadFailed}
       onReload={onReload}
@@ -197,6 +207,7 @@ function MacroLibraryView({
   builds,
   developerCount,
   emptyText,
+  emptyHelp,
   items,
   loadFailedText,
   onReload,
@@ -210,6 +221,8 @@ function MacroLibraryView({
 }: SharedViewProps & {
   agentBuildId: string | null
   emptyText: string
+  /** 비었을 때 macro 가 어디서 생기는지. */
+  emptyHelp: string
   items: LibraryMacro[]
   loadFailedText: string
   onReload: () => void
@@ -269,9 +282,43 @@ function MacroLibraryView({
 
   const waiting = status === 'loading' && items.length === 0
 
+  // agent 가 build 를 고르고 macro 를 여는 길. 왼쪽 목록의 줄과 표의 줄이 부르는 것과 같은
+  // `onSelectView` 와 `openMacro` 를 부른다.
+  const versionsRef = useRef<HTMLElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
+  const viewIds = [...builds.map((build) => build.id), DEVELOPER_VIEW]
+  useFieldBinding(MACROS_BUILD_FIELD, {
+    target: () => versionsRef.current,
+    read: () => selectedView,
+    options: () => [
+      ...builds.map((build) => ({ value: build.id, label: buildOptionText(build, t.projects.builds.editorLabel) })),
+      { value: DEVELOPER_VIEW, label: copy.versions.developer },
+    ],
+    write: (value) => onSelectView(requireKnownId(MACROS_BUILD_FIELD.name, value, viewIds)),
+  })
+  useFieldBinding(MACROS_LISTED_FIELD, {
+    target: () => listRef.current,
+    read: () => items.length,
+    options: () => listedOptions(items, (item) => ({ value: item.key, label: item.name })),
+    write: readOnlyListWrite(MACROS_LISTED_FIELD.name, 'use macros.openSource.'),
+  })
+  useActionBinding(MACROS_OPEN_SOURCE_ACTION, {
+    target: () => listRef.current,
+    blocked: () => {
+      if (waiting) return copy.section.loading
+      if (items.length === 0) return status === 'error' ? loadFailedText : emptyText
+      return null
+    },
+    run: async (args) => {
+      const item = resolveEntry('macro', args.macro, macroLookups(items))
+      openMacro(item.key)
+      return { key: item.key, name: item.name, origin: item.origin }
+    },
+  })
+
   return (
     <div className="tcl cp-scope macro-library">
-      <aside aria-label={caseCopy.versions.heading} className="tcl-folders">
+      <aside aria-label={caseCopy.versions.heading} className="tcl-folders" ref={versionsRef}>
         <MacroVersionList
           builds={builds}
           developerCount={developerCount}
@@ -318,17 +365,18 @@ function MacroLibraryView({
           <div aria-busy="true" className="panel-empty-block">
             <p className="panel-empty">{copy.section.loading}</p>
           </div>
-        ) : status === 'error' && items.length === 0 ? null : shown.length === 0 ? (
+        ) : status === 'error' && items.length === 0 ? null : shown.length === 0 && !filtered ? (
+          // 이 버전에 macro 가 하나도 없다. 글 한 줄 대신 그림과 어디서 생기는지를 보인다(ARTEL-1162).
+          <SketchEmpty body={emptyHelp} sketch={<MacroSketch />} surface title={emptyText} />
+        ) : shown.length === 0 ? (
           <div className="panel-empty-block">
-            <p className="panel-empty">{filtered ? copy.section.emptyFiltered : emptyText}</p>
-            {filtered && (
-              <button className="button button--secondary button--compact" onClick={() => setQuery('')} type="button">
-                {caseCopy.section.clearFilters}
-              </button>
-            )}
+            <p className="panel-empty">{copy.section.emptyFiltered}</p>
+            <button className="button button--secondary button--compact" onClick={() => setQuery('')} type="button">
+              {caseCopy.section.clearFilters}
+            </button>
           </div>
         ) : (
-          <div className="cp-listwrap">
+          <div className="cp-listwrap" ref={listRef}>
             <div className="cp-list tcl-scroll">
               <MacroLibraryList
                 builds={builds}

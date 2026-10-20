@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { NotFoundPage } from '../NotFoundPage'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { SplitHandle } from '../design-system/primitives/SplitHandle'
@@ -130,11 +131,11 @@ function RunEditPage({ projectId, runId }: { projectId: string; runId: string })
   }
   if (state.kind === 'missing') {
     return (
-      <section className="page"><div className="panel-message">
-        <h1>{t.scenarios.page.notFoundTitle}</h1>
-        <p className="panel-message-copy">{t.scenarios.map.missing}</p>
-        <Link className="button button--secondary" to={`/projects/${encodeURIComponent(projectId)}`}>{t.scenarios.map.back}</Link>
-      </div></section>
+      <NotFoundPage
+        back={{ to: `/projects/${encodeURIComponent(projectId)}`, label: t.scenarios.map.back }}
+        copy={t.scenarios.map.missing}
+        title={t.scenarios.page.notFoundTitle}
+      />
     )
   }
   if (state.kind === 'redirect') {
@@ -218,7 +219,7 @@ function RunEditPage({ projectId, runId }: { projectId: string; runId: string })
         )}
         <SplitHandle label={t.scenarios.chat.widthHandle} {...split.handle} />
         <aside className="st-chat">
-          <RunChat session={runChat} />
+          <RunChat gameBuildId={state.run.gameBuild?.gameBuildId ?? null} session={runChat} />
         </aside>
       </div>
     </div>

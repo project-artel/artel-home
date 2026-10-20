@@ -37,6 +37,23 @@ import {
 } from './issueFolderCommands'
 import { listIssueFolders } from './issueFolderApi'
 import { IssueTrackerStatus } from './IssueTrackerStatus'
+import { useActionBinding, useFieldBinding } from '../projectAgent/bindings'
+import { requireKnownId } from '../projectAgent/specs/fieldWriters'
+import {
+  createIssueStatusRunner,
+  createTrackerTicketRunner,
+  findListedIssue,
+  ISSUES_CREATE_TRACKER_TICKET_ACTION,
+  ISSUES_ISSUE_FIELD,
+  ISSUES_OPEN_ACTION,
+  ISSUES_OPEN_TRACKER_ACTION,
+  ISSUES_SET_STATUS_ACTION,
+  ISSUES_SEVERITY_FIELD,
+  ISSUES_STATUS_FIELD,
+  issueIdArg,
+  issueOptionLabel,
+  trackerUrlOf,
+} from '../projectAgent/specs/issues'
 import { IssuesSketch } from './issueSketches'
 import {
   ISSUE_SEVERITIES,
@@ -178,6 +195,120 @@ export function IssueBoard({
   )
   const { toggle, pending, failedId } = useIssueResolution(patchAndRecount)
   const { sync, pending: syncPending, failedId: syncFailedId } = useTrackerSync(patch)
+
+  // ── project agent 배선(ARTEL-1139) ──────────────────────────────────────────
+  //
+  // 전에는 `IssuesSection` 이 필터 · 목록 · 해결 · tracker 를 쥐고 여기 배선을 걸었다.
+  // ARTEL-1114 에서 그 넷이 전부 이 파일로 왔으므로 배선도 따라왔다. `catalog.ts` 가
+  // 이 일곱을 agent 에게 광고하는데, 배선만 빠지면 **테스트는 통과하면서** 런타임에
+  // agent 가 못 하는 일을 하겠다고 나선다.
+  //
+  // `target` 은 강조할 자리일 뿐이고 실제 일은 `run` 이 한다. 새 화면은 조작 버튼이
+  // 행이 아니라 상세 모달에 있으므로, 칸을 못 찾으면 그 이슈의 행으로, 행도 없으면
+  // 표 전체로 내려간다.
+
+  /** 강조할 자리. `target` 은 args 를 못 받으므로 가리킨 이슈를, 없으면 첫 행을 보인다. */
+  function issueTarget(control: string): HTMLElement | null {
+    const issueId = openId ?? focusId ?? issues.items[0]?.id ?? null
+    if (issueId === null) return rootRef.current
+    const row = rootRef.current?.querySelector<HTMLElement>(`[data-issue-id="${CSS.escape(issueId)}"]`) ?? null
+    return row?.querySelector<HTMLElement>(`[data-issue-action="${control}"]`) ?? row ?? rootRef.current
+  }
+
+  /** 목록이 읽히기 전에는 행이 없다. 화면이 그 자리에 보이는 문구를 그대로 쓴다. */
+  function listBlocked(): string | null {
+    if (issues.status === 'loading') return t.issues.list.loading
+    if (issues.status === 'error') return t.issues.list.loadFailed
+    return null
+  }
+
+  /**
+   * 줄을 누른 것과 같은 결과 — 그 이슈의 상세를 연다.
+   *
+   * 예전 화면은 행을 펼치는 방식이라 이미 펼친 행을 다시 펼치려고 `focusToken` 을 올렸다.
+   * 여기는 모달이라 열렸거나 닫혔거나 둘뿐이고, `openId` 하나로 끝난다.
+   */
+  function openIssue(issueId: string) {
+    findListedIssue(issues.items, issueId)
+    setOpenId(issueId)
+  }
+
+  useFieldBinding(ISSUES_STATUS_FIELD, {
+    target: () => rootRef.current?.querySelector<HTMLElement>('[data-issue-filter="status"]') ?? null,
+    read: () => filters.status,
+    options: () => [
+      { value: 'ALL', label: t.issues.filters.all },
+      ...ISSUE_STATUSES.map((status) => ({ value: status, label: t.issues.statusLabels[status] })),
+    ],
+    write: (value) => {
+      const status = requireKnownId(ISSUES_STATUS_FIELD.name, value, ['ALL', ...ISSUE_STATUSES])
+      setFilters((current) => ({ ...current, status: status as IssueFilters['status'] }))
+    },
+  })
+
+  useFieldBinding(ISSUES_SEVERITY_FIELD, {
+    target: () => rootRef.current?.querySelector<HTMLElement>('[data-issue-filter="severity"]') ?? null,
+    read: () => filters.severity,
+    options: () => [
+      { value: 'ALL', label: t.issues.filters.all },
+      ...ISSUE_SEVERITIES.map((severity) => ({ value: severity, label: t.issues.severityLabels[severity] })),
+    ],
+    write: (value) => {
+      const severity = requireKnownId(ISSUES_SEVERITY_FIELD.name, value, ['ALL', ...ISSUE_SEVERITIES])
+      setFilters((current) => ({ ...current, severity: severity as IssueFilters['severity'] }))
+    },
+  })
+
+  useFieldBinding(ISSUES_ISSUE_FIELD, {
+    target: () => issueTarget('detail'),
+    read: () => openId ?? focusId,
+    options: () => issues.items.map((issue) => ({ value: issue.id, label: issueOptionLabel(issue) })),
+    write: (value) => {
+      openIssue(
+        requireKnownId(
+          ISSUES_ISSUE_FIELD.name,
+          value,
+          issues.items.map((issue) => issue.id),
+        ),
+      )
+    },
+  })
+
+  useActionBinding(ISSUES_OPEN_ACTION, {
+    target: () => issueTarget('detail'),
+    blocked: listBlocked,
+    run: async (args) => {
+      const issueId = issueIdArg(args)
+      openIssue(issueId)
+      return { issueId }
+    },
+  })
+
+  useActionBinding(ISSUES_SET_STATUS_ACTION, {
+    target: () => issueTarget('resolve'),
+    blocked: listBlocked,
+    run: createIssueStatusRunner({ items: () => issues.items, toggle }),
+  })
+
+  useActionBinding(ISSUES_OPEN_TRACKER_ACTION, {
+    target: () => issueTarget('tracker'),
+    blocked: listBlocked,
+    run: async (args) => {
+      const url = trackerUrlOf(findListedIssue(issues.items, issueIdArg(args)))
+      window.open(url, '_blank', 'noopener,noreferrer')
+      return { url }
+    },
+  })
+
+  useActionBinding(ISSUES_CREATE_TRACKER_TICKET_ACTION, {
+    target: () => issueTarget('export'),
+    blocked: listBlocked,
+    run: createTrackerTicketRunner({
+      items: () => issues.items,
+      sync,
+      trackerConnected: () => trackerConnected,
+    }),
+  })
 
   // 버전 목록은 케이스 라이브러리의 것을 그대로 쓰고, 줄의 수만 이슈 수로 바꾼다.
   const versions = useMemo(() => {
@@ -386,7 +517,7 @@ export function IssueBoard({
 
       <section aria-label={t.issues.page.title} className="panel ib-main">
         <div className="ib-toolbar">
-          <div className="dc-segments" role="group" aria-label={t.issues.filters.status}>
+          <div className="dc-segments" data-issue-filter="status" role="group" aria-label={t.issues.filters.status}>
             {(['ALL', ...ISSUE_STATUSES] as const).map((status) => (
               <button
                 aria-pressed={filters.status === status}
@@ -399,7 +530,7 @@ export function IssueBoard({
               </button>
             ))}
           </div>
-          <div className="dc-segments" role="group" aria-label={b.severityLabel}>
+          <div className="dc-segments" data-issue-filter="severity" role="group" aria-label={b.severityLabel}>
             <button
               aria-pressed={filters.severity === 'ALL'}
               className="dc-segment"
@@ -552,6 +683,7 @@ export function IssueBoard({
                 return (
                   <tr
                     className={`ib-row${checked ? ' is-checked' : ''}${issue.status === 'RESOLVED' ? ' is-resolved' : ''}`}
+                    data-issue-id={issue.id}
                     draggable
                     key={issue.id}
                     onClick={() => setOpenId(issue.id)}
