@@ -14,6 +14,7 @@ import { CacheInvalidationSection } from './CacheInvalidationSection'
 import { LlmModelsSection } from './LlmModelsSection'
 import { TypesafeKeySection } from './TypesafeKeySection'
 import { FeatureModelsSection } from './FeatureModelsSection'
+import { TelemetrySection } from './TelemetrySection'
 import { useAdminFailure } from './useAdminRequest'
 import './admin.css'
 import { InfoHint } from '../../design-system/primitives/InfoHint'
@@ -232,6 +233,8 @@ export default function SettingsPage() {
         <FeatureModelsSection openRouterKeyConfigured={settings === null ? null : settings.configured}
           typesafeKeyConfigured={typesafeConfigured}
           onSaved={setAnnouncement} />
+
+        <TelemetrySection />
 
         <p className="adm-visually-hidden" aria-live="polite">
           {announcement}
