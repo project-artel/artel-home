@@ -1,10 +1,11 @@
-import { useEffect, useId, useMemo, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { UnauthorizedError } from '../shared/adminApi'
 import { listProjects, type ProjectSummary } from '../shared/projects/projectsApi'
 import { ALL_PROJECTS } from '../shared/projects/pick'
 import { ProjectPicker } from '../shared/projects/ProjectPicker'
 import { toDateInputValue, adminFormat } from '../shared/format'
 import { useI18n } from '../../i18n/useI18n'
+import { usePolling } from '../../live/usePolling'
 import { KnowledgeAxisBreakdown } from './AxisBreakdown'
 import { KnowledgeTotalsRail } from './TotalsRail'
 import { fetchKnowledgeStats } from './knowledgeStatsApi'
@@ -43,7 +44,6 @@ export function KnowledgeStatsDashboard() {
   const [data, setData] = useState<KnowledgeStats | null>(null)
   const [error, setError] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [reloadToken, setReloadToken] = useState(0)
 
   const fromFieldId = useId()
   const toFieldId = useId()
@@ -65,28 +65,45 @@ export function KnowledgeStatsDashboard() {
     return () => controller.abort()
   }, [])
 
+  // A silent read (a poll) keeps showing the last data when it fails.
+  const load = useCallback(
+    (signal: AbortSignal, silent: boolean) => {
+      if (projectId === null) return
+      fetchKnowledgeStats({ projectId: projectId === ALL_PROJECTS ? null : projectId, from, to }, signal)
+        .then((stats) => {
+          if (signal.aborted) return
+          setData(stats)
+          setLoading(false)
+          if (silent) setError(false)
+        })
+        .catch((cause) => {
+          if (signal.aborted || silent) return
+          setData(null)
+          setLoading(false)
+          if (cause instanceof UnauthorizedError) return
+          setError(true)
+        })
+    },
+    [projectId, from, to],
+  )
+
+  const pollController = useRef<AbortController | null>(null)
+
   useEffect(() => {
-    if (projectId === null) return
-
     const controller = new AbortController()
-    fetchKnowledgeStats(
-      { projectId: projectId === ALL_PROJECTS ? null : projectId, from, to },
-      controller.signal
-    )
-      .then((stats) => {
-        setData(stats)
-        setLoading(false)
-      })
-      .catch((cause) => {
-        if (controller.signal.aborted) return
-        setData(null)
-        setLoading(false)
-        if (cause instanceof UnauthorizedError) return
-        setError(true)
-      })
+    load(controller.signal, false)
+    return () => {
+      controller.abort()
+      pollController.current?.abort()
+    }
+  }, [load])
 
-    return () => controller.abort()
-  }, [projectId, from, to, reloadToken])
+  usePolling(() => {
+    pollController.current?.abort()
+    const controller = new AbortController()
+    pollController.current = controller
+    load(controller.signal, true)
+  })
 
   const cells = useMemo(() => data?.cells ?? [], [data])
 
@@ -147,20 +164,6 @@ export function KnowledgeStatsDashboard() {
           />
         </span>
 
-        <span className="topbar__spacer" />
-
-        <button
-          type="button"
-          className="control control--action"
-          disabled={loading || projectId === null}
-          onClick={() => {
-            setLoading(true)
-            setError(false)
-            setReloadToken((token) => token + 1)
-          }}
-        >
-          {loading ? t.admin.states.loading : t.admin.states.refresh}
-        </button>
       </header>
 
       <main className="main">

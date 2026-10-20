@@ -416,12 +416,12 @@ function ScreenMark({
   const name = screen.name?.trim() ?? ''
 
   /*
-   * 불러오지 못한 캡처의 주소. boolean 이 아닌 이유는 새로고침이 들어야 하기 때문이다.
+   * 불러오지 못한 캡처의 주소. boolean 이 아닌 이유는 다시 읽은 맵이 새 주소를 줄 수 있어야 하기 때문이다.
    *
-   * 서명된 주소가 만료되면 `onError` 가 온다. 그때 사용자가 할 일은 새로고침이고, 그러면 서버가
-   * 새로 서명한 주소를 준다. 그런데 이 컴포넌트의 React key 는 `placed.screen.id` 라 새 스냅샷이
+   * 서명된 주소가 만료되면 `onError` 가 온다. 콘텐츠 맵은 주기적으로 다시 읽히고 서버가 그때 새로
+   * 서명한 주소를 준다. 그런데 이 컴포넌트의 React key 는 `placed.screen.id` 라 새 스냅샷이
    * 와도 같은 인스턴스가 살아남는다 — boolean 으로 들면 unmount 될 때까지 안 풀려서, 화면이 새
-   * 주소를 받고도 "불러오지 못함"을 계속 띄운다. 안내가 가리키는 버튼이 듣지 않는 상태가 된다.
+   * 주소를 받고도 "불러오지 못함"을 계속 띄운다.
    */
   const [failedUrl, setFailedUrl] = useState<string | null>(null)
   const image = screen.image

@@ -7,7 +7,6 @@ export const knowledgeEn = {
     subtitle: 'What this project knows, and how the QA agent says those items relate.',
     backToProject: '← Back to the project',
     projectLink: 'Knowledge',
-    refresh: 'Refresh',
   },
   states: {
     loading: 'Loading the knowledge graph…',
@@ -150,7 +149,6 @@ export const knowledgeKo: Localized<typeof knowledgeEn> = {
     subtitle: '이 프로젝트가 아는 것과, QA 에이전트가 그 항목들 사이에 걸어 둔 관계입니다.',
     backToProject: '← 프로젝트로',
     projectLink: '지식창고',
-    refresh: '새로고침',
   },
   states: {
     loading: '지식 그래프를 불러오는 중…',

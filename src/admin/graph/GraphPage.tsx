@@ -60,7 +60,7 @@ export default function GraphPage() {
     <div className="shell">
       {projectId === null ? (
         <>
-          <GraphToolbar {...toolbar} loading={false} onRefresh={null} />
+          <GraphToolbar {...toolbar} />
           <main className="main">
             {projectsFailed && (
               <div className="notice notice--critical" role="alert">
@@ -98,7 +98,7 @@ function ProjectGraph(props: ToolbarProps & { projectId: string }) {
 
   return (
     <>
-      <GraphToolbar {...props} loading={status === 'loading'} onRefresh={reload} />
+      <GraphToolbar {...props} />
       <main className="main">
         <section aria-labelledby="graph-title" className="kg-admin-graph">
           <div className="section__head">
@@ -126,9 +126,7 @@ function GraphToolbar({
   nodeLimit,
   onProjectChange,
   onNodeLimitChange,
-  loading,
-  onRefresh,
-}: ToolbarProps & { loading: boolean; onRefresh: (() => void) | null }) {
+}: ToolbarProps) {
   const { t, locale } = useI18n()
   const limitFieldId = useId()
   const format = adminFormat(locale)
@@ -154,17 +152,6 @@ function GraphToolbar({
           ))}
         </select>
       </span>
-
-      <span className="topbar__spacer" />
-
-      <button
-        className="control control--action"
-        disabled={loading || onRefresh === null}
-        onClick={onRefresh ?? undefined}
-        type="button"
-      >
-        {loading ? t.admin.states.loading : t.admin.states.refresh}
-      </button>
     </header>
   )
 }

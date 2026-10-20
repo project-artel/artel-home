@@ -56,8 +56,6 @@ export type WorkspaceValue = {
   refreshRuns: () => Promise<void>
   /** After a QA run is started, so the history and dashboard agree with it. */
   refreshTries: () => Promise<void>
-  /** Re-reads instances and builds — both move when a game launches. */
-  refreshGameState: () => Promise<void>
 
   applyProject: (project: ProjectDetail) => void
   applyNewDocument: (document: ProjectDocument) => void

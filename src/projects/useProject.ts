@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { usePolling } from '../live/usePolling'
 import type { DocumentParseStatusEvent } from './documentEventsApi'
 import { listGameBuilds, listGameInstances } from './gameApi'
 import { getProject, listDocuments, ProjectApiError } from './projectApi'
@@ -128,31 +129,39 @@ export function useProject(projectId: string) {
   }, [projectId])
 
   /**
-   * Re-reads the two lists a game launch changes.
+   * Re-reads the two lists a game launch changes, on a timer.
    *
    * `connected` is whatever the server saw when the list was last fetched, and
-   * nothing pushes a change — a game that connects after the page loaded keeps
-   * reading as offline until someone asks again. Builds move on the same event:
-   * a launch reporting a new version creates one. Refreshing only the instances
-   * would answer "did it connect" while leaving "did the build appear" stale,
-   * which is the more confusing half.
+   * nothing pushes a change — a game that connects after the page loaded would
+   * keep reading as offline. Builds move on the same event: a launch reporting a
+   * new version creates one, so both lists are read together.
    *
    * `reload` would cover both by blanking the whole screen back to its loading
-   * state — a heavy response to "did it connect yet". This leaves the project
-   * and its documents alone and keeps the old rows on screen while in flight.
-   *
-   * A failure is deliberately not folded into the screen's status: the data on
-   * screen is still valid, just older than the user hoped. The caller reports it.
+   * state. This leaves the project and its documents alone and keeps the old
+   * rows on screen while in flight. A failed poll is dropped: the data on screen
+   * is still valid, and the next tick tries again. A poll still in flight
+   * suppresses the next one, so a slow server is not stacked with requests.
    */
-  const refreshGameState = useCallback(
-    () =>
-      Promise.all([listGameInstances(projectId), listGameBuilds(projectId)]).then(
-        ([instances, builds]) => {
-          setState((previous) => ({ ...previous, instances, builds }))
-        },
-      ),
-    [projectId],
-  )
+  const pollingRef = useRef(false)
+  const currentProjectRef = useRef(projectId)
+  useEffect(() => {
+    currentProjectRef.current = projectId
+  }, [projectId])
+  const pollGameState = useCallback(() => {
+    if (pollingRef.current) return
+    pollingRef.current = true
+    Promise.all([listGameInstances(projectId), listGameBuilds(projectId)])
+      .then(([instances, builds]) => {
+        // A poll that started before the user switched projects answers for the old one.
+        if (currentProjectRef.current !== projectId) return
+        setState((previous) => ({ ...previous, instances, builds }))
+      })
+      .catch(() => {})
+      .finally(() => {
+        pollingRef.current = false
+      })
+  }, [projectId])
+  usePolling(pollGameState, undefined, state.status === 'ready')
 
   /** Applies a server response the caller already holds, avoiding a second fetch. */
   const applyProject = useCallback((project: ProjectDetail) => {
@@ -210,7 +219,6 @@ export function useProject(projectId: string) {
   return {
     ...state,
     reload,
-    refreshGameState,
     applyProject,
     applyNewDocument,
     applyRemovedDocument,
