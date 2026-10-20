@@ -1,3 +1,13 @@
+import { accountAndKeys } from './accountAndKeys'
+import { admin } from './admin'
+import { cliInstall } from './cliInstall'
+import { cliRunQa } from './cliRunQa'
+import { createProject } from './createProject'
+import { inviteMembers } from './inviteMembers'
+import { mcpConnect } from './mcpConnect'
+import { sdkConnect } from './sdkConnect'
+import { skillsInstall } from './skillsInstall'
+
 /**
  * agent 가 `read_guide` 로 읽는 안내 문서. project 밖에서 하는 일(SDK 연결, CLI 설치, skill 설치,
  * MCP 연결, 계정 설정 같은 것)의 절차를 담는다. 목록(id, title, summary)은 page catalog 에 실려
@@ -12,7 +22,17 @@ export type Guide = {
   body: string
 }
 
-export const GUIDES: Guide[] = []
+export const GUIDES: Guide[] = [
+  sdkConnect,
+  cliInstall,
+  cliRunQa,
+  skillsInstall,
+  mcpConnect,
+  accountAndKeys,
+  createProject,
+  inviteMembers,
+  admin,
+]
 
 export function findGuide(id: string): Guide | undefined {
   return GUIDES.find((guide) => guide.id === id)
