@@ -12679,3 +12679,64 @@ button.gf-bar:focus-visible {
 .cp-pick-scope { margin: 0; padding: 10px 18px 0; color: var(--color-text-muted); font-size: 12px; }
 .cp-info-current { padding: 1px 8px; border: 1px solid var(--color-action-primary); border-radius: 999px; color: var(--color-action-primary); font-size: 11px; font-weight: 600; }
 .cp .cp-pick { align-self: flex-start; margin-top: 16px; }
+
+/* ── 그림이 있는 빈 화면 · 404 (ARTEL-1162) ───────────────────────────────────
+   QA 히스토리의 빈 화면(`.qh-empty-inline`)과 같은 크기 · 말투. 남은 자리를 채우고 가운데에 둔다. */
+.sketch-empty { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-2); min-height: 420px; padding: var(--space-8) var(--space-6); text-align: center; }
+.sketch-empty--surface { --qh-sketch-ground: var(--color-bg-surface); }
+.sketch-empty .qh-sketch { width: min(100%, 440px); margin-bottom: var(--space-4); }
+.sketch-empty-title { color: var(--color-text-secondary); font-family: var(--font-display); font-size: 24px; font-weight: 700; }
+.sketch-empty-body { max-width: 520px; color: var(--color-text-muted); font-size: 15px; line-height: 1.6; }
+.sketch-empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-2); margin-top: var(--space-3); }
+.sketch-empty--compact { min-height: 280px; padding: var(--space-6) var(--space-4); }
+.sketch-empty--compact .qh-sketch { width: min(100%, 300px); margin-bottom: var(--space-3); }
+.sketch-empty--compact .sketch-empty-title { font-size: 18px; }
+.sketch-empty--compact .sketch-empty-body { font-size: 13px; }
+
+/* 404 — 숫자를 크게, 돌아갈 길을 바로 아래에 */
+.not-found { display: flex; flex: 1; min-height: calc(100vh - 120px); }
+/* 404 에서는 바탕 격자를 끈다 — 빛 · 금 간 로고 말고는 아무것도 없는 어두운 방이어야 한다. */
+.workspace:has(.not-found) { background-image: none; }
+.not-found .sketch-empty { min-height: 0; }
+.not-found-code { margin: 0; color: var(--color-text-primary); font-family: var(--font-mono); font-size: 64px; font-weight: 700; letter-spacing: -0.02em; line-height: 1; }
+.not-found-code span { color: var(--color-action-primary); }
+.not-found-path { padding: 2px 8px; border: 1px solid var(--color-border-subtle); border-radius: var(--radius-sm); color: var(--color-text-muted); font-family: var(--font-mono); font-size: 12px; overflow-wrap: anywhere; }
+
+/* 404 그림 — 백열전구 빛 아래 금 간 ARTEL 로고(ARTEL-1162). 빛 색만 테마마다 다르고 나머지는 토큰을 따른다. */
+.nf-scene { --nf-light: #ffc56b; width: min(100%, 460px); margin-bottom: var(--space-2); overflow: visible; }
+:root[data-theme='light'] .nf-scene { --nf-light: #f0a53a; }
+@media (prefers-color-scheme: light) { :root:not([data-theme='dark']) .nf-scene { --nf-light: #f0a53a; } }
+.nf-cord { stroke: var(--color-border-strong); stroke-width: 2; }
+/* 줄을 화면 위 끝까지 잇는다: 위 칸이 늘어나는 만큼 줄이 길어지고, 아래 칸이 글을 화면 가운데쯤에 둔다. */
+.not-found .sketch-empty { justify-content: flex-start; padding-top: 0; gap: var(--space-2); }
+.nf-hang { flex: 1 1 0; width: 2px; min-height: 24px; margin-bottom: calc(-1 * var(--space-2) - 1px); background: var(--color-border-strong); }
+.nf-after { flex: 1.4 1 0; }
+.not-found .nf-scene { margin-top: 0; }
+.nf-shade { fill: var(--color-bg-raised); stroke: var(--color-border-strong); stroke-width: 1.6; stroke-linejoin: round; }
+.nf-bulb-halo { fill: var(--nf-light); opacity: .22; }
+.nf-floor { fill: var(--color-text-muted); opacity: .14; }
+.nf-chip { fill: var(--color-text-primary); opacity: .55; }
+.nf-chip--accent { fill: var(--color-brand-accent); opacity: .8; }
+.nf-mark { fill: var(--color-text-primary); }
+.nf-mark-accent { fill: var(--color-brand-accent); }
+.nf-crack { stroke: var(--color-bg-canvas); stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
+.nf-crack--thin { stroke-width: .9; }
+/* 오래된 전구처럼 가끔 한 번 흐려진다. */
+.nf-light, .nf-bulb-halo { animation: nf-flicker 6s steps(1, end) infinite; }
+@keyframes nf-flicker {
+  0%, 100% { opacity: 1; }
+  91% { opacity: 1; }
+  92% { opacity: .55; }
+  93% { opacity: 1; }
+  95% { opacity: .7; }
+  96% { opacity: 1; }
+}
+.nf-bulb-halo { animation-name: nf-flicker-halo; }
+@keyframes nf-flicker-halo {
+  0%, 100% { opacity: .22; }
+  92% { opacity: .1; }
+  93% { opacity: .22; }
+  95% { opacity: .14; }
+  96% { opacity: .22; }
+}
+@media (prefers-reduced-motion: reduce) { .nf-light, .nf-bulb-halo { animation: none; } }

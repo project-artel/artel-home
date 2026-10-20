@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { NotFoundPage } from '../NotFoundPage'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { useActionBinding, useFieldBinding } from '../projectAgent/bindings'
@@ -59,14 +60,7 @@ function projectLink(projectId: string): string {
 
 function QaRunMissing({ projectId }: { projectId: string }) {
   const { t } = useI18n()
-  return (
-    <section className="page">
-      <div className="panel-message">
-        <h1>{t.qa.run.notFound}</h1>
-        <Link className="button button--secondary" to={projectLink(projectId)}>{t.qa.run.back}</Link>
-      </div>
-    </section>
-  )
+  return <NotFoundPage back={{ to: projectLink(projectId), label: t.qa.run.back }} title={t.qa.run.notFound} />
 }
 
 // Only these carry meaning for the compact "Flow" view; the rest (raw LOG lines,

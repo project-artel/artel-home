@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { SketchEmpty } from '../../emptyStates/SketchEmpty'
+import { BoardSketch } from '../history/HistorySketch'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
 import { formatDateTime, formatElapsedSeconds, PLACEHOLDER } from '../../projects/formatters'
@@ -46,7 +48,9 @@ export function RecentRuns({
   return (
     <CollapsibleSection extra={extra} id="ql-recent" title={l.title(shown.length)}>
       {status === 'failed' && <p className="ql-empty">{l.loadFailed}</p>}
-      {status === 'ready' && shown.length === 0 && <p className="ql-empty">{l.empty}</p>}
+      {status === 'ready' && shown.length === 0 && (
+        <SketchEmpty body={l.emptyHelp} compact sketch={<BoardSketch />} title={l.empty} />
+      )}
       {shown.length > 0 && (
         <div className="ql-recent-grid">
           <div className="ql-table" role="table" aria-label={l.title(shown.length)}>

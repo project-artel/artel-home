@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { SketchEmpty } from '../../emptyStates/SketchEmpty'
+import { TestRunSketch } from '../../emptyStates/sketches'
 import { Link } from 'react-router-dom'
 import { EdgeScrollbar } from '../../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../../i18n/useI18n'
@@ -304,7 +306,22 @@ export function QaLaunch() {
           {run !== null && (
             <SinceLastRun onManageConsoles={() => setConsolesOpen(true)} projectId={projectId} runId={run.id} since={since} status={sinceStatus} />
           )}
-          <RecentRuns models={offered} projectId={projectId} runs={qaRuns} selectedRunId={runId} status={qaRunsStatus} />
+          {runs.length === 0 && (
+            // 테스트 런이 없으면 고를 것도, 쌓일 실행도 없다. 남은 자리를 그림과 할 일로 채운다(ARTEL-1162).
+            <SketchEmpty
+              actions={
+                <Link className="button button--primary" to={sectionHref(projectId, 'test-runs')}>
+                  {l.createRunButton}
+                </Link>
+              }
+              body={l.noRunsHelp}
+              sketch={<TestRunSketch />}
+              title={l.noRuns}
+            />
+          )}
+          {(runs.length > 0 || qaRuns.length > 0) && (
+            <RecentRuns models={offered} projectId={projectId} runs={qaRuns} selectedRunId={runId} status={qaRunsStatus} />
+          )}
         </div>
         <EdgeScrollbar label={l.runKicker} scroller={mainScroller} side="right" />
       </div>

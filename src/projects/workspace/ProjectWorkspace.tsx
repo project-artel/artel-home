@@ -1,4 +1,5 @@
 import { useMemo, type CSSProperties, type ReactNode } from 'react'
+import { NotFoundPage } from '../../NotFoundPage'
 import { Link, Outlet, useLocation, useParams } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
 import { AgentChatPanel, AgentReopenButton, AgentSplitHandle } from '../../projectAgent/AgentDock'
@@ -9,7 +10,7 @@ import { formatDate } from '../formatters'
 import { versionBuilds } from '../gameBuilds'
 import { useProject } from '../useProject'
 import { ProjectNav } from './ProjectNav'
-import { isDeepPath, PROJECT_RAIL_PX, sectionIdFromPath } from './sections'
+import { isDeepPath, isSectionPath, PROJECT_RAIL_PX, sectionIdFromPath } from './sections'
 import { useWorkspaceExtras } from './useWorkspaceExtras'
 import { WorkspaceContext, type WorkspaceValue } from './workspaceContext'
 
@@ -142,15 +143,7 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
 
   if (status === 'missing') {
     return (
-      <section className="page">
-        <div className="panel-message">
-          <h1>{t.projects.detail.notFoundTitle}</h1>
-          <p className="panel-message-copy">{t.projects.shared.missingCopy}</p>
-          <Link className="button button--secondary" to="/projects">
-            {t.projects.shared.backToProjects}
-          </Link>
-        </div>
-      </section>
+      <NotFoundPage copy={t.projects.shared.missingCopy} title={t.projects.detail.notFoundTitle} />
     )
   }
 
@@ -168,7 +161,8 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
   }
 
   const sectionId = sectionIdFromPath(projectId, pathname)
-  const deep = isDeepPath(projectId, pathname)
+  // 섹션도 깊은 화면도 아닌 주소는 404 다. 섹션 머리글 없이 그 화면만 그린다.
+  const deep = isDeepPath(projectId, pathname) || !isSectionPath(projectId, pathname)
   // A count the user cannot trust yet is worse than no count: `null` keeps the
   // badge off the row until its read lands.
   const settled = extrasStatus === 'ready'
