@@ -12,6 +12,8 @@ export type AuthProviders = {
   github: boolean
   /** True while the first account is pending or the operator opened public signup. */
   signupOpen: boolean
+  /** True while a telemetry endpoint is set and no consent is stored yet, so signup may ask. */
+  telemetryAvailable?: boolean
 }
 
 /**
@@ -29,11 +31,12 @@ export function parseAuthProviders(data: unknown): AuthProviders {
   if (typeof data !== 'object' || data === null) {
     throw new Error('Malformed providers payload')
   }
-  const { password, github, signupOpen } = data as Record<string, unknown>
+  const { password, github, signupOpen, telemetryAvailable } = data as Record<string, unknown>
   return {
     password: password !== false,
     github: github === true,
     signupOpen: signupOpen === true,
+    telemetryAvailable: telemetryAvailable === true,
   }
 }
 
@@ -64,7 +67,7 @@ async function refusal(response: Response, failure: string): Promise<AuthApiErro
   return new AuthApiError(response.status, failure, code)
 }
 
-async function postAnonymousJson(path: string, body: Record<string, string>, failure: string): Promise<void> {
+async function postAnonymousJson(path: string, body: Record<string, string | boolean>, failure: string): Promise<void> {
   const response = await fetch(orchestrationUrlFor(path), {
     method: 'POST',
     credentials: 'include',
@@ -81,9 +84,20 @@ export function loginWithPassword(email: string, password: string): Promise<void
   return postAnonymousJson('/api/auth/login', { email, password }, 'Unable to sign in')
 }
 
-/** Creates the account and sets the session cookies. The first account becomes the administrator. */
-export function signUpWithPassword(email: string, password: string, name: string): Promise<void> {
-  return postAnonymousJson('/api/auth/signup', { email, password, name }, 'Unable to sign up')
+/**
+ * Creates the account and sets the session cookies. The first account becomes the administrator.
+ * `telemetryOptIn` is sent only when the form showed the checkbox, so an install that does not
+ * offer telemetry never carries the field.
+ */
+export function signUpWithPassword(
+  email: string,
+  password: string,
+  name: string,
+  telemetryOptIn?: boolean,
+): Promise<void> {
+  const body: Record<string, string | boolean> = { email, password, name }
+  if (telemetryOptIn !== undefined) body.telemetryOptIn = telemetryOptIn
+  return postAnonymousJson('/api/auth/signup', body, 'Unable to sign up')
 }
 
 /** Clears `mustChangePassword` on the server (answers 204). Needs the session, so it goes through `apiFetch`. */

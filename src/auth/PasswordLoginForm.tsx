@@ -12,7 +12,13 @@ type Mode = 'signIn' | 'signUp'
  * cookies behind, so the user is read again and the app leaves the login
  * boundary on its own.
  */
-export function PasswordLoginForm({ signupOpen }: { signupOpen: boolean }) {
+export function PasswordLoginForm({
+  signupOpen,
+  telemetryAvailable = false,
+}: {
+  signupOpen: boolean
+  telemetryAvailable?: boolean
+}) {
   const { t } = useI18n()
   const { refresh } = useAuth()
   const copy = t.common.login
@@ -25,9 +31,12 @@ export function PasswordLoginForm({ signupOpen }: { signupOpen: boolean }) {
   const emailId = useId()
   const passwordId = useId()
   const nameId = useId()
+  const telemetryId = useId()
+  const [telemetryOptIn, setTelemetryOptIn] = useState(false)
 
   // The sign-up tab can disappear (signup closes after the first account); fall back instead of submitting to a closed endpoint.
   const activeMode: Mode = signupOpen ? mode : 'signIn'
+  const showTelemetry = activeMode === 'signUp' && telemetryAvailable
   const canSubmit = email.trim() !== '' && password !== '' && (activeMode === 'signIn' || (name.trim() !== '' && password.length >= PASSWORD_MIN_LENGTH))
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -39,7 +48,13 @@ export function PasswordLoginForm({ signupOpen }: { signupOpen: boolean }) {
       if (activeMode === 'signIn') {
         await loginWithPassword(email.trim(), password)
       } else {
-        await signUpWithPassword(email.trim(), password, name.trim())
+        await signUpWithPassword(
+          email.trim(),
+          password,
+          name.trim(),
+          // Sent only when the checkbox was on screen.
+          showTelemetry ? telemetryOptIn : undefined,
+        )
       }
       await refresh()
     } catch (cause) {
@@ -119,6 +134,20 @@ export function PasswordLoginForm({ signupOpen }: { signupOpen: boolean }) {
         {activeMode === 'signUp' && <p className="field-hint">{copy.passwordHint}</p>}
       </div>
       {activeMode === 'signUp' && <p className="field-hint">{copy.signUpHint}</p>}
+      {showTelemetry && (
+        <div className="field field--checkbox">
+          <label className="field-checkbox-label" htmlFor={telemetryId}>
+            <input
+              id={telemetryId}
+              type="checkbox"
+              checked={telemetryOptIn}
+              onChange={(event) => setTelemetryOptIn(event.target.checked)}
+            />
+            <span>{copy.telemetryLabel}</span>
+          </label>
+          <p className="field-hint">{copy.telemetryHint}</p>
+        </div>
+      )}
 
       <button className="button button--primary login-submit" type="submit" disabled={!canSubmit || submitting}>
         {submitting ? copy.submitting : activeMode === 'signIn' ? copy.signInSubmit : copy.signUpSubmit}
