@@ -27,6 +27,7 @@ type IssueListProps = {
    * `false` explicitly, rather than a default silently doing that for it.
    */
   trackerConnected: boolean
+  selection?: { ids: string[]; onToggle: (issue: Issue) => void }
   /**
    * The resolve toggle and the tracker export. Handed in rather than created here so a page can also call
    * them for the project agent (ARTEL-1139) and get the same optimistic update the buttons do.
@@ -58,6 +59,7 @@ export function IssueList({
   resolution,
   trackerSync,
   focusId = null,
+  selection,
   focusToken = 0,
 }: IssueListProps) {
   const { t } = useI18n()
@@ -94,6 +96,11 @@ export function IssueList({
       <ul className="issue-list">
         {issues.map((issue) => (
           <IssueRow
+            selection={selection ? {
+              checked: selection.ids.includes(issue.id),
+              onToggle: () => selection.onToggle(issue),
+              disabled: selection.ids.length >= 50 && !selection.ids.includes(issue.id),
+            } : undefined}
             failed={failedId === issue.id}
             focused={issue.id === focusId}
             focusToken={focusToken}

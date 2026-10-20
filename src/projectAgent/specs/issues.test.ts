@@ -23,6 +23,11 @@ function issue(overrides: Partial<Issue> = {}): Issue {
     reportedAt: '2026-10-20T00:00:00Z',
     resolvedAt: null,
     tracker: null,
+    // ARTEL-1114 가 `Issue` 에 더한 칸. 서버가 아직 안 실으면 null 인 자리라 픽스처도 비워 둔다.
+    origin: null,
+    number: null,
+    archivedAt: null,
+    categories: [],
     ...overrides,
   }
 }
