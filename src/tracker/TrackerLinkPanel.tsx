@@ -324,7 +324,9 @@ export function TrackerLinkPanel() {
       !isOwner
         ? notOwnerReason
         : trackerLink !== null
-          ? 'A tracker is already connected.'
+          ? trackerLink.repository === null
+            ? 'The tracker is authorized but a repository is still being picked; finish choosing the repository in the panel.'
+            : 'A tracker is already connected.'
           : connecting
             ? t.tracker.panel.connecting
             : null,

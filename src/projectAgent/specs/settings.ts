@@ -63,6 +63,14 @@ export const SETTINGS_OPEN_DELETE_ACTION: ActionSpec = {
   summarize: () => 'Open the delete project confirmation',
 }
 
+/** `settings.openDeleteProject` 의 실행. 대화상자만 열고, 프로젝트를 지우는 API 는 부르지 않는다. */
+export function createOpenDeleteRunner(openDialog: () => void) {
+  return async (): Promise<{ opened: true; deleted: false }> => {
+    openDialog()
+    return { opened: true, deleted: false }
+  }
+}
+
 export const SETTINGS_FIELDS: FieldSpec[] = [SETTINGS_NAME_FIELD, SETTINGS_GENRE_FIELD, SETTINGS_DESCRIPTION_FIELD]
 export const SETTINGS_ACTIONS: ActionSpec[] = [
   SETTINGS_SAVE_ACTION,

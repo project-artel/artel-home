@@ -10,11 +10,11 @@ test('document actions are prefixed by the page and name it', () => {
   for (const field of DOCUMENTS_FIELDS) assert.ok(field.name.startsWith('documents.'), field.name)
 })
 
-test('only deleting a document needs approval', () => {
+test('deleting a document and retrying an upload (which starts extraction) need approval', () => {
   const risk = Object.fromEntries(DOCUMENTS_ACTIONS.map((action) => [action.id, action.risk]))
   assert.deepEqual(risk, {
     'documents.openUpload': 'auto',
-    'documents.retryUpload': 'auto',
+    'documents.retryUpload': 'approve',
     'documents.delete': 'approve',
   })
 })

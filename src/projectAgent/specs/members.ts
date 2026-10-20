@@ -1,7 +1,8 @@
 import type { ActionSpec, FieldSpec } from '../registry/types'
 
 /*
- * 멤버 페이지의 field 와 action 정의. 소유자만 쓰는 것들이라 소유자가 아니면 binding 자체가 없다.
+ * 멤버 페이지의 field 와 action 정의. 초대(invite)와 초대 취소(revoke)는 소유자에게만 binding 이 있다.
+ * 멤버 제거(removeMember)는 모두에게 등록되고, 소유자가 아니면 blocked 로 막힌다.
  * 역할 변경은 이 화면에도 서버에도 없으므로 action 이 없다.
  */
 

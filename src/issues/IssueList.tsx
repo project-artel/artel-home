@@ -35,6 +35,8 @@ type IssueListProps = {
   trackerSync: TrackerSync
   /** 펼쳐서 강조할 이슈(`?issue=`, ARTEL-1084). 없으면 null. */
   focusId?: string | null
+  /** 같은 이슈를 다시 가리킬 때마다 올라가는 값. 접힌 행을 다시 펼친다. */
+  focusToken?: number
 }
 
 /**
@@ -56,6 +58,7 @@ export function IssueList({
   resolution,
   trackerSync,
   focusId = null,
+  focusToken = 0,
 }: IssueListProps) {
   const { t } = useI18n()
   const { toggle, pending, failedId } = resolution
@@ -93,6 +96,7 @@ export function IssueList({
           <IssueRow
             failed={failedId === issue.id}
             focused={issue.id === focusId}
+            focusToken={focusToken}
             issue={issue}
             key={issue.id}
             onSync={(target) => void sync(target)}

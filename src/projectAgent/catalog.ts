@@ -26,6 +26,8 @@ export type PageCatalogEntry = {
   id: PageId
   title: string
   path: string
+  /** 같은 binding 이 다른 주소에서도 열릴 때의 path 들. `path` 와 같은 식으로 쓴다. */
+  aliases?: string[]
   params: string[]
   description: string
   fields: FieldSpec[]
@@ -75,8 +77,8 @@ export const PAGE_CATALOG: PageCatalogEntry[] = [
   { id: 'testRun', title: 'Test run map', path: 'test-runs/:runId', params: ['runId'], description: 'The scenario map of one test run.', fields: TEST_RUN_FIELDS, actions: TEST_RUN_ACTIONS },
   { id: 'members', title: 'Members', path: 'members', params: [], description: 'Members of this project and invitations.', fields: MEMBERS_FIELDS, actions: MEMBERS_ACTIONS },
   { id: 'settings', title: 'Project settings', path: 'settings', params: [], description: 'Project name, genre, issue tracker link, and deleting the project.', fields: SETTINGS_FIELDS, actions: SETTINGS_ACTIONS },
-  { id: 'setup', title: 'Setup', path: 'setup', params: [], description: 'Per-project setup: connect a game with the SDK, game instances and builds.', fields: SETUP_FIELDS, actions: SETUP_ACTIONS },
-  { id: 'testRunEdit', title: 'Test run editor', path: 'test-runs/:runId/edit', params: ['runId'], description: 'Edit the scenarios of one test run.', fields: TEST_RUN_EDIT_FIELDS, actions: TEST_RUN_EDIT_ACTIONS },
+  { id: 'setup', title: 'Setup', path: 'setup', params: [], description: 'Per-project setup guide: the Unity SDK install step and the artel CLI commands with this project\'s id filled in. It has no list of game instances or builds.', fields: SETUP_FIELDS, actions: SETUP_ACTIONS },
+  { id: 'testRunEdit', title: 'Test run editor', path: 'test-runs/:runId/edit', aliases: ['test-scenarios/:testScenarioId'], params: ['runId', 'testScenarioId'], description: 'Edit the scenarios of one test run.', fields: TEST_RUN_EDIT_FIELDS, actions: TEST_RUN_EDIT_ACTIONS },
 ]
 
 /** 서버로 보내는 모양. 함수(`summarize`)를 빼고 JSON 으로 만든다. */

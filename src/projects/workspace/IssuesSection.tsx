@@ -44,6 +44,8 @@ export function IssuesSection() {
   const focusId = searchParams.get('issue')
   const [filters, setFilters] = useState<IssueFilters>({ status: focusId === null ? 'OPEN' : 'ALL', severity: 'ALL' })
   const [reloadToken, setReloadToken] = useState(0)
+  // 이미 가리킨 이슈를 사용자가 접은 뒤 agent 가 다시 열어도 행이 펼쳐지도록, 열 때마다 올린다.
+  const [focusToken, setFocusToken] = useState(0)
   const issues = useProjectIssues(projectId, filters, reloadToken)
   // `trackerLink` starts `null` until `useWorkspaceExtras`'s five-way read
   // settles (see `DashboardSection`'s own `extrasStatus === 'ready'` guard);
@@ -76,6 +78,7 @@ export function IssuesSection() {
   // 행의 상세 버튼이 하는 일과 같은 결과 — 이슈를 펼치고 그 자리로 간다. 다른 화면이 `?issue=` 로 여는 길을 쓴다.
   function openIssue(issueId: string) {
     findListedIssue(issues.items, issueId)
+    setFocusToken((token) => token + 1)
     setSearchParams(
       (current) => {
         const next = new URLSearchParams(current)
@@ -215,6 +218,7 @@ export function IssuesSection() {
         <IssueList
           filtered={filters.status !== 'ALL' || filters.severity !== 'ALL'}
           focusId={focusId}
+          focusToken={focusToken}
           hasMore={issues.hasMore}
           issues={issues.items}
           loadingMore={issues.loadingMore}

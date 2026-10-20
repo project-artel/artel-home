@@ -40,7 +40,10 @@ export function derivePage(
   const segments = projectPathSegments(projectId, pathname)
   if (segments === null) return { page: null, params: {} }
   for (const entry of entries) {
-    const pathParams = matchPattern(entry.path, segments)
+    const pathParams = [entry.path, ...(entry.aliases ?? [])].reduce<Record<string, string> | null>(
+      (found, pattern) => found ?? matchPattern(pattern, segments),
+      null,
+    )
     if (pathParams === null) continue
     const params: Record<string, string> = {}
     new URLSearchParams(search).forEach((value, key) => {

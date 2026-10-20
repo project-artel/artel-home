@@ -2,7 +2,7 @@ import { Fragment, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { useActionBinding } from '../projectAgent/bindings'
-import { resolveEntry } from '../projectAgent/specs/lookup'
+import { resolveEntry, scenarioLookups } from '../projectAgent/specs/lookup'
 import {
   TEST_RUN_OPEN_EDITOR_ACTION,
   TEST_RUN_OPEN_SCENARIO_ACTION,
@@ -159,7 +159,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
 
   // agent 가 쓰는 길. 각 action 은 같은 이름의 버튼이 부르는 함수를 부른다.
   const editButton = useRef<HTMLButtonElement>(null)
-  const scenarioLookups = nodes.map((node) => ({ entry: node, keys: [node.id], title: node.title }))
+  const lookups = scenarioLookups(nodes, (node) => node.id, (node) => node.title)
   const mapBlockedReason = () => (status === 'ready' ? null : status === 'loading' ? m.loading : status === 'missing' ? m.missing : m.loadFailed)
   const scenarioBlockedReason = () => mapBlockedReason() ?? (nodes.length === 0 ? m.empty : null)
   const scenarioElement = (scenarioId: string) =>
@@ -174,7 +174,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     target: () => (pickedScenario.current === null ? null : scenarioElement(pickedScenario.current)),
     blocked: scenarioBlockedReason,
     run: async (args) => {
-      const node = resolveEntry('scenario', args.scenario, scenarioLookups)
+      const node = resolveEntry('scenario', args.scenario, lookups)
       pickedScenario.current = node.id
       if (!expandedIds.has(node.id)) toggleExpand(node.id)
       return { id: node.id, title: node.title, steps: node.steps.map((step) => ({ action: step.action, tc: step.tcNo })) }
@@ -184,7 +184,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     target: () => (pickedScenario.current === null ? null : scenarioElement(pickedScenario.current)?.querySelector<HTMLElement>('.mnode-open') ?? null),
     blocked: scenarioBlockedReason,
     run: async (args) => {
-      const node = resolveEntry('scenario', args.scenario, scenarioLookups)
+      const node = resolveEntry('scenario', args.scenario, lookups)
       pickedScenario.current = node.id
       openEdit(node.id)
       return { id: node.id, title: node.title }

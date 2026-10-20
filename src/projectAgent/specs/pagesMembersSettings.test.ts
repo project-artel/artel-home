@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { MEMBERS_ACTIONS, MEMBERS_FIELDS } from './members'
-import { SETTINGS_ACTIONS, SETTINGS_FIELDS } from './settings'
+import { createOpenDeleteRunner, SETTINGS_ACTIONS, SETTINGS_FIELDS } from './settings'
 import { SETUP_ACTIONS, SETUP_FIELDS } from './setup'
 import { USAGE_ACTIONS, USAGE_FIELDS } from './usage'
 
@@ -59,4 +59,13 @@ test('deleting a project is only ever opened, never performed, by the agent', ()
   assert.ok(open)
   assert.deepEqual(open.args.properties, {})
   assert.match(open.description, /does NOT delete/)
+})
+
+test('opening the delete dialog opens it and reports nothing was deleted', async () => {
+  let opened = 0
+  const result = await createOpenDeleteRunner(() => {
+    opened += 1
+  })()
+  assert.deepEqual(result, { opened: true, deleted: false })
+  assert.equal(opened, 1)
 })

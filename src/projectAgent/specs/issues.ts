@@ -44,9 +44,9 @@ export const ISSUES_OPEN_ACTION: ActionSpec = {
 export const ISSUES_SET_STATUS_ACTION: ActionSpec = {
   id: 'issues.setStatus',
   page: 'issues',
-  risk: 'auto',
+  risk: 'approve',
   description:
-    'Mark an issue RESOLVED or put it back to OPEN, like the Resolve / Reopen button on its row. It only changes the issue in ARTEL: nobody is notified and the tracker is not touched. Returns {issueId, status, changed}; changed is false when the issue already had that status. Fails when the issue is not in the list now.',
+    'Mark an issue RESOLVED or put it back to OPEN, like the Resolve / Reopen button on its row. When the issue is linked to a tracker ticket (for example a GitHub issue), the server also closes or reopens that ticket, which other people can see, so the user approves it. Returns {issueId, status, changed}; changed is false when the issue already had that status. Fails when the issue is not in the list now.',
   args: {
     type: 'object',
     properties: {

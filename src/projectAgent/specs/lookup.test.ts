@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { resolveEntry, type Lookup } from './lookup'
+import { resolveEntry, resolveExactEntry, runLookups, scenarioLookups, type Lookup } from './lookup'
 
 const lookups: Lookup<string>[] = [
   { entry: 'a', keys: ['agent:1', 'Login'], title: 'Login' },
@@ -28,4 +28,18 @@ test('numbers are read as ids, and nothing or blank is refused', () => {
 test('a long candidate list is cut', () => {
   const many: Lookup<number>[] = Array.from({ length: 8 }, (_, index) => ({ entry: index, keys: [`id${index}`], title: `same ${index}` }))
   assert.throws(() => resolveEntry('item', 'same', many), /and 3 more/)
+})
+
+test('exact lookup refuses a partial id', () => {
+  const runs = runLookups(['1042', '42'], (run) => run)
+  assert.equal(resolveExactEntry('performance run', '42', runs), '42')
+  assert.equal(resolveExactEntry('performance run', 1042, runs), '1042')
+  assert.throws(() => resolveExactEntry('performance run', '04', runs), /No performance run has the id "04"/)
+  assert.throws(() => resolveExactEntry('performance run', ' ', runs), /is required/)
+})
+
+test('scenarioLookups keys by id and titles by name', () => {
+  const [lookup] = scenarioLookups([{ id: 'n1', name: 'Buy' }], (item) => item.id, (item) => item.name)
+  assert.deepEqual(lookup.keys, ['n1'])
+  assert.equal(lookup.title, 'Buy')
 })

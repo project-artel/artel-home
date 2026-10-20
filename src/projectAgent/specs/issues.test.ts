@@ -32,7 +32,7 @@ test('issue action ids, risks and schemas', () => {
     ISSUES_ACTIONS.map((action) => [action.id, action.risk]),
     [
       ['issues.open', 'auto'],
-      ['issues.setStatus', 'auto'],
+      ['issues.setStatus', 'approve'],
       ['issues.openTracker', 'auto'],
       ['issues.createTrackerTicket', 'approve'],
     ],

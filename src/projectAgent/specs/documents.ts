@@ -15,9 +15,9 @@ export const DOCUMENTS_OPEN_UPLOAD_ACTION: ActionSpec = {
 export const DOCUMENTS_RETRY_UPLOAD_ACTION: ActionSpec = {
   id: 'documents.retryUpload',
   page: 'documents',
-  risk: 'auto',
+  risk: 'approve',
   description:
-    'Retry the last document upload that failed, with the same file the user already picked (the Retry button next to the upload error). Blocked when no upload has failed. Returns {version} of the uploaded document.',
+    'Retry the last document upload that failed, with the same file the user already picked (the Retry button next to the upload error). A registered document starts knowledge extraction on the server, which spends LLM usage, so the user approves it. Blocked when no upload has failed. Returns {version} of the uploaded document.',
   args: { type: 'object', properties: {} },
   summarize: () => 'Retry the failed document upload',
 }

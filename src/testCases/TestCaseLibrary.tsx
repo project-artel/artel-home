@@ -40,6 +40,7 @@ import { MoveCasesDialog } from './MoveCasesDialog'
 import { Picker } from './Picker'
 import { SearchField } from './SearchField'
 import { hasPointerMoved, type PointerPosition } from './pointerMovement'
+import { planDeleteCases } from './deleteCasesPlan'
 import { bulkDeleteTestCases, deleteTestCase } from './testCaseApi'
 import {
   ALL_FOLDERS,
@@ -685,11 +686,7 @@ export function TestCaseLibrary({
     target: () => panelRef.current,
     blocked: () => loadingReason,
     run: async (args) => {
-      const ids = Array.isArray(args.testCaseIds) ? args.testCaseIds.filter((id): id is string => typeof id === 'string') : []
-      if (ids.length === 0) throw new Error('testCaseIds must list at least one id.')
-      const known = new Set(library.cases.map((one) => one.id))
-      const unknown = ids.filter((id) => !known.has(id))
-      if (unknown.length > 0) throw new Error(`No test case has the id ${unknown.join(', ')}.`)
+      const ids = planDeleteCases(args.testCaseIds, new Set(library.cases.map((one) => one.id)))
       await deleteCases(ids)
       return { deleted: ids.length }
     },

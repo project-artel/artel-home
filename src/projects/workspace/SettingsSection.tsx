@@ -8,6 +8,7 @@ import {
   SETTINGS_GENRE_FIELD,
   SETTINGS_NAME_FIELD,
   SETTINGS_OPEN_DELETE_ACTION,
+  createOpenDeleteRunner,
   SETTINGS_SAVE_ACTION,
 } from '../../projectAgent/specs/settings'
 import { apiErrorMessage } from '../apiErrorMessage'
@@ -134,10 +135,7 @@ export function SettingsSection() {
   useActionBinding(SETTINGS_OPEN_DELETE_ACTION, {
     target: () => document.querySelector<HTMLElement>('[data-agent-target="settings.delete"]'),
     blocked: () => (project.myRole !== 'OWNER' ? t.projects.deleteDialog.forbidden : null),
-    run: async () => {
-      setDeleting(true)
-      return { opened: true, deleted: false }
-    },
+    run: createOpenDeleteRunner(() => setDeleting(true)),
   })
   // 칸을 쓰면 폼이 열린다. 폼이 닫혀 있는 동안의 강조는 "수정" 버튼에 한다.
   useFieldBinding(SETTINGS_NAME_FIELD, {

@@ -3,7 +3,6 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { useActionBinding } from '../projectAgent/bindings'
 import { TEST_RUN_EDIT_APPROVE_SCENARIO_ACTION } from '../projectAgent/specs/testRunEdit'
-import { ProjectApiError } from '../projects/projectApi'
 import { shortcutLabel } from '../shell/platform'
 import { TestCaseSpecModal } from '../testCases/TestCaseSpecModal'
 import { RunChat } from '../testRuns/RunChat'
@@ -13,6 +12,7 @@ import { RunVersionChip } from '../testRuns/RunVersionChip'
 import { getTestRun, type RunGameBuild } from '../testRuns/testRunApi'
 import { useRunChatSession } from '../testRuns/useRunChatSession'
 import { ApproveScenarioDialog } from './ApproveScenarioDialog'
+import { approveScenarioFailure } from './approveScenarioError'
 import { DeleteScenarioDialog } from './DeleteScenarioDialog'
 import { approveTestScenario, getTestScenario } from './scenarioApi'
 import { FreeScenarioEditor } from './FreeScenarioEditor'
@@ -176,10 +176,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
       try {
         await approveTestScenario(scenarioId)
       } catch (error: unknown) {
-        throw new Error(
-          error instanceof ProjectApiError && error.isNotFound ? t.scenarios.approve.gone : t.scenarios.approve.failed,
-          { cause: error },
-        )
+        throw new Error(approveScenarioFailure(error, t.scenarios.approve), { cause: error })
       }
       navigate(afterExit, { replace: true })
       return { id: scenarioId }

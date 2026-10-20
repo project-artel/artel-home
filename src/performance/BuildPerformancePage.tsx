@@ -4,7 +4,7 @@ import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
 import { useActionBinding } from '../projectAgent/bindings'
 import { PERFORMANCE_OPEN_RUN_REPORT_ACTION } from '../projectAgent/specs/performance'
-import { resolveEntry } from '../projectAgent/specs/lookup'
+import { resolveExactEntry, runLookups } from '../projectAgent/specs/lookup'
 import { sortByStartedAt, splitTrustedSegments } from './chartModel'
 import { getBuildPerformance } from './performanceApi'
 import {
@@ -82,10 +82,10 @@ export function BuildPerformanceReport({
       return runs.length === 0 ? copy.emptyTitle : null
     },
     run: async (args) => {
-      const run = resolveEntry(
+      const run = resolveExactEntry(
         'performance run',
         args.runId,
-        runs.map((one) => ({ entry: one, keys: [String(one.runId)], title: String(one.runId) })),
+        runLookups(runs, (one) => String(one.runId)),
       )
       navigate(runReportPath(projectId, String(run.runId)))
       return { runId: String(run.runId) }

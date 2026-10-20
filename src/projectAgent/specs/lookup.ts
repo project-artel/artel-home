@@ -15,6 +15,26 @@ export type Lookup<T> = {
 
 const CANDIDATE_LIMIT = 5
 
+/** scenario 목록을 lookup 으로 바꾼다. 맵 화면과 시나리오 목록이 같은 규칙(id 와 제목)을 쓴다. */
+export function scenarioLookups<T>(items: readonly T[], idOf: (item: T) => string, titleOf: (item: T) => string): Lookup<T>[] {
+  return items.map((item) => ({ entry: item, keys: [idOf(item)], title: titleOf(item) }))
+}
+
+/** run 목록을 lookup 으로 바꾼다. id 만 키이고 제목은 쓰지 않으므로 `resolveExactEntry` 와 함께 쓴다. */
+export function runLookups<T>(items: readonly T[], idOf: (item: T) => string): Lookup<T>[] {
+  return items.map((item) => ({ entry: item, keys: [idOf(item)], title: '' }))
+}
+
+/** key 가 (대소문자 무시하고) 정확히 같은 항목만 돌려준다. 부분 일치로 다른 항목을 고르지 않는다. */
+export function resolveExactEntry<T>(subject: string, query: unknown, lookups: readonly Lookup<T>[]): T {
+  const text = typeof query === 'string' ? query.trim() : typeof query === 'number' ? String(query) : ''
+  if (text.length === 0) throw new Error(`${subject} is required.`)
+  const wanted = text.toLowerCase()
+  const found = lookups.filter((lookup) => lookup.keys.some((key) => key.toLowerCase() === wanted))
+  if (found.length === 0) throw new Error(`No ${subject} has the id "${text}".`)
+  return found[0].entry
+}
+
 /**
  * 1) `query` 가 어느 항목의 key 와 (대소문자 무시하고) 정확히 같으면 그 항목,
  * 2) 아니면 title 에 `query` 가 들어 있는 항목이 하나뿐일 때 그 항목을 돌려준다.

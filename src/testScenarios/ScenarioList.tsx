@@ -4,7 +4,7 @@ import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDi
 import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../i18n/useI18n'
 import { useActionBinding } from '../projectAgent/bindings'
-import { resolveEntry } from '../projectAgent/specs/lookup'
+import { resolveEntry, scenarioLookups } from '../projectAgent/specs/lookup'
 import {
   TEST_RUN_EDIT_ADD_SCENARIO_ACTION,
   TEST_RUN_EDIT_DELETE_SCENARIO_ACTION,
@@ -246,11 +246,11 @@ export function ScenarioList({
   // agent 가 쓰는 길. 런 안에서만 연다 — 런 밖의 목록은 이 페이지의 것이 아니다.
   const listRef = useRef<HTMLDivElement>(null)
   const addButton = useRef<HTMLButtonElement>(null)
-  const scenarioLookups = items.map((item) => ({
-    entry: item,
-    keys: [String(item.testScenarioId)],
-    title: item.title.length > 0 ? item.title : s.untitled,
-  }))
+  const lookups = scenarioLookups(
+    items,
+    (item) => String(item.testScenarioId),
+    (item) => (item.title.length > 0 ? item.title : s.untitled),
+  )
   const rowOf = (id: number) => listRef.current?.querySelector<HTMLElement>(`[data-scenario-id="${id}"]`) ?? null
   const pickedId = useRef<number | null>(null)
   const scenarioBlockedReason = () => (runId === null ? NOT_IN_RUN : items.length === 0 ? s.empty : null)
@@ -258,7 +258,7 @@ export function ScenarioList({
     target: () => (pickedId.current === null ? listRef.current : rowOf(pickedId.current)),
     blocked: scenarioBlockedReason,
     run: async (args) => {
-      const item = resolveEntry('scenario', args.scenario, scenarioLookups)
+      const item = resolveEntry('scenario', args.scenario, lookups)
       pickedId.current = item.testScenarioId
       open(item.testScenarioId)
       return { id: item.testScenarioId, title: item.title }
@@ -277,7 +277,7 @@ export function ScenarioList({
     target: () => (pickedId.current === null ? listRef.current : rowOf(pickedId.current)),
     blocked: scenarioBlockedReason,
     run: async (args) => {
-      const item = resolveEntry('scenario', args.scenario, scenarioLookups)
+      const item = resolveEntry('scenario', args.scenario, lookups)
       pickedId.current = item.testScenarioId
       try {
         await deleteScenario(item)

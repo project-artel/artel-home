@@ -348,3 +348,18 @@ test('derivePage maps pathnames and query params to page ids', () => {
   assert.equal(derivePage(project, `${base}/usage-history`).page, null)
   assert.equal(derivePage(project, '/projects/other/qa').page, null)
 })
+
+test('derivePage matches a page alias and takes its params from the alias pattern', () => {
+  const project = 'p1'
+  const base = `/projects/${project}`
+  assert.deepEqual(derivePage(project, `${base}/test-scenarios/s7`), {
+    page: 'testRunEdit',
+    params: { testScenarioId: 's7' },
+  })
+  assert.deepEqual(derivePage(project, `${base}/test-scenarios/s7`, '?x=1'), {
+    page: 'testRunEdit',
+    params: { x: '1', testScenarioId: 's7' },
+  })
+  assert.equal(derivePage(project, `${base}/test-scenarios`).page, null)
+  assert.equal(derivePage(project, `${base}/test-scenarios/s7/extra`).page, null)
+})
