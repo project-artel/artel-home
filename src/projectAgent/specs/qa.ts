@@ -56,3 +56,30 @@ export const QA_FIELDS: FieldSpec[] = [
   QA_REASONING_VALUE_FIELD,
 ]
 export const QA_ACTIONS: ActionSpec[] = [QA_START_RUN_ACTION]
+
+/** LaunchPanel 의 `start` 가 끝난 모습. 호출한 쪽이 화면 말고 값으로도 결과를 알 수 있게 한다. */
+export type StartOutcome =
+  | { kind: 'started'; qaRunId: string }
+  | { kind: 'takeoverNeeded' }
+  | { kind: 'failed'; message: string }
+
+export type QaStartDependencies = {
+  /** LaunchPanel 의 `start`. 시작하지 않았으면 null. */
+  start: (force?: boolean) => Promise<StartOutcome | null>
+  blockedReason: () => string | null
+  blockedHint: string
+}
+
+/**
+ * `qa.startRun` 의 run. agent 가 무엇을 보내든 `start()` 를 기본값으로만 부른다. `force` 는 다른 QA
+ * 실행을 취소하고 넘겨받는 것이라 사용자가 화면의 대화상자에서만 정한다.
+ */
+export function createQaStartRunner(dependencies: QaStartDependencies): () => Promise<{ qaRunId: string }> {
+  return async () => {
+    const outcome = await dependencies.start()
+    if (outcome === null) throw new Error(dependencies.blockedReason() ?? dependencies.blockedHint)
+    if (outcome.kind === 'takeoverNeeded') throw new Error(tasksCopy().errors.qaRunActive)
+    if (outcome.kind === 'failed') throw new Error(outcome.message)
+    return { qaRunId: outcome.qaRunId }
+  }
+}

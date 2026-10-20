@@ -5,6 +5,7 @@ import { InfoHint } from '../design-system/primitives/InfoHint'
 import { buildOptionText, selectBuild } from '../projects/gameBuilds'
 import { useWorkspace } from '../projects/workspace/workspaceContext'
 import { useFieldBinding } from '../projectAgent/bindings'
+import { requireKnownId } from '../projectAgent/specs/fieldWriters'
 import { CONTENT_MAP_BUILD_FIELD } from '../projectAgent/specs/contentMap'
 import { ContentMapReport } from './ContentMapPage'
 
@@ -40,7 +41,8 @@ export function ContentMapSection() {
     target: () => buildSelect.current,
     read: () => selectedBuild?.id ?? null,
     options: () => builds.map((build) => ({ value: build.id, label: buildOptionText(build, editorLabel) })),
-    write: (value) => setSearchParams({ build: String(value) }),
+    write: (value) =>
+      setSearchParams({ build: requireKnownId(CONTENT_MAP_BUILD_FIELD.name, value, builds.map((build) => build.id)) }),
   })
 
   // 주소가 늘 고른 빌드를 말하게 한다. `replace` 라 기본 빌드가 채워지는 것이 뒤로 가기

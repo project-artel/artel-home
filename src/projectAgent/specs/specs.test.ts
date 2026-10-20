@@ -2,7 +2,9 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { PAGE_CATALOG, catalogEntry, wireCatalog } from '../catalog'
 import { CONTENT_MAP_ACTIONS, CONTENT_MAP_FIELDS } from './contentMap'
-import { QA_ACTIONS, QA_FIELDS } from './qa'
+import type { ActionBinding } from '../registry/types'
+import { requireBoolean, requireKnownId, requireReasoningValue } from './fieldWriters'
+import { QA_ACTIONS, QA_FIELDS, createQaStartRunner, type StartOutcome } from './qa'
 import { TEST_RUNS_ACTIONS } from './testRuns'
 
 const SPEC_PAGES = [
@@ -83,4 +85,52 @@ test('summaries are one readable line and testRuns.create names the run', () => 
     assert.ok(line.length > 0 && !line.includes('\n'), action.id)
   }
   assert.ok(TEST_RUNS_ACTIONS[0].summarize({ name: 'Smoke' }).includes('Smoke'))
+})
+
+test('qa.startRun calls start() with no arguments even when the agent sends force', async () => {
+  const startCalls: unknown[][] = []
+  const runner = createQaStartRunner({
+    start: async (...startArgs: [boolean?]) => {
+      startCalls.push(startArgs)
+      return { kind: 'started', qaRunId: '55' }
+    },
+    blockedReason: () => null,
+    blockedHint: 'blocked',
+  })
+  const binding: ActionBinding['run'] = runner
+  assert.deepEqual(await binding({ force: true }), { qaRunId: '55' })
+  assert.deepEqual(startCalls, [[]])
+})
+
+test('qa.startRun turns a takeover, a failure and a blocked form into errors', async () => {
+  const runnerFor = (outcome: StartOutcome | null) =>
+    createQaStartRunner({ start: async () => outcome, blockedReason: () => 'game not connected', blockedHint: 'blocked' })
+  await assert.rejects(runnerFor({ kind: 'takeoverNeeded' })(), /already running another QA run/)
+  await assert.rejects(runnerFor({ kind: 'failed', message: 'server said no' })(), /server said no/)
+  await assert.rejects(runnerFor(null)(), /game not connected/)
+})
+
+test('requireKnownId accepts a listed id, also as a number, and throws for anything else', () => {
+  assert.equal(requireKnownId('qa.testRunId', '3', ['3', '4']), '3')
+  assert.equal(requireKnownId('qa.testRunId', 4, ['3', '4']), '4')
+  assert.throws(() => requireKnownId('qa.testRunId', '9', ['3', '4']), /qa.testRunId has no option "9"/)
+  assert.throws(() => requireKnownId('contentMap.build', null, ['3']), /contentMap.build has no option null/)
+})
+
+test('requireBoolean throws for a non-boolean', () => {
+  assert.equal(requireBoolean('qa.reasoningEnabled', false), false)
+  assert.throws(() => requireBoolean('qa.reasoningEnabled', 'true'), /must be true or false/)
+})
+
+test('requireReasoningValue accepts only indices of the efforts or tokens inside the range', () => {
+  const effort = { kind: 'effort', effortCount: 3 } as const
+  assert.equal(requireReasoningValue(2, effort), 2)
+  assert.equal(requireReasoningValue('0', effort), 0)
+  assert.throws(() => requireReasoningValue(3, effort), /from 0 to 2/)
+  assert.throws(() => requireReasoningValue(1.5, effort), /from 0 to 2/)
+  assert.throws(() => requireReasoningValue('', effort), /from 0 to 2/)
+  const tokens = { kind: 'max_tokens', minTokens: 1024, maxTokens: 8192 } as const
+  assert.equal(requireReasoningValue(4096, tokens), 4096)
+  assert.throws(() => requireReasoningValue(100, tokens), /from 1024 to 8192/)
+  assert.throws(() => requireReasoningValue(1, null), /does not support reasoning/)
 })

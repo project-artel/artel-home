@@ -7,12 +7,15 @@ import type { GameInstance } from '../../projects/gameTypes'
 import { ProjectApiError } from '../../projects/projectApi'
 import { useActionBinding, useFieldBinding } from '../../projectAgent/bindings'
 import { tasksCopy } from '../../projectAgent/tasksCopy'
+import { requireBoolean, requireKnownId, requireReasoningValue } from '../../projectAgent/specs/fieldWriters'
 import {
+  createQaStartRunner,
   QA_GAME_INSTANCE_FIELD,
   QA_MODEL_FIELD,
   QA_REASONING_ENABLED_FIELD,
   QA_REASONING_VALUE_FIELD,
   QA_START_RUN_ACTION,
+  type StartOutcome,
 } from '../../projectAgent/specs/qa'
 import { sectionHref } from '../../projects/workspace/sections'
 import { versionMismatch } from '../../testRuns/runLibrary'
@@ -27,12 +30,6 @@ import { byAscendingEffort } from '../reasoningEfforts'
 import { TakeOverQaRunDialog } from '../TakeOverQaRunDialog'
 import { ArchSettings } from './ArchSettings'
 import { useDismiss } from './useDismiss'
-
-/** `start` 가 끝난 모습. 호출한 쪽이 화면 말고 값으로도 결과를 알 수 있게 한다. */
-type StartOutcome =
-  | { kind: 'started'; qaRunId: string }
-  | { kind: 'takeoverNeeded' }
-  | { kind: 'failed'; message: string }
 
 type Check = { tone: 'ok' | 'warn' | 'bad'; title: string; detail?: string; fix?: { label: string; to: string } }
 
@@ -215,9 +212,8 @@ export function LaunchPanel({
         value: one.id,
         label: `${one.name} (${one.connected ? t.projects.instances.connected : t.projects.instances.notConnected})`,
       })),
-    write: (value) => {
-      if (instances.some((one) => one.id === value)) onInstanceChange(String(value))
-    },
+    write: (value) =>
+      onInstanceChange(requireKnownId(QA_GAME_INSTANCE_FIELD.name, value, instances.map((one) => one.id))),
   })
   useFieldBinding(QA_MODEL_FIELD, {
     target: () => modelField.current,
@@ -227,23 +223,32 @@ export function LaunchPanel({
         value: qaModelOptionKey(one),
         label: one.keyRegistered ? one.label : `${one.label} (${l.keyMissing})`,
       })),
-    write: (value) => {
-      if (models.some((one) => qaModelOptionKey(one) === value)) onModelChange(String(value))
-    },
+    write: (value) => onModelChange(requireKnownId(QA_MODEL_FIELD.name, value, models.map(qaModelOptionKey))),
   })
   useFieldBinding(QA_REASONING_ENABLED_FIELD, {
     target: () => reasoningField.current,
     read: () => reasoningEnabled,
-    write: (value) => onReasoningEnabled(value === true),
+    write: (value) => {
+      const enabled = requireBoolean(QA_REASONING_ENABLED_FIELD.name, value)
+      if (enabled && reasoning === null) throw new Error(tasksCopy().errors.reasoningUnsupported)
+      onReasoningEnabled(enabled)
+    },
   })
   useFieldBinding(QA_REASONING_VALUE_FIELD, {
     target: () => reasoningField.current,
     read: () => reasoningValue,
     options: () => efforts.map((effort, index) => ({ value: index, label: effort })),
-    write: (value) => {
-      const next = Number(value)
-      if (Number.isFinite(next)) onReasoningValue(next)
-    },
+    write: (value) =>
+      onReasoningValue(
+        requireReasoningValue(
+          value,
+          reasoning === null
+            ? null
+            : reasoning.kind === 'effort'
+              ? { kind: 'effort', effortCount: efforts.length }
+              : { kind: 'max_tokens', minTokens: reasoning.minTokens, maxTokens: reasoning.maxTokens },
+        ),
+      ),
   })
 
   // 버튼이 막혀 있을 때 보이는 점검 항목 중 막힌 것들을 그대로 이유로 돌려준다.
@@ -258,13 +263,7 @@ export function LaunchPanel({
   useActionBinding(QA_START_RUN_ACTION, {
     target: () => runButton.current,
     blocked: startBlockedReason,
-    run: async () => {
-      const outcome = await start()
-      if (outcome === null) throw new Error(startBlockedReason() ?? l.blockedHint)
-      if (outcome.kind === 'takeoverNeeded') throw new Error(tasksCopy().errors.qaRunActive)
-      if (outcome.kind === 'failed') throw new Error(outcome.message)
-      return { qaRunId: outcome.qaRunId }
-    },
+    run: createQaStartRunner({ start, blockedReason: startBlockedReason, blockedHint: l.blockedHint }),
   })
 
   // ⌘↵ — 첫 렌더의 0 은 누른 것이 아니다.

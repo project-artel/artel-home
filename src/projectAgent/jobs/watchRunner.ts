@@ -2,6 +2,7 @@ import type { LastScan } from '../../contentMap/contentMapTypes'
 import type { QaRun } from '../../qa/qaTypes'
 import type { JobState, ToolContext } from '../chat/toolTypes'
 import type { TasksCopy } from '../tasksCopy'
+import { runIfLockAvailable, type LockManagerLike } from '../webLocks'
 import { jobHref, qaPollDelay, translateQaRun, translateScan, type JobTranslation } from './jobTranslation'
 import {
   removeWatchRecord,
@@ -44,6 +45,8 @@ export type WatchDependencies = {
   storage: WatchStorageLike
   copy: () => TasksCopy
   observers: Record<WatchKind, JobObserver>
+  /** 탭끼리 같은 job 을 한 번만 지켜보게 하는 `navigator.locks`. 없으면 null 이고 잠금 없이 지켜본다. */
+  lockManager: LockManagerLike | null
 }
 
 /** 지금 이 탭에서 지켜보는 job. 같은 job 을 두 번 지켜보지 않게 한다. */
@@ -51,6 +54,14 @@ const activeWatches = new Set<string>()
 
 function activeKey(conversationId: number, kind: WatchKind, id: string): string {
   return `${conversationId}:${watchKey(kind, id)}`
+}
+
+/**
+ * job 하나를 지켜보는 탭이 지켜보는 동안 잡는 잠금. 대화를 연 탭마다 resumeWatches 가 불리므로, 잠금이
+ * 없으면 탭 수만큼 같은 job 을 읽고 job_finished 를 여러 번 보낸다.
+ */
+export function watchLockName(projectId: string, conversationId: number, kind: WatchKind, id: string): string {
+  return `artel.projectAgent.watch.${projectId}.${conversationId}.${watchKey(kind, id)}`
 }
 
 export function isWatching(conversationId: number, kind: WatchKind, id: string): boolean {
@@ -120,13 +131,20 @@ export async function runWatch(record: WatchRecord, context: WatchContext, depen
   }
 }
 
-/** 기록을 남기고 지켜보기를 백그라운드로 시작한다. 이미 지켜보는 job 이면 아무것도 하지 않는다. */
+/**
+ * 기록을 남기고 지켜보기를 백그라운드로 시작한다. 이 탭이 이미 지켜보는 job 이면 아무것도 하지 않고
+ * false 를 돌려준다. 다른 탭이 그 job 의 잠금을 잡고 있으면 지켜보지 않는다. 그 탭이 진행 카드와 event
+ * 를 맡는다. 잠금은 지켜보기가 끝나거나 signal 이 abort 될 때까지 잡는다.
+ */
 export function startWatch(record: WatchRecord, context: WatchContext, dependencies: WatchDependencies): boolean {
   const key = activeKey(context.conversationId, record.kind, record.id)
   if (activeWatches.has(key)) return false
   activeWatches.add(key)
   saveWatchRecord(dependencies.storage, context.projectId, context.conversationId, record, dependencies.clock.now())
-  void runWatch(record, context, dependencies).finally(() => activeWatches.delete(key))
+  const lockName = watchLockName(context.projectId, context.conversationId, record.kind, record.id)
+  void runIfLockAvailable(dependencies.lockManager, lockName, () => runWatch(record, context, dependencies))
+    .catch(() => undefined)
+    .finally(() => activeWatches.delete(key))
   return true
 }
 

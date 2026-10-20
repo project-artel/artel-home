@@ -13,7 +13,8 @@ export const watchJob: ToolHandler = async (args, ctx) => {
   const { kind, id, label } = args
   if (!isWatchKind(kind)) return { status: 'error', error: copy.errors.unknownJobKind }
   const jobId = typeof id === 'string' ? id.trim() : typeof id === 'number' ? String(id) : ''
-  if (jobId.length === 0 || (kind === 'qa_run' && !/^\d+$/.test(jobId))) {
+  // qa_run 과 content_map_scan 의 id 는 모두 숫자 id(QA 실행 id, 빌드 id)다.
+  if (!/^\d+$/.test(jobId)) {
     return { status: 'error', error: copy.errors.invalidJobId }
   }
 

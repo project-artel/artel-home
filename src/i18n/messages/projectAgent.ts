@@ -98,6 +98,10 @@ export const projectAgentEn = {
       authoringFailed: 'The scenario authoring agent failed.',
       authoringNoOptions: 'The scenario authoring agent asked a question that has no options.',
       sendFailed: 'The instruction could not be sent to the scenario authoring agent.',
+      unknownFieldValue: (field: string, value: string) => `${field} has no option ${value}. Read the page for the current options.`,
+      booleanRequired: (field: string) => `${field} must be true or false.`,
+      reasoningUnsupported: 'The selected model does not support reasoning.',
+      reasoningValueOutOfRange: (min: number, max: number) => `qa.reasoningValue must be an integer from ${min} to ${max}.`,
     },
     jobs: {
       scanLabel: (buildId: string) => `Screen map scan of build ${buildId}`,
@@ -250,6 +254,10 @@ export const projectAgentKo: Localized<typeof projectAgentEn> = {
       authoringFailed: '시나리오 작성 agent 가 실패했습니다.',
       authoringNoOptions: '시나리오 작성 agent 가 선택지 없는 질문을 보냈습니다.',
       sendFailed: '시나리오 작성 agent 에게 지시를 보내지 못했습니다.',
+      unknownFieldValue: (field: string, value: string) => `${field} 에 ${value} 라는 선택지가 없습니다. 페이지를 다시 읽어 지금의 선택지를 확인하세요.`,
+      booleanRequired: (field: string) => `${field} 는 true 나 false 여야 합니다.`,
+      reasoningUnsupported: '고른 model 은 reasoning 을 지원하지 않습니다.',
+      reasoningValueOutOfRange: (min: number, max: number) => `qa.reasoningValue 는 ${min} 부터 ${max} 사이의 정수여야 합니다.`,
     },
     jobs: {
       scanLabel: (buildId: string) => `빌드 ${buildId} 화면 지도 스캔`,

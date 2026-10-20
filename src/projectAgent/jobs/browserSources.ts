@@ -6,6 +6,7 @@ import {
 import type { LastScan } from '../../contentMap/contentMapTypes'
 import { getQaRun } from '../../qa/qaApi'
 import { tasksCopy } from '../tasksCopy'
+import { browserLockManager } from '../webLocks'
 import type { Clock, WatchDependencies } from './watchRunner'
 import { createQaRunObserver, createScanObserver } from './watchRunner'
 
@@ -72,5 +73,6 @@ export function browserWatchDependencies(projectId: string): WatchDependencies {
       qa_run: createQaRunObserver(getQaRun, browserClock, tasksCopy),
       content_map_scan: createScanObserver(subscribeToScan, projectId, tasksCopy),
     },
+    lockManager: browserLockManager(),
   }
 }

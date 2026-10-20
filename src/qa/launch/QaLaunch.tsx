@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { EdgeScrollbar } from '../../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../../i18n/useI18n'
 import { useFieldBinding } from '../../projectAgent/bindings'
+import { requireKnownId } from '../../projectAgent/specs/fieldWriters'
 import { QA_TEST_RUN_FIELD } from '../../projectAgent/specs/qa'
 import type { GameInstance } from '../../projects/gameTypes'
 import { sectionHref } from '../../projects/workspace/sections'
@@ -207,9 +208,7 @@ export function QaLaunch() {
     target: () => pickerAnchor.current,
     read: () => runId,
     options: () => runs.map((one) => ({ value: one.id, label: one.name })),
-    write: (value) => {
-      if (runs.some((one) => one.id === value)) pickRun(String(value))
-    },
+    write: (value) => pickRun(requireKnownId(QA_TEST_RUN_FIELD.name, value, runs.map((one) => one.id))),
   })
 
   const runPath = run === null
