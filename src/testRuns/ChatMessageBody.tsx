@@ -300,6 +300,7 @@ export function InlineRun({ parts }: { parts: Inline[] }) {
             : <a className="chat-md-link" href={part.href} key={index} rel="noreferrer" target="_blank">{part.text}</a>
         }
         if (part.kind === 'ref') return <ChatRefChip key={index} refKind={part.refKind} id={part.id} />
+        if (part.kind === 'label') return <span className={`chat-label chat-label--${part.tone}`} key={index}>{part.text}</span>
         return <Fragment key={index}>{part.text}</Fragment>
       })}
     </>

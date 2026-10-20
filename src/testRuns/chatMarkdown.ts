@@ -1,3 +1,4 @@
+import type { ChatRefKind } from './runChatApi'
 /**
  * The small slice of Markdown the authoring agent actually writes.
  *
@@ -33,7 +34,9 @@ export type Inline =
    * `text` is empty — the renderer draws the name from the message's refs, and a marker
    * with no matching ref draws nothing.
    */
-  | { kind: 'ref'; refKind: 'tc' | 'ts'; id: number; text: '' }
+  | { kind: 'ref'; refKind: ChatRefKind; id: number; text: '' }
+  /** "사전조건:" · "기대 결과:" 머리말(ARTEL-1097). 화면이 색으로 가른다. */
+  | { kind: 'label'; tone: 'precondition' | 'expected'; text: string }
 
 export type ListItem = {
   content: Inline[]
@@ -147,7 +150,8 @@ export function parseChatMarkdown(body: string, options: ChatMarkdownOptions = {
       index += 2
       while (index < lines.length && isTableRow(lines[index])) {
         const cells = tableCells(lines[index])
-        rows.push(header.map((_, column) => parseInline(cells[column] ?? '', options)))
+        // 표 칸에서는 머리말 라벨을 떼어 낸다 — 열 이름이 이미 "사전조건" · "기대 결과" 다(ARTEL-1097).
+        rows.push(header.map((_, column) => parseInline(cells[column] ?? '', options).filter((part) => part.kind !== 'label')))
         index += 1
       }
       index -= 1
@@ -192,11 +196,17 @@ export function parseInline(line: string, options: ChatMarkdownOptions = {}): In
   // Markers first: they cannot contain markup, and splitting on them keeps the bold
   // and code rules below exactly as they were.
   const parts: Inline[] = []
+  // 케이스를 말하는 줄의 머리말은 색으로 가른다 — 사전조건과 기대 결과가 한눈에 갈려야 한다(ARTEL-1097).
+  const head = LABEL.exec(line)
+  if (head !== null) {
+    parts.push({ kind: 'label', tone: /기대|expected/i.test(head[1]) ? 'expected' : 'precondition', text: head[1] })
+    line = line.slice(head[0].length)
+  }
   let at = 0
   for (const match of line.matchAll(MARKER)) {
     const start = match.index ?? 0
     if (start > at) parts.push(...parseRuns(line.slice(at, start), options))
-    parts.push({ kind: 'ref', refKind: match[1] as 'tc' | 'ts', id: Number(match[2]), text: '' })
+    parts.push({ kind: 'ref', refKind: match[1] as ChatRefKind, id: Number(match[2]), text: '' })
     at = start + match[0].length
   }
   if (at < line.length) parts.push(...parseRuns(line.slice(at), options))
@@ -207,7 +217,10 @@ export function parseInline(line: string, options: ChatMarkdownOptions = {}): In
  * `[[tc:5]]` / `[[ts:7]]`. A malformed one (`[[tc:abc]]`) does not match and stays text.
  * A draft not yet approved is a negative number (`[[ts:-1]]`, ARTEL-1075); the chip opens that draft.
  */
-const MARKER = /\[\[(tc|ts):(-?\d+)\]\]/g
+const MARKER = /\[\[(tc|ts|tr|qa|issue|build):(-?\d+)\]\]/g
+
+/** 줄 머리의 "사전조건:" · "기대 결과:"(영문 포함). */
+const LABEL = /^\s*(?:[-*]\s*)?(사전\s?조건|기대\s?결과|Precondition|Expected(?:\s+result)?)\s*[:：]\s*/i
 
 /** `[text](target)` — target has no spaces or parentheses. */
 const LINK = /^\[([^\]\n]+)\]\(([^()\s]+)\)/
