@@ -6,7 +6,7 @@ import { MACROS_ACTIONS, MACROS_FIELDS } from './macros'
 const EXPECTED_ACTIONS = [
   ['macros.openSource', 'auto'],
 ]
-const EXPECTED_FIELDS: string[] = ['macros.build']
+const EXPECTED_FIELDS: string[] = ['macros.build', 'macros.listed']
 
 test('macros catalog entry points at the spec objects the page binds', () => {
   const entry = catalogEntry('macros')

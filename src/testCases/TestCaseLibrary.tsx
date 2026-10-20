@@ -6,9 +6,12 @@ import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDi
 import { useI18n } from '../i18n/useI18n'
 import { useActionBinding, useFieldBinding } from '../projectAgent/bindings'
 import { requireKnownId } from '../projectAgent/specs/fieldWriters'
+import { listedOptions, readOnlyListWrite } from '../projectAgent/specs/listedOptions'
 import {
   TEST_CASES_DELETE_ACTION,
+  TEST_CASES_DELETE_LISTED_ACTION,
   TEST_CASES_GENERATE_ACTION,
+  TEST_CASES_LISTED_FIELD,
   TEST_CASES_OPEN_ACTION,
   TEST_CASES_OPEN_GENERATE_ACTION,
   TEST_CASES_OPEN_NEW_ACTION,
@@ -16,6 +19,7 @@ import {
   TEST_CASES_SEARCH_FIELD,
   TEST_CASES_STATUS_FIELD,
   TEST_CASES_VERSION_FIELD,
+  testCaseVersionOptions,
 } from '../projectAgent/specs/testCases'
 import { formatDate } from '../projects/formatters'
 import type { GameBuild } from '../projects/gameTypes'
@@ -40,7 +44,7 @@ import { MoveCasesDialog } from './MoveCasesDialog'
 import { Picker } from './Picker'
 import { SearchField } from './SearchField'
 import { hasPointerMoved, type PointerPosition } from './pointerMovement'
-import { planDeleteCases } from './deleteCasesPlan'
+import { planDeleteCases, planDeleteListed } from './deleteCasesPlan'
 import { bulkDeleteTestCases, deleteTestCase } from './testCaseApi'
 import {
   ALL_FOLDERS,
@@ -626,14 +630,23 @@ export function TestCaseLibrary({
       setFilters({ ...filters, query: value })
     },
   })
+  const versionFieldIds = versionsMode ? [...versionList.versions.map((version) => version.gameBuildId), UNVERSIONED] : []
   useFieldBinding(TEST_CASES_VERSION_FIELD, {
     target: () => panelRef.current,
     read: () => selectedVersionId,
-    options: () => (versionsMode ? versionList.versions.map((version) => ({ value: version.gameBuildId, label: versionName(version) })) : []),
+    options: () => (versionsMode ? testCaseVersionOptions(versionList.versions, m.versions.unversioned) : []),
     write: (value) => {
-      const id = requireKnownId(TEST_CASES_VERSION_FIELD.name, value, versionsMode ? versionList.versions.map((version) => version.gameBuildId) : [])
-      setVersionParams(id, null)
+      const id = requireKnownId(TEST_CASES_VERSION_FIELD.name, value, versionFieldIds)
+      // 왼쪽 버전 목록의 줄을 누르는 것과 같다. 비교와 폴더 필터는 풀린다.
+      setOnlyRegressions(false)
+      setLibraryParams({ version: id, compare: null, folder: null })
     },
+  })
+  useFieldBinding(TEST_CASES_LISTED_FIELD, {
+    target: () => panelRef.current,
+    read: () => shown.length,
+    options: () => listedOptions(shown, (testCase) => ({ value: testCase.id, label: `${testCase.scene} · ${testCase.step} [${testCase.verificationStatus}]` })),
+    write: readOnlyListWrite(TEST_CASES_LISTED_FIELD.name, 'use testCases.open or testCases.delete.'),
   })
   useFieldBinding(TEST_CASES_STATUS_FIELD, {
     target: () => statusRow.current,
@@ -687,6 +700,16 @@ export function TestCaseLibrary({
     blocked: () => loadingReason,
     run: async (args) => {
       const ids = planDeleteCases(args.testCaseIds, new Set(library.cases.map((one) => one.id)))
+      await deleteCases(ids)
+      return { deleted: ids.length }
+    },
+  })
+
+  useActionBinding(TEST_CASES_DELETE_LISTED_ACTION, {
+    target: () => panelRef.current,
+    blocked: () => loadingReason,
+    run: async (args) => {
+      const ids = planDeleteListed(visibleIds, args.expectedCount)
       await deleteCases(ids)
       return { deleted: ids.length }
     },

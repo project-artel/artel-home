@@ -1,6 +1,16 @@
+import { listedFieldDescription } from './listedOptions'
 import type { ActionSpec, FieldSpec } from '../registry/types'
 
 /* 지식 그래프 페이지의 action 정의. 검색칸은 이 페이지에 없다. binding 은 `KnowledgeGraphPage.tsx` 에 있다. */
+
+export const KNOWLEDGE_LISTED_FIELD: FieldSpec = {
+  name: 'knowledge.listed',
+  page: 'knowledge',
+  description: listedFieldDescription(
+    'the knowledge items (nodes) of the graph (label is the item summary and its tag)',
+    'Use the value as node of knowledge.openNode.',
+  ),
+}
 
 export const KNOWLEDGE_OPEN_NODE_ACTION: ActionSpec = {
   id: 'knowledge.openNode',
@@ -13,7 +23,7 @@ export const KNOWLEDGE_OPEN_NODE_ACTION: ActionSpec = {
     properties: {
       node: {
         type: 'string',
-        description: 'The item id, or a piece of its summary text when only one item contains it.',
+        description: 'The item id from the options of knowledge.listed, or a piece of its summary text when only one item contains it.',
       },
     },
     required: ['node'],
@@ -21,5 +31,5 @@ export const KNOWLEDGE_OPEN_NODE_ACTION: ActionSpec = {
   summarize: (args) => `Open knowledge item ${typeof args.node === 'string' ? args.node : ''}`,
 }
 
-export const KNOWLEDGE_FIELDS: FieldSpec[] = []
+export const KNOWLEDGE_FIELDS: FieldSpec[] = [KNOWLEDGE_LISTED_FIELD]
 export const KNOWLEDGE_ACTIONS: ActionSpec[] = [KNOWLEDGE_OPEN_NODE_ACTION]

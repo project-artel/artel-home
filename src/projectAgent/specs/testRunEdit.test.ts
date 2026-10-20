@@ -10,7 +10,7 @@ const EXPECTED_ACTIONS = [
   ['testRunEdit.approveScenario', 'approve'],
   ['testRunEdit.renameRun', 'auto'],
 ]
-const EXPECTED_FIELDS: string[] = []
+const EXPECTED_FIELDS: string[] = ['testRunEdit.scenarios']
 
 test('testRunEdit catalog entry points at the spec objects the page binds', () => {
   const entry = catalogEntry('testRunEdit')

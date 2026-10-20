@@ -1,4 +1,6 @@
-import type { ActionSpec, FieldSpec } from '../registry/types'
+import { UNVERSIONED, versionName, type TestCaseVersionSummary } from '../../testCases/testCaseVersions'
+import type { ActionSpec, FieldOption, FieldSpec } from '../registry/types'
+import { listedFieldDescription } from './listedOptions'
 
 /* 테스트 케이스 라이브러리 페이지의 field 와 action 정의. 문구는 모델이 읽는다. */
 
@@ -12,7 +14,16 @@ export const TEST_CASES_VERSION_FIELD: FieldSpec = {
   name: 'testCases.version',
   page: 'testCases',
   description:
-    'The game build version whose test cases the library shows. Value is a game build id; options lists each version with its name. Only offered when the project has versions.',
+    'The game build version whose test cases the library shows. Value is a game build id, or "unversioned" for the "no version" bucket the screen lists below the versions (test cases that belong to no version); options lists each version with its name plus that bucket. Only offered when the project has versions.',
+}
+
+export const TEST_CASES_LISTED_FIELD: FieldSpec = {
+  name: 'testCases.listed',
+  page: 'testCases',
+  description: listedFieldDescription(
+    'the test cases currently shown, after the version, folder, search and status filters (label is the title)',
+    'Use these ids with testCases.open and testCases.delete. To delete all of them, use testCases.deleteListed.',
+  ),
 }
 
 export const TEST_CASES_STATUS_FIELD: FieldSpec = {
@@ -82,7 +93,7 @@ export const TEST_CASES_OPEN_ACTION: ActionSpec = {
   args: {
     type: 'object',
     properties: {
-      testCaseId: { type: 'string', description: 'Id of the test case to open.' },
+      testCaseId: { type: 'string', description: 'Id of the test case to open, from the options of testCases.listed.' },
     },
     required: ['testCaseId'],
   },
@@ -98,7 +109,7 @@ export const TEST_CASES_DELETE_ACTION: ActionSpec = {
   args: {
     type: 'object',
     properties: {
-      testCaseIds: { type: 'array', items: { type: 'string' }, description: 'Ids of the test cases to delete.' },
+      testCaseIds: { type: 'array', items: { type: 'string' }, description: 'Ids of the test cases to delete, from the options of testCases.listed.' },
     },
     required: ['testCaseIds'],
   },
@@ -108,7 +119,44 @@ export const TEST_CASES_DELETE_ACTION: ActionSpec = {
   },
 }
 
-export const TEST_CASES_FIELDS: FieldSpec[] = [TEST_CASES_SEARCH_FIELD, TEST_CASES_VERSION_FIELD, TEST_CASES_STATUS_FIELD]
+export const TEST_CASES_DELETE_LISTED_ACTION: ActionSpec = {
+  id: 'testCases.deleteListed',
+  page: 'testCases',
+  risk: 'approve',
+  description:
+    'Permanently delete exactly the test cases currently listed under the active filters (the rows of testCases.listed), at most 500. Use it when the user asks to delete everything shown or everything in a version bucket, for example "no version": set testCases.version (and clear testCases.search and testCases.status) first, read the total in the value of testCases.listed, and pass it as expectedCount. The call fails without deleting when expectedCount differs from what is listed now. Otherwise delete chosen cases with testCases.delete and ids from testCases.listed. The cases leave every version and folder they belong to and cannot be restored. Returns {deleted: number}.',
+  args: {
+    type: 'object',
+    properties: {
+      expectedCount: { type: 'integer', description: 'How many test cases you expect to be listed now, from the value of testCases.listed.' },
+      filter: { type: 'string', description: 'The version / filter the list is under, in words for the approval card, for example "no version" or "1.2.0".' },
+    },
+    required: ['expectedCount'],
+  },
+  summarize: (args) => {
+    const count = typeof args.expectedCount === 'number' ? args.expectedCount : 0
+    const filter = typeof args.filter === 'string' && args.filter.trim().length > 0 ? ` in '${args.filter.trim()}'` : ' in the current list'
+    return `Delete ${count} test case${count === 1 ? '' : 's'}${filter}`
+  },
+}
+
+/** version field 의 선택지. 버전 목록 밑에 화면이 따로 보여 주는 "버전 없음" 칸을 마지막에 붙인다. */
+export function testCaseVersionOptions(
+  versions: readonly Pick<TestCaseVersionSummary, 'gameBuildId' | 'label' | 'version'>[],
+  unversionedLabel: string,
+): FieldOption[] {
+  return [
+    ...versions.map((version) => ({ value: version.gameBuildId, label: versionName(version) })),
+    { value: UNVERSIONED, label: unversionedLabel },
+  ]
+}
+
+export const TEST_CASES_FIELDS: FieldSpec[] = [
+  TEST_CASES_SEARCH_FIELD,
+  TEST_CASES_VERSION_FIELD,
+  TEST_CASES_STATUS_FIELD,
+  TEST_CASES_LISTED_FIELD,
+]
 export const TEST_CASES_ACTIONS: ActionSpec[] = [
   TEST_CASES_OPEN_GENERATE_ACTION,
   TEST_CASES_GENERATE_ACTION,
@@ -116,4 +164,5 @@ export const TEST_CASES_ACTIONS: ActionSpec[] = [
   TEST_CASES_OPEN_NEW_ACTION,
   TEST_CASES_OPEN_ACTION,
   TEST_CASES_DELETE_ACTION,
+  TEST_CASES_DELETE_LISTED_ACTION,
 ]

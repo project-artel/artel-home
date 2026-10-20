@@ -6,7 +6,7 @@ import { PERFORMANCE_ACTIONS, PERFORMANCE_FIELDS } from './performance'
 const EXPECTED_ACTIONS = [
   ['performance.openRunReport', 'auto'],
 ]
-const EXPECTED_FIELDS: string[] = ['performance.build']
+const EXPECTED_FIELDS: string[] = ['performance.build', 'performance.listed']
 
 test('performance catalog entry points at the spec objects the page binds', () => {
   const entry = catalogEntry('performance')

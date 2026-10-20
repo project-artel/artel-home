@@ -1,3 +1,4 @@
+import { listedFieldDescription } from './listedOptions'
 import type { ActionSpec, FieldSpec } from '../registry/types'
 
 /*
@@ -8,8 +9,17 @@ import type { ActionSpec, FieldSpec } from '../registry/types'
 
 const SCENARIO_ARGUMENT = {
   type: 'string',
-  description: 'Scenario id, or a piece of its title when only one scenario of the run contains it.',
+  description: 'Scenario id from the options of testRunEdit.scenarios, or a piece of its title when only one scenario of the run contains it.',
 } as const
+
+export const TEST_RUN_EDIT_SCENARIOS_FIELD: FieldSpec = {
+  name: 'testRunEdit.scenarios',
+  page: 'testRunEdit',
+  description: listedFieldDescription(
+    'the scenarios of this test run in the list on the left (label is the scenario title)',
+    'Use the value as scenario of testRunEdit.selectScenario and testRunEdit.deleteScenario.',
+  ),
+}
 
 export const TEST_RUN_EDIT_SELECT_SCENARIO_ACTION: ActionSpec = {
   id: 'testRunEdit.selectScenario',
@@ -64,7 +74,7 @@ export const TEST_RUN_EDIT_RENAME_ACTION: ActionSpec = {
   summarize: (args) => `Rename the test run to ${typeof args.name === 'string' ? args.name : ''}`,
 }
 
-export const TEST_RUN_EDIT_FIELDS: FieldSpec[] = []
+export const TEST_RUN_EDIT_FIELDS: FieldSpec[] = [TEST_RUN_EDIT_SCENARIOS_FIELD]
 export const TEST_RUN_EDIT_ACTIONS: ActionSpec[] = [
   TEST_RUN_EDIT_SELECT_SCENARIO_ACTION,
   TEST_RUN_EDIT_ADD_SCENARIO_ACTION,

@@ -1,11 +1,13 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
-import { useActionBinding } from '../projectAgent/bindings'
+import { useActionBinding, useFieldBinding } from '../projectAgent/bindings'
 import { resolveEntry, scenarioLookups } from '../projectAgent/specs/lookup'
+import { listedOptions, readOnlyListWrite } from '../projectAgent/specs/listedOptions'
 import {
   TEST_RUN_OPEN_EDITOR_ACTION,
   TEST_RUN_OPEN_SCENARIO_ACTION,
+  TEST_RUN_SCENARIOS_FIELD,
   TEST_RUN_SELECT_SCENARIO_ACTION,
   TEST_RUN_START_QA_ACTION,
 } from '../projectAgent/specs/testRun'
@@ -165,6 +167,12 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
   const scenarioElement = (scenarioId: string) =>
     mapRef.current?.querySelector<HTMLElement>(`[data-scenario-id="${CSS.escape(scenarioId)}"]`) ?? null
   const pickedScenario = useRef<string | null>(null)
+  useFieldBinding(TEST_RUN_SCENARIOS_FIELD, {
+    target: () => mapRef.current,
+    read: () => nodes.length,
+    options: () => listedOptions(nodes, (node) => ({ value: node.id, label: node.title })),
+    write: readOnlyListWrite(TEST_RUN_SCENARIOS_FIELD.name, 'use testRun.selectScenario or testRun.openScenario.'),
+  })
   useActionBinding(TEST_RUN_OPEN_EDITOR_ACTION, {
     target: () => editButton.current,
     blocked: mapBlockedReason,

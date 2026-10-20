@@ -1,6 +1,16 @@
+import { listedFieldDescription } from './listedOptions'
 import type { ActionSpec, FieldSpec } from '../registry/types'
 
 /* 기획 문서 페이지의 action 정의. 문구는 모델이 읽는다. */
+
+export const DOCUMENTS_LISTED_FIELD: FieldSpec = {
+  name: 'documents.listed',
+  page: 'documents',
+  description: listedFieldDescription(
+    'the uploaded planning documents, newest version first (label is version, file name and extraction status)',
+    'Use these ids as documentId of documents.delete.',
+  ),
+}
 
 export const DOCUMENTS_OPEN_UPLOAD_ACTION: ActionSpec = {
   id: 'documents.openUpload',
@@ -31,7 +41,7 @@ export const DOCUMENTS_DELETE_ACTION: ActionSpec = {
   args: {
     type: 'object',
     properties: {
-      documentId: { type: 'string', description: 'Id of the document to delete, as listed on the page.' },
+      documentId: { type: 'string', description: 'Id of the document to delete, from the options of documents.listed.' },
     },
     required: ['documentId'],
   },
@@ -43,4 +53,4 @@ export const DOCUMENTS_ACTIONS: ActionSpec[] = [
   DOCUMENTS_RETRY_UPLOAD_ACTION,
   DOCUMENTS_DELETE_ACTION,
 ]
-export const DOCUMENTS_FIELDS: FieldSpec[] = []
+export const DOCUMENTS_FIELDS: FieldSpec[] = [DOCUMENTS_LISTED_FIELD]

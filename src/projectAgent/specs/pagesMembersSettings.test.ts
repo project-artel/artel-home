@@ -29,7 +29,7 @@ test('action ids and risks of members, settings, setup and usage', () => {
 })
 
 test('field names', () => {
-  assert.deepEqual(MEMBERS_FIELDS.map((field) => field.name), ['members.inviteTarget', 'members.inviteRole'])
+  assert.deepEqual(MEMBERS_FIELDS.map((field) => field.name), ['members.inviteTarget', 'members.inviteRole', 'members.listed', 'members.invitations'])
   assert.deepEqual(SETTINGS_FIELDS.map((field) => field.name), ['settings.name', 'settings.genre', 'settings.description'])
 })
 

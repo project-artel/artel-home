@@ -5,7 +5,7 @@
 import type { ActionSpec, FieldSpec, JsonSchema, PageId } from './registry/types'
 import { CONTENT_MAP_ACTIONS, CONTENT_MAP_FIELDS } from './specs/contentMap'
 import { QA_ACTIONS, QA_FIELDS } from './specs/qa'
-import { TEST_RUNS_ACTIONS } from './specs/testRuns'
+import { TEST_RUNS_ACTIONS, TEST_RUNS_FIELDS } from './specs/testRuns'
 import { DOCUMENTS_ACTIONS, DOCUMENTS_FIELDS } from './specs/documents'
 import { TEST_CASES_ACTIONS, TEST_CASES_FIELDS } from './specs/testCases'
 import { ISSUES_ACTIONS, ISSUES_FIELDS } from './specs/issues'
@@ -64,7 +64,7 @@ export const PAGE_CATALOG: PageCatalogEntry[] = [
   { id: 'home', title: 'Agent home', path: '', params: [], description: 'The index route. No page is open beside the chat.', fields: [], actions: [] },
   { id: 'documents', title: 'Planning documents', path: 'documents', params: [], description: 'Uploaded planning documents of the project.', fields: DOCUMENTS_FIELDS, actions: DOCUMENTS_ACTIONS },
   { id: 'testCases', title: 'Case library', path: 'test-cases', params: [], description: 'Test cases (TC) grouped by game version.', fields: TEST_CASES_FIELDS, actions: TEST_CASES_ACTIONS },
-  { id: 'testRuns', title: 'Test runs', path: 'test-runs', params: [], description: 'Test runs: a named set of scenarios to run as QA. List of runs with a button to create a new one.', fields: [], actions: TEST_RUNS_ACTIONS },
+  { id: 'testRuns', title: 'Test runs', path: 'test-runs', params: [], description: 'Test runs: a named set of scenarios to run as QA. List of runs grouped by game version (one version at a time) with a button to create a new one.', fields: TEST_RUNS_FIELDS, actions: TEST_RUNS_ACTIONS },
   { id: 'qa', title: 'Run QA', path: 'qa', params: [], description: 'Start a QA run of a test run on a connected game. Set the form fields, then call qa.startRun.', fields: QA_FIELDS, actions: QA_ACTIONS },
   { id: 'qaHistory', title: 'QA history', path: 'qa-history', params: [], description: 'Past QA runs and their results.', fields: QA_HISTORY_FIELDS, actions: QA_HISTORY_ACTIONS },
   { id: 'contentMap', title: 'Screen map', path: 'content-map', params: ['build'], description: 'The content map of a game build: scenes and screens found by an evidence scan. Scan actions act on the selected build.', fields: CONTENT_MAP_FIELDS, actions: CONTENT_MAP_ACTIONS },

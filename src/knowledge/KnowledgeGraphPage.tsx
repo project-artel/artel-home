@@ -1,9 +1,10 @@
 import { useMemo, useRef, useState } from 'react'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
-import { useActionBinding } from '../projectAgent/bindings'
+import { useActionBinding, useFieldBinding } from '../projectAgent/bindings'
 import { resolveEntry } from '../projectAgent/specs/lookup'
-import { KNOWLEDGE_OPEN_NODE_ACTION } from '../projectAgent/specs/knowledge'
+import { listedOptions, readOnlyListWrite } from '../projectAgent/specs/listedOptions'
+import { KNOWLEDGE_LISTED_FIELD, KNOWLEDGE_OPEN_NODE_ACTION } from '../projectAgent/specs/knowledge'
 import { useWorkspace } from '../projects/workspace/workspaceContext'
 import { KnowledgeGraphCanvas, type Selection } from './KnowledgeGraphCanvas'
 import { KnowledgeInspector } from './KnowledgeInspector'
@@ -137,6 +138,12 @@ function KnowledgeGraphView({
   // agent 가 항목을 고르는 길. 그래프의 node 와 오른쪽 목록의 줄이 부르는 것과 같은 `setSelection`
   // 을 부른다.
   const canvasFrame = useRef<HTMLDivElement>(null)
+  useFieldBinding(KNOWLEDGE_LISTED_FIELD, {
+    target: () => canvasFrame.current,
+    read: () => graph.nodes.length,
+    options: () => listedOptions(graph.nodes, (node) => ({ value: node.id, label: `${itemTitle(t, node)} [${node.tag}]` })),
+    write: readOnlyListWrite(KNOWLEDGE_LISTED_FIELD.name, 'use knowledge.openNode.'),
+  })
   useActionBinding(KNOWLEDGE_OPEN_NODE_ACTION, {
     target: () => canvasFrame.current,
     blocked: () => (graph.nodes.length === 0 ? t.knowledge.empty.noItemsTitle : null),

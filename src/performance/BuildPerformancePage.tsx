@@ -2,8 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
-import { useActionBinding } from '../projectAgent/bindings'
-import { PERFORMANCE_OPEN_RUN_REPORT_ACTION } from '../projectAgent/specs/performance'
+import { useActionBinding, useFieldBinding } from '../projectAgent/bindings'
+import { listedOptions, readOnlyListWrite } from '../projectAgent/specs/listedOptions'
+import { PERFORMANCE_LISTED_FIELD, PERFORMANCE_OPEN_RUN_REPORT_ACTION } from '../projectAgent/specs/performance'
 import { resolveExactEntry, runLookups } from '../projectAgent/specs/lookup'
 import { sortByStartedAt, splitTrustedSegments } from './chartModel'
 import { getBuildPerformance } from './performanceApi'
@@ -75,6 +76,16 @@ export function BuildPerformanceReport({
   // agent 가 run 의 상세 보고서를 여는 길. 표의 `detailLink` 와 같은 주소로 이동한다.
   const navigate = useNavigate()
   const reportRef = useRef<HTMLElement>(null)
+  useFieldBinding(PERFORMANCE_LISTED_FIELD, {
+    target: () => reportRef.current,
+    read: () => runs.length,
+    options: () =>
+      listedOptions(runs, (run) => ({
+        value: String(run.runId),
+        label: `Run ${run.runId} · ${run.startedAt} · ${run.hitchesPerMinute} hitches/min`,
+      })),
+    write: readOnlyListWrite(PERFORMANCE_LISTED_FIELD.name, 'use performance.openRunReport.'),
+  })
   useActionBinding(PERFORMANCE_OPEN_RUN_REPORT_ACTION, {
     target: () => reportRef.current?.querySelector<HTMLElement>('.performance-table a') ?? reportRef.current,
     blocked: () => {

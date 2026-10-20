@@ -1,3 +1,4 @@
+import { listedFieldDescription } from './listedOptions'
 import type { ActionSpec, FieldSpec } from '../registry/types'
 
 /*
@@ -12,6 +13,15 @@ export const MACROS_BUILD_FIELD: FieldSpec = {
     'Which macros the library shows. Value is a build id (the macros the QA agent saved for that build) or "developer" (the macros developers registered over MCP, not tied to a build). Options lists every build and the developer entry. Changing it closes any open macro.',
 }
 
+export const MACROS_LISTED_FIELD: FieldSpec = {
+  name: 'macros.listed',
+  page: 'macros',
+  description: listedFieldDescription(
+    'the macros the library shows now for macros.build (label is the macro name; value is its key such as "agent:12")',
+    'Use the value as macro of macros.openSource.',
+  ),
+}
+
 export const MACROS_OPEN_SOURCE_ACTION: ActionSpec = {
   id: 'macros.openSource',
   page: 'macros',
@@ -23,7 +33,7 @@ export const MACROS_OPEN_SOURCE_ACTION: ActionSpec = {
     properties: {
       macro: {
         type: 'string',
-        description: 'The macro name (or part of it, when only one macro contains it), or its key such as "agent:12" or "developer:login".',
+        description: 'The macro name (or part of it, when only one macro contains it), or its key such as "agent:12" or "developer:login"; the keys are the values of macros.listed.',
       },
     },
     required: ['macro'],
@@ -31,5 +41,5 @@ export const MACROS_OPEN_SOURCE_ACTION: ActionSpec = {
   summarize: (args) => `Open the source of macro ${typeof args.macro === 'string' ? args.macro : ''}`,
 }
 
-export const MACROS_FIELDS: FieldSpec[] = [MACROS_BUILD_FIELD]
+export const MACROS_FIELDS: FieldSpec[] = [MACROS_BUILD_FIELD, MACROS_LISTED_FIELD]
 export const MACROS_ACTIONS: ActionSpec[] = [MACROS_OPEN_SOURCE_ACTION]

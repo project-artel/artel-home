@@ -14,3 +14,20 @@ export function planDeleteCases(rawIds: unknown, knownIds: ReadonlySet<string>):
   if (unknown.length > 0) throw new Error(`No test case has the id ${unknown.join(', ')}.`)
   return ids
 }
+
+/**
+ * `testCases.deleteListed` 가 지울 id 목록. 지금 목록에 보이는 id 를 그대로 쓰되, agent 가 본 수와 다르면
+ * (필터가 바뀌었거나 목록이 갱신됐으면) 지우기 전에 던진다. 비었거나 500 을 넘어도 던진다.
+ */
+export function planDeleteListed(listedIds: readonly string[], expectedCount: unknown): string[] {
+  const ids = [...new Set(listedIds)]
+  if (ids.length === 0) throw new Error('No test case is listed now, so there is nothing to delete.')
+  if (typeof expectedCount !== 'number' || !Number.isInteger(expectedCount)) throw new Error('expectedCount must be a whole number.')
+  if (expectedCount !== ids.length) {
+    throw new Error(`${ids.length} test cases are listed now, not ${expectedCount}. Read testCases.listed again and check the filters.`)
+  }
+  if (ids.length > MAX_BULK_SELECTION) {
+    throw new Error(`${ids.length} test cases are listed; delete at most ${MAX_BULK_SELECTION} per call. Narrow the filters (testCases.status, testCases.search) or use testCases.delete with ids in batches.`)
+  }
+  return ids
+}

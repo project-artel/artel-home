@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
 import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../i18n/useI18n'
-import { useActionBinding } from '../projectAgent/bindings'
+import { useActionBinding, useFieldBinding } from '../projectAgent/bindings'
 import { resolveEntry, scenarioLookups } from '../projectAgent/specs/lookup'
+import { listedOptions, readOnlyListWrite } from '../projectAgent/specs/listedOptions'
 import {
   TEST_RUN_EDIT_ADD_SCENARIO_ACTION,
   TEST_RUN_EDIT_DELETE_SCENARIO_ACTION,
+  TEST_RUN_EDIT_SCENARIOS_FIELD,
   TEST_RUN_EDIT_SELECT_SCENARIO_ACTION,
 } from '../projectAgent/specs/testRunEdit'
 import { ContextMenu, type ContextMenuItem } from '../testCases/ContextMenu'
@@ -254,6 +256,13 @@ export function ScenarioList({
   const rowOf = (id: number) => listRef.current?.querySelector<HTMLElement>(`[data-scenario-id="${id}"]`) ?? null
   const pickedId = useRef<number | null>(null)
   const scenarioBlockedReason = () => (runId === null ? NOT_IN_RUN : items.length === 0 ? s.empty : null)
+  useFieldBinding(TEST_RUN_EDIT_SCENARIOS_FIELD, {
+    target: () => listRef.current,
+    read: () => items.length,
+    options: () =>
+      listedOptions(items, (item) => ({ value: String(item.testScenarioId), label: item.title.length > 0 ? item.title : s.untitled })),
+    write: readOnlyListWrite(TEST_RUN_EDIT_SCENARIOS_FIELD.name, 'use testRunEdit.selectScenario or testRunEdit.deleteScenario.'),
+  })
   useActionBinding(TEST_RUN_EDIT_SELECT_SCENARIO_ACTION, {
     target: () => (pickedId.current === null ? listRef.current : rowOf(pickedId.current)),
     blocked: scenarioBlockedReason,

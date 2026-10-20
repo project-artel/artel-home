@@ -5,7 +5,8 @@ import { useI18n } from '../i18n/useI18n'
 import { buildOptionText } from '../projects/gameBuilds'
 import type { GameBuild } from '../projects/gameTypes'
 import { useActionBinding, useFieldBinding } from '../projectAgent/bindings'
-import { MACROS_BUILD_FIELD, MACROS_OPEN_SOURCE_ACTION } from '../projectAgent/specs/macros'
+import { listedOptions, readOnlyListWrite } from '../projectAgent/specs/listedOptions'
+import { MACROS_BUILD_FIELD, MACROS_LISTED_FIELD, MACROS_OPEN_SOURCE_ACTION } from '../projectAgent/specs/macros'
 import { requireKnownId } from '../projectAgent/specs/fieldWriters'
 import { resolveEntry } from '../projectAgent/specs/lookup'
 import { useWorkspace } from '../projects/workspace/workspaceContext'
@@ -287,6 +288,12 @@ function MacroLibraryView({
       { value: DEVELOPER_VIEW, label: copy.versions.developer },
     ],
     write: (value) => onSelectView(requireKnownId(MACROS_BUILD_FIELD.name, value, viewIds)),
+  })
+  useFieldBinding(MACROS_LISTED_FIELD, {
+    target: () => listRef.current,
+    read: () => items.length,
+    options: () => listedOptions(items, (item) => ({ value: item.key, label: item.name })),
+    write: readOnlyListWrite(MACROS_LISTED_FIELD.name, 'use macros.openSource.'),
   })
   useActionBinding(MACROS_OPEN_SOURCE_ACTION, {
     target: () => listRef.current,

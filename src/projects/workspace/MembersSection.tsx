@@ -5,10 +5,13 @@ import { InfoHint } from '../../design-system/primitives/InfoHint'
 import { useI18n } from '../../i18n/useI18n'
 import { useActionBinding, useFieldBinding } from '../../projectAgent/bindings'
 import { requireKnownId } from '../../projectAgent/specs/fieldWriters'
+import { listedOptions, readOnlyListWrite } from '../../projectAgent/specs/listedOptions'
 import {
   MEMBERS_INVITE_ACTION,
   MEMBERS_INVITE_ROLE_FIELD,
   MEMBERS_INVITE_TARGET_FIELD,
+  MEMBERS_INVITATIONS_FIELD,
+  MEMBERS_LISTED_FIELD,
   MEMBERS_REMOVE_ACTION,
   MEMBERS_REVOKE_ACTION,
 } from '../../projectAgent/specs/members'
@@ -65,6 +68,16 @@ export function MembersSection() {
     refresh()
   }
 
+  useFieldBinding(MEMBERS_LISTED_FIELD, {
+    target: () => document.querySelector<HTMLElement>('.member-list'),
+    read: () => members.length,
+    options: () =>
+      listedOptions(members, (member) => ({
+        value: member.userId,
+        label: `${member.displayName} (${composeNicknameTag(member.nickname, member.userTag)}${member.email === null ? '' : `, ${member.email}`}) · ${member.role}`,
+      })),
+    write: readOnlyListWrite(MEMBERS_LISTED_FIELD.name, 'use members.removeMember.'),
+  })
   useActionBinding(MEMBERS_REMOVE_ACTION, {
     target: () => document.querySelector<HTMLElement>('.member-list'),
     blocked: () => (!isOwner ? NOT_OWNER_REASON : status !== 'ready' ? copy.loadingLabel : null),
@@ -295,6 +308,16 @@ function InvitePanel({
       if ('failure' in outcome) throw new Error(outcome.failure)
       return outcome
     },
+  })
+  useFieldBinding(MEMBERS_INVITATIONS_FIELD, {
+    target: () => document.querySelector<HTMLElement>('.invitation-list'),
+    read: () => invitations.length,
+    options: () =>
+      listedOptions(invitations, (invitation) => ({
+        value: invitation.id,
+        label: `${invitationTargetLabel(invitation)} · ${invitation.role}`,
+      })),
+    write: readOnlyListWrite(MEMBERS_INVITATIONS_FIELD.name, 'use members.revokeInvitation.'),
   })
   useActionBinding(MEMBERS_REVOKE_ACTION, {
     target: () => document.querySelector<HTMLElement>('.invitation-list'),

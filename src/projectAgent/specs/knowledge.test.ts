@@ -6,7 +6,7 @@ import { KNOWLEDGE_ACTIONS, KNOWLEDGE_FIELDS } from './knowledge'
 const EXPECTED_ACTIONS = [
   ['knowledge.openNode', 'auto'],
 ]
-const EXPECTED_FIELDS: string[] = []
+const EXPECTED_FIELDS: string[] = ['knowledge.listed']
 
 test('knowledge catalog entry points at the spec objects the page binds', () => {
   const entry = catalogEntry('knowledge')

@@ -25,6 +25,7 @@ test('deleting and overwriting need approval, the rest run on their own', () => 
     'testCases.openNewCase': 'auto',
     'testCases.open': 'auto',
     'testCases.delete': 'approve',
+    'testCases.deleteListed': 'approve',
   })
 })
 

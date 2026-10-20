@@ -1,3 +1,4 @@
+import { listedFieldDescription } from './listedOptions'
 import type { ActionSpec, FieldSpec } from '../registry/types'
 
 /*
@@ -19,6 +20,24 @@ export const MEMBERS_INVITE_ROLE_FIELD: FieldSpec = {
   name: 'members.inviteRole',
   page: 'members',
   description: 'The role the invited person gets when they accept. Value is a role id; options lists them. Defaults to MEMBER.',
+}
+
+export const MEMBERS_LISTED_FIELD: FieldSpec = {
+  name: 'members.listed',
+  page: 'members',
+  description: listedFieldDescription(
+    'the project members (label is display name, nickname#tag, email and role)',
+    'Use these ids as userId of members.removeMember.',
+  ),
+}
+
+export const MEMBERS_INVITATIONS_FIELD: FieldSpec = {
+  name: 'members.invitations',
+  page: 'members',
+  description: listedFieldDescription(
+    'the invitations waiting for an answer (label is who was invited and the role). Only the owner sees them; empty for others',
+    'Use these ids as invitationId of members.revokeInvitation.',
+  ),
 }
 
 export const MEMBERS_INVITE_ACTION: ActionSpec = {
@@ -43,7 +62,7 @@ export const MEMBERS_REMOVE_ACTION: ActionSpec = {
   page: 'members',
   risk: 'approve',
   description:
-    'Remove a member from the project. They lose access at once. The user approves it in place of the confirmation dialog. userId is the member id shown in the page snapshot or listed by the project tools. Owner only; the last owner cannot be removed.',
+    'Remove a member from the project. They lose access at once. The user approves it in place of the confirmation dialog. userId is a value of members.listed. Owner only; the last owner cannot be removed.',
   args: {
     type: 'object',
     properties: { userId: { type: 'string', description: 'Id of the member to remove.' } },
@@ -57,7 +76,7 @@ export const MEMBERS_REVOKE_ACTION: ActionSpec = {
   page: 'members',
   risk: 'approve',
   description:
-    'Withdraw a pending invitation so it can no longer be accepted. The user approves it. invitationId is the id of an invitation listed under "waiting for an answer". Owner only.',
+    'Withdraw a pending invitation so it can no longer be accepted. The user approves it. invitationId is a value of members.invitations. Owner only.',
   args: {
     type: 'object',
     properties: { invitationId: { type: 'string', description: 'Id of the pending invitation.' } },
@@ -66,5 +85,5 @@ export const MEMBERS_REVOKE_ACTION: ActionSpec = {
   summarize: (args) => `Revoke invitation ${typeof args.invitationId === 'string' ? args.invitationId : ''}`.trim(),
 }
 
-export const MEMBERS_FIELDS: FieldSpec[] = [MEMBERS_INVITE_TARGET_FIELD, MEMBERS_INVITE_ROLE_FIELD]
+export const MEMBERS_FIELDS: FieldSpec[] = [MEMBERS_INVITE_TARGET_FIELD, MEMBERS_INVITE_ROLE_FIELD, MEMBERS_LISTED_FIELD, MEMBERS_INVITATIONS_FIELD]
 export const MEMBERS_ACTIONS: ActionSpec[] = [MEMBERS_INVITE_ACTION, MEMBERS_REMOVE_ACTION, MEMBERS_REVOKE_ACTION]

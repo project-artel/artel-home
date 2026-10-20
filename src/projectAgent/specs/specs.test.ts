@@ -5,12 +5,12 @@ import { CONTENT_MAP_ACTIONS, CONTENT_MAP_FIELDS } from './contentMap'
 import type { ActionBinding } from '../registry/types'
 import { requireBoolean, requireKnownId, requireReasoningValue } from './fieldWriters'
 import { QA_ACTIONS, QA_FIELDS, createQaStartRunner, type StartOutcome } from './qa'
-import { TEST_RUNS_ACTIONS } from './testRuns'
+import { TEST_RUNS_ACTIONS, TEST_RUNS_FIELDS } from './testRuns'
 
 const SPEC_PAGES = [
   { page: 'contentMap', fields: CONTENT_MAP_FIELDS, actions: CONTENT_MAP_ACTIONS },
   { page: 'qa', fields: QA_FIELDS, actions: QA_ACTIONS },
-  { page: 'testRuns', fields: [], actions: TEST_RUNS_ACTIONS },
+  { page: 'testRuns', fields: TEST_RUNS_FIELDS, actions: TEST_RUNS_ACTIONS },
 ] as const
 
 test('catalog entries point at the same spec objects the page bindings use', () => {
@@ -48,6 +48,8 @@ test('actions that start paid or destructive work need approval', () => {
   const risk = Object.fromEntries(PAGE_CATALOG.flatMap((entry) => entry.actions.map((action) => [action.id, action.risk])))
   assert.deepEqual(risk, {
     'testRuns.create': 'auto',
+    'testRuns.open': 'auto',
+    'testRuns.openMap': 'auto',
     'qa.startRun': 'approve',
     'contentMap.scan': 'auto',
     'contentMap.scanAndGenerateTestCases': 'auto',
@@ -70,6 +72,7 @@ test('actions that start paid or destructive work need approval', () => {
     'testCases.openNewCase': 'auto',
     'testCases.open': 'auto',
     'testCases.delete': 'approve',
+    'testCases.deleteListed': 'approve',
     'members.invite': 'approve',
     'members.removeMember': 'approve',
     'members.revokeInvitation': 'approve',

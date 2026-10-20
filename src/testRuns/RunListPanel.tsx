@@ -1,9 +1,18 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent, type ReactNode } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
-import { useActionBinding } from '../projectAgent/bindings'
+import { useActionBinding, useFieldBinding } from '../projectAgent/bindings'
 import { tasksCopy } from '../projectAgent/tasksCopy'
-import { TEST_RUNS_CREATE_ACTION } from '../projectAgent/specs/testRuns'
+import { requireKnownId } from '../projectAgent/specs/fieldWriters'
+import { listedOptions, readOnlyListWrite } from '../projectAgent/specs/listedOptions'
+import {
+  TEST_RUNS_CREATE_ACTION,
+  TEST_RUNS_LISTED_FIELD,
+  TEST_RUNS_OPEN_ACTION,
+  TEST_RUNS_OPEN_MAP_ACTION,
+  TEST_RUNS_SEARCH_FIELD,
+  TEST_RUNS_VERSION_FIELD,
+} from '../projectAgent/specs/testRuns'
 import { formatDate } from '../projects/formatters'
 import { ProjectApiError } from '../projects/projectApi'
 import type { ExtrasStatus } from '../projects/workspace/workspaceContext'
@@ -404,6 +413,58 @@ export function RunListPanel({
   const listed = needle === '' ? shown : shown.filter((run) => `${run.name} ${run.description ?? ''}`.toLowerCase().includes(needle))
   const listedFolders = needle === '' ? shownFolders : shownFolders.filter((folder) => folder.name.toLowerCase().includes(needle))
 
+  // agent 가 목록을 읽고 런을 여는 길. 보이는 줄과 같은 `listed` 를 읽고, 줄을 누르는 것과 같은 `openRun` 을 부른다.
+  const searchBox = useRef<HTMLLabelElement>(null)
+  const listRef = useRef<HTMLUListElement>(null)
+  const bucketIds = [NO_VERSION, ...versions.map((version) => version.gameBuildId), ...strays.map((build) => build.gameBuildId)]
+  const listedRun = (runId: unknown): TestRun => {
+    const run = listed.find((one) => one.id === runId)
+    if (run === undefined) throw new Error(`Test run ${JSON.stringify(runId)} is not listed now. Check testRuns.version and testRuns.search, then pick it from the options of testRuns.listed.`)
+    return run
+  }
+  useFieldBinding(TEST_RUNS_VERSION_FIELD, {
+    target: () => frame,
+    read: () => bucket,
+    options: () => bucketIds.map((key) => ({ value: key, label: bucketName(key) })),
+    write: (value) => selectBucket(requireKnownId(TEST_RUNS_VERSION_FIELD.name, value, bucketIds)),
+  })
+  useFieldBinding(TEST_RUNS_SEARCH_FIELD, {
+    target: () => searchBox.current,
+    read: () => query,
+    write: (value) => {
+      if (typeof value !== 'string') throw new Error('testRuns.search must be a string.')
+      setQuery(value)
+    },
+  })
+  useFieldBinding(TEST_RUNS_LISTED_FIELD, {
+    target: () => listRef.current,
+    read: () => listed.length,
+    options: () =>
+      listedOptions(listed, (run) => ({
+        value: run.id,
+        label: `${run.name.length > 0 ? run.name : r.untitled} · ${bucketName(bucketOf(run))} · ${run.scenarioCount ?? 0}`,
+      })),
+    write: readOnlyListWrite(TEST_RUNS_LISTED_FIELD.name, 'use testRuns.open or testRuns.openMap.'),
+  })
+  useActionBinding(TEST_RUNS_OPEN_ACTION, {
+    target: () => listRef.current,
+    blocked: () => null,
+    run: async (args) => {
+      const run = listedRun(args.runId)
+      openRun(run.id)
+      return { runId: run.id }
+    },
+  })
+  useActionBinding(TEST_RUNS_OPEN_MAP_ACTION, {
+    target: () => listRef.current,
+    blocked: () => null,
+    run: async (args) => {
+      const run = listedRun(args.runId)
+      navigate(`/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(run.id)}`)
+      return { runId: run.id }
+    },
+  })
+
   return (
     <section aria-labelledby="test-runs-title" className="trl-page">
       {/* 위의 작업공간 제목이 이미 "테스트 런" 이다. 같은 말을 두 번 보이지 않고, 낭독기에만 남긴다. */}
@@ -521,7 +582,7 @@ export function RunListPanel({
             </div>
             {shown.length + shownFolders.length > 0 && (
               <>
-                <label className="trl-search">
+                <label className="trl-search" ref={searchBox}>
                   <SearchIcon />
                   <input
                     aria-label={r.search}
@@ -548,7 +609,7 @@ export function RunListPanel({
                   <p>{runs.length === 0 ? r.empty : selectedFolder === null ? r.emptyVersion : r.folders.empty}</p>
                 </div>
               ) : (
-                <ul aria-label={r.columns.name} className="trl-list">
+                <ul aria-label={r.columns.name} className="trl-list" ref={listRef}>
                   {listedFolders.map((folder) => (
                     <li key={`folder:${folder.id}`}>
                       <div

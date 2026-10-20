@@ -12,9 +12,11 @@ import {
 import { formatBytes, formatDate, formatElapsedSeconds } from './formatters'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
-import { useActionBinding } from '../projectAgent/bindings'
+import { useActionBinding, useFieldBinding } from '../projectAgent/bindings'
+import { listedOptions, readOnlyListWrite } from '../projectAgent/specs/listedOptions'
 import {
   DOCUMENTS_DELETE_ACTION,
+  DOCUMENTS_LISTED_FIELD,
   DOCUMENTS_OPEN_UPLOAD_ACTION,
   DOCUMENTS_RETRY_UPLOAD_ACTION,
 } from '../projectAgent/specs/documents'
@@ -161,6 +163,16 @@ export function DocumentPanel({
   const retryButton = useRef<HTMLButtonElement>(null)
 
   // project agent 가 쓰는 길. 버튼이 부르는 함수를 그대로 부른다.
+  useFieldBinding(DOCUMENTS_LISTED_FIELD, {
+    target: () => panel.current,
+    read: () => documents.length,
+    options: () =>
+      listedOptions(documents, (document) => ({
+        value: document.id,
+        label: `v${document.version} · ${document.fileName} · ${document.parseStatus}`,
+      })),
+    write: readOnlyListWrite(DOCUMENTS_LISTED_FIELD.name, 'use documents.delete.'),
+  })
   useActionBinding(DOCUMENTS_OPEN_UPLOAD_ACTION, {
     target: () => uploadLabel.current,
     blocked: () => (uploading ? t.projects.documents.uploading : null),

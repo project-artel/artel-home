@@ -9,7 +9,7 @@ const EXPECTED_ACTIONS = [
   ['testRun.openScenario', 'auto'],
   ['testRun.startQa', 'auto'],
 ]
-const EXPECTED_FIELDS: string[] = []
+const EXPECTED_FIELDS: string[] = ['testRun.scenarios']
 
 test('testRun catalog entry points at the spec objects the page binds', () => {
   const entry = catalogEntry('testRun')

@@ -1,6 +1,16 @@
+import { listedFieldDescription } from './listedOptions'
 import type { ActionSpec, FieldSpec } from '../registry/types'
 
 /* 테스트 런 지도 페이지의 action 정의. binding 은 `RunMapPage.tsx` 에 있다. */
+
+export const TEST_RUN_SCENARIOS_FIELD: FieldSpec = {
+  name: 'testRun.scenarios',
+  page: 'testRun',
+  description: listedFieldDescription(
+    'the scenarios of this test run in map order (label is the scenario title)',
+    'Use the value as scenario of testRun.selectScenario and testRun.openScenario.',
+  ),
+}
 
 export const TEST_RUN_OPEN_EDITOR_ACTION: ActionSpec = {
   id: 'testRun.openEditor',
@@ -21,7 +31,7 @@ export const TEST_RUN_SELECT_SCENARIO_ACTION: ActionSpec = {
   args: {
     type: 'object',
     properties: {
-      scenario: { type: 'string', description: 'Scenario id, or a piece of its title when only one scenario contains it.' },
+      scenario: { type: 'string', description: 'Scenario id from the options of testRun.scenarios, or a piece of its title when only one scenario contains it.' },
     },
     required: ['scenario'],
   },
@@ -37,7 +47,7 @@ export const TEST_RUN_OPEN_SCENARIO_ACTION: ActionSpec = {
   args: {
     type: 'object',
     properties: {
-      scenario: { type: 'string', description: 'Scenario id, or a piece of its title when only one scenario contains it.' },
+      scenario: { type: 'string', description: 'Scenario id from the options of testRun.scenarios, or a piece of its title when only one scenario contains it.' },
     },
     required: ['scenario'],
   },
@@ -54,7 +64,7 @@ export const TEST_RUN_START_QA_ACTION: ActionSpec = {
   summarize: () => 'Go to the Run QA page for this test run',
 }
 
-export const TEST_RUN_FIELDS: FieldSpec[] = []
+export const TEST_RUN_FIELDS: FieldSpec[] = [TEST_RUN_SCENARIOS_FIELD]
 export const TEST_RUN_ACTIONS: ActionSpec[] = [
   TEST_RUN_OPEN_EDITOR_ACTION,
   TEST_RUN_SELECT_SCENARIO_ACTION,
