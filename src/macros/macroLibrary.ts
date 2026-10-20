@@ -1,3 +1,4 @@
+import type { Lookup } from '../projectAgent/specs/lookup'
 import { selectBuild } from '../projects/gameBuilds'
 import type { GameBuild } from '../projects/gameTypes'
 import type { DeveloperMacroSummary } from './developerMacroTypes'
@@ -118,6 +119,11 @@ export function developerLibraryItems(macros: DeveloperMacroSummary[]): LibraryM
     name: macro.name,
     macro,
   }))
+}
+
+/** agent 가 이름이나 key 로 macro 를 고를 때 쓰는 대조 대상. key(`agent:7`)와 이름이 모두 정확히 맞는 key 다. */
+export function macroLookups(items: LibraryMacro[]): Lookup<LibraryMacro>[] {
+  return items.map((item) => ({ entry: item, keys: [item.key, item.name], title: item.name }))
 }
 
 /** 한 줄의 parameter 이름들. agent macro 는 `{name, type}`, developer macro 는 이름뿐이다. */

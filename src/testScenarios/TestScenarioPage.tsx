@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
+import { useActionBinding } from '../projectAgent/bindings'
+import { TEST_RUN_EDIT_APPROVE_SCENARIO_ACTION } from '../projectAgent/specs/testRunEdit'
 import { shortcutLabel } from '../shell/platform'
 import { TestCaseSpecModal } from '../testCases/TestCaseSpecModal'
 import { RunChat } from '../testRuns/RunChat'
@@ -10,8 +12,9 @@ import { RunVersionChip } from '../testRuns/RunVersionChip'
 import { getTestRun, type RunGameBuild } from '../testRuns/testRunApi'
 import { useRunChatSession } from '../testRuns/useRunChatSession'
 import { ApproveScenarioDialog } from './ApproveScenarioDialog'
+import { approveScenarioFailure } from './approveScenarioError'
 import { DeleteScenarioDialog } from './DeleteScenarioDialog'
-import { getTestScenario } from './scenarioApi'
+import { approveTestScenario, getTestScenario } from './scenarioApi'
 import { FreeScenarioEditor } from './FreeScenarioEditor'
 import { ScenarioList } from './ScenarioList'
 import { ScenarioStepEditor } from './ScenarioStepEditor'
@@ -34,6 +37,9 @@ export function TestScenarioRoute() {
   const { projectId = '', testScenarioId = '' } = useParams()
   return <TestScenarioPage projectId={projectId} testScenarioId={testScenarioId} />
 }
+
+/** 승인 버튼은 draft 를 열어 둔 동안 숨는다. 화면에 문구가 없어 agent 에게만 보인다. */
+const DRAFT_OPEN_REASON = 'A draft of the chat is open instead of the saved scenario. Approve or discard the draft first.'
 
 /** 스튜디오에서 나가면 테스트 런 목록이다 — 시나리오는 런 안에서 쓰기 때문이다. */
 function backLink(projectId: string) {
@@ -162,6 +168,28 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
     ? `/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(fromRun)}/edit`
     : backLink(projectId)
 
+  // agent 가 헤더의 승인 버튼을 누르는 길. 승인 대화상자의 확인과 같은 `approveTestScenario` 를 부르고,
+  // 대화상자와 같은 문구로 실패를 알리고, 같은 곳으로 돌아간다. 저장된 시나리오를 보고 있을 때만 쓴다.
+  const approveButton = useRef<HTMLButtonElement>(null)
+  useActionBinding(TEST_RUN_EDIT_APPROVE_SCENARIO_ACTION, {
+    target: () => approveButton.current,
+    blocked: () => {
+      if (!validId) return t.scenarios.page.invalidAddress
+      if (status === 'missing') return t.scenarios.page.missingCopy
+      if (status === 'loading') return t.scenarios.map.loading
+      return activeDraft !== null ? DRAFT_OPEN_REASON : null
+    },
+    run: async () => {
+      try {
+        await approveTestScenario(scenarioId)
+      } catch (error: unknown) {
+        throw new Error(approveScenarioFailure(error, t.scenarios.approve), { cause: error })
+      }
+      navigate(afterExit, { replace: true })
+      return { id: scenarioId }
+    },
+  })
+
   if (!validId) {
     return (
       <section className="page"><div className="panel-message">
@@ -228,7 +256,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
         {activeDraft === null && (
           <>
             <button className="st-btn st-btn--danger" onClick={() => setDialog('delete')} type="button">{t.scenarios.page.delete}</button>
-            <button className="st-btn st-btn--primary" onClick={() => setDialog('approve')} type="button">{t.scenarios.page.approve}</button>
+            <button className="st-btn st-btn--primary" onClick={() => setDialog('approve')} ref={approveButton} type="button">{t.scenarios.page.approve}</button>
           </>
         )}
       </header>

@@ -1,13 +1,23 @@
-import { useMemo } from 'react'
+import { useMemo, type CSSProperties, type ReactNode } from 'react'
 import { Link, Outlet, useLocation, useParams } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
+import { AgentChatPanel, AgentReopenButton, AgentSplitHandle } from '../../projectAgent/AgentDock'
+import { AgentSessionProvider } from '../../projectAgent/chat/AgentSessionProvider'
+import { ActionRegistryProvider } from '../../projectAgent/registry'
+import { useAgentDock } from '../../projectAgent/useAgentDock'
 import { formatDate } from '../formatters'
 import { versionBuilds } from '../gameBuilds'
 import { useProject } from '../useProject'
 import { ProjectNav } from './ProjectNav'
-import { sectionIdFromPath } from './sections'
+import { isDeepPath, PROJECT_RAIL_PX, sectionIdFromPath } from './sections'
 import { useWorkspaceExtras } from './useWorkspaceExtras'
 import { WorkspaceContext, type WorkspaceValue } from './workspaceContext'
+
+/**
+ * 저작 화면(런 편집, 시나리오 상세)은 시나리오 목록 280px, 단계, 대화 칸 300px 이상의 3칸이다.
+ * 이보다 좁은 창에서는 216px rail 옆에 단계 칸이 200px 도 남지 않아 rail 을 48px 로 접는다.
+ */
+const STUDIO_FULL_RAIL_MIN_PX = 1440
 
 /**
  * Keyed by the project id so switching projects remounts rather than reusing
@@ -49,6 +59,8 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
   const extras = useWorkspaceExtras(projectId)
   const { t } = useI18n()
   const { pathname } = useLocation()
+  // rail 을 접으면 페이지 칸이 168px 넓어질 뿐이라, 대화창 폭 상한은 펼친 rail 폭으로 계산한다.
+  const dock = useAgentDock(projectId, pathname, PROJECT_RAIL_PX)
 
   const {
     applyTrackerLink,
@@ -156,12 +168,26 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
   }
 
   const sectionId = sectionIdFromPath(projectId, pathname)
+  const deep = isDeepPath(projectId, pathname)
   // A count the user cannot trust yet is worse than no count: `null` keeps the
   // badge off the row until its read lands.
   const settled = extrasStatus === 'ready'
 
+  // index 화면에서 대화창이 열려 있으면 페이지 칸을 숨기고 대화창이 그 자리를 넓게 쓴다.
+  // DashboardSection 은 그대로 그려 두어, 720px 미만에서 대화창을 숨길 때 다시 보이게 한다.
+  const agentHome = dock.open && dock.isIndex
+  const workspaceClass =
+    'project-workspace' +
+    (dock.open ? (agentHome ? ' has-agent-home' : ' has-agent') : dock.enabled ? ' has-agent-closed' : '') +
+    (dock.splitting ? ' is-splitting' : '')
+
+  // 대화 session 은 대화창 밖에 둔다. 대화창을 닫아도 agent 가 하던 일을 계속한다.
   return (
-    <div className="project-workspace">
+    <ProjectAgentProviders enabled={dock.enabled} panelOpen={dock.open} projectId={projectId}>
+    <div
+      className={workspaceClass}
+      style={dock.open ? ({ '--agent-chat-w': `${dock.chatWidth}px` } as CSSProperties) : undefined}
+    >
       <ProjectNav
         counts={{
           documents: documents.length,
@@ -175,27 +201,67 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
         genreLabel={t.projects.genreLabels[project.genre]}
         projectId={projectId}
         projectName={project.name}
+        forceCollapsed={dock.folded && dock.viewportWidth < STUDIO_FULL_RAIL_MIN_PX}
       />
 
       <div className="workspace-body">
-        <header className="section-header">
-          <div className="section-heading">
-            <h1>{t.projects.workspace.nav[sectionId]}</h1>
-            <Link className="section-project-link" to="/projects">
-              {t.projects.workspace.allProjects}
-            </Link>
-          </div>
-          <p className="section-updated">
-            {t.projects.shared.updated(formatDate(project.updatedAt))}
-          </p>
-        </header>
+        <WorkspaceContext.Provider value={value}>
+          {deep ? (
+            <div className="workspace-deep">
+              <Outlet />
+            </div>
+          ) : (
+            <>
+              <header className="section-header">
+                <div className="section-heading">
+                  <h1>{t.projects.workspace.nav[sectionId]}</h1>
+                  <Link className="section-project-link" to="/projects">
+                    {t.projects.workspace.allProjects}
+                  </Link>
+                </div>
+                <p className="section-updated">
+                  {t.projects.shared.updated(formatDate(project.updatedAt))}
+                </p>
+              </header>
 
-        <div className="section-content">
-          <WorkspaceContext.Provider value={value}>
-            <Outlet />
-          </WorkspaceContext.Provider>
-        </div>
+              <div className="section-content">
+                <Outlet />
+              </div>
+            </>
+          )}
+        </WorkspaceContext.Provider>
       </div>
+
+      {dock.open && !agentHome && <AgentSplitHandle {...dock.handle} />}
+      {dock.open && <AgentChatPanel onClose={dock.closeChat} wide={agentHome} />}
+      {dock.enabled && !dock.open && <AgentReopenButton onOpen={dock.openChat} />}
     </div>
+    </ProjectAgentProviders>
+  )
+}
+
+/**
+ * 기능 flag 가 켜졌을 때만 registry 와 대화 session 을 둔다. 꺼져 있으면 강조 overlay, dev panel,
+ * location effect 가 하나도 생기지 않는다. 페이지의 hook 은 provider 가 없으면 아무도 읽지 않는
+ * 빈 registry 에 등록한다. flag 는 build 때 정해지므로 tree 모양이 실행 중에 바뀌지 않는다.
+ */
+function ProjectAgentProviders({
+  enabled,
+  panelOpen,
+  projectId,
+  children,
+}: {
+  enabled: boolean
+  panelOpen: boolean
+  projectId: string
+  children: ReactNode
+}) {
+  if (!enabled) return <>{children}</>
+  return (
+    <ActionRegistryProvider projectId={projectId}>
+      <AgentSessionProvider enabled panelOpen={panelOpen} projectId={projectId}>
+        {children}
+      </AgentSessionProvider>
+    </ActionRegistryProvider>
   )
 }

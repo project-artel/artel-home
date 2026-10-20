@@ -1,7 +1,15 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { EdgeScrollbar } from '../../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../../i18n/useI18n'
+import { useActionBinding, useFieldBinding } from '../../projectAgent/bindings'
+import { requireKnownId } from '../../projectAgent/specs/fieldWriters'
+import {
+  QA_HISTORY_FILTER_FIELD,
+  QA_HISTORY_OPEN_RUN_ACTION,
+  QA_HISTORY_RUN_FIELD,
+  qaRunIdArg,
+} from '../../projectAgent/specs/qaHistory'
 import { sectionHref } from '../../projects/workspace/sections'
 import { useWorkspace } from '../../projects/workspace/workspaceContext'
 import { ContextMenu } from '../../testCases/ContextMenu'
@@ -10,6 +18,7 @@ import { useTestCaseVersionList } from '../../testCases/useTestCaseVersions'
 import { bucketOf, childFolders, NO_VERSION, strayBuilds } from '../../testRuns/runLibrary'
 import { listRunFolders, type RunFolder } from '../../testRuns/testRunFolders'
 import { offeredQaModels } from '../qaModelGroups'
+import { qaRunPath } from '../qaTypes'
 import type { QaRunSummary } from '../launch/qaLaunchApi'
 import { countByFilter, runOrdinals, testRunsUnder, type HistoryFilter } from './historyModel'
 import { BoardSketch } from './HistorySketch'
@@ -33,6 +42,9 @@ export function QaHistory() {
   const { t } = useI18n()
   const b = t.qa.history.board
   const { projectId, runs, tries, models } = useWorkspace()
+  const navigate = useNavigate()
+  const filterGroup = useRef<HTMLDivElement>(null)
+  const board = useRef<HTMLDivElement>(null)
   const versionList = useTestCaseVersionList(projectId)
   const [folders, setFolders] = useState<RunFolder[]>([])
   const [chosen, setChosen] = useState<Place | null>(null)
@@ -93,6 +105,46 @@ export function QaHistory() {
     offered.find((model) => model.id === modelId)?.label ?? modelId.slice(modelId.lastIndexOf('/') + 1)
   const ranUnder = (bucket: string, folderId: string | null) => testRunsUnder(ranRuns, folders, bucket, folderId).length
   const placeName = place.bucket === NO_VERSION ? b.noVersion : nameOfBucket(place.bucket, versions, strays)
+
+  const filterLabels: Record<HistoryFilter, string> = {
+    ALL: b.filterAll(counts.ALL),
+    FAILED: b.filterFailed(counts.FAILED),
+    COMPLETED: b.filterCompleted(counts.COMPLETED),
+    CANCELLED: b.filterCancelled(counts.CANCELLED),
+  }
+
+  useFieldBinding(QA_HISTORY_FILTER_FIELD, {
+    target: () => filterGroup.current,
+    read: () => filter,
+    options: () => FILTERS.map((option) => ({ value: option, label: filterLabels[option] })),
+    write: (value) => setFilter(requireKnownId(QA_HISTORY_FILTER_FIELD.name, value, FILTERS) as HistoryFilter),
+  })
+
+  useFieldBinding(QA_HISTORY_RUN_FIELD, {
+    target: () => filterGroup.current,
+    read: () => visibleSelected?.id ?? null,
+    options: () =>
+      loadedRuns.map((run) => ({
+        value: run.id,
+        label: `${run.testRunName ?? run.testRunId} - ${run.model === null ? '?' : modelLabel(run.model)} - ${run.status}`,
+      })),
+    write: (value) => {
+      const id = requireKnownId(QA_HISTORY_RUN_FIELD.name, value, loadedRuns.map((run) => run.id))
+      const run = loadedRuns.find((one) => one.id === id)
+      if (run !== undefined) setSelected(run)
+    },
+  })
+
+  // 검사 패널의 "타임라인" 링크가 가는 곳과 같다.
+  useActionBinding(QA_HISTORY_OPEN_RUN_ACTION, {
+    target: () => board.current,
+    blocked: () => null,
+    run: async (args) => {
+      const qaRunId = qaRunIdArg(args)
+      navigate(qaRunPath(projectId, qaRunId))
+      return { qaRunId }
+    },
+  })
 
   function choose(next: Place) {
     setChosen(next)
@@ -161,7 +213,7 @@ export function QaHistory() {
   if (ranRuns.length === 0) return <HistoryEmpty projectId={projectId} />
 
   return (
-    <div className="qh">
+    <div className="qh" ref={board}>
       <nav aria-label={b.versionsTitle} className="qh-rail">
         <div className="qh-rail-head">
           <span>{b.versionsTitle}</span>
@@ -211,7 +263,7 @@ export function QaHistory() {
             <h2 className="qh-place">{placeName}</h2>
             <span className="qh-muted">{b.summary(cardRuns.length, counts.ALL)}</span>
             <span className="qh-spacer" />
-            <div aria-label={t.qa.history.filterLabel} className="qh-filters" role="group">
+            <div aria-label={t.qa.history.filterLabel} className="qh-filters" ref={filterGroup} role="group">
               {FILTERS.map((option) => (
                 <button
                   aria-pressed={filter === option}
@@ -221,13 +273,7 @@ export function QaHistory() {
                   type="button"
                 >
                   {option !== 'ALL' && <i aria-hidden="true" className={`qh-filter-dot qh-filter-dot--${option}`} />}
-                  {option === 'ALL'
-                    ? b.filterAll(counts.ALL)
-                    : option === 'FAILED'
-                      ? b.filterFailed(counts.FAILED)
-                      : option === 'COMPLETED'
-                        ? b.filterCompleted(counts.COMPLETED)
-                        : b.filterCancelled(counts.CANCELLED)}
+                  {filterLabels[option]}
                 </button>
               ))}
             </div>

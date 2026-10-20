@@ -14,6 +14,14 @@ import { DocumentStepGlyph, KnowledgeTagGlyph, type DocumentStep } from './docum
 import { toneOf } from './documentKnowledge'
 import { formatBytes, formatDate, formatDateTime, formatElapsedSeconds } from './formatters'
 import { useI18n } from '../i18n/useI18n'
+import { useActionBinding, useFieldBinding } from '../projectAgent/bindings'
+import { listedOptions, readOnlyListWrite } from '../projectAgent/specs/listedOptions'
+import {
+  DOCUMENTS_DELETE_ACTION,
+  DOCUMENTS_LISTED_FIELD,
+  DOCUMENTS_OPEN_UPLOAD_ACTION,
+  DOCUMENTS_RETRY_UPLOAD_ACTION,
+} from '../projectAgent/specs/documents'
 import { tagLabel } from '../knowledge/knowledgeLabels'
 import type { KnowledgeNode } from '../knowledge/knowledgeTypes'
 import { DOCUMENT_ACCEPT, describeFileProblem, uploadDocument } from './uploadDocument'
@@ -100,12 +108,14 @@ export function DocumentPanel({
     if (pendingAnnouncement !== null) setAnnouncement(pendingAnnouncement)
   }
 
-  async function start(file: File) {
+  /** 올리기가 끝나면 올린 문서를, 실패하면 화면에 띄운 것과 같은 문장을 돌려준다. */
+  async function start(file: File): Promise<{ document: ProjectDocument } | { message: string }> {
     const problem = describeFileProblem(file)
     if (problem !== null) {
       setPendingFile(null)
-      setUpload({ phase: 'failed', message: t.projects.documents.problems[problem] })
-      return
+      const message = t.projects.documents.problems[problem]
+      setUpload({ phase: 'failed', message })
+      return { message }
     }
 
     // Keep the file so Retry does not make the user pick it again.
@@ -122,12 +132,14 @@ export function DocumentPanel({
       setPendingFile(null)
       setAnnouncement(t.projects.documents.uploadedAnnouncement(document.version))
       onUploaded(document)
+      return { document }
     } catch (error: unknown) {
       const message =
         error instanceof ProjectApiError
           ? apiErrorMessage(error, t)
           : t.projects.documents.uploadFailed
       setUpload({ phase: 'failed', message })
+      return { message }
     }
   }
 
@@ -140,7 +152,7 @@ export function DocumentPanel({
     }
   }
 
-  async function confirmDelete(document: ProjectDocument) {
+  async function confirmDelete(document: ProjectDocument): Promise<{ deleted: boolean; error: string | null }> {
     setDeleteState(beginDocumentDelete(document.id))
 
     const { state, deleted } = await runDocumentDelete({
@@ -155,6 +167,7 @@ export function DocumentPanel({
       setAnnouncement(t.projects.documents.deletedAnnouncement(document.version))
       onDeleted(document.id)
     }
+    return { deleted, error: state.error }
   }
 
   const uploading = upload.phase === 'uploading'
@@ -165,9 +178,61 @@ export function DocumentPanel({
     onCancelDelete: () => setDeleteState(cancelDocumentDelete()),
     onConfirmDelete: (document) => void confirmDelete(document),
   }
+  const panel = useRef<HTMLDivElement>(null)
+  const retryButton = useRef<HTMLButtonElement>(null)
+
+  // project agent 가 쓰는 길. 버튼이 부르는 함수를 그대로 부른다.
+  useFieldBinding(DOCUMENTS_LISTED_FIELD, {
+    target: () => panel.current,
+    read: () => documents.length,
+    options: () =>
+      listedOptions(documents, (document) => ({
+        value: document.id,
+        label: `v${document.version} · ${document.fileName} · ${document.parseStatus}`,
+      })),
+    write: readOnlyListWrite(DOCUMENTS_LISTED_FIELD.name, 'use documents.delete.'),
+  })
+  useActionBinding(DOCUMENTS_OPEN_UPLOAD_ACTION, {
+    // 파일 입력(`#document-file`)을 여는 label 은 둘이다: 문서가 있으면 위 막대의 "새 버전 업로드",
+    // 없으면 DropZone 안의 "파일 선택". 화면 순서상 먼저 나오는 쪽을 가리킨다.
+    target: () => panel.current?.querySelector<HTMLElement>('label[for="document-file"]') ?? panel.current,
+    blocked: () => (uploading ? t.projects.documents.uploading : null),
+    // 브라우저는 사용자 동작 없이 파일 선택 창을 열게 하지 않는다. 칸에 focus 만 주고 사용자에게 넘긴다.
+    run: async () => {
+      panel.current?.querySelector<HTMLInputElement>('#document-file')?.focus()
+      return { needsUser: 'Choose the file in the dialog' }
+    },
+  })
+  useActionBinding(DOCUMENTS_RETRY_UPLOAD_ACTION, {
+    target: () => retryButton.current,
+    blocked: () => {
+      if (uploading) return t.projects.documents.uploading
+      return upload.phase === 'failed' && pendingFile !== null ? null : 'No upload has failed, so there is nothing to retry.'
+    },
+    run: async () => {
+      if (pendingFile === null) throw new Error('No upload has failed, so there is nothing to retry.')
+      const outcome = await start(pendingFile)
+      if ('message' in outcome) throw new Error(outcome.message)
+      return { version: outcome.document.version }
+    },
+  })
+  useActionBinding(DOCUMENTS_DELETE_ACTION, {
+    // 현재 버전의 삭제 버튼은 `button--danger-quiet`, 지난 판의 삭제 버튼은 `dw-text-button--danger` 다.
+    target: () =>
+      panel.current?.querySelector<HTMLElement>('button.button--danger-quiet, button.dw-text-button--danger') ??
+      panel.current,
+    blocked: () => (deleteState.pending ? t.projects.shared.deleting : null),
+    run: async (args) => {
+      const document = documents.find((one) => one.id === args.documentId)
+      if (document === undefined) throw new Error('No document has that id.')
+      const { deleted, error } = await confirmDelete(document)
+      if (!deleted) throw new Error(error ?? t.projects.documents.deleteFailed)
+      return { deleted: true, documentId: document.id }
+    },
+  })
 
   return (
-    <div className="dw">
+    <div className="dw" ref={panel}>
       <div className="dw-bar">
         <span className="dw-bar-sub">{w.subtitle}</span>
         <span className="dw-spacer" />
@@ -225,6 +290,7 @@ export function DocumentPanel({
                 <button
                   className="button button--secondary button--compact"
                   onClick={() => void start(pendingFile)}
+                  ref={retryButton}
                   type="button"
                 >
                   {t.projects.shared.retry}

@@ -1,12 +1,22 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
+import { useActionBinding, useFieldBinding } from '../../projectAgent/bindings'
+import { requireKnownId } from '../../projectAgent/specs/fieldWriters'
+import {
+  SETTINGS_DESCRIPTION_FIELD,
+  SETTINGS_GENRE_FIELD,
+  SETTINGS_NAME_FIELD,
+  SETTINGS_OPEN_DELETE_ACTION,
+  createOpenDeleteRunner,
+  SETTINGS_SAVE_ACTION,
+} from '../../projectAgent/specs/settings'
 import { apiErrorMessage } from '../apiErrorMessage'
 import { DeleteProjectDialog } from '../DeleteProjectDialog'
 import { formatDate } from '../formatters'
 import { ProjectApiError, updateProject } from '../projectApi'
 import { ProjectForm } from '../ProjectForm'
-import type { ProjectDetail, ProjectDraft } from '../projectTypes'
+import { GENRES, type Genre, type ProjectDetail, type ProjectDraft } from '../projectTypes'
 import { TrackerLinkPanel } from '../../tracker/TrackerLinkPanel'
 import { useWorkspace } from './workspaceContext'
 
@@ -62,8 +72,11 @@ export function SettingsSection() {
     setEditing(false)
   }
 
-  async function save(event: React.FormEvent) {
-    event.preventDefault()
+  /**
+   * 폼을 저장한다. 저장 버튼과 project agent 의 action 이 같이 부른다. 실패는 폼에 보이는 문장으로
+   * 돌려주고, 성공이면 null 이다.
+   */
+  async function submit(): Promise<string | null> {
     setSaving(true)
     setFailure(null)
     setFieldErrors({})
@@ -77,17 +90,82 @@ export function SettingsSection() {
       applyProject(updated)
       setEditing(false)
       setAnnouncement(t.projects.detail.savedAnnouncement)
+      return null
     } catch (error: unknown) {
       if (error instanceof ProjectApiError) {
         setFieldErrors(error.fields)
-        setFailure(Object.keys(error.fields).length > 0 ? null : apiErrorMessage(error, t))
-      } else {
-        setFailure(t.projects.detail.saveFailed)
+        const message = apiErrorMessage(error, t)
+        setFailure(Object.keys(error.fields).length > 0 ? null : message)
+        return Object.keys(error.fields).length > 0 ? Object.values(error.fields).join(' ') : message
       }
+      setFailure(t.projects.detail.saveFailed)
+      return t.projects.detail.saveFailed
     } finally {
       setSaving(false)
     }
   }
+
+  function save(event: React.FormEvent) {
+    event.preventDefault()
+    void submit()
+  }
+
+  const saveBlockedReason = !editing
+    ? 'The edit form is closed. Set a field first.'
+    : saving
+      ? t.projects.shared.saving
+      : draft.name.trim().length === 0
+        ? 'The name is empty.'
+        : !dirty
+          ? 'Nothing has changed.'
+          : null
+  const fieldInput = (name: string) => () =>
+    document.querySelector<HTMLElement>(`[data-agent-target="settings.${name}"]`) ??
+    document.querySelector<HTMLElement>('[data-agent-target="settings.edit"]')
+
+  useActionBinding(SETTINGS_SAVE_ACTION, {
+    target: () => document.querySelector<HTMLElement>('[data-agent-target="settings.save"]'),
+    blocked: () => saveBlockedReason,
+    run: async () => {
+      const message = await submit()
+      if (message !== null) throw new Error(message)
+      return { name: draft.name.trim(), genre: draft.genre, description: draft.description.trim() }
+    },
+  })
+  useActionBinding(SETTINGS_OPEN_DELETE_ACTION, {
+    target: () => document.querySelector<HTMLElement>('[data-agent-target="settings.delete"]'),
+    blocked: () => (project.myRole !== 'OWNER' ? t.projects.deleteDialog.forbidden : null),
+    run: createOpenDeleteRunner(() => setDeleting(true)),
+  })
+  // 칸을 쓰면 폼이 열린다. 폼이 닫혀 있는 동안의 강조는 "수정" 버튼에 한다.
+  useFieldBinding(SETTINGS_NAME_FIELD, {
+    target: fieldInput('name'),
+    read: () => draft.name,
+    write: (value) => {
+      if (typeof value !== 'string') throw new Error('settings.name must be a string.')
+      setEditing(true)
+      setDraft((current) => ({ ...current, name: value }))
+    },
+  })
+  useFieldBinding(SETTINGS_GENRE_FIELD, {
+    target: fieldInput('genre'),
+    read: () => draft.genre,
+    options: () => GENRES.map((genre) => ({ value: genre, label: t.projects.genreLabels[genre] })),
+    write: (value) => {
+      const genre = requireKnownId('settings.genre', value, GENRES) as Genre
+      setEditing(true)
+      setDraft((current) => ({ ...current, genre }))
+    },
+  })
+  useFieldBinding(SETTINGS_DESCRIPTION_FIELD, {
+    target: fieldInput('description'),
+    read: () => draft.description,
+    write: (value) => {
+      if (typeof value !== 'string') throw new Error('settings.description must be a string.')
+      setEditing(true)
+      setDraft((current) => ({ ...current, description: value }))
+    },
+  })
 
   return (
     <div className="section-columns">
@@ -99,6 +177,7 @@ export function SettingsSection() {
           {!editing && (
             <button
               className="button button--secondary button--compact"
+              data-agent-target="settings.edit"
               onClick={() => setEditing(true)}
               type="button"
             >
@@ -133,6 +212,7 @@ export function SettingsSection() {
                 </button>
                 <button
                   className="button button--primary"
+                  data-agent-target="settings.save"
                   disabled={!dirty || saving || draft.name.trim().length === 0}
                   type="submit"
                 >
@@ -178,6 +258,7 @@ export function SettingsSection() {
           <p className="section-intro">{t.projects.workspace.dangerCopy}</p>
           <button
             className="button button--danger-quiet"
+            data-agent-target="settings.delete"
             onClick={() => setDeleting(true)}
             type="button"
           >

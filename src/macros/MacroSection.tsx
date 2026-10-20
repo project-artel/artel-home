@@ -1,9 +1,14 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
 import { buildOptionText } from '../projects/gameBuilds'
 import type { GameBuild } from '../projects/gameTypes'
+import { useActionBinding, useFieldBinding } from '../projectAgent/bindings'
+import { listedOptions, readOnlyListWrite } from '../projectAgent/specs/listedOptions'
+import { MACROS_BUILD_FIELD, MACROS_LISTED_FIELD, MACROS_OPEN_SOURCE_ACTION } from '../projectAgent/specs/macros'
+import { requireKnownId } from '../projectAgent/specs/fieldWriters'
+import { resolveEntry } from '../projectAgent/specs/lookup'
 import { useWorkspace } from '../projects/workspace/workspaceContext'
 import { SearchField } from '../testCases/SearchField'
 import type { DeveloperMacroSummary } from './developerMacroTypes'
@@ -13,6 +18,7 @@ import {
   developerLibraryItems,
   latestVersionBuild,
   resolveMacroView,
+  macroLookups,
   searchMacros,
   selectViewParams,
   type LibraryMacro,
@@ -269,9 +275,43 @@ function MacroLibraryView({
 
   const waiting = status === 'loading' && items.length === 0
 
+  // agent 가 build 를 고르고 macro 를 여는 길. 왼쪽 목록의 줄과 표의 줄이 부르는 것과 같은
+  // `onSelectView` 와 `openMacro` 를 부른다.
+  const versionsRef = useRef<HTMLElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
+  const viewIds = [...builds.map((build) => build.id), DEVELOPER_VIEW]
+  useFieldBinding(MACROS_BUILD_FIELD, {
+    target: () => versionsRef.current,
+    read: () => selectedView,
+    options: () => [
+      ...builds.map((build) => ({ value: build.id, label: buildOptionText(build, t.projects.builds.editorLabel) })),
+      { value: DEVELOPER_VIEW, label: copy.versions.developer },
+    ],
+    write: (value) => onSelectView(requireKnownId(MACROS_BUILD_FIELD.name, value, viewIds)),
+  })
+  useFieldBinding(MACROS_LISTED_FIELD, {
+    target: () => listRef.current,
+    read: () => items.length,
+    options: () => listedOptions(items, (item) => ({ value: item.key, label: item.name })),
+    write: readOnlyListWrite(MACROS_LISTED_FIELD.name, 'use macros.openSource.'),
+  })
+  useActionBinding(MACROS_OPEN_SOURCE_ACTION, {
+    target: () => listRef.current,
+    blocked: () => {
+      if (waiting) return copy.section.loading
+      if (items.length === 0) return status === 'error' ? loadFailedText : emptyText
+      return null
+    },
+    run: async (args) => {
+      const item = resolveEntry('macro', args.macro, macroLookups(items))
+      openMacro(item.key)
+      return { key: item.key, name: item.name, origin: item.origin }
+    },
+  })
+
   return (
     <div className="tcl cp-scope macro-library">
-      <aside aria-label={caseCopy.versions.heading} className="tcl-folders">
+      <aside aria-label={caseCopy.versions.heading} className="tcl-folders" ref={versionsRef}>
         <MacroVersionList
           builds={builds}
           developerCount={developerCount}
@@ -328,7 +368,7 @@ function MacroLibraryView({
             )}
           </div>
         ) : (
-          <div className="cp-listwrap">
+          <div className="cp-listwrap" ref={listRef}>
             <div className="cp-list tcl-scroll">
               <MacroLibraryList
                 builds={builds}

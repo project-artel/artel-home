@@ -46,6 +46,7 @@ export function ProjectForm({
           aria-describedby={fieldErrors.name ? `${nameId}-error` : undefined}
           aria-invalid={fieldErrors.name ? true : undefined}
           className="field-input"
+          data-agent-target="settings.name"
           disabled={disabled}
           id={nameId}
           maxLength={NAME_MAX_LENGTH}
@@ -62,6 +63,7 @@ export function ProjectForm({
         <label className="field-label" htmlFor={genreId}>{t.projects.form.genreLabel}</label>
         <select
           className="field-input"
+          data-agent-target="settings.genre"
           disabled={disabled}
           id={genreId}
           onChange={(event) => onChange({ ...draft, genre: event.target.value as Genre })}
@@ -81,6 +83,7 @@ export function ProjectForm({
         </label>
         <textarea
           className="field-input field-input--multiline"
+          data-agent-target="settings.description"
           disabled={disabled}
           id={descriptionId}
           maxLength={DESCRIPTION_MAX_LENGTH}

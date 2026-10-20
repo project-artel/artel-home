@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { InfoHint } from '../design-system/primitives/InfoHint'
+import { useActionBinding } from '../projectAgent/bindings'
+import {
+  SETTINGS_CONNECT_TRACKER_ACTION,
+  SETTINGS_DISCONNECT_TRACKER_ACTION,
+} from '../projectAgent/specs/settings'
 import { ISSUE_SEVERITIES, type IssueSeverity } from '../issues/issueTypes'
 import type { Messages } from '../i18n/messages'
 import { useI18n } from '../i18n/useI18n'
@@ -205,17 +210,19 @@ export function TrackerLinkPanel() {
   }, [showInstallationPicker, projectId, t, installationReloadToken])
 
   /** Sends the owner to GitHub authorization, which lists the accounts the App is installed on. */
-  async function startAuthorization() {
+  async function startAuthorization(): Promise<string | null> {
     setConnecting(true)
     setConnectFailure(null)
     try {
       const url = await getTrackerAuthorizeUrl(projectId, PROVIDER)
       window.location.assign(url)
+      return null
     } catch (error: unknown) {
-      setConnectFailure(
-        error instanceof ProjectApiError ? apiErrorMessage(error, t) : t.tracker.panel.connectFailed,
-      )
+      const message =
+        error instanceof ProjectApiError ? apiErrorMessage(error, t) : t.tracker.panel.connectFailed
+      setConnectFailure(message)
       setConnecting(false)
+      return message
     }
   }
 
@@ -292,21 +299,59 @@ export function TrackerLinkPanel() {
       .finally(() => setSavingSeverities(false))
   }
 
-  async function disconnect() {
+  async function disconnect(): Promise<string | null> {
     setDisconnecting(true)
     setDisconnectFailure(null)
     try {
       await deleteTrackerLink(projectId)
       applyTrackerLink(null)
       setAnnouncement(t.tracker.panel.disconnectedAnnouncement)
+      return null
     } catch (error: unknown) {
-      setDisconnectFailure(
-        error instanceof ProjectApiError ? apiErrorMessage(error, t) : t.tracker.panel.disconnectFailed,
-      )
+      const message =
+        error instanceof ProjectApiError ? apiErrorMessage(error, t) : t.tracker.panel.disconnectFailed
+      setDisconnectFailure(message)
+      return message
     } finally {
       setDisconnecting(false)
     }
   }
+
+  const notOwnerReason = 'Only a project owner can change the issue tracker link.'
+  useActionBinding(SETTINGS_CONNECT_TRACKER_ACTION, {
+    target: () => document.querySelector<HTMLElement>('[data-agent-target="settings.connectTracker"]'),
+    blocked: () =>
+      !isOwner
+        ? notOwnerReason
+        : trackerLink !== null
+          ? trackerLink.repository === null
+            ? 'The tracker is authorized but a repository is still being picked; finish choosing the repository in the panel.'
+            : 'A tracker is already connected.'
+          : connecting
+            ? t.tracker.panel.connecting
+            : null,
+    run: async () => {
+      const message = await startAuthorization()
+      if (message !== null) throw new Error(message)
+      return { redirecting: true }
+    },
+  })
+  useActionBinding(SETTINGS_DISCONNECT_TRACKER_ACTION, {
+    target: () => document.querySelector<HTMLElement>('[data-agent-target="settings.disconnectTracker"]'),
+    blocked: () =>
+      !isOwner
+        ? notOwnerReason
+        : trackerLink === null || trackerLink.repository === null
+          ? t.tracker.panel.notConnected
+          : disconnecting
+            ? t.tracker.panel.disconnecting
+            : null,
+    run: async () => {
+      const message = await disconnect()
+      if (message !== null) throw new Error(message)
+      return { disconnected: true }
+    },
+  })
 
   // `trackerLink` lives in the same `useWorkspaceExtras` bundle as `runs`,
   // `tries`, etc. (Step 2 of the plan) — its initial value is `null` before
@@ -450,6 +495,7 @@ function NotConnected({
       )}
       <button
         className="button button--primary button--compact"
+        data-agent-target="settings.connectTracker"
         disabled={connecting}
         onClick={onConnect}
         type="button"
@@ -795,6 +841,7 @@ function Connected({
             <ChangeAccountButton changing={changingAccount} onChangeAccount={onChangeAccount} />
             <button
               className="button button--secondary button--compact"
+              data-agent-target="settings.disconnectTracker"
               disabled={disconnecting}
               onClick={onDisconnect}
               type="button"

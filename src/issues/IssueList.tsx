@@ -1,8 +1,8 @@
 import { useI18n } from '../i18n/useI18n'
-import { useTrackerSync } from '../tracker/useTrackerSync'
+import type { TrackerSync } from '../tracker/useTrackerSync'
 import { IssueRow } from './IssueRow'
 import type { Issue } from './issueTypes'
-import { useIssueResolution } from './useIssueResolution'
+import type { IssueResolution } from './useIssueResolution'
 
 type IssueListProps = {
   status: 'loading' | 'ready' | 'error'
@@ -10,7 +10,6 @@ type IssueListProps = {
   hasMore: boolean
   loadingMore: boolean
   onLoadMore: () => void
-  patch: (issueId: string, next: (issue: Issue) => Issue) => void
   /**
    * Given a `qaRunId` and the `qaTryId` of the scenario an issue came from,
    * the run console address for it — or `null` inside that run's own panel,
@@ -28,8 +27,16 @@ type IssueListProps = {
    * `false` explicitly, rather than a default silently doing that for it.
    */
   trackerConnected: boolean
+  /**
+   * The resolve toggle and the tracker export. Handed in rather than created here so a page can also call
+   * them for the project agent (ARTEL-1139) and get the same optimistic update the buttons do.
+   */
+  resolution: IssueResolution
+  trackerSync: TrackerSync
   /** 펼쳐서 강조할 이슈(`?issue=`, ARTEL-1084). 없으면 null. */
   focusId?: string | null
+  /** 같은 이슈를 다시 가리킬 때마다 올라가는 값. 접힌 행을 다시 펼친다. */
+  focusToken?: number
 }
 
 /**
@@ -44,16 +51,18 @@ export function IssueList({
   hasMore,
   loadingMore,
   onLoadMore,
-  patch,
   runHref,
   filtered,
   onRetry,
   trackerConnected,
+  resolution,
+  trackerSync,
   focusId = null,
+  focusToken = 0,
 }: IssueListProps) {
   const { t } = useI18n()
-  const { toggle, pending, failedId } = useIssueResolution(patch)
-  const { sync, pending: syncPending, failedId: syncFailedId } = useTrackerSync(patch)
+  const { toggle, pending, failedId } = resolution
+  const { sync, pending: syncPending, failedId: syncFailedId } = trackerSync
 
   if (status === 'loading') {
     return (
@@ -87,6 +96,7 @@ export function IssueList({
           <IssueRow
             failed={failedId === issue.id}
             focused={issue.id === focusId}
+            focusToken={focusToken}
             issue={issue}
             key={issue.id}
             onSync={(target) => void sync(target)}

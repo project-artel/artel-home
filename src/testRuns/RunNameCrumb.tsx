@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
+import { useActionBinding } from '../projectAgent/bindings'
+import { TEST_RUN_EDIT_RENAME_ACTION } from '../projectAgent/specs/testRunEdit'
 import { updateTestRun, type TestRun } from './testRunApi'
 
 /**
@@ -33,28 +35,48 @@ export function RunNameCrumb({
 
   useEffect(() => setCurrent(name), [name])
 
-  async function commit(raw: string) {
-    setRenaming(false)
-    if (cancel.current) { cancel.current = false; return }
-    const next = raw.trim()
-    if (next.length === 0 || next === current) return
+  /** 이름을 서버에 저장한다. 실패하면 던진다. 입력칸은 삼키고, agent 는 오류로 받는다. */
+  async function save(next: string) {
     setSaving(true)
     try {
       const updated = await updateTestRun(projectId, runId, { name: next })
       setCurrent(updated.name)
       onRenamed?.(updated)
-    } catch {
-      // Keep the old name on failure; the field reverts on the next render.
     } finally {
       setSaving(false)
     }
   }
+
+  async function commit(raw: string) {
+    setRenaming(false)
+    if (cancel.current) { cancel.current = false; return }
+    const next = raw.trim()
+    if (next.length === 0 || next === current) return
+    try {
+      await save(next)
+    } catch {
+      // Keep the old name on failure; the field reverts on the next render.
+    }
+  }
+
+  const nameControl = useRef<HTMLElement | null>(null)
+  useActionBinding(TEST_RUN_EDIT_RENAME_ACTION, {
+    target: () => nameControl.current,
+    blocked: () => (saving ? 'The run is being renamed.' : null),
+    run: async (args) => {
+      const next = typeof args.name === 'string' ? args.name.trim() : ''
+      if (next.length === 0) throw new Error('The run name must not be empty.')
+      if (next !== current) await save(next)
+      return { name: next }
+    },
+  })
 
   if (renaming) {
     return (
       <input
         className="st-crumb-edit"
         autoFocus
+        ref={(node) => { nameControl.current = node }}
         defaultValue={current}
         disabled={saving}
         aria-label={e.renameLabel}
@@ -67,7 +89,7 @@ export function RunNameCrumb({
     )
   }
   return (
-    <button className="scn scn--editable" type="button" title={e.renameHint} onClick={() => setRenaming(true)}>
+    <button className="scn scn--editable" type="button" title={e.renameHint} onClick={() => setRenaming(true)} ref={(node) => { nameControl.current = node }}>
       <span className="scn-text">{current || e.untitled}</span>
       <span className="scn-pencil" aria-hidden="true">✎</span>
     </button>

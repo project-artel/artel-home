@@ -14,6 +14,7 @@ import { issuesEn, issuesKo } from './messages/issues'
 import { knowledgeEn, knowledgeKo } from './messages/knowledge'
 import { macrosEn, macrosKo } from './messages/macros'
 import { performanceEn, performanceKo } from './messages/performance'
+import { projectAgentEn, projectAgentKo } from './messages/projectAgent'
 import { projectsEn, projectsKo } from './messages/projects'
 import { qaEn, qaKo } from './messages/qa'
 import { scenariosEn, scenariosKo } from './messages/scenarios'
@@ -51,6 +52,7 @@ export const messages = {
     knowledge: knowledgeEn,
     macros: macrosEn,
     performance: performanceEn,
+    projectAgent: projectAgentEn,
     projects: projectsEn,
     qa: qaEn,
     scenarios: scenariosEn,
@@ -75,6 +77,7 @@ export const messages = {
     knowledge: knowledgeKo,
     macros: macrosKo,
     performance: performanceKo,
+    projectAgent: projectAgentKo,
     projects: projectsKo,
     qa: qaKo,
     scenarios: scenariosKo,

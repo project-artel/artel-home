@@ -5,6 +5,18 @@ import { InfoHint } from '../../design-system/primitives/InfoHint'
 import { useI18n } from '../../i18n/useI18n'
 import type { GameBuild, GameInstance } from '../../projects/gameTypes'
 import { ProjectApiError } from '../../projects/projectApi'
+import { useActionBinding, useFieldBinding } from '../../projectAgent/bindings'
+import { tasksCopy } from '../../projectAgent/tasksCopy'
+import { requireBoolean, requireKnownId, requireReasoningValue } from '../../projectAgent/specs/fieldWriters'
+import {
+  createQaStartRunner,
+  QA_GAME_INSTANCE_FIELD,
+  QA_MODEL_FIELD,
+  QA_REASONING_ENABLED_FIELD,
+  QA_REASONING_VALUE_FIELD,
+  QA_START_RUN_ACTION,
+  type StartOutcome,
+} from '../../projectAgent/specs/qa'
 import { sectionHref } from '../../projects/workspace/sections'
 import { versionMismatch } from '../../testRuns/runLibrary'
 import { getRunCasesOutsideBuild, type TestRun } from '../../testRuns/testRunApi'
@@ -15,7 +27,7 @@ import { DEFAULT_QA_FUNCTION_OPTIONS, type QaFunctionOptions } from '../qaFuncti
 import { QaFunctionOptionsFields } from '../QaFunctionOptionsFields'
 import { CheckIcon, ChevronDownIcon, CircleCheckIcon, CircleXIcon } from '../qaModelIcons'
 import { QaModelPicker } from '../QaModelPicker'
-import type { QaModel, QaReasoningSelection } from '../qaTypes'
+import { qaModelOptionKey, type QaModel, type QaReasoningSelection } from '../qaTypes'
 import { byAscendingEffort } from '../reasoningEfforts'
 import { TakeOverQaRunDialog } from '../TakeOverQaRunDialog'
 import { ArchSettings } from './ArchSettings'
@@ -159,8 +171,12 @@ export function LaunchPanel({
   }
   const blocked = run === null || checks.some((check) => check.tone === 'bad')
 
-  async function start(force = false) {
-    if (blocked || starting || run === null || instance === null || model === null) return
+  /**
+   * 버튼, 단축키, agent 가 함께 쓴다. 시작하지 않았으면 null 이다(막혀 있거나 이미 시작하는 중).
+   * `force` 는 사용자가 인수 대화상자에서 답했을 때만 true 다 — agent 는 절대 보내지 않는다.
+   */
+  async function start(force = false): Promise<StartOutcome | null> {
+    if (blocked || starting || run === null || instance === null || model === null) return null
     setStarting(true)
     setFailure(null)
     try {
@@ -169,14 +185,15 @@ export function LaunchPanel({
       storeLastArch(effectiveArch)
       setTakeoverOpen(false)
       navigate(`/projects/${encodeURIComponent(projectId)}/qa-runs/${encodeURIComponent(created.id)}`)
+      return { kind: 'started', qaRunId: created.id }
     } catch (error: unknown) {
       const conflict = qaStartConflict(error)
       if (conflict === 'qa_run_active' && !force) {
         setTakeoverOpen(true)
         setStarting(false)
-        return
+        return { kind: 'takeoverNeeded' }
       }
-      setFailure(
+      const message =
         conflict === 'sdk_disconnected'
           ? t.qa.errors.sdkDisconnected
           : conflict === 'test_run_empty'
@@ -185,11 +202,78 @@ export function LaunchPanel({
               ? t.qa.errors.alreadyRunning
               : error instanceof ProjectApiError
                 ? error.message
-                : t.qa.errors.startFailed,
-      )
+                : t.qa.errors.startFailed
+      setFailure(message)
       setStarting(false)
+      return { kind: 'failed', message }
     }
   }
+
+  const modelField = useRef<HTMLDivElement>(null)
+  const reasoningField = useRef<HTMLDivElement>(null)
+  const runButton = useRef<HTMLButtonElement>(null)
+
+  useFieldBinding(QA_GAME_INSTANCE_FIELD, {
+    target: () => consoleBox.current,
+    read: () => instanceId,
+    options: () =>
+      instances.map((one) => ({
+        value: one.id,
+        label: `${one.name} (${one.connected ? t.projects.instances.connected : t.projects.instances.notConnected})`,
+      })),
+    write: (value) =>
+      onInstanceChange(requireKnownId(QA_GAME_INSTANCE_FIELD.name, value, instances.map((one) => one.id))),
+  })
+  useFieldBinding(QA_MODEL_FIELD, {
+    target: () => modelField.current,
+    read: () => modelKey,
+    options: () =>
+      models.map((one) => ({
+        value: qaModelOptionKey(one),
+        label: one.keyRegistered ? one.label : `${one.label} (${l.keyMissing})`,
+      })),
+    write: (value) => onModelChange(requireKnownId(QA_MODEL_FIELD.name, value, models.map(qaModelOptionKey))),
+  })
+  useFieldBinding(QA_REASONING_ENABLED_FIELD, {
+    target: () => reasoningField.current,
+    read: () => reasoningEnabled,
+    write: (value) => {
+      const enabled = requireBoolean(QA_REASONING_ENABLED_FIELD.name, value)
+      if (enabled && reasoning === null) throw new Error(tasksCopy().errors.reasoningUnsupported)
+      onReasoningEnabled(enabled)
+    },
+  })
+  useFieldBinding(QA_REASONING_VALUE_FIELD, {
+    target: () => reasoningField.current,
+    read: () => reasoningValue,
+    options: () => efforts.map((effort, index) => ({ value: index, label: effort })),
+    write: (value) =>
+      onReasoningValue(
+        requireReasoningValue(
+          value,
+          reasoning === null
+            ? null
+            : reasoning.kind === 'effort'
+              ? { kind: 'effort', effortCount: efforts.length }
+              : { kind: 'max_tokens', minTokens: reasoning.minTokens, maxTokens: reasoning.maxTokens },
+        ),
+      ),
+  })
+
+  // 버튼이 막혀 있을 때 보이는 점검 항목 중 막힌 것들을 그대로 이유로 돌려준다.
+  function startBlockedReason(): string | null {
+    if (starting) return p.starting
+    if (run === null) return t.qa.errors.missingSelection
+    if (!blocked) return null
+    const reasons = checks.filter((check) => check.tone === 'bad').map((check) => check.title)
+    return reasons.length > 0 ? reasons.join(' ') : l.blockedHint
+  }
+
+  useActionBinding(QA_START_RUN_ACTION, {
+    target: () => runButton.current,
+    blocked: startBlockedReason,
+    run: createQaStartRunner({ start, blockedReason: startBlockedReason, blockedHint: l.blockedHint }),
+  })
 
   // ⌘↵ — 첫 렌더의 0 은 누른 것이 아니다.
   const lastShortcut = useRef(runShortcut)
@@ -270,14 +354,14 @@ export function LaunchPanel({
           </div>
         </div>
 
-        <div className="ql-field">
+        <div className="ql-field" ref={modelField}>
           <label className="ql-field-label" htmlFor={modelSelectId}>{l.agentLabel}</label>
           <QaModelPicker disabled={models.length === 0} id={modelSelectId} models={models} onChange={onModelChange} popoverWidth={460} value={modelKey} />
           {model !== null && reasoning === null && <p className="qa-reasoning-unavailable">{p.reasoningUnavailable}</p>}
         </div>
 
         {model !== null && reasoning !== null && (
-          <div className="ql-field">
+          <div className="ql-field" ref={reasoningField}>
             <span className="ql-field-head">
               <span className="ql-field-label">{l.reasoningTitle}</span>
               <InfoHint>{l.reasoningHint}</InfoHint>
@@ -382,6 +466,7 @@ export function LaunchPanel({
           aria-disabled={blocked}
           className={'ql-run' + (blocked ? ' is-blocked' : '')}
           onClick={() => void start()}
+          ref={runButton}
           type="button"
         >
           <span>{starting ? p.starting : blocked ? l.runBlocked : l.run}</span>

@@ -9,6 +9,7 @@ function texts(block: Block): string[] {
   if (block.kind === 'list') {
     return block.items.map((item) => item.content.map((part) => part.text).join(''))
   }
+  if (block.kind === 'fence') return [block.text]
   return block.header.map((cell) => cell.map((part) => part.text).join(''))
 }
 
@@ -194,6 +195,59 @@ test('승인 전 draft 를 가리키는 음수 번호 표식도 ref 조각이다
     { kind: 'ref', refKind: 'ts', id: -1, text: '' },
     { kind: 'text', text: '과 같은 범위' },
   ])
+})
+
+const OPT = { links: true, fences: true }
+
+test('a fence keeps its lines and drops the language tag', () => {
+  const body = '아래를 실행하세요.\n```bash\nnpm i\n\n  npx artel\n```\n끝'
+  assert.deepEqual(parseChatMarkdown(body, OPT), [
+    { kind: 'paragraph', lines: [[{ kind: 'text', text: '아래를 실행하세요.' }]] },
+    { kind: 'fence', text: 'npm i\n\n  npx artel' },
+    { kind: 'paragraph', lines: [[{ kind: 'text', text: '끝' }]] },
+  ])
+})
+
+test('a fence without a language tag is a fence', () => {
+  assert.deepEqual(parseChatMarkdown('```\na\n```', OPT), [{ kind: 'fence', text: 'a' }])
+  assert.deepEqual(parseChatMarkdown('```text\n- not a list\n```', OPT), [{ kind: 'fence', text: '- not a list' }])
+})
+
+test('an unclosed fence takes the rest of the message as code', () => {
+  assert.deepEqual(parseChatMarkdown('```sh\nnpm i\n\nmore', OPT), [{ kind: 'fence', text: 'npm i\n\nmore' }])
+})
+
+test('links: app path, http(s) url', () => {
+  const [paragraph] = parseChatMarkdown('[계정 설정](/account) 와 [문서](https://example.com/a?b=1)', OPT)
+  assert.deepEqual(paragraph, {
+    kind: 'paragraph',
+    lines: [[
+      { kind: 'link', text: '계정 설정', href: '/account', target: 'internal' },
+      { kind: 'text', text: ' 와 ' },
+      { kind: 'link', text: '문서', href: 'https://example.com/a?b=1', target: 'external' },
+    ]],
+  })
+})
+
+test('links with another scheme stay plain text', () => {
+  for (const href of ['javascript:alert(1)', 'data:text/html,x', '//evil.example', '/\\evil', 'mailto:a@b.c', 'account']) {
+    const parts = parseInline(`[x](${href})`, OPT)
+    assert.ok(parts.every((part) => part.kind === 'text'), href)
+    assert.equal(parts.map((part) => part.text).join(''), `[x](${href})`)
+  }
+})
+
+test('code inside link text stays text', () => {
+  assert.deepEqual(parseInline('[`npm`](/a)', OPT), [{ kind: 'link', text: '`npm`', href: '/a', target: 'internal' }])
+})
+
+test('default parsing ignores fences and links', () => {
+  const body = '```bash\nnpm i\n```\n[계정 설정](/account) `code`'
+  const blocks = parseChatMarkdown(body)
+  assert.ok(blocks.every((block) => block.kind === 'paragraph'))
+  assert.deepEqual(parseChatMarkdown(body, {}), blocks)
+  assert.deepEqual(parseInline('[a](/b)'), [{ kind: 'text', text: '[a](/b)' }])
+  assert.deepEqual(parseInline('[a](/b) `c`'), [{ kind: 'text', text: '[a](/b) ' }, { kind: 'code', text: 'c' }])
 })
 
 test('질문 답의 페이지 표식(테스트 런 · QA 실행 · 이슈 · 빌드)도 ref 조각이다', () => {
