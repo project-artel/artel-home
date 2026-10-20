@@ -2,6 +2,7 @@ import { useMemo, type CSSProperties } from 'react'
 import { Link, Outlet, useLocation, useParams } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
 import { AgentChatPanel, AgentReopenButton, AgentSplitHandle } from '../../projectAgent/AgentDock'
+import { AgentSessionProvider } from '../../projectAgent/chat/AgentSessionProvider'
 import { ActionRegistryProvider } from '../../projectAgent/registry'
 import { useAgentDock } from '../../projectAgent/useAgentDock'
 import { formatDate } from '../formatters'
@@ -182,8 +183,10 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
     (dock.open ? (agentHome ? ' has-agent-home' : ' has-agent') : dock.enabled ? ' has-agent-closed' : '') +
     (dock.splitting ? ' is-splitting' : '')
 
+  // 대화 session 은 대화창 밖에 둔다. 대화창을 닫아도 agent 가 하던 일을 계속한다.
   return (
     <ActionRegistryProvider projectId={projectId}>
+    <AgentSessionProvider enabled={dock.enabled} panelOpen={dock.open} projectId={projectId}>
     <div
       className={workspaceClass}
       style={dock.open ? ({ '--agent-chat-w': `${dock.chatWidth}px` } as CSSProperties) : undefined}
@@ -234,6 +237,7 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
       {dock.open && <AgentChatPanel onClose={dock.closeChat} wide={agentHome} />}
       {dock.enabled && !dock.open && <AgentReopenButton onOpen={dock.openChat} />}
     </div>
+    </AgentSessionProvider>
     </ActionRegistryProvider>
   )
 }
