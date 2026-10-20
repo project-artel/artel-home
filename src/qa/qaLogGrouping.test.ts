@@ -8,7 +8,9 @@ import {
   formatToolResult,
   hiddenLogTargets,
   newestOf,
+  outcomeHeadOf,
   toolCallOf,
+  verdictOf,
   toolOutputOf,
   toolResultSummary,
 } from './qaLogGrouping'
@@ -322,4 +324,85 @@ test('the answer body is the string the tool returned', () => {
   assert.equal(toolOutputOf({ content: 'scene: Lobby' }), 'scene: Lobby')
   assert.equal(toolOutputOf({ content: '' }), null)
   assert.equal(toolOutputOf(null), null)
+})
+
+test('the outcome head is what the tool said before it dumped the screen', () => {
+  // `click` 이 실제로 돌려준 모양. 결과 세 줄 뒤에 `<<pulse>>` 덤프가 붙는다.
+  assert.equal(
+    outcomeHeadOf(
+      [
+        '  move_mouse: ok',
+        '  mouse_down: 닿은 것 없음 — 그 자리에 누를 것이 없다',
+        '  mouse_up: ok',
+        '',
+        '<<pulse>>',
+        'reading 41 · frame 3309 · scene Map_scene',
+        'could not read: 514',
+      ].join('\n'),
+    ),
+    'move_mouse: ok · mouse_down: 닿은 것 없음 — 그 자리에 누를 것이 없다 · mouse_up: ok',
+  )
+})
+
+test('the outcome head stops at the content map, which is not an outcome', () => {
+  assert.equal(
+    outcomeHeadOf(
+      [
+        'Recorded. 20 step(s) left — continue with step 2.',
+        '',
+        'content map: you are on screen 33 of Map_scene',
+        '  told apart by: Canvas[7]/Button (Legacy)[0] on',
+      ].join('\n'),
+    ),
+    'Recorded. 20 step(s) left — continue with step 2.',
+  )
+})
+
+test('a tool failure is kept whole, because that is the line worth reading', () => {
+  assert.equal(
+    outcomeHeadOf('  key_click: FAILED — key_click requires params [keyCode, positiveDurationSeconds].'),
+    'key_click: FAILED — key_click requires params [keyCode, positiveDurationSeconds].',
+  )
+})
+
+test('the outcome head is null when the tool said nothing of its own', () => {
+  assert.equal(outcomeHeadOf(''), null)
+  assert.equal(outcomeHeadOf('<<pulse>>\nreading 41'), null)
+  assert.equal(outcomeHeadOf(null), null)
+})
+
+test('a long outcome head is cut, because the flow row holds one line', () => {
+  const head = outcomeHeadOf('x'.repeat(400))
+  assert.equal(head?.length, 160)
+  assert.ok(head?.endsWith('…'))
+})
+
+test('a step report says its verdict, not the prompt text the tool echoed back', () => {
+  const call = toolCallOf(
+    toolLog('1', 'report_step', {
+      step: 3,
+      passed: false,
+      thought: '적 HP 가 변했는지 본다',
+      message: '적 HP 표시가 10에서 변하지 않았다',
+    }),
+  )
+
+  assert.deepEqual(verdictOf(call), { passed: false, message: '적 HP 표시가 10에서 변하지 않았다' })
+})
+
+test('only a step report carries a verdict', () => {
+  assert.equal(verdictOf(toolCallOf(toolLog('1', 'click', { step: 1, thought: '누른다' }))), null)
+  assert.equal(verdictOf(null), null)
+})
+
+test('a step report without a verdict flag is not read as one', () => {
+  // `passed` 가 없으면 통과인지 실패인지 지어낼 수 없다. 그때는 결과 머리로 돌아간다.
+  assert.equal(verdictOf(toolCallOf(toolLog('1', 'report_step', { step: 1, thought: '적는다' }))), null)
+})
+
+test('a verdict with no message is still a verdict', () => {
+  assert.deepEqual(
+    verdictOf(toolCallOf(toolLog('1', 'report_step', { step: 1, passed: true, thought: '적는다' }))),
+    { passed: true, message: null },
+  )
 })

@@ -11,7 +11,9 @@ import {
   formatToolResult,
   hiddenLogTargets,
   newestOf,
+  outcomeHeadOf,
   toolCallOf,
+  verdictOf,
   toolOutputOf,
   toolResultSummary,
   type TimelineEvent,
@@ -154,6 +156,77 @@ function QaFoldedEvent({
         </details>
       )}
       {event.result !== null && <QaCallResult result={event.result} />}
+    </li>
+  )
+}
+
+/**
+ * `흐름` 한 행: Agent 가 무엇을 생각했고 무엇을 했는지, 두 줄.
+ *
+ * 칩도 배지도 경로도 반복수도 없다. 그것들은 `Raw` 탭이 그대로 그린다. 이 탭은 런을
+ * 따라 읽는 자리이고, 읽는 사람이 찾는 것은 그 두 줄이다.
+ *
+ * `행동` 줄의 뒷부분은 tool 이 돌려준 결과의 머리다 — `args` 를 쓰지 않는 이유는 `click`
+ * 이 `target: "#26570"` 으로 오기 때문이다. 그 숫자는 사람이 읽을 수 없고, 같은 왕복의
+ * 결과는 `mouse_down: 닿은 것 없음` 이라고 말한다.
+ */
+function QaFlowRow({
+  focusedLogId,
+  row,
+}: {
+  focusedLogId: string | null
+  row: TimelineRow
+}) {
+  const { t } = useI18n()
+  const text = t.qa.run
+  const log = newestOf(row)
+  const newestEvent = row.events[row.events.length - 1]
+  const call = log.type === 'TOOL' ? toolCallOf(log) : null
+  const result = newestEvent.result
+  const summary = result === null ? null : toolResultSummary(result[result.length - 1].payload)
+  // 판정은 tool 의 답이 아니라 모델이 낸 값에서 읽는다 — `report_step` 의 답은 결과가 아니라
+  // 다음에 할 일을 이르는 프롬프트 문구다.
+  const verdict = verdictOf(call)
+  const outcome =
+    verdict !== null
+      ? [verdict.passed ? text.flowPassed : text.flowFailed, verdict.message]
+          .filter((part): part is string => part !== null)
+          .join(' · ')
+      : result === null
+        ? null
+        : outcomeHeadOf(toolOutputOf(result[result.length - 1].payload))
+  const failed = verdict !== null ? !verdict.passed : summary !== null && summary.failed > 0
+
+  // tool 을 부르지 않은 프레임(STATUS·ERROR 등)은 생각이 없다. 한 줄로 둔다.
+  const thought = call === null ? null : (call.thought ?? text.flowNoThought)
+  const did = call !== null ? call.tool : log.message
+
+  return (
+    <li
+      className={`qa-flow-row${failed ? ' qa-flow-row--failed' : ''}${log.id === focusedLogId ? ' qa-flow-row--focused' : ''}`}
+      data-log-id={log.id}
+      tabIndex={-1}
+    >
+      <div className="qa-log-marker" aria-hidden="true" />
+      <article aria-labelledby={`qa-log-${log.id}-message`}>
+        {thought !== null && (
+          <p className="qa-flow-line qa-flow-line--thought">
+            <span className="qa-flow-label">{text.flowThought}</span>
+            <span className="qa-flow-text">{thought}</span>
+          </p>
+        )}
+        <p className="qa-flow-line qa-flow-line--action" id={`qa-log-${log.id}-message`}>
+          <span className="qa-flow-label">{text.flowAction}</span>
+          <span className="qa-flow-text">
+            {call !== null ? (
+              <span className="qa-flow-tool mono" translate="no">{did}</span>
+            ) : (
+              did
+            )}
+            {outcome !== null && <span className="qa-flow-outcome">{outcome}</span>}
+          </span>
+        </p>
+      </article>
     </li>
   )
 }
@@ -323,10 +396,13 @@ export function QaLogTimeline({
   historyLoading,
   live,
   loadOlder,
+  flow = false,
   logs,
   onFocusResolved,
   scenarioSteps = [],
 }: {
+  /** `흐름` 탭인가. true 면 한 행이 생각 · 행동 두 줄이고, 그 밖은 `Raw` 와 같다. */
+  flow?: boolean
   focusRequest: QaLogFocusRequest | null
   hasMore: boolean
   historyFailure: string | null
@@ -616,13 +692,21 @@ export function QaLogTimeline({
           }
           const anchor = anchorOf(item.row)
           return (
-            <QaLogRow
-              expanded={expandedRows.has(anchor)}
-              focusedLogId={focusedLogId}
-              key={newestOf(item.row).id}
-              onToggle={() => toggleRow(anchor)}
-              row={item.row}
-            />
+            flow ? (
+              <QaFlowRow
+                focusedLogId={focusedLogId}
+                key={newestOf(item.row).id}
+                row={item.row}
+              />
+            ) : (
+              <QaLogRow
+                expanded={expandedRows.has(anchor)}
+                focusedLogId={focusedLogId}
+                key={newestOf(item.row).id}
+                onToggle={() => toggleRow(anchor)}
+                row={item.row}
+              />
+            )
           )
         })}
       </ol>

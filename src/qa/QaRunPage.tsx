@@ -22,6 +22,7 @@ import { QaBehaviorLanes } from './QaBehaviorLanes'
 import { QaFocusStage } from './QaFocusStage'
 import { QaRunFunctionOptions } from './QaFunctionOptionsSummary'
 import { QaLogTimeline, type QaLogFocusRequest } from './QaLogTimeline'
+import { toolCallOf } from './qaLogGrouping'
 import { QaScenarioRail, type QaScenarioRailProps } from './QaScenarioRail'
 import { deriveCaseVerdicts, deriveQaContextUsage, deriveQaProgress, isQaContextLog } from './qaProgress'
 import { isTerminalQaStatus, type QaLog, type QaRun, type QaTry } from './qaTypes'
@@ -71,13 +72,23 @@ function QaRunMissing({ projectId }: { projectId: string }) {
 // 전송 프레임을 봐야 할 때는 Raw 탭이 그대로 들고 있다.
 const FLOW_TYPES = new Set<QaLog['type']>([
   'TOOL',
+  // 행으로 서지 않는다 — `buildTimelineRows` 가 자기 `TOOL` 의 결과로 삼킨다. 빼면
+  // `행동` 줄의 결과가 사라지므로, 보이지 않아도 들여보내야 한다.
   'TOOL_RESULT',
-  'STATUS',
   'ERROR',
   'CHAT',
   // behavior 가 끝난 이유는 흐름에서 읽혀야 하는 사건이다(ARTEL-1051).
   'BEHAVIOR_ENDED',
 ])
+
+/**
+ * `흐름` 에서 빼는 tool.
+ *
+ * `skip_memory_update` 는 "적을 것이 없다"를 말하는 기록용 호출이다. try 33 한 판에서
+ * 22회 불렸고 **전부 `thought` 가 없다** — 생각도 행동도 아니면서 흐름의 29%를 차지한다.
+ * 빠진 호출은 `Raw` 탭에 그대로 있다.
+ */
+const FLOW_TOOLS_HIDDEN = new Set(['skip_memory_update'])
 
 /** How often the console re-reads the run while it is still going. */
 const POLL_INTERVAL_MS = 3000
@@ -385,7 +396,13 @@ function FocusedTry({ qaRun, rail, tryId }: { qaRun: QaRun; rail: QaScenarioRail
   const shownLogs = useMemo(() => {
     // Context readings are shown by the gauge, in one place, not as a line per model call.
     const withoutContext = session.logs.filter((log) => !isQaContextLog(log))
-    return logView === 'flow' ? withoutContext.filter((log) => FLOW_TYPES.has(log.type)) : withoutContext
+    if (logView !== 'flow') return withoutContext
+    return withoutContext.filter((log) => {
+      if (!FLOW_TYPES.has(log.type)) return false
+      // `TOOL` 과 그 `TOOL_RESULT` 를 함께 뺀다. 답만 남으면 주인 없는 결과가 된다.
+      const tool = toolCallOf(log)?.tool
+      return tool === undefined || !FLOW_TOOLS_HIDDEN.has(tool)
+    })
   }, [logView, session.logs])
 
   // Carried over from the retired `QaTryPage` (ARTEL-723): a failed load needs
@@ -494,6 +511,7 @@ function FocusedTry({ qaRun, rail, tryId }: { qaRun: QaRun; rail: QaScenarioRail
               <QaTryIssuePanel projectId={rail.projectId} qaTryId={session.qaTry.id} />
             ) : (
               <QaLogTimeline
+                flow={logView === 'flow'}
                 focusRequest={focusRequest}
                 hasMore={session.hasMore}
                 historyFailure={session.historyFailure}

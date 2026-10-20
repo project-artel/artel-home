@@ -421,6 +421,14 @@ export const qaEn = {
     logsTitle: 'Activity log',
     logsFlow: 'Flow',
     logsRaw: 'Raw',
+    /** `흐름` 한 행의 두 줄. Agent 가 무엇을 생각했고 무엇을 했는지만 읽는다. */
+    flowThought: 'Thought',
+    flowAction: 'Did',
+    /** `thought` 를 안 보낸 호출. 빈 줄로 두면 행이 무너진다. */
+    flowNoThought: 'No reason given',
+    /** `report_step` 의 `행동` 줄. tool 이 돌려주는 안내문 대신 판정을 보인다. */
+    flowPassed: 'passed',
+    flowFailed: 'failed',
     liveGame: 'Live game',
     endedGame: 'Execution ended · stored logs',
     selectScenario: 'Select a scenario to inspect its run.',
@@ -897,6 +905,11 @@ export const qaKo: Localized<typeof qaEn> = {
     logsTitle: '활동 로그',
     logsFlow: '흐름',
     logsRaw: 'Raw',
+    flowThought: '생각',
+    flowAction: '행동',
+    flowNoThought: '이유를 적지 않았다',
+    flowPassed: '통과',
+    flowFailed: '실패',
     liveGame: '실시간 게임',
     endedGame: '실행 종료 · 저장된 로그',
     selectScenario: '시나리오를 선택하면 해당 실행을 봅니다.',

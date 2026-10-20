@@ -355,6 +355,72 @@ export function toolOutputOf(payload: unknown): string | null {
   return typeof record.content === 'string' && record.content.length > 0 ? record.content : null
 }
 
+/** `report_step` 이 낸 판정. 통과 여부와, 모델이 적은 한 줄. */
+export type StepVerdict = {
+  passed: boolean
+  message: string | null
+}
+
+/**
+ * 이 호출이 판정이면 그 판정을, 아니면 null.
+ *
+ * `흐름` 의 `행동` 줄이 `report_step` 에서만 결과 머리 대신 이것을 쓴다. tool 이 돌려주는
+ * 것이 결과가 아니라 **다음에 할 일을 이르는 프롬프트 문구**이기 때문이다 — 실측으로
+ * try 46 의 흐름 27행 중 23행이 `report_step` 이고, 그 결과는 전부
+ * `"Recorded. 22 step(s) left — … A failed step is not a reason to stop."` 였다.
+ * 읽는 사람이 찾는 것은 그 문장이 아니라 통과했는지다.
+ *
+ * `passed` 가 없으면 null 이다. 통과인지 실패인지 지어내지 않고 결과 머리로 돌아간다.
+ */
+export function verdictOf(call: ToolCall | null): StepVerdict | null {
+  if (call === null || call.tool !== 'report_step') return null
+  const passed = call.args.passed
+  if (typeof passed !== 'boolean') return null
+  const message = call.args.message
+  return {
+    passed,
+    message: typeof message === 'string' && message.length > 0 ? message : null,
+  }
+}
+
+/** `흐름` 한 줄에 담기는 길이. 넘는 것은 자르고 `…` 를 붙인다. */
+const OUTCOME_HEAD_LIMIT = 160
+
+/**
+ * tool 이 돌려준 본문에서 **결과만** 떼어 한 줄로 만든다.
+ *
+ * `흐름` 탭의 `행동` 줄이 쓴다. tool 의 답은 결과 몇 줄 뒤에 `<<pulse>>` 화면 덤프와
+ * `content map:` 설명이 붙어 오는데(측정: `click` 한 번의 답이 1,800자), 그 둘은 이 tool 이
+ * 무엇을 했는지에 대해 아무것도 말하지 않는다. 읽을 것은 그 앞이다.
+ *
+ * 결과가 여러 줄일 때 첫 줄만 쓰지 않는 이유는 `click` 이다 — `move_mouse: ok` 가 첫 줄이고
+ * 정작 읽어야 하는 `mouse_down: 닿은 것 없음` 이 둘째 줄이다. 그래서 잘라낸 앞부분을
+ * 전부 이어 붙인다.
+ *
+ * tool 이 자기 말을 하나도 안 했으면 null 이다. `행동` 줄은 그때 도구 이름만 보인다.
+ */
+export function outcomeHeadOf(content: string | null | undefined): string | null {
+  if (typeof content !== 'string' || content.length === 0) return null
+
+  let head = content
+  const pulse = head.indexOf('<<pulse>>')
+  if (pulse !== -1) head = head.slice(0, pulse)
+
+  const lines: string[] = []
+  for (const raw of head.split('\n')) {
+    const line = raw.trim()
+    // `content map:` 아래는 들여쓴 설명이 이어지므로, 만나는 자리에서 끊는다.
+    if (line.startsWith('content map:')) break
+    if (line.length > 0) lines.push(line)
+  }
+  if (lines.length === 0) return null
+
+  const joined = lines.join(' · ')
+  return joined.length <= OUTCOME_HEAD_LIMIT
+    ? joined
+    : `${joined.slice(0, OUTCOME_HEAD_LIMIT - 1)}…`
+}
+
 /** ACTION_RESULT 하나가 말하는 것: 몇 개가 돌았고 그중 몇 개가 실패했는지. */
 export type ToolResultSummary = {
   total: number
