@@ -11361,6 +11361,7 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
 /* ── 판정 근거 (ARTEL-1135) ─────────────────────────────────────────────
    QA 히스토리 안 페이지(qa-history/:qaRunId). 위: 출처 · 시나리오 · 스텝 내비게이터, 아래: 스텝 목록 | 고른 스텝의 근거.
    스크롤은 모두 `EdgeScrollbar`(오른쪽 · 가로)로 넘긴다. */
+.workspace-body:has(.qv) .section-header { width: 100%; }
 .section-content:has(.qv) { display: flex; flex: 1; flex-direction: column; width: 100%; min-height: 0; padding: 0; }
 .qv { display: flex; flex: 1; flex-direction: column; min-height: 0; padding: var(--space-3) var(--space-6) 0; border-top: 1px solid var(--color-border-subtle); color: var(--color-text-primary); }
 .qv-muted { color: var(--color-text-muted); font-size: 13px; }
@@ -11372,7 +11373,10 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
 .qv-ctx { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: var(--space-3) 0 0; }
 .qv-chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border: 1px solid var(--color-border-subtle); border-radius: 999px; font-size: 12px; color: var(--color-text-secondary); background: var(--color-bg-surface); }
 .qv-chip b { color: var(--color-text-primary); font-weight: 600; }
-.qv-scenarios { display: flex; gap: 6px; flex-wrap: wrap; padding-top: var(--space-3); }
+.qv-scn-switch { display: inline-flex; align-items: center; gap: 4px; }
+.qv-scn-step { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--color-border-strong); background: transparent; color: var(--color-text-primary); font: 600 15px var(--font-mono); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.qv-scn-step:disabled { opacity: .35; cursor: default; }
+.qv-scn-step:not(:disabled):hover { border-color: var(--color-action-primary); color: var(--color-action-primary); }
 
 .qv-scn { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4) 0 var(--space-3); border-bottom: 1px solid var(--color-border-subtle); }
 .qv-scn-head { display: flex; align-items: baseline; gap: var(--space-3); flex-wrap: wrap; }

@@ -77,6 +77,21 @@ export function QaVerdictsSection() {
       { replace: true },
     )
 
+  // 같은 실행의 앞뒤 시나리오로. 고른 스텝은 비워서 그 시나리오의 첫 실패(없으면 첫 판정)가 열린다.
+  const goScenario = (index: number) => {
+    const target = data?.tries[index]
+    if (target === undefined) return
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current)
+        next.set('scenario', target.qaTryId)
+        next.delete('step')
+        return next
+      },
+      { replace: true },
+    )
+  }
+
   const historyPath = `/projects/${encodeURIComponent(projectId)}/qa-history`
 
   if (state !== 'ready' || data === null) {
@@ -125,30 +140,33 @@ export function QaVerdictsSection() {
         {elapsed !== null && <span className="qv-muted mono">{formatElapsedSeconds(elapsed)}</span>}
       </div>
 
-      {data.tries.length > 1 && (
-        <div className="qv-scenarios" role="tablist" aria-label={copy.scenarioOf(scenarioIndex + 1, data.tries.length)}>
-          {data.tries.map((qaTry, index) => (
-            <button
-              aria-selected={index === scenarioIndex}
-              className={index === scenarioIndex ? 'fchip on' : 'fchip'}
-              key={qaTry.qaTryId}
-              onClick={() => choose({ scenario: qaTry.qaTryId, step: '' })}
-              role="tab"
-              type="button"
-            >
-              {index + 1}. {qaTry.scenarioTitle}
-            </button>
-          ))}
-        </div>
-      )}
-
       {scenario === null || rows.length === 0 ? (
         <p className="panel-empty">{copy.noSteps}</p>
       ) : (
         <>
           <section className="qv-scn">
             <div className="qv-scn-head">
-              <span className="qv-scn-tag mono">{copy.scenarioOf(scenarioIndex + 1, data.tries.length)}</span>
+              <span className="qv-scn-switch">
+                <button
+                  aria-label={copy.previousScenario}
+                  className="qv-scn-step"
+                  disabled={scenarioIndex === 0}
+                  onClick={() => goScenario(scenarioIndex - 1)}
+                  type="button"
+                >
+                  ‹
+                </button>
+                <span className="qv-scn-tag mono">{copy.scenarioOf(scenarioIndex + 1, data.tries.length)}</span>
+                <button
+                  aria-label={copy.nextScenario}
+                  className="qv-scn-step"
+                  disabled={scenarioIndex >= data.tries.length - 1}
+                  onClick={() => goScenario(scenarioIndex + 1)}
+                  type="button"
+                >
+                  ›
+                </button>
+              </span>
               <h1 className="qv-scn-title" id="qv-scenario-title">{scenario.scenarioTitle}</h1>
               <span className="qv-muted mono">
                 {copy.summary(tally.checks, tally.passed, tally.failed, tally.actions, tally.issues)}

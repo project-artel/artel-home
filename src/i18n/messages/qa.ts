@@ -510,6 +510,8 @@ export const qaEn = {
     testRun: 'TR',
     model: 'Model',
     scenarioOf: (n: number, total: number) => `Scenario ${n} / ${total}`,
+    previousScenario: 'Previous scenario',
+    nextScenario: 'Next scenario',
     summary: (checks: number, passed: number, failed: number, actions: number, issues: number) =>
       `${checks} checks · ${passed} passed · ${failed} failed · ${actions} actions · ${issues} issues`,
     range: (from: number, to: number, total: number) => `${from}–${to} / ${total}`,
@@ -1031,6 +1033,8 @@ export const qaKo: Localized<typeof qaEn> = {
     testRun: 'TR',
     model: '모델',
     scenarioOf: (n: number, total: number) => `시나리오 ${n} / ${total}`,
+    previousScenario: '이전 시나리오',
+    nextScenario: '다음 시나리오',
     summary: (checks: number, passed: number, failed: number, actions: number, issues: number) =>
       `검증 ${checks} · 통과 ${passed} · 실패 ${failed} · 행동 ${actions} · 이슈 ${issues}`,
     range: (from: number, to: number, total: number) => `${from}–${to} / ${total}`,
