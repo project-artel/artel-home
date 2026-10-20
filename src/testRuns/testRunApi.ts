@@ -344,6 +344,36 @@ export async function getRunCoverage(
 }
 
 /**
+ * 런의 케이스 중 켜진 게임의 버전에 없는 것(ARTEL-1070). QA 는 이 케이스들을 판정하지 않고 넘긴다.
+ * `gameBuildId` 는 판정이 속할 게임 빌드이고, 게임 버전을 모르면 null 이며 목록은 비어 있다.
+ */
+export type RunCasesOutsideBuild = { gameBuildId: string | null; testCaseIds: string[] }
+
+export function parseRunCasesOutsideBuild(data: unknown): RunCasesOutsideBuild {
+  const record = asRecord(data)
+  const ids = Array.isArray(record?.testCaseIds) ? record.testCaseIds : []
+  return {
+    gameBuildId: asNullableString(record?.gameBuildId),
+    testCaseIds: ids.map((id) => asString(id)).filter((id) => id.length > 0),
+  }
+}
+
+/** `GET /api/projects/{projectId}/test-runs/{runId}/cases-outside-build?gameInstanceId=`. */
+export async function getRunCasesOutsideBuild(
+  projectId: string,
+  runId: string,
+  gameInstanceId: string,
+  signal?: AbortSignal,
+): Promise<RunCasesOutsideBuild> {
+  const response = await apiFetch(
+    `${runsRoot(projectId)}/${encodeURIComponent(runId)}/cases-outside-build?gameInstanceId=${encodeURIComponent(gameInstanceId)}`,
+    { signal },
+  )
+  if (!response.ok) throw await toApiError(response)
+  return parseRunCasesOutsideBuild(await readJson(response))
+}
+
+/**
  * `PUT /api/projects/{projectId}/test-runs/{runId}/game-build` — move the run to another build version or folder (ARTEL-1049).
  * `null` means no version. Its scenarios stay; authoring follows the new version from the next turn.
  */

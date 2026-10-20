@@ -61,6 +61,8 @@ export const qaEn = {
       basis: (run: string, game: string) =>
         `This test is based on the cases of version ${run}. The game that is on now is version ${game}.`,
       record: (game: string) => `You can still run QA, but the results are recorded on the cases of version ${game}.`,
+      skipped: (count: number, game: string) =>
+        `${count} of this test's cases are not in version ${game}, so they run without a verdict.`,
     },
     runPlaceholder: 'Select a test run',
     noRuns: 'Create a test run first.',
@@ -189,6 +191,7 @@ export const qaEn = {
       disconnected: 'Game is not connected',
       versionOk: (version: string) => `Same version · ${version}`,
       versionDiff: 'Versions differ',
+      casesSkipped: (count: number) => `${count} case${count === 1 ? '' : 's'} not judged`,
       scenarios: (count: number) => `${count} scenario${count === 1 ? '' : 's'}`,
       noScenarios: 'This run has no scenarios',
       keyOk: 'Model key available',
@@ -556,6 +559,7 @@ export const qaKo: Localized<typeof qaEn> = {
       basis: (run: string, game: string) =>
         `이 테스트는 ${run} 버전의 케이스를 기반으로 하고 있습니다. 현재 켜진 게임의 버전은 ${game}입니다.`,
       record: (game: string) => `QA 진행은 가능하나, ${game} 버전의 케이스에 기록이 남습니다.`,
+      skipped: (count: number, game: string) => `이 테스트의 케이스 중 ${count}건은 ${game} 버전에 없어 판정 없이 넘어갑니다.`,
     },
     runPlaceholder: '테스트 런을 선택하세요',
     noRuns: '테스트 런을 먼저 만드세요.',
@@ -684,6 +688,7 @@ export const qaKo: Localized<typeof qaEn> = {
       disconnected: '게임이 연결되지 않음',
       versionOk: (version: string) => `버전 일치 · ${version}`,
       versionDiff: '버전이 다름',
+      casesSkipped: (count: number) => `판정 없이 넘어가는 케이스 ${count}건`,
       scenarios: (count: number) => `시나리오 ${count}개`,
       noScenarios: '이 런에 시나리오가 없음',
       keyOk: '모델 키 있음',

@@ -22,11 +22,14 @@ export function TestCaseModal({
   caseId,
   label,
   onClose,
+  gameBuildId = null,
 }: {
   projectId: string
   caseId: number
   label: string
   onClose: () => void
+  /** 이 버전의 내용과 판정으로 보인다(ARTEL-1070). 없으면 최신이다. */
+  gameBuildId?: string | null
 }) {
   const { t } = useI18n()
   const m = t.scenarios.tcModal
@@ -39,7 +42,7 @@ export function TestCaseModal({
   useEffect(() => {
     const controller = new AbortController()
     setState('loading')
-    getTestCase(projectId, String(caseId), controller.signal)
+    getTestCase(projectId, String(caseId), controller.signal, { gameBuildId })
       .then((tc) => { setTestCase(tc); setState('ready') })
       .catch((error) => {
         if (error instanceof DOMException && error.name === 'AbortError') return
@@ -49,7 +52,7 @@ export function TestCaseModal({
       .then(setHistory)
       .catch(() => setHistory([]))
     return () => controller.abort()
-  }, [projectId, caseId])
+  }, [projectId, caseId, gameBuildId])
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
