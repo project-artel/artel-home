@@ -200,6 +200,10 @@ export function SdkInstallGuide() {
         </button>
       </div>
 
+      {/* Only names the skills that matter for this guide; the install command
+          lives in the agent skills block below it (`AgentSkillsInstall`). */}
+      <p className="guide-copy guide-skills">{t.projects.guide.skillsIntro}</p>
+
       {/* The key is durable and has no re-issue endpoint, so it is worth saying
           plainly that closing this view does not lose it. */}
       <p className="guide-note">{t.projects.guide.note}</p>

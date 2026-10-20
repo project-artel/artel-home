@@ -5,7 +5,9 @@ import { GameStreamView } from '../streaming/GameStreamView'
 import { QaTryIssuePanel } from '../issues/QaTryIssuePanel'
 import { listTestScenarios } from '../testScenarios/scenarioApi'
 import { cancelQaRun, getQaRun, isDecimalId } from './qaApi'
+import { QaBehaviorLanes } from './QaBehaviorLanes'
 import { QaFocusStage } from './QaFocusStage'
+import { QaRunFunctionOptions } from './QaFunctionOptionsSummary'
 import { QaLogTimeline, type QaLogFocusRequest } from './QaLogTimeline'
 import { QaScenarioRail, type QaScenarioRailProps } from './QaScenarioRail'
 import { deriveCaseVerdicts, deriveQaContextUsage, deriveQaProgress, isQaContextLog } from './qaProgress'
@@ -63,6 +65,8 @@ const FLOW_TYPES = new Set<QaLog['type']>([
   'STATUS',
   'ERROR',
   'CHAT',
+  // behavior 가 끝난 이유는 흐름에서 읽혀야 하는 사건이다(ARTEL-1051).
+  'BEHAVIOR_ENDED',
 ])
 
 /** How often the console re-reads the run while it is still going. */
@@ -216,6 +220,7 @@ function QaRunPage({
 
   const rail: QaScenarioRailProps = {
     projectId,
+    gameBuildId: run.testRunGameBuildId,
     tries: run.tries,
     activeTryId,
     focusedTryId,
@@ -413,9 +418,13 @@ function FocusedTry({ qaRun, rail, tryId }: { qaRun: QaRun; rail: QaScenarioRail
               <span className="qa-focus-logs-count mono">{t.qa.run.logsCount(session.logs.length)}</span>
             </div>
           </header>
+          <div className="gf-logs-extras">
+            <QaRunFunctionOptions qaTryId={session.qaTry.id} />
+            <QaBehaviorLanes logs={session.logs} onJump={jumpToLog} />
+          </div>
           <div className="qa-focus-logs-body">
             {logView === 'issues' ? (
-              <QaTryIssuePanel qaTryId={session.qaTry.id} />
+              <QaTryIssuePanel projectId={rail.projectId} qaTryId={session.qaTry.id} />
             ) : (
               <QaLogTimeline
                 focusRequest={focusRequest}

@@ -6,13 +6,16 @@ import type { GameInstance } from '../../projects/gameTypes'
 import { sectionHref } from '../../projects/workspace/sections'
 import { useWorkspace } from '../../projects/workspace/workspaceContext'
 import { folderPath } from '../../testRuns/runLibrary'
+import { getRunCoverage } from '../../testRuns/testRunApi'
 import { listRunFolders, type RunFolder } from '../../testRuns/testRunFolders'
 import { ChevronDownIcon, PencilIcon } from '../qaModelIcons'
+import { archEngine, type QaArchSelection } from '../qaArch'
 import { offeredQaModels } from '../qaModelGroups'
+import { readLastArch } from '../qaStartChoices'
 import { qaModelOptionKey, type QaModel } from '../qaTypes'
 import { byAscendingEffort } from '../reasoningEfforts'
 import { ConsolesDialog } from './ConsolesDialog'
-import { LaunchPanel } from './LaunchPanel'
+import { LaunchPanel, type FreeScenarioCount } from './LaunchPanel'
 import { ProviderLogo } from './ProviderLogo'
 import {
   getSinceLastQa,
@@ -73,7 +76,7 @@ function reasoningStart(model: QaModel | undefined): number {
 export function QaLaunch() {
   const { t } = useI18n()
   const l = t.qa.launch
-  const { projectId, runs, instances, builds, models, refreshGameState, applyInstance, removeInstance, applyBuild } = useWorkspace()
+  const { projectId, runs, instances, builds, models, applyInstance, removeInstance, applyBuild } = useWorkspace()
   const offered = useMemo(() => offeredQaModels(models), [models])
 
   /**
@@ -81,6 +84,8 @@ export function QaLaunch() {
    * 밀어 넣으면 목록이 늦게 도착할 때마다 덮어쓰기 경쟁이 생긴다.
    */
   const [choice, setChoice] = useState<Choice>({})
+  // agent 구조는 서버의 실행 기록에 없으므로(ARTEL-1091) 마지막으로 시작한 값을 이 브라우저에서 읽는다.
+  const [arch, setArch] = useState<QaArchSelection>(() => readLastArch())
 
   const [pickerOpen, setPickerOpen] = useState(false)
   const pickerAnchor = useRef<HTMLDivElement>(null)
@@ -146,6 +151,24 @@ export function QaLaunch() {
   }, [projectId, run])
   const since = run !== null && sinceOf?.runId === run.id ? sinceOf.value : null
   const sinceStatus: Load = run === null || sinceOf?.runId !== run.id ? 'loading' : sinceOf.value === null ? 'failed' : 'ready'
+
+  // `planner_executer` 는 ORDERED 시나리오만 돌린다(ARTEL-1119). 런의 FREE 시나리오 수는 그 엔진을 골랐을
+  // 때만 읽는다 — 기본 엔진으로 돌리는 대부분의 실행에 요청을 하나 더 얹지 않기 위해서다.
+  // `coverage` 응답이 시나리오마다 `execution_mode` 를 준다.
+  const engine = archEngine(arch)
+  const [freeOf, setFreeOf] = useState<{ runId: string; value: number | 'failed' } | null>(null)
+  useEffect(() => {
+    if (run === null || engine !== 'planner_executer') return
+    const controller = new AbortController()
+    getRunCoverage(projectId, run.id, controller.signal)
+      .then((coverage) => setFreeOf({ runId: run.id, value: coverage.scenarios.filter((scenario) => scenario.executionMode === 'FREE').length }))
+      // 본문을 읽는 도중 취소되면 readJson 이 AbortError 를 ProjectApiError 로 감싼다. 오류 종류 대신 signal 로 가른다.
+      .catch(() => {
+        if (!controller.signal.aborted) setFreeOf({ runId: run.id, value: 'failed' })
+      })
+    return () => controller.abort()
+  }, [projectId, run, engine])
+  const freeScenarios: FreeScenarioCount = run !== null && freeOf?.runId === run.id ? freeOf.value : 'loading'
 
   // ⌘K 런 찾기, ⌘↵ 실행. 입력 중이어도 듣는다 — 둘 다 글자를 넣는 조합이 아니다.
   useEffect(() => {
@@ -276,17 +299,20 @@ export function QaLaunch() {
       </div>
 
       <LaunchPanel
+        arch={arch}
+        builds={builds}
         etaMs={lastDuration}
+        freeScenarios={freeScenarios}
         instanceId={instanceId}
         instances={instances}
         modelKey={modelKey}
         models={offered}
         onInstanceChange={(next) => setChoice((current) => ({ ...current, instanceId: next }))}
+        onArchChange={setArch}
         onManageConsoles={() => setConsolesOpen(true)}
         onModelChange={pickModel}
         onReasoningEnabled={(value) => setChoice((current) => ({ ...current, reasoningEnabled: value }))}
         onReasoningValue={(value) => setChoice((current) => ({ ...current, reasoningValue: value }))}
-        onRefreshConsoles={refreshGameState}
         projectId={projectId}
         reasoningEnabled={reasoningEnabled}
         reasoningValue={reasoningValue}
@@ -300,7 +326,6 @@ export function QaLaunch() {
           instances={instances}
           onBuildSaved={applyBuild}
           onClose={() => setConsolesOpen(false)}
-          onRefresh={refreshGameState}
           onRemoved={removeInstance}
           onSaved={applyInstance}
           projectId={projectId}

@@ -13,6 +13,8 @@ import { resumeSdkLogin, SDK_LOGIN_PATH } from './auth/sdkLoginRequest'
 import { ContentMapRedirect } from './contentMap/ContentMapPage'
 import { ContentMapSection } from './contentMap/ContentMapSection'
 import { useI18n } from './i18n/useI18n'
+import { McpConnectPage } from './mcp/McpConnectPage'
+import { MCP_CONNECT_PATH, resumeMcpConnect } from './mcp/mcpConnectRequest'
 import { KnowledgeSection } from './knowledge/KnowledgeGraphPage'
 import { MacroSection } from './macros/MacroSection'
 import { BuildPerformanceRoute } from './performance/BuildPerformancePage'
@@ -28,6 +30,7 @@ import { MembersSection } from './projects/workspace/MembersSection'
 import { UsageSection } from './usage/UsageSection'
 import { ProjectWorkspaceRoute } from './projects/workspace/ProjectWorkspace'
 import { QaHistorySection } from './projects/workspace/QaHistorySection'
+import { GameBuildsSection } from './projects/workspace/GameBuildsSection'
 import { QaSection } from './projects/workspace/QaSection'
 import { SettingsSection } from './projects/workspace/SettingsSection'
 import { SetupSection } from './projects/workspace/SetupSection'
@@ -69,9 +72,13 @@ export function App() {
   // A sign-in started from the SDK relay page lands back here, at the console
   // root, because that is the only address the server's OAuth handler redirects
   // to. Replaying the parked request is what closes that gap.
+  // `/mcp/connect` 도 같은 사정이라 여기서 다시 연다. 둘 다 남아 있으면 MCP 쪽 하나만 연다 —
+  // 둘 다 `location.replace` 라 연이어 부르면 뒤의 것이 앞의 것을 덮는다.
   useEffect(() => {
     if (auth.status !== 'authenticated' || auth.user.mustChangePassword) return
-    if (window.location.pathname === SDK_LOGIN_PATH) return
+    const { pathname } = window.location
+    if (pathname === SDK_LOGIN_PATH || pathname === MCP_CONNECT_PATH) return
+    if (resumeMcpConnect()) return
     resumeSdkLogin()
   }, [auth])
 
@@ -86,6 +93,12 @@ export function App() {
   // there is one.
   if (window.location.pathname === SDK_LOGIN_PATH) {
     return <SdkLoginPage />
+  }
+
+  // SDK relay page 와 같은 이유로 로그인 경계보다 앞에서 고른다. 로그인 화면을 거쳐 같은 주소로
+  // 돌아와야 한다.
+  if (window.location.pathname === MCP_CONNECT_PATH) {
+    return <McpConnectPage />
   }
 
   if (auth.status === 'loading') {
@@ -139,6 +152,9 @@ export function App() {
             <Route path="test-runs" element={<TestRunsSection />} />
             <Route path="qa" element={<QaSection />} />
             <Route path="qa-history" element={<QaHistorySection />} />
+            {/* 빌드 상세는 `?build=` 로 연다. 밖의 `/game-builds/:buildId/performance` · `content-map` 은 segment 가
+                더 많은 별개 경로라 이 섹션과 겹치지 않는다. */}
+            <Route path="game-builds" element={<GameBuildsSection />} />
             <Route path="content-map" element={<ContentMapSection />} />
             <Route path="macros" element={<MacroSection />} />
             <Route path="performance" element={<PerformanceSection />} />

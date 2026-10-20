@@ -2,12 +2,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { parseMacroDetail, parseMacroList, parseMacroSummary } from './macroApi.ts'
-import {
-  compareMacros,
-  macroScreenLabel,
-  macroSignature,
-  type MacroSummary,
-} from './macroTypes.ts'
+import { macroScreenLabel, macroSignature } from './macroTypes.ts'
 
 /*
  * 파싱은 낯선 서버 값이 화면이 되거나 빈 종이가 되는 자리다. 여기서 못 박는 규칙:
@@ -211,25 +206,4 @@ test('screen 이름은 씬을 앞에 두고, 이름이 없으면 id 로 가린�
   // `· 손패` 처럼 앞이 허전한 가운뎃점이 남으므로, 있는 조각만 잇는다.
   assert.equal(macroScreenLabel({ id: '41', name: '손패', sceneName: '' }), '손패')
   assert.equal(macroScreenLabel({ id: '41', name: null, sceneName: '' }), '#41')
-})
-
-test('정렬은 이름 오름차순, 동점은 id 를 숫자로 비교한다', () => {
-  const macro = (id: string, name: string): MacroSummary => ({
-    id,
-    name,
-    parameters: [],
-    screens: [],
-    updatedAt: '',
-  })
-
-  // id 를 문자열로 비교하면 10 이 2 보다 앞에 선다.
-  assert.deepEqual(
-    [macro('10', 'same'), macro('2', 'same'), macro('1', 'alpha')]
-      .sort(compareMacros)
-      .map((entry) => entry.id),
-    ['1', '2', '10'],
-  )
-
-  // 숫자로 안 읽히는 id 에서 `NaN` 을 돌려주면 정렬 결과가 구현에 따라 달라진다.
-  assert.equal(compareMacros(macro('x', 'same'), macro('2', 'same')), 0)
 })

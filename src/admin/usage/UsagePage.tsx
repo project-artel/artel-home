@@ -1,5 +1,6 @@
-import { useEffect, useId, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { useI18n } from '../../i18n/useI18n'
+import { usePolling } from '../../live/usePolling'
 import { UnauthorizedError } from '../shared/adminApi'
 import { adminFormat, toDateInputValue } from '../shared/format'
 import { ProjectPicker } from '../shared/projects/ProjectPicker'
@@ -39,7 +40,6 @@ interface Request {
   scope: string
   from: Date
   to: Date
-  revision: number
 }
 
 export default function UsagePage() {
@@ -52,14 +52,13 @@ export default function UsagePage() {
     scope: ALL_PROJECTS,
     from: addDays(startOfDay(new Date()), -DEFAULT_WINDOW_DAYS),
     to: addDays(startOfDay(new Date()), 1),
-    revision: 0,
   }))
   const [data, setData] = useState<Loaded | null>(null)
   const [error, setError] = useState(false)
   const [loading, setLoading] = useState(true)
   const fromFieldId = useId()
   const toFieldId = useId()
-  const { scope, from, to, revision } = request
+  const { scope, from, to } = request
 
   function updateRequest(next: Partial<Request>) {
     setLoading(true)
@@ -79,26 +78,48 @@ export default function UsagePage() {
     return () => controller.abort()
   }, [])
 
+  // A silent read (a poll) keeps showing the last data when it fails.
+  const load = useCallback(
+    (signal: AbortSignal, silent: boolean) => {
+      const query = { projectId: scope === ALL_PROJECTS ? null : scope, from, to }
+      Promise.all([
+        fetchLlmUsageStats(query, signal),
+        fetchQaRunUsage(query, QA_RUN_COUNT, signal),
+      ])
+        .then(([stats, runs]) => {
+          if (signal.aborted) return
+          setData({ stats, runs })
+          setLoading(false)
+          if (silent) setError(false)
+        })
+        .catch((cause: unknown) => {
+          if (signal.aborted || cause instanceof UnauthorizedError) return
+          if (silent) return
+          setData(null)
+          setLoading(false)
+          setError(true)
+        })
+    },
+    [scope, from, to],
+  )
+
+  const pollController = useRef<AbortController | null>(null)
+
   useEffect(() => {
     const controller = new AbortController()
-    const query = { projectId: scope === ALL_PROJECTS ? null : scope, from, to }
-    Promise.all([
-      fetchLlmUsageStats(query, controller.signal),
-      fetchQaRunUsage(query, QA_RUN_COUNT, controller.signal),
-    ])
-      .then(([stats, runs]) => {
-        if (controller.signal.aborted) return
-        setData({ stats, runs })
-        setLoading(false)
-      })
-      .catch((cause: unknown) => {
-        if (controller.signal.aborted || cause instanceof UnauthorizedError) return
-        setData(null)
-        setLoading(false)
-        setError(true)
-      })
-    return () => controller.abort()
-  }, [scope, from, to, revision])
+    load(controller.signal, false)
+    return () => {
+      controller.abort()
+      pollController.current?.abort()
+    }
+  }, [load])
+
+  usePolling(() => {
+    pollController.current?.abort()
+    const controller = new AbortController()
+    pollController.current = controller
+    load(controller.signal, true)
+  })
 
   return (
     <div className="shell">
@@ -140,15 +161,6 @@ export default function UsagePage() {
           />
         </span>
 
-        <span className="topbar__spacer" />
-        <button
-          type="button"
-          className="control control--action"
-          disabled={loading}
-          onClick={() => updateRequest({ revision: revision + 1 })}
-        >
-          {loading ? t.admin.states.loading : t.admin.states.refresh}
-        </button>
       </header>
 
       <main className="main">

@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useProjectChange } from '../live/useProjectChange'
+import { usePolling } from '../live/usePolling'
 import { getBuildMacro, listBuildMacros } from './macroApi'
 import type { MacroDetail, MacroSummary } from './macroTypes'
 
@@ -71,8 +73,8 @@ export function useBuildMacros(projectId: string, gameBuildId: string) {
         if (error instanceof DOMException && error.name === 'AbortError') return
         // 직전 목록을 들고 간다. 비우면 새로고침이 실패했을 때 화면이 통째로 오류로
         // 떨어지는데, 그때 보여 줘야 할 것은 "마지막으로 불러온 목록 + 그것이 지금의
-        // 사실이 아니라는 banner" 다. 첫 로드 실패에서는 들고 갈 것이 없어 빈 배열이
-        // 그대로 남고, `MacroReport` 가 그 둘을 목록 길이로 가른다.
+        // 사실이 아니라는 알림" 이다. 첫 로드 실패에서는 들고 갈 것이 없어 빈 배열이
+        // 그대로 남는다.
         //
         // 범위가 바뀌어 실패한 경우에는 들고 가지 않는다. 그때 남은 목록은 이 빌드의
         // 것이 아니다.
@@ -89,6 +91,34 @@ export function useBuildMacros(projectId: string, gameBuildId: string) {
 
   const settled = state.source === source
   const reload = useCallback(() => setReloadToken((token) => token + 1), [])
+
+  const polling = useRef<AbortController | null>(null)
+  useEffect(() => () => polling.current?.abort(), [])
+  // The project change stream (`MACROS`) drives the re-read; polling runs only
+  // while the stream is down.
+  const refreshSilently = () => {
+    // Not before the first read has landed, and never two reads at once.
+    if (!settled || polling.current !== null) return
+    const controller = new AbortController()
+    polling.current = controller
+    listBuildMacros(projectId, gameBuildId, controller.signal)
+      .then((next) =>
+        setState((previous) => {
+          if (previous.source !== source) return previous
+          if (previous.status === 'ready' && JSON.stringify(previous.macros) === JSON.stringify(next)) {
+            return previous
+          }
+          return { status: 'ready', macros: next, source, scope }
+        }),
+      )
+      // A failed poll leaves the list on screen alone.
+      .catch(() => undefined)
+      .finally(() => {
+        if (polling.current === controller) polling.current = null
+      })
+  }
+  const live = useProjectChange(projectId, 'MACROS', refreshSilently)
+  usePolling(refreshSilently, undefined, !live)
 
   /*
    * 새로고침 중에는 직전 목록이 그대로 남는다. 비우면 화면이 통째로 "불러오는 중" 으로

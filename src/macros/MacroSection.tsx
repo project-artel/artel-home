@@ -1,21 +1,39 @@
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
-import { buildOptionText, selectBuild } from '../projects/gameBuilds'
+import { buildOptionText } from '../projects/gameBuilds'
+import type { GameBuild } from '../projects/gameTypes'
 import { useWorkspace } from '../projects/workspace/workspaceContext'
-import { MacroDetail } from './MacroDetail'
-import { MacroList } from './MacroList'
-import { useBuildMacros, useMacroSource } from './useBuildMacros'
+import { SearchField } from '../testCases/SearchField'
+import type { DeveloperMacroSummary } from './developerMacroTypes'
+import {
+  agentLibraryItems,
+  DEVELOPER_VIEW,
+  developerLibraryItems,
+  latestVersionBuild,
+  resolveMacroView,
+  searchMacros,
+  selectViewParams,
+  type LibraryMacro,
+} from './macroLibrary'
+import { MacroLibraryList } from './MacroLibraryList'
+import { MacroSheet } from './MacroSheet'
+import { MacroVersionList } from './MacroVersionList'
+import { useBuildMacros, type MacroListStatus } from './useBuildMacros'
+import { useDeveloperMacros } from './useDeveloperMacros'
 
 /*
- * 프로젝트 작업공간의 macro 섹션 (ARTEL-941).
+ * 프로젝트 작업공간의 Macro 라이브러리 (ARTEL-941, ARTEL-1102).
  *
- * 빌드 하나를 골라 그 빌드에 등록된 macro 를 목록으로 보고, 하나를 열어 source 를
- * 읽는다. 읽기만 한다 — 쓰는 길은 agent 의 frame 뿐이다.
+ * 케이스 라이브러리와 같은 모양이다 — 왼쪽에 `버전` 목록, 오른쪽에 검색과 표가 든 라이브러리
+ * 카드, 줄을 누르면 오른쪽 sheet. 읽기만 한다. agent macro 를 쓰는 길은 agent 의 frame 이고,
+ * developer macro 를 쓰는 길은 MCP 다.
  *
- * `ContentMapSection` / `ContentMapReport` 와 같은 분업이다. 빌드를 고르는 일만 바깥
- * 컴포넌트에 남고, 읽기와 상태는 `MacroReport` 가 진다.
+ * `버전` 목록에서 build 를 고르면 그 build 에 tool loop agent 가 저장한 agent macro 를 보고,
+ * 맨 아래 `개발자 macro (MCP)` 줄을 고르면 개발자가 MCP 로 프로젝트에 등록한 developer macro
+ * 전부를 본다. developer macro 는 build 에 속하지 않으므로 build 화면에 섞지 않는다. 그 줄의
+ * `이전 버전` · `다른 버전` 칩은 각 macro 의 기준 build 를 `현재` build 와 비교한다.
  *
  * ## 주소에 쓰는 자리는 전부 기존 parameter 를 보존한다
  *
@@ -25,117 +43,202 @@ import { useBuildMacros, useMacroSource } from './useBuildMacros'
  * macro 를 고르면 `build` 가 날아가고, `build` 가 없으니 아래 effect 가 기본 빌드를
  * 채우며 `macro` 를 날린다. 선택이 한 렌더도 살아남지 못한다.
  *
- * 그래서 네 자리 전부 `setSearchParams` 의 **함수형**을 쓴다. 직전 값을 react-router
- * 에게 받으므로, 같은 tick 에 둘이 쓰더라도 나중 것이 앞의 것을 덮지 않는다 —
- * 렌더에서 붙잡은 `searchParams` 로 짓는 것과 달리 경우를 따져서가 아니라 구조로
- * 막힌다. 아래 목록은 예외 명단이 아니다. 주소에 쓰는 자리를 새로 만들면 그것도
- * 같은 모양을 쓴다.
+ * 그래서 주소에 쓰는 자리는 전부 `setSearchParams` 의 **함수형**을 쓴다. 직전 값을
+ * react-router 에게 받으므로, 같은 tick 에 둘이 쓰더라도 나중 것이 앞의 것을 덮지 않는다
+ * — 렌더에서 붙잡은 `searchParams` 로 짓는 것과 달리 경우를 따져서가 아니라 구조로
+ * 막힌다. 주소에 쓰는 자리를 새로 만들면 그것도 같은 모양을 쓴다.
+ *
+ * 주소가 싣는 것은 둘이다. `build` 는 고른 build id 이거나 developer macro 줄이면
+ * `developer`(`DEVELOPER_VIEW`)다. `macro` 는 연 macro 이고 `agent:<id>` · `developer:<name>`
+ * 처럼 출처를 앞에 단다(`formatMacroParam`).
  */
 export function MacroSection() {
   const { builds, projectId } = useWorkspace()
   const { t } = useI18n()
   const copy = t.macros.section
-  const editorLabel = t.projects.builds.editorLabel
   const [searchParams, setSearchParams] = useSearchParams()
-  const requestedBuildId = searchParams.get('build')
-  const selectedBuild = selectBuild(builds, requestedBuildId)
+  const requestedBuild = searchParams.get('build')
+  const view = resolveMacroView(builds, requestedBuild)
 
-  // 주소가 늘 고른 빌드를 말하게 한다. **`macro` 는 남긴다** — `?macro=7` 만 달린
+  // 주소가 늘 고른 build 를 말하게 한다. **`macro` 는 남긴다** — `?macro=agent:7` 만 달린
   // 주소를 붙여 넣었을 때 mount 하자마자 선택이 사라지면, 그 주소를 받은 사람은 보낸
   // 사람이 가리킨 macro 를 영영 못 본다.
+  const selectedBuildId = view?.kind === 'build' ? view.build.id : null
   useEffect(() => {
-    if (selectedBuild === undefined || requestedBuildId === selectedBuild.id) return
+    if (selectedBuildId === null || requestedBuild === selectedBuildId) return
     setSearchParams(
       (previous) => {
         const next = new URLSearchParams(previous)
-        next.set('build', selectedBuild.id)
+        next.set('build', selectedBuildId)
         return next
       },
       { replace: true },
     )
-  }, [requestedBuildId, selectedBuild, setSearchParams])
+  }, [requestedBuild, selectedBuildId, setSearchParams])
 
-  const changeBuild = useCallback(
-    (buildId: string) => {
-      setSearchParams((previous) => {
-        const next = new URLSearchParams(previous)
-        next.set('build', buildId)
-        // 다른 빌드의 macro id 는 뜻이 없다. 남겨 두면 그 빌드에 없는 id 가 되어
-        // 곧바로 지워지거나, 더 나쁘게는 엉뚱한 macro 를 연다.
-        next.delete('macro')
-        return next
-      })
-    },
+  const selectView = useCallback(
+    (buildParam: string) => setSearchParams((previous) => selectViewParams(previous, buildParam)),
     [setSearchParams],
   )
 
-  return (
-    <section className="macro-section">
-      <header className="macro-section-head">
-        <div>
-          <h2>
-            {copy.title}
-            <InfoHint>{copy.subtitle}</InfoHint>
-          </h2>
-        </div>
-        {selectedBuild !== undefined && (
-          <label className="macro-build-picker">
-            <span>{copy.selectLabel}</span>
-            <select onChange={(event) => changeBuild(event.target.value)} value={selectedBuild.id}>
-              {builds.map((build) => (
-                <option key={build.id} value={build.id}>
-                  {buildOptionText(build, editorLabel)}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-      </header>
+  // developer macro 는 화면을 열 때 한 번 다 읽는다. `버전` 목록의 developer macro 줄이 늘 수를
+  // 달고, developer macro 화면도 이 목록을 그린다.
+  const developer = useDeveloperMacros(projectId)
 
-      {selectedBuild === undefined ? (
+  if (view === null) {
+    return (
+      <section className="panel">
         <div className="panel-message">
           <h3>{copy.noBuildsTitle}</h3>
           <p className="panel-message-copy">{copy.noBuildsCopy}</p>
         </div>
-      ) : (
-        /*
-         * `key` 가 빌드 id 다. 빌드를 바꾸면 `MacroReport` 가 통째로 새로 마운트되어
-         * 목록 state 가 초기값부터 시작한다 — 새로고침 중에는 직전 목록을 남기는
-         * `useBuildMacros` 가, 빌드를 바꿀 때만은 남기지 않게 되는 자리가 여기다.
-         */
-        <MacroReport buildId={selectedBuild.id} key={selectedBuild.id} projectId={projectId} />
-      )}
-    </section>
+      </section>
+    )
+  }
+
+  const shared = {
+    builds,
+    developerCount:
+      developer.status === 'ready' || developer.macros.length > 0 ? developer.macros.length : null,
+    onSelectView: selectView,
+    projectId,
+  }
+
+  return view.kind === 'build' ? (
+    // `key` 가 build id 다. build 를 바꾸면 검색어와 agent macro 읽기가 처음부터 시작한다.
+    <BuildMacroView {...shared} build={view.build} key={view.build.id} />
+  ) : (
+    <DeveloperMacroView
+      {...shared}
+      macros={developer.macros}
+      onReload={developer.reload}
+      status={developer.status}
+    />
   )
 }
 
-/** 한 빌드의 macro. 목록 읽기와 상태들, 그리고 `?macro=` 선택이 여기 산다. */
-function MacroReport({ buildId, projectId }: { buildId: string; projectId: string }) {
+type SharedViewProps = {
+  builds: GameBuild[]
+  developerCount: number | null
+  onSelectView: (buildParam: string) => void
+  projectId: string
+}
+
+/** build 하나의 agent macro. */
+function BuildMacroView({ build, ...shared }: SharedViewProps & { build: GameBuild }) {
+  const { t } = useI18n()
+  const caseCopy = t.testCases.versions
+  const copy = t.macros.section
+  const agent = useBuildMacros(shared.projectId, build.id)
+  const items = useMemo(() => agentLibraryItems(agent.macros), [agent.macros])
+  const latest = latestVersionBuild(shared.builds)
+
+  return (
+    <MacroLibraryView
+      {...shared}
+      agentBuildId={build.id}
+      emptyText={copy.empty}
+      items={items}
+      loadFailedText={copy.agentLoadFailed}
+      onReload={agent.reload}
+      referenceBuild={latest}
+      selectedCount={agent.status === 'ready' ? agent.macros.length : null}
+      selectedView={build.id}
+      status={agent.status}
+      titleChip={
+        latest !== undefined && (
+          <span className="tcl-current-version" title={caseCopy.currentTitle}>
+            {caseCopy.current} <strong>{buildOptionText(latest, t.projects.builds.editorLabel)}</strong>
+          </span>
+        )
+      }
+    />
+  )
+}
+
+/** 프로젝트의 developer macro 전부. 칩은 각 macro 의 기준 build 를 `현재` build 와 비교한다. */
+function DeveloperMacroView({
+  macros,
+  onReload,
+  status,
+  ...shared
+}: SharedViewProps & { macros: DeveloperMacroSummary[]; onReload: () => void; status: MacroListStatus }) {
+  const { t } = useI18n()
+  const copy = t.macros.section
+  const items = useMemo(() => developerLibraryItems(macros), [macros])
+
+  return (
+    <MacroLibraryView
+      {...shared}
+      agentBuildId={null}
+      emptyText={copy.developerEmpty}
+      items={items}
+      loadFailedText={copy.developerLoadFailed}
+      onReload={onReload}
+      referenceBuild={latestVersionBuild(shared.builds)}
+      selectedCount={null}
+      selectedView={DEVELOPER_VIEW}
+      status={status}
+      titleChip={
+        <span className="tcl-current-version" title={copy.developerChipTitle}>
+          <strong>{copy.developerChip}</strong>
+        </span>
+      }
+    />
+  )
+}
+
+/**
+ * 라이브러리 틀. 한 출처의 줄들과 그 읽기 상태를 받아 `버전` 목록, 카드, sheet 를 그린다.
+ * 검색과 `?macro=` 선택이 여기 산다.
+ */
+function MacroLibraryView({
+  agentBuildId,
+  builds,
+  developerCount,
+  emptyText,
+  items,
+  loadFailedText,
+  onReload,
+  onSelectView,
+  projectId,
+  referenceBuild,
+  selectedCount,
+  selectedView,
+  status,
+  titleChip,
+}: SharedViewProps & {
+  agentBuildId: string | null
+  emptyText: string
+  items: LibraryMacro[]
+  loadFailedText: string
+  onReload: () => void
+  referenceBuild: GameBuild | undefined
+  selectedCount: number | null
+  selectedView: string
+  status: MacroListStatus
+  titleChip: ReactNode
+}) {
   const { t } = useI18n()
   const copy = t.macros
+  const caseCopy = t.testCases
   const [searchParams, setSearchParams] = useSearchParams()
   const requestedMacro = searchParams.get('macro')
+  const [query, setQuery] = useState('')
 
-  const { macros, status, reload } = useBuildMacros(projectId, buildId)
-  const refreshing = status === 'loading'
+  const shown = useMemo(() => searchMacros(items, query), [items, query])
+  const filtered = query.trim().length > 0
+  const selectedItem = items.find((item) => item.key === requestedMacro)
 
-  // 주소가 가리키는 id 가 이 빌드의 목록에 실제로 있을 때만 선택으로 친다.
-  const selectedId =
-    requestedMacro !== null && macros.some((macro) => macro.id === requestedMacro)
-      ? requestedMacro
-      : null
-
-  // 목록에 없는 id 를 주소에서 지운다. **목록이 뜬 뒤에만 판정한다** — 아직 읽는
-  // 중에 지우면 멀쩡한 주소를 지우게 되고, 공유받은 링크가 그 한 번에 망가진다.
+  // 이 화면에 없는 macro 를 주소에서 지운다. 다른 출처의 선택과 읽을 수 없는 값(`?macro=7`
+  // 같은 옛 주소)도 여기서 지워진다. **목록이 뜬 뒤에만 판정한다** — 아직 읽는 중에 지우면
+  // 멀쩡한 주소를 지우게 되고, 공유받은 링크가 그 한 번에 망가진다.
   useEffect(() => {
-    if (status !== 'ready') return
-    if (requestedMacro === null || selectedId !== null) return
+    if (requestedMacro === null || selectedItem !== undefined || status !== 'ready') return
     setSearchParams(
       (previous) => {
-        // 위 조건은 렌더에서 붙잡은 `requestedMacro` 로 판단한 것이고, 이 updater 가
-        // 도는 시점에는 이미 다른 값이 들어와 있을 수 있다. 지우는 쓰기는 네 자리
-        // 중 여기뿐이므로, 지우기 직전에 "내가 보고 판단한 그 값이 맞는가" 를 한 번
-        // 더 본다. 아니면 아무것도 하지 않는다.
+        // 위 조건은 렌더에서 붙잡은 값으로 판단한 것이다. updater 가 도는 시점에 다른
+        // 값이 들어와 있으면 아무것도 하지 않는다.
         if (previous.get('macro') !== requestedMacro) return previous
         const next = new URLSearchParams(previous)
         next.delete('macro')
@@ -143,98 +246,118 @@ function MacroReport({ buildId, projectId }: { buildId: string; projectId: strin
       },
       { replace: true },
     )
-  }, [status, requestedMacro, selectedId, setSearchParams])
+  }, [requestedMacro, selectedItem, status, setSearchParams])
 
-  const selectMacro = useCallback(
-    (macroId: string) => {
+  const openMacro = useCallback(
+    (key: string) => {
       setSearchParams((previous) => {
         const next = new URLSearchParams(previous)
-        next.set('macro', macroId)
+        next.set('macro', key)
         return next
       })
     },
     [setSearchParams],
   )
 
-  const sourceRead = useMacroSource(projectId, buildId, selectedId)
+  const closeSheet = useCallback(() => {
+    setSearchParams((previous) => {
+      const next = new URLSearchParams(previous)
+      next.delete('macro')
+      return next
+    })
+  }, [setSearchParams])
 
-  // 첫 로드에만 화면을 비운다. 새로고침 중에는 직전 목록이 그대로 남고 `aria-busy` 만
-  // 붙는다 — 사용자가 누른 것은 새로고침이지 닫기가 아니다.
-  if (refreshing && macros.length === 0) {
-    return (
-      <section className="panel">
-        <p aria-busy="true" className="panel-empty">
-          {copy.states.loading}
-        </p>
-      </section>
-    )
-  }
-
-  // 되돌아갈 목록이 없는 실패. 빌드가 없거나 접근할 수 없을 때도 여기로 온다 —
-  // 서버가 404 의 세 이유를 가르지 않으므로 화면도 가르지 않는다.
-  if (status === 'error' && macros.length === 0) {
-    return (
-      <section className="panel">
-        <div className="panel-message" role="alert">
-          <p className="panel-message-copy">{copy.states.loadFailed}</p>
-          <button className="button button--secondary" onClick={reload} type="button">
-            {copy.states.retry}
-          </button>
-        </div>
-      </section>
-    )
-  }
-
-  // 빌드는 있는데 macro 가 하나도 없다. 서버가 404 가 아니라 빈 목록으로 답하는
-  // 자리이고, 오류도 로딩도 아니다 — 아직 agent 가 저장할 만한 것을 못 만난 것이다.
-  if (macros.length === 0) {
-    return (
-      <section className="panel">
-        <div className="panel-message">
-          <h3>{copy.empty.title}</h3>
-          <p className="panel-message-copy">{copy.empty.copy}</p>
-        </div>
-      </section>
-    )
-  }
+  const waiting = status === 'loading' && items.length === 0
 
   return (
-    <div aria-busy={refreshing || undefined}>
-      {/* 새로고침이 실패했고 직전 목록이 남아 있는 상태. 목록은 그대로 두되 지금의
-          사실인 척하지 않는다 — 마지막으로 받은 것을 살아 있는 것처럼 보이면 안 된다. */}
-      {status === 'error' && (
-        <div className="macro-banner" role="status">
-          <p className="macro-banner-title">{copy.states.refreshFailedTitle}</p>
-          <p className="macro-banner-copy">{copy.states.refreshFailedCopy}</p>
+    <div className="tcl cp-scope macro-library">
+      <aside aria-label={caseCopy.versions.heading} className="tcl-folders">
+        <MacroVersionList
+          builds={builds}
+          developerCount={developerCount}
+          latestBuildId={referenceBuild?.id ?? null}
+          onSelect={onSelectView}
+          selectedCount={selectedCount}
+          selectedView={selectedView}
+        />
+      </aside>
+
+      <section aria-busy={status === 'loading' || undefined} aria-label={copy.section.title} className="panel tcl-list-panel">
+        <header className="panel-header panel-header--split">
+          <h2 className="tcl-title">
+            {copy.section.title}
+            <InfoHint>{copy.section.subtitle}</InfoHint>
+            {titleChip}
+          </h2>
+        </header>
+
+        {/* 주기적으로 다시 읽다가 실패해도 직전 목록이 있으면 그대로 남는다(`useBuildMacros`,
+            `useDeveloperMacros`). 그때 이 알림이 그 목록이 지금의 사실이 아니라고 말한다. */}
+        {status === 'error' && (
+          <p className="tcl-notice" role="alert">
+            <span>{loadFailedText}</span>
+            <button className="button button--secondary button--compact" onClick={onReload} type="button">
+              {copy.section.retry}
+            </button>
+          </p>
+        )}
+
+        <div className="tcl-filters">
+          <div className="tcl-filter tcl-filter--grow">
+            <SearchField
+              clearLabel={caseCopy.filters.clearSearch}
+              label={caseCopy.filters.search}
+              onChange={setQuery}
+              placeholder={copy.section.searchPlaceholder}
+              value={query}
+            />
+          </div>
         </div>
+
+        {waiting ? (
+          <div aria-busy="true" className="panel-empty-block">
+            <p className="panel-empty">{copy.section.loading}</p>
+          </div>
+        ) : status === 'error' && items.length === 0 ? null : shown.length === 0 ? (
+          <div className="panel-empty-block">
+            <p className="panel-empty">{filtered ? copy.section.emptyFiltered : emptyText}</p>
+            {filtered && (
+              <button className="button button--secondary button--compact" onClick={() => setQuery('')} type="button">
+                {caseCopy.section.clearFilters}
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="cp-listwrap">
+            <div className="cp-list tcl-scroll">
+              <MacroLibraryList
+                builds={builds}
+                items={shown}
+                onOpen={openMacro}
+                referenceBuild={referenceBuild}
+                selectedKey={selectedItem?.key ?? null}
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="cp-foot">
+          <span />
+          <span>{copy.section.shownOf(shown.length, items.length)}</span>
+        </div>
+      </section>
+
+      {selectedItem !== undefined && (
+        <MacroSheet
+          agentBuildId={agentBuildId}
+          builds={builds}
+          item={selectedItem}
+          key={selectedItem.key}
+          onClose={closeSheet}
+          projectId={projectId}
+          referenceBuild={referenceBuild}
+        />
       )}
-
-      <div className="macro-section-actions">
-        {/* 라벨이 바뀌지 않는다. 말줄임표가 붙은 상태 문장은 button 이름이 아니고,
-            누르는 순간 폭이 변해 포인터 밑에서 button 이 움직인다. 진행 중이라는
-            사실은 `disabled` 와 바깥의 `aria-busy` 가 이미 말한다. */}
-        <button
-          className="button button--secondary"
-          disabled={refreshing}
-          onClick={reload}
-          type="button"
-        >
-          {copy.section.refresh}
-        </button>
-      </div>
-
-      <div className="macro-workspace">
-        <section className="panel macro-list-panel">
-          <MacroList macros={macros} onSelect={selectMacro} selectedId={selectedId} />
-        </section>
-        <aside className="panel macro-detail-panel">
-          <MacroDetail
-            macro={sourceRead.macro}
-            onRetry={sourceRead.reload}
-            status={sourceRead.status}
-          />
-        </aside>
-      </div>
     </div>
   )
 }

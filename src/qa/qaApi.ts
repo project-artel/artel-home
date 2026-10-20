@@ -9,6 +9,7 @@ import {
   readJson,
   toApiError,
 } from '../projects/projectApi'
+import { functionOptionsRequestFields, type QaFunctionOptions } from './qaFunctionOptions'
 import {
   QA_KEY_SOURCES,
   QA_LOG_DIRECTIONS,
@@ -26,6 +27,7 @@ import {
   type QaTry,
   type QaTryStatus,
 } from './qaTypes'
+import type { QaArchRequest } from './qaArch'
 
 const QA_ROOT = '/api/qa-tries'
 const QA_RUNS_ROOT = '/api/qa-runs'
@@ -137,10 +139,17 @@ export async function createQaTry(
   gameInstanceId: string,
   model: string,
   reasoning: QaReasoningSelection | null,
+  functionOptions?: QaFunctionOptions,
 ): Promise<QaTry> {
   const response = await apiFetch(QA_ROOT, {
     method: 'POST',
-    ...jsonRequest({ testScenarioId, gameInstanceId, model, reasoning }),
+    ...jsonRequest({
+      testScenarioId,
+      gameInstanceId,
+      model,
+      reasoning,
+      ...(functionOptions === undefined ? {} : functionOptionsRequestFields(functionOptions)),
+    }),
   })
   return parseQaTry(await readJson(response), response.status)
 }
@@ -158,11 +167,41 @@ export function parseQaRun(data: unknown, status = 200): QaRun {
     id: requiredId(record.id, 'QA Run id', status),
     testRunId: requiredId(record.testRunId, 'test run id', status),
     gameInstanceId: requiredId(record.gameInstanceId, 'game instance id', status),
+    gameBuildId: optionalId(record.gameBuildId),
     status: parseStatus(record.status, status),
     startedAt: asNullableString(record.startedAt),
     completedAt: asNullableString(record.completedAt),
     tries,
+    testRunGameBuildId: asNullableString(record.testRunGameBuildId),
   }
+}
+
+export type QaRunRequestBody = {
+  testRunId: string
+  gameInstanceId: string
+  model: string
+  keySource: QaKeySource
+  reasoning: QaReasoningSelection | null
+  force: boolean
+  arch?: QaArchRequest
+} & Partial<QaFunctionOptions>
+
+/** `arch` 키는 구조를 바꾼 run 에만 실린다. 없으면 서버 기본 구조다. */
+export function qaRunRequestBody(
+  testRunId: string,
+  gameInstanceId: string,
+  model: string,
+  keySource: QaKeySource,
+  reasoning: QaReasoningSelection | null,
+  force: boolean,
+  arch: QaArchRequest | null,
+  functionOptions?: QaFunctionOptions,
+): QaRunRequestBody {
+  const body: QaRunRequestBody = { testRunId, gameInstanceId, model, keySource, reasoning, force }
+  if (arch !== null) body.arch = arch
+  // 옵션을 안 보내면 서버 기본값(둘 다 켜고 catalog 전부)이 적용된다.
+  if (functionOptions !== undefined) Object.assign(body, functionOptionsRequestFields(functionOptions))
+  return body
 }
 
 /**
@@ -181,10 +220,12 @@ export async function createQaRun(
   keySource: QaKeySource,
   reasoning: QaReasoningSelection | null,
   force = false,
+  arch: QaArchRequest | null = null,
+  functionOptions?: QaFunctionOptions,
 ): Promise<QaRun> {
   const response = await apiFetch(QA_RUNS_ROOT, {
     method: 'POST',
-    ...jsonRequest({ testRunId, gameInstanceId, model, keySource, reasoning, force }),
+    ...jsonRequest(qaRunRequestBody(testRunId, gameInstanceId, model, keySource, reasoning, force, arch, functionOptions)),
   })
   return parseQaRun(await readJson(response), response.status)
 }
@@ -193,6 +234,38 @@ export async function createQaRun(
 export async function getQaRun(qaRunId: string, signal?: AbortSignal): Promise<QaRun> {
   const response = await apiFetch(`${QA_RUNS_ROOT}/${encodeURIComponent(qaRunId)}`, { signal })
   return parseQaRun(await readJson(response), response.status)
+}
+
+/**
+ * `{ items: QaRunResponse[] }` 를 읽는다. 한 run 이라도 읽을 수 없으면 목록 전체가 실패한다 — `parseQaRun` 이
+ * 상태를 모르면 던지는 것과 같은 규칙이다.
+ */
+export function parseQaRunList(data: unknown, status = 200): QaRun[] {
+  const items = asRecord(data)?.items
+  if (!Array.isArray(items)) {
+    throw new ProjectApiError(status, 'The server returned an unreadable QA Run list.')
+  }
+  return items.map((item) => parseQaRun(item, status))
+}
+
+/**
+ * `GET /api/projects/{projectId}/qa-runs`(ARTEL-1104) — 새 run 이 앞에 온다. `gameBuildId` 를 주면 그 빌드로 돈
+ * run 만 온다. `size` 는 서버가 1 이상 100 이하만 받는다.
+ */
+export async function listProjectQaRuns(
+  projectId: string,
+  options: { gameBuildId?: string; size?: number },
+  signal?: AbortSignal,
+): Promise<QaRun[]> {
+  const params = new URLSearchParams()
+  if (options.gameBuildId !== undefined) params.set('gameBuildId', options.gameBuildId)
+  if (options.size !== undefined) params.set('size', String(options.size))
+  const query = params.size === 0 ? '' : `?${params}`
+  const response = await apiFetch(
+    `/api/projects/${encodeURIComponent(projectId)}/qa-runs${query}`,
+    { signal },
+  )
+  return parseQaRunList(await readJson(response), response.status)
 }
 
 /** `POST /api/qa-runs/{id}/cancel` — cancel the whole run. */

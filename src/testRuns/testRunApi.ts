@@ -1,5 +1,7 @@
 import { apiFetch } from '../auth/authApi'
 import { asNullableString, asRecord, asString, jsonRequest, readJson, toApiError } from '../projects/projectApi'
+import { parseExecutionMode } from '../testScenarios/scenarioApi'
+import type { ExecutionMode } from '../testScenarios/scenarioTypes'
 
 /*
  * TestRun read API — the Map is read-only for now, so only the two GETs the
@@ -267,6 +269,8 @@ export type RunCoverageScenario = {
   position: number
   testScenarioId: string
   title: string
+  /** QA 실행 화면이 `planner_executer` 를 막을 때 읽는다(ARTEL-1119). 그 엔진은 ORDERED 만 돌린다. */
+  executionMode: ExecutionMode
   steps: number
   cases: number
 }
@@ -316,6 +320,7 @@ export function parseRunCoverage(data: unknown): RunCoverage {
           position: asCount(row.position),
           testScenarioId,
           title: asString(row.title),
+          executionMode: parseExecutionMode(row.execution_mode),
           steps: asCount(row.steps),
           cases: asCount(row.cases),
         }
@@ -336,6 +341,36 @@ export async function getRunCoverage(
     { signal },
   )
   return parseRunCoverage(await readJson(response))
+}
+
+/**
+ * 런의 케이스 중 켜진 게임의 버전에 없는 것(ARTEL-1070). QA 는 이 케이스들을 판정하지 않고 넘긴다.
+ * `gameBuildId` 는 판정이 속할 게임 빌드이고, 게임 버전을 모르면 null 이며 목록은 비어 있다.
+ */
+export type RunCasesOutsideBuild = { gameBuildId: string | null; testCaseIds: string[] }
+
+export function parseRunCasesOutsideBuild(data: unknown): RunCasesOutsideBuild {
+  const record = asRecord(data)
+  const ids = Array.isArray(record?.testCaseIds) ? record.testCaseIds : []
+  return {
+    gameBuildId: asNullableString(record?.gameBuildId),
+    testCaseIds: ids.map((id) => asString(id)).filter((id) => id.length > 0),
+  }
+}
+
+/** `GET /api/projects/{projectId}/test-runs/{runId}/cases-outside-build?gameInstanceId=`. */
+export async function getRunCasesOutsideBuild(
+  projectId: string,
+  runId: string,
+  gameInstanceId: string,
+  signal?: AbortSignal,
+): Promise<RunCasesOutsideBuild> {
+  const response = await apiFetch(
+    `${runsRoot(projectId)}/${encodeURIComponent(runId)}/cases-outside-build?gameInstanceId=${encodeURIComponent(gameInstanceId)}`,
+    { signal },
+  )
+  if (!response.ok) throw await toApiError(response)
+  return parseRunCasesOutsideBuild(await readJson(response))
 }
 
 /**

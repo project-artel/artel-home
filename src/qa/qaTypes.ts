@@ -26,6 +26,9 @@ export const QA_LOG_TYPES = [
   'CHAT',
   // QA 판정을 TC 상태에 반영했다는 서버 기록(ARTEL-995). payload 는 `case_id` · `verification_status`.
   'CASE_VERDICT',
+  // behavior 하나가 끝났다는 기록(ARTEL-1051). payload 는 `behaviorId` · `name` · `target` · `reason` ·
+  // `detail` · `seconds` · `frame`.
+  'BEHAVIOR_ENDED',
 ] as const
 
 export type QaLogType = (typeof QA_LOG_TYPES)[number]
@@ -65,10 +68,14 @@ export type QaRun = {
   id: string
   testRunId: string
   gameInstanceId: string
+  /** 이 run 이 시작할 때 고정한 게임 빌드(ARTEL-1104). 빌드를 모르는 옛 run 이나 옛 서버면 null. */
+  gameBuildId: string | null
   status: QaTryStatus
   startedAt: string | null
   completedAt: string | null
   tries: QaTry[]
+  /** 판정 기준이 된 케이스 내용의 버전 — TR 이 따르는 게임 빌드다(ARTEL-1070). TR 에 버전이 없으면 null — 최신이다. */
+  testRunGameBuildId: string | null
 }
 
 export type QaReasoningCapability =

@@ -19,13 +19,12 @@ import { useInvitations } from './useInvitations'
  *   정렬과 총 개수를 서버가 정하기 때문이다
  */
 export function InvitationInbox({ onAccepted }: { onAccepted: () => void }) {
-  const { canReceive, invitations, forget, knowsAccount, reload, status } = useInvitations()
+  const { invitations, forget, knowsAccount, reload, status } = useInvitations()
   const [announcement, setAnnouncement] = useState('')
   const { t } = useI18n()
   const copy = t.projects.inbox
 
-  // 세션을 아직 읽는 중이면 아무 말도 하지 않는다. 이때 "이메일이 없다"를 띄우면 로그인 직후
-  // 한 순간 잘못된 안내가 떴다가 사라진다.
+  // 세션을 아직 읽는 중이면 아무것도 그리지 않는다. 조회도 아직 시작하지 않았다.
   if (!knowsAccount) return null
 
   return (
@@ -45,17 +44,6 @@ export function InvitationInbox({ onAccepted }: { onAccepted: () => void }) {
   )
 
   function panelFor() {
-    if (!canReceive) {
-      return (
-        <section className="panel invitation-inbox" aria-labelledby="inbox-title">
-          <header className="panel-header">
-            <h2 id="inbox-title">{copy.title}</h2>
-          </header>
-          <p className="section-intro">{copy.noEmailCopy}</p>
-        </section>
-      )
-    }
-
     // 못 읽은 것과 초대가 없는 것은 다른 상태다. 실패를 조용히 감추면, 나를 부른 프로젝트가
     // 있는데 없는 것처럼 보인다.
     if (status === 'error') {
