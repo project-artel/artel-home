@@ -9,7 +9,7 @@ const MARK_BODY =
   'M 32 56 L 11.22 44 L 11.22 20 L 32 8 L 52.78 20 L 52.78 32.6 L 43.98 37.68 L 43.98 25.08 L 32 18.16 L 20.02 25.08 L 20.02 38.92 L 32 45.84 Z'
 const MARK_ACCENT = 'M 35.2 54.15 L 52.78 44 L 52.78 35.2 L 35.2 45.35 Z'
 
-/** 로고를 위에서 아래로 가르는 금. 왼쪽 조각과 오른쪽 조각이 이 선에서 나뉜다. */
+/** 로고를 위에서 아래로 가르는 금. 로고 모양은 그대로 두고 금만 긋는다 — 조각을 움직이면 정육각형이 비틀린다. */
 const CRACK = [
   [31, -2],
   [33, 4],
@@ -23,8 +23,6 @@ const CRACK = [
   [28, 64],
 ] as const
 const crackPath = CRACK.map(([x, y], index) => `${index === 0 ? 'M' : 'L'} ${x} ${y}`).join(' ')
-const leftPiece = `M -8 -8 L ${CRACK.map(([x, y]) => `${x} ${y}`).join(' L ')} L 28 72 L -8 72 Z`
-const rightPiece = `M 72 -8 L ${CRACK.map(([x, y]) => `${x} ${y}`).join(' L ')} L 28 72 L 72 72 Z`
 
 /**
  * 404 그림(ARTEL-1162). 위에 매달린 백열전구가 아래로 빛을 비추고, 그 빛 아래 ARTEL 로고에 금이 가 있다 — 찾던
@@ -36,8 +34,6 @@ export function BrokenLogoScene() {
   const beam = `nf-beam-${id}`
   const glow = `nf-glow-${id}`
   const bulb = `nf-bulb-${id}`
-  const left = `nf-left-${id}`
-  const right = `nf-right-${id}`
   const onMark = `nf-on-mark-${id}`
 
   return (
@@ -57,12 +53,6 @@ export function BrokenLogoScene() {
           <stop offset="0.6" stopColor="var(--nf-light)" />
           <stop offset="1" stopColor="var(--nf-light)" stopOpacity="0.6" />
         </radialGradient>
-        <clipPath id={left}>
-          <path d={leftPiece} />
-        </clipPath>
-        <clipPath id={right}>
-          <path d={rightPiece} />
-        </clipPath>
         {/* 금은 로고 획 위에만 보인다 — 가운데 빈 자리에 그으면 금이 아니라 낙서다. */}
         <mask id={onMark} maskContentUnits="userSpaceOnUse" maskUnits="userSpaceOnUse" x="-10" y="-10" width="90" height="90">
           <path d={MARK_BODY} fill="#fff" />
@@ -88,16 +78,10 @@ export function BrokenLogoScene() {
       <path className="nf-chip" d="M 318 389 l 4 -2 l 1 4 Z" />
       <path className="nf-chip nf-chip--accent" d="M 284 388 l 6 -1 l -2 5 Z" />
 
-      {/* 금 간 로고: 왼쪽 조각은 제자리, 오른쪽 조각은 살짝 내려앉았다 */}
+      {/* 금 간 로고: 모양 · 비율은 원본 그대로, 그 위에 금만 */}
       <g transform="translate(144 196) scale(3)">
-        <g clipPath={`url(#${left})`}>
-          <path className="nf-mark" d={MARK_BODY} />
-          <path className="nf-mark-accent" d={MARK_ACCENT} />
-        </g>
-        <g clipPath={`url(#${right})`} transform="translate(0.7 1.1) rotate(1 34 40)">
-          <path className="nf-mark" d={MARK_BODY} />
-          <path className="nf-mark-accent" d={MARK_ACCENT} />
-        </g>
+        <path className="nf-mark" d={MARK_BODY} />
+        <path className="nf-mark-accent" d={MARK_ACCENT} />
         {/* 갈라진 틈과 가는 잔금 */}
         <g mask={`url(#${onMark})`}>
           <path className="nf-crack" d={crackPath} />
