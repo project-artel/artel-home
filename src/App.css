@@ -12695,6 +12695,8 @@ button.gf-bar:focus-visible {
 
 /* 404 — 숫자를 크게, 돌아갈 길을 바로 아래에 */
 .not-found { display: flex; flex: 1; min-height: calc(100vh - 120px); }
+/* 404 에서는 바탕 격자를 끈다 — 빛 · 금 간 로고 말고는 아무것도 없는 어두운 방이어야 한다. */
+.workspace:has(.not-found) { background-image: none; }
 .not-found .sketch-empty { min-height: 0; }
 .not-found-code { margin: 0; color: var(--color-text-primary); font-family: var(--font-mono); font-size: 64px; font-weight: 700; letter-spacing: -0.02em; line-height: 1; }
 .not-found-code span { color: var(--color-action-primary); }
