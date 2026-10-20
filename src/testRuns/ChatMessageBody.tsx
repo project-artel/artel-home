@@ -7,7 +7,7 @@ import { StudioIcon } from '../testScenarios/studioIcons'
 import { parseChatMarkdown, parseInline, type Inline } from './chatMarkdown'
 import { ChatRefChip } from './ChatRefChip'
 import { ChatLinkContext, ChatRefsContext } from './chatRefContext'
-import type { ChatRef, ChatReply, ScenarioChange } from './runChatApi'
+import type { ChatRef, ChatReply, RunChatQuestion, ScenarioChange } from './runChatApi'
 
 /**
  * An agent message, with the structure it wrote left standing.
@@ -28,19 +28,66 @@ import type { ChatRef, ChatReply, ScenarioChange } from './runChatApi'
  * own shape (sentences, a list, a table) for whatever it has to say. Questions are not
  * here: they hang off the same line and open the question modal.
  */
-export function ChatReplyBody({ reply, refs = [] }: { reply: ChatReply; refs?: ChatRef[] }) {
+export function ChatReplyBody({ reply, refs = [], onPickAsk }: {
+  reply: ChatReply
+  refs?: ChatRef[]
+  /** 이 답의 질문에 보기 칩을 단다(ARTEL-1118) — 질문이 적어 선택 박스를 세우지 않을 때. */
+  onPickAsk?: (question: RunChatQuestion, option: RunChatQuestion['options'][number]) => void
+}) {
   return (
     <ChatRefsContext.Provider value={refs}>
     <div className="chat-reply">
-      <div className="chat-reply-result">
-        {reply.result.split('\n').map((line, index) => (
-          <p className="chat-reply-result-line" key={index}><InlineRun parts={parseInline(line)} /></p>
-        ))}
-        {reply.changes.length > 0 && <ChangeList changes={reply.changes} />}
-      </div>
+      {/* 결과 칸이 빈 답도 있다 — 예전에 질문만 따로 저장된 줄(ARTEL-1118)을 이 모양으로 그릴 때다. */}
+      {(reply.result.length > 0 || reply.changes.length > 0) && (
+        <div className="chat-reply-result">
+          {reply.result.split('\n').map((line, index) => (
+            <p className="chat-reply-result-line" key={index}><InlineRun parts={parseInline(line)} /></p>
+          ))}
+          {reply.changes.length > 0 && <ChangeList changes={reply.changes} />}
+        </div>
+      )}
       {reply.detail.trim().length > 0 && <ChatMessageBody body={reply.detail} refs={refs} />}
+      {reply.asks.length > 0 && <ChatAsks asks={reply.asks} onPick={onPickAsk} />}
     </div>
     </ChatRefsContext.Provider>
+  )
+}
+
+/**
+ * 저작이 사용자에게 묻는 것(ARTEL-1118) — 답 맨 아래, 전구 하나 아래에 질문 글만.
+ *
+ * 예전에는 답과 따로 질문 메시지로 와서 "펼치기" 모달로 답했다. 저작이 대화를 기억하게 되어 평범한
+ * 대화로 답하면 된다. 질문이 여럿이면 여기 다 펼치면 읽히지 않으므로 **글만** 남기고, 고르는 것은 입력 칸
+ * 위의 선택 박스([AskDock])가 하나씩 맡는다.
+ */
+export function ChatAsks({ asks, onPick }: {
+  asks: RunChatQuestion[]
+  /** 있으면 보기를 누를 수 있는 칩으로 단다 — 질문이 하나 · 둘이라 선택 박스를 세우지 않을 때(ARTEL-1118). */
+  onPick?: (question: RunChatQuestion, option: RunChatQuestion['options'][number]) => void
+}) {
+  const { t } = useI18n()
+  const c = t.scenarios.chat
+  return (
+    <section aria-label={c.asksLabel} className="chat-asks">
+      <StudioIcon className="chat-asks-icon" name="bulb" size={16} />
+      <ol className={`chat-asks-list${asks.length > 1 ? ' is-numbered' : ''}`}>
+        {asks.map((ask) => (
+          <li className="chat-ask" key={ask.id}>
+            <p className="chat-ask-text"><InlineRun parts={parseInline(ask.text)} /></p>
+            {ask.why !== null && <p className="chat-ask-why"><InlineRun parts={parseInline(ask.why)} /></p>}
+            {onPick !== undefined && ask.options.length > 0 && (
+              <div className="chat-ask-options">
+                {ask.options.map((option) => (
+                  <button className="chat-ask-option" key={option.id} onClick={() => onPick(ask, option)} type="button">
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </li>
+        ))}
+      </ol>
+    </section>
   )
 }
 
@@ -227,7 +274,7 @@ function ChatTable({ header, rows }: { header: Inline[][]; rows: Inline[][][] })
   )
 }
 
-function InlineRun({ parts }: { parts: Inline[] }) {
+export function InlineRun({ parts }: { parts: Inline[] }) {
   return (
     <>
       {parts.map((part, index) => {

@@ -414,7 +414,7 @@ export function ScenarioStepEditor({
                       }}
                       role="button"
                       tabIndex={0}
-                      title={step.action}
+                      title={gap ? gapSummary(step.step_unknown_reason, b) : step.action}
                     >
                       <span className="se-row-no mono">
                         <input
@@ -444,7 +444,7 @@ export function ScenarioStepEditor({
                         )}
                         {expanded && (gap || testCase !== undefined) && (
                           <span className="se-row-expected">
-                            {gap ? <RichText text={step.action} /> : <><b>{b.expected}</b> <RichText text={testCase?.expectedValue ?? ''} /></>}
+                            {gap ? gapSummary(step.step_unknown_reason, b) : <><b>{b.expected}</b> <RichText text={testCase?.expectedValue ?? ''} /></>}
                           </span>
                         )}
                       </span>
@@ -649,7 +649,15 @@ function StepInspector({
             {gap && <span className="se-muted">{b.gapSource}</span>}
           </div>
           {gap ? (
-            <p className="se-gap-text"><RichText text={step.action} /></p>
+            <>
+              {/* 결론 한 줄만 보인다(ARTEL-1118). 오케가 쓰는 원문은 근거 · 판정 · 제안을 한 덩어리로 이어 붙여
+                  길고, 같은 씬 이름이 여러 번 나온다. 원문은 "자세히" 를 펼쳐야 보인다. */}
+              <p className="se-gap-text">{gapSummary(step.step_unknown_reason, b)}</p>
+              <details className="se-gap-more">
+                <summary>{b.gapMore}</summary>
+                <p><RichText text={step.action} /></p>
+              </details>
+            </>
           ) : (
             <StepAction
               autoFocus={autoFocus}
@@ -745,6 +753,16 @@ function StepInspector({
       </div>
     </section>
   )
+}
+
+/**
+ * 경로 공백의 결론 한 줄(ARTEL-1118). 막힌 이유가 `A→B` 면 그 사이를 넘어가는 방법을, 아니면 그 상태를 만드는
+ * 방법을 모른다고 말하고, 알려 주면 채운다고 덧붙인다. 행에 가져다 댈 때 뜨는 말도 이것이다.
+ */
+function gapSummary(reason: string | null, b: { gapSummaryPath: (from: string, to: string) => string; gapSummaryState: (state: string) => string; gapRowPlain: string }): string {
+  if (reason === null || reason.trim().length === 0) return b.gapRowPlain
+  const [from, to] = reason.split('→').map((part) => part.trim())
+  return to !== undefined && from.length > 0 && to.length > 0 ? b.gapSummaryPath(from, to) : b.gapSummaryState(reason.trim())
 }
 
 /** 기대 결과는 ` / ` 로 이어진 여러 줄이다. 둘 이상이면 목록으로 편다. */

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { parseRefs, parseReply, parseRunStreamEvent } from './runChatApi'
+import { parseRefs, parseReply, parseRunStreamEvent, parseStoredMessages } from './runChatApi'
 
 // 답의 세 칸(ARTEL-929). 결과·설명은 저장된 payload(`kind=reply`)와 실시간 결과 프레임의 `reply`
 // 두 길로 온다 — 둘이 같은 모양으로 읽혀야 새로고침 전후가 같아 보인다.
@@ -8,12 +8,12 @@ import { parseRefs, parseReply, parseRunStreamEvent } from './runChatApi'
 test('reply payload 에서 결과와 설명을 읽는다', () => {
   assert.deepEqual(
     parseReply({ kind: 'reply', result: '시나리오를 저장했어요: **타이틀**', detail: '하나만 썼어요.' }),
-    { result: '시나리오를 저장했어요: **타이틀**', detail: '하나만 썼어요.', changes: [] },
+    { result: '시나리오를 저장했어요: **타이틀**', detail: '하나만 썼어요.', changes: [], asks: [] },
   )
 })
 
 test('설명이 없으면 빈 글이다', () => {
-  assert.deepEqual(parseReply({ kind: 'reply', result: '저장했어요' }), { result: '저장했어요', detail: '', changes: [] })
+  assert.deepEqual(parseReply({ kind: 'reply', result: '저장했어요' }), { result: '저장했어요', detail: '', changes: [], asks: [] })
 })
 
 test('다른 종류의 payload 나 결과 없는 reply 는 답이 아니다', () => {
@@ -32,7 +32,7 @@ test('결과 프레임의 reply 를 읽는다', () => {
     }),
   )
   assert.equal(parsed?.type, 'result')
-  assert.deepEqual(parsed?.type === 'result' ? parsed.reply : null, { result: '저장했어요', detail: '이유', changes: [] })
+  assert.deepEqual(parsed?.type === 'result' ? parsed.reply : null, { result: '저장했어요', detail: '이유', changes: [], asks: [] })
 })
 
 test('reply 없는 결과 프레임은 글만 있는 답이다', () => {
@@ -91,4 +91,54 @@ test('reply 의 changes 를 읽고 모양이 틀린 것은 버린다', () => {
 
 test('changes 가 없는 옛 reply 는 빈 목록이다', () => {
   assert.deepEqual(parseReply({ kind: 'reply', result: '저장했어요' })?.changes, [])
+})
+
+// 질문 칸(ARTEL-1118). 저작의 질문은 답 맨 아래에 함께 온다 — 대화로 답하므로 모달로 걸지 않는다.
+
+test('reply 의 asks 를 질문 칸으로 읽는다', () => {
+  const reply = parseReply({
+    kind: 'reply',
+    result: '저장했어요',
+    asks: [
+      { id: 'agent:a', text: '구매 실패도 넣을까요?', why: '골드가 모자랄 때를 따로 봐야 해요', options: [{ id: 'o1', label: '넣어 줘' }] },
+      { id: '', text: '번호 없는 질문' },
+    ],
+  })
+  assert.deepEqual(reply?.asks.map((ask) => ask.id), ['agent:a'])
+  assert.equal(reply?.asks[0].why, '골드가 모자랄 때를 따로 봐야 해요')
+  assert.deepEqual(reply?.asks[0].options.map((option) => option.label), ['넣어 줘'])
+})
+
+test('예전에 따로 저장된 모델 질문은 모달 질문이 아니라 질문 칸으로 되살린다', () => {
+  const [stored] = parseStoredMessages([
+    {
+      role: 'ASSISTANT',
+      content: '맵 시나리오에 전투 뒤 배경 확인도 포함할까요?',
+      createdAt: '2026-10-15T05:25:00Z',
+      payload: {
+        kind: 'question',
+        id: 'agent:x',
+        text: '맵 시나리오에 전투 뒤 배경 확인도 포함할까요?',
+        source: 'agent',
+        options: [{ id: 'o1', label: '넣어 줘' }],
+        questions: [{ id: 'agent:x', text: '맵 시나리오에 전투 뒤 배경 확인도 포함할까요?', source: 'agent', options: [{ id: 'o1', label: '넣어 줘' }] }],
+      },
+    },
+  ])
+  assert.equal(stored.question, null)
+  assert.equal(stored.questions, undefined)
+  assert.deepEqual(stored.reply?.asks.map((ask) => ask.text), ['맵 시나리오에 전투 뒤 배경 확인도 포함할까요?'])
+  assert.equal(stored.reply?.result, '')
+})
+
+test('코드가 낸 질문(경로 공백)은 그대로 모달 질문이다', () => {
+  const [stored] = parseStoredMessages([
+    {
+      role: 'ASSISTANT',
+      content: 'StoryScene 에서 Map_scene 으로 어떻게 넘어가나요?',
+      payload: { kind: 'question', id: 'gap:x', text: 'StoryScene 에서 Map_scene 으로 어떻게 넘어가나요?', source: 'code', options: [] },
+    },
+  ])
+  assert.equal(stored.question?.id, 'gap:x')
+  assert.equal(stored.reply, null)
 })
