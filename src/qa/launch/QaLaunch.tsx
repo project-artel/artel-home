@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { EdgeScrollbar } from '../../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../../i18n/useI18n'
+import { useFieldBinding } from '../../projectAgent/bindings'
+import { QA_TEST_RUN_FIELD } from '../../projectAgent/specs/qa'
 import type { GameInstance } from '../../projects/gameTypes'
 import { sectionHref } from '../../projects/workspace/sections'
 import { useWorkspace } from '../../projects/workspace/workspaceContext'
@@ -199,6 +201,16 @@ export function QaLaunch() {
       reasoningValue: reasoningStart(offered.find((model) => qaModelOptionKey(model) === next)),
     }))
   }
+
+  // agent 가 런을 고르는 길. 런 선택 카드를 고르는 것과 같은 `pickRun` 이다.
+  useFieldBinding(QA_TEST_RUN_FIELD, {
+    target: () => pickerAnchor.current,
+    read: () => runId,
+    options: () => runs.map((one) => ({ value: one.id, label: one.name })),
+    write: (value) => {
+      if (runs.some((one) => one.id === value)) pickRun(String(value))
+    },
+  })
 
   const runPath = run === null
     ? []
