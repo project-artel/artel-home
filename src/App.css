@@ -12027,3 +12027,135 @@ button.gf-bar:focus-visible {
 .dw-extracting-text > span { color: var(--color-text-secondary); font-size: 13px; }
 .dw-extracting .document-parse-elapsed { color: var(--color-text-primary); }
 .dw-current-facts .dw-ring { margin-right: 2px; }
+
+/* ── 게임 빌드 섹션 (ARTEL-1105) ─────────────────────────────────── */
+
+/* 좁은 화면에서는 표만 가로로 밀린다. region 이라 키보드로 짚어 스크롤할 수 있다.
+   `position: relative` 가 없으면 칸 안의 `.visually-hidden`(absolute) 이 문서 기준으로 놓여 페이지 전체를 넓힌다. */
+.gb-table-scroll {
+  position: relative;
+  overflow-x: auto;
+}
+
+.gb-table-scroll:focus-visible {
+  outline: 2px solid var(--color-action-primary);
+  outline-offset: -2px;
+}
+
+.gb-table {
+  min-width: 760px;
+}
+
+.gb-row {
+  cursor: pointer;
+}
+
+.gb-version-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.gb-label {
+  margin-top: 2px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.gb-instances {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.gb-latest-run {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.gb-partial {
+  margin: 0;
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--color-border-subtle);
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.gb-back {
+  align-self: flex-start;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.gb-back:hover {
+  color: var(--color-action-primary);
+}
+
+.gb-detail-head {
+  margin-bottom: var(--space-3);
+}
+
+.gb-detail-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.gb-detail-label {
+  margin: var(--space-1) 0 0;
+  color: var(--color-text-secondary);
+}
+
+.gb-detail-note {
+  margin: var(--space-3) 0 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+.gb-notes {
+  white-space: pre-wrap;
+}
+
+.gb-detail-links {
+  justify-content: flex-start;
+}
+
+.gb-detail-columns {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .gb-detail-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.gb-block-title {
+  margin: 0;
+  padding: var(--space-4) var(--space-5) var(--space-2);
+  font-size: 15px;
+}
+
+.gb-block-title--plain {
+  padding: 0 0 var(--space-2);
+}
+
+.gb-cases-total {
+  margin: 0 0 var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+/* 상세에서는 catalog 가 자기 panel 을 가진다. 빌드 행 안에 들어갈 때 쓰는 위쪽 구분선은 필요 없다. */
+.gb-catalog .gf-panel {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
