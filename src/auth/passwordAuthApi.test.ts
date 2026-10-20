@@ -29,7 +29,6 @@ describe('parseAuthProviders', () => {
       password: true,
       github: false,
       signupOpen: true,
-      telemetryAvailable: false,
     })
   })
 
@@ -72,7 +71,7 @@ describe('getAuthProviders', () => {
       () => new Response(JSON.stringify({ password: true, github: false, signupOpen: true }), { status: 200 }),
       () => getAuthProviders(),
     )
-    assert.deepEqual(providers, { password: true, github: false, signupOpen: true, telemetryAvailable: false })
+    assert.deepEqual(providers, { password: true, github: false, signupOpen: true })
   })
 })
 
@@ -146,30 +145,5 @@ describe('error codes', () => {
       withMockedFetch(() => new Response('nope', { status: 500 }), () => signUpWithPassword('a@b.co', 'secret12', 'Ada')),
       (error: { code?: string }) => error.code === '',
     )
-  })
-})
-
-describe('telemetry in the auth api', () => {
-  it('reads telemetryAvailable and defaults it to false', () => {
-    assert.equal(parseAuthProviders({ password: true, telemetryAvailable: true }).telemetryAvailable, true)
-    assert.equal(parseAuthProviders({ password: true }).telemetryAvailable, false)
-  })
-
-  it('sends telemetryOptIn on signup only when it was given', async () => {
-    const bodies: unknown[] = []
-    const handler = (_url: string, init: RequestInit) => {
-      bodies.push(JSON.parse(String(init.body)))
-      return new Response(null, { status: 204 })
-    }
-    await withMockedFetch(handler, async () => {
-      await signUpWithPassword('a@b.c', 'password1', 'A')
-      await signUpWithPassword('a@b.c', 'password1', 'A', false)
-      await signUpWithPassword('a@b.c', 'password1', 'A', true)
-    })
-    assert.deepEqual(bodies, [
-      { email: 'a@b.c', password: 'password1', name: 'A' },
-      { email: 'a@b.c', password: 'password1', name: 'A', telemetryOptIn: false },
-      { email: 'a@b.c', password: 'password1', name: 'A', telemetryOptIn: true },
-    ])
   })
 })

@@ -1,7 +1,7 @@
 import type { Localized } from '../messages'
 
 /**
- * Every value the daily telemetry statistics carry, and what they never carry. The signup checkbox and
+ * Every value the daily telemetry statistics carry, and what they never carry. The first-visit prompt and
  * the admin settings section both show this list, so it must match `TelemetryReport` in
  * artel-orchestration-server field for field.
  */

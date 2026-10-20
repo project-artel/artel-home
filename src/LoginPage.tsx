@@ -94,10 +94,7 @@ export function LoginPage({
           </div>
         )}
 
-        <PasswordLoginForm
-          signupOpen={providers?.signupOpen === true}
-          telemetryAvailable={providers?.telemetryAvailable === true}
-        />
+        <PasswordLoginForm signupOpen={providers?.signupOpen === true} />
 
         {oauthButtons.length > 0 && (
           <>
