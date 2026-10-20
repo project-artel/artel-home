@@ -119,7 +119,6 @@ describe('LaunchPanel', () => {
         onArchChange: () => {},
         freeScenarios,
         etaMs: null,
-        onRefreshConsoles: async () => {},
         onManageConsoles: () => {},
         runShortcut: 0,
       }),
