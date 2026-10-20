@@ -45,13 +45,13 @@ export function sectionHref(projectId: string, path: string): string {
 }
 
 /**
- * Which section a pathname is in. Read for the heading above the content;
- * anything that is not a known section (a deep page opened from one) falls
- * back to the dashboard label rather than rendering an empty heading.
+ * Which section a pathname is in. Read for the heading above the content. A deep page inside a section
+ * (`qa-history/:qaRunId`, ARTEL-1135) belongs to the section its first segment names; anything that is
+ * not a known section falls back to the dashboard label rather than rendering an empty heading.
  */
 export function sectionIdFromPath(projectId: string, pathname: string): WorkspaceSectionId {
   const base = `/projects/${encodeURIComponent(projectId)}`
-  const rest = pathname.startsWith(base) ? pathname.slice(base.length).replace(/^\//, '') : ''
+  const rest = pathname.startsWith(base) ? (pathname.slice(base.length).replace(/^\//, '').split('/')[0] ?? '') : ''
   if (rest === 'setup') return 'setup'
   if (rest === 'usage') return 'usage'
   if (rest === 'members') return 'members'

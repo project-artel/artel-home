@@ -6,9 +6,12 @@ import { readVerdictDetail, type QaVerdictDetail } from './qaVerdictEvidence'
  * 런 하나의 스텝 판정과 근거(ARTEL-1135). `GET /api/qa-runs/{qaRunId}/verdicts` (ARTEL-1134).
  *
  * 근거는 agent 가 판정마다 보낸 것 그대로다: 판정 한 줄, 왜, 기대 항목마다 무엇을 보았고 그 근거가 판독 기록과
- * 맞았는지. 근거 칸이 생기기 전의 판정은 판정 한 줄만 있는 `none` 이다.
+ * 맞았는지. 근거 칸이 생기기 전의 판정은 판정 한 줄(과 판정 도구 호출에 남은 이유)만 있는 `none` 이다.
+ * 판정 말고도 화면이 그리는 것 — 출처(TR · 빌드), 시나리오의 모든 스텝과 TC 기대, 스텝마다 한 행동, 이슈 — 를 함께 싣는다.
  */
 export type QaVerdictCapture = { captureId: string; url: string; expiresAt: string }
+
+export type QaStepAction = { kind: 'key' | 'click' | 'drag' | 'other'; label: string | null; count: number }
 
 export type QaStepVerdict = {
   logId: string
@@ -19,18 +22,53 @@ export type QaStepVerdict = {
   passed: boolean
   detail: QaVerdictDetail
   captures: QaVerdictCapture[]
+  actions: QaStepAction[]
   judgedAt: string | null
 }
+
+export type QaScenarioStepView = { step: number; title: string; caseId: string | null; expected: string | null }
+
+export type QaStepIssue = { issueId: string; title: string; severity: string; step: number | null }
 
 export type QaTryVerdicts = {
   qaTryId: string
   testScenarioId: string
   scenarioTitle: string
+  executionMode: 'ORDERED' | 'FREE'
   status: string
+  model: string | null
+  startedAt: string | null
+  completedAt: string | null
+  steps: QaScenarioStepView[]
   verdicts: QaStepVerdict[]
+  issues: QaStepIssue[]
 }
 
-export type QaRunVerdicts = { qaRunId: string; tries: QaTryVerdicts[] }
+export type QaRunVerdicts = {
+  qaRunId: string
+  testRunId: string
+  testRunName: string
+  gameBuildVersion: string | null
+  status: string
+  startedAt: string | null
+  completedAt: string | null
+  tries: QaTryVerdicts[]
+}
+
+const ACTION_KINDS = new Set<QaStepAction['kind']>(['key', 'click', 'drag', 'other'])
+
+function orNull(value: unknown): string | null {
+  const text = asString(value)
+  return text.length > 0 ? text : null
+}
+
+function asStep(value: unknown): number | null {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 1 ? value : null
+}
+
+function list<T>(value: unknown, read: (entry: unknown) => T | null): T[] {
+  return Array.isArray(value) ? value.map(read).filter((entry): entry is T => entry !== null) : []
+}
 
 function readCapture(value: unknown): QaVerdictCapture | null {
   const record = asRecord(value)
@@ -39,42 +77,74 @@ function readCapture(value: unknown): QaVerdictCapture | null {
   return { captureId: asString(record.captureId), url, expiresAt: asString(record.expiresAt) }
 }
 
+function readAction(value: unknown): QaStepAction | null {
+  const record = asRecord(value)
+  const kind = asString(record?.kind) as QaStepAction['kind']
+  if (record === null || !ACTION_KINDS.has(kind)) return null
+  return { kind, label: orNull(record.label), count: typeof record.count === 'number' ? record.count : 1 }
+}
+
 function readVerdict(value: unknown): QaStepVerdict | null {
   const record = asRecord(value)
-  if (record === null || typeof record.step !== 'number') return null
-  const captures = Array.isArray(record.captures) ? record.captures.map(readCapture) : []
-  const caseId = asString(record.caseId)
-  const stepTitle = asString(record.stepTitle)
+  const step = asStep(record?.step)
+  if (record === null || step === null) return null
   return {
     logId: asString(record.logId),
-    step: record.step,
-    stepTitle: stepTitle.length > 0 ? stepTitle : null,
-    caseId: caseId.length > 0 ? caseId : null,
+    step,
+    stepTitle: orNull(record.stepTitle),
+    caseId: orNull(record.caseId),
     isVerification: record.isVerification === true,
     passed: record.passed === true,
     detail: readVerdictDetail(record),
-    captures: captures.filter((capture): capture is QaVerdictCapture => capture !== null),
-    judgedAt: asString(record.judgedAt) || null,
+    captures: list(record.captures, readCapture),
+    actions: list(record.actions, readAction),
+    judgedAt: orNull(record.judgedAt),
+  }
+}
+
+function readStep(value: unknown): QaScenarioStepView | null {
+  const record = asRecord(value)
+  const step = asStep(record?.step)
+  if (record === null || step === null) return null
+  return { step, title: asString(record.title), caseId: orNull(record.caseId), expected: orNull(record.expected) }
+}
+
+function readIssue(value: unknown): QaStepIssue | null {
+  const record = asRecord(value)
+  const issueId = asString(record?.issueId)
+  if (record === null || issueId.length === 0) return null
+  return { issueId, title: asString(record.title), severity: asString(record.severity), step: asStep(record.step) }
+}
+
+function readTry(value: unknown): QaTryVerdicts | null {
+  const record = asRecord(value)
+  if (record === null) return null
+  return {
+    qaTryId: asString(record.qaTryId),
+    testScenarioId: asString(record.testScenarioId),
+    scenarioTitle: asString(record.scenarioTitle),
+    executionMode: record.executionMode === 'FREE' ? 'FREE' : 'ORDERED',
+    status: asString(record.status),
+    model: orNull(record.model),
+    startedAt: orNull(record.startedAt),
+    completedAt: orNull(record.completedAt),
+    steps: list(record.steps, readStep),
+    verdicts: list(record.verdicts, readVerdict),
+    issues: list(record.issues, readIssue),
   }
 }
 
 export function parseQaRunVerdicts(value: unknown): QaRunVerdicts {
   const record = asRecord(value)
-  const tries = Array.isArray(record?.tries) ? record.tries : []
   return {
     qaRunId: asString(record?.qaRunId),
-    tries: tries.flatMap((entry) => {
-      const item = asRecord(entry)
-      if (item === null) return []
-      const verdicts = Array.isArray(item.verdicts) ? item.verdicts.map(readVerdict) : []
-      return [{
-        qaTryId: asString(item.qaTryId),
-        testScenarioId: asString(item.testScenarioId),
-        scenarioTitle: asString(item.scenarioTitle),
-        status: asString(item.status),
-        verdicts: verdicts.filter((verdict): verdict is QaStepVerdict => verdict !== null),
-      }]
-    }),
+    testRunId: asString(record?.testRunId),
+    testRunName: asString(record?.testRunName),
+    gameBuildVersion: orNull(record?.gameBuildVersion),
+    status: asString(record?.status),
+    startedAt: orNull(record?.startedAt),
+    completedAt: orNull(record?.completedAt),
+    tries: list(record?.tries, readTry),
   }
 }
 
@@ -83,19 +153,4 @@ export async function getQaRunVerdicts(qaRunId: string, signal?: AbortSignal): P
   const response = await apiFetch(`/api/qa-runs/${encodeURIComponent(qaRunId)}/verdicts`, { signal })
   if (response.status === 404) return null
   return parseQaRunVerdicts(await readJson(response))
-}
-
-export type QaEvidenceTally = { judged: number; passed: number; failed: number; verified: number; uncertain: number; none: number }
-
-/** 검증 판정만 센다. 행동 스텝의 판정은 "그 행동을 했다" 라서 근거를 묻지 않는다. */
-export function tallyVerdicts(verdicts: QaStepVerdict[]): QaEvidenceTally {
-  const judged = verdicts.filter((verdict) => verdict.isVerification)
-  return {
-    judged: judged.length,
-    passed: judged.filter((verdict) => verdict.passed).length,
-    failed: judged.filter((verdict) => !verdict.passed).length,
-    verified: judged.filter((verdict) => verdict.detail.status === 'verified').length,
-    uncertain: judged.filter((verdict) => verdict.detail.status === 'uncertain').length,
-    none: judged.filter((verdict) => verdict.detail.status === 'none').length,
-  }
 }

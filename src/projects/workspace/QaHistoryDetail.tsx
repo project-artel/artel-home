@@ -2,7 +2,8 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
 import { elapsedSeconds, getQaTryDetail, type QaTryDetail } from '../../qa/qaTryDetailApi'
-import { tallyVerdicts, type QaStepVerdict } from '../../qa/qaVerdictApi'
+import type { QaTryVerdicts } from '../../qa/qaVerdictApi'
+import { plainText, stepRows, tallyRows } from '../../qa/verdicts/verdictModel'
 import { formatCost } from '../../usage/format'
 import { formatElapsedSeconds, PLACEHOLDER } from '../formatters'
 
@@ -31,7 +32,7 @@ export function QaHistoryDetail({
    * 이 시나리오 실행의 판정(ARTEL-1135). 주면 결과 아래에 판정 근거 묶음이 선다. 판정은 시나리오 단위로 보는 것이라
    * 시나리오마다 이 자리에 둔다. `undefined` 면 아직 모르거나 근거를 안 보이는 화면이다.
    */
-  verdicts?: QaStepVerdict[]
+  verdicts?: QaTryVerdicts
   /** 판정 근거 페이지에서 이 시나리오로 거른 주소. 줄을 누르면 거기에 `try` · `step` 을 붙여 그 판정을 연다. */
   verdictsHref?: string
   /** 제목 위에 붙는 작은 표지(QA 히스토리의 "시나리오 1"). */
@@ -122,7 +123,7 @@ export function QaHistoryDetail({
 
         <RunDetailResult detail={detail} />
         {verdicts !== undefined && verdictsHref !== undefined && (
-          <RunDetailVerdicts href={verdictsHref} qaTryId={qaTryId} verdicts={verdicts} />
+          <RunDetailVerdicts href={verdictsHref} scenario={verdicts} />
         )}
         <RunDetailCost detail={detail} />
       </div>
@@ -190,59 +191,53 @@ function RunDetailResult({ detail }: { detail: QaTryDetail }) {
   )
 }
 
-const FLAGGED_SHOWN = 4
+const FLAGGED_SHOWN = 3
 
 /**
- * 이 시나리오의 판정 근거(ARTEL-1135): 근거 상태별 수와, 먼저 볼 판정 — 실패했거나 근거가 기록과 어긋난 것.
- * 전부는 판정 근거 페이지에 이 시나리오로 걸러져 있다.
+ * 이 시나리오의 스텝별 판정(ARTEL-1135): 스텝마다 한 칸짜리 띠, 이슈가 난 스텝과 그 뒤 실패 수, 먼저 볼 실패 몇 개.
+ * 자세한 근거는 판정 근거 페이지에 있다 — 줄이나 버튼을 누르면 그 시나리오 · 스텝으로 열린다.
  */
-function RunDetailVerdicts({ href, qaTryId, verdicts }: { href: string; qaTryId: string; verdicts: QaStepVerdict[] }) {
+function RunDetailVerdicts({ href, scenario }: { href: string; scenario: QaTryVerdicts }) {
   const { t } = useI18n()
   const copy = t.qa.verdicts
-  const tally = tallyVerdicts(verdicts)
+  const rows = stepRows(scenario)
+  const tally = tallyRows(rows)
   if (tally.judged === 0) return null
-  const flagged = verdicts.filter((verdict) => verdict.isVerification && (!verdict.passed || verdict.detail.status === 'uncertain'))
+  const issueRow = rows.find((row) => row.issues.length > 0)
+  const failedAfter = issueRow === undefined ? 0 : rows.filter((row) => row.step > issueRow.step && row.state === 'failed').length
+  const flagged = rows.filter((row) => row.verifying && row.state === 'failed')
 
   return (
     <section className="run-detail-group">
-      <div className="run-detail-group-head">
-        <SectionTitle kind="evidence">{copy.inspector.title}</SectionTitle>
-        <Link className="run-detail-group-link" to={href}>{copy.inspector.open} →</Link>
-      </div>
-      <p className="qh-verdicts-tally mono">
-        {(['verified', 'uncertain', 'none'] as const).map((status) => (
-          <span className={`qv-ev qv-ev--${status}`} key={status} title={copy.evidenceHint[status]}>
-            {copy.evidence[status]} {tally[status]}
-          </span>
-        ))}
-      </p>
-      {flagged.length === 0 ? (
-        <p className="run-detail-note">
-          {tally.uncertain === 0 && tally.none === 0 ? copy.inspector.allClear : copy.summary(tally.judged, tally.passed, tally.failed)}
-        </p>
-      ) : (
-        <>
-          <span className="qh-verdicts-label">{copy.inspector.review}</span>
-          <ul className="qh-verdicts-list">
-            {flagged.slice(0, FLAGGED_SHOWN).map((verdict) => (
-              <li key={verdict.step}>
-                <Link to={`${href}&try=${encodeURIComponent(qaTryId)}&step=${verdict.step}`}>
-                  <span className={`vdot vdot--${verdict.passed ? 'verified' : 'failed'}`} />
-                  <span className="qh-verdicts-text">
-                    <span className="qh-muted">{copy.stepLabel(verdict.step)}</span> {verdict.detail.message}
-                  </span>
-                  {verdict.detail.status === 'uncertain' && (
-                    <span className="qv-ev qv-ev--uncertain">{copy.evidence.uncertain}</span>
-                  )}
+      <SectionTitle kind="evidence">{copy.entry.title}</SectionTitle>
+      <div className="qh-steps">
+        <div className="qh-steps-head">
+          <span className="qh-muted mono">{copy.entry.tally(tally.passed, tally.failed)}</span>
+        </div>
+        <div aria-label={copy.navigator} className="qh-steps-strip" role="img">
+          {rows.map((row) => (
+            <span
+              className={`qh-steps-cell qh-steps-cell--${row.verifying || row.state === 'failed' ? row.state : 'action'}${row.issues.length > 0 ? ' has-issue' : ''}`}
+              key={row.step}
+              title={`${row.step}. ${plainText(row.title)}`}
+            />
+          ))}
+        </div>
+        {issueRow !== undefined && <span className="qh-steps-issue">{copy.entry.issueLine(issueRow.step, failedAfter)}</span>}
+        {flagged.length > 0 && (
+          <ul className="qh-steps-list">
+            {flagged.slice(0, FLAGGED_SHOWN).map((row) => (
+              <li key={row.step}>
+                <Link to={`${href}&step=${row.step}`}>
+                  <span aria-hidden="true" className="qh-steps-x">✕</span>
+                  <span className="qh-steps-text"><span className="qh-muted mono">{row.step}</span> {plainText(row.title)}</span>
                 </Link>
               </li>
             ))}
           </ul>
-          {flagged.length > FLAGGED_SHOWN && (
-            <Link className="qh-muted" to={href}>{copy.inspector.more(flagged.length - FLAGGED_SHOWN)}</Link>
-          )}
-        </>
-      )}
+        )}
+        <Link className="button button--secondary button--compact qh-steps-open" to={href}>{copy.entry.open}</Link>
+      </div>
     </section>
   )
 }

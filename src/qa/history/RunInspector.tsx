@@ -124,7 +124,7 @@ export function RunInspector({
               label={b.scenarioFallback(index + 1)}
               qaTryId={qaTry.id}
               verdicts={verdicts?.get(qaTry.id)}
-              verdictsHref={`/projects/${encodeURIComponent(projectId)}/qa-runs/${encodeURIComponent(run.id)}/verdicts?scenario=${encodeURIComponent(qaTry.id)}`}
+              verdictsHref={`/projects/${encodeURIComponent(projectId)}/qa-history/${encodeURIComponent(run.id)}?scenario=${encodeURIComponent(qaTry.id)}`}
             />
             <div className="qh-scenario-links">
               <Link

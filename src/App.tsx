@@ -20,7 +20,7 @@ import { MacroSection } from './macros/MacroSection'
 import { BuildPerformanceRoute } from './performance/BuildPerformancePage'
 import { PerformanceSection } from './performance/PerformanceSection'
 import { RunPerformanceRoute } from './performance/RunPerformancePage'
-import { QaVerdictsRoute } from './qa/verdicts/QaVerdictsPage'
+import { QaVerdictsSection } from './qa/verdicts/QaVerdictsSection'
 import { GameInstanceDetailRoute } from './projects/GameInstanceDetailPage'
 import { ProjectListPage } from './projects/ProjectListPage'
 import { SetupPage } from './projects/SetupPage'
@@ -152,6 +152,7 @@ export function App() {
             <Route path="test-runs" element={<TestRunsSection />} />
             <Route path="qa" element={<QaSection />} />
             <Route path="qa-history" element={<QaHistorySection />} />
+            <Route path="qa-history/:qaRunId" element={<QaVerdictsSection />} />
             <Route path="content-map" element={<ContentMapSection />} />
             <Route path="macros" element={<MacroSection />} />
             <Route path="performance" element={<PerformanceSection />} />
@@ -185,7 +186,6 @@ export function App() {
             element={<QaRunRoute />}
           />
           <Route path="/projects/:projectId/qa-runs/:qaRunId/performance" element={<RunPerformanceRoute />} />
-          <Route path="/projects/:projectId/qa-runs/:qaRunId/verdicts" element={<QaVerdictsRoute />} />
           <Route path="/projects/:projectId/game-builds/:buildId/performance" element={<BuildPerformanceRoute />} />
           {/* 콘텐츠 맵 화면은 작업공간 안에 하나뿐이다. 빌드 패널의 링크와 밖에서 붙여 넣은
               주소가 계속 살아 있도록, 옛 경로는 그 하나로 넘긴다. */}
