@@ -13,6 +13,12 @@ export const projectAgentEn = {
   composerNote: 'The conversation will be connected in a later release.',
   reopen: 'Open agent conversation',
   resizeHandle: 'Resize agent conversation',
+  highlight: {
+    approvalTitle: 'Approve agent action',
+    approve: 'Approve',
+    reject: 'Reject',
+    approvalAnnouncement: (summary: string) => `Approval needed: ${summary}`,
+  },
 }
 
 export const projectAgentKo: Localized<typeof projectAgentEn> = {
@@ -27,4 +33,10 @@ export const projectAgentKo: Localized<typeof projectAgentEn> = {
   composerNote: '대화 연결은 다음 릴리스에서 제공합니다.',
   reopen: 'agent 대화창 열기',
   resizeHandle: 'agent 대화창 폭 조절',
+  highlight: {
+    approvalTitle: 'agent 작업 승인',
+    approve: '승인',
+    reject: '거절',
+    approvalAnnouncement: (summary: string) => `승인이 필요합니다: ${summary}`,
+  },
 }

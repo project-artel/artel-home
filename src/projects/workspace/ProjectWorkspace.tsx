@@ -2,6 +2,7 @@ import { useMemo, type CSSProperties } from 'react'
 import { Link, Outlet, useLocation, useParams } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
 import { AgentChatPanel, AgentReopenButton, AgentSplitHandle } from '../../projectAgent/AgentDock'
+import { ActionRegistryProvider } from '../../projectAgent/registry'
 import { useAgentDock } from '../../projectAgent/useAgentDock'
 import { formatDate } from '../formatters'
 import { useProject } from '../useProject'
@@ -182,6 +183,7 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
     (dock.splitting ? ' is-splitting' : '')
 
   return (
+    <ActionRegistryProvider projectId={projectId}>
     <div
       className={workspaceClass}
       style={dock.open ? ({ '--agent-chat-w': `${dock.chatWidth}px` } as CSSProperties) : undefined}
@@ -232,5 +234,6 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
       {dock.open && <AgentChatPanel onClose={dock.closeChat} wide={agentHome} />}
       {dock.enabled && !dock.open && <AgentReopenButton onOpen={dock.openChat} />}
     </div>
+    </ActionRegistryProvider>
   )
 }
