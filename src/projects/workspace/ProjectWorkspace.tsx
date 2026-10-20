@@ -11,6 +11,12 @@ import { useWorkspaceExtras } from './useWorkspaceExtras'
 import { WorkspaceContext, type WorkspaceValue } from './workspaceContext'
 
 /**
+ * 저작 화면(런 편집, 시나리오 상세)은 시나리오 목록 280px, 단계, 대화 칸 300px 이상의 3칸이다.
+ * 이보다 좁은 창에서는 216px rail 옆에 단계 칸이 200px 도 남지 않아 rail 을 48px 로 접는다.
+ */
+const STUDIO_FULL_RAIL_MIN_PX = 1440
+
+/**
  * Keyed by the project id so switching projects remounts rather than reusing
  * the previous project's loaded state.
  */
@@ -172,7 +178,7 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
   const agentHome = dock.open && dock.isIndex
   const workspaceClass =
     'project-workspace' +
-    (dock.open ? (agentHome ? ' has-agent-home' : ' has-agent') : '') +
+    (dock.open ? (agentHome ? ' has-agent-home' : ' has-agent') : dock.enabled ? ' has-agent-closed' : '') +
     (dock.splitting ? ' is-splitting' : '')
 
   return (
@@ -191,6 +197,7 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
         genreLabel={t.projects.genreLabels[project.genre]}
         projectId={projectId}
         projectName={project.name}
+        forceCollapsed={dock.folded && dock.viewportWidth < STUDIO_FULL_RAIL_MIN_PX}
       />
 
       <div className="workspace-body">

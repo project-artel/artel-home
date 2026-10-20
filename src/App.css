@@ -4914,7 +4914,8 @@ a.instance-name:hover {
 .scenario-studio .st-erow-hint{ font-size:12.5px; }
 .scenario-studio .st-erow-drag{ font-size:16px; opacity:.5; }
 .scenario-studio .st-erow:hover .st-erow-drag{ opacity:.9; }
-.scenario-studio .st-tc-badge{ font-size:11px; padding:2px 8px; letter-spacing:.06em; }
+/* 저작 화면이 project rail 옆으로 들어와 가운데 칸이 좁아져도 `TC 1` 이 두 줄로 꺾이지 않게 한다. */
+.scenario-studio .st-tc-badge{ font-size:11px; padding:2px 8px; letter-spacing:.06em; white-space:nowrap; flex:none; }
 
 /* Step→TC 상세 모달 가시성 강화 (ARTEL-289 #3) */
 .tc-modal{ width:min(560px,100%); }
@@ -5301,6 +5302,15 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   grid-template-columns: 48px minmax(0, 1fr) 6px var(--agent-chat-w);
 }
 
+/* 닫혀 있으면 오른쪽 40px 칸에 다시 열기 버튼만 남는다. */
+.project-workspace.has-agent-closed {
+  grid-template-columns: 216px minmax(0, 1fr) 40px;
+}
+
+.project-workspace.has-agent-closed:has(.project-nav--collapsed) {
+  grid-template-columns: 48px minmax(0, 1fr) 40px;
+}
+
 /* index 화면에서는 보여 줄 페이지가 없다. 페이지 칸을 숨기고 대화창이 rail 옆을 모두 쓴다. */
 .project-workspace.has-agent-home > .workspace-body {
   display: none;
@@ -5537,6 +5547,12 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   flex: 1 1 0;
   height: auto;
   min-height: 0;
+}
+
+/* 저작 화면의 grid 열은 기본값이 `auto` 라 상단 bar 내용 폭(1024px 창에서 약 1174px)만큼
+   넓어지고, 오른쪽 RunChat 칸이 잘린다. 칸 폭에 맞춘다. */
+.workspace-deep > .scenario-studio {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 /* `.page` 를 쓰는 화면은 `.workspace:has(.page)` 가 바깥 칸에 주던 여백과 스크롤을 이 칸 안에서 받는다. */
@@ -6090,7 +6106,9 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   .project-workspace.has-agent,
   .project-workspace.has-agent-home,
   .project-workspace.has-agent:has(.project-nav--collapsed),
-  .project-workspace.has-agent-home:has(.project-nav--collapsed) {
+  .project-workspace.has-agent-home:has(.project-nav--collapsed),
+  .project-workspace.has-agent-closed,
+  .project-workspace.has-agent-closed:has(.project-nav--collapsed) {
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -6100,7 +6118,7 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
 
   .project-workspace > .agent-panel,
   .project-workspace > .agent-dock-split,
-  .project-workspace > .agent-reopen {
+  .project-workspace > .agent-reopen-rail {
     display: none;
   }
 }

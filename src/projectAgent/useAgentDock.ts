@@ -88,5 +88,8 @@ export function useAgentDock(projectId: string, pathname: string, railWidth: num
     /** 끄는 동안 true. 바깥 grid 에 `is-splitting` 을 붙여 글자 선택을 막는다. */
     splitting,
     isIndex,
+    /** 런 편집과 시나리오 상세처럼 자기 대화 칸이 있어 대화창이 접히는 경로인지. */
+    folded,
+    viewportWidth,
   }
 }

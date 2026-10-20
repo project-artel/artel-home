@@ -52,19 +52,21 @@ export function AgentChatPanel({ onClose, wide = false }: { onClose: () => void;
   )
 }
 
-/** 닫힌 대화창을 다시 여는 버튼. 오른쪽 화면 가장자리에 붙는다. */
+/** 닫힌 대화창을 다시 여는 버튼. workspace grid 의 오른쪽 마지막 칸에 선다. */
 export function AgentReopenButton({ onOpen }: { onOpen: () => void }) {
   const { t } = useI18n()
   return (
-    <button
-      aria-label={t.projectAgent.reopen}
-      className="agent-reopen"
-      onClick={onOpen}
-      type="button"
-    >
-      <AgentIcon />
-      <span className="agent-reopen__label">{t.projectAgent.agentName}</span>
-    </button>
+    <div className="agent-reopen-rail">
+      <button
+        aria-label={t.projectAgent.reopen}
+        className="agent-reopen"
+        onClick={onOpen}
+        type="button"
+      >
+        <AgentIcon />
+        <span className="agent-reopen__label">{t.projectAgent.agentName}</span>
+      </button>
+    </div>
   )
 }
 

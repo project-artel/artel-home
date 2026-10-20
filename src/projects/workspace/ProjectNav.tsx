@@ -73,16 +73,30 @@ export function ProjectNav({
   genreLabel,
   projectId,
   projectName,
+  forceCollapsed = false,
 }: {
   counts: Partial<Record<WorkspaceSectionId, number | null>>
   genreLabel: string
   projectId: string
   projectName: string
+  /**
+   * 저장된 선택과 상관없이 접어서 그린다. 폭이 모자란 화면이 이번 방문에만 쓰는 것이라,
+   * 이때 접기 버튼은 저장값을 바꾸지 않고 이 화면에서만 펼친다.
+   */
+  forceCollapsed?: boolean
 }) {
   const { t } = useI18n()
   const workspace = t.projects.workspace
   const nav = workspace.nav
-  const [collapsed, setCollapsed] = useState(readNavCollapsed)
+  const [storedCollapsed, setStoredCollapsed] = useState(readNavCollapsed)
+  const [expandedHere, setExpandedHere] = useState(false)
+  const [lastForce, setLastForce] = useState(forceCollapsed)
+  if (lastForce !== forceCollapsed) {
+    // 강제 접힘이 풀리거나 다시 걸리면 이 화면에서만 펼친 기록은 버린다.
+    setLastForce(forceCollapsed)
+    setExpandedHere(false)
+  }
+  const collapsed = forceCollapsed ? !expandedHere : storedCollapsed
 
   const toggleLabel = collapsed ? workspace.expandNav : workspace.collapseNav
 
@@ -98,8 +112,12 @@ export function ProjectNav({
             aria-label={toggleLabel}
             className="nav-collapse-toggle"
             onClick={() => {
-              const next = !collapsed
-              setCollapsed(next)
+              if (forceCollapsed) {
+                setExpandedHere(!expandedHere)
+                return
+              }
+              const next = !storedCollapsed
+              setStoredCollapsed(next)
               storeNavCollapsed(next)
             }}
             title={toggleLabel}
