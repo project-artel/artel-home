@@ -61,7 +61,7 @@ function RunEditPage({ projectId, runId }: { projectId: string; runId: string })
   const reloadList = () => setReloadKey((k) => k + 1)
   const runChat = useRunChatSession(projectId, runId, reloadList, reloadList)
   // 빈 런의 첫 저작도 자동저장을 끄면 draft 로 남는다(ARTEL-1075). 열면 가운데가 그 draft 다.
-  const preview = useDraftPreview(projectId, runChat)
+  const preview = useDraftPreview(projectId, runChat, state.kind === 'ready' ? state.run.gameBuild : null)
   const split = useChatWidth()
 
   useEffect(() => {
