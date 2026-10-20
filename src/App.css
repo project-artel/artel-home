@@ -11360,6 +11360,46 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
 .run-detail-label--tools .run-detail-label-icon { color: var(--color-agent-reasoning); background: color-mix(in srgb, var(--color-agent-reasoning) 16%, transparent); }
 .run-detail-label { font-size: 12px; font-weight: 600; color: var(--color-text-secondary); }
 
+/* 저작의 질문 칸(ARTEL-1118) — 답 맨 아래, 전구 하나 아래에 질문 글만. 상자 대신 위 구분선과 왼쪽 전구로
+   가른다. 고르는 것은 입력 칸 위의 선택 박스(`.ask-dock`)가 하나씩 맡는다. */
+.scenario-studio .st-chat .chat-asks { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 10px; margin-top: 4px; padding-top: 12px; border-top: 1px dashed var(--st-border-strong); }
+.scenario-studio .st-chat .chat-asks-icon { margin-top: 2px; color: var(--st-draft); }
+.scenario-studio .st-chat .chat-asks-list { display: flex; flex-direction: column; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.scenario-studio .st-chat .chat-ask-text { margin: 0; color: var(--st-text); font-size: 13px; font-weight: 600; line-height: 1.6; }
+.scenario-studio .st-chat .chat-ask-why { margin: 2px 0 0; color: var(--st-muted); font-size: 12px; line-height: 1.55; }
+
+.scenario-studio .st-chat .chat-asks-list.is-numbered { padding-left: 18px; list-style: decimal; }
+.scenario-studio .st-chat .chat-asks-list.is-numbered li::marker { color: var(--st-muted); font-size: 12px; }
+
+/* 입력 칸 위의 선택 박스(ARTEL-1118) — CLI 의 선택 프롬프트처럼 질문 하나, 번호 붙은 보기, 키 안내. */
+.scenario-studio .st-chat .ask-dock { display: flex; flex-direction: column; gap: 6px; padding: 12px 12px 10px; border: 1px solid color-mix(in srgb, var(--st-draft) 45%, var(--st-border)); border-radius: var(--radius-md); background: color-mix(in srgb, var(--st-draft) 6%, var(--st-surface)); }
+.scenario-studio .st-chat .ask-dock-head { display: flex; align-items: center; gap: 6px; color: var(--st-muted); font: 11px var(--st-mono); }
+.scenario-studio .st-chat .ask-dock-icon { color: var(--st-draft); }
+.scenario-studio .st-chat .ask-dock-spacer { flex: 1; }
+.scenario-studio .st-chat .ask-dock-close { display: grid; width: 22px; height: 22px; place-items: center; padding: 0; border: 0; border-radius: var(--radius-md); background: none; color: var(--st-muted); cursor: pointer; }
+.scenario-studio .st-chat .ask-dock-close:hover { background: var(--st-hover); color: var(--st-text); }
+.scenario-studio .st-chat .ask-dock-text { margin: 0; color: var(--st-text); font-size: 13px; font-weight: 650; line-height: 1.55; }
+.scenario-studio .st-chat .ask-dock-why { margin: 0; color: var(--st-muted); font-size: 12px; line-height: 1.5; }
+.scenario-studio .st-chat .ask-dock-choices { display: flex; flex-direction: column; gap: 2px; margin: 4px 0 0; padding: 0; list-style: none; }
+.scenario-studio .st-chat .ask-dock-choice { display: flex; align-items: baseline; gap: 10px; width: 100%; padding: 6px 8px; border: 0; border-radius: var(--radius-md); background: none; color: var(--st-text); font: inherit; font-size: 13px; line-height: 1.5; text-align: left; cursor: pointer; }
+.scenario-studio .st-chat .ask-dock-choice.is-on { background: color-mix(in srgb, var(--st-action) 14%, transparent); }
+.scenario-studio .st-chat .ask-dock-choice.is-on .ask-dock-key { border-color: var(--st-action); color: var(--st-action); }
+.scenario-studio .st-chat .ask-dock-choice.is-meta .ask-dock-label { color: var(--st-text-2); }
+.scenario-studio .st-chat .ask-dock-key { display: inline-grid; flex: none; width: 18px; height: 18px; place-items: center; border: 1px solid var(--st-border-strong); border-radius: 4px; color: var(--st-muted); font: 600 10.5px var(--st-mono); }
+.scenario-studio .st-chat .ask-dock-hint { margin: 2px 0 0; color: var(--st-muted); font-size: 11px; }
+
+/* 경로 공백의 원문(ARTEL-1118) — 결론 한 줄 아래, 펼쳐야 보인다. */
+.scenario-studio .se-gap-more { margin: 0 0 10px; color: var(--st-muted); font-size: 12px; }
+.scenario-studio .se-gap-more summary { width: max-content; cursor: pointer; color: var(--st-text-2); }
+.scenario-studio .se-gap-more summary:hover { color: var(--st-action); }
+.scenario-studio .se-gap-more p { margin: 6px 0 0; line-height: 1.6; }
+
+/* 질문이 하나 · 둘일 때의 보기 칩(ARTEL-1118) — 선택 박스 대신 답 말풍선 안에서 바로 고른다. */
+.scenario-studio .st-chat .chat-ask-options { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.scenario-studio .st-chat .chat-ask-option { padding: 4px 11px; border: 1px solid var(--st-border-strong); border-radius: 999px; background: none; color: var(--st-text); font: inherit; font-size: 12px; line-height: 1.5; cursor: pointer; transition: border-color 120ms var(--ease-standard), color 120ms var(--ease-standard); }
+.scenario-studio .st-chat .chat-ask-option:hover,
+.scenario-studio .st-chat .chat-ask-option:focus-visible { border-color: var(--st-action); color: var(--st-action); outline: none; }
+
 /* ---- cheat 와 behavior (ARTEL-1051) ---------------------------------------- */
 
 .gf-note {
@@ -12159,3 +12199,367 @@ button.gf-bar:focus-visible {
   padding-top: 0;
   border-top: 0;
 }
+
+/* ── 시나리오 단계 편집기 (ARTEL-1107) ──────────────────────────────────────────
+   목록은 한 줄씩 훑고, 고른 단계는 아래 칸에서 깊게 읽는다. 상세가 열려도 행 높이는 그대로다. */
+.scenario-studio .st-edit > .se { min-height: 0; height: 100%; overflow: hidden; }
+.scenario-studio .se { display: flex; flex-direction: column; min-width: 0; background: var(--st-canvas); }
+.scenario-studio .se-head { flex: none; padding: 18px 26px 12px; }
+.scenario-studio .se-head .draft-banner { margin: 0 0 12px; }
+.scenario-studio .se-eyebrow { display: flex; align-items: center; gap: 8px; color: var(--st-muted); font-size: 11px; letter-spacing: .02em; }
+.scenario-studio .se-mode-dot { width: 7px; height: 7px; border: 1.5px solid var(--st-muted); border-radius: 50%; }
+.scenario-studio .se-title { display: block; box-sizing: border-box; width: 100%; margin: 6px 0 4px; padding: 0; border: 0; border-bottom: 1px solid transparent; outline: none; background: none; color: var(--st-text); font: 650 22px/30px var(--font-display); letter-spacing: -.01em; }
+.scenario-studio .se-title:hover { border-bottom-color: var(--st-border); }
+.scenario-studio .se-title:focus { border-bottom-color: var(--st-action); }
+.scenario-studio .se-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--st-text-2); font-size: 12px; }
+.scenario-studio .se-muted { color: var(--st-muted); font-size: 12px; }
+.scenario-studio .se-spacer { flex: 1; }
+.scenario-studio .se-error { display: flex; align-items: center; gap: 8px; margin: 0 26px 10px; padding: 10px 12px; border-radius: var(--radius-md); background: var(--color-status-critical-muted); color: var(--color-status-critical); font-size: 12px; }
+
+.scenario-studio .se-toolbar { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 24px; border-top: 1px solid var(--st-border); }
+.scenario-studio .se-find { display: flex; align-items: center; gap: 8px; width: 280px; height: 34px; padding: 0 4px 0 10px; border: 1px solid var(--st-border); border-radius: var(--radius-md); background: var(--st-surface); color: var(--st-muted); }
+.scenario-studio .se-find:focus-within { border-color: var(--st-action); }
+.scenario-studio .se-find input { flex: 1; min-width: 0; border: 0; outline: none; background: none; color: var(--st-text); font: inherit; font-size: 12px; }
+.scenario-studio .se-find-count { font-size: 10px; white-space: nowrap; }
+.scenario-studio .se-icon-button { display: inline-grid; flex: none; width: 28px; height: 28px; place-items: center; padding: 0; border: 0; border-radius: var(--radius-md); background: none; color: var(--st-text-2); cursor: pointer; }
+.scenario-studio .se-icon-button:hover:not(:disabled) { background: var(--st-hover); color: var(--st-text); }
+.scenario-studio .se-icon-button:disabled { opacity: .35; cursor: default; }
+.scenario-studio .se-gap-jump { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border: 1px solid color-mix(in srgb, var(--st-draft) 45%, var(--st-border)); border-radius: var(--radius-md); background: color-mix(in srgb, var(--st-draft) 8%, transparent); color: var(--st-draft); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.scenario-studio .se-seg { display: inline-flex; padding: 2px; border-radius: var(--radius-lg); background: var(--st-raised); }
+.scenario-studio .se-seg button { height: 28px; padding: 0 10px; border: 0; border-radius: var(--radius-md); background: none; color: var(--st-text-2); font: inherit; font-size: 12px; cursor: pointer; }
+.scenario-studio .se-seg button.is-on { background: var(--st-surface); color: var(--st-text); font-weight: 600; }
+.scenario-studio .se-add { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border: 1px solid var(--st-border); border-radius: var(--radius-md); background: var(--st-surface); color: var(--st-text); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.scenario-studio .se-add:hover { border-color: var(--st-border-strong); }
+
+/* 열: 순서 · 실행할 내용 · 연결 TC · 씬 · TC 판정. 문장 칸은 너무 길어지지 않게 상한을 둔다. */
+.scenario-studio .se-columns,
+.scenario-studio .se-row-main { display: grid; grid-template-columns: 52px minmax(0, 1fr) 72px minmax(96px, 150px) 100px; gap: 12px; align-items: center; padding: 0 26px 0 30px; }
+.scenario-studio .se-columns { flex: none; height: 34px; border-block: 1px solid var(--st-border); background: var(--st-surface); color: var(--st-muted); font-size: 11px; }
+.scenario-studio .se-columns-verdict { display: inline-flex; align-items: center; gap: 2px; }
+.scenario-studio .se-list-frame { position: relative; flex: 1; min-height: 90px; }
+.scenario-studio .se-list { height: 100%; overflow-y: auto; scrollbar-width: none; }
+.scenario-studio .se-list::-webkit-scrollbar { display: none; }
+.scenario-studio .se-rows { margin: 0; padding: 0; list-style: none; }
+.scenario-studio .se-row { position: relative; border-bottom: 1px solid var(--st-border); }
+.scenario-studio .se-row-main { width: 100%; box-sizing: border-box; min-height: 56px; color: var(--st-text); font-size: 13px; cursor: pointer; outline: none; }
+.scenario-studio .se-row-main:focus-visible { box-shadow: inset 0 0 0 2px var(--st-action); }
+.scenario-studio .se-row:hover .se-row-main { background: var(--st-surface); }
+.scenario-studio .se-row.is-selected .se-row-main { background: color-mix(in srgb, var(--st-action) 8%, var(--st-canvas)); }
+.scenario-studio .se-row.is-selected::before { content: ''; position: absolute; top: 0; bottom: 0; left: 0; z-index: 1; width: 3px; background: var(--st-action); }
+.scenario-studio .se-grip { position: absolute; top: 50%; left: 6px; z-index: 2; display: grid; place-items: center; width: 18px; height: 28px; color: var(--st-muted); cursor: grab; opacity: .35; transform: translateY(-50%); pointer-events: none; transition: opacity 120ms var(--ease-standard); }
+.scenario-studio .se-row:hover .se-grip, .scenario-studio .se-row:focus-within .se-grip { opacity: 1; color: var(--st-text-2); }
+.scenario-studio .se-row-no { display: flex; align-items: center; color: var(--st-muted); font-size: 11px; }
+.scenario-studio .se-row-action { display: -webkit-box; min-width: 0; overflow: hidden; line-height: 20px; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.scenario-studio .se-row-action code, .scenario-studio .se-detail code { padding: 0 3px; border-radius: 3px; background: color-mix(in srgb, var(--st-raised) 80%, transparent); font-family: var(--st-mono); font-size: .92em; }
+.scenario-studio .se-human { display: inline-block; margin-right: 6px; padding: 0 5px; border: 1px solid var(--st-border); border-radius: 3px; color: var(--st-text-2); font-size: 10px; line-height: 16px; vertical-align: 1px; }
+.scenario-studio .se-row-case { position: relative; color: var(--st-text-2); font-size: 11px; }
+.scenario-studio .se-row-case.is-continued::before { content: ''; position: absolute; top: -34px; left: -8px; height: 34px; border-left: 1px solid var(--st-border-strong); }
+.scenario-studio .se-row-scene { overflow: hidden; color: var(--st-muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.scenario-studio .se-row-verdict { display: flex; font-size: 11px; white-space: nowrap; }
+.scenario-studio .se-dot { display: inline-block; flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--st-muted); }
+.scenario-studio .se-dot--VERIFIED { background: var(--st-verified); }
+.scenario-studio .se-dot--DRAFT { background: var(--st-draft); }
+.scenario-studio .se-dot--REGRESSION { background: var(--color-agent-reasoning); }
+.scenario-studio .se-dot--FAILED { background: var(--st-broken); }
+.scenario-studio .se-dot--BROKEN { background: var(--color-status-offline); }
+.scenario-studio .se-mark { display: inline-block; margin-right: 6px; vertical-align: 1px; line-height: 14px; padding: 1px 6px; border: 1px solid var(--st-border); border-radius: 3px; font-size: 10px; font-weight: 700; }
+.scenario-studio .se-mark--changed { color: var(--st-draft); }
+.scenario-studio .se-mark--added { color: var(--st-verified); }
+.scenario-studio .se-row.is-changed .se-row-main { background: color-mix(in srgb, var(--st-draft) 7%, var(--st-canvas)); }
+.scenario-studio .se-row.is-added .se-row-main { background: color-mix(in srgb, var(--st-verified) 7%, var(--st-canvas)); }
+.scenario-studio .se-row.is-gap .se-row-main { background: color-mix(in srgb, var(--st-draft) 6%, var(--st-canvas)); }
+.scenario-studio .se-row.is-gap .se-row-no, .scenario-studio .se-needs { color: var(--st-draft); }
+.scenario-studio .se-row.is-gap .se-row-action { font-weight: 500; }
+.scenario-studio .se-row.is-match .se-row-action { color: var(--st-action); }
+.scenario-studio .se-list.is-expanded .se-row-main { align-items: start; padding-block: 12px; }
+.scenario-studio .se-list.is-expanded .se-row-action { display: block; overflow: visible; }
+.scenario-studio .se-list.is-expanded .se-row-no, .scenario-studio .se-list.is-expanded .se-row-case, .scenario-studio .se-list.is-expanded .se-row-scene, .scenario-studio .se-list.is-expanded .se-row-verdict { padding-top: 2px; }
+.scenario-studio .se-row-expected { display: block; margin-top: 6px; color: var(--st-text-2); font-size: 12px; line-height: 1.6; }
+.scenario-studio .se-row-expected b { color: var(--st-muted); font-weight: 600; }
+.scenario-studio .se-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 64px 24px; text-align: center; color: var(--st-text-2); font-size: 13px; }
+.scenario-studio .se-empty b { color: var(--st-text); font-family: var(--font-display); font-size: 18px; }
+.scenario-studio .se-empty .button { margin-top: 8px; }
+
+.scenario-studio .se-foot { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 40px; padding: 0 24px; border-top: 1px solid var(--st-border); background: var(--st-surface); color: var(--st-muted); font-size: 11px; }
+.scenario-studio .se-jumps { display: flex; gap: 2px; }
+.scenario-studio .se-jumps button { height: 26px; padding: 0 8px; border: 0; border-radius: var(--radius-md); background: none; color: var(--st-muted); font: 10px var(--st-mono); cursor: pointer; }
+.scenario-studio .se-jumps button.is-on { background: var(--st-raised); color: var(--st-action); }
+.scenario-studio .se-detail-toggle { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 8px; border: 0; border-radius: var(--radius-md); background: none; color: var(--st-text-2); font: inherit; font-size: 12px; cursor: pointer; }
+.scenario-studio .se-detail-toggle:hover:not(:disabled) { background: var(--st-hover); color: var(--st-text); }
+
+/* 아래 칸 — 고른 단계 */
+.scenario-studio .se-detail { flex: none; display: flex; flex-direction: column; max-height: calc(100% - 220px); min-height: 0; background: var(--st-surface); }
+.scenario-studio .se-detail-head { flex: none; display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 16px 0 20px; border-bottom: 1px solid var(--st-border); font-size: 12px; }
+.scenario-studio .se-detail-marker { width: 5px; height: 14px; border-radius: 2px; background: var(--st-action); }
+.scenario-studio .se-chip { padding: 2px 6px; border: 1px solid var(--st-border); border-radius: 3px; color: var(--st-muted); font-size: 10px; }
+.scenario-studio .se-detail-body { display: grid; flex: 1; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); min-height: 0; }
+.scenario-studio .se-detail-pane { position: relative; display: flex; min-width: 0; min-height: 0; }
+.scenario-studio .se-detail-pane--case { border-left: 1px solid var(--st-border); }
+.scenario-studio .se-detail-edit, .scenario-studio .se-detail-case { display: flex; flex: 1; flex-direction: column; min-width: 0; min-height: 0; overflow-y: auto; padding: 14px 20px; scrollbar-width: none; }
+.scenario-studio .se-detail-edit::-webkit-scrollbar, .scenario-studio .se-detail-case::-webkit-scrollbar { display: none; }
+.scenario-studio .se-field-title { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 11px; font-weight: 600; color: var(--st-text-2); }
+.scenario-studio .se-field-title .se-muted { font-size: 10px; font-weight: 400; }
+.scenario-studio .se-action { box-sizing: border-box; width: 100%; min-height: 64px; flex: none; overflow: hidden; margin-bottom: 10px; padding: 10px; border: 1px solid var(--st-border); border-radius: var(--radius-md); outline: none; background: var(--st-canvas); color: var(--st-text); font: inherit; font-size: 13px; line-height: 1.6; resize: none; }
+.scenario-studio .se-hint { box-sizing: border-box; height: 32px; padding: 0 10px; border: 1px solid var(--st-border); border-radius: var(--radius-md); outline: none; background: var(--st-canvas); color: var(--st-text); font: inherit; font-size: 12px; }
+.scenario-studio .se-action:focus, .scenario-studio .se-hint:focus { border-color: var(--st-action); }
+.scenario-studio .se-detail-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 12px; }
+.scenario-studio .se-detail-actions .button { gap: 5px; }
+.scenario-studio .se-gap-text { margin: 0 0 10px; color: var(--st-text); font-size: 13px; line-height: 1.6; }
+.scenario-studio .se-link { display: inline-flex; align-items: center; gap: 4px; padding: 0; border: 0; background: none; color: var(--st-action); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.scenario-studio .se-case { margin: 0; }
+.scenario-studio .se-case dt { margin: 10px 0 4px; color: var(--st-muted); font-size: 11px; }
+.scenario-studio .se-case dd { margin: 0; font-size: 12px; line-height: 1.65; overflow-wrap: anywhere; }
+.scenario-studio .se-case ul { margin: 0; padding-left: 16px; }
+.scenario-studio .se-case li { padding-bottom: 4px; }
+.scenario-studio .se-case-where { margin: 4px 0 8px; font-size: 12px; }
+.scenario-studio .se-input-note { margin: 12px 0 0; padding-top: 8px; border-top: 1px solid var(--st-border); color: var(--st-muted); font-size: 11px; }
+
+@media (max-width: 1390px) {
+  .scenario-studio .se-columns, .scenario-studio .se-row-main { grid-template-columns: 44px minmax(0, 1fr) 64px 92px 84px; gap: 8px; padding: 0 16px 0 24px; }
+  .scenario-studio .se-head, .scenario-studio .se-toolbar { padding-inline: 18px; }
+  .scenario-studio .se-find { width: 200px; }
+}
+@media (max-width: 1100px) {
+  .scenario-studio .se-detail-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); }
+  .scenario-studio .se-detail-pane--case { border-top: 1px solid var(--st-border); border-left: 0; }
+}
+
+/* 대화 칸 (ARTEL-1107). 제목 줄과 상태 줄을 나누고, 말한 사람 표시는 별 아이콘과 이름으로.
+   결과 줄은 상자 대신 왼쪽 선 하나로 — 칸이 좁아 상자 테두리가 글자 자리를 먹었다. */
+.scenario-studio .st-chat .panel-header{ flex-direction:column; align-items:stretch; gap:0; padding:0; border-bottom:0; }
+.scenario-studio .st-chat .panel-header h2{ display:flex; align-items:center; gap:7px; height:52px; padding:0 16px; font-size:13px; font-weight:650; letter-spacing:0; text-transform:none; color:var(--st-text); }
+.scenario-studio .run-chat-star{ flex:none; color:var(--st-action); }
+.scenario-studio .run-chat-meta{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:9px 14px; border-block:1px solid var(--st-border); font-size:11px; }
+/* 배지는 왼쪽부터 붙는다. 전역 `.run-chat-coverage` 는 머리 오른쪽으로 밀려고 `margin-left:auto` 를 갖는다. */
+.scenario-studio .run-chat-meta .run-chat-coverage{ margin:0; }
+.scenario-studio .run-chat-meta .run-chat-toggle{ margin-left:auto; }
+.scenario-studio .st-chat .chat-author{ align-items:center; gap:6px; font-size:10.5px; letter-spacing:.04em; }
+/* 말한 사람은 왼쪽에 모은다. 전역 `.chat-author` 는 `space-between` 이라 별 · 이름 · 시각이 셋으로 흩어졌다. */
+.scenario-studio .st-chat .chat-message--assistant .chat-author,
+.scenario-studio .st-chat .chat-message--agent .chat-author{ justify-content:flex-start; }
+.scenario-studio .st-chat .chat-message--assistant .chat-time{ margin-left:auto; }
+.scenario-studio .st-chat .chat-message--user{ align-self:stretch; max-width:none; margin-left:14px; }
+.scenario-studio .st-chat .chat-message--user .chat-body{ border:0; border-radius:var(--radius-md); padding:12px 14px; background:var(--st-raised); color:var(--st-text-2); font-size:13px; line-height:1.75; }
+/* 요청과 그 답 사이는 답과 답 사이보다 넓게 — 어디서 새 요청이 시작됐는지 보인다. */
+.scenario-studio .st-chat .chat-message--user{ margin-bottom:14px; }
+/* 대화 칸은 화면 높이를 다 쓴다. 전역 `.scenario-chat` 의 `max-height` 가 남아 입력 칸이 바닥에서 떠 있었다. */
+.scenario-studio .st-chat > .scenario-chat{ max-height:none; }
+.scenario-studio .st-chat .chat-composer{ margin-top:auto; }
+/* 자동 적용은 스위치다. 켜고 끄는 값이라 체크 상자보다 상태가 먼저 읽힌다. 설명은 가져다 대면 연다. */
+.scenario-studio .run-chat-toggle{ gap:7px; color:var(--st-text-2); }
+.scenario-studio .run-chat-toggle input{ appearance:none; position:relative; flex:none; width:28px; height:16px; margin:0; border-radius:999px; background:var(--st-border-strong); cursor:pointer; transition:background 120ms var(--ease-standard); }
+.scenario-studio .run-chat-toggle input::after{ content:''; position:absolute; top:2px; left:2px; width:12px; height:12px; border-radius:50%; background:var(--st-surface); transition:transform 120ms var(--ease-standard); }
+.scenario-studio .run-chat-toggle input:checked{ background:var(--st-action); }
+.scenario-studio .run-chat-toggle input:checked::after{ transform:translateX(12px); }
+.scenario-studio .run-chat-toggle input:focus-visible{ outline:2px solid var(--st-action); outline-offset:2px; }
+.scenario-studio .run-chat-toggle:hover .run-chat-coverage-tip,
+.scenario-studio .run-chat-toggle:focus-within .run-chat-coverage-tip{ visibility:visible; opacity:1; }
+.scenario-studio .st-chat .chat-reply-result{ border:0; border-left:2px solid var(--st-action); border-radius:0; background:none; padding:2px 0 2px 10px; }
+.scenario-studio .st-chat .chat-composer{ padding:14px; }
+.scenario-studio .st-chat .chat-composer .field-input--multiline{ min-height:76px; border-color:var(--st-border); border-radius:var(--radius-md); line-height:1.7; }
+
+/* 단계 편집기 2판(ARTEL-1107 검토 반영) ─────────────────────────────────────────── */
+/* 제목: 고칠 수 있다는 표시를 늘 둔다 — 점선 밑줄과 연필, 가져다 대면 칸이 선다. */
+.scenario-studio .se-title-wrap { position: relative; display: flex; align-items: center; gap: 6px; margin: 6px 0 8px; }
+.scenario-studio .se-title-wrap .se-title { flex: 1; margin: 0; padding: 2px 6px; margin-left: -6px; border: 1px solid transparent; border-bottom: 1px dashed var(--st-border-strong); border-radius: var(--radius-md) var(--radius-md) 0 0; }
+.scenario-studio .se-title-wrap:hover .se-title { border-color: var(--st-border); border-bottom-style: solid; background: var(--st-surface); }
+.scenario-studio .se-title-wrap .se-title:focus { border-color: var(--st-action); border-radius: var(--radius-md); background: var(--st-surface); }
+.scenario-studio .se-title-edit { display: grid; flex: none; width: 28px; height: 28px; place-items: center; padding: 0; border: 0; border-radius: var(--radius-md); background: none; color: var(--st-muted); cursor: pointer; }
+.scenario-studio .se-title-wrap:hover .se-title-edit { color: var(--st-action); }
+.scenario-studio .se-tag { display: inline-flex; align-items: baseline; gap: 5px; padding: 2px 9px; border: 1px solid var(--st-border); border-radius: 999px; color: var(--st-muted); font-size: 11px; }
+.scenario-studio .se-tag b { color: var(--st-text); font-size: 12px; }
+.scenario-studio .se-tag--tc b { color: var(--st-action); }
+
+/* 순서 칸: 평소엔 번호, 가져다 대거나 고르는 중이면 체크 상자. */
+.scenario-studio .se-columns-order { display: flex; align-items: center; gap: 6px; }
+.scenario-studio .se-pick { flex: none; width: 14px; height: 14px; margin: 0; accent-color: var(--st-action); cursor: pointer; }
+.scenario-studio .se-row-no { position: relative; gap: 6px; }
+.scenario-studio .se-row-no .se-pick { display: none; }
+.scenario-studio .se-row:hover .se-row-no .se-pick,
+.scenario-studio .se.is-picking .se-row-no .se-pick { display: block; }
+.scenario-studio .se-row:hover .se-row-no-label,
+.scenario-studio .se.is-picking .se-row-no-label { display: none; }
+.scenario-studio .se-columns .se-pick { opacity: 0; }
+.scenario-studio .se-columns:hover .se-pick, .scenario-studio .se.is-picking .se-columns .se-pick { opacity: 1; }
+.scenario-studio .se-row.is-picked .se-row-main { background: color-mix(in srgb, var(--st-action) 12%, var(--st-canvas)); }
+.scenario-studio .se-picked { display: flex; align-items: center; gap: 4px; height: 32px; padding: 0 4px 0 12px; border-radius: var(--radius-md); background: color-mix(in srgb, var(--st-action) 10%, transparent); font-size: 12px; }
+.scenario-studio .se-picked strong { margin-right: 6px; color: var(--st-action); font-weight: 650; }
+.scenario-studio .se-picked button { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 8px; border: 0; border-radius: var(--radius-md); background: none; color: var(--st-text-2); font: inherit; font-size: 12px; cursor: pointer; }
+.scenario-studio .se-picked button:hover { background: var(--st-hover); color: var(--st-text); }
+.scenario-studio .se-picked .se-picked-delete { color: var(--st-broken); }
+
+/* TC 가 붙은 줄은 왼쪽 띠로 세운다. 고른 줄의 굵은 띠가 그 위에 덮인다. */
+.scenario-studio .se-row.is-tc .se-row-main { box-shadow: inset 2px 0 0 color-mix(in srgb, var(--st-action) 55%, transparent); }
+.scenario-studio .se-row.is-tc .se-row-main:focus-visible { box-shadow: inset 0 0 0 2px var(--st-action); }
+/* 라벨 글씨는 흰색이다(사용자 요청). 잉크색은 이 빨강 위에서 두 테마 모두 잘 안 읽혔다. 흰 글씨의 대비는 3.6:1 로
+   작은 글씨 기준보다 낮아, 굵기를 한 단 올려 보탠다. */
+.scenario-studio .se-tc { padding: 2px 7px; border: 0; border-radius: 4px; background: var(--st-action); color: #fff; font: 800 10.5px var(--st-mono); letter-spacing: .03em; cursor: pointer; }
+.scenario-studio .se-tc:hover { background: var(--st-action-strong); }
+.scenario-studio .se-tc:focus-visible { outline: 2px solid var(--st-action); outline-offset: 2px; }
+.scenario-studio .se-row-case.is-continued .se-tc { background: color-mix(in srgb, var(--st-action) 18%, transparent); color: var(--st-action); }
+.scenario-studio .se-general { padding: 1px 7px; border: 1px dashed var(--st-border-strong); border-radius: 4px; color: var(--st-muted); font-size: 10.5px; cursor: help; }
+
+/* 씬과 오브젝트. 씬 칸은 테두리 칩이다. 스텝 글 속의 씬 이름은 서비스 색에 굵게, 오브젝트(백틱)는 회색 상자다. */
+.scenario-studio .se-scene { display: inline-block; max-width: 100%; overflow: hidden; padding: 1px 7px; border: 1px solid var(--st-border-strong); border-radius: 4px; background: var(--st-surface); color: var(--st-text); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
+.scenario-studio .se-scene-ref { color: var(--st-action); font-weight: 700; }
+/* 백틱으로 감싼 씬 이름도 씬이다 — 오브젝트 상자를 벗기고 같은 색 · 굵기로. */
+.scenario-studio .se-row-action code, .scenario-studio .se-detail code { border: 1px solid var(--st-border); border-radius: 4px; padding: 0 4px; background: var(--st-raised); color: var(--st-text); }
+.scenario-studio .se-row-action code.se-scene-ref, .scenario-studio .se-detail code.se-scene-ref { padding: 0; border: 0; background: none; color: var(--st-action); font-family: inherit; font-size: inherit; }
+
+/* 판정은 색 점과 상태 이름. 머리의 (i) 에 범례가 있다. */
+.scenario-studio .se-columns-verdict { white-space: nowrap; }
+.scenario-studio .se-verdict { display: inline-flex; align-items: center; gap: 6px; color: var(--st-text-2); font-size: 11px; white-space: nowrap; }
+.scenario-studio .se-legend { display: flex; flex-direction: column; gap: 6px; }
+.scenario-studio .se-legend-row { display: flex; align-items: center; gap: 8px; }
+
+/* 원하는 자리에 넣기: 행 사이에 가져다 대면 + 와 선이 선다. */
+.scenario-studio .se-insert { position: absolute; top: -9px; left: 22px; z-index: 4; display: grid; width: 18px; height: 18px; place-items: center; padding: 0; border: 1px solid var(--st-action); border-radius: 50%; background: var(--st-surface); color: var(--st-action); cursor: pointer; opacity: 0; transition: opacity 120ms var(--ease-standard), transform 120ms var(--ease-standard); }
+.scenario-studio .se-insert::after { content: ''; position: absolute; top: 50%; left: 17px; width: 9999px; max-width: calc(100vw); height: 1px; background: var(--st-action); opacity: 0; pointer-events: none; }
+.scenario-studio .se-row:hover .se-insert { opacity: .55; }
+.scenario-studio .se-insert:hover, .scenario-studio .se-insert:focus-visible { opacity: 1; transform: scale(1.12); }
+.scenario-studio .se-insert:hover::after, .scenario-studio .se-insert:focus-visible::after { opacity: .6; }
+.scenario-studio .se-row-end { position: relative; padding: 10px 26px 24px 30px; }
+.scenario-studio .se-add-row { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; height: 40px; border: 1px dashed var(--st-border-strong); border-radius: var(--radius-md); background: none; color: var(--st-muted); font: inherit; font-size: 12px; cursor: pointer; }
+.scenario-studio .se-add-row:hover { border-color: var(--st-action); color: var(--st-action); background: color-mix(in srgb, var(--st-action) 5%, transparent); }
+.scenario-studio .se-rows { overflow: hidden; }
+.scenario-studio .se-rows > .se-row:first-child .se-insert { top: 1px; }
+
+/* 끌기. 잡은 줄은 빈자리처럼 흐려지고, 놓일 자리에는 굵은 선과 점이 선다. 놓으면 그 줄이 한 번 빛난다. */
+.scenario-studio .se-row[draggable='true'] .se-row-main { cursor: grab; }
+.scenario-studio .se.is-dragging .se-row-main { cursor: grabbing; }
+.scenario-studio .se.is-dragging .se-insert { display: none; }
+.scenario-studio .se-row.is-lifted .se-row-main { opacity: .4; background: repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in srgb, var(--st-action) 8%, transparent) 6px 12px); outline: 1px dashed var(--st-action); outline-offset: -3px; }
+.scenario-studio .se-row.is-over-before::after,
+.scenario-studio .se-row.is-over-after::after { content: ''; position: absolute; left: 10px; right: 10px; z-index: 5; height: 3px; border-radius: 3px; background: var(--st-action); box-shadow: 0 0 0 3px color-mix(in srgb, var(--st-action) 20%, transparent); pointer-events: none; }
+.scenario-studio .se-row.is-over-before::after { top: -2px; }
+.scenario-studio .se-row.is-over-after::after { bottom: -2px; }
+.scenario-studio .se-row.is-over-before .se-row-main { transform: translateY(4px); }
+.scenario-studio .se-row.is-over-after .se-row-main { transform: translateY(-4px); }
+.scenario-studio .se-row .se-row-main { transition: transform 140ms var(--ease-standard), background 140ms var(--ease-standard); }
+.scenario-studio .se-row.is-dropped .se-row-main { animation: se-dropped 900ms var(--ease-standard); }
+@keyframes se-dropped {
+  0% { background: color-mix(in srgb, var(--st-action) 28%, var(--st-canvas)); }
+  100% { background: color-mix(in srgb, var(--st-action) 8%, var(--st-canvas)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scenario-studio .se-row .se-row-main { transition: none; }
+  .scenario-studio .se-row.is-dropped .se-row-main { animation: none; }
+}
+
+/* 상세 칸 높이 조절 — 대화 칸 경계와 같은 손잡이를 눕혔다. */
+.scenario-studio .st-split.st-split--row { flex: none; width: auto; height: 6px; cursor: row-resize; align-self: stretch; }
+.scenario-studio .st-split--row::before { inset: -3px 0; }
+.scenario-studio .st-split--row::after { top: 50%; bottom: auto; left: 0; right: 0; width: auto; height: 1px; margin: -0.5px 0 0; }
+.scenario-studio .st-split--row:hover::after,
+.scenario-studio .st-split--row.is-dragging::after,
+.scenario-studio .st-split--row:focus-visible::after { width: auto; height: 3px; margin: -1.5px 0 0; }
+.scenario-studio .st-split--row .st-split-grip { width: 34px; height: 5px; }
+.scenario-studio .st-split--row:hover .st-split-grip,
+.scenario-studio .st-split--row:focus-visible .st-split-grip,
+.scenario-studio .st-split--row.is-dragging .st-split-grip { width: 56px; height: 5px; }
+
+/* 가운데 칸의 스크롤 표시(`ScrollFade`). 예전 `.edoc-fade` 와 같은 말투 — 끝이 옅게 가려지고 화살표가 선다. */
+.scenario-studio .se-list-frame { --se-fade-bg: var(--st-canvas); }
+.scenario-studio .se-detail-pane { --se-fade-bg: var(--st-surface); }
+.scenario-studio .se-fade { position: absolute; left: 0; right: 0; z-index: 3; display: flex; justify-content: center; height: 32px; color: var(--st-action); pointer-events: none; transition: opacity 140ms var(--ease-standard); }
+.scenario-studio .se-fade--top { top: 0; align-items: flex-start; padding-top: 2px; background: linear-gradient(to top, transparent, var(--se-fade-bg) 78%); }
+.scenario-studio .se-fade--bottom { bottom: 0; align-items: flex-end; padding-bottom: 2px; background: linear-gradient(to bottom, transparent, var(--se-fade-bg) 78%); }
+.scenario-studio .se-fade.is-end { opacity: 0; }
+/* 대화 입력 칸: 네이티브 막대를 숨기고 `EdgeScrollbar` 를 얹는다. */
+.scenario-studio .st-chat .chat-input-frame { position: relative; display: flex; }
+.scenario-studio .st-chat .chat-input-frame .field-input--multiline { flex: 1; scrollbar-width: none; }
+.scenario-studio .st-chat .chat-input-frame .field-input--multiline::-webkit-scrollbar { display: none; }
+
+/* 빈 자리 그림(`studioSketches`). QA 히스토리의 빈 자리와 같은 손그림 선과 두께. */
+.scenario-studio .st-sketch { stroke: var(--st-border-strong); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; opacity: .55; }
+.scenario-studio .st-sketch .st-sketch-soft { opacity: .7; }
+.scenario-studio .st-sketch .st-sketch-dash { stroke-dasharray: 3 5; opacity: .8; }
+.scenario-studio .st-sketch .st-sketch-face { fill: var(--st-sketch-ground, var(--st-canvas)); }
+.scenario-studio .st-sketch .st-sketch-depth { fill: color-mix(in srgb, var(--st-muted) 8%, var(--st-sketch-ground, var(--st-canvas))); opacity: .75; }
+.scenario-studio .st-sketch .st-sketch-edge { opacity: .6; }
+.scenario-studio .st-sketch .st-sketch-shade { fill: var(--st-muted); stroke: none; opacity: .12; }
+.scenario-studio .run-chat-empty { --st-sketch-ground: var(--st-surface); flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 24px; color: var(--st-muted); font-size: 13px; }
+.scenario-studio .run-chat-empty .st-sketch { width: min(100%, 220px); }
+.scenario-studio .run-chat-empty p { margin: 0; }
+.scenario-studio .run-empty > .st-sketch { width: min(100%, 300px); margin-bottom: 6px; }
+
+/* 대화 속 표(ARTEL-1107). 칸에 최소 폭을 두어 글자가 한두 자씩 쌓이지 않게 한다. 한국어는 낱말 중간에서
+   끊지 않고, 긴 코드 이름만 칸을 넘을 때 끊는다. 넘치는 쪽은 가림과 화살표, 넓게 읽기는 `표 크게 보기`. */
+.scenario-studio .st-chat .chat-md-table-frame { position: relative; --chat-table-fade: var(--st-surface); }
+.scenario-studio .st-chat .chat-md-table-wrap { overflow-x: auto; scrollbar-width: none; }
+.scenario-studio .st-chat .chat-md-table-wrap::-webkit-scrollbar { display: none; }
+.scenario-studio .st-chat .chat-md-table th,
+.scenario-studio .st-chat .chat-md-table td { min-width: 6.5em; max-width: 18em; word-break: keep-all; overflow-wrap: break-word; line-height: 1.55; }
+.scenario-studio .st-chat .chat-md-table .chat-md-code { overflow-wrap: break-word; word-break: normal; }
+.scenario-studio .st-chat .chat-md-table-fade { position: absolute; top: 0; bottom: 0; z-index: 2; display: flex; align-items: center; width: 28px; color: var(--st-action); pointer-events: none; transition: opacity 140ms var(--ease-standard); }
+.scenario-studio .st-chat .chat-md-table-fade--left { left: 0; justify-content: flex-start; background: linear-gradient(to left, transparent, var(--chat-table-fade) 75%); }
+.scenario-studio .st-chat .chat-md-table-fade--right { right: 0; justify-content: flex-end; background: linear-gradient(to right, transparent, var(--chat-table-fade) 75%); }
+.scenario-studio .st-chat .chat-md-table-fade.is-end { opacity: 0; }
+.scenario-studio .st-chat .chat-md-table-expand { display: inline-flex; align-items: center; gap: 5px; margin-top: 6px; padding: 3px 8px; border: 1px solid var(--st-border); border-radius: var(--radius-md); background: none; color: var(--st-text-2); font: inherit; font-size: 11.5px; cursor: pointer; }
+.scenario-studio .st-chat .chat-md-table-expand:hover { border-color: var(--st-action); color: var(--st-action); }
+.dialog-panel:has(.chat-table-dialog) { width: min(100%, 1100px); overflow: hidden; display: flex; flex-direction: column; }
+.scenario-studio.chat-table-scope { display: block; height: auto; overflow: visible; background: none; }
+.scenario-studio .st-chat.chat-table-dialog { position: relative; display: flex; min-height: 0; overflow: visible; border: 0; background: none; }
+.chat-table-dialog-scroll { flex: 1; max-height: calc(100vh - 200px); overflow: auto; scrollbar-width: none; }
+.chat-table-dialog-scroll::-webkit-scrollbar { display: none; }
+.scenario-studio .st-chat.chat-table-dialog .chat-md-table { width: 100%; font-size: 13px; }
+.scenario-studio .st-chat.chat-table-dialog .chat-md-table th,
+.scenario-studio .st-chat.chat-table-dialog .chat-md-table td { max-width: none; padding: 8px 12px; }
+/* 칩 이름에 띄어쓰기 없는 긴 코드(`CompareTag(SpellObj.target.gameObject.tag)`)가 오면 칸을 넘어 옆 칸을 덮었다.
+   `anywhere` 는 칸이 줄어들 수 있는 폭까지 바꿔서, 칩이 든 칸은 최소 폭을 넓혀 함께 둔다. */
+.scenario-studio .st-chat .chat-md-table td:has(.chat-ref) { min-width: 12em; }
+.scenario-studio .st-chat .chat-md-table td .chat-ref { overflow-wrap: anywhere; }
+
+/* 런에 시나리오가 없을 때는 가운데 칸 한가운데에 그림 · 문구 · 버튼을 모은다. 대화 칸의 빈 자리와 같은 자리 잡기다. */
+.scenario-studio .edoc-wrap:has(> .run-empty) { display: flex; align-items: center; justify-content: center; }
+.scenario-studio .edoc.run-empty { align-items: center; margin: 0; padding: 0 24px 6vh; text-align: center; }
+.scenario-studio .run-empty .run-empty-copy { margin-inline: auto; }
+
+/* 스텝이 없을 때도 가운데 칸 한가운데에 그림 · 문구 · 버튼을 모은다. */
+.scenario-studio .se-list:has(> .se-empty) { display: flex; }
+.scenario-studio .se-empty { flex: 1; justify-content: center; box-sizing: border-box; min-height: 100%; padding: 24px 24px 6vh; }
+.scenario-studio .se-empty .st-sketch { width: min(100%, 260px); margin-bottom: 8px; }
+
+/* 대화 칸 2판(ARTEL-1107, 시안 반영). 상자를 덜고 글과 선으로 가른다.
+   상태 줄은 알약 대신 글자 — 숫자만 굵게, 남은 것은 노랑. 누르는 값은 밑줄로 알린다. */
+.scenario-studio .run-chat-meta { gap: 12px; padding: 10px 16px; color: var(--st-muted); }
+.scenario-studio .run-chat-meta .run-chat-coverage { padding: 0; border: 0; border-radius: 0; background: none; color: var(--st-muted); font-size: 11.5px; }
+.scenario-studio .run-chat-meta .run-chat-coverage strong { margin-left: 2px; color: var(--st-text); font-size: 12px; font-weight: 600; }
+.scenario-studio .run-chat-meta .run-chat-coverage-total { color: var(--st-muted); }
+.scenario-studio .run-chat-meta .run-chat-coverage--open strong,
+.scenario-studio .run-chat-meta .run-chat-coverage--open .run-chat-coverage-total { color: var(--st-draft); }
+.scenario-studio .run-chat-meta button.run-chat-coverage:hover strong { text-decoration: underline; text-underline-offset: 3px; }
+/* 날짜 구분선과 말한 사람. ARTEL 은 무채색 이름에 별만 서비스 색이다. */
+.scenario-studio .st-chat .chat-thread { padding: 20px 18px 28px; gap: 26px; }
+.scenario-studio .st-chat .chat-day { align-self: center; color: var(--st-muted); font: 11px var(--st-mono); letter-spacing: .02em; }
+.scenario-studio .st-chat .chat-message--assistant .chat-author,
+.scenario-studio .st-chat .chat-message--agent .chat-author { margin-bottom: 10px; color: var(--st-text); font-size: 11px; font-weight: 600; letter-spacing: .08em; }
+.scenario-studio .st-chat .chat-message--assistant .chat-time { font-weight: 400; letter-spacing: 0; }
+.scenario-studio .st-chat .chat-message--user { margin-bottom: 4px; }
+.scenario-studio .st-chat .chat-message--user .chat-body { padding: 14px 16px; line-height: 1.8; }
+/* 결과는 왼쪽 선 하나, 바뀐 시나리오는 한 단 낮춘 글자. 종류 표시는 테두리만 있는 작은 꼬리표. */
+.scenario-studio .st-chat .chat-reply-result { gap: 6px; padding: 2px 0 2px 12px; }
+.scenario-studio .st-chat .chat-reply-result-line { font-weight: 650; line-height: 1.6; }
+.scenario-studio .st-chat .chat-reply-change { color: var(--st-text-2); font-size: 12px; }
+.scenario-studio .st-chat .chat-reply-change-tag { padding: 0 5px; border: 1px solid currentColor; border-radius: 4px; background: none !important; font-size: 10.5px; font-weight: 600; line-height: 16px; }
+/* 글 속 코드는 상자 대신 굵은 고정폭 글자 — 좁은 칸에서 상자가 줄마다 서면 글줄이 조각난다. */
+.scenario-studio .st-chat .chat-body .chat-md-code { padding: 0; border: 0; background: none; color: var(--st-text); font-weight: 600; }
+/* 전송은 화살표 하나짜리 큰 단추. 글자 이름은 `aria-label` 과 `title` 이 가진다. */
+.scenario-studio .st-chat .chat-composer-actions .chat-send { display: grid; width: 36px; height: 36px; place-items: center; padding: 0; border-radius: var(--radius-md); }
+
+/* 참조(TC · TS · QA 실행 · 이슈 …)는 옅은 형광펜이다(ARTEL-1107). 테두리 상자는 이름이 길면 여러 줄 상자가 되어
+   문장을 끊었고, 점선 밑줄은 안 보였고, 꽉 찬 서비스 색은 답 전체를 붉게 만들었다. 글씨는 본문색 그대로, 바탕만
+   서비스 색을 옅게 깔고 줄을 넘기면 줄마다 이어진다. 누를 수 없는 참조는 회색 형광펜이다.
+   선택자를 한 단 높여 두어 칩 규칙이 어디에 붙든 이쪽이 이긴다. */
+.scenario-studio :is(.st-chat .chat-message, .st-chat.chat-table-dialog) .chat-ref {
+  display: inline; max-width: none; margin: 0 1px; padding: 1px 4px; border: 0; border-radius: 3px;
+  background: color-mix(in srgb, var(--st-action) 18%, transparent); color: var(--st-text);
+  font: inherit; font-weight: 600; line-height: inherit; text-align: inherit; text-decoration: none; vertical-align: baseline;
+  -webkit-box-decoration-break: clone; box-decoration-break: clone; overflow-wrap: anywhere; cursor: pointer;
+  transition: background 120ms var(--ease-standard);
+}
+.scenario-studio :is(.st-chat .chat-message, .st-chat.chat-table-dialog) span.chat-ref:not([role='button']) { background: var(--st-raised); color: var(--st-text); cursor: default; }
+.scenario-studio :is(.st-chat .chat-message, .st-chat.chat-table-dialog) :is(a, [role='button']).chat-ref:hover { background: color-mix(in srgb, var(--st-action) 30%, transparent); }
+.scenario-studio :is(.st-chat .chat-message, .st-chat.chat-table-dialog) .chat-ref:focus-visible { outline: 2px solid var(--st-action); outline-offset: 2px; }
+.scenario-studio :is(.st-chat .chat-message, .st-chat.chat-table-dialog) .chat-ref-tag { display: inline-block; margin-right: 4px; font: 700 0.7em var(--st-mono); letter-spacing: .04em; color: var(--st-action); vertical-align: 1px; }
+.scenario-studio :is(.st-chat .chat-message, .st-chat.chat-table-dialog) .chat-ref-label { display: inline; max-width: none; overflow: visible; white-space: normal; }
