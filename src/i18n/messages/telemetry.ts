@@ -6,8 +6,8 @@ import type { Localized } from '../messages'
  * artel-orchestration-server field for field.
  */
 export const telemetryEn = {
-  showContents: 'See everything that is sent',
-  sentTitle: 'Sent, once per UTC day',
+  showContents: 'Values that are sent',
+  sentTitle: 'Sent',
   groups: [
     {
       heading: 'Install',
@@ -55,8 +55,8 @@ export const telemetryEn = {
 }
 
 export const telemetryKo: Localized<typeof telemetryEn> = {
-  showContents: '보내는 값 전체 보기',
-  sentTitle: 'UTC 기준 하루에 한 번 보내는 값',
+  showContents: '보내는 값 보기',
+  sentTitle: '보내는 값',
   groups: [
     {
       heading: '설치 정보',
