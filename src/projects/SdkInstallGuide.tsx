@@ -1,25 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { CopyButton } from './CopyButton'
 import { useI18n } from '../i18n/useI18n'
+import { SDK_PACKAGE_URL } from './setupCommands'
 import addPackageFromGitUrlShot from '../assets/sdk-guide/step1-add-package-from-git-url.png'
 import gitUrlInputShot from '../assets/sdk-guide/step1-git-url-input.png'
 import signInScreenShot from '../assets/sdk-guide/step2-sdk-sign-in-screen.png'
 import browserSignInShot from '../assets/sdk-guide/step3-browser-sign-in.png'
 import projectPickerShot from '../assets/sdk-guide/step4-sdk-project-picker.png'
 import instanceConnectedShot from '../assets/sdk-guide/step4-instance-connected.png'
-
-/**
- * The git URL Unity's Package Manager installs the SDK from. It is a constant
- * of the product, not of this project, so it is not fetched: there is no
- * endpoint that returns it and inventing one would only add a way for the
- * guide to fail to load.
- *
- * `?path=` is required, not decoration. The repository root holds the sample
- * project and the tooling as well, and the package itself is one folder down
- * at `Packages/kr.artel.sdk`; without the query Package Manager reads the root,
- * finds no `package.json`, and refuses the URL.
- */
-const SDK_PACKAGE_URL = 'https://github.com/project-artel/artel-sdk.git?path=/Packages/kr.artel.sdk'
 
 /**
  * One screenshot of the Unity editor.

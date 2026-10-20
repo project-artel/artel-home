@@ -1,5 +1,69 @@
 import type { ActionSpec, FieldSpec } from '../registry/types'
 
-/** `members` 페이지가 agent 에게 등록하는 action 과 field. ARTEL-1139 가 채운다. */
-export const MEMBERS_ACTIONS: ActionSpec[] = []
-export const MEMBERS_FIELDS: FieldSpec[] = []
+/*
+ * 멤버 페이지의 field 와 action 정의. 소유자만 쓰는 것들이라 소유자가 아니면 binding 자체가 없다.
+ * 역할 변경은 이 화면에도 서버에도 없으므로 action 이 없다.
+ */
+
+const ROLES = ['OWNER', 'MEMBER']
+
+export const MEMBERS_INVITE_TARGET_FIELD: FieldSpec = {
+  name: 'members.inviteTarget',
+  page: 'members',
+  description:
+    'The invite form\'s "who" box: an email address, or a nickname#tag of an existing account. Only the owner has this form. Setting it does not send anything.',
+}
+
+export const MEMBERS_INVITE_ROLE_FIELD: FieldSpec = {
+  name: 'members.inviteRole',
+  page: 'members',
+  description: 'The role the invited person gets when they accept. Value is a role id; options lists them. Defaults to MEMBER.',
+}
+
+export const MEMBERS_INVITE_ACTION: ActionSpec = {
+  id: 'members.invite',
+  page: 'members',
+  risk: 'approve',
+  description:
+    'Send a project invitation by email address (or nickname#tag) with a role. This emails someone outside the project, so the user approves it. Returns {sentTo}. Fails with the server message when the person is already invited or a member. Owner only.',
+  args: {
+    type: 'object',
+    properties: {
+      target: { type: 'string', description: 'Email address, or nickname#tag of an existing account.' },
+      role: { type: 'string', enum: ROLES, description: 'Role the person gets on accepting. Omit for MEMBER.' },
+    },
+    required: ['target'],
+  },
+  summarize: (args) => `Invite ${typeof args.target === 'string' ? args.target : 'someone'} as ${typeof args.role === 'string' ? args.role : 'MEMBER'}`,
+}
+
+export const MEMBERS_REMOVE_ACTION: ActionSpec = {
+  id: 'members.removeMember',
+  page: 'members',
+  risk: 'approve',
+  description:
+    'Remove a member from the project. They lose access at once. The user approves it in place of the confirmation dialog. userId is the member id shown in the page snapshot or listed by the project tools. Owner only; the last owner cannot be removed.',
+  args: {
+    type: 'object',
+    properties: { userId: { type: 'string', description: 'Id of the member to remove.' } },
+    required: ['userId'],
+  },
+  summarize: (args) => `Remove member ${typeof args.userId === 'string' ? args.userId : ''}`.trim(),
+}
+
+export const MEMBERS_REVOKE_ACTION: ActionSpec = {
+  id: 'members.revokeInvitation',
+  page: 'members',
+  risk: 'approve',
+  description:
+    'Withdraw a pending invitation so it can no longer be accepted. The user approves it. invitationId is the id of an invitation listed under "waiting for an answer". Owner only.',
+  args: {
+    type: 'object',
+    properties: { invitationId: { type: 'string', description: 'Id of the pending invitation.' } },
+    required: ['invitationId'],
+  },
+  summarize: (args) => `Revoke invitation ${typeof args.invitationId === 'string' ? args.invitationId : ''}`.trim(),
+}
+
+export const MEMBERS_FIELDS: FieldSpec[] = [MEMBERS_INVITE_TARGET_FIELD, MEMBERS_INVITE_ROLE_FIELD]
+export const MEMBERS_ACTIONS: ActionSpec[] = [MEMBERS_INVITE_ACTION, MEMBERS_REMOVE_ACTION, MEMBERS_REVOKE_ACTION]

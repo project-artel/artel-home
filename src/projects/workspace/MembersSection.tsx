@@ -3,6 +3,15 @@ import { composeNicknameTag } from '../../auth/authTypes'
 import { ConfirmActionDialog } from '../../design-system/primitives/ConfirmActionDialog'
 import { InfoHint } from '../../design-system/primitives/InfoHint'
 import { useI18n } from '../../i18n/useI18n'
+import { useActionBinding, useFieldBinding } from '../../projectAgent/bindings'
+import { requireKnownId } from '../../projectAgent/specs/fieldWriters'
+import {
+  MEMBERS_INVITE_ACTION,
+  MEMBERS_INVITE_ROLE_FIELD,
+  MEMBERS_INVITE_TARGET_FIELD,
+  MEMBERS_REMOVE_ACTION,
+  MEMBERS_REVOKE_ACTION,
+} from '../../projectAgent/specs/members'
 import { apiErrorMessage } from '../apiErrorMessage'
 import { formatDate } from '../formatters'
 import { resolveInvitationTarget, type InviteTargetValue } from '../invitationTarget'
@@ -20,6 +29,13 @@ import { ProjectApiError } from '../projectApi'
 import { PROJECT_ROLES, type ProjectRole } from '../projectTypes'
 import { useInvitationCandidates } from '../useInvitationCandidates'
 import { useMembers } from '../useMembers'
+import {
+  NOT_OWNER_REASON,
+  requireInvitation,
+  requireInviteRole,
+  requireInviteTarget,
+  requireMember,
+} from './membersAgent'
 import { useWorkspace } from './workspaceContext'
 
 /**
@@ -40,6 +56,24 @@ export function MembersSection() {
   const [announcement, setAnnouncement] = useState('')
   const { t } = useI18n()
   const copy = t.projects.members
+
+  /** 확인 대화상자의 확인 버튼과 project agent 의 action 이 같이 부르는 내보내기. */
+  async function confirmRemove(member: ProjectMember) {
+    await removeMember(project.id, member.userId)
+    setAnnouncement(copy.removedAnnouncement(member.displayName))
+    setRemoving(null)
+    refresh()
+  }
+
+  useActionBinding(MEMBERS_REMOVE_ACTION, {
+    target: () => document.querySelector<HTMLElement>('.member-list'),
+    blocked: () => (!isOwner ? NOT_OWNER_REASON : status !== 'ready' ? copy.loadingLabel : null),
+    run: async (args) => {
+      const member = requireMember(members, args.userId)
+      await confirmRemove(member)
+      return { removed: member.userId }
+    },
+  })
 
   return (
     <div className="section-columns">
@@ -107,12 +141,7 @@ export function MembersSection() {
           cancelLabel={t.projects.shared.cancel}
           confirmLabel={copy.remove}
           onClose={() => setRemoving(null)}
-          onConfirm={async () => {
-            await removeMember(project.id, removing.userId)
-            setAnnouncement(copy.removedAnnouncement(removing.displayName))
-            setRemoving(null)
-            refresh()
-          }}
+          onConfirm={() => confirmRemove(removing)}
           pendingLabel={copy.removing}
           title={copy.removeTitle}
           toFailureMessage={(error) =>
@@ -195,28 +224,35 @@ function InvitePanel({
   const [role, setRole] = useState<ProjectRole>('MEMBER')
   const [failure, setFailure] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
+  const sendButton = useRef<HTMLButtonElement>(null)
+  const roleSelect = useRef<HTMLSelectElement>(null)
   const { t } = useI18n()
   const copy = t.projects.members
   const inviteTargetFieldId = useId()
 
-  async function send(event: React.FormEvent) {
-    event.preventDefault()
+  /**
+   * 초대를 보낸다. 폼의 제출과 project agent 의 action 이 같이 부른다. 실패는 폼에 보이는 문장으로
+   * 돌려준다.
+   */
+  async function deliver(
+    nextTarget: InviteTargetValue,
+    nextRole: ProjectRole,
+  ): Promise<{ sentTo: string } | { failure: string }> {
     setSending(true)
     setFailure(null)
 
     try {
       // 목록에서 사람을 고르지 않고 `nickname#userTag` 를 붙여넣은 채 보내는 경로가 있어서,
       // 보내기 직전에 그 글자가 지금 누구를 가리키는지 확인한다.
-      const resolved = await resolveInvitationTarget(projectId, target, role)
+      const resolved = await resolveInvitationTarget(projectId, nextTarget, nextRole)
       if (resolved.status !== 'ready') {
-        setFailure(
-          {
-            handleNotFound: copy.inviteHandleNotFound,
-            handleAmbiguous: copy.inviteHandleAmbiguous,
-            unusableText: copy.inviteTargetUnusable,
-          }[resolved.status],
-        )
-        return
+        const message = {
+          handleNotFound: copy.inviteHandleNotFound,
+          handleAmbiguous: copy.inviteHandleAmbiguous,
+          unusableText: copy.inviteTargetUnusable,
+        }[resolved.status]
+        setFailure(message)
+        return { failure: message }
       }
 
       await sendInvitation(projectId, resolved.draft)
@@ -224,16 +260,65 @@ function InvitePanel({
       setRole('MEMBER')
       onAnnounce(copy.sentAnnouncement(resolved.sentTo))
       onChanged()
+      return { sentTo: resolved.sentTo }
     } catch (error: unknown) {
       // 서버가 거절하는 이유가 여섯 가지라 code 로 문장을 고른다. 사전에 없는 code 는
       // `apiErrorMessage` 가 서버 문장으로 떨어뜨린다.
-      setFailure(
-        error instanceof ProjectApiError ? apiErrorMessage(error, t) : copy.sendFailed,
-      )
+      const message = error instanceof ProjectApiError ? apiErrorMessage(error, t) : copy.sendFailed
+      setFailure(message)
+      return { failure: message }
     } finally {
       setSending(false)
     }
   }
+
+  function send(event: React.FormEvent) {
+    event.preventDefault()
+    void deliver(target, role)
+  }
+
+  /** 초대를 거두는 호출과 안내. 줄의 버튼과 project agent 의 action 이 같이 부른다. */
+  async function revoke(invitation: ProjectInvitation) {
+    await revokeInvitation(projectId, invitation.id)
+    onAnnounce(copy.revokedAnnouncement(invitationTargetLabel(invitation)))
+    onChanged()
+  }
+
+  useActionBinding(MEMBERS_INVITE_ACTION, {
+    target: () => sendButton.current,
+    blocked: () => (sending ? copy.sending : null),
+    run: async (args) => {
+      const outcome = await deliver(
+        { text: requireInviteTarget(args.target), candidate: null },
+        requireInviteRole(args.role),
+      )
+      if ('failure' in outcome) throw new Error(outcome.failure)
+      return outcome
+    },
+  })
+  useActionBinding(MEMBERS_REVOKE_ACTION, {
+    target: () => document.querySelector<HTMLElement>('.invitation-list'),
+    blocked: () => (status !== 'ready' ? copy.pendingUnknown : null),
+    run: async (args) => {
+      const invitation = requireInvitation(invitations, args.invitationId)
+      await revoke(invitation)
+      return { revoked: invitation.id }
+    },
+  })
+  useFieldBinding(MEMBERS_INVITE_TARGET_FIELD, {
+    target: () => document.getElementById(inviteTargetFieldId),
+    read: () => target.text,
+    write: (value) => {
+      if (typeof value !== 'string') throw new Error('members.inviteTarget must be a string.')
+      setTarget({ text: value, candidate: null })
+    },
+  })
+  useFieldBinding(MEMBERS_INVITE_ROLE_FIELD, {
+    target: () => roleSelect.current,
+    read: () => role,
+    options: () => PROJECT_ROLES.map((option) => ({ value: option, label: t.projects.roles[option] })),
+    write: (value) => setRole(requireKnownId('members.inviteRole', value, PROJECT_ROLES) as ProjectRole),
+  })
 
   return (
     <section className="panel" aria-labelledby="invite-title">
@@ -271,6 +356,7 @@ function InvitePanel({
               className="field-input"
               disabled={sending}
               onChange={(event) => setRole(event.target.value as ProjectRole)}
+              ref={roleSelect}
               value={role}
             >
               {PROJECT_ROLES.map((option) => (
@@ -284,6 +370,7 @@ function InvitePanel({
           <button
             className="button button--primary"
             disabled={sending || (target.candidate === null && target.text.trim().length === 0)}
+            ref={sendButton}
             type="submit"
           >
             {sending ? copy.sending : copy.send}
@@ -312,9 +399,7 @@ function InvitePanel({
             <SentInvitationRow
               invitation={invitation}
               key={invitation.id}
-              onAnnounce={onAnnounce}
-              onRevoked={onChanged}
-              projectId={projectId}
+              onRevoke={revoke}
             />
           ))}
         </ul>
@@ -501,14 +586,10 @@ function optionId(fieldId: string, candidate: InvitationCandidate): string {
 
 function SentInvitationRow({
   invitation,
-  onAnnounce,
-  onRevoked,
-  projectId,
+  onRevoke,
 }: {
   invitation: ProjectInvitation
-  onAnnounce: (message: string) => void
-  onRevoked: () => void
-  projectId: string
+  onRevoke: (invitation: ProjectInvitation) => Promise<void>
 }) {
   const [failure, setFailure] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
@@ -523,9 +604,7 @@ function SentInvitationRow({
     setFailure(null)
 
     try {
-      await revokeInvitation(projectId, invitation.id)
-      onAnnounce(copy.revokedAnnouncement(invitationTargetLabel(invitation)))
-      onRevoked()
+      await onRevoke(invitation)
     } catch (error: unknown) {
       setFailure(error instanceof ProjectApiError ? apiErrorMessage(error, t) : copy.revokeFailed)
       setPending(false)
