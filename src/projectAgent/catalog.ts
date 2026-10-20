@@ -1,8 +1,11 @@
 /**
- * agent 에게 보내는 page catalog. 계약 4절의 형식이다. 페이지마다 fields 와 actions 는
- * 그 페이지의 binding 을 만드는 작업(ARTEL-1130)이 채운다.
+ * agent 에게 보내는 page catalog. 계약 4절의 형식이다. fields 와 actions 는 `specs/` 의 정의를
+ * 그대로 가리킨다. 페이지의 binding 도 같은 정의를 쓴다.
  */
 import type { ActionSpec, FieldSpec, JsonSchema, PageId } from './registry/types'
+import { CONTENT_MAP_ACTIONS, CONTENT_MAP_FIELDS } from './specs/contentMap'
+import { QA_ACTIONS, QA_FIELDS } from './specs/qa'
+import { TEST_RUNS_ACTIONS } from './specs/testRuns'
 
 export type PageCatalogEntry = {
   id: PageId
@@ -30,10 +33,10 @@ export const PAGE_CATALOG: PageCatalogEntry[] = [
   { id: 'home', title: 'Agent home', path: '', params: [], description: 'The index route. No page is open beside the chat.', fields: [], actions: [] },
   { id: 'documents', title: 'Planning documents', path: 'documents', params: [], description: 'Uploaded planning documents of the project.', fields: [], actions: [] },
   { id: 'testCases', title: 'Case library', path: 'test-cases', params: [], description: 'Test cases (TC) grouped by game version.', fields: [], actions: [] },
-  { id: 'testRuns', title: 'Test runs', path: 'test-runs', params: [], description: 'Test runs: a named set of scenarios to run as QA.', fields: [], actions: [] },
-  { id: 'qa', title: 'Run QA', path: 'qa', params: [], description: 'Start a QA run of a test run on a connected game.', fields: [], actions: [] },
+  { id: 'testRuns', title: 'Test runs', path: 'test-runs', params: [], description: 'Test runs: a named set of scenarios to run as QA. List of runs with a button to create a new one.', fields: [], actions: TEST_RUNS_ACTIONS },
+  { id: 'qa', title: 'Run QA', path: 'qa', params: [], description: 'Start a QA run of a test run on a connected game. Set the form fields, then call qa.startRun.', fields: QA_FIELDS, actions: QA_ACTIONS },
   { id: 'qaHistory', title: 'QA history', path: 'qa-history', params: [], description: 'Past QA runs and their results.', fields: [], actions: [] },
-  { id: 'contentMap', title: 'Screen map', path: 'content-map', params: ['build'], description: 'The content map of a game build: scenes and screens found by an evidence scan.', fields: [], actions: [] },
+  { id: 'contentMap', title: 'Screen map', path: 'content-map', params: ['build'], description: 'The content map of a game build: scenes and screens found by an evidence scan. Scan actions act on the selected build.', fields: CONTENT_MAP_FIELDS, actions: CONTENT_MAP_ACTIONS },
   { id: 'macros', title: 'Macros', path: 'macros', params: [], description: 'Macros registered by a game build.', fields: [], actions: [] },
   { id: 'performance', title: 'Performance', path: 'performance', params: [], description: 'Performance reports per build.', fields: [], actions: [] },
   { id: 'issues', title: 'Issues', path: 'issues', params: [], description: 'Issues found by QA runs.', fields: [], actions: [] },
