@@ -19,6 +19,7 @@ export function UsageStatsPrompt() {
   const [saving, setSaving] = useState(false)
   const [failed, setFailed] = useState(false)
   const dialogRef = useRef<HTMLDialogElement>(null)
+  const sendRef = useRef<HTMLButtonElement>(null)
   const titleId = useId()
 
   useEffect(() => {
@@ -31,7 +32,11 @@ export function UsageStatsPrompt() {
 
   useEffect(() => {
     const dialog = dialogRef.current
-    if (asking && dialog !== null && !dialog.open) dialog.showModal()
+    if (asking && dialog !== null && !dialog.open) {
+      dialog.showModal()
+      // showModal() 은 첫 focus 대상인 '보내는 값 보기' 에 focus 를 준다. 그 빨간 테두리가 오류처럼 보여서 답할 버튼으로 옮긴다.
+      sendRef.current?.focus()
+    }
   }, [asking])
 
   async function choose(enabled: boolean) {
@@ -72,7 +77,13 @@ export function UsageStatsPrompt() {
         <button className="button button--secondary" type="button" disabled={saving} onClick={() => void choose(false)}>
           {copy.dontSend}
         </button>
-        <button className="button button--primary" type="button" disabled={saving} onClick={() => void choose(true)}>
+        <button
+          ref={sendRef}
+          className="button button--primary"
+          type="button"
+          disabled={saving}
+          onClick={() => void choose(true)}
+        >
           {copy.send}
         </button>
       </div>
