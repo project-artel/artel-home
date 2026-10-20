@@ -1,9 +1,11 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { buildOptionText, selectBuild } from '../projects/gameBuilds'
 import { useWorkspace } from '../projects/workspace/workspaceContext'
+import { useFieldBinding } from '../projectAgent/bindings'
+import { CONTENT_MAP_BUILD_FIELD } from '../projectAgent/specs/contentMap'
 import { ContentMapReport } from './ContentMapPage'
 
 /**
@@ -31,6 +33,16 @@ export function ContentMapSection() {
   const requestedBuildId = searchParams.get('build')
   const selectedBuild = selectBuild(builds, requestedBuildId)
 
+  const buildSelect = useRef<HTMLSelectElement>(null)
+
+  // agent 가 빌드를 고르는 길. 셀렉트의 onChange 와 같은 주소 갱신을 쓴다.
+  useFieldBinding(CONTENT_MAP_BUILD_FIELD, {
+    target: () => buildSelect.current,
+    read: () => selectedBuild?.id ?? null,
+    options: () => builds.map((build) => ({ value: build.id, label: buildOptionText(build, editorLabel) })),
+    write: (value) => setSearchParams({ build: String(value) }),
+  })
+
   // 주소가 늘 고른 빌드를 말하게 한다. `replace` 라 기본 빌드가 채워지는 것이 뒤로 가기
   // 한 걸음을 잡아먹지 않는다.
   useEffect(() => {
@@ -51,6 +63,7 @@ export function ContentMapSection() {
           <label className="cm-build-picker">
             <span>{copy.selectLabel}</span>
             <select
+              ref={buildSelect}
               onChange={(event) => setSearchParams({ build: event.target.value })}
               value={selectedBuild.id}
             >

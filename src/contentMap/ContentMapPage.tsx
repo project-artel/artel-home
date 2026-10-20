@@ -165,6 +165,7 @@ export function ContentMapReport({
       <EvidenceScanPanel
         buildId={buildId}
         events={events}
+        generationBlock={describeGenerationBlock(view)}
         projectId={projectId}
         refreshToken={reloadToken}
       />

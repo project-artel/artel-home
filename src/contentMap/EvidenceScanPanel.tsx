@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { InfoHint } from '../design-system/primitives/InfoHint'
@@ -7,6 +7,12 @@ import { formatDateTime } from '../projects/formatters'
 import { listGameInstances } from '../projects/gameApi'
 import type { GameInstance } from '../projects/gameTypes'
 import { ProjectApiError } from '../projects/projectApi'
+import { useActionBinding } from '../projectAgent/bindings'
+import {
+  CONTENT_MAP_OVERWRITE_ACTION,
+  CONTENT_MAP_SCAN_ACTION,
+  CONTENT_MAP_SCAN_AND_GENERATE_ACTION,
+} from '../projectAgent/specs/contentMap'
 import {
   documentIngestState,
   scanElapsedSeconds,
@@ -15,7 +21,8 @@ import {
 } from './contentMapTypes'
 import type { ContentMapEventsState } from './useContentMapEvents'
 import { readCarryOver } from './carryOverChoice'
-import { testCaseLibraryPath } from './contentMapTestCases'
+import { testCaseLibraryPath, type GenerationBlock } from './contentMapTestCases'
+import { generateContentMapTestCases } from './generateContentMapTestCases'
 import { requestEvidenceScan } from './requestEvidenceScan'
 
 /**
@@ -58,6 +65,7 @@ export function EvidenceScanPanel({
   buildId,
   refreshToken,
   events,
+  generationBlock,
 }: {
   projectId: string
   buildId: string
@@ -65,6 +73,8 @@ export function EvidenceScanPanel({
   refreshToken: number
   /** `.../content-map/events` 구독 상태. 스캔 상태와 문서 적재 진행이 여기서 나온다. */
   events: ContentMapEventsState
+  /** 이 빌드의 지도가 아직 TC 를 만들 수 없는 이유. agent 의 TC 덮어쓰기 action 이 막힘 이유로 쓴다. */
+  generationBlock: GenerationBlock | null
 }) {
   const { t } = useI18n()
   const copy = t.contentMap.scan
@@ -119,8 +129,9 @@ export function EvidenceScanPanel({
     return copy.disabled[reason]
   }
 
-  async function start(withTestCases: boolean) {
-    if (instanceId === '') return
+  /** 버튼과 agent 가 함께 쓴다. 실패 문구를 돌려줘 agent 가 오류로 전할 수 있게 한다. */
+  async function start(withTestCases: boolean): Promise<{ failure: string | null }> {
+    if (instanceId === '') return { failure: null }
     setScanRun({ token: refreshToken, scan: { phase: 'running', withTestCases } })
 
     try {
@@ -132,16 +143,56 @@ export function EvidenceScanPanel({
         carryOver: readCarryOver(),
       })
       setScanRun({ token: refreshToken, scan: { phase: 'requested' } })
+      return { failure: null }
     } catch (error: unknown) {
-      setScanRun({
-        token: refreshToken,
-        scan: {
-          phase: 'failed',
-          message: error instanceof ProjectApiError ? apiErrorMessage(error, t) : copy.failed,
-        },
-      })
+      const message = error instanceof ProjectApiError ? apiErrorMessage(error, t) : copy.failed
+      setScanRun({ token: refreshToken, scan: { phase: 'failed', message } })
+      return { failure: message }
     }
   }
+
+  const scanButton = useRef<HTMLButtonElement>(null)
+  const scanWithTestCasesButton = useRef<HTMLButtonElement>(null)
+
+  // 두 스캔 버튼이 비활성일 때 보이는 이유를 그대로 돌려준다.
+  function scanBlockedReason(): string | null {
+    if (blocked !== null) return blockedCopy(blocked)
+    if (scan.phase === 'running') return copy.running
+    if (instanceId === '') return copy.noInstanceOption
+    return null
+  }
+
+  async function runScan(withTestCases: boolean) {
+    const outcome = await start(withTestCases)
+    if (outcome.failure !== null) throw new Error(outcome.failure)
+    return { queued: true, buildId }
+  }
+
+  useActionBinding(CONTENT_MAP_SCAN_ACTION, {
+    target: () => scanButton.current,
+    blocked: scanBlockedReason,
+    run: () => runScan(false),
+  })
+  useActionBinding(CONTENT_MAP_SCAN_AND_GENERATE_ACTION, {
+    target: () => scanWithTestCasesButton.current,
+    blocked: scanBlockedReason,
+    run: () => runScan(true),
+  })
+  // TC 를 덮어쓰는 버튼은 이 페이지에 없고 케이스 라이브러리의 생성 대화상자에 있다. 같은 호출을
+  // 쓰고, 강조는 가장 가까운 "스캔하고 TC 생성" 버튼에 한다.
+  useActionBinding(CONTENT_MAP_OVERWRITE_ACTION, {
+    target: () => scanWithTestCasesButton.current,
+    blocked: () => {
+      if (generationBlock === 'notUploaded') return t.contentMap.empty.neverUploadedCopy
+      if (generationBlock === 'noDocuments') return t.contentMap.empty.noDocumentsCopy
+      if (generationBlock === 'notIngested') return t.contentMap.empty.notIngestedCopy
+      return null
+    },
+    run: async () => {
+      const created = await generateContentMapTestCases(projectId, buildId, readCarryOver(), true)
+      return { buildId, ...created }
+    },
+  })
 
   return (
     <section className="panel cm-scan" aria-labelledby="cm-scan-title">
@@ -180,6 +231,7 @@ export function EvidenceScanPanel({
           className="button button--primary"
           disabled={disabled}
           onClick={() => void start(false)}
+          ref={scanButton}
           type="button"
         >
           {scan.phase === 'running' && !scan.withTestCases ? copy.running : copy.action}
@@ -189,6 +241,7 @@ export function EvidenceScanPanel({
           className="button button--secondary"
           disabled={disabled}
           onClick={() => void start(true)}
+          ref={scanWithTestCasesButton}
           type="button"
         >
           {scan.phase === 'running' && scan.withTestCases ? copy.running : copy.actionWithTestCases}
