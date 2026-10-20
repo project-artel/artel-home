@@ -104,6 +104,7 @@ describe('LaunchPanel', () => {
       createElement(LaunchPanel, {
         projectId: '1',
         run,
+        builds: [],
         instances: [instance],
         instanceId: '3',
         onInstanceChange: () => {},
@@ -118,7 +119,6 @@ describe('LaunchPanel', () => {
         onArchChange: () => {},
         freeScenarios,
         etaMs: null,
-        onRefreshConsoles: async () => {},
         onManageConsoles: () => {},
         runShortcut: 0,
       }),

@@ -33,7 +33,6 @@ export const adminEn = {
   states: {
     loading: 'Loading…',
     loadFailed: 'The data could not be loaded.',
-    refresh: 'Refresh',
     retry: 'Try again',
   },
 }
@@ -65,7 +64,6 @@ export const adminKo: Localized<typeof adminEn> = {
   states: {
     loading: '불러오는 중…',
     loadFailed: '데이터를 불러오지 못했습니다.',
-    refresh: '새로고침',
     retry: '다시 시도',
   },
 }

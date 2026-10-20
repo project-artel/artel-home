@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { EdgeScrollbar } from '../../design-system/primitives/EdgeScrollbar'
 import { InfoHint } from '../../design-system/primitives/InfoHint'
 import { useI18n } from '../../i18n/useI18n'
-import type { GameInstance } from '../../projects/gameTypes'
+import type { GameBuild, GameInstance } from '../../projects/gameTypes'
 import { ProjectApiError } from '../../projects/projectApi'
 import { useActionBinding, useFieldBinding } from '../../projectAgent/bindings'
 import { tasksCopy } from '../../projectAgent/tasksCopy'
@@ -23,6 +23,8 @@ import type { TestRun } from '../../testRuns/testRunApi'
 import { archEngine, archLabelMissing, toArchRequest, withoutVisionKnobs, type QaArchSelection } from '../qaArch'
 import { createQaRun, qaStartConflict } from '../qaApi'
 import { storeLastArch } from '../qaStartChoices'
+import { DEFAULT_QA_FUNCTION_OPTIONS, type QaFunctionOptions } from '../qaFunctionOptions'
+import { QaFunctionOptionsFields } from '../QaFunctionOptionsFields'
 import { CheckIcon, ChevronDownIcon, CircleCheckIcon, CircleXIcon } from '../qaModelIcons'
 import { QaModelPicker } from '../QaModelPicker'
 import { qaModelOptionKey, type QaModel, type QaReasoningSelection } from '../qaTypes'
@@ -49,6 +51,7 @@ export type FreeScenarioCount = number | 'loading' | 'failed'
 export function LaunchPanel({
   projectId,
   run,
+  builds,
   instances,
   instanceId,
   onInstanceChange,
@@ -63,12 +66,12 @@ export function LaunchPanel({
   onArchChange,
   freeScenarios,
   etaMs,
-  onRefreshConsoles,
   onManageConsoles,
   runShortcut,
 }: {
   projectId: string
   run: TestRun | null
+  builds: GameBuild[]
   instances: GameInstance[]
   instanceId: string
   onInstanceChange: (instanceId: string) => void
@@ -85,7 +88,6 @@ export function LaunchPanel({
   /** `planner_executer` 는 ORDERED 만 돌리므로, FREE 가 있으면 점검이 실행을 막는다. `agent` 면 읽지 않는다. */
   freeScenarios: FreeScenarioCount
   etaMs: number | null
-  onRefreshConsoles: () => Promise<void>
   onManageConsoles: () => void
   /** ⌘↵ 가 눌린 횟수. 바뀔 때마다 실행을 시도한다 — 단축키는 화면이 듣고, 실행은 여기서 한다. */
   runShortcut: number
@@ -101,10 +103,10 @@ export function LaunchPanel({
   const consoleBox = useRef<HTMLDivElement>(null)
   const closeConsole = useCallback(() => setConsoleOpen(false), [])
   useDismiss(consoleOpen, consoleBox, closeConsole)
-  const [refreshing, setRefreshing] = useState(false)
   const [starting, setStarting] = useState(false)
   const [failure, setFailure] = useState<string | null>(null)
   const [takeoverOpen, setTakeoverOpen] = useState(false)
+  const [functionOptions, setFunctionOptions] = useState<QaFunctionOptions>(DEFAULT_QA_FUNCTION_OPTIONS)
 
   const instance = instances.find((one) => one.id === instanceId) ?? null
   const model = models.find((one) => `${one.keySource}:${one.id}` === modelKey) ?? null
@@ -171,7 +173,7 @@ export function LaunchPanel({
     setStarting(true)
     setFailure(null)
     try {
-      const created = await createQaRun(run.id, instance.id, model.id, model.keySource, selectedReasoning, force, toArchRequest(effectiveArch))
+      const created = await createQaRun(run.id, instance.id, model.id, model.keySource, selectedReasoning, force, toArchRequest(effectiveArch), functionOptions)
       // 시작이 성공한 구조만 다음 폼의 기본값이 된다. 고르다 만 값은 남기지 않는다.
       storeLastArch(effectiveArch)
       setTakeoverOpen(false)
@@ -276,15 +278,6 @@ export function LaunchPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runShortcut])
 
-  async function refresh() {
-    setRefreshing(true)
-    try {
-      await onRefreshConsoles()
-    } finally {
-      setRefreshing(false)
-    }
-  }
-
   return (
     <aside aria-labelledby="ql-panel-title" className="ql-panel">
       <div className="ql-panel-scroll" ref={setPanelScroller}>
@@ -299,9 +292,6 @@ export function LaunchPanel({
         <div className="ql-field">
           <div className="ql-field-head">
             <span className="ql-field-label">{l.consoleLabel}</span>
-            <button className="ql-mini" disabled={refreshing} onClick={() => void refresh()} type="button">
-              {refreshing ? t.projects.instances.refreshing : l.refresh}
-            </button>
             <Link className="ql-mini" to={sectionHref(projectId, 'setup')}>{l.install}</Link>
             <button className="ql-mini ql-mini--accent" onClick={onManageConsoles} type="button">{l.manage}</button>
           </div>
@@ -425,6 +415,14 @@ export function LaunchPanel({
             )}
           </div>
         )}
+
+        <QaFunctionOptionsFields
+          builds={builds}
+          disabled={starting}
+          onChange={setFunctionOptions}
+          projectId={projectId}
+          value={functionOptions}
+        />
 
         <div className="ql-field">
           <ArchSettings onChange={onArchChange} readsImages={readsImages} selection={effectiveArch} />

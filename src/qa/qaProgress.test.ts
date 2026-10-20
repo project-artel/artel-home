@@ -193,3 +193,16 @@ test('a finished FREE run leaves unjudged steps unreported', () => {
 
   assert.deepEqual(progress.steps.map((entry) => entry.state), ['unreported', 'passed'])
 })
+
+test('a step carries the cheats its verdict reports', () => {
+  const log = verdict('l1', 1, true)
+  log.payload = {
+    ...(log.payload as object),
+    used_cheats: [{ name: 'give_gold', args: { amount: 500 }, target: null, success: true }],
+  }
+  const progress = derive([step('a'), step('b')], [log, verdict('l2', 2, true)])
+
+  assert.deepEqual(progress.steps[0].usedCheats, [{ name: 'give_gold', success: true, target: null }])
+  // 이 기능 이전의 run 과 cheat 를 안 쓴 step 은 같은 빈 목록이다.
+  assert.deepEqual(progress.steps[1].usedCheats, [])
+})

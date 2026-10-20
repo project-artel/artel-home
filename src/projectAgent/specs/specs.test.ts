@@ -82,7 +82,6 @@ test('actions that start paid or destructive work need approval', () => {
     'settings.openDeleteProject': 'approve',
     'setup.showSdkPackageUrl': 'auto',
     'setup.showCliCommands': 'auto',
-    'usage.refresh': 'auto',
     'macros.openSource': 'auto',
     'performance.openRunReport': 'auto',
     'knowledge.openNode': 'auto',

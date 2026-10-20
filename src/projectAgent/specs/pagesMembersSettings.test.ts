@@ -24,7 +24,6 @@ test('action ids and risks of members, settings, setup and usage', () => {
     'settings.openDeleteProject': 'approve',
     'setup.showSdkPackageUrl': 'auto',
     'setup.showCliCommands': 'auto',
-    'usage.refresh': 'auto',
   })
 })
 

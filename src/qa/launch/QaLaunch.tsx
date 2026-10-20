@@ -79,7 +79,7 @@ function reasoningStart(model: QaModel | undefined): number {
 export function QaLaunch() {
   const { t } = useI18n()
   const l = t.qa.launch
-  const { projectId, runs, instances, builds, models, refreshGameState, applyInstance, removeInstance, applyBuild } = useWorkspace()
+  const { projectId, runs, instances, builds, models, applyInstance, removeInstance, applyBuild } = useWorkspace()
   const offered = useMemo(() => offeredQaModels(models), [models])
 
   /**
@@ -311,6 +311,7 @@ export function QaLaunch() {
 
       <LaunchPanel
         arch={arch}
+        builds={builds}
         etaMs={lastDuration}
         freeScenarios={freeScenarios}
         instanceId={instanceId}
@@ -323,7 +324,6 @@ export function QaLaunch() {
         onModelChange={pickModel}
         onReasoningEnabled={(value) => setChoice((current) => ({ ...current, reasoningEnabled: value }))}
         onReasoningValue={(value) => setChoice((current) => ({ ...current, reasoningValue: value }))}
-        onRefreshConsoles={refreshGameState}
         projectId={projectId}
         reasoningEnabled={reasoningEnabled}
         reasoningValue={reasoningValue}
@@ -337,7 +337,6 @@ export function QaLaunch() {
           instances={instances}
           onBuildSaved={applyBuild}
           onClose={() => setConsolesOpen(false)}
-          onRefresh={refreshGameState}
           onRemoved={removeInstance}
           onSaved={applyInstance}
           projectId={projectId}

@@ -1,7 +1,5 @@
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
-import { useActionBinding } from '../projectAgent/bindings'
-import { USAGE_REFRESH_ACTION } from '../projectAgent/specs/usage'
 import { useWorkspace } from '../projects/workspace/workspaceContext'
 import { formatCost, totalTokens } from './format'
 import { UsageFigures } from './UsageFigures'
@@ -28,26 +26,13 @@ export function UsageSection() {
   const { t } = useI18n()
   const u = t.usage
   const { projectId } = useWorkspace()
-  const { status, usage, grid, today, reload } = useProjectUsage(projectId)
-
-  // 새로 읽는 버튼은 불러오는 중에는 없고, 실패 화면과 정상 화면에 하나씩 있다.
-  useActionBinding(USAGE_REFRESH_ACTION, {
-    target: () => document.querySelector<HTMLElement>('[data-agent-target="usage.refresh"]'),
-    blocked: () => (status === 'loading' ? u.loading : null),
-    run: async () => {
-      reload()
-      return { reloading: true }
-    },
-  })
+  const { status, usage, grid, today } = useProjectUsage(projectId)
 
   if (status === 'loading') return <p className="panel-empty">{u.loading}</p>
   if (status === 'error' || usage === null || grid === null) {
     return (
       <div className="panel-message" role="alert">
         <p>{u.loadFailed}</p>
-        <button className="button button--secondary" data-agent-target="usage.refresh" onClick={reload} type="button">
-          {u.refresh}
-        </button>
       </div>
     )
   }
@@ -62,9 +47,6 @@ export function UsageSection() {
               <InfoHint>{u.sectionSubtitle(usage.zone)}</InfoHint>
             </h2>
           </div>
-          <button className="button button--secondary button--compact" data-agent-target="usage.refresh" onClick={reload} type="button">
-            {u.refresh}
-          </button>
         </header>
 
         <UsageFigures grid={grid} today={today} total={usage.total} />

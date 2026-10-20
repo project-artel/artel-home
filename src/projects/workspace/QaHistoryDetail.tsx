@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useI18n } from '../../i18n/useI18n'
+import { QaFunctionOptionsSummary } from '../../qa/QaFunctionOptionsSummary'
 import { elapsedSeconds, getQaTryDetail, type QaTryDetail } from '../../qa/qaTryDetailApi'
 import { formatCost } from '../../usage/format'
 import { formatElapsedSeconds, PLACEHOLDER } from '../formatters'
@@ -111,6 +112,7 @@ export function QaHistoryDetail({
 
         <RunDetailResult detail={detail} />
         <RunDetailCost detail={detail} />
+        <QaFunctionOptionsSummary options={detail.functionOptions} />
       </div>
 
       <RunDetailTools detail={detail} />

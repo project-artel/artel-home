@@ -46,7 +46,7 @@ export function IssuesSection() {
   const [reloadToken, setReloadToken] = useState(0)
   // 이미 가리킨 이슈를 사용자가 접은 뒤 agent 가 다시 열어도 행이 펼쳐지도록, 열 때마다 올린다.
   const [focusToken, setFocusToken] = useState(0)
-  const issues = useProjectIssues(projectId, filters, reloadToken)
+  const issues = useProjectIssues(projectId, filters, reloadToken, true)
   // `trackerLink` starts `null` until `useWorkspaceExtras`'s five-way read
   // settles (see `DashboardSection`'s own `extrasStatus === 'ready'` guard);
   // without this, a project with an existing connection would flash every

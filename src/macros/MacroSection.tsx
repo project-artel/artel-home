@@ -329,20 +329,9 @@ function MacroLibraryView({
             <InfoHint>{copy.section.subtitle}</InfoHint>
             {titleChip}
           </h2>
-          <div className="tcl-head-actions">
-            {/* 라벨이 바뀌지 않는다. 진행 중이라는 사실은 `disabled` 와 `aria-busy` 가 말한다. */}
-            <button
-              className="button button--secondary button--compact"
-              disabled={status === 'loading'}
-              onClick={onReload}
-              type="button"
-            >
-              {copy.section.refresh}
-            </button>
-          </div>
         </header>
 
-        {/* 새로고침이 실패해도 직전 목록이 있으면 그대로 남는다(`useBuildMacros`,
+        {/* 주기적으로 다시 읽다가 실패해도 직전 목록이 있으면 그대로 남는다(`useBuildMacros`,
             `useDeveloperMacros`). 그때 이 알림이 그 목록이 지금의 사실이 아니라고 말한다. */}
         {status === 'error' && (
           <p className="tcl-notice" role="alert">

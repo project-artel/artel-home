@@ -39,14 +39,6 @@ export function KnowledgeSection() {
     <div className="kg-section">
       <div className="kg-section-actions">
         <InfoHint>{t.knowledge.page.subtitle}</InfoHint>
-        <button
-          className="button button--secondary"
-          disabled={status === 'loading'}
-          onClick={reload}
-          type="button"
-        >
-          {t.knowledge.page.refresh}
-        </button>
       </div>
 
       <KnowledgeGraphContent graph={graph} projectId={projectId} reload={reload} status={status} />
@@ -66,7 +58,7 @@ export type KnowledgeGraphDiagnostics = {
 /**
  * The loading, error and ready states of one graph read, below whatever toolbar
  * the caller draws. The caller owns the read (`useKnowledgeGraph`) so its own
- * refresh button and the retry here reload the same request.
+ * toolbar and the retry here reload the same request.
  */
 export function KnowledgeGraphContent({
   graph,
