@@ -105,7 +105,7 @@ function EmptyState({ onPick }: { onPick?: (text: string) => void }) {
         <ul aria-label={copy.chat.suggestionsLabel} className="agent-suggestions">
           {suggestions.map((text) => (
             <li key={text}>
-              <button className="agent-suggestion" onClick={() => onPick(text)} type="button">
+              <button className="chat-question-option" onClick={() => onPick(text)} type="button">
                 {text}
               </button>
             </li>

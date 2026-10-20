@@ -8,8 +8,9 @@ import type { PendingCalls } from './threadState'
 import type { JobState } from './toolTypes'
 
 /*
- * 대화 안에 서는 카드. 색은 상태를 말한다: 승인과 이어서 하기는 amber(사용자를 기다림),
- * 질문은 violet(agent), 실패한 job 은 coral. 색만으로 말하지 않도록 늘 제목 글자와 함께 그린다.
+ * 대화 안에 서는 카드. RunChat 의 draft 안내(점선 amber 상자)와 되묻기(pill 단추)를 따른다.
+ * 승인, 질문, 이어서 하기는 사용자를 기다리므로 amber 이고, 실패한 job 은 coral 이다.
+ * 색만으로 말하지 않도록 늘 제목 글자와 함께 그린다.
  */
 
 export function ApprovalCard({ approval }: { approval: PendingApproval }) {
@@ -20,10 +21,10 @@ export function ApprovalCard({ approval }: { approval: PendingApproval }) {
       <p className="agent-card__title">{copy.approvalTitle}</p>
       <p className="agent-card__body">{approval.summary}</p>
       <div className="agent-card__actions">
-        <button className="agent-button agent-button--primary" onClick={approval.approve} type="button">
+        <button className="button button--primary button--compact" onClick={approval.approve} type="button">
           {copy.approve}
         </button>
-        <button className="agent-button" onClick={approval.reject} type="button">
+        <button className="button button--secondary button--compact" onClick={approval.reject} type="button">
           {copy.cancelApproval}
         </button>
       </div>
@@ -40,23 +41,26 @@ export function ChoiceCard({ choice, onAnswer }: { choice: PendingChoice; onAnsw
     setPicked((previous) => (previous.includes(id) ? previous.filter((one) => one !== id) : [...previous, id]))
 
   return (
-    <section aria-label={copy.choiceLabel} className="agent-card agent-card--agent" role="group">
+    <section aria-label={copy.choiceLabel} className="agent-card agent-card--waiting" role="group">
       <p className="agent-card__title">{choice.question}</p>
       {choice.multiple ? (
         <>
-          <ul className="agent-choice-list">
+          <div className="chat-question-options">
             {choice.options.map((option) => (
-              <li key={option.id}>
-                <label className="agent-choice-check">
-                  <input checked={picked.includes(option.id)} onChange={() => toggle(option.id)} type="checkbox" />
-                  <span>{option.label}</span>
-                </label>
-              </li>
+              <button
+                aria-pressed={picked.includes(option.id)}
+                className="chat-question-option agent-option"
+                key={option.id}
+                onClick={() => toggle(option.id)}
+                type="button"
+              >
+                {option.label}
+              </button>
             ))}
-          </ul>
+          </div>
           <div className="agent-card__actions">
             <button
-              className="agent-button agent-button--primary"
+              className="button button--primary button--compact"
               disabled={picked.length === 0}
               onClick={() => onAnswer(picked)}
               type="button"
@@ -66,15 +70,13 @@ export function ChoiceCard({ choice, onAnswer }: { choice: PendingChoice; onAnsw
           </div>
         </>
       ) : (
-        <ul className="agent-choice-list">
+        <div className="chat-question-options">
           {choice.options.map((option) => (
-            <li key={option.id}>
-              <button className="agent-choice" onClick={() => onAnswer([option.id])} type="button">
-                {option.label}
-              </button>
-            </li>
+            <button className="chat-question-option" key={option.id} onClick={() => onAnswer([option.id])} type="button">
+              {option.label}
+            </button>
           ))}
-        </ul>
+        </div>
       )}
     </section>
   )
@@ -117,10 +119,10 @@ export function ResumeCard({
       <p className="agent-card__title">{copy.resumeTitle}</p>
       <p className="agent-card__body">{copy.resumeBody(pending.calls.length)}</p>
       <div className="agent-card__actions">
-        <button className="agent-button agent-button--primary" onClick={onResume} type="button">
+        <button className="button button--primary button--compact" onClick={onResume} type="button">
           {copy.resume}
         </button>
-        <button className="agent-button" onClick={onStop} type="button">
+        <button className="button button--secondary button--compact" onClick={onStop} type="button">
           {copy.stopConversation}
         </button>
       </div>

@@ -21,9 +21,17 @@ function StepRow({ step }: { step: ToolStep }) {
   const copy = t.projectAgent.chat
   const label = step.tool in copy.tools ? copy.tools[step.tool as keyof typeof copy.tools] : copy.tools.unknown
   const target = stepTarget(step.tool, step.args)
+  const isLive = step.state === 'running' || step.state === 'waiting'
   return (
-    <li className={`agent-step agent-step--${step.state}`} title={step.error ?? undefined}>
-      <StateIcon state={STEP_ICON[step.state]} />
+    <li
+      className={`authoring-progress-step agent-step agent-step--${step.state}${isLive ? ' is-live' : ''}`}
+      title={step.error ?? undefined}
+    >
+      {isLive || STEP_ICON[step.state] === 'ok' ? (
+        <span aria-hidden="true" className="authoring-progress-dot" />
+      ) : (
+        <StateIcon state={STEP_ICON[step.state]} />
+      )}
       <span className="agent-step__label">{label}</span>
       {target.length > 0 && <span className="agent-step__target">{target}</span>}
       <span className="visually-hidden">{copy.stepState[step.state]}</span>
@@ -34,23 +42,26 @@ function StepRow({ step }: { step: ToolStep }) {
 function ThreadRow({ item }: { item: ThreadItem }) {
   const { t } = useI18n()
   const copy = t.projectAgent.chat
+  const authors = t.scenarios.chat
   switch (item.kind) {
     case 'user':
       return (
         <li className="agent-msg agent-msg--user">
+          <p className="agent-author">{authors.you}</p>
           <p className="agent-bubble">{item.text}</p>
         </li>
       )
     case 'assistant':
       return (
         <li className="agent-msg agent-msg--assistant">
+          <p className="agent-author">{authors.agent}</p>
           <ChatMessageBody body={item.text} markdown={{ links: true, fences: true }} />
         </li>
       )
     case 'steps':
       return (
         <li className="agent-msg">
-          <ul aria-label={copy.stepsLabel} className="agent-steps">
+          <ul aria-label={copy.stepsLabel} className="authoring-progress-past agent-steps">
             {item.steps.map((step) => (
               <StepRow key={step.callId} step={step} />
             ))}
@@ -68,7 +79,11 @@ function ThreadRow({ item }: { item: ThreadItem }) {
     }
     case 'notice':
       return (
-        <li className={`agent-msg agent-notice${item.noticeKind === 'error' ? ' is-error' : ''}`} role="note">
+        <li
+          className={`agent-msg ${item.noticeKind === 'error' ? 'inline-error agent-notice is-error' : 'agent-notice'}`}
+          role={item.noticeKind === 'error' ? 'alert' : 'note'}
+        >
+          {item.noticeKind === 'error' && <span aria-hidden="true">!</span>}
           {item.text}
         </li>
       )
@@ -105,9 +120,16 @@ export function AgentThread({ session }: { session: AgentSession }) {
         <ResumeCard onResume={() => store.resume()} onStop={() => void store.cancel()} pending={view.resume} />
       )}
       {view.runningInOtherTab && <p className="agent-other-tab">{copy.runningInOtherTab}</p>}
-      <p aria-live="polite" className={running ? 'agent-working' : 'visually-hidden'}>
-        {running ? copy.working : ''}
-      </p>
+      {running && (
+        <div className="agent-msg agent-msg--typing">
+          <p className="agent-author">{t.scenarios.chat.agent}</p>
+          <div aria-label={copy.working} className="run-chat-typing" role="status">
+            <span />
+            <span />
+            <span />
+          </div>
+        </div>
+      )}
       <div ref={endRef} />
     </div>
   )

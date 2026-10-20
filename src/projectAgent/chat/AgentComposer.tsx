@@ -35,35 +35,41 @@ export function AgentComposer({ session }: { session: AgentSession }) {
 
   return (
     <form className="agent-panel__composer" onSubmit={onSubmit}>
-      <div className="agent-panel__content">
-        {state.error !== null && (
-          <p className="agent-composer__error" role="alert">
-            {state.error}
-          </p>
-        )}
-        <div className="agent-composer__box">
-          <textarea
-            aria-label={copy.composerLabel}
-            className="agent-composer"
-            disabled={disabled}
-            onChange={(event) => setDraft(event.target.value)}
-            onKeyDown={onKeyDown}
-            placeholder={disabled ? copy.chat.busyPlaceholder : copy.composerPlaceholder}
-            rows={2}
-            value={draft}
-          />
-          {conversationBusy ? (
-            <button className="agent-button agent-button--stop" onClick={() => void store.cancel()} type="button">
-              <span aria-hidden="true" className="agent-stop-mark" />
-              {copy.chat.stop}
-            </button>
-          ) : (
-            <button className="agent-button agent-button--primary" disabled={disabled || draft.trim().length === 0} type="submit">
-              {copy.chat.send}
-            </button>
-          )}
+      {state.error !== null && (
+        <div className="inline-error" role="alert">
+          <span aria-hidden="true">!</span>
+          {state.error}
         </div>
-        <p className="agent-composer__note">{copy.chat.composerHint}</p>
+      )}
+      <textarea
+        aria-describedby="agent-composer-hint"
+        aria-label={copy.composerLabel}
+        className="agent-composer"
+        disabled={disabled}
+        onChange={(event) => setDraft(event.target.value)}
+        onKeyDown={onKeyDown}
+        placeholder={disabled ? copy.chat.busyPlaceholder : copy.composerPlaceholder}
+        rows={3}
+        value={draft}
+      />
+      <div className="agent-composer__actions">
+        <p className="shortcut-hint" id="agent-composer-hint">
+          {copy.chat.composerHint}
+        </p>
+        {conversationBusy ? (
+          <button className="button button--secondary button--compact agent-button--stop" onClick={() => void store.cancel()} type="button">
+            <span aria-hidden="true" className="agent-stop-mark" />
+            {copy.chat.stop}
+          </button>
+        ) : (
+          <button
+            className="button button--primary button--compact"
+            disabled={disabled || draft.trim().length === 0}
+            type="submit"
+          >
+            {copy.chat.send}
+          </button>
+        )}
       </div>
     </form>
   )
