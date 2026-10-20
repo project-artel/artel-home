@@ -11190,6 +11190,23 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
 .info-hint__bubble { white-space: pre-line; }
 .issue-row--focused { outline: 2px solid var(--color-action-primary); outline-offset: 2px; }
 
+/* 질문 답의 머리말(ARTEL-1097): 사전조건과 기대 결과를 색으로 가른다. */
+.chat-label{ display:inline-block; margin-right:6px; padding:0 6px; border-radius:4px; font-size:11px; font-weight:700; line-height:18px; vertical-align:1px; }
+.chat-label--precondition{ color:var(--color-status-warning); background:color-mix(in srgb, var(--color-status-warning) 14%, transparent); }
+.chat-label--expected{ color:var(--color-status-success); background:color-mix(in srgb, var(--color-status-success) 14%, transparent); }
+
+/* 칩은 한 줄로(ARTEL-1097). 케이스 이름이 길어 칩이 여러 줄 상자가 되면 글이 읽히지 않는다 — 이름은 줄이고 전체는 마우스를 올려 본다. */
+.scenario-studio .st-chat .chat-ref{ display:inline-flex; align-items:baseline; max-width:100%; vertical-align:bottom; overflow-wrap:normal; }
+.scenario-studio .st-chat .chat-ref-label{ display:inline-block; max-width:22em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; vertical-align:bottom; }
+.scenario-studio .st-chat .chat-md-table .chat-ref-label{ max-width:16em; }
+
+/* 칩은 둘레 글의 크기 · 굵기를 따른다(ARTEL-1097). 큰 결론 줄 안에서 칩만 작으면 어긋나 보인다. */
+.scenario-studio .st-chat .chat-ref{ font-size:inherit; font-weight:inherit; line-height:1.35; padding:0 4px; margin:0 0.2em; vertical-align:baseline; align-items:baseline; }
+.scenario-studio .st-chat .chat-ref-tag{ font-size:0.72em; }
+/* 표 안에서는 칩 이름을 자르지 않는다 — 잘리면 이웃 케이스와 구분되지 않는다. */
+.scenario-studio .st-chat .chat-md-table .chat-ref{ display:inline; }
+.scenario-studio .st-chat .chat-md-table .chat-ref-label{ max-width:none; white-space:normal; display:inline; }
+
 /* ── QA 히스토리 (ARTEL-1100) ─────────────────────────────────────────────────
    왼쪽 버전 트리 · 가운데 테스트 런 카드 · 오른쪽 고른 실행. 섹션 폭 제한을 풀어 전폭을 쓴다. */
 .workspace-body:has(.qh), .workspace-body:has(.qh-empty) { overflow: hidden; }
