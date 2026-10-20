@@ -1,7 +1,22 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { generateContentMapTestCases, type GeneratedTestCases } from '../contentMap/generateContentMapTestCases'
+import { readCarryOver } from '../contentMap/carryOverChoice'
 import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
 import { useI18n } from '../i18n/useI18n'
+import { useActionBinding, useFieldBinding } from '../projectAgent/bindings'
+import { requireKnownId } from '../projectAgent/specs/fieldWriters'
+import {
+  TEST_CASES_DELETE_ACTION,
+  TEST_CASES_GENERATE_ACTION,
+  TEST_CASES_OPEN_ACTION,
+  TEST_CASES_OPEN_GENERATE_ACTION,
+  TEST_CASES_OPEN_NEW_ACTION,
+  TEST_CASES_OVERWRITE_ACTION,
+  TEST_CASES_SEARCH_FIELD,
+  TEST_CASES_STATUS_FIELD,
+  TEST_CASES_VERSION_FIELD,
+} from '../projectAgent/specs/testCases'
 import { formatDate } from '../projects/formatters'
 import type { GameBuild } from '../projects/gameTypes'
 import { ProjectApiError } from '../projects/projectApi'
@@ -78,6 +93,8 @@ import {
 import { VersionList, type VersionOperations } from './VersionList'
 import { VersionTreeDialog } from './VersionTreeDialog'
 import { GenerateTestCasesDialog } from './GenerateTestCasesDialog'
+import { runGenerateFromMap } from './generateFromMapRun'
+import { listGenerationCandidates, type GenerationCandidate } from './generationCandidates'
 import { ImportManualCasesDialog } from './ImportManualCasesDialog'
 import { CoachTour } from './tour/CoachTour'
 import { CASE_LIBRARY_TOUR, caseLibraryTourSteps } from './tour/caseLibraryTour'
@@ -422,7 +439,11 @@ export function TestCaseLibrary({
   }
 
   async function deleteSelected() {
-    const caseIds = [...selection.selectedIds]
+    await deleteCases([...selection.selectedIds])
+  }
+
+  /** 대량 삭제 확인 대화상자와 project agent 의 `testCases.delete` 가 함께 쓴다. */
+  async function deleteCases(caseIds: string[]) {
     const deleted = await bulkDeleteTestCases(projectId, caseIds)
 
     library.removeCases(caseIds)
@@ -565,6 +586,114 @@ export function TestCaseLibrary({
     setCreating(false)
     setSelectedId(testCase.id)
   }
+
+  /** 생성 대화상자가 끝났을 때와 project agent 가 직접 생성했을 때 같은 뒷정리를 한다. */
+  function handleGenerated(candidate: GenerationCandidate, result: GeneratedTestCases) {
+    setIsGenerating(false)
+    refreshLibrary()
+    refreshVersions()
+    // 방금 만든 버전을 연다. 그 버전이 목록에 새로 생겼다.
+    setVersionParams(candidate.gameBuildId, null)
+    const notice = candidate.generated
+      ? m.generate.overwritten(candidate.version, result.created, result.updated, result.deleted + result.broken)
+      : m.generate.done(candidate.version, result.created, result.carriedOver)
+    setGenerationNotice(notice)
+    setAnnouncement(notice)
+  }
+
+  async function generateForAgent(gameBuildId: unknown, overwrite: boolean) {
+    if (typeof gameBuildId !== 'string' || gameBuildId.length === 0) throw new Error('gameBuildId is required.')
+    const { candidate, result } = await runGenerateFromMap(gameBuildId, overwrite, {
+      listCandidates: () => listGenerationCandidates(projectId),
+      generate: (target, replace) => generateContentMapTestCases(projectId, target.gameBuildId, readCarryOver(), replace),
+      messages: m.generate.failure,
+    })
+    handleGenerated(candidate, result)
+    return result
+  }
+
+  const generateButton = useRef<HTMLButtonElement>(null)
+  const newCaseButton = useRef<HTMLButtonElement>(null)
+  const searchBox = useRef<HTMLDivElement>(null)
+  const statusRow = useRef<HTMLDivElement>(null)
+
+  useFieldBinding(TEST_CASES_SEARCH_FIELD, {
+    target: () => searchBox.current,
+    read: () => filters.query,
+    write: (value) => {
+      if (typeof value !== 'string') throw new Error('testCases.search must be a string.')
+      setFilters({ ...filters, query: value })
+    },
+  })
+  useFieldBinding(TEST_CASES_VERSION_FIELD, {
+    target: () => panelRef.current,
+    read: () => selectedVersionId,
+    options: () => (versionsMode ? versionList.versions.map((version) => ({ value: version.gameBuildId, label: versionName(version) })) : []),
+    write: (value) => {
+      const id = requireKnownId(TEST_CASES_VERSION_FIELD.name, value, versionsMode ? versionList.versions.map((version) => version.gameBuildId) : [])
+      setVersionParams(id, null)
+    },
+  })
+  useFieldBinding(TEST_CASES_STATUS_FIELD, {
+    target: () => statusRow.current,
+    read: () => filters.status,
+    options: () => ['ALL', ...VERIFICATION_STATUSES].map((status) => ({ value: status, label: status })),
+    write: (value) => {
+      const status = requireKnownId(TEST_CASES_STATUS_FIELD.name, value, ['ALL', ...VERIFICATION_STATUSES])
+      setFilters({ ...filters, status: status as TestCaseFilters['status'] })
+    },
+  })
+
+  const loadingReason = library.status === 'ready' ? null : 'The test cases are not loaded yet.'
+  useActionBinding(TEST_CASES_OPEN_GENERATE_ACTION, {
+    target: () => generateButton.current,
+    blocked: () => null,
+    run: async () => {
+      setIsGenerating(true)
+      return { opened: true }
+    },
+  })
+  useActionBinding(TEST_CASES_GENERATE_ACTION, {
+    target: () => generateButton.current,
+    blocked: () => null,
+    run: (args) => generateForAgent(args.gameBuildId, false),
+  })
+  useActionBinding(TEST_CASES_OVERWRITE_ACTION, {
+    target: () => generateButton.current,
+    blocked: () => null,
+    run: (args) => generateForAgent(args.gameBuildId, true),
+  })
+  useActionBinding(TEST_CASES_OPEN_NEW_ACTION, {
+    target: () => newCaseButton.current,
+    blocked: () => null,
+    run: async () => {
+      startCreating()
+      return { opened: true }
+    },
+  })
+  useActionBinding(TEST_CASES_OPEN_ACTION, {
+    target: () => panelRef.current,
+    blocked: () => loadingReason,
+    run: async (args) => {
+      const testCase = library.cases.find((one) => one.id === args.testCaseId)
+      if (testCase === undefined) throw new Error('No test case has that id.')
+      select(testCase)
+      return { opened: true, step: testCase.step }
+    },
+  })
+  useActionBinding(TEST_CASES_DELETE_ACTION, {
+    target: () => panelRef.current,
+    blocked: () => loadingReason,
+    run: async (args) => {
+      const ids = Array.isArray(args.testCaseIds) ? args.testCaseIds.filter((id): id is string => typeof id === 'string') : []
+      if (ids.length === 0) throw new Error('testCaseIds must list at least one id.')
+      const known = new Set(library.cases.map((one) => one.id))
+      const unknown = ids.filter((id) => !known.has(id))
+      if (unknown.length > 0) throw new Error(`No test case has the id ${unknown.join(', ')}.`)
+      await deleteCases(ids)
+      return { deleted: ids.length }
+    },
+  })
 
   const selectedItems = [...selection.selectedIds]
     .map((caseId) => itemById.get(caseId))
@@ -737,6 +866,7 @@ export function TestCaseLibrary({
               className="button button--secondary button--compact"
               data-tour="generate-from-map"
               onClick={() => setIsGenerating(true)}
+              ref={generateButton}
               type="button"
             >
               {m.section.generateFromMap}
@@ -745,6 +875,7 @@ export function TestCaseLibrary({
               className="button button--primary button--compact"
               data-tour="new-case"
               onClick={startCreating}
+              ref={newCaseButton}
               type="button"
             >
               {m.section.newCase}
@@ -761,7 +892,7 @@ export function TestCaseLibrary({
         )}
 
         <div className="tcl-filters">
-          <div className="tcl-filter tcl-filter--grow" data-tour="search">
+          <div className="tcl-filter tcl-filter--grow" data-tour="search" ref={searchBox}>
             <SearchField
               clearLabel={m.filters.clearSearch}
               label={m.filters.search}
@@ -815,7 +946,7 @@ export function TestCaseLibrary({
           </div>
         </div>
 
-        <div className="tcl-status-row" data-tour="chips">
+        <div className="tcl-status-row" data-tour="chips" ref={statusRow}>
           <span className="field-label">{m.filters.status}</span>
           <div className="tcl-chips">
             <button
@@ -1165,18 +1296,7 @@ export function TestCaseLibrary({
         <GenerateTestCasesDialog
           groups={versionList.groups}
           onClose={() => setIsGenerating(false)}
-          onGenerated={(candidate, result) => {
-            setIsGenerating(false)
-            refreshLibrary()
-            refreshVersions()
-            // 방금 만든 버전을 연다. 그 버전이 목록에 새로 생겼다.
-            setVersionParams(candidate.gameBuildId, null)
-            const notice = candidate.generated
-              ? m.generate.overwritten(candidate.version, result.created, result.updated, result.deleted + result.broken)
-              : m.generate.done(candidate.version, result.created, result.carriedOver)
-            setGenerationNotice(notice)
-            setAnnouncement(notice)
-          }}
+          onGenerated={handleGenerated}
           projectId={projectId}
           versions={versionList.versions}
         />

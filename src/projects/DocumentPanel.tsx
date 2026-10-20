@@ -12,6 +12,12 @@ import {
 import { formatBytes, formatDate, formatElapsedSeconds } from './formatters'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
+import { useActionBinding } from '../projectAgent/bindings'
+import {
+  DOCUMENTS_DELETE_ACTION,
+  DOCUMENTS_OPEN_UPLOAD_ACTION,
+  DOCUMENTS_RETRY_UPLOAD_ACTION,
+} from '../projectAgent/specs/documents'
 import { DOCUMENT_ACCEPT, describeFileProblem, uploadDocument } from './uploadDocument'
 import type { DocumentStreamState } from './useDocumentEvents'
 import type { ProjectDocument } from './projectTypes'
@@ -79,12 +85,14 @@ export function DocumentPanel({
     if (pendingAnnouncement !== null) setAnnouncement(pendingAnnouncement)
   }
 
-  async function start(file: File) {
+  /** 올리기가 끝나면 올린 문서를, 실패하면 화면에 띄운 것과 같은 문장을 돌려준다. */
+  async function start(file: File): Promise<{ document: ProjectDocument } | { message: string }> {
     const problem = describeFileProblem(file)
     if (problem !== null) {
       setPendingFile(null)
-      setUpload({ phase: 'failed', message: t.projects.documents.problems[problem] })
-      return
+      const message = t.projects.documents.problems[problem]
+      setUpload({ phase: 'failed', message })
+      return { message }
     }
 
     // Keep the file so Retry does not make the user pick it again.
@@ -101,12 +109,14 @@ export function DocumentPanel({
       setPendingFile(null)
       setAnnouncement(t.projects.documents.uploadedAnnouncement(document.version))
       onUploaded(document)
+      return { document }
     } catch (error: unknown) {
       const message =
         error instanceof ProjectApiError
           ? apiErrorMessage(error, t)
           : t.projects.documents.uploadFailed
       setUpload({ phase: 'failed', message })
+      return { message }
     }
   }
 
@@ -127,7 +137,7 @@ export function DocumentPanel({
     setDeleteState(cancelDocumentDelete())
   }
 
-  async function confirmDelete(document: ProjectDocument) {
+  async function confirmDelete(document: ProjectDocument): Promise<{ deleted: boolean; error: string | null }> {
     setDeleteState(beginDocumentDelete(document.id))
 
     const { state, deleted } = await runDocumentDelete({
@@ -142,12 +152,51 @@ export function DocumentPanel({
       setAnnouncement(t.projects.documents.deletedAnnouncement(document.version))
       onDeleted(document.id)
     }
+    return { deleted, error: state.error }
   }
 
   const uploading = upload.phase === 'uploading'
+  const panel = useRef<HTMLElement>(null)
+  const uploadLabel = useRef<HTMLLabelElement>(null)
+  const retryButton = useRef<HTMLButtonElement>(null)
+
+  // project agent 가 쓰는 길. 버튼이 부르는 함수를 그대로 부른다.
+  useActionBinding(DOCUMENTS_OPEN_UPLOAD_ACTION, {
+    target: () => uploadLabel.current,
+    blocked: () => (uploading ? t.projects.documents.uploading : null),
+    // 브라우저는 사용자 동작 없이 파일 선택 창을 열게 하지 않는다. 칸에 focus 만 주고 사용자에게 넘긴다.
+    run: async () => {
+      fileInput.current?.focus()
+      return { needsUser: 'Choose the file in the dialog' }
+    },
+  })
+  useActionBinding(DOCUMENTS_RETRY_UPLOAD_ACTION, {
+    target: () => retryButton.current,
+    blocked: () => {
+      if (uploading) return t.projects.documents.uploading
+      return upload.phase === 'failed' && pendingFile !== null ? null : 'No upload has failed, so there is nothing to retry.'
+    },
+    run: async () => {
+      if (pendingFile === null) throw new Error('No upload has failed, so there is nothing to retry.')
+      const outcome = await start(pendingFile)
+      if ('message' in outcome) throw new Error(outcome.message)
+      return { version: outcome.document.version }
+    },
+  })
+  useActionBinding(DOCUMENTS_DELETE_ACTION, {
+    target: () => panel.current?.querySelector<HTMLElement>('button.button--danger-quiet') ?? panel.current,
+    blocked: () => (deleteState.pending ? t.projects.shared.deleting : null),
+    run: async (args) => {
+      const document = documents.find((one) => one.id === args.documentId)
+      if (document === undefined) throw new Error('No document has that id.')
+      const { deleted, error } = await confirmDelete(document)
+      if (!deleted) throw new Error(error ?? t.projects.documents.deleteFailed)
+      return { deleted: true, documentId: document.id }
+    },
+  })
 
   return (
-    <section className="panel" aria-labelledby="documents-title">
+    <section className="panel" aria-labelledby="documents-title" ref={panel}>
       <header className="panel-header panel-header--split">
         <h2 id="documents-title">
           {t.projects.documents.title}
@@ -200,7 +249,7 @@ export function DocumentPanel({
           ref={fileInput}
           type="file"
         />
-        <label className="button button--secondary" htmlFor="document-file">
+        <label className="button button--secondary" htmlFor="document-file" ref={uploadLabel}>
           {current === undefined
             ? t.projects.documents.uploadFirst
             : t.projects.documents.uploadNew}
@@ -240,6 +289,7 @@ export function DocumentPanel({
             <button
               className="button button--secondary button--compact"
               onClick={() => void start(pendingFile)}
+              ref={retryButton}
               type="button"
             >
               {t.projects.shared.retry}
@@ -287,7 +337,7 @@ function DocumentLine({
   document: ProjectDocument
   isCurrent: boolean
   onCancelDelete: () => void
-  onConfirmDelete: (document: ProjectDocument) => Promise<void>
+  onConfirmDelete: (document: ProjectDocument) => Promise<unknown>
   onDownload: (document: ProjectDocument) => void
   onRequestDelete: (documentId: string) => void
 }) {
