@@ -131,3 +131,11 @@
   .agent-dock-split .st-split::after,
   .agent-dock-split .st-split-grip { transition: none; }
 }
+
+/* 케이스 라이브러리의 안내 투어(`.tour`, z-index 400)는 화면 전체를 막으로 덮는다. 투어는 페이지를
+   위한 것이라, agent 가 그 페이지를 열어도 대화창의 승인 단추와 다시 열기 단추는 눌려야 한다. */
+.project-workspace > .agent-panel,
+.project-workspace > .agent-reopen-rail {
+  position: relative;
+  z-index: 401;
+}
