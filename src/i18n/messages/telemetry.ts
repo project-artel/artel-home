@@ -6,6 +6,13 @@ import type { Localized } from '../messages'
  * artel-orchestration-server field for field.
  */
 export const telemetryEn = {
+  prompt: {
+    title: 'Send usage statistics?',
+    body: 'To help improve ARTEL, this install sends usage statistics to the ARTEL team once a day. Only totals of QA run results and LLM usage are sent, never game content or personal information. You can change this any time in the Settings tab.',
+    send: 'Send',
+    dontSend: "Don't send",
+    saveFailed: 'Could not save. Please try again.',
+  },
   showContents: 'Values that are sent',
   sentTitle: 'Sent',
   groups: [
@@ -55,6 +62,13 @@ export const telemetryEn = {
 }
 
 export const telemetryKo: Localized<typeof telemetryEn> = {
+  prompt: {
+    title: '사용 통계를 보낼까요?',
+    body: 'ARTEL 을 개선하는 데 쓰도록 하루에 한 번 사용 통계를 ARTEL 팀에 보냅니다. QA run 결과와 LLM 사용량의 합계만 보내고, 게임 내용과 개인 정보는 보내지 않습니다. 설정 탭에서 언제든 바꿀 수 있습니다.',
+    send: '보내기',
+    dontSend: '보내지 않기',
+    saveFailed: '저장하지 못했습니다. 다시 시도해 주세요.',
+  },
   showContents: '보내는 값 보기',
   sentTitle: '보내는 값',
   groups: [

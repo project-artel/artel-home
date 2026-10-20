@@ -13,9 +13,8 @@ import { TelemetryContents } from '../../telemetry/TelemetryContents'
 type Preview = { state: 'idle' } | { state: 'loading' } | { state: 'failed' } | { state: 'ready'; json: string }
 
 /**
- * Telemetry consent: toggle, where the value comes from, install id, last sent date, and a
- * preview of the JSON the next report carries. Renders nothing while the server has no
- * telemetry endpoint (`available: false`), so the hosted server never shows it.
+ * 사용 통계 전송 설정: toggle, 마지막으로 보낸 날짜, 다음 report 의 JSON 미리 보기.
+ * 서버에 telemetry endpoint 가 없으면(`available: false`) 아무것도 그리지 않으므로 hosted 서버에는 보이지 않는다.
  */
 export function TelemetrySection() {
   const { t } = useI18n()
@@ -140,14 +139,6 @@ export function TelemetrySection() {
           )}
 
           <dl className="adm-facts">
-            <div>
-              <dt>{copy.sourceLabel}</dt>
-              <dd>{copy.source[settings.source]}</dd>
-            </div>
-            <div>
-              <dt>{copy.installIdLabel}</dt>
-              <dd className="mono">{settings.installId ?? copy.installIdNone}</dd>
-            </div>
             <div>
               <dt>{copy.lastSentLabel}</dt>
               <dd>{settings.lastSentDate ?? copy.notSentYet}</dd>
