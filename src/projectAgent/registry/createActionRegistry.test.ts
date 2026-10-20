@@ -344,6 +344,7 @@ test('derivePage maps pathnames and query params to page ids', () => {
   assert.deepEqual(derivePage(project, `${base}/test-runs/t1`), { page: 'testRun', params: { runId: 't1' } })
   assert.deepEqual(derivePage(project, `${base}/test-runs/t1/edit`), { page: 'testRunEdit', params: { runId: 't1' } })
   assert.equal(derivePage(project, `${base}/test-runs`).page, 'testRuns')
-  assert.equal(derivePage(project, `${base}/members`).page, null)
+  assert.equal(derivePage(project, `${base}/members`).page, 'members')
+  assert.equal(derivePage(project, `${base}/usage-history`).page, null)
   assert.equal(derivePage(project, '/projects/other/qa').page, null)
 })

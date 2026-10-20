@@ -23,6 +23,9 @@ export type PageId =
   | 'qaRun'
   | 'testRun'
   | 'testRunEdit'
+  | 'members'
+  | 'settings'
+  | 'setup'
 
 export type ActionRisk = 'auto' | 'approve'
 

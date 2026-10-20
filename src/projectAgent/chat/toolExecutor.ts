@@ -5,6 +5,7 @@ import { resolvePagePath } from './pagePath'
 import { runQuery } from './queries'
 import type { ChoiceOption, ToolContext, ToolHandler, ToolResultBody } from './toolTypes'
 import { authorScenarios } from './tools/authorScenarios'
+import { readGuide } from './tools/readGuide'
 import { watchJob } from './tools/watchJob'
 
 /*
@@ -95,6 +96,7 @@ const HANDLERS: Record<string, ToolHandler> = {
   query,
   watch_job: watchJob,
   author_scenarios: authorScenarios,
+  read_guide: readGuide,
 }
 
 export async function executeToolCall(call: ToolCall, context: ToolContext): Promise<ToolResultBody> {
