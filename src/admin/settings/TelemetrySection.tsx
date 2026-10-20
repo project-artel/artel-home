@@ -8,6 +8,7 @@ import {
   type TelemetrySettings,
 } from './settingsApi'
 import { useAdminFailure } from './useAdminRequest'
+import { TelemetryContents } from '../../telemetry/TelemetryContents'
 
 type Preview = { state: 'idle' } | { state: 'loading' } | { state: 'failed' } | { state: 'ready'; json: string }
 
@@ -84,6 +85,8 @@ export function TelemetrySection() {
           <InfoHint>{copy.hint}</InfoHint>
         </h2>
       </div>
+      <p className="section__note section__note--block">{copy.hint}</p>
+      <TelemetryContents />
 
       {error !== null && (
         <p className="notice notice--critical" role="alert">

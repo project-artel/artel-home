@@ -3,6 +3,7 @@ import { useI18n } from '../i18n/useI18n'
 import { useAuth } from './useAuth'
 import { PASSWORD_MIN_LENGTH, loginWithPassword, signUpWithPassword } from './passwordAuthApi'
 import { loginErrorMessage } from './passwordFormErrors'
+import { TelemetryContents } from '../telemetry/TelemetryContents'
 
 type Mode = 'signIn' | 'signUp'
 
@@ -146,6 +147,7 @@ export function PasswordLoginForm({
             <span>{copy.telemetryLabel}</span>
           </label>
           <p className="field-hint">{copy.telemetryHint}</p>
+          <TelemetryContents />
         </div>
       )}
 

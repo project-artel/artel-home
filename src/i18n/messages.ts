@@ -16,6 +16,7 @@ import { projectsEn, projectsKo } from './messages/projects'
 import { qaEn, qaKo } from './messages/qa'
 import { scenariosEn, scenariosKo } from './messages/scenarios'
 import { testCasesEn, testCasesKo } from './messages/testCases'
+import { telemetryEn, telemetryKo } from './messages/telemetry'
 import { trackerEn, trackerKo } from './messages/tracker'
 import { usageEn, usageKo } from './messages/usage'
 
@@ -51,6 +52,7 @@ export const messages = {
     qa: qaEn,
     scenarios: scenariosEn,
     testCases: testCasesEn,
+    telemetry: telemetryEn,
     tracker: trackerEn,
     usage: usageEn,
   },
@@ -73,6 +75,7 @@ export const messages = {
     qa: qaKo,
     scenarios: scenariosKo,
     testCases: testCasesKo,
+    telemetry: telemetryKo,
     tracker: trackerKo,
     usage: usageKo,
   },
