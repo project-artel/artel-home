@@ -8,6 +8,7 @@ import { QA_TRY_STATUSES, qaRunPath, type QaTry, type QaTryStatus } from '../qaT
 import type { QaRunSummary } from '../launch/qaLaunchApi'
 import { ringOf, shortWhen } from './historyModel'
 import { PickSketch } from './HistorySketch'
+import { RunVerdictSummary } from './RunVerdictSummary'
 
 /**
  * 고른 실행 하나(ARTEL-1100). 위는 그 실행의 결과를 숫자 셋과 큰 링으로, 아래는 시나리오마다 예전
@@ -114,6 +115,8 @@ export function RunInspector({
             {b.performance}
           </Link>
         </div>
+
+        <RunVerdictSummary key={run.id} projectId={projectId} qaRunId={run.id} />
 
         {ordered.map((qaTry, index) => (
           <section className="qh-scenario" key={qaTry.id}>
