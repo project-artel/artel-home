@@ -2,6 +2,12 @@ import { useId, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { apiErrorMessage } from '../projects/apiErrorMessage'
 import { ProjectApiError } from '../projects/projectApi'
+import { isCatalogEmpty } from '../projects/gameFunctions'
+import { selectBuild } from '../projects/gameBuilds'
+import type { GameBuild } from '../projects/gameTypes'
+import { useGameFunctionCatalog } from '../projects/useGameFunctionCatalog'
+import { ALL_CASE_FUNCTIONS, sameCaseFunctions, toWireCaseFunctions, type CaseFunctions } from './caseFunctions'
+import { CaseFunctionsField } from './CaseFunctionsField'
 import { createTestCase, updateTestCase } from './testCaseApi'
 import { versionName, type TestCaseVersionSummary, type VersionGroup } from './testCaseVersions'
 import { VersionTreeDialog } from './VersionTreeDialog'
@@ -30,6 +36,7 @@ type Draft = {
   precondition: string
   expectedValue: string
   verificationStatus: VerificationStatus
+  functions: CaseFunctions
 }
 
 const BLANK_DRAFT: Draft = {
@@ -38,6 +45,7 @@ const BLANK_DRAFT: Draft = {
   precondition: '',
   expectedValue: '',
   verificationStatus: DEFAULT_VERIFICATION_STATUS,
+  functions: ALL_CASE_FUNCTIONS,
 }
 
 function toDraft(testCase: TestCase): Draft {
@@ -47,6 +55,7 @@ function toDraft(testCase: TestCase): Draft {
     precondition: testCase.precondition ?? '',
     expectedValue: testCase.expectedValue,
     verificationStatus: testCase.verificationStatus,
+    functions: testCase.functions ?? ALL_CASE_FUNCTIONS,
   }
 }
 
@@ -70,6 +79,9 @@ function toPatch(draft: Draft, saved: TestCase): TestCaseInput {
   if (draft.verificationStatus !== saved.verificationStatus) {
     patch.verificationStatus = draft.verificationStatus
   }
+  if (!sameCaseFunctions(draft.functions, saved.functions ?? ALL_CASE_FUNCTIONS)) {
+    patch.functions = toWireCaseFunctions(draft.functions)
+  }
 
   return patch
 }
@@ -84,6 +96,7 @@ function toPatch(draft: Draft, saved: TestCase): TestCaseInput {
  * 편집 중이던 draft 가 다음 케이스로 새어 나가지 않는다.
  */
 export function TestCaseEditor({
+  builds = [],
   knownScenes = [],
   folderId = null,
   projectId,
@@ -94,6 +107,8 @@ export function TestCaseEditor({
   onDone,
   onSaved,
 }: {
+  /** 빌드 목록. cheat · behavior 이름을 읽어 올 빌드를 정하는 데 쓴다(ARTEL-1051). */
+  builds?: GameBuild[]
   /** Screen names already used in this project, offered as chips and as a `datalist`. */
   knownScenes?: string[]
   /** 새 케이스를 만들 폴더. 고른 케이스를 고치는 저장에는 실리지 않는다 — 저장이 폴더를 풀면 안 된다. */
@@ -129,6 +144,16 @@ export function TestCaseEditor({
   const sceneListId = useId()
 
   const creating = testCase === null
+  // 이름은 케이스가 마지막으로 검증된 빌드, 새 케이스면 고른 버전의 catalog 에서 읽는다. 둘 다 없으면 가장 새 빌드다.
+  const catalogBuild =
+    builds.find((build) => build.id === (creating ? versionId : testCase.lastVerifiedBuildId)) ??
+    selectBuild(builds, null)
+  const functionCatalog = useGameFunctionCatalog(projectId, catalogBuild?.id ?? null)
+  // catalog 가 비어 있고 이 케이스도 전부 허용이면 고를 것이 없으므로 칸을 감춘다.
+  const showFunctions =
+    functionCatalog.status === 'loading' ||
+    (functionCatalog.catalog !== null && !isCatalogEmpty(functionCatalog.catalog)) ||
+    !sameCaseFunctions(draft.functions, ALL_CASE_FUNCTIONS)
   const patch = creating ? null : toPatch(draft, testCase)
   const dirty = creating || Object.keys(patch ?? {}).length > 0
 
@@ -172,6 +197,10 @@ export function TestCaseEditor({
           verificationStatus: draft.verificationStatus,
           folderId,
           gameBuildId: versionChoice === undefined ? null : versionId,
+          // 전부 허용이 기본이라 바꾸지 않았으면 보내지 않는다.
+          ...(sameCaseFunctions(draft.functions, ALL_CASE_FUNCTIONS)
+            ? {}
+            : { functions: toWireCaseFunctions(draft.functions) }),
         })
         onCreated(created)
         return
@@ -361,6 +390,17 @@ export function TestCaseEditor({
         </div>
         )}
       </div>
+
+      {showFunctions && (
+        <CaseFunctionsField
+          catalog={functionCatalog.catalog}
+          disabled={pending}
+          onChange={(functions) => setDraft({ ...draft, functions })}
+          status={functionCatalog.status}
+          value={draft.functions}
+          version={catalogBuild?.version ?? null}
+        />
+      )}
 
       <div className="tcl-editor-actions">
         {/* 삭제는 저장 짝의 반대편에 둔다. 되돌릴 수 없는 버튼이 저장 옆에 붙어 있으면

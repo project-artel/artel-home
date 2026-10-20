@@ -24,6 +24,11 @@ export const qaEn = {
         'Required once any knob is changed. QA stats group runs by this label, so a changed structure needs its own name.',
       visionLocked:
         'This model does not read images, so vision=on and screen_capture other than on_demand are unavailable.',
+      engineLocked:
+        'The planner–executer engine does not use the settings below. Your values are kept and apply again when you switch back to the default engine.',
+      engines: { agent: 'Default', planner_executer: 'planner–executer' },
+      engineHint:
+        'Which engine runs the QA. Default is the tool-loop agent. planner–executer has a planner write each step as functions and an executer play them, and runs ORDERED scenarios only.',
       axes: {
         phase_cycle:
           'How strictly the run follows OBSERVE → DECIDE → ACT → VERIFY → UPDATE_MEMORY. off is the free tool loop; lite adds a memory turn; full adds a decide turn.',
@@ -173,11 +178,10 @@ export const qaEn = {
       title: 'Run settings',
       summary: (run: string, game: string, model: string) => `Run ${run} on ${game} with ${model}.`,
       consoleLabel: 'Game console',
-      refresh: 'Refresh',
       install: 'Setup guide',
       manage: 'Manage',
       noGame: 'Choose a game',
-      offline: 'Turn on the Artel SDK in the game. Once it connects, refresh and run.',
+      offline: 'Turn on the Artel SDK in the game. Once it connects, it appears here on its own and you can run.',
       agentLabel: 'Agent',
       reasoningTitle: 'Reasoning',
       reasoningOff: 'Off',
@@ -202,6 +206,12 @@ export const qaEn = {
       etaNone: 'First run of this test run',
       blockedHint: 'Fix the items above and you can run.',
       archLabelMissing: 'The changed agent structure needs a label',
+      engineFree: 'planner–executer does not run FREE scenarios',
+      engineFreeDetail: (count: number) =>
+        `This run has ${count} FREE scenario${count === 1 ? '' : 's'}. Switch to the default engine, or take them out of the run.`,
+      engineFreeChecking: 'Checking for FREE scenarios',
+      engineFreeUnknown: 'Could not check for FREE scenarios',
+      engineFreeUnknownDetail: 'planner–executer runs ORDERED scenarios only. If this run has a FREE scenario, it fails when it starts.',
     },
     consoles: { title: 'Game consoles and builds' },
   },
@@ -472,7 +482,6 @@ export const qaEn = {
     title: 'Model usage',
     subtitle: 'Tokens and cost this run spent.',
     stillRunning: 'This run is still going; the agent reports usage in batches, so these numbers trail the log.',
-    refresh: 'Refresh',
     loading: 'Loading usage…',
     loadFailed: 'Usage could not be loaded.',
     nothingReported: 'No usage has been reported for this run yet.',
@@ -515,6 +524,11 @@ export const qaKo: Localized<typeof qaEn> = {
         'knob 을 하나라도 바꾸면 필요합니다. QA 통계가 이 label 로 run 을 묶으므로 바꾼 구조에는 이름이 따로 있어야 합니다.',
       visionLocked:
         '이 모델은 이미지를 읽지 않아 vision=on 과 on_demand 이외의 screen_capture 를 쓸 수 없습니다.',
+      engineLocked:
+        'planner–executer 엔진은 아래 설정을 쓰지 않습니다. 고른 값은 그대로 두었다가 기본 엔진으로 돌아가면 다시 씁니다.',
+      engines: { agent: '기본', planner_executer: 'planner–executer' },
+      engineHint:
+        'QA 를 돌리는 엔진. 기본은 tool loop agent 입니다. planner–executer 는 planner 가 스텝마다 함수를 쓰고 executer 가 그것을 실행하며, ORDERED 시나리오만 돌립니다.',
       axes: {
         phase_cycle:
           'run 이 OBSERVE → DECIDE → ACT → VERIFY → UPDATE_MEMORY 를 얼마나 엄격하게 따를지. off 는 자유로운 tool loop, lite 는 memory 턴 하나, full 은 decide 턴까지 더합니다.',
@@ -661,11 +675,10 @@ export const qaKo: Localized<typeof qaEn> = {
       title: '실행 설정',
       summary: (run: string, game: string, model: string) => `${run} 을(를) ${game} 에서 ${model} (으)로 실행합니다.`,
       consoleLabel: '게임 콘솔',
-      refresh: '새로고침',
       install: '설치 안내',
       manage: '관리',
       noGame: '게임을 고르세요',
-      offline: '게임에서 Artel SDK 를 켜 주세요. 연결되면 새로고침한 뒤 바로 실행할 수 있습니다.',
+      offline: '게임에서 Artel SDK 를 켜 주세요. 연결되면 목록에 자동으로 나타나고 바로 실행할 수 있습니다.',
       agentLabel: '에이전트',
       reasoningTitle: '추론 강도',
       reasoningOff: '끔',
@@ -690,6 +703,12 @@ export const qaKo: Localized<typeof qaEn> = {
       etaNone: '처음 실행하는 런입니다',
       blockedHint: '막힌 항목을 해결하면 실행할 수 있습니다.',
       archLabelMissing: '바꾼 agent 구조에 label 이 필요합니다',
+      engineFree: 'planner–executer 는 FREE 시나리오를 돌리지 않음',
+      engineFreeDetail: (count: number) =>
+        `이 런에 FREE 시나리오가 ${count}개 있습니다. 기본 엔진으로 바꾸거나 런에서 FREE 시나리오를 빼세요.`,
+      engineFreeChecking: 'FREE 시나리오 확인 중',
+      engineFreeUnknown: 'FREE 시나리오가 있는지 확인하지 못함',
+      engineFreeUnknownDetail: 'planner–executer 는 ORDERED 시나리오만 돌립니다. FREE 시나리오가 있으면 시작할 때 실패합니다.',
     },
     consoles: { title: '게임 콘솔 · 빌드' },
   },
@@ -893,7 +912,7 @@ export const qaKo: Localized<typeof qaEn> = {
     },
     chat: '채팅',
     loadFailed: '이 QA Try를 불러오지 못했습니다.',
-    streamOffline: '실시간 로그 연결이 끊겼습니다. 새로고침하면 다시 연결됩니다.',
+    streamOffline: '실시간 로그 연결이 끊겼습니다. 페이지를 다시 열면 다시 연결됩니다.',
     streamDegraded: '실시간 로그 연결이 끊어졌습니다. 다시 연결하는 중…',
     streamConnecting: '실시간 로그에 연결하는 중…',
     streamLive: '실시간 로그 연결됨',
@@ -934,7 +953,6 @@ export const qaKo: Localized<typeof qaEn> = {
     title: '모델 사용량',
     subtitle: '이 실행이 쓴 토큰과 비용입니다.',
     stillRunning: '아직 실행 중입니다. agent가 사용량을 모아 보내므로 이 숫자는 로그보다 조금 늦습니다.',
-    refresh: '새로고침',
     loading: '사용량을 불러오는 중…',
     loadFailed: '사용량을 불러오지 못했습니다.',
     nothingReported: '이 실행의 사용량이 아직 도착하지 않았습니다.',

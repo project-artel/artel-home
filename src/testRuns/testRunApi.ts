@@ -1,5 +1,7 @@
 import { apiFetch } from '../auth/authApi'
 import { asNullableString, asRecord, asString, jsonRequest, readJson, toApiError } from '../projects/projectApi'
+import { parseExecutionMode } from '../testScenarios/scenarioApi'
+import type { ExecutionMode } from '../testScenarios/scenarioTypes'
 
 /*
  * TestRun read API — the Map is read-only for now, so only the two GETs the
@@ -267,6 +269,8 @@ export type RunCoverageScenario = {
   position: number
   testScenarioId: string
   title: string
+  /** QA 실행 화면이 `planner_executer` 를 막을 때 읽는다(ARTEL-1119). 그 엔진은 ORDERED 만 돌린다. */
+  executionMode: ExecutionMode
   steps: number
   cases: number
 }
@@ -316,6 +320,7 @@ export function parseRunCoverage(data: unknown): RunCoverage {
           position: asCount(row.position),
           testScenarioId,
           title: asString(row.title),
+          executionMode: parseExecutionMode(row.execution_mode),
           steps: asCount(row.steps),
           cases: asCount(row.cases),
         }

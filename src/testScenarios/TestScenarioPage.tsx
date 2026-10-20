@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { shortcutLabel } from '../shell/platform'
@@ -19,6 +19,8 @@ import { EMPTY_SCENARIO_DRAFT, isFreeScenario } from './scenarioTypes'
 import { useDraftPreview } from './useDraftPreview'
 import { useChatWidth } from './useChatWidth'
 import { useStepEditor } from './useStepEditor'
+import { useRunCases } from './useRunCases'
+import { StudioIcon } from './studioIcons'
 
 /**
  * Deliberately NOT keyed by the scenario id. It used to be, and opening another
@@ -33,8 +35,9 @@ export function TestScenarioRoute() {
   return <TestScenarioPage projectId={projectId} testScenarioId={testScenarioId} />
 }
 
+/** 스튜디오에서 나가면 테스트 런 목록이다 — 시나리오는 런 안에서 쓰기 때문이다. */
 function backLink(projectId: string) {
-  return `/projects/${encodeURIComponent(projectId)}`
+  return `/projects/${encodeURIComponent(projectId)}/test-runs`
 }
 
 /**
@@ -105,10 +108,6 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
   const onTurnEnded = useCallback(() => setRailToken((token) => token + 1), [])
   const runChat = useRunChatSession(projectId, fromRun, onProposalApplied, onTurnEnded)
 
-  // 자동저장을 끈 턴의 draft(ARTEL-1075). 열어 두면 가운데와 헤더가 draft 를 따른다.
-  const preview = useDraftPreview(projectId, runChat)
-  const activeDraft = preview.activeDraft
-
   // The run's name for the crumb, when the studio was opened from a run. Fetched
   // here because the studio only carries the run id (?run=), not its name.
   const [runName, setRunName] = useState('')
@@ -125,6 +124,14 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
       .catch(() => { /* leave the crumb blank on failure */ })
     return () => controller.abort()
   }, [projectId, fromRun])
+
+  const runCases = useRunCases(projectId, runBuild?.gameBuildId ?? null)
+  const runCaseList = useMemo(() => [...runCases.values()], [runCases])
+
+  // 자동저장을 끈 턴의 draft(ARTEL-1075). 열어 두면 가운데와 헤더가 draft 를 따른다.
+  const preview = useDraftPreview(projectId, runChat, runBuild)
+  const activeDraft = preview.activeDraft
+
 
   // Header shortcuts (outside text fields, where the browser's own text-undo wins):
   // ⌘/Ctrl+Z undo, ⇧+Z (or Ctrl+Y) redo, ⌘/Ctrl+K opens the TC spec.
@@ -160,7 +167,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
       <section className="page"><div className="panel-message">
         <h1>{t.scenarios.page.notFoundTitle}</h1>
         <p className="panel-message-copy">{t.scenarios.page.invalidAddress}</p>
-        <Link className="button button--secondary" to={backLink(projectId)}>{t.scenarios.page.backToProject}</Link>
+        <Link className="button button--secondary" to={backLink(projectId)}>{t.scenarios.page.backToTestRuns}</Link>
       </div></section>
     )
   }
@@ -169,7 +176,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
       <section className="page"><div className="panel-message">
         <h1>{t.scenarios.page.notFoundTitle}</h1>
         <p className="panel-message-copy">{t.scenarios.page.missingCopy}</p>
-        <Link className="button button--secondary" to={backLink(projectId)}>{t.scenarios.page.backToProject}</Link>
+        <Link className="button button--secondary" to={backLink(projectId)}>{t.scenarios.page.backToTestRuns}</Link>
       </div></section>
     )
   }
@@ -182,7 +189,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
   return (
     <div {...split.studio}>
       <header className="st-top">
-        <Link className="st-back" to={backLink(projectId)}>{t.scenarios.page.backToProject}</Link>
+        <Link className="st-back" to={backLink(projectId)}>{t.scenarios.page.backToTestRuns}</Link>
         <div className="st-crumb">
           {fromRun !== null && (
             <>
@@ -203,8 +210,8 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
           {e.viewSpec} <kbd className="kbd">{shortcutLabel('K')}</kbd>
         </button>
         <div className="st-icons">
-          <button className="iconbtn" type="button" disabled={!active.canUndo} onClick={active.undo} title={e.undo}>↶</button>
-          <button className="iconbtn" type="button" disabled={!active.canRedo} onClick={active.redo} title={e.redo}>↷</button>
+          <button className="iconbtn" type="button" disabled={!active.canUndo} onClick={active.undo} title={e.undo} aria-label={e.undo}><StudioIcon name="undo" /></button>
+          <button className="iconbtn" type="button" disabled={!active.canRedo} onClick={active.redo} title={e.redo} aria-label={e.redo}><StudioIcon name="redo" /></button>
         </div>
         <span className={`savebadge ${saveState}`}>
           {saveState !== 'saved' && <span className="d" />}
@@ -239,7 +246,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
         ) : status === 'ready' ? (
           isFree
             ? <FreeScenarioEditor editor={editor} gameBuildId={runBuild?.gameBuildId ?? null} projectId={projectId} />
-            : <ScenarioStepEditor projectId={projectId} editor={editor} gameBuildId={runBuild?.gameBuildId ?? null} />
+            : <ScenarioStepEditor caseBuild={runBuild} projectId={projectId} editor={editor} />
         ) : (
           <div className="edoc-shell at-top at-bottom"><main className="edoc-wrap"><div className="edoc" /></main></div>
         )}
@@ -249,7 +256,15 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
         </aside>
       </div>
 
-      {specOpen && <TestCaseSpecModal projectId={projectId} onClose={() => setSpecOpen(false)} />}
+      {/* ⌘K 명세 창도 이 런이 보는 TC 를 보인다(ARTEL-1115) — 런이 따르는 빌드 버전의 TC 와 그 버전의 판정이다. */}
+      {specOpen && (
+        <TestCaseSpecModal
+          cases={runCaseList}
+          onClose={() => setSpecOpen(false)}
+          projectId={projectId}
+          scope={fromRun === null ? undefined : runBuild === null ? t.scenarios.stepsEditor.board.pickAll : t.scenarios.stepsEditor.board.pickVersion(runBuild.label ?? runBuild.version)}
+        />
+      )}
 
       {dialog === 'approve' && (
         <ApproveScenarioDialog

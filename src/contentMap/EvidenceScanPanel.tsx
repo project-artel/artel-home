@@ -1,7 +1,8 @@
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { InfoHint } from '../design-system/primitives/InfoHint'
+import { usePolling } from '../live/usePolling'
 import { apiErrorMessage } from '../projects/apiErrorMessage'
 import { formatDateTime } from '../projects/formatters'
 import { listGameInstances } from '../projects/gameApi'
@@ -96,6 +97,24 @@ export function EvidenceScanPanel({
 
     return () => controller.abort()
   }, [projectId, refreshToken])
+
+  // 붙어 있는 게임 목록은 SSE 가 싣지 않는 스냅샷이라 주기적으로 조용히 다시 읽는다.
+  // loading 으로 돌리지 않고, 실패하면 직전 목록과 그 시각을 그대로 둔다.
+  const polling = useRef<AbortController | null>(null)
+  useEffect(() => () => polling.current?.abort(), [])
+  usePolling(() => {
+    if (instances.status === 'loading' || polling.current !== null) return
+    const controller = new AbortController()
+    polling.current = controller
+    listGameInstances(projectId, controller.signal)
+      .then((loaded) =>
+        setInstances({ status: 'ready', instances: loaded, checkedAt: new Date().toISOString() }),
+      )
+      .catch(() => undefined)
+      .finally(() => {
+        if (polling.current === controller) polling.current = null
+      })
+  })
 
   const connected =
     instances.status === 'ready' ? instances.instances.filter((game) => game.connected) : []

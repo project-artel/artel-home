@@ -14,6 +14,7 @@ import { fetchQaLabels, fetchQaStats, fetchRecentQaTries } from './qaStatsApi'
 import { AXES, type QaStats, type QaTrySummary } from './qaStatsTypes'
 import { activeProjectId, listTestRuns, type TestRunSummary } from './testRunsApi'
 import { useI18n } from '../../i18n/useI18n'
+import { usePolling } from '../../live/usePolling'
 import { useQa } from './useQa'
 import { InfoHint } from '../../design-system/primitives/InfoHint'
 
@@ -73,9 +74,8 @@ function queryKey(
   to: Date,
   testRunId: string | null,
   label: string | null,
-  reloadToken: number,
 ): string {
-  return JSON.stringify([projectId, from.getTime(), to.getTime(), testRunId, label, reloadToken])
+  return JSON.stringify([projectId, from.getTime(), to.getTime(), testRunId, label])
 }
 
 export default function QaPage() {
@@ -102,7 +102,8 @@ export default function QaPage() {
   const [settled, setSettled] = useState<Settled | null>(null)
   // A project, test run or label list failed to load. The pickers stay usable with "All".
   const [listFailed, setListFailed] = useState(false)
-  const [reloadToken, setReloadToken] = useState(0)
+  // Bumped by the poll. It is not part of the query key, so a poll re-reads without showing `loading`.
+  const [pollToken, setPollToken] = useState(0)
 
   const fromFieldId = useId()
   const toFieldId = useId()
@@ -113,7 +114,7 @@ export default function QaPage() {
   const testRuns = testRunList !== null && testRunList.scope === one ? testRunList.items : null
   const labels = labelList !== null && labelList.scope === projectId ? labelList.items : null
   const currentKey =
-    projectId === null ? null : queryKey(projectId, from, to, testRunId, label, reloadToken)
+    projectId === null ? null : queryKey(projectId, from, to, testRunId, label)
   const loading = currentKey !== null && settled?.key !== currentKey
   const data = settled?.data ?? null
   const statsFailed = settled !== null && settled.key === currentKey && settled.data === null
@@ -138,7 +139,7 @@ export default function QaPage() {
   useEffect(() => {
     if (projectId === null) return
     const forProject = activeProjectId(projectId)
-    const key = queryKey(projectId, from, to, testRunId, label, reloadToken)
+    const key = queryKey(projectId, from, to, testRunId, label)
 
     const controller = new AbortController()
 
@@ -159,11 +160,14 @@ export default function QaPage() {
       .catch((cause) => {
         if (controller.signal.aborted) return
         if (cause instanceof UnauthorizedError) return
-        setSettled({ key, data: null })
+        // A failed poll keeps the data already shown for this query.
+        setSettled((current) => (current?.key === key && current.data !== null ? current : { key, data: null }))
       })
 
     return () => controller.abort()
-  }, [projectId, from, to, testRunId, label, reloadToken])
+  }, [projectId, from, to, testRunId, label, pollToken])
+
+  usePolling(() => setPollToken((token) => token + 1))
 
   useEffect(() => {
     if (one === null) return
@@ -343,19 +347,6 @@ export default function QaPage() {
           </select>
         </span>
 
-        <span className="topbar__spacer" />
-
-        <button
-          type="button"
-          className="control control--action"
-          disabled={loading || projectId === null}
-          onClick={() => {
-            setListFailed(false)
-            setReloadToken((token) => token + 1)
-          }}
-        >
-          {loading ? shared.loading : shared.refresh}
-        </button>
       </header>
 
       <main className="main">

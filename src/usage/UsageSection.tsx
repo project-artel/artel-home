@@ -26,16 +26,13 @@ export function UsageSection() {
   const { t } = useI18n()
   const u = t.usage
   const { projectId } = useWorkspace()
-  const { status, usage, grid, today, reload } = useProjectUsage(projectId)
+  const { status, usage, grid, today } = useProjectUsage(projectId)
 
   if (status === 'loading') return <p className="panel-empty">{u.loading}</p>
   if (status === 'error' || usage === null || grid === null) {
     return (
       <div className="panel-message" role="alert">
         <p>{u.loadFailed}</p>
-        <button className="button button--secondary" onClick={reload} type="button">
-          {u.refresh}
-        </button>
       </div>
     )
   }
@@ -50,9 +47,6 @@ export function UsageSection() {
               <InfoHint>{u.sectionSubtitle(usage.zone)}</InfoHint>
             </h2>
           </div>
-          <button className="button button--secondary button--compact" onClick={reload} type="button">
-            {u.refresh}
-          </button>
         </header>
 
         <UsageFigures grid={grid} today={today} total={usage.total} />

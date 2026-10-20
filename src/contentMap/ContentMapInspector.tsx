@@ -308,7 +308,9 @@ function ScreenDetail({
 function ScreenCapture({ image, title }: { image: ScreenImage | null; title: string }) {
   const { t } = useI18n()
   const copy = t.contentMap.inspector
-  const [broken, setBroken] = useState(false)
+  // The failed URL rather than a flag: a re-read signs a new URL, and that
+  // should get a fresh attempt instead of staying marked broken.
+  const [failedUrl, setFailedUrl] = useState<string | null>(null)
 
   if (image === null) {
     return (
@@ -319,11 +321,11 @@ function ScreenCapture({ image, title }: { image: ScreenImage | null; title: str
     )
   }
 
-  if (broken) return <p className="cm-inspector-hint">{copy.captureBroken}</p>
+  if (failedUrl === image.url) return <p className="cm-inspector-hint">{copy.captureBroken}</p>
 
   return (
     <figure className="cm-thumb">
-      <img alt={title} className="cm-thumb-image" onError={() => setBroken(true)} src={image.url} />
+      <img alt={title} className="cm-thumb-image" onError={() => setFailedUrl(image.url)} src={image.url} />
       {image.capturedAt !== null && (
         <figcaption className="cm-thumb-size mono">
           {copy.captureAt(formatDateTime(image.capturedAt))}
@@ -349,20 +351,20 @@ function SceneThumbnailView({
 }) {
   const { t } = useI18n()
   const copy = t.contentMap.list
-  const [broken, setBroken] = useState(false)
+  const [failedUrl, setFailedUrl] = useState<string | null>(null)
 
   if (thumbnail === null) return <p className="cm-inspector-hint">{copy.thumbnailNone}</p>
   if (thumbnail.state === 'unavailable') {
     return <p className="cm-inspector-hint">{copy.thumbnailUnavailable(thumbnail.reason)}</p>
   }
-  if (broken) return <p className="cm-inspector-hint">{copy.thumbnailBroken}</p>
+  if (failedUrl === thumbnail.url) return <p className="cm-inspector-hint">{copy.thumbnailBroken}</p>
 
   return (
     <figure className="cm-thumb">
       <img
         alt={title}
         className="cm-thumb-image"
-        onError={() => setBroken(true)}
+        onError={() => setFailedUrl(thumbnail.url)}
         src={thumbnail.url}
       />
       {thumbnail.width !== null && thumbnail.height !== null && (

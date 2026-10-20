@@ -68,7 +68,12 @@ export function QaScenarioRail({
       {focused !== null && (
         <div className="qa-console-rail-usage">
           {/* Keyed by the try so switching scenarios starts a fresh read. */}
-          <QaRunUsagePanel key={focused.tryId} active={focused.active} qaTryId={focused.tryId} />
+          <QaRunUsagePanel
+            key={focused.tryId}
+            active={focused.active}
+            projectId={rail.projectId}
+            qaTryId={focused.tryId}
+          />
         </div>
       )}
     </nav>

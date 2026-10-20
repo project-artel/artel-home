@@ -9,6 +9,8 @@ import {
   readJson,
   toApiError,
 } from './projectApi'
+import { parseGameBuildSummaryList, type GameBuildSummary } from './gameBuildSummary'
+import { parseGameFunctionCatalog, type GameFunctionCatalog } from './gameFunctions'
 import {
   DEFAULT_GAME_PLATFORM,
   type GameBuild,
@@ -197,6 +199,26 @@ export async function listGameBuilds(
 }
 
 /**
+ * 옛 서버가 `/summary` 를 모를 때 돌려주는 상태. `GET /game-builds/summary` 는 `PATCH /game-builds/{buildId}` 와
+ * 경로가 겹쳐 404 대신 405 가 온다.
+ */
+const SUMMARY_UNSUPPORTED_STATUSES = new Set([404, 405])
+
+/**
+ * `GET .../game-builds/summary`(ARTEL-1104) — 빌드마다 instance · catalog · QA run 수를 붙인 목록.
+ * 이 엔드포인트가 없는 서버면 `null` 이다. 화면은 그때 workspace 의 빌드 목록으로 그리고 모르는 수는 `—` 로 둔다.
+ * 그 밖의 실패는 그대로 던진다 — 5xx 를 `—` 로 덮으면 고장이 "아직 없음" 으로 읽힌다.
+ */
+export async function listGameBuildSummaries(
+  projectId: string,
+  signal?: AbortSignal,
+): Promise<GameBuildSummary[] | null> {
+  const response = await apiFetch(projectPath(projectId, '/game-builds/summary'), { signal })
+  if (SUMMARY_UNSUPPORTED_STATUSES.has(response.status)) return null
+  return parseGameBuildSummaryList(await readJson(response))
+}
+
+/**
  * Only `label` and `notes` are patchable. `version` is observed from Player
  * Settings on every registration, so there is no endpoint to change it and no
  * control that offers to.
@@ -211,4 +233,26 @@ export async function updateGameBuild(
     ...jsonRequest(patch),
   })
   return requireBuild(await readJson(response), response.status)
+}
+
+/**
+ * `GET .../game-builds/{buildId}/game-functions` — the cheats and behaviors the game
+ * registered (ARTEL-1051). A build that never sent a catalog answers `200` with
+ * `revision: 0` and two empty lists, so an empty catalog is an ordinary answer.
+ */
+export async function getGameFunctionCatalog(
+  projectId: string,
+  buildId: string,
+  signal?: AbortSignal,
+): Promise<GameFunctionCatalog> {
+  const response = await apiFetch(`${buildPath(projectId, buildId)}/game-functions`, { signal })
+  const catalog = parseGameFunctionCatalog(await readJson(response))
+  if (catalog === null) {
+    throw new ProjectApiError(
+      response.status,
+      'The server described the game functions oddly.',
+      'CLIENT_MALFORMED_GAME_FUNCTIONS',
+    )
+  }
+  return catalog
 }

@@ -128,14 +128,6 @@ export function ContentMapReport({
         </div>
         <div className="cm-page-actions">
           {readAt.length > 0 && <p className="cm-read-at">{copy.page.readAt(readAt)}</p>}
-          <button
-            className="button button--secondary"
-            disabled={refreshing}
-            onClick={reload}
-            type="button"
-          >
-            {refreshing ? copy.states.loading : copy.page.refresh}
-          </button>
         </div>
       </header>
 

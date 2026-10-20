@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
+import { useProjectChange } from '../live/useProjectChange'
+import { usePolling } from '../live/usePolling'
 import { getQaRunUsage, usedTokens, type QaRunUsage } from './qaUsageApi'
 
 type LoadStatus = 'loading' | 'ready' | 'error'
@@ -20,26 +22,36 @@ function formatCost(value: number | null, unknown: string): string {
 /**
  * What this run cost, beside what it did.
  *
- * **Not live.** The agent batches usage and posts it after the calls happen, so
- * a running run's numbers trail the log by up to a flush interval — and a failed
- * batch is dropped rather than retried. Streaming this would draw a total that
- * jumps backwards relative to the timeline. A refresh button is the whole of its
- * liveness, and the panel says plainly that a run still going has not finished
- * reporting.
+ * Not drawn from the run's log stream. The agent batches usage and posts it
+ * after the calls happen, so a running run's numbers trail the log by up to a
+ * flush interval — and a failed batch is dropped rather than retried. Drawing
+ * it from the log would show a total that jumps backwards relative to the
+ * timeline, so the panel re-reads the totals when the project change stream
+ * reports `USAGE` (any run of the project), polls while that stream is down,
+ * and says plainly that a run still going has not finished reporting.
  */
-export function QaRunUsagePanel({ qaTryId, active }: { qaTryId: string; active: boolean }) {
+export function QaRunUsagePanel({
+  projectId,
+  qaTryId,
+  active,
+}: {
+  projectId: string
+  qaTryId: string
+  active: boolean
+}) {
   const { t } = useI18n()
   const [usage, setUsage] = useState<QaRunUsage | null>(null)
   const [status, setStatus] = useState<LoadStatus>('loading')
-  const [reloadToken, setReloadToken] = useState(0)
+  const inFlight = useRef<AbortController | null>(null)
 
-  // The effect only writes when a request settles. `loading` is set by the
-  // refresh handler instead, because that is the event that causes it — setting
-  // it here would make every render of the effect cascade into another one.
   // A different run remounts this panel (`QaTryPage` is keyed by its id), so the
-  // initial `loading` covers the first fetch.
-  useEffect(() => {
+  // initial `loading` covers the first fetch. A poll aborts any request still
+  // running and never returns to `loading`; a failure becomes `error` only while
+  // nothing has loaded yet.
+  const load = useCallback(() => {
+    inFlight.current?.abort()
     const controller = new AbortController()
+    inFlight.current = controller
 
     getQaRunUsage(qaTryId, controller.signal)
       .then((result) => {
@@ -48,16 +60,17 @@ export function QaRunUsagePanel({ qaTryId, active }: { qaTryId: string; active: 
       })
       .catch(() => {
         if (controller.signal.aborted) return
-        setStatus('error')
+        setStatus((current) => (current === 'ready' ? current : 'error'))
       })
+  }, [qaTryId])
 
-    return () => controller.abort()
-  }, [qaTryId, reloadToken])
+  useEffect(() => {
+    load()
+    return () => inFlight.current?.abort()
+  }, [load])
 
-  function refresh() {
-    setStatus('loading')
-    setReloadToken((token) => token + 1)
-  }
+  const live = useProjectChange(projectId || null, 'USAGE', load)
+  usePolling(load, undefined, !live)
 
   const tokens = usage === null ? 0 : usedTokens(usage)
   // The amount stands on fewer calls than the run made, so it is a floor.
@@ -82,17 +95,12 @@ export function QaRunUsagePanel({ qaTryId, active }: { qaTryId: string; active: 
           )}
         </summary>
         <div className="qa-usage-body">
-          <div className="qa-usage-body-head">
-            {/* 진행 중이라는 안내는 지금 상태이므로 보이게 두고, 평소의 설명만 제목 옆으로 옮긴다. */}
-            {active && <p className="qa-usage-note">{t.qa.usage.stillRunning}</p>}
-            <button
-              className="button button--secondary button--compact"
-              onClick={refresh}
-              type="button"
-            >
-              {t.qa.usage.refresh}
-            </button>
-          </div>
+          {/* 진행 중이라는 안내는 지금 상태이므로 보이게 둔다. */}
+          {active && (
+            <div className="qa-usage-body-head">
+              <p className="qa-usage-note">{t.qa.usage.stillRunning}</p>
+            </div>
+          )}
 
           {status === 'loading' && <p className="panel-empty">{t.qa.usage.loading}</p>}
 
