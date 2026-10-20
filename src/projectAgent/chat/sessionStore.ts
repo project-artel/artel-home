@@ -15,6 +15,7 @@ import { readyEvents, removeEvent, type JobEventKind, type QueuedEvent } from '.
 import { projectRoute } from './pagePath'
 import { isBusy, isOwnedAssistant, lastMessageId, mergeMessages, needsResume, pendingToolCalls } from './threadState'
 import { executeToolCall } from './toolExecutor'
+import { forgetWatches, resumeWatches } from './tools/watchJob'
 import type { ChoiceOption, JobState, ToolContext } from './toolTypes'
 
 /*
@@ -263,7 +264,7 @@ export class AgentSessionStore {
     for (const close of this.streams.values()) close()
     this.streams.clear()
     for (const controller of this.batchControllers.values()) controller.abort()
-    // 감시만 끊는다. 이어서 볼 기록은 남겨 다시 mount 될 때 이어 본다.
+    // 감시만 끊는다. localStorage 기록은 남겨 다시 mount 될 때 resumeWatches 가 이어 본다.
     for (const controller of this.watchControllers.values()) controller.abort()
     this.watchControllers.clear()
     this.stopRetryTimer?.()
@@ -714,23 +715,16 @@ export class AgentSessionStore {
       })
   }
 
-  /**
-   * hook point: 대화를 처음 읽어 온 뒤 부른다. branch 를 합칠 때 `watchJob.ts` 의
-   * `resumeWatches(context)` 를 `this.watchSignal(conversationId)` 로 만든 context 와 함께 여기서
-   * 부른다(새로고침 뒤 job 진행 카드를 다시 지켜보게 한다).
-   */
+  /** 대화를 처음 읽어 온 뒤 부른다. 새로고침 전에 지켜보던 job 의 진행 카드를 다시 지켜본다. */
   private onConversationOpened(conversationId: number): void {
-    const context = this.toolContext(conversationId, new AbortController().signal)
-    void context
+    resumeWatches(this.toolContext(conversationId, this.watchSignal(conversationId)))
   }
 
-  /**
-   * 사용자가 멈추기를 누르거나 대화를 지울 때 부른다. job 감시를 끊는다. hook point: branch 를
-   * 합칠 때 `watchJob.ts` 의 `forgetWatches(context)` 도 여기서 부른다.
-   */
+  /** 사용자가 멈추기를 누르거나 대화를 지울 때 부른다. job 감시를 끊고 이어서 볼 기록도 지운다. */
   private onConversationStopped(conversationId: number): void {
     this.watchControllers.get(conversationId)?.abort()
     this.watchControllers.delete(conversationId)
+    forgetWatches({ projectId: this.dependencies.projectId, conversationId })
   }
 
   /** 대화의 job 감시 signal. 멈추기, 삭제, dispose 때 abort 된다. */

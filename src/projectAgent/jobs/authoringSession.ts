@@ -35,9 +35,8 @@ export type AuthoringDependencies = {
 }
 
 /** 진행 카드의 kind. `JobKind` 에는 아직 없어서 호출하는 쪽이 `JobState` 로 넘긴다. */
-export const AUTHORING_JOB_KIND = 'author_scenarios'
+export const AUTHORING_JOB_KIND = 'author_scenarios' satisfies JobState['kind']
 
-export type AuthoringJobState = Omit<JobState, 'kind'> & { kind: typeof AUTHORING_JOB_KIND }
 
 /** frame 이 이만큼 끊기면 멈춘 것으로 본다. 단계마다 한도가 다르고, 한도가 없는 단계는 이 값으로 대신한다. */
 export const MIN_STALL_MS = 60_000
@@ -61,7 +60,7 @@ export async function driveAuthoring(
   const copy = dependencies.copy()
   const jobKey = `${AUTHORING_JOB_KIND}:${input.runId}`
   const card = (state: JobState['state'], extra: Partial<Pick<JobState, 'progress' | 'detail'>>): void => {
-    const job: AuthoringJobState = {
+    const job: JobState = {
       key: jobKey,
       kind: AUTHORING_JOB_KIND,
       id: input.runId,
@@ -70,8 +69,7 @@ export async function driveAuthoring(
       href: `test-runs/${encodeURIComponent(input.runId)}/edit`,
       ...extra,
     }
-    // JobKind 에 'author_scenarios' 가 들어오기 전까지의 좁힘이다.
-    dependencies.upsertJob(job as unknown as JobState)
+    dependencies.upsertJob(job)
   }
 
   return new Promise<ToolResultBody>((resolve) => {

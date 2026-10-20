@@ -1,6 +1,8 @@
 import { useLayoutEffect, useMemo, useRef } from 'react'
-import { useAgentAction, useAgentField } from './registry/index'
-import type { ActionBinding, ActionSpec, FieldBinding, FieldSpec } from './registry/index'
+// registry/index 는 provider 와 강조 표시 component(CSS 포함)까지 내보낸다. 페이지가 이 파일을
+// 불러올 때 그것까지 끌려오지 않도록 hook 파일을 직접 부른다. node:test 는 CSS 를 읽지 못한다.
+import { useAgentAction, useAgentField } from './registry/useAgentBindings'
+import type { ActionBinding, ActionSpec, FieldBinding, FieldSpec } from './registry/types'
 
 /*
  * 페이지가 binding 을 등록하는 hook. binding 객체는 mount 동안 한 번만 만들고, 안의 함수는 매
