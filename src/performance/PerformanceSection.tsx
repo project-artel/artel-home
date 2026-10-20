@@ -1,7 +1,10 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
+import { useFieldBinding } from '../projectAgent/bindings'
+import { requireKnownId } from '../projectAgent/specs/fieldWriters'
+import { PERFORMANCE_BUILD_FIELD } from '../projectAgent/specs/performance'
 import { useWorkspace } from '../projects/workspace/workspaceContext'
 import { BuildPerformanceReport } from './BuildPerformancePage'
 
@@ -19,6 +22,26 @@ export function PerformanceSection() {
     setSearchParams({ build: selectedBuild.id }, { replace: true })
   }, [requestedBuildId, selectedBuild, setSearchParams])
 
+  // agent 가 build 를 고르는 길. 선택 상자의 onChange 와 같은 `setSearchParams` 를 부른다.
+  const pickerRef = useRef<HTMLSelectElement>(null)
+  useFieldBinding(PERFORMANCE_BUILD_FIELD, {
+    target: () => pickerRef.current,
+    read: () => selectedBuild?.id ?? null,
+    options: () =>
+      builds.map((build) => ({
+        value: build.id,
+        label: build.label ? `${build.version} · ${build.label}` : build.version,
+      })),
+    write: (value) =>
+      setSearchParams({
+        build: requireKnownId(
+          PERFORMANCE_BUILD_FIELD.name,
+          value,
+          builds.map((build) => build.id),
+        ),
+      }),
+  })
+
   return (
     <section className="performance-overview">
       <header className="performance-overview-head">
@@ -32,6 +55,7 @@ export function PerformanceSection() {
           <label className="performance-build-picker">
             <span>{copy.selectLabel}</span>
             <select
+              ref={pickerRef}
               onChange={(event) => setSearchParams({ build: event.target.value })}
               value={selectedBuild.id}
             >

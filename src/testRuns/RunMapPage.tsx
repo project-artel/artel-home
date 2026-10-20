@@ -1,6 +1,15 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
+import { useActionBinding } from '../projectAgent/bindings'
+import { resolveEntry } from '../projectAgent/specs/lookup'
+import {
+  TEST_RUN_OPEN_EDITOR_ACTION,
+  TEST_RUN_OPEN_SCENARIO_ACTION,
+  TEST_RUN_SELECT_SCENARIO_ACTION,
+  TEST_RUN_START_QA_ACTION,
+} from '../projectAgent/specs/testRun'
+import { sectionHref } from '../projects/workspace/sections'
 import { getTestScenario } from '../testScenarios/scenarioApi'
 import { groupStepsByCase, isGapStep } from '../testScenarios/scenarioTypes'
 import { getRunScenarios, getTestRun, type TestRun } from './testRunApi'
@@ -104,6 +113,9 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
       return next
     })
   }
+  function openEditor() {
+    navigate(`/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(runId)}/edit`)
+  }
   function openEdit(scenarioId: string) {
     navigate(`/projects/${encodeURIComponent(projectId)}/test-scenarios/${scenarioId}?run=${encodeURIComponent(runId)}`)
   }
@@ -144,6 +156,49 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
       return { k, x: cx - (cx - v.x) * ratio, y: cy - (cy - v.y) * ratio }
     })
   }
+
+  // agent 가 쓰는 길. 각 action 은 같은 이름의 버튼이 부르는 함수를 부른다.
+  const editButton = useRef<HTMLButtonElement>(null)
+  const scenarioLookups = nodes.map((node) => ({ entry: node, keys: [node.id], title: node.title }))
+  const mapBlockedReason = () => (status === 'ready' ? null : status === 'loading' ? m.loading : status === 'missing' ? m.missing : m.loadFailed)
+  const scenarioBlockedReason = () => mapBlockedReason() ?? (nodes.length === 0 ? m.empty : null)
+  const scenarioElement = (scenarioId: string) =>
+    mapRef.current?.querySelector<HTMLElement>(`[data-scenario-id="${CSS.escape(scenarioId)}"]`) ?? null
+  const pickedScenario = useRef<string | null>(null)
+  useActionBinding(TEST_RUN_OPEN_EDITOR_ACTION, {
+    target: () => editButton.current,
+    blocked: mapBlockedReason,
+    run: async () => openEditor(),
+  })
+  useActionBinding(TEST_RUN_SELECT_SCENARIO_ACTION, {
+    target: () => (pickedScenario.current === null ? null : scenarioElement(pickedScenario.current)),
+    blocked: scenarioBlockedReason,
+    run: async (args) => {
+      const node = resolveEntry('scenario', args.scenario, scenarioLookups)
+      pickedScenario.current = node.id
+      if (!expandedIds.has(node.id)) toggleExpand(node.id)
+      return { id: node.id, title: node.title, steps: node.steps.map((step) => ({ action: step.action, tc: step.tcNo })) }
+    },
+  })
+  useActionBinding(TEST_RUN_OPEN_SCENARIO_ACTION, {
+    target: () => (pickedScenario.current === null ? null : scenarioElement(pickedScenario.current)?.querySelector<HTMLElement>('.mnode-open') ?? null),
+    blocked: scenarioBlockedReason,
+    run: async (args) => {
+      const node = resolveEntry('scenario', args.scenario, scenarioLookups)
+      pickedScenario.current = node.id
+      openEdit(node.id)
+      return { id: node.id, title: node.title }
+    },
+  })
+  useActionBinding(TEST_RUN_START_QA_ACTION, {
+    target: () => mapRef.current?.querySelector<HTMLElement>('.rm-top') ?? null,
+    blocked: scenarioBlockedReason,
+    // QA 시작은 QA 페이지의 승인 action 이 맡는다. 이 페이지에는 QA 를 시작하는 버튼이 없다.
+    run: async () => {
+      navigate(sectionHref(projectId, 'qa'))
+      return { runId }
+    },
+  })
 
   if (status === 'loading') {
     return <div className="run-map-shell"><p className="empty-note">{m.loading}</p></div>
@@ -188,7 +243,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
         <div className="st-crumb"><span className="scn">{run?.name}</span><span className="id mono">TestRun · {nodes.length} {m.scenarioUnit}</span></div>
         <div className="rm-spacer" />
         <div className="rm-seg">
-          <button onClick={() => navigate(`/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(runId)}/edit`)} type="button">{m.editView}</button>
+          <button onClick={openEditor} ref={editButton} type="button">{m.editView}</button>
           <button className="on" type="button">{m.mapView}</button>
         </div>
       </header>
@@ -212,7 +267,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
           const expanded = expandedIds.has(node.id)
           return (
             <Fragment key={node.id}>
-              <div className={'mnode' + (expanded ? ' expanded' : '')} style={{ left: NODE_X, top }}
+              <div className={'mnode' + (expanded ? ' expanded' : '')} data-scenario-id={node.id} style={{ left: NODE_X, top }}
                 onClick={() => toggleExpand(node.id)}
                 role="button" tabIndex={0}
               >

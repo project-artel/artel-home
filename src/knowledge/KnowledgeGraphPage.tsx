@@ -1,11 +1,15 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
+import { useActionBinding } from '../projectAgent/bindings'
+import { resolveEntry } from '../projectAgent/specs/lookup'
+import { KNOWLEDGE_OPEN_NODE_ACTION } from '../projectAgent/specs/knowledge'
 import { useWorkspace } from '../projects/workspace/workspaceContext'
 import { KnowledgeGraphCanvas, type Selection } from './KnowledgeGraphCanvas'
 import { KnowledgeInspector } from './KnowledgeInspector'
 import { KnowledgeLegend } from './KnowledgeLegend'
 import { KnowledgeRelationTable } from './KnowledgeRelationTable'
+import { itemTitle } from './knowledgeLabels'
 import { LABEL_NODE_LIMIT } from './knowledgeLayout'
 import type { KnowledgeGraph } from './knowledgeTypes'
 import { useKnowledgeDrag } from './useKnowledgeDrag'
@@ -130,6 +134,23 @@ function KnowledgeGraphView({
     [graph.nodes],
   )
 
+  // agent 가 항목을 고르는 길. 그래프의 node 와 오른쪽 목록의 줄이 부르는 것과 같은 `setSelection`
+  // 을 부른다.
+  const canvasFrame = useRef<HTMLDivElement>(null)
+  useActionBinding(KNOWLEDGE_OPEN_NODE_ACTION, {
+    target: () => canvasFrame.current,
+    blocked: () => (graph.nodes.length === 0 ? t.knowledge.empty.noItemsTitle : null),
+    run: async (args) => {
+      const node = resolveEntry(
+        'knowledge item',
+        args.node,
+        graph.nodes.map((one) => ({ entry: one, keys: [one.id], title: itemTitle(t, one) })),
+      )
+      setSelection({ kind: 'node', id: node.id })
+      return { id: node.id, tag: node.tag, source: node.source, summary: node.summary }
+    },
+  })
+
   const truncatedBanner = graph.truncated ? (
     // Not an error and not a toast: the fact that this is a partial picture has
     // to stay on screen for as long as the picture does.
@@ -200,7 +221,7 @@ function KnowledgeGraphView({
             </div>
           )}
 
-          <div className="kg-canvas-frame">
+          <div className="kg-canvas-frame" ref={canvasFrame}>
             <KnowledgeGraphCanvas
               drag={drag}
               layout={layout}
