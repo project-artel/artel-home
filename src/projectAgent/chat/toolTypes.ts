@@ -11,7 +11,7 @@ export type ToolResultBody = {
   page?: PageSnapshot
 }
 
-export type JobKind = 'content_map_scan' | 'qa_run'
+export type JobKind = 'content_map_scan' | 'qa_run' | 'author_scenarios'
 
 /** 대화창에 그리는 진행 카드 하나. `key` 는 `${kind}:${id}` 다. */
 export type JobState = {
