@@ -45,8 +45,52 @@ function defaultPageHasCatalogBindings(page: PageId): boolean {
   return entry !== undefined && (entry.fields.length > 0 || entry.actions.length > 0)
 }
 
-function delay(milliseconds: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, milliseconds))
+/**
+ * 기다리다가 signal 이 abort 되면 바로 끝낸다. abort 로 끝났으면 false 를 돌려준다.
+ */
+function delayUnlessAborted(milliseconds: number, signal: AbortSignal | undefined): Promise<boolean> {
+  if (signal?.aborted) return Promise.resolve(false)
+  return new Promise((resolve) => {
+    const onAbort = () => {
+      clearTimeout(timer)
+      resolve(false)
+    }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort)
+      resolve(true)
+    }, milliseconds)
+    signal?.addEventListener('abort', onAbort, { once: true })
+  })
+}
+
+const CANCELLED: ActionOutcome = { status: 'cancelled' }
+const PAGE_CLOSED_ERROR = 'the page closed'
+
+/** 승인 카드 하나가 끝난 방식. `closed` 는 승인을 기다리던 binding 이 unmount 된 경우다. */
+type ApprovalResult = 'approved' | 'rejected' | 'cancelled' | 'closed'
+
+type PendingRequest = {
+  binding: ActionBinding
+  approval: PendingApproval
+  settle: (result: ApprovalResult) => void
+}
+
+/**
+ * field 의 `options` 나 지금 값의 type 에 맞지 않는 값이면 이유를, 맞으면 null 을 돌려준다.
+ * options 는 select 의 value 처럼 문자열과 숫자가 섞여 오므로 문자열로 바꿔 비교한다.
+ */
+function fieldValueError(binding: FieldBinding, value: unknown): string | null {
+  if (binding.options !== undefined) {
+    const allowedValues = binding.options().map((option) => option.value)
+    if (!allowedValues.some((allowed) => String(allowed) === String(value))) {
+      const listed = allowedValues.map((allowed) => JSON.stringify(allowed)).join(', ')
+      return `${binding.spec.name} must be one of ${listed}`
+    }
+  }
+  if (typeof binding.read() === 'boolean' && typeof value !== 'boolean') {
+    return `${binding.spec.name} must be a boolean`
+  }
+  return null
 }
 
 function describeError(error: unknown): string {
@@ -70,7 +114,7 @@ export function createActionRegistry(options: ActionRegistryOptions = {}): Actio
   let page: PageId | null = null
   let params: Record<string, string> = {}
   let highlighted: HighlightState | null = null
-  let pending: PendingApproval | null = null
+  let pending: PendingRequest | null = null
 
   function notify() {
     for (const listener of [...listeners]) listener()
@@ -87,9 +131,16 @@ export function createActionRegistry(options: ActionRegistryOptions = {}): Actio
     notify()
   }
 
-  async function highlightThenWait(target: () => HTMLElement | null, label: string) {
+  /** 강조한 채로 기다린다. 기다리는 사이 abort 되면 강조를 지우고 false 를 돌려준다. */
+  async function highlightThenWait(
+    target: () => HTMLElement | null,
+    label: string,
+    signal: AbortSignal | undefined,
+  ): Promise<boolean> {
     setHighlight({ target, label, mode: 'acting' })
-    await delay(highlightMilliseconds)
+    const waited = await delayUnlessAborted(highlightMilliseconds, signal)
+    if (!waited) setHighlight(null)
+    return waited
   }
 
   async function runBinding(binding: ActionBinding, args: Record<string, unknown>): Promise<ActionOutcome> {
@@ -108,23 +159,48 @@ export function createActionRegistry(options: ActionRegistryOptions = {}): Actio
     }
   }
 
-  function askApproval(binding: ActionBinding, summary: string): Promise<boolean> {
+  function askApproval(
+    binding: ActionBinding,
+    summary: string,
+    signal: AbortSignal | undefined,
+  ): Promise<ApprovalResult> {
+    if (signal?.aborted) return Promise.resolve('cancelled')
     return new Promise((resolve) => {
-      const settle = (approved: boolean) => {
-        if (pending === null) return
+      const onAbort = () => request.settle('cancelled')
+      // 늦게 도착한 approve 나 reject 가 그 뒤에 열린 승인 카드를 닫지 않게, 자기 자신이 아직
+      // 대기 중일 때만 끝낸다.
+      const settle = (result: ApprovalResult) => {
+        if (pending !== request) return
         pending = null
+        signal?.removeEventListener('abort', onAbort)
         highlighted = null
         notify()
-        resolve(approved)
+        resolve(result)
       }
-      pending = {
-        actionId: binding.spec.id,
-        summary,
-        approve: () => settle(true),
-        reject: () => settle(false),
+      const request: PendingRequest = {
+        binding,
+        settle,
+        approval: {
+          actionId: binding.spec.id,
+          summary,
+          approve: () => settle('approved'),
+          reject: () => settle('rejected'),
+        },
       }
+      pending = request
+      signal?.addEventListener('abort', onAbort, { once: true })
       setHighlight({ target: binding.target, label: summary, mode: 'approval' })
     })
+  }
+
+  /** 승인 뒤 실제로 실행하기 직전에, 그 사이 페이지가 닫혔거나 막혔는지 다시 본다. */
+  function runAfterApproval(binding: ActionBinding, args: Record<string, unknown>): Promise<ActionOutcome> {
+    if (actions.get(binding.spec.id) !== binding) {
+      return Promise.resolve({ status: 'error', error: PAGE_CLOSED_ERROR })
+    }
+    const blockedReason = binding.blocked()
+    if (blockedReason !== null) return Promise.resolve({ status: 'error', error: blockedReason })
+    return runBinding(binding, args)
   }
 
   return {
@@ -134,6 +210,7 @@ export function createActionRegistry(options: ActionRegistryOptions = {}): Actio
       return () => {
         if (actions.get(binding.spec.id) !== binding) return
         actions.delete(binding.spec.id)
+        if (pending?.binding === binding) pending.settle('closed')
         notify()
       }
     },
@@ -211,10 +288,13 @@ export function createActionRegistry(options: ActionRegistryOptions = {}): Actio
       })
     },
 
-    async setField(name, value) {
+    async setField(name, value, signal) {
       const binding = fields.get(name)
       if (binding === undefined) return { status: 'unavailable' }
-      await highlightThenWait(binding.target, `${name} = ${previewValue(value)}`)
+      if (signal?.aborted) return CANCELLED
+      const valueError = fieldValueError(binding, value)
+      if (valueError !== null) return { status: 'error', error: valueError }
+      if (!(await highlightThenWait(binding.target, `${name} = ${previewValue(value)}`, signal))) return CANCELLED
       try {
         binding.write(value)
         return { status: 'ok', result: undefined }
@@ -225,9 +305,10 @@ export function createActionRegistry(options: ActionRegistryOptions = {}): Actio
       }
     },
 
-    async callAction(id, args) {
+    async callAction(id, args, signal) {
       const binding = actions.get(id)
       if (binding === undefined) return { status: 'unavailable' }
+      if (signal?.aborted) return CANCELLED
       const argsError = validateAgainstSchema(args, { type: 'object', ...binding.spec.args })
       if (argsError !== null) return { status: 'error', error: argsError }
       const blockedReason = binding.blocked()
@@ -235,16 +316,19 @@ export function createActionRegistry(options: ActionRegistryOptions = {}): Actio
 
       const summary = summarize(binding, args)
       if (binding.spec.risk === 'auto') {
-        await highlightThenWait(binding.target, summary)
+        if (!(await highlightThenWait(binding.target, summary, signal))) return CANCELLED
         setHighlight(null)
         return runBinding(binding, args)
       }
       if (pending !== null) return { status: 'error', error: 'Another action is waiting for approval.' }
-      const approved = await askApproval(binding, summary)
-      return approved ? runBinding(binding, args) : { status: 'rejected' }
+      const result = await askApproval(binding, summary, signal)
+      if (result === 'approved') return runAfterApproval(binding, args)
+      if (result === 'cancelled') return CANCELLED
+      if (result === 'closed') return { status: 'rejected', error: PAGE_CLOSED_ERROR }
+      return { status: 'rejected' }
     },
 
-    pendingApproval: () => pending,
+    pendingApproval: () => pending?.approval ?? null,
 
     subscribe(listener) {
       listeners.add(listener)

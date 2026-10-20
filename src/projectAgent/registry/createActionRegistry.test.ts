@@ -34,7 +34,10 @@ function makeField(name = 'qa.testRunId', page: PageId = 'qa') {
     spec: { name, page, description: 'field' },
     target: () => null,
     read: () => value,
-    options: () => [{ value: 'a', label: 'A' }],
+    options: () => [
+      { value: 'a', label: 'A' },
+      { value: 'b', label: 'B' },
+    ],
     write: (next) => {
       value = next
     },
@@ -55,7 +58,13 @@ test('snapshot lists registered actions and fields, and unregister removes them'
   assert.equal(snapshot.page, 'qa')
   assert.deepEqual(snapshot.params, { build: 'b1' })
   assert.deepEqual(snapshot.actions, [{ id: 'qa.startRun', blocked: null }])
-  assert.deepEqual(snapshot.fields['qa.testRunId'], { value: 'a', options: [{ value: 'a', label: 'A' }] })
+  assert.deepEqual(snapshot.fields['qa.testRunId'], {
+    value: 'a',
+    options: [
+      { value: 'a', label: 'A' },
+      { value: 'b', label: 'B' },
+    ],
+  })
   offAction()
   offField()
   assert.deepEqual(registry.snapshot().actions, [])
@@ -164,6 +173,131 @@ test('setField highlights, writes, and reports unavailable for unknown fields', 
   assert.equal((await pending).status, 'ok')
   assert.equal(field.current(), 'b')
   assert.equal(registry.highlight(), null)
+})
+
+test('setField rejects a value outside the options and a non-boolean for a boolean field', async () => {
+  const registry = createActionRegistry(fast)
+  const field = makeField()
+  registry.registerField(field.binding)
+  const outside = await registry.setField('qa.testRunId', 'z')
+  assert.equal(outside.status, 'error')
+  assert.match(String((outside as { error?: string }).error), /must be one of "a", "b"/)
+  assert.equal(field.current(), 'a')
+
+  let flag = false
+  registry.registerField({
+    spec: { name: 'qa.verbose', page: 'qa', description: 'flag' },
+    target: () => null,
+    read: () => flag,
+    write: (next) => {
+      flag = next as boolean
+    },
+  })
+  const notBoolean = await registry.setField('qa.verbose', 'true')
+  assert.equal(notBoolean.status, 'error')
+  assert.equal(flag, false)
+  assert.equal((await registry.setField('qa.verbose', true)).status, 'ok')
+  assert.equal(flag, true)
+})
+
+test('setField compares options as strings, so a numeric option accepts its string form', async () => {
+  const registry = createActionRegistry(fast)
+  let value: unknown = 1
+  registry.registerField({
+    spec: { name: 'qa.reasoning', page: 'qa', description: 'index' },
+    target: () => null,
+    read: () => value,
+    options: () => [
+      { value: 0, label: 'low' },
+      { value: 1, label: 'high' },
+    ],
+    write: (next) => {
+      value = next
+    },
+  })
+  assert.equal((await registry.setField('qa.reasoning', '0')).status, 'ok')
+  assert.equal(value, '0')
+})
+
+test('aborting during the highlight cancels setField and callAction without writing or running', async () => {
+  const registry = createActionRegistry({ ...fast, highlightMilliseconds: 200 })
+  const field = makeField()
+  const action = makeAction()
+  registry.registerField(field.binding)
+  registry.registerAction(action.binding)
+
+  const fieldController = new AbortController()
+  const fieldOutcome = registry.setField('qa.testRunId', 'b', fieldController.signal)
+  fieldController.abort()
+  assert.deepEqual(await fieldOutcome, { status: 'cancelled' })
+  assert.equal(field.current(), 'a')
+
+  const actionController = new AbortController()
+  const actionOutcome = registry.callAction('qa.startRun', { testRunId: 'r' }, actionController.signal)
+  actionController.abort()
+  assert.deepEqual(await actionOutcome, { status: 'cancelled' })
+  assert.equal(action.calls.length, 0)
+  assert.equal(registry.highlight(), null)
+
+  const alreadyAborted = AbortSignal.abort()
+  assert.deepEqual(await registry.callAction('qa.startRun', { testRunId: 'r' }, alreadyAborted), {
+    status: 'cancelled',
+  })
+})
+
+test('aborting while waiting for approval cancels and closes the approval', async () => {
+  const registry = createActionRegistry(fast)
+  const action = makeAction({ risk: 'approve' })
+  registry.registerAction(action.binding)
+  const controller = new AbortController()
+  const outcome = registry.callAction('qa.startRun', { testRunId: 'r' }, controller.signal)
+  assert.notEqual(registry.pendingApproval(), null)
+  controller.abort()
+  assert.deepEqual(await outcome, { status: 'cancelled' })
+  assert.equal(registry.pendingApproval(), null)
+  assert.equal(registry.highlight(), null)
+  assert.equal(action.calls.length, 0)
+})
+
+test('a stale approve does not settle a newer approval', async () => {
+  const registry = createActionRegistry(fast)
+  const action = makeAction({ risk: 'approve' })
+  registry.registerAction(action.binding)
+  const first = registry.callAction('qa.startRun', { testRunId: 'r1' })
+  const firstApproval = registry.pendingApproval()
+  firstApproval?.reject()
+  assert.deepEqual(await first, { status: 'rejected' })
+
+  const second = registry.callAction('qa.startRun', { testRunId: 'r2' })
+  firstApproval?.approve()
+  assert.equal(registry.pendingApproval()?.summary, 'start r2')
+  assert.equal(action.calls.length, 0)
+  registry.pendingApproval()?.approve()
+  assert.deepEqual(await second, { status: 'ok', result: 'started' })
+  assert.deepEqual(action.calls, [{ testRunId: 'r2' }])
+})
+
+test('unregistering the binding that waits for approval rejects it with "the page closed"', async () => {
+  const registry = createActionRegistry(fast)
+  const action = makeAction({ risk: 'approve' })
+  const unregister = registry.registerAction(action.binding)
+  const outcome = registry.callAction('qa.startRun', { testRunId: 'r' })
+  unregister()
+  assert.deepEqual(await outcome, { status: 'rejected', error: 'the page closed' })
+  assert.equal(registry.pendingApproval(), null)
+  assert.equal(action.calls.length, 0)
+})
+
+test('approve re-checks blocked before running', async () => {
+  const registry = createActionRegistry(fast)
+  let blockedReason: string | null = null
+  const action = makeAction({ risk: 'approve' }, { blocked: () => blockedReason })
+  registry.registerAction(action.binding)
+  const outcome = registry.callAction('qa.startRun', { testRunId: 'r' })
+  blockedReason = 'a run is already in progress'
+  registry.pendingApproval()?.approve()
+  assert.deepEqual(await outcome, { status: 'error', error: 'a run is already in progress' })
+  assert.equal(action.calls.length, 0)
 })
 
 test('waitForPage resolves true once the page has a binding, false on timeout', async () => {

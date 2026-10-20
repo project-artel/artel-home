@@ -1,15 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from 'react'
 import { useActionRegistry } from './registryContext'
-import type { ActionBinding, FieldBinding, PageId } from './types'
-
-/**
- * 페이지의 id 는 URL 에서 읽으므로 이 hook 은 아무것도 하지 않는다. 기존 호출부가 깨지지 않게
- * export 만 남겨 둔다.
- */
-export function useAgentPage(page: PageId, params: Record<string, string> = {}): void {
-  void page
-  void params
-}
+import type { ActionBinding, FieldBinding } from './types'
 
 /**
  * mount 할 때 등록하고 unmount 할 때 푼다. 매 render 마다 새 closure 가 오므로 registry 에는 최신
