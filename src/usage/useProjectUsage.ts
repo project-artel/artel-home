@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useProjectChange } from '../live/useProjectChange'
 import { usePolling } from '../live/usePolling'
 import { buildGrass, type GrassGrid } from './grass'
 import { fetchProjectUsage, type ProjectUsage } from './usageApi'
@@ -16,11 +17,11 @@ export interface ProjectUsageRead {
 /**
  * One project's spend, and the grid drawn from it.
  *
- * Polled rather than streamed. The agent posts usage in batches after the calls
- * happen and drops a batch it fails to send, so these numbers trail the run log
- * by up to a flush interval; a poll redraws the latest totals without a button.
- * A poll never returns to `loading`, and one that fails keeps the figures
- * already on screen.
+ * The agent posts usage in batches after the calls happen and drops a batch it
+ * fails to send, so these numbers trail the run log by up to a flush interval.
+ * The project change stream reports `USAGE` when a batch lands and the totals
+ * are re-read then; polling covers the time the stream is down. A re-read never
+ * returns to `loading`, and one that fails keeps the figures already on screen.
  */
 export function useProjectUsage(projectId: string): ProjectUsageRead {
   // Pinned on mount. Reading the clock per render would let the window slide
@@ -55,7 +56,8 @@ export function useProjectUsage(projectId: string): ProjectUsageRead {
     return () => inFlight.current?.abort()
   }, [load])
 
-  usePolling(load)
+  const live = useProjectChange(projectId, 'USAGE', load)
+  usePolling(load, undefined, !live)
 
   const grid = useMemo(
     () => (usage === null ? null : buildGrass(usage.daily, today)),

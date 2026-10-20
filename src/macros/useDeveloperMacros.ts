@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useProjectChange } from '../live/useProjectChange'
 import { usePolling } from '../live/usePolling'
 import { getDeveloperMacro, listDeveloperMacros } from './developerMacroApi'
 import type { DeveloperMacroDetail, DeveloperMacroSummary } from './developerMacroTypes'
@@ -61,7 +62,9 @@ export function useDeveloperMacros(projectId: string) {
 
   const polling = useRef<AbortController | null>(null)
   useEffect(() => () => polling.current?.abort(), [])
-  usePolling(() => {
+  // The project change stream (`MACROS`) drives the re-read; polling runs only
+  // while the stream is down.
+  const refreshSilently = () => {
     // Not before the first read has landed, and never two reads at once.
     if (!settled || polling.current !== null) return
     const controller = new AbortController()
@@ -81,7 +84,9 @@ export function useDeveloperMacros(projectId: string) {
       .finally(() => {
         if (polling.current === controller) polling.current = null
       })
-  })
+  }
+  const live = useProjectChange(projectId, 'MACROS', refreshSilently)
+  usePolling(refreshSilently, undefined, !live)
 
   return {
     macros: state.scope === scope ? state.macros : [],
