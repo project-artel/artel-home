@@ -4,6 +4,7 @@ import { useI18n } from '../i18n/useI18n'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { ProgressRing } from '../design-system/primitives/ProgressRing'
 import { usePolling } from '../live/usePolling'
+import { useProjectChange } from '../live/useProjectChange'
 import { apiErrorMessage } from '../projects/apiErrorMessage'
 import { formatDateTime, formatTime } from '../projects/formatters'
 import { listGameInstances } from '../projects/gameApi'
@@ -105,52 +106,43 @@ export function EvidenceScanPanel({
   const [scanRun, setScanRun] = useState<ScanRun>({ token: refreshToken, scan: IDLE_SCAN })
   const scan = scanRun.token === refreshToken ? scanRun.scan : IDLE_SCAN
   const instanceSelectId = useId()
+  const [instancesRevision, setInstancesRevision] = useState(0)
+  const instancesProject = useRef<string | null>(null)
+  const instancesRequest = useRef<AbortController | null>(null)
+  const invalidateInstances = () => setInstancesRevision((revision) => revision + 1)
+  useProjectChange(projectId, 'GAME_INSTANCES', invalidateInstances)
+  // SSE 재연결뿐 아니라 조회 실패와 누락된 알림도 복구하도록 주기적 재확인을 유지한다.
+  usePolling(() => {
+    if (instancesRequest.current === null) invalidateInstances()
+  })
 
   useEffect(() => {
     const controller = new AbortController()
+    instancesRequest.current = controller
 
     listGameInstances(projectId, controller.signal)
-      .then((loaded) =>
+      .then((loaded) => {
+        if (controller.signal.aborted) return
+        instancesProject.current = projectId
         setInstances({
           status: 'ready',
           instances: loaded,
           checkedAt: new Date().toISOString(),
-        }),
-      )
-      .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === 'AbortError') return
-        setInstances({ status: 'error', checkedAt: new Date().toISOString() })
+        })
+      })
+      .catch(() => {
+        if (controller.signal.aborted) return
+        const sameProject = instancesProject.current === projectId
+        setInstances((previous) => sameProject && previous.status === 'ready'
+          ? previous
+          : { status: 'error', checkedAt: new Date().toISOString() })
+      })
+      .finally(() => {
+        if (instancesRequest.current === controller) instancesRequest.current = null
       })
 
     return () => controller.abort()
-  }, [projectId, refreshToken])
-
-  // 붙어 있는 게임 목록은 SSE 가 싣지 않는 스냅샷이라 주기적으로 조용히 다시 읽는다.
-  // loading 으로 돌리지 않고, 실패하면 직전 목록과 그 시각을 그대로 둔다.
-  // 새로고침 버튼(ARTEL-1185)도 같은 자리로 읽는다. 그때만 "확인하는 중" 을 보이고, 실패하면 숨기지 않고 말한다.
-  const polling = useRef<AbortController | null>(null)
-  const [rechecking, setRechecking] = useState(false)
-  useEffect(() => () => polling.current?.abort(), [])
-  function recheckInstances(manual: boolean) {
-    if (instances.status === 'loading' || polling.current !== null) return
-    const controller = new AbortController()
-    polling.current = controller
-    if (manual) setRechecking(true)
-    listGameInstances(projectId, controller.signal)
-      .then((loaded) =>
-        setInstances({ status: 'ready', instances: loaded, checkedAt: new Date().toISOString() }),
-      )
-      .catch((error: unknown) => {
-        if (!manual || (error instanceof DOMException && error.name === 'AbortError')) return
-        setInstances({ status: 'error', checkedAt: new Date().toISOString() })
-      })
-      .finally(() => {
-        if (polling.current !== controller) return
-        polling.current = null
-        if (manual) setRechecking(false)
-      })
-  }
-  usePolling(() => recheckInstances(false))
+  }, [projectId, refreshToken, instancesRevision])
 
   const connected =
     instances.status === 'ready' ? instances.instances.filter((game) => game.connected) : []
@@ -274,17 +266,7 @@ export function EvidenceScanPanel({
         <ScanBrief announce={!open} events={events} />
 
         <div className="cm-scan-actions">
-          <SdkStatus connected={connected} instances={instances} rechecking={rechecking} />
-          <button
-            aria-label={copy.sdk.refresh}
-            className="button button--secondary button--compact cm-sdk-refresh"
-            disabled={instances.status === 'loading' || rechecking}
-            onClick={() => recheckInstances(true)}
-            title={copy.sdk.refresh}
-            type="button"
-          >
-            <StudioIcon className={rechecking ? 'cm-sdk-spin' : undefined} name="refresh" size={15} />
-          </button>
+          <SdkStatus connected={connected} instances={instances} />
           {/* 고를 것이 있을 때만(ARTEL-1185). 한 대면 상태 줄이 그 이름을 말한다. */}
           {connected.length >= 2 && (
             <>
@@ -341,10 +323,10 @@ export function EvidenceScanPanel({
 
       {/* 왜 못 누르는지. 버튼이 회색이라는 사실만으로는 아무것도 알려 주지
           않으므로, 이유와 다음에 할 일이 항상 함께 있다 — 접혀 있어도. */}
-      {/* 확인 중이면 상태 줄이 이미 그렇게 말한다. 안 붙음 · 확인 실패는 무엇을 하면 되는지 한 줄만. */}
-      {blocked !== null && blocked !== 'loading' && !rechecking && (
+      {/* 확인 중·확인 실패는 상태 줄에 표시하고, 게임이 안 붙은 경우에만 다음 행동을 안내한다. */}
+      {blocked !== null && blocked !== 'loading' && blocked !== 'loadFailed' && (
         <p className="cm-scan-blocked">
-          {blocked === 'noneConnected' ? copy.sdk.offNote : blocked === 'loadFailed' ? copy.sdk.failedNote : blockedCopy(blocked)}
+          {blocked === 'noneConnected' ? copy.sdk.offNote : blockedCopy(blocked)}
         </p>
       )}
 
@@ -530,16 +512,14 @@ function AlreadyRunning({ scan }: { scan: LastScan }) {
 function SdkStatus({
   instances,
   connected,
-  rechecking,
 }: {
   instances: InstancesState
   connected: readonly GameInstance[]
-  rechecking: boolean
 }) {
   const { t } = useI18n()
   const copy = t.contentMap.scan.sdk
 
-  if (instances.status === 'loading' || rechecking) {
+  if (instances.status === 'loading') {
     return (
       <span className="cm-sdk cm-sdk--checking" role="status">
         <span aria-hidden="true" className="cm-sdk-dot" />

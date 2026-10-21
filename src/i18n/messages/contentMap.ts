@@ -133,9 +133,7 @@ export const contentMapEn = {
       checkedAt: (time: string) => `checked ${time}`,
       checkedOn: (name: string, time: string) => `${name} · checked ${time}`,
       failedAt: (time: string) => `check failed ${time}`,
-      refresh: 'Check the SDK connection again',
       offNote: 'A scan runs inside a running game. Start the game and this updates by itself.',
-      failedNote: 'Use refresh to check again.',
     },
   },
   generate: {
@@ -696,9 +694,7 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
       checkedAt: (time: string) => `${time} 확인`,
       checkedOn: (name: string, time: string) => `${name} · ${time} 확인`,
       failedAt: (time: string) => `${time} 확인 실패`,
-      refresh: 'SDK 연결 다시 확인',
       offNote: '스캔은 켜진 게임 안에서 돕니다. 게임을 켜면 여기가 저절로 바뀝니다.',
-      failedNote: '새로고침으로 다시 확인할 수 있습니다.',
     },
   },
   generate: {
