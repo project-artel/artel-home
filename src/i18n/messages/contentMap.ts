@@ -103,8 +103,10 @@ export const contentMapEn = {
     // does — the same fact stated twice.
     requested: 'The scan was requested. Its status appears below once the game responds.',
     failed: 'The scan could not be started.',
-    // 409 scan_in_progress (ARTEL-1178): another tab or teammate already started one. Not a failure — show theirs.
-    alreadyRunning: 'A scan of this build is already running. Its progress is shown here — wait for it to finish.',
+    // 409 scan_in_progress (ARTEL-1178): another tab or teammate already started one. Not a failure; show theirs.
+    alreadyRunning: 'A scan of this build is already running. Try again once it finishes.',
+    alreadyRunningTitle: 'A scan is already running',
+    alreadyRunningDetail: (name: string) => `Started on ${name}. You can scan again once it finishes.`,
     checkedAt: (time: string) =>
       `Connected games as of ${time}. This list is checked again automatically.`,
     // Four reasons, four different things to do about it. One "cannot scan"
@@ -657,7 +659,9 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
     running: '게임에 요청하는 중…',
     requested: '스캔을 요청했습니다. 게임이 응답하면 아래에 상태가 나타납니다.',
     failed: '스캔을 시작하지 못했습니다.',
-    alreadyRunning: '이 빌드의 스캔이 이미 돌고 있습니다. 그 진행을 여기에 보입니다 — 끝날 때까지 기다려 주세요.',
+    alreadyRunning: '이 빌드의 스캔이 이미 돌고 있습니다. 끝난 뒤에 다시 시도해 주세요.',
+    alreadyRunningTitle: '이미 스캔이 돌고 있습니다',
+    alreadyRunningDetail: (name: string) => `${name} 에서 시작한 스캔입니다. 끝나면 다시 누를 수 있습니다.`,
     checkedAt: (time: string) =>
       `붙어 있는 게임 목록은 ${time} 기준입니다. 이 목록은 자동으로 다시 확인합니다.`,
     disabled: {

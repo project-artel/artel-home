@@ -1199,3 +1199,23 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* 이미 돌고 있음(ARTEL-1179): 판 없이 도넛 하나와 두 줄 */
+.cm-already-running {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0 0;
+}
+.cm-already-running p {
+  margin: 0;
+}
+.cm-already-running-title {
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+.cm-already-running-detail {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}

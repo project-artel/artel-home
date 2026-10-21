@@ -325,8 +325,9 @@ export function EvidenceScanPanel({
         <p className="cm-outcome cm-outcome--notice">{copy.requested}</p>
       )}
 
-      {scan.phase === 'alreadyRunning' && (
-        <p className="cm-outcome cm-outcome--notice">{copy.alreadyRunning}</p>
+      {/* 남이 시킨 스캔이 끝나면 버튼이 다시 켜지므로 안내도 함께 내린다. */}
+      {scan.phase === 'alreadyRunning' && events.scan?.state === 'REQUESTED' && (
+        <AlreadyRunning scan={events.scan} />
       )}
 
       {scan.phase === 'failed' && (
@@ -472,6 +473,29 @@ function ScanProgressDetail({ scan }: { scan: LastScan }) {
             <span>{copy.currentScene}</span> <code className="cm-code">{progress.scene}</code>
           </p>
         )}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * 409 `scan_in_progress` 안내(ARTEL-1179). 경고가 아니라 알림이라 앰버 판을 쓰지 않고, 아이콘 자리에 그 스캔의 도넛을
+ * 둔다. 단계를 모르는 옛 서버면 도는 호가 대신한다.
+ */
+function AlreadyRunning({ scan }: { scan: LastScan }) {
+  const { t } = useI18n()
+  const copy = t.contentMap.scan
+  const percent = scanPercent(scan)
+
+  return (
+    <div className="cm-already-running" role="status">
+      <ProgressRing label={copy.alreadyRunningTitle} percent={percent} size={28} />
+      <div>
+        <p className="cm-already-running-title">
+          {copy.alreadyRunningTitle}
+          {percent !== null && <span className="mono"> {percent}%</span>}
+        </p>
+        <p className="cm-already-running-detail">{copy.alreadyRunningDetail(scan.gameInstanceName)}</p>
       </div>
     </div>
   )
