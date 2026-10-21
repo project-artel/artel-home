@@ -29,7 +29,7 @@
 - 근거 줄: 작은 도넛 · 단계 · % · 지금 여는 씬 · 경과. 펼침: 80px 도넛 · 단계 줄(지금 단계 밑줄) · 씬 n개 중 m개 ·
   지금 여는 씬 코드 칩.
 - 도넛은 문서 화면의 `ProgressRing` 을 `design-system/primitives` 로 옮겨 같이 쓴다.
-- 409 `scan_in_progress` 는 `alreadyRunning` 안내(앰버 줄), 오류 아님. agent 에는 같은 문구로 실패를 돌려준다.
+- 409 `scan_in_progress` 는 오류가 아니라 경고 아이콘 + 두 줄 안내(`AlreadyRunning`). 그 스캔이 끝나면 내린다. agent 에는 실패로 돌려준다.
 
 ## Validation
 
