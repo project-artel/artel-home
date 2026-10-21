@@ -6,6 +6,7 @@ import { useWorkspace } from '../projects/workspace/workspaceContext'
 import { useFieldBinding } from '../projectAgent/bindings'
 import { requireKnownId } from '../projectAgent/specs/fieldWriters'
 import { CONTENT_MAP_BUILD_FIELD } from '../projectAgent/specs/contentMap'
+import { BuildSwitcher } from './BuildSwitcher'
 import { ContentMapReport } from './ContentMapPage'
 import './contentMap.css'
 
@@ -34,7 +35,7 @@ export function ContentMapSection() {
   const requestedBuildId = searchParams.get('build')
   const selectedBuild = selectBuild(builds, requestedBuildId)
 
-  const buildSelect = useRef<HTMLSelectElement>(null)
+  const buildSelect = useRef<HTMLButtonElement>(null)
 
   // agent 가 빌드를 고르는 길. 셀렉트의 onChange 와 같은 주소 갱신을 쓴다.
   useFieldBinding(CONTENT_MAP_BUILD_FIELD, {
@@ -54,20 +55,12 @@ export function ContentMapSection() {
 
   const buildPicker =
     selectedBuild === undefined ? null : (
-      <label className="cm-build-picker">
-        <span>{copy.selectLabel}</span>
-        <select
-          ref={buildSelect}
-          onChange={(event) => setSearchParams({ build: event.target.value })}
-          value={selectedBuild.id}
-        >
-          {builds.map((build) => (
-            <option key={build.id} value={build.id}>
-              {buildOptionText(build, editorLabel)}
-            </option>
-          ))}
-        </select>
-      </label>
+      <BuildSwitcher
+        builds={builds}
+        onSelect={(buildId) => setSearchParams({ build: buildId })}
+        ref={buildSelect}
+        selected={selectedBuild}
+      />
     )
 
   return (

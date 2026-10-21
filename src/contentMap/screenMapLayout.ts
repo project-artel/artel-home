@@ -56,8 +56,11 @@ const SCREEN_GAP_Y = 14
 /** 컨테이너 테두리와 안쪽 내용 사이. */
 const CONTAINER_PADDING = 14
 
-/** 컨테이너 머리글(씬 이름과 개수)이 차지하는 높이. */
-export const CONTAINER_HEADER = 32
+/**
+ * 컨테이너 머리글이 차지하는 높이. 이름 한 줄(26) 아래에 능력 · 전이 수 한 줄(ARTEL-1172)이 선다 — 상자만 보고도
+ * 이 씬에서 무엇을 할 수 있고 몇 길로 오가는지 읽히게.
+ */
+export const CONTAINER_HEADER = 52
 
 /**
  * 화면이 하나도 없는 씬의 몸통 높이.
@@ -68,8 +71,8 @@ export const CONTAINER_HEADER = 32
  */
 const EMPTY_BODY_HEIGHT = 34
 
-/** 컨테이너의 최소 폭. 화면 하나와 씬 이름이 둘 다 들어갈 만큼. */
-const MIN_CONTAINER_WIDTH = SCREEN_WIDTH + CONTAINER_PADDING * 2
+/** 컨테이너의 최소 폭. 화면 하나와 씬 이름, 능력 · 전이 수 한 줄이 다 들어갈 만큼. */
+const MIN_CONTAINER_WIDTH = Math.max(SCREEN_WIDTH + CONTAINER_PADDING * 2, 236)
 
 /**
  * layer 사이의 가로 간격. 여기에 씬 전이가 가로로 지나가고 그 위에 조건 한 줄이 앉는다.

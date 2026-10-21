@@ -621,6 +621,35 @@ function SceneDetail({
       <p className="cm-detail-name">{sceneTitle(t, container.node)}</p>
       <p className={`cm-kind cm-kind--${kind}`}>{t.contentMap.graph.sceneKinds[kind]}</p>
 
+      {/* 이 씬의 수 한눈에(ARTEL-1172). 아래 절들을 끝까지 내려야 알던 것을 맨 위에 모은다 — 각 수의 목록은 그대로
+          아래 절에 있다. */}
+      <dl className="cm-detail-stats">
+        <div>
+          <dt>{copy.stats.screens}</dt>
+          <dd>{evidence.screens.length}</dd>
+        </div>
+        {scene !== null && (
+          <div>
+            <dt>{copy.stats.capabilities}</dt>
+            <dd>{scene.capabilities.total}</dd>
+          </div>
+        )}
+        {scene !== null && scene.steps !== null && (
+          <div>
+            <dt>{copy.stats.steps}</dt>
+            <dd>{scene.steps.length}</dd>
+          </div>
+        )}
+        <div>
+          <dt>{copy.stats.outgoing}</dt>
+          <dd>{evidence.outgoing.length}</dd>
+        </div>
+        <div>
+          <dt>{copy.stats.incoming}</dt>
+          <dd>{evidence.incoming.length}</dd>
+        </div>
+      </dl>
+
       {scene === null ? (
         <p className="cm-detail-note">
           {container.node.missingFromResponse

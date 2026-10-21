@@ -66,6 +66,8 @@ const CAPTURE_INSET = 4
 
 /** 컨테이너 머리글 rect 의 높이. 빈 상자에 씬 대표 이미지를 그릴 때 그 아래에서 시작한다. */
 const CONTAINER_HEAD_HEIGHT = 26
+/** 머리 둘째 줄(능력 · 전이 수)이 끝나는 높이. 대표 이미지는 그 아래부터. */
+const CONTAINER_INFO_BOTTOM = 48
 
 /**
  * `discriminator` 한 줄의 폭 예산. 원문은 인스펙터가 전부 보인다.
@@ -92,6 +94,16 @@ export function ScreenMapCanvas({ layout, selection, onSelect, viewport }: Canva
   // 것이 무엇을 뜻하는지 읽히기 때문이다.
   const related = useMemo(() => relatedIds(layout, selection), [layout, selection])
   const labelled = layout.sceneEdges.length + layout.screenTransitions.length <= EDGE_LABEL_LIMIT
+  // 상자 머리 둘째 줄의 나가는 · 들어오는 길 수. 자기 자신으로 가는 고리는 양쪽에 다 센다 — 나가서 돌아오는 길이다.
+  const edgeCounts = useMemo(() => {
+    const counts = new Map<string, { out: number; in: number }>()
+    const of = (id: string) => counts.get(id) ?? counts.set(id, { out: 0, in: 0 }).get(id)!
+    for (const placed of layout.sceneEdges) {
+      of(placed.edge.from).out += 1
+      of(placed.edge.to).in += 1
+    }
+    return counts
+  }, [layout.sceneEdges])
 
   return (
     <svg
@@ -154,7 +166,7 @@ export function ScreenMapCanvas({ layout, selection, onSelect, viewport }: Canva
           <SceneEdgeMark
             dimmed={related !== null && !related.has(placed.id)}
             key={placed.id}
-            labelled={labelled}
+            labelled={labelled || (related !== null && related.has(placed.id))}
             onSelect={() => onSelect({ kind: 'sceneEdge', id: placed.id })}
             placed={placed}
             selected={sameSelection(selection, { kind: 'sceneEdge', id: placed.id })}
@@ -166,6 +178,7 @@ export function ScreenMapCanvas({ layout, selection, onSelect, viewport }: Canva
         {layout.containers.map((container) => (
           <ContainerMark
             container={container}
+            counts={edgeCounts.get(container.id) ?? { out: 0, in: 0 }}
             dimmed={related !== null && !related.has(container.id)}
             key={container.id}
             onSelect={() => onSelect({ kind: 'scene', id: container.id })}
@@ -183,7 +196,7 @@ export function ScreenMapCanvas({ layout, selection, onSelect, viewport }: Canva
           <ScreenTransitionMark
             dimmed={related !== null && !related.has(placed.id)}
             key={placed.id}
-            labelled={labelled}
+            labelled={labelled || (related !== null && related.has(placed.id))}
             onSelect={() => onSelect({ kind: 'screenTransition', id: placed.id })}
             placed={placed}
             selected={sameSelection(selection, { kind: 'screenTransition', id: placed.id })}
@@ -311,11 +324,13 @@ function classes(...parts: (string | false | null)[]): string {
  */
 function ContainerMark({
   container,
+  counts,
   selected,
   dimmed,
   onSelect,
 }: {
   container: PlacedContainer
+  counts: { out: number; in: number }
   selected: boolean
   dimmed: boolean
   onSelect: () => void
@@ -360,15 +375,21 @@ function ContainerMark({
           {copy.screenCount(container.screens.length)}
         </text>
       )}
+      {/* 능력 · 전이 수(ARTEL-1172). 응답에 없는 씬(scene === null)은 능력을 모르므로 길 수만. */}
+      <text className="sm-container-info" x={12} y={CONTAINER_HEAD_HEIGHT + 17}>
+        {container.node.scene === null
+          ? copy.boxRoutes(counts.out, counts.in)
+          : copy.boxInfo(container.node.scene.capabilities.runnable, container.node.scene.capabilities.needsProbe, counts.out, counts.in)}
+      </text>
       {availableThumbnail !== null && (
         <image
           className="sm-container-thumbnail"
-          height={container.height - CONTAINER_HEAD_HEIGHT - CAPTURE_INSET * 2}
+          height={container.height - CONTAINER_INFO_BOTTOM - CAPTURE_INSET * 2}
           href={availableThumbnail.url}
           preserveAspectRatio="xMidYMid meet"
           width={container.width - CAPTURE_INSET * 2}
           x={CAPTURE_INSET}
-          y={CONTAINER_HEAD_HEIGHT + CAPTURE_INSET}
+          y={CONTAINER_INFO_BOTTOM + CAPTURE_INSET}
         >
           <title>{title}</title>
         </image>

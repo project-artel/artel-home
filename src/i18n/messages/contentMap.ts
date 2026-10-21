@@ -6,6 +6,18 @@ export const contentMapEn = {
     /** The link on a build row, next to the performance one. */
     build: 'Content map',
   },
+  /** The build switcher that replaced the plain dropdown (ARTEL-1172). */
+  buildSwitcher: {
+    caption: 'Build',
+    title: 'Pick a build',
+    count: (n: number) => `${n} in all`,
+    search: 'Search builds',
+    searchPlaceholder: 'Version, label, build id',
+    noMatch: 'No build matches.',
+    newest: 'Newest',
+    current: 'Viewing',
+    createdAt: (time: string) => `made ${time}`,
+  },
   /** The map-first layout (ARTEL-1172). */
   layout: {
     detailsOpen: 'Details',
@@ -211,6 +223,9 @@ export const contentMapEn = {
     // so a build no QA run has played has none — and the drawing says so inside
     // each container rather than leaving an empty box to be read as unfinished.
     noScreens: 'No screen observed yet',
+    boxInfo: (runnable: number, probe: number, out: number, incoming: number) =>
+      `runnable ${runnable} · to probe ${probe} · out ${out} · in ${incoming}`,
+    boxRoutes: (out: number, incoming: number) => `out ${out} · in ${incoming}`,
     noScreensTitle: 'No QA run has played this build yet',
     noScreensCopy: (count: number) =>
       `The ${count} scene${count === 1 ? '' : 's'} below ${count === 1 ? 'comes' : 'come'} from static analysis, which cannot see screens. Screens and the transitions between them are recorded by a QA run.`,
@@ -319,6 +334,7 @@ export const contentMapEn = {
   // so everything selectable there is a button here, and the evidence a 152×48
   // box has no room for lives here too.
   inspector: {
+    stats: { screens: 'Screens', capabilities: 'Capabilities', steps: 'Steps', outgoing: 'Out', incoming: 'In' },
     title: 'Selected',
     clear: 'Clear',
     selectHint:
@@ -543,6 +559,17 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
   entry: {
     build: '콘텐츠 맵',
   },
+  buildSwitcher: {
+    caption: '빌드',
+    title: '빌드 고르기',
+    count: (n: number) => `전체 ${n}개`,
+    search: '빌드 찾기',
+    searchPlaceholder: '버전 · 라벨 · 빌드 id',
+    noMatch: '맞는 빌드가 없습니다.',
+    newest: '최신',
+    current: '보는 중',
+    createdAt: (time: string) => `${time} 등록`,
+  },
   layout: {
     detailsOpen: '자세히',
     detailsClose: '접기',
@@ -706,6 +733,9 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
       `씬 ${scenes}개 · 화면 ${screens}개 · 화면 전이 ${transitions}개`,
     screenCount: (count: number) => `화면 ${count}`,
     noScreens: '아직 관측된 화면 없음',
+    boxInfo: (runnable: number, probe: number, out: number, incoming: number) =>
+      `실행 가능 ${runnable} · 탐색 ${probe} · 나감 ${out} · 들어옴 ${incoming}`,
+    boxRoutes: (out: number, incoming: number) => `나감 ${out} · 들어옴 ${incoming}`,
     noScreensTitle: '아직 이 빌드를 플레이한 QA 런이 없습니다',
     noScreensCopy: (count: number) =>
       `아래 씬 ${count}개는 정적 분석에서 나온 것이고, 정적 분석은 화면을 볼 수 없습니다. 화면과 화면 전이는 QA 런이 기록합니다.`,
@@ -796,6 +826,7 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
     noCapabilityLink: '연결된 능력 없음',
   },
   inspector: {
+    stats: { screens: '화면', capabilities: '능력', steps: '조작 단계', outgoing: '나감', incoming: '들어옴' },
     title: '고른 것',
     clear: '선택 해제',
     selectHint:

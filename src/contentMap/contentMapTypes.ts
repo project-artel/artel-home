@@ -382,6 +382,13 @@ export type ContentMapScene = {
    * 되찾는 자리이고, 그 id 는 screen transition 이 들고 온다.
    */
   capabilityList: SceneCapability[]
+  /**
+   * 유니티 빌드 설정에서의 순번(ARTEL-1173). null 이면 서버가 모른다 — 빌드의 씬 스캔이 없거나, 이 필드를 아직 안
+   * 보내는 서버다. 지도와 tree 가 게임 시작 씬부터 이 순서로 선다.
+   */
+  buildOrder: number | null
+  /** 게임을 켜면 열리는 씬인가. 순환 그래프에서 지도가 어디서 출발할지를 이것이 정한다. */
+  entry: boolean
 }
 
 /**
