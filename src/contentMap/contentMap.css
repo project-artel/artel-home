@@ -507,7 +507,7 @@
 
 /* 상자 머리: 이름은 한 단계 키우고, 둘째 줄에 능력 · 전이 수 */
 .content-map .sm-container-name {
-  font-size: 13px;
+  font-size: 15px;
 }
 .sm-container-info {
   fill: var(--color-text-secondary);
@@ -673,4 +673,27 @@
 }
 .content-map .cm-transition-meta {
   font-size: 11.5px;
+}
+
+/* 씬 카드: 왼쪽 이미지 · 오른쪽 상세 */
+.sm-container-noimage rect {
+  fill: var(--color-bg-raised);
+  stroke: var(--color-border-subtle);
+  stroke-dasharray: 3 3;
+}
+.sm-container-noimage text {
+  fill: var(--color-text-muted);
+  font-family: var(--font-sans);
+  font-size: 10.5px;
+  pointer-events: none;
+}
+.content-map .sm-container-info {
+  font-size: 12.5px;
+}
+.content-map .sm-container-empty {
+  fill: var(--color-text-muted);
+  font-size: 11.5px;
+}
+.content-map .sm-container.is-dimmed .sm-container-thumbnail {
+  opacity: 0.5;
 }

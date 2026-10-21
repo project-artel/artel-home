@@ -223,8 +223,7 @@ export const contentMapEn = {
     // so a build no QA run has played has none — and the drawing says so inside
     // each container rather than leaving an empty box to be read as unfinished.
     noScreens: 'No screen observed yet',
-    boxInfo: (runnable: number, probe: number, out: number, incoming: number) =>
-      `runnable ${runnable} · to probe ${probe} · out ${out} · in ${incoming}`,
+    boxCapabilities: (runnable: number, probe: number) => `runnable ${runnable} · to probe ${probe}`,
     boxRoutes: (out: number, incoming: number) => `out ${out} · in ${incoming}`,
     noScreensTitle: 'No QA run has played this build yet',
     noScreensCopy: (count: number) =>
@@ -733,8 +732,7 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
       `씬 ${scenes}개 · 화면 ${screens}개 · 화면 전이 ${transitions}개`,
     screenCount: (count: number) => `화면 ${count}`,
     noScreens: '아직 관측된 화면 없음',
-    boxInfo: (runnable: number, probe: number, out: number, incoming: number) =>
-      `실행 가능 ${runnable} · 탐색 ${probe} · 나감 ${out} · 들어옴 ${incoming}`,
+    boxCapabilities: (runnable: number, probe: number) => `실행 가능 ${runnable} · 탐색 필요 ${probe}`,
     boxRoutes: (out: number, incoming: number) => `나감 ${out} · 들어옴 ${incoming}`,
     noScreensTitle: '아직 이 빌드를 플레이한 QA 런이 없습니다',
     noScreensCopy: (count: number) =>

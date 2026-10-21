@@ -57,22 +57,17 @@ const SCREEN_GAP_Y = 14
 const CONTAINER_PADDING = 14
 
 /**
- * 컨테이너 머리글이 차지하는 높이. 이름 한 줄(26) 아래에 능력 · 전이 수 한 줄(ARTEL-1172)이 선다 — 상자만 보고도
- * 이 씬에서 무엇을 할 수 있고 몇 길로 오가는지 읽히게.
+ * 씬 카드(ARTEL-1172): 왼쪽에 씬 대표 이미지, 오른쪽에 이름 · 능력 · 전이 수. 상자만 보고도 이 씬이 어떤 화면이고
+ * 무엇을 할 수 있으며 몇 길로 오가는지 읽히게 한다. 관측된 화면이 있으면 그 격자는 카드 아래로 이어진다.
  */
-export const CONTAINER_HEADER = 52
-
-/**
- * 화면이 하나도 없는 씬의 몸통 높이.
- *
- * 0 으로 두면 컨테이너가 머리글만 남아 다른 화면의 씬 카드와 구별되지 않는다. 빈 몸통이
- * 남아야 캔버스가 거기에 "아직 관측된 화면이 없다"를 쓸 자리가 생기고, 그 문장이 이 상태를
- * 오류가 아니라 정상으로 읽게 한다.
- */
-const EMPTY_BODY_HEIGHT = 34
+export const CARD_INSET = 10
+export const CARD_IMAGE_WIDTH = 168
+export const CARD_IMAGE_HEIGHT = 94
+/** 카드 칸의 높이. 이미지 높이에 위아래 여백. */
+export const CONTAINER_HEADER = CARD_IMAGE_HEIGHT + CARD_INSET * 2
 
 /** 컨테이너의 최소 폭. 화면 하나와 씬 이름, 능력 · 전이 수 한 줄이 다 들어갈 만큼. */
-const MIN_CONTAINER_WIDTH = Math.max(SCREEN_WIDTH + CONTAINER_PADDING * 2, 236)
+const MIN_CONTAINER_WIDTH = Math.max(SCREEN_WIDTH + CONTAINER_PADDING * 2, CARD_INSET * 3 + CARD_IMAGE_WIDTH + 210)
 
 /**
  * layer 사이의 가로 간격. 여기에 씬 전이가 가로로 지나가고 그 위에 조건 한 줄이 앉는다.
@@ -296,7 +291,8 @@ function measureContainer(screens: readonly ContentMapScreen[]): Box {
   if (screens.length === 0) {
     return {
       width: MIN_CONTAINER_WIDTH,
-      height: CONTAINER_PADDING * 2 + CONTAINER_HEADER + EMPTY_BODY_HEIGHT,
+      // 카드 칸이 곧 상자다. "아직 관측된 화면 없음" 은 카드 오른쪽 줄이 말한다.
+      height: CONTAINER_HEADER,
       screens: [],
     }
   }
@@ -307,7 +303,7 @@ function measureContainer(screens: readonly ContentMapScreen[]): Box {
   const bodyHeight = rows * SCREEN_HEIGHT + (rows - 1) * SCREEN_GAP_Y
 
   const width = Math.max(MIN_CONTAINER_WIDTH, bodyWidth + CONTAINER_PADDING * 2)
-  const height = CONTAINER_PADDING * 2 + CONTAINER_HEADER + bodyHeight
+  const height = CONTAINER_HEADER + bodyHeight + CONTAINER_PADDING
   // 마지막 줄이 덜 찼을 때 격자가 왼쪽으로 쏠리지 않도록 몸통을 가운데에 둔다.
   const left = (width - bodyWidth) / 2
 
@@ -316,7 +312,7 @@ function measureContainer(screens: readonly ContentMapScreen[]): Box {
     height,
     screens: screens.map((_, index) => ({
       x: left + (index % columns) * (SCREEN_WIDTH + SCREEN_GAP_X),
-      y: CONTAINER_PADDING + CONTAINER_HEADER + Math.floor(index / columns) * (SCREEN_HEIGHT + SCREEN_GAP_Y),
+      y: CONTAINER_HEADER + Math.floor(index / columns) * (SCREEN_HEIGHT + SCREEN_GAP_Y),
     })),
   }
 }

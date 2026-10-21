@@ -9,6 +9,7 @@ import type {
 } from './contentMapTypes.ts'
 import {
   buildScreenMap,
+  CARD_IMAGE_HEIGHT,
   CONTAINER_HEADER,
   layoutScreenMap,
   SCREEN_HEIGHT,
@@ -141,10 +142,12 @@ test('화면이 0 행인 빌드는 씬 컨테이너만 그려진다', () => {
   assert.equal(model.screenCount, 0)
   assert.equal(layout.containers.length, 2)
   assert.deepEqual(layout.screenTransitions, [])
-  // 화면이 없어도 컨테이너는 몸통을 갖는다. 머리글만 남으면 빈 씬이 씬 카드와 구별되지 않는다.
+  // 화면이 없는 씬은 카드 칸 하나다(ARTEL-1172) — 왼쪽 대표 이미지와 오른쪽 상세가 들어가고, "아직 관측된 화면
+  // 없음" 은 그 상세 줄이 말한다. 이미지 칸보다 작아지면 그림이 잘린다.
   for (const container of layout.containers) {
     assert.deepEqual(container.screens, [])
-    assert.ok(container.height > CONTAINER_HEADER, '빈 씬도 몸통이 남아야 한다')
+    assert.equal(container.height, CONTAINER_HEADER)
+    assert.ok(container.height >= CARD_IMAGE_HEIGHT)
     assert.ok(container.width >= SCREEN_WIDTH)
   }
 })
@@ -202,7 +205,8 @@ test('캡처가 있는 화면과 없는 화면이 같은 크기 상자를 받는
 test('컨테이너는 안에 든 화면 수만큼 커진다 — 안쪽을 먼저 재기 때문이다', () => {
   const one = layoutScreenMap(buildScreenMap([scene('1', 'A', [screen('10', '1')])], [], []))
   const many = layoutScreenMap(
-    buildScreenMap([scene('1', 'A', ['10', '11', '12', '13'].map((id) => screen(id, '1')))], [], []),
+    // 아홉 개(세 줄 세 칸)라야 격자가 씬 카드의 최소 폭(이미지 + 상세)을 넘는다.
+    buildScreenMap([scene('1', 'A', ['10', '11', '12', '13', '14', '15', '16', '17', '18'].map((id) => screen(id, '1')))], [], []),
   )
 
   assert.ok(

@@ -12,6 +12,9 @@ import {
 import { sceneKind, sceneTitle } from './sceneLabels'
 import type { CanvasViewport } from './useCanvasViewport'
 import {
+  CARD_IMAGE_HEIGHT,
+  CARD_IMAGE_WIDTH,
+  CARD_INSET,
   SCREEN_IMAGE_HEIGHT,
   type PlacedContainer,
   type PlacedSceneEdge,
@@ -64,10 +67,6 @@ const SCREEN_NAME_WIDTH = 16
 /** 캡처가 노드 테두리 안쪽으로 물러서는 거리. */
 const CAPTURE_INSET = 4
 
-/** 컨테이너 머리글 rect 의 높이. 빈 상자에 씬 대표 이미지를 그릴 때 그 아래에서 시작한다. */
-const CONTAINER_HEAD_HEIGHT = 26
-/** 머리 둘째 줄(능력 · 전이 수)이 끝나는 높이. 대표 이미지는 그 아래부터. */
-const CONTAINER_INFO_BOTTOM = 48
 
 /**
  * `discriminator` 한 줄의 폭 예산. 원문은 인스펙터가 전부 보인다.
@@ -341,11 +340,11 @@ function ContainerMark({
   const empty = container.screens.length === 0
   const title = sceneTitle(t, container.node)
 
-  // screen 이 하나라도 있으면 지금까지와 똑같이 그린다 — 이미지는 빈 상자를 대신할 뿐, 그
-  // 위에 얹지 않는다.
   const thumbnail = container.node.scene?.thumbnail ?? null
-  const availableThumbnail: Extract<SceneThumbnail, { state: 'available' }> | null =
-    empty && thumbnail !== null && thumbnail.state === 'available' ? thumbnail : null
+  const image: Extract<SceneThumbnail, { state: 'available' }> | null =
+    thumbnail !== null && thumbnail.state === 'available' ? thumbnail : null
+  const scene = container.node.scene
+  const textX = CARD_INSET * 2 + CARD_IMAGE_WIDTH
 
   return (
     <g
@@ -360,42 +359,54 @@ function ContainerMark({
       transform={`translate(${container.x} ${container.y})`}
     >
       <rect className="sm-container-frame" height={container.height} rx="6" width={container.width} />
-      <rect className="sm-container-head" height={CONTAINER_HEAD_HEIGHT} rx="5" width={container.width} />
-      {/* 씬 색은 머리의 점 하나와 머리 아래 선으로만 말한다(ARTEL-1172) — 상자 전체를 칠하면 씬 일곱 개가 일곱 색
-          덩어리로 서서 선이 묻힌다. 같은 색이 tree 의 scene chip 에도 있다. */}
-      <circle className="sm-container-dot" cx={15} cy={15} r={4} />
-      <line className="sm-container-rule" x1={0} x2={container.width} y1={CONTAINER_HEAD_HEIGHT} y2={CONTAINER_HEAD_HEIGHT} />
-      <text className="sm-container-name" x={26} y={19}>
-        {truncate(title, SCENE_NAME_WIDTH)}
-      </text>
-      {/* 0 은 적지 않는다. 몸통이 이미 그 사실을 문장으로 말하고, 여기 숫자를 더 놓으면
-          좁은 컨테이너에서 씬 이름과 겹친다. */}
-      {!empty && (
-        <text className="sm-container-count mono" textAnchor="end" x={container.width - 12} y={19}>
-          {copy.screenCount(container.screens.length)}
-        </text>
-      )}
-      {/* 능력 · 전이 수(ARTEL-1172). 응답에 없는 씬(scene === null)은 능력을 모르므로 길 수만. */}
-      <text className="sm-container-info" x={12} y={CONTAINER_HEAD_HEIGHT + 17}>
-        {container.node.scene === null
-          ? copy.boxRoutes(counts.out, counts.in)
-          : copy.boxInfo(container.node.scene.capabilities.runnable, container.node.scene.capabilities.needsProbe, counts.out, counts.in)}
-      </text>
-      {availableThumbnail !== null && (
+
+      {/*
+        씬 카드(ARTEL-1172): 왼쪽 대표 이미지, 오른쪽 상세. 이미지가 없으면 같은 자리를 비워 두고 그 사실을 적는다 —
+        카드마다 글자 자리가 달라지면 열 안의 카드들이 줄이 안 맞는다.
+      */}
+      {image !== null ? (
         <image
           className="sm-container-thumbnail"
-          height={container.height - CONTAINER_INFO_BOTTOM - CAPTURE_INSET * 2}
-          href={availableThumbnail.url}
+          height={CARD_IMAGE_HEIGHT}
+          href={image.url}
           preserveAspectRatio="xMidYMid meet"
-          width={container.width - CAPTURE_INSET * 2}
-          x={CAPTURE_INSET}
-          y={CONTAINER_INFO_BOTTOM + CAPTURE_INSET}
+          width={CARD_IMAGE_WIDTH}
+          x={CARD_INSET}
+          y={CARD_INSET}
         >
           <title>{title}</title>
         </image>
+      ) : (
+        <g className="sm-container-noimage">
+          <rect height={CARD_IMAGE_HEIGHT} rx="4" width={CARD_IMAGE_WIDTH} x={CARD_INSET} y={CARD_INSET} />
+          <text textAnchor="middle" x={CARD_INSET + CARD_IMAGE_WIDTH / 2} y={CARD_INSET + CARD_IMAGE_HEIGHT / 2 + 4}>
+            {copy.noCapture}
+          </text>
+        </g>
       )}
-      {empty && availableThumbnail === null && (
-        <text className="sm-container-empty" x={container.width / 2} y={container.height - 22} textAnchor="middle">
+
+      {/* 씬 색은 이름 앞의 점 하나로만 말한다 — 상자 전체를 칠하면 씬 일곱 개가 일곱 색 덩어리로 서서 선이 묻힌다.
+          같은 색이 tree 의 점에도 있다. */}
+      <circle className="sm-container-dot" cx={textX + 4} cy={CARD_INSET + 11} r={4.5} />
+      <text className="sm-container-name" x={textX + 15} y={CARD_INSET + 16}>
+        {truncate(title, SCENE_NAME_WIDTH)}
+      </text>
+      {!empty && (
+        <text className="sm-container-count mono" textAnchor="end" x={container.width - CARD_INSET} y={CARD_INSET + 16}>
+          {copy.screenCount(container.screens.length)}
+        </text>
+      )}
+      {/* 능력 · 전이 수. 응답에 없는 씬(scene === null)은 능력을 모르므로 그 줄을 비운다. */}
+      {scene !== null && (
+        <text className="sm-container-info" x={textX} y={CARD_INSET + 42}>
+          {copy.boxCapabilities(scene.capabilities.runnable, scene.capabilities.needsProbe)}
+        </text>
+      )}
+      <text className="sm-container-info" x={textX} y={CARD_INSET + 62}>
+        {copy.boxRoutes(counts.out, counts.in)}
+      </text>
+      {empty && (
+        <text className="sm-container-empty" x={textX} y={CARD_INSET + 84}>
           {copy.noScreens}
         </text>
       )}
