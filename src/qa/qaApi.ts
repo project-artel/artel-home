@@ -397,8 +397,10 @@ export function qaStartConflict(
 export async function listQaTries(
   projectId: string,
   signal?: AbortSignal,
+  /** 서버가 받는 범위는 1~100. 대시보드의 시나리오별 결과가 100 을 쓴다(ARTEL-1164). */
+  size = 20,
 ): Promise<QaTry[]> {
-  const params = new URLSearchParams({ projectId, size: '20' })
+  const params = new URLSearchParams({ projectId, size: String(size) })
   const response = await apiFetch(`${QA_ROOT}?${params}`, { signal })
   const data = await readJson(response)
   if (!Array.isArray(data)) {

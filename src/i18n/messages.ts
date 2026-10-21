@@ -10,6 +10,7 @@ import { adminUsageEn, adminUsageKo } from './messages/adminUsage'
 import { commonEn, commonKo } from './messages/common'
 import { contentMapEn, contentMapKo } from './messages/contentMap'
 import { gameBuildsEn, gameBuildsKo } from './messages/gameBuilds'
+import { dashboardEn, dashboardKo } from './messages/dashboard'
 import { gameFunctionsEn, gameFunctionsKo } from './messages/gameFunctions'
 import { issuesEn, issuesKo } from './messages/issues'
 import { knowledgeEn, knowledgeKo } from './messages/knowledge'
@@ -49,6 +50,7 @@ export const messages = {
     common: commonEn,
     contentMap: contentMapEn,
     gameBuilds: gameBuildsEn,
+    dashboard: dashboardEn,
     gameFunctions: gameFunctionsEn,
     issues: issuesEn,
     discussions: discussionsEn,
@@ -76,6 +78,7 @@ export const messages = {
     common: commonKo,
     contentMap: contentMapKo,
     gameBuilds: gameBuildsKo,
+    dashboard: dashboardKo,
     gameFunctions: gameFunctionsKo,
     issues: issuesKo,
     discussions: discussionsKo,
