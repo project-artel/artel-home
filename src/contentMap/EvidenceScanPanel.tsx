@@ -87,6 +87,8 @@ export function EvidenceScanPanel({
   const copy = t.contentMap.scan
   const layoutCopy = t.contentMap.layout
   const [open, setOpen] = useState(defaultOpen)
+  const inFlight = useRef(false)
+  const [coolingDown, setCoolingDown] = useState(false)
   const detailsId = useId()
   const [instances, setInstances] = useState<InstancesState>({ status: 'loading' })
   const [selectedInstanceId, setSelectedInstanceId] = useState('')
@@ -145,7 +147,10 @@ export function EvidenceScanPanel({
     : connected[0]?.id ?? ''
 
   const blocked = describeBlock(instances, connected.length)
-  const disabled = blocked !== null || scan.phase === 'running' || instanceId === ''
+  // 게임이 아직 스캔하는 중이면 다시 누를 수 없다(ARTEL-1172). 요청이 받아들여진 뒤 버튼이 다시 켜져, 스캔이 도는 동안
+  // 같은 빌드에 두 번째 스캔이 들어갔다.
+  const scanInProgress = events.scan?.state === 'REQUESTED'
+  const disabled = blocked !== null || scan.phase === 'running' || scanInProgress || coolingDown || instanceId === ''
   // 아직 확인 중이면 시각이 없다. 그때 blocked 는 반드시 'loading' 이므로 빈
   // 문자열이 문장 안으로 들어갈 일은 없다.
   const checkedAtLabel = instances.status === 'loading' ? '' : formatDateTime(instances.checkedAt)
@@ -160,6 +165,11 @@ export function EvidenceScanPanel({
   /** 버튼과 agent 가 함께 쓴다. 실패 문구를 돌려줘 agent 가 오류로 전할 수 있게 한다. */
   async function start(withTestCases: boolean): Promise<{ failure: string | null }> {
     if (instanceId === '') return { failure: null }
+    // 누르는 즉시 잠근다(ARTEL-1172). `disabled` 는 상태라 다음 그리기 전까지 버튼이 살아 있어, 빠르게 두 번 누르면 요청이
+    // 두 건 나갔다. ref 는 같은 틱 안에서 바로 보인다. 끝나도 잠깐(SCAN_COOLDOWN_MS) 더 막는다 — 스캔 상태 SSE 가
+    // `REQUESTED` 를 알려 오기 전의 틈에 다시 누르는 것을 막는다.
+    if (inFlight.current) return { failure: null }
+    inFlight.current = true
     setScanRun({ token: refreshToken, scan: { phase: 'running', withTestCases } })
 
     try {
@@ -176,6 +186,12 @@ export function EvidenceScanPanel({
       const message = error instanceof ProjectApiError ? apiErrorMessage(error, t) : copy.failed
       setScanRun({ token: refreshToken, scan: { phase: 'failed', message } })
       return { failure: message }
+    } finally {
+      setCoolingDown(true)
+      window.setTimeout(() => {
+        inFlight.current = false
+        setCoolingDown(false)
+      }, SCAN_COOLDOWN_MS)
     }
   }
 
@@ -185,7 +201,8 @@ export function EvidenceScanPanel({
   // 두 스캔 버튼이 비활성일 때 보이는 이유를 그대로 돌려준다.
   function scanBlockedReason(): string | null {
     if (blocked !== null) return blockedCopy(blocked)
-    if (scan.phase === 'running') return copy.running
+    if (scan.phase === 'running' || coolingDown) return copy.running
+    if (scanInProgress) return t.contentMap.scanStatus.requested
     if (instanceId === '') return copy.noInstanceOption
     return null
   }
@@ -366,6 +383,9 @@ function ScanBrief({ events, announce }: { events: ContentMapEventsState; announ
     </p>
   )
 }
+
+/** 스캔 요청이 끝난 뒤 같은 버튼을 다시 받기까지의 틈. */
+const SCAN_COOLDOWN_MS = 2000
 
 /** 왜 스캔을 시작할 수 없는지. null 이면 막는 것이 없다. */
 type BlockReason = 'loading' | 'loadFailed' | 'noInstances' | 'noneConnected'
