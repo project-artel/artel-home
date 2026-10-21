@@ -164,7 +164,7 @@ export function FreeRunPicker({
               )}
             </div>
             {shown.length === 0 ? (
-              <p className="frp-empty">{group === 'picked' ? m.nonePicked : m.noMatch}</p>
+              <p className="frp-empty">{group === 'picked' && picked.size === 0 ? m.nonePicked : m.noMatch}</p>
             ) : (
               <ul aria-label={m.title} className="frp-list cp-scope" ref={setListNode}>
                 {shown.map((item) => (
