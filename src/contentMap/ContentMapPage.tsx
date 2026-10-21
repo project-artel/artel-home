@@ -1,15 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { LABEL_NODE_LIMIT } from '../knowledge/knowledgeLayout'
 import { useKnowledgeGraph } from '../knowledge/useKnowledgeGraph'
 import { formatDateTime } from '../projects/formatters'
+import { gameBuildDetailHref } from '../projects/workspace/sections'
 import { CanvasViewportControls } from './CanvasViewportControls'
 import { ContentMapInspector } from './ContentMapInspector'
 import { describeGenerationBlock } from './contentMapTestCases'
 import { ContentMapTree } from './ContentMapTree.tsx'
-import { CaptureHeader, ContentMapSummary } from './ContentMapSummary'
+import { CaptureHeader, ContentMapSummary, SummaryCounts } from './ContentMapSummary'
 import type { ContentMapSelection, ContentMapView } from './contentMapTypes'
 import { EvidenceScanPanel } from './EvidenceScanPanel'
 import { indexScreenMap } from './screenInspection'
@@ -64,9 +65,15 @@ export function ContentMapRedirect() {
 export function ContentMapReport({
   buildId,
   projectId,
+  about,
+  buildPicker,
 }: {
   buildId: string
   projectId: string
+  /** 섹션이 무엇을 그리는지 한 문장. 머리 줄 InfoHint 에 이 화면의 설명과 함께 선다. */
+  about: string
+  /** 머리 줄 오른쪽에 서는 빌드 select. 섹션이 만든다(agent field binding 이 거기 있다). */
+  buildPicker: ReactNode
 }) {
   const { t } = useI18n()
   const copy = t.contentMap
@@ -76,11 +83,30 @@ export function ContentMapReport({
   const events = useContentMapEvents(projectId, buildId)
   const refreshing = status === 'loading'
 
+  // 머리 줄. 첫 로드 · 실패 화면에도 선다 — 빌드 select 가 여기 있어서, 빠지면 불러오는 동안 빌드를 바꿀 수 없다.
+  // 제목은 작업공간 머리의 `화면 지도` 하나다(ARTEL-1172). 예전 H1 `콘텐츠 맵` 이 같은 화면에 두 번째 제목을 세웠다 —
+  // 그 설명은 이 줄의 InfoHint 로 옮겼다. 돌아가는 곳은 이 빌드의 상세다(예전 링크는 이름과 달리 QA 실행으로 갔다).
+  const meta = (readAt: string) => (
+    <header className="cm-page-meta">
+      <Link className="back-link" to={gameBuildDetailHref(projectId, buildId)}>
+        {copy.page.back}
+      </Link>
+      <span className="cm-eyebrow mono">{copy.page.eyebrow(buildId)}</span>
+      {readAt.length > 0 && <span className="cm-read-at">{copy.page.readAt(readAt)}</span>}
+      <InfoHint>
+        <span className="cm-about">{about}</span>
+        <span className="cm-about">{copy.page.subtitle}</span>
+      </InfoHint>
+      <span className="cm-page-tools">{buildPicker}</span>
+    </header>
+  )
+
   // 첫 로드에만 화면을 비운다. 새로고침 중에는 직전 스냅샷이 그대로 남고
   // `aria-busy` 만 붙는다 — 살아 있는 갱신이 레이아웃을 흔들지 않는다.
   if (refreshing && view === null) {
     return (
       <section aria-busy="true" className="page content-map">
+        {meta('')}
         <p className="panel-empty">{copy.states.loading}</p>
       </section>
     )
@@ -91,6 +117,7 @@ export function ContentMapReport({
   if (status === 'error' && view === null) {
     return (
       <section className="page content-map">
+        {meta('')}
         <div className="panel-message" role="alert">
           <p className="panel-message-copy">{copy.states.loadFailed}</p>
           <button className="button button--secondary" onClick={reload} type="button">
@@ -115,21 +142,7 @@ export function ContentMapReport({
 
   return (
     <section aria-busy={refreshing || undefined} className="page content-map">
-      <header className="cm-page-head">
-        <div>
-          <Link className="back-link" to={`/projects/${encodeURIComponent(projectId)}/qa`}>
-            {copy.page.back}
-          </Link>
-          <p className="cm-eyebrow mono">{copy.page.eyebrow(buildId)}</p>
-          <h1>
-            {copy.page.title}
-            <InfoHint>{copy.page.subtitle}</InfoHint>
-          </h1>
-        </div>
-        <div className="cm-page-actions">
-          {readAt.length > 0 && <p className="cm-read-at">{copy.page.readAt(readAt)}</p>}
-        </div>
-      </header>
+      {meta(readAt)}
 
       {/* 끊긴 상태. 아래 내용은 그대로 두되 지금의 사실인 척하지 않는다. */}
       {!online && (
@@ -156,10 +169,13 @@ export function ContentMapReport({
 
       <EvidenceScanPanel
         buildId={buildId}
+        // 지도를 그릴 수 없으면 이 패널이 화면의 전부다 — 처음부터 펼친다.
+        defaultOpen={view.contentMap === null || view.contentMap.ingestedAt === null || view.scenes.length === 0}
         events={events}
         generationBlock={describeGenerationBlock(view)}
         projectId={projectId}
         refreshToken={reloadToken}
+        summary={view.scenes.length > 0 ? <SummaryCounts view={view} /> : undefined}
       />
 
       <ContentMapBody projectId={projectId} view={view} />
@@ -221,13 +237,7 @@ function ContentMapBody({ projectId, view }: { projectId: string; view: ContentM
     )
   }
 
-  return (
-    <>
-      <ContentMapSummary view={view} />
-      <SceneGraphView projectId={projectId} view={view} />
-      <CaptureHeader view={view} />
-    </>
-  )
+  return <SceneGraphView projectId={projectId} view={view} />
 }
 
 /**
@@ -312,7 +322,7 @@ function SceneGraphView({ projectId, view }: { projectId: string; view: ContentM
       </aside>
 
       <section aria-labelledby="cm-graph-title" className="panel cm-canvas-panel">
-        <header className="panel-header">
+        <header className="cm-canvas-head">
           <h2 id="cm-graph-title">
             {copy.title}
             <InfoHint>{t.contentMap.viewport.hint}</InfoHint>
@@ -324,28 +334,13 @@ function SceneGraphView({ projectId, view }: { projectId: string; view: ContentM
               model.screenTransitions.length,
             )}
           </p>
+          <CanvasViewportControls viewport={viewport} />
         </header>
 
-        {/* 씬은 있는데 아무것도 잇지 않는다. 흩어진 점들을 보고 사용자가
-            혼자 결론 내리게 두지 않는다. */}
-        {model.sceneEdges.length === 0 && (
-          <div className="cm-notice" role="status">
-            <p className="cm-notice-title">{copy.noEdgesTitle}</p>
-            <p className="cm-notice-copy">{copy.noEdgesCopy(view.scenes.length)}</p>
-          </div>
-        )}
-
-        {/* 씬은 있는데 화면이 하나도 없다. 오류가 아니라 아직 QA 런이 없다는 뜻이고, 그 말을
-            그림 위에 적어 두지 않으면 빈 컨테이너들이 그리다 만 화면으로 읽힌다. */}
-        {model.screenCount === 0 && (
-          <div className="cm-notice" role="status">
-            <p className="cm-notice-title">{screenCopy.noScreensTitle}</p>
-            <p className="cm-notice-copy">{screenCopy.noScreensCopy(model.containers.length)}</p>
-          </div>
-        )}
-
-        <CanvasViewportControls viewport={viewport} />
-
+        {/*
+          지도가 화면의 몸통이다(ARTEL-1172). 안내는 그림을 아래로 밀지 않게 그림 위 왼쪽에 얹는다 — 예전에는 안내
+          상자 둘이 쌓여 그림이 칸 아래쪽 300px 로 밀렸다.
+        */}
         <div className="cm-canvas-frame">
           <ScreenMapCanvas
             layout={layout}
@@ -353,16 +348,42 @@ function SceneGraphView({ projectId, view }: { projectId: string; view: ContentM
             selection={selection}
             viewport={viewport}
           />
+
+          {(model.sceneEdges.length === 0 || model.screenCount === 0) && (
+            <div className="cm-canvas-notices">
+              {/* 씬은 있는데 아무것도 잇지 않는다. 흩어진 점들을 보고 사용자가
+                  혼자 결론 내리게 두지 않는다. */}
+              {model.sceneEdges.length === 0 && (
+                <div className="cm-notice" role="status">
+                  <p className="cm-notice-title">{copy.noEdgesTitle}</p>
+                  <p className="cm-notice-copy">{copy.noEdgesCopy(view.scenes.length)}</p>
+                </div>
+              )}
+              {/* 씬은 있는데 화면이 하나도 없다. 오류가 아니라 아직 QA 런이 없다는 뜻이고, 그 말을
+                  그림 위에 적어 두지 않으면 빈 컨테이너들이 그리다 만 화면으로 읽힌다. */}
+              {model.screenCount === 0 && (
+                <div className="cm-notice" role="status">
+                  <p className="cm-notice-title">{screenCopy.noScreensTitle}</p>
+                  <p className="cm-notice-copy">{screenCopy.noScreensCopy(model.containers.length)}</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        {model.unmappedScenes > 0 && (
-          <p className="cm-canvas-note">{copy.unmappedNote(model.unmappedScenes)}</p>
-        )}
-        {model.containers.length > LABEL_NODE_LIMIT && (
-          <p className="cm-canvas-note">{copy.labelNote}</p>
-        )}
-
-        <ScreenMapLegend model={model} />
+        <footer className="cm-canvas-foot">
+          {model.unmappedScenes > 0 && (
+            <p className="cm-canvas-note">{copy.unmappedNote(model.unmappedScenes)}</p>
+          )}
+          {model.containers.length > LABEL_NODE_LIMIT && (
+            <p className="cm-canvas-note">{copy.labelNote}</p>
+          )}
+          {/* `details` 라 접혀도 DOM 에 남는다 — 범례는 `aria-hidden` 캔버스의 어휘를 글로 적는 유일한 곳이다. */}
+          <details className="cm-legend-toggle">
+            <summary>{t.contentMap.layout.legendOpen}</summary>
+            <ScreenMapLegend model={model} />
+          </details>
+        </footer>
       </section>
 
       <aside className="panel cm-inspector-panel" ref={detailPane}>
@@ -373,6 +394,13 @@ function SceneGraphView({ projectId, view }: { projectId: string; view: ContentM
           model={model}
           onClear={() => setSelection(null)}
           onSelect={setSelection}
+          overview={
+            <section aria-labelledby="cm-overview-title" className="cm-overview">
+              <h3 id="cm-overview-title">{t.contentMap.layout.overviewTitle}</h3>
+              <ContentMapSummary view={view} />
+              <CaptureHeader view={view} />
+            </section>
+          }
           selection={selection}
         />
       </aside>

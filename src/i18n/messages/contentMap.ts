@@ -6,6 +6,13 @@ export const contentMapEn = {
     /** The link on a build row, next to the performance one. */
     build: 'Content map',
   },
+  /** The map-first layout (ARTEL-1172). */
+  layout: {
+    detailsOpen: 'Details',
+    detailsClose: 'Hide details',
+    overviewTitle: 'This build',
+    legendOpen: 'Legend',
+  },
   page: {
     back: '← Back to the builds',
     eyebrow: (buildId: string) => `Build ${buildId}`,
@@ -535,6 +542,12 @@ export const contentMapEn = {
 export const contentMapKo: Localized<typeof contentMapEn> = {
   entry: {
     build: '콘텐츠 맵',
+  },
+  layout: {
+    detailsOpen: '자세히',
+    detailsClose: '접기',
+    overviewTitle: '이 빌드',
+    legendOpen: '범례',
   },
   page: {
     back: '← 빌드 목록으로',

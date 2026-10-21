@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import type { Messages } from '../i18n/messages'
@@ -66,6 +66,7 @@ export function ContentMapInspector({
   selection,
   onSelect,
   onClear,
+  overview,
 }: {
   model: ScreenMapModel
   index: ScreenMapIndex
@@ -74,6 +75,8 @@ export function ContentMapInspector({
   selection: ContentMapSelection | null
   onSelect: (selection: ContentMapSelection) => void
   onClear: () => void
+  /** 아무것도 고르지 않았을 때 안내 아래에 서는 빌드 개요(ARTEL-1172). */
+  overview?: ReactNode
 }) {
   const { t } = useI18n()
   const copy = t.contentMap.inspector
@@ -103,6 +106,7 @@ export function ContentMapInspector({
           selection={selection}
         />
       </section>
+      {selection === null && overview}
     </div>
   )
 }

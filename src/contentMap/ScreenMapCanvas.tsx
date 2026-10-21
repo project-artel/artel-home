@@ -346,7 +346,11 @@ function ContainerMark({
     >
       <rect className="sm-container-frame" height={container.height} rx="6" width={container.width} />
       <rect className="sm-container-head" height={CONTAINER_HEAD_HEIGHT} rx="5" width={container.width} />
-      <text className="sm-container-name" x={12} y={19}>
+      {/* 씬 색은 머리의 점 하나와 머리 아래 선으로만 말한다(ARTEL-1172) — 상자 전체를 칠하면 씬 일곱 개가 일곱 색
+          덩어리로 서서 선이 묻힌다. 같은 색이 tree 의 scene chip 에도 있다. */}
+      <circle className="sm-container-dot" cx={15} cy={15} r={4} />
+      <line className="sm-container-rule" x1={0} x2={container.width} y1={CONTAINER_HEAD_HEIGHT} y2={CONTAINER_HEAD_HEIGHT} />
+      <text className="sm-container-name" x={26} y={19}>
         {truncate(title, SCENE_NAME_WIDTH)}
       </text>
       {/* 0 은 적지 않는다. 몸통이 이미 그 사실을 문장으로 말하고, 여기 숫자를 더 놓으면

@@ -1,13 +1,13 @@
 import { useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
-import { InfoHint } from '../design-system/primitives/InfoHint'
 import { buildOptionText, selectBuild } from '../projects/gameBuilds'
 import { useWorkspace } from '../projects/workspace/workspaceContext'
 import { useFieldBinding } from '../projectAgent/bindings'
 import { requireKnownId } from '../projectAgent/specs/fieldWriters'
 import { CONTENT_MAP_BUILD_FIELD } from '../projectAgent/specs/contentMap'
 import { ContentMapReport } from './ContentMapPage'
+import './contentMap.css'
 
 /**
  * 프로젝트 작업공간의 화면 지도 섹션.
@@ -52,32 +52,33 @@ export function ContentMapSection() {
     setSearchParams({ build: selectedBuild.id }, { replace: true })
   }, [requestedBuildId, selectedBuild, setSearchParams])
 
+  const buildPicker =
+    selectedBuild === undefined ? null : (
+      <label className="cm-build-picker">
+        <span>{copy.selectLabel}</span>
+        <select
+          ref={buildSelect}
+          onChange={(event) => setSearchParams({ build: event.target.value })}
+          value={selectedBuild.id}
+        >
+          {builds.map((build) => (
+            <option key={build.id} value={build.id}>
+              {buildOptionText(build, editorLabel)}
+            </option>
+          ))}
+        </select>
+      </label>
+    )
+
   return (
-    <section className="cm-section">
-      <header className="cm-section-head">
-        <div>
-          <h2>
-            {copy.title}
-            <InfoHint>{copy.subtitle}</InfoHint>
-          </h2>
-        </div>
-        {selectedBuild !== undefined && (
-          <label className="cm-build-picker">
-            <span>{copy.selectLabel}</span>
-            <select
-              ref={buildSelect}
-              onChange={(event) => setSearchParams({ build: event.target.value })}
-              value={selectedBuild.id}
-            >
-              {builds.map((build) => (
-                <option key={build.id} value={build.id}>
-                  {buildOptionText(build, editorLabel)}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-      </header>
+    <section aria-labelledby="cm-section-title" className="cm-section">
+      {/*
+        작업공간 머리가 이미 `화면 지도` 를 보인다(ARTEL-1172). 여기서 한 번 더 크게 세우면 제목이 둘이 되므로 이
+        제목은 화면 낭독기에만 남기고, 설명과 빌드 select 는 아래 머리 줄로 간다.
+      */}
+      <h2 className="visually-hidden" id="cm-section-title">
+        {copy.title}
+      </h2>
 
       {selectedBuild === undefined ? (
         <div className="panel-message">
@@ -86,7 +87,9 @@ export function ContentMapSection() {
         </div>
       ) : (
         <ContentMapReport
+          about={copy.subtitle}
           buildId={selectedBuild.id}
+          buildPicker={buildPicker}
           key={selectedBuild.id}
           projectId={projectId}
         />

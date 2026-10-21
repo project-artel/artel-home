@@ -8,31 +8,40 @@ import {
 } from './contentMapTypes'
 
 /**
- * 빌드가 지금 어떤 상태인지, 숫자로.
- *
- * 그림 위에 놓이는 이유는 순서 때문이다. "씬이 몇 개고 그중 몇 개를 밟았나"
- * 는 그림을 보기 전에 답이 나와야 하고, 그림은 그 숫자가 왜 그런지를
- * 설명하는 자리다.
+ * 빌드의 수 네 개 한 줄. 근거 줄 왼쪽에 선다 — 그림을 보기 전에 "씬이 몇 개고 그중 몇 개를 밟았나" 가 먼저
+ * 답이 나와야 한다.
+ */
+export function SummaryCounts({ view }: { view: ContentMapView }) {
+  const { t } = useI18n()
+  const copy = t.contentMap.summary
+  const totals = sumCapabilities(view.scenes)
+  const walked = view.scenes.filter((scene) => scene.walked).length
+
+  return (
+    <p className="cm-summary-line">
+      <span>{copy.scenes(view.scenes.length)}</span>
+      <span aria-hidden="true">·</span>
+      <span>{copy.walked(walked)}</span>
+      <span aria-hidden="true">·</span>
+      <span>{copy.capabilities(totals.total)}</span>
+      <span aria-hidden="true">·</span>
+      <span>{copy.transitions(view.edges.length)}</span>
+    </p>
+  )
+}
+
+/**
+ * 빌드가 지금 어떤 상태인지, 숫자로(ARTEL-1172). 아무것도 고르지 않았을 때 오른쪽 패널이 이것을 보인다 — 예전에는
+ * 그림 위 한 줄을 통째로 차지해 지도를 화면 아래로 밀었다.
  */
 export function ContentMapSummary({ view }: { view: ContentMapView }) {
   const { t } = useI18n()
   const copy = t.contentMap.summary
   const totals = sumCapabilities(view.scenes)
-  const walked = view.scenes.filter((scene) => scene.walked).length
   const { verified, total } = view.verification
 
   return (
     <div className="cm-summary">
-      <p className="cm-summary-line">
-        <span>{copy.scenes(view.scenes.length)}</span>
-        <span aria-hidden="true">·</span>
-        <span>{copy.walked(walked)}</span>
-        <span aria-hidden="true">·</span>
-        <span>{copy.capabilities(totals.total)}</span>
-        <span aria-hidden="true">·</span>
-        <span>{copy.transitions(view.edges.length)}</span>
-      </p>
-
       <div className="cm-summary-grid">
         <section className="cm-summary-block">
           <h3>{copy.capabilityTitle}</h3>
