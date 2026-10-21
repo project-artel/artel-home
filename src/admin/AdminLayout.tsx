@@ -4,6 +4,7 @@ import { useI18n } from '../i18n/useI18n'
 import './admin.css'
 import './shared/dashboard.css'
 import { InfoHint } from '../design-system/primitives/InfoHint'
+import { UsageStatsPrompt } from './UsageStatsPrompt'
 
 /** The tab order. Reading screens first, then the two that run the installation. */
 const ADMIN_TABS = ['qa', 'usage', 'knowledge', 'graph', 'labels', 'users', 'settings'] as const
@@ -41,6 +42,7 @@ export function AdminLayout() {
       <Suspense fallback={<p className="admin-console__loading">{t.admin.states.loading}</p>}>
         <Outlet />
       </Suspense>
+      <UsageStatsPrompt />
     </div>
   )
 }
