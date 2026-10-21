@@ -551,6 +551,30 @@ h1 {
   }
 }
 
+/* 휴대폰 폭에서는 상단 바 버튼이 로고 옆 자리를 넘어 페이지 전체를 옆으로 밀었다(390px 창에서 83px).
+   글자 로고는 링크의 aria-label 이 대신 말하므로 숨기고 간격을 줄인다. 그래도 모자라면 버튼 줄 안에서만 밀린다. */
+@media (max-width: 480px) {
+  .top-bar {
+    gap: var(--space-2);
+    padding: 0 var(--space-3);
+  }
+
+  .brand > span:not(.brand-mark):not(.product-name) {
+    display: none;
+  }
+
+  .top-bar-actions {
+    gap: var(--space-1);
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .top-bar-link {
+    padding: 0 var(--space-1);
+  }
+}
+
 /* ── Workspace pages ─────────────────────────────────────────────────────── */
 
 /* The shell centred a single empty state. Pages are top-aligned documents that
@@ -6083,6 +6107,8 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
     border-right: 0;
     border-bottom: 1px solid var(--color-border-subtle);
     overflow-x: auto;
+    /* 가로 스트립 밑에 기본 스크롤 막대가 한 줄 더 생겼다. 끝에서 잘린 항목이 밀 수 있다는 것을 보여 준다. */
+    scrollbar-width: none;
   }
 
   .project-nav-list {
