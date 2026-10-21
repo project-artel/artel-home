@@ -146,6 +146,13 @@ export type FlowStep = {
   lines: FlowLine[]
   /** `report_step` 이 낸 판정. 아직 안 냈으면 null. */
   passed: boolean | null
+  /**
+   * 왜 그렇게 판정했는지. `report_step` 이 실은 `thought` 다.
+   *
+   * 덩어리의 마지막 줄로 따로 세운다 — 중간에 한 생각들과 같은 자리에 두면 "무엇을 하려
+   * 했나" 와 "왜 그렇게 끝났나" 가 섞여, 읽는 사람이 가장 먼저 찾는 것이 묻힌다.
+   */
+  reason: string | null
   /** 판정 말고 실제로 부른 횟수. 0 이면 아무것도 안 해 보고 판정한 것이다. */
   attempts: number
 }
@@ -184,7 +191,7 @@ export function buildFlowSteps(logs: readonly QaLog[], names: ObjectNames): Flow
 
     let block = byStep.get(step)
     if (block === undefined) {
-      block = { step, lines: [], passed: null, attempts: 0 }
+      block = { step, lines: [], passed: null, reason: null, attempts: 0 }
       byStep.set(step, block)
       saidByStep.set(step, new Set())
       steps.push(block)
@@ -194,15 +201,16 @@ export function buildFlowSteps(logs: readonly QaLog[], names: ObjectNames): Flow
     // 한 덩어리 안에서 같은 문장은 한 번만 적는다. 되풀이해 시도한 호출은 `thought` 를
     // 글자 그대로 다시 싣는다 — try 46 의 TC 20 에서 한 문장이 세 번 나왔다. 사이에 조작이
     // 끼므로 바로 앞만 봐서는 못 걸러낸다. 몇 번 시도했는지는 조작 줄이 이미 말한다.
-    if (call.thought !== null && !said.has(call.thought)) {
-      said.add(call.thought)
-      block.lines.push({ kind: 'thought', id: log.id, key: `${log.id}#t`, text: call.thought })
-    }
-
     if (call.tool === 'report_step') {
       const passed = call.args.passed
       if (typeof passed === 'boolean') block.passed = passed
+      if (call.thought !== null) block.reason = call.thought
       continue
+    }
+
+    if (call.thought !== null && !said.has(call.thought)) {
+      said.add(call.thought)
+      block.lines.push({ kind: 'thought', id: log.id, key: `${log.id}#t`, text: call.thought })
     }
 
     const payload = log.payload as Record<string, unknown> | null | undefined

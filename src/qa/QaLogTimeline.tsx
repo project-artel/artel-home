@@ -161,7 +161,7 @@ function QaFoldedEvent({
 }
 
 /** 덩어리 왼쪽의 원 하나. 생각과 행동을 눈으로 가른다. */
-function QaFlowDot({ kind, last }: { kind: FlowLine['kind'] | 'blocked'; last: boolean }) {
+function QaFlowDot({ kind, last }: { kind: FlowLine['kind'] | 'blocked' | 'verdict'; last: boolean }) {
   return (
     <span aria-hidden="true" className="qa-flow-rail">
       <span className={`qa-flow-dot qa-flow-dot--${kind}`} />
@@ -179,7 +179,7 @@ function QaFlowDot({ kind, last }: { kind: FlowLine['kind'] | 'blocked'; last: b
  * 판정은 글이 아니라 덩어리의 상태다. 오른쪽 아래에 통과 · 실패만 붙고, 아무것도 안 해 보고
  * 내린 판정이면 그렇게 적는다 — try 46 에서 43 스텝 중 32 가 그랬다.
  */
-function QaFlowStep({ block, tcNo }: { block: FlowStep; tcNo: number | null }) {
+function QaFlowStep({ block }: { block: FlowStep }) {
   const { t } = useI18n()
   const text = t.qa.run
 
@@ -200,19 +200,19 @@ function QaFlowStep({ block, tcNo }: { block: FlowStep; tcNo: number | null }) {
       ? null
       : [
           block.passed ? text.flowPassed : text.flowFailed,
-          block.attempts === 0 ? text.flowNoAttempt : null,
+          // 실패에만 붙인다. 보기만 하면 되는 TC 가 많아서(try 46 의 조작 0회 스텝 대부분이
+          // 그렇다) 통과에 붙이면 멀쩡한 판정을 흠처럼 읽게 한다.
+          !block.passed && block.attempts === 0 ? text.flowNoAttempt : null,
         ]
           .filter((part): part is string => part !== null)
           .join(' · ')
 
   return (
     <li className="qa-flow-step" data-log-id={block.lines[0]?.id}>
-      <p className={`qa-flow-label${tcNo === null ? ' qa-flow-label--plain' : ''}`}>
-        {tcNo === null ? text.flowStepLabel(block.step) : t.qa.steps.caseLabel(tcNo)}
-      </p>
       <div className="qa-flow-card">
         {shown.map((line, at) => {
-          const last = at === shown.length - 1
+          // 판정 줄이 아래에 붙으므로 마지막 조작 줄에서도 선을 잇는다.
+          const last = at === shown.length - 1 && block.passed === null
           if (line.kind === 'thought') {
             return (
               <p className="qa-flow-line" key={line.key}>
@@ -232,10 +232,16 @@ function QaFlowStep({ block, tcNo }: { block: FlowStep; tcNo: number | null }) {
             </p>
           )
         })}
-        {verdict !== null && (
-          <p className={`qa-flow-verdict qa-flow-verdict--${block.passed === true ? 'passed' : 'failed'}`}>
-            {verdict}
-          </p>
+        {block.passed !== null && (
+          <div
+            className={`qa-flow-verdict qa-flow-verdict--${block.passed ? 'passed' : 'failed'}${shown.length === 0 ? ' qa-flow-verdict--alone' : ''}`}
+          >
+            <QaFlowDot kind="verdict" last />
+            <p className="qa-flow-said">
+              {block.reason !== null && <span className="qa-flow-reason">{block.reason} </span>}
+              <span className="qa-flow-call">{verdict}</span>
+            </p>
+          </div>
         )}
       </div>
     </li>
@@ -459,6 +465,26 @@ export function QaLogTimeline({
     }
     return map
   }, [scenarioSteps])
+
+  /**
+   * 같은 TC 에 속한 스텝을 한 머리 아래로 모은다.
+   *
+   * 한 TC 가 스텝 여럿에 걸치면 전에는 같은 `TC n` 머리가 여러 번 찍혔다. TC 가 없는
+   * 조작 스텝은 저 혼자 한 묶음이고 스텝 번호를 머리로 쓴다.
+   */
+  const flowGroups = useMemo(() => {
+    const groups: { key: string; tcNo: number | null; blocks: FlowStep[] }[] = []
+    for (const block of flowSteps) {
+      const tcNo = regionByStep.get(block.step) ?? null
+      const last = groups[groups.length - 1]
+      if (tcNo !== null && last !== undefined && last.tcNo === tcNo) {
+        last.blocks.push(block)
+        continue
+      }
+      groups.push({ key: `${tcNo ?? 's'}:${block.step}`, tcNo, blocks: [block] })
+    }
+    return groups
+  }, [flowSteps, regionByStep])
 
   // Interleave TC-region headers between rows (#6). A log without its own step
   // (GAME_STATE, generic LOG) inherits the last region seen, so the noise between
@@ -695,8 +721,19 @@ export function QaLogTimeline({
 
       <ol className={flow ? 'qa-flow-list' : 'qa-log-list'}>
         {flow
-          ? flowSteps.map((block) => (
-              <QaFlowStep block={block} key={block.step} tcNo={regionByStep.get(block.step) ?? null} />
+          ? flowGroups.map((group) => (
+              <li className="qa-flow-group" key={group.key}>
+                <p className={`qa-flow-label${group.tcNo === null ? ' qa-flow-label--plain' : ''}`}>
+                  {group.tcNo === null
+                    ? t.qa.run.flowStepLabel(group.blocks[0].step)
+                    : t.qa.steps.caseLabel(group.tcNo)}
+                </p>
+                <ol className="qa-flow-blocks">
+                  {group.blocks.map((block) => (
+                    <QaFlowStep block={block} key={block.step} />
+                  ))}
+                </ol>
+              </li>
             ))
           : listItems.map((item) => {
               if (item.kind === 'header') {

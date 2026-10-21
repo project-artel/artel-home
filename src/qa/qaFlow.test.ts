@@ -108,7 +108,9 @@ test('a step gathers what was thought and what was done, in order', () => {
   )
 
   assert.equal(steps.length, 1)
-  assert.deepEqual(steps[0].lines.map((line) => line.kind), ['thought', 'action', 'thought'])
+  // 판정의 생각은 줄이 아니라 `reason` 이다.
+  assert.deepEqual(steps[0].lines.map((line) => line.kind), ['thought', 'action'])
+  assert.equal(steps[0].reason, '선행 화면이 아니다')
   assert.equal(steps[0].passed, false)
   assert.equal(steps[0].attempts, 1)
 })
@@ -132,7 +134,8 @@ test('the bookkeeping call is left out — it is neither a thought nor an action
     NO_NAMES,
   )
 
-  assert.equal(steps[0].lines.length, 1)
+  assert.equal(steps[0].lines.length, 0)
+  assert.equal(steps[0].reason, '봤다')
   assert.equal(steps[0].attempts, 0)
 })
 
@@ -162,8 +165,9 @@ test('a thought repeated by a retry is written once, not once per try', () => {
 
   assert.deepEqual(
     steps[0].lines.map((line) => (line.kind === 'thought' ? line.text : '·조작')),
-    ['CombineButton 을 누른다', '·조작', '·조작', '영역이 안 켜졌다'],
+    ['CombineButton 을 누른다', '·조작', '·조작'],
   )
+  assert.equal(steps[0].reason, '영역이 안 켜졌다')
   // 되풀이는 조작 줄 둘로 읽힌다 — 문장을 두 번 적어 말할 것이 아니다.
 })
 
@@ -189,4 +193,23 @@ test('a thought and its action are two lines with two different keys', () => {
   const keys = steps[0].lines.map((line) => line.key)
   assert.equal(new Set(keys).size, keys.length)
   assert.deepEqual(steps[0].lines.map((line) => line.id), ['1', '1'])
+})
+
+test('the verdict carries its reason, and that reason is not one of the steps lines', () => {
+  const steps = buildFlowSteps(
+    [
+      tool('1', 'press_key', { step: 9, key_code: 'Return', thought: '눌러 봅니다' }),
+      tool('2', 'report_step', { step: 9, passed: false, thought: '씬이 바뀌지 않아 실패입니다' }),
+    ],
+    NO_NAMES,
+  )
+
+  assert.equal(steps[0].reason, '씬이 바뀌지 않아 실패입니다')
+  assert.deepEqual(steps[0].lines.map((line) => line.kind), ['thought', 'action'])
+})
+
+test('a step with no verdict yet has no reason', () => {
+  const steps = buildFlowSteps([tool('1', 'click', { step: 3, target: '#1', thought: '눌러 봅니다' })], NO_NAMES)
+  assert.equal(steps[0].reason, null)
+  assert.equal(steps[0].passed, null)
 })
