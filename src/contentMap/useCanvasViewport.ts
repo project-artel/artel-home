@@ -69,15 +69,27 @@ export type CanvasViewport = {
   scale: number
 }
 
-export function useCanvasViewport(baseViewBox: string): CanvasViewport {
+export type CanvasViewportOptions = {
+  /**
+   * Keep the reader's pan and zoom when the base viewBox changes (ARTEL-1190).
+   *
+   * Off by default, and the screen map keeps it off: there a new base means different data. The knowledge graph turns
+   * it on because its base moves under the same data, every frame, while the forces settle and while a node is
+   * dragged. Dropping the view there would throw a zoomed-in reader back to the whole drawing on every drag.
+   */
+  keepView?: boolean
+}
+
+export function useCanvasViewport(baseViewBox: string, options: CanvasViewportOptions = {}): CanvasViewport {
   const base = useMemo(() => parseViewBox(baseViewBox), [baseViewBox])
+  const keepView = options.keepView === true
 
   // The rectangle is stored with the base it was derived from, so a stale one
   // is never read. Comparing on read rather than clearing from an effect means
   // there is no frame in which the drawing is framed by a rectangle belonging
   // to data it no longer shows.
   const [view, setView] = useState<{ base: ViewRect; rect: ViewRect } | null>(null)
-  const rect = view !== null && sameRect(view.base, base) ? view.rect : base
+  const rect = view !== null && (keepView || sameRect(view.base, base)) ? view.rect : base
 
   const svg = useRef<SVGSVGElement | null>(null)
 
