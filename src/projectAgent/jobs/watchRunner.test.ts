@@ -183,6 +183,8 @@ test('a scan watch ignores the stale snapshot and finishes on the new scan', asy
     ingestedDocuments: 5,
     error: null,
     testCases: null,
+    phase: null,
+    progress: null,
   }
   push(base)
   assert.equal(h.events.length, 0)

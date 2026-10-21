@@ -83,6 +83,8 @@ function scan(overrides: Partial<LastScan>): LastScan {
     ingestedDocuments: null,
     error: null,
     testCases: null,
+    phase: null,
+    progress: null,
     ...overrides,
   }
 }

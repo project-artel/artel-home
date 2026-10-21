@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { InfoHint } from '../design-system/primitives/InfoHint'
+import { ProgressRing } from '../design-system/primitives/ProgressRing'
 import { usePolling } from '../live/usePolling'
 import { apiErrorMessage } from '../projects/apiErrorMessage'
 import { formatDateTime } from '../projects/formatters'
@@ -17,6 +18,7 @@ import {
 import {
   documentIngestState,
   scanElapsedSeconds,
+  SCAN_PHASES,
   type ContentMapStreamState,
   type LastScan,
 } from './contentMapTypes'
@@ -25,6 +27,7 @@ import { readCarryOver } from './carryOverChoice'
 import { testCaseLibraryPath, type GenerationBlock } from './contentMapTestCases'
 import { generateContentMapTestCases } from './generateContentMapTestCases'
 import { requestEvidenceScan } from './requestEvidenceScan'
+import { scanPercent } from './scanProgress'
 
 /**
  * 근거를 다시 모으게 시키는 자리.
@@ -42,6 +45,8 @@ type ScanState =
   | { phase: 'idle' }
   | { phase: 'running'; withTestCases: boolean }
   | { phase: 'requested' }
+  /** 서버가 409 `scan_in_progress` 로 거절했다(ARTEL-1178). 실패가 아니다 — 남이 시킨 스캔의 진행을 보인다. */
+  | { phase: 'alreadyRunning' }
   | { phase: 'failed'; message: string }
 
 const IDLE_SCAN: ScanState = { phase: 'idle' }
@@ -183,6 +188,10 @@ export function EvidenceScanPanel({
       setScanRun({ token: refreshToken, scan: { phase: 'requested' } })
       return { failure: null }
     } catch (error: unknown) {
+      if (error instanceof ProjectApiError && error.code === SCAN_IN_PROGRESS) {
+        setScanRun({ token: refreshToken, scan: { phase: 'alreadyRunning' } })
+        return { failure: copy.alreadyRunning }
+      }
       const message = error instanceof ProjectApiError ? apiErrorMessage(error, t) : copy.failed
       setScanRun({ token: refreshToken, scan: { phase: 'failed', message } })
       return { failure: message }
@@ -316,6 +325,10 @@ export function EvidenceScanPanel({
         <p className="cm-outcome cm-outcome--notice">{copy.requested}</p>
       )}
 
+      {scan.phase === 'alreadyRunning' && (
+        <p className="cm-outcome cm-outcome--notice">{copy.alreadyRunning}</p>
+      )}
+
       {scan.phase === 'failed' && (
         <div className="inline-error" role="alert">
           <span aria-hidden="true">!</span>
@@ -346,7 +359,7 @@ export function EvidenceScanPanel({
       {/* 요청이 받아들여졌다는 사실만 알린다. 실패는 바로 위 role="alert" 가
           이미 읽어 주므로 여기서 또 알리면 두 번 말하게 된다. */}
       <p aria-live="polite" className="visually-hidden">
-        {scan.phase === 'requested' ? copy.requested : ''}
+        {scan.phase === 'requested' ? copy.requested : scan.phase === 'alreadyRunning' ? copy.alreadyRunning : ''}
       </p>
     </section>
   )
@@ -369,7 +382,10 @@ function ScanBrief({ events, announce }: { events: ContentMapEventsState; announ
     // 펼쳐져 있으면 펼침 안의 상태 줄이 같은 것을 읽어 준다. 둘 다 live 면 한 번 바뀔 때 두 번 들린다.
     <p aria-live={announce ? 'polite' : 'off'} className="cm-scan-brief">
       {scan === null && <span className="cm-brief cm-brief--warning">{copy.unknownTitle}</span>}
-      {scan !== null && scan !== undefined && (
+      {scan !== null && scan !== undefined && scan.state === 'REQUESTED' && scanPercent(scan) !== null && (
+        <ScanProgressBrief now={now} scan={scan} />
+      )}
+      {scan !== null && scan !== undefined && (scan.state !== 'REQUESTED' || scanPercent(scan) === null) && (
         <span className={`cm-brief cm-brief--${scanDotModifier(scan.state)}`}>
           <span aria-hidden="true" className={`cm-status-dot cm-status-dot--scan-${scanDotModifier(scan.state)}`} />
           {scan.state === 'REQUESTED'
@@ -393,8 +409,79 @@ function ScanBrief({ events, announce }: { events: ContentMapEventsState; announ
   )
 }
 
+/**
+ * 도는 스캔의 진행 한 줄(ARTEL-1179): 작은 도넛 · 단계 · % · 지금 여는 씬 · 경과. 접혀 있어도 얼마나 남았는지 보인다.
+ */
+function ScanProgressBrief({ scan, now }: { scan: LastScan; now: number }) {
+  const { t } = useI18n()
+  const copy = t.contentMap.scanStatus
+  const percent = scanPercent(scan) ?? 0
+  const phase = copy.phases[scan.phase ?? 'SCANNING']
+  const scene = scan.phase === 'SCANNING' ? scan.progress?.scene ?? null : null
+
+  return (
+    <span className="cm-brief cm-brief--progress">
+      <ProgressRing label={copy.progressLabel(phase, percent)} percent={percent} size={18} />
+      <span>{phase}</span>
+      <span className="mono cm-brief-percent">{percent}%</span>
+      {scene !== null && (
+        <span className="mono cm-brief-scene" title={scene}>
+          {scene}
+        </span>
+      )}
+      <span className="mono cm-brief-elapsed">{copy.elapsed(scanElapsedSeconds(scan, now))}</span>
+    </span>
+  )
+}
+
+/**
+ * 펼침 안의 진행(ARTEL-1179): 큰 도넛과 단계 줄. 지금 단계가 강조되고, 지난 단계는 흐리게, 남은 단계는 그대로 둔다.
+ * TC 를 함께 만들지 않는 스캔에는 TC 생성 단계가 없다.
+ */
+function ScanProgressDetail({ scan }: { scan: LastScan }) {
+  const { t } = useI18n()
+  const copy = t.contentMap.scanStatus
+  const percent = scanPercent(scan) ?? 0
+  const current = scan.phase ?? 'SCANNING'
+  const phases = SCAN_PHASES.filter((phase) => phase !== 'GENERATING_TEST_CASES' || scan.testCases !== null)
+  const currentIndex = phases.indexOf(current)
+  const progress = scan.progress
+
+  return (
+    <div className="cm-scan-progress">
+      <ProgressRing label={copy.progressLabel(copy.phases[current], percent)} percent={percent} size={80} />
+      <div className="cm-scan-progress-body">
+        <ol className="cm-scan-phases">
+          {phases.map((phase, index) => (
+            <li
+              aria-current={index === currentIndex ? 'step' : undefined}
+              className={index < currentIndex ? 'is-done' : index === currentIndex ? 'is-current' : undefined}
+              key={phase}
+            >
+              <span>{copy.phases[phase]}</span>
+            </li>
+          ))}
+        </ol>
+        {progress !== null && (
+          <p className="cm-scan-progress-count mono">
+            {current === 'SCANNING' ? copy.sceneCount(progress.done, progress.total) : copy.stepCount(progress.done, progress.total)}
+          </p>
+        )}
+        {current === 'SCANNING' && progress?.scene != null && (
+          <p className="cm-scan-progress-scene">
+            <span>{copy.currentScene}</span> <code className="cm-code">{progress.scene}</code>
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
+
 /** 스캔 요청이 끝난 뒤 같은 버튼을 다시 받기까지의 틈. */
 const SCAN_COOLDOWN_MS = 2000
+
+/** 같은 빌드에 스캔이 이미 돌고 있다는 서버 code(ARTEL-1178). */
+const SCAN_IN_PROGRESS = 'scan_in_progress'
 
 /** 왜 스캔을 시작할 수 없는지. null 이면 막는 것이 없다. */
 type BlockReason = 'loading' | 'loadFailed' | 'noInstances' | 'noneConnected'
@@ -459,8 +546,8 @@ function useTickingNow(active: boolean): number {
 }
 
 /**
- * 스캔 상태: `REQUESTED`·`SUCCEEDED`·`FAILED` 와 경과 시간뿐이다. **진행률
- * 막대를 두지 않는다** — `ScanState` 에 중간 진행이라는 개념 자체가 없다.
+ * 스캔 상태: `REQUESTED`·`SUCCEEDED`·`FAILED` 와 경과 시간. 도는 중이고 서버가 단계를 알려 주면 그 위에 도넛과 단계
+ * 줄을 둔다(ARTEL-1179). 단계를 모르는 옛 서버면 지금처럼 경과 시간만이다.
  *
  * `scan === null` 은 "이 서버가 이 빌드의 스캔을 모른다"는 사실이고,
  * `contract-contentmap.md` 가 못 박은 대로 영원한 진행 중으로 그리지 않는다.
@@ -500,6 +587,7 @@ function ScanStatusPanel({ events, projectId }: { events: ContentMapEventsState;
 
   return (
     <div aria-live="polite" className="cm-scan-status" role="status">
+      {scan.state === 'REQUESTED' && scanPercent(scan) !== null && <ScanProgressDetail scan={scan} />}
       <p>
         <span
           aria-hidden="true"

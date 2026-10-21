@@ -485,6 +485,25 @@ export type LastScan = {
   error: string | null
   /** "스캔하고 TC 생성" 으로 시킨 스캔의 TC 쪽 결과(ARTEL-1041). 그냥 스캔이면 null 이다. */
   testCases: ScanTestCases | null
+  /** 지금(끝났으면 마지막으로) 지난 단계(ARTEL-1178). 단계를 모르는 옛 서버면 null 이다. */
+  phase: ScanPhase | null
+  /** 지금 단계의 몇 개 중 몇 개. `SCANNING` 이면 씬 수다. 게임이 알려 준 적이 없으면 null 이다. */
+  progress: ScanProgress | null
+}
+
+/**
+ * 스캔 하나가 지나가는 단계. 앞 둘은 게임이, 뒤 둘은 서버가 옮긴다. 진행을 안 보내는 옛 SDK 면 결과가 올 때까지
+ * `SCANNING` 에 머문다.
+ */
+export const SCAN_PHASES = ['SCANNING', 'UPLOADING', 'INGESTING', 'GENERATING_TEST_CASES'] as const
+
+export type ScanPhase = (typeof SCAN_PHASES)[number]
+
+export type ScanProgress = {
+  done: number
+  total: number
+  /** 지금 여는 씬. 모르면 null. */
+  scene: string | null
 }
 
 export const SCAN_TEST_CASE_STATES = ['PENDING', 'GENERATED', 'SKIPPED', 'FAILED'] as const
