@@ -12,7 +12,8 @@
 }
 :root[data-theme='light'] .db { --db-series-1: #2f6fd0; }
 @media (prefers-color-scheme: light) { :root:not([data-theme='dark']) .db { --db-series-1: #2f6fd0; } }
-.section-content:has(> .db) { max-width: none; }
+/* 섹션 공통 폭(1240px)은 글 읽는 화면 기준이다. 대시보드는 넓은 모니터에서 옆을 비우지 않게 제목줄과 함께 넓힌다. */
+.workspace-body:has(.db) :is(.section-header, .section-content) { width: min(100%, 2000px); }
 
 .db-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--space-2); margin-top: calc(-1 * var(--space-2)); }
 .db-periods { display: flex; padding: 2px; border: 1px solid var(--color-border-subtle); border-radius: var(--radius-sm); background: var(--color-bg-surface); }
@@ -50,22 +51,22 @@
 
 /* 숫자 칸 */
 .db-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
-.db-kpi { display: grid; grid-template-columns: minmax(0, 1fr) 76px; align-items: center; gap: 8px; padding: 9px 12px; border: 1px solid var(--color-border-subtle); border-radius: 8px; background: var(--color-bg-surface); color: var(--color-text-primary); text-decoration: none; transition: border-color var(--motion-fast) var(--ease-standard); }
+.db-kpi { display: grid; grid-template-columns: minmax(0, 1fr) clamp(76px, 32%, 160px); align-items: center; gap: 12px; padding: 14px 16px; border: 1px solid var(--color-border-subtle); border-radius: 8px; background: var(--color-bg-surface); color: var(--color-text-primary); text-decoration: none; transition: border-color var(--motion-fast) var(--ease-standard); }
 .db-kpi:hover { border-color: var(--color-border-strong); }
 .db-kpi:focus-visible { outline: 2px solid var(--color-brand-accent); outline-offset: 2px; }
 .db-kpi-text { display: flex; flex-direction: column; min-width: 0; }
-.db-kpi-label { color: var(--color-text-secondary); font-size: 11.5px; }
+.db-kpi-label { color: var(--color-text-secondary); font-size: 12.5px; }
 .db-kpi-value { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
-.db-kpi-value b { font-family: var(--font-display); font-size: 21px; line-height: 1.2; }
-.db-kpi-delta { overflow: hidden; color: var(--color-text-muted); font-size: 11px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
-.db-spark { display: block; width: 76px; height: 26px; }
+.db-kpi-value b { font-family: var(--font-display); font-size: 28px; line-height: 1.2; }
+.db-kpi-delta { overflow: hidden; color: var(--color-text-muted); font-size: 12px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.db-spark { display: block; width: 100%; height: 36px; }
 .db-spark rect { fill: var(--color-border-strong); }
 .db-spark--default .db-spark-now { fill: var(--color-text-secondary); }
 .db-spark--critical .db-spark-now { fill: var(--color-status-critical); }
 .db-spark--warning .db-spark-now { fill: var(--color-status-warning); }
 .db-meter { display: block; flex: 1; height: 6px; border-radius: 3px; background: var(--color-bg-raised); overflow: hidden; }
 .db-meter > span { display: block; height: 100%; background: var(--color-text-secondary); }
-.db-kpi > .db-meter { flex: none; width: 76px; }
+.db-kpi > .db-meter { flex: none; width: 100%; }
 
 /* 세 질문 */
 .db-trio { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.85fr) minmax(0, 1.3fr); gap: 12px; }
@@ -116,7 +117,7 @@ a.db-row:focus-visible { outline: 2px solid var(--color-brand-accent); outline-o
 .db-status--running::before { box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-agent-reasoning) 22%, transparent); }
 
 /* 비용 · 이슈 */
-.db-pair { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; }
+.db-pair { display: grid; grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr); gap: 16px; }
 .db-pair--even { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .db-series { display: flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }
 .db-series button { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border: 1px solid currentColor; border-radius: 999px; background: transparent; font-family: var(--font-mono); font-size: 11px; font-weight: 600; cursor: pointer; }
@@ -126,12 +127,12 @@ a.db-row:focus-visible { outline: 2px solid var(--color-brand-accent); outline-o
 .db-cost-stats { display: flex; flex-wrap: wrap; gap: 8px 28px; margin: 0; }
 .db-cost-stats dt { color: var(--color-text-muted); font-size: 11px; }
 .db-cost-stats dd { margin: 0; font-family: var(--font-mono); font-size: 14px; font-weight: 600; }
-.db-chart, .db-weeks { display: block; width: 100%; height: auto; overflow: visible; }
+.db-chart, .db-weeks { display: block; width: 100%; overflow: visible; }
 .db-grid { stroke: var(--color-border-subtle); stroke-dasharray: 3 5; }
 .db-axis { stroke: var(--color-border-subtle); }
 .db-tick { fill: var(--color-text-muted); font-family: var(--font-mono); font-size: 11px; }
 .db-tick--day { fill: var(--color-text-secondary); font-size: 10.5px; }
-.db-weeks .db-tick { font-size: 9.5px; }
+.db-weeks .db-tick { font-size: 10.5px; }
 .db-line { fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
 .db-dot { fill: currentColor; stroke: var(--color-bg-surface); stroke-width: 1.5; }
 

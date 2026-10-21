@@ -1,3 +1,4 @@
+import { useCallback, useState } from 'react'
 import { formatTokens, shortDay, type CostPoint, type TryOutcome } from './dashboardModel'
 
 /** 숫자 칸 옆의 작은 막대. 마지막 막대(지금)만 [tone] 으로 칠한다. 장식이라 `aria-hidden` — 옆 숫자가 같은 것을 말한다. */
@@ -45,10 +46,30 @@ export function StackBar({ parts, label, tall = false }: { parts: { value: numbe
   )
 }
 
+/**
+ * 그래프를 놓은 칸의 폭(px). viewBox 를 이 폭으로 잡아 높이와 글씨는 고정하고 가로만 늘린다 — 고정 viewBox 를
+ * `width: 100%` 로 늘리면 넓은 모니터에서 축 글씨까지 같은 비율로 커졌다. 재기 전에는 [fallback] 으로 그린다.
+ */
+function useWidth(fallback: number): [number, (node: SVGSVGElement | null) => void] {
+  const [width, setWidth] = useState(fallback)
+  const ref = useCallback((node: SVGSVGElement | null) => {
+    if (node === null) return
+    const parent = node.parentElement
+    if (parent === null) return
+    const observer = new ResizeObserver(([entry]) => {
+      const next = Math.round(entry.contentRect.width)
+      if (next > 0) setWidth((current) => (current === next ? current : next))
+    })
+    observer.observe(parent)
+    return () => observer.disconnect()
+  }, [])
+  return [width, ref]
+}
+
+const CHART_HEIGHT = 240
 const X0 = 56
-const X1 = 776
-const TOP = 20
-const BOTTOM = 180
+const TOP = 16
+const BOTTOM = 208
 
 /**
  * 실행마다 비용 선 그래프(ARTEL-1164). 빌드마다 선 하나 — 같은 빌드의 실행끼리 잇는다. x 는 실행 순서라 날짜 간격과
@@ -65,9 +86,11 @@ export function CostChart({
   hidden: ReadonlySet<string>
   label: string
 }) {
+  const [width, ref] = useWidth(800)
+  const x1 = Math.max(X0 + 40, width - 12)
   const shown = points.filter((point) => !hidden.has(point.build))
   const max = Math.max(0.05, ...shown.map((point) => point.costUsd ?? 0)) * 1.15
-  const slot = (X1 - X0) / Math.max(1, points.length)
+  const slot = (x1 - X0) / Math.max(1, points.length)
   const x = (index: number) => X0 + slot * index + slot / 2
   const y = (value: number) => BOTTOM - (value / max) * (BOTTOM - TOP)
   const builds = [...new Set(points.map((point) => point.build))].filter((build) => !hidden.has(build))
@@ -79,12 +102,12 @@ export function CostChart({
     last = day
   })
   return (
-    <svg aria-label={label} className="db-chart" role="img" viewBox="0 0 800 210">
+    <svg aria-label={label} className="db-chart" ref={ref} role="img" style={{ height: CHART_HEIGHT }} viewBox={`0 0 ${width} ${CHART_HEIGHT}`}>
       {[0, 0.5, 1].map((fraction) => {
         const lineY = BOTTOM - fraction * (BOTTOM - TOP)
         return (
           <g key={fraction}>
-            <line className={fraction === 0 ? 'db-axis' : 'db-grid'} x1={44} x2={776} y1={lineY} y2={lineY} />
+            <line className={fraction === 0 ? 'db-axis' : 'db-grid'} x1={44} x2={x1} y1={lineY} y2={lineY} />
             <text className="db-tick" textAnchor="end" x={36} y={lineY + 4}>
               ${(max * fraction).toFixed(2)}
             </text>
@@ -106,7 +129,7 @@ export function CostChart({
         )
       })}
       {days.map((day) => (
-        <text className="db-tick db-tick--day" key={`${day.x}`} textAnchor="middle" x={day.x} y={205}>
+        <text className="db-tick db-tick--day" key={`${day.x}`} textAnchor="middle" x={day.x} y={CHART_HEIGHT - 6}>
           {day.label}
         </text>
       ))}
@@ -114,22 +137,27 @@ export function CostChart({
   )
 }
 
+const WEEKS_HEIGHT = 132
+const WEEKS_BASE = 112
+
 /** 주마다 새로 생김 · 해결 두 막대. */
 export function WeekBars({ added, resolved, labels, label }: { added: number[]; resolved: number[]; labels: string[]; label: string }) {
+  const [width, ref] = useWidth(300)
   const max = Math.max(1, ...added, ...resolved)
-  const slot = 300 / Math.max(1, labels.length)
+  const slot = width / Math.max(1, labels.length)
+  const bar = Math.min(16, Math.max(6, slot / 2 - 4))
   return (
-    <svg aria-label={label} className="db-weeks" role="img" viewBox="0 0 300 96">
-      <line className="db-axis" x1={0} x2={300} y1={78} y2={78} />
+    <svg aria-label={label} className="db-weeks" ref={ref} role="img" style={{ height: WEEKS_HEIGHT }} viewBox={`0 0 ${width} ${WEEKS_HEIGHT}`}>
+      <line className="db-axis" x1={0} x2={width} y1={WEEKS_BASE} y2={WEEKS_BASE} />
       {labels.map((week, index) => {
-        const left = index * slot + slot / 2 - 14
-        const ah = (added[index] / max) * 60
-        const rh = (resolved[index] / max) * 60
+        const center = index * slot + slot / 2
+        const ah = (added[index] / max) * (WEEKS_BASE - 8)
+        const rh = (resolved[index] / max) * (WEEKS_BASE - 8)
         return (
           <g key={week}>
-            <rect className="db-tone-warning-fill" height={ah} rx={2} width={13} x={left} y={78 - ah} />
-            <rect className="db-tone-success-fill" height={rh} rx={2} width={13} x={left + 15} y={78 - rh} />
-            <text className="db-tick" textAnchor="middle" x={left + 14} y={92}>
+            <rect className="db-tone-warning-fill" height={ah} rx={2} width={bar} x={center - bar - 1} y={WEEKS_BASE - ah} />
+            <rect className="db-tone-success-fill" height={rh} rx={2} width={bar} x={center + 1} y={WEEKS_BASE - rh} />
+            <text className="db-tick" textAnchor="middle" x={center} y={WEEKS_HEIGHT - 4}>
               {week}
             </text>
           </g>

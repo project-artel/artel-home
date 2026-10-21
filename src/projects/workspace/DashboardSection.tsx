@@ -448,7 +448,7 @@ export function DashboardSection() {
             <p className="db-quiet">{t.scenarios.runList.empty}</p>
           ) : (
             <ul className="db-lines">
-              {newestRuns.slice(0, 3).map((run) => (
+              {newestRuns.slice(0, 5).map((run) => (
                 <li key={run.id}>
                   <Link to={`/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(run.id)}/edit`}>
                     <b className="db-ellipsis">{run.name.length > 0 ? run.name : t.scenarios.runList.untitled}</b>
