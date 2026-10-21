@@ -57,6 +57,8 @@ export function VersionList({
   selectedId,
   unversionedTotal,
   versions,
+  messages,
+  allRow,
 }: {
   groups: readonly VersionGroup[]
   onSelect: (gameBuildId: string) => void
@@ -65,9 +67,16 @@ export function VersionList({
   selectedId: string | null
   unversionedTotal: number
   versions: readonly TestCaseVersionSummary[]
+  /** 문구를 바꿔 쓸 때(이슈 화면, ARTEL-1114). 없으면 케이스 라이브러리 문구. */
+  messages?: ReturnType<typeof useI18n>['t']['testCases']['versions']
+  /**
+   * 버전을 가로질러 보는 맨 위 줄(이슈 화면의 "모든 버전", ARTEL-1114). 다른 버전 줄과 같은 모양으로 그린다.
+   * 케이스 라이브러리는 늘 한 버전을 보므로 쓰지 않는다.
+   */
+  allRow?: { label: string; count: number; selected: boolean; onSelect: () => void }
 }) {
   const { t } = useI18n()
-  const m = t.testCases.versions
+  const m = messages ?? t.testCases.versions
   const entries = useMemo(() => arrangeVersions(versions, groups), [versions, groups])
   const hidden = useMemo(() => hiddenVersions(versions), [versions])
   const [folded, setFolded] = useState<ReadonlySet<string>>(new Set())
@@ -202,6 +211,19 @@ export function VersionList({
         </button>
       </div>
       <ul className="tcl-folder-list">
+        {allRow && (
+          <li>
+            <button
+              aria-current={allRow.selected ? 'true' : undefined}
+              className={'tcl-folder tcl-version' + (allRow.selected ? ' is-current' : '')}
+              onClick={allRow.onSelect}
+              type="button"
+            >
+              <span className="tcl-folder-name">{allRow.label}</span>
+              <span className="tcl-folder-count">{allRow.count}</span>
+            </button>
+          </li>
+        )}
         {entries.map((entry) => {
           if (entry.kind === 'version') return versionRow(entry.version)
           const group = entry.group

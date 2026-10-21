@@ -86,6 +86,11 @@ test('trimIssues drops the detail payload and reports more pages as truncated', 
     reportedAt: 'r',
     resolvedAt: null,
     tracker: null,
+    // ARTEL-1114 가 `Issue` 에 더한 칸. 서버가 아직 안 실으면 null 인 자리라 픽스처도 비워 둔다.
+    origin: null,
+    number: null,
+    archivedAt: null,
+    categories: [],
   }
   const trimmed = trimIssues([issue], true)
   assert.deepEqual(trimmed.rows[0], {

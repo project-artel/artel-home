@@ -179,7 +179,7 @@ export function useProjectIssues(
   reloadToken: number,
   poll = false,
 ) {
-  const { status, severity } = filters
+  const { status, severity, gameBuildId, testRunId, folderId, unversioned, categoryId, archived, query } = filters
   const load = useCallback(
     (beforeId?: string, signal?: AbortSignal) =>
       listProjectIssues(
@@ -187,12 +187,19 @@ export function useProjectIssues(
         {
           status: status === 'ALL' ? undefined : status,
           severity: severity === 'ALL' ? undefined : severity,
+          gameBuildId: gameBuildId ?? undefined,
+          testRunId: testRunId ?? undefined,
+          folderId: folderId ?? undefined,
+          unversioned: unversioned === true,
+          categoryId: categoryId ?? undefined,
+          archived: archived === true,
+          query: query || undefined,
         },
         beforeId,
         signal,
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [projectId, status, severity, reloadToken],
+    [projectId, status, severity, gameBuildId, testRunId, folderId, unversioned, categoryId, archived, query, reloadToken],
   )
   return useIssuePages(load, poll, projectId)
 }
