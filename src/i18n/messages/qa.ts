@@ -415,6 +415,55 @@ export const qaEn = {
     logsTitle: 'Activity log',
     logsFlow: 'Flow',
     logsRaw: 'Raw',
+    /** `흐름` 한 행의 두 줄. Agent 가 무엇을 생각했고 무엇을 했는지만 읽는다. */
+    flowThought: 'Thought',
+    flowAction: 'Did',
+    /** `thought` 를 안 보낸 호출. 빈 줄로 두면 행이 무너진다. */
+    flowNoThought: 'No reason given',
+    /** `report_step` 의 `행동` 줄. tool 이 돌려주는 안내문 대신 판정을 보인다. */
+    flowPassed: 'passed',
+    flowFailed: 'failed',
+    /** 판정만 내고 아무것도 안 해 본 스텝. 수가 아니라 사실을 적는다. */
+    flowNoAttempt: 'tried nothing',
+    /** TC 가 안 붙은 조작 스텝의 라벨. */
+    flowStepLabel: (step: number) => `Step ${step}`,
+    flowCaseLabel: (caseNo: string) => `TC ${caseNo}`,
+    /**
+     * 행동 한 줄. 도구 이름은 안 보인다 — 읽는 사람이 묻는 것은 무엇을 했는가다.
+     * 목록에 없는 도구는 `flowDidOther` 로 떨어진다.
+     */
+    flowDid: {
+      press_key: (what: string | null) => (what === null ? 'pressed a key' : `pressed ${what}`),
+      hold_key: (what: string | null) => (what === null ? 'held a key' : `held ${what}`),
+      release_key: (what: string | null) => (what === null ? 'let a key go' : `let ${what} go`),
+      click: (what: string | null) => (what === null ? 'clicked' : `clicked ${what}`),
+      double_click: (what: string | null) => (what === null ? 'double-clicked' : `double-clicked ${what}`),
+      click_button: (what: string | null) => (what === null ? 'clicked a button' : `clicked ${what}`),
+      drag: (what: string | null) => (what === null ? 'dragged something' : `dragged ${what}`),
+      inspect_object: (what: string | null) => (what === null ? 'looked at an object' : `looked at ${what}`),
+      observe_scene: (what: string | null) => (what === null ? 'looked at the screen' : `waited ${what}s and looked`),
+      capture_screen: (what: string | null) => (what === null ? 'took a screenshot' : `took a screenshot of ${what}`),
+      run_macro: (what: string | null) => (what === null ? 'ran a macro' : `ran the macro ${what}`),
+      read_macro: (what: string | null) => (what === null ? 'read a macro' : `read the macro ${what}`),
+      register_macro: (what: string | null) => (what === null ? 'saved a macro' : `saved the macro ${what}`),
+      write_macro: (what: string | null) => (what === null ? 'wrote a macro' : `wrote the macro ${what}`),
+      edit_macro: (what: string | null) => (what === null ? 'edited a macro' : `edited the macro ${what}`),
+      search_macros: (what: string | null) => (what === null ? 'searched the macros' : `searched the macros for ${what}`),
+      search_knowledge: (what: string | null) => (what === null ? 'searched what it knows' : `searched what it knows for ${what}`),
+      record_knowledge: (what: string | null) => (what === null ? 'wrote something down' : `wrote down ${what}`),
+      update_knowledge: (what: string | null) => (what === null ? 'corrected what it knows' : `corrected ${what}`),
+      reset_game: () => 'restarted the game',
+      report_issue: () => 'filed a defect',
+      finish_run: () => 'closed the run',
+    } as Record<string, (what: string | null) => string>,
+    flowDidOther: (tool: string) => `ran ${tool}`,
+    /**
+     * 우리 도구가 막아 아무것도 안 돈 호출. 게임 잘못이 아니다.
+     *
+     * 동사를 고쳐 쓰지 않고 꼬리말로 붙인다 — 어미를 문자열로 바꾸면 도구를 하나 더할 때마다
+     * 한국어가 깨진다(`살펴봤다` → `살펴봤려`).
+     */
+    flowBlockedSuffix: 'could not',
     liveGame: 'Live game',
     endedGame: 'Execution ended · stored logs',
     selectScenario: 'Select a scenario to inspect its run.',
@@ -885,6 +934,40 @@ export const qaKo: Localized<typeof qaEn> = {
     logsTitle: '활동 로그',
     logsFlow: '흐름',
     logsRaw: 'Raw',
+    flowThought: '생각',
+    flowAction: '행동',
+    flowNoThought: '이유를 적지 않았다',
+    flowPassed: '통과',
+    flowFailed: '실패',
+    flowNoAttempt: '아무것도 안 해 봄',
+    flowStepLabel: (step: number) => `스텝 ${step}`,
+    flowCaseLabel: (caseNo: string) => `TC ${caseNo}`,
+    flowDid: {
+      press_key: (what) => (what === null ? '키를 눌렀다' : `${what} 키를 눌렀다`),
+      hold_key: (what) => (what === null ? '키를 누르고 있었다' : `${what} 키를 누르고 있었다`),
+      release_key: (what) => (what === null ? '키를 뗐다' : `${what} 키를 뗐다`),
+      click: (what) => (what === null ? '화면을 눌렀다' : `${what} 을 눌렀다`),
+      double_click: (what) => (what === null ? '두 번 눌렀다' : `${what} 을 두 번 눌렀다`),
+      click_button: (what) => (what === null ? '버튼을 눌렀다' : `${what} 을 눌렀다`),
+      drag: (what) => (what === null ? '끌어다 놓았다' : `${what} 로 끌어다 놓았다`),
+      inspect_object: (what) => (what === null ? '객체를 살펴봤다' : `${what} 을 살펴봤다`),
+      observe_scene: (what) => (what === null ? '화면을 봤다' : `${what}초 기다리며 화면을 봤다`),
+      capture_screen: (what) => (what === null ? '화면을 찍었다' : `${what} 을 찍었다`),
+      run_macro: (what) => (what === null ? '매크로를 돌렸다' : `매크로 ${what} 을 돌렸다`),
+      read_macro: (what) => (what === null ? '매크로를 읽었다' : `매크로 ${what} 을 읽었다`),
+      register_macro: (what) => (what === null ? '매크로를 저장했다' : `매크로 ${what} 을 저장했다`),
+      write_macro: (what) => (what === null ? '매크로를 썼다' : `매크로 ${what} 을 썼다`),
+      edit_macro: (what) => (what === null ? '매크로를 고쳤다' : `매크로 ${what} 을 고쳤다`),
+      search_macros: (what) => (what === null ? '매크로를 찾아봤다' : `매크로에서 ${what} 을 찾아봤다`),
+      search_knowledge: (what) => (what === null ? '아는 것을 찾아봤다' : `아는 것에서 ${what} 을 찾아봤다`),
+      record_knowledge: (what) => (what === null ? '하나 적어 뒀다' : `${what} 을 적어 뒀다`),
+      update_knowledge: (what) => (what === null ? '알던 것을 고쳤다' : `${what} 을 고쳐 적었다`),
+      reset_game: () => '게임을 다시 시작했다',
+      report_issue: () => '결함을 신고했다',
+      finish_run: () => '런을 닫았다',
+    } as Record<string, (what: string | null) => string>,
+    flowDidOther: (tool: string) => `${tool} 을 불렀다`,
+    flowBlockedSuffix: '하지 못함',
     liveGame: '실시간 게임',
     endedGame: '실행 종료 · 저장된 로그',
     selectScenario: '시나리오를 선택하면 해당 실행을 봅니다.',

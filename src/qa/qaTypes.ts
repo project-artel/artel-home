@@ -21,6 +21,10 @@ export const QA_LOG_TYPES = [
   'ACTION',
   'ACTION_RESULT',
   'GAME_STATE',
+  // SDK 가 1초에 한 번 보내는 화면 판독(ARTEL-414). 서버는 처음부터 보냈는데 이 목록에만
+  // 빠져 있었다 — try 46 의 최근 200건 중 44건이 이것이다. `흐름` 이 조작 대상의 이름을
+  // 여기서 찾는다(`id` → `path`).
+  'PULSE',
   'STATUS',
   'ERROR',
   'CHAT',

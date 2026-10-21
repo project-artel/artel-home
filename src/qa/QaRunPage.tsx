@@ -69,15 +69,19 @@ function QaRunMissing({ projectId }: { projectId: string }) {
 // `ACTION` 은 여기서 빠졌다. 조작 tool 이 SDK 로 내보낸 요청이라 그 tool 의 `TOOL` 행과
 // 같은 사건을 두 번 말하고, 흐름은 "에이전트가 무엇을 불렀나"의 나열로 읽혀야 한다.
 // 전송 프레임을 봐야 할 때는 Raw 탭이 그대로 들고 있다.
-const FLOW_TYPES = new Set<QaLog['type']>([
-  'TOOL',
-  'TOOL_RESULT',
-  'STATUS',
-  'ERROR',
-  'CHAT',
-  // behavior 가 끝난 이유는 흐름에서 읽혀야 하는 사건이다(ARTEL-1051).
-  'BEHAVIOR_ENDED',
-])
+/**
+ * `흐름` 이 읽는 종류.
+ *
+ * 행으로 서는 것은 `TOOL` 뿐이다. 나머지 셋은 보이지 않지만 빼면 화면이 못 쓰게 된다.
+ *
+ * - `TOOL_RESULT` — 우리 도구가 막은 호출을 가린다(`Not now —`).
+ * - `STATUS` — `case_id` 가 여기에만 있다. TC 라벨의 출처다.
+ * - `PULSE` — `click` 과 `drag` 는 인자에 `"#40606"` 같은 숫자만 싣는다. 그 id 를 이름으로
+ *   바꿀 수 있는 곳이 여기뿐이고, try 46 에서 조작 대상 9개가 9개 다 풀렸다.
+ *
+ * 무엇이 빠지고 어떻게 묶이는지는 `qaFlow.ts` 가 정한다.
+ */
+const FLOW_TYPES = new Set<QaLog['type']>(['TOOL', 'TOOL_RESULT', 'STATUS', 'PULSE'])
 
 /** How often the console re-reads the run while it is still going. */
 const POLL_INTERVAL_MS = 3000
@@ -385,7 +389,8 @@ function FocusedTry({ qaRun, rail, tryId }: { qaRun: QaRun; rail: QaScenarioRail
   const shownLogs = useMemo(() => {
     // Context readings are shown by the gauge, in one place, not as a line per model call.
     const withoutContext = session.logs.filter((log) => !isQaContextLog(log))
-    return logView === 'flow' ? withoutContext.filter((log) => FLOW_TYPES.has(log.type)) : withoutContext
+    if (logView !== 'flow') return withoutContext
+    return withoutContext.filter((log) => FLOW_TYPES.has(log.type))
   }, [logView, session.logs])
 
   // Carried over from the retired `QaTryPage` (ARTEL-723): a failed load needs
@@ -494,6 +499,7 @@ function FocusedTry({ qaRun, rail, tryId }: { qaRun: QaRun; rail: QaScenarioRail
               <QaTryIssuePanel projectId={rail.projectId} qaTryId={session.qaTry.id} />
             ) : (
               <QaLogTimeline
+                flow={logView === 'flow'}
                 focusRequest={focusRequest}
                 hasMore={session.hasMore}
                 historyFailure={session.historyFailure}

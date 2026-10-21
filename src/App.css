@@ -2548,6 +2548,201 @@ a.instance-name:hover {
   contain-intrinsic-size: auto 128px;
 }
 
+/* `흐름` — TC 하나가 한 묶음, 그 안의 스텝 하나가 한 덩어리. */
+.qa-flow-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  /* TC 사이는 덩어리 사이보다 눈에 띄게 벌린다. 묶음이 어디서 갈리는지가 먼저 읽혀야 한다. */
+  gap: var(--space-8);
+}
+
+.qa-flow-group {
+  min-width: 0;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 160px;
+}
+
+.qa-flow-blocks {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.qa-flow-step {
+  min-width: 0;
+}
+
+.qa-flow-label {
+  display: inline-block;
+  margin: 0 0 var(--space-2);
+  padding: 3px 9px;
+  border-radius: 5px;
+  background: var(--color-action-primary);
+  color: var(--color-text-on-accent);
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* TC 가 안 붙은 조작 스텝. 같은 코랄로 두면 TC 가 아닌 것이 TC 로 읽힌다. */
+.qa-flow-label--plain {
+  background: var(--color-bg-hover);
+  color: var(--color-text-secondary);
+}
+
+.qa-flow-card {
+  position: relative;
+  background: var(--color-bg-raised);
+  border-radius: 10px;
+  /* 오른쪽은 스텝 번호 자리다. 글이 그 아래로 들어가 겹치지 않게 넉넉히 비운다. */
+  padding: var(--space-3) 56px var(--space-3) var(--space-4);
+}
+
+/* 스텝 번호. 읽는 글이 아니라 자리표라 흐리게 두고, 본문 위로 겹치지 않게 오른쪽 끝에 둔다. */
+.qa-flow-step-no {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-4);
+  margin: 0;
+  text-align: right;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 20px;
+  font-variant-numeric: tabular-nums;
+}
+
+.qa-flow-line {
+  display: flex;
+  gap: 10px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.qa-flow-line + .qa-flow-line {
+  margin-top: var(--space-2);
+}
+
+/* 원과, 다음 원으로 잇는 선. 마지막 줄에서는 선이 없다. */
+.qa-flow-rail {
+  position: relative;
+  flex: 0 0 10px;
+}
+
+.qa-flow-dot {
+  position: absolute;
+  top: 6px;
+  left: 1px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  box-sizing: border-box;
+}
+
+.qa-flow-dot--thought {
+  border: 1.5px solid var(--color-text-muted);
+}
+
+.qa-flow-dot--action {
+  background: var(--color-action-primary);
+}
+
+.qa-flow-dot--blocked {
+  background: var(--color-status-warning);
+}
+
+.qa-flow-link {
+  position: absolute;
+  top: 16px;
+  left: 4px;
+  bottom: -10px;
+  width: 1px;
+  background: var(--color-border-subtle);
+}
+
+.qa-flow-said {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow-wrap: anywhere;
+  color: var(--color-text-primary);
+}
+
+.qa-flow-said--did {
+  color: var(--color-text-secondary);
+}
+
+.qa-flow-said--blocked {
+  color: var(--color-status-warning);
+}
+
+.qa-flow-blocked {
+  color: var(--color-status-warning);
+}
+
+/* 판정 줄. 왜 그렇게 끝났는지가 본문이고, 통과 · 실패는 그 끝에 붙는다. */
+.qa-flow-verdict {
+  display: flex;
+  gap: 10px;
+  margin-top: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border-subtle);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+/* 위에 줄이 하나도 없는 덩어리. 가를 것이 없으므로 선도 여백도 없다. */
+.qa-flow-verdict--alone {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.qa-flow-verdict .qa-flow-said {
+  margin: 0;
+}
+
+.qa-flow-reason {
+  margin: 0;
+  color: var(--color-text-primary);
+}
+
+/* 제 줄로 떨어뜨려 오른쪽 끝에 둔다. 덩어리를 닫는 한 마디다. */
+.qa-flow-call {
+  margin: var(--space-1) 0 0;
+  text-align: right;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.qa-flow-verdict--passed .qa-flow-call {
+  color: var(--color-status-success);
+}
+
+.qa-flow-verdict--failed .qa-flow-call {
+  color: var(--color-status-critical);
+}
+
+.qa-flow-dot--verdict {
+  border: 1.5px solid var(--color-text-muted);
+}
+
+.qa-flow-verdict--passed .qa-flow-dot--verdict {
+  background: var(--color-status-success);
+  border-color: var(--color-status-success);
+}
+
+.qa-flow-verdict--failed .qa-flow-dot--verdict {
+  background: var(--color-status-critical);
+  border-color: var(--color-status-critical);
+}
+
 .qa-log-marker {
   position: absolute;
   top: 19px;

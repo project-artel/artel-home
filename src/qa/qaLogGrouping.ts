@@ -355,6 +355,34 @@ export function toolOutputOf(payload: unknown): string | null {
   return typeof record.content === 'string' && record.content.length > 0 ? record.content : null
 }
 
+/** `report_step` 이 낸 판정. 통과 여부와, 모델이 적은 한 줄. */
+export type StepVerdict = {
+  passed: boolean
+  message: string | null
+}
+
+/**
+ * 이 호출이 판정이면 그 판정을, 아니면 null.
+ *
+ * `흐름` 의 `행동` 줄이 `report_step` 에서만 결과 머리 대신 이것을 쓴다. tool 이 돌려주는
+ * 것이 결과가 아니라 **다음에 할 일을 이르는 프롬프트 문구**이기 때문이다 — 실측으로
+ * try 46 의 흐름 27행 중 23행이 `report_step` 이고, 그 결과는 전부
+ * `"Recorded. 22 step(s) left — … A failed step is not a reason to stop."` 였다.
+ * 읽는 사람이 찾는 것은 그 문장이 아니라 통과했는지다.
+ *
+ * `passed` 가 없으면 null 이다. 통과인지 실패인지 지어내지 않고 결과 머리로 돌아간다.
+ */
+export function verdictOf(call: ToolCall | null): StepVerdict | null {
+  if (call === null || call.tool !== 'report_step') return null
+  const passed = call.args.passed
+  if (typeof passed !== 'boolean') return null
+  const message = call.args.message
+  return {
+    passed,
+    message: typeof message === 'string' && message.length > 0 ? message : null,
+  }
+}
+
 /** ACTION_RESULT 하나가 말하는 것: 몇 개가 돌았고 그중 몇 개가 실패했는지. */
 export type ToolResultSummary = {
   total: number
