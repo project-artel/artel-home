@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
+import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { LABEL_NODE_LIMIT } from '../knowledge/knowledgeLayout'
 import { useKnowledgeGraph } from '../knowledge/useKnowledgeGraph'
@@ -281,7 +282,16 @@ function SceneGraphView({ projectId, view }: { projectId: string; view: ContentM
     () => buildScreenMap(view.scenes, view.edges, view.screenTransitions),
     [view.edges, view.scenes, view.screenTransitions],
   )
-  const layout = useMemo(() => layoutScreenMap(model), [model])
+  // 화면이 많아 접힌 씬 중 펼친 것(ARTEL-1172). 접기 칸을 누르거나, 접혀 안 보이는 화면을 tree 에서 고르면 펼친다.
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
+  const layout = useMemo(() => layoutScreenMap(model, expanded), [model, expanded])
+  const toggleScreens = useCallback((containerId: string) => {
+    setExpanded((current) => {
+      const next = new Set(current)
+      if (!next.delete(containerId)) next.add(containerId)
+      return next
+    })
+  }, [])
   const viewport = useCanvasViewport(layout.viewBox)
 
   // 인스펙터가 고른 것 하나를 되짚는 색인. 배치와 같은 이유로 응답 말고는 아무것에도 기대지
@@ -302,6 +312,24 @@ function SceneGraphView({ projectId, view }: { projectId: string; view: ContentM
    * 패널이 지도를 덮지 않는 왼쪽은 그대로 눌러 다른 씬을 고를 수 있다 — 막는 막(scrim)을 두지 않는 이유다.
    */
   const [overviewOpen, setOverviewOpen] = useState(false)
+  // 서랍의 스크롤 칸(`.cm-inspector`)에 서비스 막대를 단다. 서랍이 열릴 때마다 새 노드라 ref 콜백으로 받는다.
+  const [drawerScroller, setDrawerScroller] = useState<HTMLElement | null>(null)
+  const drawerRef = useCallback((node: HTMLElement | null) => {
+    setDrawerScroller(node?.querySelector<HTMLElement>('.cm-inspector') ?? null)
+  }, [])
+  // 고른 화면이 접혀 안 보이면 그 씬을 펼친다 — tree 에서 고른 화면이 지도에 없으면 무엇을 골랐는지 안 보인다.
+  const selectAndReveal = useCallback(
+    (next: ContentMapSelection | null) => {
+      setSelection(next)
+      if (next?.kind !== 'screen') return
+      const owner = layout.containers.find(
+        (container) => container.toggle !== null && !container.screens.some((placed) => placed.screen.id === next.id) &&
+          model.containers.some((candidate) => candidate.id === container.id && candidate.screens.some((screen) => screen.id === next.id)),
+      )
+      if (owner !== undefined) setExpanded((current) => new Set(current).add(owner.id))
+    },
+    [layout.containers, model.containers],
+  )
   const drawerOpen = selection !== null || overviewOpen
   const close = useCallback(() => {
     setSelection(null)
@@ -322,7 +350,7 @@ function SceneGraphView({ projectId, view }: { projectId: string; view: ContentM
         <ContentMapTree
           index={index}
           model={model}
-          onSelect={setSelection}
+          onSelect={selectAndReveal}
           selection={selection}
         />
       </aside>
@@ -361,7 +389,8 @@ function SceneGraphView({ projectId, view }: { projectId: string; view: ContentM
         <div className="cm-canvas-frame">
           <ScreenMapCanvas
             layout={layout}
-            onSelect={setSelection}
+            onSelect={selectAndReveal}
+            onToggleScreens={toggleScreens}
             selection={selection}
             viewport={viewport}
           />
@@ -404,17 +433,18 @@ function SceneGraphView({ projectId, view }: { projectId: string; view: ContentM
       </section>
 
       {drawerOpen && (
-        <aside aria-label={t.contentMap.inspector.title} className="cm-drawer">
+        <aside aria-label={t.contentMap.inspector.title} className="cm-drawer" ref={drawerRef}>
           <button aria-label={t.contentMap.layout.closeDetail} className="cm-drawer-close" onClick={close} type="button">
             ×
           </button>
+          <EdgeScrollbar label={t.contentMap.inspector.title} scroller={drawerScroller} side="right" />
           <ContentMapInspector
             gaps={view.gaps}
             index={index}
             knowledge={{ status: knowledgeStatus, nodes: knowledgeGraph?.nodes ?? [] }}
             model={model}
             onClear={close}
-            onSelect={setSelection}
+            onSelect={selectAndReveal}
             overview={
               <section aria-labelledby="cm-overview-title" className="cm-overview">
                 <h3 id="cm-overview-title">{t.contentMap.layout.overviewTitle}</h3>

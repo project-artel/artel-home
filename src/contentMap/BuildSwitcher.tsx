@@ -1,4 +1,5 @@
 import { forwardRef, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../i18n/useI18n'
 import { formatDateTime } from '../projects/formatters'
 import type { GameBuild } from '../projects/gameTypes'
@@ -23,6 +24,7 @@ export const BuildSwitcher = forwardRef<HTMLButtonElement, {
   const panelId = useId()
   const root = useRef<HTMLDivElement>(null)
   const search = useRef<HTMLInputElement>(null)
+  const [listNode, setListNode] = useState<HTMLUListElement | null>(null)
 
   const ordered = useMemo(() => [...builds].sort((a, b) => b.createdAt.localeCompare(a.createdAt)), [builds])
   const shown = useMemo(() => {
@@ -101,7 +103,7 @@ export const BuildSwitcher = forwardRef<HTMLButtonElement, {
           {shown.length === 0 ? (
             <p className="cm-build-empty">{copy.noMatch}</p>
           ) : (
-            <ul className="cm-build-list">
+            <ul className="cm-build-list" ref={setListNode}>
               {shown.map((build, index) => {
                 const current = build.id === selected.id
                 const buildLabel = build.label?.trim() ?? ''
@@ -130,6 +132,7 @@ export const BuildSwitcher = forwardRef<HTMLButtonElement, {
               })}
             </ul>
           )}
+          {shown.length > 0 && <EdgeScrollbar label={copy.title} scroller={listNode} side="right" />}
         </div>
       )}
     </div>

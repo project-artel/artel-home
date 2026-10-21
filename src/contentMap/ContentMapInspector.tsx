@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { useI18n } from '../i18n/useI18n'
+import { InlineCode } from './InlineCode'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import type { Messages } from '../i18n/messages'
 import { truncate } from '../knowledge/knowledgeLabels'
@@ -434,7 +435,7 @@ function CapabilityRow({ use }: { use: ScreenCapabilityUse }) {
 
   return (
     <li className={`sm-capability${used ? ' is-used' : ''}`}>
-      <p className="sm-capability-summary">{summary.length > 0 ? summary : copy.capabilityUntitled}</p>
+      <p className="sm-capability-summary">{summary.length > 0 ? <InlineCode text={summary} /> : copy.capabilityUntitled}</p>
       <p className="sm-capability-badges">
         {use.capability === null ? (
           <span className="cm-inspector-hint">{copy.capabilityMissing}</span>
@@ -789,7 +790,9 @@ function SceneEdgeButton({
       onClick={() => onSelect({ kind: 'sceneEdge', id: placed.id })}
       type="button"
     >
-      <span className="cm-transition-target">{label}</span>
+      <span className="cm-transition-target">
+        <InlineCode text={label} />
+      </span>
       <span className="cm-transition-meta">
         <span>{sourceName}</span>
         <span aria-hidden="true">·</span>

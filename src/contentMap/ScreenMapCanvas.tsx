@@ -56,6 +56,8 @@ type CanvasProps = {
    * be unreachable by anything but a pointer.
    */
   viewport: CanvasViewport
+  /** 화면이 많은 씬의 접기 칸을 눌렀을 때. 그 씬 id 를 넘긴다. */
+  onToggleScreens: (containerId: string) => void
 }
 
 /** 씬 이름 라벨의 폭 예산, 라틴 문자 기준. 한글로는 절반쯤이다. */
@@ -88,7 +90,7 @@ const EDGE_LABEL_WIDTH = 24
  */
 const EDGE_LABEL_LIMIT = 14
 
-export function ScreenMapCanvas({ layout, selection, onSelect, viewport }: CanvasProps) {
+export function ScreenMapCanvas({ layout, selection, onSelect, viewport, onToggleScreens }: CanvasProps) {
   // 고른 것이 닿는 요소들. 나머지를 지우지 않고 조용하게만 두는 이유는, 주변이 있어야 고른
   // 것이 무엇을 뜻하는지 읽히기 때문이다.
   const related = useMemo(() => relatedIds(layout, selection), [layout, selection])
@@ -216,7 +218,63 @@ export function ScreenMapCanvas({ layout, selection, onSelect, viewport }: Canva
           )),
         )}
       </g>
+
+      <g className="sm-toggles">
+        {layout.containers.map((container) =>
+          container.toggle === null ? null : (
+            <ScreenToggle
+              dimmed={related !== null && !related.has(container.id)}
+              key={container.id}
+              onToggle={() => onToggleScreens(container.id)}
+              toggle={container.toggle}
+            />
+          ),
+        )}
+      </g>
     </svg>
+  )
+}
+
+/**
+ * 화면이 많은 씬의 접기 · 펼치기 칸(ARTEL-1172). 화면 한 칸 자리에 선다. 접혔을 땐 숨은 화면 수를 크게 보이고,
+ * 펼쳤을 땐 접기 단추다. 씬을 고르는 click 과 섞이지 않게 여기서 멈춘다.
+ */
+function ScreenToggle({
+  toggle,
+  dimmed,
+  onToggle,
+}: {
+  toggle: NonNullable<PlacedContainer['toggle']>
+  dimmed: boolean
+  onToggle: () => void
+}) {
+  const { t } = useI18n()
+  const copy = t.contentMap.screenMap
+  return (
+    <g
+      className={classes('sm-toggle', toggle.expanded && 'is-expanded', dimmed && 'is-dimmed')}
+      onClick={(event) => {
+        event.stopPropagation()
+        onToggle()
+      }}
+      transform={`translate(${toggle.x} ${toggle.y})`}
+    >
+      <rect className="sm-toggle-frame" height={toggle.height} rx="4" width={toggle.width} />
+      {toggle.expanded ? (
+        <text className="sm-toggle-label" textAnchor="middle" x={toggle.width / 2} y={toggle.height / 2 + 5}>
+          {copy.collapseScreens}
+        </text>
+      ) : (
+        <>
+          <text className="sm-toggle-count" textAnchor="middle" x={toggle.width / 2} y={toggle.height / 2 - 2}>
+            +{toggle.hidden}
+          </text>
+          <text className="sm-toggle-label" textAnchor="middle" x={toggle.width / 2} y={toggle.height / 2 + 20}>
+            {copy.moreScreens}
+          </text>
+        </>
+      )}
+    </g>
   )
 }
 

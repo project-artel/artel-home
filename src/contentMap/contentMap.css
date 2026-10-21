@@ -161,16 +161,17 @@
 .content-map .cm-workspace {
   --cm-tree-width: 280px;
   --cm-inspector-width: 380px;
-  --cm-pane-height: max(560px, calc(100dvh - 250px));
   align-items: stretch;
   gap: var(--space-3);
 }
 .content-map :is(.cm-tree-pane, .cm-inspector-panel) {
-  height: var(--cm-pane-height);
+  height: auto;
+  min-height: 0;
   max-height: none;
 }
 .content-map .cm-canvas-panel {
-  height: var(--cm-pane-height);
+  height: auto;
+  min-height: 0;
   gap: 0;
   padding: 0;
   overflow: hidden;
@@ -710,8 +711,8 @@
   z-index: 20;
   display: flex;
   flex-direction: column;
+  bottom: 0;
   width: min(760px, 62%);
-  height: var(--cm-pane-height);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-lg);
   background: var(--color-bg-surface);
@@ -849,4 +850,141 @@
 }
 .content-map .cm-tree-row[aria-level='1'] .cm-tree-meta {
   padding-left: 0;
+}
+
+/* ── 창 높이에 맞춘다(ARTEL-1172) ────────────────────────────────────────
+   작업공간 본문(스크롤 칸)부터 세 칸까지 flex 로 이어, 머리 줄 · 근거 줄 · 배너가 몇 줄이든 남은 높이를 지도가 다
+   쓴다. 예전 `calc(100dvh - 250px)` 은 머리가 한 줄만 늘어도 넘쳐 페이지가 66px 스크롤됐다. 너무 낮은 창(< 600px)
+   에서만 예전처럼 스크롤한다 — 지도를 손톱만 하게 줄이는 것보다 낫다. */
+@media (min-height: 600px) and (min-width: 1024px) {
+  .workspace-body:has(.cm-section) {
+    overflow-y: hidden;
+  }
+  .workspace-body:has(.cm-section) > .section-content {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    padding-bottom: var(--space-4);
+  }
+  .cm-section {
+    flex: 1;
+    min-height: 0;
+  }
+  .content-map {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .content-map .cm-workspace {
+    flex: 1;
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr);
+  }
+}
+@media (max-height: 599px), (max-width: 1023px) {
+  .content-map :is(.cm-tree-pane, .cm-canvas-panel) {
+    height: 560px;
+  }
+}
+
+/* 화면이 많은 씬의 접기 칸 */
+.sm-toggle {
+  cursor: pointer;
+}
+.sm-toggle-frame {
+  fill: var(--color-bg-raised);
+  stroke: var(--color-border-strong);
+  stroke-width: 1.1;
+  stroke-dasharray: 4 3;
+}
+.sm-toggle:hover .sm-toggle-frame {
+  stroke: var(--color-brand-accent);
+}
+.sm-toggle-count {
+  fill: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  pointer-events: none;
+}
+.sm-toggle-label {
+  fill: var(--color-text-secondary);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  pointer-events: none;
+}
+.sm-toggle.is-dimmed {
+  opacity: 0.26;
+}
+
+/* ── 서비스 스크롤 막대(EdgeScrollbar) — 이 화면의 스크롤 칸 전부 ─────────── */
+.content-map :is(.cm-tree, .cm-inspector, .cm-build-list) {
+  scrollbar-width: none;
+}
+.content-map :is(.cm-tree, .cm-inspector, .cm-build-list)::-webkit-scrollbar {
+  display: none;
+}
+.content-map .cm-tree-panel {
+  position: relative;
+}
+.content-map .edgebar {
+  position: absolute;
+  z-index: 3;
+  right: 0;
+  width: 18px;
+  pointer-events: none;
+}
+.content-map .edgebar-thumb {
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+}
+.content-map .edgebar-thumb:active {
+  cursor: grabbing;
+}
+.content-map .edgebar-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 2px;
+  width: 4px;
+  border-radius: 2px;
+  background: var(--color-brand-accent);
+  transition: width 120ms var(--ease-standard);
+}
+.content-map .edgebar.is-near .edgebar-fill {
+  width: 10px;
+  background: var(--color-brand-accent-strong);
+}
+@media (prefers-reduced-motion: reduce) {
+  .content-map .edgebar-fill {
+    transition: none;
+  }
+}
+/* 서랍 안에서는 단계 목록이 따로 굴지 않는다 — 넓은 서랍 하나가 통째로 굴러 막대가 하나다. */
+.cm-drawer .cm-step-list {
+  max-height: none;
+  overflow: visible;
+}
+
+/* 서버 문장 속 백틱 조각 */
+.cm-code {
+  padding: 1px 5px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 4px;
+  background: var(--color-bg-raised);
+  color: var(--color-text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  overflow-wrap: anywhere;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+.cm-step-summary {
+  line-height: 1.7;
 }

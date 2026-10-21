@@ -151,9 +151,15 @@ export type PlacedContainer = {
   y: number
   width: number
   height: number
+  /** 그려지는 화면. 접힌 씬이면 앞의 몇 개뿐이다 — 나머지는 [toggle] 칸이 센다. */
   screens: PlacedScreen[]
   /** entry 씬에서 몇 걸음 떨어졌나. 0 이 entry 다. */
   layer: number
+  /**
+   * 화면이 많은 씬의 접기 · 펼치기 칸(ARTEL-1172). 화면이 [SCREEN_PREVIEW_LIMIT] 개 이하면 null.
+   * 접혀 있으면 `hidden` 개를 세고, 펼쳐져 있으면 `hidden` 이 0 이고 그 칸이 접기 단추다.
+   */
+  toggle: { x: number; y: number; width: number; height: number; hidden: number; expanded: boolean } | null
 }
 
 type Drawn = {
@@ -273,7 +279,14 @@ export function buildScreenMap(
   }
 }
 
-type Box = { width: number; height: number; screens: { x: number; y: number }[] }
+type Box = { width: number; height: number; screens: { x: number; y: number }[]; toggle: { x: number; y: number } | null }
+
+/**
+ * 한 씬에 이보다 많은 화면이 있으면 접어서 앞의 몇 개만 그린다(ARTEL-1172). TurnBattleScene 처럼 화면이 열여덟이면
+ * 그 씬 하나가 지도 폭을 혼자 정해, 맞춰 보기에서 모든 씬이 손톱만 해졌다. 접힌 화면도 tree 와 상세에는 다 있고,
+ * 그 화면에 닿는 전이는 접기 칸으로 이어진다.
+ */
+export const SCREEN_PREVIEW_LIMIT = 6
 
 /**
  * 컨테이너 하나의 크기와, 그 안 화면들의 상대 좌표.
@@ -287,18 +300,23 @@ type Box = { width: number; height: number; screens: { x: number; y: number }[] 
  * 점으로 줄어들었을 것이다. 그래도 그 컨테이너가 줄에서 가장 큰 것은 사실이고, 그것을 작게
  * 보이도록 접는 것은 데이터를 숨기는 일이다.
  */
-function measureContainer(screens: readonly ContentMapScreen[]): Box {
+function measureContainer(screens: readonly ContentMapScreen[], expanded: boolean): Box {
   if (screens.length === 0) {
     return {
       width: MIN_CONTAINER_WIDTH,
       // 카드 칸이 곧 상자다. "아직 관측된 화면 없음" 은 카드 오른쪽 줄이 말한다.
       height: CONTAINER_HEADER,
       screens: [],
+      toggle: null,
     }
   }
 
-  const columns = Math.ceil(Math.sqrt(screens.length))
-  const rows = Math.ceil(screens.length / columns)
+  const collapsible = screens.length > SCREEN_PREVIEW_LIMIT
+  const shown = collapsible && !expanded ? SCREEN_PREVIEW_LIMIT - 1 : screens.length
+  // 접기 칸도 화면 한 칸 자리를 쓴다 — 접혔을 땐 "n개 더", 펼쳤을 땐 "접기".
+  const cells = shown + (collapsible ? 1 : 0)
+  const columns = Math.ceil(Math.sqrt(cells))
+  const rows = Math.ceil(cells / columns)
   const bodyWidth = columns * SCREEN_WIDTH + (columns - 1) * SCREEN_GAP_X
   const bodyHeight = rows * SCREEN_HEIGHT + (rows - 1) * SCREEN_GAP_Y
 
@@ -306,14 +324,16 @@ function measureContainer(screens: readonly ContentMapScreen[]): Box {
   const height = CONTAINER_HEADER + bodyHeight + CONTAINER_PADDING
   // 마지막 줄이 덜 찼을 때 격자가 왼쪽으로 쏠리지 않도록 몸통을 가운데에 둔다.
   const left = (width - bodyWidth) / 2
+  const cell = (index: number) => ({
+    x: left + (index % columns) * (SCREEN_WIDTH + SCREEN_GAP_X),
+    y: CONTAINER_HEADER + Math.floor(index / columns) * (SCREEN_HEIGHT + SCREEN_GAP_Y),
+  })
 
   return {
     width,
     height,
-    screens: screens.map((_, index) => ({
-      x: left + (index % columns) * (SCREEN_WIDTH + SCREEN_GAP_X),
-      y: CONTAINER_HEADER + Math.floor(index / columns) * (SCREEN_HEIGHT + SCREEN_GAP_Y),
-    })),
+    screens: screens.slice(0, shown).map((_, index) => cell(index)),
+    toggle: collapsible ? cell(shown) : null,
   }
 }
 
@@ -628,8 +648,8 @@ function orientation(from: string, to: string): number {
 }
 
 /** 모델을 좌표로. 같은 모델은 언제나 같은 그림이 된다. */
-export function layoutScreenMap(model: ScreenMapModel): ScreenMapLayout {
-  const boxes = model.containers.map((container) => measureContainer(container.screens))
+export function layoutScreenMap(model: ScreenMapModel, expanded: ReadonlySet<string> = new Set()): ScreenMapLayout {
+  const boxes = model.containers.map((container) => measureContainer(container.screens, expanded.has(container.id)))
   const layer = assignLayers(model.containers, model.sceneEdges)
 
   const indexById = new Map(model.containers.map((container, index) => [container.id, index]))
@@ -673,13 +693,24 @@ export function layoutScreenMap(model: ScreenMapModel): ScreenMapLayout {
         width: box.width,
         height: box.height,
         layer: depth,
-        screens: container.screens.map((screen, position) => ({
+        screens: container.screens.slice(0, box.screens.length).map((screen, position) => ({
           screen,
           x: round(left + offset + box.screens[position].x),
           y: round(top + box.screens[position].y),
           width: SCREEN_WIDTH,
           height: SCREEN_HEIGHT,
         })),
+        toggle:
+          box.toggle === null
+            ? null
+            : {
+                x: round(left + offset + box.toggle.x),
+                y: round(top + box.toggle.y),
+                width: SCREEN_WIDTH,
+                height: SCREEN_HEIGHT,
+                hidden: container.screens.length - box.screens.length,
+                expanded: box.screens.length === container.screens.length,
+              },
       }
       top += box.height + SIBLING_GAP
     }
@@ -691,6 +722,16 @@ export function layoutScreenMap(model: ScreenMapModel): ScreenMapLayout {
   const rectById = new Map(placed.map((container) => [container.id, container]))
   const screenRects = new Map<string, PlacedScreen>()
   const containerOfScreen = new Map<string, string>()
+  // 접혀 안 그려지는 화면은 접기 칸을 자기 자리로 쓴다 — 그 화면에 닿는 전이가 사라지지 않고 칸으로 이어진다.
+  const hiddenRect = new Map<string, Rect>()
+  model.containers.forEach((container, index) => {
+    const toggle = placed[index].toggle
+    if (toggle === null || toggle.hidden === 0) return
+    for (const screen of container.screens.slice(placed[index].screens.length)) {
+      hiddenRect.set(screen.id, toggle)
+      containerOfScreen.set(screen.id, container.id)
+    }
+  })
   for (const container of placed) {
     for (const screen of container.screens) {
       screenRects.set(screen.screen.id, screen)
@@ -786,9 +827,12 @@ export function layoutScreenMap(model: ScreenMapModel): ScreenMapLayout {
   for (const group of groupByPair(transitionEnds).values()) {
     group.forEach((index, position) => {
       const { id, transition } = model.screenTransitions[index]
-      const from = screenRects.get(transition.fromScreenId)
-      const to = screenRects.get(transition.toScreenId)
+      const from = screenRects.get(transition.fromScreenId) ?? hiddenRect.get(transition.fromScreenId)
+      const to = screenRects.get(transition.toScreenId) ?? hiddenRect.get(transition.toScreenId)
       if (from === undefined || to === undefined) return
+      // 두 끝이 다 접혀 같은 칸 안에 있으면 그릴 선이 없다. 그 전이는 tree 와 상세에 그대로 있다.
+      const bothHidden = hiddenRect.has(transition.fromScreenId) && hiddenRect.has(transition.toScreenId)
+      if (bothHidden && from === to) return
 
       const drawn =
         transition.fromScreenId === transition.toScreenId

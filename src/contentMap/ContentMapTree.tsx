@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { useI18n } from '../i18n/useI18n'
+import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { truncate } from '../knowledge/knowledgeLabels'
 import { sceneHue } from '../testCases/sceneHue'
@@ -62,6 +63,7 @@ export function ContentMapTree({
 }) {
   const { t } = useI18n()
   const copy = t.contentMap.tree
+  const [treeNode, setTreeNode] = useState<HTMLUListElement | null>(null)
 
   const tree = useMemo(() => buildContentMapTree(model, index), [index, model])
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(NOTHING_EXPANDED)
@@ -143,6 +145,7 @@ export function ContentMapTree({
         aria-labelledby="cm-tree-title"
         className="cm-tree"
         onKeyDown={handleKeyDown}
+        ref={setTreeNode}
         role="tree"
       >
         {rows.map((row) => {
@@ -172,6 +175,7 @@ export function ContentMapTree({
           )
         })}
       </ul>
+      <EdgeScrollbar label={copy.title} scroller={treeNode} side="right" />
     </div>
   )
 }
