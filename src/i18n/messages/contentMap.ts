@@ -22,6 +22,9 @@ export const contentMapEn = {
   layout: {
     detailsOpen: 'Details',
     detailsClose: 'Hide details',
+    detailScan: 'Scan',
+    detailIngest: 'Document ingest',
+    detailInstances: 'Connected games',
     overviewTitle: 'This build',
     closeDetail: 'Close details',
     showScreenLinks: (n: number) => `Show all ${n} screen transitions`,
@@ -576,6 +579,9 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
   layout: {
     detailsOpen: '자세히',
     detailsClose: '접기',
+    detailScan: '스캔',
+    detailIngest: '문서 적재',
+    detailInstances: '붙어 있는 게임',
     overviewTitle: '이 빌드',
     closeDetail: '상세 닫기',
     showScreenLinks: (n: number) => `화면 전이 ${n}개 모두 보기`,

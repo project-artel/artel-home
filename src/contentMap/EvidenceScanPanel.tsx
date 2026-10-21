@@ -325,13 +325,22 @@ export function EvidenceScanPanel({
 
       {/* 접혀도 남긴다(`hidden`). 지우면 경과 초 · 문서 목록 상태가 펼 때마다 처음부터 다시 선다. */}
       <div className="cm-scan-details" hidden={!open} id={detailsId}>
+        <section className="cm-scan-detail">
+          <h3>{layoutCopy.detailScan}</h3>
+          <ScanStatusPanel events={events} projectId={projectId} />
+        </section>
+        <section className="cm-scan-detail">
+          <h3>{layoutCopy.detailIngest}</h3>
+          <IngestStatus events={events} />
+        </section>
         {/* 목록이 언제 기준인지. 게임이 하나 보이더라도 그것은 마지막으로
             확인한 시점의 사실일 뿐이라는 것을 같이 말한다. */}
         {instances.status !== 'loading' && (
-          <p className="cm-scan-copy">{copy.checkedAt(checkedAtLabel)}</p>
+          <section className="cm-scan-detail">
+            <h3>{layoutCopy.detailInstances}</h3>
+            <p className="cm-scan-copy">{copy.checkedAt(checkedAtLabel)}</p>
+          </section>
         )}
-        <ScanStatusPanel events={events} projectId={projectId} />
-        <IngestStatus events={events} />
       </div>
 
       {/* 요청이 받아들여졌다는 사실만 알린다. 실패는 바로 위 role="alert" 가
@@ -549,7 +558,7 @@ function IngestStatus({ events }: { events: ContentMapEventsState }) {
     .sort((left, right) => left.receivedAt.localeCompare(right.receivedAt))
 
   return (
-    <div className="cm-pending">
+    <div className={`cm-pending${attention.length === 0 && failedDocuments === 0 ? ' is-complete' : ''}`}>
       <p className="cm-pending-title">{copy.progressTitle(ingestedDocuments, receivedDocuments)}</p>
       <div
         aria-label={copy.progressLabel(ingestedDocuments, receivedDocuments)}
