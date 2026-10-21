@@ -650,6 +650,7 @@ export function parseLastScan(data: unknown): LastScan | null {
     ingestedDocuments:
       typeof record.ingestedDocuments === 'number' ? asCount(record.ingestedDocuments) : null,
     error: asNullableString(record.error),
+    cancelled: record.cancelled === true,
     testCases: parseScanTestCases(record.testCases),
     phase: isOneOf(record.phase, SCAN_PHASES) ? record.phase : null,
     progress: parseScanProgress(record.progress),

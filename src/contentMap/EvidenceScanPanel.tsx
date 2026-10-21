@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { InfoHint } from '../design-system/primitives/InfoHint'
+import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
 import { ProgressRing } from '../design-system/primitives/ProgressRing'
 import { usePolling } from '../live/usePolling'
 import { apiErrorMessage } from '../projects/apiErrorMessage'
@@ -26,6 +27,7 @@ import type { ContentMapEventsState } from './useContentMapEvents'
 import { readCarryOver } from './carryOverChoice'
 import { testCaseLibraryPath, type GenerationBlock } from './contentMapTestCases'
 import { generateContentMapTestCases } from './generateContentMapTestCases'
+import { cancelEvidenceScan } from './cancelEvidenceScan'
 import { requestEvidenceScan } from './requestEvidenceScan'
 import { scanPercent } from './scanProgress'
 import { StudioIcon } from '../testScenarios/studioIcons'
@@ -342,7 +344,7 @@ export function EvidenceScanPanel({
       <div className="cm-scan-details" hidden={!open} id={detailsId}>
         <section className="cm-scan-detail">
           <h3>{layoutCopy.detailScan}</h3>
-          <ScanStatusPanel events={events} projectId={projectId} />
+          <ScanStatusPanel buildId={buildId} events={events} projectId={projectId} />
         </section>
         <section className="cm-scan-detail">
           <h3>{layoutCopy.detailIngest}</h3>
@@ -394,7 +396,10 @@ function ScanBrief({ events, announce }: { events: ContentMapEventsState; announ
             ? `${copy.requested} ${copy.elapsed(scanElapsedSeconds(scan, now))}`
             : scan.state === 'SUCCEEDED'
               ? copy.succeeded
-              : copy.failed}
+              // 끊은 것과 깨진 것은 서버에서 끝나는 방식이 같다. 사람에게는 다른 말이어야 한다.
+              : scan.cancelled
+                ? copy.cancelled
+                : copy.failed}
         </span>
       )}
       {ingest !== undefined && ingest.receivedDocuments > 0 && (
@@ -414,6 +419,75 @@ function ScanBrief({ events, announce }: { events: ContentMapEventsState; announ
 /**
  * 도는 스캔의 진행 한 줄(ARTEL-1179): 작은 도넛 · 단계 · % · 지금 여는 씬 · 경과. 접혀 있어도 얼마나 남았는지 보인다.
  */
+/**
+ * 도는 스캔을 끊는 버튼(ARTEL-1184).
+ *
+ * 게임이 쥔 단계에서만 켠다. 서버가 올라온 문서를 읽는 단계에서는 바깥에서 끊을 손잡이가 없어, 끄고 왜 못 끊는지를
+ * 말한다. 끄기만 하고 이유를 안 말하면 사람은 버튼이 고장난 줄 안다.
+ *
+ * 누르면 한 번 묻는다. 멈춘 스캔은 지금까지 돈 것을 남기지 않아 다음 스캔이 처음부터 다시 도는데, 그 값을 모르고
+ * 누르면 되돌릴 수 없다.
+ *
+ * 결과는 이 버튼이 그리지 않는다. 서버가 상태를 닫고 SSE `scan` 으로 흘리면 패널이 그것을 받아 바뀐다.
+ */
+function CancelScanButton({
+  buildId,
+  projectId,
+  scan,
+}: {
+  buildId: string
+  projectId: string
+  scan: LastScan
+}) {
+  const { t } = useI18n()
+  const copy = t.contentMap.scanStatus
+  const [asking, setAsking] = useState(false)
+  // 연타로 DELETE 가 여러 번 나가지 않게 한다. 상태가 아니라 ref 인 이유는 스캔 버튼과 같다.
+  // 한 tick 안의 두 번째 누름은 아직 바뀌지 않은 상태를 읽는다.
+  const inFlight = useRef(false)
+
+  // 서버가 쥔 단계는 WS 프레임을 처리하는 코루틴 안에서 그대로 돌아 끊을 수 없다.
+  const gameSide = scan.phase === null || scan.phase === 'SCANNING' || scan.phase === 'UPLOADING'
+
+  async function confirm() {
+    if (inFlight.current) return
+    inFlight.current = true
+    try {
+      await cancelEvidenceScan({ projectId, gameBuildId: buildId })
+      setAsking(false)
+    } finally {
+      inFlight.current = false
+    }
+  }
+
+  return (
+    <>
+      <button
+        className="button button--secondary button--compact"
+        disabled={!gameSide}
+        onClick={() => setAsking(true)}
+        title={gameSide ? undefined : copy.cancelNotYet}
+        type="button"
+      >
+        {copy.cancel}
+      </button>
+      {!gameSide && <span className="cm-scan-cancel-why">{copy.cancelNotYet}</span>}
+      {asking && (
+        <ConfirmActionDialog
+          body={copy.cancelConfirmBody}
+          cancelLabel={copy.cancelKeepGoing}
+          confirmLabel={copy.cancelConfirmAction}
+          onClose={() => setAsking(false)}
+          onConfirm={confirm}
+          pendingLabel={copy.cancelBusy}
+          title={copy.cancelConfirmTitle}
+          toFailureMessage={() => copy.cancelFailed}
+        />
+      )}
+    </>
+  )
+}
+
 function ScanProgressBrief({ scan, now }: { scan: LastScan; now: number }) {
   const { t } = useI18n()
   const copy = t.contentMap.scanStatus
@@ -572,7 +646,15 @@ function useTickingNow(active: boolean): number {
  * `scan === null` 은 "이 서버가 이 빌드의 스캔을 모른다"는 사실이고,
  * `contract-contentmap.md` 가 못 박은 대로 영원한 진행 중으로 그리지 않는다.
  */
-function ScanStatusPanel({ events, projectId }: { events: ContentMapEventsState; projectId: string }) {
+function ScanStatusPanel({
+  buildId,
+  events,
+  projectId,
+}: {
+  buildId: string
+  events: ContentMapEventsState
+  projectId: string
+}) {
   const { t } = useI18n()
   const copy = t.contentMap.scanStatus
   const now = useTickingNow(events.scan?.state === 'REQUESTED')
@@ -608,6 +690,11 @@ function ScanStatusPanel({ events, projectId }: { events: ContentMapEventsState;
   return (
     <div aria-live="polite" className="cm-scan-status" role="status">
       {scan.state === 'REQUESTED' && scanPercent(scan) !== null && <ScanProgressDetail scan={scan} />}
+      {scan.state === 'REQUESTED' && (
+        <p className="cm-scan-cancel">
+          <CancelScanButton buildId={buildId} projectId={projectId} scan={scan} />
+        </p>
+      )}
       <p>
         <span
           aria-hidden="true"

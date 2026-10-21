@@ -1223,3 +1223,18 @@
   flex: none;
   color: var(--color-status-warning);
 }
+
+/* 펼침 진행 아래의 중단 줄(ARTEL-1184). 버튼과 못 끊는 이유가 한 줄에 선다. */
+.cm-scan-cancel {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-3) 0 0;
+}
+
+.cm-scan-cancel-why {
+  min-width: 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 18px;
+}

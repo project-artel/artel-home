@@ -483,6 +483,13 @@ export type LastScan = {
   ingestedDocuments: number | null
   /** `state` 가 `FAILED` 일 때 사람에게 보여 줄 사유. */
   error: string | null
+  /**
+   * 사람이 끊어서 `FAILED` 가 된 것인가(ARTEL-1184).
+   *
+   * 끊은 것과 깨진 것은 서버에서 끝나는 방식이 같다. 화면이 둘을 갈라 말할 수 있는 칸이 이것뿐이다.
+   * 이 칸을 모르는 옛 서버면 false 이고, 그때 화면은 지금까지처럼 실패로 말한다.
+   */
+  cancelled: boolean
   /** "스캔하고 TC 생성" 으로 시킨 스캔의 TC 쪽 결과(ARTEL-1041). 그냥 스캔이면 null 이다. */
   testCases: ScanTestCases | null
   /** 지금(끝났으면 마지막으로) 지난 단계(ARTEL-1178). 단계를 모르는 옛 서버면 null 이다. */

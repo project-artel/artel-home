@@ -175,6 +175,7 @@ test('a scan watch ignores the stale snapshot and finishes on the new scan', asy
   await flushMicrotasks()
 
   const base: LastScan = {
+    cancelled: false,
     state: 'SUCCEEDED',
     gameInstanceId: '9',
     gameInstanceName: 'Editor',

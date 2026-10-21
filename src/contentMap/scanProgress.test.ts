@@ -12,6 +12,7 @@ function scan(overrides: Partial<LastScan>): LastScan {
   finishedAt: null,
   ingestedDocuments: null,
   error: null,
+  cancelled: false,
   testCases: null,
   phase: 'SCANNING',
   progress: null,
