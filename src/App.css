@@ -2544,9 +2544,24 @@ a.instance-name:hover {
 }
 
 .qa-flow-card {
+  position: relative;
   background: var(--color-bg-raised);
   border-radius: 10px;
-  padding: var(--space-3) var(--space-4);
+  /* 오른쪽은 스텝 번호 자리다. 글이 그 아래로 들어가 겹치지 않게 넉넉히 비운다. */
+  padding: var(--space-3) 56px var(--space-3) var(--space-4);
+}
+
+/* 스텝 번호. 읽는 글이 아니라 자리표라 흐리게 두고, 본문 위로 겹치지 않게 오른쪽 끝에 둔다. */
+.qa-flow-step-no {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-4);
+  margin: 0;
+  text-align: right;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  line-height: 20px;
+  font-variant-numeric: tabular-nums;
 }
 
 .qa-flow-line {

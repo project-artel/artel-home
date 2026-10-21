@@ -210,6 +210,8 @@ function QaFlowStep({ block }: { block: FlowStep }) {
   return (
     <li className="qa-flow-step" data-log-id={block.lines[0]?.id}>
       <div className="qa-flow-card">
+        {/* 한 TC 가 스텝 여럿에 걸칠 때 어디서 갈리는지, 그리고 레일의 몇 번째인지를 잇는다. */}
+        <p className="qa-flow-step-no">{text.flowStepLabel(block.step)}</p>
         {shown.map((line, at) => {
           // 판정 줄이 아래에 붙으므로 마지막 조작 줄에서도 선을 잇는다.
           const last = at === shown.length - 1 && block.passed === null
