@@ -387,6 +387,8 @@ export function parseScene(data: unknown): ContentMapScene | null {
     thumbnail: parseThumbnail(record.thumbnail),
     screens: parseScreens(record.screens),
     capabilityList: parseCapabilityList(record.capabilityList),
+    buildOrder: typeof record.buildOrder === 'number' && Number.isInteger(record.buildOrder) && record.buildOrder >= 0 ? record.buildOrder : null,
+    entry: record.entry === true,
   }
 }
 

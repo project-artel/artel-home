@@ -56,27 +56,27 @@ const SCREEN_GAP_Y = 14
 /** 컨테이너 테두리와 안쪽 내용 사이. */
 const CONTAINER_PADDING = 14
 
-/** 컨테이너 머리글(씬 이름과 개수)이 차지하는 높이. */
-export const CONTAINER_HEADER = 32
-
 /**
- * 화면이 하나도 없는 씬의 몸통 높이.
- *
- * 0 으로 두면 컨테이너가 머리글만 남아 다른 화면의 씬 카드와 구별되지 않는다. 빈 몸통이
- * 남아야 캔버스가 거기에 "아직 관측된 화면이 없다"를 쓸 자리가 생기고, 그 문장이 이 상태를
- * 오류가 아니라 정상으로 읽게 한다.
+ * 씬 카드(ARTEL-1172): 왼쪽에 씬 대표 이미지, 오른쪽에 이름 · 능력 · 전이 수. 상자만 보고도 이 씬이 어떤 화면이고
+ * 무엇을 할 수 있으며 몇 길로 오가는지 읽히게 한다. 관측된 화면이 있으면 그 격자는 카드 아래로 이어진다.
  */
-const EMPTY_BODY_HEIGHT = 34
+export const CARD_INSET = 10
+export const CARD_IMAGE_WIDTH = 168
+export const CARD_IMAGE_HEIGHT = 94
+/** 카드 칸의 높이. 오른쪽 상세 — 이름 한 줄과 수 네 줄, 화면 없음 한 줄 — 가 이미지보다 길어 그것이 정한다. */
+export const CONTAINER_HEADER = 124
+/** 카드 오른쪽 상세 칸의 폭. 수를 한 줄에 하나씩 세워 좁게 둔다 — 열이 여섯인 지도는 카드 폭이 곧 지도 폭이다. */
+export const CARD_DETAIL_WIDTH = 132
 
-/** 컨테이너의 최소 폭. 화면 하나와 씬 이름이 둘 다 들어갈 만큼. */
-const MIN_CONTAINER_WIDTH = SCREEN_WIDTH + CONTAINER_PADDING * 2
+/** 컨테이너의 최소 폭. 화면 하나와 씬 이름, 능력 · 전이 수 한 줄이 다 들어갈 만큼. */
+const MIN_CONTAINER_WIDTH = Math.max(SCREEN_WIDTH + CONTAINER_PADDING * 2, CARD_INSET * 3 + CARD_IMAGE_WIDTH + CARD_DETAIL_WIDTH)
 
 /**
  * layer 사이의 가로 간격. 여기에 씬 전이가 가로로 지나가고 그 위에 조건 한 줄이 앉는다.
  * 세로 간격이던 시절의 88 은 두 layer 사이에 글자가 들어갈 높이였을 뿐이라, 가로에서는
  * 전이 라벨의 폭을 감당하지 못한다.
  */
-const LAYER_GAP = 120
+const LAYER_GAP = 96
 
 /**
  * 같은 layer(열) 안에서 컨테이너끼리 벌어지는 세로 거리. 자기 자신으로 가는 고리가 상자
@@ -153,9 +153,15 @@ export type PlacedContainer = {
   y: number
   width: number
   height: number
+  /** 그려지는 화면. 접힌 씬이면 앞의 몇 개뿐이다 — 나머지는 [toggle] 칸이 센다. */
   screens: PlacedScreen[]
   /** entry 씬에서 몇 걸음 떨어졌나. 0 이 entry 다. */
   layer: number
+  /**
+   * 화면이 많은 씬의 접기 · 펼치기 칸(ARTEL-1172). 화면이 [SCREEN_PREVIEW_LIMIT] 개 이하면 null.
+   * 접혀 있으면 `hidden` 개를 세고, 펼쳐져 있으면 `hidden` 이 0 이고 그 칸이 접기 단추다.
+   */
+  toggle: { x: number; y: number; width: number; height: number; hidden: number; expanded: boolean } | null
 }
 
 type Drawn = {
@@ -275,7 +281,14 @@ export function buildScreenMap(
   }
 }
 
-type Box = { width: number; height: number; screens: { x: number; y: number }[] }
+type Box = { width: number; height: number; screens: { x: number; y: number }[]; toggle: { x: number; y: number } | null }
+
+/**
+ * 한 씬에 이보다 많은 화면이 있으면 접어서 앞의 몇 개만 그린다(ARTEL-1172). TurnBattleScene 처럼 화면이 열여덟이면
+ * 그 씬 하나가 지도 폭을 혼자 정해, 맞춰 보기에서 모든 씬이 손톱만 해졌다. 접힌 화면도 tree 와 상세에는 다 있고,
+ * 그 화면에 닿는 전이는 접기 칸으로 이어진다.
+ */
+export const SCREEN_PREVIEW_LIMIT = 6
 
 /**
  * 컨테이너 하나의 크기와, 그 안 화면들의 상대 좌표.
@@ -289,32 +302,40 @@ type Box = { width: number; height: number; screens: { x: number; y: number }[] 
  * 점으로 줄어들었을 것이다. 그래도 그 컨테이너가 줄에서 가장 큰 것은 사실이고, 그것을 작게
  * 보이도록 접는 것은 데이터를 숨기는 일이다.
  */
-function measureContainer(screens: readonly ContentMapScreen[]): Box {
+function measureContainer(screens: readonly ContentMapScreen[], expanded: boolean): Box {
   if (screens.length === 0) {
     return {
       width: MIN_CONTAINER_WIDTH,
-      height: CONTAINER_PADDING * 2 + CONTAINER_HEADER + EMPTY_BODY_HEIGHT,
+      // 카드 칸이 곧 상자다. "아직 관측된 화면 없음" 은 카드 오른쪽 줄이 말한다.
+      height: CONTAINER_HEADER,
       screens: [],
+      toggle: null,
     }
   }
 
-  const columns = Math.ceil(Math.sqrt(screens.length))
-  const rows = Math.ceil(screens.length / columns)
+  const collapsible = screens.length > SCREEN_PREVIEW_LIMIT
+  const shown = collapsible && !expanded ? SCREEN_PREVIEW_LIMIT - 1 : screens.length
+  // 접기 칸도 화면 한 칸 자리를 쓴다 — 접혔을 땐 "n개 더", 펼쳤을 땐 "접기".
+  const cells = shown + (collapsible ? 1 : 0)
+  const columns = Math.ceil(Math.sqrt(cells))
+  const rows = Math.ceil(cells / columns)
   const bodyWidth = columns * SCREEN_WIDTH + (columns - 1) * SCREEN_GAP_X
   const bodyHeight = rows * SCREEN_HEIGHT + (rows - 1) * SCREEN_GAP_Y
 
   const width = Math.max(MIN_CONTAINER_WIDTH, bodyWidth + CONTAINER_PADDING * 2)
-  const height = CONTAINER_PADDING * 2 + CONTAINER_HEADER + bodyHeight
+  const height = CONTAINER_HEADER + bodyHeight + CONTAINER_PADDING
   // 마지막 줄이 덜 찼을 때 격자가 왼쪽으로 쏠리지 않도록 몸통을 가운데에 둔다.
   const left = (width - bodyWidth) / 2
+  const cell = (index: number) => ({
+    x: left + (index % columns) * (SCREEN_WIDTH + SCREEN_GAP_X),
+    y: CONTAINER_HEADER + Math.floor(index / columns) * (SCREEN_HEIGHT + SCREEN_GAP_Y),
+  })
 
   return {
     width,
     height,
-    screens: screens.map((_, index) => ({
-      x: left + (index % columns) * (SCREEN_WIDTH + SCREEN_GAP_X),
-      y: CONTAINER_PADDING + CONTAINER_HEADER + Math.floor(index / columns) * (SCREEN_HEIGHT + SCREEN_GAP_Y),
-    })),
+    screens: screens.slice(0, shown).map((_, index) => cell(index)),
+    toggle: collapsible ? cell(shown) : null,
   }
 }
 
@@ -475,6 +496,104 @@ function link(from: Rect, to: Rect, offset: number): Drawn {
   }
 }
 
+/** 층을 건너는 씬 전이가 도는 통로 사이 간격, 그리고 가장 안쪽 통로가 상자들에서 떨어지는 거리. */
+const CHANNEL_STEP = 14
+const CHANNEL_CLEARANCE = 30
+/** 통로로 꺾이는 모서리의 둥근 반지름. */
+const CORNER = 10
+/** 틈 안에서 통로 선끼리 벌어지는 가로 거리. */
+const LANE_STEP = 7
+/** 옆면 위아래 끝에서 선이 닿지 않는 거리. */
+const PORT_MARGIN = 10
+
+/** 열(layer) 하나가 차지하는 가로 범위. */
+type ColumnSpan = { left: number; right: number }
+
+/**
+ * 옆 열로 가는 씬 전이(ARTEL-1172). 상자 옆면에서 가로로 나가 가로로 들어오는 S 곡선이다 — 중심끼리 잇던 곧은
+ * 선은 상자 모서리 아무 데서나 나가 화살촉이 한 점에 몰렸다. 나가고 들어오는 높이는 `assignPorts` 가 정한다.
+ */
+function sideLink(from: Rect, to: Rect, startY: number, endY: number): Drawn {
+  const forward = to.x > from.x
+  const start = { x: forward ? from.x + from.width : from.x, y: startY }
+  const end = { x: forward ? to.x - ARROW_CLEARANCE : to.x + to.width + ARROW_CLEARANCE, y: endY }
+  const pull = Math.abs(end.x - start.x) / 2
+  const c1 = { x: start.x + (forward ? pull : -pull), y: start.y }
+  const c2 = { x: end.x + (forward ? -pull : pull), y: end.y }
+  return {
+    path: `M ${round(start.x)} ${round(start.y)} C ${round(c1.x)} ${round(c1.y)} ${round(c2.x)} ${round(c2.y)} ${round(end.x)} ${round(end.y)}`,
+    // 삼차 베지에의 t = 0.5.
+    midX: round((start.x + 3 * c1.x + 3 * c2.x + end.x) / 8),
+    midY: round((start.y + 3 * c1.y + 3 * c2.y + end.y) / 8),
+    loop: false,
+  }
+}
+
+/**
+ * 열을 둘 이상 건너는 씬 전이(ARTEL-1172). 가운데 열의 상자를 뚫지 않게, 출발 열 옆 틈으로 나가 그림 위(또는 아래)
+ * 통로를 지나 도착 열 옆 틈으로 내려온다. 통로 높이와 틈 안의 세로 차선 [lane] 은 선마다 달라 겹쳐 달리지 않는다.
+ */
+function channelLink(
+  from: Rect,
+  to: Rect,
+  startY: number,
+  endY: number,
+  fromColumn: ColumnSpan,
+  toColumn: ColumnSpan,
+  channelY: number,
+  lane: number,
+): Drawn {
+  const forward = to.x > from.x
+  const sign = forward ? 1 : -1
+  const startX = forward ? from.x + from.width : from.x
+  const endX = forward ? to.x - ARROW_CLEARANCE : to.x + to.width + ARROW_CLEARANCE
+  const shift = Math.min(LAYER_GAP / 2 - CORNER * 2, lane * LANE_STEP)
+  // 출발 틈에서는 바깥 통로일수록 상자에서 멀리, 도착 틈에서는 가까이 — 두 틈에서 차선이 서로 엇갈리지 않는다.
+  const outX = (forward ? fromColumn.right + LAYER_GAP / 2 : fromColumn.left - LAYER_GAP / 2) + sign * shift
+  const inX = (forward ? toColumn.left - LAYER_GAP / 2 : toColumn.right + LAYER_GAP / 2) - sign * shift
+  const up = channelY < startY ? -1 : 1
+  const r = CORNER
+  const path = [
+    `M ${round(startX)} ${round(startY)}`,
+    `H ${round(outX - sign * r)}`,
+    `Q ${round(outX)} ${round(startY)} ${round(outX)} ${round(startY + up * r)}`,
+    `V ${round(channelY - up * r)}`,
+    `Q ${round(outX)} ${round(channelY)} ${round(outX + sign * r)} ${round(channelY)}`,
+    `H ${round(inX - sign * r)}`,
+    `Q ${round(inX)} ${round(channelY)} ${round(inX)} ${round(channelY - up * r)}`,
+    `V ${round(endY + up * r)}`,
+    `Q ${round(inX)} ${round(endY)} ${round(inX + sign * r)} ${round(endY)}`,
+    `H ${round(endX)}`,
+  ].join(' ')
+  return { path, midX: round((outX + inX) / 2), midY: round(channelY), loop: false }
+}
+
+/**
+ * 상자 옆면마다 선이 닿는 높이(ARTEL-1172). 한 옆면에 닿는 선들을 상대 끝의 높이 순으로 세워 옆면 위에 고르게
+ * 나눈다 — 전부 가운데 한 점에 꽂으면 화살촉이 겹쳐 몇 개가 들어오는지 셀 수 없었다. 같은 높이면 전이 id 순.
+ */
+function assignPorts(
+  requests: readonly { key: string; edgeId: string; rect: Rect; toward: number }[],
+): Map<string, number> {
+  const bySide = new Map<string, { edgeId: string; rect: Rect; toward: number }[]>()
+  for (const request of requests) {
+    const list = bySide.get(request.key) ?? []
+    list.push(request)
+    bySide.set(request.key, list)
+  }
+  const ports = new Map<string, number>()
+  for (const [key, list] of bySide) {
+    list.sort((left, right) => left.toward - right.toward || left.edgeId.localeCompare(right.edgeId))
+    const { rect } = list[0]
+    const topY = rect.y + PORT_MARGIN
+    const span = Math.max(0, rect.height - PORT_MARGIN * 2)
+    list.forEach((entry, index) => {
+      ports.set(`${key} ${entry.edgeId}`, topY + (span * (index + 1)) / (list.length + 1))
+    })
+  }
+  return ports
+}
+
 /**
  * 상자 위쪽에 매달리는 고리. 오른쪽은 이제 다음 layer 로 나가는 선이 지나는 자리라 고리를
  * 위쪽으로 올린다. 같은 상자의 고리가 늘 때마다 바깥으로 자란다.
@@ -531,8 +650,8 @@ function orientation(from: string, to: string): number {
 }
 
 /** 모델을 좌표로. 같은 모델은 언제나 같은 그림이 된다. */
-export function layoutScreenMap(model: ScreenMapModel): ScreenMapLayout {
-  const boxes = model.containers.map((container) => measureContainer(container.screens))
+export function layoutScreenMap(model: ScreenMapModel, expanded: ReadonlySet<string> = new Set()): ScreenMapLayout {
+  const boxes = model.containers.map((container) => measureContainer(container.screens, expanded.has(container.id)))
   const layer = assignLayers(model.containers, model.sceneEdges)
 
   const indexById = new Map(model.containers.map((container, index) => [container.id, index]))
@@ -576,13 +695,24 @@ export function layoutScreenMap(model: ScreenMapModel): ScreenMapLayout {
         width: box.width,
         height: box.height,
         layer: depth,
-        screens: container.screens.map((screen, position) => ({
+        screens: container.screens.slice(0, box.screens.length).map((screen, position) => ({
           screen,
           x: round(left + offset + box.screens[position].x),
           y: round(top + box.screens[position].y),
           width: SCREEN_WIDTH,
           height: SCREEN_HEIGHT,
         })),
+        toggle:
+          box.toggle === null
+            ? null
+            : {
+                x: round(left + offset + box.toggle.x),
+                y: round(top + box.toggle.y),
+                width: SCREEN_WIDTH,
+                height: SCREEN_HEIGHT,
+                hidden: container.screens.length - box.screens.length,
+                expanded: box.screens.length === container.screens.length,
+              },
       }
       top += box.height + SIBLING_GAP
     }
@@ -594,12 +724,75 @@ export function layoutScreenMap(model: ScreenMapModel): ScreenMapLayout {
   const rectById = new Map(placed.map((container) => [container.id, container]))
   const screenRects = new Map<string, PlacedScreen>()
   const containerOfScreen = new Map<string, string>()
+  // 접혀 안 그려지는 화면은 접기 칸을 자기 자리로 쓴다 — 그 화면에 닿는 전이가 사라지지 않고 칸으로 이어진다.
+  const hiddenRect = new Map<string, Rect>()
+  model.containers.forEach((container, index) => {
+    const toggle = placed[index].toggle
+    if (toggle === null || toggle.hidden === 0) return
+    for (const screen of container.screens.slice(placed[index].screens.length)) {
+      hiddenRect.set(screen.id, toggle)
+      containerOfScreen.set(screen.id, container.id)
+    }
+  })
   for (const container of placed) {
     for (const screen of container.screens) {
       screenRects.set(screen.screen.id, screen)
       containerOfScreen.set(screen.screen.id, container.id)
     }
   }
+
+  // 열마다 가로 범위와 그림 전체의 위아래 끝. 층을 건너는 선이 도는 틈과 통로가 여기서 나온다.
+  const columns: ColumnSpan[] = Array.from({ length: layerCount }, () => ({ left: Infinity, right: -Infinity }))
+  let top = 0
+  let bottom = 0
+  for (const container of placed) {
+    const column = columns[container.layer]
+    column.left = Math.min(column.left, container.x)
+    column.right = Math.max(column.right, container.x + container.width)
+    top = Math.min(top, container.y)
+    bottom = Math.max(bottom, container.y + container.height)
+  }
+  // 통로 번호는 전이 id 순으로 준다. 입력 순서로 주면 같은 지도가 응답 순서에 따라 다르게 그려진다.
+  const longEdges = model.sceneEdges
+    .filter(({ edge }) => {
+      const from = rectById.get(edge.from)
+      const to = rectById.get(edge.to)
+      return from !== undefined && to !== undefined && Math.abs(from.layer - to.layer) > 1
+    })
+    .map(({ id, edge }) => ({ id, edge }))
+    .sort((left, right) => left.id.localeCompare(right.id))
+  let above = 0
+  let below = 0
+  const channelOf = new Map<string, { y: number; lane: number }>()
+  for (const { id, edge } of longEdges) {
+    const from = rectById.get(edge.from)
+    const to = rectById.get(edge.to)
+    if (from === undefined || to === undefined) continue
+    // 두 끝의 가운데가 위쪽이면 위 통로, 아래쪽이면 아래 통로 — 열은 y = 0 을 가운데로 놓였다.
+    const middle = (from.y + from.height / 2 + to.y + to.height / 2) / 2
+    if (middle <= 0) {
+      channelOf.set(id, { y: top - CHANNEL_CLEARANCE - CHANNEL_STEP * above, lane: above })
+      above += 1
+    } else {
+      channelOf.set(id, { y: bottom + CHANNEL_CLEARANCE + CHANNEL_STEP * below, lane: below })
+      below += 1
+    }
+  }
+
+  // 옆 열 · 통로 선이 상자 옆면에 닿는 높이.
+  const portRequests: { key: string; edgeId: string; rect: Rect; toward: number }[] = []
+  for (const { id, edge } of model.sceneEdges) {
+    const from = rectById.get(edge.from)
+    const to = rectById.get(edge.to)
+    if (from === undefined || to === undefined || edge.from === edge.to || from.layer === to.layer) continue
+    const forward = to.x > from.x
+    const channel = channelOf.get(id)
+    const fromToward = channel?.y ?? to.y + to.height / 2
+    const toToward = channel?.y ?? from.y + from.height / 2
+    portRequests.push({ key: `${edge.from} ${forward ? 'R' : 'L'}`, edgeId: id, rect: from, toward: fromToward })
+    portRequests.push({ key: `${edge.to} ${forward ? 'L' : 'R'}`, edgeId: id, rect: to, toward: toToward })
+  }
+  const ports = assignPorts(portRequests)
 
   const sceneEdges: PlacedSceneEdge[] = []
   const edgeEnds = model.sceneEdges.map(({ edge }) => ({ from: edge.from, to: edge.to }))
@@ -610,10 +803,20 @@ export function layoutScreenMap(model: ScreenMapModel): ScreenMapLayout {
       const to = rectById.get(edge.to)
       if (from === undefined || to === undefined) return
 
-      const drawn =
-        edge.from === edge.to
-          ? selfLink(from, position)
-          : link(from, to, fanOffset(position, group.length) * orientation(edge.from, edge.to))
+      let drawn: Drawn
+      if (edge.from === edge.to) drawn = selfLink(from, position)
+      else if (from.layer === to.layer) {
+        drawn = link(from, to, fanOffset(position, group.length) * orientation(edge.from, edge.to))
+      } else {
+        const forward = to.x > from.x
+        const startY = ports.get(`${edge.from} ${forward ? 'R' : 'L'} ${id}`) ?? from.y + from.height / 2
+        const endY = ports.get(`${edge.to} ${forward ? 'L' : 'R'} ${id}`) ?? to.y + to.height / 2
+        const channel = channelOf.get(id)
+        drawn =
+          channel === undefined
+            ? sideLink(from, to, startY, endY)
+            : channelLink(from, to, startY, endY, columns[from.layer], columns[to.layer], channel.y, channel.lane)
+      }
       sceneEdges.push({ id, edge, ...drawn })
     })
   }
@@ -626,9 +829,12 @@ export function layoutScreenMap(model: ScreenMapModel): ScreenMapLayout {
   for (const group of groupByPair(transitionEnds).values()) {
     group.forEach((index, position) => {
       const { id, transition } = model.screenTransitions[index]
-      const from = screenRects.get(transition.fromScreenId)
-      const to = screenRects.get(transition.toScreenId)
+      const from = screenRects.get(transition.fromScreenId) ?? hiddenRect.get(transition.fromScreenId)
+      const to = screenRects.get(transition.toScreenId) ?? hiddenRect.get(transition.toScreenId)
       if (from === undefined || to === undefined) return
+      // 두 끝이 다 접혀 같은 칸 안에 있으면 그릴 선이 없다. 그 전이는 tree 와 상세에 그대로 있다.
+      const bothHidden = hiddenRect.has(transition.fromScreenId) && hiddenRect.has(transition.toScreenId)
+      if (bothHidden && from === to) return
 
       const drawn =
         transition.fromScreenId === transition.toScreenId

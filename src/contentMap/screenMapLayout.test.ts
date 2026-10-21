@@ -9,6 +9,7 @@ import type {
 } from './contentMapTypes.ts'
 import {
   buildScreenMap,
+  CARD_IMAGE_HEIGHT,
   CONTAINER_HEADER,
   layoutScreenMap,
   SCREEN_HEIGHT,
@@ -51,6 +52,8 @@ function scene(id: string, name: string, screens: ContentMapScreen[] = []): Cont
     thumbnail: null,
     screens,
     capabilityList: [],
+    buildOrder: null,
+    entry: false,
   }
 }
 
@@ -139,10 +142,12 @@ test('화면이 0 행인 빌드는 씬 컨테이너만 그려진다', () => {
   assert.equal(model.screenCount, 0)
   assert.equal(layout.containers.length, 2)
   assert.deepEqual(layout.screenTransitions, [])
-  // 화면이 없어도 컨테이너는 몸통을 갖는다. 머리글만 남으면 빈 씬이 씬 카드와 구별되지 않는다.
+  // 화면이 없는 씬은 카드 칸 하나다(ARTEL-1172) — 왼쪽 대표 이미지와 오른쪽 상세가 들어가고, "아직 관측된 화면
+  // 없음" 은 그 상세 줄이 말한다. 이미지 칸보다 작아지면 그림이 잘린다.
   for (const container of layout.containers) {
     assert.deepEqual(container.screens, [])
-    assert.ok(container.height > CONTAINER_HEADER, '빈 씬도 몸통이 남아야 한다')
+    assert.equal(container.height, CONTAINER_HEADER)
+    assert.ok(container.height >= CARD_IMAGE_HEIGHT)
     assert.ok(container.width >= SCREEN_WIDTH)
   }
 })
@@ -200,7 +205,8 @@ test('캡처가 있는 화면과 없는 화면이 같은 크기 상자를 받는
 test('컨테이너는 안에 든 화면 수만큼 커진다 — 안쪽을 먼저 재기 때문이다', () => {
   const one = layoutScreenMap(buildScreenMap([scene('1', 'A', [screen('10', '1')])], [], []))
   const many = layoutScreenMap(
-    buildScreenMap([scene('1', 'A', ['10', '11', '12', '13'].map((id) => screen(id, '1')))], [], []),
+    // 아홉 개(세 줄 세 칸)라야 격자가 씬 카드의 최소 폭(이미지 + 상세)을 넘는다.
+    buildScreenMap([scene('1', 'A', ['10', '11', '12', '13', '14', '15', '16', '17', '18'].map((id) => screen(id, '1')))], [], []),
   )
 
   assert.ok(
@@ -454,9 +460,9 @@ test('화면이 스물인 씬의 자기 전이도 반지름 안에 드는 고리
   // 고리의 두 끝을 폭의 비율로만 잡으면 그 거리가 지름의 여덟 배가 된다. 그때 SVG 는 오류를 내지
   // 않고 반지름을 말없이 키워, 컨테이너를 통째로 감싸는 고리 하나가 그려진다.
   const many = Array.from({ length: 20 }, (_, index) => screen(String(100 + index), '1'))
-  const layout = layoutScreenMap(
-    buildScreenMap([scene('1', 'TurnBattleScene', many)], [edge('1', { id: '1', name: 'TurnBattleScene' })], []),
-  )
+  const model = buildScreenMap([scene('1', 'TurnBattleScene', many)], [edge('1', { id: '1', name: 'TurnBattleScene' })], [])
+  // 펼친 상태로 잰다 — 접히면 화면 다섯 개와 접기 칸만 서서 상자가 넓어지지 않는다.
+  const layout = layoutScreenMap(model, new Set(model.containers.map((container) => container.id)))
 
   assert.equal(layout.containers[0].width > SCREEN_WIDTH * 4, true, '상자가 넓지 않으면 시험이 무의미하다')
   assert.equal(layout.sceneEdges.length, 1)
@@ -469,13 +475,12 @@ test('화면이 스물인 씬이 이웃과 한 열에 서도 겹치지 않고 �
   // 임계값에 따라 같은 씬이 화면 셋이 되기도 스물이 되기도 한다. 그 경우에만 틀리는 배치는
   // 정확히 가장 필요할 때 거짓말을 한다.
   const many = Array.from({ length: 20 }, (_, index) => screen(String(100 + index), '1'))
-  const layout = layoutScreenMap(
-    buildScreenMap(
-      [scene('1', 'TurnBattleScene', many), scene('2', 'Map_scene', [screen('200', '2')])],
-      [],
-      [],
-    ),
+  const model = buildScreenMap(
+    [scene('1', 'TurnBattleScene', many), scene('2', 'Map_scene', [screen('200', '2')])],
+    [],
+    [],
   )
+  const layout = layoutScreenMap(model, new Set(model.containers.map((container) => container.id)))
 
   const [big, small] = layout.containers
   assert.equal(big.screens.length, 20)
@@ -514,4 +519,26 @@ test('한 씬 안의 왕복 전이 두 개가 서로 다른 곡선으로 갈린�
   assert.equal(layout.screenTransitions.length, 2)
   assert.notEqual(layout.screenTransitions[0].path, layout.screenTransitions[1].path)
   for (const placed of layout.screenTransitions) assert.equal(placed.crossesContainer, false)
+})
+
+test('화면이 많은 씬은 접혀 앞의 다섯과 접기 칸만 서고, 접힌 화면의 전이는 칸으로 이어진다 (ARTEL-1172)', () => {
+  const many = Array.from({ length: 9 }, (_, index) => screen(String(100 + index), '1'))
+  const model = buildScreenMap(
+    [scene('1', 'TurnBattleScene', many), scene('2', 'Map_scene', [screen('200', '2')])],
+    [edge('1', { id: '2', name: 'Map_scene' })],
+    // 접힌 108 에서 Map 의 200 으로, 접힌 둘 사이(107 → 108)는 그릴 선이 없다.
+    [transition('t1', '108', '200'), transition('t2', '107', '108')],
+  )
+  const collapsed = layoutScreenMap(model)
+  const big = collapsed.containers[0]
+  assert.equal(big.screens.length, 5)
+  assert.deepEqual(big.toggle && { hidden: big.toggle.hidden, expanded: big.toggle.expanded }, { hidden: 4, expanded: false })
+  assert.deepEqual(collapsed.screenTransitions.map((placed) => placed.transition.id), ['t1'])
+
+  const expanded = layoutScreenMap(model, new Set([big.id]))
+  assert.equal(expanded.containers[0].screens.length, 9)
+  assert.deepEqual(expanded.containers[0].toggle && expanded.containers[0].toggle.expanded, true)
+  assert.equal(expanded.screenTransitions.length, 2)
+  // 화면이 적은 씬은 접을 것이 없다.
+  assert.equal(collapsed.containers[1].toggle, null)
 })

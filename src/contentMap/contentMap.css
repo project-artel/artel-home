@@ -1,0 +1,1124 @@
+/*
+ * 화면 지도 — 지도 중심 배치(ARTEL-1172).
+ *
+ * App.css 의 `.cm-*` · `.sm-*` 위에 얹는다. 이 파일이 나중에 읽혀 같은 특정도면 이긴다. 서비스 토큰만 쓴다.
+ * 예전 배치는 근거 패널 · 요약 세 칸이 위를 차지하고 지도가 칸 맨 아래 300px 에 있었다. 지금은 위 두 줄(머리 ·
+ * 근거)만 남기고 나머지 높이를 세 칸이 나눠 쓴다.
+ */
+
+/* 섹션 공통 폭 1240px 은 글 읽는 화면 기준이다. 지도는 넓을수록 읽히므로 이 화면만 넓힌다. */
+.workspace-body:has(.cm-section) :is(.section-header, .section-content) {
+  width: min(100%, 2400px);
+}
+.content-map {
+  width: 100%;
+}
+.cm-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* 머리 줄: 돌아가기 · 빌드 · 읽은 시각 · 설명 · 빌드 select */
+.cm-page-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.cm-page-meta .back-link {
+  margin: 0;
+}
+.cm-page-meta .cm-eyebrow {
+  margin: 0;
+}
+.cm-page-tools {
+  margin-left: auto;
+}
+.cm-about {
+  display: block;
+}
+.cm-about + .cm-about {
+  margin-top: var(--space-2);
+}
+
+/* 배너는 그대로 상시 조건이다. 머리 줄과 근거 줄 사이에서 얇게 선다. */
+.content-map .cm-banner {
+  margin-bottom: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+}
+
+/* 근거 줄 */
+.content-map .cm-scan {
+  margin-bottom: var(--space-3);
+  padding: 10px 14px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
+}
+.cm-scan-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+}
+.cm-scan-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+.cm-scan-bar .cm-summary-line {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 12.5px;
+}
+.cm-scan-brief {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+.cm-brief {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.cm-brief--failed {
+  color: var(--color-status-critical);
+}
+.cm-brief--warning,
+.cm-brief--requested {
+  color: var(--color-status-warning);
+}
+.cm-stream-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--color-border-strong);
+}
+.cm-brief--stream-live .cm-stream-dot {
+  background: var(--color-status-success);
+}
+.cm-brief--stream-degraded .cm-stream-dot,
+.cm-brief--stream-offline .cm-stream-dot {
+  background: var(--color-status-warning);
+}
+/* 연결돼 있으면 점만으로 충분하다 — 글자는 끊겼을 때 일한다. 화면 낭독기에는 그대로 읽힌다. */
+.cm-brief--stream-live {
+  font-size: 0;
+}
+.cm-brief--stream-live .cm-stream-dot {
+  font-size: 12px;
+}
+.content-map .cm-scan-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+.cm-scan-instance {
+  width: auto;
+  min-width: 180px;
+  max-width: 260px;
+  height: 32px;
+  padding-block: 0;
+  font-size: 12.5px;
+}
+.content-map .cm-scan-blocked {
+  margin: var(--space-2) 0 0;
+  font-size: 12px;
+}
+.content-map .cm-scan .cm-outcome,
+.content-map .cm-scan .inline-error {
+  margin: var(--space-2) 0 0;
+}
+.cm-scan-details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border-subtle);
+}
+.cm-scan-details[hidden] {
+  display: none;
+}
+.cm-scan-details .cm-scan-copy {
+  margin: 0;
+}
+
+/* 세 칸. 위 두 줄을 뺀 창 높이를 나눠 쓴다. */
+.content-map .cm-workspace {
+  --cm-tree-width: 280px;
+  --cm-inspector-width: 380px;
+  align-items: stretch;
+  gap: var(--space-3);
+}
+.content-map :is(.cm-tree-pane, .cm-inspector-panel) {
+  height: auto;
+  min-height: 0;
+  max-height: none;
+}
+.content-map .cm-canvas-panel {
+  height: auto;
+  min-height: 0;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+.cm-canvas-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+.cm-canvas-head h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.cm-canvas-head .cm-viewport-controls {
+  margin-left: auto;
+}
+.cm-canvas-head .cm-viewport-scale {
+  margin-right: var(--space-1);
+}
+.content-map .cm-canvas-frame {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  aspect-ratio: auto;
+  border: 0;
+  border-radius: 0;
+  background: var(--color-bg-canvas);
+}
+/* 안내는 그림 위 왼쪽 위에 얹는다. 그림을 밀지 않고, 끌어 옮기기를 막지도 않는다. */
+.cm-canvas-notices {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-width: min(420px, calc(100% - var(--space-6)));
+  pointer-events: none;
+}
+.cm-canvas-notices .cm-notice {
+  background: color-mix(in srgb, var(--color-bg-raised) 88%, transparent);
+  backdrop-filter: blur(4px);
+}
+.cm-canvas-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-2) var(--space-4);
+  padding: 8px 14px;
+  border-top: 1px solid var(--color-border-subtle);
+}
+.cm-canvas-foot .cm-canvas-note {
+  flex: 1 1 320px;
+}
+.cm-legend-toggle {
+  margin-left: auto;
+  font-size: 12px;
+}
+.cm-legend-toggle > summary {
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  list-style: none;
+}
+.cm-legend-toggle > summary::-webkit-details-marker {
+  display: none;
+}
+.cm-legend-toggle > summary::before {
+  content: '▸ ';
+}
+.cm-legend-toggle[open] > summary::before {
+  content: '▾ ';
+}
+.cm-legend-toggle > summary:hover {
+  color: var(--color-text-primary);
+}
+.cm-legend-toggle[open] .sm-legend {
+  margin-top: var(--space-2);
+}
+
+/* 고른 것이 없을 때의 개요 */
+.cm-overview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border-top: 1px solid var(--color-border-subtle);
+}
+.cm-overview > h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+.cm-overview .cm-summary {
+  margin: 0;
+}
+.cm-overview .cm-summary-grid {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+}
+.cm-overview .cm-capture {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.cm-overview .cm-capture .panel-header h2 {
+  margin-bottom: var(--space-2);
+  font-size: 13px;
+}
+
+/* ── 그림 ─────────────────────────────────────────────────────────────── */
+
+/* 씬 상자: 표면색 바탕에 기본 테두리. 씬 색은 머리의 점(`sm-container-dot`)이 말한다. 밟음 실선 · 안 밟음 점선은 그대로. */
+.content-map .sm-container-frame,
+:root[data-theme='dark'] .content-map .sm-container-frame {
+  fill: var(--color-bg-surface);
+  stroke: var(--color-border-strong);
+  stroke-width: 1.2;
+}
+.content-map .sm-container--notWalked .sm-container-frame {
+  stroke-dasharray: 8 3;
+}
+.content-map .sm-container--unmapped .sm-container-frame {
+  fill: none;
+}
+.content-map .sm-container-head {
+  fill: transparent;
+}
+.sm-container-dot {
+  fill: hsl(var(--cat-hue, 220) 60% 52%);
+}
+:root[data-theme='dark'] .sm-container-dot {
+  fill: hsl(var(--cat-hue, 220) 65% 64%);
+}
+.sm-container--unmapped .sm-container-dot {
+  fill: none;
+  stroke: var(--color-border-strong);
+  stroke-width: 1.2;
+}
+.sm-container-rule {
+  stroke: var(--color-border-subtle);
+  stroke-width: 1;
+}
+.content-map .sm-container-name {
+  stroke: var(--color-bg-surface);
+}
+.content-map .sm-container:hover .sm-container-frame {
+  stroke: var(--color-text-muted);
+}
+.content-map .sm-container.is-selected .sm-container-frame {
+  stroke: var(--color-action-primary);
+  stroke-width: 2.2;
+}
+
+/* 씬 전이: 확인 실선 · 미확인 amber 점선과 두 화살촉은 그대로, 굵기만 덜어 선 열아홉 개가 그림을 덮지 않게. */
+.content-map .sm-link--scene.is-verified .sm-link-line {
+  stroke-width: 1.7;
+}
+.content-map .sm-link--scene.is-unverified .sm-link-line {
+  stroke-width: 1.4;
+  stroke-dasharray: 6 3;
+  opacity: 0.8;
+}
+.content-map .sm-link:hover .sm-link-line {
+  opacity: 1;
+  stroke-width: 2.2;
+}
+.content-map .sm-link.is-selected .sm-link-line {
+  opacity: 1;
+  stroke-width: 2.6;
+}
+.content-map .sm-link-line {
+  stroke-linejoin: round;
+}
+
+@media (max-width: 1023px) {
+  .content-map :is(.cm-tree-pane, .cm-inspector-panel, .cm-canvas-panel) {
+    height: auto;
+  }
+  .content-map .cm-canvas-frame {
+    flex: none;
+    height: min(70vh, 560px);
+  }
+  .content-map .cm-canvas-foot:not(:has(.cm-canvas-note)) {
+    justify-content: flex-end;
+  }
+  .content-map .cm-scan-actions {
+    margin-left: 0;
+  }
+}
+
+/* 빌드 고르기 */
+.cm-build-switcher {
+  position: relative;
+}
+.cm-build-current {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 4px 10px 4px 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-raised);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.cm-build-current:hover {
+  background: var(--color-bg-hover);
+}
+.cm-build-current:focus-visible {
+  outline: 2px solid var(--color-brand-accent);
+  outline-offset: 2px;
+}
+.cm-build-current-caption,
+.cm-build-count {
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+}
+.cm-build-version {
+  font-size: 13px;
+  font-weight: 700;
+}
+.cm-build-label {
+  max-width: 220px;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cm-build-caret {
+  color: var(--color-text-muted);
+  font-size: 10px;
+}
+.cm-build-badge {
+  padding: 0 6px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 999px;
+  color: var(--color-text-secondary);
+  font-size: 10.5px;
+  line-height: 17px;
+  white-space: nowrap;
+}
+.cm-build-badge--new {
+  border-color: var(--color-status-success);
+  color: var(--color-status-success);
+}
+.cm-build-badge--current {
+  border-color: var(--color-brand-accent);
+  color: var(--color-brand-accent);
+}
+.cm-build-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(380px, calc(100vw - 32px));
+  max-height: min(460px, 70vh);
+  padding: 8px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-raised);
+}
+.cm-build-search {
+  width: 100%;
+  height: 34px;
+}
+.cm-build-list {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  scrollbar-width: thin;
+}
+.cm-build-option {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.cm-build-option:hover {
+  background: var(--color-bg-hover);
+}
+.cm-build-option:focus-visible {
+  outline: 2px solid var(--color-brand-accent);
+  outline-offset: -2px;
+}
+.cm-build-option {
+  border-left: 3px solid transparent;
+}
+.cm-build-option.is-current {
+  border-left-color: var(--color-brand-accent);
+  background: var(--color-bg-hover);
+}
+.cm-build-option-head,
+.cm-build-option-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+}
+.cm-build-option-meta {
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+}
+.cm-build-empty {
+  margin: 0;
+  padding: 16px 8px;
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  text-align: center;
+}
+
+/* 상자 머리: 이름은 한 단계 키우고, 둘째 줄에 능력 · 전이 수 */
+.content-map .sm-container-name {
+  font-size: 14px;
+}
+.sm-container-info {
+  fill: var(--color-text-secondary);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+.content-map .sm-container-empty {
+  font-size: 10.5px;
+}
+.content-map .sm-link-label {
+  font-size: 10.5px;
+}
+
+/* ── tree: 글자를 한 단계 키우고 씬 줄은 점 + 이름 ───────────────────────── */
+.content-map .cm-tree-title {
+  padding: 12px 14px 6px;
+  font-size: 14px;
+}
+.content-map .cm-tree {
+  padding: 0 6px 10px;
+}
+.content-map .cm-tree-row {
+  gap: 6px;
+  padding: 6px 8px 6px 4px;
+  border-radius: var(--radius-md);
+}
+.content-map .cm-tree-row[aria-level='1'] {
+  margin-top: 2px;
+}
+.content-map .cm-tree-twisty {
+  width: 14px;
+  padding-top: 2px;
+  font-size: 11px;
+}
+.content-map .cm-tree-label {
+  gap: 7px;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--color-text-primary);
+}
+.cm-tree-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: hsl(var(--cat-hue, 220) 60% 52%);
+}
+:root[data-theme='dark'] .cm-tree-dot {
+  background: hsl(var(--cat-hue, 220) 65% 64%);
+}
+.cm-tree-scene {
+  font-weight: 600;
+}
+.content-map .cm-tree-meta {
+  gap: 4px 10px;
+  padding-left: 15px;
+  font-size: 11.5px;
+  line-height: 17px;
+}
+.content-map .cm-tree-row[aria-level='2'] .cm-tree-meta,
+.content-map .cm-tree-row[aria-level='3'] .cm-tree-meta {
+  padding-left: 0;
+}
+.content-map .cm-tree-row.is-selected {
+  background: var(--color-bg-hover);
+}
+
+/* ── 고른 것: 머리는 붙어 있고, 절마다 선으로 가른다 ────────────────────── */
+.content-map .cm-inspector-selection {
+  padding: 0 16px 16px;
+}
+.content-map .cm-inspector-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0 -16px 12px;
+  padding: 12px 16px 10px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  background: var(--color-bg-surface);
+}
+.content-map .cm-inspector-header h3 {
+  margin: 0;
+  font-size: 14px;
+}
+.content-map .cm-inspector-hint {
+  font-size: 12.5px;
+  line-height: 19px;
+}
+.content-map .cm-detail-eyebrow {
+  margin: 0 0 2px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+.content-map .cm-detail-name {
+  font-size: 18px;
+  line-height: 26px;
+  overflow-wrap: anywhere;
+}
+.content-map .cm-detail .cm-kind {
+  display: inline-block;
+  margin: 6px 0 12px;
+  padding: 1px 8px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 11.5px;
+}
+.cm-detail-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(48px, 1fr));
+  gap: 6px;
+  margin: 0 0 4px;
+}
+.cm-detail-stats > div {
+  min-width: 0;
+  padding: 6px 8px;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-raised);
+}
+.cm-detail-stats dt {
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cm-detail-stats dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.content-map .cm-detail-subtitle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 18px 0 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border-subtle);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+.content-map .cm-detail-fields {
+  gap: 6px 14px;
+  font-size: 12.5px;
+}
+.content-map .cm-detail-note {
+  font-size: 12.5px;
+  line-height: 19px;
+}
+.content-map .cm-transition {
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+.content-map .cm-transition-target {
+  font-size: 13px;
+  font-weight: 600;
+}
+.content-map .cm-transition-meta {
+  font-size: 11.5px;
+}
+
+/* 씬 카드: 왼쪽 이미지 · 오른쪽 상세 */
+.sm-container-noimage rect {
+  fill: var(--color-bg-raised);
+  stroke: var(--color-border-subtle);
+  stroke-dasharray: 3 3;
+}
+.sm-container-noimage text {
+  fill: var(--color-text-muted);
+  font-family: var(--font-sans);
+  font-size: 10.5px;
+  pointer-events: none;
+}
+.content-map .sm-container-info {
+  font-size: 12.5px;
+}
+.content-map .sm-container-empty {
+  fill: var(--color-text-muted);
+  font-size: 11.5px;
+}
+.content-map .sm-container.is-dimmed .sm-container-thumbnail {
+  opacity: 0.5;
+}
+
+/* ── 상세 서랍: 오른쪽에서 밀려 들어오는 넓은 패널 ───────────────────────── */
+.content-map .cm-workspace {
+  position: relative;
+  grid-template-columns: var(--cm-tree-width) minmax(0, 1fr);
+}
+.cm-drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  bottom: 0;
+  width: min(760px, 62%);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  /* 그림자 대신 배경 한 단계와 1px 줄로 지도에서 떼어 낸다(DESIGN.md: no box shadows). 왼쪽 줄이 서랍의 앞면이다. */
+  background: var(--color-bg-raised);
+  border-left: 2px solid var(--color-border-strong);
+  overflow: hidden;
+  animation: cm-drawer-in 240ms var(--ease-standard, cubic-bezier(0.2, 0, 0, 1));
+}
+@keyframes cm-drawer-in {
+  from {
+    opacity: 0.4;
+    transform: translateX(40%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cm-drawer {
+    animation: none;
+  }
+}
+.cm-drawer-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  z-index: 2;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+.cm-drawer-close:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+.cm-drawer-close:focus-visible {
+  outline: 2px solid var(--color-brand-accent);
+  outline-offset: -2px;
+}
+.cm-drawer .cm-inspector {
+  flex: 1;
+  min-height: 0;
+}
+.cm-drawer .cm-inspector-selection {
+  padding: 0 24px 24px;
+}
+.cm-drawer .cm-inspector-header {
+  margin: 0 -24px 16px;
+  padding: 14px 56px 12px 24px;
+}
+.cm-drawer .cm-overview {
+  padding: 8px 24px 24px;
+  border-top: 0;
+}
+/* 넓어진 만큼 개요는 두 칸으로 */
+.cm-drawer .cm-overview .cm-summary-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px 28px;
+}
+.cm-drawer .cm-overview .cm-status-list li,
+.cm-drawer .cm-overview .cm-gap-list li {
+  font-size: 13px;
+}
+.cm-drawer .cm-overview .cm-ratio-value {
+  font-size: 22px;
+}
+.cm-drawer .cm-detail-name {
+  font-size: 22px;
+  line-height: 30px;
+}
+.cm-drawer .cm-detail-stats dd {
+  font-size: 22px;
+}
+.cm-drawer .cm-thumb-image {
+  max-height: 320px;
+}
+@media (max-width: 1023px) {
+  .cm-drawer {
+    position: fixed;
+    top: 56px;
+    right: 8px;
+    bottom: 8px;
+    width: calc(100% - 16px);
+    height: auto;
+  }
+}
+
+/* 카드 안의 수 */
+.sm-card-stat {
+  pointer-events: none;
+}
+.sm-card-num {
+  fill: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 700;
+}
+.sm-card-num--runnable {
+  fill: var(--color-status-success);
+}
+.sm-card-num--needsProbe {
+  fill: var(--color-status-warning);
+}
+.sm-card-num.is-zero {
+  fill: var(--color-text-muted);
+}
+.sm-card-label {
+  fill: var(--color-text-secondary);
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+}
+.content-map .sm-container-count {
+  font-size: 11px;
+}
+
+/* 목록 줄의 작은 그림 */
+.cm-tree-thumb {
+  flex: none;
+  width: 40px;
+  height: 24px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 3px;
+  background: var(--color-bg-raised);
+  object-fit: cover;
+}
+.cm-tree-thumb--scene {
+  width: 56px;
+  height: 32px;
+}
+.content-map .cm-tree-row[aria-level='1'] .cm-tree-meta {
+  padding-left: 0;
+}
+
+/* ── 창 높이에 맞춘다(ARTEL-1172) ────────────────────────────────────────
+   작업공간 본문(스크롤 칸)부터 세 칸까지 flex 로 이어, 머리 줄 · 근거 줄 · 배너가 몇 줄이든 남은 높이를 지도가 다
+   쓴다. 예전 `calc(100dvh - 250px)` 은 머리가 한 줄만 늘어도 넘쳐 페이지가 66px 스크롤됐다. 너무 낮은 창(< 600px)
+   에서만 예전처럼 스크롤한다 — 지도를 손톱만 하게 줄이는 것보다 낫다. */
+@media (min-height: 600px) and (min-width: 1024px) {
+  .workspace-body:has(.cm-section) {
+    overflow-y: hidden;
+  }
+  .workspace-body:has(.cm-section) > .section-content {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    padding-bottom: var(--space-4);
+  }
+  .cm-section {
+    flex: 1;
+    min-height: 0;
+  }
+  .content-map {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .content-map .cm-workspace {
+    flex: 1;
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr);
+  }
+}
+@media (max-height: 599px), (max-width: 1023px) {
+  .content-map :is(.cm-tree-pane, .cm-canvas-panel) {
+    height: 560px;
+  }
+}
+
+/* 화면이 많은 씬의 접기 칸 */
+.sm-toggle {
+  cursor: pointer;
+}
+.sm-toggle-frame {
+  fill: var(--color-bg-raised);
+  stroke: var(--color-border-strong);
+  stroke-width: 1.1;
+  stroke-dasharray: 4 3;
+}
+.sm-toggle:hover .sm-toggle-frame {
+  stroke: var(--color-brand-accent);
+}
+.sm-toggle-count {
+  fill: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  pointer-events: none;
+}
+.sm-toggle-label {
+  fill: var(--color-text-secondary);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  pointer-events: none;
+}
+.sm-toggle.is-dimmed {
+  opacity: 0.26;
+}
+
+/* ── 서비스 스크롤 막대(EdgeScrollbar) — 이 화면의 스크롤 칸 전부 ─────────── */
+.content-map :is(.cm-tree, .cm-inspector, .cm-build-list) {
+  scrollbar-width: none;
+}
+.content-map :is(.cm-tree, .cm-inspector, .cm-build-list)::-webkit-scrollbar {
+  display: none;
+}
+.content-map .cm-tree-panel {
+  position: relative;
+}
+.content-map .edgebar {
+  position: absolute;
+  z-index: 3;
+  right: 0;
+  width: 18px;
+  pointer-events: none;
+}
+.content-map .edgebar-thumb {
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+}
+.content-map .edgebar-thumb:active {
+  cursor: grabbing;
+}
+.content-map .edgebar-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 2px;
+  width: 4px;
+  border-radius: 2px;
+  background: var(--color-brand-accent);
+  transition: width 120ms var(--ease-standard);
+}
+.content-map .edgebar.is-near .edgebar-fill {
+  width: 10px;
+  background: var(--color-brand-accent-strong);
+}
+@media (prefers-reduced-motion: reduce) {
+  .content-map .edgebar-fill {
+    transition: none;
+  }
+}
+/* 서랍 안에서는 단계 목록이 따로 굴지 않는다 — 넓은 서랍 하나가 통째로 굴러 막대가 하나다. */
+.cm-drawer .cm-step-list {
+  max-height: none;
+  overflow: visible;
+}
+
+/* 서버 문장 속 백틱 조각 */
+.cm-code {
+  padding: 1px 5px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 4px;
+  background: var(--color-bg-raised);
+  color: var(--color-text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  overflow-wrap: anywhere;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+.cm-step-summary {
+  line-height: 1.7;
+}
+
+/* 빈 상태: 그림이 남은 높이 가운데에 선다 */
+.content-map .cm-empty,
+.cm-section > .cm-empty {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  padding: 0;
+}
+.content-map .cm-empty .sketch-empty,
+.cm-section > .cm-empty .sketch-empty {
+  min-height: 360px;
+}
+@media (min-height: 600px) and (min-width: 1024px) {
+  .cm-section > .cm-empty {
+    flex: 1;
+  }
+}
+
+/* 캡처 대체 그림: 옅은 ARTEL 로고 + 이름표 */
+.sm-placeholder rect {
+  fill: color-mix(in srgb, var(--color-bg-raised) 80%, var(--color-bg-canvas));
+  stroke: var(--color-border-subtle);
+  stroke-width: 1;
+}
+.sm-placeholder-mark {
+  fill: var(--color-text-muted);
+  opacity: 0.36;
+}
+.sm-placeholder-accent {
+  fill: var(--color-brand-accent);
+  opacity: 0.62;
+}
+.sm-placeholder text {
+  fill: var(--color-text-muted);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  pointer-events: none;
+}
+.cm-tree-thumb--placeholder {
+  display: inline-grid;
+  place-items: center;
+}
+.cm-tree-thumb--placeholder svg {
+  width: 55%;
+  height: 55%;
+}
+
+/* 근거 `자세히`: 스캔 · 문서 적재 · 붙어 있는 게임 세 칸 */
+.content-map .cm-scan-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-3) var(--space-6);
+}
+.cm-scan-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.cm-scan-detail > h3 {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.content-map .cm-scan-details :is(.cm-scan-status, .cm-outcome, .cm-pending) {
+  margin: 0;
+}
+/* 상태 모름: 굵은 흰 글과 앰버 판 대신 얇은 앰버 줄 하나와 작은 글 */
+.content-map .cm-scan-details .cm-outcome--notice {
+  padding: 2px 0 2px 10px;
+  border-left: 2px solid var(--color-status-warning);
+  border-radius: 0;
+  background: none;
+  color: var(--color-text-secondary);
+}
+.content-map .cm-scan-details .cm-outcome--notice p {
+  margin: 0 0 4px;
+  font-size: 12px;
+  line-height: 18px;
+}
+.content-map .cm-scan-details .cm-outcome--notice p:first-child {
+  color: var(--color-status-warning);
+  font-weight: 600;
+}
+.content-map .cm-scan-details .cm-outcome--notice p:nth-child(2) {
+  color: var(--color-text-muted);
+}
+/* 문서 적재: 판 없이 수 한 줄과 가는 막대 */
+.content-map .cm-pending {
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.content-map .cm-pending:not(.is-complete) {
+  padding-left: 10px;
+  border-left: 2px solid var(--color-status-warning);
+}
+.content-map .cm-pending-title {
+  margin-bottom: 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+.content-map .cm-pending .progress-track {
+  max-width: 360px;
+  height: 4px;
+}
+.content-map .cm-pending-list {
+  margin-top: 8px;
+}
+.content-map .cm-scan-details .cm-scan-copy {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* 좁은 창: 한 칸으로 쌓는다. 위의 두 칸 규칙(.content-map .cm-workspace)이 같은 특정도로 더 뒤에 있어 App.css 의
+   1023px 규칙을 덮었다 — 그래서 여기, 파일 끝에서 다시 한 칸으로 돌린다. 지도가 먼저, tree 가 그 아래. */
+@media (max-width: 1023px) {
+  .content-map .cm-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .content-map .cm-canvas-panel {
+    order: 1;
+  }
+  .content-map .cm-tree-pane {
+    order: 2;
+  }
+}

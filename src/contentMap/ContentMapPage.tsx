@@ -1,15 +1,19 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
+import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
+import { SketchEmpty } from '../emptyStates/SketchEmpty'
+import { DocumentSketch, IngestSketch, ScanSketch, SceneMapSketch } from '../emptyStates/sketches'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { LABEL_NODE_LIMIT } from '../knowledge/knowledgeLayout'
 import { useKnowledgeGraph } from '../knowledge/useKnowledgeGraph'
 import { formatDateTime } from '../projects/formatters'
+import { gameBuildDetailHref } from '../projects/workspace/sections'
 import { CanvasViewportControls } from './CanvasViewportControls'
 import { ContentMapInspector } from './ContentMapInspector'
 import { describeGenerationBlock } from './contentMapTestCases'
 import { ContentMapTree } from './ContentMapTree.tsx'
-import { CaptureHeader, ContentMapSummary } from './ContentMapSummary'
+import { CaptureHeader, ContentMapSummary, SummaryCounts } from './ContentMapSummary'
 import type { ContentMapSelection, ContentMapView } from './contentMapTypes'
 import { EvidenceScanPanel } from './EvidenceScanPanel'
 import { indexScreenMap } from './screenInspection'
@@ -64,9 +68,15 @@ export function ContentMapRedirect() {
 export function ContentMapReport({
   buildId,
   projectId,
+  about,
+  buildPicker,
 }: {
   buildId: string
   projectId: string
+  /** 섹션이 무엇을 그리는지 한 문장. 머리 줄 InfoHint 에 이 화면의 설명과 함께 선다. */
+  about: string
+  /** 머리 줄 오른쪽에 서는 빌드 select. 섹션이 만든다(agent field binding 이 거기 있다). */
+  buildPicker: ReactNode
 }) {
   const { t } = useI18n()
   const copy = t.contentMap
@@ -76,11 +86,30 @@ export function ContentMapReport({
   const events = useContentMapEvents(projectId, buildId)
   const refreshing = status === 'loading'
 
+  // 머리 줄. 첫 로드 · 실패 화면에도 선다 — 빌드 select 가 여기 있어서, 빠지면 불러오는 동안 빌드를 바꿀 수 없다.
+  // 제목은 작업공간 머리의 `화면 지도` 하나다(ARTEL-1172). 예전 H1 `콘텐츠 맵` 이 같은 화면에 두 번째 제목을 세웠다 —
+  // 그 설명은 이 줄의 InfoHint 로 옮겼다. 돌아가는 곳은 이 빌드의 상세다(예전 링크는 이름과 달리 QA 실행으로 갔다).
+  const meta = (readAt: string) => (
+    <header className="cm-page-meta">
+      <Link className="back-link" to={gameBuildDetailHref(projectId, buildId)}>
+        {copy.page.back}
+      </Link>
+      <span className="cm-eyebrow mono">{copy.page.eyebrow(buildId)}</span>
+      {readAt.length > 0 && <span className="cm-read-at">{copy.page.readAt(readAt)}</span>}
+      <InfoHint>
+        <span className="cm-about">{about}</span>
+        <span className="cm-about">{copy.page.subtitle}</span>
+      </InfoHint>
+      <span className="cm-page-tools">{buildPicker}</span>
+    </header>
+  )
+
   // 첫 로드에만 화면을 비운다. 새로고침 중에는 직전 스냅샷이 그대로 남고
   // `aria-busy` 만 붙는다 — 살아 있는 갱신이 레이아웃을 흔들지 않는다.
   if (refreshing && view === null) {
     return (
       <section aria-busy="true" className="page content-map">
+        {meta('')}
         <p className="panel-empty">{copy.states.loading}</p>
       </section>
     )
@@ -91,11 +120,18 @@ export function ContentMapReport({
   if (status === 'error' && view === null) {
     return (
       <section className="page content-map">
-        <div className="panel-message" role="alert">
-          <p className="panel-message-copy">{copy.states.loadFailed}</p>
-          <button className="button button--secondary" onClick={reload} type="button">
-            {copy.states.retry}
-          </button>
+        {meta('')}
+        <div className="panel cm-empty" role="alert">
+          <SketchEmpty
+            actions={
+              <button className="button button--secondary" onClick={reload} type="button">
+                {copy.states.retry}
+              </button>
+            }
+            sketch={<SceneMapSketch broken />}
+            surface
+            title={copy.states.loadFailed}
+          />
         </div>
       </section>
     )
@@ -115,21 +151,7 @@ export function ContentMapReport({
 
   return (
     <section aria-busy={refreshing || undefined} className="page content-map">
-      <header className="cm-page-head">
-        <div>
-          <Link className="back-link" to={`/projects/${encodeURIComponent(projectId)}/qa`}>
-            {copy.page.back}
-          </Link>
-          <p className="cm-eyebrow mono">{copy.page.eyebrow(buildId)}</p>
-          <h1>
-            {copy.page.title}
-            <InfoHint>{copy.page.subtitle}</InfoHint>
-          </h1>
-        </div>
-        <div className="cm-page-actions">
-          {readAt.length > 0 && <p className="cm-read-at">{copy.page.readAt(readAt)}</p>}
-        </div>
-      </header>
+      {meta(readAt)}
 
       {/* 끊긴 상태. 아래 내용은 그대로 두되 지금의 사실인 척하지 않는다. */}
       {!online && (
@@ -156,10 +178,13 @@ export function ContentMapReport({
 
       <EvidenceScanPanel
         buildId={buildId}
+        // 지도를 그릴 수 없으면 이 패널이 화면의 전부다 — 처음부터 펼친다.
+        defaultOpen={view.contentMap === null || view.contentMap.ingestedAt === null || view.scenes.length === 0}
         events={events}
         generationBlock={describeGenerationBlock(view)}
         projectId={projectId}
         refreshToken={reloadToken}
+        summary={view.scenes.length > 0 ? <SummaryCounts view={view} /> : undefined}
       />
 
       <ContentMapBody projectId={projectId} view={view} />
@@ -176,11 +201,8 @@ function ContentMapBody({ projectId, view }: { projectId: string; view: ContentM
   // 왜 비어 있는지만 말한다.
   if (view.contentMap === null) {
     return (
-      <section className="panel">
-        <div className="panel-message">
-          <h2>{copy.empty.neverUploadedTitle}</h2>
-          <p className="panel-message-copy">{copy.empty.neverUploadedCopy}</p>
-        </div>
+      <section className="panel cm-empty">
+        <SketchEmpty body={copy.empty.neverUploadedCopy} sketch={<ScanSketch />} surface title={copy.empty.neverUploadedTitle} />
       </section>
     )
   }
@@ -193,13 +215,13 @@ function ContentMapBody({ projectId, view }: { projectId: string; view: ContentM
     return (
       <>
         <CaptureHeader view={view} />
-        <section className="panel">
-          <div className="panel-message">
-            <h2>{hasUploadedDocument ? copy.empty.notIngestedTitle : copy.empty.noDocumentsTitle}</h2>
-            <p className="panel-message-copy">
-              {hasUploadedDocument ? copy.empty.notIngestedCopy : copy.empty.noDocumentsCopy}
-            </p>
-          </div>
+        <section className="panel cm-empty">
+          <SketchEmpty
+            body={hasUploadedDocument ? copy.empty.notIngestedCopy : copy.empty.noDocumentsCopy}
+            sketch={hasUploadedDocument ? <IngestSketch /> : <DocumentSketch />}
+            surface
+            title={hasUploadedDocument ? copy.empty.notIngestedTitle : copy.empty.noDocumentsTitle}
+          />
         </section>
       </>
     )
@@ -211,23 +233,14 @@ function ContentMapBody({ projectId, view }: { projectId: string; view: ContentM
     return (
       <>
         <CaptureHeader view={view} />
-        <section className="panel">
-          <div className="panel-message">
-            <h2>{copy.empty.noScenesTitle}</h2>
-            <p className="panel-message-copy">{copy.empty.noScenesCopy}</p>
-          </div>
+        <section className="panel cm-empty">
+          <SketchEmpty body={copy.empty.noScenesCopy} sketch={<SceneMapSketch />} surface title={copy.empty.noScenesTitle} />
         </section>
       </>
     )
   }
 
-  return (
-    <>
-      <ContentMapSummary view={view} />
-      <SceneGraphView projectId={projectId} view={view} />
-      <CaptureHeader view={view} />
-    </>
-  )
+  return <SceneGraphView projectId={projectId} view={view} />
 }
 
 /**
@@ -271,7 +284,18 @@ function SceneGraphView({ projectId, view }: { projectId: string; view: ContentM
     () => buildScreenMap(view.scenes, view.edges, view.screenTransitions),
     [view.edges, view.scenes, view.screenTransitions],
   )
-  const layout = useMemo(() => layoutScreenMap(model), [model])
+  // 화면이 많아 접힌 씬 중 펼친 것(ARTEL-1172). 접기 칸을 누르거나, 접혀 안 보이는 화면을 tree 에서 고르면 펼친다.
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
+  // 화면 전이를 전부 그릴지. 처음엔 끈다 — 고른 것에 닿는 것만 그린다(ARTEL-1172).
+  const [showScreenLinks, setShowScreenLinks] = useState(false)
+  const layout = useMemo(() => layoutScreenMap(model, expanded), [model, expanded])
+  const toggleScreens = useCallback((containerId: string) => {
+    setExpanded((current) => {
+      const next = new Set(current)
+      if (!next.delete(containerId)) next.add(containerId)
+      return next
+    })
+  }, [])
   const viewport = useCanvasViewport(layout.viewBox)
 
   // 인스펙터가 고른 것 하나를 되짚는 색인. 배치와 같은 이유로 응답 말고는 아무것에도 기대지
@@ -287,18 +311,42 @@ function SceneGraphView({ projectId, view }: { projectId: string; view: ContentM
   const { graph: knowledgeGraph, status: knowledgeStatus } = useKnowledgeGraph(projectId)
 
   /*
-   * 고른 것이 화면 밖에서 바뀌지 않게 한다.
-   *
-   * 세 pane 이 나란히 설 만큼 넓으면 detail 은 이미 보이고 `nearest` 는 아무것도 하지 않는다.
-   * 좁아져서 detail 이 캔버스 아래로 내려간 뒤에야 이 줄이 일한다 — 그때 tree 나 캔버스에서
-   * 무언가를 고르면 답이 있는 자리까지 따라간다. 이것이 없으면 이번에 고친 버그가 폭만 바꾼 채
-   * 그대로 돌아온다.
+   * 상세는 오른쪽에서 밀려 들어오는 넓은 패널이다(ARTEL-1172). 무엇을 고르면 열리고, 아무것도 안 고른 채로는
+   * `이 빌드` 버튼으로 개요를 연다. 고정 세 번째 칸이던 때는 360px 에 갇혀 지도를 좁히고 글이 빽빽했다.
+   * 패널이 지도를 덮지 않는 왼쪽은 그대로 눌러 다른 씬을 고를 수 있다 — 막는 막(scrim)을 두지 않는 이유다.
    */
-  const detailPane = useRef<HTMLElement>(null)
+  const [overviewOpen, setOverviewOpen] = useState(false)
+  // 서랍의 스크롤 칸(`.cm-inspector`)에 서비스 막대를 단다. 서랍이 열릴 때마다 새 노드라 ref 콜백으로 받는다.
+  const [drawerScroller, setDrawerScroller] = useState<HTMLElement | null>(null)
+  const drawerRef = useCallback((node: HTMLElement | null) => {
+    setDrawerScroller(node?.querySelector<HTMLElement>('.cm-inspector') ?? null)
+  }, [])
+  // 고른 화면이 접혀 안 보이면 그 씬을 펼친다 — tree 에서 고른 화면이 지도에 없으면 무엇을 골랐는지 안 보인다.
+  const selectAndReveal = useCallback(
+    (next: ContentMapSelection | null) => {
+      setSelection(next)
+      if (next?.kind !== 'screen') return
+      const owner = layout.containers.find(
+        (container) => container.toggle !== null && !container.screens.some((placed) => placed.screen.id === next.id) &&
+          model.containers.some((candidate) => candidate.id === container.id && candidate.screens.some((screen) => screen.id === next.id)),
+      )
+      if (owner !== undefined) setExpanded((current) => new Set(current).add(owner.id))
+    },
+    [layout.containers, model.containers],
+  )
+  const drawerOpen = selection !== null || overviewOpen
+  const close = useCallback(() => {
+    setSelection(null)
+    setOverviewOpen(false)
+  }, [])
   useEffect(() => {
-    if (selection === null) return
-    detailPane.current?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
-  }, [selection])
+    if (!drawerOpen) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !event.defaultPrevented) close()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [drawerOpen, close])
 
   return (
     <div className="cm-workspace">
@@ -306,13 +354,13 @@ function SceneGraphView({ projectId, view }: { projectId: string; view: ContentM
         <ContentMapTree
           index={index}
           model={model}
-          onSelect={setSelection}
+          onSelect={selectAndReveal}
           selection={selection}
         />
       </aside>
 
       <section aria-labelledby="cm-graph-title" className="panel cm-canvas-panel">
-        <header className="panel-header">
+        <header className="cm-canvas-head">
           <h2 id="cm-graph-title">
             {copy.title}
             <InfoHint>{t.contentMap.viewport.hint}</InfoHint>
@@ -324,58 +372,108 @@ function SceneGraphView({ projectId, view }: { projectId: string; view: ContentM
               model.screenTransitions.length,
             )}
           </p>
+          <button
+            aria-expanded={overviewOpen && selection === null}
+            className="button button--secondary button--compact cm-overview-button"
+            onClick={() => {
+              setSelection(null)
+              setOverviewOpen((current) => !(current && selection === null))
+            }}
+            type="button"
+          >
+            {t.contentMap.layout.overviewTitle}
+          </button>
+          {model.screenTransitions.length > 0 && (
+            <button
+              aria-pressed={showScreenLinks}
+              className="button button--secondary button--compact cm-links-button"
+              onClick={() => setShowScreenLinks((current) => !current)}
+              title={t.contentMap.layout.screenLinksHint}
+              type="button"
+            >
+              {showScreenLinks
+                ? t.contentMap.layout.hideScreenLinks
+                : t.contentMap.layout.showScreenLinks(model.screenTransitions.length)}
+            </button>
+          )}
+          <CanvasViewportControls viewport={viewport} />
         </header>
 
-        {/* 씬은 있는데 아무것도 잇지 않는다. 흩어진 점들을 보고 사용자가
-            혼자 결론 내리게 두지 않는다. */}
-        {model.sceneEdges.length === 0 && (
-          <div className="cm-notice" role="status">
-            <p className="cm-notice-title">{copy.noEdgesTitle}</p>
-            <p className="cm-notice-copy">{copy.noEdgesCopy(view.scenes.length)}</p>
-          </div>
-        )}
-
-        {/* 씬은 있는데 화면이 하나도 없다. 오류가 아니라 아직 QA 런이 없다는 뜻이고, 그 말을
-            그림 위에 적어 두지 않으면 빈 컨테이너들이 그리다 만 화면으로 읽힌다. */}
-        {model.screenCount === 0 && (
-          <div className="cm-notice" role="status">
-            <p className="cm-notice-title">{screenCopy.noScreensTitle}</p>
-            <p className="cm-notice-copy">{screenCopy.noScreensCopy(model.containers.length)}</p>
-          </div>
-        )}
-
-        <CanvasViewportControls viewport={viewport} />
-
+        {/*
+          지도가 화면의 몸통이다(ARTEL-1172). 안내는 그림을 아래로 밀지 않게 그림 위 왼쪽에 얹는다 — 예전에는 안내
+          상자 둘이 쌓여 그림이 칸 아래쪽 300px 로 밀렸다.
+        */}
         <div className="cm-canvas-frame">
           <ScreenMapCanvas
             layout={layout}
-            onSelect={setSelection}
+            onSelect={selectAndReveal}
+            onToggleScreens={toggleScreens}
+            showScreenLinks={showScreenLinks}
             selection={selection}
             viewport={viewport}
           />
+
+          {(model.sceneEdges.length === 0 || model.screenCount === 0) && (
+            <div className="cm-canvas-notices">
+              {/* 씬은 있는데 아무것도 잇지 않는다. 흩어진 점들을 보고 사용자가
+                  혼자 결론 내리게 두지 않는다. */}
+              {model.sceneEdges.length === 0 && (
+                <div className="cm-notice" role="status">
+                  <p className="cm-notice-title">{copy.noEdgesTitle}</p>
+                  <p className="cm-notice-copy">{copy.noEdgesCopy(view.scenes.length)}</p>
+                </div>
+              )}
+              {/* 씬은 있는데 화면이 하나도 없다. 오류가 아니라 아직 QA 런이 없다는 뜻이고, 그 말을
+                  그림 위에 적어 두지 않으면 빈 컨테이너들이 그리다 만 화면으로 읽힌다. */}
+              {model.screenCount === 0 && (
+                <div className="cm-notice" role="status">
+                  <p className="cm-notice-title">{screenCopy.noScreensTitle}</p>
+                  <p className="cm-notice-copy">{screenCopy.noScreensCopy(model.containers.length)}</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        {model.unmappedScenes > 0 && (
-          <p className="cm-canvas-note">{copy.unmappedNote(model.unmappedScenes)}</p>
-        )}
-        {model.containers.length > LABEL_NODE_LIMIT && (
-          <p className="cm-canvas-note">{copy.labelNote}</p>
-        )}
-
-        <ScreenMapLegend model={model} />
+        <footer className="cm-canvas-foot">
+          {model.unmappedScenes > 0 && (
+            <p className="cm-canvas-note">{copy.unmappedNote(model.unmappedScenes)}</p>
+          )}
+          {model.containers.length > LABEL_NODE_LIMIT && (
+            <p className="cm-canvas-note">{copy.labelNote}</p>
+          )}
+          {/* `details` 라 접혀도 DOM 에 남는다 — 범례는 `aria-hidden` 캔버스의 어휘를 글로 적는 유일한 곳이다. */}
+          <details className="cm-legend-toggle">
+            <summary>{t.contentMap.layout.legendOpen}</summary>
+            <ScreenMapLegend model={model} />
+          </details>
+        </footer>
       </section>
 
-      <aside className="panel cm-inspector-panel" ref={detailPane}>
-        <ContentMapInspector
-          gaps={view.gaps}
-          index={index}
-          knowledge={{ status: knowledgeStatus, nodes: knowledgeGraph?.nodes ?? [] }}
-          model={model}
-          onClear={() => setSelection(null)}
-          onSelect={setSelection}
-          selection={selection}
-        />
-      </aside>
+      {drawerOpen && (
+        <aside aria-label={t.contentMap.inspector.title} className="cm-drawer" ref={drawerRef}>
+          <button aria-label={t.contentMap.layout.closeDetail} className="cm-drawer-close" onClick={close} type="button">
+            ×
+          </button>
+          <EdgeScrollbar label={t.contentMap.inspector.title} scroller={drawerScroller} side="right" />
+          <ContentMapInspector
+            gaps={view.gaps}
+            index={index}
+            knowledge={{ status: knowledgeStatus, nodes: knowledgeGraph?.nodes ?? [] }}
+            model={model}
+            onClear={close}
+            onSelect={selectAndReveal}
+            overview={
+              <section aria-labelledby="cm-overview-title" className="cm-overview">
+                <h3 id="cm-overview-title">{t.contentMap.layout.overviewTitle}</h3>
+                <ContentMapSummary view={view} />
+                <CaptureHeader view={view} />
+              </section>
+            }
+            selection={selection}
+          />
+        </aside>
+      )}
     </div>
   )
 }

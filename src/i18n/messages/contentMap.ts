@@ -6,6 +6,32 @@ export const contentMapEn = {
     /** The link on a build row, next to the performance one. */
     build: 'Content map',
   },
+  /** The build switcher that replaced the plain dropdown (ARTEL-1172). */
+  buildSwitcher: {
+    caption: 'Build',
+    title: 'Pick a build',
+    count: (n: number) => `${n} in all`,
+    search: 'Search builds',
+    searchPlaceholder: 'Version, label, build id',
+    noMatch: 'No build matches.',
+    newest: 'Newest',
+    current: 'Viewing',
+    createdAt: (time: string) => `made ${time}`,
+  },
+  /** The map-first layout (ARTEL-1172). */
+  layout: {
+    detailsOpen: 'Details',
+    detailsClose: 'Hide details',
+    detailScan: 'Scan',
+    detailIngest: 'Document ingest',
+    detailInstances: 'Connected games',
+    overviewTitle: 'This build',
+    closeDetail: 'Close details',
+    showScreenLinks: (n: number) => `Show all ${n} screen transitions`,
+    hideScreenLinks: 'Show only the picked one’s',
+    screenLinksHint: 'Screen transitions cross scene cards. By default only the ones touching what you picked are drawn.',
+    legendOpen: 'Legend',
+  },
   page: {
     back: '← Back to the builds',
     eyebrow: (buildId: string) => `Build ${buildId}`,
@@ -204,6 +230,8 @@ export const contentMapEn = {
     // so a build no QA run has played has none — and the drawing says so inside
     // each container rather than leaving an empty box to be read as unfinished.
     noScreens: 'No screen observed yet',
+    moreScreens: 'More screens',
+    collapseScreens: 'Fewer screens',
     noScreensTitle: 'No QA run has played this build yet',
     noScreensCopy: (count: number) =>
       `The ${count} scene${count === 1 ? '' : 's'} below ${count === 1 ? 'comes' : 'come'} from static analysis, which cannot see screens. Screens and the transitions between them are recorded by a QA run.`,
@@ -312,6 +340,7 @@ export const contentMapEn = {
   // so everything selectable there is a button here, and the evidence a 152×48
   // box has no room for lives here too.
   inspector: {
+    stats: { screens: 'Screens', capabilities: 'Capabilities', steps: 'Steps', outgoing: 'Out', incoming: 'In' },
     title: 'Selected',
     clear: 'Clear',
     selectHint:
@@ -536,6 +565,30 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
   entry: {
     build: '콘텐츠 맵',
   },
+  buildSwitcher: {
+    caption: '빌드',
+    title: '빌드 고르기',
+    count: (n: number) => `전체 ${n}개`,
+    search: '빌드 찾기',
+    searchPlaceholder: '버전 · 라벨 · 빌드 id',
+    noMatch: '맞는 빌드가 없습니다.',
+    newest: '최신',
+    current: '보는 중',
+    createdAt: (time: string) => `${time} 등록`,
+  },
+  layout: {
+    detailsOpen: '자세히',
+    detailsClose: '접기',
+    detailScan: '스캔',
+    detailIngest: '문서 적재',
+    detailInstances: '붙어 있는 게임',
+    overviewTitle: '이 빌드',
+    closeDetail: '상세 닫기',
+    showScreenLinks: (n: number) => `화면 전이 ${n}개 모두 보기`,
+    hideScreenLinks: '고른 것의 화면 전이만',
+    screenLinksHint: '화면 전이는 씬 카드를 가로질러 지나갑니다. 처음에는 고른 씬 · 화면에 닿는 것만 그립니다.',
+    legendOpen: '범례',
+  },
   page: {
     back: '← 빌드 목록으로',
     eyebrow: (buildId: string) => `빌드 ${buildId}`,
@@ -693,6 +746,8 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
       `씬 ${scenes}개 · 화면 ${screens}개 · 화면 전이 ${transitions}개`,
     screenCount: (count: number) => `화면 ${count}`,
     noScreens: '아직 관측된 화면 없음',
+    moreScreens: '화면 더 보기',
+    collapseScreens: '화면 접기',
     noScreensTitle: '아직 이 빌드를 플레이한 QA 런이 없습니다',
     noScreensCopy: (count: number) =>
       `아래 씬 ${count}개는 정적 분석에서 나온 것이고, 정적 분석은 화면을 볼 수 없습니다. 화면과 화면 전이는 QA 런이 기록합니다.`,
@@ -783,6 +838,7 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
     noCapabilityLink: '연결된 능력 없음',
   },
   inspector: {
+    stats: { screens: '화면', capabilities: '능력', steps: '조작 단계', outgoing: '나감', incoming: '들어옴' },
     title: '고른 것',
     clear: '선택 해제',
     selectHint:

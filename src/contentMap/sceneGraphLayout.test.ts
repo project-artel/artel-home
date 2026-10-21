@@ -28,6 +28,8 @@ function scene(id: string, name: string, over: Partial<ContentMapScene> = {}): C
     thumbnail: null,
     screens: [],
     capabilityList: [],
+    buildOrder: null,
+    entry: false,
     ...over,
   }
 }
@@ -263,4 +265,22 @@ test('같은 응답은 언제나 같은 그림이 된다', () => {
   assert.deepEqual(second.nodes, first.nodes)
   assert.deepEqual(second.edges, first.edges)
   assert.equal(second.viewBox, first.viewBox)
+})
+
+test('씬은 입구 씬부터 빌드 설정 순서로 서고, 순번을 모르는 씬은 뒤에 응답 순서대로 선다 (ARTEL-1172)', () => {
+  // 응답은 이름 순으로 온다. 순환 그래프라 구조로는 시작을 모른다 — 순서를 정하는 것은 입구와 순번뿐이다.
+  const graph = buildSceneGraph(
+    [
+      scene('1', 'Ending', { buildOrder: 2 }),
+      scene('2', 'Loose'),
+      scene('3', 'Map', { buildOrder: 1 }),
+      scene('4', 'Title', { buildOrder: 0, entry: true }),
+      scene('5', 'Zone'),
+    ],
+    [transition('1', { id: '3' }), transition('3', { id: '4' }), transition('4', { id: '1' })],
+  )
+  assert.deepEqual(
+    graph.nodes.map((node) => node.name),
+    ['Title', 'Map', 'Ending', 'Loose', 'Zone'],
+  )
 })

@@ -2,6 +2,7 @@ import { useMemo, useState, type CSSProperties } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { truncate } from '../knowledge/knowledgeLabels'
 import { sceneHue } from '../testCases/sceneHue'
+import { CapturePlaceholder } from './CapturePlaceholder'
 import { conditionSummary } from './conditionSummary'
 import {
   sameSelection,
@@ -12,6 +13,9 @@ import {
 import { sceneKind, sceneTitle } from './sceneLabels'
 import type { CanvasViewport } from './useCanvasViewport'
 import {
+  CARD_IMAGE_HEIGHT,
+  CARD_IMAGE_WIDTH,
+  CARD_INSET,
   SCREEN_IMAGE_HEIGHT,
   type PlacedContainer,
   type PlacedSceneEdge,
@@ -53,10 +57,17 @@ type CanvasProps = {
    * be unreachable by anything but a pointer.
    */
   viewport: CanvasViewport
+  /** 화면이 많은 씬의 접기 칸을 눌렀을 때. 그 씬 id 를 넘긴다. */
+  onToggleScreens: (containerId: string) => void
+  /**
+   * 화면 전이를 전부 그릴지(ARTEL-1172). 끄면 고른 것에 닿는 화면 전이만 그린다 — 화면 전이는 씬 경계를 가로질러
+   * 카드와 다른 화면 위를 지나고, 서른 개가 넘으면 그림을 덮었다.
+   */
+  showScreenLinks: boolean
 }
 
 /** 씬 이름 라벨의 폭 예산, 라틴 문자 기준. 한글로는 절반쯤이다. */
-const SCENE_NAME_WIDTH = 18
+const SCENE_NAME_WIDTH = 15
 
 /** 화면 이름 라벨의 폭 예산. */
 const SCREEN_NAME_WIDTH = 16
@@ -64,8 +75,6 @@ const SCREEN_NAME_WIDTH = 16
 /** 캡처가 노드 테두리 안쪽으로 물러서는 거리. */
 const CAPTURE_INSET = 4
 
-/** 컨테이너 머리글 rect 의 높이. 빈 상자에 씬 대표 이미지를 그릴 때 그 아래에서 시작한다. */
-const CONTAINER_HEAD_HEIGHT = 26
 
 /**
  * `discriminator` 한 줄의 폭 예산. 원문은 인스펙터가 전부 보인다.
@@ -87,11 +96,22 @@ const EDGE_LABEL_WIDTH = 24
  */
 const EDGE_LABEL_LIMIT = 14
 
-export function ScreenMapCanvas({ layout, selection, onSelect, viewport }: CanvasProps) {
+export function ScreenMapCanvas({ layout, selection, onSelect, viewport, onToggleScreens, showScreenLinks }: CanvasProps) {
   // 고른 것이 닿는 요소들. 나머지를 지우지 않고 조용하게만 두는 이유는, 주변이 있어야 고른
   // 것이 무엇을 뜻하는지 읽히기 때문이다.
   const related = useMemo(() => relatedIds(layout, selection), [layout, selection])
-  const labelled = layout.sceneEdges.length + layout.screenTransitions.length <= EDGE_LABEL_LIMIT
+  // 그려지는 선만 센다. 화면 전이를 감춘 동안은 씬 전이 수만으로 라벨을 펼칠지 정한다.
+  const labelled = layout.sceneEdges.length + (showScreenLinks ? layout.screenTransitions.length : 0) <= EDGE_LABEL_LIMIT
+  // 상자 머리 둘째 줄의 나가는 · 들어오는 길 수. 자기 자신으로 가는 고리는 양쪽에 다 센다 — 나가서 돌아오는 길이다.
+  const edgeCounts = useMemo(() => {
+    const counts = new Map<string, { out: number; in: number }>()
+    const of = (id: string) => counts.get(id) ?? counts.set(id, { out: 0, in: 0 }).get(id)!
+    for (const placed of layout.sceneEdges) {
+      of(placed.edge.from).out += 1
+      of(placed.edge.to).in += 1
+    }
+    return counts
+  }, [layout.sceneEdges])
 
   return (
     <svg
@@ -154,7 +174,7 @@ export function ScreenMapCanvas({ layout, selection, onSelect, viewport }: Canva
           <SceneEdgeMark
             dimmed={related !== null && !related.has(placed.id)}
             key={placed.id}
-            labelled={labelled}
+            labelled={labelled || (related !== null && related.has(placed.id))}
             onSelect={() => onSelect({ kind: 'sceneEdge', id: placed.id })}
             placed={placed}
             selected={sameSelection(selection, { kind: 'sceneEdge', id: placed.id })}
@@ -166,6 +186,7 @@ export function ScreenMapCanvas({ layout, selection, onSelect, viewport }: Canva
         {layout.containers.map((container) => (
           <ContainerMark
             container={container}
+            counts={edgeCounts.get(container.id) ?? { out: 0, in: 0 }}
             dimmed={related !== null && !related.has(container.id)}
             key={container.id}
             onSelect={() => onSelect({ kind: 'scene', id: container.id })}
@@ -179,16 +200,18 @@ export function ScreenMapCanvas({ layout, selection, onSelect, viewport }: Canva
         덮여, 이 그림이 보여 주려는 그 하나가 보이지 않는다.
       */}
       <g className="sm-screen-transitions">
-        {layout.screenTransitions.map((placed) => (
-          <ScreenTransitionMark
-            dimmed={related !== null && !related.has(placed.id)}
-            key={placed.id}
-            labelled={labelled}
-            onSelect={() => onSelect({ kind: 'screenTransition', id: placed.id })}
-            placed={placed}
-            selected={sameSelection(selection, { kind: 'screenTransition', id: placed.id })}
-          />
-        ))}
+        {layout.screenTransitions
+          .filter((placed) => showScreenLinks || (related !== null && related.has(placed.id)))
+          .map((placed) => (
+            <ScreenTransitionMark
+              dimmed={related !== null && !related.has(placed.id)}
+              key={placed.id}
+              labelled={labelled || (related !== null && related.has(placed.id))}
+              onSelect={() => onSelect({ kind: 'screenTransition', id: placed.id })}
+              placed={placed}
+              selected={sameSelection(selection, { kind: 'screenTransition', id: placed.id })}
+            />
+          ))}
       </g>
 
       <g className="sm-screens">
@@ -204,7 +227,63 @@ export function ScreenMapCanvas({ layout, selection, onSelect, viewport }: Canva
           )),
         )}
       </g>
+
+      <g className="sm-toggles">
+        {layout.containers.map((container) =>
+          container.toggle === null ? null : (
+            <ScreenToggle
+              dimmed={related !== null && !related.has(container.id)}
+              key={container.id}
+              onToggle={() => onToggleScreens(container.id)}
+              toggle={container.toggle}
+            />
+          ),
+        )}
+      </g>
     </svg>
+  )
+}
+
+/**
+ * 화면이 많은 씬의 접기 · 펼치기 칸(ARTEL-1172). 화면 한 칸 자리에 선다. 접혔을 땐 숨은 화면 수를 크게 보이고,
+ * 펼쳤을 땐 접기 단추다. 씬을 고르는 click 과 섞이지 않게 여기서 멈춘다.
+ */
+function ScreenToggle({
+  toggle,
+  dimmed,
+  onToggle,
+}: {
+  toggle: NonNullable<PlacedContainer['toggle']>
+  dimmed: boolean
+  onToggle: () => void
+}) {
+  const { t } = useI18n()
+  const copy = t.contentMap.screenMap
+  return (
+    <g
+      className={classes('sm-toggle', toggle.expanded && 'is-expanded', dimmed && 'is-dimmed')}
+      onClick={(event) => {
+        event.stopPropagation()
+        onToggle()
+      }}
+      transform={`translate(${toggle.x} ${toggle.y})`}
+    >
+      <rect className="sm-toggle-frame" height={toggle.height} rx="4" width={toggle.width} />
+      {toggle.expanded ? (
+        <text className="sm-toggle-label" textAnchor="middle" x={toggle.width / 2} y={toggle.height / 2 + 5}>
+          {copy.collapseScreens}
+        </text>
+      ) : (
+        <>
+          <text className="sm-toggle-count" textAnchor="middle" x={toggle.width / 2} y={toggle.height / 2 - 2}>
+            +{toggle.hidden}
+          </text>
+          <text className="sm-toggle-label" textAnchor="middle" x={toggle.width / 2} y={toggle.height / 2 + 20}>
+            {copy.moreScreens}
+          </text>
+        </>
+      )}
+    </g>
   )
 }
 
@@ -311,11 +390,13 @@ function classes(...parts: (string | false | null)[]): string {
  */
 function ContainerMark({
   container,
+  counts,
   selected,
   dimmed,
   onSelect,
 }: {
   container: PlacedContainer
+  counts: { out: number; in: number }
   selected: boolean
   dimmed: boolean
   onSelect: () => void
@@ -326,11 +407,11 @@ function ContainerMark({
   const empty = container.screens.length === 0
   const title = sceneTitle(t, container.node)
 
-  // screen 이 하나라도 있으면 지금까지와 똑같이 그린다 — 이미지는 빈 상자를 대신할 뿐, 그
-  // 위에 얹지 않는다.
   const thumbnail = container.node.scene?.thumbnail ?? null
-  const availableThumbnail: Extract<SceneThumbnail, { state: 'available' }> | null =
-    empty && thumbnail !== null && thumbnail.state === 'available' ? thumbnail : null
+  const image: Extract<SceneThumbnail, { state: 'available' }> | null =
+    thumbnail !== null && thumbnail.state === 'available' ? thumbnail : null
+  const scene = container.node.scene
+  const textX = CARD_INSET * 2 + CARD_IMAGE_WIDTH
 
   return (
     <g
@@ -345,36 +426,62 @@ function ContainerMark({
       transform={`translate(${container.x} ${container.y})`}
     >
       <rect className="sm-container-frame" height={container.height} rx="6" width={container.width} />
-      <rect className="sm-container-head" height={CONTAINER_HEAD_HEIGHT} rx="5" width={container.width} />
-      <text className="sm-container-name" x={12} y={19}>
-        {truncate(title, SCENE_NAME_WIDTH)}
-      </text>
-      {/* 0 은 적지 않는다. 몸통이 이미 그 사실을 문장으로 말하고, 여기 숫자를 더 놓으면
-          좁은 컨테이너에서 씬 이름과 겹친다. */}
-      {!empty && (
-        <text className="sm-container-count mono" textAnchor="end" x={container.width - 12} y={19}>
-          {copy.screenCount(container.screens.length)}
-        </text>
-      )}
-      {availableThumbnail !== null && (
+
+      {/*
+        씬 카드(ARTEL-1172): 왼쪽 대표 이미지, 오른쪽 상세. 이미지가 없으면 같은 자리를 비워 두고 그 사실을 적는다 —
+        카드마다 글자 자리가 달라지면 열 안의 카드들이 줄이 안 맞는다.
+      */}
+      {image !== null ? (
         <image
           className="sm-container-thumbnail"
-          height={container.height - CONTAINER_HEAD_HEIGHT - CAPTURE_INSET * 2}
-          href={availableThumbnail.url}
+          height={CARD_IMAGE_HEIGHT}
+          href={image.url}
           preserveAspectRatio="xMidYMid meet"
-          width={container.width - CAPTURE_INSET * 2}
-          x={CAPTURE_INSET}
-          y={CONTAINER_HEAD_HEIGHT + CAPTURE_INSET}
+          width={CARD_IMAGE_WIDTH}
+          x={CARD_INSET}
+          y={CARD_INSET}
         >
           <title>{title}</title>
         </image>
+      ) : (
+        <CapturePlaceholder height={CARD_IMAGE_HEIGHT} label={copy.noCapture} width={CARD_IMAGE_WIDTH} x={CARD_INSET} y={CARD_INSET} />
       )}
-      {empty && availableThumbnail === null && (
-        <text className="sm-container-empty" x={container.width / 2} y={container.height - 22} textAnchor="middle">
-          {copy.noScreens}
-        </text>
+
+      {/* 씬 색은 이름 앞의 점 하나로만 말한다 — 상자 전체를 칠하면 씬 일곱 개가 일곱 색 덩어리로 서서 선이 묻힌다.
+          같은 색이 tree 의 점에도 있다. */}
+      <circle className="sm-container-dot" cx={textX + 5} cy={CARD_INSET + 12} r={5} />
+      <text className="sm-container-name" x={textX + 17} y={CARD_INSET + 17}>
+        {truncate(title, SCENE_NAME_WIDTH)}
+      </text>
+
+      {/* 수 넷을 한 줄에 하나씩(ARTEL-1172) — 글 한 줄로 이어 쓰면 숫자가 글자 사이에 묻혔고, 두 칸으로 두면 카드가
+          넓어져 열 여섯의 지도가 그만큼 작아졌다. 숫자는 굵고 색이 있고, 이름은 옆에 작게. 응답에 없는 씬
+          (scene === null)은 능력을 모르므로 위 두 줄을 비운다. */}
+      {scene !== null && (
+        <>
+          <CardStat label={t.contentMap.summary.statuses.runnable} tone="runnable" value={scene.capabilities.runnable} x={textX} y={CARD_INSET + 40} />
+          <CardStat label={t.contentMap.summary.statuses.needsProbe} tone="needsProbe" value={scene.capabilities.needsProbe} x={textX} y={CARD_INSET + 59} />
+        </>
       )}
+      <CardStat label={t.contentMap.inspector.stats.outgoing} tone="route" value={counts.out} x={textX} y={CARD_INSET + 78} />
+      <CardStat label={t.contentMap.inspector.stats.incoming} tone="route" value={counts.in} x={textX} y={CARD_INSET + 97} />
+      {/* 이미지 아래 한 줄: 관측된 화면 수, 없으면 그 사실. 이름 줄 끝에 두면 좁은 카드에서 긴 씬 이름과 겹쳤다. */}
+      <text className={empty ? 'sm-container-empty' : 'sm-container-count mono'} x={CARD_INSET} y={CARD_INSET + CARD_IMAGE_HEIGHT + 15}>
+        {empty ? copy.noScreens : copy.screenCount(container.screens.length)}
+      </text>
     </g>
+  )
+}
+
+/** 카드 안의 수 하나: 굵은 숫자와 옆의 작은 이름. */
+function CardStat({ label, tone, value, x, y }: { label: string; tone: 'runnable' | 'needsProbe' | 'route'; value: number; x: number; y: number }) {
+  return (
+    <text className="sm-card-stat" x={x} y={y}>
+      <tspan className={`sm-card-num sm-card-num--${tone}${value === 0 ? ' is-zero' : ''}`}>{value}</tspan>
+      <tspan className="sm-card-label" dx={5}>
+        {label}
+      </tspan>
+    </text>
   )
 }
 
@@ -457,18 +564,13 @@ function ScreenMark({
            채워지고, 뒤는 새로고침하면 된다 — 사용자가 할 일이 다르므로 같은 자리표시라도 문장은
            갈린다.
         */
-        <g className="sm-screen-capture-empty">
-          <rect
-            height={captureHeight}
-            rx="3"
-            width={captureWidth}
-            x={CAPTURE_INSET}
-            y={CAPTURE_INSET}
-          />
-          <text textAnchor="middle" x={placed.width / 2} y={SCREEN_IMAGE_HEIGHT / 2 + 4}>
-            {broken ? copy.captureBroken : copy.noCapture}
-          </text>
-        </g>
+        <CapturePlaceholder
+          height={captureHeight}
+          label={broken ? copy.captureBroken : copy.noCapture}
+          width={captureWidth}
+          x={CAPTURE_INSET}
+          y={CAPTURE_INSET}
+        />
       )}
 
       <text

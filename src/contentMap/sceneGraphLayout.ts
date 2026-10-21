@@ -91,7 +91,14 @@ export function buildSceneGraph(
   scenes: readonly ContentMapScene[],
   transitions: readonly SceneTransition[],
 ): SceneGraphModel {
-  const nodes: SceneNode[] = scenes.map((scene) => ({
+  // 게임 시작 씬부터(ARTEL-1172). 입구 씬이 맨 앞, 그다음 빌드 설정 순번, 순번을 모르는 씬은 뒤에 응답 순서대로 —
+  // 배치는 이 순서의 첫 씬을 순환 그래프의 출발점으로 쓰고, 같은 열 안에서도 이 순서를 지키며, tree 도 이 순서로 선다.
+  const ordered = [...scenes].sort(
+    (a, b) =>
+      Number(b.entry) - Number(a.entry) ||
+      (a.buildOrder ?? Number.MAX_SAFE_INTEGER) - (b.buildOrder ?? Number.MAX_SAFE_INTEGER),
+  )
+  const nodes: SceneNode[] = ordered.map((scene) => ({
     id: sceneNodeId(scene.id),
     name: scene.name,
     scene,

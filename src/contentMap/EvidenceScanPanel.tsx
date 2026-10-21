@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { InfoHint } from '../design-system/primitives/InfoHint'
@@ -67,6 +67,8 @@ export function EvidenceScanPanel({
   refreshToken,
   events,
   generationBlock,
+  summary,
+  defaultOpen,
 }: {
   projectId: string
   buildId: string
@@ -76,9 +78,18 @@ export function EvidenceScanPanel({
   events: ContentMapEventsState
   /** 이 빌드의 지도가 아직 TC 를 만들 수 없는 이유. agent 의 TC 덮어쓰기 action 이 막힘 이유로 쓴다. */
   generationBlock: GenerationBlock | null
+  /** 근거 줄 왼쪽에 서는 빌드의 수 한 줄. 지도가 없으면 없다. */
+  summary?: ReactNode
+  /** 자세히(스캔 상태 · 문서 적재)를 처음부터 펼칠지. 지도가 아직 없을 때처럼 이 패널이 할 일의 전부일 때 켠다. */
+  defaultOpen: boolean
 }) {
   const { t } = useI18n()
   const copy = t.contentMap.scan
+  const layoutCopy = t.contentMap.layout
+  const [open, setOpen] = useState(defaultOpen)
+  const inFlight = useRef(false)
+  const [coolingDown, setCoolingDown] = useState(false)
+  const detailsId = useId()
   const [instances, setInstances] = useState<InstancesState>({ status: 'loading' })
   const [selectedInstanceId, setSelectedInstanceId] = useState('')
   // 스캔 결과는 그것을 만든 새로고침 회차에 묶어 둔다. 새로고침하고 나면
@@ -136,7 +147,10 @@ export function EvidenceScanPanel({
     : connected[0]?.id ?? ''
 
   const blocked = describeBlock(instances, connected.length)
-  const disabled = blocked !== null || scan.phase === 'running' || instanceId === ''
+  // 게임이 아직 스캔하는 중이면 다시 누를 수 없다(ARTEL-1172). 요청이 받아들여진 뒤 버튼이 다시 켜져, 스캔이 도는 동안
+  // 같은 빌드에 두 번째 스캔이 들어갔다.
+  const scanInProgress = events.scan?.state === 'REQUESTED'
+  const disabled = blocked !== null || scan.phase === 'running' || scanInProgress || coolingDown || instanceId === ''
   // 아직 확인 중이면 시각이 없다. 그때 blocked 는 반드시 'loading' 이므로 빈
   // 문자열이 문장 안으로 들어갈 일은 없다.
   const checkedAtLabel = instances.status === 'loading' ? '' : formatDateTime(instances.checkedAt)
@@ -151,6 +165,11 @@ export function EvidenceScanPanel({
   /** 버튼과 agent 가 함께 쓴다. 실패 문구를 돌려줘 agent 가 오류로 전할 수 있게 한다. */
   async function start(withTestCases: boolean): Promise<{ failure: string | null }> {
     if (instanceId === '') return { failure: null }
+    // 누르는 즉시 잠근다(ARTEL-1172). `disabled` 는 상태라 다음 그리기 전까지 버튼이 살아 있어, 빠르게 두 번 누르면 요청이
+    // 두 건 나갔다. ref 는 같은 틱 안에서 바로 보인다. 끝나도 잠깐(SCAN_COOLDOWN_MS) 더 막는다 — 스캔 상태 SSE 가
+    // `REQUESTED` 를 알려 오기 전의 틈에 다시 누르는 것을 막는다.
+    if (inFlight.current) return { failure: null }
+    inFlight.current = true
     setScanRun({ token: refreshToken, scan: { phase: 'running', withTestCases } })
 
     try {
@@ -167,6 +186,12 @@ export function EvidenceScanPanel({
       const message = error instanceof ProjectApiError ? apiErrorMessage(error, t) : copy.failed
       setScanRun({ token: refreshToken, scan: { phase: 'failed', message } })
       return { failure: message }
+    } finally {
+      setCoolingDown(true)
+      window.setTimeout(() => {
+        inFlight.current = false
+        setCoolingDown(false)
+      }, SCAN_COOLDOWN_MS)
     }
   }
 
@@ -176,7 +201,8 @@ export function EvidenceScanPanel({
   // 두 스캔 버튼이 비활성일 때 보이는 이유를 그대로 돌려준다.
   function scanBlockedReason(): string | null {
     if (blocked !== null) return blockedCopy(blocked)
-    if (scan.phase === 'running') return copy.running
+    if (scan.phase === 'running' || coolingDown) return copy.running
+    if (scanInProgress) return t.contentMap.scanStatus.requested
     if (instanceId === '') return copy.noInstanceOption
     return null
   }
@@ -214,24 +240,30 @@ export function EvidenceScanPanel({
   })
 
   return (
-    <section className="panel cm-scan" aria-labelledby="cm-scan-title">
-      <header className="panel-header">
-        <h2 id="cm-scan-title">
+    <section className="cm-scan" aria-labelledby="cm-scan-title">
+      {/*
+        한 줄로 접힌 근거(ARTEL-1172). 게임 select 와 두 버튼은 늘 보인다 — agent 의 scan action 이 이 버튼을
+        target 으로 잡고, 접혀서 사라지면 agent 가 가리킬 곳이 없다. 접히는 것은 스캔 상태 · 문서 적재의 자세한
+        내용뿐이고, 그 요점은 접혀 있어도 이 줄의 `ScanBrief` 가 말한다.
+      */}
+      <div className="cm-scan-bar">
+        <h2 className="cm-scan-title" id="cm-scan-title">
           {copy.title}
           <InfoHint>{copy.copy}</InfoHint>
         </h2>
-      </header>
+        {summary}
+        <ScanBrief announce={!open} events={events} />
 
-      <div className="cm-scan-actions">
-        <div className="field cm-scan-field">
-          <label className="field-label" htmlFor={instanceSelectId}>
+        <div className="cm-scan-actions">
+          <label className="visually-hidden" htmlFor={instanceSelectId}>
             {copy.instanceLabel}
           </label>
           <select
-            className="field-input"
+            className="field-input cm-scan-instance"
             disabled={connected.length === 0 || scan.phase === 'running'}
             id={instanceSelectId}
             onChange={(event) => setSelectedInstanceId(event.target.value)}
+            title={copy.instanceLabel}
             value={instanceId}
           >
             {connected.length === 0 ? (
@@ -244,37 +276,40 @@ export function EvidenceScanPanel({
               ))
             )}
           </select>
-        </div>
 
-        <button
-          className="button button--primary"
-          disabled={disabled}
-          onClick={() => void start(false)}
-          ref={scanButton}
-          type="button"
-        >
-          {scan.phase === 'running' && !scan.withTestCases ? copy.running : copy.action}
-        </button>
-        {/* 스캔이 끝나 지도가 다 읽히면 서버가 그 빌드의 TC 도 만든다(ARTEL-1041). */}
-        <button
-          className="button button--secondary"
-          disabled={disabled}
-          onClick={() => void start(true)}
-          ref={scanWithTestCasesButton}
-          type="button"
-        >
-          {scan.phase === 'running' && scan.withTestCases ? copy.running : copy.actionWithTestCases}
-        </button>
+          <button
+            className="button button--primary button--compact"
+            disabled={disabled}
+            onClick={() => void start(false)}
+            ref={scanButton}
+            type="button"
+          >
+            {scan.phase === 'running' && !scan.withTestCases ? copy.running : copy.action}
+          </button>
+          {/* 스캔이 끝나 지도가 다 읽히면 서버가 그 빌드의 TC 도 만든다(ARTEL-1041). */}
+          <button
+            className="button button--secondary button--compact"
+            disabled={disabled}
+            onClick={() => void start(true)}
+            ref={scanWithTestCasesButton}
+            type="button"
+          >
+            {scan.phase === 'running' && scan.withTestCases ? copy.running : copy.actionWithTestCases}
+          </button>
+          <button
+            aria-controls={detailsId}
+            aria-expanded={open}
+            className="button button--secondary button--compact cm-scan-toggle"
+            onClick={() => setOpen((current) => !current)}
+            type="button"
+          >
+            {open ? layoutCopy.detailsClose : layoutCopy.detailsOpen}
+          </button>
+        </div>
       </div>
 
-      {/* 목록이 언제 기준인지. 게임이 하나 보이더라도 그것은 마지막으로
-          확인한 시점의 사실일 뿐이라는 것을 같이 말한다. */}
-      {instances.status !== 'loading' && (
-        <p className="cm-scan-copy">{copy.checkedAt(checkedAtLabel)}</p>
-      )}
-
       {/* 왜 못 누르는지. 버튼이 회색이라는 사실만으로는 아무것도 알려 주지
-          않으므로, 이유와 다음에 할 일이 항상 함께 있다. */}
+          않으므로, 이유와 다음에 할 일이 항상 함께 있다 — 접혀 있어도. */}
       {blocked !== null && <p className="cm-scan-blocked">{blockedCopy(blocked)}</p>}
 
       {scan.phase === 'requested' && (
@@ -288,8 +323,25 @@ export function EvidenceScanPanel({
         </div>
       )}
 
-      <ScanStatusPanel events={events} projectId={projectId} />
-      <IngestStatus events={events} />
+      {/* 접혀도 남긴다(`hidden`). 지우면 경과 초 · 문서 목록 상태가 펼 때마다 처음부터 다시 선다. */}
+      <div className="cm-scan-details" hidden={!open} id={detailsId}>
+        <section className="cm-scan-detail">
+          <h3>{layoutCopy.detailScan}</h3>
+          <ScanStatusPanel events={events} projectId={projectId} />
+        </section>
+        <section className="cm-scan-detail">
+          <h3>{layoutCopy.detailIngest}</h3>
+          <IngestStatus events={events} />
+        </section>
+        {/* 목록이 언제 기준인지. 게임이 하나 보이더라도 그것은 마지막으로
+            확인한 시점의 사실일 뿐이라는 것을 같이 말한다. */}
+        {instances.status !== 'loading' && (
+          <section className="cm-scan-detail">
+            <h3>{layoutCopy.detailInstances}</h3>
+            <p className="cm-scan-copy">{copy.checkedAt(checkedAtLabel)}</p>
+          </section>
+        )}
+      </div>
 
       {/* 요청이 받아들여졌다는 사실만 알린다. 실패는 바로 위 role="alert" 가
           이미 읽어 주므로 여기서 또 알리면 두 번 말하게 된다. */}
@@ -299,6 +351,50 @@ export function EvidenceScanPanel({
     </section>
   )
 }
+
+/**
+ * 접힌 근거 줄의 요점: 스캔 상태 한 마디, 문서 적재 수, 실시간 연결(ARTEL-1172). 자세한 것은 펼침 안의
+ * `ScanStatusPanel` · `IngestStatus` 가 그대로 말한다. 여기는 그것들이 접혀 있을 때 놓치면 안 되는 것만 —
+ * 스캔이 실패했다, 문서가 밀렸다, 연결이 끊겼다.
+ */
+function ScanBrief({ events, announce }: { events: ContentMapEventsState; announce: boolean }) {
+  const { t } = useI18n()
+  const copy = t.contentMap.scanStatus
+  const pendingCopy = t.contentMap.pending
+  const now = useTickingNow(events.scan?.state === 'REQUESTED')
+  const scan = events.scan
+  const ingest = events.ingest
+
+  return (
+    // 펼쳐져 있으면 펼침 안의 상태 줄이 같은 것을 읽어 준다. 둘 다 live 면 한 번 바뀔 때 두 번 들린다.
+    <p aria-live={announce ? 'polite' : 'off'} className="cm-scan-brief">
+      {scan === null && <span className="cm-brief cm-brief--warning">{copy.unknownTitle}</span>}
+      {scan !== null && scan !== undefined && (
+        <span className={`cm-brief cm-brief--${scanDotModifier(scan.state)}`}>
+          <span aria-hidden="true" className={`cm-status-dot cm-status-dot--scan-${scanDotModifier(scan.state)}`} />
+          {scan.state === 'REQUESTED'
+            ? `${copy.requested} ${copy.elapsed(scanElapsedSeconds(scan, now))}`
+            : scan.state === 'SUCCEEDED'
+              ? copy.succeeded
+              : copy.failed}
+        </span>
+      )}
+      {ingest !== undefined && ingest.receivedDocuments > 0 && (
+        <span className={`cm-brief mono${ingest.failedDocuments > 0 ? ' cm-brief--failed' : ''}`}>
+          {pendingCopy.progressTitle(ingest.ingestedDocuments, ingest.receivedDocuments)}
+          {ingest.failedDocuments > 0 && ` · ${pendingCopy.failedCount(ingest.failedDocuments)}`}
+        </span>
+      )}
+      <span className={`cm-brief cm-brief--stream cm-brief--stream-${events.streamState}`}>
+        <span aria-hidden="true" className="cm-stream-dot" />
+        {streamStateLabel(copy, events.streamState)}
+      </span>
+    </p>
+  )
+}
+
+/** 스캔 요청이 끝난 뒤 같은 버튼을 다시 받기까지의 틈. */
+const SCAN_COOLDOWN_MS = 2000
 
 /** 왜 스캔을 시작할 수 없는지. null 이면 막는 것이 없다. */
 type BlockReason = 'loading' | 'loadFailed' | 'noInstances' | 'noneConnected'
@@ -462,7 +558,7 @@ function IngestStatus({ events }: { events: ContentMapEventsState }) {
     .sort((left, right) => left.receivedAt.localeCompare(right.receivedAt))
 
   return (
-    <div className="cm-pending">
+    <div className={`cm-pending${attention.length === 0 && failedDocuments === 0 ? ' is-complete' : ''}`}>
       <p className="cm-pending-title">{copy.progressTitle(ingestedDocuments, receivedDocuments)}</p>
       <div
         aria-label={copy.progressLabel(ingestedDocuments, receivedDocuments)}

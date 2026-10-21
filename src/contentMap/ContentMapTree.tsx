@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { useI18n } from '../i18n/useI18n'
+import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { truncate } from '../knowledge/knowledgeLabels'
-import { SceneChip } from '../testCases/SceneChip'
+import { sceneHue } from '../testCases/sceneHue'
+import { CapturePlaceholderThumb } from './CapturePlaceholder'
 import {
   edgeSourceStyle,
   sameSelection,
@@ -62,6 +64,7 @@ export function ContentMapTree({
 }) {
   const { t } = useI18n()
   const copy = t.contentMap.tree
+  const [treeNode, setTreeNode] = useState<HTMLUListElement | null>(null)
 
   const tree = useMemo(() => buildContentMapTree(model, index), [index, model])
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(NOTHING_EXPANDED)
@@ -143,6 +146,7 @@ export function ContentMapTree({
         aria-labelledby="cm-tree-title"
         className="cm-tree"
         onKeyDown={handleKeyDown}
+        ref={setTreeNode}
         role="tree"
       >
         {rows.map((row) => {
@@ -172,6 +176,7 @@ export function ContentMapTree({
           )
         })}
       </ul>
+      <EdgeScrollbar label={copy.title} scroller={treeNode} side="right" />
     </div>
   )
 }
@@ -227,14 +232,17 @@ function SceneRow({ scene }: { scene: SceneTreeNode }) {
   return (
     <span className="cm-tree-body">
       <span className="cm-tree-label">
-        {/* 이름은 chip 이 진다. 그 chip 의 색조가 캔버스의 컨테이너와 같은 값에서 나오므로,
-            같은 씬을 두 pane 에서 알아보는 값이 그 하나다. 이름을 옆에 한 번 더 적으면 216px
-            짜리 줄이 같은 글자를 두 번 싣는다. */}
-        {name.length > 0 ? (
-          <SceneChip className="cat-chip cm-tree-chip" scene={name} />
-        ) : (
-          <span className="cm-tree-name is-unnamed">{truncate(sceneTitle(t, node), 24)}</span>
-        )}
+        {/* 씬 색 점과 이름(ARTEL-1172). 점의 색조는 캔버스 상자 머리의 점과 같은 값이라, 같은 씬을 두 pane 에서
+            알아보는 값이 그 하나다. 예전 chip 은 글자가 작고 색 덩어리가 줄마다 서서 목록이 읽히지 않았다. */}
+        <TreeThumb url={node.scene?.thumbnail?.state === 'available' ? node.scene.thumbnail.url : null} wide />
+        <span
+          aria-hidden="true"
+          className="cm-tree-dot"
+          style={{ '--cat-hue': String(sceneHue(name.length > 0 ? name : node.id)) } as CSSProperties}
+        />
+        <span className={`cm-tree-name cm-tree-scene${name.length > 0 ? '' : ' is-unnamed'}`}>
+          {truncate(name.length > 0 ? name : sceneTitle(t, node), 28)}
+        </span>
       </span>
       <span className="cm-tree-meta">
         <span className={`cm-kind cm-kind--${kind}`}>{t.contentMap.graph.sceneKinds[kind]}</span>
@@ -247,6 +255,25 @@ function SceneRow({ scene }: { scene: SceneTreeNode }) {
   )
 }
 
+/**
+ * 목록 줄의 작은 그림(ARTEL-1172). 지도가 이미 씬 · 화면 그림을 쓰므로 목록도 같은 그림으로 알아보게 한다.
+ * 장식이라 `alt` 가 비어 있다 — 이름이 바로 옆에 있다. 못 불러오면 자리를 접어 줄이 예전 모양으로 돌아간다.
+ */
+function TreeThumb({ url, wide = false }: { url: string | null; wide?: boolean }) {
+  const [failed, setFailed] = useState<string | null>(null)
+  // 그림이 없거나 못 불러오면 서비스 대체 그림을 둔다 — 줄마다 그림 자리가 있어야 이름이 한 줄로 맞는다.
+  if (url === null || failed === url) return <CapturePlaceholderThumb wide={wide} />
+  return (
+    <img
+      alt=""
+      className={`cm-tree-thumb${wide ? ' cm-tree-thumb--scene' : ''}`}
+      loading="lazy"
+      onError={() => setFailed(url)}
+      src={url}
+    />
+  )
+}
+
 function ScreenRow({ screen }: { screen: ScreenTreeNode }) {
   const { t } = useI18n()
   const copy = t.contentMap.inspector
@@ -255,6 +282,7 @@ function ScreenRow({ screen }: { screen: ScreenTreeNode }) {
   return (
     <span className="cm-tree-body">
       <span className="cm-tree-label">
+        <TreeThumb url={screen.screen.image?.url ?? null} />
         <span className={`cm-tree-name${named ? '' : ' is-unnamed'}`}>
           {truncate(screenTitle(t, screen.screen), 20)}
         </span>
