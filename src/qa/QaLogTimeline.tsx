@@ -215,7 +215,7 @@ function QaFlowStep({ block, tcNo }: { block: FlowStep; tcNo: number | null }) {
           const last = at === shown.length - 1
           if (line.kind === 'thought') {
             return (
-              <p className="qa-flow-line" key={line.id}>
+              <p className="qa-flow-line" key={line.key}>
                 <QaFlowDot kind="thought" last={last} />
                 <span className="qa-flow-said">{line.text}</span>
               </p>
@@ -223,7 +223,7 @@ function QaFlowStep({ block, tcNo }: { block: FlowStep; tcNo: number | null }) {
           }
           const blocked = line.action.blocked
           return (
-            <p className="qa-flow-line" key={line.id}>
+            <p className="qa-flow-line" key={line.key}>
               <QaFlowDot kind={blocked ? 'blocked' : 'action'} last={last} />
               <span className={`qa-flow-said qa-flow-said--${blocked ? 'blocked' : 'did'}`}>
                 {sentence(line.action)}

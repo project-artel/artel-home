@@ -124,10 +124,16 @@ export function actionOf(call: ToolCall, names: ObjectNames, output: string | nu
   return { tool, subject, blocked }
 }
 
-/** 덩어리 안의 한 줄. 생각이거나 행동이다. */
+/**
+ * 덩어리 안의 한 줄. 생각이거나 행동이다.
+ *
+ * `id` 는 그 줄이 나온 로그이고 스크롤 앵커가 쓴다. `key` 는 **줄마다 다르다** — 한 `TOOL`
+ * 로그가 생각 줄과 행동 줄 둘을 만들므로 `id` 를 React key 로 쓰면 형제 둘이 같은 key 를
+ * 갖고, 그러면 지운 줄의 DOM 이 남는다(접은 생각이 화면에 그대로 보였다).
+ */
 export type FlowLine =
-  | { kind: 'thought'; id: string; text: string }
-  | { kind: 'action'; id: string; action: FlowAction }
+  | { kind: 'thought'; id: string; key: string; text: string }
+  | { kind: 'action'; id: string; key: string; action: FlowAction }
 
 /**
  * 스텝 하나. `흐름` 한 덩어리다.
@@ -190,7 +196,7 @@ export function buildFlowSteps(logs: readonly QaLog[], names: ObjectNames): Flow
     // 끼므로 바로 앞만 봐서는 못 걸러낸다. 몇 번 시도했는지는 조작 줄이 이미 말한다.
     if (call.thought !== null && !said.has(call.thought)) {
       said.add(call.thought)
-      block.lines.push({ kind: 'thought', id: log.id, text: call.thought })
+      block.lines.push({ kind: 'thought', id: log.id, key: `${log.id}#t`, text: call.thought })
     }
 
     if (call.tool === 'report_step') {
@@ -205,7 +211,7 @@ export function buildFlowSteps(logs: readonly QaLog[], names: ObjectNames): Flow
         ? (payload as Record<string, unknown>).tool_call_id
         : null
     const output = typeof callId === 'string' ? (outputs.get(callId) ?? null) : null
-    block.lines.push({ kind: 'action', id: log.id, action: actionOf(call, names, output) })
+    block.lines.push({ kind: 'action', id: log.id, key: `${log.id}#a`, action: actionOf(call, names, output) })
     block.attempts += 1
   }
 

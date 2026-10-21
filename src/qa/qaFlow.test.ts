@@ -178,3 +178,15 @@ test('a different thought in the same step is its own line', () => {
 
   assert.equal(steps[0].lines.filter((line) => line.kind === 'thought').length, 2)
 })
+
+test('a thought and its action are two lines with two different keys', () => {
+  // 한 `TOOL` 로그가 둘을 만든다. 같은 key 를 주면 React 가 형제를 못 가려 지운 줄이 남는다.
+  const steps = buildFlowSteps(
+    [tool('1', 'press_key', { step: 9, key_code: 'Return', thought: '눌러 본다' })],
+    NO_NAMES,
+  )
+
+  const keys = steps[0].lines.map((line) => line.key)
+  assert.equal(new Set(keys).size, keys.length)
+  assert.deepEqual(steps[0].lines.map((line) => line.id), ['1', '1'])
+})
