@@ -1545,6 +1545,18 @@ a.instance-name:hover {
   background: var(--color-bg-raised);
 }
 
+.cli-token-value > code {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cli-token-value > .button {
+  flex-shrink: 0;
+}
+
 /* A value the developer has to move into another application by hand, paired
    with the button that does it for them. */
 .copy-line {
