@@ -6,3 +6,11 @@
 export const MARK_BODY =
   'M 57.28 45.10 L 57.28 17.40 L 32.00 2.80 L 6.72 17.40 L 6.72 46.60 L 30.70 60.45 L 30.70 50.05 L 15.72 41.40 L 15.72 22.60 L 32.00 13.20 L 48.28 22.60 L 48.28 39.90 Z'
 export const MARK_ACCENT = 'M 33.30 50.05 L 33.30 60.45 L 55.99 47.35 L 46.99 42.15 Z'
+
+/**
+ * ARTEL 심볼(64 × 64) — `artel-logo-symbol-transparent-dark-bg.png` 를 따서 만든 것(ARTEL-1172). 오른쪽 아래가 열린
+ * 육각 띠와, 그 열린 자리 아래의 코랄 평행사변형. 캡처 대체 그림이 이것을 쓴다.
+ */
+export const SYMBOL_BODY =
+  'M 32 2 L 57 16.9 L 57 33.6 L 46.7 39.6 L 46.7 23.3 L 32 14.4 L 17.3 23.3 L 17.3 41.6 L 32 50.3 L 32 62 L 7 47 L 7 16.9 Z'
+export const SYMBOL_ACCENT = 'M 57 37.9 L 57 48.1 L 35.9 60.9 L 35.9 50.3 Z'
