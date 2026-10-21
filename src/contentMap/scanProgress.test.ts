@@ -23,14 +23,15 @@ const withTestCases = { carryOver: false, state: 'PENDING', created: null, carri
 
 test('scanPercent: 씬 진행만큼 씬 몫을 채운다', () => {
   assert.equal(scanPercent(scan({ progress: { done: 0, total: 10, scene: 'Title' } })), 0)
-  assert.equal(scanPercent(scan({ progress: { done: 5, total: 10, scene: 'Stage' } })), 40)
-  assert.equal(scanPercent(scan({ progress: { done: 10, total: 10, scene: null } })), 80)
+  assert.equal(scanPercent(scan({ progress: { done: 5, total: 10, scene: 'Stage' } })), 45)
+  assert.equal(scanPercent(scan({ progress: { done: 10, total: 10, scene: null } })), 90)
 })
 
 test('scanPercent: 단계가 바뀌면 그 단계의 앞 끝에서 시작한다', () => {
-  assert.equal(scanPercent(scan({ phase: 'UPLOADING' })), 80)
-  assert.equal(scanPercent(scan({ phase: 'UPLOADING', progress: { done: 2, total: 4, scene: null } })), 85)
-  assert.equal(scanPercent(scan({ phase: 'INGESTING' })), 90)
+  assert.equal(scanPercent(scan({ phase: 'UPLOADING' })), 90)
+  assert.equal(scanPercent(scan({ phase: 'UPLOADING', progress: { done: 2, total: 4, scene: null } })), 93)
+  // 적재는 분모가 늘 1 이라 한 숫자에 서 있는다. 그래서 그 몫이 좁다.
+  assert.equal(scanPercent(scan({ phase: 'INGESTING' })), 96)
 })
 
 test('scanPercent: TC 를 함께 만들면 TC 생성 단계가 끝에 붙고, 끝나기 전에는 100 이 아니다', () => {
