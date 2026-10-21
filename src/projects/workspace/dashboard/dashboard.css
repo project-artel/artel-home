@@ -209,6 +209,13 @@ a.db-row:focus-visible { outline: 2px solid var(--color-brand-accent); outline-o
 .frp-before--warning { color: var(--color-status-warning); }
 .frp-before--reasoning { color: var(--color-agent-reasoning); }
 .frp-before--muted { color: var(--color-text-muted); }
+/* EdgeScrollbar 막대는 화면마다 모양을 단다 — 없으면 막대가 흐름 안에 서서 목록 높이를 뺏고, 줄어든 목록을 다시 재며 매 프레임 깜박인다. */
+.frp .edgebar { position: absolute; z-index: 3; right: 0; width: 18px; pointer-events: none; }
+.frp .edgebar-thumb { position: absolute; left: 0; right: 0; pointer-events: auto; cursor: grab; touch-action: none; }
+.frp .edgebar-thumb:active { cursor: grabbing; }
+.frp .edgebar-fill { position: absolute; top: 0; bottom: 0; right: 0; width: 4px; border-radius: 2px; background: var(--color-brand-accent); transition: width 120ms var(--ease-standard); }
+.frp .edgebar.is-near .edgebar-fill { width: 11px; background: var(--color-brand-accent-strong); }
+@media (prefers-reduced-motion: reduce) { .frp .edgebar-fill { transition: none; } }
 .frp-empty { margin: 0; padding: 40px 16px; text-align: center; font-size: 13px; color: var(--color-text-muted); }
 .frp-actions { align-items: center; }
 .frp-summary { margin-right: auto; font-size: 12.5px; color: var(--color-text-secondary); font-family: var(--font-mono); }
