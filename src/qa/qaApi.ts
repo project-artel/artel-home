@@ -249,20 +249,19 @@ export function parseQaRunList(data: unknown, status = 200): QaRun[] {
 }
 
 /**
- * `GET /api/projects/{projectId}/qa-runs`(ARTEL-1104) — 새 run 이 앞에 온다. `gameBuildId` 를 주면 그 빌드로 돈
- * run 만 온다. `size` 는 서버가 1 이상 100 이하만 받는다.
+ * `GET /api/projects/{projectId}/game-builds/{gameBuildId}/qa-runs`(ARTEL-1104, ARTEL-1155) — 이 빌드로 돈 run,
+ * 새 run 이 앞에 온다. `size` 는 서버가 1 이상 100 이하만 받는다. 프로젝트 전체의 QA 실행 목록은
+ * `qaLaunchApi.listProjectQaRuns` 다.
  */
-export async function listProjectQaRuns(
+export async function listGameBuildQaRuns(
   projectId: string,
-  options: { gameBuildId?: string; size?: number },
+  gameBuildId: string,
+  options: { size?: number },
   signal?: AbortSignal,
 ): Promise<QaRun[]> {
-  const params = new URLSearchParams()
-  if (options.gameBuildId !== undefined) params.set('gameBuildId', options.gameBuildId)
-  if (options.size !== undefined) params.set('size', String(options.size))
-  const query = params.size === 0 ? '' : `?${params}`
+  const query = options.size === undefined ? '' : `?${new URLSearchParams({ size: String(options.size) })}`
   const response = await apiFetch(
-    `/api/projects/${encodeURIComponent(projectId)}/qa-runs${query}`,
+    `/api/projects/${encodeURIComponent(projectId)}/game-builds/${encodeURIComponent(gameBuildId)}/qa-runs${query}`,
     { signal },
   )
   return parseQaRunList(await readJson(response), response.status)

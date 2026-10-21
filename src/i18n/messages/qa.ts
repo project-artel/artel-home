@@ -28,7 +28,7 @@ export const qaEn = {
         'The planner–executer engine does not use the settings below. Your values are kept and apply again when you switch back to the default engine.',
       engines: { agent: 'Default', planner_executer: 'planner–executer' },
       engineHint:
-        'Which engine runs the QA. Default is the tool-loop agent. planner–executer has a planner write each step as functions and an executer play them, and runs ORDERED scenarios only.',
+        'Which engine runs the QA. Default is the tool-loop agent. planner–executer has a planner write each step as functions and an executer play them. In a FREE scenario it plays the cases of the scene on screen first.',
       axes: {
         phase_cycle:
           'How strictly the run follows OBSERVE → DECIDE → ACT → VERIFY → UPDATE_MEMORY. off is the free tool loop; lite adds a memory turn; full adds a decide turn.',
@@ -209,12 +209,6 @@ export const qaEn = {
       etaNone: 'First run of this test run',
       blockedHint: 'Fix the items above and you can run.',
       archLabelMissing: 'The changed agent structure needs a label',
-      engineFree: 'planner–executer does not run FREE scenarios',
-      engineFreeDetail: (count: number) =>
-        `This run has ${count} FREE scenario${count === 1 ? '' : 's'}. Switch to the default engine, or take them out of the run.`,
-      engineFreeChecking: 'Checking for FREE scenarios',
-      engineFreeUnknown: 'Could not check for FREE scenarios',
-      engineFreeUnknownDetail: 'planner–executer runs ORDERED scenarios only. If this run has a FREE scenario, it fails when it starts.',
     },
     consoles: { title: 'Game consoles and builds' },
   },
@@ -531,7 +525,7 @@ export const qaKo: Localized<typeof qaEn> = {
         'planner–executer 엔진은 아래 설정을 쓰지 않습니다. 고른 값은 그대로 두었다가 기본 엔진으로 돌아가면 다시 씁니다.',
       engines: { agent: '기본', planner_executer: 'planner–executer' },
       engineHint:
-        'QA 를 돌리는 엔진. 기본은 tool loop agent 입니다. planner–executer 는 planner 가 스텝마다 함수를 쓰고 executer 가 그것을 실행하며, ORDERED 시나리오만 돌립니다.',
+        'QA 를 돌리는 엔진. 기본은 tool loop agent 입니다. planner–executer 는 planner 가 스텝마다 함수를 쓰고 executer 가 그것을 실행합니다. FREE 시나리오에서는 지금 화면의 씬에서 검증할 케이스부터 돌립니다.',
       axes: {
         phase_cycle:
           'run 이 OBSERVE → DECIDE → ACT → VERIFY → UPDATE_MEMORY 를 얼마나 엄격하게 따를지. off 는 자유로운 tool loop, lite 는 memory 턴 하나, full 은 decide 턴까지 더합니다.',
@@ -709,12 +703,6 @@ export const qaKo: Localized<typeof qaEn> = {
       etaNone: '처음 실행하는 런입니다',
       blockedHint: '막힌 항목을 해결하면 실행할 수 있습니다.',
       archLabelMissing: '바꾼 agent 구조에 label 이 필요합니다',
-      engineFree: 'planner–executer 는 FREE 시나리오를 돌리지 않음',
-      engineFreeDetail: (count: number) =>
-        `이 런에 FREE 시나리오가 ${count}개 있습니다. 기본 엔진으로 바꾸거나 런에서 FREE 시나리오를 빼세요.`,
-      engineFreeChecking: 'FREE 시나리오 확인 중',
-      engineFreeUnknown: 'FREE 시나리오가 있는지 확인하지 못함',
-      engineFreeUnknownDetail: 'planner–executer 는 ORDERED 시나리오만 돌립니다. FREE 시나리오가 있으면 시작할 때 실패합니다.',
     },
     consoles: { title: '게임 콘솔 · 빌드' },
   },

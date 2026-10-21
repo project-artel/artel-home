@@ -464,3 +464,48 @@ export async function putFeatureModels(
   })
   return parseFeatureModels(await readJson(response))
 }
+
+/** Where the effective consent comes from: the stored admin choice or the `ARTEL_TELEMETRY` environment variable. */
+export type TelemetrySource = 'setting' | 'environment'
+
+export interface TelemetrySettings {
+  /** False when the server has no telemetry endpoint, so the whole section is hidden. */
+  available: boolean
+  enabled: boolean
+  source: TelemetrySource
+  installId: string | null
+  /** The UTC date (`YYYY-MM-DD`) of the last report that was sent, or `null` when none was. */
+  lastSentDate: string | null
+}
+
+export function parseTelemetrySettings(body: unknown): TelemetrySettings {
+  const record = asRecord(body)
+  return {
+    available: record.available === true,
+    enabled: record.enabled === true,
+    source: record.source === 'setting' ? 'setting' : 'environment',
+    installId: asNullableString(record.installId),
+    lastSentDate: asNullableString(record.lastSentDate),
+  }
+}
+
+export async function getTelemetrySettings(signal?: AbortSignal): Promise<TelemetrySettings> {
+  return parseTelemetrySettings(await readJson(await apiFetch('/api/admin/settings/telemetry', { signal })))
+}
+
+/** `deleteSentData` is sent only when asked for; it makes the server delete the reports already received. */
+export async function putTelemetryConsent(enabled: boolean, deleteSentData?: boolean): Promise<TelemetrySettings> {
+  const body = deleteSentData === undefined ? { enabled } : { enabled, deleteSentData }
+  const response = await apiFetch('/api/admin/settings/telemetry', {
+    method: 'PUT',
+    headers: JSON_HEADERS,
+    body: JSON.stringify(body),
+  })
+  return parseTelemetrySettings(await readJson(response))
+}
+
+/** The report for yesterday, exactly as it would be sent, pretty-printed for display. */
+export async function getTelemetryPreview(signal?: AbortSignal): Promise<string> {
+  const body = await readJson(await apiFetch('/api/admin/settings/telemetry/preview', { signal }))
+  return JSON.stringify(body, null, 2)
+}
