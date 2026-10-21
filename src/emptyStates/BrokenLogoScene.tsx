@@ -1,11 +1,5 @@
 import { useId } from 'react'
-
-/**
- * ARTEL 로고(64×64). `public/artel-mark.svg` · favicon 과 같은 도형이다. 정육각형 띠를 아래 꼭짓점과 오른쪽 아래
- * 꼭짓점의 가운데에서 일자로 잘라 몸통과 오른쪽 아래 코랄 조각 둘로 나눴다.
- */
-const MARK_BODY = 'M 57.28 45.10 L 57.28 17.40 L 32.00 2.80 L 6.72 17.40 L 6.72 46.60 L 30.70 60.45 L 30.70 50.05 L 15.72 41.40 L 15.72 22.60 L 32.00 13.20 L 48.28 22.60 L 48.28 39.90 Z'
-const MARK_ACCENT = 'M 33.30 50.05 L 33.30 60.45 L 55.99 47.35 L 46.99 42.15 Z'
+import { MARK_ACCENT, MARK_BODY } from '../brand/artelMark'
 
 /** 로고를 위에서 아래로 가르는 금. 로고 모양은 그대로 두고 금만 긋는다 — 조각을 움직이면 정육각형이 비틀린다. */
 const CRACK = [

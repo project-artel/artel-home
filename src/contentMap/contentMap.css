@@ -1006,3 +1006,32 @@
     flex: 1;
   }
 }
+
+/* 캡처 대체 그림: 옅은 ARTEL 로고 + 이름표 */
+.sm-placeholder rect {
+  fill: color-mix(in srgb, var(--color-bg-raised) 80%, var(--color-bg-canvas));
+  stroke: var(--color-border-subtle);
+  stroke-width: 1;
+}
+.sm-placeholder-mark {
+  fill: var(--color-text-muted);
+  opacity: 0.28;
+}
+.sm-placeholder-accent {
+  fill: var(--color-brand-accent);
+  opacity: 0.45;
+}
+.sm-placeholder text {
+  fill: var(--color-text-muted);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  pointer-events: none;
+}
+.cm-tree-thumb--placeholder {
+  display: inline-grid;
+  place-items: center;
+}
+.cm-tree-thumb--placeholder svg {
+  width: 55%;
+  height: 55%;
+}

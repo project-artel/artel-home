@@ -2,6 +2,7 @@ import { useMemo, useState, type CSSProperties } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { truncate } from '../knowledge/knowledgeLabels'
 import { sceneHue } from '../testCases/sceneHue'
+import { CapturePlaceholder } from './CapturePlaceholder'
 import { conditionSummary } from './conditionSummary'
 import {
   sameSelection,
@@ -443,12 +444,7 @@ function ContainerMark({
           <title>{title}</title>
         </image>
       ) : (
-        <g className="sm-container-noimage">
-          <rect height={CARD_IMAGE_HEIGHT} rx="4" width={CARD_IMAGE_WIDTH} x={CARD_INSET} y={CARD_INSET} />
-          <text textAnchor="middle" x={CARD_INSET + CARD_IMAGE_WIDTH / 2} y={CARD_INSET + CARD_IMAGE_HEIGHT / 2 + 4}>
-            {copy.noCapture}
-          </text>
-        </g>
+        <CapturePlaceholder height={CARD_IMAGE_HEIGHT} label={copy.noCapture} width={CARD_IMAGE_WIDTH} x={CARD_INSET} y={CARD_INSET} />
       )}
 
       {/* 씬 색은 이름 앞의 점 하나로만 말한다 — 상자 전체를 칠하면 씬 일곱 개가 일곱 색 덩어리로 서서 선이 묻힌다.
@@ -568,18 +564,13 @@ function ScreenMark({
            채워지고, 뒤는 새로고침하면 된다 — 사용자가 할 일이 다르므로 같은 자리표시라도 문장은
            갈린다.
         */
-        <g className="sm-screen-capture-empty">
-          <rect
-            height={captureHeight}
-            rx="3"
-            width={captureWidth}
-            x={CAPTURE_INSET}
-            y={CAPTURE_INSET}
-          />
-          <text textAnchor="middle" x={placed.width / 2} y={SCREEN_IMAGE_HEIGHT / 2 + 4}>
-            {broken ? copy.captureBroken : copy.noCapture}
-          </text>
-        </g>
+        <CapturePlaceholder
+          height={captureHeight}
+          label={broken ? copy.captureBroken : copy.noCapture}
+          width={captureWidth}
+          x={CAPTURE_INSET}
+          y={CAPTURE_INSET}
+        />
       )}
 
       <text

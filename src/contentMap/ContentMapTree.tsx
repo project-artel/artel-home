@@ -4,6 +4,7 @@ import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { truncate } from '../knowledge/knowledgeLabels'
 import { sceneHue } from '../testCases/sceneHue'
+import { CapturePlaceholderThumb } from './CapturePlaceholder'
 import {
   edgeSourceStyle,
   sameSelection,
@@ -260,7 +261,8 @@ function SceneRow({ scene }: { scene: SceneTreeNode }) {
  */
 function TreeThumb({ url, wide = false }: { url: string | null; wide?: boolean }) {
   const [failed, setFailed] = useState<string | null>(null)
-  if (url === null || failed === url) return null
+  // 그림이 없거나 못 불러오면 서비스 대체 그림을 둔다 — 줄마다 그림 자리가 있어야 이름이 한 줄로 맞는다.
+  if (url === null || failed === url) return <CapturePlaceholderThumb wide={wide} />
   return (
     <img
       alt=""
