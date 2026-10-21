@@ -14,6 +14,7 @@
 .kg-workspace {
   display: grid;
   grid-template-columns: 300px minmax(0, 1fr) 360px;
+  transition: grid-template-columns 180ms var(--ease-standard);
   gap: var(--space-3);
   align-items: stretch;
   height: 680px;
@@ -22,6 +23,16 @@
   min-width: 0;
   min-height: 0;
   margin: 0;
+}
+
+/* 상세는 넓게: 창 폭의 약 1/3, 460~760px. */
+.kg-workspace.has-selection {
+  grid-template-columns: 300px minmax(0, 1fr) clamp(460px, 34vw, 760px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .kg-workspace {
+    transition: none;
+  }
 }
 
 /* ── 창 높이에 맞춤(프로젝트 화면) ─────────────────────────────── */
@@ -51,7 +62,8 @@
 
 /* 좁은 창: 그래프가 위, 탐색기 · 상세가 아래로 쌓인다. */
 @media (max-width: 1180px) {
-  .kg-workspace {
+  .kg-workspace,
+  .kg-workspace.has-selection {
     grid-template-columns: minmax(0, 1fr);
     height: auto;
   }
@@ -425,7 +437,7 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-4) var(--space-5);
   scrollbar-width: none;
 }
 .kg-inspector-scroll::-webkit-scrollbar {
@@ -447,8 +459,8 @@
   flex: 1;
   min-width: 0;
   margin: 0;
-  font-size: 16px;
-  line-height: 22px;
+  font-size: 18px;
+  line-height: 26px;
   overflow-wrap: anywhere;
 }
 .kg-side-close {
@@ -462,7 +474,7 @@
 .kg-side-section h3 {
   margin: 0 0 var(--space-2);
   color: var(--color-text-muted);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
 }
 .kg-side-section .kg-inspector-hint {
@@ -485,9 +497,9 @@
 .kg-facts > div {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
   min-width: 0;
-  padding: 7px 10px;
+  padding: 9px 12px;
   background: var(--color-bg-surface);
 }
 .kg-facts .kg-facts-wide {
@@ -495,7 +507,7 @@
 }
 .kg-facts dt {
   color: var(--color-text-muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 .kg-facts dd {
   display: flex;
@@ -503,7 +515,7 @@
   align-items: center;
   gap: 6px;
   margin: 0;
-  font-size: 12.5px;
+  font-size: 13.5px;
   overflow-wrap: anywhere;
 }
 .kg-facts-note {
@@ -512,7 +524,12 @@
 }
 .kg-detail-summary {
   margin: 0;
-  line-height: 1.55;
+  font-size: 14.5px;
+  line-height: 1.6;
+}
+.kg-inspector .kg-detail-body {
+  font-size: 14px;
+  line-height: 1.65;
 }
 .kg-detail-body--fields {
   display: flex;
@@ -522,29 +539,29 @@
 }
 .kg-detail-body--fields p {
   margin: 0;
-  line-height: 1.55;
+  line-height: 1.65;
   white-space: pre-wrap;
 }
 .kg-body-key {
   color: var(--color-text-secondary);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .kg-relations {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: 13.5px;
 }
 .kg-relations th {
-  padding: 0 6px 4px 0;
+  padding: 0 8px 6px 0;
   border-bottom: 1px solid var(--color-border-subtle);
   color: var(--color-text-muted);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   text-align: left;
 }
 .kg-relations td {
-  padding: 6px 6px 3px 0;
+  padding: 8px 8px 4px 0;
   vertical-align: top;
 }
 .kg-relations tbody {
@@ -561,16 +578,16 @@
   background: transparent;
   color: var(--color-text-primary);
   font: inherit;
-  font-size: 11.5px;
+  font-size: 12.5px;
   cursor: pointer;
 }
 .kg-relation-name:hover {
   border-color: var(--color-action-primary);
 }
 .kg-relation-note td {
-  padding: 0 0 6px;
+  padding: 0 0 8px;
   color: var(--color-text-muted);
-  font-size: 11.5px;
+  font-size: 13px;
   line-height: 1.5;
 }
 
@@ -683,4 +700,13 @@
   .kg-group-chevron {
     transition: none;
   }
+}
+
+/* 사실 표 안의 앵커 · 종류 칩도 표와 같은 크기로 */
+.kg-facts .kg-anchor,
+.kg-facts .kg-anchor-list {
+  font-size: 13.5px;
+}
+.kg-facts .kg-tag {
+  font-size: 12px;
 }

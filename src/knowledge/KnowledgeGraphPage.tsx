@@ -218,7 +218,8 @@ function KnowledgeGraphView({
         )}
       </p>
 
-      <div className="kg-workspace">
+      {/* 고르면 오른쪽 상세 칸이 넓어진다(ARTEL-1190). 개요는 좁은 칸으로 충분하고, 상세는 읽을 글이 많다. */}
+      <div className={`kg-workspace${selection === null ? '' : ' has-selection'}`}>
         <aside className="panel kg-explorer-panel">
           <KnowledgeExplorer
             edges={graph.edges}
