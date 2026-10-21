@@ -685,7 +685,10 @@ function ScanStatusPanel({
       ? copy.requested
       : scan.state === 'SUCCEEDED'
         ? copy.succeeded
-        : copy.failed
+        // 근거 줄과 같은 갈래다. 한쪽만 고치면 같은 스캔을 두 자리가 다르게 말한다.
+        : scan.cancelled
+          ? copy.cancelled
+          : copy.failed
 
   return (
     <div aria-live="polite" className="cm-scan-status" role="status">
