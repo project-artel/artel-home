@@ -6,6 +6,8 @@ import { useWorkspace } from '../projects/workspace/workspaceContext'
 import { useFieldBinding } from '../projectAgent/bindings'
 import { requireKnownId } from '../projectAgent/specs/fieldWriters'
 import { CONTENT_MAP_BUILD_FIELD } from '../projectAgent/specs/contentMap'
+import { SketchEmpty } from '../emptyStates/SketchEmpty'
+import { BuildSketch } from '../emptyStates/sketches'
 import { BuildSwitcher } from './BuildSwitcher'
 import { ContentMapReport } from './ContentMapPage'
 import './contentMap.css'
@@ -74,10 +76,9 @@ export function ContentMapSection() {
       </h2>
 
       {selectedBuild === undefined ? (
-        <div className="panel-message">
-          <h3>{copy.noBuildsTitle}</h3>
-          <p className="panel-message-copy">{copy.noBuildsCopy}</p>
-        </div>
+        <section className="panel cm-empty">
+          <SketchEmpty body={copy.noBuildsCopy} sketch={<BuildSketch />} surface title={copy.noBuildsTitle} />
+        </section>
       ) : (
         <ContentMapReport
           about={copy.subtitle}

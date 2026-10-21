@@ -988,3 +988,21 @@
 .cm-step-summary {
   line-height: 1.7;
 }
+
+/* 빈 상태: 그림이 남은 높이 가운데에 선다 */
+.content-map .cm-empty,
+.cm-section > .cm-empty {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  padding: 0;
+}
+.content-map .cm-empty .sketch-empty,
+.cm-section > .cm-empty .sketch-empty {
+  min-height: 360px;
+}
+@media (min-height: 600px) and (min-width: 1024px) {
+  .cm-section > .cm-empty {
+    flex: 1;
+  }
+}

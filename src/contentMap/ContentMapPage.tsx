@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
+import { SketchEmpty } from '../emptyStates/SketchEmpty'
+import { DocumentSketch, IngestSketch, ScanSketch, SceneMapSketch } from '../emptyStates/sketches'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { LABEL_NODE_LIMIT } from '../knowledge/knowledgeLayout'
 import { useKnowledgeGraph } from '../knowledge/useKnowledgeGraph'
@@ -119,11 +121,17 @@ export function ContentMapReport({
     return (
       <section className="page content-map">
         {meta('')}
-        <div className="panel-message" role="alert">
-          <p className="panel-message-copy">{copy.states.loadFailed}</p>
-          <button className="button button--secondary" onClick={reload} type="button">
-            {copy.states.retry}
-          </button>
+        <div className="panel cm-empty" role="alert">
+          <SketchEmpty
+            actions={
+              <button className="button button--secondary" onClick={reload} type="button">
+                {copy.states.retry}
+              </button>
+            }
+            sketch={<SceneMapSketch broken />}
+            surface
+            title={copy.states.loadFailed}
+          />
         </div>
       </section>
     )
@@ -193,11 +201,8 @@ function ContentMapBody({ projectId, view }: { projectId: string; view: ContentM
   // 왜 비어 있는지만 말한다.
   if (view.contentMap === null) {
     return (
-      <section className="panel">
-        <div className="panel-message">
-          <h2>{copy.empty.neverUploadedTitle}</h2>
-          <p className="panel-message-copy">{copy.empty.neverUploadedCopy}</p>
-        </div>
+      <section className="panel cm-empty">
+        <SketchEmpty body={copy.empty.neverUploadedCopy} sketch={<ScanSketch />} surface title={copy.empty.neverUploadedTitle} />
       </section>
     )
   }
@@ -210,13 +215,13 @@ function ContentMapBody({ projectId, view }: { projectId: string; view: ContentM
     return (
       <>
         <CaptureHeader view={view} />
-        <section className="panel">
-          <div className="panel-message">
-            <h2>{hasUploadedDocument ? copy.empty.notIngestedTitle : copy.empty.noDocumentsTitle}</h2>
-            <p className="panel-message-copy">
-              {hasUploadedDocument ? copy.empty.notIngestedCopy : copy.empty.noDocumentsCopy}
-            </p>
-          </div>
+        <section className="panel cm-empty">
+          <SketchEmpty
+            body={hasUploadedDocument ? copy.empty.notIngestedCopy : copy.empty.noDocumentsCopy}
+            sketch={hasUploadedDocument ? <IngestSketch /> : <DocumentSketch />}
+            surface
+            title={hasUploadedDocument ? copy.empty.notIngestedTitle : copy.empty.noDocumentsTitle}
+          />
         </section>
       </>
     )
@@ -228,11 +233,8 @@ function ContentMapBody({ projectId, view }: { projectId: string; view: ContentM
     return (
       <>
         <CaptureHeader view={view} />
-        <section className="panel">
-          <div className="panel-message">
-            <h2>{copy.empty.noScenesTitle}</h2>
-            <p className="panel-message-copy">{copy.empty.noScenesCopy}</p>
-          </div>
+        <section className="panel cm-empty">
+          <SketchEmpty body={copy.empty.noScenesCopy} sketch={<SceneMapSketch />} surface title={copy.empty.noScenesTitle} />
         </section>
       </>
     )
