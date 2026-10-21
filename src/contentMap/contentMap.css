@@ -1223,3 +1223,48 @@
   flex: none;
   color: var(--color-status-warning);
 }
+
+/* SDK 연결 상태(ARTEL-1185): 점 하나와 두 마디. 판 없이 근거 줄 안에 선다. */
+.cm-sdk {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.cm-sdk-label {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+.cm-sdk-sub {
+  overflow: hidden;
+  max-width: 36ch;
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+  text-overflow: ellipsis;
+}
+.cm-sdk-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--color-border-strong);
+}
+.cm-sdk--on .cm-sdk-dot {
+  background: var(--color-status-success);
+}
+.cm-sdk--off .cm-sdk-dot {
+  box-sizing: border-box;
+  border: 1.5px solid var(--color-status-warning);
+  background: none;
+}
+.cm-sdk--off .cm-sdk-label {
+  color: var(--color-status-warning);
+}
+.cm-sdk--failed .cm-sdk-dot {
+  background: var(--color-status-critical);
+}
+.cm-sdk--failed .cm-sdk-label {
+  color: var(--color-status-critical);
+}

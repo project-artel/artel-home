@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
-import { buildOptionText, selectBuild } from '../projects/gameBuilds'
+import { buildOptionText } from '../projects/gameBuilds'
+import { selectContentMapBuild } from './latestBuild'
 import { useWorkspace } from '../projects/workspace/workspaceContext'
 import { useFieldBinding } from '../projectAgent/bindings'
 import { requireKnownId } from '../projectAgent/specs/fieldWriters'
@@ -35,7 +36,8 @@ export function ContentMapSection() {
   const editorLabel = t.projects.builds.editorLabel
   const [searchParams, setSearchParams] = useSearchParams()
   const requestedBuildId = searchParams.get('build')
-  const selectedBuild = selectBuild(builds, requestedBuildId)
+  // 에디터 빌드도 센다(ARTEL-1185). 빌드 고르기의 "최신" 과 같은 빌드가 열린다.
+  const selectedBuild = selectContentMapBuild(builds, requestedBuildId)
 
   const buildSelect = useRef<HTMLButtonElement>(null)
 
