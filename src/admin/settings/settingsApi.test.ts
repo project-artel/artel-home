@@ -24,6 +24,10 @@ import {
   putLlmKey,
   resetAdminUserPassword,
   updateAdminUser,
+  getTelemetryPreview,
+  getTelemetrySettings,
+  parseTelemetrySettings,
+  putTelemetryConsent,
 } from './settingsApi'
 
 const originalFetch = globalThis.fetch
@@ -395,5 +399,48 @@ describe('TypeSafe key endpoints', () => {
   it('raises the server code on a bad key', async () => {
     stubFetch({ code: 'invalid_api_key', message: 'bad' }, 400)
     await assert.rejects(putTypesafeKey('x'), { status: 400, code: 'invalid_api_key' })
+  })
+})
+
+describe('telemetry endpoints', () => {
+  const body = {
+    available: true,
+    enabled: true,
+    source: 'setting',
+    installId: '0b0a1c52-0000-4000-8000-000000000000',
+    lastSentDate: null,
+  }
+
+  it('reads the settings and reports unavailable when the server says so', async () => {
+    const fetchMock = stubFetch(body)
+    const result = await getTelemetrySettings()
+    assert.equal(fetchMock.mock.calls[0].arguments[0], 'http://localhost:8080/api/admin/settings/telemetry')
+    assert.deepEqual(result, body)
+    assert.equal(parseTelemetrySettings({}).available, false)
+    assert.equal(parseTelemetrySettings({ source: 'setting' }).source, 'setting')
+    assert.equal(parseTelemetrySettings({}).source, 'environment')
+  })
+
+  it('puts only enabled when turning on', async () => {
+    const fetchMock = stubFetch(body)
+    await putTelemetryConsent(true)
+    const [, init] = fetchMock.mock.calls[0].arguments
+    assert.equal(init?.method, 'PUT')
+    assert.deepEqual(JSON.parse(init?.body as string), { enabled: true })
+  })
+
+  it('passes deleteSentData when turning off', async () => {
+    const fetchMock = stubFetch({ ...body, enabled: false })
+    const result = await putTelemetryConsent(false, true)
+    const [, init] = fetchMock.mock.calls[0].arguments
+    assert.deepEqual(JSON.parse(init?.body as string), { enabled: false, deleteSentData: true })
+    assert.equal(result.enabled, false)
+  })
+
+  it('pretty-prints the preview', async () => {
+    const fetchMock = stubFetch({ schemaVersion: 1 })
+    const json = await getTelemetryPreview()
+    assert.equal(fetchMock.mock.calls[0].arguments[0], 'http://localhost:8080/api/admin/settings/telemetry/preview')
+    assert.equal(json, '{\n  "schemaVersion": 1\n}')
   })
 })

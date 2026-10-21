@@ -70,6 +70,23 @@
     line-height: 20px;
   }
 
+  .adm-preview {
+    margin-top: var(--space-3);
+  }
+
+  .adm-preview__body {
+    max-height: 320px;
+    margin: var(--space-2) 0 0;
+    padding: var(--space-3);
+    overflow: auto;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--color-bg-surface);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 18px;
+  }
+
   .adm-check {
     margin-top: var(--space-3);
   }
