@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { SketchEmpty } from '../../emptyStates/SketchEmpty'
 import { TestRunSketch } from '../../emptyStates/sketches'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { EdgeScrollbar } from '../../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../../i18n/useI18n'
 import { useFieldBinding } from '../../projectAgent/bindings'
@@ -14,7 +14,7 @@ import { folderPath } from '../../testRuns/runLibrary'
 import { getRunCoverage } from '../../testRuns/testRunApi'
 import { listRunFolders, type RunFolder } from '../../testRuns/testRunFolders'
 import { ChevronDownIcon, PencilIcon } from '../qaModelIcons'
-import { archEngine, type QaArchSelection } from '../qaArch'
+import { archEngine, withEngine, type QaArchSelection } from '../qaArch'
 import { offeredQaModels } from '../qaModelGroups'
 import { readLastArch } from '../qaStartChoices'
 import { qaModelOptionKey, type QaModel } from '../qaTypes'
@@ -88,9 +88,14 @@ export function QaLaunch() {
    * 사람이 고른 것만 든다. 고르지 않은 칸은 아래 `defaults` 가 채운다 — 첫 화면에서 기본값을 state 에
    * 밀어 넣으면 목록이 늦게 도착할 때마다 덮어쓰기 경쟁이 생긴다.
    */
-  const [choice, setChoice] = useState<Choice>({})
+  // 다른 화면이 런을 골라 보낼 수 있다(`?run=`, ARTEL-1164 대시보드의 Free 실행). FREE 시나리오는 `agent` 엔진만 돌리므로
+  // `&engine=agent` 가 오면 엔진도 맞춰 둔다. 고른 뒤에는 사용자가 바꾼 것이 이긴다.
+  const [searchParams] = useSearchParams()
+  const askedRun = searchParams.get('run')
+  const askedAgent = searchParams.get('engine') === 'agent'
+  const [choice, setChoice] = useState<Choice>(() => (askedRun === null ? {} : { runId: askedRun }))
   // agent 구조는 서버의 실행 기록에 없으므로(ARTEL-1091) 마지막으로 시작한 값을 이 브라우저에서 읽는다.
-  const [arch, setArch] = useState<QaArchSelection>(() => readLastArch())
+  const [arch, setArch] = useState<QaArchSelection>(() => (askedAgent ? withEngine(readLastArch(), 'agent') : readLastArch()))
 
   const [pickerOpen, setPickerOpen] = useState(false)
   const pickerAnchor = useRef<HTMLDivElement>(null)
