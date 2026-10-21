@@ -2495,77 +2495,126 @@ a.instance-name:hover {
   contain-intrinsic-size: auto 128px;
 }
 
-/* `흐름` 한 행: 생각 한 줄 · 행동 한 줄. 라벨 폭을 고정해 두 줄의 글이 같은 선에서
-   시작하므로, 긴 목록을 훑을 때 눈이 왼쪽 라벨이 아니라 글을 따라 내려간다. */
-.qa-flow-row {
-  position: relative;
+/* `흐름` — 스텝 하나가 한 덩어리. 안은 생각 한 줄, 행동 한 줄. */
+.qa-flow-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.qa-flow-step {
   min-width: 0;
-  padding: var(--space-3) 0;
-  border-bottom: 1px solid var(--color-border-subtle);
   content-visibility: auto;
-  contain-intrinsic-size: auto 56px;
+  contain-intrinsic-size: auto 120px;
 }
 
-.qa-flow-row .qa-log-marker {
-  top: 15px;
+.qa-flow-label {
+  display: inline-block;
+  margin: 0 0 var(--space-2);
+  padding: 3px 9px;
+  border-radius: 5px;
   background: var(--color-action-primary);
+  color: var(--color-text-on-accent);
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
-.qa-flow-row--failed .qa-log-marker {
-  transform: rotate(45deg);
-  background: var(--color-status-critical);
+/* TC 가 안 붙은 조작 스텝. 같은 코랄로 두면 TC 가 아닌 것이 TC 로 읽힌다. */
+.qa-flow-label--plain {
+  background: var(--color-bg-hover);
+  color: var(--color-text-secondary);
 }
 
-.qa-flow-row--focused {
+.qa-flow-card {
   background: var(--color-bg-raised);
+  border-radius: 10px;
+  padding: var(--space-3) var(--space-4);
 }
 
 .qa-flow-line {
   display: flex;
-  gap: var(--space-3);
+  gap: 10px;
   margin: 0;
   font-size: 13px;
   line-height: 20px;
 }
 
 .qa-flow-line + .qa-flow-line {
-  margin-top: 2px;
+  margin-top: var(--space-2);
 }
 
-.qa-flow-label {
-  flex: 0 0 auto;
-  width: 32px;
-  color: var(--color-text-muted);
-  font-size: 11px;
-  line-height: 20px;
-  letter-spacing: 0.02em;
+/* 원과, 다음 원으로 잇는 선. 마지막 줄에서는 선이 없다. */
+.qa-flow-rail {
+  position: relative;
+  flex: 0 0 10px;
 }
 
-.qa-flow-text {
+.qa-flow-dot {
+  position: absolute;
+  top: 6px;
+  left: 1px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  box-sizing: border-box;
+}
+
+.qa-flow-dot--thought {
+  border: 1.5px solid var(--color-text-muted);
+}
+
+.qa-flow-dot--action {
+  background: var(--color-action-primary);
+}
+
+.qa-flow-dot--blocked {
+  background: var(--color-status-warning);
+}
+
+.qa-flow-link {
+  position: absolute;
+  top: 16px;
+  left: 4px;
+  bottom: -10px;
+  width: 1px;
+  background: var(--color-border-subtle);
+}
+
+.qa-flow-said {
   min-width: 0;
+  flex: 1 1 auto;
   overflow-wrap: anywhere;
-}
-
-/* 생각은 Agent 의 말이라 본문 색으로, 행동의 결과는 부차적이라 한 단 낮춘다. */
-.qa-flow-line--thought .qa-flow-text {
   color: var(--color-text-primary);
 }
 
-.qa-flow-tool {
-  color: var(--color-text-primary);
-  font-weight: 500;
-}
-
-.qa-flow-outcome {
+.qa-flow-said--did {
   color: var(--color-text-secondary);
 }
 
-.qa-flow-tool + .qa-flow-outcome::before {
-  content: ' · ';
-  color: var(--color-text-muted);
+.qa-flow-said--blocked {
+  color: var(--color-status-warning);
 }
 
-.qa-flow-row--failed .qa-flow-outcome {
+.qa-flow-blocked {
+  color: var(--color-status-warning);
+}
+
+.qa-flow-verdict {
+  margin: var(--space-2) 0 0;
+  text-align: right;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.qa-flow-verdict--passed {
+  color: var(--color-status-success);
+}
+
+.qa-flow-verdict--failed {
   color: var(--color-status-critical);
 }
 

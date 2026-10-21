@@ -22,7 +22,6 @@ import { QaBehaviorLanes } from './QaBehaviorLanes'
 import { QaFocusStage } from './QaFocusStage'
 import { QaRunFunctionOptions } from './QaFunctionOptionsSummary'
 import { QaLogTimeline, type QaLogFocusRequest } from './QaLogTimeline'
-import { toolCallOf } from './qaLogGrouping'
 import { QaScenarioRail, type QaScenarioRailProps } from './QaScenarioRail'
 import { deriveCaseVerdicts, deriveQaContextUsage, deriveQaProgress, isQaContextLog } from './qaProgress'
 import { isTerminalQaStatus, type QaLog, type QaRun, type QaTry } from './qaTypes'
@@ -70,25 +69,19 @@ function QaRunMissing({ projectId }: { projectId: string }) {
 // `ACTION` 은 여기서 빠졌다. 조작 tool 이 SDK 로 내보낸 요청이라 그 tool 의 `TOOL` 행과
 // 같은 사건을 두 번 말하고, 흐름은 "에이전트가 무엇을 불렀나"의 나열로 읽혀야 한다.
 // 전송 프레임을 봐야 할 때는 Raw 탭이 그대로 들고 있다.
-const FLOW_TYPES = new Set<QaLog['type']>([
-  'TOOL',
-  // 행으로 서지 않는다 — `buildTimelineRows` 가 자기 `TOOL` 의 결과로 삼킨다. 빼면
-  // `행동` 줄의 결과가 사라지므로, 보이지 않아도 들여보내야 한다.
-  'TOOL_RESULT',
-  'ERROR',
-  'CHAT',
-  // behavior 가 끝난 이유는 흐름에서 읽혀야 하는 사건이다(ARTEL-1051).
-  'BEHAVIOR_ENDED',
-])
-
 /**
- * `흐름` 에서 빼는 tool.
+ * `흐름` 이 읽는 종류.
  *
- * `skip_memory_update` 는 "적을 것이 없다"를 말하는 기록용 호출이다. try 33 한 판에서
- * 22회 불렸고 **전부 `thought` 가 없다** — 생각도 행동도 아니면서 흐름의 29%를 차지한다.
- * 빠진 호출은 `Raw` 탭에 그대로 있다.
+ * 행으로 서는 것은 `TOOL` 뿐이다. 나머지 셋은 보이지 않지만 빼면 화면이 못 쓰게 된다.
+ *
+ * - `TOOL_RESULT` — 우리 도구가 막은 호출을 가린다(`Not now —`).
+ * - `STATUS` — `case_id` 가 여기에만 있다. TC 라벨의 출처다.
+ * - `PULSE` — `click` 과 `drag` 는 인자에 `"#40606"` 같은 숫자만 싣는다. 그 id 를 이름으로
+ *   바꿀 수 있는 곳이 여기뿐이고, try 46 에서 조작 대상 9개가 9개 다 풀렸다.
+ *
+ * 무엇이 빠지고 어떻게 묶이는지는 `qaFlow.ts` 가 정한다.
  */
-const FLOW_TOOLS_HIDDEN = new Set(['skip_memory_update'])
+const FLOW_TYPES = new Set<QaLog['type']>(['TOOL', 'TOOL_RESULT', 'STATUS', 'PULSE'])
 
 /** How often the console re-reads the run while it is still going. */
 const POLL_INTERVAL_MS = 3000
@@ -397,12 +390,7 @@ function FocusedTry({ qaRun, rail, tryId }: { qaRun: QaRun; rail: QaScenarioRail
     // Context readings are shown by the gauge, in one place, not as a line per model call.
     const withoutContext = session.logs.filter((log) => !isQaContextLog(log))
     if (logView !== 'flow') return withoutContext
-    return withoutContext.filter((log) => {
-      if (!FLOW_TYPES.has(log.type)) return false
-      // `TOOL` 과 그 `TOOL_RESULT` 를 함께 뺀다. 답만 남으면 주인 없는 결과가 된다.
-      const tool = toolCallOf(log)?.tool
-      return tool === undefined || !FLOW_TOOLS_HIDDEN.has(tool)
-    })
+    return withoutContext.filter((log) => FLOW_TYPES.has(log.type))
   }, [logView, session.logs])
 
   // Carried over from the retired `QaTryPage` (ARTEL-723): a failed load needs
