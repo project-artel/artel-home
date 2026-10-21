@@ -284,6 +284,8 @@ function SceneGraphView({ projectId, view }: { projectId: string; view: ContentM
   )
   // 화면이 많아 접힌 씬 중 펼친 것(ARTEL-1172). 접기 칸을 누르거나, 접혀 안 보이는 화면을 tree 에서 고르면 펼친다.
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
+  // 화면 전이를 전부 그릴지. 처음엔 끈다 — 고른 것에 닿는 것만 그린다(ARTEL-1172).
+  const [showScreenLinks, setShowScreenLinks] = useState(false)
   const layout = useMemo(() => layoutScreenMap(model, expanded), [model, expanded])
   const toggleScreens = useCallback((containerId: string) => {
     setExpanded((current) => {
@@ -379,6 +381,19 @@ function SceneGraphView({ projectId, view }: { projectId: string; view: ContentM
           >
             {t.contentMap.layout.overviewTitle}
           </button>
+          {model.screenTransitions.length > 0 && (
+            <button
+              aria-pressed={showScreenLinks}
+              className="button button--secondary button--compact cm-links-button"
+              onClick={() => setShowScreenLinks((current) => !current)}
+              title={t.contentMap.layout.screenLinksHint}
+              type="button"
+            >
+              {showScreenLinks
+                ? t.contentMap.layout.hideScreenLinks
+                : t.contentMap.layout.showScreenLinks(model.screenTransitions.length)}
+            </button>
+          )}
           <CanvasViewportControls viewport={viewport} />
         </header>
 
@@ -391,6 +406,7 @@ function SceneGraphView({ projectId, view }: { projectId: string; view: ContentM
             layout={layout}
             onSelect={selectAndReveal}
             onToggleScreens={toggleScreens}
+            showScreenLinks={showScreenLinks}
             selection={selection}
             viewport={viewport}
           />

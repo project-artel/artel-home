@@ -508,7 +508,7 @@
 
 /* 상자 머리: 이름은 한 단계 키우고, 둘째 줄에 능력 · 전이 수 */
 .content-map .sm-container-name {
-  font-size: 15px;
+  font-size: 14px;
 }
 .sm-container-info {
   fill: var(--color-text-secondary);

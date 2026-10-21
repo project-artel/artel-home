@@ -63,18 +63,20 @@ const CONTAINER_PADDING = 14
 export const CARD_INSET = 10
 export const CARD_IMAGE_WIDTH = 168
 export const CARD_IMAGE_HEIGHT = 94
-/** 카드 칸의 높이. 이미지 높이에 위아래 여백. */
-export const CONTAINER_HEADER = CARD_IMAGE_HEIGHT + CARD_INSET * 2
+/** 카드 칸의 높이. 오른쪽 상세 — 이름 한 줄과 수 네 줄, 화면 없음 한 줄 — 가 이미지보다 길어 그것이 정한다. */
+export const CONTAINER_HEADER = 124
+/** 카드 오른쪽 상세 칸의 폭. 수를 한 줄에 하나씩 세워 좁게 둔다 — 열이 여섯인 지도는 카드 폭이 곧 지도 폭이다. */
+export const CARD_DETAIL_WIDTH = 132
 
 /** 컨테이너의 최소 폭. 화면 하나와 씬 이름, 능력 · 전이 수 한 줄이 다 들어갈 만큼. */
-const MIN_CONTAINER_WIDTH = Math.max(SCREEN_WIDTH + CONTAINER_PADDING * 2, CARD_INSET * 3 + CARD_IMAGE_WIDTH + 210)
+const MIN_CONTAINER_WIDTH = Math.max(SCREEN_WIDTH + CONTAINER_PADDING * 2, CARD_INSET * 3 + CARD_IMAGE_WIDTH + CARD_DETAIL_WIDTH)
 
 /**
  * layer 사이의 가로 간격. 여기에 씬 전이가 가로로 지나가고 그 위에 조건 한 줄이 앉는다.
  * 세로 간격이던 시절의 88 은 두 layer 사이에 글자가 들어갈 높이였을 뿐이라, 가로에서는
  * 전이 라벨의 폭을 감당하지 못한다.
  */
-const LAYER_GAP = 120
+const LAYER_GAP = 96
 
 /**
  * 같은 layer(열) 안에서 컨테이너끼리 벌어지는 세로 거리. 자기 자신으로 가는 고리가 상자

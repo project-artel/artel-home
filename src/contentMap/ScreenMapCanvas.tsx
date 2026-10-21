@@ -58,10 +58,15 @@ type CanvasProps = {
   viewport: CanvasViewport
   /** 화면이 많은 씬의 접기 칸을 눌렀을 때. 그 씬 id 를 넘긴다. */
   onToggleScreens: (containerId: string) => void
+  /**
+   * 화면 전이를 전부 그릴지(ARTEL-1172). 끄면 고른 것에 닿는 화면 전이만 그린다 — 화면 전이는 씬 경계를 가로질러
+   * 카드와 다른 화면 위를 지나고, 서른 개가 넘으면 그림을 덮었다.
+   */
+  showScreenLinks: boolean
 }
 
 /** 씬 이름 라벨의 폭 예산, 라틴 문자 기준. 한글로는 절반쯤이다. */
-const SCENE_NAME_WIDTH = 18
+const SCENE_NAME_WIDTH = 15
 
 /** 화면 이름 라벨의 폭 예산. */
 const SCREEN_NAME_WIDTH = 16
@@ -90,11 +95,12 @@ const EDGE_LABEL_WIDTH = 24
  */
 const EDGE_LABEL_LIMIT = 14
 
-export function ScreenMapCanvas({ layout, selection, onSelect, viewport, onToggleScreens }: CanvasProps) {
+export function ScreenMapCanvas({ layout, selection, onSelect, viewport, onToggleScreens, showScreenLinks }: CanvasProps) {
   // 고른 것이 닿는 요소들. 나머지를 지우지 않고 조용하게만 두는 이유는, 주변이 있어야 고른
   // 것이 무엇을 뜻하는지 읽히기 때문이다.
   const related = useMemo(() => relatedIds(layout, selection), [layout, selection])
-  const labelled = layout.sceneEdges.length + layout.screenTransitions.length <= EDGE_LABEL_LIMIT
+  // 그려지는 선만 센다. 화면 전이를 감춘 동안은 씬 전이 수만으로 라벨을 펼칠지 정한다.
+  const labelled = layout.sceneEdges.length + (showScreenLinks ? layout.screenTransitions.length : 0) <= EDGE_LABEL_LIMIT
   // 상자 머리 둘째 줄의 나가는 · 들어오는 길 수. 자기 자신으로 가는 고리는 양쪽에 다 센다 — 나가서 돌아오는 길이다.
   const edgeCounts = useMemo(() => {
     const counts = new Map<string, { out: number; in: number }>()
@@ -193,16 +199,18 @@ export function ScreenMapCanvas({ layout, selection, onSelect, viewport, onToggl
         덮여, 이 그림이 보여 주려는 그 하나가 보이지 않는다.
       */}
       <g className="sm-screen-transitions">
-        {layout.screenTransitions.map((placed) => (
-          <ScreenTransitionMark
-            dimmed={related !== null && !related.has(placed.id)}
-            key={placed.id}
-            labelled={labelled || (related !== null && related.has(placed.id))}
-            onSelect={() => onSelect({ kind: 'screenTransition', id: placed.id })}
-            placed={placed}
-            selected={sameSelection(selection, { kind: 'screenTransition', id: placed.id })}
-          />
-        ))}
+        {layout.screenTransitions
+          .filter((placed) => showScreenLinks || (related !== null && related.has(placed.id)))
+          .map((placed) => (
+            <ScreenTransitionMark
+              dimmed={related !== null && !related.has(placed.id)}
+              key={placed.id}
+              labelled={labelled || (related !== null && related.has(placed.id))}
+              onSelect={() => onSelect({ kind: 'screenTransition', id: placed.id })}
+              placed={placed}
+              selected={sameSelection(selection, { kind: 'screenTransition', id: placed.id })}
+            />
+          ))}
       </g>
 
       <g className="sm-screens">
@@ -449,31 +457,25 @@ function ContainerMark({
       <text className="sm-container-name" x={textX + 17} y={CARD_INSET + 17}>
         {truncate(title, SCENE_NAME_WIDTH)}
       </text>
-      <text className="sm-container-count mono" textAnchor="end" x={container.width - CARD_INSET} y={CARD_INSET + 17}>
-        {copy.screenCount(container.screens.length)}
-      </text>
 
-      {/* 수 넷을 두 줄 두 칸으로(ARTEL-1172) — 글 한 줄로 이어 쓰면 숫자가 글자 사이에 묻혀 안 읽혔다. 숫자는 굵고
-          색이 있고, 이름은 옆에 작게. 응답에 없는 씬(scene === null)은 능력을 모르므로 첫 줄을 비운다. */}
+      {/* 수 넷을 한 줄에 하나씩(ARTEL-1172) — 글 한 줄로 이어 쓰면 숫자가 글자 사이에 묻혔고, 두 칸으로 두면 카드가
+          넓어져 열 여섯의 지도가 그만큼 작아졌다. 숫자는 굵고 색이 있고, 이름은 옆에 작게. 응답에 없는 씬
+          (scene === null)은 능력을 모르므로 위 두 줄을 비운다. */}
       {scene !== null && (
         <>
-          <CardStat label={t.contentMap.summary.statuses.runnable} tone="runnable" value={scene.capabilities.runnable} x={textX} y={CARD_INSET + 46} />
-          <CardStat label={t.contentMap.summary.statuses.needsProbe} tone="needsProbe" value={scene.capabilities.needsProbe} x={textX + CARD_STAT_COLUMN} y={CARD_INSET + 46} />
+          <CardStat label={t.contentMap.summary.statuses.runnable} tone="runnable" value={scene.capabilities.runnable} x={textX} y={CARD_INSET + 40} />
+          <CardStat label={t.contentMap.summary.statuses.needsProbe} tone="needsProbe" value={scene.capabilities.needsProbe} x={textX} y={CARD_INSET + 59} />
         </>
       )}
-      <CardStat label={t.contentMap.inspector.stats.outgoing} tone="route" value={counts.out} x={textX} y={CARD_INSET + 70} />
-      <CardStat label={t.contentMap.inspector.stats.incoming} tone="route" value={counts.in} x={textX + CARD_STAT_COLUMN} y={CARD_INSET + 70} />
-      {empty && (
-        <text className="sm-container-empty" x={textX} y={CARD_INSET + 91}>
-          {copy.noScreens}
-        </text>
-      )}
+      <CardStat label={t.contentMap.inspector.stats.outgoing} tone="route" value={counts.out} x={textX} y={CARD_INSET + 78} />
+      <CardStat label={t.contentMap.inspector.stats.incoming} tone="route" value={counts.in} x={textX} y={CARD_INSET + 97} />
+      {/* 이미지 아래 한 줄: 관측된 화면 수, 없으면 그 사실. 이름 줄 끝에 두면 좁은 카드에서 긴 씬 이름과 겹쳤다. */}
+      <text className={empty ? 'sm-container-empty' : 'sm-container-count mono'} x={CARD_INSET} y={CARD_INSET + CARD_IMAGE_HEIGHT + 15}>
+        {empty ? copy.noScreens : copy.screenCount(container.screens.length)}
+      </text>
     </g>
   )
 }
-
-/** 씬 카드의 둘째 칸 폭. 이미지 오른쪽 상세 칸을 반으로 나눈 자리. */
-const CARD_STAT_COLUMN = 108
 
 /** 카드 안의 수 하나: 굵은 숫자와 옆의 작은 이름. */
 function CardStat({ label, tone, value, x, y }: { label: string; tone: 'runnable' | 'needsProbe' | 'route'; value: number; x: number; y: number }) {

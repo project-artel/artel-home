@@ -24,6 +24,9 @@ export const contentMapEn = {
     detailsClose: 'Hide details',
     overviewTitle: 'This build',
     closeDetail: 'Close details',
+    showScreenLinks: (n: number) => `Show all ${n} screen transitions`,
+    hideScreenLinks: 'Show only the picked one’s',
+    screenLinksHint: 'Screen transitions cross scene cards. By default only the ones touching what you picked are drawn.',
     legendOpen: 'Legend',
   },
   page: {
@@ -575,6 +578,9 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
     detailsClose: '접기',
     overviewTitle: '이 빌드',
     closeDetail: '상세 닫기',
+    showScreenLinks: (n: number) => `화면 전이 ${n}개 모두 보기`,
+    hideScreenLinks: '고른 것의 화면 전이만',
+    screenLinksHint: '화면 전이는 씬 카드를 가로질러 지나갑니다. 처음에는 고른 씬 · 화면에 닿는 것만 그립니다.',
     legendOpen: '범례',
   },
   page: {
