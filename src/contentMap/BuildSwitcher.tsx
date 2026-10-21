@@ -3,6 +3,7 @@ import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../i18n/useI18n'
 import { formatDateTime } from '../projects/formatters'
 import type { GameBuild } from '../projects/gameTypes'
+import { newestFirst } from './latestBuild'
 
 /**
  * 빌드 고르기(ARTEL-1172). 단순 드롭다운은 버전 문자열 한 줄뿐이라 같은 `1.0` 이 여럿이면 무엇이 무엇인지 몰랐고,
@@ -26,7 +27,7 @@ export const BuildSwitcher = forwardRef<HTMLButtonElement, {
   const search = useRef<HTMLInputElement>(null)
   const [listNode, setListNode] = useState<HTMLUListElement | null>(null)
 
-  const ordered = useMemo(() => [...builds].sort((a, b) => b.createdAt.localeCompare(a.createdAt)), [builds])
+  const ordered = useMemo(() => newestFirst(builds), [builds])
   const shown = useMemo(() => {
     const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean)
     if (words.length === 0) return ordered

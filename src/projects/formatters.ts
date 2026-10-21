@@ -36,6 +36,16 @@ export function formatDateTime(value: string): string {
   return Number.isNaN(parsed.getTime()) ? PLACEHOLDER : dateTimeFormatter.format(parsed)
 }
 
+const timeFormatter = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' })
+
+/** Time of day only, for a value that is always about today, such as when a list was last checked. */
+export function formatTime(value: string): string {
+  if (value.length === 0) return PLACEHOLDER
+
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? PLACEHOLDER : timeFormatter.format(parsed)
+}
+
 /** Decimal megabytes, matching how the 50 MB limit is stated to the user. */
 export function formatBytes(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes <= 0) return PLACEHOLDER

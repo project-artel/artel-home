@@ -5,7 +5,7 @@ import { InfoHint } from '../design-system/primitives/InfoHint'
 import { ProgressRing } from '../design-system/primitives/ProgressRing'
 import { usePolling } from '../live/usePolling'
 import { apiErrorMessage } from '../projects/apiErrorMessage'
-import { formatDateTime } from '../projects/formatters'
+import { formatDateTime, formatTime } from '../projects/formatters'
 import { listGameInstances } from '../projects/gameApi'
 import type { GameInstance } from '../projects/gameTypes'
 import { ProjectApiError } from '../projects/projectApi'
@@ -127,21 +127,30 @@ export function EvidenceScanPanel({
 
   // 붙어 있는 게임 목록은 SSE 가 싣지 않는 스냅샷이라 주기적으로 조용히 다시 읽는다.
   // loading 으로 돌리지 않고, 실패하면 직전 목록과 그 시각을 그대로 둔다.
+  // 새로고침 버튼(ARTEL-1185)도 같은 자리로 읽는다. 그때만 "확인하는 중" 을 보이고, 실패하면 숨기지 않고 말한다.
   const polling = useRef<AbortController | null>(null)
+  const [rechecking, setRechecking] = useState(false)
   useEffect(() => () => polling.current?.abort(), [])
-  usePolling(() => {
+  function recheckInstances(manual: boolean) {
     if (instances.status === 'loading' || polling.current !== null) return
     const controller = new AbortController()
     polling.current = controller
+    if (manual) setRechecking(true)
     listGameInstances(projectId, controller.signal)
       .then((loaded) =>
         setInstances({ status: 'ready', instances: loaded, checkedAt: new Date().toISOString() }),
       )
-      .catch(() => undefined)
-      .finally(() => {
-        if (polling.current === controller) polling.current = null
+      .catch((error: unknown) => {
+        if (!manual || (error instanceof DOMException && error.name === 'AbortError')) return
+        setInstances({ status: 'error', checkedAt: new Date().toISOString() })
       })
-  })
+      .finally(() => {
+        if (polling.current !== controller) return
+        polling.current = null
+        if (manual) setRechecking(false)
+      })
+  }
+  usePolling(() => recheckInstances(false))
 
   const connected =
     instances.status === 'ready' ? instances.instances.filter((game) => game.connected) : []
@@ -265,27 +274,39 @@ export function EvidenceScanPanel({
         <ScanBrief announce={!open} events={events} />
 
         <div className="cm-scan-actions">
-          <label className="visually-hidden" htmlFor={instanceSelectId}>
-            {copy.instanceLabel}
-          </label>
-          <select
-            className="field-input cm-scan-instance"
-            disabled={connected.length === 0 || scan.phase === 'running'}
-            id={instanceSelectId}
-            onChange={(event) => setSelectedInstanceId(event.target.value)}
-            title={copy.instanceLabel}
-            value={instanceId}
+          <SdkStatus connected={connected} instances={instances} rechecking={rechecking} />
+          <button
+            aria-label={copy.sdk.refresh}
+            className="button button--secondary button--compact cm-sdk-refresh"
+            disabled={instances.status === 'loading' || rechecking}
+            onClick={() => recheckInstances(true)}
+            title={copy.sdk.refresh}
+            type="button"
           >
-            {connected.length === 0 ? (
-              <option value="">{copy.noInstanceOption}</option>
-            ) : (
-              connected.map((game) => (
-                <option key={game.id} value={game.id}>
-                  {game.name}
-                </option>
-              ))
-            )}
-          </select>
+            <StudioIcon className={rechecking ? 'cm-sdk-spin' : undefined} name="refresh" size={15} />
+          </button>
+          {/* 고를 것이 있을 때만(ARTEL-1185). 한 대면 상태 줄이 그 이름을 말한다. */}
+          {connected.length >= 2 && (
+            <>
+              <label className="visually-hidden" htmlFor={instanceSelectId}>
+                {copy.instanceLabel}
+              </label>
+              <select
+                className="field-input cm-scan-instance"
+                disabled={scan.phase === 'running'}
+                id={instanceSelectId}
+                onChange={(event) => setSelectedInstanceId(event.target.value)}
+                title={copy.instanceLabel}
+                value={instanceId}
+              >
+                {connected.map((game) => (
+                  <option key={game.id} value={game.id}>
+                    {game.name}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
 
           <button
             className="button button--primary button--compact"
@@ -320,7 +341,12 @@ export function EvidenceScanPanel({
 
       {/* 왜 못 누르는지. 버튼이 회색이라는 사실만으로는 아무것도 알려 주지
           않으므로, 이유와 다음에 할 일이 항상 함께 있다 — 접혀 있어도. */}
-      {blocked !== null && <p className="cm-scan-blocked">{blockedCopy(blocked)}</p>}
+      {/* 확인 중이면 상태 줄이 이미 그렇게 말한다. 안 붙음 · 확인 실패는 무엇을 하면 되는지 한 줄만. */}
+      {blocked !== null && blocked !== 'loading' && !rechecking && (
+        <p className="cm-scan-blocked">
+          {blocked === 'noneConnected' ? copy.sdk.offNote : blocked === 'loadFailed' ? copy.sdk.failedNote : blockedCopy(blocked)}
+        </p>
+      )}
 
       {scan.phase === 'requested' && (
         <p className="cm-outcome cm-outcome--notice">{copy.requested}</p>
@@ -494,6 +520,63 @@ function AlreadyRunning({ scan }: { scan: LastScan }) {
         <p className="cm-already-running-detail">{copy.alreadyRunningDetail(scan.gameInstanceName)}</p>
       </div>
     </div>
+  )
+}
+
+/**
+ * SDK 연결 상태 한 줄(ARTEL-1185): 점 · 상태 · 언제 확인했는지. 목록은 몇 초마다 다시 읽는 스냅샷이라 "지금" 이 아니라
+ * 확인한 시각을 함께 말한다.
+ */
+function SdkStatus({
+  instances,
+  connected,
+  rechecking,
+}: {
+  instances: InstancesState
+  connected: readonly GameInstance[]
+  rechecking: boolean
+}) {
+  const { t } = useI18n()
+  const copy = t.contentMap.scan.sdk
+
+  if (instances.status === 'loading' || rechecking) {
+    return (
+      <span className="cm-sdk cm-sdk--checking" role="status">
+        <span aria-hidden="true" className="cm-sdk-dot" />
+        <span className="cm-sdk-label">{copy.checking}</span>
+      </span>
+    )
+  }
+
+  const time = formatTime(instances.checkedAt)
+  if (instances.status === 'error') {
+    return (
+      <span className="cm-sdk cm-sdk--failed" role="status">
+        <span aria-hidden="true" className="cm-sdk-dot" />
+        <span className="cm-sdk-label">{copy.failed}</span>
+        <span className="cm-sdk-sub">{copy.failedAt(time)}</span>
+      </span>
+    )
+  }
+
+  if (connected.length === 0) {
+    return (
+      <span className="cm-sdk cm-sdk--off" role="status">
+        <span aria-hidden="true" className="cm-sdk-dot" />
+        <span className="cm-sdk-label">{copy.disconnected}</span>
+        <span className="cm-sdk-sub">{copy.checkedAt(time)}</span>
+      </span>
+    )
+  }
+
+  return (
+    <span className="cm-sdk cm-sdk--on" role="status">
+      <span aria-hidden="true" className="cm-sdk-dot" />
+      <span className="cm-sdk-label">{connected.length === 1 ? copy.connected : copy.connectedMany(connected.length)}</span>
+      <span className="cm-sdk-sub">
+        {connected.length === 1 ? copy.checkedOn(connected[0].name, time) : copy.checkedAt(time)}
+      </span>
+    </span>
   )
 }
 

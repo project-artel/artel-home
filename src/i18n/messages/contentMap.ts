@@ -120,7 +120,22 @@ export const contentMapEn = {
       // The instance list is a snapshot from the last check, polled rather than
       // subscribed to, so the copy names the time instead of claiming it is live.
       noneConnected: (time: string) =>
-        `No game was connected as of ${time}. A scan runs inside the running game, so one has to be online — start the game and this list updates by itself.`,
+        `No game was connected as of ${time}. A scan runs inside a running game. Start the game and this updates by itself.`,
+    },
+    // SDK connection state in the evidence bar (ARTEL-1185). The list is a polled
+    // snapshot, so every state names when it was checked.
+    sdk: {
+      connected: 'SDK connected',
+      connectedMany: (count: number) => `SDK connected · ${count} games`,
+      disconnected: 'SDK not connected',
+      checking: 'Checking',
+      failed: 'Could not check the connection',
+      checkedAt: (time: string) => `checked ${time}`,
+      checkedOn: (name: string, time: string) => `${name} · checked ${time}`,
+      failedAt: (time: string) => `check failed ${time}`,
+      refresh: 'Check the SDK connection again',
+      offNote: 'A scan runs inside a running game. Start the game and this updates by itself.',
+      failedNote: 'Use refresh to check again.',
     },
   },
   generate: {
@@ -670,7 +685,20 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
       noInstances:
         '이 프로젝트에 붙은 적 있는 게임이 없습니다. SDK를 설치하고 게임을 한 번 실행하면 여기에 나타납니다.',
       noneConnected: (time: string) =>
-        `${time} 기준으로 붙어 있는 게임이 없었습니다. 스캔은 실행 중인 게임 안에서 돌기 때문에 한 대는 켜져 있어야 합니다 — 게임을 켜면 이 목록이 알아서 갱신됩니다.`,
+        `${time} 기준으로 붙어 있는 게임이 없었습니다. 스캔은 켜진 게임 안에서 돕니다. 게임을 켜면 저절로 바뀝니다.`,
+    },
+    sdk: {
+      connected: 'SDK 연결됨',
+      connectedMany: (count: number) => `SDK 연결됨 ${count}대`,
+      disconnected: 'SDK 연결 안 됨',
+      checking: '확인하는 중',
+      failed: '연결 상태를 확인하지 못했습니다',
+      checkedAt: (time: string) => `${time} 확인`,
+      checkedOn: (name: string, time: string) => `${name} · ${time} 확인`,
+      failedAt: (time: string) => `${time} 확인 실패`,
+      refresh: 'SDK 연결 다시 확인',
+      offNote: '스캔은 켜진 게임 안에서 돕니다. 게임을 켜면 여기가 저절로 바뀝니다.',
+      failedNote: '새로고침으로 다시 확인할 수 있습니다.',
     },
   },
   generate: {
