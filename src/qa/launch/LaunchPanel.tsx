@@ -20,7 +20,7 @@ import {
 import { sectionHref } from '../../projects/workspace/sections'
 import { versionMismatch } from '../../testRuns/runLibrary'
 import { getRunCasesOutsideBuild, type TestRun } from '../../testRuns/testRunApi'
-import { archEngine, archLabelMissing, toArchRequest, withoutVisionKnobs, type QaArchSelection } from '../qaArch'
+import { archLabelMissing, toArchRequest, withoutVisionKnobs, type QaArchSelection } from '../qaArch'
 import { createQaRun, qaStartConflict } from '../qaApi'
 import { storeLastArch } from '../qaStartChoices'
 import { DEFAULT_QA_FUNCTION_OPTIONS, type QaFunctionOptions } from '../qaFunctionOptions'
@@ -34,9 +34,6 @@ import { ArchSettings } from './ArchSettings'
 import { useDismiss } from './useDismiss'
 
 type Check = { tone: 'ok' | 'warn' | 'bad'; title: string; detail?: string; fix?: { label: string; to: string } }
-
-/** 고른 런의 FREE 시나리오 수. `planner_executer` 를 골랐을 때만 화면이 읽는다(ARTEL-1119). */
-export type FreeScenarioCount = number | 'loading' | 'failed'
 
 /**
  * QA 실행 화면의 오른쪽 "실행 설정" 패널(ARTEL-1084).
@@ -64,7 +61,6 @@ export function LaunchPanel({
   onReasoningValue,
   arch,
   onArchChange,
-  freeScenarios,
   etaMs,
   onManageConsoles,
   runShortcut,
@@ -85,8 +81,6 @@ export function LaunchPanel({
   /** agent 구조 고급 설정(ARTEL-1091). 바꾼 knob 이 없으면 요청에 실리지 않는다. */
   arch: QaArchSelection
   onArchChange: (next: QaArchSelection) => void
-  /** `planner_executer` 는 ORDERED 만 돌리므로, FREE 가 있으면 점검이 실행을 막는다. `agent` 면 읽지 않는다. */
-  freeScenarios: FreeScenarioCount
   etaMs: number | null
   onManageConsoles: () => void
   /** ⌘↵ 가 눌린 횟수. 바뀔 때마다 실행을 시도한다 — 단축키는 화면이 듣고, 실행은 여기서 한다. */
@@ -126,7 +120,6 @@ export function LaunchPanel({
   // 지우는 대신 보낼 때 걷어 내므로, 모델을 되돌리면 고른 값이 그대로 살아 있다.
   const readsImages = model?.multimodal ?? true
   const effectiveArch = readsImages ? arch : withoutVisionKnobs(arch)
-  const engine = archEngine(arch)
 
   const mismatch = versionMismatch(run ?? undefined, instance ?? undefined)
   // 켜진 게임 버전에 없는 이 TR 의 케이스 수(ARTEL-1070). 못 읽으면 알리지 않는다.
@@ -162,13 +155,6 @@ export function LaunchPanel({
   // knob 을 바꾼 구조는 label 이 있어야 한다. 기본 label 로 보내면 `/api/qa-stats` 가 그 run 을 기본
   // 구조와 한 묶음으로 세어, 비교하려던 두 구조가 통계에서 하나로 섞인다.
   if (archLabelMissing(effectiveArch)) checks.push({ tone: 'bad', title: l.archLabelMissing, detail: p.advanced.labelHint })
-  // `planner_executer` 는 ORDERED 만 돌린다. FREE 가 섞인 런을 보내면 agent-server 가 session 을 열 때
-  // 거절하고, 사람은 실행 화면에 가서야 그것을 본다. 읽는 중에도 막는다 — 다 읽기 전에 누르면 그 거절로 간다.
-  if (engine === 'planner_executer' && runEditHref !== null) {
-    if (freeScenarios === 'loading') checks.push({ tone: 'bad', title: l.engineFreeChecking })
-    else if (freeScenarios === 'failed') checks.push({ tone: 'warn', title: l.engineFreeUnknown, detail: l.engineFreeUnknownDetail })
-    else if (freeScenarios > 0) checks.push({ tone: 'bad', title: l.engineFree, detail: l.engineFreeDetail(freeScenarios), fix: { label: l.fixScenarios, to: runEditHref } })
-  }
   const blocked = run === null || checks.some((check) => check.tone === 'bad')
 
   /**

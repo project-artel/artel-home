@@ -11,12 +11,12 @@ import type { TestRun } from '../../testRuns/testRunApi.ts'
 import type { QaArchSelection } from '../qaArch.ts'
 import type { QaModel } from '../qaTypes.ts'
 import { ArchSettings } from './ArchSettings.tsx'
-import { LaunchPanel, type FreeScenarioCount } from './LaunchPanel.tsx'
+import { LaunchPanel } from './LaunchPanel.tsx'
 
 /*
  * QA 실행 설정의 엔진 선택(ARTEL-1119)이 무엇을 그리는지 서버 렌더 결과의 글로 확인한다.
- * 고급 설정의 첫 줄이 `engine` 이고, `planner_executer` 면 아래 tool loop 축이 잠기며, FREE 가 있는
- * 런이면 "실행 전 점검" 이 실행을 막는다.
+ * 고급 설정의 첫 줄이 `engine` 이고, `planner_executer` 면 아래 tool loop 축이 잠긴다. 두 엔진 모두 FREE
+ * 시나리오를 돌리므로(ARTEL-1149) "실행 전 점검" 은 엔진 때문에 실행을 막지 않는다.
  */
 
 function renderKorean(element: ReactElement): string {
@@ -99,7 +99,7 @@ describe('LaunchPanel', () => {
     lastQaRun: null,
   }
 
-  const render = (arch: QaArchSelection, freeScenarios: FreeScenarioCount) =>
+  const render = (arch: QaArchSelection) =>
     renderKorean(
       createElement(LaunchPanel, {
         projectId: '1',
@@ -117,7 +117,6 @@ describe('LaunchPanel', () => {
         onReasoningValue: () => {},
         arch,
         onArchChange: () => {},
-        freeScenarios,
         etaMs: null,
         onManageConsoles: () => {},
         runShortcut: 0,
@@ -125,30 +124,13 @@ describe('LaunchPanel', () => {
     )
   const runBlocked = (html: string) => /<button aria-disabled="true" class="ql-run is-blocked"/.test(html)
 
-  it('planner_executer 에 FREE 가 있으면 점검이 이유와 함께 실행을 막는다', () => {
-    const html = render({ label: '', engine: 'planner_executer' }, 2)
-    assert.ok(html.includes(panel.engineFree))
-    assert.ok(html.includes(panel.engineFreeDetail(2)))
-    assert.ok(runBlocked(html))
-  })
-
-  it('planner_executer 에 FREE 가 없으면 막지 않고, label 도 요구하지 않는다', () => {
-    const html = render({ label: '', engine: 'planner_executer', macros: 'off' }, 0)
-    assert.equal(html.includes(panel.engineFree), false)
+  it('planner_executer 는 실행을 막지 않고, label 도 요구하지 않는다', () => {
+    const html = render({ label: '', engine: 'planner_executer', macros: 'off' })
     assert.equal(html.includes(panel.archLabelMissing), false)
     assert.equal(runBlocked(html), false)
   })
 
-  it('FREE 수를 읽는 중이면 막고, 읽지 못하면 경고만 한다', () => {
-    assert.ok(runBlocked(render({ label: '', engine: 'planner_executer' }, 'loading')))
-    const failed = render({ label: '', engine: 'planner_executer' }, 'failed')
-    assert.ok(failed.includes(panel.engineFreeUnknown))
-    assert.equal(runBlocked(failed), false)
-  })
-
-  it('agent 엔진은 FREE 를 보지 않는다', () => {
-    const html = render({ label: '' }, 2)
-    assert.equal(html.includes(panel.engineFree), false)
-    assert.equal(runBlocked(html), false)
+  it('agent 엔진도 실행을 막지 않는다', () => {
+    assert.equal(runBlocked(render({ label: '' })), false)
   })
 })
