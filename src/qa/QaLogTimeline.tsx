@@ -239,10 +239,11 @@ function QaFlowStep({ block }: { block: FlowStep }) {
             className={`qa-flow-verdict qa-flow-verdict--${block.passed ? 'passed' : 'failed'}${shown.length === 0 ? ' qa-flow-verdict--alone' : ''}`}
           >
             <QaFlowDot kind="verdict" last />
-            <p className="qa-flow-said">
-              {block.reason !== null && <span className="qa-flow-reason">{block.reason} </span>}
-              <span className="qa-flow-call">{verdict}</span>
-            </p>
+            <div className="qa-flow-said">
+              {block.reason !== null && <p className="qa-flow-reason">{block.reason}</p>}
+              {/* 결과는 이유에 이어 붙이지 않는다. 붙이면 모델이 쓴 문장의 일부처럼 읽힌다. */}
+              <p className="qa-flow-call">{verdict}</p>
+            </div>
           </div>
         )}
       </div>

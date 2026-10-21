@@ -2655,10 +2655,15 @@ a.instance-name:hover {
 }
 
 .qa-flow-reason {
+  margin: 0;
   color: var(--color-text-primary);
 }
 
+/* 제 줄로 떨어뜨려 오른쪽 끝에 둔다. 덩어리를 닫는 한 마디다. */
 .qa-flow-call {
+  margin: var(--space-1) 0 0;
+  text-align: right;
+  font-size: 11px;
   font-weight: 700;
   white-space: nowrap;
 }
