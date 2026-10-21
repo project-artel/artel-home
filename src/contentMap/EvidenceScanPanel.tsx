@@ -28,6 +28,7 @@ import { testCaseLibraryPath, type GenerationBlock } from './contentMapTestCases
 import { generateContentMapTestCases } from './generateContentMapTestCases'
 import { requestEvidenceScan } from './requestEvidenceScan'
 import { scanPercent } from './scanProgress'
+import { StudioIcon } from '../testScenarios/studioIcons'
 
 /**
  * 근거를 다시 모으게 시키는 자리.
@@ -479,22 +480,17 @@ function ScanProgressDetail({ scan }: { scan: LastScan }) {
 }
 
 /**
- * 409 `scan_in_progress` 안내(ARTEL-1179). 경고가 아니라 알림이라 앰버 판을 쓰지 않고, 아이콘 자리에 그 스캔의 도넛을
- * 둔다. 단계를 모르는 옛 서버면 도는 호가 대신한다.
+ * 409 `scan_in_progress` 안내(ARTEL-1179). 진행은 바로 옆 근거 줄과 펼침이 이미 보이므로 여기는 경고 아이콘과 두 줄뿐이다.
  */
 function AlreadyRunning({ scan }: { scan: LastScan }) {
   const { t } = useI18n()
   const copy = t.contentMap.scan
-  const percent = scanPercent(scan)
 
   return (
     <div className="cm-already-running" role="status">
-      <ProgressRing label={copy.alreadyRunningTitle} percent={percent} size={28} />
+      <StudioIcon className="cm-already-running-icon" name="alert" size={18} />
       <div>
-        <p className="cm-already-running-title">
-          {copy.alreadyRunningTitle}
-          {percent !== null && <span className="mono"> {percent}%</span>}
-        </p>
+        <p className="cm-already-running-title">{copy.alreadyRunningTitle}</p>
         <p className="cm-already-running-detail">{copy.alreadyRunningDetail(scan.gameInstanceName)}</p>
       </div>
     </div>

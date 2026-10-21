@@ -1200,7 +1200,7 @@
   white-space: nowrap;
 }
 
-/* 이미 돌고 있음(ARTEL-1179): 판 없이 도넛 하나와 두 줄 */
+/* 이미 돌고 있음(ARTEL-1179): 판 없이 경고 아이콘 하나와 두 줄 */
 .cm-already-running {
   display: flex;
   align-items: center;
@@ -1218,4 +1218,8 @@
 .cm-already-running-detail {
   color: var(--color-text-secondary);
   font-size: 12px;
+}
+.cm-already-running-icon {
+  flex: none;
+  color: var(--color-status-warning);
 }
