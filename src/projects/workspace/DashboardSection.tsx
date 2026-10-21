@@ -1,6 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ConfirmActionDialog } from '../../design-system/primitives/ConfirmActionDialog'
 import { useI18n } from '../../i18n/useI18n'
 import { ISSUE_SEVERITIES, type Issue } from '../../issues/issueTypes'
 import { SeverityTag } from '../../issues/SeverityTag'
@@ -12,6 +11,8 @@ import { versionBuilds } from '../gameBuilds'
 import { CostChart, Meter, OutcomeStrip, Spark, StackBar, WeekBars } from './dashboard/DashboardCharts'
 import { compareVersions, costByRun, countByDay, countByWeek, formatTokens, scenarioHistories, shortDay, weekStarts } from './dashboard/dashboardModel'
 import { createFreeRun } from './dashboard/freeRun'
+import { FreeRunPicker } from './dashboard/FreeRunPicker'
+import { pickItems } from './dashboard/freeRunCases'
 import { useDashboardData } from './dashboard/useDashboardData'
 import './dashboard/dashboard.css'
 import { sectionHref } from './sections'
@@ -86,9 +87,8 @@ export function DashboardSection() {
     [data.tries, titles],
   )
 
-  // Free 실행: 먼저 볼 것(이전 빌드에서 실패 · 통과) → 없으면 남은 것 전부.
-  const firstCheck = comparison ? [...comparison.remaining.wasFailing, ...comparison.remaining.wasPassing] : []
-  const freeCases = comparison ? (firstCheck.length > 0 ? firstCheck : comparison.remaining.firstTime) : []
+  // Free 실행: 고르는 dialog 를 연다. 버튼 문구는 먼저 볼 것(이전 빌드에서 판정이 있던 TC)이 있으면 그 수를 말한다.
+  const firstCheck = comparison ? comparison.remaining.wasFailing.length + comparison.remaining.wasPassing.length : 0
   const left = comparison ? comparison.remaining.wasFailing.length + comparison.remaining.wasPassing.length + comparison.remaining.firstTime.length : 0
   const judgedPct = comparison && comparison.total > 0 ? `${Math.round(((comparison.total - left) / comparison.total) * 100)}%` : '0%'
 
@@ -178,12 +178,12 @@ export function DashboardSection() {
                 )}
                 <Legend hint={m.remaining.firstTimeHint} label={m.remaining.firstTime} tone="muted" value={comparison.remaining.firstTime.length} />
               </ul>
-              {freeCases.length === 0 ? (
+              {left === 0 ? (
                 <p className="db-quiet">{m.remaining.nothingLeft}</p>
               ) : (
                 <div className="db-free">
                   <button className="button button--primary" onClick={() => setFreeRunOpen(true)} type="button">
-                    {firstCheck.length > 0 ? m.remaining.freeRun(freeCases.length) : m.remaining.freeRunAll(freeCases.length)}
+                    {firstCheck > 0 ? m.remaining.freeRun(firstCheck) : m.remaining.freeRunAll(left)}
                   </button>
                   <span className="db-quiet">{m.remaining.freeRunNote}</span>
                 </div>
@@ -514,21 +514,19 @@ export function DashboardSection() {
         {project.description !== null && project.description.length > 0 && <p className="db-quiet">{project.description}</p>}
       </section>
 
-      {freeRunOpen && pair && (
-        <ConfirmActionDialog
-          body={m.remaining.confirmBody(freeCases.length, currentName)}
-          cancelLabel={t.projects.shared.cancel}
-          confirmLabel={m.remaining.confirm}
+      {freeRunOpen && pair && comparison && (
+        <FreeRunPicker
+          build={currentName}
+          comparedTo={pair.previous ? previousName : null}
+          items={pickItems(pair.rows, comparison.remaining)}
           onClose={() => setFreeRunOpen(false)}
-          onConfirm={async () => {
-            const name = m.remaining.runName(currentName, freeCases.length, shortDay(new Date().toISOString()))
-            const runId = await createFreeRun(projectId, pair.current.gameBuildId, name, freeCases)
+          onCreate={async (caseIds) => {
+            const name = m.remaining.runName(currentName, caseIds.length, shortDay(new Date().toISOString()))
+            const runId = await createFreeRun(projectId, pair.current.gameBuildId, name, caseIds)
             await refreshRuns()
             navigate(`${sectionHref(projectId, 'qa')}?run=${encodeURIComponent(runId)}&engine=agent`)
           }}
-          pendingLabel={m.remaining.making}
-          title={m.remaining.confirmTitle}
-          toFailureMessage={() => m.remaining.failed}
+          remaining={comparison.remaining}
         />
       )}
     </div>
