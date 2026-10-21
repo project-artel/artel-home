@@ -3,6 +3,7 @@ import { readCarryOver, storeCarryOver } from '../contentMap/carryOverChoice'
 import { generateContentMapTestCases, type GeneratedTestCases } from '../contentMap/generateContentMapTestCases'
 import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
 import { Dialog } from '../design-system/primitives/Dialog'
+import { InfoHint } from '../design-system/primitives/InfoHint'
 import { ProgressRing } from '../design-system/primitives/ProgressRing'
 import { StudioIcon } from '../testScenarios/studioIcons'
 import { useI18n } from '../i18n/useI18n'
@@ -239,21 +240,23 @@ export function GenerateTestCasesDialog({
               )}
             </div>
           )}
-          <label className="cm-generate-carry gen-carry">
-            <input
-              checked={carryOver}
-              disabled={running}
-              onChange={(event) => {
-                setCarryOver(event.target.checked)
-                storeCarryOver(event.target.checked)
-              }}
-              type="checkbox"
-            />
-            <span>
-              {t.contentMap.generate.carryOver}
-              <small>{t.contentMap.generate.carryOverHint}</small>
-            </span>
-          </label>
+          <div className="gen-carry">
+            <label className="cm-generate-carry">
+              <input
+                checked={carryOver}
+                disabled={running}
+                onChange={(event) => {
+                  setCarryOver(event.target.checked)
+                  storeCarryOver(event.target.checked)
+                }}
+                type="checkbox"
+              />
+              <span>
+                {t.contentMap.generate.carryOver}
+              </span>
+            </label>
+            <InfoHint>{t.contentMap.generate.carryOverHint}</InfoHint>
+          </div>
           <GenerationStatus generation={generation} outcome={outcome} running={running} />
           <div className="dialog-actions">
             {running ? (
@@ -339,10 +342,13 @@ function GenerationStatus({
         <div className="gen-notice">
           <StudioIcon className="gen-notice-icon gen-notice-icon--warning" name="alert" size={18} />
           <div>
-            <p className="gen-notice-title">{p.alreadyRunningTitle}</p>
-            <p className="gen-notice-copy">
-              {finished && generation?.state === 'SUCCEEDED' ? p.alreadyRunningDone : p.alreadyRunningCopy}
+            <p className="gen-notice-title">
+              {p.alreadyRunningTitle}
+              <InfoHint>{p.alreadyRunningCopy}</InfoHint>
             </p>
+            {finished && generation?.state === 'SUCCEEDED' && (
+              <p className="gen-notice-copy">{p.alreadyRunningDone}</p>
+            )}
           </div>
         </div>
         {progress}

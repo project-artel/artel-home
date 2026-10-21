@@ -698,8 +698,8 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
     },
   },
   generate: {
-    carryOver: '이전 버전의 사용자 생성 TC 이어 넣기',
-    carryOverHint: '바로 앞 게임 빌드에 있던 사용자 생성 TC 중 이 빌드에 아직 없는 것을 함께 넣습니다.',
+    carryOver: '이전 버전의 사용자 생성 TC 가져오기',
+    carryOverHint: '이전 게임 빌드의 사용자 생성 TC 중 현재 빌드에 없는 TC를 가져옵니다.',
   },
   scanStatus: {
     requested: '스캔하는 중…',
