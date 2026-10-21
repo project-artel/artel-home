@@ -697,3 +697,156 @@
 .content-map .sm-container.is-dimmed .sm-container-thumbnail {
   opacity: 0.5;
 }
+
+/* ── 상세 서랍: 오른쪽에서 밀려 들어오는 넓은 패널 ───────────────────────── */
+.content-map .cm-workspace {
+  position: relative;
+  grid-template-columns: var(--cm-tree-width) minmax(0, 1fr);
+}
+.cm-drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  width: min(760px, 62%);
+  height: var(--cm-pane-height);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
+  box-shadow: -18px 0 48px rgb(0 0 0 / 32%);
+  overflow: hidden;
+  animation: cm-drawer-in 240ms var(--ease-standard, cubic-bezier(0.2, 0, 0, 1));
+}
+@keyframes cm-drawer-in {
+  from {
+    opacity: 0.4;
+    transform: translateX(40%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cm-drawer {
+    animation: none;
+  }
+}
+.cm-drawer-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  z-index: 2;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+.cm-drawer-close:hover {
+  background: var(--color-bg-hover);
+  color: var(--color-text-primary);
+}
+.cm-drawer-close:focus-visible {
+  outline: 2px solid var(--color-brand-accent);
+  outline-offset: -2px;
+}
+.cm-drawer .cm-inspector {
+  flex: 1;
+  min-height: 0;
+}
+.cm-drawer .cm-inspector-selection {
+  padding: 0 24px 24px;
+}
+.cm-drawer .cm-inspector-header {
+  margin: 0 -24px 16px;
+  padding: 14px 56px 12px 24px;
+}
+.cm-drawer .cm-overview {
+  padding: 8px 24px 24px;
+  border-top: 0;
+}
+/* 넓어진 만큼 개요는 두 칸으로 */
+.cm-drawer .cm-overview .cm-summary-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px 28px;
+}
+.cm-drawer .cm-overview .cm-status-list li,
+.cm-drawer .cm-overview .cm-gap-list li {
+  font-size: 13px;
+}
+.cm-drawer .cm-overview .cm-ratio-value {
+  font-size: 22px;
+}
+.cm-drawer .cm-detail-name {
+  font-size: 22px;
+  line-height: 30px;
+}
+.cm-drawer .cm-detail-stats dd {
+  font-size: 22px;
+}
+.cm-drawer .cm-thumb-image {
+  max-height: 320px;
+}
+@media (max-width: 1023px) {
+  .cm-drawer {
+    position: fixed;
+    top: 56px;
+    right: 8px;
+    bottom: 8px;
+    width: calc(100% - 16px);
+    height: auto;
+  }
+}
+
+/* 카드 안의 수 */
+.sm-card-stat {
+  pointer-events: none;
+}
+.sm-card-num {
+  fill: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 700;
+}
+.sm-card-num--runnable {
+  fill: var(--color-status-success);
+}
+.sm-card-num--needsProbe {
+  fill: var(--color-status-warning);
+}
+.sm-card-num.is-zero {
+  fill: var(--color-text-muted);
+}
+.sm-card-label {
+  fill: var(--color-text-secondary);
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+}
+.content-map .sm-container-count {
+  font-size: 11px;
+}
+
+/* 목록 줄의 작은 그림 */
+.cm-tree-thumb {
+  flex: none;
+  width: 40px;
+  height: 24px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 3px;
+  background: var(--color-bg-raised);
+  object-fit: cover;
+}
+.cm-tree-thumb--scene {
+  width: 56px;
+  height: 32px;
+}
+.content-map .cm-tree-row[aria-level='1'] .cm-tree-meta {
+  padding-left: 0;
+}

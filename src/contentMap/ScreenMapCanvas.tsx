@@ -387,30 +387,45 @@ function ContainerMark({
 
       {/* 씬 색은 이름 앞의 점 하나로만 말한다 — 상자 전체를 칠하면 씬 일곱 개가 일곱 색 덩어리로 서서 선이 묻힌다.
           같은 색이 tree 의 점에도 있다. */}
-      <circle className="sm-container-dot" cx={textX + 4} cy={CARD_INSET + 11} r={4.5} />
-      <text className="sm-container-name" x={textX + 15} y={CARD_INSET + 16}>
+      <circle className="sm-container-dot" cx={textX + 5} cy={CARD_INSET + 12} r={5} />
+      <text className="sm-container-name" x={textX + 17} y={CARD_INSET + 17}>
         {truncate(title, SCENE_NAME_WIDTH)}
       </text>
-      {!empty && (
-        <text className="sm-container-count mono" textAnchor="end" x={container.width - CARD_INSET} y={CARD_INSET + 16}>
-          {copy.screenCount(container.screens.length)}
-        </text>
-      )}
-      {/* 능력 · 전이 수. 응답에 없는 씬(scene === null)은 능력을 모르므로 그 줄을 비운다. */}
-      {scene !== null && (
-        <text className="sm-container-info" x={textX} y={CARD_INSET + 42}>
-          {copy.boxCapabilities(scene.capabilities.runnable, scene.capabilities.needsProbe)}
-        </text>
-      )}
-      <text className="sm-container-info" x={textX} y={CARD_INSET + 62}>
-        {copy.boxRoutes(counts.out, counts.in)}
+      <text className="sm-container-count mono" textAnchor="end" x={container.width - CARD_INSET} y={CARD_INSET + 17}>
+        {copy.screenCount(container.screens.length)}
       </text>
+
+      {/* 수 넷을 두 줄 두 칸으로(ARTEL-1172) — 글 한 줄로 이어 쓰면 숫자가 글자 사이에 묻혀 안 읽혔다. 숫자는 굵고
+          색이 있고, 이름은 옆에 작게. 응답에 없는 씬(scene === null)은 능력을 모르므로 첫 줄을 비운다. */}
+      {scene !== null && (
+        <>
+          <CardStat label={t.contentMap.summary.statuses.runnable} tone="runnable" value={scene.capabilities.runnable} x={textX} y={CARD_INSET + 46} />
+          <CardStat label={t.contentMap.summary.statuses.needsProbe} tone="needsProbe" value={scene.capabilities.needsProbe} x={textX + CARD_STAT_COLUMN} y={CARD_INSET + 46} />
+        </>
+      )}
+      <CardStat label={t.contentMap.inspector.stats.outgoing} tone="route" value={counts.out} x={textX} y={CARD_INSET + 70} />
+      <CardStat label={t.contentMap.inspector.stats.incoming} tone="route" value={counts.in} x={textX + CARD_STAT_COLUMN} y={CARD_INSET + 70} />
       {empty && (
-        <text className="sm-container-empty" x={textX} y={CARD_INSET + 84}>
+        <text className="sm-container-empty" x={textX} y={CARD_INSET + 91}>
           {copy.noScreens}
         </text>
       )}
     </g>
+  )
+}
+
+/** 씬 카드의 둘째 칸 폭. 이미지 오른쪽 상세 칸을 반으로 나눈 자리. */
+const CARD_STAT_COLUMN = 108
+
+/** 카드 안의 수 하나: 굵은 숫자와 옆의 작은 이름. */
+function CardStat({ label, tone, value, x, y }: { label: string; tone: 'runnable' | 'needsProbe' | 'route'; value: number; x: number; y: number }) {
+  return (
+    <text className="sm-card-stat" x={x} y={y}>
+      <tspan className={`sm-card-num sm-card-num--${tone}${value === 0 ? ' is-zero' : ''}`}>{value}</tspan>
+      <tspan className="sm-card-label" dx={5}>
+        {label}
+      </tspan>
+    </text>
   )
 }
 

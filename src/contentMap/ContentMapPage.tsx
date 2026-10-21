@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { InfoHint } from '../design-system/primitives/InfoHint'
@@ -297,18 +297,24 @@ function SceneGraphView({ projectId, view }: { projectId: string; view: ContentM
   const { graph: knowledgeGraph, status: knowledgeStatus } = useKnowledgeGraph(projectId)
 
   /*
-   * 고른 것이 화면 밖에서 바뀌지 않게 한다.
-   *
-   * 세 pane 이 나란히 설 만큼 넓으면 detail 은 이미 보이고 `nearest` 는 아무것도 하지 않는다.
-   * 좁아져서 detail 이 캔버스 아래로 내려간 뒤에야 이 줄이 일한다 — 그때 tree 나 캔버스에서
-   * 무언가를 고르면 답이 있는 자리까지 따라간다. 이것이 없으면 이번에 고친 버그가 폭만 바꾼 채
-   * 그대로 돌아온다.
+   * 상세는 오른쪽에서 밀려 들어오는 넓은 패널이다(ARTEL-1172). 무엇을 고르면 열리고, 아무것도 안 고른 채로는
+   * `이 빌드` 버튼으로 개요를 연다. 고정 세 번째 칸이던 때는 360px 에 갇혀 지도를 좁히고 글이 빽빽했다.
+   * 패널이 지도를 덮지 않는 왼쪽은 그대로 눌러 다른 씬을 고를 수 있다 — 막는 막(scrim)을 두지 않는 이유다.
    */
-  const detailPane = useRef<HTMLElement>(null)
+  const [overviewOpen, setOverviewOpen] = useState(false)
+  const drawerOpen = selection !== null || overviewOpen
+  const close = useCallback(() => {
+    setSelection(null)
+    setOverviewOpen(false)
+  }, [])
   useEffect(() => {
-    if (selection === null) return
-    detailPane.current?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
-  }, [selection])
+    if (!drawerOpen) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !event.defaultPrevented) close()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [drawerOpen, close])
 
   return (
     <div className="cm-workspace">
@@ -334,6 +340,17 @@ function SceneGraphView({ projectId, view }: { projectId: string; view: ContentM
               model.screenTransitions.length,
             )}
           </p>
+          <button
+            aria-expanded={overviewOpen && selection === null}
+            className="button button--secondary button--compact cm-overview-button"
+            onClick={() => {
+              setSelection(null)
+              setOverviewOpen((current) => !(current && selection === null))
+            }}
+            type="button"
+          >
+            {t.contentMap.layout.overviewTitle}
+          </button>
           <CanvasViewportControls viewport={viewport} />
         </header>
 
@@ -386,24 +403,29 @@ function SceneGraphView({ projectId, view }: { projectId: string; view: ContentM
         </footer>
       </section>
 
-      <aside className="panel cm-inspector-panel" ref={detailPane}>
-        <ContentMapInspector
-          gaps={view.gaps}
-          index={index}
-          knowledge={{ status: knowledgeStatus, nodes: knowledgeGraph?.nodes ?? [] }}
-          model={model}
-          onClear={() => setSelection(null)}
-          onSelect={setSelection}
-          overview={
-            <section aria-labelledby="cm-overview-title" className="cm-overview">
-              <h3 id="cm-overview-title">{t.contentMap.layout.overviewTitle}</h3>
-              <ContentMapSummary view={view} />
-              <CaptureHeader view={view} />
-            </section>
-          }
-          selection={selection}
-        />
-      </aside>
+      {drawerOpen && (
+        <aside aria-label={t.contentMap.inspector.title} className="cm-drawer">
+          <button aria-label={t.contentMap.layout.closeDetail} className="cm-drawer-close" onClick={close} type="button">
+            ×
+          </button>
+          <ContentMapInspector
+            gaps={view.gaps}
+            index={index}
+            knowledge={{ status: knowledgeStatus, nodes: knowledgeGraph?.nodes ?? [] }}
+            model={model}
+            onClear={close}
+            onSelect={setSelection}
+            overview={
+              <section aria-labelledby="cm-overview-title" className="cm-overview">
+                <h3 id="cm-overview-title">{t.contentMap.layout.overviewTitle}</h3>
+                <ContentMapSummary view={view} />
+                <CaptureHeader view={view} />
+              </section>
+            }
+            selection={selection}
+          />
+        </aside>
+      )}
     </div>
   )
 }

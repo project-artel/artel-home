@@ -135,7 +135,8 @@ export function useCanvasViewport(baseViewBox: string): CanvasViewport {
     if (event.button !== 0) return
     pan.current = { id: event.pointerId, clientX: event.clientX, clientY: event.clientY }
     dragged.current = false
-    event.currentTarget.setPointerCapture(event.pointerId)
+    // 포인터는 여기서 잡지 않는다(ARTEL-1172). 누르자마자 svg 가 잡으면 브라우저가 뒤따르는 click 을 svg 로
+    // 돌려 씬 · 화면 · 선의 onClick 이 한 번도 불리지 않았다 — 그림을 눌러 고를 수 없었다. 끌기로 판정된 뒤에 잡는다.
   }, [])
 
   const onPointerMove = useCallback(
@@ -145,6 +146,7 @@ export function useCanvasViewport(baseViewBox: string): CanvasViewport {
       const dx = event.clientX - start.clientX
       const dy = event.clientY - start.clientY
       if (!dragged.current && Math.hypot(dx, dy) < CLICK_SLOP) return
+      if (!dragged.current) event.currentTarget.setPointerCapture(event.pointerId)
       dragged.current = true
       setPanning(true)
 
