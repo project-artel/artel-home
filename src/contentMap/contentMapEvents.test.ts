@@ -48,7 +48,22 @@ test('parseLastScan 은 REQUESTED 스캔을 읽는다', () => {
     ingestedDocuments: null,
     error: null,
     testCases: null,
+    phase: null,
+    progress: null,
   })
+})
+
+test('parseLastScan 은 단계와 게임이 알린 진행을 읽는다(ARTEL-1179)', () => {
+  const base = { state: 'REQUESTED', gameInstanceId: 42, gameInstanceName: 'Editor', requestedAt: '2026-09-03T01:00:00Z' }
+
+  const scanning = parseLastScan({ ...base, phase: 'SCANNING', progress: { done: 3, total: 12, scene: 'Title' } })
+  assert.equal(scanning?.phase, 'SCANNING')
+  assert.deepEqual(scanning?.progress, { done: 3, total: 12, scene: 'Title' })
+
+  // 분모가 0 이거나 모르는 단계면 그리지 않는다. 넘친 분자는 분모로 자른다.
+  assert.equal(parseLastScan({ ...base, phase: 'SCANNING', progress: { done: 0, total: 0 } })?.progress, null)
+  assert.equal(parseLastScan({ ...base, phase: 'WARPING' })?.phase, null)
+  assert.equal(parseLastScan({ ...base, phase: 'UPLOADING', progress: { done: 9, total: 4 } })?.progress?.done, 4)
 })
 
 test('parseLastScan 은 state·gameInstanceId·requestedAt 이 없으면 null 이다', () => {
@@ -254,6 +269,8 @@ test('parseContentMapScanEvent 는 정상 스캔을 읽는다', () => {
       ingestedDocuments: null,
       error: 'SDK disconnected mid-scan',
       testCases: null,
+      phase: null,
+      progress: null,
     },
   })
 })

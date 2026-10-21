@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { ProgressRing as SharedProgressRing } from '../design-system/primitives/ProgressRing'
 import { Link } from 'react-router-dom'
 import { createDownloadTicket, deleteDocument, ProjectApiError } from './projectApi'
 import { apiErrorMessage } from './apiErrorMessage'
@@ -419,44 +420,10 @@ function DropZone({
   )
 }
 
-/**
- * 원형 진행 표시. 업로드는 `XMLHttpRequest` 의 진행 이벤트로 비율을 알 때가 많아 그만큼 원을 채우고,
- * 비율을 모르면(`null`) 4분의 1 호가 돈다 — 멈춘 0% 로 그리면 걸린 것처럼 보인다.
- */
+/** 문서 화면의 원형 진행. 이름표를 따로 주지 않으면 "진행" 으로 읽힌다. */
 function ProgressRing({ percent, size, label }: { percent: number | null; size: number; label?: string }) {
   const { t } = useI18n()
-  const stroke = size >= 80 ? 6 : 4
-  const radius = (size - stroke) / 2
-  const circumference = 2 * Math.PI * radius
-  const filled = percent === null ? circumference * 0.25 : (circumference * percent) / 100
-
-  return (
-    <span
-      aria-label={label ?? t.projects.documents.progressLabel}
-      aria-valuemax={100}
-      aria-valuemin={0}
-      aria-valuenow={percent ?? undefined}
-      className={`dw-ring${percent === null ? ' is-indeterminate' : ''}`}
-      role="progressbar"
-      style={{ width: size, height: size }}
-    >
-      <svg aria-hidden="true" height={size} viewBox={`0 0 ${size} ${size}`} width={size}>
-        <circle className="dw-ring-track" cx={size / 2} cy={size / 2} fill="none" r={radius} strokeWidth={stroke} />
-        <circle
-          className="dw-ring-fill"
-          cx={size / 2}
-          cy={size / 2}
-          fill="none"
-          r={radius}
-          strokeDasharray={`${filled} ${circumference}`}
-          strokeLinecap="round"
-          strokeWidth={stroke}
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        />
-      </svg>
-      {percent !== null && size >= 80 && <span className="dw-ring-label mono">{percent}%</span>}
-    </span>
-  )
+  return <SharedProgressRing label={label ?? t.projects.documents.progressLabel} percent={percent} size={size} />
 }
 
 function CurrentDocument({ document, actions }: { document: ProjectDocument; actions: DocumentActions }) {
