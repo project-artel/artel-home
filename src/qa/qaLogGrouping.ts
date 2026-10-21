@@ -383,44 +383,6 @@ export function verdictOf(call: ToolCall | null): StepVerdict | null {
   }
 }
 
-/** `흐름` 한 줄에 담기는 길이. 넘는 것은 자르고 `…` 를 붙인다. */
-const OUTCOME_HEAD_LIMIT = 160
-
-/**
- * tool 이 돌려준 본문에서 **결과만** 떼어 한 줄로 만든다.
- *
- * `흐름` 탭의 `행동` 줄이 쓴다. tool 의 답은 결과 몇 줄 뒤에 `<<pulse>>` 화면 덤프와
- * `content map:` 설명이 붙어 오는데(측정: `click` 한 번의 답이 1,800자), 그 둘은 이 tool 이
- * 무엇을 했는지에 대해 아무것도 말하지 않는다. 읽을 것은 그 앞이다.
- *
- * 결과가 여러 줄일 때 첫 줄만 쓰지 않는 이유는 `click` 이다 — `move_mouse: ok` 가 첫 줄이고
- * 정작 읽어야 하는 `mouse_down: 닿은 것 없음` 이 둘째 줄이다. 그래서 잘라낸 앞부분을
- * 전부 이어 붙인다.
- *
- * tool 이 자기 말을 하나도 안 했으면 null 이다. `행동` 줄은 그때 도구 이름만 보인다.
- */
-export function outcomeHeadOf(content: string | null | undefined): string | null {
-  if (typeof content !== 'string' || content.length === 0) return null
-
-  let head = content
-  const pulse = head.indexOf('<<pulse>>')
-  if (pulse !== -1) head = head.slice(0, pulse)
-
-  const lines: string[] = []
-  for (const raw of head.split('\n')) {
-    const line = raw.trim()
-    // `content map:` 아래는 들여쓴 설명이 이어지므로, 만나는 자리에서 끊는다.
-    if (line.startsWith('content map:')) break
-    if (line.length > 0) lines.push(line)
-  }
-  if (lines.length === 0) return null
-
-  const joined = lines.join(' · ')
-  return joined.length <= OUTCOME_HEAD_LIMIT
-    ? joined
-    : `${joined.slice(0, OUTCOME_HEAD_LIMIT - 1)}…`
-}
-
 /** ACTION_RESULT 하나가 말하는 것: 몇 개가 돌았고 그중 몇 개가 실패했는지. */
 export type ToolResultSummary = {
   total: number
