@@ -11,6 +11,7 @@ import type { GameInstance } from '../../projects/gameTypes'
 import { sectionHref } from '../../projects/workspace/sections'
 import { useWorkspace } from '../../projects/workspace/workspaceContext'
 import { folderPath } from '../../testRuns/runLibrary'
+import { listTestRuns, type TestRun } from '../../testRuns/testRunApi'
 import { listRunFolders, type RunFolder } from '../../testRuns/testRunFolders'
 import { ChevronDownIcon, PencilIcon } from '../qaModelIcons'
 import { withEngine, type QaArchSelection } from '../qaArch'
@@ -78,9 +79,52 @@ function reasoningStart(model: QaModel | undefined): number {
  * 시작하면 매번 같은 셋을 다시 고르게 된다. 사람이 무엇이든 한 번 고르면 그 뒤로는 덮지 않는다.
  */
 export function QaLaunch() {
+  const { projectId } = useWorkspace()
+  return <QaLaunchLoader key={projectId} projectId={projectId} />
+}
+
+function QaLaunchLoader({ projectId }: { projectId: string }) {
+  const { t } = useI18n()
+  const [runs, setRuns] = useState<TestRun[] | null>(null)
+  const [status, setStatus] = useState<Load>('loading')
+  const [reloadToken, setReloadToken] = useState(0)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    // 편집 화면에서 돌아오면 Workspace에 남은 개수 대신 서버의 최신 집계를 읽는다.
+    listTestRuns(projectId, controller.signal)
+      .then((latestRuns) => {
+        if (controller.signal.aborted) return
+        setRuns(latestRuns)
+        setStatus('ready')
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setStatus('failed')
+      })
+    return () => controller.abort()
+  }, [projectId, reloadToken])
+
+  if (status === 'failed') {
+    return (
+      <div className="inline-error" role="alert">
+        <span aria-hidden="true">!</span>{t.scenarios.runList.loadFailed}
+        <button className="button button--secondary button--compact" onClick={() => {
+          setStatus('loading')
+          setReloadToken((token) => token + 1)
+        }} type="button">{t.scenarios.runList.retry}</button>
+      </div>
+    )
+  }
+  if (runs === null || status === 'loading') {
+    return <p aria-busy="true" className="panel-empty">{t.scenarios.runList.loading}</p>
+  }
+  return <QaLaunchReady runs={runs} />
+}
+
+function QaLaunchReady({ runs }: { runs: TestRun[] }) {
   const { t } = useI18n()
   const l = t.qa.launch
-  const { projectId, runs, instances, builds, models, applyInstance, removeInstance, applyBuild } = useWorkspace()
+  const { projectId, instances, builds, models, applyInstance, removeInstance, applyBuild } = useWorkspace()
   const offered = useMemo(() => offeredQaModels(models), [models])
 
   /**
