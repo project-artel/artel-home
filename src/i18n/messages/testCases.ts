@@ -357,6 +357,18 @@ export const testCasesEn = {
     title: 'Create cases from the screen map',
     hint: 'Pick a game build. Its screen map becomes that version’s cases. Picking a build that already has test cases overwrites them, after a warning.',
     listLabel: 'Game builds',
+    versionsHeading: 'Version to create',
+    versionSearch: 'Find a version',
+    clear: 'Clear',
+    node: {
+      ready: 'Map ready · no cases yet',
+      cases: (cases: number, judged: number) => `${cases} cases · ${judged} judged`,
+      notRead: 'Map not read yet',
+      noMap: 'No map yet',
+    },
+    carryVerdicts: 'Same-content cases keep the previous verdict',
+    carryVerdictsHint:
+      'Once the cases are created, a case whose content is unchanged from the previous version takes its verdict. The rest start unverified. Turn it off to verify everything again. To pick cases yourself, right-click the version afterwards and import verdicts.',
     loading: 'Loading game builds…',
     loadFailed: 'The game builds could not be loaded.',
     empty: 'No game build has registered yet. Run the game with the SDK once.',
@@ -381,8 +393,10 @@ export const testCasesEn = {
       manual: 'User-created test cases are not touched.',
       confirm: 'Overwrite',
     },
-    done: (version: string, created: number, carriedOver: number) =>
-      `Created ${created} test cases in ${version}` + (carriedOver > 0 ? `, and carried over ${carriedOver} user-created ones.` : '.'),
+    done: (version: string, created: number, carriedOver: number, verdictsCarried = 0) =>
+      `Created ${created} test cases in ${version}` +
+      (carriedOver > 0 ? `, and carried over ${carriedOver} user-created ones.` : '.') +
+      (verdictsCarried > 0 ? ` ${verdictsCarried} kept the previous verdict.` : ''),
     overwritten: (version: string, created: number, updated: number, removed: number) =>
       `Overwrote ${version}: ${created} new, ${updated} rewritten, ${removed} removed.`,
     dismiss: 'Dismiss',
@@ -894,6 +908,18 @@ export const testCasesKo: Localized<typeof testCasesEn> = {
     title: '화면 지도에서 케이스 생성',
     hint: '선택한 게임 빌드의 화면 지도로 케이스를 만듭니다. 기존 케이스가 있으면 확인 후 덮어씁니다.',
     listLabel: '게임 빌드',
+    versionsHeading: '만들 버전',
+    versionSearch: '버전 찾기',
+    clear: '지우기',
+    node: {
+      ready: '지도 준비됨 · 케이스 없음',
+      cases: (cases: number, judged: number) => `케이스 ${cases} · 판정 ${judged}`,
+      notRead: '지도 분석 전',
+      noMap: '지도 없음',
+    },
+    carryVerdicts: '내용이 같은 케이스는 앞 버전 판정 이어받기',
+    carryVerdictsHint:
+      '케이스를 만든 뒤, 앞 버전과 내용이 그대로인 케이스가 그 판정을 받습니다. 나머지는 미검증으로 시작합니다. 끄면 모두 다시 검증합니다. 골라서 받으려면 만든 뒤 버전을 우클릭해 판정 결과를 가져오세요.',
     loading: '게임 빌드를 불러오는 중…',
     loadFailed: '게임 빌드를 불러오지 못했습니다.',
     empty: '등록된 게임 빌드가 없습니다. SDK 를 붙여 게임을 한 번 실행해 주세요.',
@@ -918,8 +944,10 @@ export const testCasesKo: Localized<typeof testCasesEn> = {
       manual: '사용자 생성 케이스는 건드리지 않습니다.',
       confirm: '덮어쓰기',
     },
-    done: (version: string, created: number, carriedOver: number) =>
-      `${version} 에 케이스 ${created}건을 만들었습니다` + (carriedOver > 0 ? `. 사용자 생성 케이스 ${carriedOver}건을 이어 넣었습니다.` : '.'),
+    done: (version: string, created: number, carriedOver: number, verdictsCarried = 0) =>
+      `${version} 에 케이스 ${created}건을 만들었습니다` +
+      (carriedOver > 0 ? `. 사용자 생성 케이스 ${carriedOver}건을 이어 넣었습니다.` : '.') +
+      (verdictsCarried > 0 ? ` 앞 버전 판정 ${verdictsCarried}건을 이어받았습니다.` : ''),
     overwritten: (version: string, created: number, updated: number, removed: number) =>
       `${version} 의 케이스를 덮어썼습니다. 새로 ${created}건, 다시 쓴 것 ${updated}건, 빠진 것 ${removed}건.`,
     dismiss: '닫기',

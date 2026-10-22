@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { generateContentMapTestCases, type GeneratedTestCases } from '../contentMap/generateContentMapTestCases'
-import { readCarryOver } from '../contentMap/carryOverChoice'
+import { readCarryOver, readCarryVerdicts } from '../contentMap/carryOverChoice'
 import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
 import { useI18n } from '../i18n/useI18n'
 import { useActionBinding, useFieldBinding } from '../projectAgent/bindings'
@@ -625,7 +625,7 @@ export function TestCaseLibrary({
     setVersionParams(candidate.gameBuildId, null)
     const notice = candidate.generated
       ? m.generate.overwritten(candidate.version, result.created, result.updated, result.deleted + result.broken)
-      : m.generate.done(candidate.version, result.created, result.carriedOver)
+      : m.generate.done(candidate.version, result.created, result.carriedOver, result.verdictsCarried)
     setGenerationNotice(notice)
     setAnnouncement(notice)
   }
@@ -634,7 +634,7 @@ export function TestCaseLibrary({
     if (typeof gameBuildId !== 'string' || gameBuildId.length === 0) throw new Error('gameBuildId is required.')
     const { candidate, result } = await runGenerateFromMap(gameBuildId, overwrite, {
       listCandidates: () => listGenerationCandidates(projectId),
-      generate: (target, replace) => generateContentMapTestCases(projectId, target.gameBuildId, readCarryOver(), replace),
+      generate: (target, replace) => generateContentMapTestCases(projectId, target.gameBuildId, readCarryOver(), replace, readCarryVerdicts() ? 'SAME_CONTENT' : undefined),
       messages: m.generate.failure,
     })
     handleGenerated(candidate, result)

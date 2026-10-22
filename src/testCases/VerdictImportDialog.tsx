@@ -5,6 +5,7 @@ import { useI18n } from '../i18n/useI18n'
 import { EditorBadge } from '../projects/EditorBadge'
 import { Picker } from './Picker'
 import { SceneChip } from './SceneChip'
+import { FolderIcon } from './FolderIcon'
 import { SearchField } from './SearchField'
 import type { VerificationStatus } from './testCaseTypes'
 import {
@@ -371,14 +372,6 @@ function CodeText({ text }: { text: string }) {
         part.length === 0 ? null : index % 2 === 1 ? <code className="vimp-code" key={index} translate="no">{part}</code> : <span key={index}>{part}</span>,
       )}
     </>
-  )
-}
-
-function FolderIcon() {
-  return (
-    <svg aria-hidden="true" className="vimp-folder" fill="none" height="18" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.8" viewBox="0 0 24 24" width="18">
-      <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-    </svg>
   )
 }
 

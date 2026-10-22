@@ -27,3 +27,25 @@ export function storeCarryOver(carryOver: boolean, storage?: Pick<Storage, 'getI
     // private mode 등. 이번 화면에서만 기억한다.
   }
 }
+
+const VERDICTS_KEY = 'artel.contentMap.carryVerdicts'
+
+/**
+ * TC 를 생성할 때 내용이 같은 케이스가 앞 버전 판정을 이어받게 할지 고른 값(ARTEL-1180). 사용자 생성 TC 와 같은 까닭으로
+ * 마지막 선택을 남기고, 못 읽으면 이어받는다.
+ */
+export function readCarryVerdicts(storage?: Pick<Storage, 'getItem' | 'setItem'>): boolean {
+  try {
+    return storageOf(storage).getItem(VERDICTS_KEY) !== 'false'
+  } catch {
+    return true
+  }
+}
+
+export function storeCarryVerdicts(carry: boolean, storage?: Pick<Storage, 'getItem' | 'setItem'>): void {
+  try {
+    storageOf(storage).setItem(VERDICTS_KEY, String(carry))
+  } catch {
+    // private mode 등. 이번 화면에서만 기억한다.
+  }
+}
