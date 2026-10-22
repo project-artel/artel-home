@@ -486,12 +486,11 @@
 
 /* ── 프로젝트 목록 ───────────────────────────────────────────── */
 .workspace:has(.project-home) {
+  /* 격자 없이 그라데이션만. */
   background-image:
     radial-gradient(1400px 560px at 18% -140px, color-mix(in srgb, var(--color-action-primary) 18%, transparent), transparent 72%),
-    radial-gradient(1000px 480px at 86% -160px, color-mix(in srgb, var(--color-agent-reasoning) 14%, transparent), transparent 72%),
-    linear-gradient(var(--color-border-subtle) 1px, transparent 1px),
-    linear-gradient(90deg, var(--color-border-subtle) 1px, transparent 1px);
-  background-size: auto, auto, 40px 40px, 40px 40px;
+    radial-gradient(1000px 480px at 86% -160px, color-mix(in srgb, var(--color-agent-reasoning) 14%, transparent), transparent 72%);
+  background-size: auto;
 }
 .project-hero {
   display: grid;
@@ -655,9 +654,14 @@
   gap: var(--space-2);
   min-height: 220px;
   padding: var(--space-5);
-  border-style: dashed;
+  border: 1.5px dashed var(--color-border-strong);
   background: transparent;
+  color: var(--color-text-secondary);
   text-align: center;
+}
+.project-card--new:hover {
+  border-color: var(--color-action-primary);
+  color: var(--color-text-primary);
 }
 .project-card-plus {
   display: grid;
@@ -667,16 +671,6 @@
   border: 1px dashed var(--color-border-strong);
   border-radius: 50%;
   font-size: 20px;
-}
-.project-card-steps {
-  display: grid;
-  gap: 4px;
-  margin: var(--space-2) 0 0;
-  padding-left: 18px;
-  color: var(--color-text-secondary);
-  font-size: 12.5px;
-  line-height: 1.5;
-  text-align: left;
 }
 /* 받은 초대: 아직 내 프로젝트가 아니라 흐리게. 다가가면 살아난다. */
 .invitation-inbox {

@@ -145,11 +145,6 @@ export function ProjectListPage() {
                     +
                   </span>
                   <span className="project-card-name">{copy.newProject}</span>
-                  <ol className="project-card-steps">
-                    {copy.newCardSteps.map((step) => (
-                      <li key={step}>{step}</li>
-                    ))}
-                  </ol>
                 </button>
               </li>
             )}

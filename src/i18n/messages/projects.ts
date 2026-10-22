@@ -56,7 +56,6 @@ export const projectsEn = {
     sortRecent: 'Recently changed',
     sortName: 'Name',
     noMatch: 'No project matches.',
-    newCardSteps: ['Create a project and upload the planning document.', 'Add the SDK to Unity and connect the game.', 'Scan the content map and generate test cases.'],
   },
   form: {
     genreLabel: 'Genre',
@@ -710,7 +709,6 @@ export const projectsKo: Localized<typeof projectsEn> = {
     sortRecent: '최근 바뀐 순',
     sortName: '이름순',
     noMatch: '맞는 프로젝트가 없습니다.',
-    newCardSteps: ['프로젝트를 만들고 기획 문서를 올립니다.', 'Unity 에 SDK 를 넣고 게임을 연결합니다.', '화면 지도를 스캔해 TC 를 만듭니다.'],
   },
   form: {
     genreLabel: '장르',
