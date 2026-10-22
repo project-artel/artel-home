@@ -1,6 +1,6 @@
 import { listTestScenarios } from '../../testScenarios/scenarioApi'
 import { getScenarioCases } from '../../testScenarios/scenarioCaseApi'
-import { listFolderItems, listTestCaseFolders, type TestCaseFolder } from '../../testCases/testCaseFolderApi'
+import { listFolderItems, listTestCaseFolders, type FolderItem, type TestCaseFolder } from '../../testCases/testCaseFolderApi'
 import { getTestCase, getVerdictHistory, listTestCases, type CaseVerdictHistoryItem } from '../../testCases/testCaseApi'
 import type { CaseFunctions } from '../../testCases/caseFunctions'
 import type { TestCase, VerificationStatus } from '../../testCases/testCaseTypes'
@@ -109,6 +109,8 @@ export function toCaseRow(testCase: TestCase, lookups: CaseLookups): CaseRow {
 export type CaseListResult = CasePage<CaseRow> & {
   /** `gameBuildId` 를 줬을 때만. 내용과 판정이 그 build 의 것이고 그 build 에 든 케이스만 나왔다는 설명이다. */
   scope: { gameBuildId: string; build: string; note: string } | null
+  /** `folderId` 로 거를 때 숨긴 항목을 뺐으면 그 개수와 설명. 뺀 것이 없으면 없다. */
+  hiddenExcluded?: { count: number; note: string }
 }
 
 function buildScope(
@@ -256,9 +258,28 @@ export async function runTestCases(
     listTestCaseVersions(projectId, signal),
     filter.folderId === undefined ? Promise.resolve(null) : listFolderItems(projectId, filter.folderId, gameBuildId ?? null, signal),
   ])
-  const folderCaseIds =
-    folderItems === null ? undefined : new Set(folderItems.items.filter((item) => item.inVersion).map((item) => item.testCase.id))
-  return buildCaseList(cases, { ...filter, folderCaseIds }, offset, { folders, versions: library.versions }, gameBuildId)
+  const inFolder = folderItems === null ? null : folderCaseIdsOf(folderItems.items)
+  const result = buildCaseList(cases, { ...filter, folderCaseIds: inFolder?.caseIds }, offset, { folders, versions: library.versions }, gameBuildId)
+  if (inFolder === null || inFolder.hiddenExcluded === 0) return result
+  return {
+    ...result,
+    hiddenExcluded: {
+      count: inFolder.hiddenExcluded,
+      note: `${inFolder.hiddenExcluded} cases hidden in this folder are not listed, the same as the case library does by default.`,
+    },
+  }
+}
+
+/** 폴더 안 케이스 id. 케이스 라이브러리의 기본 보기처럼 숨긴 항목은 뺀다. 뺀 개수를 함께 돌려준다. */
+export function folderCaseIdsOf(items: readonly Pick<FolderItem, 'inVersion' | 'hidden' | 'testCase'>[]): {
+  caseIds: Set<string>
+  hiddenExcluded: number
+} {
+  const present = items.filter((item) => item.inVersion)
+  return {
+    caseIds: new Set(present.filter((item) => !item.hidden).map((item) => item.testCase.id)),
+    hiddenExcluded: present.filter((item) => item.hidden).length,
+  }
 }
 
 export async function runTestCase(

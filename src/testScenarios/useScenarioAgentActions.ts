@@ -19,6 +19,7 @@ import {
   convertToFreeBlockedReason,
   createScenarioAgentRunners,
   freeOnlyBlockedReason,
+  reusableRunBuild,
 } from './scenarioAgentRunners'
 import { caseIdsInDraft } from './scenarioAgentEdits'
 import type { ScenarioDraft } from './scenarioTypes'
@@ -26,9 +27,13 @@ import type { StepEditor } from './useStepEditor'
 
 export type ScenarioAgentActionsArgs = {
   projectId: string
+  /** 편집기가 보여 주는 시나리오의 id. */
+  scenarioId: number
   editor: StepEditor
   /** 테스트 런의 빌드 버전. 아직 읽는 중이면 null 이어도 된다 — 실행할 때 `?run=` 의 런을 다시 읽는다. */
   runBuild: RunGameBuild | null
+  /** `runBuild` 가 어느 런의 것인지. 이 값이 `?run=` 과 다르면 `runBuild` 는 이전 런의 것이라 쓰지 않는다. */
+  runBuildRunId?: string | null
   /**
    * 화면 쪽에서 막는 이유(시나리오를 읽는 중, chat 의 draft 를 열어 둠 등). 있으면 모든 action 이 막힌다.
    * 편집기의 draft 가 아직 이 시나리오의 것이 아닐 때 바꾸지 않게 하려는 것이다.
@@ -57,25 +62,27 @@ function findElement(ref: RefObject<HTMLElement | null> | undefined, selector: s
  * 에 등록되므로 아무 일도 하지 않는다.
  */
 export function useScenarioAgentActions(args: ScenarioAgentActionsArgs): void {
-  const { projectId, editor, runBuild, blockedReason = null, editorRef, titleRef } = args
+  const { projectId, scenarioId, editor, runBuild, runBuildRunId = null, blockedReason = null, editorRef, titleRef } = args
   const [searchParams] = useSearchParams()
   const runId = searchParams.get('run')
 
   // 실행부는 서버를 기다리는 동안에도 편집기의 최신 draft 를 읽어야 한다.
-  const latest = useRef({ editor, runBuild, runId })
+  const latest = useRef({ editor, runBuild, runBuildRunId, runId, scenarioId })
   useLayoutEffect(() => {
-    latest.current = { editor, runBuild, runId }
+    latest.current = { editor, runBuild, runBuildRunId, runId, scenarioId }
   })
 
   // action 을 실행할 때만 만든다. ref 를 읽는 함수라 render 중에 부르면 안 된다.
   const runners = () =>
     createScenarioAgentRunners({
+      readScenarioId: () => latest.current.scenarioId,
       readDraft: () => latest.current.editor.working,
       replaceDraft: (next) => latest.current.editor.replaceDraft(next),
       resolveRunBuild: async () => {
-        const { runBuild: knownBuild, runId: currentRunId } = latest.current
-        if (knownBuild !== null) return knownBuild
+        const { runBuild: knownBuild, runBuildRunId: knownRunId, runId: currentRunId } = latest.current
         if (currentRunId === null) return null
+        const reusable = reusableRunBuild(knownBuild, knownRunId, currentRunId)
+        if (reusable !== null) return reusable
         return (await getTestRun(projectId, currentRunId))?.gameBuild ?? null
       },
       listProjectCases: () => listTestCases(projectId),

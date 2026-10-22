@@ -10,7 +10,7 @@ import {
   removeFreeCases,
   selectTargetBuilds,
 } from './scenarioAgentEdits'
-import { createScenarioAgentRunners, NOT_FREE_REASON, type ScenarioAgentDependencies } from './scenarioAgentRunners'
+import { createScenarioAgentRunners, NOT_FREE_REASON, reusableRunBuild, SCENARIO_CHANGED_REASON, type ScenarioAgentDependencies } from './scenarioAgentRunners'
 import { buildFreeScenarioDraft, createEmptyStep, type ScenarioDraft, type ScenarioStep } from './scenarioTypes'
 
 function testCase(id: string, origin: 'MAP' | 'MANUAL' = 'MANUAL'): TestCase {
@@ -105,7 +105,7 @@ test('partitionCasesForBuild skips unknown and MAP cases', () => {
   ])
 })
 
-type Fake = ScenarioAgentDependencies & { draft: ScenarioDraft; added: { gameBuildId: string; caseIds: string[] }[]; invalidated: number }
+type Fake = ScenarioAgentDependencies & { scenarioId: number; draft: ScenarioDraft; added: { gameBuildId: string; caseIds: string[] }[]; invalidated: number }
 
 function fakeDependencies(options: {
   draft: ScenarioDraft
@@ -115,9 +115,11 @@ function fakeDependencies(options: {
   presentInBuild?: Record<string, string[]>
 }): Fake {
   const fake: Fake = {
+    scenarioId: 1,
     draft: options.draft,
     added: [],
     invalidated: 0,
+    readScenarioId: () => fake.scenarioId,
     readDraft: () => fake.draft,
     replaceDraft: (next) => {
       fake.draft = next(fake.draft)
@@ -229,4 +231,34 @@ test('addCasesToBuild adds to the run build and newer builds, reports skips and 
 test('addCasesToBuild fails without a run build', async () => {
   const fake = fakeDependencies({ draft: ORDERED })
   await assert.rejects(createScenarioAgentRunners(fake).addCasesToBuild({ caseIds: ['1'], scope: 'run_build' }), /no build version/)
+})
+
+test('convertToFree writes nothing when the open scenario changes while it waits', async () => {
+  const fake = fakeDependencies({ draft: ORDERED, project: [testCase('1')] })
+  const before = fake.draft
+  fake.listProjectCases = async () => {
+    fake.scenarioId = 2
+    return [testCase('1')]
+  }
+  await assert.rejects(createScenarioAgentRunners(fake).convertToFree({}), { message: SCENARIO_CHANGED_REASON })
+  assert.equal(fake.draft, before)
+})
+
+test('addCases writes nothing when the open scenario changes while it waits', async () => {
+  const fake = fakeDependencies({ draft: buildFreeScenarioDraft('F', ['1']), project: [testCase('1'), testCase('2')] })
+  const before = fake.draft
+  fake.listProjectCases = async () => {
+    fake.scenarioId = 2
+    return [testCase('1'), testCase('2')]
+  }
+  await assert.rejects(createScenarioAgentRunners(fake).addCases({ caseIds: ['2'] }), { message: SCENARIO_CHANGED_REASON })
+  assert.equal(fake.draft, before)
+})
+
+test('reusableRunBuild trusts a cached build only for the run it was read for', () => {
+  assert.equal(reusableRunBuild(RUN_BUILD, '7', '7'), RUN_BUILD)
+  assert.equal(reusableRunBuild(RUN_BUILD, '7', '8'), null)
+  assert.equal(reusableRunBuild(RUN_BUILD, null, '8'), null)
+  assert.equal(reusableRunBuild(RUN_BUILD, '7', null), null)
+  assert.equal(reusableRunBuild(null, '7', '7'), null)
 })
