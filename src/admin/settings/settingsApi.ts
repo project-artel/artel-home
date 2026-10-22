@@ -373,6 +373,47 @@ export async function checkBedrockModels(): Promise<BedrockCheck> {
   return parseBedrockCheck(await readJson(response))
 }
 
+/** The Claude API (Anthropic) key. Same status shape as the Bedrock key, without a region. */
+export type ClaudeCheck = BedrockCheck
+
+export interface ClaudeSettings {
+  configured: boolean
+  /** The server's masked tail such as `****abcd`. The full key is never sent. */
+  maskedKey: string | null
+  updatedAt: string | null
+  lastCheck: ClaudeCheck | null
+}
+
+export function parseClaudeSettings(body: unknown): ClaudeSettings {
+  const record = asRecord(body)
+  const lastCheck = record.lastCheck
+  return {
+    configured: record.configured === true,
+    maskedKey: asNullableString(record.maskedKey),
+    updatedAt: asNullableString(record.updatedAt),
+    lastCheck: typeof lastCheck === 'object' && lastCheck !== null ? parseBedrockCheck(lastCheck) : null,
+  }
+}
+
+export async function getClaudeSettings(signal?: AbortSignal): Promise<ClaudeSettings> {
+  return parseClaudeSettings(await readJson(await apiFetch('/api/admin/settings/anthropic', { signal })))
+}
+
+/** Sets the key (it must start with `sk-ant-`), or deletes it when `apiKey` is `null`. */
+export async function putClaudeKey(apiKey: string | null): Promise<ClaudeSettings> {
+  const response = await apiFetch('/api/admin/settings/anthropic', {
+    method: 'PUT',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ apiKey }),
+  })
+  return parseClaudeSettings(await readJson(response))
+}
+
+export async function checkClaudeModels(): Promise<ClaudeCheck> {
+  const response = await apiFetch('/api/admin/settings/anthropic/check', { method: 'POST' })
+  return parseBedrockCheck(await readJson(response))
+}
+
 /** The direct TypeSafe (Jev) API key. Same status shape as the Anthropic key, without a model check. */
 export interface TypesafeSettings {
   configured: boolean
@@ -433,6 +474,12 @@ export interface FeatureModels {
   /** What the server uses while `scenarioAuthoringModel` is `null`; `null` means the agent-server default. */
   scenarioAuthoringFallback: string | null
   decisionModel: string | null
+  /** `null` follows the scenario authoring model. */
+  projectAgentModel: string | null
+  /** What the server uses while `projectAgentModel` is `null`; `null` means the agent-server default. */
+  projectAgentFallback: string | null
+  /** Stored model ids whose route has no platform key. Saving one is allowed. */
+  keyMissing: string[]
   updatedAt: string | null
 }
 
@@ -442,6 +489,11 @@ export function parseFeatureModels(body: unknown): FeatureModels {
     scenarioAuthoringModel: asNullableString(row.scenarioAuthoringModel),
     scenarioAuthoringFallback: asNullableString(row.scenarioAuthoringFallback),
     decisionModel: asNullableString(row.decisionModel),
+    projectAgentModel: asNullableString(row.projectAgentModel),
+    projectAgentFallback: asNullableString(row.projectAgentFallback),
+    keyMissing: Array.isArray(row.keyMissing)
+      ? row.keyMissing.filter((id): id is string => typeof id === 'string')
+      : [],
     updatedAt: asNullableString(row.updatedAt),
   }
 }
@@ -450,9 +502,9 @@ export async function getFeatureModels(signal?: AbortSignal): Promise<FeatureMod
   return parseFeatureModels(await readJson(await apiFetch('/api/admin/settings/models', { signal })))
 }
 
-/** Both fields are always sent; `null` clears that feature's choice. Answers the saved state. */
+/** Every field is always sent; `null` clears that feature's choice. Answers the saved state. */
 export async function putFeatureModels(
-  request: Pick<FeatureModels, 'scenarioAuthoringModel' | 'decisionModel'>,
+  request: Pick<FeatureModels, 'scenarioAuthoringModel' | 'decisionModel' | 'projectAgentModel'>,
 ): Promise<FeatureModels> {
   const response = await apiFetch('/api/admin/settings/models', {
     method: 'PUT',
@@ -460,6 +512,7 @@ export async function putFeatureModels(
     body: JSON.stringify({
       scenarioAuthoringModel: request.scenarioAuthoringModel,
       decisionModel: request.decisionModel,
+      projectAgentModel: request.projectAgentModel,
     }),
   })
   return parseFeatureModels(await readJson(response))

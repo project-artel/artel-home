@@ -10,6 +10,7 @@ import {
   type FeatureModels,
 } from './settingsApi'
 import { ROUTE_LABEL } from './routeLabel'
+import { isModelKeyMissing } from './modelKeyWarning'
 import { useAdminFailure } from './useAdminRequest'
 
 /** A select value of `''` stands for `null`, the feature's own default. */
@@ -46,16 +47,28 @@ function ModelOptions({ models, selected }: { models: AdminLlmModel[]; selected:
   )
 }
 
-/** Which model the scenario authoring agent uses, and which one answers the Jev decision questions. */
+function KeyMissingWarning({ id }: { id: string }) {
+  const { t } = useI18n()
+  return (
+    <p className="adm-warning" id={id} role="status">
+      <strong>! {t.adminSettings.featureModels.modelKeyMissingTitle}</strong> {t.adminSettings.featureModels.modelKeyMissing}
+    </p>
+  )
+}
+
+/** Which model the scenario authoring agent and the project agent use, and which one answers the Jev decision questions. */
 export function FeatureModelsSection({
   openRouterKeyConfigured,
   typesafeKeyConfigured,
+  claudeKeyConfigured,
   onSaved,
 }: {
   /** `null` while the OpenRouter key state is still loading. */
   openRouterKeyConfigured: boolean | null
   /** `null` while the TypeSafe key state is still loading. */
   typesafeKeyConfigured: boolean | null
+  /** `null` while the Claude key state is still loading. */
+  claudeKeyConfigured: boolean | null
   onSaved: (message: string) => void
 }) {
   const { t } = useI18n()
@@ -63,10 +76,14 @@ export function FeatureModelsSection({
   const [saved, setSaved] = useState<FeatureModels | null>(null)
   const [authoring, setAuthoring] = useState(DEFAULT_VALUE)
   const [decision, setDecision] = useState(DEFAULT_VALUE)
+  const [projectAgent, setProjectAgent] = useState(DEFAULT_VALUE)
   const [saving, setSaving] = useState(false)
   const { error, setError, fail } = useAdminFailure()
   const authoringId = useId()
   const decisionId = useId()
+  const projectAgentId = useId()
+  const authoringWarningId = useId()
+  const projectAgentWarningId = useId()
   const warningId = useId()
 
   useEffect(() => {
@@ -77,6 +94,7 @@ export function FeatureModelsSection({
         setSaved(loaded)
         setAuthoring(toValue(loaded.scenarioAuthoringModel))
         setDecision(toValue(loaded.decisionModel))
+        setProjectAgent(toValue(loaded.projectAgentModel))
       })
       .catch((cause) => {
         if (!controller.signal.aborted) fail(cause)
@@ -93,10 +111,12 @@ export function FeatureModelsSection({
       const result = await putFeatureModels({
         scenarioAuthoringModel: toModelId(authoring),
         decisionModel: toModelId(decision),
+        projectAgentModel: toModelId(projectAgent),
       })
       setSaved(result)
       setAuthoring(toValue(result.scenarioAuthoringModel))
       setDecision(toValue(result.decisionModel))
+      setProjectAgent(toValue(result.projectAgentModel))
       onSaved(t.adminSettings.featureModels.saved)
     } catch (cause) {
       fail(cause)
@@ -106,11 +126,25 @@ export function FeatureModelsSection({
   }
 
   const fallback = saved?.scenarioAuthoringFallback ?? null
+  const projectAgentFallback = saved?.projectAgentFallback ?? null
+  const keyMissingFor = (value: string, savedValue: string | null) =>
+    models !== null &&
+    saved !== null &&
+    isModelKeyMissing({
+      modelId: toModelId(value),
+      models,
+      keyMissing: saved.keyMissing,
+      savedModelId: savedValue,
+      claudeKeyConfigured,
+    })
+  const authoringKeyMissing = keyMissingFor(authoring, saved?.scenarioAuthoringModel ?? null)
+  const projectAgentKeyMissing = keyMissingFor(projectAgent, saved?.projectAgentModel ?? null)
   const showJevWarning = decision === DEFAULT_VALUE && openRouterKeyConfigured === false && typesafeKeyConfigured === false
   const unchanged =
     saved !== null &&
     authoring === toValue(saved.scenarioAuthoringModel) &&
-    decision === toValue(saved.decisionModel)
+    decision === toValue(saved.decisionModel) &&
+    projectAgent === toValue(saved.projectAgentModel)
 
   return (
     <section aria-labelledby="adm-feature-models-title">
@@ -141,11 +175,13 @@ export function FeatureModelsSection({
               className="control adm-input"
               value={authoring}
               disabled={saving}
+              aria-describedby={authoringKeyMissing ? authoringWarningId : undefined}
               onChange={(event) => setAuthoring(event.target.value)}
             >
               <option value={DEFAULT_VALUE}>{t.adminSettings.featureModels.serverDefault(fallback)}</option>
               <ModelOptions models={models} selected={authoring} />
             </select>
+            {authoringKeyMissing && <KeyMissingWarning id={authoringWarningId} />}
           </span>
           <span className="adm-field adm-field--wide">
             <label className="field__label" htmlFor={decisionId}>
@@ -163,6 +199,26 @@ export function FeatureModelsSection({
               <option value={DEFAULT_VALUE}>{t.adminSettings.featureModels.jev(typesafeKeyConfigured === true)}</option>
               <ModelOptions models={models} selected={decision} />
             </select>
+          </span>
+          <span className="adm-field adm-field--wide">
+            <label className="field__label" htmlFor={projectAgentId}>
+              {t.adminSettings.featureModels.projectAgent}
+              <InfoHint>{t.adminSettings.featureModels.projectAgentHint}</InfoHint>
+            </label>
+            <select
+              id={projectAgentId}
+              className="control adm-input"
+              value={projectAgent}
+              disabled={saving}
+              aria-describedby={projectAgentKeyMissing ? projectAgentWarningId : undefined}
+              onChange={(event) => setProjectAgent(event.target.value)}
+            >
+              <option value={DEFAULT_VALUE}>
+                {t.adminSettings.featureModels.followsAuthoring(projectAgentFallback)}
+              </option>
+              <ModelOptions models={models} selected={projectAgent} />
+            </select>
+            {projectAgentKeyMissing && <KeyMissingWarning id={projectAgentWarningId} />}
           </span>
           <button type="submit" className="control control--action" disabled={saving || unchanged}>
             {saving ? t.adminSettings.common.saving : t.adminSettings.featureModels.save}

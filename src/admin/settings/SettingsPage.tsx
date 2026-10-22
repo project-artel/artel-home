@@ -10,6 +10,7 @@ import {
 } from './settingsApi'
 import { ConfirmButton } from './ConfirmButton'
 import { BedrockKeySection } from './BedrockKeySection'
+import { ClaudeKeySection } from './ClaudeKeySection'
 import { CacheInvalidationSection } from './CacheInvalidationSection'
 import { LlmModelsSection } from './LlmModelsSection'
 import { TypesafeKeySection } from './TypesafeKeySection'
@@ -33,6 +34,7 @@ export default function SettingsPage() {
   const [check, setCheck] = useState<LlmKeyCheck | null>(null)
   const [announcement, setAnnouncement] = useState('')
   const [typesafeConfigured, setTypesafeConfigured] = useState<boolean | null>(null)
+  const [claudeConfigured, setClaudeConfigured] = useState<boolean | null>(null)
   const { error, setError, fail } = useAdminFailure()
   const keyFieldId = useId()
 
@@ -224,6 +226,8 @@ export default function SettingsPage() {
 
         <BedrockKeySection />
 
+        <ClaudeKeySection onConfiguredChange={setClaudeConfigured} />
+
         <TypesafeKeySection onConfiguredChange={setTypesafeConfigured} />
 
         <CacheInvalidationSection />
@@ -232,6 +236,7 @@ export default function SettingsPage() {
 
         <FeatureModelsSection openRouterKeyConfigured={settings === null ? null : settings.configured}
           typesafeKeyConfigured={typesafeConfigured}
+          claudeKeyConfigured={claudeConfigured}
           onSaved={setAnnouncement} />
 
         <TelemetrySection />
