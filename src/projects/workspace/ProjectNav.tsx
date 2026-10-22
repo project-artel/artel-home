@@ -149,7 +149,7 @@ export function ProjectNav({
 
       <div className="project-nav-groups">
         {[null, ...WORKSPACE_NAV_GROUPS].map((group) => (
-          <section className="project-nav-group" key={group ?? 'primary'} aria-labelledby={group === null ? undefined : 'project-nav-' + group}>
+          <section className={`project-nav-group project-nav-group--${group ?? 'primary'}`} key={group ?? 'primary'} aria-labelledby={group === null ? undefined : 'project-nav-' + group}>
             {group !== null && (
               <h2 className={collapsed ? 'visually-hidden' : 'project-nav-group-label'} id={'project-nav-' + group}>
                 {workspace.navGroups[group]}
