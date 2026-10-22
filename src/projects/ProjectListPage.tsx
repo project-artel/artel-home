@@ -30,6 +30,7 @@ export function ProjectListPage() {
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState<ProjectSort>('recent')
   const [page, setPage] = useState(0)
+  const [favoritesOnly, setFavoritesOnly] = useState(false)
   const navigate = useNavigate()
   const { t } = useI18n()
   const copy = t.projects.list
@@ -40,7 +41,11 @@ export function ProjectListPage() {
     if (status === 'ready' && hasMore && !loadingMore) loadMore()
   }, [status, hasMore, loadingMore, loadMore])
 
-  const arranged = useMemo(() => arrangeProjects(projects, { query, sort, favorites }), [projects, query, sort, favorites])
+  const arranged = useMemo(
+    () => arrangeProjects(projects, { query, sort, favorites, favoritesOnly }),
+    [projects, query, sort, favorites, favoritesOnly],
+  )
+  const favoriteCount = projects.filter((project) => favorites.has(project.id)).length
   const pages = pageCount(arranged.length)
   const currentPage = Math.min(page, pages - 1)
   const shown = pageSlice(arranged, currentPage)
@@ -105,6 +110,22 @@ export function ProjectListPage() {
               </button>
             )}
           </label>
+          {/* 즐겨찾기만 거르기. 꺼 두어도 즐겨찾기는 늘 앞에 온다. */}
+          <button
+            aria-pressed={favoritesOnly}
+            className={`filter-chip${favoritesOnly ? ' is-on' : ''}`}
+            onClick={() => {
+              setFavoritesOnly((current) => !current)
+              setPage(0)
+            }}
+            type="button"
+          >
+            <svg aria-hidden="true" height="14" viewBox="0 0 24 24" width="14">
+              <path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z" />
+            </svg>
+            {copy.favoritesOnly}
+            <span className="filter-chip-count">{favoriteCount}</span>
+          </button>
           <div aria-label={copy.sortLabel} className="segmented segmented--compact" role="group">
             {(['recent', 'name'] as const).map((one) => (
               <button
@@ -178,10 +199,11 @@ export function ProjectListPage() {
               </button>
             </li>
           </ul>
-          {arranged.length === 0 && <p className="detail-empty">{copy.noMatch}</p>}
+          {arranged.length === 0 && (
+            <p className="detail-empty">{favoritesOnly && query.trim() === '' ? copy.noFavorites : copy.noMatch}</p>
+          )}
 
           <div className="project-pager">
-            <span className="list-count">{copy.showingCount(arranged.length, total)}</span>
             {pages > 1 && (
               <div aria-label={copy.pagerLabel} className="project-pager-nav" role="group">
                 <button

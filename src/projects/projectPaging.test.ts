@@ -24,6 +24,11 @@ describe('arrangeProjects', () => {
     assert.deepEqual(arranged.map((one) => one.name), ['ds', 'new world', 'wordventure'])
   })
 
+  it('keeps only favorites when asked', () => {
+    const arranged = arrangeProjects(projects, { query: '', sort: 'recent', favorites: new Set(['2', '1']), favoritesOnly: true })
+    assert.deepEqual(arranged.map((one) => one.id), ['2', '1'])
+  })
+
   it('finds by name or description, ignoring case', () => {
     assert.deepEqual(arrangeProjects(projects, { query: 'PUZZLE', sort: 'recent', favorites: new Set() }).map((one) => one.id), ['1'])
   })

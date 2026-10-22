@@ -5,16 +5,22 @@ export const PROJECTS_PER_PAGE = 7
 
 export type ProjectSort = 'recent' | 'name'
 
-/** 찾기 → 정렬. 즐겨찾기는 정렬과 상관없이 늘 앞에 온다. */
+/** (즐겨찾기만) → 찾기 → 정렬. 즐겨찾기는 정렬과 상관없이 늘 앞에 온다. */
 export function arrangeProjects(
   projects: readonly ProjectSummary[],
-  { query, sort, favorites }: { query: string; sort: ProjectSort; favorites: ReadonlySet<string> },
+  {
+    query,
+    sort,
+    favorites,
+    favoritesOnly = false,
+  }: { query: string; sort: ProjectSort; favorites: ReadonlySet<string>; favoritesOnly?: boolean },
 ): ProjectSummary[] {
   const needle = query.trim().toLowerCase()
-  const matched =
-    needle === ''
-      ? projects
-      : projects.filter((project) => `${project.name} ${project.description ?? ''}`.toLowerCase().includes(needle))
+  const matched = projects.filter(
+    (project) =>
+      (!favoritesOnly || favorites.has(project.id)) &&
+      (needle === '' || `${project.name} ${project.description ?? ''}`.toLowerCase().includes(needle)),
+  )
   return [...matched].sort((a, b) => {
     const favorite = Number(favorites.has(b.id)) - Number(favorites.has(a.id))
     if (favorite !== 0) return favorite
