@@ -11416,8 +11416,8 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
 .ql-rows { margin: 0; padding: var(--space-1) 0; list-style: none; }
 .ql-issue { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: 'sev title status' 'sev meta status'; column-gap: var(--space-3); align-items: center; padding: var(--space-2) var(--space-4); color: var(--color-text-primary); text-decoration: none; }
 .ql-issue:hover { background: var(--color-bg-hover); }
-.ql-sev { grid-area: sev; padding: 1px 6px; border-radius: var(--radius-sm); background: var(--color-status-warning-muted); color: var(--color-text-primary); font-family: var(--font-mono); font-size: 10px; font-weight: 700; }
-.ql-sev--blocker, .ql-sev--critical, .ql-sev--major { background: var(--color-status-critical-muted); }
+/* 심각도 색은 이슈 화면의 `.severity-tag` 하나다(ARTEL-1205). 여기는 칸 자리만 잡는다. */
+.ql-sev { grid-area: sev; display: inline-flex; color: var(--color-text-muted); font-size: 11px; }
 .ql-issue-title { grid-area: title; overflow: hidden; font-size: 13px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .ql-issue-meta { grid-area: meta; overflow: hidden; color: var(--color-text-muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 .ql-issue-status { grid-area: status; color: var(--color-text-secondary); font-size: 12px; }
