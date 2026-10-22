@@ -1,4 +1,18 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "buildCommand": "npm run build:vercel",
+  "rewrites": [
+    {
+      "source": "/console",
+      "destination": "/console/index.html"
+    },
+    {
+      "source": "/console/:path*",
+      "destination": "/console/index.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
 }

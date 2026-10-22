@@ -16,7 +16,14 @@ export function orchestrationUrlFor(path: string): string {
 }
 
 export function getOAuthLoginUrl(path: string): string {
-  return orchestrationUrlFor(path)
+  const loginUrl = orchestrationUrlFor(path)
+  if ((import.meta.env.BASE_URL ?? '/') === '/') return loginUrl
+  const url = new URL(loginUrl, window.location.origin)
+  const returnTo = new URL(window.location.href)
+  returnTo.searchParams.delete('error')
+  returnTo.searchParams.delete('auth_error')
+  url.searchParams.set('return_to', returnTo.href)
+  return url.href
 }
 
 export class UnauthorizedError extends Error {
