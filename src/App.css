@@ -11244,6 +11244,7 @@ col.mct-c-updated { width: 12%; }
 .free-case-title{ min-width:0; overflow-wrap:anywhere; font-size:13px; font-weight:600; color:var(--color-text-primary); }
 .free-case-expected{ margin:0; font-size:12px; line-height:1.5; color:var(--color-text-secondary); overflow-wrap:anywhere; }
 .free-case-expected-label{ font-weight:600; color:var(--color-text-muted); }
+.free-case-flag{ display:inline-flex; align-items:center; gap:var(--space-1); padding:0 6px; border:1px solid var(--color-status-warning); border-radius:999px; font-size:11px; font-weight:600; line-height:18px; color:var(--color-text-primary); background:var(--color-status-warning-muted); white-space:nowrap; }
 .free-add-list{ list-style:none; margin:0; padding:0; max-height:50vh; overflow-y:auto; border:1px solid var(--color-border-subtle); border-radius:var(--radius-md); }
 .free-add-row{ display:flex; align-items:center; gap:var(--space-2); min-height:40px; padding:var(--space-2) var(--space-3); cursor:pointer; font-size:13px; color:var(--color-text-primary); }
 .free-add-row:hover{ background:var(--color-bg-hover); }

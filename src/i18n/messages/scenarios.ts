@@ -743,6 +743,10 @@ export const scenariosEn = {
     expected: 'Expected',
     noExpected: 'No expected result',
     missingCase: 'This test case no longer exists in the project.',
+    notInBuild: (version: string | null) => (version === null ? 'Not in this build' : `Not in this build (${version})`),
+    notInBuildHint: 'A QA run on this build cannot verify this test case. Add it to the build version from the case library, or remove it from the scenario.',
+    casesLoading: 'Loading test cases…',
+    casesLoadFailed: 'The test cases could not be loaded, so their content is not shown. Reload the page to try again.',
     remove: 'Remove from scenario',
     add: 'Add test cases',
     addDialog: {
@@ -1463,6 +1467,10 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     expected: '기대 결과',
     noExpected: '기대 결과 없음',
     missingCase: '이 테스트 케이스는 프로젝트에 더 이상 없습니다.',
+    notInBuild: (version: string | null) => (version === null ? '이 빌드 버전에 없는 TC' : `이 빌드 버전(${version})에 없는 TC`),
+    notInBuildHint: '이 빌드로 돌리는 QA 는 이 테스트 케이스를 검증하지 못합니다. 케이스 라이브러리에서 이 빌드 버전에 넣거나 시나리오에서 빼 주세요.',
+    casesLoading: '테스트 케이스를 불러오는 중…',
+    casesLoadFailed: '테스트 케이스를 불러오지 못해 내용을 보이지 못합니다. 페이지를 새로고침해 다시 시도해 주세요.',
     remove: '시나리오에서 빼기',
     add: '테스트 케이스 추가',
     addDialog: {
