@@ -23,6 +23,7 @@ test('the guides the project agent promises exist', () => {
   for (const id of [
     'sdk-connect', 'cli-install', 'cli-run-qa', 'skills-install', 'mcp-connect',
     'account-and-keys', 'create-project', 'invite-members', 'admin',
+    'build-versions', 'free-scenarios',
   ]) {
     assert.ok(findGuide(id) !== undefined, id)
   }
