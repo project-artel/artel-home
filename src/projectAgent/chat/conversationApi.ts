@@ -47,6 +47,7 @@ export type ToolResultRecord = {
  * - ASSISTANT: `toolCalls`
  * - TOOL_RESULT: `toolResult`
  * - EVENT, NOTICE: `kind`
+ * - NOTICE: `cause`, `model`, `keySource` (실패 원인. 없는 서버에서는 null)
  */
 export type AgentMessage = {
   id: number
@@ -57,6 +58,9 @@ export type AgentMessage = {
   toolCalls: ToolCall[]
   toolResult: ToolResultRecord | null
   kind: string | null
+  cause: string | null
+  model: string | null
+  keySource: 'platform' | 'user' | null
 }
 
 /** 숫자 id 를 읽는다. Long 이 문자열로 오는 경우도 받는다. */
@@ -117,6 +121,9 @@ export function parseMessage(data: unknown): AgentMessage | null {
   if (id === null || role === undefined) return null
   const payload = asRecord(record.payload)
   const kind = asString(payload?.kind)
+  const isNotice = role === 'NOTICE'
+  const cause = asString(payload?.cause)
+  const model = asString(payload?.model)
   return {
     id,
     conversationId: asId(record.conversationId) ?? 0,
@@ -126,6 +133,9 @@ export function parseMessage(data: unknown): AgentMessage | null {
     toolCalls: role === 'ASSISTANT' ? parseToolCalls(payload?.toolCalls) : [],
     toolResult: role === 'TOOL_RESULT' ? parseToolResult(payload) : null,
     kind: (role === 'EVENT' || role === 'NOTICE') && kind.length > 0 ? kind : null,
+    cause: isNotice && cause.length > 0 ? cause : null,
+    model: isNotice && model.length > 0 ? model : null,
+    keySource: isNotice && (payload?.keySource === 'platform' || payload?.keySource === 'user') ? payload.keySource : null,
   }
 }
 
