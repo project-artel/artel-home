@@ -37,6 +37,28 @@ function CloseIcon() {
 /** 프로젝트 agent 대화창. 대화 상태는 `AgentSessionProvider` 가 갖고, 여기서는 그리기만 한다. */
 export function AgentChatPanel({ onClose, wide = false }: { onClose: () => void; wide?: boolean }) {
   const { t } = useI18n()
+  return (
+    <aside aria-label={t.projectAgent.panelLabel} className={'agent-panel' + (wide ? ' is-wide' : '')}>
+      <AgentChatBody onClose={onClose} />
+    </aside>
+  )
+}
+
+/**
+ * 시나리오 화면 오른쪽 칸처럼 dock 밖에서 같은 대화를 그릴 때 쓴다. 닫기 버튼이 없다.
+ * 대화 상태는 dock 과 같은 `AgentSessionProvider` 의 것이라 두 곳이 같은 session 을 본다.
+ */
+export function AgentChatEmbedded() {
+  const { t } = useI18n()
+  return (
+    <section aria-label={t.projectAgent.panelLabel} className="agent-panel is-embedded">
+      <AgentChatBody />
+    </section>
+  )
+}
+
+function AgentChatBody({ onClose }: { onClose?: () => void }) {
+  const { t } = useI18n()
   const copy = t.projectAgent
   const session = useAgentSession()
   const thread = session?.view.thread ?? null
@@ -44,7 +66,7 @@ export function AgentChatPanel({ onClose, wide = false }: { onClose: () => void;
     session === null ||
     (session.view.items.length === 0 && (thread === null || thread.load === 'ready') && !session.view.busy)
   return (
-    <aside aria-label={copy.panelLabel} className={'agent-panel' + (wide ? ' is-wide' : '')}>
+    <>
       <header className="agent-panel__header">
         <span className="agent-panel__identity">
           <AgentIcon />
@@ -65,9 +87,11 @@ export function AgentChatPanel({ onClose, wide = false }: { onClose: () => void;
               <PlusIcon />
             </button>
           )}
-          <button aria-label={copy.close} className="agent-icon-button" onClick={onClose} type="button">
-            <CloseIcon />
-          </button>
+          {onClose !== undefined && (
+            <button aria-label={copy.close} className="agent-icon-button" onClick={onClose} type="button">
+              <CloseIcon />
+            </button>
+          )}
         </span>
       </header>
       <div className={'agent-panel__body' + (empty ? ' is-empty' : '')}>
@@ -84,7 +108,7 @@ export function AgentChatPanel({ onClose, wide = false }: { onClose: () => void;
         </div>
       </div>
       {session !== null && <AgentComposer session={session} />}
-    </aside>
+    </>
   )
 }
 
