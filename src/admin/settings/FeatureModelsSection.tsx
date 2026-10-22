@@ -155,7 +155,7 @@ export function FeatureModelsSection({
         </h2>
       </div>
       {error !== null && (
-        <p className="notice notice--critical" role="alert">
+        <p className="notice notice--critical adm-section-notice" role="alert">
           {error}
         </p>
       )}
@@ -164,71 +164,83 @@ export function FeatureModelsSection({
           {error === null ? t.adminSettings.featureModels.loading : t.adminSettings.featureModels.failed}
         </p>
       ) : (
-        <form className="adm-form" onSubmit={save}>
-          <span className="adm-field adm-field--wide">
-            <label className="field__label" htmlFor={authoringId}>
+        <form className="adm-panel" onSubmit={save}>
+          <div className="adm-feature">
+            <label className="adm-feature__label" htmlFor={authoringId}>
               {t.adminSettings.featureModels.authoring}
               <InfoHint>{t.adminSettings.featureModels.authoringHint}</InfoHint>
             </label>
-            <select
-              id={authoringId}
-              className="control adm-input"
-              value={authoring}
-              disabled={saving}
-              aria-describedby={authoringKeyMissing ? authoringWarningId : undefined}
-              onChange={(event) => setAuthoring(event.target.value)}
-            >
-              <option value={DEFAULT_VALUE}>{t.adminSettings.featureModels.serverDefault(fallback)}</option>
-              <ModelOptions models={models} selected={authoring} />
-            </select>
-            {authoringKeyMissing && <KeyMissingWarning id={authoringWarningId} />}
-          </span>
-          <span className="adm-field adm-field--wide">
-            <label className="field__label" htmlFor={decisionId}>
+            <div className="adm-feature__control">
+              <select
+                id={authoringId}
+                className="control adm-input"
+                value={authoring}
+                disabled={saving}
+                aria-describedby={authoringKeyMissing ? authoringWarningId : undefined}
+                onChange={(event) => setAuthoring(event.target.value)}
+              >
+                <option value={DEFAULT_VALUE}>{t.adminSettings.featureModels.serverDefault(fallback)}</option>
+                <ModelOptions models={models} selected={authoring} />
+              </select>
+              {authoringKeyMissing && <KeyMissingWarning id={authoringWarningId} />}
+            </div>
+          </div>
+          <div className="adm-feature">
+            <label className="adm-feature__label" htmlFor={decisionId}>
               {t.adminSettings.featureModels.decision}
               <InfoHint>{t.adminSettings.featureModels.decisionHint}</InfoHint>
             </label>
-            <select
-              id={decisionId}
-              className="control adm-input"
-              value={decision}
-              disabled={saving}
-              aria-describedby={showJevWarning ? warningId : undefined}
-              onChange={(event) => setDecision(event.target.value)}
-            >
-              <option value={DEFAULT_VALUE}>{t.adminSettings.featureModels.jev(typesafeKeyConfigured === true)}</option>
-              <ModelOptions models={models} selected={decision} />
-            </select>
-          </span>
-          <span className="adm-field adm-field--wide">
-            <label className="field__label" htmlFor={projectAgentId}>
+            <div className="adm-feature__control">
+              <select
+                id={decisionId}
+                className="control adm-input"
+                value={decision}
+                disabled={saving}
+                aria-describedby={showJevWarning ? warningId : undefined}
+                onChange={(event) => setDecision(event.target.value)}
+              >
+                <option value={DEFAULT_VALUE}>{t.adminSettings.featureModels.jev(typesafeKeyConfigured === true)}</option>
+                <ModelOptions models={models} selected={decision} />
+              </select>
+              {showJevWarning && (
+                <p className="adm-warning" id={warningId} role="status">
+                  <strong>! {t.adminSettings.featureModels.jevKeyMissingTitle}</strong>{' '}
+                  {t.adminSettings.featureModels.jevKeyMissing}
+                </p>
+              )}
+            </div>
+          </div>
+          <div className="adm-feature">
+            <label className="adm-feature__label" htmlFor={projectAgentId}>
               {t.adminSettings.featureModels.projectAgent}
               <InfoHint>{t.adminSettings.featureModels.projectAgentHint}</InfoHint>
             </label>
-            <select
-              id={projectAgentId}
-              className="control adm-input"
-              value={projectAgent}
-              disabled={saving}
-              aria-describedby={projectAgentKeyMissing ? projectAgentWarningId : undefined}
-              onChange={(event) => setProjectAgent(event.target.value)}
-            >
-              <option value={DEFAULT_VALUE}>
-                {t.adminSettings.featureModels.followsAuthoring(projectAgentFallback)}
-              </option>
-              <ModelOptions models={models} selected={projectAgent} />
-            </select>
-            {projectAgentKeyMissing && <KeyMissingWarning id={projectAgentWarningId} />}
-          </span>
-          <button type="submit" className="control control--action" disabled={saving || unchanged}>
-            {saving ? t.adminSettings.common.saving : t.adminSettings.featureModels.save}
-          </button>
-          {showJevWarning && (
-            <p className="adm-warning" id={warningId} role="status">
-              <strong>! {t.adminSettings.featureModels.jevKeyMissingTitle}</strong>{' '}
-              {t.adminSettings.featureModels.jevKeyMissing}
-            </p>
-          )}
+            <div className="adm-feature__control">
+              <select
+                id={projectAgentId}
+                className="control adm-input"
+                value={projectAgent}
+                disabled={saving}
+                aria-describedby={projectAgentKeyMissing ? projectAgentWarningId : undefined}
+                onChange={(event) => setProjectAgent(event.target.value)}
+              >
+                <option value={DEFAULT_VALUE}>
+                  {t.adminSettings.featureModels.followsAuthoring(projectAgentFallback)}
+                </option>
+                <ModelOptions models={models} selected={projectAgent} />
+              </select>
+              {projectAgentKeyMissing && <KeyMissingWarning id={projectAgentWarningId} />}
+            </div>
+          </div>
+          <div className="adm-panel__footer">
+            <span className={`adm-save-state${unchanged ? '' : ' adm-save-state--dirty'}`}>
+              <span className="adm-save-state__dot" aria-hidden="true" />
+              {unchanged ? t.adminSettings.featureModels.upToDate : t.adminSettings.featureModels.unsaved}
+            </span>
+            <button type="submit" className="control control--action adm-primary" disabled={saving || unchanged}>
+              {saving ? t.adminSettings.common.saving : t.adminSettings.featureModels.save}
+            </button>
+          </div>
         </form>
       )}
     </section>

@@ -1,10 +1,9 @@
-import { useEffect, useId, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useI18n } from '../../i18n/useI18n'
 import { adminFormat } from '../shared/format'
 import { getTypesafeSettings, putTypesafeKey, type TypesafeSettings } from './settingsApi'
-import { ConfirmButton } from './ConfirmButton'
 import { useAdminFailure } from './useAdminRequest'
-import { InfoHint } from '../../design-system/primitives/InfoHint'
+import { ProviderKeyCard, type KeyFact, type KeyStatus } from './ProviderKeyCard'
 
 /** Direct TypeSafe (Jev) key: masked key, save, delete. There is no model check for this key. */
 export function TypesafeKeySection({
@@ -20,7 +19,6 @@ export function TypesafeKeySection({
   const [saving, setSaving] = useState(false)
   const [announcement, setAnnouncement] = useState('')
   const { error, setError, fail } = useAdminFailure()
-  const keyFieldId = useId()
 
   useEffect(() => {
     const controller = new AbortController()
@@ -65,72 +63,37 @@ export function TypesafeKeySection({
     }
   }
 
+  const hasKey = settings !== null && settings.configured
+  const status: KeyStatus = settings === null ? (loading ? 'loading' : 'failed') : hasKey ? 'configured' : 'missing'
+  const facts: KeyFact[] =
+    settings === null
+      ? []
+      : [
+          ...(settings.configured
+            ? [{ label: t.adminSettings.common.currentKey, value: settings.maskedKey ?? t.adminSettings.common.saved, mono: true }]
+            : []),
+          ...(settings.updatedAt !== null
+            ? [{ label: t.adminSettings.common.savedAt, value: adminFormat(locale).timestamp(settings.updatedAt) }]
+            : []),
+        ]
+
   return (
-    <section aria-labelledby="adm-typesafe-title">
-      <div className="section__head">
-        <h2 className="section__title" id="adm-typesafe-title">
-          {t.adminSettings.typesafe.title}
-          <InfoHint>{t.adminSettings.typesafe.hint}</InfoHint>
-        </h2>
-      </div>
-
-      {error !== null && (
-        <p className="notice notice--critical" role="alert">
-          {error}
-        </p>
-      )}
-
-      {settings === null ? (
-        <p className="notice">{loading ? t.adminSettings.common.loading : t.adminSettings.common.failed}</p>
-      ) : (
-        <dl className="adm-facts">
-          <div>
-            <dt>{t.adminSettings.common.currentKey}</dt>
-            <dd className="mono">
-              {settings.configured ? (settings.maskedKey ?? t.adminSettings.common.saved) : t.adminSettings.common.none}
-            </dd>
-          </div>
-          {settings.updatedAt !== null && (
-            <div>
-              <dt>{t.adminSettings.common.savedAt}</dt>
-              <dd>{adminFormat(locale).timestamp(settings.updatedAt)}</dd>
-            </div>
-          )}
-        </dl>
-      )}
-
-      <form className="adm-form" onSubmit={saveKey}>
-        <span className="adm-field adm-field--wide">
-          <label className="field__label" htmlFor={keyFieldId}>
-            {t.adminSettings.common.newKey}
-            <InfoHint>{t.adminSettings.typesafe.keyHint}</InfoHint>
-          </label>
-          <input
-            id={keyFieldId}
-            className="control adm-input mono"
-            type="password"
-            autoComplete="new-password"
-            spellCheck={false}
-            value={keyInput}
-            onChange={(event) => setKeyInput(event.target.value)}
-          />
-        </span>
-        <button type="submit" className="control control--action" disabled={saving || keyInput.trim() === ''}>
-          {saving ? t.adminSettings.common.saving : t.adminSettings.common.saveKey}
-        </button>
-        {settings !== null && settings.configured && (
-          <ConfirmButton
-            label={t.adminSettings.common.deleteKey}
-            confirmLabel={t.adminSettings.common.delete}
-            disabled={saving}
-            onConfirm={() => void save(null)}
-          />
-        )}
-      </form>
-
-      <p className="adm-visually-hidden" aria-live="polite">
-        {announcement}
-      </p>
-    </section>
+    <ProviderKeyCard
+      titleId="adm-typesafe-title"
+      title={t.adminSettings.typesafe.title}
+      hint={t.adminSettings.typesafe.hint}
+      status={status}
+      facts={facts}
+      error={error}
+      keyHint={t.adminSettings.typesafe.keyHint}
+      keyValue={keyInput}
+      onKeyChange={setKeyInput}
+      onSubmit={saveKey}
+      saving={saving}
+      canDelete={hasKey}
+      onDelete={() => void save(null)}
+      check={null}
+      announcement={announcement}
+    />
   )
 }

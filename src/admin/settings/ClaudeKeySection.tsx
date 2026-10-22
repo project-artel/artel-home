@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useI18n } from '../../i18n/useI18n'
 import { adminFormat } from '../shared/format'
 import {
@@ -8,76 +8,34 @@ import {
   type ClaudeCheck,
   type ClaudeSettings,
 } from './settingsApi'
-import { ConfirmButton } from './ConfirmButton'
 import { useAdminFailure } from './useAdminRequest'
-import { InfoHint } from '../../design-system/primitives/InfoHint'
-
-export function ClaudeFacts({ settings }: { settings: ClaudeSettings }) {
-  const { t, locale } = useI18n()
-  return (
-    <dl className="adm-facts">
-      <div>
-        <dt>{t.adminSettings.common.currentKey}</dt>
-        <dd className="mono">{settings.configured ? (settings.maskedKey ?? t.adminSettings.common.saved) : t.adminSettings.common.none}</dd>
-      </div>
-      {settings.updatedAt !== null && (
-        <div>
-          <dt>{t.adminSettings.common.savedAt}</dt>
-          <dd>{adminFormat(locale).timestamp(settings.updatedAt)}</dd>
-        </div>
-      )}
-    </dl>
-  )
-}
+import { KeyCheckResult, ProviderKeyCard, type KeyFact, type KeyStatus } from './ProviderKeyCard'
 
 export function ClaudeCheckResult({ check }: { check: ClaudeCheck }) {
   const { t, locale } = useI18n()
   const format = adminFormat(locale)
   const reachableCount = check.models.filter((model) => model.reachable).length
   return (
-    <div className="adm-check">
-      <p className="section__note section__note--block">
-        {!check.keyConfigured
+    <KeyCheckResult
+      summary={
+        !check.keyConfigured
           ? t.adminSettings.claude.noKey
           : check.models.length === 0
             ? t.adminSettings.claude.noModels
-            : t.adminSettings.claude.checkSummary(format.count(check.models.length), format.count(reachableCount))}
-        {check.checkedAt !== null && t.adminSettings.common.checkedAt(format.timestamp(check.checkedAt))}
-      </p>
-      {check.models.length > 0 && (
-        <div className="table-scroll">
-          <table className="table">
-            <caption className="adm-visually-hidden">{t.adminSettings.claude.checkCaption}</caption>
-            <thead>
-              <tr>
-                <th scope="col">{t.adminSettings.common.model}</th>
-                <th scope="col">{t.adminSettings.common.access}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {check.models.map((model) => (
-                <tr key={model.id}>
-                  <td className="mono">{model.id}</td>
-                  <td>
-                    <span className="status">
-                      <span
-                        className={`status__dot ${model.reachable ? 'status__dot--completed' : 'status__dot--failed'}`}
-                        aria-hidden="true"
-                      />
-                      {model.reachable ? t.adminSettings.common.reachable : (model.error ?? t.adminSettings.common.unreachable)}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
+            : t.adminSettings.claude.checkSummary(format.count(check.models.length), format.count(reachableCount))
+      }
+      checkedAt={check.checkedAt}
+      caption={t.adminSettings.claude.checkCaption}
+      rows={check.models.map((model) => ({
+        id: model.id,
+        reachable: model.reachable,
+        detail: model.reachable ? null : model.error,
+      }))}
+    />
   )
 }
 
-/** Claude API key: same save, delete and check states as the Bedrock section. */
+/** Claude API key: same save, delete and check states as the Bedrock card. */
 export function ClaudeKeySection({
   onConfiguredChange,
 }: {
@@ -93,7 +51,6 @@ export function ClaudeKeySection({
   const [check, setCheck] = useState<ClaudeCheck | null>(null)
   const [announcement, setAnnouncement] = useState('')
   const { error, setError, fail } = useAdminFailure()
-  const keyFieldId = useId()
 
   useEffect(() => {
     const controller = new AbortController()
@@ -156,73 +113,37 @@ export function ClaudeKeySection({
   }
 
   const hasKey = settings !== null && settings.configured
+  const status: KeyStatus = settings === null ? (loading ? 'loading' : 'failed') : hasKey ? 'configured' : 'missing'
+  const facts: KeyFact[] =
+    settings === null
+      ? []
+      : [
+          ...(settings.configured
+            ? [{ label: t.adminSettings.common.currentKey, value: settings.maskedKey ?? t.adminSettings.common.saved, mono: true }]
+            : []),
+          ...(settings.updatedAt !== null
+            ? [{ label: t.adminSettings.common.savedAt, value: adminFormat(locale).timestamp(settings.updatedAt) }]
+            : []),
+        ]
 
   return (
-    <section aria-labelledby="adm-claude-title">
-      <div className="section__head">
-        <h2 className="section__title" id="adm-claude-title">
-          {t.adminSettings.claude.title}
-          <InfoHint>{t.adminSettings.claude.hint}</InfoHint>
-        </h2>
-      </div>
-
-      {error !== null && (
-        <p className="notice notice--critical" role="alert">
-          {error}
-        </p>
-      )}
-
-      {settings === null ? (
-        <p className="notice">{loading ? t.adminSettings.common.loading : t.adminSettings.common.failed}</p>
-      ) : (
-        <ClaudeFacts settings={settings} />
-      )}
-
-      <form className="adm-form" onSubmit={saveKey}>
-        <span className="adm-field adm-field--wide">
-          <label className="field__label" htmlFor={keyFieldId}>
-            {t.adminSettings.common.newKey}
-            <InfoHint>{t.adminSettings.claude.keyHint}</InfoHint>
-          </label>
-          <input
-            id={keyFieldId}
-            className="control adm-input mono"
-            type="password"
-            autoComplete="new-password"
-            spellCheck={false}
-            value={keyInput}
-            onChange={(event) => setKeyInput(event.target.value)}
-          />
-        </span>
-        <button type="submit" className="control control--action" disabled={saving || keyInput.trim() === ''}>
-          {saving ? t.adminSettings.common.saving : t.adminSettings.common.saveKey}
-        </button>
-        {hasKey && (
-          <ConfirmButton
-            label={t.adminSettings.common.deleteKey}
-            confirmLabel={t.adminSettings.common.delete}
-            disabled={saving}
-            onConfirm={() => void save(null)}
-          />
-        )}
-      </form>
-
-      <div className="adm-actions">
-        <button
-          type="button"
-          className="control control--action"
-          disabled={checking || !hasKey}
-          onClick={() => void runCheck()}
-        >
-          {checking ? t.adminSettings.common.checking : t.adminSettings.claude.checkButton}
-        </button>
-        {!hasKey && settings !== null && <span className="section__note">{t.adminSettings.common.setKeyFirst}</span>}
-      </div>
-      {check !== null && <ClaudeCheckResult check={check} />}
-
-      <p className="adm-visually-hidden" aria-live="polite">
-        {announcement}
-      </p>
-    </section>
+    <ProviderKeyCard
+      titleId="adm-claude-title"
+      title={t.adminSettings.claude.title}
+      hint={t.adminSettings.claude.hint}
+      status={status}
+      facts={facts}
+      error={error}
+      keyHint={t.adminSettings.claude.keyHint}
+      keyValue={keyInput}
+      onKeyChange={setKeyInput}
+      onSubmit={saveKey}
+      saving={saving}
+      canDelete={hasKey}
+      onDelete={() => void save(null)}
+      check={{ label: t.adminSettings.claude.checkButton, busy: checking, hasKey, onRun: () => void runCheck() }}
+      checkResult={check !== null && <ClaudeCheckResult check={check} />}
+      announcement={announcement}
+    />
   )
 }
