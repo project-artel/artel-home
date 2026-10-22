@@ -1,6 +1,6 @@
 import { useMemo, type CSSProperties, type ReactNode } from 'react'
 import { NotFoundPage } from '../../NotFoundPage'
-import { Link, Outlet, useLocation, useParams } from 'react-router-dom'
+import { Link, Navigate, Outlet, useLocation, useParams } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
 import { AgentChatPanel, AgentReopenButton, AgentSplitHandle } from '../../projectAgent/AgentDock'
 import { AgentSessionProvider } from '../../projectAgent/chat/AgentSessionProvider'
@@ -167,9 +167,8 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
   // badge off the row until its read lands.
   const settled = extrasStatus === 'ready'
 
-  // index 화면에서 대화창이 열려 있으면 페이지 칸을 숨기고 대화창이 그 자리를 넓게 쓴다.
-  // DashboardSection 은 그대로 그려 두어, 720px 미만에서 대화창을 숨길 때 다시 보이게 한다.
-  const agentHome = dock.open && dock.isIndex
+  if (dock.fullPage && !dock.enabled) return <Navigate replace to={'/projects/' + encodeURIComponent(projectId)} />
+  const agentHome = dock.enabled && dock.fullPage
   const workspaceClass =
     'project-workspace' +
     (dock.open ? (agentHome ? ' has-agent-home' : ' has-agent') : dock.enabled ? ' has-agent-closed' : '') +
@@ -183,6 +182,7 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
       style={dock.open ? ({ '--agent-chat-w': `${dock.chatWidth}px` } as CSSProperties) : undefined}
     >
       <ProjectNav
+        agentEnabled={dock.enabled}
         counts={{
           documents: documents.length,
           testCases: settled ? coverage.total : null,
@@ -198,7 +198,7 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
         forceCollapsed={dock.folded && dock.viewportWidth < STUDIO_FULL_RAIL_MIN_PX}
       />
 
-      <div className="workspace-body">
+      {!agentHome && <div className="workspace-body">
         <WorkspaceContext.Provider value={value}>
           {deep ? (
             <div className="workspace-deep">
@@ -224,10 +224,10 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
             </>
           )}
         </WorkspaceContext.Provider>
-      </div>
+      </div>}
 
       {dock.open && !agentHome && <AgentSplitHandle {...dock.handle} />}
-      {dock.open && <AgentChatPanel onClose={dock.closeChat} wide={agentHome} />}
+      {dock.open && <AgentChatPanel onClose={agentHome ? undefined : dock.closeChat} wide={agentHome} />}
       {dock.enabled && !dock.open && <AgentReopenButton onOpen={dock.openChat} />}
     </div>
     </ProjectAgentProviders>

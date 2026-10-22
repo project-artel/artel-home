@@ -41,7 +41,9 @@ export function useAgentDock(projectId: string, pathname: string, railWidth: num
   const enabled = isProjectAgentEnabled(import.meta.env)
   const folded = isFoldedRoute(projectId, pathname)
   const reopenedHere = reopened?.pathname === pathname
-  const open = enabled && effectiveOpen({ stored: storedOpen, folded, reopenedHere })
+  const parts = projectPathSegments(projectId, pathname)
+  const fullPage = parts?.length === 1 && parts[0] === 'chat'
+  const open = enabled && effectiveOpen({ stored: storedOpen, folded, reopenedHere, fullPage })
 
   const openChat = useCallback(() => {
     if (folded) {
@@ -67,7 +69,6 @@ export function useAgentDock(projectId: string, pathname: string, railWidth: num
   }, [])
 
   const chatWidth = clampChatWidth(storedWidth, viewportWidth, railWidth)
-  const isIndex = projectPathSegments(projectId, pathname)?.length === 0
 
   return {
     enabled,
@@ -87,7 +88,7 @@ export function useAgentDock(projectId: string, pathname: string, railWidth: num
     chatWidth,
     /** 끄는 동안 true. 바깥 grid 에 `is-splitting` 을 붙여 글자 선택을 막는다. */
     splitting,
-    isIndex,
+    fullPage,
     /** 런 편집과 시나리오 상세처럼 자기 대화 칸이 있어 대화창이 접히는 경로인지. */
     folded,
     viewportWidth,

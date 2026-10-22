@@ -147,6 +147,8 @@ export function App() {
               costs a re-render and no request. */}
           <Route element={<ProjectWorkspaceRoute />} path="/projects/:projectId">
             <Route index element={<DashboardSection />} />
+            {/* 전체 챗은 같은 session을 유지하도록 workspace에서 표시한다. */}
+            <Route path="chat" element={null} />
             <Route path="documents" element={<DocumentsSection />} />
             <Route path="test-cases" element={<TestCasesSection />} />
             <Route path="test-runs" element={<TestRunsSection />} />
