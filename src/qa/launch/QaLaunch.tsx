@@ -11,7 +11,6 @@ import type { GameInstance } from '../../projects/gameTypes'
 import { sectionHref } from '../../projects/workspace/sections'
 import { useWorkspace } from '../../projects/workspace/workspaceContext'
 import { folderPath } from '../../testRuns/runLibrary'
-import { listTestRuns, type TestRun } from '../../testRuns/testRunApi'
 import { listRunFolders, type RunFolder } from '../../testRuns/testRunFolders'
 import { ChevronDownIcon, PencilIcon } from '../qaModelIcons'
 import { withEngine, type QaArchSelection } from '../qaArch'
@@ -85,24 +84,23 @@ export function QaLaunch() {
 
 function QaLaunchLoader({ projectId }: { projectId: string }) {
   const { t } = useI18n()
-  const [runs, setRuns] = useState<TestRun[] | null>(null)
+  const { refreshRuns } = useWorkspace()
   const [status, setStatus] = useState<Load>('loading')
   const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
     const controller = new AbortController()
-    // 편집 화면에서 돌아오면 Workspace에 남은 개수 대신 서버의 최신 집계를 읽는다.
-    listTestRuns(projectId, controller.signal)
-      .then((latestRuns) => {
+    // 최초 진입도 SSE와 같은 조회 경로를 사용하고 이후 갱신은 Workspace가 반영한다.
+    refreshRuns()
+      .then(() => {
         if (controller.signal.aborted) return
-        setRuns(latestRuns)
         setStatus('ready')
       })
       .catch(() => {
         if (!controller.signal.aborted) setStatus('failed')
       })
     return () => controller.abort()
-  }, [projectId, reloadToken])
+  }, [projectId, reloadToken, refreshRuns])
 
   if (status === 'failed') {
     return (
@@ -115,16 +113,16 @@ function QaLaunchLoader({ projectId }: { projectId: string }) {
       </div>
     )
   }
-  if (runs === null || status === 'loading') {
+  if (status === 'loading') {
     return <p aria-busy="true" className="panel-empty">{t.scenarios.runList.loading}</p>
   }
-  return <QaLaunchReady runs={runs} />
+  return <QaLaunchReady />
 }
 
-function QaLaunchReady({ runs }: { runs: TestRun[] }) {
+function QaLaunchReady() {
   const { t } = useI18n()
   const l = t.qa.launch
-  const { projectId, instances, builds, models, applyInstance, removeInstance, applyBuild } = useWorkspace()
+  const { projectId, runs, instances, builds, models, applyInstance, removeInstance, applyBuild } = useWorkspace()
   const offered = useMemo(() => offeredQaModels(models), [models])
 
   /**
