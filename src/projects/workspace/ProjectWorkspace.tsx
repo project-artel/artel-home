@@ -14,6 +14,7 @@ import { ProjectNav } from './ProjectNav'
 import { isDeepPath, isSectionPath, PROJECT_RAIL_PX, sectionIdFromPath } from './sections'
 import { useWorkspaceExtras } from './useWorkspaceExtras'
 import { WorkspaceContext, type WorkspaceValue } from './workspaceContext'
+import { EdgeScrollbar } from '../../design-system/primitives/EdgeScrollbar'
 
 /**
  * 저작 화면(런 편집, 시나리오 상세)은 시나리오 목록 280px, 단계, 대화 칸 300px 이상의 3칸이다.
@@ -65,6 +66,7 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
   const dock = useAgentDock(projectId, pathname, PROJECT_RAIL_PX)
   // 페이지가 대화를 자기 칸에 직접 그리는 동안(시나리오 화면의 project 모드) dock 을 숨긴다.
   const [pageHostsChat, setPageHostsChat] = useState(false)
+  const [bodyNode, setBodyNode] = useState<HTMLDivElement | null>(null)
   const dockOpen = dock.open && !pageHostsChat
 
   const {
@@ -202,7 +204,8 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
         forceCollapsed={dock.folded && dock.viewportWidth < STUDIO_FULL_RAIL_MIN_PX}
       />
 
-      {!agentHome && <div className="workspace-body">
+      {!agentHome && <div className="scroll-frame workspace-body-frame">
+        <div className="workspace-body" ref={setBodyNode}>
         <DockSuppressionProvider onChange={setPageHostsChat}>
         <WorkspaceContext.Provider value={value}>
           {deep ? (
@@ -230,6 +233,9 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
           )}
         </WorkspaceContext.Provider>
         </DockSuppressionProvider>
+        </div>
+        {/* 섹션 스크롤도 서비스 막대(ARTEL-1208). */}
+        <EdgeScrollbar label={t.common.shell.pageScroll} scroller={bodyNode} side="right" />
       </div>}
 
       {dockOpen && !agentHome && <AgentSplitHandle {...dock.handle} />}

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
+import { SettingsLayout, type SettingsTocItem } from '../../layouts/SettingsLayout'
 import { useActionBinding, useFieldBinding } from '../../projectAgent/bindings'
 import { requireKnownId } from '../../projectAgent/specs/fieldWriters'
 import {
@@ -169,9 +170,17 @@ export function SettingsSection() {
     },
   })
 
+  const tocItems: SettingsTocItem[] = [
+    { targetId: 'information-title', label: t.projects.workspace.generalTitle },
+    { targetId: 'tracker-title', label: t.tracker.panel.title },
+    { targetId: 'review-settings-title', label: t.projects.workspace.reviewToc },
+  ]
+  if (project.myRole === 'OWNER') tocItems.push({ targetId: 'danger-title', label: t.projects.workspace.dangerTitle, tone: 'danger' })
+
+  // 왼쪽 목차 + 칸 격자(ARTEL-1208). 칸은 예전 그대로다.
   return (
-    <div className="section-columns">
-      <section className="panel" aria-labelledby="information-title">
+    <SettingsLayout items={tocItems} label={t.projects.workspace.settingsTocLabel}>
+      <section className="panel settings-wide" aria-labelledby="information-title">
         <header className="panel-header panel-header--split">
           <h2 id="information-title">{t.projects.workspace.generalTitle}</h2>
           {/* Read first, edit on request: a form left permanently open makes
@@ -255,7 +264,7 @@ export function SettingsSection() {
       {/* Members have no path to becoming an owner in this release, so a
           disabled control would be permanently dead UI. */}
       {project.myRole === 'OWNER' && (
-        <section className="panel panel--danger" aria-labelledby="danger-title">
+        <section className="panel panel--danger settings-wide" aria-labelledby="danger-title">
           <header className="panel-header">
             <h2 id="danger-title">{t.projects.workspace.dangerTitle}</h2>
           </header>
@@ -279,6 +288,6 @@ export function SettingsSection() {
           projectName={project.name}
         />
       )}
-    </div>
+    </SettingsLayout>
   )
 }

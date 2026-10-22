@@ -1,5 +1,5 @@
 import { useId, useState } from 'react'
-import { AuthApiError, registerEmail, updateMyProfile, verifyEmail } from '../auth/authApi'
+import { AuthApiError, registerEmail, updateMyLocale, updateMyProfile, verifyEmail } from '../auth/authApi'
 import {
   EMAIL_MAX_LENGTH,
   NICKNAME_MAX_LENGTH,
@@ -12,7 +12,9 @@ import {
 import { CliTokenPanel } from '../auth/CliTokenPanel'
 import { useAuth } from '../auth/useAuth'
 import { InfoHint } from '../design-system/primitives/InfoHint'
+import { isLocale, LOCALE_LABELS, LOCALES } from '../i18n/locale'
 import { useI18n } from '../i18n/useI18n'
+import { SettingsLayout } from '../layouts/SettingsLayout'
 import { LlmKeysPanel } from './LlmKeysPanel'
 
 type ProfileFormDraft = {
@@ -48,24 +50,76 @@ export function AccountSettingsPage() {
     return null
   }
 
+  const copy = t.account
   return (
-    <section className="page" aria-labelledby="account-title">
+    <section className="page page--wide" aria-labelledby="account-title">
       <header className="page-header">
         <div>
-          <p className="eyebrow">{t.account.eyebrow}</p>
-          <h1 id="account-title">{t.account.title}</h1>
+          <p className="eyebrow">{copy.eyebrow}</p>
+          <h1 id="account-title">{copy.title}</h1>
         </div>
       </header>
 
-      <div className="section-columns">
+      {/* 왼쪽 목차 + 칸 격자(ARTEL-1208). 칸은 예전 그대로이고, 언어를 고르는 환경 칸이 더해졌다. */}
+      <SettingsLayout
+        items={[
+          { targetId: 'profile-title', label: copy.profile.title },
+          { targetId: 'email-title', label: copy.email.title },
+          { targetId: 'preferences-title', label: copy.preferences.title },
+          { targetId: 'llm-keys-title', label: copy.llmKeys.title },
+          { targetId: 'cli-tokens-title', label: copy.cliTokens.title },
+        ]}
+        label={copy.tocLabel}
+      >
         <ProfilePanel applyProfile={auth.applyProfile} user={auth.user} />
         <EmailPanel
           applyEmailVerified={auth.applyEmailVerified}
           applyPendingEmail={auth.applyPendingEmail}
           user={auth.user}
         />
+        <PreferencesPanel />
         <LlmKeysPanel />
         <CliTokenPanel />
+      </SettingsLayout>
+    </section>
+  )
+}
+
+/**
+ * 계정에 붙는 화면 환경(ARTEL-1208). 상단 바에 늘 있던 언어 고르기를 여기로 옮겼다. 고르면 바로 바뀌고 계정에도
+ * 저장되어 다른 브라우저에서도 따라온다. 저장이 실패해도 이미 바뀐 화면을 되돌리지 않는다(예전과 같다).
+ */
+function PreferencesPanel() {
+  const { locale, setLocale, t } = useI18n()
+  const copy = t.account.preferences
+
+  return (
+    <section aria-labelledby="preferences-title" className="panel settings-wide">
+      <header className="panel-header panel-header--split">
+        <h2 id="preferences-title">{copy.title}</h2>
+        <span className="settings-hint">{copy.hint}</span>
+      </header>
+      <div className="preference-row">
+        <span className="preference-label" id="preferences-language">
+          {copy.languageLabel}
+        </span>
+        <div aria-labelledby="preferences-language" className="segmented" role="group">
+          {LOCALES.map((option) => (
+            <button
+              aria-pressed={locale === option}
+              className="segmented-option"
+              key={option}
+              onClick={() => {
+                if (!isLocale(option) || option === locale) return
+                setLocale(option)
+                void updateMyLocale(option).catch(() => {})
+              }}
+              type="button"
+            >
+              {LOCALE_LABELS[option]}
+            </button>
+          ))}
+        </div>
       </div>
     </section>
   )

@@ -10,6 +10,12 @@ import type { Localized } from '../messages'
 export const accountEn = {
   eyebrow: 'Account',
   title: 'Account settings',
+  tocLabel: 'Account settings sections',
+  preferences: {
+    title: 'Preferences',
+    hint: 'Saved on your account, so other browsers follow it',
+    languageLabel: 'Display language',
+  },
   profile: {
     title: 'Profile',
     edit: 'Edit',
@@ -148,6 +154,12 @@ export const accountEn = {
 export const accountKo: Localized<typeof accountEn> = {
   eyebrow: '계정',
   title: '계정 설정',
+  tocLabel: '계정 설정 목차',
+  preferences: {
+    title: '환경',
+    hint: '계정에 저장되어 다른 브라우저에서도 따라옵니다',
+    languageLabel: '화면 언어',
+  },
   profile: {
     title: '프로필',
     edit: '편집',
