@@ -1,43 +1,29 @@
 import type { Messages } from '../../i18n/messages'
 
-/**
- * The sidebar's order, and the single source of truth for a section's path.
- *
- * The nav, the heading above the content, and the dashboard's "see all" links
- * all read from here, so a renamed route cannot leave one of the three
- * pointing at the old address.
- *
- * `setup`, `usage`, `members`, and `settings` are deliberately not in this
- * list: they sit below the divider at the bottom of the rail and are not part
- * of the main sequence.
- */
-export const WORKSPACE_SECTIONS = [
-  { id: 'dashboard', path: '' },
-  { id: 'documents', path: 'documents' },
-  { id: 'testCases', path: 'test-cases' },
-  { id: 'testRuns', path: 'test-runs' },
-  { id: 'qa', path: 'qa' },
-  { id: 'qaHistory', path: 'qa-history' },
-  { id: 'gameBuilds', path: 'game-builds' },
-  { id: 'contentMap', path: 'content-map' },
-  { id: 'macros', path: 'macros' },
-  { id: 'performance', path: 'performance' },
-  { id: 'issues', path: 'issues' },
-  { id: 'knowledge', path: 'knowledge' },
-] as const
+/** 네비게이션 그룹과 각 화면의 경로를 한곳에서 관리한다. */
+export const WORKSPACE_NAV_GROUPS = ['cases', 'qa', 'data', 'management'] as const
 
-/**
- * `usage`, `members`, `settings` 는 위 목록에 없다. 셋 다 rail 아래 칸의 관리 화면이고, QA 가
- * 흐르는 순서 사이에 끼우면 그 순서가 깨진다. 지출은 QA 를 돌리는 단계가 아니라 그 결과를
- * 정산하는 자리라 여기에 붙는다. `setup` 도 같은 칸에 둔다. SDK 와 CLI 설치는 머신마다 한 번
- * 하는 준비 작업이지 QA 순서의 한 단계가 아니다.
- */
-export type WorkspaceSectionId =
-  | (typeof WORKSPACE_SECTIONS)[number]['id']
-  | 'setup'
-  | 'usage'
-  | 'members'
-  | 'settings'
+export const WORKSPACE_SECTIONS = [
+  { id: 'dashboard', path: '', group: null },
+  { id: 'chat', path: 'chat', group: null },
+  { id: 'testCases', path: 'test-cases', group: 'cases' },
+  { id: 'testRuns', path: 'test-runs', group: 'cases' },
+  { id: 'macros', path: 'macros', group: 'cases' },
+  { id: 'qa', path: 'qa', group: 'qa' },
+  { id: 'qaHistory', path: 'qa-history', group: 'qa' },
+  { id: 'issues', path: 'issues', group: 'qa' },
+  { id: 'performance', path: 'performance', group: 'qa' },
+  { id: 'documents', path: 'documents', group: 'data' },
+  { id: 'gameBuilds', path: 'game-builds', group: 'data' },
+  { id: 'contentMap', path: 'content-map', group: 'data' },
+  { id: 'knowledge', path: 'knowledge', group: 'data' },
+  { id: 'setup', path: 'setup', group: 'management' },
+  { id: 'usage', path: 'usage', group: 'management' },
+  { id: 'members', path: 'members', group: 'management' },
+  { id: 'settings', path: 'settings', group: 'management' },
+] as const satisfies ReadonlyArray<{ id: string; path: string; group: (typeof WORKSPACE_NAV_GROUPS)[number] | null }>
+
+export type WorkspaceSectionId = (typeof WORKSPACE_SECTIONS)[number]['id']
 
 /** Absolute address of one section, for `Link`s and `NavLink`s alike. */
 export function sectionHref(projectId: string, path: string): string {
@@ -63,14 +49,9 @@ export function gameBuildDetailHref(projectId: string, buildId: string): string 
  * back to the dashboard label rather than rendering an empty heading.
  */
 export function sectionIdFromPath(projectId: string, pathname: string): WorkspaceSectionId {
-  const base = `/projects/${encodeURIComponent(projectId)}`
-  const rest = pathname.startsWith(base) ? pathname.slice(base.length).replace(/^\//, '') : ''
-  if (rest === 'setup') return 'setup'
-  if (rest === 'usage') return 'usage'
-  if (rest === 'members') return 'members'
-  if (rest === 'settings') return 'settings'
-  const match = WORKSPACE_SECTIONS.find((section) => section.path === rest)
-  return match?.id ?? 'dashboard'
+  const parts = projectPathSegments(projectId, pathname)
+  if (parts === null || parts.length > 1) return 'dashboard'
+  return WORKSPACE_SECTIONS.find((section) => section.path === (parts[0] ?? ''))?.id ?? 'dashboard'
 }
 
 /**
@@ -82,7 +63,7 @@ export function isSectionPath(projectId: string, pathname: string): boolean {
   if (parts === null || parts.length > 1) return false
   if (parts.length === 0) return true
   const [rest] = parts
-  return ['setup', 'usage', 'members', 'settings'].includes(rest) || WORKSPACE_SECTIONS.some((section) => section.path === rest)
+  return WORKSPACE_SECTIONS.some((section) => section.path === rest)
 }
 
 /** 펼친 project rail 의 폭. App.css 의 `.project-workspace` grid 첫 칸과 같은 값이다. */

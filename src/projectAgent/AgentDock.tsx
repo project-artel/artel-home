@@ -35,7 +35,7 @@ function CloseIcon() {
 }
 
 /** 프로젝트 agent 대화창. 대화 상태는 `AgentSessionProvider` 가 갖고, 여기서는 그리기만 한다. */
-export function AgentChatPanel({ onClose, wide = false }: { onClose: () => void; wide?: boolean }) {
+export function AgentChatPanel({ onClose, wide = false }: { onClose?: () => void; wide?: boolean }) {
   const { t } = useI18n()
   return (
     <aside aria-label={t.projectAgent.panelLabel} className={'agent-panel' + (wide ? ' is-wide' : '')}>

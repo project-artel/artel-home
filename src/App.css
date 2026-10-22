@@ -5561,10 +5561,6 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   grid-template-columns: 48px minmax(0, 1fr) 40px;
 }
 
-/* index 화면에서는 보여 줄 페이지가 없다. 페이지 칸을 숨기고 대화창이 rail 옆을 모두 쓴다. */
-.project-workspace.has-agent-home > .workspace-body {
-  display: none;
-}
 
 .project-workspace.is-splitting {
   cursor: col-resize;
@@ -5671,8 +5667,18 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   list-style: none;
 }
 
-.project-nav-foot {
-  margin-top: auto;
+.project-nav-groups { display: flex; flex-direction: column; gap: var(--space-3); }
+.project-nav-group { min-width: 0; }
+.project-nav-group-label {
+  margin: 0 0 var(--space-1);
+  padding: 0 var(--space-3);
+  color: var(--color-text-muted);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 20px;
+}
+.project-nav--collapsed .project-nav-group + .project-nav-group {
   padding-top: var(--space-2);
   border-top: 1px solid var(--color-border-subtle);
 }
@@ -6340,8 +6346,14 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
     gap: var(--space-1);
   }
 
-  .project-nav-foot {
-    margin-top: var(--space-2);
+  .project-nav-groups { flex-direction: row; gap: var(--space-3); }
+  .project-nav-group { flex: none; }
+  .project-nav-group-label { padding-left: var(--space-3); }
+  .project-nav--collapsed .project-nav-group + .project-nav-group {
+    padding-top: 0;
+    padding-left: var(--space-2);
+    border-top: 0;
+    border-left: 1px solid var(--color-border-subtle);
   }
 
   .nav-count {
@@ -6364,14 +6376,16 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .project-workspace.has-agent-home > .workspace-body {
-    display: flex;
-  }
 
   .project-workspace > .agent-panel,
   .project-workspace > .agent-dock-split,
   .project-workspace > .agent-reopen-rail {
     display: none;
+  }
+
+  .project-workspace.has-agent-home > .agent-panel {
+    display: flex;
+    grid-row: 2;
   }
 }
 

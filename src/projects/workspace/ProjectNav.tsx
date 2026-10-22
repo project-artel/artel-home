@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom'
 import { CollapseIcon } from '../../design-system/primitives/CollapseIcon'
 import { useI18n } from '../../i18n/useI18n'
 import { readNavCollapsed, storeNavCollapsed } from './navCollapse'
-import { sectionHref, WORKSPACE_SECTIONS, type WorkspaceSectionId } from './sections'
+import { sectionHref, WORKSPACE_NAV_GROUPS, WORKSPACE_SECTIONS, type WorkspaceSectionId } from './sections'
 
 /**
  * Line icons at 15px, drawn from `currentColor` so a section's icon takes the
@@ -11,6 +11,7 @@ import { sectionHref, WORKSPACE_SECTIONS, type WorkspaceSectionId } from './sect
  */
 const ICON_PATHS: Record<WorkspaceSectionId, string[]> = {
   dashboard: ['M2.5 2.5h4.7v4.7H2.5z', 'M8.8 2.5h4.7v4.7H8.8z', 'M2.5 8.8h4.7v4.7H2.5z', 'M8.8 8.8h4.7v4.7H8.8z'],
+  chat: ['M3 2.5h10v8H7l-4 3v-11Z', 'M5.5 5.5h5', 'M5.5 8h3'],
   documents: ['M4 2h5.3L12 4.7V14H4z', 'M9.3 2v2.7H12', 'M6 8h4', 'M6 10.5h4'],
   // 두 항목 앞의 체크 표시. 통과 여부가 붙는 목록이라는 것을 15px 안에서 말한다.
   testCases: ['M2.6 4.4l1.5 1.5 2.5-2.7', 'M2.6 10.4l1.5 1.5 2.5-2.7', 'M9.2 4.6h4.2', 'M9.2 10.6h4.2'],
@@ -76,7 +77,9 @@ export function ProjectNav({
   projectId,
   projectName,
   forceCollapsed = false,
+  agentEnabled,
 }: {
+  agentEnabled: boolean
   counts: Partial<Record<WorkspaceSectionId, number | null>>
   genreLabel: string
   projectId: string
@@ -144,73 +147,32 @@ export function ProjectNav({
         </span>
       </div>
 
-      <ul className="project-nav-list">
-        {WORKSPACE_SECTIONS.map((section) => (
-          <li key={section.id}>
-            <NavLink
-              className={({ isActive }) =>
-                isActive ? 'nav-item nav-item--active' : 'nav-item'
-              }
-              // Without this the dashboard's own link stays active on every
-              // child route, since its path is a prefix of all of them.
-              end={section.path.length === 0}
-              title={collapsed ? nav[section.id] : undefined}
-              to={sectionHref(projectId, section.path)}
-            >
-              <SectionIcon id={section.id} />
-              <span className={collapsed ? 'nav-label visually-hidden' : 'nav-label'}>
-                {nav[section.id]}
-              </span>
-              <NavCount
-                alert={section.id === 'issues'}
-                value={counts[section.id] ?? null}
-              />
-            </NavLink>
-          </li>
+      <div className="project-nav-groups">
+        {[null, ...WORKSPACE_NAV_GROUPS].map((group) => (
+          <section className="project-nav-group" key={group ?? 'primary'} aria-labelledby={group === null ? undefined : 'project-nav-' + group}>
+            {group !== null && (
+              <h2 className={collapsed ? 'visually-hidden' : 'project-nav-group-label'} id={'project-nav-' + group}>
+                {workspace.navGroups[group]}
+              </h2>
+            )}
+            <ul className="project-nav-list">
+              {WORKSPACE_SECTIONS.filter((section) => section.group === group && (section.id !== 'chat' || agentEnabled)).map((section) => (
+                <li key={section.id}>
+                  <NavLink
+                    className={({ isActive }) => isActive ? 'nav-item nav-item--active' : 'nav-item'}
+                    end={section.path.length === 0 || section.id === 'chat'}
+                    title={collapsed ? nav[section.id] : undefined}
+                    to={sectionHref(projectId, section.path)}
+                  >
+                    <SectionIcon id={section.id} />
+                    <span className={collapsed ? 'nav-label visually-hidden' : 'nav-label'}>{nav[section.id]}</span>
+                    <NavCount alert={section.id === 'issues'} value={counts[section.id] ?? null} />
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
+          </section>
         ))}
-      </ul>
-
-      <div className="project-nav-foot">
-        <NavLink
-          className={({ isActive }) => (isActive ? 'nav-item nav-item--active' : 'nav-item')}
-          title={collapsed ? nav.setup : undefined}
-          to={sectionHref(projectId, 'setup')}
-        >
-          <SectionIcon id="setup" />
-          <span className={collapsed ? 'nav-label visually-hidden' : 'nav-label'}>
-            {nav.setup}
-          </span>
-        </NavLink>
-        <NavLink
-          className={({ isActive }) => (isActive ? 'nav-item nav-item--active' : 'nav-item')}
-          title={collapsed ? nav.usage : undefined}
-          to={sectionHref(projectId, 'usage')}
-        >
-          <SectionIcon id="usage" />
-          <span className={collapsed ? 'nav-label visually-hidden' : 'nav-label'}>
-            {nav.usage}
-          </span>
-        </NavLink>
-        <NavLink
-          className={({ isActive }) => (isActive ? 'nav-item nav-item--active' : 'nav-item')}
-          title={collapsed ? nav.members : undefined}
-          to={sectionHref(projectId, 'members')}
-        >
-          <SectionIcon id="members" />
-          <span className={collapsed ? 'nav-label visually-hidden' : 'nav-label'}>
-            {nav.members}
-          </span>
-        </NavLink>
-        <NavLink
-          className={({ isActive }) => (isActive ? 'nav-item nav-item--active' : 'nav-item')}
-          title={collapsed ? nav.settings : undefined}
-          to={sectionHref(projectId, 'settings')}
-        >
-          <SectionIcon id="settings" />
-          <span className={collapsed ? 'nav-label visually-hidden' : 'nav-label'}>
-            {nav.settings}
-          </span>
-        </NavLink>
       </div>
     </nav>
   )

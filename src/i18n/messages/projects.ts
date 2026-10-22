@@ -437,8 +437,10 @@ export const projectsEn = {
     dangerTitle: 'Danger zone',
     dangerCopy:
       'Deleting a project removes its test runs, QA history, and issues. This cannot be undone.',
+    navGroups: { cases: 'Cases', qa: 'QA', data: 'Project data', management: 'Management' },
     nav: {
       dashboard: 'Dashboard',
+      chat: 'Chat',
       documents: 'Planning document',
       testCases: 'Case library',
       testRuns: 'Test runs',
@@ -886,8 +888,10 @@ export const projectsKo: Localized<typeof projectsEn> = {
     generalTitle: '일반',
     dangerTitle: '위험 구역',
     dangerCopy: '프로젝트를 삭제하면 테스트 런, QA 기록, 이슈가 모두 사라집니다. 되돌릴 수 없습니다.',
+    navGroups: { cases: '케이스', qa: 'QA', data: '프로젝트 데이터', management: '관리' },
     nav: {
       dashboard: '대시보드',
+      chat: '챗',
       documents: '기획 문서',
       testCases: '케이스 라이브러리',
       testRuns: '테스트 런',
