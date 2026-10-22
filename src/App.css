@@ -13015,3 +13015,64 @@ button.gf-bar:focus-visible {
   96% { opacity: .22; }
 }
 @media (prefers-reduced-motion: reduce) { .nf-light, .nf-bulb-halo { animation: none; } }
+
+/* 판정 결과 가져오기 창(ARTEL-1181). 가로로 긴 창: 왼쪽 버전 트리 + 판정 고르기, 오른쪽 고른 버전의 TC 표.
+   표 · 판정 칸 · 씬 칩은 케이스 라이브러리 것(`tcl-table` · `vpill` · `cat-chip`)을 그대로 쓴다. */
+.dialog-panel:has(.vimp){ width:min(100%, 1280px); height:min(calc(100vh - var(--space-8)), 820px); display:flex; flex-direction:column; padding:0; overflow:hidden; }
+.dialog-panel:has(.vimp) > .dialog-title{ margin:0; padding:18px 22px; border-bottom:1px solid var(--color-border-subtle); }
+.vimp{ flex:1; min-height:0; display:grid; grid-template-columns:minmax(260px, 30%) minmax(0, 1fr); }
+.vimp-left{ display:flex; flex-direction:column; min-height:0; border-right:1px solid var(--color-border-subtle); background:color-mix(in srgb, var(--color-bg-canvas) 60%, var(--color-bg-surface)); }
+.vimp-left-head{ display:flex; align-items:center; gap:8px; padding:14px 16px 6px; font-size:13px; font-weight:600; color:var(--color-text-primary); }
+.vimp-left-head .vimp-folder{ color:var(--color-brand-accent); }
+.vimp-count{ margin-left:auto; font-size:11px; font-weight:400; color:var(--color-text-muted); font-variant-numeric:tabular-nums; }
+.vimp-search{ padding:0 12px 8px; }
+.vimp-search .field-label, .vimp-tools .field-label{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+.vimp-tree-wrap{ position:relative; flex:1; min-height:0; }
+.vimp-tree{ position:absolute; inset:0; overflow:auto; padding:0 8px 8px; scrollbar-width:none; }
+.vimp-tree::-webkit-scrollbar{ display:none; }
+.vimp-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px; }
+.vimp-list--nested{ margin-left:12px; padding-left:6px; border-left:1px solid var(--color-border-subtle); }
+.vimp-node{ display:flex; align-items:center; gap:10px; width:100%; min-height:48px; padding:6px 10px; border:1px solid transparent; border-radius:var(--radius-md); background:transparent; color:var(--color-text-primary); font:inherit; text-align:left; cursor:pointer; }
+.vimp-node:hover:not(:disabled){ background:var(--color-bg-hover); }
+.vimp-node:disabled{ color:var(--color-text-muted); cursor:not-allowed; }
+.vimp-node .vimp-folder{ flex:none; color:var(--color-text-muted); }
+.vimp-node.is-on{ border-color:var(--color-brand-accent); background:color-mix(in srgb, var(--color-brand-accent) 14%, var(--color-bg-surface)); box-shadow:inset 3px 0 0 var(--color-brand-accent); }
+.vimp-node.is-on .vimp-folder{ color:var(--color-brand-accent); }
+.vimp-node-text{ flex:1; min-width:0; display:flex; flex-direction:column; }
+.vimp-node-name{ font-family:var(--font-display); font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.vimp-node-sub{ font-size:11px; color:var(--color-text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-variant-numeric:tabular-nums; }
+.vimp-node.is-on .vimp-node-sub{ color:var(--color-text-secondary); }
+.vimp-group{ display:flex; align-items:center; gap:6px; width:100%; min-height:32px; padding:0 10px; border:0; background:transparent; color:var(--color-text-secondary); font:inherit; font-size:12px; cursor:pointer; }
+.vimp-mode{ display:flex; flex-direction:column; gap:8px; padding:14px 16px 16px; border-top:1px solid var(--color-border-subtle); }
+.vimp-mode-hint{ margin:0; font-size:12px; color:var(--color-text-secondary); }
+.vimp-right{ display:flex; flex-direction:column; min-width:0; min-height:0; }
+.vimp-head{ display:flex; flex-direction:column; gap:8px; padding:14px 22px 12px; border-bottom:1px solid var(--color-border-subtle); }
+.vimp-crumb{ font-size:11.5px; color:var(--color-text-muted); }
+.vimp-title{ display:flex; align-items:center; gap:10px; margin:0; font-family:var(--font-display); font-size:22px; font-weight:700; }
+.vimp-stats{ display:flex; flex-wrap:wrap; gap:6px; }
+.vimp-stat{ display:inline-flex; align-items:center; gap:6px; padding:2px 10px; border:1px solid var(--color-border-subtle); border-radius:999px; font-size:11.5px; color:var(--color-text-secondary); }
+.vimp-stat b{ color:var(--color-text-primary); font-variant-numeric:tabular-nums; }
+.vimp-tools{ display:flex; align-items:center; gap:8px; padding:10px 22px; border-bottom:1px solid var(--color-border-subtle); flex-wrap:wrap; }
+.vimp-tools .sfield-wrap{ flex:0 1 340px; }
+.vimp-seg{ margin-left:auto; display:inline-flex; border:1px solid var(--color-border-subtle); border-radius:var(--radius-sm); overflow:hidden; }
+.vimp-seg button{ min-height:34px; padding:0 12px; border:0; background:transparent; color:var(--color-text-secondary); font:inherit; font-size:12px; cursor:pointer; }
+.vimp-seg button.is-on{ background:var(--color-bg-raised); color:var(--color-text-primary); font-weight:600; }
+.vimp-table-wrap{ position:relative; flex:1; min-height:0; }
+.vimp-table-wrap.is-muted .vimp-tbl{ opacity:.45; }
+.vimp-table{ position:absolute; inset:0; overflow:auto; scrollbar-width:none; }
+.vimp-table::-webkit-scrollbar{ display:none; }
+.vimp-tbl{ width:100%; }
+col.vimp-c-scene{ width:18% } col.vimp-c-verdict{ width:16% }
+.vimp-tbl .tct-row.is-blocked td{ color:var(--color-text-muted); }
+.vimp-step{ line-height:1.5; }
+.vimp-code{ font-family:var(--font-mono); font-size:12px; padding:1px 6px; border:1px solid var(--color-border-subtle); border-radius:var(--radius-sm); background:var(--color-bg-raised); }
+.vimp-reason{ font-size:11.5px; color:var(--color-text-muted); white-space:nowrap; }
+.vimp-foot{ display:flex; align-items:center; gap:10px; padding:12px 22px; border-top:1px solid var(--color-border-subtle); flex-wrap:wrap; }
+.vimp-summary{ flex:1 1 360px; font-size:12.5px; color:var(--color-text-secondary); }
+.vimp-failure{ color:var(--color-status-critical); }
+.vimp .edgebar{ position:absolute; z-index:2; right:0; width:18px; pointer-events:none; }
+.vimp .edgebar-thumb{ position:absolute; right:0; left:0; cursor:grab; pointer-events:auto; touch-action:none; }
+.vimp .edgebar-thumb:active{ cursor:grabbing; }
+.vimp .edgebar-fill{ position:absolute; top:0; right:0; bottom:0; width:4px; background:var(--color-action-primary); transition:width 120ms var(--ease-standard), background 120ms var(--ease-standard); }
+.vimp .edgebar.is-near .edgebar-fill{ width:11px; background:var(--color-action-primary-strong); }
+@media (max-width: 760px){ .vimp{ grid-template-columns:1fr; grid-template-rows:minmax(220px, 40%) 1fr; } .vimp-left{ border-right:0; border-bottom:1px solid var(--color-border-subtle); } }

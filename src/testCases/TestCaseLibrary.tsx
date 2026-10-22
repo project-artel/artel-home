@@ -82,9 +82,9 @@ import {
   resolveCompare,
   resolveVersion,
   UNVERSIONED,
-  carryVerdictsFrom,
   versionName,
   type TestCaseVersionSummary,
+  type VerdictCarryResult,
   type VerdictCarrySkip,
 } from './testCaseVersions'
 import { useTestCaseVersionList, useVersionCases } from './useTestCaseVersions'
@@ -98,6 +98,7 @@ import {
   renameGroupCommand,
 } from './versionCommands'
 import { VersionList, type VersionOperations } from './VersionList'
+import { VerdictImportDialog } from './VerdictImportDialog'
 import { VersionTreeDialog } from './VersionTreeDialog'
 import { GenerateTestCasesDialog } from './GenerateTestCasesDialog'
 import { runGenerateFromMap } from './generateFromMapRun'
@@ -545,17 +546,17 @@ export function TestCaseLibrary({
     importVerdicts: (version) => setVerdictTarget(version),
   }
 
-  /** [source] 버전의 판정을 [target] 버전 TC 에 가져오고, 몇 건을 왜 못 가져왔는지 안내줄에 남긴다(ARTEL-1181). */
-  async function bringVerdicts(target: TestCaseVersionSummary, sourceId: string) {
-    const source = versionList.versions.find((version) => version.gameBuildId === sourceId)
-    const result = await carryVerdictsFrom(projectId, target.gameBuildId, sourceId)
+  /** 판정 가져오기 창이 끝났을 때. 몇 건을 왜 못 가져왔는지 안내줄에 남긴다(ARTEL-1181). */
+  function handleVerdictsImported(result: VerdictCarryResult, source: TestCaseVersionSummary | null, mode: string) {
     const reasons = (Object.entries(result.skipped) as [VerdictCarrySkip, number][])
       .filter(([, count]) => count > 0)
       .map(([reason, count]) => m.importVerdicts.reasons[reason](count))
     const skipped = Object.values(result.skipped).reduce((sum, count) => sum + (count ?? 0), 0)
     const notice =
-      m.importVerdicts.done(result.carried, source === undefined ? sourceId : versionName(source)) +
-      (skipped > 0 ? m.importVerdicts.skipped(skipped, reasons.join(' · ')) : '')
+      mode === 'NONE'
+        ? m.importVerdicts.resetDone(result.reset)
+        : m.importVerdicts.done(result.carried, source === null ? '' : versionName(source)) +
+          (skipped > 0 ? m.importVerdicts.skipped(skipped, reasons.join(' · ')) : '')
     setVerdictTarget(null)
     refreshLibrary()
     refreshVersions()
@@ -1366,17 +1367,13 @@ export function TestCaseLibrary({
       )}
 
       {verdictTarget !== null && (
-        <VersionTreeDialog
-          confirmLabel={m.importVerdicts.confirm}
+        <VerdictImportDialog
           groups={versionList.groups}
-          hint={m.importVerdicts.hint}
-          initialId={null}
           onClose={() => setVerdictTarget(null)}
-          onConfirm={async (gameBuildId) => {
-            if (gameBuildId !== null) await bringVerdicts(verdictTarget, gameBuildId)
-          }}
-          title={m.importVerdicts.title(versionName(verdictTarget))}
-          versions={versionList.versions.filter((version) => version.gameBuildId !== verdictTarget.gameBuildId)}
+          onDone={handleVerdictsImported}
+          projectId={projectId}
+          target={verdictTarget}
+          versions={versionList.versions}
         />
       )}
 
