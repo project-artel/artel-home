@@ -3,6 +3,7 @@ import { App } from './App'
 import { AuthProvider } from './auth/AuthProvider'
 import { LocaleProvider } from './i18n/LocaleProvider'
 import './styles/index.css'
+import './styles/responsive.css'
 
 const root = document.getElementById('root')
 
