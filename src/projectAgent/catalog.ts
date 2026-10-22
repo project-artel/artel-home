@@ -20,6 +20,7 @@ import { PERFORMANCE_ACTIONS, PERFORMANCE_FIELDS } from './specs/performance'
 import { KNOWLEDGE_ACTIONS, KNOWLEDGE_FIELDS } from './specs/knowledge'
 import { TEST_RUN_ACTIONS, TEST_RUN_FIELDS } from './specs/testRun'
 import { TEST_RUN_EDIT_ACTIONS, TEST_RUN_EDIT_FIELDS } from './specs/testRunEdit'
+import { TEST_SCENARIO_ACTIONS, TEST_SCENARIO_FIELDS } from './specs/testScenario'
 import { GUIDES } from './guides/index'
 
 export type PageCatalogEntry = {
@@ -78,7 +79,8 @@ export const PAGE_CATALOG: PageCatalogEntry[] = [
   { id: 'members', title: 'Members', path: 'members', params: [], description: 'Members of this project and invitations.', fields: MEMBERS_FIELDS, actions: MEMBERS_ACTIONS },
   { id: 'settings', title: 'Project settings', path: 'settings', params: [], description: 'Project name, genre, issue tracker link, and deleting the project.', fields: SETTINGS_FIELDS, actions: SETTINGS_ACTIONS },
   { id: 'setup', title: 'Setup', path: 'setup', params: [], description: 'Per-project setup guide: the Unity SDK install step and the artel CLI commands with this project\'s id filled in. It has no list of game instances or builds.', fields: SETUP_FIELDS, actions: SETUP_ACTIONS },
-  { id: 'testRunEdit', title: 'Test run editor', path: 'test-runs/:runId/edit', aliases: ['test-scenarios/:testScenarioId'], params: ['runId', 'testScenarioId'], description: 'Edit the scenarios of one test run.', fields: TEST_RUN_EDIT_FIELDS, actions: TEST_RUN_EDIT_ACTIONS },
+  { id: 'testRunEdit', title: 'Test run editor', path: 'test-runs/:runId/edit', params: ['runId'], description: 'Edit the scenarios of one test run.', fields: TEST_RUN_EDIT_FIELDS, actions: TEST_RUN_EDIT_ACTIONS },
+  { id: 'testScenario', title: 'Scenario editor', path: 'test-scenarios/:testScenarioId', params: ['testScenarioId', 'run'], description: 'One scenario open in the editor. run is the test run it was opened from; that run\'s build version decides which test cases a run can use. An ORDERED scenario is steps run top to bottom; a FREE scenario is a bundle of test cases. The approve button and the scenario list on the left of a run are the testRunEdit actions, which are also registered here.', fields: TEST_SCENARIO_FIELDS, actions: TEST_SCENARIO_ACTIONS },
 ]
 
 /** 서버로 보내는 모양. 함수(`summarize`)를 빼고 JSON 으로 만든다. */

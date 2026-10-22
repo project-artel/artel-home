@@ -94,6 +94,10 @@ test('actions that start paid or destructive work need approval', () => {
     'testRunEdit.deleteScenario': 'approve',
     'testRunEdit.approveScenario': 'approve',
     'testRunEdit.renameRun': 'auto',
+    'testScenario.convertToFree': 'approve',
+    'testScenario.addCases': 'auto',
+    'testScenario.removeCases': 'auto',
+    'testScenario.addCasesToBuild': 'approve',
   })
 })
 

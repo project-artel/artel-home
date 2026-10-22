@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { createActionRegistry } from './createActionRegistry.ts'
 import { derivePage } from './pageFromPath.ts'
+import type { PageCatalogEntry } from '../catalog.ts'
 import type { ActionBinding, ActionSpec, FieldBinding, PageId } from './types.ts'
 
 function makeAction(overrides: Partial<ActionSpec> = {}, extra: Partial<ActionBinding> = {}) {
@@ -349,17 +350,27 @@ test('derivePage maps pathnames and query params to page ids', () => {
   assert.equal(derivePage(project, '/projects/other/qa').page, null)
 })
 
-test('derivePage matches a page alias and takes its params from the alias pattern', () => {
+test('derivePage maps a scenario address to testScenario with the run query', () => {
   const project = 'p1'
   const base = `/projects/${project}`
   assert.deepEqual(derivePage(project, `${base}/test-scenarios/s7`), {
-    page: 'testRunEdit',
+    page: 'testScenario',
     params: { testScenarioId: 's7' },
   })
-  assert.deepEqual(derivePage(project, `${base}/test-scenarios/s7`, '?x=1'), {
-    page: 'testRunEdit',
-    params: { x: '1', testScenarioId: 's7' },
+  assert.deepEqual(derivePage(project, `${base}/test-scenarios/s7`, '?run=4'), {
+    page: 'testScenario',
+    params: { run: '4', testScenarioId: 's7' },
   })
   assert.equal(derivePage(project, `${base}/test-scenarios`).page, null)
   assert.equal(derivePage(project, `${base}/test-scenarios/s7/extra`).page, null)
+})
+
+test('derivePage matches a page alias and takes its params from the alias pattern', () => {
+  const entries: PageCatalogEntry[] = [
+    { id: 'testRunEdit', title: 'T', path: 'test-runs/:runId/edit', aliases: ['runs/:runId'], params: ['runId'], description: '', fields: [], actions: [] },
+  ]
+  assert.deepEqual(derivePage('p1', '/projects/p1/runs/r2', '', entries), {
+    page: 'testRunEdit',
+    params: { runId: 'r2' },
+  })
 })

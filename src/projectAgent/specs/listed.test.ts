@@ -88,6 +88,7 @@ test('every list-taking action points at a listed field that exists on its page'
     'testRun.openScenario': 'testRun.scenarios',
     'testRunEdit.selectScenario': 'testRunEdit.scenarios',
     'testRunEdit.deleteScenario': 'testRunEdit.scenarios',
+    'testScenario.removeCases': 'testScenario.cases',
     'testCases.open': 'testCases.listed',
     'testCases.delete': 'testCases.listed',
     'qaRun.selectScenario': 'qaRun.scenario',
