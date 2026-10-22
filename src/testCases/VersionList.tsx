@@ -186,10 +186,8 @@ export function VersionList({
           onKeyDown={menuKeys({ kind: 'version', version })}
           type="button"
         >
-          <span className="tcl-folder-name" title={versionName(version)}>
-            {versionName(version)}
-            {version.isEditor && <> <EditorBadge /></>}
-          </span>
+          <span className="tcl-folder-name" title={versionName(version)}>{versionName(version)}</span>
+          {version.isEditor && <EditorBadge />}
           {version.latest && <span className="tcl-version-latest">{m.latest}</span>}
           <span className="tcl-folder-count">{version.total}</span>
         </button>

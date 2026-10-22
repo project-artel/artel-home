@@ -6,5 +6,5 @@ import { useI18n } from '../i18n/useI18n'
  */
 export function EditorBadge() {
   const { t } = useI18n()
-  return <span className="badge">{t.gameBuilds.list.editorBadge}</span>
+  return <span className="badge editor-badge">{t.gameBuilds.list.editorBadge}</span>
 }

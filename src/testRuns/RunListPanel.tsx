@@ -397,12 +397,10 @@ export function RunListPanel({
         >
           <FolderIcon open={key === bucket} />
           <span className="trl-node-text">
-            <span className="trl-node-name">
-              {label}
-              {options.version?.isEditor === true && <> <EditorBadge /></>}
-            </span>
+            <span className="trl-node-name">{label}</span>
             <span className="trl-muted">{r.runCount(count)}</span>
           </span>
+          {options.version?.isEditor === true && <EditorBadge />}
           {options.latest === true && <span className="trl-badge">{v.latest}</span>}
         </button>
         {folderNodes(key, null)}

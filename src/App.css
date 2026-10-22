@@ -712,6 +712,11 @@ h1 {
   letter-spacing: 0.04em;
 }
 
+/* editor 버전 표시(ARTEL-1181). 목록 줄에서는 이름 칸이 늘어나므로 오른쪽 끝(현재 · 개수 앞)에 선다. */
+.editor-badge {
+  flex: none;
+}
+
 .badge--current {
   border-color: var(--color-action-primary);
   color: var(--color-action-primary);

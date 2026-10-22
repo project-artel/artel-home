@@ -170,8 +170,8 @@ export function GenerateTestCasesDialog({
           <span className="vtree-name">
             {candidate.version}
             {candidate.label !== null && candidate.label.length > 0 && <span className="gen-label"> · {candidate.label}</span>}
-            {candidate.isEditor && <> <EditorBadge /></>}
           </span>
+          {candidate.isEditor && <EditorBadge />}
           <span className={`gen-outcome gen-outcome--${outcome}`}>{m.outcome[outcome](candidate.version)}</span>
         </button>
       </li>

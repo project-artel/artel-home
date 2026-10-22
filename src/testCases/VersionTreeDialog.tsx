@@ -60,10 +60,8 @@ export function VersionTreeDialog({
         type="button"
       >
         <span aria-hidden="true" className="vtree-radio" />
-        <span className="vtree-name">
-          {versionName(version)}
-          {version.isEditor && <> <EditorBadge /></>}
-        </span>
+        <span className="vtree-name">{versionName(version)}</span>
+        {version.isEditor && <EditorBadge />}
         {version.latest && <span className="tcl-version-latest">{t.testCases.versions.latest}</span>}
         <span className="vtree-count">{version.total}</span>
       </button>
