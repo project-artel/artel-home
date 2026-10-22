@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { InfoHint } from '../design-system/primitives/InfoHint'
+import { SketchEmpty } from '../emptyStates/SketchEmpty'
+import { PerformanceSketch } from '../emptyStates/sketches'
 import { useI18n } from '../i18n/useI18n'
 import { formatDateTime } from '../projects/formatters'
 import { useWorkspace } from '../projects/workspace/workspaceContext'
@@ -146,10 +148,9 @@ function RunReport({ data, projectId, qaRunId }: { data: RunPerformance; project
           )}
 
           {summary === null ? (
-            <div className="pf-empty-plain">
-              <strong>{copy.emptyTitle}</strong>
-              <p>{copy.emptyBody}</p>
-            </div>
+            <section className="pf-panel pf-panel--grow">
+              <SketchEmpty body={copy.emptyBody} sketch={<PerformanceSketch />} surface title={copy.emptyTitle} />
+            </section>
           ) : (
             <>
               {isHighDischarging(summary.dischargingRatio) && (

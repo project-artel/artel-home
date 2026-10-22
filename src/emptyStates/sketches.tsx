@@ -207,3 +207,36 @@ export function SceneMapSketch({ broken = false }: { broken?: boolean }) {
     </svg>
   )
 }
+
+const CHART_BOARD = 'M30 22 Q28 13 38 13 L236 11 Q246 11 246 21 L247 136 Q247 145 237 145 L39 146 Q30 146 30 137 Z'
+
+/** 성능 런이 없을 때(ARTEL-1207): 비어 있는 추세판과 그 앞에 놓인 스톱워치. 점선 추세에 아직 점 하나만 비어 있다. */
+export function PerformanceSketch() {
+  return (
+    <svg aria-hidden="true" className="qh-sketch" fill="none" viewBox="0 0 330 196">
+      {/* 추세판 */}
+      <path className="qh-sketch-depth" d={CHART_BOARD} transform="translate(10 12)" />
+      <path className="qh-sketch-edge" d="M246 21 L256 33 M247 136 L257 148 M30 137 L40 149" />
+      <path className="qh-sketch-face" d={CHART_BOARD} />
+      {/* 축과 눈금 */}
+      <path d="M52 32 L52 124 Q140 125 228 123" />
+      <path className="qh-sketch-soft" d="M47 56 l5 0 M47 80 l5 0 M47 104 l5 0" />
+      <path className="qh-sketch-dash" d="M58 56 L226 55 M58 80 L226 79" />
+      {/* 아직 그려지지 않은 추세: 점선과 빈 점 */}
+      <path className="qh-sketch-dash" d="M66 108 Q96 96 112 100 Q140 108 160 86 Q178 70 206 74" />
+      <circle className="qh-sketch-face" cx="66" cy="108" r="4.5" />
+      <circle className="qh-sketch-face" cx="112" cy="100" r="4.5" />
+      <circle className="qh-sketch-face" cx="160" cy="86" r="4.5" strokeDasharray="3 3" />
+      <circle className="qh-sketch-face" cx="206" cy="74" r="4.5" strokeDasharray="3 3" />
+      {/* 스톱워치 */}
+      <circle className="qh-sketch-depth" cx="262" cy="128" r="30" />
+      <circle className="qh-sketch-face" cx="257" cy="122" r="30" />
+      <circle className="qh-sketch-soft" cx="257" cy="122" r="22" />
+      <path d="M257 122 L257 106 M257 122 L268 129" />
+      <path d="M251 86 L263 86 M257 86 L257 92" />
+      <path className="qh-sketch-soft" d="M280 98 l6 -6" />
+      <path className="qh-sketch-soft" d="M300 30 l0 10 M295 35 l10 0 M18 164 l0 8 M14 168 l8 0" />
+      <ellipse className="qh-sketch-shade" cx="160" cy="182" rx="134" ry="6" />
+    </svg>
+  )
+}

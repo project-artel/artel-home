@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
+import { SketchEmpty } from '../emptyStates/SketchEmpty'
+import { PerformanceSketch } from '../emptyStates/sketches'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
 import { useActionBinding, useFieldBinding } from '../projectAgent/bindings'
@@ -582,7 +584,7 @@ function confidenceText(
   return copy.trusted
 }
 
-/** 런 없는 빌드. 빈칸 대신 모으는 방법과 런이 있는 다른 빌드를 보인다(ARTEL-1207). */
+/** 런 없는 빌드. 빈칸 대신 그림과 모으는 방법, 런이 있는 다른 빌드를 보인다(ARTEL-1207). */
 function EmptyBuild({
   label,
   others,
@@ -602,10 +604,10 @@ function EmptyBuild({
         <h2>{label}</h2>
         <span className="pf-chip">{overview.noRuns}</span>
       </header>
+      <SketchEmpty body={overview.emptyHow} sketch={<PerformanceSketch />} surface title={copy.emptyBody} />
       <div className={`pf-empty${others === undefined ? ' pf-empty--single' : ''}`}>
         <div>
-          <h3>{copy.emptyBody}</h3>
-          <p>{overview.emptyHow}</p>
+          <h3>{overview.stepsTitle}</h3>
           <ol className="pf-steps">
             {overview.emptySteps.map((step) => (
               <li key={step}>{step}</li>
@@ -630,10 +632,6 @@ function EmptyBuild({
             )}
           </div>
         )}
-      </div>
-      {/* 추세가 그려질 자리. 빈 칸으로 두지 않고 무엇이 생길지 보인다. */}
-      <div aria-hidden="true" className="pf-ghost">
-        <span>{overview.emptyGhost}</span>
       </div>
     </section>
   )

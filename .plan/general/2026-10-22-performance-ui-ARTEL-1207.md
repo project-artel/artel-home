@@ -15,12 +15,13 @@
 | 기능 | 새 자리 |
 |---|---|
 | 빌드 고르기(선택 상자, agent `performance.build`) | 왼쪽 빌드 목록. 높이는 화면에 고정, 목록만 넘김. 찾기 · 런 수 · 최근 Hitch/분 · 미니 추세 · editor 표시 |
-| 빌드 없음 | 그대로 |
-| 런 없음 | 모으는 방법 3단계 + 런이 있는 다른 빌드 바로가기 + 추세 자리 |
+| 빌드 없음 | 그림 빈 화면(`SketchEmpty` + 새 `PerformanceSketch`) |
+| 런 없음 | 그림 빈 화면 + 모으는 방법 3단계 + 런이 있는 다른 빌드 바로가기 |
 | Hitch/분 추세(신뢰 런만 선으로) | 그대로 + 축 · 눈금 · 날짜 · 점 위 풀이, 지표 바꾸기(Hitch/분 · p95 예산 대비 · 1% Low FPS · 메모리 최대) |
 | 런 표(예산 · 렌더 출처 · 신뢰도 · 상세) | 줄 전체가 상세로. 길이 칸, Hitch 막대, 예산 대비 · 출처 · 신뢰도 칩. 최신순 |
 | agent `performance.listed` · `performance.openRunReport` | 그대로 |
 | 런 상세 요약 4칸 · 방전 · editor 경고 | 그대로(카드 모양) |
+| 런 상세 샘플 없음 | 그림 빈 화면 |
 | 프레임 · CPU · 메모리 차트 | 그대로 + 세로 눈금, 시간 눈금, 메모리 MiB. 프레임 차트가 남은 높이를 채움 |
 | 버킷 표 | 접어 둠(펼치기) |
 | 수집 환경 · 지표군 | 오른쪽 칸(넓은 창) |
@@ -43,6 +44,7 @@
 ![빌드 추세 · 라이트](../assets/2026-10-22-performance-ui/01-build-trend-light.jpg)
 ![런 없는 빌드](../assets/2026-10-22-performance-ui/02-build-empty-dark.jpg)
 ![런 상세](../assets/2026-10-22-performance-ui/03-run-detail-dark.jpg)
+![런 상세 · 샘플 없음](../assets/2026-10-22-performance-ui/04-run-empty-dark.jpg)
 
 ## Risks
 

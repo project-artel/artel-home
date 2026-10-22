@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { SketchEmpty } from '../emptyStates/SketchEmpty'
+import { PerformanceSketch } from '../emptyStates/sketches'
 import { useI18n } from '../i18n/useI18n'
 import { useFieldBinding } from '../projectAgent/bindings'
 import { requireKnownId } from '../projectAgent/specs/fieldWriters'
@@ -49,10 +51,7 @@ export function PerformanceSection() {
   if (selectedBuild === undefined) {
     return (
       <section className="pf pf--single">
-        <div className="pf-empty-plain">
-          <strong>{copy.noBuildsTitle}</strong>
-          <p>{copy.noBuildsBody}</p>
-        </div>
+        <SketchEmpty body={copy.noBuildsBody} sketch={<PerformanceSketch />} title={copy.noBuildsTitle} />
       </section>
     )
   }
