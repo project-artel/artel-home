@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
 import { useActionBinding, useFieldBinding } from '../projectAgent/bindings'
@@ -118,6 +118,16 @@ function KnowledgeGraphView({
 }) {
   const { t } = useI18n()
   const [selection, setSelection] = useState<Selection>(null)
+  // 상세 서랍은 모달처럼 Esc 로 닫힌다. 다른 곳(범례 등)이 먼저 쓴 Esc 는 건드리지 않는다.
+  const drawerOpen = selection !== null
+  useEffect(() => {
+    if (!drawerOpen) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !event.defaultPrevented) setSelection(null)
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [drawerOpen])
 
   // The layout is the expensive part and depends on nothing but the response, so
   // selecting a node must not recompute it.
@@ -218,8 +228,7 @@ function KnowledgeGraphView({
         )}
       </p>
 
-      {/* 고르면 오른쪽 상세 칸이 넓어진다(ARTEL-1190). 개요는 좁은 칸으로 충분하고, 상세는 읽을 글이 많다. */}
-      <div className={`kg-workspace${selection === null ? '' : ' has-selection'}`}>
+      <div className="kg-workspace">
         <aside className="panel kg-explorer-panel">
           <KnowledgeExplorer
             edges={graph.edges}
@@ -302,7 +311,8 @@ function KnowledgeGraphView({
           )}
         </section>
 
-        <aside className="panel kg-inspector-panel">
+        {/* 고르면 상세가 그래프 위에 넓은 서랍으로 뜬다(ARTEL-1190). 그래프 폭은 그대로다. */}
+        <aside className={`panel kg-inspector-panel${drawerOpen ? ' is-drawer' : ''}`}>
           <div className="kg-inspector-scroll" ref={setInspectorNode}>
             <KnowledgeInspector
               layout={layout}
