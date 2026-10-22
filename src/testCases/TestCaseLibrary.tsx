@@ -108,6 +108,7 @@ import { CoachTour } from './tour/CoachTour'
 import { CASE_LIBRARY_TOUR, caseLibraryTourSteps } from './tour/caseLibraryTour'
 import { useTour } from './tour/useTour'
 import { InfoHint } from '../design-system/primitives/InfoHint'
+import { useRowWindow } from './useRowWindow'
 
 /** `vdot` 와 결과 pill 이 상태마다 쓰는 CSS 접미사. 대문자 상태값을 클래스에 그대로 넣지 않는다. */
 const STATUS_CLASS: Record<VerificationStatus, string> = {
@@ -364,6 +365,21 @@ export function TestCaseLibrary({
   // 둘은 따로 움직인다 — 훑어보는 것과 고르는 것이 같은 동작이 아니다.
   const nav = useCaseListNav(shown.length)
   const { active, edge, listRef, onScroll, setActive } = nav
+  // 2천 줄이 넘는 버전도 보이는 줄만 그린다(ARTEL-1211). 줄 높이와 표 머리 높이는 그린 뒤에 잰다.
+  const [scroller, setScroller] = useState<HTMLDivElement | null>(null)
+  const rows = useRowWindow(scroller, shown.length)
+  const { ensureVisible } = rows
+  const attachList = useCallback(
+    (node: HTMLDivElement | null) => {
+      listRef.current = node
+      setScroller(node)
+    },
+    [listRef],
+  )
+  // 키보드 커서가 그리지 않은 줄로 가면 먼저 그 줄이 보이게 굴린다. 그려진 뒤에는 목록 이동이 맞춘다.
+  useEffect(() => {
+    ensureVisible(active)
+  }, [active, ensureVisible])
   const cursored = shown[active] ?? null
   const sheetOpen = creating || selected !== null
 
@@ -1118,7 +1134,7 @@ export function TestCaseLibrary({
             data-tour="table"
           >
             <div className="cp-fade cp-fade--top" aria-hidden="true"><span className="cp-fade-hint">▴</span></div>
-            <div className="cp-list tcl-scroll" onScroll={onScroll} ref={listRef}>
+            <div className="cp-list tcl-scroll" onScroll={onScroll} ref={attachList}>
               <table className="tcl-table">
                 <colgroup>
                   <col className="tct-c-check" />
@@ -1159,7 +1175,13 @@ export function TestCaseLibrary({
                   </tr>
                 </thead>
                 <tbody>
-                  {shown.map((testCase, index) => {
+                  {rows.padTop > 0 && (
+                    <tr aria-hidden="true" className="tct-spacer">
+                      <td colSpan={comparing ? 8 : 7} style={{ height: rows.padTop }} />
+                    </tr>
+                  )}
+                  {shown.slice(rows.start, rows.end).map((testCase, offset) => {
+                    const index = rows.start + offset
                     const item = folderView ? itemById.get(testCase.id) : undefined
                     const versionRow = folderView ? undefined : rowById.get(testCase.id)
                     const note =
@@ -1269,6 +1291,11 @@ export function TestCaseLibrary({
                     </tr>
                     )
                   })}
+                  {rows.padBottom > 0 && (
+                    <tr aria-hidden="true" className="tct-spacer">
+                      <td colSpan={comparing ? 8 : 7} style={{ height: rows.padBottom }} />
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

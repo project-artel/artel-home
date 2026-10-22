@@ -10162,6 +10162,8 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
 }
 .tcl-table td{ padding:7px 10px; border-bottom:1px solid var(--st-border); vertical-align:middle; }
 .tct-row{ cursor:pointer; }
+/* 가상 스크롤의 위아래 빈 줄(ARTEL-1211). 높이만 갖고 칸 여백 · 선은 없다. */
+.tct-spacer td{ padding:0 !important; border:0 !important; background:none !important; }
 .tct-row:hover td, .tct-row.active td{ background:var(--st-hover); }
 .tct-row.picked td{ background:var(--color-bg-hover); }
 /* 다중 선택으로 고른 행. 편집기가 열린 행(picked)의 왼쪽 띠와 겹치지 않게 배경만 깐다. */
