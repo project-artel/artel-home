@@ -672,6 +672,165 @@
   border-radius: 50%;
   font-size: 20px;
 }
+/* 찾기 칸: 돋보기 · 지우기가 붙은 둥근 칸. */
+.search-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: 300px;
+  max-width: 100%;
+  height: 36px;
+  padding: 0 10px 0 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 999px;
+  background: var(--color-bg-surface);
+  color: var(--color-text-muted);
+  transition: border-color 120ms var(--ease-standard);
+}
+.search-box:focus-within {
+  border-color: var(--color-action-primary);
+  color: var(--color-text-primary);
+}
+.search-box input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--color-text-primary);
+  font: 13px/20px var(--font-sans);
+}
+.search-box input::-webkit-search-cancel-button {
+  display: none;
+}
+.search-box-clear {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--color-bg-hover);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.segmented--compact {
+  border-radius: 999px;
+}
+.segmented--compact .segmented-option {
+  padding: 7px 14px;
+  font-size: 12.5px;
+}
+
+/* 한 쪽 8칸(4 × 2). 넘길 때 옆에서 들어온다. */
+.project-cards--paged {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  animation: page-in 220ms var(--ease-standard);
+}
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+}
+@media (max-width: 1280px) {
+  .project-cards--paged {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 640px) {
+  .project-cards--paged {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.project-card-slot {
+  position: relative;
+}
+.favorite-toggle {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid color-mix(in srgb, var(--color-border-strong) 60%, transparent);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-bg-surface) 80%, transparent);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 120ms var(--ease-standard);
+}
+.favorite-toggle svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+}
+.project-card-slot:hover .favorite-toggle,
+.favorite-toggle:focus-visible,
+.favorite-toggle.is-on {
+  opacity: 1;
+}
+.favorite-toggle.is-on {
+  border-color: color-mix(in srgb, var(--color-status-warning) 60%, transparent);
+  color: var(--color-status-warning);
+}
+.favorite-toggle.is-on svg {
+  fill: currentColor;
+}
+.favorite-toggle:focus-visible {
+  outline: 2px solid var(--color-action-primary);
+  outline-offset: 2px;
+}
+.project-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+.project-pager-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pager-button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 50%;
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+.pager-button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.pager-dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-border-strong);
+  cursor: pointer;
+  transition: width 160ms var(--ease-standard);
+}
+.pager-dot[aria-current='page'] {
+  width: 22px;
+  background: var(--color-action-primary);
+}
+@media (prefers-reduced-motion: reduce) {
+  .project-cards--paged {
+    animation: none;
+  }
+}
+
 /* 받은 초대: 아직 내 프로젝트가 아니라 흐리게. 다가가면 살아난다. */
 .invitation-inbox {
   margin-top: var(--space-8);
@@ -691,6 +850,29 @@
   opacity: 0.9;
   filter: none;
 }
+/* 라이트: 밝은 바탕에서는 같은 투명도가 거의 안 보인다. 그라데이션과 대표 그림을 진하게, 글자는 어둡게. */
+:root[data-theme='light'] .workspace:has(.project-home) {
+  background-image:
+    radial-gradient(1400px 600px at 18% -140px, color-mix(in srgb, var(--color-action-primary) 30%, transparent), transparent 72%),
+    radial-gradient(1000px 520px at 86% -160px, color-mix(in srgb, var(--color-agent-reasoning) 26%, transparent), transparent 72%);
+}
+:root[data-theme='light'] .project-cover {
+  background:
+    radial-gradient(circle at 22% 30%, hsl(var(--cover-hue) 70% 58% / 0.75), transparent 58%),
+    radial-gradient(circle at 80% 72%, hsl(calc(var(--cover-hue) + 50) 65% 50% / 0.7), transparent 62%),
+    hsl(var(--cover-hue) 30% 88%);
+}
+:root[data-theme='light'] .project-cover-initial {
+  color: color-mix(in srgb, #ffffff 92%, transparent);
+  text-shadow: 0 1px 2px rgb(0 0 0 / 20%);
+}
+:root[data-theme='light'] .mark-intro-glow {
+  background: radial-gradient(circle, color-mix(in srgb, var(--color-action-primary) 38%, transparent), transparent 66%);
+}
+:root[data-theme='light'] .project-card--invited {
+  opacity: 0.6;
+}
+
 @media (max-width: 900px) {
   .project-hero {
     grid-template-columns: minmax(0, 1fr);
