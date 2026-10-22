@@ -43,6 +43,7 @@ test('argument schemas are objects and every required name is declared', () => {
 const result: GeneratedTestCases = { created: 3, updated: 0, deleted: 0, broken: 0, carriedOver: 1 } as GeneratedTestCases
 const candidate = (overrides: Partial<GenerationCandidate>): GenerationCandidate => ({
   gameBuildId: '5',
+  isEditor: false,
   version: '1.2',
   label: null,
   createdAt: '',

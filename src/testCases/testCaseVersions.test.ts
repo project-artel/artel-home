@@ -8,6 +8,7 @@ import {
   isRegression,
   parseVersionLibrary,
   parseVersionCases,
+  parseVerdictCarry,
   parseVersionList,
   resolveCompare,
   resolveVersion,
@@ -110,4 +111,30 @@ test('버전 없음은 주소의 낱말로 고르고 비교하지 않는다', ()
   assert.equal(isBuildId(UNVERSIONED), false)
   assert.equal(isBuildId('12'), true)
   assert.equal(isBuildId(null), false)
+})
+
+test('판정 가져오기 응답을 가져온 수와 까닭별 수로 센다(ARTEL-1181)', () => {
+  const result = parseVerdictCarry({
+    carried: ['1', '2', '3'],
+    skipped: [
+      { testCaseId: '4', reason: 'CONTENT_CHANGED' },
+      { testCaseId: '5', reason: 'NO_PREVIOUS_VERDICT' },
+      { testCaseId: '6', reason: 'NO_PREVIOUS_VERDICT' },
+      { testCaseId: '7', reason: 'SOMETHING_NEW' },
+    ],
+  })
+  assert.equal(result.carried, 3)
+  assert.deepEqual(result.skipped, { CONTENT_CHANGED: 1, NO_PREVIOUS_VERDICT: 2, OTHER: 1 })
+  assert.deepEqual(parseVerdictCarry(null), { carried: 0, skipped: {} })
+})
+
+test('버전 목록이 editor 버전을 표시한다(ARTEL-1181)', () => {
+  const [editor, build] = parseVersionList({
+    items: [
+      { gameBuildId: '9', version: '1.4.0', isEditor: true },
+      { gameBuildId: '8', version: '1.4.0' },
+    ],
+  })
+  assert.equal(editor.isEditor, true)
+  assert.equal(build.isEditor, false)
 })

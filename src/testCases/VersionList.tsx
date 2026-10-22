@@ -3,6 +3,7 @@ import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDi
 import { Dialog } from '../design-system/primitives/Dialog'
 import { useI18n } from '../i18n/useI18n'
 import { ContextMenu, type ContextMenuItem } from './ContextMenu'
+import { EditorBadge } from '../projects/EditorBadge'
 import { NameDialog } from './NameDialog'
 import { Picker } from './Picker'
 import {
@@ -24,6 +25,8 @@ export type VersionOperations = {
   copyToFolder: (version: TestCaseVersionSummary) => Promise<void>
   /** 다른 라이브러리(버전 · 버전 없음 · 폴더)의 사용자 생성 케이스를 이 버전에 가져오는 창을 연다(ARTEL-1032). */
   importManual?: (version: TestCaseVersionSummary) => void
+  /** 다른 버전의 판정을 이 버전 TC 에 가져오는 창을 연다(ARTEL-1181). */
+  importVerdicts?: (version: TestCaseVersionSummary) => void
 }
 
 /** 끄는 버전. 폴더 끌기와 섞이지 않게 형식을 따로 쓴다. */
@@ -121,9 +124,13 @@ export function VersionList({
       ]
     }
     const importManual = operations.importManual
+    const importVerdicts = operations.importVerdicts
     return [
       { label: m.menu.copyToFolder, onSelect: () => void operations.copyToFolder(version) },
       ...(importManual === undefined ? [] : [{ label: m.menu.importManual, onSelect: () => importManual(version) }]),
+      ...(importVerdicts === undefined || versions.length < 2
+        ? []
+        : [{ label: m.menu.importVerdicts, onSelect: () => importVerdicts(version) }]),
       { label: m.menu.moveToGroup, disabled: groups.length === 0, onSelect: () => setMoving(version) },
       ...(version.groupId === null
         ? []
@@ -179,7 +186,10 @@ export function VersionList({
           onKeyDown={menuKeys({ kind: 'version', version })}
           type="button"
         >
-          <span className="tcl-folder-name" title={versionName(version)}>{versionName(version)}</span>
+          <span className="tcl-folder-name" title={versionName(version)}>
+            {versionName(version)}
+            {version.isEditor && <> <EditorBadge /></>}
+          </span>
           {version.latest && <span className="tcl-version-latest">{m.latest}</span>}
           <span className="tcl-folder-count">{version.total}</span>
         </button>

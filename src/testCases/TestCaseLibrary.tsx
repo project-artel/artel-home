@@ -82,8 +82,10 @@ import {
   resolveCompare,
   resolveVersion,
   UNVERSIONED,
+  carryVerdictsFrom,
   versionName,
   type TestCaseVersionSummary,
+  type VerdictCarrySkip,
 } from './testCaseVersions'
 import { useTestCaseVersionList, useVersionCases } from './useTestCaseVersions'
 import {
@@ -273,6 +275,8 @@ export function TestCaseLibrary({
   const [isMoving, setIsMoving] = useState(false)
   const [isAddingToVersion, setIsAddingToVersion] = useState(false)
   const [importTarget, setImportTarget] = useState<TestCaseVersionSummary | null>(null)
+  // 판정 결과를 받을 버전(ARTEL-1181). 버전 메뉴의 "다른 버전에서 판정 결과 가져오기" 가 연다.
+  const [verdictTarget, setVerdictTarget] = useState<TestCaseVersionSummary | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   // 지도에서 만들거나 덮어쓴 결과. 낭독용 알림과 달리 눈에 보이게 헤더 아래 한 줄로 남긴다(ARTEL-1041).
   const [generationNotice, setGenerationNotice] = useState<string | null>(null)
@@ -538,6 +542,25 @@ export function TestCaseLibrary({
       )
     },
     importManual: (version) => setImportTarget(version),
+    importVerdicts: (version) => setVerdictTarget(version),
+  }
+
+  /** [source] 버전의 판정을 [target] 버전 TC 에 가져오고, 몇 건을 왜 못 가져왔는지 안내줄에 남긴다(ARTEL-1181). */
+  async function bringVerdicts(target: TestCaseVersionSummary, sourceId: string) {
+    const source = versionList.versions.find((version) => version.gameBuildId === sourceId)
+    const result = await carryVerdictsFrom(projectId, target.gameBuildId, sourceId)
+    const reasons = (Object.entries(result.skipped) as [VerdictCarrySkip, number][])
+      .filter(([, count]) => count > 0)
+      .map(([reason, count]) => m.importVerdicts.reasons[reason](count))
+    const skipped = Object.values(result.skipped).reduce((sum, count) => sum + (count ?? 0), 0)
+    const notice =
+      m.importVerdicts.done(result.carried, source === undefined ? sourceId : versionName(source)) +
+      (skipped > 0 ? m.importVerdicts.skipped(skipped, reasons.join(' · ')) : '')
+    setVerdictTarget(null)
+    refreshLibrary()
+    refreshVersions()
+    setGenerationNotice(notice)
+    setAnnouncement(notice)
   }
 
   /** 고른 사용자 생성 케이스를 고른 버전에 넣는다(ARTEL-1032). */
@@ -1339,6 +1362,21 @@ export function TestCaseLibrary({
           projectId={projectId}
           target={importTarget}
           versions={versionList.versions}
+        />
+      )}
+
+      {verdictTarget !== null && (
+        <VersionTreeDialog
+          confirmLabel={m.importVerdicts.confirm}
+          groups={versionList.groups}
+          hint={m.importVerdicts.hint}
+          initialId={null}
+          onClose={() => setVerdictTarget(null)}
+          onConfirm={async (gameBuildId) => {
+            if (gameBuildId !== null) await bringVerdicts(verdictTarget, gameBuildId)
+          }}
+          title={m.importVerdicts.title(versionName(verdictTarget))}
+          versions={versionList.versions.filter((version) => version.gameBuildId !== verdictTarget.gameBuildId)}
         />
       )}
 

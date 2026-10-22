@@ -15,6 +15,8 @@ export type GenerationCandidate = {
   gameBuildId: string
   version: string
   label: string | null
+  /** editor 버전인가(ARTEL-1180). */
+  isEditor: boolean
   createdAt: string
   mapState: MapState
   /** 이미 이 빌드에서 지도로 TC 를 만들었다. 다시 만들면 덮어쓴다. */
@@ -94,6 +96,7 @@ export function parseGenerationCandidates(data: unknown): GenerationCandidate[] 
         gameBuildId,
         version: asString(record.version),
         label: asNullableString(record.label),
+        isEditor: record.isEditor === true,
         createdAt: asString(record.createdAt),
         mapState,
         generated: record.generated === true,

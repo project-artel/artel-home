@@ -5,6 +5,7 @@ import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDi
 import { Dialog } from '../design-system/primitives/Dialog'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { ProgressRing } from '../design-system/primitives/ProgressRing'
+import { EditorBadge } from '../projects/EditorBadge'
 import { StudioIcon } from '../testScenarios/studioIcons'
 import { useI18n } from '../i18n/useI18n'
 import { ProjectApiError } from '../projects/projectApi'
@@ -169,6 +170,7 @@ export function GenerateTestCasesDialog({
           <span className="vtree-name">
             {candidate.version}
             {candidate.label !== null && candidate.label.length > 0 && <span className="gen-label"> · {candidate.label}</span>}
+            {candidate.isEditor && <> <EditorBadge /></>}
           </span>
           <span className={`gen-outcome gen-outcome--${outcome}`}>{m.outcome[outcome](candidate.version)}</span>
         </button>
