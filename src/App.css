@@ -13010,3 +13010,4 @@ button.gf-bar:focus-visible {
   96% { opacity: .22; }
 }
 @media (prefers-reduced-motion: reduce) { .nf-light, .nf-bulb-halo { animation: none; } }
+.scenario-studio .st-chat > .st-chat-agent{ flex:none; align-self:flex-start; margin:10px 16px; }

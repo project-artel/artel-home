@@ -139,3 +139,6 @@
   position: relative;
   z-index: 401;
 }
+
+/* 시나리오 화면의 오른쪽 칸 안에 들어간 대화. 칸이 이미 왼쪽 선과 높이를 갖는다. */
+.agent-panel.is-embedded { flex: 1 1 0; height: auto; border-left: 0; }

@@ -6,6 +6,9 @@ import { useActionBinding } from '../projectAgent/bindings'
 import { TEST_RUN_EDIT_APPROVE_SCENARIO_ACTION } from '../projectAgent/specs/testRunEdit'
 import { shortcutLabel } from '../shell/platform'
 import { TestCaseSpecModal } from '../testCases/TestCaseSpecModal'
+import { AgentChatEmbedded } from '../projectAgent/AgentDock'
+import { useSuppressAgentDock } from '../projectAgent/dockSuppression'
+import { isProjectAgentEnabled } from '../projectAgent/agentDockState'
 import { RunChat } from '../testRuns/RunChat'
 import { RunNameCrumb } from '../testRuns/RunNameCrumb'
 import { SplitHandle } from '../design-system/primitives/SplitHandle'
@@ -21,6 +24,7 @@ import { ScenarioList } from './ScenarioList'
 import { ScenarioStepEditor } from './ScenarioStepEditor'
 import { EMPTY_SCENARIO_DRAFT, isFreeScenario } from './scenarioTypes'
 import { useDraftPreview } from './useDraftPreview'
+import { readScenarioChatAgent, storeScenarioChatAgent, type ScenarioChatAgent } from './scenarioChatAgent'
 import { useChatWidth } from './useChatWidth'
 import { useStepEditor } from './useStepEditor'
 import { useRunCases } from './useRunCases'
@@ -162,6 +166,17 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
 
   const split = useChatWidth()
 
+  // 오른쪽 칸이 시나리오 AI 와 프로젝트 agent 중 누구와 대화할지. 프로젝트 agent 가 꺼져 있으면 고르지 않고
+  // 늘 시나리오 AI 다. project 모드에서는 workspace 의 dock 을 숨겨 같은 대화가 두 곳에 뜨지 않게 한다.
+  const projectAgentEnabled = isProjectAgentEnabled(import.meta.env)
+  const [chatAgentChoice, setChatAgentChoice] = useState<ScenarioChatAgent>(readScenarioChatAgent)
+  const chatAgent: ScenarioChatAgent = projectAgentEnabled ? chatAgentChoice : 'workflow'
+  const pickChatAgent = useCallback((agent: ScenarioChatAgent) => {
+    setChatAgentChoice(agent)
+    storeScenarioChatAgent(agent)
+  }, [])
+  useSuppressAgentDock(chatAgent === 'project')
+
   const [dialog, setDialog] = useState<'approve' | 'delete' | null>(null)
   // Approve/delete return to where the scenario was opened from: the run's edit
   // view when in a run, otherwise the project.
@@ -281,7 +296,31 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
         )}
         <SplitHandle label={t.scenarios.chat.widthHandle} {...split.handle} />
         <aside className="st-chat">
-          {fromRun !== null && <RunChat gameBuildId={runBuild?.gameBuildId ?? null} session={runChat} />}
+          {projectAgentEnabled && (
+            <div aria-label={t.scenarios.chat.agentToggleLabel} className="st-seg st-chat-agent" role="group">
+              <button
+                aria-pressed={chatAgent === 'workflow'}
+                className={chatAgent === 'workflow' ? 'on' : undefined}
+                onClick={() => pickChatAgent('workflow')}
+                type="button"
+              >
+                {t.scenarios.chat.agentWorkflow}
+              </button>
+              <button
+                aria-pressed={chatAgent === 'project'}
+                className={chatAgent === 'project' ? 'on' : undefined}
+                onClick={() => pickChatAgent('project')}
+                type="button"
+              >
+                {t.scenarios.chat.agentProject}
+              </button>
+            </div>
+          )}
+          {chatAgent === 'project' ? (
+            <AgentChatEmbedded />
+          ) : (
+            fromRun !== null && <RunChat gameBuildId={runBuild?.gameBuildId ?? null} session={runChat} />
+          )}
         </aside>
       </div>
 
