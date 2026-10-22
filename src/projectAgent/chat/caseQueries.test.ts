@@ -33,6 +33,7 @@ function version(gameBuildId: string, patch: Partial<TestCaseVersionSummary> = {
     label: null,
     createdAt: `2026-10-0${gameBuildId}`,
     latest: false,
+    isEditor: false,
     total: 3,
     counts: { DRAFT: 1, VERIFIED: 2, FAILED: 0, REGRESSION: 0, BROKEN: 0 },
     groupId: null,
@@ -98,6 +99,8 @@ test('trimCaseBuilds puts the newest verdict first', () => {
     version: `1.${gameBuildId}`,
     label,
     verificationStatus: gameBuildId === '1' ? 'VERIFIED' : 'REGRESSION',
+    isEditor: false,
+    verdictCarriedFromBuildId: null,
   })
   const result = trimCaseBuilds([item('1', null), item('2', 'Beta')], [])
   assert.deepEqual(result.rows.map((row) => [row.build, row.verificationStatus]), [['Beta', 'REGRESSION'], ['1.1', 'VERIFIED']])

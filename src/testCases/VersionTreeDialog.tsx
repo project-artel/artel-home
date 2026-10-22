@@ -1,5 +1,6 @@
 import { useId, useMemo, useState } from 'react'
 import { Dialog } from '../design-system/primitives/Dialog'
+import { EditorBadge } from '../projects/EditorBadge'
 import { useI18n } from '../i18n/useI18n'
 import {
   arrangeVersions,
@@ -60,6 +61,7 @@ export function VersionTreeDialog({
       >
         <span aria-hidden="true" className="vtree-radio" />
         <span className="vtree-name">{versionName(version)}</span>
+        {version.isEditor && <EditorBadge />}
         {version.latest && <span className="tcl-version-latest">{t.testCases.versions.latest}</span>}
         <span className="vtree-count">{version.total}</span>
       </button>

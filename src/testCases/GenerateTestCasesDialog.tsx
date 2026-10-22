@@ -1,11 +1,16 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
-import { readCarryOver, storeCarryOver } from '../contentMap/carryOverChoice'
+import { readCarryOver, readCarryVerdicts, storeCarryOver, storeCarryVerdicts } from '../contentMap/carryOverChoice'
 import { generateContentMapTestCases, type GeneratedTestCases } from '../contentMap/generateContentMapTestCases'
 import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
 import { Dialog } from '../design-system/primitives/Dialog'
+import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { ProgressRing } from '../design-system/primitives/ProgressRing'
+import { Switch } from '../design-system/primitives/Switch'
+import { EditorBadge } from '../projects/EditorBadge'
 import { StudioIcon } from '../testScenarios/studioIcons'
+import { FolderIcon } from './FolderIcon'
+import { SearchField } from './SearchField'
 import { useI18n } from '../i18n/useI18n'
 import { ProjectApiError } from '../projects/projectApi'
 import {
@@ -63,6 +68,9 @@ export function GenerateTestCasesDialog({
   const [folded, setFolded] = useState<ReadonlySet<string>>(new Set())
   const [showHidden, setShowHidden] = useState(false)
   const [carryOver, setCarryOver] = useState(readCarryOver)
+  const [carryVerdicts, setCarryVerdicts] = useState(readCarryVerdicts)
+  const [versionQuery, setVersionQuery] = useState('')
+  const [treeEl, setTreeEl] = useState<HTMLDivElement | null>(null)
   const [pending, setPending] = useState(false)
   const [confirmingOverwrite, setConfirmingOverwrite] = useState(false)
   const [outcome, setOutcome] = useState<Outcome | null>(null)
@@ -105,7 +113,13 @@ export function GenerateTestCasesDialog({
     setOutcome(null)
     setActiveBuildId(target.gameBuildId)
     try {
-      const result = await generateContentMapTestCases(projectId, target.gameBuildId, carryOver, candidateOutcome(target) === 'overwrite')
+      const result = await generateContentMapTestCases(
+        projectId,
+        target.gameBuildId,
+        carryOver,
+        candidateOutcome(target) === 'overwrite',
+        carryVerdicts ? 'SAME_CONTENT' : undefined,
+      )
       onGenerated(target, result)
     } catch (cause) {
       if (cause instanceof ProjectApiError && cause.code === GENERATION_CANCELLED) setOutcome({ kind: 'cancelled' })
@@ -150,7 +164,22 @@ export function GenerateTestCasesDialog({
     return m.failure.other
   }
 
+  const needle = versionQuery.trim().toLowerCase()
+  const matches = (candidate: GenerationCandidate) =>
+    needle.length === 0 ||
+    candidate.version.toLowerCase().includes(needle) ||
+    (candidate.label ?? '').toLowerCase().includes(needle)
+
+  /** 줄 둘째 칸: 지금 이 빌드에 무엇이 있나. 오른쪽 끝은 고르면 생기는 일이다. */
+  const summary = (candidate: GenerationCandidate) => {
+    if (candidate.generated) return m.node.cases(candidate.mapCases, candidate.judged)
+    if (candidate.mapState === 'NO_MAP') return m.node.noMap
+    if (candidate.mapState === 'NOT_READ') return m.node.notRead
+    return m.node.ready
+  }
+
   const option = (candidate: GenerationCandidate) => {
+    if (!matches(candidate)) return null
     const outcome = candidateOutcome(candidate)
     const selectable = isSelectable(candidate)
     const on = picked === candidate.gameBuildId
@@ -158,19 +187,23 @@ export function GenerateTestCasesDialog({
       <li key={candidate.gameBuildId}>
         <button
           aria-checked={on}
-          className={'vtree-option gen-option' + (on ? ' is-selected' : '') + (selectable ? '' : ' is-blocked')}
+          className={'vimp-node' + (on ? ' is-on' : '')}
           disabled={!selectable || running}
           onClick={() => setPicked(candidate.gameBuildId)}
           onDoubleClick={() => void submit(candidate)}
           role="radio"
           type="button"
         >
-          <span aria-hidden="true" className="vtree-radio" />
-          <span className="vtree-name">
-            {candidate.version}
-            {candidate.label !== null && candidate.label.length > 0 && <span className="gen-label"> · {candidate.label}</span>}
+          <FolderIcon />
+          <span className="vimp-node-text">
+            <span className="vimp-node-name">
+              {candidate.version}
+              {candidate.label !== null && candidate.label.length > 0 && <span className="gen-label"> · {candidate.label}</span>}
+            </span>
+            <span className="vimp-node-sub">{summary(candidate)}</span>
           </span>
           <span className={`gen-outcome gen-outcome--${outcome}`}>{m.outcome[outcome](candidate.version)}</span>
+          {candidate.isEditor && <EditorBadge />}
         </button>
       </li>
     )
@@ -180,7 +213,7 @@ export function GenerateTestCasesDialog({
     <>
       <Dialog hint={m.hint} labelledBy={titleId} onClose={onClose} title={m.title}>
         <form
-          className="form"
+          className="vimp vimp--solo"
           onSubmit={(event) => {
             // body 로 뜬 dialog 라도 React 이벤트는 여는 쪽까지 올라간다. 여기서 멈춘다.
             event.preventDefault()
@@ -188,96 +221,115 @@ export function GenerateTestCasesDialog({
             void submit(chosen)
           }}
         >
-          {loaded.status === 'loading' && <p className="panel-empty" aria-busy="true">{m.loading}</p>}
-          {loaded.status === 'failed' && <p className="panel-empty" role="alert">{m.loadFailed}</p>}
-          {loaded.status === 'ready' && candidates.length === 0 && <p className="panel-empty">{m.empty}</p>}
-          {candidates.length > 0 && (
-            <div aria-label={m.listLabel} className="vtree gen-list" role="radiogroup">
-              <ul className="vtree-list">
-                {tree.entries.map((entry) => {
-                  if (entry.kind === 'candidate') return option(entry.candidate)
-                  const group = entry.group
-                  const isFolded = folded.has(group.id)
-                  return (
-                    <li key={`group:${group.id}`}>
-                      <button
-                        aria-expanded={!isFolded}
-                        className="vtree-group"
-                        onClick={() =>
-                          setFolded((current) => {
-                            const next = new Set(current)
-                            if (next.has(group.id)) next.delete(group.id)
-                            else next.add(group.id)
-                            return next
-                          })
-                        }
-                        type="button"
-                      >
-                        <Chevron open={!isFolded} />
-                        <span className="vtree-name">{group.name}</span>
-                        <span className="vtree-count">{entry.candidates.length}</span>
-                      </button>
-                      {!isFolded && entry.candidates.length > 0 && (
-                        <ul className="vtree-list vtree-list--nested">{entry.candidates.map(option)}</ul>
-                      )}
-                    </li>
-                  )
-                })}
-              </ul>
-              {tree.hidden.length > 0 && (
-                <>
-                  <button
-                    aria-expanded={showHidden}
-                    className="vtree-group vtree-group--hidden"
-                    onClick={() => setShowHidden((value) => !value)}
-                    type="button"
-                  >
-                    <Chevron open={showHidden} />
-                    <span className="vtree-name">{t.testCases.versions.hiddenVersions(tree.hidden.length)}</span>
-                  </button>
-                  {showHidden && <ul className="vtree-list vtree-list--nested">{tree.hidden.map(option)}</ul>}
-                </>
-              )}
+          <div className="vimp-left">
+            <div className="vimp-left-head">
+              <FolderIcon />
+              <span>{m.versionsHeading}</span>
+              <span className="vimp-count">{candidates.length}</span>
             </div>
-          )}
-          <div className="gen-carry">
-            <label className="cm-generate-carry">
-              <input
+            <div className="vimp-search">
+              <SearchField clearLabel={m.clear} label={m.versionSearch} onChange={setVersionQuery} placeholder={m.versionSearch} value={versionQuery} />
+            </div>
+            <div className="vimp-tree-wrap">
+              <div aria-label={m.listLabel} className="vimp-tree" ref={setTreeEl} role="radiogroup">
+                {loaded.status === 'loading' && <p className="panel-empty" aria-busy="true">{m.loading}</p>}
+                {loaded.status === 'failed' && <p className="panel-empty" role="alert">{m.loadFailed}</p>}
+                {loaded.status === 'ready' && candidates.length === 0 && <p className="panel-empty">{m.empty}</p>}
+                {candidates.length > 0 && (
+                  <>
+                    <ul className="vimp-list">
+                      {tree.entries.map((entry) => {
+                        if (entry.kind === 'candidate') return option(entry.candidate)
+                        const group = entry.group
+                        const members = entry.candidates.filter(matches)
+                        if (needle.length > 0 && members.length === 0) return null
+                        const isFolded = folded.has(group.id) && needle.length === 0
+                        return (
+                          <li key={`group:${group.id}`}>
+                            <button
+                              aria-expanded={!isFolded}
+                              className="vimp-group"
+                              onClick={() =>
+                                setFolded((current) => {
+                                  const next = new Set(current)
+                                  if (next.has(group.id)) next.delete(group.id)
+                                  else next.add(group.id)
+                                  return next
+                                })
+                              }
+                              type="button"
+                            >
+                              <Chevron open={!isFolded} />
+                              <span>{group.name}</span>
+                              <span className="vimp-count">{entry.candidates.length}</span>
+                            </button>
+                            {!isFolded && members.length > 0 && (
+                              <ul className="vimp-list vimp-list--nested">{members.map(option)}</ul>
+                            )}
+                          </li>
+                        )
+                      })}
+                    </ul>
+                    {tree.hidden.length > 0 && (
+                      <>
+                        <button aria-expanded={showHidden} className="vimp-group" onClick={() => setShowHidden((value) => !value)} type="button">
+                          <Chevron open={showHidden} />
+                          <span>{t.testCases.versions.hiddenVersions(tree.hidden.length)}</span>
+                        </button>
+                        {showHidden && <ul className="vimp-list vimp-list--nested">{tree.hidden.map(option)}</ul>}
+                      </>
+                    )}
+                  </>
+                )}
+              </div>
+              <EdgeScrollbar label={m.listLabel} scroller={treeEl} side="right" />
+            </div>
+            <div className="vimp-mode">
+              <Switch
+                checked={carryVerdicts}
+                disabled={running}
+                hint={<InfoHint>{m.carryVerdictsHint}</InfoHint>}
+                onChange={(next) => {
+                  setCarryVerdicts(next)
+                  storeCarryVerdicts(next)
+                }}
+              >
+                {m.carryVerdicts}
+              </Switch>
+              <Switch
                 checked={carryOver}
                 disabled={running}
-                onChange={(event) => {
-                  setCarryOver(event.target.checked)
-                  storeCarryOver(event.target.checked)
+                hint={<InfoHint>{t.contentMap.generate.carryOverHint}</InfoHint>}
+                onChange={(next) => {
+                  setCarryOver(next)
+                  storeCarryOver(next)
                 }}
-                type="checkbox"
-              />
-              <span>
+              >
                 {t.contentMap.generate.carryOver}
-              </span>
-            </label>
-            <InfoHint>{t.contentMap.generate.carryOverHint}</InfoHint>
-          </div>
-          <GenerationStatus generation={generation} outcome={outcome} running={running} />
-          <div className="dialog-actions">
-            {running ? (
-              <>
-                <button className="button button--secondary" onClick={onClose} type="button">
-                  {m.progress.close}
-                </button>
-                <button className="button button--danger" disabled={cancelling} onClick={() => void cancel()} type="button">
-                  {cancelling ? m.progress.cancelling : m.progress.cancel}
-                </button>
-              </>
-            ) : (
-              <>
-                <button className="button button--secondary" onClick={onClose} type="button">
-                  {outcome === null ? m.cancel : m.progress.close}
-                </button>
-                <button className="button button--primary" disabled={chosen === null} type="submit">
-                  {outcome !== null && outcome.kind !== 'alreadyRunning' ? m.progress.retry : overwriting ? m.overwrite.open : m.confirm}
-                </button>
-              </>
-            )}
+              </Switch>
+              <GenerationStatus generation={generation} outcome={outcome} running={running} />
+              <div className="dialog-actions">
+                {running ? (
+                  <>
+                    <button className="button button--secondary" onClick={onClose} type="button">
+                      {m.progress.close}
+                    </button>
+                    <button className="button button--danger" disabled={cancelling} onClick={() => void cancel()} type="button">
+                      {cancelling ? m.progress.cancelling : m.progress.cancel}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button className="button button--secondary" onClick={onClose} type="button">
+                      {outcome === null ? m.cancel : m.progress.close}
+                    </button>
+                    <button className="button button--primary" disabled={chosen === null} type="submit">
+                      {outcome !== null && outcome.kind !== 'alreadyRunning' ? m.progress.retry : overwriting ? m.overwrite.open : m.confirm}
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
         </form>
       </Dialog>

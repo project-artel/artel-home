@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { generateContentMapTestCases, type GeneratedTestCases } from '../contentMap/generateContentMapTestCases'
-import { readCarryOver } from '../contentMap/carryOverChoice'
+import { readCarryOver, readCarryVerdicts } from '../contentMap/carryOverChoice'
 import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
 import { useI18n } from '../i18n/useI18n'
 import { useActionBinding, useFieldBinding } from '../projectAgent/bindings'
@@ -84,6 +84,8 @@ import {
   UNVERSIONED,
   versionName,
   type TestCaseVersionSummary,
+  type VerdictCarryResult,
+  type VerdictCarrySkip,
 } from './testCaseVersions'
 import { useTestCaseVersionList, useVersionCases } from './useTestCaseVersions'
 import {
@@ -96,6 +98,7 @@ import {
   renameGroupCommand,
 } from './versionCommands'
 import { VersionList, type VersionOperations } from './VersionList'
+import { VerdictImportDialog } from './VerdictImportDialog'
 import { VersionTreeDialog } from './VersionTreeDialog'
 import { GenerateTestCasesDialog } from './GenerateTestCasesDialog'
 import { runGenerateFromMap } from './generateFromMapRun'
@@ -273,6 +276,8 @@ export function TestCaseLibrary({
   const [isMoving, setIsMoving] = useState(false)
   const [isAddingToVersion, setIsAddingToVersion] = useState(false)
   const [importTarget, setImportTarget] = useState<TestCaseVersionSummary | null>(null)
+  // 판정 결과를 받을 버전(ARTEL-1181). 버전 메뉴의 "다른 버전에서 판정 결과 가져오기" 가 연다.
+  const [verdictTarget, setVerdictTarget] = useState<TestCaseVersionSummary | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   // 지도에서 만들거나 덮어쓴 결과. 낭독용 알림과 달리 눈에 보이게 헤더 아래 한 줄로 남긴다(ARTEL-1041).
   const [generationNotice, setGenerationNotice] = useState<string | null>(null)
@@ -538,6 +543,25 @@ export function TestCaseLibrary({
       )
     },
     importManual: (version) => setImportTarget(version),
+    importVerdicts: (version) => setVerdictTarget(version),
+  }
+
+  /** 판정 가져오기 창이 끝났을 때. 몇 건을 왜 못 가져왔는지 안내줄에 남긴다(ARTEL-1181). */
+  function handleVerdictsImported(result: VerdictCarryResult, source: TestCaseVersionSummary | null, mode: string) {
+    const reasons = (Object.entries(result.skipped) as [VerdictCarrySkip, number][])
+      .filter(([, count]) => count > 0)
+      .map(([reason, count]) => m.importVerdicts.reasons[reason](count))
+    const skipped = Object.values(result.skipped).reduce((sum, count) => sum + (count ?? 0), 0)
+    const notice =
+      mode === 'NONE'
+        ? m.importVerdicts.resetDone(result.reset)
+        : m.importVerdicts.done(result.carried, source === null ? '' : versionName(source)) +
+          (skipped > 0 ? m.importVerdicts.skipped(skipped, reasons.join(' · ')) : '')
+    setVerdictTarget(null)
+    refreshLibrary()
+    refreshVersions()
+    setGenerationNotice(notice)
+    setAnnouncement(notice)
   }
 
   /** 고른 사용자 생성 케이스를 고른 버전에 넣는다(ARTEL-1032). */
@@ -601,7 +625,7 @@ export function TestCaseLibrary({
     setVersionParams(candidate.gameBuildId, null)
     const notice = candidate.generated
       ? m.generate.overwritten(candidate.version, result.created, result.updated, result.deleted + result.broken)
-      : m.generate.done(candidate.version, result.created, result.carriedOver)
+      : m.generate.done(candidate.version, result.created, result.carriedOver, result.verdictsCarried)
     setGenerationNotice(notice)
     setAnnouncement(notice)
   }
@@ -610,7 +634,7 @@ export function TestCaseLibrary({
     if (typeof gameBuildId !== 'string' || gameBuildId.length === 0) throw new Error('gameBuildId is required.')
     const { candidate, result } = await runGenerateFromMap(gameBuildId, overwrite, {
       listCandidates: () => listGenerationCandidates(projectId),
-      generate: (target, replace) => generateContentMapTestCases(projectId, target.gameBuildId, readCarryOver(), replace),
+      generate: (target, replace) => generateContentMapTestCases(projectId, target.gameBuildId, readCarryOver(), replace, readCarryVerdicts() ? 'SAME_CONTENT' : undefined),
       messages: m.generate.failure,
     })
     handleGenerated(candidate, result)
@@ -1338,6 +1362,17 @@ export function TestCaseLibrary({
           }}
           projectId={projectId}
           target={importTarget}
+          versions={versionList.versions}
+        />
+      )}
+
+      {verdictTarget !== null && (
+        <VerdictImportDialog
+          groups={versionList.groups}
+          onClose={() => setVerdictTarget(null)}
+          onDone={handleVerdictsImported}
+          projectId={projectId}
+          target={verdictTarget}
           versions={versionList.versions}
         />
       )}

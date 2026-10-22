@@ -11,6 +11,7 @@ import {
 
 const candidate = (overrides: Partial<GenerationCandidate>): GenerationCandidate => ({
   gameBuildId: '1',
+  isEditor: false,
   version: '1.0.0',
   label: null,
   createdAt: '2026-10-14T00:00:00Z',
@@ -46,6 +47,7 @@ test('처음 골라 둘 줄은 만들 수 있는 첫 줄이다', () => {
 
 const version = (gameBuildId: string, createdAt: string, overrides: Partial<TestCaseVersionSummary> = {}): TestCaseVersionSummary => ({
   gameBuildId,
+  isEditor: false,
   version: `v${gameBuildId}`,
   label: null,
   createdAt,

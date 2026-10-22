@@ -667,6 +667,8 @@ export const scenariosEn = {
     evidenceGaps: 'Why the spec is unsettled',
     verdictHistory: 'By game version',
     thisVersion: '(this one)',
+    /** A verdict brought over from another version (ARTEL-1181), not one QA gave on this version. */
+    carriedFrom: (source: string | null) => (source === null ? 'brought from another version' : `brought from ${source}`),
   },
   /**
    * The spec author's grade, shown by `SpecGradeChip` wherever a case appears.
@@ -1402,6 +1404,7 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     evidenceGaps: '명세가 확정되지 못한 이유',
     verdictHistory: '게임 버전별',
     thisVersion: '(지금 이 케이스)',
+    carriedFrom: (source: string | null) => (source === null ? '다른 버전에서 가져온 판정' : `${source} 에서 가져온 판정`),
   },
   specGrade: {
     label: '명세 상태',

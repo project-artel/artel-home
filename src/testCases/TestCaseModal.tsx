@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
+import { EditorBadge } from '../projects/EditorBadge'
 import { SceneChip } from './SceneChip'
 import { SpecGradeChip } from './SpecGradeChip'
 import { getTestCase, getVerdictHistory, type CaseVerdictHistoryItem } from './testCaseApi'
@@ -115,14 +116,20 @@ export function TestCaseModal({
                   <dt className="tc-field-label">{m.verdictHistory}</dt>
                   <dd className="tc-field-val">
                     <ul className="tc-gap-list">
-                      {history.map((item) => (
-                        <li className="tc-gap" key={item.testCaseId}>
-                          <span className={`vdot ${item.verificationStatus}`} />{' '}
-                          {item.label !== null && item.label.trim().length > 0 ? item.label : item.version}
-                          {' · '}{statusLabel[item.verificationStatus]}
-                          {String(caseId) === item.testCaseId && ` ${m.thisVersion}`}
-                        </li>
-                      ))}
+                      {history.map((item) => {
+                        const source = history.find((one) => one.gameBuildId === item.verdictCarriedFromBuildId)
+                        return (
+                          <li className="tc-gap" key={item.gameBuildId}>
+                            <span className={`vdot ${item.verificationStatus}`} />{' '}
+                            {historyName(item)}
+                            {item.isEditor && <> <EditorBadge /></>}
+                            {' · '}{statusLabel[item.verificationStatus]}
+                            {item.verdictCarriedFromBuildId !== null &&
+                              ` · ${m.carriedFrom(source === undefined ? null : historyName(source))}`}
+                            {String(caseId) === item.testCaseId && ` ${m.thisVersion}`}
+                          </li>
+                        )
+                      })}
                     </ul>
                   </dd>
                 </div>
@@ -133,4 +140,8 @@ export function TestCaseModal({
       </div>
     </div>
   )
+}
+
+function historyName(item: CaseVerdictHistoryItem): string {
+  return item.label !== null && item.label.trim().length > 0 ? item.label : item.version
 }
