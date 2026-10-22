@@ -50,8 +50,12 @@ export async function getProjectAgentModel(
 
 export type ProjectAgentModelChoice = { model: string | null; keySource: QaKeySource | null }
 
-export async function putProjectAgentModel(choice: ProjectAgentModelChoice): Promise<ProjectAgentModelPreference> {
-  const response = await apiFetch(MODEL_PATH, { method: 'PUT', ...jsonRequest(choice) })
+/** `projectId` 를 주면 응답의 effective 모델이 그 프로젝트의 모델 설정까지 따진 값이다. */
+export async function putProjectAgentModel(
+  choice: ProjectAgentModelChoice,
+  projectId?: string,
+): Promise<ProjectAgentModelPreference> {
+  const response = await apiFetch(projectAgentModelPath(projectId), { method: 'PUT', ...jsonRequest(choice) })
   if (!response.ok) throw await toApiError(response)
   return parseProjectAgentModel(await readJson(response))
 }

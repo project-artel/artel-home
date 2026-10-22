@@ -42,9 +42,8 @@ export function ProjectAgentModelBar({ projectId, open }: { projectId: string; o
       setSaving(true)
       setFailure(null)
       try {
-        await putProjectAgentModel(choice)
-        // 저장 뒤 effective 모델은 프로젝트 기준으로 다시 읽는다.
-        setPreference(await getProjectAgentModel(projectId))
+        // 응답의 effective 모델이 이 프로젝트의 모델 설정까지 따지도록 `projectId` 를 함께 보낸다.
+        setPreference(await putProjectAgentModel(choice, projectId))
       } catch (error: unknown) {
         setFailure(saveFailureText(error))
       } finally {
