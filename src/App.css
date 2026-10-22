@@ -6381,11 +6381,7 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
    a glyph on the line — colour only repeats what the shape already says, which
    is what DESIGN.md asks for and what a colour-blind reader depends on. */
 
-/* Wider than the standard section: the whole graph has to fit one screen, and
-   at 1240px a mid-sized cluster is already squeezed. */
-.section-content:has(.kg-section) {
-  width: min(100%, 1440px);
-}
+/* 폭은 knowledge/knowledge.css 가 정한다(ARTEL-1190, 2400px). */
 .kg-section-actions {
   display: flex;
   justify-content: flex-end;
