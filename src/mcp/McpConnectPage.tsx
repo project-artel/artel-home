@@ -1,3 +1,4 @@
+import { appPath } from '../appPath'
 import { useEffect, useState, type ReactNode } from 'react'
 import { composeNicknameTag, type AuthUser } from '../auth/authTypes'
 import { useAuth } from '../auth/useAuth'
@@ -182,7 +183,7 @@ function McpConnectFrame({ children }: { children: ReactNode }) {
       </div>
       <section className="login-panel" aria-labelledby="mcp-connect-title">
         <div className="login-brand" aria-hidden="true">
-          <img src="/artel-mark.svg" alt="" />
+          <img src={appPath('/artel-mark.svg')} alt="" />
         </div>
         <p className="eyebrow">{t.common.mcpConnect.eyebrow}</p>
         <h1 id="mcp-connect-title">{t.common.mcpConnect.title}</h1>

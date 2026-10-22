@@ -1,3 +1,4 @@
+import { appPath } from '../appPath'
 import { useEffect, useState } from 'react'
 import { createSdkLoginCode } from './authApi'
 import { callbackUrl, parkRequest, readRelayRequest } from './sdkLoginRequest'
@@ -117,7 +118,7 @@ function SdkLoginPanel({ message, onRetry }: { message: string; onRetry?: () => 
       </div>
       <section className="login-panel" aria-labelledby="sdk-login-title">
         <div className="login-brand" aria-hidden="true">
-          <img src="/artel-mark.svg" alt="" />
+          <img src={appPath('/artel-mark.svg')} alt="" />
         </div>
         <p className="eyebrow">{t.common.sdkLogin.eyebrow}</p>
         <h1 id="sdk-login-title">{t.common.sdkLogin.title}</h1>

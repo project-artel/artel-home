@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#F7F4EE" />
     <meta name="description" content="ARTEL Replay Studio" />
-    <link id="app-favicon" rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link id="app-favicon" rel="icon" href="%BASE_URL%favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link
       href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
@@ -34,7 +34,7 @@
         document.querySelector('meta[name="theme-color"]').content =
           theme === 'dark' ? '#14161c' : '#F7F4EE'
         document.querySelector('#app-favicon').href =
-          theme === 'dark' ? '/favicon-dark.svg' : '/favicon.svg'
+          theme === 'dark' ? '%BASE_URL%favicon-dark.svg' : '%BASE_URL%favicon.svg'
 
         // Rewriting on every load migrates the old localStorage value and keeps
         // the expiry rolling for anyone who visits regularly.

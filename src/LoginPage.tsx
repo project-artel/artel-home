@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { appPath } from './appPath'
 import { getOAuthLoginUrl } from './auth/authApi'
 import { enabledOAuthProviders } from './auth/oauthProviders'
 import { PasswordLoginForm } from './auth/PasswordLoginForm'
@@ -16,7 +17,8 @@ import { ThemeToggle } from './ThemeToggle'
  * so the message follows a locale switch.
  */
 function readOAuthErrorCode(): string | null {
-  return new URLSearchParams(window.location.search).get('error')
+  const params = new URLSearchParams(window.location.search)
+  return params.get('auth_error') ?? params.get('error')
 }
 
 function ProviderIcon({ providerId }: { providerId: string }) {
@@ -61,6 +63,7 @@ export function LoginPage({
     if (oauthErrorCode === null) return
     const url = new URL(window.location.href)
     url.searchParams.delete('error')
+    url.searchParams.delete('auth_error')
     window.history.replaceState(null, '', url)
   }, [oauthErrorCode])
 
@@ -74,7 +77,7 @@ export function LoginPage({
       </div>
       <section className="login-panel" aria-labelledby="login-title">
         <div className="login-brand" aria-hidden="true">
-          <img src="/artel-mark.svg" alt="" />
+          <img src={appPath('/artel-mark.svg')} alt="" />
         </div>
         <p className="eyebrow">ARTEL Replay Studio</p>
         <h1 id="login-title">{t.common.login.title}</h1>

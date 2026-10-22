@@ -1,3 +1,4 @@
+import { appPath } from '../appPath'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { updateMyLocale } from '../auth/authApi'
 import { useAuth } from '../auth/useAuth'
@@ -28,7 +29,7 @@ export function AppShell() {
       <header className="top-bar">
         <Link className="brand" to="/projects" aria-label={t.common.shell.brandHomeLabel}>
           <span className="brand-mark" aria-hidden="true">
-            <img src="/artel-mark.svg" alt="" />
+            <img src={appPath('/artel-mark.svg')} alt="" />
           </span>
           <span>ARTEL</span>
           <span className="product-name">Replay Studio</span>
