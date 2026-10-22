@@ -68,7 +68,7 @@ export interface LlmSettings {
   /** Whether some key is in effect. */
   configured: boolean
   source: LlmKeySource
-  /** The server's masked tail such as `****abcd`. The full key is never sent. */
+  /** 서버가 끝부분만 남기고 가린 값(예: `****abcd`). 키 전체는 내려오지 않는다. */
   maskedKey: string | null
   adminKeyStored: boolean
   /** A stored key exists but cannot be decrypted, so it must be set again. */
@@ -373,10 +373,51 @@ export async function checkBedrockModels(): Promise<BedrockCheck> {
   return parseBedrockCheck(await readJson(response))
 }
 
+/** Claude API(Anthropic) 키. 상태 모양은 Bedrock 키와 같고 region 만 없다. */
+export type ClaudeCheck = BedrockCheck
+
+export interface ClaudeSettings {
+  configured: boolean
+  /** 서버가 끝부분만 남기고 가린 값(예: `****abcd`). 키 전체는 내려오지 않는다. */
+  maskedKey: string | null
+  updatedAt: string | null
+  lastCheck: ClaudeCheck | null
+}
+
+export function parseClaudeSettings(body: unknown): ClaudeSettings {
+  const record = asRecord(body)
+  const lastCheck = record.lastCheck
+  return {
+    configured: record.configured === true,
+    maskedKey: asNullableString(record.maskedKey),
+    updatedAt: asNullableString(record.updatedAt),
+    lastCheck: typeof lastCheck === 'object' && lastCheck !== null ? parseBedrockCheck(lastCheck) : null,
+  }
+}
+
+export async function getClaudeSettings(signal?: AbortSignal): Promise<ClaudeSettings> {
+  return parseClaudeSettings(await readJson(await apiFetch('/api/admin/settings/anthropic', { signal })))
+}
+
+/** 키를 저장한다(`sk-ant-` 로 시작해야 한다). `apiKey` 가 `null` 이면 삭제한다. */
+export async function putClaudeKey(apiKey: string | null): Promise<ClaudeSettings> {
+  const response = await apiFetch('/api/admin/settings/anthropic', {
+    method: 'PUT',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ apiKey }),
+  })
+  return parseClaudeSettings(await readJson(response))
+}
+
+export async function checkClaudeModels(): Promise<ClaudeCheck> {
+  const response = await apiFetch('/api/admin/settings/anthropic/check', { method: 'POST' })
+  return parseBedrockCheck(await readJson(response))
+}
+
 /** The direct TypeSafe (Jev) API key. Same status shape as the Anthropic key, without a model check. */
 export interface TypesafeSettings {
   configured: boolean
-  /** The server's masked tail such as `****abcd`. The full key is never sent. */
+  /** 서버가 끝부분만 남기고 가린 값(예: `****abcd`). 키 전체는 내려오지 않는다. */
   maskedKey: string | null
   updatedAt: string | null
 }
@@ -433,6 +474,12 @@ export interface FeatureModels {
   /** What the server uses while `scenarioAuthoringModel` is `null`; `null` means the agent-server default. */
   scenarioAuthoringFallback: string | null
   decisionModel: string | null
+  /** `null` 이면 scenario authoring 모델을 따른다. */
+  projectAgentModel: string | null
+  /** `projectAgentModel` 이 `null` 일 때 서버가 쓰는 모델. `null` 이면 agent-server 기본값이다. */
+  projectAgentFallback: string | null
+  /** platform 키가 없는 route 의 저장된 모델 id. 이런 모델도 저장은 할 수 있다. */
+  keyMissing: string[]
   updatedAt: string | null
 }
 
@@ -442,6 +489,11 @@ export function parseFeatureModels(body: unknown): FeatureModels {
     scenarioAuthoringModel: asNullableString(row.scenarioAuthoringModel),
     scenarioAuthoringFallback: asNullableString(row.scenarioAuthoringFallback),
     decisionModel: asNullableString(row.decisionModel),
+    projectAgentModel: asNullableString(row.projectAgentModel),
+    projectAgentFallback: asNullableString(row.projectAgentFallback),
+    keyMissing: Array.isArray(row.keyMissing)
+      ? row.keyMissing.filter((id): id is string => typeof id === 'string')
+      : [],
     updatedAt: asNullableString(row.updatedAt),
   }
 }
@@ -450,9 +502,9 @@ export async function getFeatureModels(signal?: AbortSignal): Promise<FeatureMod
   return parseFeatureModels(await readJson(await apiFetch('/api/admin/settings/models', { signal })))
 }
 
-/** Both fields are always sent; `null` clears that feature's choice. Answers the saved state. */
+/** 모든 field 를 항상 보내고, `null` 은 그 기능의 선택을 지운다. 응답은 저장된 상태다. */
 export async function putFeatureModels(
-  request: Pick<FeatureModels, 'scenarioAuthoringModel' | 'decisionModel'>,
+  request: Pick<FeatureModels, 'scenarioAuthoringModel' | 'decisionModel' | 'projectAgentModel'>,
 ): Promise<FeatureModels> {
   const response = await apiFetch('/api/admin/settings/models', {
     method: 'PUT',
@@ -460,6 +512,7 @@ export async function putFeatureModels(
     body: JSON.stringify({
       scenarioAuthoringModel: request.scenarioAuthoringModel,
       decisionModel: request.decisionModel,
+      projectAgentModel: request.projectAgentModel,
     }),
   })
   return parseFeatureModels(await readJson(response))

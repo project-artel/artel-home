@@ -2,7 +2,6 @@ import { useEffect, useId, useState, type FormEvent } from 'react'
 import { useI18n } from '../../i18n/useI18n'
 import { InfoHint } from '../../design-system/primitives/InfoHint'
 import {
-  JEV_MODEL_ID,
   getFeatureModels,
   listLlmModels,
   putFeatureModels,
@@ -10,18 +9,9 @@ import {
   type FeatureModels,
 } from './settingsApi'
 import { ROUTE_LABEL } from './routeLabel'
+import { DEFAULT_VALUE, toModelId, toValue } from './featureModelValue'
+import { isModelKeyMissing } from './modelKeyWarning'
 import { useAdminFailure } from './useAdminRequest'
-
-/** A select value of `''` stands for `null`, the feature's own default. */
-const DEFAULT_VALUE = ''
-
-function toValue(modelId: string | null): string {
-  return modelId === null || modelId === JEV_MODEL_ID ? DEFAULT_VALUE : modelId
-}
-
-function toModelId(value: string): string | null {
-  return value === DEFAULT_VALUE ? null : value
-}
 
 function ModelOptions({ models, selected }: { models: AdminLlmModel[]; selected: string }) {
   const { t } = useI18n()
@@ -46,16 +36,28 @@ function ModelOptions({ models, selected }: { models: AdminLlmModel[]; selected:
   )
 }
 
-/** Which model the scenario authoring agent uses, and which one answers the Jev decision questions. */
+function KeyMissingWarning({ id }: { id: string }) {
+  const { t } = useI18n()
+  return (
+    <p className="adm-warning" id={id} role="status">
+      <strong>! {t.adminSettings.featureModels.modelKeyMissingTitle}</strong> {t.adminSettings.featureModels.modelKeyMissing}
+    </p>
+  )
+}
+
+/** scenario authoring agent 와 project agent 가 쓰는 모델, 그리고 Jev 결정 질문에 답하는 모델을 고르는 카드. */
 export function FeatureModelsSection({
   openRouterKeyConfigured,
   typesafeKeyConfigured,
+  claudeKeyConfigured,
   onSaved,
 }: {
   /** `null` while the OpenRouter key state is still loading. */
   openRouterKeyConfigured: boolean | null
   /** `null` while the TypeSafe key state is still loading. */
   typesafeKeyConfigured: boolean | null
+  /** Claude 키 상태를 아직 불러오는 중이면 `null`. */
+  claudeKeyConfigured: boolean | null
   onSaved: (message: string) => void
 }) {
   const { t } = useI18n()
@@ -63,10 +65,14 @@ export function FeatureModelsSection({
   const [saved, setSaved] = useState<FeatureModels | null>(null)
   const [authoring, setAuthoring] = useState(DEFAULT_VALUE)
   const [decision, setDecision] = useState(DEFAULT_VALUE)
+  const [projectAgent, setProjectAgent] = useState(DEFAULT_VALUE)
   const [saving, setSaving] = useState(false)
   const { error, setError, fail } = useAdminFailure()
   const authoringId = useId()
   const decisionId = useId()
+  const projectAgentId = useId()
+  const authoringWarningId = useId()
+  const projectAgentWarningId = useId()
   const warningId = useId()
 
   useEffect(() => {
@@ -76,7 +82,8 @@ export function FeatureModelsSection({
         setModels(loadedModels)
         setSaved(loaded)
         setAuthoring(toValue(loaded.scenarioAuthoringModel))
-        setDecision(toValue(loaded.decisionModel))
+        setDecision(toValue(loaded.decisionModel, true))
+        setProjectAgent(toValue(loaded.projectAgentModel))
       })
       .catch((cause) => {
         if (!controller.signal.aborted) fail(cause)
@@ -93,10 +100,12 @@ export function FeatureModelsSection({
       const result = await putFeatureModels({
         scenarioAuthoringModel: toModelId(authoring),
         decisionModel: toModelId(decision),
+        projectAgentModel: toModelId(projectAgent),
       })
       setSaved(result)
       setAuthoring(toValue(result.scenarioAuthoringModel))
-      setDecision(toValue(result.decisionModel))
+      setDecision(toValue(result.decisionModel, true))
+      setProjectAgent(toValue(result.projectAgentModel))
       onSaved(t.adminSettings.featureModels.saved)
     } catch (cause) {
       fail(cause)
@@ -106,11 +115,26 @@ export function FeatureModelsSection({
   }
 
   const fallback = saved?.scenarioAuthoringFallback ?? null
+  const projectAgentFallback = saved?.projectAgentFallback ?? null
+  const keyMissingFor = (value: string, savedValue: string | null) =>
+    models !== null &&
+    saved !== null &&
+    isModelKeyMissing({
+      modelId: toModelId(value),
+      models,
+      keyMissing: saved.keyMissing,
+      savedModelId: savedValue,
+      claudeKeyConfigured,
+      openRouterKeyConfigured,
+    })
+  const authoringKeyMissing = keyMissingFor(authoring, saved?.scenarioAuthoringModel ?? null)
+  const projectAgentKeyMissing = keyMissingFor(projectAgent, saved?.projectAgentModel ?? null)
   const showJevWarning = decision === DEFAULT_VALUE && openRouterKeyConfigured === false && typesafeKeyConfigured === false
   const unchanged =
     saved !== null &&
     authoring === toValue(saved.scenarioAuthoringModel) &&
-    decision === toValue(saved.decisionModel)
+    decision === toValue(saved.decisionModel, true) &&
+    projectAgent === toValue(saved.projectAgentModel)
 
   return (
     <section aria-labelledby="adm-feature-models-title">
@@ -121,7 +145,7 @@ export function FeatureModelsSection({
         </h2>
       </div>
       {error !== null && (
-        <p className="notice notice--critical" role="alert">
+        <p className="notice notice--critical adm-section-notice" role="alert">
           {error}
         </p>
       )}
@@ -130,49 +154,83 @@ export function FeatureModelsSection({
           {error === null ? t.adminSettings.featureModels.loading : t.adminSettings.featureModels.failed}
         </p>
       ) : (
-        <form className="adm-form" onSubmit={save}>
-          <span className="adm-field adm-field--wide">
-            <label className="field__label" htmlFor={authoringId}>
+        <form className="adm-panel" onSubmit={save}>
+          <div className="adm-feature">
+            <label className="adm-feature__label" htmlFor={authoringId}>
               {t.adminSettings.featureModels.authoring}
               <InfoHint>{t.adminSettings.featureModels.authoringHint}</InfoHint>
             </label>
-            <select
-              id={authoringId}
-              className="control adm-input"
-              value={authoring}
-              disabled={saving}
-              onChange={(event) => setAuthoring(event.target.value)}
-            >
-              <option value={DEFAULT_VALUE}>{t.adminSettings.featureModels.serverDefault(fallback)}</option>
-              <ModelOptions models={models} selected={authoring} />
-            </select>
-          </span>
-          <span className="adm-field adm-field--wide">
-            <label className="field__label" htmlFor={decisionId}>
+            <div className="adm-feature__control">
+              <select
+                id={authoringId}
+                className="control adm-input"
+                value={authoring}
+                disabled={saving}
+                aria-describedby={authoringKeyMissing ? authoringWarningId : undefined}
+                onChange={(event) => setAuthoring(event.target.value)}
+              >
+                <option value={DEFAULT_VALUE}>{t.adminSettings.featureModels.serverDefault(fallback)}</option>
+                <ModelOptions models={models} selected={authoring} />
+              </select>
+              {authoringKeyMissing && <KeyMissingWarning id={authoringWarningId} />}
+            </div>
+          </div>
+          <div className="adm-feature">
+            <label className="adm-feature__label" htmlFor={decisionId}>
               {t.adminSettings.featureModels.decision}
               <InfoHint>{t.adminSettings.featureModels.decisionHint}</InfoHint>
             </label>
-            <select
-              id={decisionId}
-              className="control adm-input"
-              value={decision}
-              disabled={saving}
-              aria-describedby={showJevWarning ? warningId : undefined}
-              onChange={(event) => setDecision(event.target.value)}
-            >
-              <option value={DEFAULT_VALUE}>{t.adminSettings.featureModels.jev(typesafeKeyConfigured === true)}</option>
-              <ModelOptions models={models} selected={decision} />
-            </select>
-          </span>
-          <button type="submit" className="control control--action" disabled={saving || unchanged}>
-            {saving ? t.adminSettings.common.saving : t.adminSettings.featureModels.save}
-          </button>
-          {showJevWarning && (
-            <p className="adm-warning" id={warningId} role="status">
-              <strong>! {t.adminSettings.featureModels.jevKeyMissingTitle}</strong>{' '}
-              {t.adminSettings.featureModels.jevKeyMissing}
-            </p>
-          )}
+            <div className="adm-feature__control">
+              <select
+                id={decisionId}
+                className="control adm-input"
+                value={decision}
+                disabled={saving}
+                aria-describedby={showJevWarning ? warningId : undefined}
+                onChange={(event) => setDecision(event.target.value)}
+              >
+                <option value={DEFAULT_VALUE}>{t.adminSettings.featureModels.jev(typesafeKeyConfigured === true)}</option>
+                <ModelOptions models={models} selected={decision} />
+              </select>
+              {showJevWarning && (
+                <p className="adm-warning" id={warningId} role="status">
+                  <strong>! {t.adminSettings.featureModels.jevKeyMissingTitle}</strong>{' '}
+                  {t.adminSettings.featureModels.jevKeyMissing}
+                </p>
+              )}
+            </div>
+          </div>
+          <div className="adm-feature">
+            <label className="adm-feature__label" htmlFor={projectAgentId}>
+              {t.adminSettings.featureModels.projectAgent}
+              <InfoHint>{t.adminSettings.featureModels.projectAgentHint}</InfoHint>
+            </label>
+            <div className="adm-feature__control">
+              <select
+                id={projectAgentId}
+                className="control adm-input"
+                value={projectAgent}
+                disabled={saving}
+                aria-describedby={projectAgentKeyMissing ? projectAgentWarningId : undefined}
+                onChange={(event) => setProjectAgent(event.target.value)}
+              >
+                <option value={DEFAULT_VALUE}>
+                  {t.adminSettings.featureModels.followsAuthoring(projectAgentFallback)}
+                </option>
+                <ModelOptions models={models} selected={projectAgent} />
+              </select>
+              {projectAgentKeyMissing && <KeyMissingWarning id={projectAgentWarningId} />}
+            </div>
+          </div>
+          <div className="adm-panel__footer">
+            <span className={`adm-save-state${unchanged ? '' : ' adm-save-state--dirty'}`}>
+              <span className="adm-save-state__dot" aria-hidden="true" />
+              {unchanged ? t.adminSettings.featureModels.upToDate : t.adminSettings.featureModels.unsaved}
+            </span>
+            <button type="submit" className="control control--action adm-primary" disabled={saving || unchanged}>
+              {saving ? t.adminSettings.common.saving : t.adminSettings.featureModels.save}
+            </button>
+          </div>
         </form>
       )}
     </section>
