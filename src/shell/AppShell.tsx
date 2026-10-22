@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { appPath } from '../appPath'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
+import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../i18n/useI18n'
 import { ThemeToggle } from '../ThemeToggle'
 
@@ -11,6 +13,7 @@ import { ThemeToggle } from '../ThemeToggle'
 export function AppShell() {
   const auth = useAuth()
   const { t } = useI18n()
+  const [mainNode, setMainNode] = useState<HTMLElement | null>(null)
 
   if (auth.status !== 'authenticated') {
     // AuthProvider only ever mounts this subtree for an authenticated user; the
@@ -71,9 +74,13 @@ export function AppShell() {
         </div>
       </header>
 
-      <main className="workspace">
-        <Outlet />
-      </main>
+      {/* 페이지 스크롤도 서비스 막대(ARTEL-1208). 브라우저 막대는 숨긴다. */}
+      <div className="scroll-frame app-main-frame">
+        <main className="workspace" ref={setMainNode}>
+          <Outlet />
+        </main>
+        <EdgeScrollbar label={t.common.shell.pageScroll} scroller={mainNode} side="right" />
+      </div>
     </div>
   )
 }

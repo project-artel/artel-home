@@ -13107,3 +13107,71 @@ col.vimp-c-scene{ width:18% } col.vimp-c-verdict{ width:16% }
 .switch.is-disabled{ opacity:.55; }
 .switch.is-disabled .switch-text, .switch.is-disabled .switch-input{ cursor:not-allowed; }
 @media (prefers-reduced-motion: reduce){ .switch-track, .switch-track::after{ transition:none; } }
+
+/* ── 서비스 스크롤 막대(ARTEL-1208) ─────────────────────────────
+   페이지 · 섹션 본문의 브라우저 막대를 숨기고 EdgeScrollbar 를 단다. 다른 화면의 막대와 같은 모양이다. */
+.scroll-frame {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+}
+.workspace-body-frame {
+  display: flex;
+  flex-direction: column;
+}
+.workspace-body-frame > .workspace-body {
+  flex: 1;
+  scrollbar-width: none;
+}
+.workspace-body-frame > .workspace-body::-webkit-scrollbar {
+  display: none;
+}
+/* 바깥 페이지(프로젝트 목록 · 계정 · 설치 안내)는 화면 높이에 가두고 안에서 넘긴다. 프로젝트 안은 제 칸이 넘긴다. */
+.app-main-frame:has(.page):not(:has(.project-workspace)) {
+  height: calc(100dvh - var(--shell-topbar-h));
+}
+.app-main-frame:has(.page):not(:has(.project-workspace)) > .workspace {
+  height: 100%;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.app-main-frame > .workspace::-webkit-scrollbar {
+  display: none;
+}
+.scroll-frame > .edgebar {
+  position: absolute;
+  z-index: 20;
+  right: 0;
+  width: 18px;
+  pointer-events: none;
+}
+.scroll-frame > .edgebar .edgebar-thumb {
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+}
+.scroll-frame > .edgebar .edgebar-thumb:active {
+  cursor: grabbing;
+}
+.scroll-frame > .edgebar .edgebar-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 2px;
+  width: 4px;
+  border-radius: 2px;
+  background: var(--color-brand-accent);
+  transition: width 120ms var(--ease-standard);
+}
+.scroll-frame > .edgebar.is-near .edgebar-fill {
+  width: 10px;
+  background: var(--color-brand-accent-strong);
+}
+@media (prefers-reduced-motion: reduce) {
+  .scroll-frame > .edgebar .edgebar-fill {
+    transition: none;
+  }
+}
