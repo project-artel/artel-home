@@ -142,3 +142,23 @@
 
 /* 시나리오 화면의 오른쪽 칸 안에 들어간 대화. 칸이 이미 왼쪽 선과 높이를 갖는다. */
 .agent-panel.is-embedded { flex: 1 1 0; height: auto; border-left: 0; }
+
+/* 모델 선택 줄 */
+.agent-model-bar {
+  flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  padding: 8px 16px; border-bottom: 1px solid var(--color-border-subtle);
+}
+.agent-model-bar__label { font-size: 12px; color: var(--color-text-secondary); }
+.agent-model-bar__default {
+  font: inherit; font-size: 12px; padding: 4px 8px; border-radius: 6px; cursor: pointer;
+  background: var(--color-bg-raised); color: var(--color-text-primary); border: 1px solid var(--color-border-subtle);
+}
+.agent-model-bar__default.is-selected { border-color: var(--color-action-primary); color: var(--color-action-primary); }
+.agent-model-bar__default:disabled { opacity: 0.6; cursor: default; }
+.agent-model-bar__warning { flex-basis: 100%; margin: 0; font-size: 12px; color: var(--color-status-warning); }
+.agent-model-bar__error { flex-basis: 100%; margin: 0; font-size: 12px; color: var(--color-status-critical); }
+.agent-notice__actions { display: inline-flex; flex-wrap: wrap; gap: 8px; margin-left: 8px; }
+.agent-notice__link, .agent-notice__button {
+  font: inherit; font-size: 12px; background: none; border: 0; padding: 0; cursor: pointer;
+  color: var(--color-action-primary); text-decoration: underline;
+}

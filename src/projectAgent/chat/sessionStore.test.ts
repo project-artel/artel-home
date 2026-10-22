@@ -26,6 +26,9 @@ function message(id: number, role: AgentMessage['role'], extra: Partial<AgentMes
     toolCalls: [],
     toolResult: null,
     kind: null,
+    cause: null,
+    model: null,
+    keySource: null,
     ...extra,
   }
 }

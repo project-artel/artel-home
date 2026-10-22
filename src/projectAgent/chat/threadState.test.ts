@@ -5,7 +5,7 @@ import type { AgentMessage, Conversation, ToolCall } from './conversationApi.ts'
 import { isOwnedAssistant, mergeMessages, needsResume, pendingToolCalls, threadItems } from './threadState.ts'
 
 function message(id: number, role: AgentMessage['role'], extra: Partial<AgentMessage> = {}): AgentMessage {
-  return { id, conversationId: 1, role, content: '', createdAt: '', toolCalls: [], toolResult: null, kind: null, ...extra }
+  return { id, conversationId: 1, role, content: '', createdAt: '', toolCalls: [], toolResult: null, kind: null, cause: null, model: null, keySource: null, ...extra }
 }
 
 function call(callId: string, tool = 'read_page'): ToolCall {

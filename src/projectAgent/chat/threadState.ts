@@ -106,7 +106,7 @@ export type ThreadItem =
   | { kind: 'assistant'; id: number; text: string }
   | { kind: 'steps'; id: number; steps: ToolStep[] }
   | { kind: 'event'; id: number; text: string; eventKind: string | null }
-  | { kind: 'notice'; id: number; text: string; noticeKind: string | null }
+  | { kind: 'notice'; id: number; text: string; noticeKind: string | null; cause: string | null; model: string | null; keySource: 'platform' | 'user' | null }
 
 /**
  * 화면에 그릴 줄. TOOL_RESULT 는 따로 그리지 않고 그 호출의 step 줄 상태로 들어간다.
@@ -138,7 +138,7 @@ export function threadItems(messages: readonly AgentMessage[], runningCallId: st
     } else if (message.role === 'EVENT') {
       items.push({ kind: 'event', id: message.id, text: message.content, eventKind: message.kind })
     } else if (message.role === 'NOTICE') {
-      items.push({ kind: 'notice', id: message.id, text: message.content, noticeKind: message.kind })
+      items.push({ kind: 'notice', id: message.id, text: message.content, noticeKind: message.kind, cause: message.cause, model: message.model, keySource: message.keySource })
     }
   }
   return items

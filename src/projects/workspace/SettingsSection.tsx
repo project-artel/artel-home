@@ -21,6 +21,7 @@ import { GENRES, type Genre, type ProjectDetail, type ProjectDraft } from '../pr
 import { TrackerLinkPanel } from '../../tracker/TrackerLinkPanel'
 import { ReviewSettingsPanel } from '../../issues/discussions/ReviewSettingsPanel'
 import '../../issues/discussions/discussions.css'
+import { ProjectAgentModelPanel } from './ProjectAgentModelPanel'
 import { useWorkspace } from './workspaceContext'
 
 function toDraft(project: ProjectDetail): ProjectDraft {
@@ -40,7 +41,7 @@ function toDraft(project: ProjectDetail): ProjectDraft {
  * in a form.
  */
 export function SettingsSection() {
-  const { applyProject, project } = useWorkspace()
+  const { applyProject, models, project } = useWorkspace()
   const [draft, setDraft] = useState<ProjectDraft>(() => toDraft(project))
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [failure, setFailure] = useState<string | null>(null)
@@ -258,6 +259,8 @@ export function SettingsSection() {
       </section>
 
       <TrackerLinkPanel />
+
+      <ProjectAgentModelPanel canEdit={project.myRole === 'OWNER'} models={models} projectId={project.id} />
 
       <ReviewSettingsPanel canEdit={project.myRole === 'OWNER'} projectId={project.id} />
 

@@ -1,9 +1,10 @@
-import type { ComponentProps } from 'react'
+import { useState, type ComponentProps } from 'react'
 import { SplitHandle } from '../design-system/primitives/SplitHandle'
 import { useI18n } from '../i18n/useI18n'
 import { AgentComposer } from './chat/AgentComposer'
 import { AgentThread } from './chat/AgentThread'
 import { ConversationSwitcher } from './chat/ConversationSwitcher'
+import { ProjectAgentModelBar } from './model/ProjectAgentModelBar'
 import { useAgentSession } from './chat/sessionContext'
 import './agentDock.css'
 import './chat/agentChat.css'
@@ -61,6 +62,7 @@ function AgentChatBody({ onClose }: { onClose?: () => void }) {
   const { t } = useI18n()
   const copy = t.projectAgent
   const session = useAgentSession()
+  const [modelOpen, setModelOpen] = useState(false)
   const thread = session?.view.thread ?? null
   const empty =
     session === null ||
@@ -77,6 +79,16 @@ function AgentChatBody({ onClose }: { onClose?: () => void }) {
           )}
         </span>
         <span className="agent-panel__tools">
+          {session !== null && (
+            <button
+              aria-expanded={modelOpen}
+              className="agent-model-bar__default"
+              onClick={() => setModelOpen((open) => !open)}
+              type="button"
+            >
+              {copy.model.label}
+            </button>
+          )}
           {session !== null && session.state.currentId !== null && (
             <button
               aria-label={copy.chat.newConversation}
@@ -94,6 +106,7 @@ function AgentChatBody({ onClose }: { onClose?: () => void }) {
           )}
         </span>
       </header>
+      {session !== null && <ProjectAgentModelBar open={modelOpen} projectId={session.store.projectId} />}
       <div className={'agent-panel__body' + (empty ? ' is-empty' : '')}>
         <div className="agent-panel__content">
           {empty ? (
@@ -103,7 +116,7 @@ function AgentChatBody({ onClose }: { onClose?: () => void }) {
           ) : thread?.load === 'error' ? (
             <p className="agent-panel__status" role="alert">{copy.chat.loadFailed}</p>
           ) : (
-            session !== null && <AgentThread session={session} />
+            session !== null && <AgentThread onChangeModel={() => setModelOpen(true)} session={session} />
           )}
         </div>
       </div>

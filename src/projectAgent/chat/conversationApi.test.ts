@@ -95,3 +95,18 @@ test('SSE event parsers read JSON and return null for broken data', () => {
   assert.equal(parseConversationEvent(JSON.stringify(conversation))?.status, 'AWAITING_TOOL')
   assert.equal(parseConversationEvent('{'), null)
 })
+
+test('parseMessage reads the failure cause of a NOTICE', () => {
+  const message = parseMessage({
+    id: 1,
+    role: 'NOTICE',
+    content: 'x',
+    payload: { kind: 'error', cause: 'llm_key_missing', model: 'm', keySource: 'user' },
+  })
+  assert.equal(message?.cause, 'llm_key_missing')
+  assert.equal(message?.model, 'm')
+  assert.equal(message?.keySource, 'user')
+  const plain = parseMessage({ id: 2, role: 'NOTICE', content: 'x', payload: { kind: 'stopped' } })
+  assert.equal(plain?.cause, null)
+  assert.equal(plain?.keySource, null)
+})

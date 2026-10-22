@@ -1,7 +1,10 @@
 import { useEffect, useRef } from 'react'
+import { useAuth } from '../../auth/useAuth'
 import { useI18n } from '../../i18n/useI18n'
 import { ChatMessageBody } from '../../testRuns/ChatMessageBody'
 import { ApprovalCard, ChoiceCard, JobCard, ResumeCard, StateIcon, type IconState } from './AgentCards'
+import { NoticeKeyLink } from '../model/ProjectAgentModelBar'
+import { noticeKeyAction } from './noticeCause'
 import type { AgentSession } from './sessionContext'
 import { stepTarget } from './stepLabel'
 import type { StepState, ThreadItem, ToolStep } from './threadState'
@@ -39,8 +42,9 @@ function StepRow({ step }: { step: ToolStep }) {
   )
 }
 
-function ThreadRow({ item }: { item: ThreadItem }) {
+function ThreadRow({ item, onChangeModel }: { item: ThreadItem; onChangeModel?: () => void }) {
   const { t } = useI18n()
+  const { user } = useAuth()
   const copy = t.projectAgent.chat
   const authors = t.scenarios.chat
   switch (item.kind) {
@@ -77,7 +81,8 @@ function ThreadRow({ item }: { item: ThreadItem }) {
         </li>
       )
     }
-    case 'notice':
+    case 'notice': {
+      const action = noticeKeyAction(item.cause, item.keySource, user?.platformRole === 'ADMIN')
       return (
         <li
           className={`agent-msg ${item.noticeKind === 'error' ? 'inline-error agent-notice is-error' : 'agent-notice'}`}
@@ -85,13 +90,24 @@ function ThreadRow({ item }: { item: ThreadItem }) {
         >
           {item.noticeKind === 'error' && <span aria-hidden="true">!</span>}
           {item.text}
+          {action !== null && (
+            <span className="agent-notice__actions">
+              {action.keyLink !== null && <NoticeKeyLink to={action.keyLink} />}
+              {onChangeModel !== undefined && (
+                <button className="agent-notice__button" onClick={onChangeModel} type="button">
+                  {t.projectAgent.model.change}
+                </button>
+              )}
+            </span>
+          )}
         </li>
       )
+    }
   }
 }
 
 /** 대화 내용과 그 아래의 카드(job, 질문, 승인, 이어서 하기). */
-export function AgentThread({ session }: { session: AgentSession }) {
+export function AgentThread({ session, onChangeModel }: { session: AgentSession; onChangeModel?: () => void }) {
   const { t } = useI18n()
   const copy = t.projectAgent.chat
   const { store, state, view } = session
@@ -108,7 +124,7 @@ export function AgentThread({ session }: { session: AgentSession }) {
     <div className="agent-thread">
       <ol className="agent-thread__list">
         {view.items.map((item) => (
-          <ThreadRow item={item} key={`${item.kind}-${item.id}`} />
+          <ThreadRow item={item} onChangeModel={onChangeModel} key={`${item.kind}-${item.id}`} />
         ))}
       </ol>
       {view.jobs.map((job) => (
