@@ -1,4 +1,5 @@
 import { useId, useRef, useState } from 'react'
+import '../../layouts/screens.css'
 import { composeNicknameTag } from '../../auth/authTypes'
 import { ConfirmActionDialog } from '../../design-system/primitives/ConfirmActionDialog'
 import { InfoHint } from '../../design-system/primitives/InfoHint'
@@ -57,6 +58,7 @@ export function MembersSection() {
   const { status, members, invitations, refresh, reload } = useMembers(project.id, project.myRole)
   const [removing, setRemoving] = useState<ProjectMember | null>(null)
   const [announcement, setAnnouncement] = useState('')
+  const [query, setQuery] = useState('')
   const { t } = useI18n()
   const copy = t.projects.members
 
@@ -88,12 +90,32 @@ export function MembersSection() {
     },
   })
 
+  const needle = query.trim().toLowerCase()
+  const shown =
+    needle === ''
+      ? members
+      : members.filter((member) =>
+          [member.displayName, member.nickname, composeNicknameTag(member.nickname, member.userTag), member.email ?? '']
+            .some((value) => value.toLowerCase().includes(needle)),
+        )
+
+  // 멤버 표와 그 아래 초대 대기 중(ARTEL-1208). 둘을 떼어 놓아 한 덩어리로 읽히지 않게 한다.
   return (
-    <div className="section-columns">
+    <div className="members-screen">
       <section className="panel" aria-labelledby="members-title">
         <header className="panel-header panel-header--split">
-          <h2 id="members-title">{copy.title}</h2>
-          {status === 'ready' && <span className="badge">{copy.count(members.length)}</span>}
+          <h2 id="members-title">
+            {copy.title}
+            {status === 'ready' && <span className="panel-count">{members.length}</span>}
+          </h2>
+          <input
+            aria-label={copy.searchLabel}
+            className="field-input members-search"
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={copy.searchPlaceholder}
+            type="search"
+            value={query}
+          />
         </header>
 
         {status === 'loading' && (
@@ -117,15 +139,38 @@ export function MembersSection() {
         )}
 
         {status === 'ready' && (
-          <ul className="member-list">
-            {members.map((member) => (
-              <MemberRow
-                key={member.userId}
-                member={member}
-                onRemove={isOwner ? () => setRemoving(member) : null}
-              />
-            ))}
-          </ul>
+          <div className="screen-table-wrap">
+            <table className="screen-table member-list">
+              <thead>
+                <tr>
+                  <th scope="col">{copy.columnName}</th>
+                  <th scope="col">{copy.columnTag}</th>
+                  <th scope="col">{copy.columnEmail}</th>
+                  <th scope="col">{copy.roleLabel}</th>
+                  <th scope="col">{copy.columnJoined}</th>
+                  <th scope="col">
+                    <span className="visually-hidden">{copy.remove}</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {shown.map((member) => (
+                  <MemberRow
+                    key={member.userId}
+                    member={member}
+                    onRemove={isOwner ? () => setRemoving(member) : null}
+                  />
+                ))}
+                {shown.length === 0 && (
+                  <tr>
+                    <td className="detail-empty" colSpan={6}>
+                      {copy.noMatch}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
 
@@ -181,25 +226,29 @@ function MemberRow({
   const copy = t.projects.members
 
   return (
-    <li className="member-row">
-      <div className="member-row-main">
+    <tr>
+      <td>
         <span className="member-row-name">
           {member.displayName}
-          {/* 계정 설정에서 정한 이름을 로그인 이름 옆에 덧붙인다 — 둘 다 이 사람을 가리키는
+          {/* 계정 설정에서 정한 이름을 로그인 이름 옆에 덧붙인다. 둘 다 이 사람을 가리키는
               이름이라, 로그인 이름을 지우고 nickname 으로 바꾸면 초대·로그를 그 사람으로 찾을
               다른 경로가 사라진다. */}
           <span className="member-row-nickname">{copy.nickname(member.nickname)}</span>
         </span>
+      </td>
+      <td className="mono">{composeNicknameTag(member.nickname, member.userTag)}</td>
+      <td>
         {member.email !== null ? (
           <span className="member-row-email">{member.email}</span>
         ) : (
           <span className="detail-empty">{copy.noEmail}</span>
         )}
-      </div>
-      <div className="member-row-meta">
-        <span className="badge">{t.projects.roles[member.role]}</span>
-        <span className="member-row-user-tag mono">{composeNicknameTag(member.nickname, member.userTag)}</span>
-        <span className="member-row-joined">{copy.joined(formatDate(member.joinedAt))}</span>
+      </td>
+      <td>
+        <span className={`badge${member.role === 'OWNER' ? ' badge--accent' : ''}`}>{t.projects.roles[member.role]}</span>
+      </td>
+      <td>{copy.joined(formatDate(member.joinedAt))}</td>
+      <td className="screen-table-action">
         {onRemove !== null && (
           <button
             className="button button--danger-quiet button--compact"
@@ -209,8 +258,8 @@ function MemberRow({
             {copy.remove}
           </button>
         )}
-      </div>
-    </li>
+      </td>
+    </tr>
   )
 }
 
@@ -344,10 +393,11 @@ function InvitePanel({
   })
 
   return (
-    <section className="panel" aria-labelledby="invite-title">
+    <section className="panel members-pending" aria-labelledby="invite-title">
       <header className="panel-header">
         <h2 id="invite-title">
-          {copy.inviteTitle}
+          {copy.pendingTitle}
+          {status === 'ready' && <span className="panel-count">{invitations.length}</span>}
           <InfoHint>{copy.inviteCopy}</InfoHint>
         </h2>
       </header>
@@ -401,7 +451,6 @@ function InvitePanel({
         </div>
       </form>
 
-      <h3 className="panel-subtitle">{copy.pendingTitle}</h3>
       {/* 못 읽었을 때 "없다"고 말하지 않는다. 기다리는 초대가 정말 없는 것과 알 수 없는 것은
           다른 상태이고, 소유자는 그 둘을 구분해야 다시 시도할지 정할 수 있다. */}
       {status === 'loading' ? (

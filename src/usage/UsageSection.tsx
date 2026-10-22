@@ -1,4 +1,5 @@
 import { InfoHint } from '../design-system/primitives/InfoHint'
+import '../layouts/screens.css'
 import { useI18n } from '../i18n/useI18n'
 import { useWorkspace } from '../projects/workspace/workspaceContext'
 import { formatCost, totalTokens } from './format'
@@ -49,13 +50,20 @@ export function UsageSection() {
           </div>
         </header>
 
-        <UsageFigures grid={grid} today={today} total={usage.total} />
-        {usage.total.calls === 0 ? (
-          <p className="panel-empty">{u.nothingYet}</p>
-        ) : (
-          <UsageGrass grid={grid} zone={usage.zone} />
-        )}
+        {/* 잔디는 제 폭만큼만 쓰고, 남는 옆자리에 수치를 둔다(ARTEL-1208). 전폭으로 늘리면 칸만 길고 비었다. */}
+        <div className="usage-overview">
+          <div className="usage-overview-grass">
+            {usage.total.calls === 0 ? (
+              <p className="panel-empty">{u.nothingYet}</p>
+            ) : (
+              <UsageGrass grid={grid} zone={usage.zone} />
+            )}
+          </div>
+          <UsageFigures grid={grid} today={today} total={usage.total} />
+        </div>
       </section>
+
+      <div className="usage-breakdowns">
 
       <Breakdown
         axisLabel={u.featureAxis}
@@ -81,6 +89,7 @@ export function UsageSection() {
         title={u.byModel}
         total={usage.total}
       />
+      </div>
     </div>
   )
 }
@@ -133,6 +142,14 @@ function Breakdown({
         <p className="panel-empty">{u.nothingYet}</p>
       ) : (
         <table className="table usage-table">
+          {/* 칸 폭을 정해 둔다. 숫자 칸이 넓게 벌어지지 않고, 긴 모델 이름은 말줄임으로 줄인다. */}
+          <colgroup>
+            <col />
+            <col className="usage-col-tokens" />
+            <col className="usage-col-share" />
+            <col className="usage-col-cost" />
+            <col className="usage-col-calls" />
+          </colgroup>
           <thead>
             <tr>
               <th scope="col">{axisLabel}</th>
@@ -149,8 +166,8 @@ function Breakdown({
               return (
                 <tr key={row.key}>
                   <td>
-                    <span className="usage-row-label">{row.label}</span>
-                    <span className="usage-row-sub mono">{row.sub}</span>
+                    <span className="usage-row-label" title={row.label}>{row.label}</span>
+                    <span className="usage-row-sub mono" title={row.sub}>{row.sub}</span>
                   </td>
                   <td className="num mono">{counts.format(tokens)}</td>
                   <td>
