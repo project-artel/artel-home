@@ -24,6 +24,7 @@ import { ScenarioList } from './ScenarioList'
 import { ScenarioStepEditor } from './ScenarioStepEditor'
 import { EMPTY_SCENARIO_DRAFT, isFreeScenario } from './scenarioTypes'
 import { useDraftPreview } from './useDraftPreview'
+import { useScenarioAgentActions } from './useScenarioAgentActions'
 import { readScenarioChatAgent, storeScenarioChatAgent, type ScenarioChatAgent } from './scenarioChatAgent'
 import { useChatWidth } from './useChatWidth'
 import { useStepEditor } from './useStepEditor'
@@ -206,6 +207,23 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
     },
   })
 
+  // agent 가 이 시나리오를 FREE 로 바꾸고 TC 를 넣고 빼는 길. 읽는 중이거나 draft 를 보고 있으면 막는다 —
+  // 그때 `editor` 는 저장된 시나리오가 아니다.
+  useScenarioAgentActions({
+    projectId,
+    editor,
+    runBuild,
+    blockedReason: !validId
+      ? t.scenarios.page.invalidAddress
+      : status === 'missing'
+        ? t.scenarios.page.missingCopy
+        : status === 'loading'
+          ? t.scenarios.map.loading
+          : activeDraft !== null
+            ? DRAFT_OPEN_REASON
+            : null,
+  })
+
   if (!validId) {
     return (
       <NotFoundPage
@@ -289,7 +307,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
           preview.view
         ) : status === 'ready' ? (
           isFree
-            ? <FreeScenarioEditor editor={editor} gameBuildId={runBuild?.gameBuildId ?? null} projectId={projectId} />
+            ? <FreeScenarioEditor build={runBuild} editor={editor} gameBuildId={runBuild?.gameBuildId ?? null} projectId={projectId} />
             : <ScenarioStepEditor caseBuild={runBuild} projectId={projectId} editor={editor} />
         ) : (
           <div className="edoc-shell at-top at-bottom"><main className="edoc-wrap"><div className="edoc" /></main></div>
