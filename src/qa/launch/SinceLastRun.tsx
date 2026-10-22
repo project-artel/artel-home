@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { EdgeScrollbar } from '../../design-system/primitives/EdgeScrollbar'
 import { InfoHint } from '../../design-system/primitives/InfoHint'
 import { useI18n } from '../../i18n/useI18n'
+import { SeverityTag } from '../../issues/SeverityTag'
+import { isIssueSeverity } from '../../issues/issueTypes'
 import { formatDateTime } from '../../projects/formatters'
 import { sectionHref } from '../../projects/workspace/sections'
 import { qaRunPath } from '../qaTypes'
@@ -62,7 +64,12 @@ export function SinceLastRun({
                   {since.issues.map((issue) => (
                     <li key={issue.id}>
                       <Link className="ql-issue" to={issueHref(projectId, issue.id)}>
-                        {issue.severity !== null && <span className={`ql-sev ql-sev--${issue.severity.toLowerCase()}`}>{t.issues.severityLabels[issue.severity as keyof typeof t.issues.severityLabels] ?? issue.severity}</span>}
+                        {/* 이슈 화면과 같은 라벨 · 색이다(ARTEL-1205). 모르는 등급은 글자만 보인다. */}
+                        {issue.severity !== null && (
+                          <span className="ql-sev">
+                            {isIssueSeverity(issue.severity) ? <SeverityTag severity={issue.severity} /> : issue.severity}
+                          </span>
+                        )}
                         <span className="ql-issue-title">{issue.title}</span>
                         <span className="ql-issue-meta">
                           {issue.scenarioTitle}

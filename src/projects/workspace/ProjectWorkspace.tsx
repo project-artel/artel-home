@@ -1,9 +1,10 @@
-import { useMemo, type CSSProperties, type ReactNode } from 'react'
+import { useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { NotFoundPage } from '../../NotFoundPage'
 import { Link, Navigate, Outlet, useLocation, useParams } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
 import { AgentChatPanel, AgentReopenButton, AgentSplitHandle } from '../../projectAgent/AgentDock'
 import { AgentSessionProvider } from '../../projectAgent/chat/AgentSessionProvider'
+import { DockSuppressionProvider } from '../../projectAgent/dockSuppression'
 import { ActionRegistryProvider } from '../../projectAgent/registry'
 import { useAgentDock } from '../../projectAgent/useAgentDock'
 import { formatDate } from '../formatters'
@@ -62,6 +63,9 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
   const { pathname } = useLocation()
   // rail 을 접으면 페이지 칸이 168px 넓어질 뿐이라, 대화창 폭 상한은 펼친 rail 폭으로 계산한다.
   const dock = useAgentDock(projectId, pathname, PROJECT_RAIL_PX)
+  // 페이지가 대화를 자기 칸에 직접 그리는 동안(시나리오 화면의 project 모드) dock 을 숨긴다.
+  const [pageHostsChat, setPageHostsChat] = useState(false)
+  const dockOpen = dock.open && !pageHostsChat
 
   const {
     applyTrackerLink,
@@ -171,15 +175,15 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
   const agentHome = dock.enabled && dock.fullPage
   const workspaceClass =
     'project-workspace' +
-    (dock.open ? (agentHome ? ' has-agent-home' : ' has-agent') : dock.enabled ? ' has-agent-closed' : '') +
+    (dockOpen ? (agentHome ? ' has-agent-home' : ' has-agent') : dock.enabled && !pageHostsChat ? ' has-agent-closed' : '') +
     (dock.splitting ? ' is-splitting' : '')
 
   // 대화 session 은 대화창 밖에 둔다. 대화창을 닫아도 agent 가 하던 일을 계속한다.
   return (
-    <ProjectAgentProviders enabled={dock.enabled} panelOpen={dock.open} projectId={projectId}>
+    <ProjectAgentProviders enabled={dock.enabled} panelOpen={dock.open || pageHostsChat} projectId={projectId}>
     <div
       className={workspaceClass}
-      style={dock.open ? ({ '--agent-chat-w': `${dock.chatWidth}px` } as CSSProperties) : undefined}
+      style={dockOpen ? ({ '--agent-chat-w': `${dock.chatWidth}px` } as CSSProperties) : undefined}
     >
       <ProjectNav
         agentEnabled={dock.enabled}
@@ -199,6 +203,7 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
       />
 
       {!agentHome && <div className="workspace-body">
+        <DockSuppressionProvider onChange={setPageHostsChat}>
         <WorkspaceContext.Provider value={value}>
           {deep ? (
             <div className="workspace-deep">
@@ -224,11 +229,12 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
             </>
           )}
         </WorkspaceContext.Provider>
+        </DockSuppressionProvider>
       </div>}
 
-      {dock.open && !agentHome && <AgentSplitHandle {...dock.handle} />}
-      {dock.open && <AgentChatPanel onClose={agentHome ? undefined : dock.closeChat} wide={agentHome} />}
-      {dock.enabled && !dock.open && <AgentReopenButton onOpen={dock.openChat} />}
+      {dockOpen && !agentHome && <AgentSplitHandle {...dock.handle} />}
+      {dockOpen && <AgentChatPanel onClose={agentHome ? undefined : dock.closeChat} wide={agentHome} />}
+      {dock.enabled && !dockOpen && !pageHostsChat && <AgentReopenButton onOpen={dock.openChat} />}
     </div>
     </ProjectAgentProviders>
   )

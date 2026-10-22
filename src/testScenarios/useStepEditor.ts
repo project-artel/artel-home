@@ -43,6 +43,11 @@ export type StepEditor = {
   /** Add steps at the end — a FREE scenario takes more test cases this way. */
   appendSteps: (steps: ScenarioStep[]) => void
   moveStep: (from: number, to: number) => void
+  /**
+   * Replace the whole draft from the current one, as one edit: autosave writes it and undo
+   * walks it back like any other edit. The project agent converts a scenario to FREE this way.
+   */
+  replaceDraft: (next: (draft: ScenarioDraft) => ScenarioDraft) => void
   undo: () => void
   redo: () => void
   /** Persist now, bypassing the debounce (e.g. before navigating away). */
@@ -185,6 +190,11 @@ export function useStepEditor(
     [mutate],
   )
 
+  const replaceDraft = useCallback(
+    (next: (draft: ScenarioDraft) => ScenarioDraft) => mutate(next),
+    [mutate],
+  )
+
   const dirty = useMemo(
     () => !isScenarioDraftEqual(working, baseline.current),
     [working, savedTick],
@@ -293,6 +303,7 @@ export function useStepEditor(
     removeStep,
     appendSteps,
     moveStep,
+    replaceDraft,
     undo,
     redo,
     flush,

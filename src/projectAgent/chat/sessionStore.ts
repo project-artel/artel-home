@@ -14,6 +14,7 @@ import {
 import { readyEvents, removeEvent, type JobEventKind, type QueuedEvent } from './eventQueue'
 import { projectRoute } from './pagePath'
 import { isBusy, isOwnedAssistant, lastMessageId, mergeMessages, needsResume, pendingToolCalls } from './threadState'
+import { connectWithRetry } from './streamConnection'
 import { executeToolCall } from './toolExecutor'
 import { forgetWatches, resumeWatches } from './tools/watchJob'
 import type { ChoiceOption, JobState, ToolContext } from './toolTypes'
@@ -129,17 +130,22 @@ const EMPTY_OWNERSHIP: Ownership = { ownedAfterId: null }
 const NO_CALL_IDS: string[] = []
 
 function connectEventSource(projectId: string, conversationId: number, handlers: StreamHandlers): () => void {
-  const source = new EventSource(conversationStreamUrl(projectId, conversationId), { withCredentials: true })
-  source.addEventListener('message', (event: MessageEvent) => {
-    const message = parseMessageEvent(String(event.data))
-    if (message !== null) handlers.onMessage(message)
-  })
-  source.addEventListener('conversation', (event: MessageEvent) => {
-    const conversation = parseConversationEvent(String(event.data))
-    if (conversation !== null) handlers.onConversation(conversation)
-  })
-  source.addEventListener('open', () => handlers.onOpen())
-  return () => source.close()
+  return connectWithRetry(
+    () => new EventSource(conversationStreamUrl(projectId, conversationId), { withCredentials: true }),
+    ['message', 'conversation'],
+    {
+      onEvent: (type, data) => {
+        if (type === 'message') {
+          const message = parseMessageEvent(data)
+          if (message !== null) handlers.onMessage(message)
+          return
+        }
+        const conversation = parseConversationEvent(data)
+        if (conversation !== null) handlers.onConversation(conversation)
+      },
+      onOpen: () => handlers.onOpen(),
+    },
+  )
 }
 
 function browserEnvironment(): SessionEnvironment {

@@ -1,8 +1,10 @@
 import { accountAndKeys } from './accountAndKeys'
 import { admin } from './admin'
+import { buildVersions } from './buildVersions'
 import { cliInstall } from './cliInstall'
 import { cliRunQa } from './cliRunQa'
 import { createProject } from './createProject'
+import { freeScenarios } from './freeScenarios'
 import { inviteMembers } from './inviteMembers'
 import { mcpConnect } from './mcpConnect'
 import { sdkConnect } from './sdkConnect'
@@ -32,6 +34,8 @@ export const GUIDES: Guide[] = [
   createProject,
   inviteMembers,
   admin,
+  buildVersions,
+  freeScenarios,
 ]
 
 export function findGuide(id: string): Guide | undefined {

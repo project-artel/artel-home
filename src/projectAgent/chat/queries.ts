@@ -5,6 +5,8 @@ import { listProjectQaRuns, type QaRunSummary } from '../../qa/launch/qaLaunchAp
 import type { QaRun, QaTry } from '../../qa/qaTypes'
 import { ProjectApiError } from '../../projects/projectApi'
 import { fetchProjectUsage, type ProjectUsage, type UsageTotals } from '../../usage/usageApi'
+import { VERIFICATION_STATUSES } from '../../testCases/testCaseTypes'
+import { runBuildVersions, runTestCase, runTestCases } from './caseQueries'
 import type { ToolResultBody } from './toolTypes'
 
 /*
@@ -14,7 +16,7 @@ import type { ToolResultBody } from './toolTypes'
 
 export const QUERY_ROW_LIMIT = 20
 
-export const QUERY_KINDS = ['qa_history', 'qa_run', 'issues', 'usage'] as const
+export const QUERY_KINDS = ['qa_history', 'qa_run', 'issues', 'usage', 'test_cases', 'test_case', 'build_versions'] as const
 export type QueryKind = (typeof QUERY_KINDS)[number]
 
 export type QueryRows<Row> = { rows: Row[]; truncated: boolean }
@@ -240,5 +242,29 @@ async function queryResult(
     )
     return trimIssues(page.items, page.hasMore)
   }
+  if (kind === 'test_cases') {
+    const ids = Array.isArray(args.ids)
+      ? args.ids.map((one) => (typeof one === 'string' || typeof one === 'number' ? String(one) : '')).filter((one) => one.length > 0)
+      : undefined
+    return runTestCases(
+      projectId,
+      {
+        ids,
+        search: stringArg(args, 'search'),
+        scene: stringArg(args, 'scene'),
+        folderId: stringArg(args, 'folderId'),
+        verificationStatus: filterArg(args, 'verificationStatus', VERIFICATION_STATUSES),
+      },
+      Number(stringArg(args, 'offset') ?? 0) || 0,
+      stringArg(args, 'gameBuildId'),
+      signal,
+    )
+  }
+  if (kind === 'test_case') {
+    const id = stringArg(args, 'id')
+    if (id === undefined) throw new Error('test_case needs args.id')
+    return runTestCase(projectId, id, stringArg(args, 'gameBuildId'), signal)
+  }
+  if (kind === 'build_versions') return runBuildVersions(projectId, signal)
   return trimUsage(await fetchProjectUsage(projectId, new Date(), signal))
 }

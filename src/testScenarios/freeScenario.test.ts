@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import type { TestCase } from '../testCases/testCaseTypes.ts'
-import { describeFreeCases, indexCasesById, selectAddableCases } from './freeScenarioCases.ts'
+import { combineCaseListStatus, describeFreeCases, indexCasesById, selectAddableCases } from './freeScenarioCases.ts'
 import {
   createFreeScenario,
   parseExecutionMode,
@@ -91,10 +91,33 @@ test('FREE rows are numbered among the case steps and keep the step index', () =
     { ...createEmptyStep(), case_id: 99 },
   ]
   const rows = describeFreeCases(steps, indexCasesById([testCase('11')]))
-  assert.deepEqual(rows.map((row) => [row.index, row.number, row.caseId, row.testCase?.id ?? null]), [
-    [0, 1, '11', '11'],
-    [1, 2, '99', null],
+  assert.deepEqual(rows.map((row) => [row.index, row.number, row.caseId, row.testCase?.id ?? null, row.availability]), [
+    [0, 1, '11', '11', 'present'],
+    [1, 2, '99', null, 'missing'],
   ])
+})
+
+test('with a run build, a case outside the build is notInBuild, not missing, and a build case shows its build content', () => {
+  const steps: ScenarioStep[] = [
+    { ...createEmptyStep(), case_id: 11 },
+    { ...createEmptyStep(), case_id: 12 },
+    { ...createEmptyStep(), case_id: 99 },
+  ]
+  const project = indexCasesById([testCase('11'), testCase('12')])
+  const build = indexCasesById([testCase('11', { step: 'build content' })])
+  const rows = describeFreeCases(steps, project, build)
+  assert.deepEqual(rows.map((row) => [row.caseId, row.availability, row.testCase?.step ?? null]), [
+    ['11', 'present', 'build content'],
+    ['12', 'notInBuild', 'step of 12'],
+    ['99', 'missing', null],
+  ])
+})
+
+test('the FREE lists are loading until both arrive and an error when either fails', () => {
+  assert.equal(combineCaseListStatus('ready', null), 'ready')
+  assert.equal(combineCaseListStatus('ready', 'loading'), 'loading')
+  assert.equal(combineCaseListStatus('loading', 'error'), 'error')
+  assert.equal(combineCaseListStatus('ready', 'ready'), 'ready')
 })
 
 test('the add dialog offers only cases the scenario does not hold, narrowed by search', () => {

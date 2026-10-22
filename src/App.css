@@ -6395,11 +6395,7 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
    a glyph on the line — colour only repeats what the shape already says, which
    is what DESIGN.md asks for and what a colour-blind reader depends on. */
 
-/* Wider than the standard section: the whole graph has to fit one screen, and
-   at 1240px a mid-sized cluster is already squeezed. */
-.section-content:has(.kg-section) {
-  width: min(100%, 1440px);
-}
+/* 폭은 knowledge/knowledge.css 가 정한다(ARTEL-1190, 2400px). */
 .kg-section-actions {
   display: flex;
   justify-content: flex-end;
@@ -11258,6 +11254,7 @@ col.mct-c-updated { width: 12%; }
 .free-case-title{ min-width:0; overflow-wrap:anywhere; font-size:13px; font-weight:600; color:var(--color-text-primary); }
 .free-case-expected{ margin:0; font-size:12px; line-height:1.5; color:var(--color-text-secondary); overflow-wrap:anywhere; }
 .free-case-expected-label{ font-weight:600; color:var(--color-text-muted); }
+.free-case-flag{ display:inline-flex; align-items:center; gap:var(--space-1); padding:0 6px; border:1px solid var(--color-status-warning); border-radius:999px; font-size:11px; font-weight:600; line-height:18px; color:var(--color-text-primary); background:var(--color-status-warning-muted); white-space:nowrap; }
 .free-add-list{ list-style:none; margin:0; padding:0; max-height:50vh; overflow-y:auto; border:1px solid var(--color-border-subtle); border-radius:var(--radius-md); }
 .free-add-row{ display:flex; align-items:center; gap:var(--space-2); min-height:40px; padding:var(--space-2) var(--space-3); cursor:pointer; font-size:13px; color:var(--color-text-primary); }
 .free-add-row:hover{ background:var(--color-bg-hover); }
@@ -11434,8 +11431,8 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
 .ql-rows { margin: 0; padding: var(--space-1) 0; list-style: none; }
 .ql-issue { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: 'sev title status' 'sev meta status'; column-gap: var(--space-3); align-items: center; padding: var(--space-2) var(--space-4); color: var(--color-text-primary); text-decoration: none; }
 .ql-issue:hover { background: var(--color-bg-hover); }
-.ql-sev { grid-area: sev; padding: 1px 6px; border-radius: var(--radius-sm); background: var(--color-status-warning-muted); color: var(--color-text-primary); font-family: var(--font-mono); font-size: 10px; font-weight: 700; }
-.ql-sev--blocker, .ql-sev--critical, .ql-sev--major { background: var(--color-status-critical-muted); }
+/* 심각도 색은 이슈 화면의 `.severity-tag` 하나다(ARTEL-1205). 여기는 칸 자리만 잡는다. */
+.ql-sev { grid-area: sev; display: inline-flex; color: var(--color-text-muted); font-size: 11px; }
 .ql-issue-title { grid-area: title; overflow: hidden; font-size: 13px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .ql-issue-meta { grid-area: meta; overflow: hidden; color: var(--color-text-muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 .ql-issue-status { grid-area: status; color: var(--color-text-secondary); font-size: 12px; }
@@ -13024,3 +13021,4 @@ button.gf-bar:focus-visible {
   96% { opacity: .22; }
 }
 @media (prefers-reduced-motion: reduce) { .nf-light, .nf-bulb-halo { animation: none; } }
+.scenario-studio .st-chat > .st-chat-agent{ flex:none; align-self:flex-start; margin:10px 16px; }

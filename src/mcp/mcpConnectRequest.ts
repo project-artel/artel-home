@@ -7,8 +7,9 @@
  * 테스트가 component 없이 이 규칙을 확인하게 하려는 것이다.
  */
 
-/** MCP 쪽에 박혀 있는 주소라 설정값이 아니다. */
-export const MCP_CONNECT_PATH = '/mcp/connect'
+import { appPath } from '../appPath'
+
+export const MCP_CONNECT_PATH = appPath('/mcp/connect')
 
 const PARKED_REQUEST_KEY = 'artel.mcpConnectRequest'
 

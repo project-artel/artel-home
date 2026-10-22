@@ -1,6 +1,7 @@
 import { lazy, useEffect, useRef } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import './App.css'
+import { appBasename } from './appPath'
 import { AccountSettingsPage } from './account/AccountSettingsPage'
 import { AdminLayout } from './admin/AdminLayout'
 import { RequireAdmin } from './admin/RequireAdmin'
@@ -117,7 +118,7 @@ export function App() {
   // Only the authenticated subtree is routed. The login boundary above stays a
   // plain render, so a routing fault can never strand a signed-out user.
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={appBasename}>
       <Routes>
         <Route element={<AppShell />}>
           <Route path="/" element={<Navigate replace to="/projects" />} />
