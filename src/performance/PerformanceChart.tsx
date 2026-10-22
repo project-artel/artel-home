@@ -1,6 +1,9 @@
+import { useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { findGapRanges, splitMeasuredSegments } from './chartModel'
 import type { PerformancePoint, PlottablePointKey } from './performanceTypes'
+import { axisTicks, niceCeil } from './trendModel'
+import { useElementSize } from './useElementWidth'
 
 export type ChartSeries = {
   key: PlottablePointKey
@@ -8,9 +11,12 @@ export type ChartSeries = {
   className: string
 }
 
-const WIDTH = 900
-const HEIGHT = 240
-const PAD = 32
+/** 고정 높이 차트의 높이, 그리고 남는 높이를 채우는 차트의 가장 낮은 높이. */
+const BASE_HEIGHT = 240
+const PAD_LEFT = 64
+const PAD_RIGHT = 16
+const PAD_TOP = 24
+const PAD_BOTTOM = 30
 
 /**
  * One downsampled series, drawn without filling in anything the run did not
@@ -35,12 +41,25 @@ export function PerformanceChart({
   series,
   budgetMs = null,
   showHitches = false,
+  width = 900,
+  fill = false,
+  formatValue = (value) => String(Number(value.toFixed(1))),
 }: {
   points: PerformancePoint[]
   series: ChartSeries[]
   budgetMs?: number | null
   showHitches?: boolean
+  /** 실제 폭을 재기 전에 쓰는 viewBox 폭. 재고 나면 칸 폭을 따른다. */
+  width?: number
+  /** 칸의 남은 높이를 채운다. 프레임타임처럼 화면의 주인공인 차트만 쓴다. */
+  fill?: boolean
+  /** 세로축 눈금 글자. 메모리는 바이트로 오므로 MiB 로 바꾼다(ARTEL-1207). */
+  formatValue?: (value: number) => string
 }) {
+  const [box, setBox] = useState<HTMLDivElement | null>(null)
+  const size = useElementSize(box, { width, height: BASE_HEIGHT })
+  const WIDTH = Math.max(size.width, 280)
+  const HEIGHT = fill ? Math.max(size.height, BASE_HEIGHT) : BASE_HEIGHT
   const { t } = useI18n()
   const copy = t.performance.chart
 
@@ -53,26 +72,42 @@ export function PerformanceChart({
   if (values.length === 0) return <p className="performance-unmeasured">{t.performance.unmeasured}</p>
 
   const maxAtMs = Math.max(...points.map((point) => point.atMs), 1)
-  // Headroom so the tallest spike does not sit on the frame of the plot.
-  const maxValue = Math.max(...values, budgetMs ?? 0, 1) * 1.08
+  // Headroom so the tallest spike does not sit on the frame of the plot, rounded up to a
+  // readable top so every tick label names a value the chart actually reaches.
+  const maxValue = niceCeil(Math.max(...values, budgetMs ?? 0) * 1.08)
+  const plotWidth = WIDTH - PAD_LEFT - PAD_RIGHT
+  const plotHeight = HEIGHT - PAD_TOP - PAD_BOTTOM
 
-  const x = (atMs: number) => PAD + (atMs / maxAtMs) * (WIDTH - PAD * 2)
-  const y = (value: number) => HEIGHT - PAD - (value / maxValue) * (HEIGHT - PAD * 2)
+  const x = (atMs: number) => PAD_LEFT + (atMs / maxAtMs) * plotWidth
+  const y = (value: number) => HEIGHT - PAD_BOTTOM - (value / maxValue) * plotHeight
+  const timeTicks = axisTicks(maxAtMs, Math.min(4, Math.max(points.length - 1, 1)))
 
   const primary = series[0].key
   const gaps = findGapRanges(points, (point) => point[primary])
   // Half a bucket on each side, so a band covers the window rather than the instant.
-  const halfBucket = (WIDTH - PAD * 2) / Math.max(points.length - 1, 1) / 2
+  const halfBucket = plotWidth / Math.max(points.length - 1, 1) / 2
   const hitchPoints = showHitches ? points.filter((point) => (point.hitchCount ?? 0) > 0) : []
 
   return (
-    <div className="performance-chart-wrap">
+    <div className={`performance-chart-wrap${fill ? ' performance-chart-wrap--fill' : ''}`}>
+      <div className="performance-chart-area" ref={setBox}>
       <svg
         aria-label={series.map((item) => item.label).join(', ')}
         className="performance-chart"
+        height={HEIGHT}
         role="img"
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+        width={WIDTH}
       >
+        {axisTicks(maxValue).map((tick) => (
+          <g key={`y-${tick}`}>
+            <line className="performance-grid" x1={PAD_LEFT} x2={WIDTH - PAD_RIGHT} y1={y(tick)} y2={y(tick)} />
+            <text className="performance-axis-label performance-axis-label--end" x={PAD_LEFT - 8} y={y(tick) + 4}>
+              {formatValue(tick)}
+            </text>
+          </g>
+        ))}
+
         {gaps.map((gap) => {
           const from = x(points[gap.from].atMs) - halfBucket
           const to = x(points[gap.to].atMs) + halfBucket
@@ -80,11 +115,11 @@ export function PerformanceChart({
           return (
             <rect
               className="performance-gap"
-              height={HEIGHT - PAD * 2}
+              height={plotHeight}
               key={`gap-${gap.from}`}
               width={Math.max(to - from, 2)}
               x={from}
-              y={PAD}
+              y={PAD_TOP}
             >
               <title>{points[gap.from].isFocused ? copy.gapLabel : copy.gapLegend}</title>
             </rect>
@@ -93,17 +128,17 @@ export function PerformanceChart({
 
         <line
           className="performance-axis"
-          x1={PAD}
-          x2={WIDTH - PAD}
-          y1={HEIGHT - PAD}
-          y2={HEIGHT - PAD}
+          x1={PAD_LEFT}
+          x2={WIDTH - PAD_RIGHT}
+          y1={HEIGHT - PAD_BOTTOM}
+          y2={HEIGHT - PAD_BOTTOM}
         />
 
         {budgetMs !== null && (
           <line
             className="performance-budget"
-            x1={PAD}
-            x2={WIDTH - PAD}
+            x1={PAD_LEFT}
+            x2={WIDTH - PAD_RIGHT}
             y1={y(budgetMs)}
             y2={y(budgetMs)}
           />
@@ -125,7 +160,7 @@ export function PerformanceChart({
         {hitchPoints.map((point) => (
           <path
             className="performance-hitch"
-            d={`M${x(point.atMs)} 10l6 10h-12z`}
+            d={`M${x(point.atMs)} 4l6 10h-12z`}
             key={`hitch-${point.atMs}`}
           >
             <title>
@@ -134,20 +169,13 @@ export function PerformanceChart({
           </path>
         ))}
 
-        <text className="performance-axis-label" x={PAD} y={HEIGHT - PAD + 16}>
-          0
-        </text>
-        <text
-          className="performance-axis-label performance-axis-label--end"
-          x={WIDTH - PAD}
-          y={HEIGHT - PAD + 16}
-        >
-          {(maxAtMs / 1000).toFixed(0)}
-        </text>
-        <text className="performance-axis-label" x={PAD} y={PAD - 8}>
-          {maxValue.toFixed(maxValue < 10 ? 1 : 0)}
-        </text>
+        {timeTicks.map((tick) => (
+          <text className="performance-axis-label performance-axis-label--middle" key={`x-${tick}`} x={x(tick)} y={HEIGHT - 10}>
+            {Number((tick / 1000).toFixed(1))}
+          </text>
+        ))}
       </svg>
+      </div>
 
       <ul className="performance-legend">
         {series.map((item) => (
