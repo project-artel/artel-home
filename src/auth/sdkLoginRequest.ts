@@ -7,8 +7,9 @@
  * resume hook without pulling a component in behind them.
  */
 
-/** Also the address the SDK is compiled against, so it is a constant, not config. */
-export const SDK_LOGIN_PATH = '/sdk-login'
+import { appPath } from '../appPath'
+
+export const SDK_LOGIN_PATH = appPath('/sdk-login')
 
 const PARKED_REQUEST_KEY = 'artel.sdkLoginRequest'
 

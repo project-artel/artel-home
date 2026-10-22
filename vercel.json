@@ -1,4 +1,108 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "buildCommand": "npm run build:vercel",
+  "rewrites": [
+    {
+      "source": "/console",
+      "destination": "/console/index.html"
+    },
+    {
+      "source": "/console/:path*",
+      "destination": "/console/index.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "redirects": [
+    {
+      "destination": "https://artel.kr/console",
+      "source": "/",
+      "permanent": false,
+      "has": [
+        {
+          "value": "home.stage.artel.kr",
+          "type": "host"
+        }
+      ]
+    },
+    {
+      "destination": "https://artel.kr/console/login",
+      "source": "/login",
+      "permanent": false,
+      "has": [
+        {
+          "value": "home.stage.artel.kr",
+          "type": "host"
+        }
+      ]
+    },
+    {
+      "destination": "https://artel.kr/console/sdk-login",
+      "source": "/sdk-login",
+      "permanent": false,
+      "has": [
+        {
+          "value": "home.stage.artel.kr",
+          "type": "host"
+        }
+      ]
+    },
+    {
+      "destination": "https://artel.kr/console/mcp/connect",
+      "source": "/mcp/connect",
+      "permanent": false,
+      "has": [
+        {
+          "value": "home.stage.artel.kr",
+          "type": "host"
+        }
+      ]
+    },
+    {
+      "destination": "https://artel.kr/console/projects/:path*",
+      "source": "/projects/:path*",
+      "permanent": false,
+      "has": [
+        {
+          "value": "home.stage.artel.kr",
+          "type": "host"
+        }
+      ]
+    },
+    {
+      "destination": "https://artel.kr/console/account",
+      "source": "/account",
+      "permanent": false,
+      "has": [
+        {
+          "value": "home.stage.artel.kr",
+          "type": "host"
+        }
+      ]
+    },
+    {
+      "destination": "https://artel.kr/console/setup",
+      "source": "/setup",
+      "permanent": false,
+      "has": [
+        {
+          "value": "home.stage.artel.kr",
+          "type": "host"
+        }
+      ]
+    },
+    {
+      "destination": "https://artel.kr/console/admin/:path*",
+      "source": "/admin/:path*",
+      "permanent": false,
+      "has": [
+        {
+          "value": "home.stage.artel.kr",
+          "type": "host"
+        }
+      ]
+    }
+  ]
 }

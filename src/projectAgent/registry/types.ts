@@ -23,6 +23,7 @@ export type PageId =
   | 'qaRun'
   | 'testRun'
   | 'testRunEdit'
+  | 'testScenario'
   | 'members'
   | 'settings'
   | 'setup'

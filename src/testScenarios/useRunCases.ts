@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { listTestCases } from '../testCases/testCaseApi'
 import type { TestCase } from '../testCases/testCaseTypes'
 import { listVersionCases } from '../testCases/testCaseVersions'
+import { useCaseListRevision } from './caseListRevision'
 
 /**
  * 런이 보는 TC 의 id → TC. 화면이 열릴 때 한 번 읽는다 — 스텝마다 따로 부르면 TC 수만큼 요청이 나간다.
@@ -14,6 +15,8 @@ import { listVersionCases } from '../testCases/testCaseVersions'
 export function useRunCases(projectId: string, gameBuildId: string | null): ReadonlyMap<string, TestCase> {
   const [loaded, setLoaded] = useState<{ key: string; cases: ReadonlyMap<string, TestCase> }>({ key: '', cases: new Map() })
   const key = `${projectId}#${gameBuildId ?? ''}`
+  // `invalidateCaseLists` 가 올리는 번호. 다시 읽는 동안에는 앞의 목록을 그대로 보인다.
+  const revision = useCaseListRevision(projectId)
   useEffect(() => {
     const controller = new AbortController()
     const request = gameBuildId === null
@@ -27,7 +30,7 @@ export function useRunCases(projectId: string, gameBuildId: string | null): Read
       .then((list) => setLoaded({ key, cases: new Map(list.map((testCase) => [testCase.id, testCase])) }))
       .catch(() => undefined)
     return () => controller.abort()
-  }, [projectId, gameBuildId, key])
+  }, [projectId, gameBuildId, key, revision])
   // 버전이 바뀐 사이에는 앞 버전의 TC 를 보이지 않는다 — 연결 창이 다른 버전의 TC 를 내밀게 된다.
   return loaded.key === key ? loaded.cases : EMPTY_CASES
 }

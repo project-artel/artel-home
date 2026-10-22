@@ -1,3 +1,5 @@
+import { appPath } from './appPath'
+
 export type Theme = 'light' | 'dark'
 
 const COOKIE_NAME = 'artel-theme'
@@ -25,7 +27,7 @@ export function applyTheme(theme: Theme) {
   )
   document.querySelector<HTMLLinkElement>('#app-favicon')?.setAttribute(
     'href',
-    theme === 'dark' ? '/favicon-dark.svg' : '/favicon.svg',
+    appPath(theme === 'dark' ? '/favicon-dark.svg' : '/favicon.svg'),
   )
   persistTheme(theme)
 }

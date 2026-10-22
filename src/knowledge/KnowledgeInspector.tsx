@@ -1,18 +1,13 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { formatDateTime } from '../projects/formatters'
 import { qaRunPath } from '../qa/qaTypes'
 import type { Selection } from './KnowledgeGraphCanvas'
-import {
-  anchoredSceneNames,
-  matchesSceneFilter,
-  sceneFilterValue,
-  SCENE_FILTER_ALL,
-  SCENE_FILTER_GAME_WIDE,
-} from './knowledgeAnchors'
+import { KnowledgeOverview } from './KnowledgeOverview'
 import {
   itemTitle,
+  nodeShape,
   relationLabel,
   relationLabelForDirection,
   sourceLabel,
@@ -25,11 +20,11 @@ import { documentNodeIds, relationStyle, type KnowledgeNode } from './knowledgeT
 import { useKnowledgeItemBody, type KnowledgeItemBodyEntry } from './useKnowledgeItemBody'
 
 /**
- * What the selected thing is, and the list that makes the drawing readable.
+ * What the selected thing is. With nothing selected, an overview of the graph instead of an empty panel (ARTEL-1190).
  *
- * The list is not a convenience: the SVG is `aria-hidden` and pointer-only, so
- * this is where keyboard and screen-reader users select an item, and where they
- * follow a relation to the item at its other end.
+ * The full list moved to `KnowledgeExplorer` on the left. That list is still not a convenience: the SVG is
+ * `aria-hidden` and pointer-only, so the list is where keyboard and screen-reader users select an item, and the
+ * relation table here is where they follow a relation to the item at its other end.
  */
 export function KnowledgeInspector({
   layout,
@@ -49,7 +44,6 @@ export function KnowledgeInspector({
   onClear: () => void
 }) {
   const { t } = useI18n()
-  const [sceneFilter, setSceneFilter] = useState(SCENE_FILTER_ALL)
   const selectedNode = selection?.kind === 'node' ? nodesById.get(selection.id) ?? null : null
   const selectedEdge =
     selection?.kind === 'edge'
@@ -63,114 +57,55 @@ export function KnowledgeInspector({
     selection?.kind === 'node' ? selection.id : null,
   )
 
-  const sceneNames = useMemo(
-    () => anchoredSceneNames(layout.nodes.map((placed) => placed.node)),
-    [layout.nodes],
-  )
-  // A reload can retire the scene that was selected. Falling back keeps the
-  // `<select>` showing what the list is actually doing instead of a blank box
-  // over an unnarrowed list.
-  const knownFilters = [
-    SCENE_FILTER_ALL,
-    SCENE_FILTER_GAME_WIDE,
-    ...sceneNames.map(sceneFilterValue),
-  ]
-  const activeFilter = knownFilters.includes(sceneFilter) ? sceneFilter : SCENE_FILTER_ALL
-  const visibleNodes = layout.nodes.filter((placed) =>
-    matchesSceneFilter(placed.node, activeFilter),
-  )
+  // 아무것도 고르지 않았으면 빈칸 대신 이 그래프의 개요를 보인다(ARTEL-1190). 전체 목록과 씬 거르기는 왼쪽 탐색기로 옮겼다.
+  if (selectedNode === null && selectedEdge === null) {
+    return (
+      <KnowledgeOverview
+        edges={layout.edges.map((placed) => placed.edge)}
+        nodes={layout.nodes.map((placed) => placed.node)}
+        onSelectNode={onSelectNode}
+      />
+    )
+  }
 
   return (
-    <div className="kg-inspector">
-      <section aria-labelledby="kg-inspector-title" className="kg-inspector-selection">
-        <header className="kg-inspector-header">
-          <h2 id="kg-inspector-title">{t.knowledge.inspector.title}</h2>
-          {selection !== null && (
-            <button className="button button--secondary button--compact" onClick={onClear} type="button">
-              {t.knowledge.inspector.clear}
-            </button>
-          )}
-        </header>
-
-        {selectedNode !== null ? (
-          <NodeDetail
-            bodyEntry={bodyEntry}
-            layout={layout}
-            node={selectedNode}
-            nodesById={nodesById}
-            onRetryBody={retryBody}
-            onSelectEdge={onSelectEdge}
-            projectId={projectId}
+    <section aria-labelledby="kg-inspector-title" className="kg-inspector">
+      <header className="kg-side-head">
+        {selectedNode !== null && (
+          <span
+            aria-hidden="true"
+            className={`kg-row-mark kg-row-mark--${nodeShape(selectedNode.source)} kg-tag-color--${tagClass(selectedNode.tag)}`}
           />
-        ) : selectedEdge !== null ? (
-          <EdgeDetail
-            edge={selectedEdge.edge}
-            nodesById={nodesById}
-            onSelectNode={onSelectNode}
-          />
-        ) : (
-          <p className="kg-inspector-hint">{t.knowledge.inspector.hint}</p>
         )}
-      </section>
-
-      <section aria-labelledby="kg-items-title" className="kg-item-list-section">
-        <h2 className="kg-inspector-subtitle" id="kg-items-title">
-          {activeFilter === SCENE_FILTER_ALL
-            ? t.knowledge.list.heading(visibleNodes.length)
-            : t.knowledge.list.headingFiltered(visibleNodes.length)}
+        <h2 className="kg-side-title" id="kg-inspector-title">
+          {selectedNode !== null ? itemTitle(t, selectedNode) : t.knowledge.inspector.edgeHeading}
         </h2>
+        <button
+          aria-label={t.knowledge.inspector.clear}
+          className="button button--secondary button--compact kg-side-close"
+          onClick={onClear}
+          title={t.knowledge.inspector.clear}
+          type="button"
+        >
+          ×
+        </button>
+      </header>
 
-        {/* No anchor anywhere means nothing to narrow by, and a select offering
-            only "everything" would be a control that never does anything. */}
-        {sceneNames.length > 0 && (
-          <label className="kg-list-filter">
-            <span>{t.knowledge.list.sceneFilterLabel}</span>
-            <select onChange={(event) => setSceneFilter(event.target.value)} value={activeFilter}>
-              <option value={SCENE_FILTER_ALL}>{t.knowledge.list.sceneFilterAll}</option>
-              <option value={SCENE_FILTER_GAME_WIDE}>{t.knowledge.list.sceneFilterGameWide}</option>
-              {sceneNames.map((sceneName) => (
-                <option key={sceneName} value={sceneFilterValue(sceneName)}>
-                  {sceneName}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-
-        {visibleNodes.length === 0 && (
-          <p className="kg-inspector-hint">
-            {activeFilter === SCENE_FILTER_GAME_WIDE
-              ? t.knowledge.list.emptyGameWide
-              : t.knowledge.list.emptyFiltered}
-          </p>
-        )}
-
-        <ul className="kg-item-list">
-          {visibleNodes.map((placed) => {
-            const selected = selection?.kind === 'node' && selection.id === placed.node.id
-            return (
-              <li key={placed.node.id}>
-                <button
-                  aria-current={selected ? 'true' : undefined}
-                  className={`kg-item${selected ? ' is-selected' : ''}`}
-                  onClick={() => onSelectNode(placed.node.id)}
-                  type="button"
-                >
-                  <span className="kg-item-title">{truncate(itemTitle(t, placed.node), 64)}</span>
-                  <span className="kg-item-meta">
-                    <span className={`kg-tag kg-tag--${tagClass(placed.node.tag)}`}>
-                      {tagLabel(t, placed.node.tag)}
-                    </span>
-                    <span>{sourceLabel(t, placed.node.source)}</span>
-                    <span className="mono">#{placed.node.id}</span>
-                  </span>
-                </button>
-              </li>
-            )
-          })}
-        </ul>
-      </section>
-    </div>
+      {selectedNode !== null ? (
+        <NodeDetail
+          bodyEntry={bodyEntry}
+          layout={layout}
+          node={selectedNode}
+          nodesById={nodesById}
+          onRetryBody={retryBody}
+          onSelectEdge={onSelectEdge}
+          onSelectNode={onSelectNode}
+          projectId={projectId}
+        />
+      ) : selectedEdge !== null ? (
+        <EdgeDetail edge={selectedEdge.edge} nodesById={nodesById} onSelectNode={onSelectNode} />
+      ) : null}
+    </section>
   )
 }
 
@@ -181,6 +116,7 @@ function NodeDetail({
   bodyEntry,
   onRetryBody,
   onSelectEdge,
+  onSelectNode,
   projectId,
 }: {
   node: KnowledgeNode
@@ -189,6 +125,7 @@ function NodeDetail({
   bodyEntry: KnowledgeItemBodyEntry | null
   onRetryBody: () => void
   onSelectEdge: (edgeId: string) => void
+  onSelectNode: (nodeId: string) => void
   projectId: string
 }) {
   const { t } = useI18n()
@@ -203,92 +140,128 @@ function NodeDetail({
 
   return (
     <div className="kg-detail">
-      <p className="kg-detail-kind">
-        {isDocumentNode ? t.knowledge.legend.documentNodeName : t.knowledge.inspector.itemHeading}
-      </p>
-      <p className="kg-detail-summary">
-        {node.summary.trim().length > 0 ? (
-          node.summary
-        ) : (
-          <span className="detail-empty">{t.knowledge.inspector.noSummary}</span>
-        )}
-      </p>
-
-      <h3 className="kg-detail-subtitle">{t.knowledge.inspector.bodyLabel}</h3>
-      <KnowledgeItemBody entry={bodyEntry} onRetry={onRetryBody} />
-
-      <dl className="kg-detail-fields">
-        <dt>{t.knowledge.inspector.tagLabel}</dt>
-        <dd>
-          <span className={`kg-tag kg-tag--${tagClass(node.tag)}`}>{tagLabel(t, node.tag)}</span>
-        </dd>
-
-        <dt>{t.knowledge.inspector.sourceLabel}</dt>
-        <dd>{sourceLabel(t, node.source)}</dd>
-
-        <dt>{t.knowledge.inspector.anchorsLabel}</dt>
-        <dd>
-          <AnchorList anchors={node.anchors} />
-        </dd>
-
-        <dt>{t.knowledge.inspector.versionLabel}</dt>
-        <dd className="mono">
-          {node.version === null ? t.knowledge.inspector.unknownVersion : `v${node.version}`}
-        </dd>
-
-        <dt>{t.knowledge.inspector.createdByLabel}</dt>
-        <dd>
-          {/* Absent is a fact, not a gap: this item came out of a document, and
-              there is no run to open. */}
-          {node.createdByQaTryId === null ? (
-            <span className="detail-empty">{t.knowledge.inspector.createdByDocument}</span>
-          ) : node.createdByQaRunId === null ? (
-            // The try exists but its run id has not arrived yet (ARTEL-722 not
-            // shipped, or a try that predates it) — a muted row, not a dead link.
-            <span className="detail-empty">
-              {t.knowledge.inspector.noRunYet}
-              <span className="mono"> #{node.createdByQaTryId}</span>
-            </span>
-          ) : (
-            <Link
-              className="kg-detail-link"
-              to={qaRunPath(projectId, node.createdByQaRunId, node.createdByQaTryId)}
-            >
-              {t.knowledge.inspector.openQaTry}
-              <span className="mono"> #{node.createdByQaTryId}</span>
-            </Link>
-          )}
-        </dd>
-
-        <dt>{t.knowledge.inspector.createdAtLabel}</dt>
-        <dd>{formatDateTime(node.createdAt)}</dd>
+      {/* 한눈에 보는 사실을 2칸 표로(ARTEL-1190). 칸과 문구는 예전 목록 그대로다. */}
+      <dl className="kg-facts">
+        <div>
+          <dt>{t.knowledge.inspector.tagLabel}</dt>
+          <dd>
+            <span className={`kg-tag kg-tag--${tagClass(node.tag)}`}>{tagLabel(t, node.tag)}</span>
+            {isDocumentNode && <span className="kg-facts-note">{t.knowledge.legend.documentNodeName}</span>}
+          </dd>
+        </div>
+        <div>
+          <dt>{t.knowledge.inspector.sourceLabel}</dt>
+          <dd>{sourceLabel(t, node.source)}</dd>
+        </div>
+        <div>
+          <dt>{t.knowledge.inspector.createdByLabel}</dt>
+          <dd>
+            {/* Absent is a fact, not a gap: this item came out of a document, and
+                there is no run to open. */}
+            {node.createdByQaTryId === null ? (
+              <span className="detail-empty">{t.knowledge.inspector.createdByDocument}</span>
+            ) : node.createdByQaRunId === null ? (
+              // The try exists but its run id has not arrived yet (ARTEL-722 not
+              // shipped, or a try that predates it) — a muted row, not a dead link.
+              <span className="detail-empty">
+                {t.knowledge.inspector.noRunYet}
+                <span className="mono"> #{node.createdByQaTryId}</span>
+              </span>
+            ) : (
+              <Link
+                className="kg-detail-link"
+                to={qaRunPath(projectId, node.createdByQaRunId, node.createdByQaTryId)}
+              >
+                {t.knowledge.inspector.openQaTry}
+                <span className="mono"> #{node.createdByQaTryId}</span>
+              </Link>
+            )}
+          </dd>
+        </div>
+        <div>
+          <dt>{t.knowledge.inspector.createdAtLabel}</dt>
+          <dd>{formatDateTime(node.createdAt)}</dd>
+        </div>
+        <div className="kg-facts-wide">
+          <dt>{t.knowledge.inspector.versionLabel}</dt>
+          <dd className="mono">
+            {node.version === null ? t.knowledge.inspector.unknownVersion : `v${node.version}`} · #{node.id}
+          </dd>
+        </div>
+        <div className="kg-facts-wide">
+          <dt>{t.knowledge.inspector.anchorsLabel}</dt>
+          <dd>
+            <AnchorList anchors={node.anchors} />
+          </dd>
+        </div>
       </dl>
 
-      <h3 className="kg-detail-subtitle">{t.knowledge.inspector.relationsHeading(incidence.length)}</h3>
-      {incidence.length === 0 ? (
-        <p className="kg-inspector-hint">{t.knowledge.inspector.noRelations}</p>
-      ) : (
-        <ul className="kg-relation-list">
-          {incidence.map(({ placed, direction, other }) => (
-            <li key={placed.id}>
-              <button
-                className={`kg-relation kg-relation--${relationStyle(placed.edge.relation)}`}
-                onClick={() => onSelectEdge(placed.id)}
-                type="button"
-              >
-                <span className="kg-relation-name">
-                  {relationLabelForDirection(t, placed.edge.relation, direction)}
-                </span>
-                <span className="kg-relation-target">
-                  {direction === 'self'
-                    ? t.knowledge.inspector.directionSelf
-                    : `${direction === 'out' ? t.knowledge.inspector.directionOut : t.knowledge.inspector.directionIn} ${truncate(itemTitle(t, other), 48)}`}
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+      <section className="kg-side-section">
+        <h3>{t.knowledge.detail.summary}</h3>
+        <p className="kg-detail-summary">
+          {node.summary.trim().length > 0 ? (
+            node.summary
+          ) : (
+            <span className="detail-empty">{t.knowledge.inspector.noSummary}</span>
+          )}
+        </p>
+      </section>
+
+      <section className="kg-side-section">
+        <h3>{t.knowledge.inspector.bodyLabel}</h3>
+        <KnowledgeItemBody entry={bodyEntry} onRetry={onRetryBody} />
+      </section>
+
+      <section className="kg-side-section">
+        <h3>{t.knowledge.inspector.relationsHeading(incidence.length)}</h3>
+        {incidence.length === 0 ? (
+          <p className="kg-inspector-hint">{t.knowledge.inspector.noRelations}</p>
+        ) : (
+          // 관계를 칸으로 나눈 표(ARTEL-1190): 방향 · 관계 · 상대. 줄의 관계 칸을 누르면 그 관계를, 상대를 누르면 그 항목을
+          // 고른다. 메모는 그 줄 아래 한 줄로 둔다.
+          <table className="kg-relations">
+            <thead>
+              <tr>
+                <th scope="col">{t.knowledge.detail.direction}</th>
+                <th scope="col">{t.knowledge.detail.relation}</th>
+                <th scope="col">{t.knowledge.detail.other}</th>
+              </tr>
+            </thead>
+            {incidence.map(({ placed, direction, other }) => (
+              <tbody className={`kg-relation-row kg-relation-row--${relationStyle(placed.edge.relation)}`} key={placed.id}>
+                <tr>
+                  <td className="kg-relation-dir">
+                    {direction === 'self'
+                      ? t.knowledge.inspector.directionSelf
+                      : direction === 'out'
+                        ? t.knowledge.inspector.directionOut
+                        : t.knowledge.inspector.directionIn}
+                  </td>
+                  <td>
+                    <button className="kg-relation-name" onClick={() => onSelectEdge(placed.id)} type="button">
+                      {relationLabelForDirection(t, placed.edge.relation, direction)}
+                    </button>
+                  </td>
+                  <td>
+                    {direction === 'self' ? (
+                      <span className="detail-empty">{t.knowledge.inspector.directionSelf}</span>
+                    ) : (
+                      <button className="kg-endpoint" onClick={() => onSelectNode(other.id)} type="button">
+                        {truncate(itemTitle(t, other), 40)}
+                      </button>
+                    )}
+                  </td>
+                </tr>
+                {placed.edge.note !== null && placed.edge.note.trim().length > 0 && (
+                  <tr className="kg-relation-note">
+                    <td colSpan={3}>{placed.edge.note}</td>
+                  </tr>
+                )}
+              </tbody>
+            ))}
+          </table>
+        )}
+      </section>
     </div>
   )
 }
@@ -335,8 +308,27 @@ function KnowledgeItemBody({
     return <p className="kg-inspector-hint">{t.knowledge.inspector.bodyEmpty}</p>
   }
 
-  return <p className="kg-detail-body">{description}</p>
+  // `genre: …` 꼴 줄은 이름표와 내용으로 나눠 보인다(ARTEL-1190). 그 꼴이 아닌 줄은 손대지 않고, 줄바꿈은 그대로 산다.
+  const lines = description.split('\n')
+  if (!lines.some((line) => BODY_FIELD.test(line))) return <p className="kg-detail-body">{description}</p>
+  return (
+    <div className="kg-detail-body kg-detail-body--fields">
+      {lines.map((line, index) => {
+        const field = BODY_FIELD.exec(line)
+        if (field === null) return line.trim().length === 0 ? null : <p key={index}>{line}</p>
+        return (
+          <div className="kg-body-field" key={index}>
+            <p className="kg-body-key mono">{field[1]}</p>
+            <p>{field[2]}</p>
+          </div>
+        )
+      })}
+    </div>
+  )
 }
+
+/** 본문의 `이름: 내용` 줄. 이름은 영문 · 숫자 · 밑줄로 된 짧은 낱말일 때만이다 — 문장 속 쌍점을 잘못 자르지 않는다. */
+const BODY_FIELD = /^([A-Za-z][A-Za-z0-9_]{0,30}):\s*(.*)$/
 
 /**
  * Where the selected item holds.

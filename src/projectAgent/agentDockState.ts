@@ -75,7 +75,8 @@ export function isFoldedRoute(projectId: string, pathname: string): boolean {
   return false
 }
 
-export function effectiveOpen(input: { stored: boolean; folded: boolean; reopenedHere: boolean }): boolean {
+export function effectiveOpen(input: { stored: boolean; folded: boolean; reopenedHere: boolean; fullPage?: boolean }): boolean {
+  if (input.fullPage) return true
   if (input.folded) return input.reopenedHere
   return input.stored
 }

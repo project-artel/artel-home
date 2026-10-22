@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { isDeepPath, isSectionPath, projectPathSegments } from './sections'
+import { isDeepPath, isSectionPath, projectPathSegments, sectionIdFromPath } from './sections'
 
 describe('isDeepPath', () => {
   it('깊은 화면 일곱 개를 깊은 경로로 본다', () => {
@@ -58,5 +58,20 @@ describe('isSectionPath', () => {
     for (const rest of ['whatever', 'qa/extra', 'test-runs/r1', 'macro'])
       assert.equal(isSectionPath('p1', `/projects/p1/${rest}`), false, rest)
     assert.equal(isSectionPath('p1', '/projects/p2/qa'), false)
+  })
+})
+
+
+describe('챗 경로', () => {
+  it('대시보드와 챗을 구분하고 끝의 슬래시와 인코딩된 projectId를 허용한다', () => {
+    assert.equal(sectionIdFromPath('a b', '/projects/a%20b'), 'dashboard')
+    assert.equal(sectionIdFromPath('a b', '/projects/a%20b/chat/'), 'chat')
+    assert.equal(isSectionPath('a b', '/projects/a%20b/chat/'), true)
+    assert.equal(isDeepPath('a b', '/projects/a%20b/chat'), false)
+  })
+  it('다른 프로젝트나 챗 아래의 없는 주소를 챗으로 표시하지 않는다', () => {
+    assert.equal(sectionIdFromPath('p1', '/projects/p10/chat'), 'dashboard')
+    assert.equal(isSectionPath('p1', '/projects/p1/chat/unknown'), false)
+    assert.equal(sectionIdFromPath('p1', '/projects/p1/chat/unknown'), 'dashboard')
   })
 })

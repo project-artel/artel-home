@@ -109,3 +109,13 @@ test('접힌 경로에서는 손으로 다시 연 경우에만 열린다', () =>
   assert.equal(effectiveOpen({ stored: true, folded: false, reopenedHere: false }), true)
   assert.equal(effectiveOpen({ stored: false, folded: false, reopenedHere: true }), false)
 })
+
+
+test('전체 챗을 열어도 대시보드 dock의 저장된 닫힘 선택을 유지한다', () => {
+  withStorage(memoryStorage({ 'artel.projectAgent.open': 'false' }), () => {
+    const input = { stored: readAgentOpen(), folded: false, reopenedHere: false }
+    assert.equal(effectiveOpen({ ...input, fullPage: true }), true)
+    assert.equal(readAgentOpen(), false)
+    assert.equal(effectiveOpen({ ...input, fullPage: false }), false)
+  })
+})
