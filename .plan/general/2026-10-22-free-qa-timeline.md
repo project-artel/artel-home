@@ -33,3 +33,6 @@ origin/develop의 QaLogTimeline은 Flow와 Raw 모두 TC 구간을 만든다. �
 FAST의 STATUS/Flow 필터 보완과 HEAVY의 FREE Flow PULSE 제외를 반영했다. HEAVY PASS, pair-review PASS. FREE Flow/Raw, ORDERED, grouping 회귀 36개 및 변경 파일 lint PASS. 실제 컴포넌트 fixture의 밝은/어두운 테마 확인. 전체 로그인 화면 및 운영 배포는 미검증.
 
 Production build (TypeScript + Vite) PASS. 기존 chunk size 경고만 발생. 로컬 변경은 codex/free-qa-timeline에서 관리한다.
+
+## UI 스타일 보완
+사용자 피드백에 따라 FREE Flow도 QaFlowStep의 카드·점·연결선을 재사용한다. TC/step 헤더만 숨기며 이벤트별 시간순을 유지한다. PULSE는 이름 조회에만 사용한다. STATUS 및 독립 CASE_VERDICT 판정은 카드로 표시하고 Raw는 기존 표시를 유지한다.

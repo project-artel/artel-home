@@ -18,7 +18,7 @@ import {
   type TimelineEvent,
   type TimelineRow,
 } from './qaLogGrouping'
-import { buildFlowSteps, objectNamesOf, type FlowAction, type FlowLine, type FlowStep } from './qaFlow'
+import { buildFreeFlow, buildFlowSteps, objectNamesOf, type FlowAction, type FlowLine, type FlowStep } from './qaFlow'
 import { stepOf } from './qaProgress'
 import type { QaLog } from './qaTypes'
 
@@ -180,7 +180,7 @@ function QaFlowDot({ kind, last }: { kind: FlowLine['kind'] | 'blocked' | 'verdi
  * 판정은 글이 아니라 덩어리의 상태다. 오른쪽 아래에 통과 · 실패만 붙고, 아무것도 안 해 보고
  * 내린 판정이면 그렇게 적는다 — try 46 에서 43 스텝 중 32 가 그랬다.
  */
-function QaFlowStep({ block }: { block: FlowStep }) {
+function QaFlowStep({ block, free = false, caseId = null, logId }: { block: FlowStep; free?: boolean; caseId?: string | null; logId?: string }) {
   const { t } = useI18n()
   const text = t.qa.run
 
@@ -203,16 +203,16 @@ function QaFlowStep({ block }: { block: FlowStep }) {
           block.passed ? text.flowPassed : text.flowFailed,
           // 실패에만 붙인다. 보기만 하면 되는 TC 가 많아서(try 46 의 조작 0회 스텝 대부분이
           // 그렇다) 통과에 붙이면 멀쩡한 판정을 흠처럼 읽게 한다.
-          !block.passed && block.attempts === 0 ? text.flowNoAttempt : null,
+          !free && !block.passed && block.attempts === 0 ? text.flowNoAttempt : null,
         ]
           .filter((part): part is string => part !== null)
           .join(' · ')
 
   return (
-    <li className="qa-flow-step" data-log-id={block.lines[0]?.id}>
+    <li className="qa-flow-step" data-log-id={logId ?? block.lines[0]?.id}>
       <div className="qa-flow-card">
         {/* 한 TC 가 스텝 여럿에 걸칠 때 어디서 갈리는지, 그리고 레일의 몇 번째인지를 잇는다. */}
-        <p className="qa-flow-step-no">{text.flowStepLabel(block.step)}</p>
+        {!free && <p className="qa-flow-step-no">{text.flowStepLabel(block.step)}</p>}
         {shown.map((line, at) => {
           // 판정 줄이 아래에 붙으므로 마지막 조작 줄에서도 선을 잇는다.
           const last = at === shown.length - 1 && block.passed === null
@@ -243,7 +243,7 @@ function QaFlowStep({ block }: { block: FlowStep }) {
             <div className="qa-flow-said">
               {block.reason !== null && <p className="qa-flow-reason">{block.reason}</p>}
               {/* 결과는 이유에 이어 붙이지 않는다. 붙이면 모델이 쓴 문장의 일부처럼 읽힌다. */}
-              <p className="qa-flow-call">{verdict}</p>
+              <p className="qa-flow-call">{caseId !== null && <span translate="no">TC #{caseId} · </span>}{verdict}</p>
             </div>
           </div>
         )}
@@ -458,6 +458,10 @@ export function QaLogTimeline({
   const flowSteps = useMemo(
     () => (orderedFlow ? buildFlowSteps(logs, objectNamesOf(logs)) : []),
     [orderedFlow, logs],
+  )
+  const freeFlow = useMemo(
+    () => flow && executionMode === 'FREE' ? buildFreeFlow(logs, objectNamesOf(logs), scenarioSteps) : [],
+    [flow, executionMode, logs, scenarioSteps],
   )
   const viewportRef = useRef<HTMLDivElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
@@ -740,7 +744,7 @@ export function QaLogTimeline({
         {!hasMore && <span>Beginning of log</span>}
       </div>
 
-      <ol className={orderedFlow ? 'qa-flow-list' : 'qa-log-list'}>
+      <ol className={flow ? 'qa-flow-list' : 'qa-log-list'}>
         {orderedFlow
           ? flowGroups.map((group) => (
               <li className="qa-flow-group" key={group.key}>
@@ -756,7 +760,9 @@ export function QaLogTimeline({
                 </ol>
               </li>
             ))
-          : listItems.map((item) => {
+          : flow ? freeFlow.map((block) => (
+              <QaFlowStep block={block} free caseId={block.caseId} logId={block.id} key={block.id} />
+            )) : listItems.map((item) => {
               if (item.kind === 'header') {
             return (
               <li className="qa-log-section" key={item.id}>

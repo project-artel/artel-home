@@ -48,6 +48,12 @@ for (const flow of [true, false]) {
     assert.doesNotMatch(middle, /TC #|qa-tc-badge/)
     assert.equal(html.includes('pulse-only'), !flow)
     assert.match(html, /saved-verdict/)
+    if (flow) {
+      assert.match(html, /qa-flow-card/)
+      assert.match(html, /qa-flow-dot--thought/)
+      assert.match(html, /qa-flow-dot--action/)
+      assert.doesNotMatch(html, /qa-log-meta|qa-flow-step-no|qa-flow-label/)
+    }
   })
 }
 test('FREE의 매핑 없는 STATUS와 비판정 STATUS에는 TC를 추정하지 않는다', () => {
@@ -61,4 +67,12 @@ test('ORDERED의 Flow 구간과 Raw 구간을 유지한다', () => {
   assert.match(render('ORDERED', true), /qa-flow-group/)
   assert.match(render('ORDERED', false), /qa-log-section/)
   assert.deepEqual(filterFlowLogs(logs, 'ORDERED').map((entry) => entry.id), ['1','2','3','4','6'])
+})
+
+test('FREE는 STATUS가 없는 부분 히스토리의 TC 판정도 같은 카드로 표시한다', () => {
+  const html = render('FREE', true, [logs[4]])
+  assert.match(html, /TC #101/)
+  assert.match(html, /saved-verdict/)
+  assert.match(html, /qa-flow-verdict--failed/)
+  assert.doesNotMatch(html, /qa-flow-label|qa-flow-step-no/)
 })

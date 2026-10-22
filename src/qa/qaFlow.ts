@@ -1,3 +1,5 @@
+import { asRecord } from '../projects/projectApi'
+import type { ScenarioStep } from '../testScenarios/scenarioTypes'
 import type { ExecutionMode } from '../testScenarios/scenarioTypes'
 import { toolCallOf, type ToolCall } from './qaLogGrouping'
 import { stepOf } from './qaProgress'
@@ -227,10 +229,52 @@ export function buildFlowSteps(logs: readonly QaLog[], names: ObjectNames): Flow
   return steps
 }
 
-/** FREE는 TC 구간을 추정하지 않으므로 PULSE를 행으로 표시할 필요가 없다. */
+/** PULSE는 조작 대상 이름 조회에 사용하고 행으로 표시하지 않는다. */
 export function filterFlowLogs(logs: readonly QaLog[], executionMode: ExecutionMode): QaLog[] {
   const types = executionMode === 'FREE'
-    ? new Set<QaLog['type']>(['TOOL', 'TOOL_RESULT', 'STATUS', 'CASE_VERDICT'])
+    ? new Set<QaLog['type']>(['TOOL', 'TOOL_RESULT', 'STATUS', 'CASE_VERDICT', 'PULSE'])
     : new Set<QaLog['type']>(['TOOL', 'TOOL_RESULT', 'STATUS', 'PULSE'])
   return logs.filter((log) => types.has(log.type))
+}
+
+/** FREE는 TC별로 다시 모으지 않고 행동과 판정을 도착 순서대로 표시한다. */
+export function buildFreeFlow(logs: readonly QaLog[], names: ObjectNames, scenarioSteps: ScenarioStep[]): (FlowStep & { id: string; caseId: string | null })[] {
+  const outputs = new Map<string, string>()
+  for (const log of logs) {
+    const payload = asRecord(log.payload)
+    if (log.type === 'TOOL_RESULT' && typeof payload?.tool_call_id === 'string' && typeof payload.content === 'string') outputs.set(payload.tool_call_id, payload.content)
+  }
+  return logs.flatMap((log) => {
+    const payload = asRecord(log.payload)
+    const step = stepOf(log)
+    const block: FlowStep & { id: string; caseId: string | null } = {
+      id: log.id, step: step ?? 0, lines: [], passed: null, reason: null, attempts: 0, caseId: null,
+    }
+    if (log.type === 'STATUS' && step !== null && (payload?.status === 'COMPLETED' || payload?.status === 'FAILED')) {
+      block.passed = payload.status === 'COMPLETED'
+      block.reason = log.message
+      const caseId = scenarioSteps[step - 1]?.case_id
+      block.caseId = caseId == null ? null : String(caseId)
+      return [block]
+    }
+    if (log.type === 'CASE_VERDICT') {
+      const status = payload?.verification_status
+      const caseId = payload?.case_id
+      if ((typeof caseId !== 'string' && typeof caseId !== 'number') ||
+          (status !== 'VERIFIED' && status !== 'FAILED' && status !== 'REGRESSION')) return []
+      block.caseId = String(caseId)
+      block.passed = status === 'VERIFIED'
+      block.reason = log.message
+      return [block]
+    }
+    if (log.type !== 'TOOL') return []
+    const call = toolCallOf(log)
+    // 판정은 STATUS로 표시하므로 보고용 호출을 조작으로 중복 표시하지 않는다.
+    if (call === null || HIDDEN.has(call.tool) || call.tool === 'report_case' || call.tool === 'report_step') return []
+    if (call.thought !== null) block.lines.push({ kind: 'thought', id: log.id, key: `${log.id}#t`, text: call.thought })
+    const output = typeof payload?.tool_call_id === 'string' ? outputs.get(payload.tool_call_id) ?? null : null
+    block.lines.push({ kind: 'action', id: log.id, key: `${log.id}#a`, action: actionOf(call, names, output) })
+    block.attempts = 1
+    return [block]
+  })
 }
