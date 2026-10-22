@@ -35,7 +35,7 @@ export function BedrockCheckResult({ check }: { check: BedrockCheck }) {
   )
 }
 
-/** AWS Bedrock key: same save, delete and check states as the OpenRouter card. */
+/** AWS Bedrock 키 카드. 저장, 삭제, 확인 상태는 OpenRouter 카드와 같다. */
 export function BedrockKeySection() {
   const { t, locale } = useI18n()
   const [settings, setSettings] = useState<BedrockSettings | null>(null)

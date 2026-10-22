@@ -35,11 +35,11 @@ export function ClaudeCheckResult({ check }: { check: ClaudeCheck }) {
   )
 }
 
-/** Claude API key: same save, delete and check states as the Bedrock card. */
+/** Claude API 키 카드. 저장, 삭제, 확인 상태는 Bedrock 카드와 같다. */
 export function ClaudeKeySection({
   onConfiguredChange,
 }: {
-  /** Reports whether a key is stored, after the first load and after every save or delete. */
+  /** 첫 load 뒤와 저장·삭제할 때마다 키가 저장돼 있는지 알린다. */
   onConfiguredChange: (configured: boolean) => void
 }) {
   const { t, locale } = useI18n()
@@ -92,7 +92,7 @@ export function ClaudeKeySection({
     try {
       await save(apiKey)
     } finally {
-      // The plain key leaves memory whether or not the save worked.
+      // 저장이 성공했든 실패했든 입력한 키 원문은 메모리에서 비운다.
       setKeyInput('')
     }
   }

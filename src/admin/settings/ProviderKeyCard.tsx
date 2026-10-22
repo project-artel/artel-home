@@ -105,7 +105,7 @@ export function ProviderKeyCard({
           <InfoHint>{keyHint}</InfoHint>
         </label>
         <div className="adm-key__input-row">
-          {/* `new-password` keeps browsers from autofilling or offering to save the key. */}
+          {/* `new-password` 로 두면 브라우저가 키를 자동으로 채우거나 저장하자고 묻지 않는다. */}
           <input
             id={keyFieldId}
             className="control adm-input mono"

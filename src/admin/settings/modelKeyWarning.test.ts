@@ -16,6 +16,7 @@ function check(modelId: string | null, over: Partial<Parameters<typeof isModelKe
     keyMissing: [],
     savedModelId: null,
     claudeKeyConfigured: true,
+    openRouterKeyConfigured: true,
     ...over,
   })
 }
@@ -39,7 +40,17 @@ describe('isModelKeyMissing', () => {
   })
 
   it('trusts the server list only while the selection is unchanged', () => {
-    assert.equal(check('openai/y', { keyMissing: ['openai/y'], savedModelId: 'openai/y' }), true)
-    assert.equal(check('openai/y', { keyMissing: ['openai/y'], savedModelId: null }), false)
+    assert.equal(check('openai/y', { openRouterKeyConfigured: null, keyMissing: ['openai/y'], savedModelId: 'openai/y' }), true)
+    assert.equal(check('openai/y', { openRouterKeyConfigured: null, keyMissing: ['openai/y'], savedModelId: null }), false)
+  })
+
+  it('follows the live OpenRouter key status for an openrouter model, ignoring a stale server list', () => {
+    assert.equal(check('openai/y', { openRouterKeyConfigured: false }), true)
+    assert.equal(check('openai/y', { openRouterKeyConfigured: true, keyMissing: ['openai/y'], savedModelId: 'openai/y' }), false)
+  })
+
+  it('uses the server list for the saved choice while the OpenRouter status loads', () => {
+    assert.equal(check('openai/y', { openRouterKeyConfigured: null, keyMissing: ['openai/y'], savedModelId: 'openai/y' }), true)
+    assert.equal(check('openai/y', { openRouterKeyConfigured: null }), false)
   })
 })

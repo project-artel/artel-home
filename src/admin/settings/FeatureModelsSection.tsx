@@ -2,7 +2,6 @@ import { useEffect, useId, useState, type FormEvent } from 'react'
 import { useI18n } from '../../i18n/useI18n'
 import { InfoHint } from '../../design-system/primitives/InfoHint'
 import {
-  JEV_MODEL_ID,
   getFeatureModels,
   listLlmModels,
   putFeatureModels,
@@ -10,19 +9,9 @@ import {
   type FeatureModels,
 } from './settingsApi'
 import { ROUTE_LABEL } from './routeLabel'
+import { DEFAULT_VALUE, toModelId, toValue } from './featureModelValue'
 import { isModelKeyMissing } from './modelKeyWarning'
 import { useAdminFailure } from './useAdminRequest'
-
-/** A select value of `''` stands for `null`, the feature's own default. */
-const DEFAULT_VALUE = ''
-
-function toValue(modelId: string | null): string {
-  return modelId === null || modelId === JEV_MODEL_ID ? DEFAULT_VALUE : modelId
-}
-
-function toModelId(value: string): string | null {
-  return value === DEFAULT_VALUE ? null : value
-}
 
 function ModelOptions({ models, selected }: { models: AdminLlmModel[]; selected: string }) {
   const { t } = useI18n()
@@ -56,7 +45,7 @@ function KeyMissingWarning({ id }: { id: string }) {
   )
 }
 
-/** Which model the scenario authoring agent and the project agent use, and which one answers the Jev decision questions. */
+/** scenario authoring agent 와 project agent 가 쓰는 모델, 그리고 Jev 결정 질문에 답하는 모델을 고르는 카드. */
 export function FeatureModelsSection({
   openRouterKeyConfigured,
   typesafeKeyConfigured,
@@ -67,7 +56,7 @@ export function FeatureModelsSection({
   openRouterKeyConfigured: boolean | null
   /** `null` while the TypeSafe key state is still loading. */
   typesafeKeyConfigured: boolean | null
-  /** `null` while the Claude key state is still loading. */
+  /** Claude 키 상태를 아직 불러오는 중이면 `null`. */
   claudeKeyConfigured: boolean | null
   onSaved: (message: string) => void
 }) {
@@ -93,7 +82,7 @@ export function FeatureModelsSection({
         setModels(loadedModels)
         setSaved(loaded)
         setAuthoring(toValue(loaded.scenarioAuthoringModel))
-        setDecision(toValue(loaded.decisionModel))
+        setDecision(toValue(loaded.decisionModel, true))
         setProjectAgent(toValue(loaded.projectAgentModel))
       })
       .catch((cause) => {
@@ -115,7 +104,7 @@ export function FeatureModelsSection({
       })
       setSaved(result)
       setAuthoring(toValue(result.scenarioAuthoringModel))
-      setDecision(toValue(result.decisionModel))
+      setDecision(toValue(result.decisionModel, true))
       setProjectAgent(toValue(result.projectAgentModel))
       onSaved(t.adminSettings.featureModels.saved)
     } catch (cause) {
@@ -136,6 +125,7 @@ export function FeatureModelsSection({
       keyMissing: saved.keyMissing,
       savedModelId: savedValue,
       claudeKeyConfigured,
+      openRouterKeyConfigured,
     })
   const authoringKeyMissing = keyMissingFor(authoring, saved?.scenarioAuthoringModel ?? null)
   const projectAgentKeyMissing = keyMissingFor(projectAgent, saved?.projectAgentModel ?? null)
@@ -143,7 +133,7 @@ export function FeatureModelsSection({
   const unchanged =
     saved !== null &&
     authoring === toValue(saved.scenarioAuthoringModel) &&
-    decision === toValue(saved.decisionModel) &&
+    decision === toValue(saved.decisionModel, true) &&
     projectAgent === toValue(saved.projectAgentModel)
 
   return (

@@ -13,7 +13,7 @@ import { KeyCheckResult, ProviderKeyCard, type KeyFact, type KeyStatus } from '.
 export function OpenRouterKeySection({
   onConfiguredChange,
 }: {
-  /** Reports whether a key is configured, after the first load and after every save or delete. */
+  /** 첫 load 뒤와 저장·삭제할 때마다 키가 설정돼 있는지 알린다. */
   onConfiguredChange: (configured: boolean) => void
 }) {
   const { t, locale } = useI18n()
@@ -59,7 +59,7 @@ export function OpenRouterKeySection({
     } catch (cause) {
       fail(cause)
     } finally {
-      // The plain key leaves memory whether or not the save worked.
+      // 저장이 성공했든 실패했든 입력한 키 원문은 메모리에서 비운다.
       setKeyInput('')
       setSaving(false)
     }
@@ -88,7 +88,7 @@ export function OpenRouterKeySection({
       const result = await checkLlmModels()
       setCheck(result)
       setAnnouncement(checkSummary(result))
-      // Keep the card's own picture of the key in step with what the check saw.
+      // 확인에서 본 키 상태를 카드가 가진 키 상태에도 똑같이 반영한다.
       setSettings((current) => (current === null ? current : { ...current, lastCheck: result }))
     } catch (cause) {
       fail(cause)

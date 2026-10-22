@@ -98,7 +98,7 @@ function ModelGroupBlock({
   )
 }
 
-/** The model catalog grouped by route, one switch per row. Only `enabled` can be changed here. */
+/** route 별로 묶은 모델 목록. 행마다 switch 하나이고, 여기서 바꿀 수 있는 값은 `enabled` 뿐이다. */
 export function LlmModelsSection() {
   const { t, locale } = useI18n()
   const [models, setModels] = useState<AdminLlmModel[] | null>(null)
@@ -193,7 +193,7 @@ export function LlmModelsSection() {
               <ModelGroupBlock
                 key={group.route}
                 group={group}
-                // A filter opens every group that still has a match, so the matches are never hidden.
+                // 검색어가 있으면 일치하는 모델이 남은 group 을 모두 펼쳐서, 일치하는 모델이 접힌 채 가려지지 않게 한다.
                 expanded={filtering || expandedRoutes.has(group.route)}
                 onExpandedChange={(expanded) => setExpanded(group.route, expanded)}
                 pendingIds={pendingIds}
