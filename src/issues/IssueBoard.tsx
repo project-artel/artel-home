@@ -539,11 +539,12 @@ export function IssueBoard({
             >
               {b.all}
             </button>
-            {ISSUE_SEVERITIES.filter((severity) => (facets?.severities[severity] ?? 0) > 0 || filters.severity === severity).map(
+            {/* 다섯 등급을 늘 보인다(ARTEL-1205). 없는 등급을 숨기면 등급이 그것뿐인 것처럼 읽힌다. 0건은 흐리게만 한다. */}
+            {ISSUE_SEVERITIES.map(
               (severity) => (
                 <button
                   aria-pressed={filters.severity === severity}
-                  className="dc-segment"
+                  className={`dc-segment${(facets?.severities[severity] ?? 0) === 0 ? ' ib-seg--empty' : ''}`}
                   key={severity}
                   onClick={() => setFilters((current) => ({ ...current, severity }))}
                   type="button"

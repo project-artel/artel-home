@@ -62,6 +62,9 @@
 .ib-sev-dot--minor {
   background: var(--color-text-secondary);
 }
+.ib-sev-dot--trivial {
+  background: var(--color-border-strong);
+}
 
 /* ---- 가운데 표 ---- */
 .ib-main {
@@ -84,6 +87,12 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+.ib-toolbar .dc-segment.ib-seg--empty:not([aria-pressed='true']) {
+  color: var(--color-text-muted);
+}
+.ib-toolbar .dc-segment.ib-seg--empty:not([aria-pressed='true']) .ib-sev-dot {
+  opacity: 0.45;
 }
 .ib-seg-count {
   font-family: var(--font-mono);

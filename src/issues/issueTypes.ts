@@ -13,6 +13,10 @@ export const ISSUE_SEVERITIES = ['BLOCKER', 'CRITICAL', 'MAJOR', 'MINOR', 'TRIVI
 
 export type IssueSeverity = (typeof ISSUE_SEVERITIES)[number]
 
+export function isIssueSeverity(value: string): value is IssueSeverity {
+  return (ISSUE_SEVERITIES as readonly string[]).includes(value)
+}
+
 export const ISSUE_STATUSES = ['OPEN', 'RESOLVED'] as const
 
 export type IssueStatus = (typeof ISSUE_STATUSES)[number]
