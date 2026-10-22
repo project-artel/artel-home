@@ -124,6 +124,8 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
   // here because the studio only carries the run id (?run=), not its name.
   const [runName, setRunName] = useState('')
   const [runBuild, setRunBuild] = useState<RunGameBuild | null>(null)
+  // `runBuild` 가 어느 런의 것인지. `?run=` 이 바뀌면 새 런을 읽을 때까지 이전 런의 빌드가 남는다.
+  const [runBuildRunId, setRunBuildRunId] = useState<string | null>(null)
   useEffect(() => {
     if (fromRun === null) return
     const controller = new AbortController()
@@ -132,6 +134,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
         if (run === null) return
         setRunName(run.name)
         setRunBuild(run.gameBuild)
+        setRunBuildRunId(fromRun)
       })
       .catch(() => { /* leave the crumb blank on failure */ })
     return () => controller.abort()
@@ -211,8 +214,10 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
   // 그때 `editor` 는 저장된 시나리오가 아니다.
   useScenarioAgentActions({
     projectId,
+    scenarioId,
     editor,
     runBuild,
+    runBuildRunId,
     blockedReason: !validId
       ? t.scenarios.page.invalidAddress
       : status === 'missing'

@@ -27,6 +27,8 @@ import { isFreeScenario, type ScenarioDraft } from './scenarioTypes'
 export type ScenarioAgentDependencies = {
   /** 편집기의 지금 draft. */
   readDraft: () => ScenarioDraft
+  /** 편집기가 지금 보여 주는 시나리오의 id. 서버를 기다리는 사이 다른 시나리오로 옮겨 갔는지 알아내는 데 쓴다. */
+  readScenarioId: () => number
   /** 편집기의 `replaceDraft`. autosave 와 undo 를 거친다. */
   replaceDraft: (next: (draft: ScenarioDraft) => ScenarioDraft) => void
   /** 테스트 런의 빌드 버전. 런 밖에서 열었거나 런에 빌드가 없으면 null. */
@@ -55,6 +57,8 @@ export class ScenarioActionFailure extends Error {
   }
 }
 
+export const SCENARIO_CHANGED_REASON =
+  'The open scenario changed while this action was waiting for the server, so nothing was edited. Run the action again on the scenario you want.'
 export const NOT_FREE_REASON = 'The open scenario is ORDERED. Convert it with testScenario.convertToFree first.'
 export const ALREADY_FREE_REASON = 'The open scenario is already FREE.'
 export const NO_RUN_REASON = 'The scenario was not opened from a test run, so there is no build version to add cases to.'
@@ -81,6 +85,18 @@ export function addCasesToBuildBlockedReason(runId: string | null): string | nul
   return runId === null ? NO_RUN_REASON : null
 }
 
+/**
+ * 이미 읽어 둔 빌드를 지금 `?run=` 의 런에 그대로 써도 되는가. 런이 바뀐 직후에는 이전 런의 빌드가 남아 있어,
+ * 어느 런의 것인지가 지금 런과 같을 때만 쓴다. 쓸 수 없으면 null.
+ */
+export function reusableRunBuild(
+  known: RunGameBuild | null,
+  knownRunId: string | null,
+  currentRunId: string | null,
+): RunGameBuild | null {
+  return known !== null && currentRunId !== null && knownRunId === currentRunId ? known : null
+}
+
 function requireCaseIds(args: Record<string, unknown>): string[] {
   const caseIds = normalizeCaseIds(args.caseIds)
   if (caseIds.length === 0) throw new Error('caseIds must list at least one test case id.')
@@ -88,6 +104,14 @@ function requireCaseIds(args: Record<string, unknown>): string[] {
 }
 
 export function createScenarioAgentRunners(dependencies: ScenarioAgentDependencies) {
+  /** 시작할 때의 시나리오 id 를 잡아 두고, 서버를 기다린 뒤 쓰기 직전에 부른다. 다른 시나리오면 던진다. */
+  function pinScenario(): () => void {
+    const startedOn = dependencies.readScenarioId()
+    return () => {
+      if (dependencies.readScenarioId() !== startedOn) throw new Error(SCENARIO_CHANGED_REASON)
+    }
+  }
+
   /**
    * 런의 빌드 버전에 없는 케이스를 가린다. 런의 빌드가 없으면 검사하지 않는다. 빠진 것이 있는데
    * `dropMissing` 이 true 가 아니면 던진다. 아무것도 바꾸기 전에 부른다.
@@ -109,12 +133,14 @@ export function createScenarioAgentRunners(dependencies: ScenarioAgentDependenci
   }
 
   async function convertToFree(args: Record<string, unknown>): Promise<ConvertToFreeResult> {
+    const assertSameScenario = pinScenario()
     const before = dependencies.readDraft()
     const blocked = convertToFreeBlockedReason(before)
     if (blocked !== null) throw new Error(blocked)
     const candidates = convertDraftToFree(before).keptCaseIds
     const projectCases = candidates.length === 0 ? [] : await dependencies.listProjectCases()
     const missing = await checkBuild(candidates, projectCases, args.dropMissing === true)
+    assertSameScenario()
     const exclude = new Set(missing.map((one) => one.caseId))
     // 서버를 기다리는 사이 바뀐 draft 위에 바꾼다. 결과도 그 draft 로 센다.
     const conversion = convertDraftToFree(dependencies.readDraft(), exclude)
@@ -123,6 +149,7 @@ export function createScenarioAgentRunners(dependencies: ScenarioAgentDependenci
   }
 
   async function addCases(args: Record<string, unknown>): Promise<AddCasesResult> {
+    const assertSameScenario = pinScenario()
     const blocked = freeOnlyBlockedReason(dependencies.readDraft())
     if (blocked !== null) throw new Error(blocked)
     const caseIds = requireCaseIds(args)
@@ -131,6 +158,7 @@ export function createScenarioAgentRunners(dependencies: ScenarioAgentDependenci
     if (unknown.length > 0) throw new Error(`These ids are not test cases of the project: ${unknown.join(', ')}.`)
     const notHeld = appendFreeCases(dependencies.readDraft(), caseIds).added
     const missing = await checkBuild(notHeld, projectCases, args.dropMissing === true)
+    assertSameScenario()
     const exclude = new Set(missing.map((one) => one.caseId))
     const wanted = caseIds.filter((caseId) => !exclude.has(caseId))
     const appended = appendFreeCases(dependencies.readDraft(), wanted)
