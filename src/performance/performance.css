@@ -16,8 +16,10 @@
   gap: var(--space-4);
   align-items: stretch;
 }
+/* 빌드가 없을 때: 그림 빈 화면이 남은 높이를 채워 가운데에 선다. */
 .pf--single {
-  display: block;
+  display: flex;
+  flex-direction: column;
 }
 
 /* 넓은 창: 빌드 목록은 제자리, 목록과 본문이 각자 넘어간다. */
