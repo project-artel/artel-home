@@ -122,10 +122,11 @@ test('판정 가져오기 응답을 가져온 수와 까닭별 수로 센다(ART
       { testCaseId: '5', reason: 'NO_PREVIOUS_VERDICT' },
       { testCaseId: '6', reason: 'NO_PREVIOUS_VERDICT' },
       { testCaseId: '7', reason: 'SOMETHING_NEW' },
+      { testCaseId: '8', reason: 'ALREADY_CARRIED' },
     ],
   })
   assert.equal(result.carried, 3)
-  assert.deepEqual(result.skipped, { CONTENT_CHANGED: 1, NO_PREVIOUS_VERDICT: 2, OTHER: 1 })
+  assert.deepEqual(result.skipped, { CONTENT_CHANGED: 1, NO_PREVIOUS_VERDICT: 2, OTHER: 1, ALREADY_CARRIED: 1 })
   assert.deepEqual(parseVerdictCarry(null), { carried: 0, skipped: {}, reset: 0 })
   assert.equal(parseVerdictCarry({ carried: [], skipped: [], reset: ['1', '2'] }).reset, 2)
 })
