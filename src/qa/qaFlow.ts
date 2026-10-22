@@ -1,3 +1,4 @@
+import type { ExecutionMode } from '../testScenarios/scenarioTypes'
 import { toolCallOf, type ToolCall } from './qaLogGrouping'
 import { stepOf } from './qaProgress'
 import type { QaLog } from './qaTypes'
@@ -224,4 +225,12 @@ export function buildFlowSteps(logs: readonly QaLog[], names: ObjectNames): Flow
   }
 
   return steps
+}
+
+/** FREE는 TC 구간을 추정하지 않으므로 PULSE를 행으로 표시할 필요가 없다. */
+export function filterFlowLogs(logs: readonly QaLog[], executionMode: ExecutionMode): QaLog[] {
+  const types = executionMode === 'FREE'
+    ? new Set<QaLog['type']>(['TOOL', 'TOOL_RESULT', 'STATUS', 'CASE_VERDICT'])
+    : new Set<QaLog['type']>(['TOOL', 'TOOL_RESULT', 'STATUS', 'PULSE'])
+  return logs.filter((log) => types.has(log.type))
 }

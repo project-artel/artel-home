@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { asRecord } from '../projects/projectApi'
 import { useI18n } from '../i18n/useI18n'
-import { groupStepsByCase, type ScenarioStep } from '../testScenarios/scenarioTypes'
+import { groupStepsByCase, type ExecutionMode, type ScenarioStep } from '../testScenarios/scenarioTypes'
 import { compareDecimalIds } from './qaApi'
 import { behaviorEndedOf, cheatNamesOf, usedCheatsOf } from './qaFunctionTimeline'
 import {
@@ -252,11 +253,15 @@ function QaFlowStep({ block }: { block: FlowStep }) {
 }
 
 function QaLogRow({
+  executionMode,
+  scenarioSteps,
   expanded,
   focusedLogId,
   onToggle,
   row,
 }: {
+  executionMode: ExecutionMode
+  scenarioSteps: ScenarioStep[]
   expanded: boolean
   focusedLogId: string | null
   onToggle: () => void
@@ -269,6 +274,14 @@ function QaLogRow({
   const repeats = row.events.length
   const hasPayload = log.payload !== null && log.payload !== undefined
   const step = stepOf(log)
+  const payload = asRecord(log.payload)
+  const verdictCaseId = log.type === 'CASE_VERDICT'
+    ? payload?.case_id
+    : log.type === 'STATUS' && (payload?.status === 'COMPLETED' || payload?.status === 'FAILED') && step !== null
+      ? scenarioSteps[step - 1]?.case_id
+      : null
+  const caseId = typeof verdictCaseId === 'number' || typeof verdictCaseId === 'string'
+    ? String(verdictCaseId) : null
   // TOOL 행은 `message` 가 tool 이름이다. 그것은 메타 줄의 칩으로 따로 보이므로, 본문
   // 자리에는 모델이 왜 불렀는지를 적은 `thought` 를 놓는다.
   const call = log.type === 'TOOL' ? toolCallOf(log) : null
@@ -310,7 +323,9 @@ function QaLogRow({
           {call !== null && (
             <span className="qa-log-tool-name mono" translate="no">{call.tool}</span>
           )}
-          {step !== null && <span className="qa-log-step">{t.qa.steps.short(step)}</span>}
+          {executionMode === 'FREE'
+            ? caseId !== null && <span className="qa-tc-badge" translate="no">TC #{caseId}</span>
+            : step !== null && <span className="qa-log-step">{t.qa.steps.short(step)}</span>}
           {cheatNames.length > 0 && (
             <span className="gf-badge" translate="no">
               {cheatNames.length === 1 && cheatNames[0].length > 0
@@ -410,6 +425,7 @@ function sectionId(section: SectionKey): string {
 }
 
 export function QaLogTimeline({
+  executionMode = 'ORDERED',
   focusRequest,
   hasMore,
   historyFailure,
@@ -423,6 +439,7 @@ export function QaLogTimeline({
 }: {
   /** `흐름` 탭인가. true 면 한 행이 생각 · 행동 두 줄이고, 그 밖은 `Raw` 와 같다. */
   flow?: boolean
+  executionMode?: ExecutionMode
   focusRequest: QaLogFocusRequest | null
   hasMore: boolean
   historyFailure: string | null
@@ -435,11 +452,12 @@ export function QaLogTimeline({
   scenarioSteps?: ScenarioStep[]
 }) {
   const { t } = useI18n()
+  const orderedFlow = flow && executionMode === 'ORDERED'
   // `흐름` 은 로그 한 줄이 아니라 스텝 하나를 그린다. `PULSE` 는 행으로 안 서지만
   // 조작 대상의 이름이 거기에만 있으므로 사전을 만드는 데 쓴다.
   const flowSteps = useMemo(
-    () => (flow ? buildFlowSteps(logs, objectNamesOf(logs)) : []),
-    [flow, logs],
+    () => (orderedFlow ? buildFlowSteps(logs, objectNamesOf(logs)) : []),
+    [orderedFlow, logs],
   )
   const viewportRef = useRef<HTMLDivElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
@@ -494,7 +512,7 @@ export function QaLogTimeline({
   // two verdicts clusters under the region that was active. Headers appear only
   // when scenario steps are known; otherwise the list is exactly `rows`.
   const listItems = useMemo<ListItem[]>(() => {
-    if (regionByStep.size === 0) return rows.map((row) => ({ kind: 'row', row }))
+    if (executionMode === 'FREE' || regionByStep.size === 0) return rows.map((row) => ({ kind: 'row', row }))
     const items: ListItem[] = []
     let lastKey: string | null = null
     let carried: SectionKey = { kind: 'general' }
@@ -512,7 +530,7 @@ export function QaLogTimeline({
       items.push({ kind: 'row', row })
     }
     return items
-  }, [rows, regionByStep])
+  }, [rows, regionByStep, executionMode])
 
   useLayoutEffect(() => {
     const viewport = viewportRef.current
@@ -722,8 +740,8 @@ export function QaLogTimeline({
         {!hasMore && <span>Beginning of log</span>}
       </div>
 
-      <ol className={flow ? 'qa-flow-list' : 'qa-log-list'}>
-        {flow
+      <ol className={orderedFlow ? 'qa-flow-list' : 'qa-log-list'}>
+        {orderedFlow
           ? flowGroups.map((group) => (
               <li className="qa-flow-group" key={group.key}>
                 <p className={`qa-flow-label${group.tcNo === null ? ' qa-flow-label--plain' : ''}`}>
@@ -755,6 +773,8 @@ export function QaLogTimeline({
           const anchor = anchorOf(item.row)
           return (
             <QaLogRow
+              executionMode={executionMode}
+              scenarioSteps={scenarioSteps}
               expanded={expandedRows.has(anchor)}
               focusedLogId={focusedLogId}
               key={newestOf(item.row).id}
