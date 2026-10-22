@@ -24,14 +24,14 @@ type Mode = 'SAME_CONTENT' | 'SELECTED' | 'NONE'
 type Loaded = { sourceId: string; rows: VerdictCarryPreviewRow[] | null }
 type Preview = { status: 'loading' } | { status: 'failed' } | { status: 'ready'; rows: VerdictCarryPreviewRow[] }
 
-/** 판정(통과 · 실패)이 난 수. 왼쪽 트리 줄과 오른쪽 머리가 쓴다. */
+/** 판정(통과 · 실패)이 난 수. */
 const judged = (version: TestCaseVersionSummary) => version.counts.VERIFIED + version.counts.FAILED
 
-/** 처음 고를 버전: 받는 버전이 아니고 판정이 난 가장 최근 버전. */
+/** 처음 고를 버전: 받는 버전이 아니고 TC 가 있는 가장 최근 버전. */
 function firstSource(versions: readonly TestCaseVersionSummary[], targetId: string): string | null {
   return (
     [...versions]
-      .filter((version) => version.gameBuildId !== targetId && !version.hidden && judged(version) > 0)
+      .filter((version) => version.gameBuildId !== targetId && !version.hidden && version.total > 0)
       .sort((left, right) => right.createdAt.localeCompare(left.createdAt))[0]?.gameBuildId ?? null
   )
 }
