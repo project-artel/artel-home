@@ -4,7 +4,7 @@ import { test } from 'node:test'
 import type { CaseVerdictHistoryItem } from '../../testCases/testCaseApi.ts'
 import type { TestCase } from '../../testCases/testCaseTypes.ts'
 import type { TestCaseVersionSummary } from '../../testCases/testCaseVersions.ts'
-import { buildCaseList, filterCases, pageRows, trimBuildVersions, trimCaseBuilds } from './caseQueries.ts'
+import { buildCaseList, filterCases, folderCaseIdsOf, pageRows, trimBuildVersions, trimCaseBuilds } from './caseQueries.ts'
 import { runQuery } from './queries.ts'
 
 function makeCase(index: number, patch: Partial<TestCase> = {}): TestCase {
@@ -114,4 +114,16 @@ test('runQuery rejects an unknown verificationStatus and a test_case without id 
   const missing = await runQuery('1', { kind: 'test_case', args: {} }, signal)
   assert.equal(missing.status, 'error')
   assert.match(String(missing.error), /test_case needs args.id/)
+})
+
+test('folderCaseIdsOf leaves out hidden items and counts them, like the case library', () => {
+  const item = (id: number, patch: { hidden?: boolean; inVersion?: boolean } = {}) => ({
+    testCase: makeCase(id),
+    hidden: false,
+    inVersion: true,
+    ...patch,
+  })
+  const result = folderCaseIdsOf([item(1), item(2, { hidden: true }), item(3, { inVersion: false }), item(4, { hidden: true, inVersion: false })])
+  assert.deepEqual([...result.caseIds], ['1'])
+  assert.equal(result.hiddenExcluded, 1)
 })
