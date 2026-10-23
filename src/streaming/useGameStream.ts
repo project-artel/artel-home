@@ -57,7 +57,7 @@ const initialState: GameStreamState = { status: 'connecting', failure: null, str
  * other indefinitely, burning a peer setup on the game every round, so
  * recovering from a takeover has to be something a person asked for.
  */
-export function useGameStream(instanceId: string) {
+export function useGameStream(instanceId: string, stopOnDisconnect = false) {
   const [state, setState] = useState<GameStreamState>(initialState)
   /** Bumped to start a fresh attempt; the connection effect depends on it. */
   const [attempt, setAttempt] = useState(0)
@@ -107,6 +107,7 @@ export function useGameStream(instanceId: string) {
     // The timer belongs to the attempt that scheduled it, so the cleanup of
     // that same run is what cancels it when the component goes away.
     function scheduleAttempt(delay: number) {
+      if (stopOnDisconnect) return
       retryTimer = window.setTimeout(() => setAttempt((previous) => previous + 1), delay)
     }
 
@@ -207,7 +208,7 @@ export function useGameStream(instanceId: string) {
          * reads as a hang, and a network limitation gets filed as a broken
          * stream.
          */
-        if (opened.iceConnectionState === 'failed') {
+        if (opened.iceConnectionState === 'failed' || (stopOnDisconnect && opened.iceConnectionState === 'disconnected')) {
           fail('unreachable')
         }
       })
@@ -332,7 +333,7 @@ export function useGameStream(instanceId: string) {
       socket.close()
       peer?.close()
     }
-  }, [attempt, instanceId])
+  }, [attempt, instanceId, stopOnDisconnect])
 
   return { status: state.status, failure: state.failure, stream: state.stream, retry }
 }
