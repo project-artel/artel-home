@@ -44,14 +44,20 @@ export function RunMapRoute() {
 }
 
 type Board = Pick<RunMap, 'layout' | 'annotations'>
-type Change = { kind: 'board'; board: Board } | { kind: 'scenario'; id: string; draft: ScenarioDraft } | { kind: 'order'; ids: string[] }
+type Change =
+  | { kind: 'board'; board: Board }
+  | { kind: 'scenario'; id: string; draft: ScenarioDraft }
+  | { kind: 'order'; ids: string[] }
+  // 한 동작이 여러 저장소를 바꿀 때(예: 주석과 TS 를 함께 지우기). 되돌리기 한 번에 함께 돌아간다.
+  | { kind: 'many'; changes: Change[] }
 type View = { x: number; y: number; k: number }
 type Interaction =
   | { kind: 'pan'; sx: number; sy: number; ox: number; oy: number }
   // [rename]: 이름을 눌렀다. 끌지 않고 떼면 이름을 고친다.
   | { kind: 'frame'; id: string; sx: number; sy: number; ox: number; oy: number; moved: boolean; before: Board; rename: boolean }
   // 영역 끌기. [section] 은 묶음 상자 안에서 시작했을 때의 그 상자(끌지 않고 떼면 상자를 고른다).
-  | { kind: 'marquee'; ox: number; oy: number; additive: boolean; section: string | null }
+  // [box] 는 끄는 동안의 영역. 화면 상태(marquee)는 빠르게 끌면 뗄 때까지 갱신되지 않아 여기서 따로 든다.
+  | { kind: 'marquee'; ox: number; oy: number; additive: boolean; section: string | null; box: Box }
   // 묶음 상자를 옮기면 [carry] 에 든 프레임 · 주석도 함께 옮긴다.
   | { kind: 'item'; id: string; lastX: number; lastY: number; moved: boolean; before: Board; carry: { frames: string[]; items: string[] } }
   | { kind: 'draw'; id: string; ox: number; oy: number; before: Board; repeat: boolean }
@@ -230,8 +236,9 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
       void reload(undefined, true)
     }
   }, [projectId, runId, setOrder, say, m.toast.saveFailed, reload])
-  const apply = useCallback((change: Change) => {
-    if (change.kind === 'board') applyBoard(change.board)
+  const apply = useCallback(function applyChange(change: Change) {
+    if (change.kind === 'many') change.changes.forEach(applyChange)
+    else if (change.kind === 'board') applyBoard(change.board)
     else if (change.kind === 'scenario') void applyDraft(change.id, change.draft)
     else void applyOrder(change.ids)
   }, [applyBoard, applyDraft, applyOrder])
@@ -366,12 +373,40 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     commitBoard(before, { ...before, annotations: before.annotations.filter((a) => a.id !== id) }, m.toast.annotationDeleted)
     setSelectedItem(null)
   }, [commitBoard, m.toast.annotationDeleted, setSelectedItem])
-  const deleteAnnotations = useCallback((ids: string[]) => {
-    const gone = new Set(ids)
+  /**
+   * 고른 것을 지운다. 주석은 맵에서 지우고, TS 는 런에서 뺀다(TS 자체는 남는다). 되돌리기 한 번에 함께 돌아온다.
+   * 지운 뒤에는 고른 것과 그 영역을 비운다.
+   */
+  const deleteChosen = useCallback((target: Chosen) => {
+    const gone = new Set(target.items)
+    const removed = new Set(target.frames)
     const before = currentBoard()
-    commitBoard(before, { ...before, annotations: before.annotations.filter((a) => !gone.has(a.id)) }, m.toast.deletedMany(ids.length))
+    const after = { ...before, annotations: before.annotations.filter((a) => !gone.has(a.id)) }
+    const nextOrder = order.filter((id) => !removed.has(id))
+    const label = m.toast.deletedMany(target.items.length + target.frames.length)
+    const changes: { before: Change[]; after: Change[] } = { before: [], after: [] }
+    if (gone.size > 0) {
+      changes.before.push({ kind: 'board', board: before })
+      changes.after.push({ kind: 'board', board: after })
+    }
+    if (removed.size > 0) {
+      changes.before.push({ kind: 'order', ids: order })
+      changes.after.push({ kind: 'order', ids: nextOrder })
+    }
+    if (changes.after.length === 0) return
+    setHistory((h) => record(h, { label, before: { kind: 'many', changes: changes.before }, after: { kind: 'many', changes: changes.after } }))
+    if (gone.size > 0) applyBoard(after)
+    if (removed.size > 0) {
+      void applyOrder(nextOrder)
+      if (picked !== null && removed.has(picked.id)) {
+        setPicked(null)
+        setDrawerOpen(false)
+      }
+    }
     setChosen(NOTHING)
-  }, [commitBoard, m.toast])
+    setSelectedItem(null)
+    say(label, true)
+  }, [order, applyBoard, applyOrder, picked, say, m.toast, setSelectedItem])
   const renameTs = useCallback((id: string, title: string | null) => {
     setRenaming(null)
     const draft = drafts[id]
@@ -603,7 +638,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
       return
     }
     const startMarquee = (section: string | null) => {
-      interaction.current = { kind: 'marquee', ox: w.x, oy: w.y, additive: event.shiftKey, section }
+      interaction.current = { kind: 'marquee', ox: w.x, oy: w.y, additive: event.shiftKey, section, box: { x: w.x, y: w.y, w: 0, h: 0 } }
       setMarquee({ x: w.x, y: w.y, w: 0, h: 0 })
       capture()
     }
@@ -677,7 +712,8 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     }
     const w = toWorld(event.clientX, event.clientY)
     if (now.kind === 'marquee') {
-      setMarquee({ x: Math.min(now.ox, w.x), y: Math.min(now.oy, w.y), w: Math.abs(w.x - now.ox), h: Math.abs(w.y - now.oy) })
+      now.box = { x: Math.min(now.ox, w.x), y: Math.min(now.oy, w.y), w: Math.abs(w.x - now.ox), h: Math.abs(w.y - now.oy) }
+      setMarquee(now.box)
       return
     }
     if (now.kind === 'frame') {
@@ -731,13 +767,15 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     setMap((current) => ({ ...current, annotations }))
     mapRef.current = { ...mapRef.current, annotations }
   }
-  function onPointerUp() {
+  function onPointerUp(event: React.PointerEvent<HTMLDivElement>) {
     const now = interaction.current
     interaction.current = null
     setPanning(false)
     if (now === null || now.kind === 'pan') return
     if (now.kind === 'marquee') {
-      const box = marquee
+      // 뗀 자리까지 넣는다. 마지막 move 가 오기 전에 떼는 경우가 있다.
+      const end = toWorld(event.clientX, event.clientY)
+      const box: Box = { x: Math.min(now.ox, end.x), y: Math.min(now.oy, end.y), w: Math.abs(end.x - now.ox), h: Math.abs(end.y - now.oy) }
       setMarquee(null)
       if (box === null || (box.w < 4 && box.h < 4)) {
         if (!now.additive) setChosen(now.section === null ? NOTHING : { items: [now.section], frames: [] })
@@ -964,10 +1002,10 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
         else undo()
         return
       }
-      if ((event.key === 'Delete' || event.key === 'Backspace') && chosen.items.length > 0) {
+      if ((event.key === 'Delete' || event.key === 'Backspace') && chosen.items.length + chosen.frames.length > 0) {
         event.preventDefault()
-        if (chosen.items.length === 1) deleteAnnotation(chosen.items[0])
-        else deleteAnnotations(chosen.items)
+        if (chosen.items.length === 1 && chosen.frames.length === 0) deleteAnnotation(chosen.items[0])
+        else deleteChosen(chosen)
         return
       }
       if ((event.key === 'Delete' || event.key === 'Backspace') && drawerOpen && picked !== null && picked.step !== null) {
