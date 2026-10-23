@@ -13327,7 +13327,7 @@ col.vimp-c-scene{ width:18% } col.vimp-c-verdict{ width:16% }
 .qv-fchip-review { color: var(--color-agent-reasoning); border-color: color-mix(in srgb, var(--color-agent-reasoning) 55%, transparent); }
 .qv-fchip-review.on { color: var(--color-agent-reasoning); border-color: var(--color-agent-reasoning); }
 .qv-review-tag { font-size: 11px; font-weight: 600; padding: 0 7px; border-radius: 999px; color: var(--color-agent-reasoning); border: 1px solid color-mix(in srgb, var(--color-agent-reasoning) 55%, transparent); }
-.qv-review-why { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 10px 0 0; font-size: 14px; color: var(--color-text-primary); }
+.qv-review-why { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 12px 0 0; padding: 10px 14px; border: 1px solid color-mix(in srgb, var(--color-agent-reasoning) 45%, transparent); border-left: 3px solid var(--color-agent-reasoning); border-radius: 8px; background: color-mix(in srgb, var(--color-agent-reasoning) 9%, var(--color-bg-surface)); font-size: 14px; font-weight: 500; color: var(--color-text-primary); }
 .qv-word-passed { color: var(--color-status-success); }
 .qv-word-failed { color: var(--color-status-critical); }
 .qv-ico--code { color: var(--color-agent-reasoning); background: color-mix(in srgb, var(--color-agent-reasoning) 16%, transparent); }

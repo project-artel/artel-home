@@ -133,7 +133,10 @@ export function StepDetail({ projectId, row, rows }: { projectId: string; row: S
               {copy.states[row.state]}
             </span>
             {verdict !== null ? (
-              row.verifying && <span className={`qv-ev qv-ev--${verdict.detail.status}`}>{copy.evidence[verdict.detail.status]}</span>
+              // 근거 축을 끈 실행은 판정마다 `none` 이라 표시할 것이 없다. 근거를 낸 판정만 그 상태를 보인다.
+              row.verifying && verdict.detail.status !== 'none' && (
+                <span className={`qv-ev qv-ev--${verdict.detail.status}`}>{copy.evidence[verdict.detail.status]}</span>
+              )
             ) : (
               <span className="qv-ev qv-ev--none">{copy.waiting}</span>
             )}
