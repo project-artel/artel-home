@@ -11,6 +11,7 @@ export const commonEn = {
     setupGuide: 'Setup guide',
     signOut: 'Sign out',
     languageLabel: 'Language',
+    pageScroll: 'Page',
     switchToDark: 'Switch to dark theme',
     switchToLight: 'Switch to light theme',
     moreInfo: 'More information',
@@ -111,8 +112,9 @@ export const commonEn = {
   },
   notFound: {
     title: 'Page not found',
-    copy: 'That address does not match anything in the workspace.',
+    copy: 'This address does not exist, or you do not have access to it.',
     backToProjects: 'Back to projects',
+    goBack: 'Previous page',
   },
 } as const
 
@@ -123,6 +125,7 @@ export const commonKo: Localized<typeof commonEn> = {
     setupGuide: '설치 안내',
     signOut: '로그아웃',
     languageLabel: '언어',
+    pageScroll: '페이지',
     switchToDark: '다크 테마로 전환',
     switchToLight: '라이트 테마로 전환',
     moreInfo: '설명 보기',
@@ -219,7 +222,8 @@ export const commonKo: Localized<typeof commonEn> = {
   },
   notFound: {
     title: '페이지를 찾을 수 없습니다',
-    copy: '주소가 워크스페이스의 어떤 항목과도 일치하지 않습니다.',
+    copy: '없는 주소이거나, 볼 수 있는 권한이 없습니다.',
     backToProjects: '프로젝트 목록으로',
+    goBack: '이전 화면으로',
   },
 }

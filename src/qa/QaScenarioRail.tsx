@@ -21,6 +21,8 @@ export type FocusedScenarioDetail = {
 
 export type QaScenarioRailProps = {
   projectId: string
+  /** 판정 기준 버전(ARTEL-1070, TR 의 버전). FREE 시나리오의 케이스를 QA 가 판정한 그 내용으로 보인다. */
+  gameBuildId: string | null
   tries: QaTry[]
   activeTryId: string | null
   focusedTryId: string | null
@@ -56,6 +58,7 @@ export function QaScenarioRail({
             isFocused={entry.id === rail.focusedTryId}
             number={index + 1}
             projectId={rail.projectId}
+            gameBuildId={rail.gameBuildId}
             onFocus={() => rail.onFocus(entry.id)}
             onToggle={() => rail.onToggle(entry.id)}
             title={rail.scenarioTitle(entry, index)}
@@ -65,7 +68,12 @@ export function QaScenarioRail({
       {focused !== null && (
         <div className="qa-console-rail-usage">
           {/* Keyed by the try so switching scenarios starts a fresh read. */}
-          <QaRunUsagePanel key={focused.tryId} active={focused.active} qaTryId={focused.tryId} />
+          <QaRunUsagePanel
+            key={focused.tryId}
+            active={focused.active}
+            projectId={rail.projectId}
+            qaTryId={focused.tryId}
+          />
         </div>
       )}
     </nav>
@@ -80,11 +88,13 @@ function RailScenario({
   isFocused,
   number,
   projectId,
+  gameBuildId,
   onFocus,
   onToggle,
   title,
 }: {
   entry: QaTry
+  gameBuildId: string | null
   expanded: boolean
   focused: FocusedScenarioDetail | null
   isActive: boolean
@@ -132,11 +142,12 @@ function RailScenario({
               onJump={focused.onJump}
               progress={focused.progress}
               executionMode={focused.executionMode}
+              gameBuildId={gameBuildId}
               projectId={projectId}
               scenarioSteps={focused.scenarioSteps}
             />
           ) : (
-            <UnfocusedScenarioSteps projectId={projectId} testScenarioId={entry.testScenarioId} />
+            <UnfocusedScenarioSteps gameBuildId={gameBuildId} projectId={projectId} testScenarioId={entry.testScenarioId} />
           )}
         </div>
       )}
@@ -145,7 +156,23 @@ function RailScenario({
 }
 
 /** Reads the steps only once the scenario is expanded, so a long run is not N fetches up front. */
-function UnfocusedScenarioSteps({ projectId, testScenarioId }: { projectId: string; testScenarioId: string }) {
+function UnfocusedScenarioSteps({
+  gameBuildId,
+  projectId,
+  testScenarioId,
+}: {
+  gameBuildId: string | null
+  projectId: string
+  testScenarioId: string
+}) {
   const { steps, executionMode } = useScenarioSteps(testScenarioId)
-  return <QaScenarioSteps executionMode={executionMode} progress={null} projectId={projectId} scenarioSteps={steps} />
+  return (
+    <QaScenarioSteps
+      executionMode={executionMode}
+      gameBuildId={gameBuildId}
+      progress={null}
+      projectId={projectId}
+      scenarioSteps={steps}
+    />
+  )
 }

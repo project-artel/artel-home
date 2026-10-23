@@ -6,7 +6,9 @@ import { versionBuilds } from './gameBuilds'
 import { updateGameBuild } from './gameApi'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
+import { GameFunctionPanel } from './GameFunctionPanel'
 import { ProjectApiError } from './projectApi'
+import { gameBuildDetailHref } from './workspace/sections'
 import {
   BUILD_LABEL_MAX_LENGTH,
   BUILD_NOTES_MAX_LENGTH,
@@ -281,7 +283,16 @@ function GameBuildRow({
                 <dd>{formatDate(build.updatedAt)}</dd>
               </dl>
 
+              <GameFunctionPanel buildId={build.id} projectId={projectId} />
+
               <div className="form-actions">
+                {/* 이 빌드의 QA run 과 케이스 판정까지 한 화면에 모은 게임 빌드 섹션의 상세(ARTEL-1105). */}
+                <Link
+                  className="button button--secondary button--compact"
+                  to={gameBuildDetailHref(projectId, build.id)}
+                >
+                  {t.gameBuilds.list.openInSection}
+                </Link>
                 <Link
                   className="button button--secondary button--compact"
                   to={`/projects/${encodeURIComponent(projectId)}/game-builds/${encodeURIComponent(build.id)}/content-map`}

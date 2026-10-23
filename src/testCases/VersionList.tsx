@@ -3,6 +3,7 @@ import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDi
 import { Dialog } from '../design-system/primitives/Dialog'
 import { useI18n } from '../i18n/useI18n'
 import { ContextMenu, type ContextMenuItem } from './ContextMenu'
+import { EditorBadge } from '../projects/EditorBadge'
 import { NameDialog } from './NameDialog'
 import { Picker } from './Picker'
 import {
@@ -24,6 +25,8 @@ export type VersionOperations = {
   copyToFolder: (version: TestCaseVersionSummary) => Promise<void>
   /** 다른 라이브러리(버전 · 버전 없음 · 폴더)의 사용자 생성 케이스를 이 버전에 가져오는 창을 연다(ARTEL-1032). */
   importManual?: (version: TestCaseVersionSummary) => void
+  /** 다른 버전의 판정을 이 버전 TC 에 가져오는 창을 연다(ARTEL-1181). */
+  importVerdicts?: (version: TestCaseVersionSummary) => void
 }
 
 /** 끄는 버전. 폴더 끌기와 섞이지 않게 형식을 따로 쓴다. */
@@ -57,6 +60,8 @@ export function VersionList({
   selectedId,
   unversionedTotal,
   versions,
+  messages,
+  allRow,
 }: {
   groups: readonly VersionGroup[]
   onSelect: (gameBuildId: string) => void
@@ -65,9 +70,16 @@ export function VersionList({
   selectedId: string | null
   unversionedTotal: number
   versions: readonly TestCaseVersionSummary[]
+  /** 문구를 바꿔 쓸 때(이슈 화면, ARTEL-1114). 없으면 케이스 라이브러리 문구. */
+  messages?: ReturnType<typeof useI18n>['t']['testCases']['versions']
+  /**
+   * 버전을 가로질러 보는 맨 위 줄(이슈 화면의 "모든 버전", ARTEL-1114). 다른 버전 줄과 같은 모양으로 그린다.
+   * 케이스 라이브러리는 늘 한 버전을 보므로 쓰지 않는다.
+   */
+  allRow?: { label: string; count: number; selected: boolean; onSelect: () => void }
 }) {
   const { t } = useI18n()
-  const m = t.testCases.versions
+  const m = messages ?? t.testCases.versions
   const entries = useMemo(() => arrangeVersions(versions, groups), [versions, groups])
   const hidden = useMemo(() => hiddenVersions(versions), [versions])
   const [folded, setFolded] = useState<ReadonlySet<string>>(new Set())
@@ -112,9 +124,13 @@ export function VersionList({
       ]
     }
     const importManual = operations.importManual
+    const importVerdicts = operations.importVerdicts
     return [
       { label: m.menu.copyToFolder, onSelect: () => void operations.copyToFolder(version) },
       ...(importManual === undefined ? [] : [{ label: m.menu.importManual, onSelect: () => importManual(version) }]),
+      ...(importVerdicts === undefined || versions.length < 2
+        ? []
+        : [{ label: m.menu.importVerdicts, onSelect: () => importVerdicts(version) }]),
       { label: m.menu.moveToGroup, disabled: groups.length === 0, onSelect: () => setMoving(version) },
       ...(version.groupId === null
         ? []
@@ -171,6 +187,7 @@ export function VersionList({
           type="button"
         >
           <span className="tcl-folder-name" title={versionName(version)}>{versionName(version)}</span>
+          {version.isEditor && <EditorBadge />}
           {version.latest && <span className="tcl-version-latest">{m.latest}</span>}
           <span className="tcl-folder-count">{version.total}</span>
         </button>
@@ -202,6 +219,19 @@ export function VersionList({
         </button>
       </div>
       <ul className="tcl-folder-list">
+        {allRow && (
+          <li>
+            <button
+              aria-current={allRow.selected ? 'true' : undefined}
+              className={'tcl-folder tcl-version' + (allRow.selected ? ' is-current' : '')}
+              onClick={allRow.onSelect}
+              type="button"
+            >
+              <span className="tcl-folder-name">{allRow.label}</span>
+              <span className="tcl-folder-count">{allRow.count}</span>
+            </button>
+          </li>
+        )}
         {entries.map((entry) => {
           if (entry.kind === 'version') return versionRow(entry.version)
           const group = entry.group

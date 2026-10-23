@@ -1,10 +1,17 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
-import { InfoHint } from '../design-system/primitives/InfoHint'
-import { buildOptionText, selectBuild } from '../projects/gameBuilds'
+import { buildOptionText } from '../projects/gameBuilds'
+import { selectContentMapBuild } from './latestBuild'
 import { useWorkspace } from '../projects/workspace/workspaceContext'
+import { useFieldBinding } from '../projectAgent/bindings'
+import { requireKnownId } from '../projectAgent/specs/fieldWriters'
+import { CONTENT_MAP_BUILD_FIELD } from '../projectAgent/specs/contentMap'
+import { SketchEmpty } from '../emptyStates/SketchEmpty'
+import { BuildSketch } from '../emptyStates/sketches'
+import { BuildSwitcher } from './BuildSwitcher'
 import { ContentMapReport } from './ContentMapPage'
+import './contentMap.css'
 
 /**
  * 프로젝트 작업공간의 화면 지도 섹션.
@@ -29,7 +36,19 @@ export function ContentMapSection() {
   const editorLabel = t.projects.builds.editorLabel
   const [searchParams, setSearchParams] = useSearchParams()
   const requestedBuildId = searchParams.get('build')
-  const selectedBuild = selectBuild(builds, requestedBuildId)
+  // 에디터 빌드도 센다(ARTEL-1185). 빌드 고르기의 "최신" 과 같은 빌드가 열린다.
+  const selectedBuild = selectContentMapBuild(builds, requestedBuildId)
+
+  const buildSelect = useRef<HTMLButtonElement>(null)
+
+  // agent 가 빌드를 고르는 길. 셀렉트의 onChange 와 같은 주소 갱신을 쓴다.
+  useFieldBinding(CONTENT_MAP_BUILD_FIELD, {
+    target: () => buildSelect.current,
+    read: () => selectedBuild?.id ?? null,
+    options: () => builds.map((build) => ({ value: build.id, label: buildOptionText(build, editorLabel) })),
+    write: (value) =>
+      setSearchParams({ build: requireKnownId(CONTENT_MAP_BUILD_FIELD.name, value, builds.map((build) => build.id)) }),
+  })
 
   // 주소가 늘 고른 빌드를 말하게 한다. `replace` 라 기본 빌드가 채워지는 것이 뒤로 가기
   // 한 걸음을 잡아먹지 않는다.
@@ -38,40 +57,35 @@ export function ContentMapSection() {
     setSearchParams({ build: selectedBuild.id }, { replace: true })
   }, [requestedBuildId, selectedBuild, setSearchParams])
 
+  const buildPicker =
+    selectedBuild === undefined ? null : (
+      <BuildSwitcher
+        builds={builds}
+        onSelect={(buildId) => setSearchParams({ build: buildId })}
+        ref={buildSelect}
+        selected={selectedBuild}
+      />
+    )
+
   return (
-    <section className="cm-section">
-      <header className="cm-section-head">
-        <div>
-          <h2>
-            {copy.title}
-            <InfoHint>{copy.subtitle}</InfoHint>
-          </h2>
-        </div>
-        {selectedBuild !== undefined && (
-          <label className="cm-build-picker">
-            <span>{copy.selectLabel}</span>
-            <select
-              onChange={(event) => setSearchParams({ build: event.target.value })}
-              value={selectedBuild.id}
-            >
-              {builds.map((build) => (
-                <option key={build.id} value={build.id}>
-                  {buildOptionText(build, editorLabel)}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-      </header>
+    <section aria-labelledby="cm-section-title" className="cm-section">
+      {/*
+        작업공간 머리가 이미 `화면 지도` 를 보인다(ARTEL-1172). 여기서 한 번 더 크게 세우면 제목이 둘이 되므로 이
+        제목은 화면 낭독기에만 남기고, 설명과 빌드 select 는 아래 머리 줄로 간다.
+      */}
+      <h2 className="visually-hidden" id="cm-section-title">
+        {copy.title}
+      </h2>
 
       {selectedBuild === undefined ? (
-        <div className="panel-message">
-          <h3>{copy.noBuildsTitle}</h3>
-          <p className="panel-message-copy">{copy.noBuildsCopy}</p>
-        </div>
+        <section className="panel cm-empty">
+          <SketchEmpty body={copy.noBuildsCopy} sketch={<BuildSketch />} surface title={copy.noBuildsTitle} />
+        </section>
       ) : (
         <ContentMapReport
+          about={copy.subtitle}
           buildId={selectedBuild.id}
+          buildPicker={buildPicker}
           key={selectedBuild.id}
           projectId={projectId}
         />

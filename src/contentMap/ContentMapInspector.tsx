@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useI18n } from '../i18n/useI18n'
+import { InlineCode } from './InlineCode'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import type { Messages } from '../i18n/messages'
 import { truncate } from '../knowledge/knowledgeLabels'
@@ -66,6 +67,7 @@ export function ContentMapInspector({
   selection,
   onSelect,
   onClear,
+  overview,
 }: {
   model: ScreenMapModel
   index: ScreenMapIndex
@@ -74,6 +76,8 @@ export function ContentMapInspector({
   selection: ContentMapSelection | null
   onSelect: (selection: ContentMapSelection) => void
   onClear: () => void
+  /** 아무것도 고르지 않았을 때 안내 아래에 서는 빌드 개요(ARTEL-1172). */
+  overview?: ReactNode
 }) {
   const { t } = useI18n()
   const copy = t.contentMap.inspector
@@ -103,6 +107,7 @@ export function ContentMapInspector({
           selection={selection}
         />
       </section>
+      {selection === null && overview}
     </div>
   )
 }
@@ -308,7 +313,9 @@ function ScreenDetail({
 function ScreenCapture({ image, title }: { image: ScreenImage | null; title: string }) {
   const { t } = useI18n()
   const copy = t.contentMap.inspector
-  const [broken, setBroken] = useState(false)
+  // The failed URL rather than a flag: a re-read signs a new URL, and that
+  // should get a fresh attempt instead of staying marked broken.
+  const [failedUrl, setFailedUrl] = useState<string | null>(null)
 
   if (image === null) {
     return (
@@ -319,11 +326,11 @@ function ScreenCapture({ image, title }: { image: ScreenImage | null; title: str
     )
   }
 
-  if (broken) return <p className="cm-inspector-hint">{copy.captureBroken}</p>
+  if (failedUrl === image.url) return <p className="cm-inspector-hint">{copy.captureBroken}</p>
 
   return (
     <figure className="cm-thumb">
-      <img alt={title} className="cm-thumb-image" onError={() => setBroken(true)} src={image.url} />
+      <img alt={title} className="cm-thumb-image" onError={() => setFailedUrl(image.url)} src={image.url} />
       {image.capturedAt !== null && (
         <figcaption className="cm-thumb-size mono">
           {copy.captureAt(formatDateTime(image.capturedAt))}
@@ -349,20 +356,20 @@ function SceneThumbnailView({
 }) {
   const { t } = useI18n()
   const copy = t.contentMap.list
-  const [broken, setBroken] = useState(false)
+  const [failedUrl, setFailedUrl] = useState<string | null>(null)
 
   if (thumbnail === null) return <p className="cm-inspector-hint">{copy.thumbnailNone}</p>
   if (thumbnail.state === 'unavailable') {
     return <p className="cm-inspector-hint">{copy.thumbnailUnavailable(thumbnail.reason)}</p>
   }
-  if (broken) return <p className="cm-inspector-hint">{copy.thumbnailBroken}</p>
+  if (failedUrl === thumbnail.url) return <p className="cm-inspector-hint">{copy.thumbnailBroken}</p>
 
   return (
     <figure className="cm-thumb">
       <img
         alt={title}
         className="cm-thumb-image"
-        onError={() => setBroken(true)}
+        onError={() => setFailedUrl(thumbnail.url)}
         src={thumbnail.url}
       />
       {thumbnail.width !== null && thumbnail.height !== null && (
@@ -428,7 +435,7 @@ function CapabilityRow({ use }: { use: ScreenCapabilityUse }) {
 
   return (
     <li className={`sm-capability${used ? ' is-used' : ''}`}>
-      <p className="sm-capability-summary">{summary.length > 0 ? summary : copy.capabilityUntitled}</p>
+      <p className="sm-capability-summary">{summary.length > 0 ? <InlineCode text={summary} /> : copy.capabilityUntitled}</p>
       <p className="sm-capability-badges">
         {use.capability === null ? (
           <span className="cm-inspector-hint">{copy.capabilityMissing}</span>
@@ -615,6 +622,35 @@ function SceneDetail({
       <p className="cm-detail-name">{sceneTitle(t, container.node)}</p>
       <p className={`cm-kind cm-kind--${kind}`}>{t.contentMap.graph.sceneKinds[kind]}</p>
 
+      {/* 이 씬의 수 한눈에(ARTEL-1172). 아래 절들을 끝까지 내려야 알던 것을 맨 위에 모은다 — 각 수의 목록은 그대로
+          아래 절에 있다. */}
+      <dl className="cm-detail-stats">
+        <div>
+          <dt>{copy.stats.screens}</dt>
+          <dd>{evidence.screens.length}</dd>
+        </div>
+        {scene !== null && (
+          <div>
+            <dt>{copy.stats.capabilities}</dt>
+            <dd>{scene.capabilities.total}</dd>
+          </div>
+        )}
+        {scene !== null && scene.steps !== null && (
+          <div>
+            <dt>{copy.stats.steps}</dt>
+            <dd>{scene.steps.length}</dd>
+          </div>
+        )}
+        <div>
+          <dt>{copy.stats.outgoing}</dt>
+          <dd>{evidence.outgoing.length}</dd>
+        </div>
+        <div>
+          <dt>{copy.stats.incoming}</dt>
+          <dd>{evidence.incoming.length}</dd>
+        </div>
+      </dl>
+
       {scene === null ? (
         <p className="cm-detail-note">
           {container.node.missingFromResponse
@@ -754,7 +790,9 @@ function SceneEdgeButton({
       onClick={() => onSelect({ kind: 'sceneEdge', id: placed.id })}
       type="button"
     >
-      <span className="cm-transition-target">{label}</span>
+      <span className="cm-transition-target">
+        <InlineCode text={label} />
+      </span>
       <span className="cm-transition-meta">
         <span>{sourceName}</span>
         <span aria-hidden="true">·</span>

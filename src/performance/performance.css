@@ -1,0 +1,908 @@
+/*
+ * 성능 화면(ARTEL-1207). 빌드 화면은 왼쪽 빌드 목록 + 본문, 런 상세는 본문 + 오른쪽 환경 칸이다.
+ * 넓은 창에서는 칸마다 화면 높이에 맞추고 서비스 스크롤 막대(`EdgeScrollbar`)로 각자 넘긴다. 서비스 토큰만 쓴다.
+ */
+
+/* ── 빌드 화면 배치 ─────────────────────────────────────────── */
+.workspace-body:has(.pf) .section-header {
+  width: 100%;
+}
+.section-content:has(.pf) {
+  width: 100%;
+}
+.pf {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: stretch;
+}
+/* 빌드가 없을 때: 그림 빈 화면이 남은 높이를 채워 가운데에 선다. */
+.pf--single {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 넓은 창: 빌드 목록은 제자리, 목록과 본문이 각자 넘어간다. */
+@media (min-width: 1101px) and (min-height: 600px) {
+  .workspace-body:has(.pf) {
+    overflow-y: hidden;
+  }
+  .workspace-body:has(.pf) > .section-content {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    padding-bottom: var(--space-4);
+  }
+  .pf {
+    flex: 1;
+    min-height: 0;
+  }
+  .pf .pf-builds,
+  .pf .pf-main-frame {
+    min-height: 0;
+  }
+  .pf .pf-main {
+    height: 100%;
+    overflow-y: auto;
+    padding-right: var(--space-4);
+    scrollbar-width: none;
+  }
+}
+@media (max-width: 1100px) {
+  .pf {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .pf .pf-builds {
+    height: 340px;
+  }
+}
+
+/* ── 공통 칸 ───────────────────────────────────────────────── */
+.pf-panel,
+.pf-builds {
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
+  min-width: 0;
+}
+.pf-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+.pf-panel-head h2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font: 600 14px/20px var(--font-sans);
+}
+.pf-panel-hint,
+.pf-muted {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+.pf-panel-note {
+  margin: 0;
+  padding: var(--space-3) var(--space-4) 0;
+  color: var(--color-text-secondary);
+  font-size: 12.5px;
+}
+.pf-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.pf-good {
+  color: var(--color-status-success);
+}
+.pf-bad {
+  color: var(--color-status-critical);
+}
+.pf-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 999px;
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+.pf-chip--editor {
+  border-color: color-mix(in srgb, var(--color-agent-reasoning) 50%, var(--color-border-subtle));
+  color: var(--color-agent-reasoning);
+}
+.pf-chip--ok {
+  border-color: color-mix(in srgb, var(--color-status-success) 45%, var(--color-border-subtle));
+  background: var(--color-status-success-muted);
+  color: var(--color-status-success);
+}
+.pf-chip--warning {
+  border-color: color-mix(in srgb, var(--color-status-warning) 55%, var(--color-border-subtle));
+  background: var(--color-status-warning-muted);
+  color: var(--color-text-primary);
+}
+.pf-chip--critical {
+  border-color: color-mix(in srgb, var(--color-status-critical) 55%, var(--color-border-subtle));
+  background: var(--color-status-critical-muted);
+  color: var(--color-status-critical-strong);
+}
+.pf-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: var(--space-2);
+}
+
+/* ── 빌드 목록 ─────────────────────────────────────────────── */
+.pf-builds {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.pf-builds-search {
+  padding: var(--space-3) var(--space-3) var(--space-2);
+}
+.pf-builds-search input {
+  width: 100%;
+}
+.pf-scroll-frame {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+.pf-builds-list {
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  height: 100%;
+  margin: 0;
+  padding: 0 var(--space-2) var(--space-3);
+  overflow-y: auto;
+  list-style: none;
+  scrollbar-width: none;
+}
+.pf-builds-list::-webkit-scrollbar,
+.pf-main::-webkit-scrollbar,
+.pf-run-main::-webkit-scrollbar,
+.pf-run-side::-webkit-scrollbar {
+  display: none;
+}
+.pf-builds-none {
+  padding: var(--space-3);
+}
+.pf-build {
+  display: grid;
+  grid-template-areas:
+    'name spark'
+    'meta spark';
+  grid-template-columns: minmax(0, 1fr) 64px;
+  column-gap: var(--space-3);
+  row-gap: 2px;
+  width: 100%;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: var(--radius-md, 8px);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.pf-build:hover {
+  background: var(--color-bg-hover);
+}
+.pf-build.is-selected {
+  background: var(--color-bg-raised);
+  box-shadow: inset 2px 0 0 var(--color-action-primary);
+}
+.pf-build:focus-visible {
+  outline: 2px solid var(--color-action-primary);
+  outline-offset: -2px;
+}
+.pf-build-name {
+  grid-area: name;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+.pf-build-version {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pf-build.is-empty .pf-build-name {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+.pf-build-meta {
+  grid-area: meta;
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+}
+.pf-spark {
+  grid-area: spark;
+  align-self: center;
+}
+.pf-spark-line {
+  stroke: var(--color-border-strong);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+.pf-spark-none {
+  stroke: var(--color-border-subtle);
+  stroke-dasharray: 3 3;
+}
+.pf-spark-end {
+  fill: var(--color-action-primary);
+}
+
+/* ── 본문 ──────────────────────────────────────────────────── */
+.pf-main-frame {
+  position: relative;
+  min-width: 0;
+}
+.pf-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.pf-page-head h1 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 0;
+  font: 650 22px/30px var(--font-display, var(--font-sans));
+}
+.pf-eyebrow {
+  margin: var(--space-2) 0 0;
+  color: var(--color-action-primary);
+  font: 600 11px/16px var(--font-mono);
+  letter-spacing: 0.08em;
+}
+.pf-back-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.pf-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+.pf-kpi {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
+}
+.pf-kpi--warning {
+  border-color: color-mix(in srgb, var(--color-status-warning) 55%, var(--color-border-subtle));
+}
+.pf-kpi-label {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+.pf-kpi-value {
+  font: 600 22px/30px var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.pf-kpi-value small {
+  margin-left: 4px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+}
+.pf-kpi-detail {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+@media (max-width: 900px) {
+  .pf-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.pf-seg {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md, 8px);
+}
+.pf-seg button {
+  padding: 5px 10px;
+  border: 0;
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  font: 500 12px/18px var(--font-sans);
+  cursor: pointer;
+}
+.pf-seg button + button {
+  border-left: 1px solid var(--color-border-subtle);
+}
+.pf-seg button[aria-pressed='true'] {
+  background: var(--color-bg-raised);
+  color: var(--color-text-primary);
+}
+.pf-seg button:focus-visible {
+  outline: 2px solid var(--color-action-primary);
+  outline-offset: -2px;
+}
+
+/* 넓은 창에서는 추세 칸이 본문의 남은 높이를 채운다. 차트는 그 칸을 재서 그린다. */
+.pf-panel--grow {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+  min-height: 340px;
+}
+.pf-chart-box {
+  position: relative;
+  flex: 1;
+  min-height: 240px;
+  margin: var(--space-2) var(--space-4) 0;
+}
+.pf-chart {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+.pf-chart circle {
+  cursor: pointer;
+}
+.pf-chart circle:focus-visible {
+  outline: none;
+  stroke: var(--color-text-primary);
+  stroke-width: 3;
+}
+.pf-trend-line {
+  stroke: var(--color-action-primary);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.pf-reference {
+  stroke: var(--color-border-strong);
+  stroke-dasharray: 6 4;
+}
+.pf-tip {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  gap: 2px;
+  min-width: 190px;
+  margin: -10px 0 0 14px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md, 8px);
+  background: var(--color-bg-raised);
+  font-size: 12px;
+  pointer-events: none;
+}
+.pf-tip--left {
+  margin-left: -14px;
+  transform: translateX(-100%);
+}
+.pf-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin: 0;
+  padding: var(--space-2) var(--space-4) var(--space-3);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  list-style: none;
+}
+.pf-legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.pf-legend-line {
+  width: 16px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--color-action-primary);
+}
+.pf-legend-dot {
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--color-status-critical);
+  border-radius: 50%;
+  background: var(--color-status-warning);
+}
+.pf-legend-ref {
+  width: 16px;
+  border-top: 2px dashed var(--color-border-strong);
+}
+
+.pf-table-wrap {
+  overflow-x: auto;
+}
+.pf-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+.pf-table th {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+}
+.pf-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  white-space: nowrap;
+}
+.pf-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.pf-runs tbody tr {
+  cursor: pointer;
+}
+.pf-runs tbody tr:hover {
+  background: var(--color-bg-hover);
+}
+.pf-runs tr.is-warning td:first-child {
+  box-shadow: inset 2px 0 0 var(--color-status-warning);
+}
+.pf-row-link {
+  color: var(--color-text-secondary);
+  text-decoration: none;
+}
+.pf-row-link:hover {
+  color: var(--color-text-primary);
+}
+.pf-bar {
+  display: inline-grid;
+  grid-template-columns: 72px auto;
+  align-items: center;
+  gap: var(--space-2);
+}
+.pf-bar-track {
+  display: block;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--color-bg-raised);
+}
+.pf-bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--color-action-primary);
+}
+
+.pf-empty {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  border-top: 1px solid var(--color-border-subtle);
+}
+/* 그림이 남은 높이를 채우고, 방법 · 다른 빌드는 아래에 붙는다. */
+.pf-panel--grow > .sketch-empty {
+  min-height: 300px;
+}
+.pf-empty--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+.pf-empty > div {
+  padding: var(--space-5);
+}
+.pf-empty > div + div {
+  border-left: 1px solid var(--color-border-subtle);
+}
+.pf-empty h3 {
+  margin: 0 0 6px;
+  font: 600 15px/22px var(--font-sans);
+}
+.pf-empty p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+.pf-steps {
+  display: grid;
+  gap: 6px;
+  margin: var(--space-3) 0 0;
+  padding-left: 18px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+.pf-others {
+  display: grid;
+  gap: 6px;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.pf-others button {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md, 8px);
+  background: var(--color-bg-canvas);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.pf-others button:hover {
+  border-color: var(--color-border-strong);
+}
+.pf-others-name {
+  font-weight: 600;
+}
+@media (max-width: 900px) {
+  .pf-empty {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .pf-empty > div + div {
+    border-top: 1px solid var(--color-border-subtle);
+    border-left: 0;
+  }
+}
+.pf-warning {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--color-status-warning) 55%, var(--color-border-subtle));
+  border-radius: var(--radius-lg);
+  background: var(--color-status-warning-muted);
+  line-height: 1.55;
+}
+
+/* ── 런 상세 배치 ──────────────────────────────────────────── */
+.workspace-deep:has(> .pf-run) {
+  padding: var(--space-6);
+  overflow: hidden;
+}
+.pf-run {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: var(--space-4);
+  min-height: 0;
+}
+.pf-run-frame,
+.pf-run-side-frame {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+}
+.pf-run-main,
+.pf-run-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  height: 100%;
+  padding-right: var(--space-4);
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.pf-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-4);
+}
+.pf-buckets > summary {
+  cursor: pointer;
+  list-style: none;
+}
+.pf-buckets > summary::-webkit-details-marker {
+  display: none;
+}
+.pf-buckets:not([open]) > summary {
+  border-bottom: 0;
+}
+.pf-buckets tr.is-gap td {
+  background: color-mix(in srgb, var(--color-bg-raised) 60%, transparent);
+  color: var(--color-text-muted);
+}
+.pf-device dl {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 8px 12px;
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+}
+.pf-device dl > div {
+  display: contents;
+}
+.pf-device dt {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+.pf-device dd {
+  margin: 0;
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 1100px) {
+  .workspace-deep:has(> .pf-run) {
+    overflow-y: auto;
+  }
+  .pf-run {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .pf-run-main,
+  .pf-run-side {
+    height: auto;
+    overflow: visible;
+    padding-right: 0;
+  }
+}
+@media (max-width: 760px) {
+  .pf-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* 빌드 하나만 여는 주소(`game-builds/:id/performance`)는 `.page` 가 넘기므로 안쪽 스크롤이 없다. */
+.pf-page {
+  width: min(100%, 1440px);
+  margin: 0 auto;
+}
+
+/* ── 런 차트(PerformanceChart) · 지표군(MetricGroupList) ─────── */
+.performance-chart-wrap {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-2) var(--space-4) var(--space-3);
+}
+.performance-chart-wrap--fill {
+  flex: 1;
+}
+.performance-chart-area {
+  position: relative;
+  height: 240px;
+}
+.performance-chart-wrap--fill .performance-chart-area {
+  flex: 1;
+  height: auto;
+  min-height: 240px;
+}
+.performance-chart {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+.performance-grid {
+  stroke: var(--color-border-subtle);
+  stroke-width: 1;
+}
+.performance-axis {
+  stroke: var(--color-border-strong);
+  stroke-width: 1;
+}
+.performance-axis-label {
+  fill: var(--color-text-muted);
+  font: 500 11px/16px var(--font-mono);
+}
+.performance-axis-label--end {
+  text-anchor: end;
+}
+.performance-axis-label--middle {
+  text-anchor: middle;
+}
+.performance-line {
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.performance-line--mean {
+  stroke: var(--color-action-primary);
+}
+.performance-line--p95 {
+  stroke: var(--color-agent-reasoning);
+}
+.performance-line--max {
+  stroke: var(--color-status-critical);
+  stroke-dasharray: 5 4;
+}
+.performance-line--cpu {
+  stroke: var(--color-action-primary);
+}
+.performance-line--memory {
+  stroke: var(--color-agent-reasoning);
+}
+.performance-budget {
+  stroke: var(--color-status-warning);
+  stroke-width: 2;
+  stroke-dasharray: 7 4;
+}
+.performance-gap {
+  fill: var(--color-bg-raised);
+  opacity: 0.72;
+}
+.performance-hitch {
+  fill: var(--color-status-critical);
+}
+.performance-trend-point {
+  fill: var(--color-action-primary);
+  stroke: var(--color-bg-surface);
+  stroke-width: 2;
+}
+.performance-trend-point--warning {
+  fill: var(--color-status-warning);
+  stroke: var(--color-status-critical);
+}
+.performance-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0;
+  padding: 8px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  list-style: none;
+}
+.performance-legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.performance-legend span {
+  display: inline-block;
+  width: 22px;
+  height: 4px;
+  border-width: 2px;
+}
+.performance-legend .performance-line {
+  border-top: 3px solid currentColor;
+  height: 0;
+}
+.performance-legend .performance-line--mean { color: var(--color-action-primary); }
+.performance-legend .performance-line--p95 { color: var(--color-agent-reasoning); }
+.performance-legend .performance-line--max { color: var(--color-status-critical); border-top-style: dashed; }
+.performance-legend .performance-line--cpu { color: var(--color-action-primary); }
+.performance-legend .performance-line--memory { color: var(--color-agent-reasoning); }
+.performance-legend .performance-budget {
+  height: 0;
+  border-top: 2px dashed var(--color-status-warning);
+}
+.performance-legend .performance-gap {
+  height: 12px;
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-bg-raised);
+}
+.performance-legend-axis {
+  margin-left: auto;
+  color: var(--color-text-muted);
+}
+.performance-unmeasured {
+  margin: 0;
+  padding: var(--space-5);
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+.performance-groups {
+  display: grid;
+  margin: 0;
+}
+.performance-group {
+  display: grid;
+  gap: 6px;
+  padding: var(--space-3) var(--space-4);
+}
+.performance-group + .performance-group {
+  border-top: 1px solid var(--color-border-subtle);
+}
+.performance-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.performance-group h3 {
+  margin: 0;
+  font: 600 13px/20px var(--font-sans);
+}
+.performance-group-state {
+  margin: 0;
+  padding: 1px 8px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 999px;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.performance-group[data-availability='MEASURED'] .performance-group-state {
+  border-color: color-mix(in srgb, var(--color-status-success) 45%, var(--color-border-subtle));
+  background: var(--color-status-success-muted);
+  color: var(--color-status-success);
+}
+.performance-group[data-availability='UNSUPPORTED'] .performance-group-state {
+  border-color: color-mix(in srgb, var(--color-status-warning) 55%, var(--color-border-subtle));
+  background: var(--color-status-warning-muted);
+  color: var(--color-text-primary);
+}
+.performance-group-source,
+.performance-group-coverage {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+}
+.performance-group-metrics {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+}
+.performance-group-metrics div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.performance-group-metrics dt {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+.performance-group-metrics dd {
+  margin: 0;
+  font: 500 12px/18px var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.performance-group .performance-unmeasured {
+  padding: 0;
+  font-size: 12px;
+  text-align: left;
+}
+
+/* ── 서비스 스크롤 막대 ─────────────────────────────────────── */
+:is(.pf, .pf-run) .edgebar {
+  position: absolute;
+  z-index: 3;
+  right: 0;
+  width: 18px;
+  pointer-events: none;
+}
+:is(.pf, .pf-run) .edgebar-thumb {
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+}
+:is(.pf, .pf-run) .edgebar-thumb:active {
+  cursor: grabbing;
+}
+:is(.pf, .pf-run) .edgebar-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 2px;
+  width: 4px;
+  border-radius: 2px;
+  background: var(--color-brand-accent);
+  transition: width 120ms var(--ease-standard);
+}
+:is(.pf, .pf-run) .edgebar.is-near .edgebar-fill {
+  width: 10px;
+  background: var(--color-brand-accent-strong);
+}
+@media (prefers-reduced-motion: reduce) {
+  :is(.pf, .pf-run) .edgebar-fill {
+    transition: none;
+  }
+}

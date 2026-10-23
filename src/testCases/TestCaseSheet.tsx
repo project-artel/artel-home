@@ -92,6 +92,7 @@ export function TestCaseSheet({
           </p>
         )}
         <TestCaseEditor
+          builds={builds}
           folderId={folderId}
           key={testCase?.id ?? 'new'}
           knownScenes={knownScenes}

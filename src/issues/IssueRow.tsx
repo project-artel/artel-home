@@ -8,6 +8,7 @@ import type { Issue } from './issueTypes'
 import { SeverityTag } from './SeverityTag'
 
 type IssueRowProps = {
+  selection?: { checked: boolean; onToggle: () => void; disabled: boolean }
   issue: Issue
   /**
    * Builds the run console address from `issue.qaRunId` and `issue.qaTryId`.
@@ -24,6 +25,8 @@ type IssueRowProps = {
   onSync: (issue: Issue) => void
   /** 다른 화면이 이 이슈를 가리켜 열었다(`?issue=`, ARTEL-1084). 펼친 채 그 자리로 스크롤하고 강조한다. */
   focused?: boolean
+  /** agent 가 같은 이슈를 다시 가리킬 때마다 올라간다. 사용자가 접은 행도 다시 펼친다. */
+  focusToken?: number
   syncPending: boolean
   syncFailed: boolean
 }
@@ -37,6 +40,7 @@ type IssueRowProps = {
  */
 export function IssueRow({
   issue,
+  selection,
   runHref,
   onToggle,
   pending,
@@ -46,13 +50,23 @@ export function IssueRow({
   syncPending,
   syncFailed,
   focused = false,
+  focusToken = 0,
 }: IssueRowProps) {
   const { t } = useI18n()
   const [open, setOpen] = useState(focused)
+  // The project agent can point at an issue after the row is mounted (ARTEL-1139), so opening
+  // follows the flag as well as seeding the initial state.
+  const [seenFocused, setSeenFocused] = useState(focused)
+  const [seenToken, setSeenToken] = useState(focusToken)
+  if (focused !== seenFocused || focusToken !== seenToken) {
+    setSeenFocused(focused)
+    setSeenToken(focusToken)
+    if (focused) setOpen(true)
+  }
   const rowRef = useRef<HTMLLIElement>(null)
   useEffect(() => {
     if (focused) rowRef.current?.scrollIntoView({ block: 'center' })
-  }, [focused])
+  }, [focused, focusToken])
   const detailId = useId()
   const detail = parseIssueDetail(issue.detail)
   const resolved = issue.status === 'RESOLVED'
@@ -65,7 +79,14 @@ export function IssueRow({
     issue.detail !== null
 
   return (
-    <li className={`issue-row ${resolved ? 'issue-row--resolved' : ''}${focused ? ' issue-row--focused' : ''}`} ref={rowRef}>
+    <li className={`issue-row ${resolved ? 'issue-row--resolved' : ''}${focused ? ' issue-row--focused' : ''}`} data-issue-id={issue.id} ref={rowRef}>
+      {selection && (
+        <label className="dc-row-select" title={`${t.discussions.selectIssue} #${issue.id}`}>
+          <input checked={selection.checked} disabled={selection.disabled} onChange={selection.onToggle} type="checkbox" />
+          <span aria-hidden="true" className="dc-check" />
+          <span className="visually-hidden">{t.discussions.selectIssue} #{issue.id}</span>
+        </label>
+      )}
       <div className="issue-row-head">
         <SeverityTag severity={issue.severity} />
         <span className="issue-row-title">{issue.title}</span>
@@ -100,6 +121,7 @@ export function IssueRow({
         {trackerConnected && (issue.tracker === null || issue.tracker.syncState === 'FAILED') ? (
           <button
             className="button button--secondary button--compact"
+            data-issue-action="export"
             disabled={syncPending}
             onClick={() => onSync(issue)}
             type="button"
@@ -116,6 +138,7 @@ export function IssueRow({
             aria-controls={detailId}
             aria-expanded={open}
             className="button button--secondary button--compact"
+            data-issue-action="detail"
             onClick={() => setOpen((current) => !current)}
             type="button"
           >
@@ -124,6 +147,7 @@ export function IssueRow({
         ) : null}
         <button
           className="button button--secondary button--compact"
+          data-issue-action="resolve"
           disabled={pending}
           onClick={() => onToggle(issue)}
           type="button"

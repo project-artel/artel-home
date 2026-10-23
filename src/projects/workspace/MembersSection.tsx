@@ -1,8 +1,21 @@
 import { useId, useRef, useState } from 'react'
+import '../../layouts/screens.css'
 import { composeNicknameTag } from '../../auth/authTypes'
 import { ConfirmActionDialog } from '../../design-system/primitives/ConfirmActionDialog'
 import { InfoHint } from '../../design-system/primitives/InfoHint'
 import { useI18n } from '../../i18n/useI18n'
+import { useActionBinding, useFieldBinding } from '../../projectAgent/bindings'
+import { requireKnownId } from '../../projectAgent/specs/fieldWriters'
+import { listedOptions, readOnlyListWrite } from '../../projectAgent/specs/listedOptions'
+import {
+  MEMBERS_INVITE_ACTION,
+  MEMBERS_INVITE_ROLE_FIELD,
+  MEMBERS_INVITE_TARGET_FIELD,
+  MEMBERS_INVITATIONS_FIELD,
+  MEMBERS_LISTED_FIELD,
+  MEMBERS_REMOVE_ACTION,
+  MEMBERS_REVOKE_ACTION,
+} from '../../projectAgent/specs/members'
 import { apiErrorMessage } from '../apiErrorMessage'
 import { formatDate } from '../formatters'
 import { resolveInvitationTarget, type InviteTargetValue } from '../invitationTarget'
@@ -20,6 +33,13 @@ import { ProjectApiError } from '../projectApi'
 import { PROJECT_ROLES, type ProjectRole } from '../projectTypes'
 import { useInvitationCandidates } from '../useInvitationCandidates'
 import { useMembers } from '../useMembers'
+import {
+  NOT_OWNER_REASON,
+  requireInvitation,
+  requireInviteRole,
+  requireInviteTarget,
+  requireMember,
+} from './membersAgent'
 import { useWorkspace } from './workspaceContext'
 
 /**
@@ -38,15 +58,64 @@ export function MembersSection() {
   const { status, members, invitations, refresh, reload } = useMembers(project.id, project.myRole)
   const [removing, setRemoving] = useState<ProjectMember | null>(null)
   const [announcement, setAnnouncement] = useState('')
+  const [query, setQuery] = useState('')
   const { t } = useI18n()
   const copy = t.projects.members
 
+  /** 확인 대화상자의 확인 버튼과 project agent 의 action 이 같이 부르는 내보내기. */
+  async function confirmRemove(member: ProjectMember) {
+    await removeMember(project.id, member.userId)
+    setAnnouncement(copy.removedAnnouncement(member.displayName))
+    setRemoving(null)
+    refresh()
+  }
+
+  useFieldBinding(MEMBERS_LISTED_FIELD, {
+    target: () => document.querySelector<HTMLElement>('.member-list'),
+    read: () => members.length,
+    options: () =>
+      listedOptions(members, (member) => ({
+        value: member.userId,
+        label: `${member.displayName} (${composeNicknameTag(member.nickname, member.userTag)}${member.email === null ? '' : `, ${member.email}`}) · ${member.role}`,
+      })),
+    write: readOnlyListWrite(MEMBERS_LISTED_FIELD.name, 'use members.removeMember.'),
+  })
+  useActionBinding(MEMBERS_REMOVE_ACTION, {
+    target: () => document.querySelector<HTMLElement>('.member-list'),
+    blocked: () => (!isOwner ? NOT_OWNER_REASON : status !== 'ready' ? copy.loadingLabel : null),
+    run: async (args) => {
+      const member = requireMember(members, args.userId)
+      await confirmRemove(member)
+      return { removed: member.userId }
+    },
+  })
+
+  const needle = query.trim().toLowerCase()
+  const shown =
+    needle === ''
+      ? members
+      : members.filter((member) =>
+          [member.displayName, member.nickname, composeNicknameTag(member.nickname, member.userTag), member.email ?? '']
+            .some((value) => value.toLowerCase().includes(needle)),
+        )
+
+  // 멤버 표와 그 아래 초대 대기 중(ARTEL-1208). 둘을 떼어 놓아 한 덩어리로 읽히지 않게 한다.
   return (
-    <div className="section-columns">
+    <div className="members-screen">
       <section className="panel" aria-labelledby="members-title">
         <header className="panel-header panel-header--split">
-          <h2 id="members-title">{copy.title}</h2>
-          {status === 'ready' && <span className="badge">{copy.count(members.length)}</span>}
+          <h2 id="members-title">
+            {copy.title}
+            {status === 'ready' && <span className="panel-count">{members.length}</span>}
+          </h2>
+          <input
+            aria-label={copy.searchLabel}
+            className="field-input members-search"
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={copy.searchPlaceholder}
+            type="search"
+            value={query}
+          />
         </header>
 
         {status === 'loading' && (
@@ -70,15 +139,38 @@ export function MembersSection() {
         )}
 
         {status === 'ready' && (
-          <ul className="member-list">
-            {members.map((member) => (
-              <MemberRow
-                key={member.userId}
-                member={member}
-                onRemove={isOwner ? () => setRemoving(member) : null}
-              />
-            ))}
-          </ul>
+          <div className="screen-table-wrap">
+            <table className="screen-table member-list">
+              <thead>
+                <tr>
+                  <th scope="col">{copy.columnName}</th>
+                  <th scope="col">{copy.columnTag}</th>
+                  <th scope="col">{copy.columnEmail}</th>
+                  <th scope="col">{copy.roleLabel}</th>
+                  <th scope="col">{copy.columnJoined}</th>
+                  <th scope="col">
+                    <span className="visually-hidden">{copy.remove}</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {shown.map((member) => (
+                  <MemberRow
+                    key={member.userId}
+                    member={member}
+                    onRemove={isOwner ? () => setRemoving(member) : null}
+                  />
+                ))}
+                {shown.length === 0 && (
+                  <tr>
+                    <td className="detail-empty" colSpan={6}>
+                      {copy.noMatch}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
 
@@ -107,12 +199,7 @@ export function MembersSection() {
           cancelLabel={t.projects.shared.cancel}
           confirmLabel={copy.remove}
           onClose={() => setRemoving(null)}
-          onConfirm={async () => {
-            await removeMember(project.id, removing.userId)
-            setAnnouncement(copy.removedAnnouncement(removing.displayName))
-            setRemoving(null)
-            refresh()
-          }}
+          onConfirm={() => confirmRemove(removing)}
           pendingLabel={copy.removing}
           title={copy.removeTitle}
           toFailureMessage={(error) =>
@@ -139,25 +226,29 @@ function MemberRow({
   const copy = t.projects.members
 
   return (
-    <li className="member-row">
-      <div className="member-row-main">
+    <tr>
+      <td>
         <span className="member-row-name">
           {member.displayName}
-          {/* 계정 설정에서 정한 이름을 로그인 이름 옆에 덧붙인다 — 둘 다 이 사람을 가리키는
+          {/* 계정 설정에서 정한 이름을 로그인 이름 옆에 덧붙인다. 둘 다 이 사람을 가리키는
               이름이라, 로그인 이름을 지우고 nickname 으로 바꾸면 초대·로그를 그 사람으로 찾을
               다른 경로가 사라진다. */}
           <span className="member-row-nickname">{copy.nickname(member.nickname)}</span>
         </span>
+      </td>
+      <td className="mono">{composeNicknameTag(member.nickname, member.userTag)}</td>
+      <td>
         {member.email !== null ? (
           <span className="member-row-email">{member.email}</span>
         ) : (
           <span className="detail-empty">{copy.noEmail}</span>
         )}
-      </div>
-      <div className="member-row-meta">
-        <span className="badge">{t.projects.roles[member.role]}</span>
-        <span className="member-row-user-tag mono">{composeNicknameTag(member.nickname, member.userTag)}</span>
-        <span className="member-row-joined">{copy.joined(formatDate(member.joinedAt))}</span>
+      </td>
+      <td>
+        <span className={`badge${member.role === 'OWNER' ? ' badge--accent' : ''}`}>{t.projects.roles[member.role]}</span>
+      </td>
+      <td>{copy.joined(formatDate(member.joinedAt))}</td>
+      <td className="screen-table-action">
         {onRemove !== null && (
           <button
             className="button button--danger-quiet button--compact"
@@ -167,8 +258,8 @@ function MemberRow({
             {copy.remove}
           </button>
         )}
-      </div>
-    </li>
+      </td>
+    </tr>
   )
 }
 
@@ -195,28 +286,35 @@ function InvitePanel({
   const [role, setRole] = useState<ProjectRole>('MEMBER')
   const [failure, setFailure] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
+  const sendButton = useRef<HTMLButtonElement>(null)
+  const roleSelect = useRef<HTMLSelectElement>(null)
   const { t } = useI18n()
   const copy = t.projects.members
   const inviteTargetFieldId = useId()
 
-  async function send(event: React.FormEvent) {
-    event.preventDefault()
+  /**
+   * 초대를 보낸다. 폼의 제출과 project agent 의 action 이 같이 부른다. 실패는 폼에 보이는 문장으로
+   * 돌려준다.
+   */
+  async function deliver(
+    nextTarget: InviteTargetValue,
+    nextRole: ProjectRole,
+  ): Promise<{ sentTo: string } | { failure: string }> {
     setSending(true)
     setFailure(null)
 
     try {
       // 목록에서 사람을 고르지 않고 `nickname#userTag` 를 붙여넣은 채 보내는 경로가 있어서,
       // 보내기 직전에 그 글자가 지금 누구를 가리키는지 확인한다.
-      const resolved = await resolveInvitationTarget(projectId, target, role)
+      const resolved = await resolveInvitationTarget(projectId, nextTarget, nextRole)
       if (resolved.status !== 'ready') {
-        setFailure(
-          {
-            handleNotFound: copy.inviteHandleNotFound,
-            handleAmbiguous: copy.inviteHandleAmbiguous,
-            unusableText: copy.inviteTargetUnusable,
-          }[resolved.status],
-        )
-        return
+        const message = {
+          handleNotFound: copy.inviteHandleNotFound,
+          handleAmbiguous: copy.inviteHandleAmbiguous,
+          unusableText: copy.inviteTargetUnusable,
+        }[resolved.status]
+        setFailure(message)
+        return { failure: message }
       }
 
       await sendInvitation(projectId, resolved.draft)
@@ -224,22 +322,82 @@ function InvitePanel({
       setRole('MEMBER')
       onAnnounce(copy.sentAnnouncement(resolved.sentTo))
       onChanged()
+      return { sentTo: resolved.sentTo }
     } catch (error: unknown) {
       // 서버가 거절하는 이유가 여섯 가지라 code 로 문장을 고른다. 사전에 없는 code 는
       // `apiErrorMessage` 가 서버 문장으로 떨어뜨린다.
-      setFailure(
-        error instanceof ProjectApiError ? apiErrorMessage(error, t) : copy.sendFailed,
-      )
+      const message = error instanceof ProjectApiError ? apiErrorMessage(error, t) : copy.sendFailed
+      setFailure(message)
+      return { failure: message }
     } finally {
       setSending(false)
     }
   }
 
+  function send(event: React.FormEvent) {
+    event.preventDefault()
+    void deliver(target, role)
+  }
+
+  /** 초대를 거두는 호출과 안내. 줄의 버튼과 project agent 의 action 이 같이 부른다. */
+  async function revoke(invitation: ProjectInvitation) {
+    await revokeInvitation(projectId, invitation.id)
+    onAnnounce(copy.revokedAnnouncement(invitationTargetLabel(invitation)))
+    onChanged()
+  }
+
+  useActionBinding(MEMBERS_INVITE_ACTION, {
+    target: () => sendButton.current,
+    blocked: () => (sending ? copy.sending : null),
+    run: async (args) => {
+      const outcome = await deliver(
+        { text: requireInviteTarget(args.target), candidate: null },
+        requireInviteRole(args.role),
+      )
+      if ('failure' in outcome) throw new Error(outcome.failure)
+      return outcome
+    },
+  })
+  useFieldBinding(MEMBERS_INVITATIONS_FIELD, {
+    target: () => document.querySelector<HTMLElement>('.invitation-list'),
+    read: () => invitations.length,
+    options: () =>
+      listedOptions(invitations, (invitation) => ({
+        value: invitation.id,
+        label: `${invitationTargetLabel(invitation)} · ${invitation.role}`,
+      })),
+    write: readOnlyListWrite(MEMBERS_INVITATIONS_FIELD.name, 'use members.revokeInvitation.'),
+  })
+  useActionBinding(MEMBERS_REVOKE_ACTION, {
+    target: () => document.querySelector<HTMLElement>('.invitation-list'),
+    blocked: () => (status !== 'ready' ? copy.pendingUnknown : null),
+    run: async (args) => {
+      const invitation = requireInvitation(invitations, args.invitationId)
+      await revoke(invitation)
+      return { revoked: invitation.id }
+    },
+  })
+  useFieldBinding(MEMBERS_INVITE_TARGET_FIELD, {
+    target: () => document.getElementById(inviteTargetFieldId),
+    read: () => target.text,
+    write: (value) => {
+      if (typeof value !== 'string') throw new Error('members.inviteTarget must be a string.')
+      setTarget({ text: value, candidate: null })
+    },
+  })
+  useFieldBinding(MEMBERS_INVITE_ROLE_FIELD, {
+    target: () => roleSelect.current,
+    read: () => role,
+    options: () => PROJECT_ROLES.map((option) => ({ value: option, label: t.projects.roles[option] })),
+    write: (value) => setRole(requireKnownId('members.inviteRole', value, PROJECT_ROLES) as ProjectRole),
+  })
+
   return (
-    <section className="panel" aria-labelledby="invite-title">
+    <section className="panel members-pending" aria-labelledby="invite-title">
       <header className="panel-header">
         <h2 id="invite-title">
-          {copy.inviteTitle}
+          {copy.pendingTitle}
+          {status === 'ready' && <span className="panel-count">{invitations.length}</span>}
           <InfoHint>{copy.inviteCopy}</InfoHint>
         </h2>
       </header>
@@ -271,6 +429,7 @@ function InvitePanel({
               className="field-input"
               disabled={sending}
               onChange={(event) => setRole(event.target.value as ProjectRole)}
+              ref={roleSelect}
               value={role}
             >
               {PROJECT_ROLES.map((option) => (
@@ -284,6 +443,7 @@ function InvitePanel({
           <button
             className="button button--primary"
             disabled={sending || (target.candidate === null && target.text.trim().length === 0)}
+            ref={sendButton}
             type="submit"
           >
             {sending ? copy.sending : copy.send}
@@ -291,7 +451,6 @@ function InvitePanel({
         </div>
       </form>
 
-      <h3 className="panel-subtitle">{copy.pendingTitle}</h3>
       {/* 못 읽었을 때 "없다"고 말하지 않는다. 기다리는 초대가 정말 없는 것과 알 수 없는 것은
           다른 상태이고, 소유자는 그 둘을 구분해야 다시 시도할지 정할 수 있다. */}
       {status === 'loading' ? (
@@ -312,9 +471,7 @@ function InvitePanel({
             <SentInvitationRow
               invitation={invitation}
               key={invitation.id}
-              onAnnounce={onAnnounce}
-              onRevoked={onChanged}
-              projectId={projectId}
+              onRevoke={revoke}
             />
           ))}
         </ul>
@@ -501,14 +658,10 @@ function optionId(fieldId: string, candidate: InvitationCandidate): string {
 
 function SentInvitationRow({
   invitation,
-  onAnnounce,
-  onRevoked,
-  projectId,
+  onRevoke,
 }: {
   invitation: ProjectInvitation
-  onAnnounce: (message: string) => void
-  onRevoked: () => void
-  projectId: string
+  onRevoke: (invitation: ProjectInvitation) => Promise<void>
 }) {
   const [failure, setFailure] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
@@ -523,9 +676,7 @@ function SentInvitationRow({
     setFailure(null)
 
     try {
-      await revokeInvitation(projectId, invitation.id)
-      onAnnounce(copy.revokedAnnouncement(invitationTargetLabel(invitation)))
-      onRevoked()
+      await onRevoke(invitation)
     } catch (error: unknown) {
       setFailure(error instanceof ProjectApiError ? apiErrorMessage(error, t) : copy.revokeFailed)
       setPending(false)

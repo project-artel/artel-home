@@ -1,8 +1,14 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { NotFoundPage } from '../NotFoundPage'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
+import { useActionBinding } from '../projectAgent/bindings'
+import { TEST_RUN_EDIT_APPROVE_SCENARIO_ACTION } from '../projectAgent/specs/testRunEdit'
 import { shortcutLabel } from '../shell/platform'
 import { TestCaseSpecModal } from '../testCases/TestCaseSpecModal'
+import { AgentChatEmbedded } from '../projectAgent/AgentDock'
+import { useSuppressAgentDock } from '../projectAgent/dockSuppression'
+import { isProjectAgentEnabled } from '../projectAgent/agentDockState'
 import { RunChat } from '../testRuns/RunChat'
 import { RunNameCrumb } from '../testRuns/RunNameCrumb'
 import { SplitHandle } from '../design-system/primitives/SplitHandle'
@@ -10,15 +16,20 @@ import { RunVersionChip } from '../testRuns/RunVersionChip'
 import { getTestRun, type RunGameBuild } from '../testRuns/testRunApi'
 import { useRunChatSession } from '../testRuns/useRunChatSession'
 import { ApproveScenarioDialog } from './ApproveScenarioDialog'
+import { approveScenarioFailure } from './approveScenarioError'
 import { DeleteScenarioDialog } from './DeleteScenarioDialog'
-import { getTestScenario } from './scenarioApi'
+import { approveTestScenario, getTestScenario } from './scenarioApi'
 import { FreeScenarioEditor } from './FreeScenarioEditor'
 import { ScenarioList } from './ScenarioList'
 import { ScenarioStepEditor } from './ScenarioStepEditor'
 import { EMPTY_SCENARIO_DRAFT, isFreeScenario } from './scenarioTypes'
 import { useDraftPreview } from './useDraftPreview'
+import { useScenarioAgentActions } from './useScenarioAgentActions'
+import { readScenarioChatAgent, storeScenarioChatAgent, type ScenarioChatAgent } from './scenarioChatAgent'
 import { useChatWidth } from './useChatWidth'
 import { useStepEditor } from './useStepEditor'
+import { useRunCases } from './useRunCases'
+import { StudioIcon } from './studioIcons'
 
 /**
  * Deliberately NOT keyed by the scenario id. It used to be, and opening another
@@ -33,8 +44,12 @@ export function TestScenarioRoute() {
   return <TestScenarioPage projectId={projectId} testScenarioId={testScenarioId} />
 }
 
+/** 승인 버튼은 draft 를 열어 둔 동안 숨는다. 화면에 문구가 없어 agent 에게만 보인다. */
+const DRAFT_OPEN_REASON = 'A draft of the chat is open instead of the saved scenario. Approve or discard the draft first.'
+
+/** 스튜디오에서 나가면 테스트 런 목록이다 — 시나리오는 런 안에서 쓰기 때문이다. */
 function backLink(projectId: string) {
-  return `/projects/${encodeURIComponent(projectId)}`
+  return `/projects/${encodeURIComponent(projectId)}/test-runs`
 }
 
 /**
@@ -105,14 +120,12 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
   const onTurnEnded = useCallback(() => setRailToken((token) => token + 1), [])
   const runChat = useRunChatSession(projectId, fromRun, onProposalApplied, onTurnEnded)
 
-  // 자동저장을 끈 턴의 draft(ARTEL-1075). 열어 두면 가운데와 헤더가 draft 를 따른다.
-  const preview = useDraftPreview(projectId, runChat)
-  const activeDraft = preview.activeDraft
-
   // The run's name for the crumb, when the studio was opened from a run. Fetched
   // here because the studio only carries the run id (?run=), not its name.
   const [runName, setRunName] = useState('')
   const [runBuild, setRunBuild] = useState<RunGameBuild | null>(null)
+  // `runBuild` 가 어느 런의 것인지. `?run=` 이 바뀌면 새 런을 읽을 때까지 이전 런의 빌드가 남는다.
+  const [runBuildRunId, setRunBuildRunId] = useState<string | null>(null)
   useEffect(() => {
     if (fromRun === null) return
     const controller = new AbortController()
@@ -121,10 +134,19 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
         if (run === null) return
         setRunName(run.name)
         setRunBuild(run.gameBuild)
+        setRunBuildRunId(fromRun)
       })
       .catch(() => { /* leave the crumb blank on failure */ })
     return () => controller.abort()
   }, [projectId, fromRun])
+
+  const runCases = useRunCases(projectId, runBuild?.gameBuildId ?? null)
+  const runCaseList = useMemo(() => [...runCases.values()], [runCases])
+
+  // 자동저장을 끈 턴의 draft(ARTEL-1075). 열어 두면 가운데와 헤더가 draft 를 따른다.
+  const preview = useDraftPreview(projectId, runChat, runBuild)
+  const activeDraft = preview.activeDraft
+
 
   // Header shortcuts (outside text fields, where the browser's own text-undo wins):
   // ⌘/Ctrl+Z undo, ⇧+Z (or Ctrl+Y) redo, ⌘/Ctrl+K opens the TC spec.
@@ -148,6 +170,17 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
 
   const split = useChatWidth()
 
+  // 오른쪽 칸이 시나리오 AI 와 프로젝트 agent 중 누구와 대화할지. 프로젝트 agent 가 꺼져 있으면 고르지 않고
+  // 늘 시나리오 AI 다. project 모드에서는 workspace 의 dock 을 숨겨 같은 대화가 두 곳에 뜨지 않게 한다.
+  const projectAgentEnabled = isProjectAgentEnabled(import.meta.env)
+  const [chatAgentChoice, setChatAgentChoice] = useState<ScenarioChatAgent>(readScenarioChatAgent)
+  const chatAgent: ScenarioChatAgent = projectAgentEnabled ? chatAgentChoice : 'workflow'
+  const pickChatAgent = useCallback((agent: ScenarioChatAgent) => {
+    setChatAgentChoice(agent)
+    storeScenarioChatAgent(agent)
+  }, [])
+  useSuppressAgentDock(chatAgent === 'project')
+
   const [dialog, setDialog] = useState<'approve' | 'delete' | null>(null)
   // Approve/delete return to where the scenario was opened from: the run's edit
   // view when in a run, otherwise the project.
@@ -155,22 +188,63 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
     ? `/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(fromRun)}/edit`
     : backLink(projectId)
 
+  // agent 가 헤더의 승인 버튼을 누르는 길. 승인 대화상자의 확인과 같은 `approveTestScenario` 를 부르고,
+  // 대화상자와 같은 문구로 실패를 알리고, 같은 곳으로 돌아간다. 저장된 시나리오를 보고 있을 때만 쓴다.
+  const approveButton = useRef<HTMLButtonElement>(null)
+  useActionBinding(TEST_RUN_EDIT_APPROVE_SCENARIO_ACTION, {
+    target: () => approveButton.current,
+    blocked: () => {
+      if (!validId) return t.scenarios.page.invalidAddress
+      if (status === 'missing') return t.scenarios.page.missingCopy
+      if (status === 'loading') return t.scenarios.map.loading
+      return activeDraft !== null ? DRAFT_OPEN_REASON : null
+    },
+    run: async () => {
+      try {
+        await approveTestScenario(scenarioId)
+      } catch (error: unknown) {
+        throw new Error(approveScenarioFailure(error, t.scenarios.approve), { cause: error })
+      }
+      navigate(afterExit, { replace: true })
+      return { id: scenarioId }
+    },
+  })
+
+  // agent 가 이 시나리오를 FREE 로 바꾸고 TC 를 넣고 빼는 길. 읽는 중이거나 draft 를 보고 있으면 막는다 —
+  // 그때 `editor` 는 저장된 시나리오가 아니다.
+  useScenarioAgentActions({
+    projectId,
+    scenarioId,
+    editor,
+    runBuild,
+    runBuildRunId,
+    blockedReason: !validId
+      ? t.scenarios.page.invalidAddress
+      : status === 'missing'
+        ? t.scenarios.page.missingCopy
+        : status === 'loading'
+          ? t.scenarios.map.loading
+          : activeDraft !== null
+            ? DRAFT_OPEN_REASON
+            : null,
+  })
+
   if (!validId) {
     return (
-      <section className="page"><div className="panel-message">
-        <h1>{t.scenarios.page.notFoundTitle}</h1>
-        <p className="panel-message-copy">{t.scenarios.page.invalidAddress}</p>
-        <Link className="button button--secondary" to={backLink(projectId)}>{t.scenarios.page.backToProject}</Link>
-      </div></section>
+      <NotFoundPage
+        back={{ to: backLink(projectId), label: t.scenarios.page.backToTestRuns }}
+        copy={t.scenarios.page.invalidAddress}
+        title={t.scenarios.page.notFoundTitle}
+      />
     )
   }
   if (status === 'missing') {
     return (
-      <section className="page"><div className="panel-message">
-        <h1>{t.scenarios.page.notFoundTitle}</h1>
-        <p className="panel-message-copy">{t.scenarios.page.missingCopy}</p>
-        <Link className="button button--secondary" to={backLink(projectId)}>{t.scenarios.page.backToProject}</Link>
-      </div></section>
+      <NotFoundPage
+        back={{ to: backLink(projectId), label: t.scenarios.page.backToTestRuns }}
+        copy={t.scenarios.page.missingCopy}
+        title={t.scenarios.page.notFoundTitle}
+      />
     )
   }
 
@@ -182,7 +256,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
   return (
     <div {...split.studio}>
       <header className="st-top">
-        <Link className="st-back" to={backLink(projectId)}>{t.scenarios.page.backToProject}</Link>
+        <Link className="st-back" to={backLink(projectId)}>{t.scenarios.page.backToTestRuns}</Link>
         <div className="st-crumb">
           {fromRun !== null && (
             <>
@@ -203,8 +277,8 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
           {e.viewSpec} <kbd className="kbd">{shortcutLabel('K')}</kbd>
         </button>
         <div className="st-icons">
-          <button className="iconbtn" type="button" disabled={!active.canUndo} onClick={active.undo} title={e.undo}>↶</button>
-          <button className="iconbtn" type="button" disabled={!active.canRedo} onClick={active.redo} title={e.redo}>↷</button>
+          <button className="iconbtn" type="button" disabled={!active.canUndo} onClick={active.undo} title={e.undo} aria-label={e.undo}><StudioIcon name="undo" /></button>
+          <button className="iconbtn" type="button" disabled={!active.canRedo} onClick={active.redo} title={e.redo} aria-label={e.redo}><StudioIcon name="redo" /></button>
         </div>
         <span className={`savebadge ${saveState}`}>
           {saveState !== 'saved' && <span className="d" />}
@@ -221,7 +295,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
         {activeDraft === null && (
           <>
             <button className="st-btn st-btn--danger" onClick={() => setDialog('delete')} type="button">{t.scenarios.page.delete}</button>
-            <button className="st-btn st-btn--primary" onClick={() => setDialog('approve')} type="button">{t.scenarios.page.approve}</button>
+            <button className="st-btn st-btn--primary" onClick={() => setDialog('approve')} ref={approveButton} type="button">{t.scenarios.page.approve}</button>
           </>
         )}
       </header>
@@ -238,18 +312,50 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
           preview.view
         ) : status === 'ready' ? (
           isFree
-            ? <FreeScenarioEditor editor={editor} projectId={projectId} />
-            : <ScenarioStepEditor projectId={projectId} editor={editor} />
+            ? <FreeScenarioEditor build={runBuild} editor={editor} gameBuildId={runBuild?.gameBuildId ?? null} projectId={projectId} />
+            : <ScenarioStepEditor caseBuild={runBuild} projectId={projectId} editor={editor} />
         ) : (
           <div className="edoc-shell at-top at-bottom"><main className="edoc-wrap"><div className="edoc" /></main></div>
         )}
         <SplitHandle label={t.scenarios.chat.widthHandle} {...split.handle} />
         <aside className="st-chat">
-          {fromRun !== null && <RunChat session={runChat} />}
+          {projectAgentEnabled && (
+            <div aria-label={t.scenarios.chat.agentToggleLabel} className="st-seg st-chat-agent" role="group">
+              <button
+                aria-pressed={chatAgent === 'workflow'}
+                className={chatAgent === 'workflow' ? 'on' : undefined}
+                onClick={() => pickChatAgent('workflow')}
+                type="button"
+              >
+                {t.scenarios.chat.agentWorkflow}
+              </button>
+              <button
+                aria-pressed={chatAgent === 'project'}
+                className={chatAgent === 'project' ? 'on' : undefined}
+                onClick={() => pickChatAgent('project')}
+                type="button"
+              >
+                {t.scenarios.chat.agentProject}
+              </button>
+            </div>
+          )}
+          {chatAgent === 'project' ? (
+            <AgentChatEmbedded />
+          ) : (
+            fromRun !== null && <RunChat gameBuildId={runBuild?.gameBuildId ?? null} session={runChat} />
+          )}
         </aside>
       </div>
 
-      {specOpen && <TestCaseSpecModal projectId={projectId} onClose={() => setSpecOpen(false)} />}
+      {/* ⌘K 명세 창도 이 런이 보는 TC 를 보인다(ARTEL-1115) — 런이 따르는 빌드 버전의 TC 와 그 버전의 판정이다. */}
+      {specOpen && (
+        <TestCaseSpecModal
+          cases={runCaseList}
+          onClose={() => setSpecOpen(false)}
+          projectId={projectId}
+          scope={fromRun === null ? undefined : runBuild === null ? t.scenarios.stepsEditor.board.pickAll : t.scenarios.stepsEditor.board.pickVersion(runBuild.label ?? runBuild.version)}
+        />
+      )}
 
       {dialog === 'approve' && (
         <ApproveScenarioDialog

@@ -31,6 +31,7 @@ const run = (id: string, gameBuildId: string | null, version = 'v', folderId: st
 
 const version = (gameBuildId: string, latest = false): TestCaseVersionSummary => ({
   gameBuildId,
+  isEditor: false,
   version: `v${gameBuildId}`,
   label: null,
   createdAt: '2026-10-14T00:00:00Z',

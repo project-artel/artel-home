@@ -72,6 +72,8 @@ function scene(
     thumbnail: null,
     screens,
     capabilityList,
+    buildOrder: null,
+    entry: false,
   }
 }
 

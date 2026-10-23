@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { SceneChip } from '../testCases/SceneChip'
 import { AddCasesDialog } from './AddCasesDialog'
-import { describeFreeCases, indexCasesById } from './freeScenarioCases'
+import type { RunGameBuild } from '../testRuns/testRunApi'
+import { combineCaseListStatus, describeFreeCases, indexCasesById } from './freeScenarioCases'
 import { FreeScenarioBadge } from './FreeScenarioBadge'
 import { buildFreeCaseSteps } from './scenarioTypes'
 import type { StepEditor } from './useStepEditor'
@@ -17,16 +18,42 @@ import { InfoHint } from '../design-system/primitives/InfoHint'
  * only the listing order here, and the QA agent picks its own; `TC #id` names the case
  * itself, so the badge and the label do not repeat one number.
  */
-export function FreeScenarioEditor({ editor, projectId }: { editor: StepEditor; projectId: string }) {
+export function FreeScenarioEditor({
+  build = null,
+  editor,
+  gameBuildId: gameBuildIdProp = null,
+  projectId,
+}: {
+  /** TR 의 빌드 버전. 주면 `gameBuildId` 대신 쓰고, 이 빌드에 없는 케이스 표시에 버전 이름을 붙인다. */
+  build?: RunGameBuild | null
+  editor: StepEditor
+  /** TR 의 버전(ARTEL-1070). 그 버전에 든 케이스를 그 버전 내용으로 보이고 고른다. 없으면 최신이다. */
+  gameBuildId?: string | null
+  projectId: string
+}) {
   const { t } = useI18n()
   const m = t.scenarios.free
   const { working } = editor
-  const project = useProjectCases(projectId)
+  const gameBuildId = build?.gameBuildId ?? gameBuildIdProp
+  const buildName = build === null ? null : build.label ?? build.version
+  // 케이스 내용과 "프로젝트에 없음" 은 전체 목록으로 가린다. 빌드로 좁힌 목록만 보면 그 빌드에
+  // `test_case_version` 행이 없는 케이스가 모두 지워진 것처럼 보인다.
+  const projectCases = useProjectCases(projectId, true, null)
+  const buildCases = useProjectCases(projectId, gameBuildId !== null, gameBuildId)
+  const listStatus = combineCaseListStatus(projectCases.status, gameBuildId === null ? null : buildCases.status)
+  // 추가 창은 그 빌드에 든 케이스만 내민다.
+  const offered = gameBuildId === null ? projectCases : buildCases
   const [adding, setAdding] = useState(false)
   const rows = useMemo(
-    () => describeFreeCases(working.steps, indexCasesById(project.cases)),
-    [working.steps, project.cases],
+    () =>
+      describeFreeCases(
+        working.steps,
+        indexCasesById(projectCases.cases),
+        gameBuildId === null ? null : indexCasesById(buildCases.cases),
+      ),
+    [working.steps, projectCases.cases, buildCases.cases, gameBuildId],
   )
+  const showCaseContent = listStatus === 'ready'
 
   return (
     <div className="edoc-shell at-top at-bottom">
@@ -48,6 +75,8 @@ export function FreeScenarioEditor({ editor, projectId }: { editor: StepEditor; 
           <h2 className="free-heading">
             {m.heading} <span className="count-pill">{rows.length}</span>
           </h2>
+          {listStatus === 'loading' && <p className="empty-note" role="status">{m.casesLoading}</p>}
+          {listStatus === 'error' && <p className="st-editor-error" role="alert">{m.casesLoadFailed}</p>}
           {rows.length === 0 ? (
             <p className="empty-note">{m.empty}</p>
           ) : (
@@ -57,14 +86,24 @@ export function FreeScenarioEditor({ editor, projectId }: { editor: StepEditor; 
                   <span className="st-erow-no">{row.number}</span>
                   <div className="free-case-body">
                     <div className="free-case-head">
-                      {row.testCase !== null && <span className={`vdot ${row.testCase.verificationStatus}`} />}
+                      {showCaseContent && row.testCase !== null && <span className={`vdot ${row.testCase.verificationStatus}`} />}
                       <span className="free-case-label">{m.tcLabel(row.caseId)}</span>
-                      <span className="free-case-title">
-                        {row.testCase === null ? m.missingCase : row.testCase.step || m.missingCase}
-                      </span>
-                      {row.testCase !== null && <SceneChip scene={row.testCase.scene} />}
+                      {showCaseContent && (
+                        <span className="free-case-title">
+                          {row.testCase === null ? m.missingCase : row.testCase.step || m.missingCase}
+                        </span>
+                      )}
+                      {showCaseContent && row.testCase !== null && <SceneChip scene={row.testCase.scene} />}
+                      {showCaseContent && row.availability === 'notInBuild' && (
+                        <>
+                          <span className="free-case-flag">
+                            <span aria-hidden="true">⚠</span> {m.notInBuild(buildName)}
+                          </span>
+                          <InfoHint>{m.notInBuildHint}</InfoHint>
+                        </>
+                      )}
                     </div>
-                    {row.testCase !== null && (
+                    {showCaseContent && row.testCase !== null && (
                       <p className="free-case-expected">
                         <span className="free-case-expected-label">{m.expected}</span>{' '}
                         {row.testCase.expectedValue.length > 0 ? row.testCase.expectedValue : m.noExpected}
@@ -94,7 +133,7 @@ export function FreeScenarioEditor({ editor, projectId }: { editor: StepEditor; 
             setAdding(false)
           }}
           onClose={() => setAdding(false)}
-          project={project}
+          project={offered}
           steps={working.steps}
         />
       )}

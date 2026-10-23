@@ -1,3 +1,4 @@
+import { discussionsEn, discussionsKo } from './messages/discussions'
 import { accountEn, accountKo } from './messages/account'
 import { adminEn, adminKo } from './messages/admin'
 import { adminGraphEn, adminGraphKo } from './messages/adminGraph'
@@ -8,14 +9,19 @@ import { adminSettingsEn, adminSettingsKo } from './messages/adminSettings'
 import { adminUsageEn, adminUsageKo } from './messages/adminUsage'
 import { commonEn, commonKo } from './messages/common'
 import { contentMapEn, contentMapKo } from './messages/contentMap'
+import { gameBuildsEn, gameBuildsKo } from './messages/gameBuilds'
+import { dashboardEn, dashboardKo } from './messages/dashboard'
+import { gameFunctionsEn, gameFunctionsKo } from './messages/gameFunctions'
 import { issuesEn, issuesKo } from './messages/issues'
 import { knowledgeEn, knowledgeKo } from './messages/knowledge'
 import { macrosEn, macrosKo } from './messages/macros'
 import { performanceEn, performanceKo } from './messages/performance'
+import { projectAgentEn, projectAgentKo } from './messages/projectAgent'
 import { projectsEn, projectsKo } from './messages/projects'
 import { qaEn, qaKo } from './messages/qa'
 import { scenariosEn, scenariosKo } from './messages/scenarios'
 import { testCasesEn, testCasesKo } from './messages/testCases'
+import { telemetryEn, telemetryKo } from './messages/telemetry'
 import { trackerEn, trackerKo } from './messages/tracker'
 import { usageEn, usageKo } from './messages/usage'
 
@@ -43,14 +49,20 @@ export const messages = {
     adminUsage: adminUsageEn,
     common: commonEn,
     contentMap: contentMapEn,
+    gameBuilds: gameBuildsEn,
+    dashboard: dashboardEn,
+    gameFunctions: gameFunctionsEn,
     issues: issuesEn,
+    discussions: discussionsEn,
     knowledge: knowledgeEn,
     macros: macrosEn,
     performance: performanceEn,
+    projectAgent: projectAgentEn,
     projects: projectsEn,
     qa: qaEn,
     scenarios: scenariosEn,
     testCases: testCasesEn,
+    telemetry: telemetryEn,
     tracker: trackerEn,
     usage: usageEn,
   },
@@ -65,14 +77,20 @@ export const messages = {
     adminUsage: adminUsageKo,
     common: commonKo,
     contentMap: contentMapKo,
+    gameBuilds: gameBuildsKo,
+    dashboard: dashboardKo,
+    gameFunctions: gameFunctionsKo,
     issues: issuesKo,
+    discussions: discussionsKo,
     knowledge: knowledgeKo,
     macros: macrosKo,
     performance: performanceKo,
+    projectAgent: projectAgentKo,
     projects: projectsKo,
     qa: qaKo,
     scenarios: scenariosKo,
     testCases: testCasesKo,
+    telemetry: telemetryKo,
     tracker: trackerKo,
     usage: usageKo,
   },

@@ -49,6 +49,8 @@ function scene(id: string, name: string, screens: ContentMapScreen[] = []): Cont
     thumbnail: null,
     screens,
     capabilityList: [],
+    buildOrder: null,
+    entry: false,
   }
 }
 

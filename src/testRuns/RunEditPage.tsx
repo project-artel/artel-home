@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { NotFoundPage } from '../NotFoundPage'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { SplitHandle } from '../design-system/primitives/SplitHandle'
@@ -15,6 +16,7 @@ import { createTestScenario } from '../testScenarios/scenarioApi'
 import { RunChat } from './RunChat'
 import { RunNameCrumb } from './RunNameCrumb'
 import { RunVersionChip } from './RunVersionChip'
+import { ScenarioSketch } from '../testScenarios/studioSketches'
 import { useRunChatSession } from './useRunChatSession'
 
 /**
@@ -60,7 +62,7 @@ function RunEditPage({ projectId, runId }: { projectId: string; runId: string })
   const reloadList = () => setReloadKey((k) => k + 1)
   const runChat = useRunChatSession(projectId, runId, reloadList, reloadList)
   // 빈 런의 첫 저작도 자동저장을 끄면 draft 로 남는다(ARTEL-1075). 열면 가운데가 그 draft 다.
-  const preview = useDraftPreview(projectId, runChat)
+  const preview = useDraftPreview(projectId, runChat, state.kind === 'ready' ? state.run.gameBuild : null)
   const split = useChatWidth()
 
   useEffect(() => {
@@ -129,11 +131,11 @@ function RunEditPage({ projectId, runId }: { projectId: string; runId: string })
   }
   if (state.kind === 'missing') {
     return (
-      <section className="page"><div className="panel-message">
-        <h1>{t.scenarios.page.notFoundTitle}</h1>
-        <p className="panel-message-copy">{t.scenarios.map.missing}</p>
-        <Link className="button button--secondary" to={`/projects/${encodeURIComponent(projectId)}`}>{t.scenarios.map.back}</Link>
-      </div></section>
+      <NotFoundPage
+        back={{ to: `/projects/${encodeURIComponent(projectId)}`, label: t.scenarios.map.back }}
+        copy={t.scenarios.map.missing}
+        title={t.scenarios.page.notFoundTitle}
+      />
     )
   }
   if (state.kind === 'redirect') {
@@ -147,7 +149,7 @@ function RunEditPage({ projectId, runId }: { projectId: string; runId: string })
   return (
     <div {...split.studio}>
       <header className="st-top">
-        <Link className="st-back" to={`/projects/${encodeURIComponent(projectId)}`}>{t.scenarios.page.backToProject}</Link>
+        <Link className="st-back" to={`/projects/${encodeURIComponent(projectId)}/test-runs`}>{t.scenarios.page.backToTestRuns}</Link>
         <div className="st-crumb">
           <RunNameCrumb
             projectId={projectId}
@@ -179,6 +181,7 @@ function RunEditPage({ projectId, runId }: { projectId: string; runId: string })
               </>
             ) : (
               <>
+                <ScenarioSketch />
                 <h1 className="run-empty-title">{e.emptyTitle}</h1>
                 <p className="run-empty-copy">{e.emptyCopy}</p>
                 <div className="run-empty-actions">
@@ -216,7 +219,7 @@ function RunEditPage({ projectId, runId }: { projectId: string; runId: string })
         )}
         <SplitHandle label={t.scenarios.chat.widthHandle} {...split.handle} />
         <aside className="st-chat">
-          <RunChat session={runChat} />
+          <RunChat gameBuildId={state.run.gameBuild?.gameBuildId ?? null} session={runChat} />
         </aside>
       </div>
     </div>

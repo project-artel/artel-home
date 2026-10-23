@@ -382,6 +382,13 @@ export type ContentMapScene = {
    * 되찾는 자리이고, 그 id 는 screen transition 이 들고 온다.
    */
   capabilityList: SceneCapability[]
+  /**
+   * 유니티 빌드 설정에서의 순번(ARTEL-1173). null 이면 서버가 모른다 — 빌드의 씬 스캔이 없거나, 이 필드를 아직 안
+   * 보내는 서버다. 지도와 tree 가 게임 시작 씬부터 이 순서로 선다.
+   */
+  buildOrder: number | null
+  /** 게임을 켜면 열리는 씬인가. 순환 그래프에서 지도가 어디서 출발할지를 이것이 정한다. */
+  entry: boolean
 }
 
 /**
@@ -478,6 +485,25 @@ export type LastScan = {
   error: string | null
   /** "스캔하고 TC 생성" 으로 시킨 스캔의 TC 쪽 결과(ARTEL-1041). 그냥 스캔이면 null 이다. */
   testCases: ScanTestCases | null
+  /** 지금(끝났으면 마지막으로) 지난 단계(ARTEL-1178). 단계를 모르는 옛 서버면 null 이다. */
+  phase: ScanPhase | null
+  /** 지금 단계의 몇 개 중 몇 개. `SCANNING` 이면 씬 수다. 게임이 알려 준 적이 없으면 null 이다. */
+  progress: ScanProgress | null
+}
+
+/**
+ * 스캔 하나가 지나가는 단계. 앞 둘은 게임이, 뒤 둘은 서버가 옮긴다. 진행을 안 보내는 옛 SDK 면 결과가 올 때까지
+ * `SCANNING` 에 머문다.
+ */
+export const SCAN_PHASES = ['SCANNING', 'UPLOADING', 'INGESTING', 'GENERATING_TEST_CASES'] as const
+
+export type ScanPhase = (typeof SCAN_PHASES)[number]
+
+export type ScanProgress = {
+  done: number
+  total: number
+  /** 지금 여는 씬. 모르면 null. */
+  scene: string | null
 }
 
 export const SCAN_TEST_CASE_STATES = ['PENDING', 'GENERATED', 'SKIPPED', 'FAILED'] as const

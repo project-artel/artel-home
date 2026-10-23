@@ -6,28 +6,53 @@ export const contentMapEn = {
     /** The link on a build row, next to the performance one. */
     build: 'Content map',
   },
+  /** The build switcher that replaced the plain dropdown (ARTEL-1172). */
+  buildSwitcher: {
+    caption: 'Build',
+    title: 'Pick a build',
+    count: (n: number) => `${n} in all`,
+    search: 'Search builds',
+    searchPlaceholder: 'Version, label, build id',
+    noMatch: 'No build matches.',
+    newest: 'Newest',
+    current: 'Viewing',
+    createdAt: (time: string) => `made ${time}`,
+  },
+  /** The map-first layout (ARTEL-1172). */
+  layout: {
+    detailsOpen: 'Details',
+    detailsClose: 'Hide details',
+    detailScan: 'Scan',
+    detailIngest: 'Document ingest',
+    detailInstances: 'Connected games',
+    overviewTitle: 'This build',
+    closeDetail: 'Close details',
+    showScreenLinks: (n: number) => `Show all ${n} screen transitions`,
+    hideScreenLinks: 'Show only the picked one’s',
+    screenLinksHint: 'Screen transitions cross scene cards. By default only the ones touching what you picked are drawn.',
+    legendOpen: 'Legend',
+  },
   page: {
     back: '← Back to the builds',
     eyebrow: (buildId: string) => `Build ${buildId}`,
     title: 'Content map',
     subtitle:
       'What this build contains, as the server read it out of the evidence the SDK sent: its scenes, the capabilities in each one, and the transitions between them.',
-    refresh: 'Refresh',
     readAt: (time: string) => `Read at ${time}`,
   },
   states: {
     loading: 'Loading the content map…',
     loadFailed: 'The content map could not be loaded.',
     retry: 'Retry',
-    // Offline and "the refresh failed" are two different facts. In both cases
+    // Offline and "the last re-read failed" are two different facts. In both cases
     // whatever is already on screen stays there, marked with the time it was
     // read — never presented as the current state of the build.
     offlineTitle: 'This browser is offline',
     offlineCopy: (time: string) =>
       `Nothing below has been checked since ${time}. It may already be out of date.`,
-    staleTitle: 'The last refresh did not go through',
+    staleTitle: 'The last update did not go through',
     staleCopy: (time: string) =>
-      `What is shown is the content map as it was read at ${time}. Refresh to try again.`,
+      `What is shown is the content map as it was read at ${time}. It is read again automatically.`,
   },
   empty: {
     // Three different situations, three different next actions. Collapsing them
@@ -78,8 +103,12 @@ export const contentMapEn = {
     // does — the same fact stated twice.
     requested: 'The scan was requested. Its status appears below once the game responds.',
     failed: 'The scan could not be started.',
+    // 409 scan_in_progress (ARTEL-1178): another tab or teammate already started one. Not a failure; show theirs.
+    alreadyRunning: 'A scan of this build is already running. Try again once it finishes.',
+    alreadyRunningTitle: 'A scan is already running',
+    alreadyRunningDetail: (name: string) => `Started on ${name}. You can scan again once it finishes.`,
     checkedAt: (time: string) =>
-      `Connected games as of ${time}. Nothing is polling; refresh to check again.`,
+      `Connected games as of ${time}. This list is checked again automatically.`,
     // Four reasons, four different things to do about it. One "cannot scan"
     // line would erase the difference between waiting, retrying, installing
     // the SDK, and starting the game.
@@ -88,22 +117,44 @@ export const contentMapEn = {
       loadFailed: 'The connected games could not be checked, so a scan cannot be started yet.',
       noInstances:
         'No game has ever connected to this project. Install the SDK and run the game once, and it will appear here.',
-      // The instance list is a snapshot from the last check, not a live
-      // subscription, so the copy must not read as one.
+      // The instance list is a snapshot from the last check, polled rather than
+      // subscribed to, so the copy names the time instead of claiming it is live.
       noneConnected: (time: string) =>
-        `No game was connected as of ${time}. A scan runs inside the running game, so one has to be online — start the game and refresh.`,
+        `No game was connected as of ${time}. A scan runs inside a running game. Start the game and this updates by itself.`,
+    },
+    // SDK connection state in the evidence bar (ARTEL-1185). The list is a polled
+    // snapshot, so every state names when it was checked.
+    sdk: {
+      connected: 'SDK connected',
+      connectedMany: (count: number) => `SDK connected · ${count} games`,
+      disconnected: 'SDK not connected',
+      checking: 'Checking',
+      failed: 'Could not check the connection',
+      checkedAt: (time: string) => `checked ${time}`,
+      checkedOn: (name: string, time: string) => `${name} · checked ${time}`,
+      failedAt: (time: string) => `check failed ${time}`,
+      offNote: 'A scan runs inside a running game. Start the game and this updates by itself.',
     },
   },
   generate: {
     carryOver: 'Bring along user-created test cases from the previous version',
     carryOverHint: 'User-created test cases in the previous game build that this build does not have yet are added too.',
   },
-  // Live scan state and the events-stream connection it rides on. Deliberately
-  // no progress bar here — `ScanState` is only REQUESTED/SUCCEEDED/FAILED and
-  // the server has no notion of how far along a running scan is, so state plus
-  // elapsed time is all there is to show honestly.
+  // Live scan state and the events-stream connection it rides on. The donut
+  // comes from `phase` · `progress` (ARTEL-1179); an older server sends
+  // neither, and then state plus elapsed time is all there is to show honestly.
   scanStatus: {
     requested: 'Scanning…',
+    phases: {
+      SCANNING: 'Scanning scenes',
+      UPLOADING: 'Uploading',
+      INGESTING: 'Reading the map',
+      GENERATING_TEST_CASES: 'Creating test cases',
+    },
+    sceneCount: (done: number, total: number) => `scene ${done} of ${total}`,
+    stepCount: (done: number, total: number) => `step ${done} of ${total}`,
+    currentScene: 'Now opening',
+    progressLabel: (phase: string, percent: number) => `${phase}, ${percent}%`,
     succeeded: 'Last scan succeeded',
     failed: 'Last scan failed',
     elapsed: (seconds: number) => `${seconds}s elapsed`,
@@ -205,14 +256,16 @@ export const contentMapEn = {
     // so a build no QA run has played has none — and the drawing says so inside
     // each container rather than leaving an empty box to be read as unfinished.
     noScreens: 'No screen observed yet',
+    moreScreens: 'More screens',
+    collapseScreens: 'Fewer screens',
     noScreensTitle: 'No QA run has played this build yet',
     noScreensCopy: (count: number) =>
       `The ${count} scene${count === 1 ? '' : 's'} below ${count === 1 ? 'comes' : 'come'} from static analysis, which cannot see screens. Screens and the transitions between them are recorded by a QA run.`,
     unnamedScreen: 'Unnamed screen',
     observed: (count: number) => `${count}×`,
     // Two different facts, so two different sentences. "Not captured yet" is
-    // answered by running a QA run; "could not be loaded" is answered by a
-    // refresh, because the capture URL is short-lived and signed.
+    // answered by running a QA run; "could not be loaded" is usually an expired
+    // signature, which the next re-read of the content map replaces.
     noCapture: 'No capture yet',
     captureBroken: 'Capture could not be loaded',
     legend: {
@@ -294,7 +347,7 @@ export const contentMapEn = {
     // 할지 알 수 없다.
     thumbnailNone: 'This scan did not report a screen capture for this scene.',
     thumbnailUnavailable: (reason: string) => `The scan could not capture this screen (${reason}).`,
-    thumbnailBroken: 'The capture link expired or the image could not be loaded. Reload the page.',
+    thumbnailBroken: 'The capture link may have expired or the image could not be loaded. A new link is requested automatically.',
     thumbnailSize: (width: number, height: number) => `${width} × ${height}`,
     capabilitiesHeading: 'Capabilities',
     noCapabilities: 'No capabilities were recorded for this scene.',
@@ -313,6 +366,7 @@ export const contentMapEn = {
   // so everything selectable there is a button here, and the evidence a 152×48
   // box has no room for lives here too.
   inspector: {
+    stats: { screens: 'Screens', capabilities: 'Capabilities', steps: 'Steps', outgoing: 'Out', incoming: 'In' },
     title: 'Selected',
     clear: 'Clear',
     selectHint:
@@ -342,7 +396,7 @@ export const contentMapEn = {
     captureNone: 'This screen has no capture yet',
     captureNoneCopy:
       'A QA run records that this screen was reached; the picture that goes with it is not being uploaded yet. Nothing failed, and there is nothing to wait for.',
-    captureBroken: 'The capture link expired or the image could not be loaded. Reload the page.',
+    captureBroken: 'The capture link may have expired or the image could not be loaded. A new link is requested automatically.',
     captureAt: (time: string) => `Captured ${time}`,
 
     discriminatorHeading: 'What identifies this screen',
@@ -537,13 +591,36 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
   entry: {
     build: '콘텐츠 맵',
   },
+  buildSwitcher: {
+    caption: '빌드',
+    title: '빌드 고르기',
+    count: (n: number) => `전체 ${n}개`,
+    search: '빌드 찾기',
+    searchPlaceholder: '버전 · 라벨 · 빌드 id',
+    noMatch: '맞는 빌드가 없습니다.',
+    newest: '최신',
+    current: '보는 중',
+    createdAt: (time: string) => `${time} 등록`,
+  },
+  layout: {
+    detailsOpen: '자세히',
+    detailsClose: '접기',
+    detailScan: '스캔',
+    detailIngest: '문서 적재',
+    detailInstances: '붙어 있는 게임',
+    overviewTitle: '이 빌드',
+    closeDetail: '상세 닫기',
+    showScreenLinks: (n: number) => `화면 전이 ${n}개 모두 보기`,
+    hideScreenLinks: '고른 것의 화면 전이만',
+    screenLinksHint: '화면 전이는 씬 카드를 가로질러 지나갑니다. 처음에는 고른 씬 · 화면에 닿는 것만 그립니다.',
+    legendOpen: '범례',
+  },
   page: {
     back: '← 빌드 목록으로',
     eyebrow: (buildId: string) => `빌드 ${buildId}`,
     title: '콘텐츠 맵',
     subtitle:
       'SDK가 보낸 증거 문서를 서버가 읽어 낸 결과입니다. 이 빌드에 어떤 씬이 있고, 씬마다 어떤 능력이 있으며, 씬 사이를 어떻게 오가는지 보여 줍니다.',
-    refresh: '새로고침',
     readAt: (time: string) => `${time} 기준`,
   },
   states: {
@@ -553,9 +630,9 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
     offlineTitle: '브라우저가 오프라인입니다',
     offlineCopy: (time: string) =>
       `${time} 이후로 아래 내용을 다시 확인하지 못했습니다. 이미 달라졌을 수 있습니다.`,
-    staleTitle: '마지막 새로고침이 실패했습니다',
+    staleTitle: '마지막 갱신이 실패했습니다',
     staleCopy: (time: string) =>
-      `아래는 ${time}에 읽어 둔 콘텐츠 맵입니다. 새로고침으로 다시 시도해 보세요.`,
+      `아래는 ${time}에 읽어 둔 콘텐츠 맵입니다. 자동으로 다시 읽습니다.`,
   },
   empty: {
     neverUploadedTitle: '이 빌드는 아직 한 번도 스캔되지 않았습니다',
@@ -595,23 +672,47 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
     running: '게임에 요청하는 중…',
     requested: '스캔을 요청했습니다. 게임이 응답하면 아래에 상태가 나타납니다.',
     failed: '스캔을 시작하지 못했습니다.',
+    alreadyRunning: '이 빌드의 스캔이 이미 돌고 있습니다. 끝난 뒤에 다시 시도해 주세요.',
+    alreadyRunningTitle: '이미 스캔이 돌고 있습니다',
+    alreadyRunningDetail: (name: string) => `${name} 에서 시작한 스캔입니다. 끝나면 다시 누를 수 있습니다.`,
     checkedAt: (time: string) =>
-      `붙어 있는 게임 목록은 ${time} 기준입니다. 계속 지켜보고 있지는 않으니 새로고침으로 다시 확인하세요.`,
+      `붙어 있는 게임 목록은 ${time} 기준입니다. 이 목록은 자동으로 다시 확인합니다.`,
     disabled: {
       loading: '어떤 게임이 붙어 있는지 확인하는 중…',
       loadFailed: '붙어 있는 게임을 확인하지 못해 아직 스캔을 시작할 수 없습니다.',
       noInstances:
         '이 프로젝트에 붙은 적 있는 게임이 없습니다. SDK를 설치하고 게임을 한 번 실행하면 여기에 나타납니다.',
       noneConnected: (time: string) =>
-        `${time} 기준으로 붙어 있는 게임이 없었습니다. 스캔은 실행 중인 게임 안에서 돌기 때문에 한 대는 켜져 있어야 합니다 — 게임을 켜고 새로고침해 주세요.`,
+        `${time} 기준으로 붙어 있는 게임이 없었습니다. 스캔은 켜진 게임 안에서 돕니다. 게임을 켜면 저절로 바뀝니다.`,
+    },
+    sdk: {
+      connected: 'SDK 연결됨',
+      connectedMany: (count: number) => `SDK 연결됨 ${count}대`,
+      disconnected: 'SDK 연결 안 됨',
+      checking: '확인하는 중',
+      failed: '연결 상태를 확인하지 못했습니다',
+      checkedAt: (time: string) => `${time} 확인`,
+      checkedOn: (name: string, time: string) => `${name} · ${time} 확인`,
+      failedAt: (time: string) => `${time} 확인 실패`,
+      offNote: '스캔은 켜진 게임 안에서 돕니다. 게임을 켜면 여기가 저절로 바뀝니다.',
     },
   },
   generate: {
-    carryOver: '이전 버전의 사용자 생성 TC 이어 넣기',
-    carryOverHint: '바로 앞 게임 빌드에 있던 사용자 생성 TC 중 이 빌드에 아직 없는 것을 함께 넣습니다.',
+    carryOver: '이전 버전의 사용자 생성 케이스 가져오기',
+    carryOverHint: '이전 게임 빌드의 사용자 생성 케이스 중 현재 빌드에 없는 케이스를 가져옵니다.',
   },
   scanStatus: {
     requested: '스캔하는 중…',
+    phases: {
+      SCANNING: '씬 스캔',
+      UPLOADING: '업로드',
+      INGESTING: '지도 읽기',
+      GENERATING_TEST_CASES: 'TC 생성',
+    },
+    sceneCount: (done: number, total: number) => `씬 ${total}개 중 ${done}개`,
+    stepCount: (done: number, total: number) => `${total}걸음 중 ${done}걸음`,
+    currentScene: '지금 여는 씬',
+    progressLabel: (phase: string, percent: number) => `${phase} ${percent}%`,
     succeeded: '마지막 스캔 성공',
     failed: '마지막 스캔 실패',
     elapsed: (seconds: number) => `${seconds}초 경과`,
@@ -622,7 +723,7 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
     streamConnecting: '실시간 갱신에 연결하는 중…',
     streamLive: '실시간 연결됨',
     streamDegraded: '실시간 갱신 연결이 끊어졌습니다. 다시 연결하는 중…',
-    streamOffline: '실시간 갱신 연결이 끊겼습니다. 새로고침하면 다시 연결됩니다.',
+    streamOffline: '실시간 갱신 연결이 끊겼습니다. 페이지를 다시 열면 다시 연결됩니다.',
     testCases: {
       pending: '스캔이 끝나고 지도가 읽히면 TC 를 만듭니다.',
       generated: (created: number, carriedOver: number) =>
@@ -695,6 +796,8 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
       `씬 ${scenes}개 · 화면 ${screens}개 · 화면 전이 ${transitions}개`,
     screenCount: (count: number) => `화면 ${count}`,
     noScreens: '아직 관측된 화면 없음',
+    moreScreens: '화면 더 보기',
+    collapseScreens: '화면 접기',
     noScreensTitle: '아직 이 빌드를 플레이한 QA 런이 없습니다',
     noScreensCopy: (count: number) =>
       `아래 씬 ${count}개는 정적 분석에서 나온 것이고, 정적 분석은 화면을 볼 수 없습니다. 화면과 화면 전이는 QA 런이 기록합니다.`,
@@ -770,7 +873,7 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
     thumbnailHeading: '화면',
     thumbnailNone: '이번 스캔은 이 씬의 화면 캡처를 신고하지 않았습니다.',
     thumbnailUnavailable: (reason: string) => `스캔이 이 화면을 캡처하지 못했습니다 (${reason}).`,
-    thumbnailBroken: '캡처 주소가 만료됐거나 이미지를 불러오지 못했습니다. 새로고침하세요.',
+    thumbnailBroken: '캡처 주소가 만료됐거나 이미지를 불러오지 못했습니다. 새 주소를 자동으로 다시 받습니다.',
     thumbnailSize: (width: number, height: number) => `${width} × ${height}`,
     capabilitiesHeading: '능력',
     noCapabilities: '이 씬에 기록된 능력이 없습니다.',
@@ -785,6 +888,7 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
     noCapabilityLink: '연결된 능력 없음',
   },
   inspector: {
+    stats: { screens: '화면', capabilities: '능력', steps: '조작 단계', outgoing: '나감', incoming: '들어옴' },
     title: '고른 것',
     clear: '선택 해제',
     selectHint:
@@ -809,7 +913,7 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
     captureNone: '이 screen 은 아직 캡처가 없습니다',
     captureNoneCopy:
       'QA 런은 이 screen 에 닿았다는 것을 기록하지만, 그에 딸린 그림을 올리는 경로는 아직 없습니다. 실패한 것이 아니고, 기다릴 것도 없습니다.',
-    captureBroken: '캡처 주소가 만료됐거나 이미지를 불러오지 못했습니다. 새로고침하세요.',
+    captureBroken: '캡처 주소가 만료됐거나 이미지를 불러오지 못했습니다. 새 주소를 자동으로 다시 받습니다.',
     captureAt: (time: string) => `${time} 촬영`,
 
     discriminatorHeading: '이 screen 을 판정하는 것',

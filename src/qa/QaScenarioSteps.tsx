@@ -55,6 +55,7 @@ function stepRows(
 export function QaScenarioSteps({
   caseVerdicts = new Map(),
   executionMode = 'ORDERED',
+  gameBuildId = null,
   onJump,
   progress,
   projectId,
@@ -66,6 +67,8 @@ export function QaScenarioSteps({
    * matched by step number, so a verdict arriving out of order lands on its own row.
    */
   executionMode?: ExecutionMode
+  /** 판정 기준 버전(ARTEL-1070, TR 의 버전). FREE 시나리오의 케이스 내용을 이 버전으로 읽는다. 없으면 최신이다. */
+  gameBuildId?: string | null
   projectId: string
   /** 서버가 TC 상태로 저장한 판정(ARTEL-995). TC 머리에 저장된 상태를 점으로 따로 보인다. */
   caseVerdicts?: ReadonlyMap<string, VerificationStatus>
@@ -78,7 +81,7 @@ export function QaScenarioSteps({
   const isFree = executionMode === 'FREE'
   // The case list is read only for a FREE scenario, whose rows have no text of their own
   // until a run starts: the server fills a blank `action` from the case then.
-  const projectCases = useProjectCases(projectId, isFree)
+  const projectCases = useProjectCases(projectId, isFree, gameBuildId)
   const casesById = indexCasesById(projectCases.cases)
   const titleOf = (stepNumber: number, fallback: string): string => {
     if (!isFree) return fallback
@@ -121,9 +124,11 @@ export function QaScenarioSteps({
       step.expectedPassed === null ? null : step.expectedPassed ? s.expected.passed : s.expected.failed
     // The tooltip is where an inverted colour is explained, so it names all three:
     // what happened, what was expected, and which way they went.
+    const cheatNames = step.usedCheats.map((used) => used.name)
     const label = [
       `${numberLabel}. ${title} · ${s.stateLabels[step.state]}`,
       expectation,
+      cheatNames.length === 0 ? null : `${t.gameFunctions.timeline.usedCheats(cheatNames.length)}: ${cheatNames.join(', ')}`,
       step.grade === null ? null : s.gradeLabels[step.grade],
     ]
       .filter((part): part is string => part !== null)
@@ -139,10 +144,16 @@ export function QaScenarioSteps({
         <span aria-hidden="true" className="qa-rail-step-glyph">{STATE_GLYPHS[step.state]}</span>
         <span className="qa-rail-step-no">{numberLabel}</span>
         <span className="qa-rail-step-title">{title}</span>
+        {step.usedCheats.length > 0 && (
+          <span className="gf-badge" translate="no">
+            {t.gameFunctions.timeline.cheatBadge}
+            {step.usedCheats.length > 1 && <span className="mono"> ×{step.usedCheats.length}</span>}
+          </span>
+        )}
         <span className="visually-hidden">{s.stateLabels[step.state]}</span>
       </>
     )
-    const className = `qa-rail-step ${toneClass('qa-rail-step', step.state, step.grade)}`
+    const className = `qa-rail-step ${toneClass('qa-rail-step', step.state, step.grade)}${step.usedCheats.length > 0 ? ' qa-rail-step--cheat' : ''}`
     const verdictLogId = step.verdictLogId
     return (
       <li key={row.step}>

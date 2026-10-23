@@ -3,6 +3,10 @@ import { afterEach, describe, it, mock } from 'node:test'
 import {
   SettingsApiError,
   checkBedrockModels,
+  checkClaudeModels,
+  getClaudeSettings,
+  parseClaudeSettings,
+  putClaudeKey,
   checkLlmModels,
   getBedrockSettings,
   getFeatureModels,
@@ -24,6 +28,10 @@ import {
   putLlmKey,
   resetAdminUserPassword,
   updateAdminUser,
+  getTelemetryPreview,
+  getTelemetrySettings,
+  parseTelemetrySettings,
+  putTelemetryConsent,
 } from './settingsApi'
 
 const originalFetch = globalThis.fetch
@@ -319,11 +327,55 @@ describe('cache invalidation endpoint', () => {
   })
 })
 
+describe('Claude key endpoints', () => {
+  const claudeBody = {
+    configured: true,
+    maskedKey: '****abcd',
+    updatedAt: '2026-10-22T01:00:00Z',
+    lastCheck: {
+      checkedAt: '2026-10-22T01:05:00Z',
+      keyConfigured: true,
+      models: [{ id: 'claude/sonnet', reachable: false, error: 'not found' }],
+    },
+  }
+
+  it('reads settings and tolerates missing fields', () => {
+    assert.deepEqual(parseClaudeSettings(claudeBody), claudeBody)
+    assert.deepEqual(parseClaudeSettings({}), { configured: false, maskedKey: null, updatedAt: null, lastCheck: null })
+  })
+
+  it('gets, puts and checks on the anthropic paths', async () => {
+    const fetchMock = stubFetch(claudeBody)
+    await getClaudeSettings()
+    await putClaudeKey('sk-ant-abc')
+    await putClaudeKey(null)
+    assert.equal(fetchMock.mock.calls[0].arguments[0], 'http://localhost:8080/api/admin/settings/anthropic')
+    const [url, init] = fetchMock.mock.calls[1].arguments
+    assert.equal(url, 'http://localhost:8080/api/admin/settings/anthropic')
+    assert.equal(init?.method, 'PUT')
+    assert.deepEqual(JSON.parse(init?.body as string), { apiKey: 'sk-ant-abc' })
+    assert.deepEqual(JSON.parse(fetchMock.mock.calls[2].arguments[1]?.body as string), { apiKey: null })
+    fetchMock.mock.restore()
+    const checkMock = stubFetch(claudeBody.lastCheck)
+    const check = await checkClaudeModels()
+    assert.equal(checkMock.mock.calls[0].arguments[0], 'http://localhost:8080/api/admin/settings/anthropic/check')
+    assert.equal(check.models[0].reachable, false)
+  })
+
+  it('raises the server code for a key without the sk-ant- prefix', async () => {
+    stubFetch({ code: 'invalid_api_key', message: 'bad' }, 400)
+    await assert.rejects(putClaudeKey('x'), { status: 400, code: 'invalid_api_key' })
+  })
+})
+
 describe('feature model endpoints', () => {
   const body = {
     scenarioAuthoringModel: 'anthropic/claude-sonnet-5.5',
     scenarioAuthoringFallback: 'openai/gpt-6-luna',
     decisionModel: null,
+    projectAgentModel: 'claude/sonnet',
+    projectAgentFallback: 'anthropic/claude-sonnet-5.5',
+    keyMissing: ['claude/sonnet'],
     updatedAt: '2026-10-15T01:00:00Z',
   }
 
@@ -333,8 +385,12 @@ describe('feature model endpoints', () => {
       scenarioAuthoringModel: null,
       scenarioAuthoringFallback: null,
       decisionModel: null,
+      projectAgentModel: null,
+      projectAgentFallback: null,
+      keyMissing: [],
       updatedAt: null,
     })
+    assert.deepEqual(parseFeatureModels({ keyMissing: ['a', 3, null] }).keyMissing, ['a'])
   })
 
   it('gets from the models endpoint', async () => {
@@ -346,16 +402,20 @@ describe('feature model endpoints', () => {
 
   it('puts both fields, sending null to clear one', async () => {
     const fetchMock = stubFetch({ ...body, decisionModel: 'bedrock/x' })
-    const result = await putFeatureModels({ scenarioAuthoringModel: null, decisionModel: 'bedrock/x' })
+    const result = await putFeatureModels({ scenarioAuthoringModel: null, decisionModel: 'bedrock/x', projectAgentModel: 'claude/sonnet' })
     const [, init] = fetchMock.mock.calls[0].arguments
     assert.equal(init?.method, 'PUT')
-    assert.deepEqual(JSON.parse(init?.body as string), { scenarioAuthoringModel: null, decisionModel: 'bedrock/x' })
+    assert.deepEqual(JSON.parse(init?.body as string), {
+      scenarioAuthoringModel: null,
+      decisionModel: 'bedrock/x',
+      projectAgentModel: 'claude/sonnet',
+    })
     assert.equal(result.decisionModel, 'bedrock/x')
   })
 
   it('raises the server code when the model is disabled', async () => {
     stubFetch({ code: 'llm_model_disabled', message: 'disabled' }, 400)
-    await assert.rejects(putFeatureModels({ scenarioAuthoringModel: 'x', decisionModel: null }), {
+    await assert.rejects(putFeatureModels({ scenarioAuthoringModel: 'x', decisionModel: null, projectAgentModel: null }), {
       status: 400,
       code: 'llm_model_disabled',
     })
@@ -395,5 +455,48 @@ describe('TypeSafe key endpoints', () => {
   it('raises the server code on a bad key', async () => {
     stubFetch({ code: 'invalid_api_key', message: 'bad' }, 400)
     await assert.rejects(putTypesafeKey('x'), { status: 400, code: 'invalid_api_key' })
+  })
+})
+
+describe('telemetry endpoints', () => {
+  const body = {
+    available: true,
+    enabled: true,
+    source: 'setting',
+    installId: '0b0a1c52-0000-4000-8000-000000000000',
+    lastSentDate: null,
+  }
+
+  it('reads the settings and reports unavailable when the server says so', async () => {
+    const fetchMock = stubFetch(body)
+    const result = await getTelemetrySettings()
+    assert.equal(fetchMock.mock.calls[0].arguments[0], 'http://localhost:8080/api/admin/settings/telemetry')
+    assert.deepEqual(result, body)
+    assert.equal(parseTelemetrySettings({}).available, false)
+    assert.equal(parseTelemetrySettings({ source: 'setting' }).source, 'setting')
+    assert.equal(parseTelemetrySettings({}).source, 'environment')
+  })
+
+  it('puts only enabled when turning on', async () => {
+    const fetchMock = stubFetch(body)
+    await putTelemetryConsent(true)
+    const [, init] = fetchMock.mock.calls[0].arguments
+    assert.equal(init?.method, 'PUT')
+    assert.deepEqual(JSON.parse(init?.body as string), { enabled: true })
+  })
+
+  it('passes deleteSentData when turning off', async () => {
+    const fetchMock = stubFetch({ ...body, enabled: false })
+    const result = await putTelemetryConsent(false, true)
+    const [, init] = fetchMock.mock.calls[0].arguments
+    assert.deepEqual(JSON.parse(init?.body as string), { enabled: false, deleteSentData: true })
+    assert.equal(result.enabled, false)
+  })
+
+  it('pretty-prints the preview', async () => {
+    const fetchMock = stubFetch({ schemaVersion: 1 })
+    const json = await getTelemetryPreview()
+    assert.equal(fetchMock.mock.calls[0].arguments[0], 'http://localhost:8080/api/admin/settings/telemetry/preview')
+    assert.equal(json, '{\n  "schemaVersion": 1\n}')
   })
 })

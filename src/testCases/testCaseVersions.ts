@@ -18,6 +18,8 @@ export type TestCaseVersionSummary = {
   createdAt: string
   /** 프로젝트의 가장 최근 버전. 라이브러리가 기본으로 고르고 "현재 버전" 으로 표시한다. */
   latest: boolean
+  /** editor 버전인가(ARTEL-1180). 같은 version 의 build 행과 따로 있어 배지로 가른다. 옛 서버는 보내지 않는다. */
+  isEditor: boolean
   total: number
   counts: Record<VerificationStatus, number>
   /** 넣은 버전 묶음. 없으면 null(ARTEL-1024). */
@@ -91,6 +93,7 @@ export function parseVersionList(data: unknown): TestCaseVersionSummary[] {
         label: asNullableString(record?.label),
         createdAt: asString(record?.createdAt),
         latest: record?.latest === true,
+        isEditor: record?.isEditor === true,
         groupId: asNullableString(record?.groupId),
         hidden: record?.hidden === true,
         total: typeof record?.total === 'number' ? record.total : 0,
@@ -358,4 +361,99 @@ export function addCasesToVersion(projectId: string, gameBuildId: string, caseId
 /** 사용자 생성 케이스를 이 버전에서 뺀다. 그 버전에서 받은 판정도 함께 지워진다. */
 export function removeCasesFromVersion(projectId: string, gameBuildId: string, caseIds: readonly string[]) {
   return writeVersionCases(projectId, gameBuildId, '/removals', caseIds)
+}
+
+/** 판정을 가져오지 못한 까닭(ARTEL-1180 의 `VerdictCarryOverService.Skip`). 모르는 값은 `OTHER` 로 센다. */
+export type VerdictCarrySkip =
+  | 'CONTENT_CHANGED'
+  | 'NO_PREVIOUS_VERDICT'
+  | 'JUDGED_IN_THIS_VERSION'
+  | 'BROKEN'
+  | 'NOT_IN_VERSION'
+  | 'OTHER'
+
+const CARRY_SKIPS: VerdictCarrySkip[] = ['CONTENT_CHANGED', 'NO_PREVIOUS_VERDICT', 'JUDGED_IN_THIS_VERSION', 'BROKEN', 'NOT_IN_VERSION']
+
+/** 가져온 TC 수와, 못 가져온 TC 를 까닭별로 센 것, 다시 검증하도록 돌린 수. */
+export type VerdictCarryResult = { carried: number; skipped: Partial<Record<VerdictCarrySkip, number>>; reset: number }
+
+export function parseVerdictCarry(data: unknown): VerdictCarryResult {
+  const record = asRecord(data)
+  const skipped: Partial<Record<VerdictCarrySkip, number>> = {}
+  for (const raw of asArray(record?.skipped)) {
+    skipped[asSkip(asRecord(raw)?.reason)] = (skipped[asSkip(asRecord(raw)?.reason)] ?? 0) + 1
+  }
+  return { carried: asArray(record?.carried).length, skipped, reset: asArray(record?.reset).length }
+}
+
+const asSkip = (value: unknown): VerdictCarrySkip => CARRY_SKIPS.find((known) => known === value) ?? 'OTHER'
+
+const carryPath = (projectId: string, gameBuildId: string) =>
+  `/api/projects/${encodeURIComponent(projectId)}/game-builds/${encodeURIComponent(gameBuildId)}/test-cases/verdict-carry-over`
+
+/**
+ * `POST …/test-cases/verdict-carry-over` — [fromGameBuildId] 버전의 판정을 이 버전에 가져온다(ARTEL-1180).
+ * [testCaseIds] 를 주면 그 TC 만, 아니면 내용이 같은 TC 전부다. [resetAll] 이면 가져오지 않고 이 버전의 판정을 모두
+ * 다시 검증하도록 돌린다.
+ */
+export async function carryVerdictsFrom(
+  projectId: string,
+  gameBuildId: string,
+  fromGameBuildId: string | null,
+  options: { testCaseIds?: readonly string[]; resetAll?: boolean } = {},
+): Promise<VerdictCarryResult> {
+  const response = await apiFetch(carryPath(projectId, gameBuildId), {
+    method: 'POST',
+    ...jsonRequest({ fromGameBuildId, testCaseIds: options.testCaseIds, resetAll: options.resetAll === true }),
+  })
+  if (!response.ok) throw await toApiError(response)
+  return parseVerdictCarry(await readJson(response))
+}
+
+/** 판정 가져오기 미리 보기의 한 줄(ARTEL-1181). 가져올 버전에서 판정이 난 TC 하나다. */
+export type VerdictCarryPreviewRow = {
+  testCaseId: string
+  scene: string
+  step: string
+  expectedValue: string
+  sourceStatus: VerificationStatus
+  /** 받는 버전의 지금 상태. 받는 버전에 없는 TC 면 null. */
+  targetStatus: VerificationStatus | null
+  carryable: boolean
+  reason: VerdictCarrySkip | null
+}
+
+export function parseVerdictCarryPreview(data: unknown): VerdictCarryPreviewRow[] {
+  return asArray(asRecord(data)?.items).flatMap((raw) => {
+    const record = asRecord(raw)
+    const testCaseId = asString(record?.testCaseId)
+    if (testCaseId.length === 0) return []
+    return [
+      {
+        testCaseId,
+        scene: asString(record?.scene),
+        step: asString(record?.step),
+        expectedValue: asString(record?.expectedValue),
+        sourceStatus: asVerificationStatus(record?.sourceStatus),
+        targetStatus: asStatusOrNull(record?.targetStatus),
+        carryable: record?.carryable === true,
+        reason: record?.reason === null || record?.reason === undefined ? null : asSkip(record.reason),
+      },
+    ]
+  })
+}
+
+/** `GET …/test-cases/verdict-carry-over/preview` — 가져오면 어떻게 되는지. 아무것도 바꾸지 않는다(ARTEL-1181). */
+export async function previewVerdictCarry(
+  projectId: string,
+  gameBuildId: string,
+  fromGameBuildId: string,
+  signal?: AbortSignal,
+): Promise<VerdictCarryPreviewRow[]> {
+  const response = await apiFetch(
+    `${carryPath(projectId, gameBuildId)}/preview?fromGameBuildId=${encodeURIComponent(fromGameBuildId)}`,
+    { signal },
+  )
+  if (!response.ok) throw await toApiError(response)
+  return parseVerdictCarryPreview(await readJson(response))
 }

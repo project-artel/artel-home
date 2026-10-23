@@ -17,7 +17,9 @@ import {
   SCAN_TEST_CASE_STATES,
   type ScanTestCases,
   type PendingDocument,
+  type ScanProgress,
   type ScanState,
+  SCAN_PHASES,
   type SceneCapability,
   type SceneThumbnail,
   type SceneTransition,
@@ -387,6 +389,8 @@ export function parseScene(data: unknown): ContentMapScene | null {
     thumbnail: parseThumbnail(record.thumbnail),
     screens: parseScreens(record.screens),
     capabilityList: parseCapabilityList(record.capabilityList),
+    buildOrder: typeof record.buildOrder === 'number' && Number.isInteger(record.buildOrder) && record.buildOrder >= 0 ? record.buildOrder : null,
+    entry: record.entry === true,
   }
 }
 
@@ -647,6 +651,21 @@ export function parseLastScan(data: unknown): LastScan | null {
       typeof record.ingestedDocuments === 'number' ? asCount(record.ingestedDocuments) : null,
     error: asNullableString(record.error),
     testCases: parseScanTestCases(record.testCases),
+    phase: isOneOf(record.phase, SCAN_PHASES) ? record.phase : null,
+    progress: parseScanProgress(record.progress),
+  }
+}
+
+/** 게임이 알린 진행. 수가 없거나 분모가 0 이면 null 이다 — 비율을 만들 수 없다. */
+export function parseScanProgress(data: unknown): ScanProgress | null {
+  const record = asRecord(data)
+  if (record === null || typeof record.total !== 'number' || typeof record.done !== 'number') return null
+  const total = asCount(record.total)
+  if (total === 0) return null
+  return {
+    done: Math.min(asCount(record.done), total),
+    total,
+    scene: asNullableString(record.scene),
   }
 }
 

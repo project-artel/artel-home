@@ -14,15 +14,17 @@ export function useTrackerSync(patch: Patch) {
   const [failedId, setFailedId] = useState<string | null>(null)
 
   const sync = useCallback(
-    async (issue: Issue) => {
+    async (issue: Issue): Promise<boolean> => {
       setFailedId(null)
       setPending((current) => new Set(current).add(issue.id))
 
       try {
         const tracker = await syncIssueTracker(issue.id)
         patch(issue.id, (row) => ({ ...row, tracker }))
+        return true
       } catch {
         setFailedId(issue.id)
+        return false
       } finally {
         setPending((current) => {
           const next = new Set(current)
@@ -36,3 +38,5 @@ export function useTrackerSync(patch: Patch) {
 
   return { sync, pending, failedId }
 }
+
+export type TrackerSync = ReturnType<typeof useTrackerSync>

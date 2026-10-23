@@ -64,7 +64,7 @@ async function refusal(response: Response, failure: string): Promise<AuthApiErro
   return new AuthApiError(response.status, failure, code)
 }
 
-async function postAnonymousJson(path: string, body: Record<string, string>, failure: string): Promise<void> {
+async function postAnonymousJson(path: string, body: Record<string, string | boolean>, failure: string): Promise<void> {
   const response = await fetch(orchestrationUrlFor(path), {
     method: 'POST',
     credentials: 'include',
@@ -81,8 +81,14 @@ export function loginWithPassword(email: string, password: string): Promise<void
   return postAnonymousJson('/api/auth/login', { email, password }, 'Unable to sign in')
 }
 
-/** Creates the account and sets the session cookies. The first account becomes the administrator. */
-export function signUpWithPassword(email: string, password: string, name: string): Promise<void> {
+/**
+ * Creates the account and sets the session cookies. The first account becomes the administrator.
+ */
+export function signUpWithPassword(
+  email: string,
+  password: string,
+  name: string,
+): Promise<void> {
   return postAnonymousJson('/api/auth/signup', { email, password, name }, 'Unable to sign up')
 }
 

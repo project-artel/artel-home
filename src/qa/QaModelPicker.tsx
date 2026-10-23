@@ -165,7 +165,7 @@ export function QaModelPicker({
             top: rect.bottom + 4,
             left: Math.max(8, Math.min(rect.right, window.innerWidth - 8) - popoverWidth),
             right: 'auto',
-            width: popoverWidth,
+            width: Math.min(popoverWidth, window.innerWidth - 24),
             maxHeight: `calc(100vh - ${Math.round(rect.bottom) + 16}px)`,
           },
     )

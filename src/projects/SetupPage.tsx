@@ -10,7 +10,7 @@ export function SetupPage() {
   const { t } = useI18n()
 
   return (
-    <section className="page" aria-labelledby="setup-title">
+    <section className="page page--wide" aria-labelledby="setup-title">
       <header className="page-header">
         <div>
           <p className="eyebrow">{t.projects.setup.eyebrow}</p>

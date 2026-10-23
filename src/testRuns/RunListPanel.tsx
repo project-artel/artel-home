@@ -1,6 +1,18 @@
-import { useEffect, useMemo, useState, type DragEvent, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type DragEvent, type ReactNode } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
+import { useActionBinding, useFieldBinding } from '../projectAgent/bindings'
+import { tasksCopy } from '../projectAgent/tasksCopy'
+import { requireKnownId } from '../projectAgent/specs/fieldWriters'
+import { listedOptions, readOnlyListWrite } from '../projectAgent/specs/listedOptions'
+import {
+  TEST_RUNS_CREATE_ACTION,
+  TEST_RUNS_LISTED_FIELD,
+  TEST_RUNS_OPEN_ACTION,
+  TEST_RUNS_OPEN_MAP_ACTION,
+  TEST_RUNS_SEARCH_FIELD,
+  TEST_RUNS_VERSION_FIELD,
+} from '../projectAgent/specs/testRuns'
 import { formatDate } from '../projects/formatters'
 import { ProjectApiError } from '../projects/projectApi'
 import type { ExtrasStatus } from '../projects/workspace/workspaceContext'
@@ -13,6 +25,7 @@ import {
   type TestCaseVersionSummary,
 } from '../testCases/testCaseVersions'
 import { useTestCaseVersionList } from '../testCases/useTestCaseVersions'
+import { EditorBadge } from '../projects/EditorBadge'
 import { VersionTreeDialog } from '../testCases/VersionTreeDialog'
 import { ClipboardListIcon } from '../testScenarios/scenarioIcons'
 import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
@@ -39,6 +52,7 @@ import {
 } from './testRunFolders'
 import {
   changeRunGameBuild,
+  createTestRun,
   deleteTestRun,
   gameBuildName,
   getRunDeletionPreview,
@@ -103,6 +117,7 @@ export function RunListPanel({
   const [folded, setFolded] = useState<ReadonlySet<string>>(new Set())
   const [showHidden, setShowHidden] = useState(false)
   const [creating, setCreating] = useState(false)
+  const newRunButton = useRef<HTMLButtonElement>(null)
   const [moving, setMoving] = useState<TestRun | null>(null)
   const [menu, setMenu] = useState<{ run: TestRun; x: number; y: number } | null>(null)
   // 버전 칸의 우클릭 메뉴. 숨기기는 케이스 라이브러리와 같은 설정이라 거기서도 숨는다.
@@ -214,6 +229,24 @@ export function RunListPanel({
       setDeleting(false)
     }
   }
+
+  // agent 가 런을 만드는 길. 새 런 대화상자와 같은 `createTestRun` 을 부르고, 대화상자와 달리 런을 열지
+  // 않는다 — 대화창이 이어서 시나리오를 쓰게 하려면 사용자가 이 페이지에 남아 있어야 한다.
+  useActionBinding(TEST_RUNS_CREATE_ACTION, {
+    target: () => newRunButton.current,
+    blocked: () => null,
+    run: async (args) => {
+      const name = typeof args.name === 'string' ? args.name.trim() : ''
+      if (name.length === 0) throw new Error(tasksCopy().errors.nameRequired)
+      const run = await createTestRun(projectId, {
+        name,
+        ...(typeof args.gameBuildId === 'string' && args.gameBuildId.length > 0 ? { gameBuildId: args.gameBuildId } : {}),
+        ...(typeof args.description === 'string' && args.description.length > 0 ? { description: args.description } : {}),
+      })
+      await onChanged()
+      return { runId: run.id }
+    },
+  })
 
   // Opening a run always lands in the run's edit entry, which decides between the
   // empty-run shell and the newest scenario's studio (see RunEditPage).
@@ -367,6 +400,7 @@ export function RunListPanel({
             <span className="trl-node-name">{label}</span>
             <span className="trl-muted">{r.runCount(count)}</span>
           </span>
+          {options.version?.isEditor === true && <EditorBadge />}
           {options.latest === true && <span className="trl-badge">{v.latest}</span>}
         </button>
         {folderNodes(key, null)}
@@ -380,6 +414,58 @@ export function RunListPanel({
   const needle = query.trim().toLowerCase()
   const listed = needle === '' ? shown : shown.filter((run) => `${run.name} ${run.description ?? ''}`.toLowerCase().includes(needle))
   const listedFolders = needle === '' ? shownFolders : shownFolders.filter((folder) => folder.name.toLowerCase().includes(needle))
+
+  // agent 가 목록을 읽고 런을 여는 길. 보이는 줄과 같은 `listed` 를 읽고, 줄을 누르는 것과 같은 `openRun` 을 부른다.
+  const searchBox = useRef<HTMLLabelElement>(null)
+  const listRef = useRef<HTMLUListElement>(null)
+  const bucketIds = [NO_VERSION, ...versions.map((version) => version.gameBuildId), ...strays.map((build) => build.gameBuildId)]
+  const listedRun = (runId: unknown): TestRun => {
+    const run = listed.find((one) => one.id === runId)
+    if (run === undefined) throw new Error(`Test run ${JSON.stringify(runId)} is not listed now. Check testRuns.version and testRuns.search, then pick it from the options of testRuns.listed.`)
+    return run
+  }
+  useFieldBinding(TEST_RUNS_VERSION_FIELD, {
+    target: () => frame,
+    read: () => bucket,
+    options: () => bucketIds.map((key) => ({ value: key, label: bucketName(key) })),
+    write: (value) => selectBucket(requireKnownId(TEST_RUNS_VERSION_FIELD.name, value, bucketIds)),
+  })
+  useFieldBinding(TEST_RUNS_SEARCH_FIELD, {
+    target: () => searchBox.current,
+    read: () => query,
+    write: (value) => {
+      if (typeof value !== 'string') throw new Error('testRuns.search must be a string.')
+      setQuery(value)
+    },
+  })
+  useFieldBinding(TEST_RUNS_LISTED_FIELD, {
+    target: () => listRef.current,
+    read: () => listed.length,
+    options: () =>
+      listedOptions(listed, (run) => ({
+        value: run.id,
+        label: `${run.name.length > 0 ? run.name : r.untitled} · ${bucketName(bucketOf(run))} · ${run.scenarioCount ?? 0}`,
+      })),
+    write: readOnlyListWrite(TEST_RUNS_LISTED_FIELD.name, 'use testRuns.open or testRuns.openMap.'),
+  })
+  useActionBinding(TEST_RUNS_OPEN_ACTION, {
+    target: () => listRef.current,
+    blocked: () => null,
+    run: async (args) => {
+      const run = listedRun(args.runId)
+      openRun(run.id)
+      return { runId: run.id }
+    },
+  })
+  useActionBinding(TEST_RUNS_OPEN_MAP_ACTION, {
+    target: () => listRef.current,
+    blocked: () => null,
+    run: async (args) => {
+      const run = listedRun(args.runId)
+      navigate(`/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(run.id)}`)
+      return { runId: run.id }
+    },
+  })
 
   return (
     <section aria-labelledby="test-runs-title" className="trl-page">
@@ -482,7 +568,12 @@ export function RunListPanel({
                     ))}
                   </span>
                 )}
-                <h3>{selectedFolder?.name ?? bucketLabel}</h3>
+                <h3>
+                  {selectedFolder?.name ?? bucketLabel}
+                  {selectedFolder === null && versions.find((version) => version.gameBuildId === bucket)?.isEditor === true && (
+                    <> <EditorBadge /></>
+                  )}
+                </h3>
               </div>
               <span className="trl-chip">{r.runCount(shown.length)}</span>
               <button
@@ -492,13 +583,13 @@ export function RunListPanel({
               >
                 {r.folders.newFolder}
               </button>
-              <button className="button button--primary button--compact" onClick={() => setCreating(true)} type="button">
+              <button className="button button--primary button--compact" onClick={() => setCreating(true)} ref={newRunButton} type="button">
                 {r.newButton}
               </button>
             </div>
             {shown.length + shownFolders.length > 0 && (
               <>
-                <label className="trl-search">
+                <label className="trl-search" ref={searchBox}>
                   <SearchIcon />
                   <input
                     aria-label={r.search}
@@ -525,7 +616,7 @@ export function RunListPanel({
                   <p>{runs.length === 0 ? r.empty : selectedFolder === null ? r.emptyVersion : r.folders.empty}</p>
                 </div>
               ) : (
-                <ul aria-label={r.columns.name} className="trl-list">
+                <ul aria-label={r.columns.name} className="trl-list" ref={listRef}>
                   {listedFolders.map((folder) => (
                     <li key={`folder:${folder.id}`}>
                       <div

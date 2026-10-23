@@ -52,12 +52,12 @@ test('라이브러리 주소는 폴더 id 를 인코딩해 싣고, 폴더를 모
 
 test('명세대로의 응답을 읽고, 이상한 값은 0 과 null 로 낮춘다', () => {
   assert.deepEqual(
-    parseGeneratedTestCases({ folderId: '31', created: 12, updated: 3, deleted: 1, broken: 2 }),
-    { folderId: '31', created: 12, updated: 3, deleted: 1, broken: 2, carriedOver: 0 },
+    parseGeneratedTestCases({ folderId: '31', created: 12, updated: 3, deleted: 1, broken: 2, verdictsCarried: 5, verdictsReset: 1 }),
+    { folderId: '31', created: 12, updated: 3, deleted: 1, broken: 2, carriedOver: 0, verdictsCarried: 5, verdictsReset: 1 },
   )
   assert.deepEqual(
     parseGeneratedTestCases({ folderId: '', created: 'many', updated: -1, broken: null }),
-    { folderId: null, created: 0, updated: 0, deleted: 0, broken: 0, carriedOver: 0 },
+    { folderId: null, created: 0, updated: 0, deleted: 0, broken: 0, carriedOver: 0, verdictsCarried: 0, verdictsReset: 0 },
   )
   assert.equal(parseGeneratedTestCases(null).folderId, null)
 })
@@ -79,6 +79,9 @@ test('생성 요청은 build 경로에 본문 없이 POST 하고, 4xx 는 Projec
     assert.equal(result.created, 1)
     assert.ok(calls[0].url.endsWith('/api/projects/7/game-builds/4/content-map/test-cases'))
     assert.equal(calls[0].init.method, 'POST')
+
+    await generateContentMapTestCases('7', '4', false, true, 'SAME_CONTENT')
+    assert.ok(calls[1].url.endsWith('/test-cases?carryOver=false&overwrite=true&verdicts=SAME_CONTENT'))
 
     status = 409
     await assert.rejects(

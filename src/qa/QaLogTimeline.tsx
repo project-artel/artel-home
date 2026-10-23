@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { asRecord } from '../projects/projectApi'
 import { useI18n } from '../i18n/useI18n'
-import { groupStepsByCase, type ScenarioStep } from '../testScenarios/scenarioTypes'
+import { groupStepsByCase, type ExecutionMode, type ScenarioStep } from '../testScenarios/scenarioTypes'
 import { compareDecimalIds } from './qaApi'
+import { behaviorEndedOf, cheatNamesOf, usedCheatsOf } from './qaFunctionTimeline'
 import {
   anchorOf,
   buildTimelineRows,
@@ -16,6 +18,7 @@ import {
   type TimelineEvent,
   type TimelineRow,
 } from './qaLogGrouping'
+import { buildFreeFlow, buildFlowSteps, objectNamesOf, type FlowAction, type FlowLine, type FlowStep } from './qaFlow'
 import { stepOf } from './qaProgress'
 import type { QaLog } from './qaTypes'
 
@@ -51,10 +54,12 @@ const TYPE_LABELS: Record<QaLog['type'], string> = {
   ACTION: 'Action',
   ACTION_RESULT: 'Action result',
   GAME_STATE: 'Game state',
+  PULSE: 'Pulse',
   STATUS: 'Status',
   ERROR: 'Error',
   CHAT: 'Chat',
   CASE_VERDICT: 'Case verdict',
+  BEHAVIOR_ENDED: 'Behavior ended',
 }
 
 /** Breathing room above a row scrolled to, so it does not sit flush at the edge. */
@@ -156,12 +161,107 @@ function QaFoldedEvent({
   )
 }
 
+/** 덩어리 왼쪽의 원 하나. 생각과 행동을 눈으로 가른다. */
+function QaFlowDot({ kind, last }: { kind: FlowLine['kind'] | 'blocked' | 'verdict'; last: boolean }) {
+  return (
+    <span aria-hidden="true" className="qa-flow-rail">
+      <span className={`qa-flow-dot qa-flow-dot--${kind}`} />
+      {!last && <span className="qa-flow-link" />}
+    </span>
+  )
+}
+
+/**
+ * `흐름` 한 덩어리 = 스텝 하나.
+ *
+ * 묻는 것이 둘뿐이라(무엇을 생각했고 무엇을 했나) 담는 것도 둘뿐이다. 도구 이름도,
+ * tool 이 돌려준 본문도, 판정 문구도 안 보인다 — 그것들은 `Raw` 탭이 그대로 그린다.
+ *
+ * 판정은 글이 아니라 덩어리의 상태다. 오른쪽 아래에 통과 · 실패만 붙고, 아무것도 안 해 보고
+ * 내린 판정이면 그렇게 적는다 — try 46 에서 43 스텝 중 32 가 그랬다.
+ */
+function QaFlowStep({ block, free = false, caseId = null, logId }: { block: FlowStep; free?: boolean; caseId?: string | null; logId?: string }) {
+  const { t } = useI18n()
+  const text = t.qa.run
+
+  function sentence(action: FlowAction): string {
+    const say = text.flowDid[action.tool]
+    return say === undefined ? text.flowDidOther(action.tool) : say(action.subject)
+  }
+
+  // 같은 문장은 한 덩어리에 한 번만 그린다. `buildFlowSteps` 도 접지만 그쪽은 들어온 순서를
+  // 타고, 이 자리는 안 탄다 — 되풀이해 시도한 호출이 `thought` 를 글자 그대로 다시 싣는다.
+  const shown = block.lines.filter((line, at) =>
+    line.kind !== 'thought' ||
+    block.lines.findIndex((other) => other.kind === 'thought' && other.text === line.text) === at,
+  )
+
+  const verdict =
+    block.passed === null
+      ? null
+      : [
+          block.passed ? text.flowPassed : text.flowFailed,
+          // 실패에만 붙인다. 보기만 하면 되는 TC 가 많아서(try 46 의 조작 0회 스텝 대부분이
+          // 그렇다) 통과에 붙이면 멀쩡한 판정을 흠처럼 읽게 한다.
+          !free && !block.passed && block.attempts === 0 ? text.flowNoAttempt : null,
+        ]
+          .filter((part): part is string => part !== null)
+          .join(' · ')
+
+  return (
+    <li className="qa-flow-step" data-log-id={logId ?? block.lines[0]?.id}>
+      <div className="qa-flow-card">
+        {/* 한 TC 가 스텝 여럿에 걸칠 때 어디서 갈리는지, 그리고 레일의 몇 번째인지를 잇는다. */}
+        {!free && <p className="qa-flow-step-no">{text.flowStepLabel(block.step)}</p>}
+        {shown.map((line, at) => {
+          // 판정 줄이 아래에 붙으므로 마지막 조작 줄에서도 선을 잇는다.
+          const last = at === shown.length - 1 && block.passed === null
+          if (line.kind === 'thought') {
+            return (
+              <p className="qa-flow-line" key={line.key}>
+                <QaFlowDot kind="thought" last={last} />
+                <span className="qa-flow-said">{line.text}</span>
+              </p>
+            )
+          }
+          const blocked = line.action.blocked
+          return (
+            <p className="qa-flow-line" key={line.key}>
+              <QaFlowDot kind={blocked ? 'blocked' : 'action'} last={last} />
+              <span className={`qa-flow-said qa-flow-said--${blocked ? 'blocked' : 'did'}`}>
+                {sentence(line.action)}
+                {blocked && <span className="qa-flow-blocked"> · {text.flowBlockedSuffix}</span>}
+              </span>
+            </p>
+          )
+        })}
+        {block.passed !== null && (
+          <div
+            className={`qa-flow-verdict qa-flow-verdict--${block.passed ? 'passed' : 'failed'}${shown.length === 0 ? ' qa-flow-verdict--alone' : ''}`}
+          >
+            <QaFlowDot kind="verdict" last />
+            <div className="qa-flow-said">
+              {block.reason !== null && <p className="qa-flow-reason">{block.reason}</p>}
+              {/* 결과는 이유에 이어 붙이지 않는다. 붙이면 모델이 쓴 문장의 일부처럼 읽힌다. */}
+              <p className="qa-flow-call">{caseId !== null && <span translate="no">TC #{caseId} · </span>}{verdict}</p>
+            </div>
+          </div>
+        )}
+      </div>
+    </li>
+  )
+}
+
 function QaLogRow({
+  executionMode,
+  scenarioSteps,
   expanded,
   focusedLogId,
   onToggle,
   row,
 }: {
+  executionMode: ExecutionMode
+  scenarioSteps: ScenarioStep[]
   expanded: boolean
   focusedLogId: string | null
   onToggle: () => void
@@ -174,15 +274,38 @@ function QaLogRow({
   const repeats = row.events.length
   const hasPayload = log.payload !== null && log.payload !== undefined
   const step = stepOf(log)
+  const payload = asRecord(log.payload)
+  const verdictCaseId = log.type === 'CASE_VERDICT'
+    ? payload?.case_id
+    : log.type === 'STATUS' && (payload?.status === 'COMPLETED' || payload?.status === 'FAILED') && step !== null
+      ? scenarioSteps[step - 1]?.case_id
+      : null
+  const caseId = typeof verdictCaseId === 'number' || typeof verdictCaseId === 'string'
+    ? String(verdictCaseId) : null
   // TOOL 행은 `message` 가 tool 이름이다. 그것은 메타 줄의 칩으로 따로 보이므로, 본문
   // 자리에는 모델이 왜 불렀는지를 적은 `thought` 를 놓는다.
   const call = log.type === 'TOOL' ? toolCallOf(log) : null
+  // cheat 호출이 담긴 ACTION 행과, cheat 를 쓴 step 의 STATUS 행에 배지를 단다(ARTEL-1051).
+  const cheatNames = cheatNamesOf(log)
+  const usedCheats = log.type === 'STATUS' ? usedCheatsOf(log.payload) : []
+  const behaviorEnded = log.type === 'BEHAVIOR_ENDED' ? behaviorEndedOf(log.payload) : null
+  const functionText = t.gameFunctions.timeline
+  const behaviorEndedMessage =
+    behaviorEnded === null
+      ? null
+      : [
+          behaviorEnded.name,
+          behaviorEnded.reason === null ? functionText.unknownReason : functionText.endReason[behaviorEnded.reason],
+          behaviorEnded.detail,
+        ]
+          .filter((part): part is string => part !== null && part.length > 0)
+          .join(' · ')
   const message =
     call !== null
       ? (call.thought ?? 'No reason given')
       : log.message.length > 0
         ? log.message
-        : 'No message'
+        : (behaviorEndedMessage ?? 'No message')
   const focused = log.id === focusedLogId
 
   return (
@@ -200,7 +323,26 @@ function QaLogRow({
           {call !== null && (
             <span className="qa-log-tool-name mono" translate="no">{call.tool}</span>
           )}
-          {step !== null && <span className="qa-log-step">{t.qa.steps.short(step)}</span>}
+          {executionMode === 'FREE'
+            ? caseId !== null && <span className="qa-tc-badge" translate="no">TC #{caseId}</span>
+            : step !== null && <span className="qa-log-step">{t.qa.steps.short(step)}</span>}
+          {cheatNames.length > 0 && (
+            <span className="gf-badge" translate="no">
+              {cheatNames.length === 1 && cheatNames[0].length > 0
+                ? functionText.cheatBadgeNamed(cheatNames[0])
+                : functionText.cheatBadge}
+            </span>
+          )}
+          {usedCheats.length > 0 && (
+            <span
+              className="gf-badge"
+              title={usedCheats
+                .map((used) => (used.success ? used.name : `${used.name} (${functionText.usedCheatFailed})`))
+                .join(', ')}
+            >
+              {functionText.usedCheats(usedCheats.length)}
+            </span>
+          )}
           {repeats > 1 && (
             /* Counted, not just styled: the number is the information. */
             <span className="qa-log-repeat">×{repeats}</span>
@@ -283,16 +425,21 @@ function sectionId(section: SectionKey): string {
 }
 
 export function QaLogTimeline({
+  executionMode = 'ORDERED',
   focusRequest,
   hasMore,
   historyFailure,
   historyLoading,
   live,
   loadOlder,
+  flow = false,
   logs,
   onFocusResolved,
   scenarioSteps = [],
 }: {
+  /** `흐름` 탭인가. true 면 한 행이 생각 · 행동 두 줄이고, 그 밖은 `Raw` 와 같다. */
+  flow?: boolean
+  executionMode?: ExecutionMode
   focusRequest: QaLogFocusRequest | null
   hasMore: boolean
   historyFailure: string | null
@@ -305,6 +452,17 @@ export function QaLogTimeline({
   scenarioSteps?: ScenarioStep[]
 }) {
   const { t } = useI18n()
+  const orderedFlow = flow && executionMode === 'ORDERED'
+  // `흐름` 은 로그 한 줄이 아니라 스텝 하나를 그린다. `PULSE` 는 행으로 안 서지만
+  // 조작 대상의 이름이 거기에만 있으므로 사전을 만드는 데 쓴다.
+  const flowSteps = useMemo(
+    () => (orderedFlow ? buildFlowSteps(logs, objectNamesOf(logs)) : []),
+    [orderedFlow, logs],
+  )
+  const freeFlow = useMemo(
+    () => flow && executionMode === 'FREE' ? buildFreeFlow(logs, objectNamesOf(logs), scenarioSteps) : [],
+    [flow, executionMode, logs, scenarioSteps],
+  )
   const viewportRef = useRef<HTMLDivElement>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const initialScrollDoneRef = useRef(false)
@@ -333,12 +491,32 @@ export function QaLogTimeline({
     return map
   }, [scenarioSteps])
 
+  /**
+   * 같은 TC 에 속한 스텝을 한 머리 아래로 모은다.
+   *
+   * 한 TC 가 스텝 여럿에 걸치면 전에는 같은 `TC n` 머리가 여러 번 찍혔다. TC 가 없는
+   * 조작 스텝은 저 혼자 한 묶음이고 스텝 번호를 머리로 쓴다.
+   */
+  const flowGroups = useMemo(() => {
+    const groups: { key: string; tcNo: number | null; blocks: FlowStep[] }[] = []
+    for (const block of flowSteps) {
+      const tcNo = regionByStep.get(block.step) ?? null
+      const last = groups[groups.length - 1]
+      if (tcNo !== null && last !== undefined && last.tcNo === tcNo) {
+        last.blocks.push(block)
+        continue
+      }
+      groups.push({ key: `${tcNo ?? 's'}:${block.step}`, tcNo, blocks: [block] })
+    }
+    return groups
+  }, [flowSteps, regionByStep])
+
   // Interleave TC-region headers between rows (#6). A log without its own step
   // (GAME_STATE, generic LOG) inherits the last region seen, so the noise between
   // two verdicts clusters under the region that was active. Headers appear only
   // when scenario steps are known; otherwise the list is exactly `rows`.
   const listItems = useMemo<ListItem[]>(() => {
-    if (regionByStep.size === 0) return rows.map((row) => ({ kind: 'row', row }))
+    if (executionMode === 'FREE' || regionByStep.size === 0) return rows.map((row) => ({ kind: 'row', row }))
     const items: ListItem[] = []
     let lastKey: string | null = null
     let carried: SectionKey = { kind: 'general' }
@@ -356,7 +534,7 @@ export function QaLogTimeline({
       items.push({ kind: 'row', row })
     }
     return items
-  }, [rows, regionByStep])
+  }, [rows, regionByStep, executionMode])
 
   useLayoutEffect(() => {
     const viewport = viewportRef.current
@@ -399,13 +577,14 @@ export function QaLogTimeline({
   const requestOlder = useCallback(async () => {
     const viewport = viewportRef.current
     if (viewport === null || historyLoading || !hasMore || anchorRef.current !== null) return
+    // 그려진 것이 하나도 없으면 되돌릴 스크롤 위치도 없다. 그래도 **불러오기는 한다** —
+    // 여기서 돌아가면 다시 부를 길이 없다. `흐름` 은 받은 50건이 전부 `PULSE` 이면 덩어리가
+    // 0 일 수 있고(try 46 의 꼬리가 그렇다), 그때 목록이 영영 비어 있게 된다.
     const firstRow = viewport.querySelector<HTMLElement>('[data-log-id]')
-    if (firstRow === null) return
-
-    anchorRef.current = {
-      id: firstRow.dataset.logId ?? '',
-      top: firstRow.getBoundingClientRect().top,
-    }
+    anchorRef.current =
+      firstRow === null
+        ? null
+        : { id: firstRow.dataset.logId ?? '', top: firstRow.getBoundingClientRect().top }
     const changed = await loadOlder()
     if (!changed) anchorRef.current = null
   }, [hasMore, historyLoading, loadOlder])
@@ -565,9 +744,26 @@ export function QaLogTimeline({
         {!hasMore && <span>Beginning of log</span>}
       </div>
 
-      <ol className="qa-log-list">
-        {listItems.map((item) => {
-          if (item.kind === 'header') {
+      <ol className={flow ? 'qa-flow-list' : 'qa-log-list'}>
+        {orderedFlow
+          ? flowGroups.map((group) => (
+              <li className="qa-flow-group" key={group.key}>
+                <p className={`qa-flow-label${group.tcNo === null ? ' qa-flow-label--plain' : ''}`}>
+                  {group.tcNo === null
+                    ? t.qa.run.flowStepLabel(group.blocks[0].step)
+                    : t.qa.steps.caseLabel(group.tcNo)}
+                </p>
+                <ol className="qa-flow-blocks">
+                  {group.blocks.map((block) => (
+                    <QaFlowStep block={block} key={block.step} />
+                  ))}
+                </ol>
+              </li>
+            ))
+          : flow ? freeFlow.map((block) => (
+              <QaFlowStep block={block} free caseId={block.caseId} logId={block.id} key={block.id} />
+            )) : listItems.map((item) => {
+              if (item.kind === 'header') {
             return (
               <li className="qa-log-section" key={item.id}>
                 {item.section.kind === 'tc' ? (
@@ -583,6 +779,8 @@ export function QaLogTimeline({
           const anchor = anchorOf(item.row)
           return (
             <QaLogRow
+              executionMode={executionMode}
+              scenarioSteps={scenarioSteps}
               expanded={expandedRows.has(anchor)}
               focusedLogId={focusedLogId}
               key={newestOf(item.row).id}

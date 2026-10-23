@@ -1,4 +1,5 @@
 import { useI18n } from '../i18n/useI18n'
+import { InlineCode } from './InlineCode'
 import {
   interactionStyle,
   stepCondition,
@@ -82,7 +83,7 @@ function StepRow({ step }: { step: ContentMapStep }) {
   return (
     <li className={`cm-step cm-step--${status}`}>
       <p className="cm-step-summary mono">
-        {step.summary.trim().length > 0 ? step.summary : copy.untitled}
+        {step.summary.trim().length > 0 ? <InlineCode text={step.summary} /> : copy.untitled}
       </p>
 
       <p className="cm-step-meta">
@@ -134,7 +135,9 @@ function StepConditionBlock({ step }: { step: ContentMapStep }) {
 
       {condition.form === 'sentence' && (
         <>
-          <p className="cm-cond-sentence">{condition.text}</p>
+          <p className="cm-cond-sentence">
+            <InlineCode text={condition.text} />
+          </p>
           {condition.tree !== null && (
             <details className="cm-cond-raw">
               <summary>{copy.conditionRawToggle}</summary>

@@ -1,7 +1,8 @@
+import { useState } from 'react'
+import { appPath } from '../appPath'
 import { Link, NavLink, Outlet } from 'react-router-dom'
-import { updateMyLocale } from '../auth/authApi'
 import { useAuth } from '../auth/useAuth'
-import { isLocale, LOCALE_LABELS, LOCALES } from '../i18n/locale'
+import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../i18n/useI18n'
 import { ThemeToggle } from '../ThemeToggle'
 
@@ -11,7 +12,8 @@ import { ThemeToggle } from '../ThemeToggle'
  */
 export function AppShell() {
   const auth = useAuth()
-  const { locale, setLocale, t } = useI18n()
+  const { t } = useI18n()
+  const [mainNode, setMainNode] = useState<HTMLElement | null>(null)
 
   if (auth.status !== 'authenticated') {
     // AuthProvider only ever mounts this subtree for an authenticated user; the
@@ -28,7 +30,7 @@ export function AppShell() {
       <header className="top-bar">
         <Link className="brand" to="/projects" aria-label={t.common.shell.brandHomeLabel}>
           <span className="brand-mark" aria-hidden="true">
-            <img src="/artel-mark.svg" alt="" />
+            <img src={appPath('/artel-mark.svg')} alt="" />
           </span>
           <span>ARTEL</span>
           <span className="product-name">Replay Studio</span>
@@ -49,25 +51,7 @@ export function AppShell() {
             toDarkLabel={t.common.shell.switchToDark}
             toLightLabel={t.common.shell.switchToLight}
           />
-          <select
-            aria-label={t.common.shell.languageLabel}
-            className="locale-select"
-            onChange={(event) => {
-              if (!isLocale(event.target.value)) return
-              setLocale(event.target.value)
-              // Persist on the account so the choice follows the user to other
-              // browsers. The switch already happened locally, so a failed
-              // write is not worth interrupting the user over.
-              void updateMyLocale(event.target.value).catch(() => {})
-            }}
-            value={locale}
-          >
-            {LOCALES.map((option) => (
-              <option key={option} value={option}>
-                {LOCALE_LABELS[option]}
-              </option>
-            ))}
-          </select>
+          {/* 언어 고르기는 계정 설정의 환경 칸으로 옮겼다(ARTEL-1208). */}
           <div className="user-menu">
             <Link
               aria-label={t.common.shell.accountSettingsLabel}
@@ -90,9 +74,13 @@ export function AppShell() {
         </div>
       </header>
 
-      <main className="workspace">
-        <Outlet />
-      </main>
+      {/* 페이지 스크롤도 서비스 막대(ARTEL-1208). 브라우저 막대는 숨긴다. */}
+      <div className="scroll-frame app-main-frame">
+        <main className="workspace" ref={setMainNode}>
+          <Outlet />
+        </main>
+        <EdgeScrollbar label={t.common.shell.pageScroll} scroller={mainNode} side="right" />
+      </div>
     </div>
   )
 }

@@ -1,11 +1,20 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
+import { useActionBinding, useFieldBinding } from '../projectAgent/bindings'
+import { resolveEntry } from '../projectAgent/specs/lookup'
+import { listedOptions, readOnlyListWrite } from '../projectAgent/specs/listedOptions'
+import { KNOWLEDGE_LISTED_FIELD, KNOWLEDGE_OPEN_NODE_ACTION } from '../projectAgent/specs/knowledge'
 import { useWorkspace } from '../projects/workspace/workspaceContext'
 import { KnowledgeGraphCanvas, type Selection } from './KnowledgeGraphCanvas'
+import { useCanvasViewport } from '../contentMap/useCanvasViewport'
+import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
+import './knowledge.css'
+import { KnowledgeExplorer } from './KnowledgeExplorer'
 import { KnowledgeInspector } from './KnowledgeInspector'
 import { KnowledgeLegend } from './KnowledgeLegend'
 import { KnowledgeRelationTable } from './KnowledgeRelationTable'
+import { itemTitle } from './knowledgeLabels'
 import { LABEL_NODE_LIMIT } from './knowledgeLayout'
 import type { KnowledgeGraph } from './knowledgeTypes'
 import { useKnowledgeDrag } from './useKnowledgeDrag'
@@ -34,14 +43,6 @@ export function KnowledgeSection() {
     <div className="kg-section">
       <div className="kg-section-actions">
         <InfoHint>{t.knowledge.page.subtitle}</InfoHint>
-        <button
-          className="button button--secondary"
-          disabled={status === 'loading'}
-          onClick={reload}
-          type="button"
-        >
-          {t.knowledge.page.refresh}
-        </button>
       </div>
 
       <KnowledgeGraphContent graph={graph} projectId={projectId} reload={reload} status={status} />
@@ -61,7 +62,7 @@ export type KnowledgeGraphDiagnostics = {
 /**
  * The loading, error and ready states of one graph read, below whatever toolbar
  * the caller draws. The caller owns the read (`useKnowledgeGraph`) so its own
- * refresh button and the retry here reload the same request.
+ * toolbar and the retry here reload the same request.
  */
 export function KnowledgeGraphContent({
   graph,
@@ -117,6 +118,16 @@ function KnowledgeGraphView({
 }) {
   const { t } = useI18n()
   const [selection, setSelection] = useState<Selection>(null)
+  // 상세 서랍은 모달처럼 Esc 로 닫힌다. 다른 곳(범례 등)이 먼저 쓴 Esc 는 건드리지 않는다.
+  const drawerOpen = selection !== null
+  useEffect(() => {
+    if (!drawerOpen) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !event.defaultPrevented) setSelection(null)
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [drawerOpen])
 
   // The layout is the expensive part and depends on nothing but the response, so
   // selecting a node must not recompute it.
@@ -125,10 +136,38 @@ function KnowledgeGraphView({
   // deterministic one, and while a node is held it is that layout re-drawn from
   // the live positions.
   const { layout, drag } = useKnowledgeDrag(graph)
+  // 확대 · 이동(ARTEL-1190). 레이아웃은 힘이 자리 잡는 동안과 끄는 동안 매 프레임 viewBox 가 바뀌므로, 읽는 사람이
+  // 움직여 둔 시점은 그 사이에도 지킨다(`keepView`). 전체 보기를 누르면 레이아웃의 틀로 돌아간다.
+  const viewport = useCanvasViewport(layout.viewBox, { keepView: true })
+  const [legendOpen, setLegendOpen] = useState(false)
+  const [inspectorNode, setInspectorNode] = useState<HTMLDivElement | null>(null)
   const nodesById = useMemo(
     () => new Map(graph.nodes.map((node) => [node.id, node])),
     [graph.nodes],
   )
+
+  // agent 가 항목을 고르는 길. 그래프의 node 와 오른쪽 목록의 줄이 부르는 것과 같은 `setSelection`
+  // 을 부른다.
+  const canvasFrame = useRef<HTMLDivElement>(null)
+  useFieldBinding(KNOWLEDGE_LISTED_FIELD, {
+    target: () => canvasFrame.current,
+    read: () => graph.nodes.length,
+    options: () => listedOptions(graph.nodes, (node) => ({ value: node.id, label: `${itemTitle(t, node)} [${node.tag}]` })),
+    write: readOnlyListWrite(KNOWLEDGE_LISTED_FIELD.name, 'use knowledge.openNode.'),
+  })
+  useActionBinding(KNOWLEDGE_OPEN_NODE_ACTION, {
+    target: () => canvasFrame.current,
+    blocked: () => (graph.nodes.length === 0 ? t.knowledge.empty.noItemsTitle : null),
+    run: async (args) => {
+      const node = resolveEntry(
+        'knowledge item',
+        args.node,
+        graph.nodes.map((one) => ({ entry: one, keys: [one.id], title: itemTitle(t, one) })),
+      )
+      setSelection({ kind: 'node', id: node.id })
+      return { id: node.id, tag: node.tag, source: node.source, summary: node.summary }
+    },
+  })
 
   const truncatedBanner = graph.truncated ? (
     // Not an error and not a toast: the fact that this is a partial picture has
@@ -190,47 +229,102 @@ function KnowledgeGraphView({
       </p>
 
       <div className="kg-workspace">
+        <aside className="panel kg-explorer-panel">
+          <KnowledgeExplorer
+            edges={graph.edges}
+            nodes={graph.nodes}
+            onSelectNode={(id) => setSelection({ kind: 'node', id })}
+            selection={selection}
+          />
+        </aside>
+
         <section aria-label={t.knowledge.legend.graphLabel} className="panel kg-canvas-panel">
           {/* Items exist but nothing links them. Said here rather than by
               leaving the reader to conclude it from a field of loose dots. */}
           {graph.edges.length === 0 && (
-            <div className="kg-notice" role="status">
+            <div className="kg-notice kg-canvas-overlay kg-canvas-overlay--top" role="status">
               <p className="kg-notice-title">{t.knowledge.empty.noEdgesTitle}</p>
               <p className="kg-notice-copy">{t.knowledge.empty.noEdgesCopy(graph.nodes.length)}</p>
             </div>
           )}
 
-          <div className="kg-canvas-frame">
+          <div className="kg-canvas-frame" ref={canvasFrame}>
             <KnowledgeGraphCanvas
               drag={drag}
+              isolatedLabel={t.knowledge.canvas.isolated}
               layout={layout}
               onSelectEdge={(id) => setSelection({ kind: 'edge', id })}
               onSelectNode={(id) => setSelection({ kind: 'node', id })}
               selection={selection}
+              viewport={viewport}
             />
           </div>
 
-          {graph.nodes.length > LABEL_NODE_LIMIT && (
-            <p className="kg-canvas-note">{t.knowledge.legend.labelNote}</p>
-          )}
+          <div className="kg-canvas-tools">
+            <span className="kg-canvas-scale mono">{t.knowledge.canvas.scale(viewport.scale.toFixed(1))}</span>
+            <button
+              aria-label={t.knowledge.canvas.zoomOut}
+              className="button button--secondary button--compact kg-tool-square"
+              onClick={viewport.zoomOut}
+              title={t.knowledge.canvas.zoomOut}
+              type="button"
+            >
+              −
+            </button>
+            <button
+              aria-label={t.knowledge.canvas.zoomIn}
+              className="button button--secondary button--compact kg-tool-square"
+              onClick={viewport.zoomIn}
+              title={t.knowledge.canvas.zoomIn}
+              type="button"
+            >
+              +
+            </button>
+            <button
+              className="button button--secondary button--compact"
+              disabled={!viewport.moved}
+              onClick={viewport.reset}
+              type="button"
+            >
+              {t.knowledge.canvas.fit}
+            </button>
+          </div>
 
-          <KnowledgeLegend
-            edges={graph.edges}
-            formatCount={diagnostics?.formatCount}
-            nodes={graph.nodes}
-          />
+          <div className="kg-canvas-foot">
+            {graph.nodes.length > LABEL_NODE_LIMIT && (
+              <p className="kg-canvas-note">{t.knowledge.legend.labelNote}</p>
+            )}
+            {/* 범례는 접어 둔다(ARTEL-1190). 늘 펼쳐 두면 그래프 높이를 먹는다. 상세를 보는 중에도 열 수 있다. */}
+            <button
+              aria-expanded={legendOpen}
+              className="button button--secondary button--compact"
+              onClick={() => setLegendOpen((open) => !open)}
+              type="button"
+            >
+              {t.knowledge.overview.legend}
+            </button>
+          </div>
+          {legendOpen && (
+            <div className="kg-legend-popover">
+              <KnowledgeLegend edges={graph.edges} formatCount={diagnostics?.formatCount} nodes={graph.nodes} />
+            </div>
+          )}
         </section>
 
-        <aside className="panel kg-inspector-panel">
-          <KnowledgeInspector
-            layout={layout}
-            nodesById={nodesById}
-            onClear={() => setSelection(null)}
-            onSelectEdge={(id) => setSelection({ kind: 'edge', id })}
-            onSelectNode={(id) => setSelection({ kind: 'node', id })}
-            projectId={projectId}
-            selection={selection}
-          />
+        {/* 고르면 상세가 그래프 위에 넓은 서랍으로 뜬다(ARTEL-1190). 그래프 폭은 그대로다. */}
+        <aside className={`panel kg-inspector-panel${drawerOpen ? ' is-drawer' : ''}`}>
+          <div className="kg-inspector-scroll" ref={setInspectorNode}>
+            <KnowledgeInspector
+              layout={layout}
+              nodesById={nodesById}
+              onClear={() => setSelection(null)}
+              onSelectEdge={(id) => setSelection({ kind: 'edge', id })}
+              onSelectNode={(id) => setSelection({ kind: 'node', id })}
+              projectId={projectId}
+              selection={selection}
+            />
+          </div>
+          <EdgeScrollbar label={t.knowledge.inspector.title} scroller={inspectorNode} side="right" />
         </aside>
       </div>
 

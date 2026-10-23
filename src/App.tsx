@@ -1,6 +1,7 @@
 import { lazy, useEffect, useRef } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import './App.css'
+import { appBasename } from './appPath'
 import { AccountSettingsPage } from './account/AccountSettingsPage'
 import { AdminLayout } from './admin/AdminLayout'
 import { RequireAdmin } from './admin/RequireAdmin'
@@ -31,6 +32,7 @@ import { MembersSection } from './projects/workspace/MembersSection'
 import { UsageSection } from './usage/UsageSection'
 import { ProjectWorkspaceRoute } from './projects/workspace/ProjectWorkspace'
 import { QaHistorySection } from './projects/workspace/QaHistorySection'
+import { GameBuildsSection } from './projects/workspace/GameBuildsSection'
 import { QaSection } from './projects/workspace/QaSection'
 import { SettingsSection } from './projects/workspace/SettingsSection'
 import { SetupSection } from './projects/workspace/SetupSection'
@@ -117,7 +119,7 @@ export function App() {
   // Only the authenticated subtree is routed. The login boundary above stays a
   // plain render, so a routing fault can never strand a signed-out user.
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={appBasename}>
       <Routes>
         <Route element={<AppShell />}>
           <Route path="/" element={<Navigate replace to="/projects" />} />
@@ -147,11 +149,16 @@ export function App() {
               costs a re-render and no request. */}
           <Route element={<ProjectWorkspaceRoute />} path="/projects/:projectId">
             <Route index element={<DashboardSection />} />
+            {/* 전체 챗은 같은 session을 유지하도록 workspace에서 표시한다. */}
+            <Route path="chat" element={null} />
             <Route path="documents" element={<DocumentsSection />} />
             <Route path="test-cases" element={<TestCasesSection />} />
             <Route path="test-runs" element={<TestRunsSection />} />
             <Route path="qa" element={<QaSection />} />
             <Route path="qa-history" element={<QaHistorySection />} />
+            {/* 빌드 상세는 `?build=` 로 연다. 밖의 `/game-builds/:buildId/performance` · `content-map` 은 segment 가
+                더 많은 별개 경로라 이 섹션과 겹치지 않는다. */}
+            <Route path="game-builds" element={<GameBuildsSection />} />
             <Route path="qa-history/:qaRunId" element={<QaVerdictsSection />} />
             <Route path="content-map" element={<ContentMapSection />} />
             <Route path="macros" element={<MacroSection />} />
@@ -162,31 +169,20 @@ export function App() {
             <Route path="usage" element={<UsageSection />} />
             <Route path="members" element={<MembersSection />} />
             <Route path="settings" element={<SettingsSection />} />
+            {/* The working screens render beside the rail too, but without the
+                section heading: each brings its own header and back link, and
+                a timeline, a run map, and a QA console fill the slot instead
+                of scrolling inside `.section-content`. */}
+            <Route path="instances/:instanceId" element={<GameInstanceDetailRoute />} />
+            <Route path="test-scenarios/:testScenarioId" element={<TestScenarioRoute />} />
+            <Route path="test-runs/:runId" element={<RunMapRoute />} />
+            <Route path="test-runs/:runId/edit" element={<RunEditRoute />} />
+            <Route path="qa-runs/:qaRunId" element={<QaRunRoute />} />
+            <Route path="qa-runs/:qaRunId/performance" element={<RunPerformanceRoute />} />
+            <Route path="game-builds/:buildId/performance" element={<BuildPerformanceRoute />} />
+            {/* 프로젝트 안의 없는 경로. 비워 두면 레일만 남고 본문이 빈다(ARTEL-1162). */}
+            <Route path="*" element={<NotFoundPage />} />
           </Route>
-          {/* The working screens stay outside the rail: a timeline, a run map,
-              and a QA console each want the whole width. */}
-          <Route
-            path="/projects/:projectId/instances/:instanceId"
-            element={<GameInstanceDetailRoute />}
-          />
-          <Route
-            path="/projects/:projectId/test-scenarios/:testScenarioId"
-            element={<TestScenarioRoute />}
-          />
-          <Route
-            path="/projects/:projectId/test-runs/:runId"
-            element={<RunMapRoute />}
-          />
-          <Route
-            path="/projects/:projectId/test-runs/:runId/edit"
-            element={<RunEditRoute />}
-          />
-          <Route
-            path="/projects/:projectId/qa-runs/:qaRunId"
-            element={<QaRunRoute />}
-          />
-          <Route path="/projects/:projectId/qa-runs/:qaRunId/performance" element={<RunPerformanceRoute />} />
-          <Route path="/projects/:projectId/game-builds/:buildId/performance" element={<BuildPerformanceRoute />} />
           {/* 콘텐츠 맵 화면은 작업공간 안에 하나뿐이다. 빌드 패널의 링크와 밖에서 붙여 넣은
               주소가 계속 살아 있도록, 옛 경로는 그 하나로 넘긴다. */}
           <Route path="/projects/:projectId/game-builds/:buildId/content-map" element={<ContentMapRedirect />} />

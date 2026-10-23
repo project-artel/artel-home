@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { InfoHint } from '../design-system/primitives/InfoHint'
+import { SketchEmpty } from '../emptyStates/SketchEmpty'
+import { PerformanceSketch } from '../emptyStates/sketches'
 import { useI18n } from '../i18n/useI18n'
+import { formatDateTime } from '../projects/formatters'
+import { useWorkspace } from '../projects/workspace/workspaceContext'
+import { buildName } from './buildName'
 import { MetricGroupList } from './MetricGroupPanel'
 import { PerformanceChart, type ChartSeries } from './PerformanceChart'
 import { getRunPerformance } from './performanceApi'
@@ -9,6 +15,7 @@ import {
   budgetRatio,
   isFrameRateUncapped,
   isHighDischarging,
+  isLowConfidence,
   isLowCoverage,
   readRefreshRateHz,
   type PerformanceDevice,
@@ -16,6 +23,7 @@ import {
   type PerformanceSummary,
   type RunPerformance,
 } from './performanceTypes'
+import './performance.css'
 
 /**
  * One run's performance, in enough detail to say which part of it stalled.
@@ -68,55 +76,106 @@ export function RunPerformanceRoute() {
     )
   }
 
+  return <RunReport data={data} projectId={projectId} qaRunId={qaRunId} />
+}
+
+/**
+ * 본문(요약 · 프레임 · CPU · 메모리 · 버킷)과 오른쪽 칸(수집 환경 · 지표군)으로 나눈다(ARTEL-1207).
+ * 두 칸 다 화면 높이에 맞추고 서비스 스크롤 막대로 각자 넘긴다.
+ */
+function RunReport({ data, projectId, qaRunId }: { data: RunPerformance; projectId: string; qaRunId: string }) {
+  const { t } = useI18n()
+  const copy = t.performance.run
+  const overview = t.performance.overview
+  const { builds } = useWorkspace()
+  const [mainNode, setMainNode] = useState<HTMLDivElement | null>(null)
+  const [sideNode, setSideNode] = useState<HTMLDivElement | null>(null)
+
   const { summary, device } = data
+  const build = data.gameBuildId === null ? undefined : builds.find((one) => one.id === String(data.gameBuildId))
+  const lengthMs = data.completedAt === null ? null : Date.parse(data.completedAt) - Date.parse(data.startedAt)
+  const careful = summary !== null && isLowConfidence(summary)
 
   return (
-    <section className="page performance-page">
-      <header className="performance-page-head">
-        <div>
-          <Link
-            className="back-link"
-            to={`/projects/${encodeURIComponent(projectId)}/qa-runs/${encodeURIComponent(qaRunId)}`}
-          >
-            {copy.back}
-          </Link>
-          <p className="performance-eyebrow">{copy.eyebrow(data.runId)}</p>
-          <h1>
-            {copy.title}
-            <InfoHint>{copy.bucketNote(data.series.bucketMs)}</InfoHint>
-          </h1>
-        </div>
-      </header>
+    <section className="pf-run">
+      <div className="pf-run-frame">
+        <div className="pf-run-main" ref={setMainNode}>
+          <header className="pf-page-head">
+            <div className="pf-back-links">
+              <Link
+                className="back-link"
+                to={`/projects/${encodeURIComponent(projectId)}/qa-runs/${encodeURIComponent(qaRunId)}`}
+              >
+                {copy.back}
+              </Link>
+              {data.gameBuildId !== null && (
+                <Link
+                  className="back-link"
+                  to={`/projects/${encodeURIComponent(projectId)}/performance?build=${data.gameBuildId}`}
+                >
+                  {overview.backToBuild(build === undefined ? String(data.gameBuildId) : buildName(build))} →
+                </Link>
+              )}
+            </div>
+            <p className="pf-eyebrow">{copy.eyebrow(data.runId)}</p>
+            <h1>
+              {copy.title}
+              <InfoHint>{copy.bucketNote(data.series.bucketMs)}</InfoHint>
+            </h1>
+            <div className="pf-chips">
+              <span className="pf-chip">{overview.startedAt(formatDateTime(data.startedAt))}</span>
+              {lengthMs !== null && lengthMs >= 0 && (
+                <span className="pf-chip">
+                  {overview.lengthChip(
+                    overview.duration(Math.floor(lengthMs / 60_000), Math.round((lengthMs % 60_000) / 1000)),
+                  )}
+                </span>
+              )}
+              {device?.isEditor !== null && device?.isEditor !== undefined && (
+                <span className={`pf-chip${device.isEditor ? ' pf-chip--editor' : ''}`}>
+                  {device.isEditor ? copy.deviceEditor : copy.deviceStandalone}
+                </span>
+              )}
+              {build !== undefined && <span className="pf-chip">{overview.buildChip(buildName(build))}</span>}
+              {careful && <span className="pf-chip pf-chip--warning">{overview.compareWithCare}</span>}
+            </div>
+          </header>
 
-      {device?.isEditor === true && (
-        <p className="performance-warning" role="status">
-          {copy.editorWarning}
-        </p>
-      )}
-
-      {summary === null ? (
-        <div className="performance-empty">
-          <strong>{copy.emptyTitle}</strong>
-          <p>{copy.emptyBody}</p>
-        </div>
-      ) : (
-        <>
-          <SummaryMetrics summary={summary} />
-
-          {isHighDischarging(summary.dischargingRatio) && (
-            <p className="performance-warning" role="status">
-              {copy.dischargingWarning((summary.dischargingRatio * 100).toFixed(0))}
+          {device?.isEditor === true && (
+            <p className="pf-warning" role="status">
+              {copy.editorWarning}
             </p>
           )}
 
-          <FrameChartPanel points={data.series.points} summary={summary} />
-          <ProcessChartPanels points={data.series.points} summary={summary} />
-          <MetricGroupPanel groups={summary.groups} />
-          <BucketTable points={data.series.points} />
-        </>
-      )}
+          {summary === null ? (
+            <section className="pf-panel pf-panel--grow">
+              <SketchEmpty body={copy.emptyBody} sketch={<PerformanceSketch />} surface title={copy.emptyTitle} />
+            </section>
+          ) : (
+            <>
+              {isHighDischarging(summary.dischargingRatio) && (
+                <p className="pf-warning" role="status">
+                  {copy.dischargingWarning((summary.dischargingRatio * 100).toFixed(0))}
+                </p>
+              )}
 
-      <DevicePanel device={device} />
+              <SummaryMetrics summary={summary} />
+              <FrameChartPanel points={data.series.points} summary={summary} />
+              <ProcessChartPanels points={data.series.points} summary={summary} />
+              <BucketTable points={data.series.points} />
+            </>
+          )}
+        </div>
+        <EdgeScrollbar label={copy.title} scroller={mainNode} side="right" />
+      </div>
+
+      <aside className="pf-run-side-frame">
+        <div className="pf-run-side" ref={setSideNode}>
+          <DevicePanel device={device} />
+          {summary !== null && <MetricGroupPanel groups={summary.groups} />}
+        </div>
+        <EdgeScrollbar label={copy.deviceTitle} scroller={sideNode} side="right" />
+      </aside>
     </section>
   )
 }
@@ -154,7 +213,7 @@ function SummaryMetrics({ summary }: { summary: PerformanceSummary }) {
         : copy.budgetRatio(p95Ratio.toFixed(2))
 
   return (
-    <div className="performance-metrics">
+    <div className="pf-kpis">
       <Metric
         label={copy.meanLabel}
         value={`${summary.frameMeanMs.toFixed(1)} ms`}
@@ -202,8 +261,16 @@ function FrameChartPanel({
   ]
 
   return (
-    <Panel title={copy.frameTitle} hint={copy.frameSubtitle}>
-      <PerformanceChart budgetMs={summary.budgetMs} points={points} series={series} showHitches />
+    <Panel grow hint={copy.frameSubtitle} title={copy.frameTitle}>
+      <PerformanceChart
+        budgetMs={summary.budgetMs}
+        fill
+        formatValue={(value) => `${Number(value.toFixed(1))} ms`}
+        points={points}
+        series={series}
+        showHitches
+        width={960}
+      />
     </Panel>
   )
 }
@@ -226,13 +293,15 @@ function ProcessChartPanels({
       : copy.processCoverage((summary.processSampleRatio * 100).toFixed(0))
 
   return (
-    <div className="performance-columns">
+    <div className="pf-columns">
       <Panel title={copy.cpuTitle} subtitle={processSubtitle}>
         <PerformanceChart
+          formatValue={(value) => `${Number(value.toFixed(1))}%`}
           points={points}
           series={[
             { key: 'cpuPercent', label: copy.seriesCpu, className: 'performance-line performance-line--cpu' },
           ]}
+          width={480}
         />
       </Panel>
       <Panel
@@ -244,7 +313,9 @@ function ProcessChartPanels({
         }
       >
         <PerformanceChart
+          formatValue={(value) => formatBytes(value, '')}
           points={points}
+          width={480}
           series={[
             {
               key: 'workingSetBytes',
@@ -265,9 +336,16 @@ function BucketTable({ points }: { points: PerformancePoint[] }) {
   const unmeasured = t.performance.unmeasured
 
   return (
-    <Panel title={copy.tableTitle} hint={copy.tableSubtitle}>
-      <div className="performance-table-wrap">
-        <table className="performance-table">
+    <details className="pf-panel pf-buckets">
+      <summary className="pf-panel-head">
+        <h2>
+          {t.performance.overview.bucketsTitle} <span className="pf-num pf-muted">{points.length}</span>
+          <InfoHint>{copy.tableSubtitle}</InfoHint>
+        </h2>
+        <span className="pf-panel-hint">{t.performance.overview.bucketsHint}</span>
+      </summary>
+      <div className="pf-table-wrap">
+        <table className="pf-table">
           <thead>
             <tr>
               <th scope="col">{copy.columnElapsed}</th>
@@ -282,7 +360,7 @@ function BucketTable({ points }: { points: PerformancePoint[] }) {
           </thead>
           <tbody>
             {points.map((point) => (
-              <tr key={point.atMs}>
+              <tr className={point.frameMeanMs === null ? 'is-gap' : ''} key={point.atMs}>
                 <td>{(point.atMs / 1000).toFixed(1)}s</td>
                 <td>{bucketState(point, copy)}</td>
                 <td>{formatMs(point.frameMeanMs, unmeasured)}</td>
@@ -298,7 +376,7 @@ function BucketTable({ points }: { points: PerformancePoint[] }) {
           </tbody>
         </table>
       </div>
-    </Panel>
+    </details>
   )
 }
 
@@ -353,12 +431,7 @@ function DevicePanel({ device }: { device: PerformanceDevice | null }) {
 
   return (
     <Panel title={copy.deviceTitle} hint={copy.deviceSubtitle}>
-      <div className="performance-device">
-        {device.isEditor !== null && (
-          <p className="performance-device-kind">
-            {device.isEditor ? copy.deviceEditor : copy.deviceStandalone}
-          </p>
-        )}
+      <div className="pf-device">
         <dl>
           {rows.map((row) => (
             <div key={row.label}>
@@ -384,10 +457,10 @@ function Metric({
   warning?: boolean
 }) {
   return (
-    <div className={`performance-metric${warning ? ' performance-metric--warning' : ''}`}>
-      <span>{label}</span>
-      <strong>{value}</strong>
-      <small>{detail}</small>
+    <div className={`pf-kpi${warning ? ' pf-kpi--warning' : ''}`}>
+      <span className="pf-kpi-label">{label}</span>
+      <strong className="pf-kpi-value">{value}</strong>
+      <span className="pf-kpi-detail">{detail}</span>
     </div>
   )
 }
@@ -397,18 +470,17 @@ function Panel({
   title,
   hint,
   subtitle,
+  grow = false,
   children,
-}: React.PropsWithChildren<{ title: string; hint?: string; subtitle?: string }>) {
+}: React.PropsWithChildren<{ title: string; hint?: string; subtitle?: string; grow?: boolean }>) {
   return (
-    <section className="performance-panel">
-      <header>
-        <div>
-          <h2>
-            {title}
-            {hint !== undefined && <InfoHint>{hint}</InfoHint>}
-          </h2>
-          {subtitle !== undefined && <p>{subtitle}</p>}
-        </div>
+    <section className={`pf-panel${grow ? ' pf-panel--grow' : ''}`}>
+      <header className="pf-panel-head">
+        <h2>
+          {title}
+          {hint !== undefined && <InfoHint>{hint}</InfoHint>}
+        </h2>
+        {subtitle !== undefined && <span className="pf-panel-hint">{subtitle}</span>}
       </header>
       {children}
     </section>

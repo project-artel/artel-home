@@ -22,7 +22,7 @@ export function useIssueResolution(patch: Patch) {
   const [failedId, setFailedId] = useState<string | null>(null)
 
   const toggle = useCallback(
-    async (issue: Issue) => {
+    async (issue: Issue): Promise<boolean> => {
       const resolved = issue.status !== 'RESOLVED'
       const previous = { status: issue.status, resolvedAt: issue.resolvedAt }
 
@@ -38,9 +38,11 @@ export function useIssueResolution(patch: Patch) {
 
       try {
         await setIssueResolved(issue.id, resolved)
+        return true
       } catch {
         patch(issue.id, (row) => ({ ...row, ...previous }))
         setFailedId(issue.id)
+        return false
       } finally {
         setPending((current) => {
           const next = new Set(current)
@@ -54,3 +56,5 @@ export function useIssueResolution(patch: Patch) {
 
   return { toggle, pending, failedId }
 }
+
+export type IssueResolution = ReturnType<typeof useIssueResolution>

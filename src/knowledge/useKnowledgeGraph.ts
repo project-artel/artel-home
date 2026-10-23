@@ -1,6 +1,15 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useProjectChange } from '../live/useProjectChange'
+import { usePolling } from '../live/usePolling'
 import { getKnowledgeGraph } from './knowledgeApi'
 import { KNOWLEDGE_NODE_LIMIT, type KnowledgeGraph } from './knowledgeTypes'
+
+/**
+ * The fallback poll, used only while the project change stream is down. Slower
+ * than the default 10 seconds: the read is the whole graph, and a new graph
+ * restarts the force simulation, so there is little to gain from asking often.
+ */
+const GRAPH_POLL_INTERVAL_MS = 30_000
 
 export type KnowledgeGraphStatus = 'loading' | 'ready' | 'error'
 
@@ -26,6 +35,13 @@ const initialState: LoadedState = { status: 'ready', graph: null, source: '' }
  * the point of the screen is to show the shape all at once. `reload` bumps a
  * token rather than calling the fetch again by hand, so retry and refresh take
  * the same path as the first load and cannot drift from it.
+ *
+ * The graph is also re-read in the background when the project change stream
+ * reports `KNOWLEDGE`, and on a slow timer while that stream is down. That read
+ * never flips the status back to loading, a failed one keeps the graph on
+ * screen, and an answer equal to the one already held is dropped so the layout
+ * is not restarted for nothing. The admin graph page uses this hook too; a
+ * viewer who is not a member gets a closed stream and keeps polling.
  */
 export function useKnowledgeGraph(projectId: string, nodeLimit = KNOWLEDGE_NODE_LIMIT) {
   const [reloadToken, setReloadToken] = useState(0)
@@ -49,6 +65,32 @@ export function useKnowledgeGraph(projectId: string, nodeLimit = KNOWLEDGE_NODE_
 
   const settled = state.source === source
   const reload = useCallback(() => setReloadToken((token) => token + 1), [])
+
+  const polling = useRef<AbortController | null>(null)
+  useEffect(() => () => polling.current?.abort(), [])
+  const refreshSilently = () => {
+    // Not before the first read has landed, and never two reads at once.
+    if (!settled || polling.current !== null) return
+    const controller = new AbortController()
+    polling.current = controller
+    getKnowledgeGraph(projectId, nodeLimit, controller.signal)
+      .then((next) =>
+        setState((previous) => {
+          if (previous.source !== source) return previous
+          if (previous.status === 'ready' && JSON.stringify(previous.graph) === JSON.stringify(next)) {
+            return previous
+          }
+          return { status: 'ready', graph: next, source }
+        }),
+      )
+      // A failed poll leaves whatever is on screen alone.
+      .catch(() => undefined)
+      .finally(() => {
+        if (polling.current === controller) polling.current = null
+      })
+  }
+  const live = useProjectChange(projectId || null, 'KNOWLEDGE', refreshSilently)
+  usePolling(refreshSilently, GRAPH_POLL_INTERVAL_MS, !live)
 
   // The previous project's graph is not shown while the next one loads: it would
   // be a different project's knowledge under this project's heading.

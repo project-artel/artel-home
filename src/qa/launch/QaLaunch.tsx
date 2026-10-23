@@ -1,21 +1,25 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { SketchEmpty } from '../../emptyStates/SketchEmpty'
+import { TestRunSketch } from '../../emptyStates/sketches'
+import { Link, useSearchParams } from 'react-router-dom'
 import { EdgeScrollbar } from '../../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../../i18n/useI18n'
+import { useFieldBinding } from '../../projectAgent/bindings'
+import { requireKnownId } from '../../projectAgent/specs/fieldWriters'
+import { QA_TEST_RUN_FIELD } from '../../projectAgent/specs/qa'
 import type { GameInstance } from '../../projects/gameTypes'
 import { sectionHref } from '../../projects/workspace/sections'
 import { useWorkspace } from '../../projects/workspace/workspaceContext'
 import { folderPath } from '../../testRuns/runLibrary'
-import { getRunCoverage } from '../../testRuns/testRunApi'
 import { listRunFolders, type RunFolder } from '../../testRuns/testRunFolders'
 import { ChevronDownIcon, PencilIcon } from '../qaModelIcons'
-import { archEngine, type QaArchSelection } from '../qaArch'
+import { withEngine, type QaArchSelection } from '../qaArch'
 import { offeredQaModels } from '../qaModelGroups'
 import { readLastArch } from '../qaStartChoices'
 import { qaModelOptionKey, type QaModel } from '../qaTypes'
 import { byAscendingEffort } from '../reasoningEfforts'
 import { ConsolesDialog } from './ConsolesDialog'
-import { LaunchPanel, type FreeScenarioCount } from './LaunchPanel'
+import { LaunchPanel } from './LaunchPanel'
 import { ProviderLogo } from './ProviderLogo'
 import {
   getSinceLastQa,
@@ -74,18 +78,65 @@ function reasoningStart(model: QaModel | undefined): number {
  * 시작하면 매번 같은 셋을 다시 고르게 된다. 사람이 무엇이든 한 번 고르면 그 뒤로는 덮지 않는다.
  */
 export function QaLaunch() {
+  const { projectId } = useWorkspace()
+  return <QaLaunchLoader key={projectId} projectId={projectId} />
+}
+
+function QaLaunchLoader({ projectId }: { projectId: string }) {
+  const { t } = useI18n()
+  const { refreshRuns } = useWorkspace()
+  const [status, setStatus] = useState<Load>('loading')
+  const [reloadToken, setReloadToken] = useState(0)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    // 최초 진입도 SSE와 같은 조회 경로를 사용하고 이후 갱신은 Workspace가 반영한다.
+    refreshRuns()
+      .then(() => {
+        if (controller.signal.aborted) return
+        setStatus('ready')
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setStatus('failed')
+      })
+    return () => controller.abort()
+  }, [projectId, reloadToken, refreshRuns])
+
+  if (status === 'failed') {
+    return (
+      <div className="inline-error" role="alert">
+        <span aria-hidden="true">!</span>{t.scenarios.runList.loadFailed}
+        <button className="button button--secondary button--compact" onClick={() => {
+          setStatus('loading')
+          setReloadToken((token) => token + 1)
+        }} type="button">{t.scenarios.runList.retry}</button>
+      </div>
+    )
+  }
+  if (status === 'loading') {
+    return <p aria-busy="true" className="panel-empty">{t.scenarios.runList.loading}</p>
+  }
+  return <QaLaunchReady />
+}
+
+function QaLaunchReady() {
   const { t } = useI18n()
   const l = t.qa.launch
-  const { projectId, runs, instances, builds, models, refreshGameState, applyInstance, removeInstance, applyBuild } = useWorkspace()
+  const { projectId, runs, instances, builds, models, applyInstance, removeInstance, applyBuild } = useWorkspace()
   const offered = useMemo(() => offeredQaModels(models), [models])
 
   /**
    * 사람이 고른 것만 든다. 고르지 않은 칸은 아래 `defaults` 가 채운다 — 첫 화면에서 기본값을 state 에
    * 밀어 넣으면 목록이 늦게 도착할 때마다 덮어쓰기 경쟁이 생긴다.
    */
-  const [choice, setChoice] = useState<Choice>({})
+  // 다른 화면이 런을 골라 보낼 수 있다(`?run=`, ARTEL-1164 대시보드의 Free 실행).
+  // `&engine=agent` 가 오면 엔진도 맞춰 둔다. 고른 뒤에는 사용자가 바꾼 것이 이긴다.
+  const [searchParams] = useSearchParams()
+  const askedRun = searchParams.get('run')
+  const askedAgent = searchParams.get('engine') === 'agent'
+  const [choice, setChoice] = useState<Choice>(() => (askedRun === null ? {} : { runId: askedRun }))
   // agent 구조는 서버의 실행 기록에 없으므로(ARTEL-1091) 마지막으로 시작한 값을 이 브라우저에서 읽는다.
-  const [arch, setArch] = useState<QaArchSelection>(() => readLastArch())
+  const [arch, setArch] = useState<QaArchSelection>(() => (askedAgent ? withEngine(readLastArch(), 'agent') : readLastArch()))
 
   const [pickerOpen, setPickerOpen] = useState(false)
   const pickerAnchor = useRef<HTMLDivElement>(null)
@@ -152,24 +203,6 @@ export function QaLaunch() {
   const since = run !== null && sinceOf?.runId === run.id ? sinceOf.value : null
   const sinceStatus: Load = run === null || sinceOf?.runId !== run.id ? 'loading' : sinceOf.value === null ? 'failed' : 'ready'
 
-  // `planner_executer` 는 ORDERED 시나리오만 돌린다(ARTEL-1119). 런의 FREE 시나리오 수는 그 엔진을 골랐을
-  // 때만 읽는다 — 기본 엔진으로 돌리는 대부분의 실행에 요청을 하나 더 얹지 않기 위해서다.
-  // `coverage` 응답이 시나리오마다 `execution_mode` 를 준다.
-  const engine = archEngine(arch)
-  const [freeOf, setFreeOf] = useState<{ runId: string; value: number | 'failed' } | null>(null)
-  useEffect(() => {
-    if (run === null || engine !== 'planner_executer') return
-    const controller = new AbortController()
-    getRunCoverage(projectId, run.id, controller.signal)
-      .then((coverage) => setFreeOf({ runId: run.id, value: coverage.scenarios.filter((scenario) => scenario.executionMode === 'FREE').length }))
-      // 본문을 읽는 도중 취소되면 readJson 이 AbortError 를 ProjectApiError 로 감싼다. 오류 종류 대신 signal 로 가른다.
-      .catch(() => {
-        if (!controller.signal.aborted) setFreeOf({ runId: run.id, value: 'failed' })
-      })
-    return () => controller.abort()
-  }, [projectId, run, engine])
-  const freeScenarios: FreeScenarioCount = run !== null && freeOf?.runId === run.id ? freeOf.value : 'loading'
-
   // ⌘K 런 찾기, ⌘↵ 실행. 입력 중이어도 듣는다 — 둘 다 글자를 넣는 조합이 아니다.
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -199,6 +232,14 @@ export function QaLaunch() {
       reasoningValue: reasoningStart(offered.find((model) => qaModelOptionKey(model) === next)),
     }))
   }
+
+  // agent 가 런을 고르는 길. 런 선택 카드를 고르는 것과 같은 `pickRun` 이다.
+  useFieldBinding(QA_TEST_RUN_FIELD, {
+    target: () => pickerAnchor.current,
+    read: () => runId,
+    options: () => runs.map((one) => ({ value: one.id, label: one.name })),
+    write: (value) => pickRun(requireKnownId(QA_TEST_RUN_FIELD.name, value, runs.map((one) => one.id))),
+  })
 
   const runPath = run === null
     ? []
@@ -293,15 +334,30 @@ export function QaLaunch() {
           {run !== null && (
             <SinceLastRun onManageConsoles={() => setConsolesOpen(true)} projectId={projectId} runId={run.id} since={since} status={sinceStatus} />
           )}
-          <RecentRuns models={offered} projectId={projectId} runs={qaRuns} selectedRunId={runId} status={qaRunsStatus} />
+          {runs.length === 0 && (
+            // 테스트 런이 없으면 고를 것도, 쌓일 실행도 없다. 남은 자리를 그림과 할 일로 채운다(ARTEL-1162).
+            <SketchEmpty
+              actions={
+                <Link className="button button--primary" to={sectionHref(projectId, 'test-runs')}>
+                  {l.createRunButton}
+                </Link>
+              }
+              body={l.noRunsHelp}
+              sketch={<TestRunSketch />}
+              title={l.noRuns}
+            />
+          )}
+          {(runs.length > 0 || qaRuns.length > 0) && (
+            <RecentRuns models={offered} projectId={projectId} runs={qaRuns} selectedRunId={runId} status={qaRunsStatus} />
+          )}
         </div>
         <EdgeScrollbar label={l.runKicker} scroller={mainScroller} side="right" />
       </div>
 
       <LaunchPanel
         arch={arch}
+        builds={builds}
         etaMs={lastDuration}
-        freeScenarios={freeScenarios}
         instanceId={instanceId}
         instances={instances}
         modelKey={modelKey}
@@ -312,7 +368,6 @@ export function QaLaunch() {
         onModelChange={pickModel}
         onReasoningEnabled={(value) => setChoice((current) => ({ ...current, reasoningEnabled: value }))}
         onReasoningValue={(value) => setChoice((current) => ({ ...current, reasoningValue: value }))}
-        onRefreshConsoles={refreshGameState}
         projectId={projectId}
         reasoningEnabled={reasoningEnabled}
         reasoningValue={reasoningValue}
@@ -326,7 +381,6 @@ export function QaLaunch() {
           instances={instances}
           onBuildSaved={applyBuild}
           onClose={() => setConsolesOpen(false)}
-          onRefresh={refreshGameState}
           onRemoved={removeInstance}
           onSaved={applyInstance}
           projectId={projectId}
