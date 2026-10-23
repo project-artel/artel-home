@@ -12,6 +12,10 @@ export type MapStep = {
   tcStart: boolean
   verb: StepVerb
   target: string
+  /** 그리는 동안 이 스텝을 가리키는 이름(원래 순번). 끄는 동안 순서가 바뀌어도 점이 같은 요소로 남아 새 자리로 미끄러진다. */
+  key: string
+  /** 끄는 동안 놓일 자리를 비워 두는 빈 칸. */
+  slot?: boolean
 }
 
 /** 같은 씬이 이어지는 스텝 구간. [from] · [to] 는 스텝 index(포함). */
@@ -34,7 +38,7 @@ export type MapScenario = {
 export function buildMapScenario(id: string, draft: ScenarioDraft, sceneOfCase: (caseId: number) => string | null): MapScenario {
   let seq = 0
   let previous: number | null = null
-  const steps = draft.steps.map((step: ScenarioStep): MapStep => {
+  const steps = draft.steps.map((step: ScenarioStep, index): MapStep => {
     const gap = isGapStep(step)
     let tc: number | null = null
     let tcStart = false
@@ -55,6 +59,7 @@ export function buildMapScenario(id: string, draft: ScenarioDraft, sceneOfCase: 
       tcStart,
       verb: verbOf(step.action, gap),
       target: gap ? '' : targetOf(step.action),
+      key: String(index),
     }
   })
   return {
@@ -83,4 +88,27 @@ export function sceneSegments(steps: readonly Pick<MapStep, 'scene'>[]): SceneSe
     } else segments.push({ scene: step.scene, from: index, to: index })
   })
   return segments
+}
+
+/**
+ * 끄는 동안 프레임에 그릴 모양. [remove] 범위를 빼고(같은 TS 안에서 끌 때, 또는 끌려 나간 TS), [insert] 자리에
+ * 끄는 스텝 수만큼 빈 칸을 연다(놓일 TS). [insert.before] 는 원래 순번이다.
+ */
+export function previewScenario(
+  scenario: MapScenario,
+  change: { remove?: { start: number; end: number }; insert?: { before: number; steps: readonly MapStep[] } },
+): MapScenario {
+  let steps = [...scenario.steps]
+  let before = change.insert?.before ?? 0
+  if (change.remove !== undefined) {
+    const { start, end } = change.remove
+    steps = [...steps.slice(0, start), ...steps.slice(end + 1)]
+    if (before > end) before -= end - start + 1
+    else if (before > start) before = start
+  }
+  if (change.insert !== undefined) {
+    const slots = change.insert.steps.map((step, offset): MapStep => ({ ...step, key: `slot${offset}`, slot: true }))
+    steps = [...steps.slice(0, before), ...slots, ...steps.slice(before)]
+  }
+  return { ...scenario, steps, segments: sceneSegments(steps) }
 }

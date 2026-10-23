@@ -23,6 +23,8 @@ export const TsFrame = memo(function TsFrame({
   marked,
   renaming,
   onRename,
+  dropped = null,
+  lifting = false,
 }: {
   scenario: MapScenario
   /** 런 안의 순서(1부터). */
@@ -41,6 +43,10 @@ export const TsFrame = memo(function TsFrame({
   renaming: boolean
   /** 고친 이름. 그만두면 null. */
   onRename: (scenarioId: string, title: string | null) => void
+  /** 방금 내려놓은 스텝 범위. 내려앉는 애니메이션을 한 번 탄다. */
+  dropped?: { from: number; to: number } | null
+  /** 이 프레임의 스텝을 끄는 중. 점이 새 자리로 미끄러지게 transition 을 켠다. */
+  lifting?: boolean
 }) {
   const { t } = useI18n()
   const m = t.scenarios.map
@@ -49,7 +55,7 @@ export const TsFrame = memo(function TsFrame({
 
   return (
     <div
-      className={'rmf' + (picked ? ' is-picked' : '') + (marked ? ' is-marked' : '') + (dimmed ? ' is-dim' : '')}
+      className={'rmf' + (picked ? ' is-picked' : '') + (marked ? ' is-marked' : '') + (dimmed ? ' is-dim' : '') + (lifting ? ' is-sorting' : '')}
       data-scenario-id={scenario.id}
       style={{ left: x, top: y, width: FRAME_W, height, zIndex: z }}
     >
@@ -133,10 +139,12 @@ export const TsFrame = memo(function TsFrame({
                     'rmf-step' +
                     (step.gap ? ' is-gap' : step.scene === null ? ' is-unknown' : '') +
                     (step.tc !== null && !step.gap ? ' is-tc' : '') +
-                    (picked && pickedStep === index ? ' is-picked' : '')
+                    (picked && pickedStep === index ? ' is-picked' : '') +
+                    (step.slot ? ' is-slot' : '') +
+                    (dropped !== null && index >= dropped.from && index <= dropped.to ? ' is-dropped' : '')
                   }
-                  data-step={`${scenario.id}|${index}`}
-                  key={index}
+                  data-step={step.slot ? undefined : `${scenario.id}|${index}`}
+                  key={step.key}
                   style={{ left: point.x - STEP_W / 2, top: point.y - DOT_R }}
                   type="button"
                 >

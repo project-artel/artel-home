@@ -29,6 +29,7 @@ import { letterOf, TOOL_KEYS, type RunMapTool } from './runMap/runMapTools'
 import { StepHoverCard } from './runMap/StepHoverCard'
 import { TsFrame } from './runMap/TsFrame'
 import { useRunMapData } from './runMap/useRunMapData'
+import { previewScenario } from './runMap/runMapModel'
 import './runMap/runMap.css'
 
 /**
@@ -138,7 +139,20 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
   )
   const [marquee, setMarquee] = useState<Box | null>(null)
   /** 끄는 스텝의 표(화면 좌표)와 놓을 자리(캔버스 좌표). */
-  const [stepDrag, setStepDrag] = useState<{ cx: number; cy: number; label: string; target: { id: string; before: number; x: number; y: number } | null } | null>(null)
+  const [stepDrag, setStepDrag] = useState<{
+    cx: number
+    cy: number
+    label: string
+    source: { id: string; start: number; end: number }
+    target: { id: string; before: number; x: number; y: number } | null
+  } | null>(null)
+  /** 방금 내려놓은 스텝. 내려앉는 애니메이션이 끝나면 지운다. */
+  const [landed, setLanded] = useState<{ id: string; from: number; to: number } | null>(null)
+  useEffect(() => {
+    if (landed === null) return undefined
+    const timer = window.setTimeout(() => setLanded(null), 500)
+    return () => window.clearTimeout(timer)
+  }, [landed])
   const [renaming, setRenaming] = useState<string | null>(null)
   const [editingItem, setEditingItem] = useState<string | null>(null)
   const [query, setQuery] = useState('')
@@ -775,10 +789,14 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
         .map((sc) => ({ sc, f: frameOf(sc.id) }))
         .filter(({ sc, f }) => !f.folded && w.x >= f.x && w.x <= f.x + FRAME_W && w.y >= f.y && w.y <= f.y + frameHeight(sc.steps.length, false))
         .sort((a, b) => (z[b.sc.id] ?? 1) - (z[a.sc.id] ?? 1))[0]
-      const slot = under === undefined ? null : dropSlot(under.sc.steps.length, w.x - under.f.x, w.y - under.f.y - HEAD_H - 1)
+      // 끌려 나간 TS 는 끄는 스텝을 뺀 모양으로 그려지므로, 그 모양에서 자리를 재고 원래 순번으로 되돌린다.
+      const size = now.end - now.start + 1
+      const own = under?.sc.id === now.id
+      const slot = under === undefined ? null : dropSlot(under.sc.steps.length - (own ? size : 0), w.x - under.f.x, w.y - under.f.y - HEAD_H - 1)
+      const before = slot === null ? 0 : own && slot.before > now.start ? slot.before + size : slot.before
       const rect = stageRef.current!.getBoundingClientRect()
-      now.target = under === undefined || slot === null ? null : { id: under.sc.id, before: slot.before, x: under.f.x + slot.x, y: under.f.y + HEAD_H + 1 + slot.y }
-      setStepDrag({ cx: event.clientX - rect.left, cy: event.clientY - rect.top, label: now.label, target: now.target })
+      now.target = under === undefined || slot === null ? null : { id: under.sc.id, before, x: under.f.x + slot.x, y: under.f.y + HEAD_H + 1 + slot.y }
+      setStepDrag({ cx: event.clientX - rect.left, cy: event.clientY - rect.top, label: now.label, source: { id: now.id, start: now.start, end: now.end }, target: now.target })
       return
     }
     if (now.kind === 'marquee') {
@@ -847,8 +865,16 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
       setStepDrag(null)
       if (!now.moved) return pick(now.id, now.index)
       if (dropAt === null) return
-      if (dropAt.id === now.id) moveSteps(now.id, now.start, now.end, dropAt.before)
-      else moveStepsAcross(now.id, now.start, now.end, dropAt.id, dropAt.before)
+      const size = now.end - now.start + 1
+      if (dropAt.id === now.id) {
+        if (dropAt.before >= now.start && dropAt.before <= now.end + 1) return
+        moveSteps(now.id, now.start, now.end, dropAt.before)
+        const at = dropAt.before > now.end ? dropAt.before - size : dropAt.before
+        setLanded({ id: now.id, from: at, to: at + size - 1 })
+      } else {
+        moveStepsAcross(now.id, now.start, now.end, dropAt.id, dropAt.before)
+        setLanded({ id: dropAt.id, from: dropAt.before, to: dropAt.before + size - 1 })
+      }
       return
     }
     if (now.kind === 'marquee') {
@@ -1287,14 +1313,31 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
           style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.k})`, width: bounds.w, height: bounds.h }}
         >
           <RunMapSections annotations={map.annotations} editing={editingItem} marks={marks} onEditText={editText} selected={selectedItem} />
-          {scenarios.map((s) => {
-            const f = frameOf(s.id)
+          {scenarios.map((original) => {
+            const f = frameOf(original.id)
+            // 끄는 동안: 끌려 나간 TS 는 빈 자리를 닫고, 놓일 TS 는 자리를 연다. 놓을 곳이 없으면 제자리를 비워 둔다.
+            let s = original
+            const drag = stepDrag
+            if (drag !== null) {
+              const source = drag.source
+              const moving = scenarios.find((one) => one.id === source.id)?.steps.slice(source.start, source.end + 1) ?? []
+              const isSource = original.id === source.id
+              const isTarget = drag.target?.id === original.id
+              if (isSource || isTarget) {
+                s = previewScenario(original, {
+                  remove: isSource ? { start: source.start, end: source.end } : undefined,
+                  insert: isTarget ? { before: drag.target!.before, steps: moving } : isSource && drag.target === null ? { before: source.start, steps: moving } : undefined,
+                })
+              }
+            }
             return (
               <TsFrame
                 dimmed={!matches(s)}
                 folded={f.folded}
                 highlightScene={scene}
                 key={s.id}
+                dropped={landed?.id === s.id ? landed : null}
+                lifting={stepDrag !== null && (stepDrag.source.id === s.id || stepDrag.target?.id === s.id)}
                 marked={marks.has(s.id)}
                 onRename={renameTs}
                 renaming={renaming === s.id}
@@ -1312,7 +1355,6 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
  {marks.size > 0 && chosenBounds !== null && (
             <div className="rma-group" style={{ left: chosenBounds.x - 6, top: chosenBounds.y - 6, width: chosenBounds.w + 12, height: chosenBounds.h + 12 }} />
           )}
-          {stepDrag?.target && <div className="rm-drop-slot" style={{ left: stepDrag.target.x - 2, top: stepDrag.target.y - 20, height: 40 }} />}
           {marquee !== null && <div className="rma-marquee" style={{ left: marquee.x, top: marquee.y, width: marquee.w, height: marquee.h }} />}
           {selectedAnnotation !== undefined && editingItem === null && <SelectionBox annotation={selectedAnnotation} k={view.k} />}
         </div>
@@ -1341,9 +1383,14 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
           />
         )}
         {stepDrag && (
-          <div className={'rm-drag-ghost' + (stepDrag.target === null ? ' is-nowhere' : '')} style={{ left: stepDrag.cx + 14, top: stepDrag.cy + 12 }}>
-            {stepDrag.label}
-            {stepDrag.target !== null && <span>{m.drag.into(position(stepDrag.target.id), stepDrag.target.before)}</span>}
+          <div className={'rm-drag-ghost' + (stepDrag.target === null ? ' is-nowhere' : '')} style={{ left: stepDrag.cx - 14, top: stepDrag.cy - 56 }}>
+            <span aria-hidden="true" className="rm-drag-dots">
+              {Array.from({ length: Math.min(3, stepDrag.source.end - stepDrag.source.start + 1) }, (_, i) => <i key={i} />)}
+            </span>
+            <span className="rm-drag-text">
+              {stepDrag.label}
+              {stepDrag.target !== null && <span>{m.drag.into(position(stepDrag.target.id), stepDrag.target.before)}</span>}
+            </span>
           </div>
         )}
         {toast && (

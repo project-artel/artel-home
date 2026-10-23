@@ -248,7 +248,32 @@
 
 /* 캔버스 스텝 끌기: 놓을 자리(두 스텝 사이의 세로 줄)와 포인터를 따라다니는 표. */
 .rm-drop-slot { position: absolute; z-index: 960; width: 4px; border-radius: 2px; background: var(--color-brand-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-accent) 25%, transparent); pointer-events: none; }
-.rm-drag-ghost { position: absolute; z-index: 40; display: flex; flex-direction: column; gap: 2px; padding: 6px 10px; border: 1px solid var(--color-brand-accent); border-radius: 8px; background: var(--color-bg-surface); color: var(--color-text-primary); font-size: 12px; font-weight: 600; pointer-events: none; white-space: nowrap; }
-.rm-drag-ghost span { color: var(--color-text-secondary); font-size: 11px; font-weight: 500; }
+.rm-drag-ghost { position: absolute; z-index: 40; display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 6px; border: 1px solid var(--color-brand-accent); border-radius: 999px; background: var(--color-bg-surface); color: var(--color-text-primary); font-size: 12px; font-weight: 600; pointer-events: none; white-space: nowrap; box-shadow: 0 14px 28px rgb(0 0 0 / 28%), 0 2px 6px rgb(0 0 0 / 18%); transform-origin: 14px 100%; animation: rm-lift 160ms var(--ease-standard) both; }
+/* 들어 올린 점: 포인터 바로 아래에 붙어 따라온다. 여럿이면 겹쳐 쌓인 동그라미. */
+.rm-drag-dots { position: relative; display: inline-flex; align-items: center; height: 22px; }
+.rm-drag-dots i { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--color-bg-surface); background: var(--color-brand-accent); }
+.rm-drag-dots i + i { margin-left: -10px; }
+.rm-drag-text { display: flex; flex-direction: column; line-height: 1.25; }
+@keyframes rm-lift { from { transform: scale(.85); opacity: .4; } to { transform: scale(1.06); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .rm-drag-ghost { animation: none; } }
+.rm-drag-text span { color: var(--color-text-secondary); font-size: 11px; font-weight: 500; }
 .rm-drag-ghost.is-nowhere { border-color: var(--color-border-strong); opacity: .7; }
 .rmap-stage:has(.rm-drag-ghost), .rmap-stage:has(.rm-drag-ghost) * { cursor: grabbing !important; }
+
+/* 끄는 동안: 남은 점 · 화살표 · 씬 칸이 비켜 주며 미끄러진다. 끄지 않을 때는 transition 이 없다(편집 즉시 그대로). */
+.rmf.is-sorting .rmf-step { transition: left 200ms var(--ease-standard), top 200ms var(--ease-standard); }
+.rmf.is-sorting .rmf-wire { transition: d 200ms var(--ease-standard); }
+.rmf.is-sorting .rmf-band, .rmf.is-sorting .rmf-band-name { transition: left 200ms var(--ease-standard), top 200ms var(--ease-standard), width 200ms var(--ease-standard); }
+.rmf.is-sorting { transition: height 200ms var(--ease-standard); }
+/* 놓일 자리: 끄는 점과 같은 크기의 빈 점선 동그라미. */
+.rmf-step.is-slot { pointer-events: none; }
+.rmf-step.is-slot .rmf-dot { background: transparent; border: 2px dashed var(--color-brand-accent); box-shadow: none; animation: rm-slot-open 200ms var(--ease-standard); }
+.rmf-step.is-slot .rmf-num { opacity: 0; }
+@keyframes rm-slot-open { from { transform: scale(.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+/* 내려놓은 점: 살짝 눌렀다 튀어 오르며 자리를 잡는다. */
+.rmf-step.is-dropped .rmf-dot { animation: rm-dropped 420ms cubic-bezier(.2, .9, .3, 1.4); }
+@keyframes rm-dropped { 0% { transform: scale(1.5); box-shadow: 0 0 0 8px color-mix(in srgb, var(--color-brand-accent) 35%, transparent); } 55% { transform: scale(.86); } 100% { transform: scale(1); box-shadow: 0 0 0 0 transparent; } }
+@media (prefers-reduced-motion: reduce) {
+  .rmf.is-sorting .rmf-step, .rmf.is-sorting .rmf-wire, .rmf.is-sorting .rmf-band, .rmf.is-sorting .rmf-band-name, .rmf.is-sorting { transition: none; }
+  .rmf-step.is-slot .rmf-dot, .rmf-step.is-dropped .rmf-dot { animation: none; }
+}
