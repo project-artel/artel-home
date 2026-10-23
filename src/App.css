@@ -10182,6 +10182,9 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
 .tct-row.picked .tct-step-text{ color:var(--st-text); }
 /* 기대결과와 날짜는 스텝을 읽고 나서 보는 것이다. 한 단계 뒤로 물린다. */
 .tct-quiet{ color:var(--st-text-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+/* 스텝 · 기대결과 속 백틱 이름(오브젝트 · 화면 · 키). 시나리오 편집기의 칩과 같은 모양이다. 줄 높이는 그대로 둔다.
+   바탕은 글자색을 묽게 섞는다. 표면색을 쓰면 어두운 화면 · 고른 줄 · 마우스를 올린 줄에서 바탕과 같아져 안 보였다. */
+.tct-code{ padding:0 4px; border:1px solid color-mix(in srgb, var(--st-text) 22%, transparent); border-radius:4px; background:color-mix(in srgb, var(--st-text) 9%, transparent); color:var(--st-text); font-family:var(--st-mono); font-size:.92em; font-weight:500; }
 .tcl .tcl-scroll{ padding:0; }
 
 /* side sheet — 표를 가리지 않을 만큼만 덮는다 */

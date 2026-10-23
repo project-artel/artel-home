@@ -110,6 +110,7 @@ import { useTour } from './tour/useTour'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useRowWindow } from './useRowWindow'
 import { CaseSkeletonRows, CaseTableSkeleton } from './CaseTableSkeleton'
+import { InlineCode } from '../contentMap/InlineCode'
 
 /** `vdot` 와 결과 pill 이 상태마다 쓰는 CSS 접미사. 대문자 상태값을 클래스에 그대로 넣지 않는다. */
 const STATUS_CLASS: Record<VerificationStatus, string> = {
@@ -1275,7 +1276,7 @@ export function TestCaseLibrary({
                             </span>
                           )}
                           <span className="tct-step-text">
-                            {testCase.step.length > 0 ? testCase.step : m.row.untitled}
+                            {testCase.step.length > 0 ? <InlineCode className="tct-code" text={testCase.step} /> : m.row.untitled}
                             {note !== null && <span className="tct-absent-note">{note}</span>}
                             {item?.hidden === true && (
                               <span className="tct-hidden-tag" title={m.folderItems.hiddenTitle}>{m.folderItems.hiddenTag}</span>
@@ -1294,7 +1295,7 @@ export function TestCaseLibrary({
                         </td>
                       )}
                       <td className="tct-quiet">
-                        {testCase.expectedValue.length > 0 ? testCase.expectedValue : m.row.noExpectedValue}
+                        {testCase.expectedValue.length > 0 ? <InlineCode className="tct-code" text={testCase.expectedValue} /> : m.row.noExpectedValue}
                       </td>
                       <td className="tct-quiet mono">{formatDate(testCase.createdAt)}</td>
                     </tr>
