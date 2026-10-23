@@ -5,8 +5,11 @@ import {
   type VersionCaseRow,
   type VersionLibrary,
 } from './testCaseVersions'
+import { RecentCache, versionCasesKey } from './versionCaseCache'
 
 export type VersionsStatus = 'loading' | 'ready' | 'failed'
+
+const versionCasesCache = new RecentCache<VersionCaseRow[]>(6)
 
 const EMPTY_LIBRARY: VersionLibrary = { versions: [], groups: [], unversionedTotal: 0 }
 
@@ -37,21 +40,27 @@ export function useTestCaseVersionList(projectId: string) {
   return { ...library, status, refresh }
 }
 
-/** 고른 버전의 케이스 표. [gameBuildId] 가 null 이면 아무것도 읽지 않는다. */
+/**
+ * 고른 버전의 케이스 표. [gameBuildId] 가 null 이면 아무것도 읽지 않는다.
+ *
+ * 전에 연 버전이면 기억한 표를 바로 보이고, 뒤에서 새로 받은 것으로 갈아 끼운다(ARTEL-1211).
+ */
 export function useVersionCases(projectId: string, gameBuildId: string | null, compareTo: string | null) {
   const [rows, setRows] = useState<VersionCaseRow[]>([])
   const [loadedKey, setLoadedKey] = useState<string | null>(null)
   const [failed, setFailed] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
-  const key = gameBuildId === null ? null : `${gameBuildId}:${compareTo ?? ''}`
+  const key = gameBuildId === null ? null : versionCasesKey(projectId, gameBuildId, compareTo)
 
   useEffect(() => {
     if (gameBuildId === null) return undefined
     const controller = new AbortController()
+    const loadingKey = versionCasesKey(projectId, gameBuildId, compareTo)
     listVersionCases(projectId, gameBuildId, compareTo, controller.signal)
       .then((items) => {
+        versionCasesCache.set(loadingKey, items)
         setRows(items)
-        setLoadedKey(`${gameBuildId}:${compareTo ?? ''}`)
+        setLoadedKey(loadingKey)
         setFailed(false)
       })
       .catch((cause: unknown) => {
@@ -62,10 +71,11 @@ export function useVersionCases(projectId: string, gameBuildId: string | null, c
   }, [projectId, gameBuildId, compareTo, reloadKey])
 
   const refresh = useCallback(() => setReloadKey((value) => value + 1), [])
-  // 다른 버전으로 넘어간 직후에는 앞 버전의 줄을 보이지 않는다.
-  const ready = key !== null && loadedKey === key
+  // 다른 버전으로 넘어간 직후에는 앞 버전의 줄을 보이지 않는다. 그 버전을 전에 읽었으면 그때 받은 줄을 보인다.
+  const cached = key !== null && loadedKey !== key ? versionCasesCache.get(key) : undefined
+  const ready = key !== null && (loadedKey === key || cached !== undefined)
   // 한 번이라도 읽었으면 화면 전체를 다시 기다리게 하지 않는다. 버전을 바꿀 때 표 자리만 기다린다 — 화면 전체가
   // "불러오는 중" 으로 바뀌면 버전을 누를 때마다 페이지를 새로 여는 것처럼 보였다.
-  const loadedOnce = loadedKey !== null
-  return { rows: ready ? rows : [], ready, loadedOnce, failed, refresh }
+  const loadedOnce = loadedKey !== null || cached !== undefined
+  return { rows: cached ?? (ready ? rows : []), ready, loadedOnce, failed, refresh }
 }
