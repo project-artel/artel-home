@@ -18,7 +18,7 @@ import { createTestScenario, updateScenario } from '../testScenarios/scenarioApi
 import { createEmptyStep, createHumanStep, type ScenarioDraft } from '../testScenarios/scenarioTypes'
 import { setRunScenarios } from './testRunApi'
 import { boxOf, contains, controlFor, dragBox, hasText, moved, resized, type Box, type BoxHandle } from './runMap/annotationGeometry'
-import { autoLayout, FRAME_W, frameHeight } from './runMap/frameGeometry'
+import { autoLayout, dropSlot, FRAME_W, frameHeight, HEAD_H } from './runMap/frameGeometry'
 import { moveRange } from './runMap/stepOrder'
 import { emptyHistory, record, redo as redoHistory, undo as undoHistory, type History } from './runMap/runMapHistory'
 import { getRunMap, saveRunMap, SHAPE_COLORS, StaleRunMapError, type NoteColor, type RunMap, type RunMapAnnotation, type RunMapFrame, type ShapeColor } from './runMap/runMapApi'
@@ -64,6 +64,9 @@ type Interaction =
   | { kind: 'draw'; id: string; ox: number; oy: number; before: Board; repeat: boolean }
   | { kind: 'resize'; id: string; handle: BoxHandle; from: Box; original: RunMapAnnotation; moved: boolean; before: Board }
   | { kind: 'bend'; id: string; handle: 'p1' | 'p2' | 'c'; moved: boolean; before: Board }
+  // 스텝 끌기. ⌥ 를 누르고 시작하면 그 스텝이 든 TC 전체([start]..[end])를 끈다. 끌지 않고 떼면 서랍을 연다.
+  // [target] 은 놓을 자리. 화면 상태(stepDrag)는 빠르게 끌면 뗄 때까지 갱신되지 않아 여기서 따로 든다.
+  | { kind: 'step'; id: string; index: number; start: number; end: number; sx: number; sy: number; moved: boolean; label: string; target: { id: string; before: number; x: number; y: number } | null }
 
 const MIN_K = 0.12
 const MAX_K = 1.8
@@ -134,6 +137,8 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     [chosen],
   )
   const [marquee, setMarquee] = useState<Box | null>(null)
+  /** 끄는 스텝의 표(화면 좌표)와 놓을 자리(캔버스 좌표). */
+  const [stepDrag, setStepDrag] = useState<{ cx: number; cy: number; label: string; target: { id: string; before: number; x: number; y: number } | null } | null>(null)
   const [renaming, setRenaming] = useState<string | null>(null)
   const [editingItem, setEditingItem] = useState<string | null>(null)
   const [query, setQuery] = useState('')
@@ -305,6 +310,27 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     commitDraft(id, { ...draft, steps }, m.toast.stepMoved(start + 1))
     pick(id, before > end ? before - (end - start + 1) : before)
   }, [drafts, commitDraft, m.toast, pick])
+  /** [fromId] 의 [start]..[end] 스텝을 다른 TS [toId] 의 [before] 앞으로. 두 TS 가 한 번에 되돌아간다. */
+  const moveStepsAcross = useCallback((fromId: string, start: number, end: number, toId: string, before: number) => {
+    const from = drafts[fromId]
+    const to = drafts[toId]
+    if (from === undefined || to === undefined) return
+    const block = from.steps.slice(start, end + 1)
+    const nextFrom = { ...from, steps: [...from.steps.slice(0, start), ...from.steps.slice(end + 1)] }
+    const toSteps = [...to.steps]
+    toSteps.splice(before, 0, ...block)
+    const nextTo = { ...to, steps: toSteps }
+    const label = m.toast.stepsMovedTo(block.length, position(toId))
+    setHistory((h) => record(h, {
+      label,
+      before: { kind: 'many', changes: [{ kind: 'scenario', id: fromId, draft: from }, { kind: 'scenario', id: toId, draft: to }] },
+      after: { kind: 'many', changes: [{ kind: 'scenario', id: fromId, draft: nextFrom }, { kind: 'scenario', id: toId, draft: nextTo }] },
+    }))
+    void applyDraft(fromId, nextFrom)
+    void applyDraft(toId, nextTo)
+    say(label, true)
+    pick(toId, before)
+  }, [drafts, applyDraft, say, pick, position, m.toast])
   const deleteStep = useCallback((id: string, index: number) => {
     const draft = drafts[id]
     if (draft === undefined) return
@@ -588,7 +614,8 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     // 가운데 단추는 어느 도구에서든 화면을 잡는다.
     if (event.button !== 0 && event.button !== 1) return
     const target = event.target as HTMLElement
-    if (target.closest('button, .rm-toolbar, .rm-ctrls, .rm-drawer, [contenteditable="true"]')) return
+    // 단추는 제 일을 한다. 스텝 점도 단추지만 끌어 옮길 수 있어 여기서 받는다.
+    if (target.closest('button:not([data-step]), .rm-toolbar, .rm-ctrls, .rm-drawer, [contenteditable="true"]')) return
     const w = toWorld(event.clientX, event.clientY)
     const capture = () => event.currentTarget.setPointerCapture(event.pointerId)
     const startPan = () => {
@@ -700,8 +727,24 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
       capture()
       return
     }
-    // 스텝은 누르면 서랍을 연다. 끌기로 가로채지 않는다.
-    if (target.closest('[data-step]')) return
+    // 스텝: 끌면 순서를 바꾸고(다른 TS 로도), 끌지 않고 떼면 서랍을 연다.
+    const stepEl = target.closest<HTMLElement>('.rm-world [data-step]')
+    if (stepEl) {
+      const [id, raw] = stepEl.dataset.step!.split('|')
+      const index = Number(raw)
+      const s = scenarios.find((one) => one.id === id)
+      const tc = s?.steps[index]?.tc ?? null
+      let start = index
+      let end = index
+      if (event.altKey && tc !== null && s !== undefined) {
+        while (start > 0 && s.steps[start - 1].tc === tc) start -= 1
+        while (end < s.steps.length - 1 && s.steps[end + 1].tc === tc) end += 1
+      }
+      const label = start === end ? m.drag.step(index + 1) : m.drag.tc(tc ?? 0, end - start + 1)
+      interaction.current = { kind: 'step', id, index, start, end, sx: event.clientX, sy: event.clientY, moved: false, label, target: null }
+      capture()
+      return
+    }
     // 고른 것의 영역 안 빈 곳(고른 프레임 몸통 포함)을 끌면 영역 끌기가 아니라 고른 것을 옮긴다.
     if (!event.shiftKey && chosenBounds !== null && inside(chosenBounds, w)) {
       interaction.current = { kind: 'item', id: '', lastX: w.x, lastY: w.y, moved: false, before: currentBoard(), carry: withSectionContents(chosen) }
@@ -724,6 +767,20 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
       return
     }
     const w = toWorld(event.clientX, event.clientY)
+    if (now.kind === 'step') {
+      if (!now.moved && Math.hypot(event.clientX - now.sx, event.clientY - now.sy) < 5) return
+      now.moved = true
+      // 놓을 TS: 포인터 아래의 펼친 프레임 가운데 맨 위에 있는 것.
+      const under = scenarios
+        .map((sc) => ({ sc, f: frameOf(sc.id) }))
+        .filter(({ sc, f }) => !f.folded && w.x >= f.x && w.x <= f.x + FRAME_W && w.y >= f.y && w.y <= f.y + frameHeight(sc.steps.length, false))
+        .sort((a, b) => (z[b.sc.id] ?? 1) - (z[a.sc.id] ?? 1))[0]
+      const slot = under === undefined ? null : dropSlot(under.sc.steps.length, w.x - under.f.x, w.y - under.f.y - HEAD_H - 1)
+      const rect = stageRef.current!.getBoundingClientRect()
+      now.target = under === undefined || slot === null ? null : { id: under.sc.id, before: slot.before, x: under.f.x + slot.x, y: under.f.y + HEAD_H + 1 + slot.y }
+      setStepDrag({ cx: event.clientX - rect.left, cy: event.clientY - rect.top, label: now.label, target: now.target })
+      return
+    }
     if (now.kind === 'marquee') {
       now.box = { x: Math.min(now.ox, w.x), y: Math.min(now.oy, w.y), w: Math.abs(w.x - now.ox), h: Math.abs(w.y - now.oy) }
       setMarquee(now.box)
@@ -785,6 +842,15 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     interaction.current = null
     setPanning(false)
     if (now === null || now.kind === 'pan') return
+    if (now.kind === 'step') {
+      const dropAt = now.target
+      setStepDrag(null)
+      if (!now.moved) return pick(now.id, now.index)
+      if (dropAt === null) return
+      if (dropAt.id === now.id) moveSteps(now.id, now.start, now.end, dropAt.before)
+      else moveStepsAcross(now.id, now.start, now.end, dropAt.id, dropAt.before)
+      return
+    }
     if (now.kind === 'marquee') {
       // 뗀 자리까지 넣는다. 마지막 move 가 오기 전에 떼는 경우가 있다.
       const end = toWorld(event.clientX, event.clientY)
@@ -1246,6 +1312,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
  {marks.size > 0 && chosenBounds !== null && (
             <div className="rma-group" style={{ left: chosenBounds.x - 6, top: chosenBounds.y - 6, width: chosenBounds.w + 12, height: chosenBounds.h + 12 }} />
           )}
+          {stepDrag?.target && <div className="rm-drop-slot" style={{ left: stepDrag.target.x - 2, top: stepDrag.target.y - 20, height: 40 }} />}
           {marquee !== null && <div className="rma-marquee" style={{ left: marquee.x, top: marquee.y, width: marquee.w, height: marquee.h }} />}
           {selectedAnnotation !== undefined && editingItem === null && <SelectionBox annotation={selectedAnnotation} k={view.k} />}
         </div>
@@ -1272,6 +1339,12 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
             scenario={drawerScenario}
             total={order.length}
           />
+        )}
+        {stepDrag && (
+          <div className={'rm-drag-ghost' + (stepDrag.target === null ? ' is-nowhere' : '')} style={{ left: stepDrag.cx + 14, top: stepDrag.cy + 12 }}>
+            {stepDrag.label}
+            {stepDrag.target !== null && <span>{m.drag.into(position(stepDrag.target.id), stepDrag.target.before)}</span>}
+          </div>
         )}
         {toast && (
           <div className="rm-toast" role="status">

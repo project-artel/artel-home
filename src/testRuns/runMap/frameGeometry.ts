@@ -70,3 +70,15 @@ export function autoLayout(frames: readonly { id: string; height: number }[]): M
   }
   return placed
 }
+
+/**
+ * 프레임 몸통 좌표 (x, y) 에 스텝을 놓으면 들어갈 자리. [before] 는 그 앞에 들어갈 원래 순번(0..[count])이고,
+ * (x, y) 는 놓을 자리 표시를 그릴 곳(두 스텝 사이의 세로 줄 가운데)이다. 줄은 가까운 줄, 칸은 가까운 경계로 고른다.
+ */
+export function dropSlot(count: number, x: number, y: number): { before: number; x: number; y: number } {
+  const lines = lineCount(count)
+  const line = Math.max(0, Math.min(lines - 1, Math.round((y - BODY_TOP) / LINE_H)))
+  const lastInLine = Math.min(STEPS_PER_LINE, count - line * STEPS_PER_LINE)
+  const col = Math.max(0, Math.min(Math.max(lastInLine, 0), Math.round((x - PAD_X) / STEP_W)))
+  return { before: Math.min(count, line * STEPS_PER_LINE + col), x: PAD_X + col * STEP_W, y: BODY_TOP + line * LINE_H }
+}
