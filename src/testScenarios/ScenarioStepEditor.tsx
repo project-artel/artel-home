@@ -1,6 +1,7 @@
-import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { SplitHandle } from '../design-system/primitives/SplitHandle'
+import { useLiftSort } from '../design-system/useLiftSort'
 import { useI18n } from '../i18n/useI18n'
 import type { StepMark } from './draftChanges'
 import { TestCaseModal } from '../testCases/TestCaseModal'
@@ -87,8 +88,6 @@ export function ScenarioStepEditor({
   const [tcView, setTcView] = useState<{ caseId: number; label: string } | null>(null)
   const [linking, setLinking] = useState<number | null>(null)
   const [gapFill, setGapFill] = useState<{ index: number; blockedBy: string | null; detail: string } | null>(null)
-  const [dragIndex, setDragIndex] = useState<number | null>(null)
-  const [overIndex, setOverIndex] = useState<number | null>(null)
   const [scroller, setScroller] = useState<HTMLDivElement | null>(null)
   const [titleField, setTitleField] = useState<HTMLInputElement | null>(null)
   const rowRefs = useRef(new Map<number, HTMLDivElement>())
@@ -180,23 +179,14 @@ export function ScenarioStepEditor({
     setDropped(to)
   }
 
-  function onDragStart(event: DragEvent<HTMLLIElement>, index: number) {
-    event.dataTransfer.effectAllowed = 'move'
-    // Firefox 는 실린 값이 없으면 끌기를 시작하지 않는다.
-    event.dataTransfer.setData('text/plain', String(index))
-    event.dataTransfer.setDragImage(event.currentTarget, 28, 22)
-    setDragIndex(index)
-  }
-
-  function endDrag() {
-    setDragIndex(null)
-    setOverIndex(null)
-  }
-
-  function onDrop(target: number) {
-    if (dragIndex !== null && dragIndex !== target) moveStep(dragIndex, target)
-    endDrag()
-  }
+  // 줄을 잡아 끌어 순서를 바꾼다. 잡은 줄은 떠서 따라오고 다른 줄이 비켜 준다(useLiftSort). 경로 공백 줄은
+  // 잡을 수 없고, 단추 · 입력칸 · 끼워 넣기 단추를 누른 것은 끌기가 아니다.
+  const sort = useLiftSort({
+    count: steps.length,
+    scroller,
+    onMove: moveStep,
+    canDrag: (index, target) => !isGapStep(steps[index]) && target.closest('button, input, textarea, select, a') === null,
+  })
 
   function pick(index: number, range: boolean) {
     setPicked((before) => {
@@ -247,7 +237,7 @@ export function ScenarioStepEditor({
 
   return (
     <SceneContext.Provider value={sceneMatcher}>
-    <div className={`se${detail && openStep !== undefined ? ' has-detail' : ''}${picking ? ' is-picking' : ''}${dragIndex !== null ? ' is-dragging' : ''}`}>
+    <div className={`se${detail && openStep !== undefined ? ' has-detail' : ''}${picking ? ' is-picking' : ''}${sort.state !== null ? ' is-dragging' : ''}`}>
       <section className="se-head">
         {banner}
         <div className="se-eyebrow">
@@ -384,7 +374,7 @@ export function ScenarioStepEditor({
                 const tcNo = numbering.tcNo.get(index)
                 const continued = tcNo !== undefined && numbering.tcNo.get(index - 1) === tcNo
                 const mark = stepMarks?.[index]
-                const over = overIndex === index && dragIndex !== null && dragIndex !== index
+                const handle = sort.bind(index)
                 const classes = [
                   'se-row',
                   index === current ? 'is-selected' : '',
@@ -393,28 +383,18 @@ export function ScenarioStepEditor({
                   tcNo !== undefined ? 'is-tc' : '',
                   mark === 'changed' ? 'is-changed' : mark === 'added' ? 'is-added' : '',
                   needle !== '' && matches.includes(index) ? 'is-match' : '',
-                  dragIndex === index ? 'is-lifted' : '',
-                  over ? (dragIndex < index ? 'is-over-after' : 'is-over-before') : '',
+                  handle.lifted ? 'is-lifted' : '',
+                  handle.settling ? 'is-settling' : '',
                   dropped === index ? 'is-dropped' : '',
                 ].filter(Boolean).join(' ')
                 return (
                   <li
                     className={classes}
-                    draggable={!gap}
                     key={index}
                     onAnimationEnd={() => setDropped(null)}
-                    onDragEnd={endDrag}
-                    onDragOver={(event) => {
-                      if (dragIndex === null) return
-                      event.preventDefault()
-                      event.dataTransfer.dropEffect = 'move'
-                      if (overIndex !== index) setOverIndex(index)
-                    }}
-                    onDragStart={(event) => onDragStart(event, index)}
-                    onDrop={(event) => {
-                      event.preventDefault()
-                      onDrop(index)
-                    }}
+                    onPointerDown={handle.onPointerDown}
+                    ref={handle.ref}
+                    style={handle.style}
                   >
                     <button aria-label={b.insertHere} className="se-insert" onClick={() => insertAt(index)} title={b.insertHere} type="button">
                       <StudioIcon name="plus" size={12} />
