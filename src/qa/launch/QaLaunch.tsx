@@ -78,6 +78,48 @@ function reasoningStart(model: QaModel | undefined): number {
  * 시작하면 매번 같은 셋을 다시 고르게 된다. 사람이 무엇이든 한 번 고르면 그 뒤로는 덮지 않는다.
  */
 export function QaLaunch() {
+  const { projectId } = useWorkspace()
+  return <QaLaunchLoader key={projectId} projectId={projectId} />
+}
+
+function QaLaunchLoader({ projectId }: { projectId: string }) {
+  const { t } = useI18n()
+  const { refreshRuns } = useWorkspace()
+  const [status, setStatus] = useState<Load>('loading')
+  const [reloadToken, setReloadToken] = useState(0)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    // 최초 진입도 SSE와 같은 조회 경로를 사용하고 이후 갱신은 Workspace가 반영한다.
+    refreshRuns()
+      .then(() => {
+        if (controller.signal.aborted) return
+        setStatus('ready')
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setStatus('failed')
+      })
+    return () => controller.abort()
+  }, [projectId, reloadToken, refreshRuns])
+
+  if (status === 'failed') {
+    return (
+      <div className="inline-error" role="alert">
+        <span aria-hidden="true">!</span>{t.scenarios.runList.loadFailed}
+        <button className="button button--secondary button--compact" onClick={() => {
+          setStatus('loading')
+          setReloadToken((token) => token + 1)
+        }} type="button">{t.scenarios.runList.retry}</button>
+      </div>
+    )
+  }
+  if (status === 'loading') {
+    return <p aria-busy="true" className="panel-empty">{t.scenarios.runList.loading}</p>
+  }
+  return <QaLaunchReady />
+}
+
+function QaLaunchReady() {
   const { t } = useI18n()
   const l = t.qa.launch
   const { projectId, runs, instances, builds, models, applyInstance, removeInstance, applyBuild } = useWorkspace()

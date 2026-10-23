@@ -115,7 +115,8 @@ function PickerList({
     // 아래가 모자라면 위로 연다.
     const below = rect.bottom + 4
     const top = below + height > window.innerHeight - 8 ? Math.max(8, rect.top - 4 - height) : below
-    setPosition({ left: rect.left, top, width: rect.width })
+    const width = Math.min(Math.max(rect.width, listRef.current?.offsetWidth ?? 0), window.innerWidth - 16)
+    setPosition({ left: Math.max(8, Math.min(rect.left, window.innerWidth - width - 8)), top, width })
     listRef.current?.focus()
   }, [anchorRef])
 
@@ -179,7 +180,7 @@ function PickerList({
       }}
       ref={listRef}
       role="listbox"
-      style={{ left: position.left, top: position.top, minWidth: position.width }}
+      style={{ left: position.left, top: position.top, width: position.width, minWidth: 0, maxWidth: 'calc(100vw - 16px)' }}
       tabIndex={-1}
     >
       {options.map((option, index) => (

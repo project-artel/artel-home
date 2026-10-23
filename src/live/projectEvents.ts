@@ -24,6 +24,7 @@ export const PROJECT_CHANGE_TOPICS = [
   'ISSUES',
   'KNOWLEDGE',
   'TEST_CASES',
+  'TEST_RUNS',
   'USAGE',
 ] as const
 
