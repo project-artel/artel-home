@@ -13,7 +13,7 @@ import {
 } from '../projectAgent/specs/testRun'
 import { sectionHref } from '../projects/workspace/sections'
 import { ContextMenu, type ContextMenuItem } from '../testCases/ContextMenu'
-import { AddCasesDialog } from '../testScenarios/AddCasesDialog'
+import { CaseImportDialog } from '../testScenarios/CaseImportDialog'
 import { createTestScenario, updateScenario } from '../testScenarios/scenarioApi'
 import { createEmptyStep, createHumanStep, type ScenarioDraft } from '../testScenarios/scenarioTypes'
 import { setRunScenarios } from './testRunApi'
@@ -301,14 +301,17 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     commitDraft(id, { ...draft, steps: draft.steps.filter((_, i) => i !== index) }, m.toast.stepDeleted(index + 1))
     setPicked({ id, step: null })
   }, [drafts, commitDraft, m.toast])
-  const importTcs = useCallback((id: string, caseIds: string[]) => {
+  /** 고른 순서대로(같은 TC 가 여러 번 올 수 있다) 스텝 [at] 자리에 끼운다. */
+  const importTcs = useCallback((id: string, caseIds: string[], at: number, steps: Map<string, string>) => {
     const draft = drafts[id]
     if (draft === undefined || caseIds.length === 0) return
-    const byId = new Map(data.cases.cases.map((c) => [c.id, c] as const))
-    const added = caseIds.map((caseId) => ({ ...createEmptyStep(), action: byId.get(caseId)?.step ?? '', case_id: Number(caseId), step_source: 'CASE' as const, step_kind: 'ACTION' as const }))
-    commitDraft(id, { ...draft, steps: [...draft.steps, ...added] }, m.toast.tcsImported(position(id), added.length))
-    pick(id, draft.steps.length)
-  }, [drafts, data.cases.cases, commitDraft, m.toast, position, pick])
+    const added = caseIds.map((caseId) => ({ ...createEmptyStep(), action: steps.get(caseId) ?? '', case_id: Number(caseId), step_source: 'CASE' as const, step_kind: 'ACTION' as const }))
+    const index = Math.max(0, Math.min(at, draft.steps.length))
+    const next = [...draft.steps]
+    next.splice(index, 0, ...added)
+    commitDraft(id, { ...draft, steps: next }, m.toast.tcsImported(position(id), added.length))
+    pick(id, index)
+  }, [drafts, commitDraft, m.toast, position, pick])
 
   const changeOrder = useCallback((next: string[], label: string) => {
     setHistory((h) => record(h, { label, before: { kind: 'order', ids: order }, after: { kind: 'order', ids: next } }))
@@ -1269,17 +1272,32 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
 
       {hover && hoverStep && <StepHoverCard anchor={hover.rect} index={hover.index} step={hoverStep} />}
       {menu && <ContextMenu items={menu.items} label={menu.label} onClose={() => setMenu(null)} x={menu.x} y={menu.y} />}
-      {importFor !== null && importScenario && (
-        <AddCasesDialog
-          onAdd={(caseIds) => {
-            importTcs(importFor, caseIds)
-            setImportFor(null)
-          }}
-          onClose={() => setImportFor(null)}
-          project={data.cases}
-          steps={importScenario.steps}
-        />
-      )}
+      {importFor !== null && importScenario && (() => {
+        const count = importScenario.steps.length
+        // 서랍에서 스텝을 고른 채 열었으면 그 뒤가 기본 자리다.
+        const after = picked?.id === importFor && picked.step !== null && picked.step < count - 1 ? picked.step + 1 : null
+        const positions = [
+          { at: count, label: t.scenarios.caseImport.atEnd(count) },
+          ...(after !== null ? [{ at: after, label: t.scenarios.caseImport.after(after) }] : []),
+          ...(count > 0 ? [{ at: 0, label: t.scenarios.caseImport.atStart }] : []),
+        ]
+        return (
+          <CaseImportDialog
+            defaultAt={after ?? count}
+            gameBuildId={data.run?.gameBuild?.gameBuildId ?? null}
+            onAdd={(caseIds, at) => {
+              importTcs(importFor, caseIds, at, new Map(data.cases.cases.map((c) => [c.id, c.step] as const)))
+              setImportFor(null)
+            }}
+            onClose={() => setImportFor(null)}
+            positions={positions}
+            project={data.cases}
+            projectId={projectId}
+            steps={importScenario.steps}
+            target={{ position: position(importFor), title: importScenario.title }}
+          />
+        )
+      })()}
     </div>
   )
 }

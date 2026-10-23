@@ -26,6 +26,7 @@ import type { GameBuild } from '../projects/gameTypes'
 import { ProjectApiError } from '../projects/projectApi'
 import { CaseSceneFilter } from './CaseSceneFilter'
 import { SceneChip } from './SceneChip'
+import { StatusPill } from './StatusPill'
 import { SpecGradeChip } from './SpecGradeChip'
 import { CaseSelectionBar, type SelectionAction } from './CaseSelectionBar'
 import {
@@ -66,11 +67,12 @@ import {
   NO_FILTERS,
   selectTestCases,
   tallyTestCases,
+  countOf,
+  STATUS_CLASS,
   type TestCaseFilters,
   type TestCaseSort,
-  type TestCaseTally,
 } from './testCaseLibrary'
-import { VERIFICATION_STATUSES, type TestCase, type VerificationStatus } from './testCaseTypes'
+import { VERIFICATION_STATUSES, type TestCase } from './testCaseTypes'
 import { useFolderHistory } from './useFolderHistory'
 import { useFolderItems } from './useFolderItems'
 import { useTestCaseFolders } from './useTestCaseFolders'
@@ -112,14 +114,6 @@ import { useRowWindow } from './useRowWindow'
 import { CaseSkeletonRows, CaseTableSkeleton } from './CaseTableSkeleton'
 import { InlineCode } from '../contentMap/InlineCode'
 
-/** `vdot` 와 결과 pill 이 상태마다 쓰는 CSS 접미사. 대문자 상태값을 클래스에 그대로 넣지 않는다. */
-const STATUS_CLASS: Record<VerificationStatus, string> = {
-  VERIFIED: 'verified',
-  FAILED: 'failed',
-  REGRESSION: 'regression',
-  DRAFT: 'draft',
-  BROKEN: 'broken',
-}
 
 /**
  * 프로젝트의 재사용 테스트 케이스를 한자리에 모아 보고 고치는 화면.
@@ -1494,27 +1488,5 @@ export function TestCaseLibrary({
   )
 }
 
-function countOf(tally: TestCaseTally, status: VerificationStatus): number {
-  if (status === 'VERIFIED') return tally.verified
-  if (status === 'FAILED') return tally.failed
-  if (status === 'REGRESSION') return tally.regression
-  if (status === 'BROKEN') return tally.broken
-  return tally.draft
-}
 
 /** 한 버전의 판정 칸. 그 버전에 없는 케이스(null)는 "없음" 이다. */
-function StatusPill({
-  labels,
-  status,
-}: {
-  labels: ReturnType<typeof useI18n>['t']['testCases']
-  status: VerificationStatus | null
-}) {
-  if (status === null) return <span className="vpill vpill--absent">{labels.versions.absent}</span>
-  return (
-    <span className={`vpill ${status}`}>
-      <span className={`vdot ${status}`} />
-      {labels.outcome[status]}
-    </span>
-  )
-}
