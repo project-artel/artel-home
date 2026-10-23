@@ -34,7 +34,8 @@ test('keeps the bend of an arrow, text inside shapes, sections and resized notes
       { id: 'a', type: 'arrow', x1: 0, y1: 0, x2: 5, y2: 5, cx: 3, cy: 9 },
       { id: 'a2', type: 'arrow', x1: 0, y1: 0, x2: 5, y2: 5, cx: 3 },
       { id: 's', type: 'section', x: 0, y: 0, w: 300, h: 200, text: '튜토리얼' },
-      { id: 'r', type: 'rect', x: 0, y: 0, w: 30, h: 20, text: '로그인' },
+      { id: 'r', type: 'rect', x: 0, y: 0, w: 30, h: 20, text: '로그인', color: 'r' },
+      { id: 'r2', type: 'rect', x: 0, y: 0, w: 30, h: 20, color: '#ff0000' },
       { id: 'n', type: 'note', x: 0, y: 0, w: 240, h: 160, text: '큰 메모', color: 'b' },
     ],
   })
@@ -42,7 +43,8 @@ test('keeps the bend of an arrow, text inside shapes, sections and resized notes
     { id: 'a', createdBy: null, createdAt: null, type: 'arrow', x1: 0, y1: 0, x2: 5, y2: 5, cx: 3, cy: 9 },
     { id: 'a2', createdBy: null, createdAt: null, type: 'arrow', x1: 0, y1: 0, x2: 5, y2: 5 },
     { id: 's', createdBy: null, createdAt: null, type: 'section', x: 0, y: 0, w: 300, h: 200, text: '튜토리얼' },
-    { id: 'r', createdBy: null, createdAt: null, type: 'rect', x: 0, y: 0, w: 30, h: 20, text: '로그인' },
+    { id: 'r', createdBy: null, createdAt: null, type: 'rect', x: 0, y: 0, w: 30, h: 20, text: '로그인', color: 'r' },
+    { id: 'r2', createdBy: null, createdAt: null, type: 'rect', x: 0, y: 0, w: 30, h: 20 },
     { id: 'n', createdBy: null, createdAt: null, type: 'note', x: 0, y: 0, w: 240, h: 160, text: '큰 메모', color: 'b' },
   ])
 })

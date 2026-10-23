@@ -106,6 +106,20 @@
 .rm-world.is-far .rmf-no { font-size: 20px; }
 
 /* 주석: 프레임 위에 얹는다 */
+/* 주석 색. 정해진 다섯 색만 쓰고, 다크 · 라이트마다 읽히는 값을 고른다. */
+.rmap { --rm-c-y: #b8860b; --rm-c-p: #c4456b; --rm-c-b: #2f6fc0; --rm-c-g: #2e8a55; --rm-c-r: #d23b2f; }
+:root[data-theme='dark'] .rmap { --rm-c-y: #e6b740; --rm-c-p: #ec85a2; --rm-c-b: #64a2ec; --rm-c-g: #5cc28a; --rm-c-r: #f0675b; }
+.rma-c-y { --c: var(--rm-c-y); } .rma-c-p { --c: var(--rm-c-p); } .rma-c-b { --c: var(--rm-c-b); } .rma-c-g { --c: var(--rm-c-g); } .rma-c-r { --c: var(--rm-c-r); }
+.rma-shape.has-c { fill: color-mix(in srgb, var(--c) 16%, transparent); stroke: var(--c); }
+.rma-arrow.has-c, .rma-pen.has-c { stroke: var(--c); }
+.rma-arrowhead.has-c { fill: var(--c); }
+.rma-text.has-c { color: var(--c); }
+.rma-section.has-c { border-color: var(--c); background: color-mix(in srgb, var(--c) 7%, transparent); }
+.rma-section.has-c .rma-section-label { border-color: var(--c); color: var(--c); }
+.rma-colors { position: absolute; z-index: 970; display: flex; gap: 6px; margin-top: -10px; padding: 6px 8px; border: 1px solid var(--color-border-subtle); border-radius: 999px; background: var(--color-bg-surface); transform-origin: left bottom; }
+.rma-swatch { width: 20px; height: 20px; padding: 0; border: 2px solid transparent; border-radius: 50%; background: var(--c); cursor: pointer; }
+.rma-swatch.is-none { background: var(--color-text-secondary); }
+.rma-swatch[aria-pressed="true"] { border-color: var(--color-bg-surface); box-shadow: 0 0 0 2px var(--color-action-primary); }
 .rma-svg { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; z-index: 900; }
 .rma-shape { fill: color-mix(in srgb, var(--color-text-primary) 6%, transparent); stroke: var(--color-text-secondary); stroke-width: 2; pointer-events: all; cursor: move; }
 .rma-arrow { fill: none; stroke: var(--color-text-primary); stroke-width: 2.2; pointer-events: stroke; cursor: move; }

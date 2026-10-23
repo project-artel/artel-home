@@ -5,6 +5,9 @@ import { asRecord, jsonRequest, ProjectApiError, readJson, toApiError } from '..
 export type RunMapFrame = { x: number; y: number; folded: boolean }
 
 export type NoteColor = 'y' | 'p' | 'b' | 'g'
+/** 메모 외 주석의 색. 메모의 넷에 빨강을 더했다. 없으면 기본(회색). */
+export type ShapeColor = NoteColor | 'r'
+export const SHAPE_COLORS: ShapeColor[] = ['y', 'p', 'b', 'g', 'r']
 
 type Meta = { id: string; createdBy?: string | null; createdAt?: string | null }
 /**
@@ -15,10 +18,10 @@ type Meta = { id: string; createdBy?: string | null; createdAt?: string | null }
  */
 export type RunMapAnnotation =
   | (Meta & { type: 'note'; x: number; y: number; w?: number; h?: number; text: string; color: NoteColor })
-  | (Meta & { type: 'text'; x: number; y: number; w?: number; h?: number; text: string })
-  | (Meta & { type: 'rect' | 'ellipse' | 'section'; x: number; y: number; w: number; h: number; text?: string })
-  | (Meta & { type: 'arrow'; x1: number; y1: number; x2: number; y2: number; cx?: number; cy?: number })
-  | (Meta & { type: 'pen'; points: [number, number][] })
+  | (Meta & { type: 'text'; x: number; y: number; w?: number; h?: number; text: string; color?: ShapeColor })
+  | (Meta & { type: 'rect' | 'ellipse' | 'section'; x: number; y: number; w: number; h: number; text?: string; color?: ShapeColor })
+  | (Meta & { type: 'arrow'; x1: number; y1: number; x2: number; y2: number; cx?: number; cy?: number; color?: ShapeColor })
+  | (Meta & { type: 'pen'; points: [number, number][]; color?: ShapeColor })
 
 export type RunMap = {
   version: number
@@ -78,22 +81,24 @@ export function parseRunMap(data: unknown): RunMap {
     const w = num(a.w), h = num(a.h)
     const size = w !== null && h !== null ? { w, h } : {}
     const text = str(a.text)
+    const shapeColor = SHAPE_COLORS.find((c) => c === a.color)
+    const tint = shapeColor !== undefined ? { color: shapeColor } : {}
     switch (a.type) {
       case 'note': {
         const color = (['y', 'p', 'b', 'g'] as const).find((c) => c === a.color) ?? 'y'
         return x !== null && y !== null && text !== null ? [{ ...meta, type: 'note', x, y, ...size, text, color }] : []
       }
       case 'text':
-        return x !== null && y !== null && text !== null ? [{ ...meta, type: 'text', x, y, ...size, text }] : []
+        return x !== null && y !== null && text !== null ? [{ ...meta, type: 'text', x, y, ...size, text, ...tint }] : []
       case 'rect':
       case 'ellipse':
       case 'section':
-        return x !== null && y !== null && w !== null && h !== null ? [{ ...meta, type: a.type, x, y, w, h, ...(text !== null ? { text } : {}) }] : []
+        return x !== null && y !== null && w !== null && h !== null ? [{ ...meta, type: a.type, x, y, w, h, ...(text !== null ? { text } : {}), ...tint }] : []
       case 'arrow': {
         const x1 = num(a.x1), y1 = num(a.y1), x2 = num(a.x2), y2 = num(a.y2)
         const cx = num(a.cx), cy = num(a.cy)
         const bend = cx !== null && cy !== null ? { cx, cy } : {}
-        return x1 !== null && y1 !== null && x2 !== null && y2 !== null ? [{ ...meta, type: 'arrow', x1, y1, x2, y2, ...bend }] : []
+        return x1 !== null && y1 !== null && x2 !== null && y2 !== null ? [{ ...meta, type: 'arrow', x1, y1, x2, y2, ...bend, ...tint }] : []
       }
       case 'pen': {
         const points = (Array.isArray(a.points) ? a.points : []).flatMap((p): [number, number][] => {
@@ -101,7 +106,7 @@ export function parseRunMap(data: unknown): RunMap {
           const px = num(p[0]), py = num(p[1])
           return px !== null && py !== null ? [[px, py]] : []
         })
-        return points.length >= 2 ? [{ ...meta, type: 'pen', points }] : []
+        return points.length >= 2 ? [{ ...meta, type: 'pen', points, ...tint }] : []
       }
       default:
         return []

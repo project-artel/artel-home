@@ -20,8 +20,8 @@ import { setRunScenarios } from './testRunApi'
 import { boxOf, contains, controlFor, dragBox, hasText, moved, resized, type Box, type BoxHandle } from './runMap/annotationGeometry'
 import { autoLayout, FRAME_W, frameHeight } from './runMap/frameGeometry'
 import { emptyHistory, record, redo as redoHistory, undo as undoHistory, type History } from './runMap/runMapHistory'
-import { getRunMap, saveRunMap, StaleRunMapError, type NoteColor, type RunMap, type RunMapAnnotation, type RunMapFrame } from './runMap/runMapApi'
-import { RunMapAnnotations, RunMapSections, SelectionBox } from './runMap/RunMapAnnotations'
+import { getRunMap, saveRunMap, SHAPE_COLORS, StaleRunMapError, type NoteColor, type RunMap, type RunMapAnnotation, type RunMapFrame, type ShapeColor } from './runMap/runMapApi'
+import { ColorStrip, RunMapAnnotations, RunMapSections, SelectionBox } from './runMap/RunMapAnnotations'
 import { RunMapDrawer } from './runMap/RunMapDrawer'
 import { RunMapToolbar } from './runMap/RunMapToolbar'
 import { letterOf, TOOL_KEYS, type RunMapTool } from './runMap/runMapTools'
@@ -76,7 +76,9 @@ const NO_MARKS: ReadonlySet<string> = new Set()
  * 묶음 상자를 고르기 힘들고, 조금만 걸쳐도 고르면 옆의 것까지 딸려 온다.
  */
 const MARQUEE_COVER = 0.3
-function coveredEnough(marquee: Box, item: Box): boolean {
+function coveredEnough(marquee: Box, raw: Box): boolean {
+  // 곧은 화살표처럼 높이 · 너비가 0 인 것은 선 굵기만큼 두께를 준다. 0 이면 겹친 넓이가 늘 0 이다.
+  const item = { x: raw.x - (raw.w < 8 ? 4 : 0), y: raw.y - (raw.h < 8 ? 4 : 0), w: Math.max(raw.w, 8), h: Math.max(raw.h, 8) }
   const w = Math.min(marquee.x + marquee.w, item.x + item.w) - Math.max(marquee.x, item.x)
   const h = Math.min(marquee.y + marquee.h, item.y + item.h) - Math.max(marquee.y, item.y)
   if (w <= 0 || h <= 0) return false
@@ -384,6 +386,24 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     const kept = text.length > 0 || current.type === 'rect' || current.type === 'ellipse' || current.type === 'section' ? text : ' '
     updateAnnotation(id, (a) => (hasText(a) ? { ...a, text: kept } : a), m.toast.annotationChanged)
   }, [updateAnnotation, m.toast.annotationChanged])
+
+  // ── 색 ──
+  /** 고른 것들에 색을 입힌다. 메모는 자기 넷 중 하나만 받고(기본 · 빨강은 건너뛴다), 나머지는 다섯 색과 기본. */
+  const paint = useCallback((ids: string[], color: ShapeColor | 'none') => {
+    const targets = new Set(ids)
+    const before = currentBoard()
+    const annotations = before.annotations.map((a): RunMapAnnotation => {
+      if (!targets.has(a.id)) return a
+      if (a.type === 'note') return color === 'none' || color === 'r' ? a : { ...a, color }
+      if (color === 'none') {
+        const plain = { ...a }
+        delete plain.color
+        return plain
+      }
+      return { ...a, color }
+    })
+    commitBoard(before, { ...before, annotations }, m.toast.annotationChanged)
+  }, [commitBoard, m.toast.annotationChanged])
 
   // ── 복사 · 붙여넣기 ──
   const sectionContents = useCallback((section: RunMapAnnotation) => {
@@ -782,6 +802,8 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
   function onClick(event: React.MouseEvent) {
     const target = event.target as HTMLElement
     if (!target.closest('.rm-world')) return
+    const swatch = target.closest<HTMLElement>('[data-color]')
+    if (swatch) return paint(chosen.items, swatch.dataset.color as ShapeColor | 'none')
     const step = target.closest<HTMLElement>('[data-step]')
     if (step) {
       const [id, index] = step.dataset.step!.split('|')
@@ -859,7 +881,14 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
       setMenu({ ...at, label: m.menu.annotation, items: [
         ...(annotation?.type === 'note'
           ? [{ label: m.menu.changeColor, onSelect: () => updateAnnotation(id, (a) => (a.type === 'note' ? { ...a, color: NOTE_COLORS[(NOTE_COLORS.indexOf(a.color) + 1) % 4] } : a), m.toast.annotationChanged) }]
-          : []),
+          : annotation !== undefined
+            ? [{ label: m.menu.changeColor, onSelect: () => {
+                // 기본 → 다섯 색 → 기본 순서로 돈다.
+                const order: (ShapeColor | 'none')[] = ['none', ...SHAPE_COLORS]
+                const now = 'color' in annotation && annotation.color !== undefined ? annotation.color : 'none'
+                paint(marks.has(id) ? chosen.items : [id], order[(order.indexOf(now) + 1) % order.length])
+              } }]
+            : []),
         ...(annotation?.type === 'note' || annotation?.type === 'text' ? [{ label: m.menu.editText, onSelect: () => setEditingItem(id) }] : []),
         ...(annotation?.type === 'rect' || annotation?.type === 'ellipse'
           ? [{ label: (annotation.text ?? '') === '' ? m.menu.addText : m.menu.editText, onSelect: () => setEditingItem(id) }]
@@ -1082,6 +1111,19 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
   const importScenario = importFor === null ? undefined : drafts[importFor]
   const stageBox = stageSize.width > 0 ? stageSize : null
   const selectedAnnotation = selectedItem === null ? undefined : map.annotations.find((a) => a.id === selectedItem)
+  // 고른 주석이 있고, 글을 고치거나 끄는 중이 아니면 색 줄을 띄운다.
+  const chosenAnnotations = map.annotations.filter((a) => chosen.items.includes(a.id))
+  const colorsOf = chosenAnnotations.map((a) => ('color' in a && a.color !== undefined ? a.color : 'none'))
+  const colorStrip = chosenAnnotations.length > 0 && editingItem === null && marquee === null && chosenBounds !== null ? (
+    <ColorStrip
+      current={colorsOf.every((c) => c === colorsOf[0]) ? colorsOf[0] : null}
+      k={view.k}
+      labels={m.colors}
+      notesOnly={chosenAnnotations.every((a) => a.type === 'note')}
+      x={chosenBounds.x}
+      y={chosenBounds.y - (chosenAnnotations.some((a) => a.type === 'section') ? 34 : 8)}
+    />
+  ) : null
 
   return (
     <div className="rmap">
@@ -1158,6 +1200,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
  {marks.size > 0 && chosenBounds !== null && (
             <div className="rma-group" style={{ left: chosenBounds.x - 6, top: chosenBounds.y - 6, width: chosenBounds.w + 12, height: chosenBounds.h + 12 }} />
           )}
+          {colorStrip}
           {marquee !== null && <div className="rma-marquee" style={{ left: marquee.x, top: marquee.y, width: marquee.w, height: marquee.h }} />}
           {selectedAnnotation !== undefined && editingItem === null && <SelectionBox annotation={selectedAnnotation} k={view.k} />}
         </div>
