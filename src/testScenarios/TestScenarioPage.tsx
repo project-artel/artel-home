@@ -30,6 +30,7 @@ import { useChatWidth } from './useChatWidth'
 import { useStepEditor } from './useStepEditor'
 import { useRunCases } from './useRunCases'
 import { StudioIcon } from './studioIcons'
+import { DemonstrationPanel } from '../demonstrations/DemonstrationPanel'
 
 /**
  * Deliberately NOT keyed by the scenario id. It used to be, and opening another
@@ -80,6 +81,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
   const [loaded, setLoaded] = useState<{ id: number; found: boolean } | null>(null)
   const status = loaded?.id === scenarioId ? (loaded.found ? 'ready' : 'missing') : 'loading'
   const [specOpen, setSpecOpen] = useState(false)
+  const [teaching, setTeaching] = useState(false)
 
   // Loading a scenario seeds the editor (clearing history). `editor.reset` is
   // stable, so this runs once per scenario id.
@@ -273,6 +275,9 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
           <span className="scn">{title}</span>
         </div>
         <div className="st-spacer" />
+        <button className="st-btn st-btn--ghost" type="button" disabled={activeDraft !== null || status !== 'ready'} aria-pressed={teaching} onClick={() => setTeaching((value) => !value)}>
+          {teaching ? t.demonstrations.back : t.demonstrations.title}
+        </button>
         <button className="st-btn st-btn--ghost" type="button" onClick={() => setSpecOpen(true)} title={e.viewSpec}>
           {e.viewSpec} <kbd className="kbd">{shortcutLabel('K')}</kbd>
         </button>
@@ -308,7 +313,10 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
           runId={fromRun}
           {...preview.listProps}
         />
-        {preview.view !== null ? (
+        {teaching && activeDraft === null && status === 'ready' ? (
+          <DemonstrationPanel key={`${projectId}:${scenarioId}`} projectId={projectId} scenarioId={scenarioId} gameBuildId={runBuild?.gameBuildId ?? null}
+            cases={runCaseList.filter((testCase) => editor.working.steps.some((step) => step.case_id === Number(testCase.id)))} />
+        ) : preview.view !== null ? (
           preview.view
         ) : status === 'ready' ? (
           isFree
