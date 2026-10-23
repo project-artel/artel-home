@@ -21,7 +21,7 @@ import { boxOf, contains, controlFor, dragBox, hasText, moved, resized, type Box
 import { autoLayout, FRAME_W, frameHeight } from './runMap/frameGeometry'
 import { emptyHistory, record, redo as redoHistory, undo as undoHistory, type History } from './runMap/runMapHistory'
 import { getRunMap, saveRunMap, SHAPE_COLORS, StaleRunMapError, type NoteColor, type RunMap, type RunMapAnnotation, type RunMapFrame, type ShapeColor } from './runMap/runMapApi'
-import { ColorStrip, RunMapAnnotations, RunMapSections, SelectionBox } from './runMap/RunMapAnnotations'
+import { RunMapAnnotations, RunMapSections, SelectionBox } from './runMap/RunMapAnnotations'
 import { RunMapDrawer } from './runMap/RunMapDrawer'
 import { RunMapToolbar } from './runMap/RunMapToolbar'
 import { letterOf, TOOL_KEYS, type RunMapTool } from './runMap/runMapTools'
@@ -802,8 +802,6 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
   function onClick(event: React.MouseEvent) {
     const target = event.target as HTMLElement
     if (!target.closest('.rm-world')) return
-    const swatch = target.closest<HTMLElement>('[data-color]')
-    if (swatch) return paint(chosen.items, swatch.dataset.color as ShapeColor | 'none')
     const step = target.closest<HTMLElement>('[data-step]')
     if (step) {
       const [id, index] = step.dataset.step!.split('|')
@@ -1111,19 +1109,16 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
   const importScenario = importFor === null ? undefined : drafts[importFor]
   const stageBox = stageSize.width > 0 ? stageSize : null
   const selectedAnnotation = selectedItem === null ? undefined : map.annotations.find((a) => a.id === selectedItem)
-  // 고른 주석이 있고, 글을 고치거나 끄는 중이 아니면 색 줄을 띄운다.
+  // 주석을 고르면 툴바 끝에 색이 붙는다.
   const chosenAnnotations = map.annotations.filter((a) => chosen.items.includes(a.id))
-  const colorsOf = chosenAnnotations.map((a) => ('color' in a && a.color !== undefined ? a.color : 'none'))
-  const colorStrip = chosenAnnotations.length > 0 && editingItem === null && marquee === null && chosenBounds !== null ? (
-    <ColorStrip
-      current={colorsOf.every((c) => c === colorsOf[0]) ? colorsOf[0] : null}
-      k={view.k}
-      labels={m.colors}
-      notesOnly={chosenAnnotations.every((a) => a.type === 'note')}
-      x={chosenBounds.x}
-      y={chosenBounds.y - (chosenAnnotations.some((a) => a.type === 'section') ? 34 : 8)}
-    />
-  ) : null
+  const colorsOf = chosenAnnotations.map((a): ShapeColor | 'none' => ('color' in a && a.color !== undefined ? a.color : 'none'))
+  const toolbarColors = chosenAnnotations.length > 0
+    ? {
+        current: colorsOf.every((c) => c === colorsOf[0]) ? colorsOf[0] : null,
+        notesOnly: chosenAnnotations.every((a) => a.type === 'note'),
+        onPick: (color: ShapeColor | 'none') => paint(chosen.items, color),
+      }
+    : null
 
   return (
     <div className="rmap">
@@ -1200,12 +1195,11 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
  {marks.size > 0 && chosenBounds !== null && (
             <div className="rma-group" style={{ left: chosenBounds.x - 6, top: chosenBounds.y - 6, width: chosenBounds.w + 12, height: chosenBounds.h + 12 }} />
           )}
-          {colorStrip}
           {marquee !== null && <div className="rma-marquee" style={{ left: marquee.x, top: marquee.y, width: marquee.w, height: marquee.h }} />}
           {selectedAnnotation !== undefined && editingItem === null && <SelectionBox annotation={selectedAnnotation} k={view.k} />}
         </div>
 
-        <RunMapToolbar canRedo={history.redo.length > 0} canUndo={history.undo.length > 0} onRedo={redo} onTool={setTool} onUndo={undo} tool={activeTool} />
+        <RunMapToolbar colors={toolbarColors} canRedo={history.redo.length > 0} canUndo={history.undo.length > 0} onRedo={redo} onTool={setTool} onUndo={undo} tool={activeTool} />
         <div className="rm-ctrls">
           <button aria-label={m.zoomOut} className="rm-ctrl" onClick={() => stageBox && zoomAt(stageBox.width / 2, stageBox.height / 2, 1 / 1.2)} type="button">−</button>
           <span className="rm-zoom">{Math.round(view.k * 100)}%</span>

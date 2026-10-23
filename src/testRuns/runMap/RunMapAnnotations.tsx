@@ -3,7 +3,7 @@ import { SHAPE_COLORS, type RunMapAnnotation, type ShapeColor } from './runMapAp
 
 /** 색이 있으면 붙이는 class. 실제 색은 CSS 가 테마마다 고른다. */
 const tint = (color: ShapeColor | undefined) => (color === undefined ? '' : ` has-c rma-c-${color}`)
-const arrowHead = (color: ShapeColor | undefined, selected: boolean) => `url(#rma-ah${selected ? '-sel' : color === undefined ? '' : '-' + color})`
+const arrowHead = (color: ShapeColor | undefined) => `url(#rma-ah${color === undefined ? '' : '-' + color})`
 
 type TextProps = {
   editing: string | null
@@ -79,9 +79,6 @@ export function RunMapAnnotations({
           <marker id="rma-ah" markerHeight="8" markerWidth="8" orient="auto" refX="7" refY="4" viewBox="0 0 8 8">
             <path className="rma-arrowhead" d="M0 0 L8 4 L0 8 z" />
           </marker>
-          <marker id="rma-ah-sel" markerHeight="8" markerWidth="8" orient="auto" refX="7" refY="4" viewBox="0 0 8 8">
-            <path className="rma-arrowhead is-selected" d="M0 0 L8 4 L0 8 z" />
-          </marker>
           {SHAPE_COLORS.map((color) => (
             <marker id={`rma-ah-${color}`} key={color} markerHeight="8" markerWidth="8" orient="auto" refX="7" refY="4" viewBox="0 0 8 8">
               <path className={'rma-arrowhead' + tint(color)} d="M0 0 L8 4 L0 8 z" />
@@ -96,8 +93,8 @@ export function RunMapAnnotations({
             const d = arrowPath(a)
             return (
               <g key={a.id}>
-                <path className="rma-hit" d={d} data-annotation={a.id} />
-                <path className={'rma-arrow' + tint(a.color) + sel(a.id)} d={d} data-annotation={a.id} markerEnd={arrowHead(a.color, selected === a.id)} />
+                <path className={'rma-hit' + sel(a.id)} d={d} data-annotation={a.id} />
+                <path className={'rma-arrow' + tint(a.color)} d={d} data-annotation={a.id} markerEnd={arrowHead(a.color)} />
               </g>
             )
           }
@@ -105,8 +102,8 @@ export function RunMapAnnotations({
             const d = a.points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' ')
             return (
               <g key={a.id}>
-                <path className="rma-hit" d={d} data-annotation={a.id} />
-                <path className={'rma-pen' + tint(a.color) + sel(a.id)} d={d} data-annotation={a.id} />
+                <path className={'rma-hit' + sel(a.id)} d={d} data-annotation={a.id} />
+                <path className={'rma-pen' + tint(a.color)} d={d} data-annotation={a.id} />
               </g>
             )
           }
@@ -192,33 +189,3 @@ export function SelectionBox({ annotation, k }: { annotation: RunMapAnnotation; 
   )
 }
 
-/**
- * 고른 것 위에 뜨는 색 줄. 기본색과 다섯 색. 메모만 골랐으면 메모의 넷만 보인다. 확대 배율과 상관없이 같은 크기로
- * 보이게 [k] 로 되돌려 키운다.
- */
-export function ColorStrip({ x, y, k, current, notesOnly, labels }: {
-  x: number
-  y: number
-  k: number
-  /** 고른 것이 모두 같은 색이면 그 색, 아니면 null. 기본색은 'none'. */
-  current: ShapeColor | 'none' | null
-  notesOnly: boolean
-  labels: { strip: string; none: string } & Record<ShapeColor, string>
-}) {
-  const colors: (ShapeColor | 'none')[] = notesOnly ? ['y', 'p', 'b', 'g'] : ['none', ...SHAPE_COLORS]
-  return (
-    <div aria-label={labels.strip} className="rma-colors" role="toolbar" style={{ left: x, top: y, transform: `translateY(-100%) scale(${1 / k})` }}>
-      {colors.map((color) => (
-        <button
-          aria-label={color === 'none' ? labels.none : labels[color]}
-          aria-pressed={current === color}
-          className={'rma-swatch' + (color === 'none' ? ' is-none' : ` has-c rma-c-${color}`)}
-          data-color={color}
-          key={color}
-          title={color === 'none' ? labels.none : labels[color]}
-          type="button"
-        />
-      ))}
-    </div>
-  )
-}

@@ -1,6 +1,15 @@
 import { useI18n } from '../../i18n/useI18n'
 
+import { SHAPE_COLORS, type ShapeColor } from './runMapApi'
 import { TOOL_KEYS, type RunMapTool } from './runMapTools'
+
+/** 고른 주석이 있을 때 툴바 끝에 붙는 색. 메모만 골랐으면 메모의 넷만. */
+export type ToolbarColors = {
+  /** 고른 것이 모두 같은 색이면 그 색, 아니면 null. 기본색은 'none'. */
+  current: ShapeColor | 'none' | null
+  notesOnly: boolean
+  onPick: (color: ShapeColor | 'none') => void
+}
 
 const ICONS: Record<RunMapTool, string> = {
   select: 'M5 3l14 8-6 2-2 6z',
@@ -25,6 +34,7 @@ export function RunMapToolbar({
   canRedo,
   onUndo,
   onRedo,
+  colors,
 }: {
   tool: RunMapTool
   onTool: (tool: RunMapTool) => void
@@ -32,9 +42,12 @@ export function RunMapToolbar({
   canRedo: boolean
   onUndo: () => void
   onRedo: () => void
+  colors: ToolbarColors | null
 }) {
   const { t } = useI18n()
   const m = t.scenarios.map.tools
+  const c = t.scenarios.map.colors
+  const palette: (ShapeColor | 'none')[] = colors?.notesOnly ? ['y', 'p', 'b', 'g'] : ['none', ...SHAPE_COLORS]
   return (
     <div aria-label={m.label} className="rm-toolbar" role="toolbar">
       {ORDER.map((one) => (
@@ -60,6 +73,24 @@ export function RunMapToolbar({
         <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M15 14l5-5-5-5M20 9H10a6 6 0 000 12h3" /></svg>
         <span className="visually-hidden">{m.redo}</span>
       </button>
+      {colors !== null && (
+        <>
+          <span className="rm-tool-sep" />
+          <span aria-label={c.strip} className="rm-tool-colors" role="group">
+            {palette.map((color) => (
+              <button
+                aria-label={color === 'none' ? c.none : c[color]}
+                aria-pressed={colors.current === color}
+                className={'rma-swatch' + (color === 'none' ? ' is-none' : ` has-c rma-c-${color}`)}
+                key={color}
+                onClick={() => colors.onPick(color)}
+                title={color === 'none' ? c.none : c[color]}
+                type="button"
+              />
+            ))}
+          </span>
+        </>
+      )}
     </div>
   )
 }
