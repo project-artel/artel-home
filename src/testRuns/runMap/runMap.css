@@ -60,6 +60,7 @@
 .rmf-title:hover { text-decoration: underline dotted; text-underline-offset: 3px; }
 .rmf-title-input { flex: 1; min-width: 0; height: 26px; padding: 0 6px; border: 1px solid var(--color-action-primary); border-radius: 6px; background: var(--color-bg-canvas, var(--color-bg-surface)); color: var(--color-text-primary); font: inherit; font-size: 13px; font-weight: 700; outline: 0; }
 .rmf.is-marked { outline: 2px dashed var(--color-action-primary); outline-offset: 3px; }
+.rma-group { position: absolute; z-index: 940; box-sizing: border-box; border: 1px dashed var(--color-action-primary); border-radius: 6px; pointer-events: none; }
 .rma-marquee { position: absolute; z-index: 960; box-sizing: border-box; border: 1px solid var(--color-action-primary); background: color-mix(in srgb, var(--color-action-primary) 10%, transparent); pointer-events: none; }
 .rma-shape.is-marked, .rma-arrow.is-marked, .rma-pen.is-marked { stroke: var(--color-action-primary); stroke-dasharray: 6 4; }
 .rma-note.is-marked, .rma-text.is-marked, .rma-section.is-marked { outline: 2px dashed var(--color-action-primary); outline-offset: 3px; }

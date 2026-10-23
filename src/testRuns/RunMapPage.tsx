@@ -54,7 +54,7 @@ type Interaction =
   | { kind: 'marquee'; ox: number; oy: number; additive: boolean; section: string | null }
   // 묶음 상자를 옮기면 [carry] 에 든 프레임 · 주석도 함께 옮긴다.
   | { kind: 'item'; id: string; lastX: number; lastY: number; moved: boolean; before: Board; carry: { frames: string[]; items: string[] } }
-  | { kind: 'draw'; id: string; ox: number; oy: number; before: Board }
+  | { kind: 'draw'; id: string; ox: number; oy: number; before: Board; repeat: boolean }
   | { kind: 'resize'; id: string; handle: BoxHandle; from: Box; original: RunMapAnnotation; moved: boolean; before: Board }
   | { kind: 'bend'; id: string; handle: 'p1' | 'p2' | 'c'; moved: boolean; before: Board }
 
@@ -71,7 +71,28 @@ const PASTE_OFFSET = 24
 type Chosen = { items: string[]; frames: string[] }
 const NOTHING: Chosen = { items: [], frames: [] }
 const NO_MARKS: ReadonlySet<string> = new Set()
-const overlaps = (a: Box, b: Box) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
+/**
+ * 영역 끌기로 고를 만큼 겹쳤는가. 끄는 영역이 [item] 넓이의 30% 이상을 덮으면 고른다. 통째로 넣어야 하면 큰 프레임 ·
+ * 묶음 상자를 고르기 힘들고, 조금만 걸쳐도 고르면 옆의 것까지 딸려 온다.
+ */
+const MARQUEE_COVER = 0.3
+function coveredEnough(marquee: Box, item: Box): boolean {
+  const w = Math.min(marquee.x + marquee.w, item.x + item.w) - Math.max(marquee.x, item.x)
+  const h = Math.min(marquee.y + marquee.h, item.y + item.h) - Math.max(marquee.y, item.y)
+  if (w <= 0 || h <= 0) return false
+  // 넓이가 거의 없는 것(곧은 화살표 · 가로줄 그림)은 걸치기만 해도 고른다.
+  const area = Math.max(item.w, 1) * Math.max(item.h, 1)
+  return area < 400 || (w * h) / area >= MARQUEE_COVER
+}
+/** 묶음 상자의 가장 작은 크기. 누르기만 해도 이 크기로 생긴다. */
+const SECTION_MIN = { w: 320, h: 200 }
+const unionOf = (boxes: Box[]): Box | null => {
+  if (boxes.length === 0) return null
+  const x = Math.min(...boxes.map((b) => b.x))
+  const y = Math.min(...boxes.map((b) => b.y))
+  return { x, y, w: Math.max(...boxes.map((b) => b.x + b.w)) - x, h: Math.max(...boxes.map((b) => b.y + b.h)) - y }
+}
+const inside = (box: Box, p: { x: number; y: number }) => p.x >= box.x && p.x <= box.x + box.w && p.y >= box.y && p.y <= box.y + box.h
 
 function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) {
   const { t } = useI18n()
@@ -414,6 +435,26 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     // 같은 자리에 또 붙이면 겹치지 않게, 다음 붙여넣기는 붙인 것에서 한 칸 더 옮긴다.
     if (at === null) clipboard = { kind: 'annotations', items: pasted }
   }, [drafts, frameOf, createTs, commitBoard, m.toast.pasted])
+  /** 고른 것 전체를 둘러싼 영역. 이 안을 끌면 고른 것을 옮긴다. */
+  const chosenBounds = unionOf([
+    ...map.annotations.filter((a) => chosen.items.includes(a.id)).map(boxOf),
+    ...chosen.frames.map((id) => {
+      const f = frameOf(id)
+      return { x: f.x, y: f.y, w: FRAME_W, h: frameHeight(scenarios.find((sc) => sc.id === id)?.steps.length ?? 0, f.folded) }
+    }),
+  ])
+  /** 고른 묶음 상자는 안에 든 것도 함께 옮긴다. */
+  const withSectionContents = (c: Chosen): Chosen => {
+    const items = new Set(c.items)
+    const frames = new Set(c.frames)
+    for (const a of mapRef.current.annotations) {
+      if (a.type !== 'section' || !items.has(a.id)) continue
+      const inner = sectionContents(a)
+      inner.items.forEach((x) => items.add(x))
+      inner.frames.forEach((x) => frames.add(x))
+    }
+    return { items: [...items], frames: [...frames] }
+  }
   /** 고른 것 여럿을 함께 옮길 때 [id] 와 같이 움직일 나머지. */
   const carryOf = (id: string): Chosen => (marks.has(id)
     ? { items: chosen.items.filter((x) => x !== id), frames: chosen.frames.filter((x) => x !== id) }
@@ -489,6 +530,8 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     }
     if (activeTool === 'hand' || event.button === 1) return startPan()
     const tool = activeTool
+    // 하나 만들면 선택 도구로 돌아간다. ⌘ · Alt 를 누르고 있으면 같은 도구로 이어 만든다.
+    const repeat = event.metaKey || event.ctrlKey || event.altKey
     // 고른 주석의 손잡이: 상자는 크기, 화살표는 끝점 · 휘기.
     // 크기를 정하지 않은 메모 · 글은 그려진 크기에서 시작한다.
     const drawnBox = (a: RunMapAnnotation, el: HTMLElement): Box => {
@@ -516,12 +559,12 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
         m.toast.annotationAdded,
         true,
       )
-      setTool('select')
+      if (!repeat) setTool('select')
       return
     }
     if (tool === 'ts') {
       void createTs({ x: w.x - FRAME_W / 2, y: w.y - 20 })
-      setTool('select')
+      if (!repeat) setTool('select')
       return
     }
     if (tool === 'rect' || tool === 'ellipse' || tool === 'section' || tool === 'arrow' || tool === 'pen') {
@@ -535,7 +578,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
       // 끄는 동안 [mapRef] 위에서 크기를 바꾸므로, 시작할 때 그쪽에도 넣는다.
       mapRef.current = { ...mapRef.current, annotations: [...mapRef.current.annotations, annotation] }
       setMap((current) => ({ ...current, annotations: [...current.annotations, annotation] }))
-      interaction.current = { kind: 'draw', id, ox: w.x, oy: w.y, before }
+      interaction.current = { kind: 'draw', id, ox: w.x, oy: w.y, before, repeat }
       capture()
       return
     }
@@ -545,8 +588,14 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
       capture()
     }
     const item = target.closest<HTMLElement>('[data-annotation]')
-    // 묶음 상자 안 빈 곳은 영역 끌기다. 상자는 이름표를 잡고 옮긴다.
-    if (item && item.classList.contains('rma-section')) return startMarquee(item.dataset.annotation!)
+    // 묶음 상자 안 빈 곳은 영역 끌기다. 상자는 이름표를 잡고 옮긴다. 단 고른 것의 영역 안이면 그것을 옮긴다.
+    const inChosen = !event.shiftKey && chosenBounds !== null && inside(chosenBounds, w)
+    if (item && item.classList.contains('rma-section') && !inChosen) return startMarquee(item.dataset.annotation!)
+    if (item && item.classList.contains('rma-section') && inChosen) {
+      interaction.current = { kind: 'item', id: '', lastX: w.x, lastY: w.y, moved: false, before: currentBoard(), carry: withSectionContents(chosen) }
+      capture()
+      return
+    }
     if (item) {
       const id = item.dataset.annotation!
       if (event.shiftKey) {
@@ -582,7 +631,15 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
       capture()
       return
     }
-    if (target.closest('[data-step], [data-scene], .rmf')) {
+    // 스텝은 누르면 서랍을 연다. 끌기로 가로채지 않는다.
+    if (target.closest('[data-step]')) return
+    // 고른 것의 영역 안 빈 곳(고른 프레임 몸통 포함)을 끌면 영역 끌기가 아니라 고른 것을 옮긴다.
+    if (!event.shiftKey && chosenBounds !== null && inside(chosenBounds, w)) {
+      interaction.current = { kind: 'item', id: '', lastX: w.x, lastY: w.y, moved: false, before: currentBoard(), carry: withSectionContents(chosen) }
+      capture()
+      return
+    }
+    if (target.closest('[data-scene], .rmf')) {
       setChosen(NOTHING)
       return
     }
@@ -665,13 +722,13 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
         if (!now.additive) setChosen(now.section === null ? NOTHING : { items: [now.section], frames: [] })
         return
       }
-      // 걸친 것은 모두 고른다. 묶음 상자만은 통째로 들어야 고른다(상자 안에서 끌면 상자는 빼고 고르려는 것이다).
+      // 30% 이상 덮은 것을 고른다. 끌기를 시작한 묶음 상자는 빼고(상자 안에서 끄는 것은 안의 것을 고르려는 것이다).
       const items = mapRef.current.annotations
-        .filter((a) => (a.type === 'section' ? contains(box, boxOf(a)) : overlaps(box, boxOf(a))))
+        .filter((a) => a.id !== now.section && coveredEnough(box, boxOf(a)))
         .map((a) => a.id)
       const frames = scenarios.filter((sc) => {
         const f = frameOf(sc.id)
-        return overlaps(box, { x: f.x, y: f.y, w: FRAME_W, h: frameHeight(sc.steps.length, f.folded) })
+        return coveredEnough(box, { x: f.x, y: f.y, w: FRAME_W, h: frameHeight(sc.steps.length, f.folded) })
       }).map((sc) => sc.id)
       setChosen((c) => (now.additive
         ? { items: [...new Set([...c.items, ...items])], frames: [...new Set([...c.frames, ...frames])] }
@@ -692,6 +749,15 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     if (now.kind === 'resize' || now.kind === 'bend') {
       if (now.moved) commitBoard(now.before, after, now.kind === 'resize' ? m.toast.resized : m.toast.annotationChanged)
       return
+    }
+    if (!now.repeat) setTool('select')
+    // 묶음 상자는 가장 작은 크기 아래로 만들지 않는다. 누르기만 해도 그 크기로 생긴다.
+    const sized = after.annotations.find((a) => a.id === now.id)
+    if (sized?.type === 'section' && (sized.w < SECTION_MIN.w || sized.h < SECTION_MIN.h)) {
+      const grown: RunMapAnnotation = { ...sized, w: Math.max(sized.w, SECTION_MIN.w), h: Math.max(sized.h, SECTION_MIN.h) }
+      after.annotations = after.annotations.map((a) => (a.id === now.id ? grown : a))
+      setMap((current) => ({ ...current, annotations: after.annotations }))
+      mapRef.current = { ...mapRef.current, annotations: after.annotations }
     }
     // 그리기: 너무 작으면 실수로 누른 것으로 보고 버린다.
     const drawn = after.annotations.find((a) => a.id === now.id)
@@ -736,7 +802,13 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     const under = document.elementFromPoint(event.clientX, event.clientY) as HTMLElement | null
     const item = under?.closest<HTMLElement>('[data-annotation]')
     const one = item ? mapRef.current.annotations.find((a) => a.id === item.dataset.annotation) : undefined
-    if (one !== undefined && hasText(one)) setEditingItem(one.id)
+    if (one !== undefined && hasText(one)) return setEditingItem(one.id)
+    // TS 프레임을 두 번 누르면 TC 가져오기를 연다. 이름 · 단추 · 스텝은 각자 하는 일이 있어 뺀다.
+    const frame = under?.closest<HTMLElement>('[data-scenario-id]')
+    if (frame && !under?.closest('button, input, [data-rename], [data-step]')) {
+      setDrawerOpen(false)
+      setImportFor(frame.dataset.scenarioId!)
+    }
   }
   function onMouseOver(event: React.MouseEvent) {
     const target = event.target as HTMLElement
@@ -1082,6 +1154,9 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
             )
           })}
           <RunMapAnnotations annotations={map.annotations} authors={map.authors} editing={editingItem} k={view.k} marks={marks} onEditText={editText} selected={selectedItem} />
+ {marks.size > 0 && chosenBounds !== null && (
+            <div className="rma-group" style={{ left: chosenBounds.x - 6, top: chosenBounds.y - 6, width: chosenBounds.w + 12, height: chosenBounds.h + 12 }} />
+          )}
           {marquee !== null && <div className="rma-marquee" style={{ left: marquee.x, top: marquee.y, width: marquee.w, height: marquee.h }} />}
           {selectedAnnotation !== undefined && editingItem === null && <SelectionBox annotation={selectedAnnotation} k={view.k} />}
         </div>
