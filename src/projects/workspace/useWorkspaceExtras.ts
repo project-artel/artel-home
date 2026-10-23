@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useProjectChange } from '../../live/useProjectChange'
+import { usePolling } from '../../live/usePolling'
 import { listProjectIssues } from '../../issues/issueApi'
 import type { Issue } from '../../issues/issueTypes'
 import { listQaModels, listQaTries } from '../../qa/qaApi'
@@ -9,6 +11,7 @@ import { listTestRuns, type TestRun } from '../../testRuns/testRunApi'
 import { getTrackerLink } from '../../tracker/trackerApi'
 import type { TrackerLink } from '../../tracker/trackerTypes'
 import type { ExtrasStatus } from './workspaceContext'
+import { createWorkspaceRunLoader } from './workspaceRunLoader'
 
 type Extras = {
   runs: TestRun[]
@@ -58,20 +61,29 @@ export function useWorkspaceExtras(projectId: string) {
   const [extras, setExtras] = useState<Extras>(empty)
   const [status, setStatus] = useState<ExtrasStatus>('loading')
   const [reloadToken, setReloadToken] = useState(0)
+  const runLoader = useMemo(() => createWorkspaceRunLoader(
+    async (signal) => {
+      const [runs, coverage] = await Promise.all([listTestRuns(projectId, signal), getCoverage(projectId, signal)])
+      return { runs, coverage }
+    },
+    (data) => setExtras((previous) => ({ ...previous, ...data })),
+  ), [projectId])
+  const refreshRuns = useCallback(() => runLoader.refresh(), [runLoader])
+  useEffect(() => () => runLoader.cancel(), [runLoader])
 
   useEffect(() => {
     const controller = new AbortController()
 
     Promise.all([
-      listTestRuns(projectId, controller.signal),
+      refreshRuns(),
       listQaTries(projectId, controller.signal),
       listQaModels(controller.signal),
       listProjectIssues(projectId, { status: 'OPEN' }, undefined, controller.signal),
-      getCoverage(projectId, controller.signal),
       getTrackerLink(projectId, controller.signal),
     ])
-      .then(([runs, tries, models, issues, coverage, trackerLink]) => {
-        setExtras({ runs, tries, models, openIssues: issues.items, coverage, trackerLink })
+      .then(([, tries, models, issues, trackerLink]) => {
+        if (controller.signal.aborted) return
+        setExtras((previous) => ({ ...previous, tries, models, openIssues: issues.items, trackerLink }))
         setStatus('ready')
       })
       .catch(() => {
@@ -80,27 +92,16 @@ export function useWorkspaceExtras(projectId: string) {
       })
 
     return () => controller.abort()
-  }, [projectId, reloadToken])
+  }, [projectId, reloadToken, refreshRuns])
 
   const reloadExtras = useCallback(() => {
     setStatus('loading')
     setReloadToken((token) => token + 1)
   }, [])
 
-  /**
-   * Re-reads one list in place, leaving the rest of the screen alone. Used
-   * after a mutation the user just made, where blanking the whole workspace
-   * back to its loading state would be a heavy answer to "did my run appear".
-   */
-  const refreshRuns = useCallback(
-    () =>
-      // 커버리지를 함께 읽는다. 시나리오를 만들거나 지우면 미커버 수가 바로 달라지는데, 그
-      // 숫자만 옛것으로 남으면 사용자는 방금 한 일이 반영되지 않았다고 읽는다.
-      Promise.all([listTestRuns(projectId), getCoverage(projectId)]).then(([runs, coverage]) => {
-        setExtras((previous) => ({ ...previous, runs, coverage }))
-      }),
-    [projectId],
-  )
+  // 이벤트마다 화면을 비우지 않아 QA에서 선택한 런과 모델을 유지한다.
+  const live = useProjectChange(projectId, 'TEST_RUNS', () => { void refreshRuns().catch(() => {}) })
+  usePolling(() => { void refreshRuns().catch(() => {}) }, undefined, status === 'ready' && !live)
 
   /**
    * Starting a QA run adds a try and can turn an issue up later. The issue

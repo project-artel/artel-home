@@ -57,6 +57,24 @@ afterEach(() => mock.timers.reset())
 test('parseProjectChangedEvent reads a known topic', () => {
   assert.equal(parseProjectChangedEvent('{"topic":"GAME_INSTANCES"}'), 'GAME_INSTANCES')
   assert.equal(parseProjectChangedEvent('{"topic":"USAGE"}'), 'USAGE')
+  assert.equal(parseProjectChangedEvent('{"topic":"TEST_RUNS"}'), 'TEST_RUNS')
+})
+
+test('런 변경은 TEST_RUNS 구독만 갱신하고 재연결 ready도 재조회한다', () => {
+  const { registry, sources } = fixture()
+  let runs = 0
+  let cases = 0
+  registry.subscribe('10', { topics: ['TEST_RUNS'], onChange: () => { runs++ } })
+  registry.subscribe('10', { topics: ['TEST_CASES'], onChange: () => { cases++ } })
+  sources[0].emit('changed', '{"topic":"TEST_RUNS"}')
+  sources[0].emit('changed', '{"topic":"TEST_RUNS"}')
+  mock.timers.tick(300)
+  assert.equal(runs, 1)
+  assert.equal(cases, 0)
+  sources[0].emit('ready')
+  mock.timers.tick(300)
+  assert.equal(runs, 2)
+  assert.equal(cases, 1)
 })
 
 test('parseProjectChangedEvent drops unknown topics and broken frames', () => {

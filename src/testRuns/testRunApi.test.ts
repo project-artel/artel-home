@@ -1,6 +1,24 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { gameBuildName, parseRunCasesOutsideBuild, parseTestRun } from './testRunApi'
+import { gameBuildName, listTestRuns, parseRunCasesOutsideBuild, parseTestRun } from './testRunApi'
+import { ProjectApiError } from '../projects/projectApi'
+
+test('런 목록을 다시 조회하면 서버가 집계한 최신 시나리오 수를 읽는다', async (context) => {
+  let scenarioCount = 0
+  const fetch = context.mock.method(globalThis, 'fetch', async () => Response.json({
+    items: [{ id: '32', projectId: '10', name: '런', scenarioCount }],
+  }))
+  assert.equal((await listTestRuns('10'))[0].scenarioCount, 0)
+  scenarioCount = 1
+  assert.equal((await listTestRuns('10'))[0].scenarioCount, 1)
+  assert.equal(fetch.mock.callCount(), 2)
+})
+
+test('런 목록 조회 실패를 빈 런 목록으로 처리하지 않는다', async (context) => {
+  context.mock.method(globalThis, 'fetch', async () => Response.json({}, { status: 503 }))
+  await assert.rejects(listTestRuns('10'), (error: unknown) =>
+    error instanceof ProjectApiError && error.status === 503)
+})
 
 test('TR 은 만든 게임 버전을 함께 읽고, 없으면 null 이다', () => {
   const withBuild = parseTestRun({
