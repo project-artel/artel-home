@@ -13107,51 +13107,6 @@ col.vimp-c-scene{ width:18% } col.vimp-c-verdict{ width:16% }
   }
 }
 
-/* 케이스 표를 받는 동안의 빈 줄(ARTEL-1211). 진짜 줄과 같은 높이라 다 받아도 화면이 밀리지 않는다. */
-.tct-skel td {
-  height: 47px;
-  vertical-align: middle;
-}
-
-.tct-skel .skeleton-line {
-  display: block;
-  max-width: 100%;
-  animation: tct-skel-pulse 1.4s ease-in-out infinite;
-}
-
-/* 표 칸의 높이는 진짜 표와 같은 규칙(.tcl-list-panel)이 정한다. 빈 줄이 그보다 많아도 스크롤하지 않는다. */
-.tcl-list-panel.is-loading .cp-list {
-  overflow: hidden;
-}
-
-.tcl-folders--skeleton .skeleton-line {
-  display: block;
-  height: 14px;
-  margin: 9px var(--space-2);
-  animation: tct-skel-pulse 1.4s ease-in-out infinite;
-}
-
-@keyframes tct-skel-pulse {
-  50% {
-    opacity: 0.45;
-  }
-}
-
-/* 화면 칩 줄 자리. 칩과 같은 높이의 막대로 줄 높이를 지킨다. */
-.tcl-filter-skel .skeleton-line {
-  height: 19px;
-  border-radius: 999px;
-  animation: tct-skel-pulse 1.4s ease-in-out infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .tcl-filter-skel .skeleton-line,
-  .tct-skel .skeleton-line,
-  .tcl-folders--skeleton .skeleton-line {
-    animation: none;
-  }
-}
-
 /* ── 판정 근거 (ARTEL-1135) ─────────────────────────────────────────────
    QA 히스토리 안 페이지(qa-history/:qaRunId). 위: 출처 · 시나리오 · 스텝 내비게이터, 아래: 스텝 목록 | 고른 스텝의 근거.
    스크롤은 모두 `EdgeScrollbar`(오른쪽 · 가로)로 넘긴다. */
@@ -13343,3 +13298,48 @@ col.vimp-c-scene{ width:18% } col.vimp-c-verdict{ width:16% }
 .qv-code-value--failed { color: var(--color-status-critical); }
 .qv-code-value .qv-muted { font-family: inherit; font-weight: 400; font-size: 12px; }
 .qv-code-note { margin: 6px 0 0; font-size: 12px; color: var(--color-text-muted); }
+
+/* 케이스 표를 받는 동안의 빈 줄(ARTEL-1211). 진짜 줄과 같은 높이라 다 받아도 화면이 밀리지 않는다. */
+.tct-skel td {
+  height: 47px;
+  vertical-align: middle;
+}
+
+.tct-skel .skeleton-line {
+  display: block;
+  max-width: 100%;
+  animation: tct-skel-pulse 1.4s ease-in-out infinite;
+}
+
+/* 표 칸의 높이는 진짜 표와 같은 규칙(.tcl-list-panel)이 정한다. 빈 줄이 그보다 많아도 스크롤하지 않는다. */
+.tcl-list-panel.is-loading .cp-list {
+  overflow: hidden;
+}
+
+.tcl-folders--skeleton .skeleton-line {
+  display: block;
+  height: 14px;
+  margin: 9px var(--space-2);
+  animation: tct-skel-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes tct-skel-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* 화면 칩 줄 자리. 칩과 같은 높이의 막대로 줄 높이를 지킨다. */
+.tcl-filter-skel .skeleton-line {
+  height: 19px;
+  border-radius: 999px;
+  animation: tct-skel-pulse 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tcl-filter-skel .skeleton-line,
+  .tct-skel .skeleton-line,
+  .tcl-folders--skeleton .skeleton-line {
+    animation: none;
+  }
+}
