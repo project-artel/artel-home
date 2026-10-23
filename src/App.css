@@ -10162,6 +10162,8 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
 }
 .tcl-table td{ padding:7px 10px; border-bottom:1px solid var(--st-border); vertical-align:middle; }
 .tct-row{ cursor:pointer; }
+/* 가상 스크롤의 위아래 빈 줄(ARTEL-1211). 높이만 갖고 칸 여백 · 선은 없다. */
+.tct-spacer td{ padding:0 !important; border:0 !important; background:none !important; }
 .tct-row:hover td, .tct-row.active td{ background:var(--st-hover); }
 .tct-row.picked td{ background:var(--color-bg-hover); }
 /* 다중 선택으로 고른 행. 편집기가 열린 행(picked)의 왼쪽 띠와 겹치지 않게 배경만 깐다. */
@@ -10175,11 +10177,16 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
 .tct-check input:disabled{ cursor:not-allowed; }
 .tct-check input:focus-visible{ outline:2px solid var(--color-brand-accent); outline-offset:2px; }
 .tct-step-in{ display:flex; align-items:center; gap:9px; min-width:0; }
-.tct-step-text{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600; }
+.tct-step-text{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--st-text-2); font-weight:500; }
 /* 고른 행은 왼쪽 띠와 배경이 말한다. 글자까지 accent 로 두면 그 배경 위에서 2.84:1 이 된다. */
 .tct-row.picked .tct-step-text{ color:var(--st-text); }
 /* 기대결과와 날짜는 스텝을 읽고 나서 보는 것이다. 한 단계 뒤로 물린다. */
 .tct-quiet{ color:var(--st-text-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+/* 스텝 · 기대결과 속 백틱 이름(오브젝트 · 화면 · 키). 알약 칩으로 세우고, 이름 밖의 조사 · 서술은 한 단계 흐리게 둬서
+   표를 훑을 때 이름이 먼저 잡히게 한다. TS 편집의 단계 줄도 같은 모양이다. 줄 높이는 그대로 둔다.
+   바탕은 글자색을 묽게 섞는다. 표면색을 쓰면 어두운 화면 · 고른 줄에서 바탕과 같아져 안 보였다. */
+.tct-expected{ color:var(--st-muted); }
+.tct-code{ padding:1px 8px; border-radius:999px; background:color-mix(in srgb, var(--st-text) 12%, transparent); color:var(--st-text); font-family:var(--st-mono); font-size:.92em; font-weight:600; }
 .tcl .tcl-scroll{ padding:0; }
 
 /* side sheet — 표를 가리지 않을 만큼만 덮는다 */
@@ -12709,7 +12716,9 @@ button.gf-bar:focus-visible {
 .scenario-studio .se-scene { display: inline-block; max-width: 100%; overflow: hidden; padding: 1px 7px; border: 1px solid var(--st-border-strong); border-radius: 4px; background: var(--st-surface); color: var(--st-text); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
 .scenario-studio .se-scene-ref { color: var(--st-action); font-weight: 700; }
 /* 백틱으로 감싼 씬 이름도 씬이다 — 오브젝트 상자를 벗기고 같은 색 · 굵기로. */
-.scenario-studio .se-row-action code, .scenario-studio .se-detail code { border: 1px solid var(--st-border); border-radius: 4px; padding: 0 4px; background: var(--st-raised); color: var(--st-text); }
+/* 케이스 라이브러리 표와 같은 알약 칩(.tct-code). 단계 줄에서는 이름 밖의 글을 한 단계 흐리게 둔다. */
+.scenario-studio .se-row-action code, .scenario-studio .se-detail code { border: 0; border-radius: 999px; padding: 1px 8px; background: color-mix(in srgb, var(--st-text) 12%, transparent); color: var(--st-text); font-weight: 600; }
+.scenario-studio .se-row-action { color: var(--st-text-2); }
 .scenario-studio .se-row-action code.se-scene-ref, .scenario-studio .se-detail code.se-scene-ref { padding: 0; border: 0; background: none; color: var(--st-action); font-family: inherit; font-size: inherit; }
 
 /* 판정은 색 점과 상태 이름. 머리의 (i) 에 범례가 있다. */
@@ -13262,3 +13271,48 @@ col.vimp-c-scene{ width:18% } col.vimp-c-verdict{ width:16% }
 .qh-steps-x { color: var(--color-status-critical); }
 .qh-steps-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .qh-steps-open { justify-content: center; }
+
+/* 케이스 표를 받는 동안의 빈 줄(ARTEL-1211). 진짜 줄과 같은 높이라 다 받아도 화면이 밀리지 않는다. */
+.tct-skel td {
+  height: 47px;
+  vertical-align: middle;
+}
+
+.tct-skel .skeleton-line {
+  display: block;
+  max-width: 100%;
+  animation: tct-skel-pulse 1.4s ease-in-out infinite;
+}
+
+/* 표 칸의 높이는 진짜 표와 같은 규칙(.tcl-list-panel)이 정한다. 빈 줄이 그보다 많아도 스크롤하지 않는다. */
+.tcl-list-panel.is-loading .cp-list {
+  overflow: hidden;
+}
+
+.tcl-folders--skeleton .skeleton-line {
+  display: block;
+  height: 14px;
+  margin: 9px var(--space-2);
+  animation: tct-skel-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes tct-skel-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* 화면 칩 줄 자리. 칩과 같은 높이의 막대로 줄 높이를 지킨다. */
+.tcl-filter-skel .skeleton-line {
+  height: 19px;
+  border-radius: 999px;
+  animation: tct-skel-pulse 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tcl-filter-skel .skeleton-line,
+  .tct-skel .skeleton-line,
+  .tcl-folders--skeleton .skeleton-line {
+    animation: none;
+  }
+}

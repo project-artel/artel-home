@@ -12,6 +12,7 @@ import { gameBuildDetailHref } from '../projects/workspace/sections'
 import { CanvasViewportControls } from './CanvasViewportControls'
 import { ContentMapInspector } from './ContentMapInspector'
 import { describeGenerationBlock } from './contentMapTestCases'
+import { ContentMapSkeleton } from './ContentMapSkeleton'
 import { ContentMapTree } from './ContentMapTree.tsx'
 import { CaptureHeader, ContentMapSummary, SummaryCounts } from './ContentMapSummary'
 import type { ContentMapSelection, ContentMapView } from './contentMapTypes'
@@ -110,7 +111,8 @@ export function ContentMapReport({
     return (
       <section aria-busy="true" className="page content-map">
         {meta('')}
-        <p className="panel-empty">{copy.states.loading}</p>
+        <p className="visually-hidden" role="status">{copy.states.loading}</p>
+        <ContentMapSkeleton treeTitle={copy.tree.title} />
       </section>
     )
   }

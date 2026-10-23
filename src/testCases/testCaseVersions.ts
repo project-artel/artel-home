@@ -370,9 +370,17 @@ export type VerdictCarrySkip =
   | 'JUDGED_IN_THIS_VERSION'
   | 'BROKEN'
   | 'NOT_IN_VERSION'
+  | 'ALREADY_CARRIED'
   | 'OTHER'
 
-const CARRY_SKIPS: VerdictCarrySkip[] = ['CONTENT_CHANGED', 'NO_PREVIOUS_VERDICT', 'JUDGED_IN_THIS_VERSION', 'BROKEN', 'NOT_IN_VERSION']
+const CARRY_SKIPS: VerdictCarrySkip[] = [
+  'CONTENT_CHANGED',
+  'NO_PREVIOUS_VERDICT',
+  'JUDGED_IN_THIS_VERSION',
+  'BROKEN',
+  'NOT_IN_VERSION',
+  'ALREADY_CARRIED',
+]
 
 /** 가져온 TC 수와, 못 가져온 TC 를 까닭별로 센 것, 다시 검증하도록 돌린 수. */
 export type VerdictCarryResult = { carried: number; skipped: Partial<Record<VerdictCarrySkip, number>>; reset: number }

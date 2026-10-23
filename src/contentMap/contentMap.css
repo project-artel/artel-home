@@ -1268,3 +1268,83 @@
 .cm-sdk--failed .cm-sdk-label {
   color: var(--color-status-critical);
 }
+
+/* ── 처음 받는 동안의 빈 화면 ──────────────────────────────────────────── */
+.cm-skel .skeleton-line {
+  display: block;
+  animation: cm-skel-pulse 1.4s ease-in-out infinite;
+}
+.cm-skel .cm-scan-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: 30px;
+}
+.cm-skel .cm-scan-bar .skeleton-line {
+  height: 14px;
+}
+.cm-skel .cm-skel-note {
+  width: 440px;
+  max-width: 60%;
+  height: 12px;
+  margin: 11px 0 3px;
+}
+/* 머리 · 발 줄은 진짜 화면에서 단추가 높이를 정한다. 막대만 있으면 낮아지므로 높이를 맞춰 둔다. */
+.cm-skel .cm-canvas-head {
+  min-height: 51px;
+}
+.cm-skel .cm-canvas-foot {
+  min-height: 33px;
+}
+.cm-skel-tree-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  min-height: 62px;
+  padding: 6px 8px 6px 30px;
+  list-style: none;
+}
+.cm-skel-thumb {
+  flex: none;
+  width: 56px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-hover);
+  animation: cm-skel-pulse 1.4s ease-in-out infinite;
+}
+.cm-skel-lines {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 4px;
+}
+.cm-skel .cm-canvas-head .skeleton-line {
+  height: 14px;
+}
+.cm-skel-canvas {
+  position: relative;
+  overflow: hidden;
+}
+.cm-skel-node {
+  position: absolute;
+  width: 15%;
+  max-width: 230px;
+  aspect-ratio: 230 / 100;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-hover);
+  animation: cm-skel-pulse 1.4s ease-in-out infinite;
+}
+@keyframes cm-skel-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cm-skel .skeleton-line,
+  .cm-skel-thumb,
+  .cm-skel-node {
+    animation: none;
+  }
+}
