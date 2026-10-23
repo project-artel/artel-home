@@ -48,7 +48,10 @@ type Change = { kind: 'board'; board: Board } | { kind: 'scenario'; id: string; 
 type View = { x: number; y: number; k: number }
 type Interaction =
   | { kind: 'pan'; sx: number; sy: number; ox: number; oy: number }
-  | { kind: 'frame'; id: string; sx: number; sy: number; ox: number; oy: number; moved: boolean; before: Board }
+  // [rename]: 이름을 눌렀다. 끌지 않고 떼면 이름을 고친다.
+  | { kind: 'frame'; id: string; sx: number; sy: number; ox: number; oy: number; moved: boolean; before: Board; rename: boolean }
+  // 영역 끌기. [section] 은 묶음 상자 안에서 시작했을 때의 그 상자(끌지 않고 떼면 상자를 고른다).
+  | { kind: 'marquee'; ox: number; oy: number; additive: boolean; section: string | null }
   // 묶음 상자를 옮기면 [carry] 에 든 프레임 · 주석도 함께 옮긴다.
   | { kind: 'item'; id: string; lastX: number; lastY: number; moved: boolean; before: Board; carry: { frames: string[]; items: string[] } }
   | { kind: 'draw'; id: string; ox: number; oy: number; before: Board }
@@ -64,6 +67,11 @@ const newAnnotationId = () => `a${Date.now().toString(36)}${(annotationSeq++).to
 /** 복사한 것. 페이지를 옮겨도 남아 있어 다른 런 맵에도 붙여넣을 수 있다. */
 let clipboard: { kind: 'annotations'; items: RunMapAnnotation[] } | { kind: 'ts'; id: string } | null = null
 const PASTE_OFFSET = 24
+/** 고른 것. 하나면 손잡이를 띄우고, 여럿이면(영역 끌기 · Shift 누르기) 함께 옮기고 지우고 복사한다. */
+type Chosen = { items: string[]; frames: string[] }
+const NOTHING: Chosen = { items: [], frames: [] }
+const NO_MARKS: ReadonlySet<string> = new Set()
+const overlaps = (a: Box, b: Box) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
 
 function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) {
   const { t } = useI18n()
@@ -88,7 +96,15 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
   const [hover, setHover] = useState<{ id: string; index: number; rect: DOMRect } | null>(null)
   const [menu, setMenu] = useState<{ x: number; y: number; label: string; items: ContextMenuItem[] } | null>(null)
   const [importFor, setImportFor] = useState<string | null>(null)
-  const [selectedItem, setSelectedItem] = useState<string | null>(null)
+  const [chosen, setChosen] = useState<Chosen>(NOTHING)
+  const selectedItem = chosen.items.length === 1 && chosen.frames.length === 0 ? chosen.items[0] : null
+  const setSelectedItem = useCallback((id: string | null) => setChosen(id === null ? NOTHING : { items: [id], frames: [] }), [])
+  const marks = useMemo(
+    () => (chosen.items.length + chosen.frames.length > 1 ? new Set([...chosen.items, ...chosen.frames]) : NO_MARKS),
+    [chosen],
+  )
+  const [marquee, setMarquee] = useState<Box | null>(null)
+  const [renaming, setRenaming] = useState<string | null>(null)
   const [editingItem, setEditingItem] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [scene, setScene] = useState<string | null>(null)
@@ -317,7 +333,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     commitBoard(before, { ...before, annotations: [...before.annotations, annotation] }, label)
     setSelectedItem(annotation.id)
     if (edit) setEditingItem(annotation.id)
-  }, [commitBoard])
+  }, [commitBoard, setSelectedItem])
   const updateAnnotation = useCallback((id: string, patch: (a: RunMapAnnotation) => RunMapAnnotation, label: string) => {
     const before = currentBoard()
     commitBoard(before, { ...before, annotations: before.annotations.map((a) => (a.id === id ? patch(a) : a)) }, label)
@@ -326,7 +342,19 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     const before = currentBoard()
     commitBoard(before, { ...before, annotations: before.annotations.filter((a) => a.id !== id) }, m.toast.annotationDeleted)
     setSelectedItem(null)
-  }, [commitBoard, m.toast.annotationDeleted])
+  }, [commitBoard, m.toast.annotationDeleted, setSelectedItem])
+  const deleteAnnotations = useCallback((ids: string[]) => {
+    const gone = new Set(ids)
+    const before = currentBoard()
+    commitBoard(before, { ...before, annotations: before.annotations.filter((a) => !gone.has(a.id)) }, m.toast.deletedMany(ids.length))
+    setChosen(NOTHING)
+  }, [commitBoard, m.toast])
+  const renameTs = useCallback((id: string, title: string | null) => {
+    setRenaming(null)
+    const draft = drafts[id]
+    if (title === null || title === '' || draft === undefined || draft.title === title) return
+    commitDraft(id, { ...draft, title }, m.toast.renamed)
+  }, [drafts, commitDraft, m.toast.renamed])
   const editText = useCallback((id: string, text: string) => {
     setEditingItem(null)
     const current = mapRef.current.annotations.find((a) => a.id === id)
@@ -347,14 +375,15 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
       items: mapRef.current.annotations.filter((a) => a.id !== section.id && contains(box, boxOf(a))).map((a) => a.id),
     }
   }, [scenarios, frameOf])
-  const copyAnnotation = useCallback((id: string) => {
-    const one = mapRef.current.annotations.find((a) => a.id === id)
-    if (one === undefined) return
+  const copyAnnotations = useCallback((ids: string[]) => {
+    const picked = mapRef.current.annotations.filter((a) => ids.includes(a.id))
+    if (picked.length === 0) return
     // 묶음 상자는 안에 든 주석까지 함께 복사한다.
-    const inside = one.type === 'section' ? sectionContents(one).items : []
-    clipboard = { kind: 'annotations', items: [one, ...mapRef.current.annotations.filter((a) => inside.includes(a.id))] }
+    const inside = new Set(picked.flatMap((a) => (a.type === 'section' ? sectionContents(a).items : [])))
+    clipboard = { kind: 'annotations', items: mapRef.current.annotations.filter((a) => ids.includes(a.id) || inside.has(a.id)) }
     say(m.toast.copied)
   }, [sectionContents, say, m.toast.copied])
+  const copyAnnotation = useCallback((id: string) => copyAnnotations([id]), [copyAnnotations])
   const copyTs = useCallback((id: string) => {
     clipboard = { kind: 'ts', id }
     say(m.toast.copied)
@@ -381,10 +410,14 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     })
     const before = currentBoard()
     commitBoard(before, { ...before, annotations: [...before.annotations, ...pasted] }, m.toast.pasted)
-    setSelectedItem(pasted[0].id)
+    setChosen({ items: pasted.map((a) => a.id), frames: [] })
     // 같은 자리에 또 붙이면 겹치지 않게, 다음 붙여넣기는 붙인 것에서 한 칸 더 옮긴다.
     if (at === null) clipboard = { kind: 'annotations', items: pasted }
   }, [drafts, frameOf, createTs, commitBoard, m.toast.pasted])
+  /** 고른 것 여럿을 함께 옮길 때 [id] 와 같이 움직일 나머지. */
+  const carryOf = (id: string): Chosen => (marks.has(id)
+    ? { items: chosen.items.filter((x) => x !== id), frames: chosen.frames.filter((x) => x !== id) }
+    : NOTHING)
 
   // ── 캔버스 좌표 ──
   const toWorld = useCallback((clientX: number, clientY: number) => {
@@ -443,7 +476,8 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
 
   // ── 끌기: 도구에 따라 화면 이동 · 프레임/주석 이동 · 그리기 ──
   function onPointerDown(event: React.PointerEvent<HTMLDivElement>) {
-    if (event.button !== 0) return
+    // 가운데 단추는 어느 도구에서든 화면을 잡는다.
+    if (event.button !== 0 && event.button !== 1) return
     const target = event.target as HTMLElement
     if (target.closest('button, .rm-toolbar, .rm-ctrls, .rm-drawer, [contenteditable="true"]')) return
     const w = toWorld(event.clientX, event.clientY)
@@ -453,7 +487,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
       setPanning(true)
       capture()
     }
-    if (activeTool === 'hand') return startPan()
+    if (activeTool === 'hand' || event.button === 1) return startPan()
     const tool = activeTool
     // 고른 주석의 손잡이: 상자는 크기, 화살표는 끝점 · 휘기.
     // 크기를 정하지 않은 메모 · 글은 그려진 크기에서 시작한다.
@@ -505,12 +539,25 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
       capture()
       return
     }
+    const startMarquee = (section: string | null) => {
+      interaction.current = { kind: 'marquee', ox: w.x, oy: w.y, additive: event.shiftKey, section }
+      setMarquee({ x: w.x, y: w.y, w: 0, h: 0 })
+      capture()
+    }
     const item = target.closest<HTMLElement>('[data-annotation]')
+    // 묶음 상자 안 빈 곳은 영역 끌기다. 상자는 이름표를 잡고 옮긴다.
+    if (item && item.classList.contains('rma-section')) return startMarquee(item.dataset.annotation!)
     if (item) {
       const id = item.dataset.annotation!
+      if (event.shiftKey) {
+        setChosen((c) => (c.items.includes(id) ? { ...c, items: c.items.filter((x) => x !== id) } : { ...c, items: [...c.items, id] }))
+        return
+      }
       const one = mapRef.current.annotations.find((a) => a.id === id)
-      setSelectedItem(id)
-      const carry = one?.type === 'section' ? sectionContents(one) : { frames: [], items: [] }
+      const group = carryOf(id)
+      if (!marks.has(id)) setSelectedItem(id)
+      const inside = one?.type === 'section' ? sectionContents(one) : NOTHING
+      const carry = { items: [...group.items, ...inside.items], frames: [...group.frames, ...inside.frames] }
       interaction.current = { kind: 'item', id, lastX: w.x, lastY: w.y, moved: false, before: currentBoard(), carry }
       capture()
       return
@@ -518,15 +565,29 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     const head = target.closest<HTMLElement>('[data-drag-frame]')
     if (head) {
       const id = head.dataset.dragFrame!
+      if (event.shiftKey) {
+        setChosen((c) => (c.frames.includes(id) ? { ...c, frames: c.frames.filter((x) => x !== id) } : { ...c, frames: [...c.frames, id] }))
+        return
+      }
+      if (marks.has(id)) {
+        // 여럿 고른 것 가운데 하나를 끌면 모두 함께 옮긴다. 주석이 아니므로 id 는 비워 둔다.
+        interaction.current = { kind: 'item', id: '', lastX: w.x, lastY: w.y, moved: false, before: currentBoard(), carry: chosen }
+        capture()
+        return
+      }
       const frame = frameOf(id)
       setZ((current) => ({ ...current, [id]: Math.max(1, ...Object.values(current)) + 1 }))
-      interaction.current = { kind: 'frame', id, sx: event.clientX, sy: event.clientY, ox: frame.x, oy: frame.y, moved: false, before: currentBoard() }
+      const rename = target.closest('[data-rename]') !== null
+      interaction.current = { kind: 'frame', id, sx: event.clientX, sy: event.clientY, ox: frame.x, oy: frame.y, moved: false, before: currentBoard(), rename }
       capture()
       return
     }
-    setSelectedItem(null)
-    if (target.closest('[data-step], [data-scene]')) return
-    startPan()
+    if (target.closest('[data-step], [data-scene], .rmf')) {
+      setChosen(NOTHING)
+      return
+    }
+    // 빈 곳을 끌면 영역으로 여럿 고른다. 화면 이동은 스페이스 · 손 도구 · 가운데 단추.
+    startMarquee(null)
   }
   function onPointerMove(event: React.PointerEvent<HTMLDivElement>) {
     if (stageRef.current !== null) lastPointer.current = toWorld(event.clientX, event.clientY)
@@ -537,6 +598,10 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
       return
     }
     const w = toWorld(event.clientX, event.clientY)
+    if (now.kind === 'marquee') {
+      setMarquee({ x: Math.min(now.ox, w.x), y: Math.min(now.oy, w.y), w: Math.abs(w.x - now.ox), h: Math.abs(w.y - now.oy) })
+      return
+    }
     if (now.kind === 'frame') {
       const dx = (event.clientX - now.sx) / view.k
       const dy = (event.clientY - now.sy) / view.k
@@ -593,9 +658,30 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     interaction.current = null
     setPanning(false)
     if (now === null || now.kind === 'pan') return
+    if (now.kind === 'marquee') {
+      const box = marquee
+      setMarquee(null)
+      if (box === null || (box.w < 4 && box.h < 4)) {
+        if (!now.additive) setChosen(now.section === null ? NOTHING : { items: [now.section], frames: [] })
+        return
+      }
+      // 걸친 것은 모두 고른다. 묶음 상자만은 통째로 들어야 고른다(상자 안에서 끌면 상자는 빼고 고르려는 것이다).
+      const items = mapRef.current.annotations
+        .filter((a) => (a.type === 'section' ? contains(box, boxOf(a)) : overlaps(box, boxOf(a))))
+        .map((a) => a.id)
+      const frames = scenarios.filter((sc) => {
+        const f = frameOf(sc.id)
+        return overlaps(box, { x: f.x, y: f.y, w: FRAME_W, h: frameHeight(sc.steps.length, f.folded) })
+      }).map((sc) => sc.id)
+      setChosen((c) => (now.additive
+        ? { items: [...new Set([...c.items, ...items])], frames: [...new Set([...c.frames, ...frames])] }
+        : { items, frames }))
+      return
+    }
     const after = currentBoard()
     if (now.kind === 'frame') {
       if (now.moved) commitBoard(now.before, after, m.toast.frameMoved(position(now.id)))
+      else if (now.rename) setRenaming(now.id)
       else pick(now.id)
       return
     }
@@ -646,7 +732,9 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
   }
   function onDoubleClick(event: React.MouseEvent) {
     // 메모 · 글 · 도형 · 묶음 상자는 두 번 누르면 글을 고친다(도형은 안에 글을 넣는다).
-    const item = (event.target as HTMLElement).closest<HTMLElement>('[data-annotation]')
+    // 누르는 동안 캔버스가 포인터를 잡고 있어서 event.target 은 캔버스다. 실제로 누른 자리에서 찾는다.
+    const under = document.elementFromPoint(event.clientX, event.clientY) as HTMLElement | null
+    const item = under?.closest<HTMLElement>('[data-annotation]')
     const one = item ? mapRef.current.annotations.find((a) => a.id === item.dataset.annotation) : undefined
     if (one !== undefined && hasText(one)) setEditingItem(one.id)
   }
@@ -758,7 +846,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
       // 글을 골라 둔 채 ⌘C 를 누르면 그 글을 복사하게 둔다.
       if (mod && letter === 'c' && (window.getSelection()?.toString() ?? '') !== '') return
       if (mod && letter === 'c') {
-        if (selectedItem !== null) copyAnnotation(selectedItem)
+        if (chosen.items.length > 0) copyAnnotations(chosen.items)
         else if (picked !== null) copyTs(picked.id)
         else return
         event.preventDefault()
@@ -776,9 +864,10 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
         else undo()
         return
       }
-      if ((event.key === 'Delete' || event.key === 'Backspace') && selectedItem !== null) {
+      if ((event.key === 'Delete' || event.key === 'Backspace') && chosen.items.length > 0) {
         event.preventDefault()
-        deleteAnnotation(selectedItem)
+        if (chosen.items.length === 1) deleteAnnotation(chosen.items[0])
+        else deleteAnnotations(chosen.items)
         return
       }
       if ((event.key === 'Delete' || event.key === 'Backspace') && drawerOpen && picked !== null && picked.step !== null) {
@@ -797,7 +886,8 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
       }
       if (event.key === 'Escape') {
         setTool('select')
-        setSelectedItem(null)
+        setChosen(NOTHING)
+        setRenaming(null)
         setDrawerOpen(false)
         return
       }
@@ -969,7 +1059,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
           className={'rm-world' + (scene !== null ? ' is-scene-focus' : '') + (view.k < 0.45 ? ' is-far' : '')}
           style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.k})`, width: bounds.w, height: bounds.h }}
         >
-          <RunMapSections annotations={map.annotations} editing={editingItem} onEditText={editText} selected={selectedItem} />
+          <RunMapSections annotations={map.annotations} editing={editingItem} marks={marks} onEditText={editText} selected={selectedItem} />
           {scenarios.map((s) => {
             const f = frameOf(s.id)
             return (
@@ -978,6 +1068,9 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
                 folded={f.folded}
                 highlightScene={scene}
                 key={s.id}
+                marked={marks.has(s.id)}
+                onRename={renameTs}
+                renaming={renaming === s.id}
                 picked={picked?.id === s.id}
                 pickedStep={picked?.id === s.id ? picked.step : null}
                 position={position(s.id)}
@@ -988,7 +1081,8 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
               />
             )
           })}
-          <RunMapAnnotations annotations={map.annotations} authors={map.authors} editing={editingItem} k={view.k} onEditText={editText} selected={selectedItem} />
+          <RunMapAnnotations annotations={map.annotations} authors={map.authors} editing={editingItem} k={view.k} marks={marks} onEditText={editText} selected={selectedItem} />
+          {marquee !== null && <div className="rma-marquee" style={{ left: marquee.x, top: marquee.y, width: marquee.w, height: marquee.h }} />}
           {selectedAnnotation !== undefined && editingItem === null && <SelectionBox annotation={selectedAnnotation} k={view.k} />}
         </div>
         {scenarios.length === 0 && <p className="rmap-empty empty-note">{m.empty}</p>}

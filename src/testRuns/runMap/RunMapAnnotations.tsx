@@ -33,13 +33,13 @@ function EditableText({ id, text, className, editing, onEditText, children }: Te
 /**
  * 묶음 상자(ARTEL-1245). TS 프레임 밑에 깐다. 왼쪽 위 라벨이 이름이고, 상자를 옮기면 안에 든 것이 함께 옮겨진다.
  */
-export function RunMapSections({ annotations, selected, ...text }: TextProps & { annotations: readonly RunMapAnnotation[]; selected: string | null }) {
+export function RunMapSections({ annotations, selected, marks, ...text }: TextProps & { annotations: readonly RunMapAnnotation[]; selected: string | null; marks: ReadonlySet<string> }) {
   return (
     <>
       {annotations.map((a) => {
         if (a.type !== 'section') return null
         return (
-          <div className={'rma-section' + (selected === a.id ? ' is-selected' : '')} data-annotation={a.id} key={a.id} style={{ left: a.x, top: a.y, width: a.w, height: a.h }}>
+          <div className={'rma-section' + (selected === a.id ? ' is-selected' : marks.has(a.id) ? ' is-marked' : '')} data-annotation={a.id} key={a.id} style={{ left: a.x, top: a.y, width: a.w, height: a.h }}>
             <EditableText {...text} className="rma-section-label" id={a.id} text={a.text ?? ''} />
           </div>
         )
@@ -57,14 +57,17 @@ export function RunMapAnnotations({
   selected,
   authors,
   k,
+  marks,
   ...text
 }: TextProps & {
   annotations: readonly RunMapAnnotation[]
   selected: string | null
   authors: Record<string, string>
   k: number
+  /** 여럿 고른 것. */
+  marks: ReadonlySet<string>
 }) {
-  const sel = (id: string) => (selected === id ? ' is-selected' : '')
+  const sel = (id: string) => (selected === id ? ' is-selected' : marks.has(id) ? ' is-marked' : '')
   return (
     <>
       <svg aria-hidden="true" className="rma-svg" height="1" width="1">

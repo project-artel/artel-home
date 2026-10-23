@@ -20,6 +20,9 @@ export const TsFrame = memo(function TsFrame({
   pickedStep,
   dimmed,
   highlightScene,
+  marked,
+  renaming,
+  onRename,
 }: {
   scenario: MapScenario
   /** 런 안의 순서(1부터). */
@@ -32,6 +35,12 @@ export const TsFrame = memo(function TsFrame({
   pickedStep: number | null
   dimmed: boolean
   highlightScene: string | null
+  /** 영역 끌기로 여럿 고른 것에 들었다. */
+  marked: boolean
+  /** 이름을 고치는 중. 이름을 누르면 켜진다. */
+  renaming: boolean
+  /** 고친 이름. 그만두면 null. */
+  onRename: (scenarioId: string, title: string | null) => void
 }) {
   const { t } = useI18n()
   const m = t.scenarios.map
@@ -40,13 +49,29 @@ export const TsFrame = memo(function TsFrame({
 
   return (
     <div
-      className={'rmf' + (picked ? ' is-picked' : '') + (dimmed ? ' is-dim' : '')}
+      className={'rmf' + (picked ? ' is-picked' : '') + (marked ? ' is-marked' : '') + (dimmed ? ' is-dim' : '')}
       data-scenario-id={scenario.id}
       style={{ left: x, top: y, width: FRAME_W, height, zIndex: z }}
     >
       <div className="rmf-head" data-drag-frame={scenario.id}>
         <span className="rmf-no">{pad(position)}</span>
-        <b className="rmf-title" title={title}>{title}</b>
+        {renaming ? (
+          <input
+            aria-label={m.frame.rename}
+            autoFocus
+            className="rmf-title-input"
+            defaultValue={scenario.title}
+            onBlur={(event) => onRename(scenario.id, event.currentTarget.value.trim())}
+            onFocus={(event) => event.currentTarget.select()}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') event.currentTarget.blur()
+              if (event.key === 'Escape') onRename(scenario.id, null)
+              event.stopPropagation()
+            }}
+          />
+        ) : (
+          <b className="rmf-title" data-rename={scenario.id} title={m.frame.rename}>{title}</b>
+        )}
         <span className="rmf-meta">
           {m.frame.steps(scenario.steps.length)}
           {scenario.gapCount > 0 && <span className="rmf-gap"> · {m.frame.gaps(scenario.gapCount)}</span>}
