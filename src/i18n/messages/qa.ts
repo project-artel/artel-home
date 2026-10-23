@@ -605,7 +605,6 @@ export const qaEn = {
       },
       shot: {
         title: 'Screen at the verdict',
-        none: 'No screen was captured for this verdict.',
         open: 'Open larger',
       },
     },
@@ -1217,7 +1216,6 @@ export const qaKo: Localized<typeof qaEn> = {
       },
       shot: {
         title: '판정 시점 화면',
-        none: '판정 시점 화면이 없습니다.',
         open: '크게 보기',
       },
     },

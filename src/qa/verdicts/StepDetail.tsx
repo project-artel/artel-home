@@ -112,23 +112,19 @@ function CodeCheckSection({ check }: { check: QaCodeCheck }) {
 }
 
 /**
- * 판정할 때 찍은 화면 자리(ARTEL-1255). 알림 막대 아래에 크게 두고, 누르면 모달로 크게 본다. 지금 QA 는 판정마다
- * 사진을 남기지 않아 대부분 비어 있다.
+ * 판정할 때 찍은 화면(ARTEL-1255). 알림 막대 아래에 크게 두고, 누르면 모달로 크게 본다. 지금 QA 는 판정마다 사진을
+ * 남기지 않아 대부분 없다.
  */
 function VerdictShot({ verdict }: { verdict: QaStepVerdict }) {
   const { t } = useI18n()
   const shot = t.qa.verdicts.review.shot
   const capture = verdict.captures[0]
+  // 사진이 없으면 자리를 두지 않는다. 판정마다 화면을 남기는 일(ARTEL-1257 쪽)이 들어오면 여기 보인다.
+  if (capture === undefined) return null
   return (
     <figure className="qv-shot">
-      {capture === undefined ? (
-        <span className="qv-shot-empty"><b>{shot.title}</b>{shot.none}</span>
-      ) : (
-        <>
-          <ZoomableCapture alt={shot.title} url={capture.url} />
-          <figcaption className="qv-shot-caption">{shot.title}</figcaption>
-        </>
-      )}
+      <ZoomableCapture alt={shot.title} url={capture.url} />
+      <figcaption className="qv-shot-caption">{shot.title}</figcaption>
     </figure>
   )
 }
