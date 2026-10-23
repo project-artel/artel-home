@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { useActionBinding, useFieldBinding } from '../projectAgent/bindings'
@@ -12,109 +12,660 @@ import {
   TEST_RUN_START_QA_ACTION,
 } from '../projectAgent/specs/testRun'
 import { sectionHref } from '../projects/workspace/sections'
-import { getTestScenario } from '../testScenarios/scenarioApi'
-import { groupStepsByCase, isGapStep } from '../testScenarios/scenarioTypes'
-import { getRunScenarios, getTestRun, type TestRun } from './testRunApi'
+import { ContextMenu, type ContextMenuItem } from '../testCases/ContextMenu'
+import { AddCasesDialog } from '../testScenarios/AddCasesDialog'
+import { createTestScenario, updateScenario } from '../testScenarios/scenarioApi'
+import { createEmptyStep, createHumanStep, type ScenarioDraft } from '../testScenarios/scenarioTypes'
+import { setRunScenarios } from './testRunApi'
+import { autoLayout, FRAME_W, frameHeight } from './runMap/frameGeometry'
+import { emptyHistory, record, redo as redoHistory, undo as undoHistory, type History } from './runMap/runMapHistory'
+import { getRunMap, saveRunMap, StaleRunMapError, type NoteColor, type RunMap, type RunMapAnnotation, type RunMapFrame } from './runMap/runMapApi'
+import { RunMapAnnotations } from './runMap/RunMapAnnotations'
+import { RunMapDrawer } from './runMap/RunMapDrawer'
+import { RunMapToolbar } from './runMap/RunMapToolbar'
+import { TOOL_KEYS, type RunMapTool } from './runMap/runMapTools'
+import { StepHoverCard } from './runMap/StepHoverCard'
+import { TsFrame } from './runMap/TsFrame'
+import { useRunMapData } from './runMap/useRunMapData'
+import './runMap/runMap.css'
 
 /**
- * The TestRun map — a read-only visualisation of a run and the scenarios it
- * bundles. Each scenario is a node summarising its STEP model (step count + how
- * many TC verification regions); expanding one shows the ordered steps, with a
- * "TC n" badge on the steps that make up each verification region. Clicking opens
- * that scenario's editor. Read-only: no repositioning, no run composition changes,
- * no chat.
+ * 테스트 런 맵(ARTEL-1245). TS 하나가 끌어 옮기는 프레임 하나인 캔버스다. 프레임 안에서 스텝은 화살표로 잇고 씬별
+ * 구간(이름 + 번갈아 명암)으로 묶는다. 스텝에 마우스를 올리면 카드, 누르면 서랍.
+ *
+ * 맵에서 바로 고친다. TS 의 스텝 · TC 는 편집 화면과 같은 TS 데이터(`PUT /api/test-scenario/{id}`)에, 런 구성은
+ * `PUT .../scenarios` 에, 프레임 자리 · 접힘과 메모 · 글 · 도형 · 그림은 런 맵(`PUT .../map`)에 저장한다.
+ * 모든 편집은 되돌리기 · 다시 하기가 된다.
  */
-
-/** One step, flattened for the map: its action and the TC region ordinal (if any). */
-type StepLite = { action: string; tcNo: number | null; gap: boolean }
-
-type ScenarioNode = {
-  id: string
-  title: string
-  stepCount: number
-  tcCount: number
-  steps: StepLite[]
-}
-
-const MIN_SCALE = 0.4
-const MAX_SCALE = 1.6
-
-function clamp(value: number, lo: number, hi: number): number {
-  return Math.min(hi, Math.max(lo, value))
-}
-
 export function RunMapRoute() {
   const { projectId = '', runId = '' } = useParams()
   return <RunMapPage key={runId} projectId={projectId} runId={runId} />
 }
 
+type Board = Pick<RunMap, 'layout' | 'annotations'>
+type Change = { kind: 'board'; board: Board } | { kind: 'scenario'; id: string; draft: ScenarioDraft } | { kind: 'order'; ids: string[] }
+type View = { x: number; y: number; k: number }
+type Interaction =
+  | { kind: 'pan'; sx: number; sy: number; ox: number; oy: number }
+  | { kind: 'frame'; id: string; sx: number; sy: number; ox: number; oy: number; moved: boolean; before: Board }
+  | { kind: 'item'; id: string; lastX: number; lastY: number; moved: boolean; before: Board }
+  | { kind: 'draw'; id: string; ox: number; oy: number; before: Board }
+
+const MIN_K = 0.12
+const MAX_K = 1.8
+const SAVE_DELAY_MS = 600
+const NOTE_COLORS: NoteColor[] = ['y', 'p', 'b', 'g']
+let annotationSeq = 0
+const newAnnotationId = () => `a${Date.now().toString(36)}${(annotationSeq++).toString(36)}`
+
 function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) {
   const { t } = useI18n()
   const m = t.scenarios.map
   const navigate = useNavigate()
-  const [status, setStatus] = useState<'loading' | 'ready' | 'missing' | 'error'>('loading')
-  const [run, setRun] = useState<TestRun | null>(null)
-  const [nodes, setNodes] = useState<ScenarioNode[]>([])
 
+  // 맵 저장은 모아서 한다. 저장이 걸려 있는 동안은 서버에서 다시 읽은 맵으로 내 화면을 덮지 않는다.
+  const saveTimer = useRef<number | null>(null)
+  const saving = useRef(false)
+  const data = useRunMapData(projectId, runId, () => saveTimer.current !== null || saving.current)
+  const { scenarios, map, setMap, drafts, setDrafts, order, setOrder } = data
+
+  const [view, setView] = useState<View>({ x: 10, y: 64, k: 0.9 })
+  const [tool, setTool] = useState<RunMapTool>('select')
+  const [picked, setPicked] = useState<{ id: string; step: number | null } | null>(null)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [hover, setHover] = useState<{ id: string; index: number; rect: DOMRect } | null>(null)
+  const [menu, setMenu] = useState<{ x: number; y: number; label: string; items: ContextMenuItem[] } | null>(null)
+  const [importFor, setImportFor] = useState<string | null>(null)
+  const [selectedItem, setSelectedItem] = useState<string | null>(null)
+  const [editingItem, setEditingItem] = useState<string | null>(null)
+  const [query, setQuery] = useState('')
+  const [scene, setScene] = useState<string | null>(null)
+  const [z, setZ] = useState<Record<string, number>>({})
+  const [history, setHistory] = useState<History<Change>>(emptyHistory)
+  const [toast, setToast] = useState<{ text: string; undo: boolean } | null>(null)
+  const stageRef = useRef<HTMLDivElement | null>(null)
+  const [stageSize, setStageSize] = useState({ width: 0, height: 0 })
+  const interaction = useRef<Interaction | null>(null)
+  const mapRef = useRef(map)
   useEffect(() => {
-    const controller = new AbortController()
-    const signal = controller.signal
-    ;(async () => {
-      try {
-        const [runData, items] = await Promise.all([
-          getTestRun(projectId, runId, signal),
-          getRunScenarios(projectId, runId, signal),
-        ])
-        if (runData === null) {
-          setStatus('missing')
-          return
+    mapRef.current = map
+  })
+
+  // ── 자리: 저장된 자리가 없으면 런 순서대로 자동 배치 ──
+  const autoPlaced = useMemo(
+    () => autoLayout(scenarios.map((s) => ({ id: s.id, height: frameHeight(s.steps.length, map.layout[s.id]?.folded ?? false) }))),
+    [scenarios, map.layout],
+  )
+  const frameOf = useCallback(
+    (id: string): RunMapFrame => map.layout[id] ?? { ...(autoPlaced.get(id) ?? { x: 20, y: 20 }), folded: false },
+    [map.layout, autoPlaced],
+  )
+  const position = useCallback((id: string) => order.indexOf(id) + 1, [order])
+
+  // ── 알림 ──
+  const toastTimer = useRef<number | null>(null)
+  const say = useCallback((text: string, undo = false) => {
+    setToast({ text, undo })
+    if (toastTimer.current !== null) window.clearTimeout(toastTimer.current)
+    toastTimer.current = window.setTimeout(() => setToast(null), 2600)
+  }, [])
+
+  // ── 맵 저장(배치 · 주석) ──
+  const flushRef = useRef<() => Promise<void>>(async () => {})
+  const flush = useCallback(async () => {
+    saveTimer.current = null
+    if (saving.current) {
+      // 앞 저장이 끝나면 그 버전 위에 다시 보낸다.
+      saveTimer.current = window.setTimeout(() => void flushRef.current(), SAVE_DELAY_MS)
+      return
+    }
+    saving.current = true
+    const sent = mapRef.current
+    try {
+      const saved = await saveRunMap(projectId, runId, sent)
+      // 보내는 사이 고친 것은 남기고 버전과 이름만 받는다.
+      setMap((current) => ({ ...current, version: saved.version, authors: saved.authors }))
+      mapRef.current = { ...mapRef.current, version: saved.version, authors: saved.authors }
+    } catch (error) {
+      if (error instanceof StaleRunMapError) {
+        const latest = await getRunMap(projectId, runId).catch(() => null)
+        if (latest !== null) {
+          setMap(latest)
+          mapRef.current = latest
         }
-        const built = await Promise.all(
-          items.map(async (item): Promise<ScenarioNode> => {
-            const scenario = await getTestScenario(Number(item.testScenarioId), signal).catch(() => null)
-            const steps = scenario?.payload.steps ?? []
-            // TC region ordinals: consecutive same case_id = one region (as in the editor).
-            const tcNoByIndex = new Map<number, number>()
-            let seq = 0
-            for (const group of groupStepsByCase(steps)) {
-              if (group.caseId === null) continue
-              seq += 1
-              for (const idx of group.indices) tcNoByIndex.set(idx, seq)
-            }
-            const title = scenario?.payload.title ?? ''
-            return {
-              id: item.testScenarioId,
-              title: title.length > 0 ? title : m.untitledScenario,
-              stepCount: steps.length,
-              tcCount: seq,
-              steps: steps.map((step, index) => ({
-                action: step.action,
-                tcNo: tcNoByIndex.get(index) ?? null,
-                gap: isGapStep(step),
-              })),
-            }
-          }),
-        )
-        setRun(runData)
-        setNodes(built)
-        setStatus('ready')
-      } catch (error) {
-        if (error instanceof DOMException && error.name === 'AbortError') return
-        setStatus('error')
-      }
-    })()
-    return () => controller.abort()
+        say(m.toast.stale)
+      } else say(m.toast.saveFailed)
+    } finally {
+      saving.current = false
+    }
+  }, [projectId, runId, setMap, say, m.toast.stale, m.toast.saveFailed])
+  useEffect(() => {
+    flushRef.current = flush
+  })
+  const scheduleSave = useCallback(() => {
+    if (saveTimer.current !== null) window.clearTimeout(saveTimer.current)
+    saveTimer.current = window.setTimeout(() => void flush(), SAVE_DELAY_MS)
+  }, [flush])
+  // 떠날 때 모아 둔 저장이 있으면 바로 보낸다.
+  useEffect(() => () => {
+    if (saveTimer.current !== null) {
+      window.clearTimeout(saveTimer.current)
+      void saveRunMap(projectId, runId, mapRef.current).catch(() => {})
+    }
   }, [projectId, runId])
 
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
-  function toggleExpand(id: string) {
-    setExpandedIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
+  // ── 바꾸기: 세 저장소. 되돌리기 칸에 앞 · 뒤를 함께 남긴다 ──
+  const reload = data.reload
+  const applyBoard = useCallback((board: Board) => {
+    setMap((current) => ({ ...current, ...board }))
+    mapRef.current = { ...mapRef.current, ...board }
+    scheduleSave()
+  }, [setMap, scheduleSave])
+  const applyDraft = useCallback(async (id: string, draft: ScenarioDraft) => {
+    setDrafts((current) => ({ ...current, [id]: draft }))
+    try {
+      await updateScenario(Number(id), draft)
+    } catch {
+      say(m.toast.saveFailed)
+      void reload(undefined, true)
+    }
+  }, [setDrafts, say, m.toast.saveFailed, reload])
+  const applyOrder = useCallback(async (ids: string[]) => {
+    setOrder(ids)
+    try {
+      await setRunScenarios(projectId, runId, ids)
+    } catch {
+      say(m.toast.saveFailed)
+      void reload(undefined, true)
+    }
+  }, [projectId, runId, setOrder, say, m.toast.saveFailed, reload])
+  const apply = useCallback((change: Change) => {
+    if (change.kind === 'board') applyBoard(change.board)
+    else if (change.kind === 'scenario') void applyDraft(change.id, change.draft)
+    else void applyOrder(change.ids)
+  }, [applyBoard, applyDraft, applyOrder])
+
+  const currentBoard = (): Board => ({ layout: mapRef.current.layout, annotations: mapRef.current.annotations })
+  const commitBoard = useCallback((before: Board, after: Board, label: string) => {
+    setHistory((h) => record(h, { label, before: { kind: 'board', board: before }, after: { kind: 'board', board: after } }))
+    applyBoard(after)
+    say(label, true)
+  }, [applyBoard, say])
+  const commitDraft = useCallback((id: string, next: ScenarioDraft, label: string) => {
+    const before = drafts[id]
+    if (before === undefined) return
+    setHistory((h) => record(h, { label, before: { kind: 'scenario', id, draft: before }, after: { kind: 'scenario', id, draft: next } }))
+    void applyDraft(id, next)
+    say(label, true)
+  }, [drafts, applyDraft, say])
+
+  const undo = useCallback(() => {
+    const result = undoHistory(history)
+    if (result === null) return
+    setHistory(result.history)
+    apply(result.entry.before)
+    say(m.toast.undone)
+  }, [history, apply, say, m.toast.undone])
+  const redo = useCallback(() => {
+    const result = redoHistory(history)
+    if (result === null) return
+    setHistory(result.history)
+    apply(result.entry.after)
+    say(m.toast.redone)
+  }, [history, apply, say, m.toast.redone])
+
+  // ── TS · 스텝 편집 ──
+  const pick = useCallback((id: string, step: number | null = null) => {
+    setPicked({ id, step })
+    setDrawerOpen(true)
+  }, [])
+  const addStep = useCallback((id: string, at?: number) => {
+    const draft = drafts[id]
+    if (draft === undefined) return
+    const index = at ?? draft.steps.length
+    const steps = [...draft.steps]
+    steps.splice(index, 0, createHumanStep())
+    commitDraft(id, { ...draft, steps }, m.toast.stepAdded(position(id)))
+    pick(id, index)
+  }, [drafts, commitDraft, m.toast, position, pick])
+  const moveStep = useCallback((id: string, index: number, delta: number) => {
+    const draft = drafts[id]
+    const target = index + delta
+    if (draft === undefined || target < 0 || target >= draft.steps.length) return
+    const steps = [...draft.steps]
+    ;[steps[index], steps[target]] = [steps[target], steps[index]]
+    commitDraft(id, { ...draft, steps }, m.toast.stepMoved(index + 1))
+    pick(id, target)
+  }, [drafts, commitDraft, m.toast, pick])
+  const deleteStep = useCallback((id: string, index: number) => {
+    const draft = drafts[id]
+    if (draft === undefined) return
+    commitDraft(id, { ...draft, steps: draft.steps.filter((_, i) => i !== index) }, m.toast.stepDeleted(index + 1))
+    setPicked({ id, step: null })
+  }, [drafts, commitDraft, m.toast])
+  const importTcs = useCallback((id: string, caseIds: string[]) => {
+    const draft = drafts[id]
+    if (draft === undefined || caseIds.length === 0) return
+    const byId = new Map(data.cases.cases.map((c) => [c.id, c] as const))
+    const added = caseIds.map((caseId) => ({ ...createEmptyStep(), action: byId.get(caseId)?.step ?? '', case_id: Number(caseId), step_source: 'CASE' as const, step_kind: 'ACTION' as const }))
+    commitDraft(id, { ...draft, steps: [...draft.steps, ...added] }, m.toast.tcsImported(position(id), added.length))
+    pick(id, draft.steps.length)
+  }, [drafts, data.cases.cases, commitDraft, m.toast, position, pick])
+
+  const changeOrder = useCallback((next: string[], label: string) => {
+    setHistory((h) => record(h, { label, before: { kind: 'order', ids: order }, after: { kind: 'order', ids: next } }))
+    void applyOrder(next)
+    say(label, true)
+  }, [order, applyOrder, say])
+  const createTs = useCallback(async (at: { x: number; y: number }, copyOf?: string) => {
+    try {
+      const source = copyOf === undefined ? undefined : drafts[copyOf]
+      const draft: ScenarioDraft = source ?? { title: m.newScenarioTitle, description: '', steps: [], execution_mode: 'ORDERED' }
+      const id = String(await createTestScenario(Number(projectId)))
+      await updateScenario(Number(id), draft)
+      setDrafts((current) => ({ ...current, [id]: draft }))
+      const next = [...order, id]
+      applyBoard({ ...currentBoard(), layout: { ...mapRef.current.layout, [id]: { x: at.x, y: at.y, folded: false } } })
+      changeOrder(next, copyOf === undefined ? m.toast.tsCreated(next.length) : m.toast.tsDuplicated(position(copyOf)))
+      setZ((current) => ({ ...current, [id]: Math.max(1, ...Object.values(current)) + 1 }))
+      if (copyOf === undefined) setImportFor(id)
+    } catch {
+      say(m.toast.saveFailed)
+    }
+  }, [drafts, m, projectId, setDrafts, order, applyBoard, changeOrder, position, say])
+  const removeTs = useCallback((id: string) => {
+    if (picked?.id === id) {
+      setPicked(null)
+      setDrawerOpen(false)
+    }
+    changeOrder(order.filter((x) => x !== id), m.toast.tsRemoved(position(id)))
+  }, [picked, order, changeOrder, m.toast, position])
+  const toggleFold = useCallback((id: string) => {
+    const before = currentBoard()
+    const frame = frameOf(id)
+    commitBoard(before, { ...before, layout: { ...before.layout, [id]: { ...frame, folded: !frame.folded } } }, frame.folded ? m.frame.unfold : m.frame.fold)
+  }, [frameOf, commitBoard, m.frame])
+  const layOut = useCallback((foldAll?: boolean) => {
+    const before = currentBoard()
+    const folded = (id: string) => foldAll ?? (before.layout[id]?.folded ?? false)
+    const placed = autoLayout(scenarios.map((s) => ({ id: s.id, height: frameHeight(s.steps.length, folded(s.id)) })))
+    const layout: Record<string, RunMapFrame> = {}
+    for (const s of scenarios) layout[s.id] = { ...placed.get(s.id)!, folded: folded(s.id) }
+    commitBoard(before, { ...before, layout }, foldAll === undefined ? m.toast.laidOut : foldAll ? m.foldAll : m.unfoldAll)
+    setZ({})
+  }, [scenarios, commitBoard, m])
+
+  // ── 주석 ──
+  const addAnnotation = useCallback((annotation: RunMapAnnotation, label: string, edit = false) => {
+    const before = currentBoard()
+    commitBoard(before, { ...before, annotations: [...before.annotations, annotation] }, label)
+    setSelectedItem(annotation.id)
+    if (edit) setEditingItem(annotation.id)
+  }, [commitBoard])
+  const updateAnnotation = useCallback((id: string, patch: (a: RunMapAnnotation) => RunMapAnnotation, label: string) => {
+    const before = currentBoard()
+    commitBoard(before, { ...before, annotations: before.annotations.map((a) => (a.id === id ? patch(a) : a)) }, label)
+  }, [commitBoard])
+  const deleteAnnotation = useCallback((id: string) => {
+    const before = currentBoard()
+    commitBoard(before, { ...before, annotations: before.annotations.filter((a) => a.id !== id) }, m.toast.annotationDeleted)
+    setSelectedItem(null)
+  }, [commitBoard, m.toast.annotationDeleted])
+  const editText = useCallback((id: string, text: string) => {
+    setEditingItem(null)
+    const current = mapRef.current.annotations.find((a) => a.id === id)
+    if (current === undefined || (current.type !== 'note' && current.type !== 'text') || current.text === text) return
+    updateAnnotation(id, (a) => (a.type === 'note' || a.type === 'text' ? { ...a, text: text.length > 0 ? text : ' ' } : a), m.toast.annotationChanged)
+  }, [updateAnnotation, m.toast.annotationChanged])
+
+  // ── 캔버스 좌표 ──
+  const toWorld = useCallback((clientX: number, clientY: number) => {
+    const rect = stageRef.current!.getBoundingClientRect()
+    return { x: (clientX - rect.left - view.x) / view.k, y: (clientY - rect.top - view.y) / view.k }
+  }, [view])
+  const bounds = useMemo(() => {
+    let w = 0
+    let h = 0
+    for (const s of scenarios) {
+      const f = frameOf(s.id)
+      w = Math.max(w, f.x + FRAME_W + 20)
+      h = Math.max(h, f.y + frameHeight(s.steps.length, f.folded) + 20)
+    }
+    // 주석도 전체 보기 · 미니맵에 든다. 메모가 프레임보다 오른쪽 · 아래에 있으면 안 보이게 된다.
+    for (const a of map.annotations) {
+      const xs = a.type === 'arrow' ? [a.x1, a.x2] : a.type === 'pen' ? a.points.map((p) => p[0]) : [a.x + (a.type === 'rect' || a.type === 'ellipse' ? a.w : 200)]
+      const ys = a.type === 'arrow' ? [a.y1, a.y2] : a.type === 'pen' ? a.points.map((p) => p[1]) : [a.y + (a.type === 'rect' || a.type === 'ellipse' ? a.h : 140)]
+      w = Math.max(w, ...xs.map((x) => x + 20))
+      h = Math.max(h, ...ys.map((y) => y + 20))
+    }
+    return { w: Math.max(w, 200), h: Math.max(h, 200) }
+  }, [scenarios, frameOf, map.annotations])
+  const fit = useCallback(() => {
+    const rect = stageRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const avail = rect.width - (drawerOpen ? 440 : 0)
+    const k = Math.max(MIN_K, Math.min(1, (avail - 30) / bounds.w, (rect.height - 80) / bounds.h))
+    setView({ k, x: 10, y: 64 })
+  }, [bounds, drawerOpen])
+  const zoomAt = useCallback((cx: number, cy: number, factor: number) => {
+    setView((v) => {
+      const k = Math.max(MIN_K, Math.min(MAX_K, v.k * factor))
+      return { k, x: cx - (cx - v.x) * (k / v.k), y: cy - (cy - v.y) * (k / v.k) }
     })
+  }, [])
+  useEffect(() => {
+    const stage = stageRef.current
+    if (stage === null) return undefined
+    const observer = new ResizeObserver(([entry]) => setStageSize({ width: entry.contentRect.width, height: entry.contentRect.height }))
+    observer.observe(stage)
+    return () => observer.disconnect()
+  }, [data.status])
+  // wheel 은 page 스크롤을 막아야 해서 passive 가 아니어야 한다. React 의 onWheel 로는 못 하므로 손으로 단다.
+  useEffect(() => {
+    const stage = stageRef.current
+    if (stage === null) return undefined
+    function onWheel(event: WheelEvent) {
+      if ((event.target as HTMLElement).closest('.rm-drawer')) return
+      event.preventDefault()
+      const rect = stage!.getBoundingClientRect()
+      zoomAt(event.clientX - rect.left, event.clientY - rect.top, event.deltaY < 0 ? 1.1 : 1 / 1.1)
+    }
+    stage.addEventListener('wheel', onWheel, { passive: false })
+    return () => stage.removeEventListener('wheel', onWheel)
+  }, [zoomAt, data.status])
+
+  // ── 끌기: 도구에 따라 화면 이동 · 프레임/주석 이동 · 그리기 ──
+  function onPointerDown(event: React.PointerEvent<HTMLDivElement>) {
+    if (event.button !== 0) return
+    const target = event.target as HTMLElement
+    if (target.closest('button, .rm-toolbar, .rm-ctrls, .rm-mini, .rm-drawer, [contenteditable="true"]')) return
+    const w = toWorld(event.clientX, event.clientY)
+    const capture = () => event.currentTarget.setPointerCapture(event.pointerId)
+    if (tool === 'hand') {
+      interaction.current = { kind: 'pan', sx: event.clientX, sy: event.clientY, ox: view.x, oy: view.y }
+      capture()
+      return
+    }
+    if (tool === 'note' || tool === 'text') {
+      const id = newAnnotationId()
+      addAnnotation(
+        tool === 'note'
+          ? { id, type: 'note', x: w.x - 90, y: w.y - 20, text: m.noteDefault, color: NOTE_COLORS[mapRef.current.annotations.length % 4] }
+          : { id, type: 'text', x: w.x, y: w.y - 12, text: m.textDefault },
+        m.toast.annotationAdded,
+        true,
+      )
+      setTool('select')
+      return
+    }
+    if (tool === 'ts') {
+      void createTs({ x: w.x - FRAME_W / 2, y: w.y - 20 })
+      setTool('select')
+      return
+    }
+    if (tool === 'rect' || tool === 'ellipse' || tool === 'arrow' || tool === 'pen') {
+      const id = newAnnotationId()
+      const before = currentBoard()
+      const annotation: RunMapAnnotation =
+        tool === 'arrow' ? { id, type: 'arrow', x1: w.x, y1: w.y, x2: w.x, y2: w.y }
+          : tool === 'pen' ? { id, type: 'pen', points: [[w.x, w.y], [w.x, w.y]] }
+            : { id, type: tool, x: w.x, y: w.y, w: 0, h: 0 }
+      // 끄는 동안 [mapRef] 위에서 크기를 바꾸므로, 시작할 때 그쪽에도 넣는다.
+      mapRef.current = { ...mapRef.current, annotations: [...mapRef.current.annotations, annotation] }
+      setMap((current) => ({ ...current, annotations: [...current.annotations, annotation] }))
+      interaction.current = { kind: 'draw', id, ox: w.x, oy: w.y, before }
+      capture()
+      return
+    }
+    const item = target.closest<HTMLElement>('[data-annotation]')
+    if (item) {
+      setSelectedItem(item.dataset.annotation!)
+      interaction.current = { kind: 'item', id: item.dataset.annotation!, lastX: w.x, lastY: w.y, moved: false, before: currentBoard() }
+      capture()
+      return
+    }
+    const head = target.closest<HTMLElement>('[data-drag-frame]')
+    if (head) {
+      const id = head.dataset.dragFrame!
+      const frame = frameOf(id)
+      setZ((current) => ({ ...current, [id]: Math.max(1, ...Object.values(current)) + 1 }))
+      interaction.current = { kind: 'frame', id, sx: event.clientX, sy: event.clientY, ox: frame.x, oy: frame.y, moved: false, before: currentBoard() }
+      capture()
+      return
+    }
+    setSelectedItem(null)
+    if (target.closest('[data-step], [data-scene]')) return
+    interaction.current = { kind: 'pan', sx: event.clientX, sy: event.clientY, ox: view.x, oy: view.y }
+    capture()
   }
+  function onPointerMove(event: React.PointerEvent<HTMLDivElement>) {
+    const now = interaction.current
+    if (now === null) return
+    if (now.kind === 'pan') {
+      setView((v) => ({ ...v, x: now.ox + event.clientX - now.sx, y: now.oy + event.clientY - now.sy }))
+      return
+    }
+    const w = toWorld(event.clientX, event.clientY)
+    if (now.kind === 'frame') {
+      const dx = (event.clientX - now.sx) / view.k
+      const dy = (event.clientY - now.sy) / view.k
+      if (Math.abs(dx) + Math.abs(dy) > 3) now.moved = true
+      const frame = frameOf(now.id)
+      const next = { ...frame, x: now.ox + dx, y: now.oy + dy }
+      setMap((current) => ({ ...current, layout: { ...current.layout, [now.id]: next } }))
+      mapRef.current = { ...mapRef.current, layout: { ...mapRef.current.layout, [now.id]: next } }
+      return
+    }
+    if (now.kind === 'item') {
+      const dx = w.x - now.lastX
+      const dy = w.y - now.lastY
+      now.lastX = w.x
+      now.lastY = w.y
+      now.moved = true
+      const annotations = mapRef.current.annotations.map((a) => (a.id === now.id ? moved(a, dx, dy) : a))
+      setMap((current) => ({ ...current, annotations }))
+      mapRef.current = { ...mapRef.current, annotations }
+      return
+    }
+    const annotations = mapRef.current.annotations.map((a): RunMapAnnotation => {
+      if (a.id !== now.id) return a
+      if (a.type === 'arrow') return { ...a, x2: w.x, y2: w.y }
+      if (a.type === 'pen') return { ...a, points: [...a.points, [w.x, w.y]] }
+      if (a.type === 'rect' || a.type === 'ellipse') return { ...a, x: Math.min(now.ox, w.x), y: Math.min(now.oy, w.y), w: Math.abs(w.x - now.ox), h: Math.abs(w.y - now.oy) }
+      return a
+    })
+    setMap((current) => ({ ...current, annotations }))
+    mapRef.current = { ...mapRef.current, annotations }
+  }
+  function onPointerUp() {
+    const now = interaction.current
+    interaction.current = null
+    if (now === null || now.kind === 'pan') return
+    const after = currentBoard()
+    if (now.kind === 'frame') {
+      if (now.moved) commitBoard(now.before, after, m.toast.frameMoved(position(now.id)))
+      else pick(now.id)
+      return
+    }
+    if (now.kind === 'item') {
+      if (now.moved) commitBoard(now.before, after, m.toast.moved)
+      return
+    }
+    // 그리기: 너무 작으면 실수로 누른 것으로 보고 버린다.
+    const drawn = after.annotations.find((a) => a.id === now.id)
+    const tiny = drawn === undefined
+      || (drawn.type === 'arrow' && Math.hypot(drawn.x2 - drawn.x1, drawn.y2 - drawn.y1) < 8)
+      || (drawn.type === 'pen' && drawn.points.length < 4)
+      || ((drawn.type === 'rect' || drawn.type === 'ellipse') && drawn.w < 8 && drawn.h < 8)
+    if (tiny) {
+      const annotations = after.annotations.filter((a) => a.id !== now.id)
+      setMap((current) => ({ ...current, annotations }))
+      mapRef.current = { ...mapRef.current, annotations }
+    } else {
+      commitBoard(now.before, after, m.toast.annotationAdded)
+      setSelectedItem(now.id)
+    }
+  }
+
+  // ── 누르기 · 마우스 올리기 ──
+  function onClick(event: React.MouseEvent) {
+    const target = event.target as HTMLElement
+    if (!target.closest('.rm-world')) return
+    const step = target.closest<HTMLElement>('[data-step]')
+    if (step) {
+      const [id, index] = step.dataset.step!.split('|')
+      pick(id, Number(index))
+      return
+    }
+    const fold = target.closest<HTMLElement>('[data-fold]')
+    if (fold) return toggleFold(fold.dataset.fold!)
+    const add = target.closest<HTMLElement>('[data-add-step]')
+    if (add) return addStep(add.dataset.addStep!)
+    const imp = target.closest<HTMLElement>('[data-import-tcs]')
+    if (imp) return setImportFor(imp.dataset.importTcs!)
+    const open = target.closest<HTMLElement>('[data-open-editor]')
+    if (open) return openEdit(open.dataset.openEditor!)
+  }
+  function onDoubleClick(event: React.MouseEvent) {
+    const item = (event.target as HTMLElement).closest<HTMLElement>('.rma-note, .rma-text')
+    if (item) setEditingItem(item.dataset.annotation!)
+  }
+  function onMouseOver(event: React.MouseEvent) {
+    const target = event.target as HTMLElement
+    const sceneName = target.closest<HTMLElement>('[data-scene]')?.dataset.scene
+    const nextScene = sceneName && sceneName.length > 0 ? sceneName : null
+    if (nextScene !== scene) setScene(nextScene)
+    const step = target.closest<HTMLElement>('.rm-world [data-step]')
+    if (!step || interaction.current !== null) {
+      if (hover !== null) setHover(null)
+      return
+    }
+    const [id, index] = step.dataset.step!.split('|')
+    if (hover?.id !== id || hover.index !== Number(index)) setHover({ id, index: Number(index), rect: step.getBoundingClientRect() })
+  }
+
+  // ── 우클릭: 누른 자리에 따라 다르다 ──
+  function onContextMenu(event: React.MouseEvent) {
+    const target = event.target as HTMLElement
+    if (target.closest('.rm-drawer, .rm-toolbar, .rm-ctrls, .rm-mini')) return
+    event.preventDefault()
+    const w = toWorld(event.clientX, event.clientY)
+    const at = { x: event.clientX, y: event.clientY }
+    const step = target.closest<HTMLElement>('.rm-world [data-step]')
+    const item = target.closest<HTMLElement>('[data-annotation]')
+    const frame = target.closest<HTMLElement>('[data-scenario-id]')
+    if (step) {
+      const [id, raw] = step.dataset.step!.split('|')
+      const index = Number(raw)
+      const count = drafts[id]?.steps.length ?? 0
+      setMenu({ ...at, label: m.menu.step(position(id), index + 1), items: [
+        { label: m.menu.insertBefore, onSelect: () => addStep(id, index) },
+        { label: m.menu.insertAfter, onSelect: () => addStep(id, index + 1) },
+        { label: m.menu.moveBack, onSelect: () => moveStep(id, index, -1), disabled: index === 0 },
+        { label: m.menu.moveForward, onSelect: () => moveStep(id, index, 1), disabled: index >= count - 1 },
+        { label: m.menu.openEditor, onSelect: () => openEdit(id) },
+        { label: m.menu.deleteStep, onSelect: () => deleteStep(id, index), danger: true },
+      ] })
+    } else if (item) {
+      const id = item.dataset.annotation!
+      const annotation = mapRef.current.annotations.find((a) => a.id === id)
+      setSelectedItem(id)
+      const toFront = () => {
+        const before = currentBoard()
+        const one = before.annotations.find((a) => a.id === id)
+        if (one) commitBoard(before, { ...before, annotations: [...before.annotations.filter((a) => a.id !== id), one] }, m.toast.moved)
+      }
+      setMenu({ ...at, label: m.menu.annotation, items: [
+        ...(annotation?.type === 'note'
+          ? [{ label: m.menu.changeColor, onSelect: () => updateAnnotation(id, (a) => (a.type === 'note' ? { ...a, color: NOTE_COLORS[(NOTE_COLORS.indexOf(a.color) + 1) % 4] } : a), m.toast.annotationChanged) }]
+          : []),
+        ...(annotation?.type === 'note' || annotation?.type === 'text' ? [{ label: m.menu.editText, onSelect: () => setEditingItem(id) }] : []),
+        { label: m.menu.bringFront, onSelect: toFront },
+        { label: m.menu.delete, onSelect: () => deleteAnnotation(id), danger: true },
+      ] })
+    } else if (frame) {
+      const id = frame.dataset.scenarioId!
+      const f = frameOf(id)
+      setMenu({ ...at, label: m.menu.frame(position(id)), items: [
+        { label: m.menu.importTcs, onSelect: () => setImportFor(id) },
+        { label: m.menu.addStepEnd, onSelect: () => addStep(id) },
+        { label: m.menu.openEditor, onSelect: () => openEdit(id) },
+        { label: f.folded ? m.frame.unfold : m.frame.fold, onSelect: () => toggleFold(id) },
+        { label: m.menu.duplicate, onSelect: () => void createTs({ x: f.x + 40, y: f.y + 40 }, id) },
+        { label: m.menu.noteBeside, onSelect: () => addAnnotation({ id: newAnnotationId(), type: 'note', x: f.x + FRAME_W + 16, y: f.y, text: m.noteDefault, color: 'y' }, m.toast.annotationAdded, true) },
+        { label: m.menu.removeFromRun, onSelect: () => removeTs(id), danger: true },
+      ] })
+    } else {
+      setMenu({ ...at, label: m.menu.canvas, items: [
+        { label: m.menu.newTsHere, onSelect: () => void createTs({ x: w.x - FRAME_W / 2, y: w.y - 20 }) },
+        { label: m.menu.noteHere, onSelect: () => addAnnotation({ id: newAnnotationId(), type: 'note', x: w.x - 90, y: w.y - 20, text: m.noteDefault, color: 'y' }, m.toast.annotationAdded, true) },
+        { label: m.menu.textHere, onSelect: () => addAnnotation({ id: newAnnotationId(), type: 'text', x: w.x, y: w.y, text: m.textDefault }, m.toast.annotationAdded, true) },
+        { label: m.autoLayout, onSelect: () => layOut() },
+        { label: m.menu.fit, onSelect: fit },
+        { label: allFolded ? m.unfoldAll : m.foldAll, onSelect: () => layOut(!allFolded) },
+      ] })
+    }
+  }
+
+  // ── 단축키(글을 고치는 중 · 입력칸 · 대화창이 열려 있으면 받지 않는다) ──
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      const target = event.target as HTMLElement
+      if (target.isContentEditable || target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || importFor !== null || menu !== null) return
+      const mod = event.metaKey || event.ctrlKey
+      if (mod && event.key.toLowerCase() === 'z') {
+        event.preventDefault()
+        if (event.shiftKey) redo()
+        else undo()
+        return
+      }
+      if ((event.key === 'Delete' || event.key === 'Backspace') && selectedItem !== null) {
+        event.preventDefault()
+        deleteAnnotation(selectedItem)
+        return
+      }
+      if ((event.key === 'Delete' || event.key === 'Backspace') && drawerOpen && picked !== null && picked.step !== null) {
+        event.preventDefault()
+        deleteStep(picked.id, picked.step)
+        return
+      }
+      if (event.altKey && drawerOpen && picked !== null && picked.step !== null && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
+        event.preventDefault()
+        moveStep(picked.id, picked.step, event.key === 'ArrowLeft' ? -1 : 1)
+        return
+      }
+      if (!mod && !event.altKey && TOOL_KEYS[event.key.toLowerCase()] !== undefined) {
+        setTool(TOOL_KEYS[event.key.toLowerCase()])
+        return
+      }
+      if (event.key === 'Escape') {
+        setTool('select')
+        setSelectedItem(null)
+        setDrawerOpen(false)
+        return
+      }
+      if (!drawerOpen || picked === null) return
+      const s = scenarios.find((x) => x.id === picked.id)
+      const at = order.indexOf(picked.id)
+      if (s === undefined) return
+      if (event.key === 'ArrowRight' && s.steps.length > 0) {
+        event.preventDefault()
+        pick(s.id, Math.min(s.steps.length - 1, (picked.step ?? -1) + 1))
+      } else if (event.key === 'ArrowLeft' && s.steps.length > 0) {
+        event.preventDefault()
+        pick(s.id, Math.max(0, (picked.step ?? 1) - 1))
+      } else if (event.key === 'ArrowDown' && at < order.length - 1) {
+        event.preventDefault()
+        pick(order[at + 1])
+      } else if (event.key === 'ArrowUp' && at > 0) {
+        event.preventDefault()
+        pick(order[at - 1])
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  })
+
   function openEditor() {
     navigate(`/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(runId)}/edit`)
   }
@@ -122,55 +673,18 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     navigate(`/projects/${encodeURIComponent(projectId)}/test-scenarios/${scenarioId}?run=${encodeURIComponent(runId)}`)
   }
 
-  // pan / zoom
-  const mapRef = useRef<HTMLDivElement>(null)
-  const [view, setView] = useState({ x: 70, y: 72, k: 1 })
-  const pan = useRef<{ sx: number; sy: number; ox: number; oy: number } | null>(null)
-
-  // wheel must be non-passive to preventDefault the page scroll, which React's
-  // synthetic onWheel cannot do — so it is attached by hand.
-  useEffect(() => {
-    const el = mapRef.current
-    if (el === null) return undefined
-    function onWheel(event: WheelEvent) {
-      event.preventDefault()
-      const rect = el!.getBoundingClientRect()
-      const cx = event.clientX - rect.left
-      const cy = event.clientY - rect.top
-      setView((v) => {
-        const k = clamp(v.k - event.deltaY * 0.0012, MIN_SCALE, MAX_SCALE)
-        const ratio = k / v.k
-        return { k, x: cx - (cx - v.x) * ratio, y: cy - (cy - v.y) * ratio }
-      })
-    }
-    el.addEventListener('wheel', onWheel, { passive: false })
-    return () => el.removeEventListener('wheel', onWheel)
-  }, [])
-
-  function zoomBy(factor: number) {
-    const el = mapRef.current
-    const rect = el?.getBoundingClientRect()
-    const cx = rect ? rect.width / 2 : 0
-    const cy = rect ? rect.height / 2 : 0
-    setView((v) => {
-      const k = clamp(v.k * factor, MIN_SCALE, MAX_SCALE)
-      const ratio = k / v.k
-      return { k, x: cx - (cx - v.x) * ratio, y: cy - (cy - v.y) * ratio }
-    })
-  }
-
-  // agent 가 쓰는 길. 각 action 은 같은 이름의 버튼이 부르는 함수를 부른다.
+  // ── agent 가 쓰는 길. 각 action 은 같은 이름의 버튼이 부르는 함수를 부른다 ──
   const editButton = useRef<HTMLButtonElement>(null)
-  const lookups = scenarioLookups(nodes, (node) => node.id, (node) => node.title)
-  const mapBlockedReason = () => (status === 'ready' ? null : status === 'loading' ? m.loading : status === 'missing' ? m.missing : m.loadFailed)
-  const scenarioBlockedReason = () => mapBlockedReason() ?? (nodes.length === 0 ? m.empty : null)
-  const scenarioElement = (scenarioId: string) =>
-    mapRef.current?.querySelector<HTMLElement>(`[data-scenario-id="${CSS.escape(scenarioId)}"]`) ?? null
   const pickedScenario = useRef<string | null>(null)
+  const lookups = scenarioLookups(scenarios, (s) => s.id, (s) => s.title)
+  const mapBlockedReason = () => (data.status === 'ready' ? null : data.status === 'loading' ? m.loading : data.status === 'missing' ? m.missing : m.loadFailed)
+  const scenarioBlockedReason = () => mapBlockedReason() ?? (scenarios.length === 0 ? m.empty : null)
+  const scenarioElement = (scenarioId: string) =>
+    stageRef.current?.querySelector<HTMLElement>(`[data-scenario-id="${CSS.escape(scenarioId)}"]`) ?? null
   useFieldBinding(TEST_RUN_SCENARIOS_FIELD, {
-    target: () => mapRef.current,
-    read: () => nodes.length,
-    options: () => listedOptions(nodes, (node) => ({ value: node.id, label: node.title })),
+    target: () => stageRef.current,
+    read: () => scenarios.length,
+    options: () => listedOptions(scenarios, (s) => ({ value: s.id, label: s.title })),
     write: readOnlyListWrite(TEST_RUN_SCENARIOS_FIELD.name, 'use testRun.selectScenario or testRun.openScenario.'),
   })
   useActionBinding(TEST_RUN_OPEN_EDITOR_ACTION, {
@@ -182,24 +696,24 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     target: () => (pickedScenario.current === null ? null : scenarioElement(pickedScenario.current)),
     blocked: scenarioBlockedReason,
     run: async (args) => {
-      const node = resolveEntry('scenario', args.scenario, lookups)
-      pickedScenario.current = node.id
-      if (!expandedIds.has(node.id)) toggleExpand(node.id)
-      return { id: node.id, title: node.title, steps: node.steps.map((step) => ({ action: step.action, tc: step.tcNo })) }
+      const s = resolveEntry('scenario', args.scenario, lookups)
+      pickedScenario.current = s.id
+      pick(s.id)
+      return { id: s.id, title: s.title, steps: s.steps.map((step) => ({ action: step.action, tc: step.tc })) }
     },
   })
   useActionBinding(TEST_RUN_OPEN_SCENARIO_ACTION, {
-    target: () => (pickedScenario.current === null ? null : scenarioElement(pickedScenario.current)?.querySelector<HTMLElement>('.mnode-open') ?? null),
+    target: () => (pickedScenario.current === null ? null : scenarioElement(pickedScenario.current)?.querySelector<HTMLElement>('[data-open-editor]') ?? null),
     blocked: scenarioBlockedReason,
     run: async (args) => {
-      const node = resolveEntry('scenario', args.scenario, lookups)
-      pickedScenario.current = node.id
-      openEdit(node.id)
-      return { id: node.id, title: node.title }
+      const s = resolveEntry('scenario', args.scenario, lookups)
+      pickedScenario.current = s.id
+      openEdit(s.id)
+      return { id: s.id, title: s.title }
     },
   })
   useActionBinding(TEST_RUN_START_QA_ACTION, {
-    target: () => mapRef.current?.querySelector<HTMLElement>('.rm-top') ?? null,
+    target: () => document.querySelector<HTMLElement>('.rmap-top'),
     blocked: scenarioBlockedReason,
     // QA 시작은 QA 페이지의 승인 action 이 맡는다. 이 페이지에는 QA 를 시작하는 버튼이 없다.
     run: async () => {
@@ -208,125 +722,184 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     },
   })
 
-  if (status === 'loading') {
-    return <div className="run-map-shell"><p className="empty-note">{m.loading}</p></div>
+  const allFolded = scenarios.length > 0 && scenarios.every((s) => frameOf(s.id).folded)
+  const q = query.trim().toLowerCase()
+  const matches = (s: (typeof scenarios)[number]) =>
+    q === '' || s.title.toLowerCase().includes(q) || s.steps.some((step) => step.action.toLowerCase().includes(q) || (step.scene ?? '').toLowerCase().includes(q))
+  const totals = useMemo(() => ({
+    steps: scenarios.reduce((n, s) => n + s.steps.length, 0),
+    gaps: scenarios.reduce((n, s) => n + s.gapCount, 0),
+    scenes: new Set(scenarios.flatMap((s) => s.steps.map((step) => step.scene).filter((x): x is string => x !== null))).size,
+  }), [scenarios])
+
+  if (data.status === 'loading') {
+    return <div className="rmap-shell"><p className="empty-note">{m.loading}</p></div>
   }
-  if (status === 'missing' || status === 'error') {
+  if (data.status === 'missing' || data.status === 'error') {
     return (
-      <div className="run-map-shell">
+      <div className="rmap-shell">
         <div className="panel-message">
-          <p>{status === 'missing' ? m.missing : m.loadFailed}</p>
+          <p>{data.status === 'missing' ? m.missing : m.loadFailed}</p>
           <Link className="button button--secondary" to={`/projects/${encodeURIComponent(projectId)}`}>{m.back}</Link>
         </div>
       </div>
     )
   }
 
-  // layout: run entry node on the left, scenarios stacked on the right
-  const NODE_X = 340
-  const NODE_GAP = 168
-  const entryY = 40 + Math.max(0, (nodes.length - 1) * NODE_GAP) / 2
+  const drawerScenario = drawerOpen && picked !== null ? scenarios.find((s) => s.id === picked.id) : undefined
+  const hoverStep = hover === null ? undefined : scenarios.find((s) => s.id === hover.id)?.steps[hover.index]
+  const importScenario = importFor === null ? undefined : drafts[importFor]
+  const miniScale = Math.min(186 / bounds.w, 110 / bounds.h)
+  const stageBox = stageSize.width > 0 ? stageSize : null
 
   return (
-    <div className="run-map" ref={mapRef}
-      onPointerDown={(event) => {
-        if ((event.target as HTMLElement).closest('.mnode, .cflow, .controls, .legend, .rm-top')) return
-        pan.current = { sx: event.clientX, sy: event.clientY, ox: view.x, oy: view.y }
-        event.currentTarget.setPointerCapture(event.pointerId)
-      }}
-      onPointerMove={(event) => {
-        // Capture the ref once: pointerup can null it out between reads (inside
-        // the setState updater), which crashed on `.ox`.
-        const start = pan.current
-        if (start === null) return
-        const dx = event.clientX - start.sx
-        const dy = event.clientY - start.sy
-        setView((v) => ({ ...v, x: start.ox + dx, y: start.oy + dy }))
-      }}
-      onPointerUp={() => { pan.current = null }}
-      onPointerCancel={() => { pan.current = null }}
-    >
-      <header className="rm-top">
-        <Link className="st-back" to={`/projects/${encodeURIComponent(projectId)}`}>{m.back}</Link>
-        <div className="st-crumb"><span className="scn">{run?.name}</span><span className="id mono">TestRun · {nodes.length} {m.scenarioUnit}</span></div>
-        <div className="rm-spacer" />
-        <div className="rm-seg">
+    <div className="rmap">
+      <header className="rmap-top">
+        <Link className="rmap-back" to={`/projects/${encodeURIComponent(projectId)}`}>{m.back}</Link>
+        <span className="rmap-name">{data.run?.name}</span>
+        <span className="rmap-stats">
+          <b>{m.stats.ts(scenarios.length)}</b>
+          <span>{m.stats.steps(totals.steps)}</span>
+          <span>{m.stats.scenes(totals.scenes)}</span>
+          {totals.gaps > 0 && <span className="rmap-gap">{m.stats.gaps(totals.gaps)}</span>}
+        </span>
+        <span className="rmap-spacer" />
+        <div className="rmap-seg">
           <button onClick={openEditor} ref={editButton} type="button">{m.editView}</button>
           <button className="on" type="button">{m.mapView}</button>
         </div>
       </header>
-
-      <div className="world" style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.k})` }}>
-        <svg className="edges" width="1200" height={Math.max(600, nodes.length * NODE_GAP + 120)}>
-          {nodes.map((_, index) => {
-            const y = 40 + index * NODE_GAP + 48
-            return <path className="edge" d={`M 210 ${entryY + 40} C 275 ${entryY + 40} 275 ${y} ${NODE_X} ${y}`} key={index} />
+      <div className="rmap-tools">
+        <label className="rmap-search">
+          <span aria-hidden="true">⌕</span>
+          <input aria-label={m.searchPlaceholder} onChange={(event) => setQuery(event.target.value)} placeholder={m.searchPlaceholder} type="search" value={query} />
+        </label>
+        <button className="button button--secondary button--compact" onClick={() => layOut()} type="button">{m.autoLayout}</button>
+        <button className="button button--secondary button--compact" onClick={() => layOut(!allFolded)} type="button">{allFolded ? m.unfoldAll : m.foldAll}</button>
+        <span className="rmap-legend">
+          <span><i className="lg-step" />{m.legend.step}</span>
+          <span><i className="lg-tc" />{m.legend.tcStep}</span>
+          <span><i className="lg-unknown" />{m.legend.unknownScene}</span>
+          <span><i className="lg-gap" />{m.legend.gap}</span>
+        </span>
+      </div>
+      <div
+        aria-label={m.canvasLabel}
+        className={'rmap-stage tool-' + tool}
+        onClick={onClick}
+        onContextMenu={onContextMenu}
+        onDoubleClick={onDoubleClick}
+        onMouseLeave={() => setHover(null)}
+        onMouseOver={onMouseOver}
+        onPointerCancel={onPointerUp}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        ref={stageRef}
+      >
+        <div
+          className={'rm-world' + (scene !== null ? ' is-scene-focus' : '') + (view.k < 0.45 ? ' is-far' : '')}
+          style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.k})`, width: bounds.w, height: bounds.h }}
+        >
+          {scenarios.map((s) => {
+            const f = frameOf(s.id)
+            return (
+              <TsFrame
+                dimmed={!matches(s)}
+                folded={f.folded}
+                highlightScene={scene}
+                key={s.id}
+                picked={picked?.id === s.id}
+                pickedStep={picked?.id === s.id ? picked.step : null}
+                position={position(s.id)}
+                scenario={s}
+                x={f.x}
+                y={f.y}
+                z={z[s.id] ?? 1}
+              />
+            )
           })}
-        </svg>
+          <RunMapAnnotations annotations={map.annotations} authors={map.authors} editing={editingItem} onEditText={editText} selected={selectedItem} />
+        </div>
+        {scenarios.length === 0 && <p className="rmap-empty empty-note">{m.empty}</p>}
 
-        <div className="mentry" style={{ left: 24, top: entryY }}>
-          <div className="lbl"><span className="d" />TestRun</div>
-          <div className="sub mono">{nodes.length} {m.scenarioUnit}</div>
-          <div className="sub">{run?.name}</div>
+        <RunMapToolbar canRedo={history.redo.length > 0} canUndo={history.undo.length > 0} onRedo={redo} onTool={setTool} onUndo={undo} tool={tool} />
+        <div className="rm-ctrls">
+          <button aria-label={m.zoomOut} className="rm-ctrl" onClick={() => stageBox && zoomAt(stageBox.width / 2, stageBox.height / 2, 1 / 1.2)} type="button">−</button>
+          <span className="rm-zoom">{Math.round(view.k * 100)}%</span>
+          <button aria-label={m.zoomIn} className="rm-ctrl" onClick={() => stageBox && zoomAt(stageBox.width / 2, stageBox.height / 2, 1.2)} type="button">＋</button>
+          <button className="rm-ctrl" onClick={fit} type="button">{m.fit}</button>
+        </div>
+        <div
+          aria-label={m.minimap}
+          className={'rm-mini' + (drawerScenario ? ' beside-drawer' : '')}
+          onPointerDown={(event) => {
+            const box = event.currentTarget.getBoundingClientRect()
+            const wx = (event.clientX - box.left - 7) / miniScale
+            const wy = (event.clientY - box.top - 7) / miniScale
+            if (stageBox) setView((v) => ({ ...v, x: stageBox.width / 2 - wx * v.k, y: stageBox.height / 2 - wy * v.k }))
+          }}
+        >
+          {scenarios.map((s) => {
+            const f = frameOf(s.id)
+            return (
+              <i
+                className={picked?.id === s.id ? 'is-picked' : ''}
+                key={s.id}
+                style={{ left: 7 + f.x * miniScale, top: 7 + f.y * miniScale, width: Math.max(2, FRAME_W * miniScale), height: Math.max(2, frameHeight(s.steps.length, f.folded) * miniScale) }}
+              />
+            )
+          })}
+          {stageBox && (
+            <span
+              className="rm-mini-view"
+              style={{ left: 7 + (-view.x / view.k) * miniScale, top: 7 + (-view.y / view.k) * miniScale, width: (stageBox.width / view.k) * miniScale, height: (stageBox.height / view.k) * miniScale }}
+            />
+          )}
         </div>
 
-        {nodes.map((node, index) => {
-          const top = 40 + index * NODE_GAP
-          const expanded = expandedIds.has(node.id)
-          return (
-            <Fragment key={node.id}>
-              <div className={'mnode' + (expanded ? ' expanded' : '')} data-scenario-id={node.id} style={{ left: NODE_X, top }}
-                onClick={() => toggleExpand(node.id)}
-                role="button" tabIndex={0}
-              >
-                <div className="mname">{node.title}</div>
-                <div className="mmeta mono">
-                  {node.stepCount} {m.stepUnit}{node.tcCount > 0 ? ` · ${node.tcCount} ${m.tcUnit}` : ''} · {expanded ? m.collapse : m.expandSteps}
-                </div>
-                <button className="mnode-open" onClick={(event) => { event.stopPropagation(); openEdit(node.id) }} type="button">{m.openHint}</button>
-              </div>
-
-              {expanded && (
-                <div className="cflow" style={{ left: NODE_X + 300, top: top + 42 }}>
-                  {node.steps.length === 0 ? (
-                    <>
-                      <span className="cflow-link" />
-                      <div className="cnode cnode--empty">{m.noSteps}</div>
-                    </>
-                  ) : (
-                    node.steps.map((step, j) => (
-                      <Fragment key={j}>
-                        <span className="cflow-link" />
-                        <button
-                          className={'cnode' + (step.gap ? ' cnode--gap' : step.tcNo !== null ? ' cnode--tc' : '')}
-                          onClick={() => openEdit(node.id)}
-                          type="button"
-                        >
-                          <span className="cnode-row">
-                            {/* A gap has no ordinal — it is a notice sitting between steps, not one of them. */}
-                            <span className="cnode-num mono">{step.gap ? '⚠' : String(j + 1).padStart(2, '0')}</span>
-                            <span className="cnode-title">{step.action.length > 0 ? step.action : m.untitledStep}</span>
-                            {!step.gap && step.tcNo !== null && <span className="st-tc-badge">{m.tcUnit} {step.tcNo}</span>}
-                          </span>
-                        </button>
-                      </Fragment>
-                    ))
-                  )}
-                </div>
-              )}
-            </Fragment>
-          )
-        })}
+        {drawerScenario && (
+          <RunMapDrawer
+            onAddStep={() => addStep(drawerScenario.id, picked === null || picked.step === null ? undefined : picked.step + 1)}
+            onClose={() => setDrawerOpen(false)}
+            onImportTcs={() => setImportFor(drawerScenario.id)}
+            onNext={() => pick(order[order.indexOf(drawerScenario.id) + 1])}
+            onOpenEditor={() => openEdit(drawerScenario.id)}
+            onPickStep={(index) => pick(drawerScenario.id, index)}
+            onPrev={() => pick(order[order.indexOf(drawerScenario.id) - 1])}
+            pickedStep={picked?.step ?? null}
+            position={position(drawerScenario.id)}
+            scenario={drawerScenario}
+            total={order.length}
+          />
+        )}
+        {toast && (
+          <div className="rm-toast" role="status">
+            {toast.text}
+            {toast.undo && <button onClick={undo} type="button">{m.toast.undo}</button>}
+          </div>
+        )}
       </div>
 
-      <div className="controls">
-        <button className="ctrl" onClick={() => zoomBy(1 / 1.15)} type="button">−</button>
-        <span className="zoom-label mono">{Math.round(view.k * 100)}%</span>
-        <button className="ctrl" onClick={() => zoomBy(1.15)} type="button">＋</button>
-        <button className="ctrl" onClick={() => setView({ x: 70, y: 72, k: 1 })} type="button">{m.fit}</button>
-      </div>
-
-      {nodes.length === 0 && <p className="rm-empty empty-note">{m.empty}</p>}
+      {hover && hoverStep && <StepHoverCard anchor={hover.rect} index={hover.index} step={hoverStep} />}
+      {menu && <ContextMenu items={menu.items} label={menu.label} onClose={() => setMenu(null)} x={menu.x} y={menu.y} />}
+      {importFor !== null && importScenario && (
+        <AddCasesDialog
+          onAdd={(caseIds) => {
+            importTcs(importFor, caseIds)
+            setImportFor(null)
+          }}
+          onClose={() => setImportFor(null)}
+          project={data.cases}
+          steps={importScenario.steps}
+        />
+      )}
     </div>
   )
+}
+
+function moved(a: RunMapAnnotation, dx: number, dy: number): RunMapAnnotation {
+  if (a.type === 'arrow') return { ...a, x1: a.x1 + dx, y1: a.y1 + dy, x2: a.x2 + dx, y2: a.y2 + dy }
+  if (a.type === 'pen') return { ...a, points: a.points.map(([x, y]) => [x + dx, y + dy] as [number, number]) }
+  return { ...a, x: a.x + dx, y: a.y + dy }
 }
