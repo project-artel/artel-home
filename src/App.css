@@ -13099,3 +13099,32 @@ col.vimp-c-scene{ width:18% } col.vimp-c-verdict{ width:16% }
     transition: none;
   }
 }
+
+/* 케이스 표를 받는 동안의 빈 줄(ARTEL-1211). 진짜 줄과 같은 높이라 다 받아도 화면이 밀리지 않는다. */
+.tct-skel td {
+  height: 47px;
+  vertical-align: middle;
+}
+
+.tct-skel .skeleton-line {
+  display: block;
+  max-width: 100%;
+  animation: tct-skel-pulse 1.4s ease-in-out infinite;
+}
+
+.tcl-skeleton {
+  padding: 0;
+  overflow: hidden;
+}
+
+@keyframes tct-skel-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tct-skel .skeleton-line {
+    animation: none;
+  }
+}

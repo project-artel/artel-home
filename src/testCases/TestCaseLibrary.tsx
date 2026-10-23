@@ -109,6 +109,7 @@ import { CASE_LIBRARY_TOUR, caseLibraryTourSteps } from './tour/caseLibraryTour'
 import { useTour } from './tour/useTour'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useRowWindow } from './useRowWindow'
+import { CaseSkeletonRows, CaseTableSkeleton } from './CaseTableSkeleton'
 
 /** `vdot` 와 결과 pill 이 상태마다 쓰는 CSS 접미사. 대문자 상태값을 클래스에 그대로 넣지 않는다. */
 const STATUS_CLASS: Record<VerificationStatus, string> = {
@@ -795,12 +796,12 @@ export function TestCaseLibrary({
     versionList.status === 'loading' || (versionsMode && !versionCases.loadedOnce && !versionCases.failed)
   // 버전을 바꾸는 중: 표 자리만 기다린다.
   const switchingVersion = versionsMode && !versionCases.ready && !versionCases.failed
+  // 표를 받는 중이면 표 틀은 그대로 두고 줄 자리에 빈 줄을 놓는다.
+  const loadingRows = folderView ? !folderItems.ready : switchingVersion
   if (library.status === 'loading' || waitsForFolder || waitsForVersion) {
     return (
       <div className="section-single">
-        <section className="panel" aria-busy="true">
-          <p className="panel-empty">{m.section.loading}</p>
-        </section>
+        <CaseTableSkeleton label={m.section.loading} />
       </div>
     )
   }
@@ -1103,11 +1104,7 @@ export function TestCaseLibrary({
               {m.section.retry}
             </button>
           </div>
-        ) : (folderView ? !folderItems.ready : switchingVersion) ? (
-          <div className="panel-empty-block" aria-busy="true">
-            <p className="panel-empty">{m.section.loading}</p>
-          </div>
-        ) : shown.length === 0 ? (
+        ) : !loadingRows && shown.length === 0 ? (
           <div className="panel-empty-block">
             <p className="panel-empty">
               {filtered
@@ -1131,8 +1128,10 @@ export function TestCaseLibrary({
             className={
               'cp-listwrap' + (edge.top ? ' at-top' : '') + (edge.bottom ? ' at-bottom' : '')
             }
+            aria-busy={loadingRows || undefined}
             data-tour="table"
           >
+            {loadingRows && <p className="visually-hidden" role="status">{m.section.loading}</p>}
             <div className="cp-fade cp-fade--top" aria-hidden="true"><span className="cp-fade-hint">▴</span></div>
             <div className="cp-list tcl-scroll" onScroll={onScroll} ref={attachList}>
               <table className="tcl-table">
@@ -1152,7 +1151,8 @@ export function TestCaseLibrary({
                       <label className="tct-check">
                         <input
                           aria-label={m.selection.selectAll}
-                          checked={selection.visibleState === 'all'}
+                          checked={!loadingRows && selection.visibleState === 'all'}
+                          disabled={loadingRows}
                           onChange={selection.toggleAllVisible}
                           ref={selectAllRef}
                           type="checkbox"
@@ -1175,12 +1175,13 @@ export function TestCaseLibrary({
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.padTop > 0 && (
+                  {loadingRows && <CaseSkeletonRows columns={comparing ? 8 : 7} />}
+                  {!loadingRows && rows.padTop > 0 && (
                     <tr aria-hidden="true" className="tct-spacer">
                       <td colSpan={comparing ? 8 : 7} style={{ height: rows.padTop }} />
                     </tr>
                   )}
-                  {shown.slice(rows.start, rows.end).map((testCase, offset) => {
+                  {(loadingRows ? [] : shown.slice(rows.start, rows.end)).map((testCase, offset) => {
                     const index = rows.start + offset
                     const item = folderView ? itemById.get(testCase.id) : undefined
                     const versionRow = folderView ? undefined : rowById.get(testCase.id)
@@ -1291,7 +1292,7 @@ export function TestCaseLibrary({
                     </tr>
                     )
                   })}
-                  {rows.padBottom > 0 && (
+                  {!loadingRows && rows.padBottom > 0 && (
                     <tr aria-hidden="true" className="tct-spacer">
                       <td colSpan={comparing ? 8 : 7} style={{ height: rows.padBottom }} />
                     </tr>
@@ -1305,7 +1306,7 @@ export function TestCaseLibrary({
 
         <div className="cp-foot">
           <span>↑↓ {m.row.hintNav}</span>
-          <span>{m.section.shownOf(shown.length, tally.total)}</span>
+          <span>{loadingRows ? m.section.loading : m.section.shownOf(shown.length, tally.total)}</span>
         </div>
       </section>
 
