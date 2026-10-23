@@ -13,6 +13,25 @@ export type QaVerdictCapture = { captureId: string; url: string; expiresAt: stri
 
 export type QaStepAction = { kind: 'key' | 'click' | 'drag' | 'other'; label: string | null; count: number }
 
+/**
+ * 판정을 코드로 다시 본 결과(ARTEL-1253, 서버 ARTEL-1252). TC 효과를 판정 시점의 게임 상태 기록과 맞춘다.
+ * 판정을 바꾸지 않는다 — 사람이 다시 볼 판정을 고르는 등급이다.
+ */
+export type CodeCheckResult = 'PASS' | 'FAIL' | 'WEAK_PASS' | 'WEAK_FAIL' | 'UNKNOWN'
+
+export type QaCodeCheckItem = {
+  kind: string
+  target: string
+  expected: string | null
+  /** 기록에서 읽은 값. 확인하지 못했으면 null. */
+  observed: string | null
+  result: CodeCheckResult
+  /** 확인하지 못한 까닭. */
+  note: string | null
+}
+
+export type QaCodeCheck = { result: CodeCheckResult; items: QaCodeCheckItem[] }
+
 export type QaStepVerdict = {
   logId: string
   step: number
@@ -24,6 +43,10 @@ export type QaStepVerdict = {
   captures: QaVerdictCapture[]
   actions: QaStepAction[]
   judgedAt: string | null
+  /** 검증 판정에만 있다. */
+  codeCheck: QaCodeCheck | null
+  /** 사람이 추가로 검토할 판정인가. */
+  needsReview: boolean
 }
 
 export type QaScenarioStepView = { step: number; title: string; caseId: string | null; expected: string | null }
@@ -42,6 +65,8 @@ export type QaTryVerdicts = {
   steps: QaScenarioStepView[]
   verdicts: QaStepVerdict[]
   issues: QaStepIssue[]
+  /** 추가 검토가 필요한 판정 수. */
+  reviewCount: number
 }
 
 export type QaRunVerdicts = {
@@ -56,6 +81,32 @@ export type QaRunVerdicts = {
 }
 
 const ACTION_KINDS = new Set<QaStepAction['kind']>(['key', 'click', 'drag', 'other'])
+const CODE_RESULTS = new Set<CodeCheckResult>(['PASS', 'FAIL', 'WEAK_PASS', 'WEAK_FAIL', 'UNKNOWN'])
+
+/** 모르는 값은 확인 못 함으로 읽는다. */
+function asCodeResult(value: unknown): CodeCheckResult {
+  const text = asString(value) as CodeCheckResult
+  return CODE_RESULTS.has(text) ? text : 'UNKNOWN'
+}
+
+function readCodeCheckItem(value: unknown): QaCodeCheckItem | null {
+  const record = asRecord(value)
+  if (record === null) return null
+  return {
+    kind: asString(record.kind),
+    target: asString(record.target),
+    expected: orNull(record.expected),
+    observed: orNull(record.observed),
+    result: asCodeResult(record.result),
+    note: orNull(record.note),
+  }
+}
+
+function readCodeCheck(value: unknown): QaCodeCheck | null {
+  const record = asRecord(value)
+  if (record === null) return null
+  return { result: asCodeResult(record.result), items: list(record.items, readCodeCheckItem) }
+}
 
 function orNull(value: unknown): string | null {
   const text = asString(value)
@@ -99,6 +150,8 @@ function readVerdict(value: unknown): QaStepVerdict | null {
     captures: list(record.captures, readCapture),
     actions: list(record.actions, readAction),
     judgedAt: orNull(record.judgedAt),
+    codeCheck: readCodeCheck(record.codeCheck),
+    needsReview: record.needsReview === true,
   }
 }
 
@@ -131,6 +184,7 @@ function readTry(value: unknown): QaTryVerdicts | null {
     steps: list(record.steps, readStep),
     verdicts: list(record.verdicts, readVerdict),
     issues: list(record.issues, readIssue),
+    reviewCount: typeof record.reviewCount === 'number' ? record.reviewCount : 0,
   }
 }
 
