@@ -4,7 +4,7 @@ import { useAuth } from '../auth/useAuth'
 import { useI18n } from '../i18n/useI18n'
 import { useProjectChange } from '../live/useProjectChange'
 import { formatElapsedSeconds } from '../projects/formatters'
-import { listProjectQaRuns, type QaRunSummary } from './launch/qaLaunchApi'
+import { listProjectQaRuns, QA_NOTICES_CHANGED, qaNoticeTarget, readQaNotice, type QaRunSummary } from './launch/qaLaunchApi'
 
 /** 끝 알림을 고를 때 읽는 최신 실행 수. 한 번에 이만큼 넘게 끝나는 일은 없다. */
 const RECENT_RUNS = 5
@@ -30,7 +30,7 @@ function writeSeen(projectId: string, seen: Set<string>) {
 /**
  * 내가 시작한 QA 실행이 끝나면 어느 화면에서든 오른쪽 아래에 띄운다(ARTEL-1255). 결과와 남은 추가 검토 수를 보이고,
  * 판정 근거 페이지로 바로 간다. 서버가 `QA_RUNS` 변경을 알리면 최신 실행을 다시 읽어, 이 화면을 연 뒤에 끝난 것만 고른다.
- * 닫을 때까지 남는다.
+ * 닫을 때까지 남는다. 닫거나 놓친 것은 상단바 알림함([QaNoticeBell])에 남는다.
  */
 export function QaFinishedNotice({ projectId }: { projectId: string }) {
   const { t } = useI18n()
@@ -57,6 +57,7 @@ export function QaFinishedNotice({ projectId }: { projectId: string }) {
         if (fresh.length === 0) return
         fresh.forEach((run) => seen.add(run.id))
         writeSeen(projectId, seen)
+        window.dispatchEvent(new Event(QA_NOTICES_CHANGED))
         setShown((current) => [...fresh, ...current.filter((run) => !fresh.some((next) => next.id === run.id))].slice(0, 2))
       })
       .catch(() => {
@@ -75,7 +76,7 @@ export function QaFinishedNotice({ projectId }: { projectId: string }) {
         const passed = run.casesPassed ?? 0
         const failed = run.casesTotal === null ? 0 : run.casesTotal - passed
         const seconds = run.completedAt === null ? null : Math.round((Date.parse(run.completedAt) - Date.parse(run.startedAt)) / 1000)
-        const target = `/projects/${encodeURIComponent(projectId)}/qa-history/${encodeURIComponent(run.id)}${run.reviewPending > 0 ? '?review=1' : ''}`
+        const target = qaNoticeTarget(projectId, run)
         return (
           <section aria-label={copy.title} className="qa-notice" key={run.id} role="status">
             <div className="qa-notice-head">
@@ -105,6 +106,10 @@ export function QaFinishedNotice({ projectId }: { projectId: string }) {
                 className="button button--primary button--compact"
                 onClick={() => {
                   dismiss(run.id)
+                  // 알림함의 같은 줄도 읽음이 된다. 못 남겨도 이동은 한다.
+                  void readQaNotice(run.id)
+                    .then(() => window.dispatchEvent(new Event(QA_NOTICES_CHANGED)))
+                    .catch(() => undefined)
                   navigate(target)
                 }}
                 type="button"

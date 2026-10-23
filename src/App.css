@@ -13394,3 +13394,27 @@ col.vimp-c-scene{ width:18% } col.vimp-c-verdict{ width:16% }
 .qa-notice-pill--passed { color: var(--color-status-success); border-color: color-mix(in srgb, var(--color-status-success) 55%, transparent); }
 .qa-notice-pill--failed { color: var(--color-status-critical); border-color: color-mix(in srgb, var(--color-status-critical) 55%, transparent); }
 .qa-notice-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* 상단바 알림함(ARTEL-1255). 버튼은 테마 버튼과 같은 네모, 펼침 칸은 QA 모델 고르기 창과 같은 판. */
+.qa-bell { position: relative; }
+.qa-bell-button { position: relative; }
+.qa-bell-button.is-open { color: var(--color-text-primary); background: var(--color-bg-hover); }
+.qa-bell-badge { position: absolute; top: -6px; right: -7px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 999px; background: var(--color-agent-reasoning); color: var(--color-bg-canvas); font: 700 10.5px/17px var(--font-mono); text-align: center; }
+.qa-bell-popover { position: absolute; z-index: 310; top: calc(100% + var(--space-2)); right: 0; width: min(400px, calc(100vw - 32px)); overflow: hidden; border: 1px solid var(--color-border-strong); border-radius: var(--radius-lg); background: var(--color-bg-surface); box-shadow: 0 14px 40px rgb(0 0 0 / 45%); }
+.qa-bell-head { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--color-border-subtle); font-size: 14px; }
+.qa-bell-count { padding: 0 7px; border-radius: 999px; background: var(--color-bg-raised); color: var(--color-text-secondary); font: 600 11px var(--font-mono); }
+.qa-bell-readall { margin-left: auto; padding: 0; border: 0; background: none; color: var(--color-text-secondary); font-size: 12px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.qa-bell-readall:hover { color: var(--color-text-primary); }
+.qa-bell-list { max-height: min(460px, 70vh); margin: 0; padding: 0; overflow-y: auto; list-style: none; }
+.qa-bell-item { display: grid; grid-template-columns: 10px minmax(0, 1fr); gap: 10px; width: 100%; padding: 12px 14px; border: 0; border-bottom: 1px solid var(--color-border-subtle); background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.qa-bell-item:hover, .qa-bell-item:focus-visible { background: var(--color-bg-hover); }
+.qa-bell-dot { width: 7px; height: 7px; margin-top: 7px; border-radius: 50%; background: var(--color-agent-reasoning); }
+.qa-bell-item.is-read .qa-bell-dot { background: transparent; }
+.qa-bell-body { display: flex; min-width: 0; flex-direction: column; gap: 2px; }
+.qa-bell-name { font-weight: 600; overflow-wrap: anywhere; }
+.qa-bell-item.is-read .qa-bell-name { color: var(--color-text-secondary); font-weight: 500; }
+.qa-bell-meta { color: var(--color-text-muted); font-size: 12px; overflow-wrap: anywhere; }
+.qa-bell-body .qa-notice-stats { margin: 4px 0 0; }
+.qa-bell-pill--done { color: var(--color-text-muted); }
+.qa-bell-empty { margin: 0; padding: 28px 14px; color: var(--color-text-muted); text-align: center; }
+.qa-bell-foot { margin: 0; padding: 10px 14px; color: var(--color-text-muted); font-size: 11.5px; }
