@@ -27,3 +27,4 @@
 /* 고르는 중: 맵 가운데에 카드 하나. */
 .rm-bot-lock-center { position: absolute; inset: 0; z-index: 14; display: grid; place-items: center; pointer-events: none; }
 .rmap-stage.has-chat .rm-bot-lock-center { right: 380px; }
+.rmap-stage.has-chat-rail .rm-bot-lock-center { right: 44px; }

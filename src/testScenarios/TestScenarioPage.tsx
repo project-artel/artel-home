@@ -10,6 +10,7 @@ import { AgentChatEmbedded } from '../projectAgent/AgentDock'
 import { useSuppressAgentDock } from '../projectAgent/dockSuppression'
 import { isProjectAgentEnabled } from '../projectAgent/agentDockState'
 import { RunChat } from '../testRuns/RunChat'
+import { ChatRail } from '../testRuns/ChatRail'
 import { RunNameCrumb } from '../testRuns/RunNameCrumb'
 import { SplitHandle } from '../design-system/primitives/SplitHandle'
 import { RunVersionChip } from '../testRuns/RunVersionChip'
@@ -381,6 +382,10 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
         )}
         <SplitHandle label={t.scenarios.chat.widthHandle} {...split.handle} />
         <aside className="st-chat">
+          {split.collapsed ? (
+            <ChatRail busy={runChat.awaitingReply} onExpand={() => split.setCollapsed(false)} />
+          ) : (
+          <>
           {projectAgentEnabled && (
             <div aria-label={t.scenarios.chat.agentToggleLabel} className="st-seg st-chat-agent" role="group">
               <button
@@ -405,8 +410,10 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
             <AgentChatEmbedded />
           ) : (
             fromRun !== null && (
-              <RunChat gameBuildId={runBuild?.gameBuildId ?? null} session={runChat} />
+              <RunChat gameBuildId={runBuild?.gameBuildId ?? null} onCollapse={() => split.setCollapsed(true)} session={runChat} />
             )
+          )}
+          </>
           )}
         </aside>
       </div>

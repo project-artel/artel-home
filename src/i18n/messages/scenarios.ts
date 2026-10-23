@@ -98,6 +98,8 @@ export const scenariosEn = {
     agentProject: 'Project agent',
     // Doubles as the handle's tooltip and its accessible name, so it says what dragging does.
     widthHandle: 'Drag to resize the conversation',
+    collapse: 'Fold the conversation',
+    expand: 'Unfold the conversation',
     emptyTitle: 'No conversation yet',
     you: 'You',
     agent: 'Artel',
@@ -518,7 +520,6 @@ export const scenariosEn = {
     noCases: 'No cases',
     editView: 'Edit',
     mapView: 'Map',
-    chatToggle: 'Chat',
     mapLocked: 'Add a scenario to open the map',
     untitledScenario: 'Untitled scenario',
     untitledCase: 'Untitled case',
@@ -954,6 +955,8 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     agentProject: '프로젝트 agent',
     // 손잡이의 툴팁이자 screen reader 가 읽는 이름이다. 이름이 아니라 무엇을 하는지가 온다.
     widthHandle: '끌어서 대화 칸 폭 조절',
+    collapse: '대화 접기',
+    expand: '대화 펴기',
     emptyTitle: '아직 대화가 없습니다',
     you: '나',
     agent: 'Artel',
@@ -1355,7 +1358,6 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     noCases: '케이스 없음',
     editView: '편집',
     mapView: '맵',
-    chatToggle: '대화',
     mapLocked: '시나리오를 추가하면 맵이 열립니다',
     untitledScenario: '제목 없는 시나리오',
     untitledCase: '제목 없는 케이스',

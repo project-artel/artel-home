@@ -282,7 +282,7 @@
    .scenario-studio 는 화면 전체 격자(머리줄 52px + 본문)라, 여기서는 세로로 꽉 채우는 칸으로만 쓴다. */
 .rm-chat.scenario-studio { position: absolute; top: 0; right: 0; bottom: 0; z-index: 16; display: flex; flex-direction: column; height: auto; grid-template-rows: none; }
 .rm-chat.scenario-studio > .st-chat { flex: 1; min-height: 0; }
-.rmap-stage.has-chat .rm-drawer { right: 380px; }
-.rmap-stage.has-chat .rm-ctrls, .rmap-stage.has-chat .rm-toast { margin-right: 380px; }
-.rmap-chat-toggle { height: 30px; padding: 0 12px; border: 1px solid var(--color-border-subtle); border-radius: 8px; background: transparent; color: var(--color-text-secondary); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
-.rmap-chat-toggle.on { border-color: var(--color-action-primary); color: var(--color-text-primary); background: color-mix(in srgb, var(--color-action-primary) 10%, transparent); }
+.rmap-stage.has-chat .rm-toast { margin-right: 380px; }
+.rmap-stage.has-chat-rail .rm-toast { margin-right: 44px; }
+/* 서랍(상세)은 대화 칸 자리에 겹쳐 뜬다. 나란히 서서 캔버스를 둘이 나눠 먹지 않게 한다. 닫으면 대화가 다시 보인다. */
+.rm-drawer { z-index: 17; }

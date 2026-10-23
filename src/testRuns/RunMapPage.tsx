@@ -18,6 +18,8 @@ import { createTestScenario, updateScenario } from '../testScenarios/scenarioApi
 import { createEmptyStep, createHumanStep, type ScenarioDraft } from '../testScenarios/scenarioTypes'
 import { setRunScenarios } from './testRunApi'
 import { RunChat } from './RunChat'
+import { ChatRail } from './ChatRail'
+import { CHAT_RAIL_PX, useChatCollapsed } from '../testScenarios/useChatCollapsed'
 import { useRunChatSession } from './useRunChatSession'
 import { boxOf, contains, controlFor, dragBox, hasText, moved, resized, type Box, type BoxHandle } from './runMap/annotationGeometry'
 import { autoLayout, dropSlot, FRAME_W, frameHeight, HEAD_H } from './runMap/frameGeometry'
@@ -83,9 +85,8 @@ const newAnnotationId = () => `a${Date.now().toString(36)}${(annotationSeq++).to
 /** 복사한 것. 페이지를 옮겨도 남아 있어 다른 런 맵에도 붙여넣을 수 있다. */
 let clipboard: { kind: 'annotations'; items: RunMapAnnotation[] } | { kind: 'ts'; id: string } | null = null
 const PASTE_OFFSET = 24
-/** 맵 오른쪽 대화 칸의 폭과 열림 기억. */
+/** 맵 오른쪽 대화 칸의 폭. */
 const CHAT_W = 380
-const CHAT_OPEN_KEY = 'artel.runMap.chatOpen'
 /** 이 칸이 고치는 TS 들. 되돌리기가 Artel Bot 이 고치는 TS 를 건드리는지 본다. */
 const scenariosIn = (change: Change): string[] =>
   change.kind === 'many' ? change.changes.flatMap(scenariosIn) : change.kind === 'scenario' ? [change.id] : []
@@ -131,23 +132,9 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
   const { scenarios, map, setMap, drafts, setDrafts, order, setOrder } = data
 
   // ── 챗봇(ARTEL-1265) ── 편집 화면과 같은 대화(세션 = 사람 · 런)다. 어느 화면에서 말해도 같은 대화가 이어진다.
-  const [chatOpen, setChatOpen] = useState(() => {
-    try {
-      return window.localStorage.getItem(CHAT_OPEN_KEY) !== '0'
-    } catch {
-      return true
-    }
-  })
-  const toggleChat = useCallback(() => {
-    setChatOpen((open) => {
-      try {
-        window.localStorage.setItem(CHAT_OPEN_KEY, open ? '0' : '1')
-      } catch {
-        /* 기억하지 못해도 화면은 돈다 */
-      }
-      return !open
-    })
-  }, [])
+  // 접힘은 편집 화면과 같은 값이다(useChatCollapsed). 접으면 오른쪽 끝에 펴기 막대만 남는다.
+  const { collapsed: chatCollapsed, setCollapsed: setChatCollapsed } = useChatCollapsed()
+  const chatOpen = !chatCollapsed
   // AI 가 고친 것을 반영했거나 턴이 끝나면 맵을 다시 읽는다(저장 알림도 오지만 내 대화의 끝은 여기서 바로 안다).
   const reloadQuietly = useCallback(() => void data.reload(undefined, true), [data])
   const runChat = useRunChatSession(projectId, runId, reloadQuietly, reloadQuietly)
@@ -649,7 +636,8 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
   const fit = useCallback(() => {
     const rect = stageRef.current?.getBoundingClientRect()
     if (!rect) return
-    const avail = rect.width - (drawerOpen ? 580 : 0) - (chatOpen ? CHAT_W : 0)
+    // 서랍은 대화 칸 자리에 겹쳐 뜬다(나란히 서지 않는다). 오른쪽에서 빼는 것은 둘 중 넓은 쪽이다.
+    const avail = rect.width - Math.max(drawerOpen ? 580 : 0, chatOpen ? CHAT_W : CHAT_RAIL_PX)
     const k = Math.max(MIN_K, Math.min(1, (avail - 30) / bounds.w, (rect.height - 80) / bounds.h))
     setView({ k, x: 10, y: 64 })
   }, [bounds, drawerOpen, chatOpen])
@@ -1337,9 +1325,6 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
           <button onClick={openEditor} ref={editButton} type="button">{m.editView}</button>
           <button className="on" type="button">{m.mapView}</button>
         </div>
-        <button aria-pressed={chatOpen} className={'rmap-chat-toggle' + (chatOpen ? ' on' : '')} onClick={toggleChat} type="button">
-          {m.chatToggle}
-        </button>
       </header>
       <div className="rmap-tools">
         <label className="rmap-search">
@@ -1357,7 +1342,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
       </div>
       <div
         aria-label={m.canvasLabel}
-        className={'rmap-stage tool-' + activeTool + (panning ? ' is-panning' : '') + (chatOpen ? ' has-chat' : '')}
+        className={'rmap-stage tool-' + activeTool + (panning ? ' is-panning' : '') + (chatOpen ? ' has-chat' : ' has-chat-rail')}
         onClick={onClick}
         onContextMenu={onContextMenu}
         onDoubleClick={onDoubleClick}
@@ -1471,13 +1456,15 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
             <ArtelBotLock lock={choosingLock} scope="frame" />
           </div>
         )}
-        {chatOpen && (
-          <div className="scenario-studio rm-chat" style={{ width: CHAT_W }}>
-            <aside className="st-chat">
-              <RunChat gameBuildId={data.run?.gameBuild?.gameBuildId ?? null} session={runChat} />
-            </aside>
-          </div>
-        )}
+        <div className="scenario-studio rm-chat" style={{ width: chatOpen ? CHAT_W : CHAT_RAIL_PX }}>
+          <aside className="st-chat">
+            {chatOpen ? (
+              <RunChat gameBuildId={data.run?.gameBuild?.gameBuildId ?? null} onCollapse={() => setChatCollapsed(true)} session={runChat} />
+            ) : (
+              <ChatRail busy={runChat.awaitingReply} onExpand={() => setChatCollapsed(false)} />
+            )}
+          </aside>
+        </div>
         {toast && (
           <div className="rm-toast" role="status">
             {toast.text}
