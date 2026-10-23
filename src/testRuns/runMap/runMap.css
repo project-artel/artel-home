@@ -186,28 +186,62 @@
 .rm-hover-scene { font-family: var(--font-mono); font-size: 10.5px; color: var(--color-text-muted); }
 
 /* 서랍 */
-.rm-drawer { position: absolute; top: 0; right: 0; bottom: 0; z-index: 15; width: 420px; max-width: 92%; display: flex; flex-direction: column; border-left: 1px solid var(--color-border-subtle); background: var(--color-bg-surface); box-shadow: -16px 0 32px rgb(0 0 0 / 18%); }
-.rmd-head { padding: 14px 16px 12px; display: flex; flex-direction: column; gap: 8px; border-bottom: 1px solid var(--color-border-subtle); }
+.rm-drawer { position: absolute; top: 0; right: 0; bottom: 0; z-index: 15; width: 560px; max-width: 94%; display: flex; flex-direction: column; border-left: 1px solid var(--color-border-subtle); background: var(--color-bg-surface); box-shadow: -16px 0 32px rgb(0 0 0 / 18%); }
+.rmd-head { padding: 16px 18px 12px; display: flex; flex-direction: column; gap: 8px; border-bottom: 1px solid var(--color-border-subtle); }
 .rmd-top { display: flex; align-items: flex-start; gap: 8px; }
 .rmd-top > div { flex: 1; min-width: 0; }
 .rmd-pos { font-family: var(--font-mono); font-size: 11px; color: var(--color-text-muted); }
-.rmd-head h2 { margin: 0; font-size: 16px; line-height: 1.35; }
+.rmd-head h2 { margin: 0; font-size: 17px; line-height: 1.35; text-wrap: balance; }
 .rmd-close { flex: none; width: 30px; height: 30px; border: 1px solid var(--color-border-subtle); border-radius: 7px; background: none; color: var(--color-text-primary); cursor: pointer; }
 .rmd-meta { font-family: var(--font-mono); font-size: 11px; color: var(--color-text-secondary); }
 .rmd-gap { color: var(--rm-warn); }
 .rmd-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .rmd-spacer { flex: 1; }
+.rmd-hint { margin: 0; font-size: 11.5px; color: var(--color-text-muted); }
+/* 목록: 씬 구간마다 머리줄, 그 아래 스텝 칸과 TC 묶음. 칸마다 테두리를 둬 스텝이 서로 붙어 보이지 않게 한다. */
+.rmd-listwrap { position: relative; flex: 1; min-height: 0; }
 .rmd-steps, .rmd-steps ol { list-style: none; margin: 0; padding: 0; }
-.rmd-steps { flex: 1; overflow: auto; padding: 6px 10px 16px; }
-.rmd-scene { display: block; margin: 10px 4px 2px; font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; color: var(--color-text-secondary); }
-.rmd-step { width: 100%; display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 8px; align-items: start; padding: 7px 8px; border: 0; border-radius: 7px; background: none; color: inherit; font: inherit; font-size: 12.5px; text-align: left; cursor: pointer; }
-.rmd-step:hover { background: var(--color-bg-raised); }
+.rmd-steps { height: 100%; overflow: auto; padding: 4px 18px 24px 14px; scrollbar-width: none; }
+.rmd-steps::-webkit-scrollbar { display: none; }
+.rmd-segment + .rmd-segment { margin-top: 6px; }
+.rmd-scene { position: sticky; top: 0; z-index: 2; display: flex; align-items: baseline; gap: 8px; margin: 0 -4px; padding: 10px 4px 6px; background: var(--color-bg-surface); font-size: 12px; }
+.rmd-scene b { font-family: var(--font-mono); font-weight: 700; color: var(--color-text-primary); }
+.rmd-scene span { color: var(--color-text-muted); font-size: 11px; }
+.rmd-blocks { display: flex; flex-direction: column; gap: 6px; }
+.rmd-row { position: relative; display: grid; grid-template-columns: 18px minmax(0, 1fr); align-items: stretch; border: 1px solid var(--color-border-subtle); border-radius: 9px; background: var(--color-bg-raised); }
+.rmd-row.is-in-tc { border-radius: 7px; background: var(--color-bg-surface); }
+.rmd-row:has(.rmd-tc) { border-left: 3px solid var(--color-action-primary); }
+.rmd-row.is-in-tc:has(.rmd-tc) { border-left-width: 1px; }
+.rmd-handle { display: grid; place-items: center; color: var(--color-text-muted); font-size: 11px; letter-spacing: -2px; cursor: grab; opacity: .45; user-select: none; }
+.rmd-row:hover > .rmd-handle, .rmd-tchead:hover > .rmd-handle { opacity: 1; }
+.rmd-handle:active { cursor: grabbing; }
+.rmd-step { width: 100%; display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; gap: 8px; align-items: start; padding: 9px 12px 9px 2px; border: 0; border-radius: 0 9px 9px 0; background: none; color: inherit; font: inherit; font-size: 13px; line-height: 1.5; text-align: left; cursor: pointer; }
+.rmd-row:hover { border-color: var(--color-border-strong); }
 .rmd-step.is-picked { background: color-mix(in srgb, var(--color-action-primary) 12%, transparent); }
-.rmd-step.is-tc-start { margin-top: 6px; }
+.rmd-row:has(.rmd-step.is-picked) { border-color: var(--color-action-primary); }
 .rmd-step.is-gap { background: var(--color-status-warning-muted); }
-.rmd-no { font-family: var(--font-mono); font-size: 11px; color: var(--color-text-muted); text-align: right; padding-top: 1px; }
+.rmd-no { font-family: var(--font-mono); font-size: 11px; color: var(--color-text-muted); text-align: right; padding-top: 2px; }
 .rmd-step.is-gap .rmd-no { color: var(--rm-warn); font-weight: 700; }
 .rmd-text { overflow-wrap: anywhere; }
+.rmd-gap-tag { padding: 1px 6px; border-radius: 4px; background: var(--rm-warn); color: var(--color-text-on-accent); font-family: var(--font-mono); font-size: 10px; font-weight: 700; }
+/* TC 묶음: 머리줄(TC 번호 · 스텝 수 · 손잡이) 아래에 그 TC 의 스텝들. 왼쪽 띠로 한 TC 임을 보인다. */
+.rmd-tcblock { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 6px 6px 6px 8px; border: 1px solid var(--color-border-subtle); border-left: 3px solid var(--color-action-primary); border-radius: 9px; background: var(--color-bg-raised); }
+.rmd-tcblock > ol { display: flex; flex-direction: column; gap: 4px; }
+.rmd-tchead { display: flex; align-items: center; gap: 8px; height: 22px; }
+.rmd-tchead .rmd-handle { width: 18px; height: 100%; }
+.rmd-tcsize { font-size: 11px; color: var(--color-text-muted); }
+.rmd-row.is-dragging, .rmd-tcblock.is-dragging { opacity: .35; }
+/* 놓을 자리: 칸 위 · 아래에 브랜드 색 줄. */
+.rmd-row.is-drop-before::before, .rmd-tcblock.is-drop-before::before,
+.rmd-row.is-drop-after::after, .rmd-tcblock.is-drop-after::after { content: ''; position: absolute; left: -2px; right: -2px; height: 3px; border-radius: 2px; background: var(--color-brand-accent); pointer-events: none; }
+.rmd-row.is-drop-before::before, .rmd-tcblock.is-drop-before::before { top: -5px; }
+.rmd-row.is-drop-after::after, .rmd-tcblock.is-drop-after::after { bottom: -5px; }
+/* 서비스 스크롤 막대. */
+.rm-drawer .edgebar { position: absolute; z-index: 3; right: 0; width: 18px; pointer-events: none; }
+.rm-drawer .edgebar-thumb { position: absolute; left: 0; right: 0; pointer-events: auto; cursor: grab; touch-action: none; }
+.rm-drawer .edgebar-thumb:active { cursor: grabbing; }
+.rm-drawer .edgebar-fill { position: absolute; top: 0; bottom: 0; right: 0; width: 4px; border-radius: 2px; background: var(--color-brand-accent); transition: width 120ms; }
+.rm-drawer .edgebar.is-near .edgebar-fill { width: 11px; background: var(--color-brand-accent-strong); }
 .rmd-tc { padding: 1px 6px; border-radius: 4px; background: var(--color-action-primary); color: var(--color-text-on-accent); font-family: var(--font-mono); font-size: 10.5px; font-weight: 700; white-space: nowrap; }
 
 @media (prefers-reduced-motion: reduce) { .rmap * { transition: none !important; } }

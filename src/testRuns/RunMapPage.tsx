@@ -19,6 +19,7 @@ import { createEmptyStep, createHumanStep, type ScenarioDraft } from '../testSce
 import { setRunScenarios } from './testRunApi'
 import { boxOf, contains, controlFor, dragBox, hasText, moved, resized, type Box, type BoxHandle } from './runMap/annotationGeometry'
 import { autoLayout, FRAME_W, frameHeight } from './runMap/frameGeometry'
+import { moveRange } from './runMap/stepOrder'
 import { emptyHistory, record, redo as redoHistory, undo as undoHistory, type History } from './runMap/runMapHistory'
 import { getRunMap, saveRunMap, SHAPE_COLORS, StaleRunMapError, type NoteColor, type RunMap, type RunMapAnnotation, type RunMapFrame, type ShapeColor } from './runMap/runMapApi'
 import { RunMapAnnotations, RunMapSections, SelectionBox } from './runMap/RunMapAnnotations'
@@ -295,6 +296,15 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     commitDraft(id, { ...draft, steps }, m.toast.stepMoved(index + 1))
     pick(id, target)
   }, [drafts, commitDraft, m.toast, pick])
+  /** 서랍에서 끈 스텝 범위를 [before] 순번 앞으로. */
+  const moveSteps = useCallback((id: string, start: number, end: number, before: number) => {
+    const draft = drafts[id]
+    if (draft === undefined) return
+    const steps = moveRange(draft.steps, start, end, before)
+    if (steps === null) return
+    commitDraft(id, { ...draft, steps }, m.toast.stepMoved(start + 1))
+    pick(id, before > end ? before - (end - start + 1) : before)
+  }, [drafts, commitDraft, m.toast, pick])
   const deleteStep = useCallback((id: string, index: number) => {
     const draft = drafts[id]
     if (draft === undefined) return
@@ -542,7 +552,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
   const fit = useCallback(() => {
     const rect = stageRef.current?.getBoundingClientRect()
     if (!rect) return
-    const avail = rect.width - (drawerOpen ? 440 : 0)
+    const avail = rect.width - (drawerOpen ? 580 : 0)
     const k = Math.max(MIN_K, Math.min(1, (avail - 30) / bounds.w, (rect.height - 80) / bounds.h))
     setView({ k, x: 10, y: 64 })
   }, [bounds, drawerOpen])
@@ -1252,6 +1262,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
             onAddStep={() => addStep(drawerScenario.id, picked === null || picked.step === null ? undefined : picked.step + 1)}
             onClose={() => setDrawerOpen(false)}
             onImportTcs={() => setImportFor(drawerScenario.id)}
+            onMoveSteps={(start, end, before) => moveSteps(drawerScenario.id, start, end, before)}
             onNext={() => pick(order[order.indexOf(drawerScenario.id) + 1])}
             onOpenEditor={() => openEdit(drawerScenario.id)}
             onPickStep={(index) => pick(drawerScenario.id, index)}

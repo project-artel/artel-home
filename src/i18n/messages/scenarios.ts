@@ -549,6 +549,9 @@ export const scenariosEn = {
       summary: (steps: number, tcs: number, segments: number) => `${steps} steps · TC ${tcs} · ${segments} scene segments`,
       prev: '← Previous TS', next: 'Next TS →', close: 'Close',
       addStepEnd: '＋ Step at the end', addStepAfter: (n: number) => `＋ Step after ${n}`, importTcs: 'Import TC',
+      dragHint: 'Drag ⋮⋮ to reorder steps or a whole TC.',
+      dragStep: (n: number) => `Drag step ${n}`, dragTc: (n: number) => `Drag TC ${n}`,
+      segmentSteps: (n: number) => `${n} steps`, tcSteps: (n: number) => `${n} steps`,
     },
     menu: {
       canvas: 'Canvas', newTsHere: 'New TS here', noteHere: 'Note here', textHere: 'Text here', fit: 'Fit',
@@ -1362,6 +1365,9 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
       summary: (steps: number, tcs: number, segments: number) => `${steps} 스텝 · TC ${tcs} · 씬 ${segments}구간`,
       prev: '← 이전 TS', next: '다음 TS →', close: '닫기',
       addStepEnd: '＋ 끝에 스텝', addStepAfter: (n: number) => `＋ ${n} 뒤에 스텝`, importTcs: 'TC 가져오기',
+      dragHint: '⋮⋮ 를 끌어 스텝이나 TC 묶음의 순서를 바꿉니다.',
+      dragStep: (n: number) => `스텝 ${n} 끌기`, dragTc: (n: number) => `TC ${n} 끌기`,
+      segmentSteps: (n: number) => `스텝 ${n}개`, tcSteps: (n: number) => `스텝 ${n}개`,
     },
     menu: {
       canvas: '캔버스', newTsHere: '여기에 TS 만들기', noteHere: '여기에 메모 붙이기', textHere: '여기에 글 쓰기', fit: '전체 보기',
