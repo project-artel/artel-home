@@ -7,12 +7,17 @@ export type RunMapFrame = { x: number; y: number; folded: boolean }
 export type NoteColor = 'y' | 'p' | 'b' | 'g'
 
 type Meta = { id: string; createdBy?: string | null; createdAt?: string | null }
-/** 맵 위 주석. 메모 · 글 · 사각형 · 원 · 화살표 · 그림. */
+/**
+ * 맵 위 주석. 메모 · 글 · 사각형 · 원 · 묶음 상자 · 화살표 · 그림.
+ *
+ * 메모 · 글의 [w] [h] 는 크기를 바꿨을 때만 있다. 도형 안의 글은 [text], 묶음 상자는 그것을 왼쪽 위 라벨로 쓴다.
+ * 휜 화살표는 조절점 [cx] [cy] 를 갖는다.
+ */
 export type RunMapAnnotation =
-  | (Meta & { type: 'note'; x: number; y: number; text: string; color: NoteColor })
-  | (Meta & { type: 'text'; x: number; y: number; text: string })
-  | (Meta & { type: 'rect' | 'ellipse'; x: number; y: number; w: number; h: number })
-  | (Meta & { type: 'arrow'; x1: number; y1: number; x2: number; y2: number })
+  | (Meta & { type: 'note'; x: number; y: number; w?: number; h?: number; text: string; color: NoteColor })
+  | (Meta & { type: 'text'; x: number; y: number; w?: number; h?: number; text: string })
+  | (Meta & { type: 'rect' | 'ellipse' | 'section'; x: number; y: number; w: number; h: number; text?: string })
+  | (Meta & { type: 'arrow'; x1: number; y1: number; x2: number; y2: number; cx?: number; cy?: number })
   | (Meta & { type: 'pen'; points: [number, number][] })
 
 export type RunMap = {
@@ -70,21 +75,25 @@ export function parseRunMap(data: unknown): RunMap {
     if (a === null || id === null) return []
     const meta = { id, createdBy: str(a.createdBy), createdAt: str(a.createdAt) }
     const x = num(a.x), y = num(a.y)
+    const w = num(a.w), h = num(a.h)
+    const size = w !== null && h !== null ? { w, h } : {}
+    const text = str(a.text)
     switch (a.type) {
       case 'note': {
         const color = (['y', 'p', 'b', 'g'] as const).find((c) => c === a.color) ?? 'y'
-        return x !== null && y !== null && str(a.text) !== null ? [{ ...meta, type: 'note', x, y, text: str(a.text)!, color }] : []
+        return x !== null && y !== null && text !== null ? [{ ...meta, type: 'note', x, y, ...size, text, color }] : []
       }
       case 'text':
-        return x !== null && y !== null && str(a.text) !== null ? [{ ...meta, type: 'text', x, y, text: str(a.text)! }] : []
+        return x !== null && y !== null && text !== null ? [{ ...meta, type: 'text', x, y, ...size, text }] : []
       case 'rect':
-      case 'ellipse': {
-        const w = num(a.w), h = num(a.h)
-        return x !== null && y !== null && w !== null && h !== null ? [{ ...meta, type: a.type, x, y, w, h }] : []
-      }
+      case 'ellipse':
+      case 'section':
+        return x !== null && y !== null && w !== null && h !== null ? [{ ...meta, type: a.type, x, y, w, h, ...(text !== null ? { text } : {}) }] : []
       case 'arrow': {
         const x1 = num(a.x1), y1 = num(a.y1), x2 = num(a.x2), y2 = num(a.y2)
-        return x1 !== null && y1 !== null && x2 !== null && y2 !== null ? [{ ...meta, type: 'arrow', x1, y1, x2, y2 }] : []
+        const cx = num(a.cx), cy = num(a.cy)
+        const bend = cx !== null && cy !== null ? { cx, cy } : {}
+        return x1 !== null && y1 !== null && x2 !== null && y2 !== null ? [{ ...meta, type: 'arrow', x1, y1, x2, y2, ...bend }] : []
       }
       case 'pen': {
         const points = (Array.isArray(a.points) ? a.points : []).flatMap((p): [number, number][] => {

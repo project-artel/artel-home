@@ -10,10 +10,11 @@ const ICONS: Record<RunMapTool, string> = {
   text: 'M5 6V4h14v2M12 4v16M9 20h6',
   rect: 'M6 6h12a2 2 0 012 2v8a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2z',
   ellipse: 'M4 12a8 6 0 1016 0 8 6 0 10-16 0',
+  section: 'M3 8V6a2 2 0 012-2h4l2 2h8a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2zM3 8h18',
   arrow: 'M4 18L19 5M12 5h7v7',
   pen: 'M4 20c3-1 4-4 7-7l6-6 3 3-6 6c-3 3-6 4-7 7z',
 }
-const ORDER: RunMapTool[] = ['select', 'hand', 'ts', 'note', 'text', 'rect', 'ellipse', 'arrow', 'pen']
+const ORDER: RunMapTool[] = ['select', 'hand', 'ts', 'note', 'text', 'rect', 'ellipse', 'section', 'arrow', 'pen']
 const KEY_OF = Object.fromEntries(Object.entries(TOOL_KEYS).map(([k, v]) => [v, k.toUpperCase()])) as Record<RunMapTool, string>
 
 /** 캔버스 위 가운데 툴바. */

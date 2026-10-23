@@ -39,9 +39,11 @@
   position: relative; flex: 1; min-height: 0; overflow: hidden; cursor: default; touch-action: none;
   background-image: radial-gradient(circle, var(--color-border-subtle) 1.2px, transparent 1.2px); background-size: 24px 24px;
 }
-.rmap-stage.tool-hand { cursor: grab; }
+/* 손 도구(스페이스를 누르고 있는 동안 포함)는 무엇 위에서든 화면을 잡는다. */
+.rmap-stage.tool-hand, .rmap-stage.tool-hand * { cursor: grab !important; }
+.rmap-stage.tool-hand.is-panning, .rmap-stage.tool-hand.is-panning * { cursor: grabbing !important; }
 .rmap-stage.tool-note, .rmap-stage.tool-text, .rmap-stage.tool-ts { cursor: copy; }
-.rmap-stage.tool-rect, .rmap-stage.tool-ellipse, .rmap-stage.tool-arrow, .rmap-stage.tool-pen { cursor: crosshair; }
+.rmap-stage.tool-rect, .rmap-stage.tool-ellipse, .rmap-stage.tool-section, .rmap-stage.tool-arrow, .rmap-stage.tool-pen { cursor: crosshair; }
 .rm-world { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
 .rmap-empty { position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%); }
 
@@ -99,12 +101,35 @@
 .rma-arrow { fill: none; stroke: var(--color-text-primary); stroke-width: 2.2; pointer-events: stroke; cursor: move; }
 .rma-arrowhead { fill: var(--color-text-primary); }
 .rma-pen { fill: none; stroke: var(--color-action-primary); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; pointer-events: stroke; cursor: move; }
-.rma-shape.is-selected, .rma-arrow.is-selected, .rma-pen.is-selected { stroke: var(--color-action-primary); }
-.rma-note { position: absolute; z-index: 901; width: 180px; min-height: 110px; padding: 10px 12px 12px; border-radius: 4px 4px 12px 4px; color: #20232b; font-size: 12.5px; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; cursor: move; outline: 0; }
+.rma-arrow.is-selected, .rma-pen.is-selected { stroke: var(--color-action-primary); }
+.rma-place { position: absolute; z-index: 901; }
+.rma-note { width: 180px; min-height: 110px; box-sizing: border-box; padding: 10px 12px 12px; border-radius: 4px 4px 12px 4px; color: #20232b; font-size: 12.5px; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; overflow: hidden; cursor: move; outline: 0; }
+.rma-note.is-sized { width: 100%; height: 100%; min-height: 0; }
 .rma-note--y { background: #f6dd85; } .rma-note--p { background: #f3b9c6; } .rma-note--b { background: #b8d6f2; } .rma-note--g { background: #bfe3c6; }
-.rma-text { position: absolute; z-index: 901; font-size: 18px; font-weight: 700; color: var(--color-text-primary); white-space: nowrap; cursor: move; outline: 0; }
-.rma-note[contenteditable="true"], .rma-text[contenteditable="true"] { cursor: text; box-shadow: 0 0 0 2px var(--color-action-primary); }
-.rma-note.is-selected, .rma-text.is-selected { outline: 2px solid var(--color-action-primary); outline-offset: 3px; }
+.rma-text { font-size: 18px; font-weight: 700; color: var(--color-text-primary); white-space: nowrap; cursor: move; outline: 0; }
+.rma-text.is-sized { width: 100%; height: 100%; white-space: pre-wrap; overflow-wrap: anywhere; }
+.rma-note.is-editing, .rma-text.is-editing, .rma-inner-text.is-editing, .rma-section-label.is-editing { cursor: text; box-shadow: 0 0 0 2px var(--color-action-primary); }
+.rma-note.is-selected, .rma-text.is-selected { outline: 0; }
+/* 도형 안의 글: 도형 가운데. 누르기는 밑의 도형이 받는다(고칠 때만 칸이 받는다). */
+.rma-inner { position: absolute; z-index: 901; display: flex; align-items: center; justify-content: center; padding: 8px; box-sizing: border-box; pointer-events: none; }
+.rma-inner-text { max-width: 100%; color: var(--color-text-primary); font-size: 14px; font-weight: 600; line-height: 1.4; text-align: center; white-space: pre-wrap; overflow-wrap: anywhere; outline: 0; }
+.rma-inner-text.is-editing { min-width: 40px; pointer-events: auto; }
+/* 묶음 상자: TS 프레임 밑에 깔고, 왼쪽 위 탭이 이름이다. */
+.rma-section { position: absolute; z-index: 0; box-sizing: border-box; border: 1.5px solid var(--color-border-strong); border-radius: 0 12px 12px 12px; background: color-mix(in srgb, var(--color-text-primary) 3.5%, transparent); cursor: move; }
+.rma-section.is-selected { border-color: var(--color-action-primary); }
+.rma-section-label { position: absolute; left: -1.5px; bottom: 100%; min-width: 64px; max-width: calc(100% + 3px); box-sizing: border-box; padding: 5px 12px 4px; border: 1.5px solid var(--color-border-strong); border-bottom: 0; border-radius: 9px 9px 0 0; background: var(--color-bg-surface); color: var(--color-text-secondary); font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; outline: 0; }
+.rma-section-label:empty::before { content: attr(data-placeholder); opacity: .5; }
+.rma-section.is-selected .rma-section-label { border-color: var(--color-action-primary); color: var(--color-text-primary); }
+/* 고른 것의 영역과 손잡이. */
+.rma-sel-layer { position: absolute; left: 0; top: 0; z-index: 950; pointer-events: none; }
+.rma-sel-place { position: absolute; }
+.rma-sel { position: absolute; inset: 0; pointer-events: none; }
+.rma-sel-box { position: absolute; inset: 0; box-sizing: border-box; border: 1.5px dashed var(--color-action-primary); }
+.rma-h { position: absolute; box-sizing: border-box; border: 1.5px solid var(--color-action-primary); background: var(--color-bg-surface); pointer-events: auto; }
+.rma-h.is-round { border-radius: 50%; cursor: grab; }
+.rma-h--c { background: var(--color-action-primary); }
+.rma-h--nw, .rma-h--se { cursor: nwse-resize; } .rma-h--ne, .rma-h--sw { cursor: nesw-resize; }
+.rma-h--n, .rma-h--s { cursor: ns-resize; } .rma-h--e, .rma-h--w { cursor: ew-resize; }
 .rma-by { display: block; margin-top: 8px; font-family: var(--font-mono); font-size: 10px; opacity: .6; }
 
 /* 툴바 · 조작 · 미니맵 */
@@ -120,11 +145,6 @@
 .rm-ctrl { height: 30px; min-width: 30px; padding: 0 9px; border: 1px solid var(--color-border-strong); border-radius: 7px; background: var(--color-bg-surface); color: var(--color-text-primary); font-size: 12px; cursor: pointer; }
 .rm-ctrl:hover { background: var(--color-bg-hover); }
 .rm-zoom { padding: 5px 8px; border: 1px solid var(--color-border-subtle); border-radius: 7px; background: var(--color-bg-surface); font-family: var(--font-mono); font-size: 11px; color: var(--color-text-secondary); }
-.rm-mini { position: absolute; right: 12px; bottom: 12px; z-index: 10; width: 200px; height: 124px; overflow: hidden; border: 1px solid var(--color-border-subtle); border-radius: 9px; background: color-mix(in srgb, var(--color-bg-surface) 92%, transparent); cursor: crosshair; }
-.rm-mini.beside-drawer { right: 432px; }
-.rm-mini i { position: absolute; border-radius: 2px; background: var(--color-border-strong); opacity: .7; }
-.rm-mini i.is-picked { background: var(--color-action-primary); opacity: 1; }
-.rm-mini-view { position: absolute; border: 1.5px solid var(--color-action-primary); border-radius: 3px; background: color-mix(in srgb, var(--color-action-primary) 10%, transparent); pointer-events: none; }
 .rm-toast { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 20; display: flex; align-items: center; gap: 10px; padding: 7px 14px; border-radius: 999px; background: var(--color-text-primary); color: var(--color-bg-canvas); font-size: 12.5px; }
 .rm-toast button { border: 0; background: none; color: var(--color-action-primary); font-weight: 700; cursor: pointer; }
 

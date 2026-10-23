@@ -17,13 +17,14 @@ import { AddCasesDialog } from '../testScenarios/AddCasesDialog'
 import { createTestScenario, updateScenario } from '../testScenarios/scenarioApi'
 import { createEmptyStep, createHumanStep, type ScenarioDraft } from '../testScenarios/scenarioTypes'
 import { setRunScenarios } from './testRunApi'
+import { boxOf, contains, controlFor, dragBox, hasText, moved, resized, type Box, type BoxHandle } from './runMap/annotationGeometry'
 import { autoLayout, FRAME_W, frameHeight } from './runMap/frameGeometry'
 import { emptyHistory, record, redo as redoHistory, undo as undoHistory, type History } from './runMap/runMapHistory'
 import { getRunMap, saveRunMap, StaleRunMapError, type NoteColor, type RunMap, type RunMapAnnotation, type RunMapFrame } from './runMap/runMapApi'
-import { RunMapAnnotations } from './runMap/RunMapAnnotations'
+import { RunMapAnnotations, RunMapSections, SelectionBox } from './runMap/RunMapAnnotations'
 import { RunMapDrawer } from './runMap/RunMapDrawer'
 import { RunMapToolbar } from './runMap/RunMapToolbar'
-import { TOOL_KEYS, type RunMapTool } from './runMap/runMapTools'
+import { letterOf, TOOL_KEYS, type RunMapTool } from './runMap/runMapTools'
 import { StepHoverCard } from './runMap/StepHoverCard'
 import { TsFrame } from './runMap/TsFrame'
 import { useRunMapData } from './runMap/useRunMapData'
@@ -48,8 +49,11 @@ type View = { x: number; y: number; k: number }
 type Interaction =
   | { kind: 'pan'; sx: number; sy: number; ox: number; oy: number }
   | { kind: 'frame'; id: string; sx: number; sy: number; ox: number; oy: number; moved: boolean; before: Board }
-  | { kind: 'item'; id: string; lastX: number; lastY: number; moved: boolean; before: Board }
+  // 묶음 상자를 옮기면 [carry] 에 든 프레임 · 주석도 함께 옮긴다.
+  | { kind: 'item'; id: string; lastX: number; lastY: number; moved: boolean; before: Board; carry: { frames: string[]; items: string[] } }
   | { kind: 'draw'; id: string; ox: number; oy: number; before: Board }
+  | { kind: 'resize'; id: string; handle: BoxHandle; from: Box; original: RunMapAnnotation; moved: boolean; before: Board }
+  | { kind: 'bend'; id: string; handle: 'p1' | 'p2' | 'c'; moved: boolean; before: Board }
 
 const MIN_K = 0.12
 const MAX_K = 1.8
@@ -57,6 +61,9 @@ const SAVE_DELAY_MS = 600
 const NOTE_COLORS: NoteColor[] = ['y', 'p', 'b', 'g']
 let annotationSeq = 0
 const newAnnotationId = () => `a${Date.now().toString(36)}${(annotationSeq++).toString(36)}`
+/** 복사한 것. 페이지를 옮겨도 남아 있어 다른 런 맵에도 붙여넣을 수 있다. */
+let clipboard: { kind: 'annotations'; items: RunMapAnnotation[] } | { kind: 'ts'; id: string } | null = null
+const PASTE_OFFSET = 24
 
 function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) {
   const { t } = useI18n()
@@ -71,6 +78,11 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
 
   const [view, setView] = useState<View>({ x: 10, y: 64, k: 0.9 })
   const [tool, setTool] = useState<RunMapTool>('select')
+  // 스페이스를 누르고 있는 동안만 손 도구. 떼면 원래 도구로 돌아간다.
+  const [spaceHeld, setSpaceHeld] = useState(false)
+  const [panning, setPanning] = useState(false)
+  const activeTool: RunMapTool = spaceHeld ? 'hand' : tool
+  const lastPointer = useRef<{ x: number; y: number } | null>(null)
   const [picked, setPicked] = useState<{ id: string; step: number | null } | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [hover, setHover] = useState<{ id: string; index: number; rect: DOMRect } | null>(null)
@@ -260,7 +272,9 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
   const createTs = useCallback(async (at: { x: number; y: number }, copyOf?: string) => {
     try {
       const source = copyOf === undefined ? undefined : drafts[copyOf]
-      const draft: ScenarioDraft = source ?? { title: m.newScenarioTitle, description: '', steps: [], execution_mode: 'ORDERED' }
+      const draft: ScenarioDraft = source !== undefined
+        ? { ...source, title: m.copyTitle(source.title) }
+        : { title: m.newScenarioTitle, description: '', steps: [], execution_mode: 'ORDERED' }
       const id = String(await createTestScenario(Number(projectId)))
       await updateScenario(Number(id), draft)
       setDrafts((current) => ({ ...current, [id]: draft }))
@@ -269,6 +283,8 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
       changeOrder(next, copyOf === undefined ? m.toast.tsCreated(next.length) : m.toast.tsDuplicated(position(copyOf)))
       setZ((current) => ({ ...current, [id]: Math.max(1, ...Object.values(current)) + 1 }))
       if (copyOf === undefined) setImportFor(id)
+      // 복제본은 원본 바로 옆에 놓고 골라 둔다. 원본에 겹쳐 놓으면 복제가 안 된 것처럼 보인다.
+      else setPicked({ id, step: null })
     } catch {
       say(m.toast.saveFailed)
     }
@@ -314,9 +330,61 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
   const editText = useCallback((id: string, text: string) => {
     setEditingItem(null)
     const current = mapRef.current.annotations.find((a) => a.id === id)
-    if (current === undefined || (current.type !== 'note' && current.type !== 'text') || current.text === text) return
-    updateAnnotation(id, (a) => (a.type === 'note' || a.type === 'text' ? { ...a, text: text.length > 0 ? text : ' ' } : a), m.toast.annotationChanged)
+    if (current === undefined || !hasText(current) || (current.text ?? '') === text) return
+    // 메모 · 글은 비우면 찾을 수 없게 되므로 한 칸을 남긴다. 도형 안의 글 · 묶음 이름은 비워도 된다.
+    const kept = text.length > 0 || current.type === 'rect' || current.type === 'ellipse' || current.type === 'section' ? text : ' '
+    updateAnnotation(id, (a) => (hasText(a) ? { ...a, text: kept } : a), m.toast.annotationChanged)
   }, [updateAnnotation, m.toast.annotationChanged])
+
+  // ── 복사 · 붙여넣기 ──
+  const sectionContents = useCallback((section: RunMapAnnotation) => {
+    const box = boxOf(section)
+    return {
+      frames: scenarios.filter((s) => {
+        const f = frameOf(s.id)
+        return contains(box, { x: f.x, y: f.y, w: FRAME_W, h: frameHeight(s.steps.length, f.folded) })
+      }).map((s) => s.id),
+      items: mapRef.current.annotations.filter((a) => a.id !== section.id && contains(box, boxOf(a))).map((a) => a.id),
+    }
+  }, [scenarios, frameOf])
+  const copyAnnotation = useCallback((id: string) => {
+    const one = mapRef.current.annotations.find((a) => a.id === id)
+    if (one === undefined) return
+    // 묶음 상자는 안에 든 주석까지 함께 복사한다.
+    const inside = one.type === 'section' ? sectionContents(one).items : []
+    clipboard = { kind: 'annotations', items: [one, ...mapRef.current.annotations.filter((a) => inside.includes(a.id))] }
+    say(m.toast.copied)
+  }, [sectionContents, say, m.toast.copied])
+  const copyTs = useCallback((id: string) => {
+    clipboard = { kind: 'ts', id }
+    say(m.toast.copied)
+  }, [say, m.toast.copied])
+  const paste = useCallback((at: { x: number; y: number } | null) => {
+    const copied = clipboard
+    if (copied === null) return
+    if (copied.kind === 'ts') {
+      if (drafts[copied.id] === undefined) return
+      const f = frameOf(copied.id)
+      void createTs(at ?? { x: f.x + FRAME_W + PASTE_OFFSET, y: f.y }, copied.id)
+      return
+    }
+    const boxes = copied.items.map(boxOf)
+    const left = Math.min(...boxes.map((b) => b.x))
+    const top = Math.min(...boxes.map((b) => b.y))
+    const dx = at === null ? PASTE_OFFSET : at.x - left
+    const dy = at === null ? PASTE_OFFSET : at.y - top
+    const pasted = copied.items.map((a) => {
+      const copy: RunMapAnnotation = { ...moved(a, dx, dy), id: newAnnotationId() }
+      delete copy.createdBy
+      delete copy.createdAt
+      return copy
+    })
+    const before = currentBoard()
+    commitBoard(before, { ...before, annotations: [...before.annotations, ...pasted] }, m.toast.pasted)
+    setSelectedItem(pasted[0].id)
+    // 같은 자리에 또 붙이면 겹치지 않게, 다음 붙여넣기는 붙인 것에서 한 칸 더 옮긴다.
+    if (at === null) clipboard = { kind: 'annotations', items: pasted }
+  }, [drafts, frameOf, createTs, commitBoard, m.toast.pasted])
 
   // ── 캔버스 좌표 ──
   const toWorld = useCallback((clientX: number, clientY: number) => {
@@ -333,10 +401,9 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     }
     // 주석도 전체 보기 · 미니맵에 든다. 메모가 프레임보다 오른쪽 · 아래에 있으면 안 보이게 된다.
     for (const a of map.annotations) {
-      const xs = a.type === 'arrow' ? [a.x1, a.x2] : a.type === 'pen' ? a.points.map((p) => p[0]) : [a.x + (a.type === 'rect' || a.type === 'ellipse' ? a.w : 200)]
-      const ys = a.type === 'arrow' ? [a.y1, a.y2] : a.type === 'pen' ? a.points.map((p) => p[1]) : [a.y + (a.type === 'rect' || a.type === 'ellipse' ? a.h : 140)]
-      w = Math.max(w, ...xs.map((x) => x + 20))
-      h = Math.max(h, ...ys.map((y) => y + 20))
+      const box = boxOf(a)
+      w = Math.max(w, box.x + box.w + 20)
+      h = Math.max(h, box.y + box.h + 20)
     }
     return { w: Math.max(w, 200), h: Math.max(h, 200) }
   }, [scenarios, frameOf, map.annotations])
@@ -378,11 +445,31 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
   function onPointerDown(event: React.PointerEvent<HTMLDivElement>) {
     if (event.button !== 0) return
     const target = event.target as HTMLElement
-    if (target.closest('button, .rm-toolbar, .rm-ctrls, .rm-mini, .rm-drawer, [contenteditable="true"]')) return
+    if (target.closest('button, .rm-toolbar, .rm-ctrls, .rm-drawer, [contenteditable="true"]')) return
     const w = toWorld(event.clientX, event.clientY)
     const capture = () => event.currentTarget.setPointerCapture(event.pointerId)
-    if (tool === 'hand') {
+    const startPan = () => {
       interaction.current = { kind: 'pan', sx: event.clientX, sy: event.clientY, ox: view.x, oy: view.y }
+      setPanning(true)
+      capture()
+    }
+    if (activeTool === 'hand') return startPan()
+    const tool = activeTool
+    // 고른 주석의 손잡이: 상자는 크기, 화살표는 끝점 · 휘기.
+    // 크기를 정하지 않은 메모 · 글은 그려진 크기에서 시작한다.
+    const drawnBox = (a: RunMapAnnotation, el: HTMLElement): Box => {
+      if ((a.type !== 'note' && a.type !== 'text') || a.w !== undefined) return boxOf(a)
+      const rect = el.getBoundingClientRect()
+      return { x: a.x, y: a.y, w: rect.width / view.k, h: rect.height / view.k }
+    }
+    const handle = target.closest<HTMLElement>('[data-handle]')
+    const selection = handle?.closest<HTMLElement>('[data-selection]')
+    const handled = selection ? mapRef.current.annotations.find((a) => a.id === selection.dataset.selection) : undefined
+    if (handle && handled) {
+      const name = handle.dataset.handle!
+      interaction.current = name === 'p1' || name === 'p2' || name === 'c'
+        ? { kind: 'bend', id: handled.id, handle: name, moved: false, before: currentBoard() }
+        : { kind: 'resize', id: handled.id, handle: name as BoxHandle, from: drawnBox(handled, selection!), original: handled, moved: false, before: currentBoard() }
       capture()
       return
     }
@@ -403,13 +490,14 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
       setTool('select')
       return
     }
-    if (tool === 'rect' || tool === 'ellipse' || tool === 'arrow' || tool === 'pen') {
+    if (tool === 'rect' || tool === 'ellipse' || tool === 'section' || tool === 'arrow' || tool === 'pen') {
       const id = newAnnotationId()
       const before = currentBoard()
       const annotation: RunMapAnnotation =
         tool === 'arrow' ? { id, type: 'arrow', x1: w.x, y1: w.y, x2: w.x, y2: w.y }
           : tool === 'pen' ? { id, type: 'pen', points: [[w.x, w.y], [w.x, w.y]] }
-            : { id, type: tool, x: w.x, y: w.y, w: 0, h: 0 }
+            : tool === 'section' ? { id, type: 'section', x: w.x, y: w.y, w: 0, h: 0, text: m.sectionDefault }
+              : { id, type: tool, x: w.x, y: w.y, w: 0, h: 0 }
       // 끄는 동안 [mapRef] 위에서 크기를 바꾸므로, 시작할 때 그쪽에도 넣는다.
       mapRef.current = { ...mapRef.current, annotations: [...mapRef.current.annotations, annotation] }
       setMap((current) => ({ ...current, annotations: [...current.annotations, annotation] }))
@@ -419,8 +507,11 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     }
     const item = target.closest<HTMLElement>('[data-annotation]')
     if (item) {
-      setSelectedItem(item.dataset.annotation!)
-      interaction.current = { kind: 'item', id: item.dataset.annotation!, lastX: w.x, lastY: w.y, moved: false, before: currentBoard() }
+      const id = item.dataset.annotation!
+      const one = mapRef.current.annotations.find((a) => a.id === id)
+      setSelectedItem(id)
+      const carry = one?.type === 'section' ? sectionContents(one) : { frames: [], items: [] }
+      interaction.current = { kind: 'item', id, lastX: w.x, lastY: w.y, moved: false, before: currentBoard(), carry }
       capture()
       return
     }
@@ -435,10 +526,10 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     }
     setSelectedItem(null)
     if (target.closest('[data-step], [data-scene]')) return
-    interaction.current = { kind: 'pan', sx: event.clientX, sy: event.clientY, ox: view.x, oy: view.y }
-    capture()
+    startPan()
   }
   function onPointerMove(event: React.PointerEvent<HTMLDivElement>) {
+    if (stageRef.current !== null) lastPointer.current = toWorld(event.clientX, event.clientY)
     const now = interaction.current
     if (now === null) return
     if (now.kind === 'pan') {
@@ -462,7 +553,27 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
       now.lastX = w.x
       now.lastY = w.y
       now.moved = true
-      const annotations = mapRef.current.annotations.map((a) => (a.id === now.id ? moved(a, dx, dy) : a))
+      const carried = new Set([now.id, ...now.carry.items])
+      const annotations = mapRef.current.annotations.map((a) => (carried.has(a.id) ? moved(a, dx, dy) : a))
+      const layout = { ...mapRef.current.layout }
+      for (const frameId of now.carry.frames) {
+        const f = layout[frameId] ?? frameOf(frameId)
+        layout[frameId] = { ...f, x: f.x + dx, y: f.y + dy }
+      }
+      setMap((current) => ({ ...current, annotations, layout }))
+      mapRef.current = { ...mapRef.current, annotations, layout }
+      return
+    }
+    if (now.kind === 'resize' || now.kind === 'bend') {
+      now.moved = true
+      const annotations = mapRef.current.annotations.map((a): RunMapAnnotation => {
+        if (a.id !== now.id) return a
+        if (now.kind === 'resize') return resized(now.original, now.from, dragBox(now.from, now.handle, w.x, w.y))
+        if (a.type !== 'arrow') return a
+        if (now.handle === 'p1') return { ...a, x1: w.x, y1: w.y }
+        if (now.handle === 'p2') return { ...a, x2: w.x, y2: w.y }
+        return { ...a, ...controlFor(a, w) }
+      })
       setMap((current) => ({ ...current, annotations }))
       mapRef.current = { ...mapRef.current, annotations }
       return
@@ -471,7 +582,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
       if (a.id !== now.id) return a
       if (a.type === 'arrow') return { ...a, x2: w.x, y2: w.y }
       if (a.type === 'pen') return { ...a, points: [...a.points, [w.x, w.y]] }
-      if (a.type === 'rect' || a.type === 'ellipse') return { ...a, x: Math.min(now.ox, w.x), y: Math.min(now.oy, w.y), w: Math.abs(w.x - now.ox), h: Math.abs(w.y - now.oy) }
+      if (a.type === 'rect' || a.type === 'ellipse' || a.type === 'section') return { ...a, x: Math.min(now.ox, w.x), y: Math.min(now.oy, w.y), w: Math.abs(w.x - now.ox), h: Math.abs(w.y - now.oy) }
       return a
     })
     setMap((current) => ({ ...current, annotations }))
@@ -480,6 +591,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
   function onPointerUp() {
     const now = interaction.current
     interaction.current = null
+    setPanning(false)
     if (now === null || now.kind === 'pan') return
     const after = currentBoard()
     if (now.kind === 'frame') {
@@ -491,12 +603,16 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
       if (now.moved) commitBoard(now.before, after, m.toast.moved)
       return
     }
+    if (now.kind === 'resize' || now.kind === 'bend') {
+      if (now.moved) commitBoard(now.before, after, now.kind === 'resize' ? m.toast.resized : m.toast.annotationChanged)
+      return
+    }
     // 그리기: 너무 작으면 실수로 누른 것으로 보고 버린다.
     const drawn = after.annotations.find((a) => a.id === now.id)
     const tiny = drawn === undefined
       || (drawn.type === 'arrow' && Math.hypot(drawn.x2 - drawn.x1, drawn.y2 - drawn.y1) < 8)
       || (drawn.type === 'pen' && drawn.points.length < 4)
-      || ((drawn.type === 'rect' || drawn.type === 'ellipse') && drawn.w < 8 && drawn.h < 8)
+      || ((drawn.type === 'rect' || drawn.type === 'ellipse' || drawn.type === 'section') && drawn.w < 8 && drawn.h < 8)
     if (tiny) {
       const annotations = after.annotations.filter((a) => a.id !== now.id)
       setMap((current) => ({ ...current, annotations }))
@@ -504,6 +620,8 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     } else {
       commitBoard(now.before, after, m.toast.annotationAdded)
       setSelectedItem(now.id)
+      // 묶음 상자는 그리자마자 이름을 쓰게 한다.
+      if (drawn.type === 'section') setEditingItem(now.id)
     }
   }
 
@@ -527,8 +645,10 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     if (open) return openEdit(open.dataset.openEditor!)
   }
   function onDoubleClick(event: React.MouseEvent) {
-    const item = (event.target as HTMLElement).closest<HTMLElement>('.rma-note, .rma-text')
-    if (item) setEditingItem(item.dataset.annotation!)
+    // 메모 · 글 · 도형 · 묶음 상자는 두 번 누르면 글을 고친다(도형은 안에 글을 넣는다).
+    const item = (event.target as HTMLElement).closest<HTMLElement>('[data-annotation]')
+    const one = item ? mapRef.current.annotations.find((a) => a.id === item.dataset.annotation) : undefined
+    if (one !== undefined && hasText(one)) setEditingItem(one.id)
   }
   function onMouseOver(event: React.MouseEvent) {
     const target = event.target as HTMLElement
@@ -547,7 +667,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
   // ── 우클릭: 누른 자리에 따라 다르다 ──
   function onContextMenu(event: React.MouseEvent) {
     const target = event.target as HTMLElement
-    if (target.closest('.rm-drawer, .rm-toolbar, .rm-ctrls, .rm-mini')) return
+    if (target.closest('.rm-drawer, .rm-toolbar, .rm-ctrls')) return
     event.preventDefault()
     const w = toWorld(event.clientX, event.clientY)
     const at = { x: event.clientX, y: event.clientY }
@@ -580,6 +700,20 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
           ? [{ label: m.menu.changeColor, onSelect: () => updateAnnotation(id, (a) => (a.type === 'note' ? { ...a, color: NOTE_COLORS[(NOTE_COLORS.indexOf(a.color) + 1) % 4] } : a), m.toast.annotationChanged) }]
           : []),
         ...(annotation?.type === 'note' || annotation?.type === 'text' ? [{ label: m.menu.editText, onSelect: () => setEditingItem(id) }] : []),
+        ...(annotation?.type === 'rect' || annotation?.type === 'ellipse'
+          ? [{ label: (annotation.text ?? '') === '' ? m.menu.addText : m.menu.editText, onSelect: () => setEditingItem(id) }]
+          : []),
+        ...(annotation?.type === 'section' ? [{ label: m.menu.editLabel, onSelect: () => setEditingItem(id) }] : []),
+        ...(annotation?.type === 'arrow' && annotation.cx !== undefined
+          ? [{ label: m.menu.straighten, onSelect: () => updateAnnotation(id, (a) => {
+              if (a.type !== 'arrow') return a
+              const straight = { ...a }
+              delete straight.cx
+              delete straight.cy
+              return straight
+            }, m.toast.annotationChanged) }]
+          : []),
+        { label: m.menu.copy, onSelect: () => copyAnnotation(id) },
         { label: m.menu.bringFront, onSelect: toFront },
         { label: m.menu.delete, onSelect: () => deleteAnnotation(id), danger: true },
       ] })
@@ -591,7 +725,8 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
         { label: m.menu.addStepEnd, onSelect: () => addStep(id) },
         { label: m.menu.openEditor, onSelect: () => openEdit(id) },
         { label: f.folded ? m.frame.unfold : m.frame.fold, onSelect: () => toggleFold(id) },
-        { label: m.menu.duplicate, onSelect: () => void createTs({ x: f.x + 40, y: f.y + 40 }, id) },
+        { label: m.menu.duplicate, onSelect: () => void createTs({ x: f.x + FRAME_W + PASTE_OFFSET, y: f.y }, id) },
+        { label: m.menu.copy, onSelect: () => copyTs(id) },
         { label: m.menu.noteBeside, onSelect: () => addAnnotation({ id: newAnnotationId(), type: 'note', x: f.x + FRAME_W + 16, y: f.y, text: m.noteDefault, color: 'y' }, m.toast.annotationAdded, true) },
         { label: m.menu.removeFromRun, onSelect: () => removeTs(id), danger: true },
       ] })
@@ -600,6 +735,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
         { label: m.menu.newTsHere, onSelect: () => void createTs({ x: w.x - FRAME_W / 2, y: w.y - 20 }) },
         { label: m.menu.noteHere, onSelect: () => addAnnotation({ id: newAnnotationId(), type: 'note', x: w.x - 90, y: w.y - 20, text: m.noteDefault, color: 'y' }, m.toast.annotationAdded, true) },
         { label: m.menu.textHere, onSelect: () => addAnnotation({ id: newAnnotationId(), type: 'text', x: w.x, y: w.y, text: m.textDefault }, m.toast.annotationAdded, true) },
+        { label: m.menu.paste, onSelect: () => paste(w), disabled: clipboard === null },
         { label: m.autoLayout, onSelect: () => layOut() },
         { label: m.menu.fit, onSelect: fit },
         { label: allFolded ? m.unfoldAll : m.foldAll, onSelect: () => layOut(!allFolded) },
@@ -613,7 +749,28 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
       const target = event.target as HTMLElement
       if (target.isContentEditable || target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || importFor !== null || menu !== null) return
       const mod = event.metaKey || event.ctrlKey
-      if (mod && event.key.toLowerCase() === 'z') {
+      const letter = letterOf(event)
+      if (event.code === 'Space') {
+        event.preventDefault()
+        if (!event.repeat) setSpaceHeld(true)
+        return
+      }
+      // 글을 골라 둔 채 ⌘C 를 누르면 그 글을 복사하게 둔다.
+      if (mod && letter === 'c' && (window.getSelection()?.toString() ?? '') !== '') return
+      if (mod && letter === 'c') {
+        if (selectedItem !== null) copyAnnotation(selectedItem)
+        else if (picked !== null) copyTs(picked.id)
+        else return
+        event.preventDefault()
+        return
+      }
+      if (mod && letter === 'v') {
+        if (clipboard === null) return
+        event.preventDefault()
+        paste(clipboard.kind === 'ts' ? null : lastPointer.current)
+        return
+      }
+      if (mod && letter === 'z') {
         event.preventDefault()
         if (event.shiftKey) redo()
         else undo()
@@ -634,8 +791,8 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
         moveStep(picked.id, picked.step, event.key === 'ArrowLeft' ? -1 : 1)
         return
       }
-      if (!mod && !event.altKey && TOOL_KEYS[event.key.toLowerCase()] !== undefined) {
-        setTool(TOOL_KEYS[event.key.toLowerCase()])
+      if (!mod && !event.altKey && letter !== null && TOOL_KEYS[letter] !== undefined) {
+        setTool(TOOL_KEYS[letter])
         return
       }
       if (event.key === 'Escape') {
@@ -662,8 +819,19 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
         pick(order[at - 1])
       }
     }
+    function onKeyUp(event: KeyboardEvent) {
+      if (event.code === 'Space') setSpaceHeld(false)
+    }
+    // 스페이스를 누른 채 창을 떠나면 keyup 이 오지 않는다.
+    const release = () => setSpaceHeld(false)
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    window.addEventListener('keyup', onKeyUp)
+    window.addEventListener('blur', release)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('keyup', onKeyUp)
+      window.removeEventListener('blur', release)
+    }
   })
 
   function openEditor() {
@@ -749,8 +917,8 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
   const drawerScenario = drawerOpen && picked !== null ? scenarios.find((s) => s.id === picked.id) : undefined
   const hoverStep = hover === null ? undefined : scenarios.find((s) => s.id === hover.id)?.steps[hover.index]
   const importScenario = importFor === null ? undefined : drafts[importFor]
-  const miniScale = Math.min(186 / bounds.w, 110 / bounds.h)
   const stageBox = stageSize.width > 0 ? stageSize : null
+  const selectedAnnotation = selectedItem === null ? undefined : map.annotations.find((a) => a.id === selectedItem)
 
   return (
     <div className="rmap">
@@ -785,7 +953,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
       </div>
       <div
         aria-label={m.canvasLabel}
-        className={'rmap-stage tool-' + tool}
+        className={'rmap-stage tool-' + activeTool + (panning ? ' is-panning' : '')}
         onClick={onClick}
         onContextMenu={onContextMenu}
         onDoubleClick={onDoubleClick}
@@ -801,6 +969,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
           className={'rm-world' + (scene !== null ? ' is-scene-focus' : '') + (view.k < 0.45 ? ' is-far' : '')}
           style={{ transform: `translate(${view.x}px, ${view.y}px) scale(${view.k})`, width: bounds.w, height: bounds.h }}
         >
+          <RunMapSections annotations={map.annotations} editing={editingItem} onEditText={editText} selected={selectedItem} />
           {scenarios.map((s) => {
             const f = frameOf(s.id)
             return (
@@ -819,45 +988,18 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
               />
             )
           })}
-          <RunMapAnnotations annotations={map.annotations} authors={map.authors} editing={editingItem} onEditText={editText} selected={selectedItem} />
+          <RunMapAnnotations annotations={map.annotations} authors={map.authors} editing={editingItem} k={view.k} onEditText={editText} selected={selectedItem} />
+          {selectedAnnotation !== undefined && editingItem === null && <SelectionBox annotation={selectedAnnotation} k={view.k} />}
         </div>
         {scenarios.length === 0 && <p className="rmap-empty empty-note">{m.empty}</p>}
 
-        <RunMapToolbar canRedo={history.redo.length > 0} canUndo={history.undo.length > 0} onRedo={redo} onTool={setTool} onUndo={undo} tool={tool} />
+        <RunMapToolbar canRedo={history.redo.length > 0} canUndo={history.undo.length > 0} onRedo={redo} onTool={setTool} onUndo={undo} tool={activeTool} />
         <div className="rm-ctrls">
           <button aria-label={m.zoomOut} className="rm-ctrl" onClick={() => stageBox && zoomAt(stageBox.width / 2, stageBox.height / 2, 1 / 1.2)} type="button">−</button>
           <span className="rm-zoom">{Math.round(view.k * 100)}%</span>
           <button aria-label={m.zoomIn} className="rm-ctrl" onClick={() => stageBox && zoomAt(stageBox.width / 2, stageBox.height / 2, 1.2)} type="button">＋</button>
           <button className="rm-ctrl" onClick={fit} type="button">{m.fit}</button>
         </div>
-        <div
-          aria-label={m.minimap}
-          className={'rm-mini' + (drawerScenario ? ' beside-drawer' : '')}
-          onPointerDown={(event) => {
-            const box = event.currentTarget.getBoundingClientRect()
-            const wx = (event.clientX - box.left - 7) / miniScale
-            const wy = (event.clientY - box.top - 7) / miniScale
-            if (stageBox) setView((v) => ({ ...v, x: stageBox.width / 2 - wx * v.k, y: stageBox.height / 2 - wy * v.k }))
-          }}
-        >
-          {scenarios.map((s) => {
-            const f = frameOf(s.id)
-            return (
-              <i
-                className={picked?.id === s.id ? 'is-picked' : ''}
-                key={s.id}
-                style={{ left: 7 + f.x * miniScale, top: 7 + f.y * miniScale, width: Math.max(2, FRAME_W * miniScale), height: Math.max(2, frameHeight(s.steps.length, f.folded) * miniScale) }}
-              />
-            )
-          })}
-          {stageBox && (
-            <span
-              className="rm-mini-view"
-              style={{ left: 7 + (-view.x / view.k) * miniScale, top: 7 + (-view.y / view.k) * miniScale, width: (stageBox.width / view.k) * miniScale, height: (stageBox.height / view.k) * miniScale }}
-            />
-          )}
-        </div>
-
         {drawerScenario && (
           <RunMapDrawer
             onAddStep={() => addStep(drawerScenario.id, picked === null || picked.step === null ? undefined : picked.step + 1)}
@@ -898,8 +1040,3 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
   )
 }
 
-function moved(a: RunMapAnnotation, dx: number, dy: number): RunMapAnnotation {
-  if (a.type === 'arrow') return { ...a, x1: a.x1 + dx, y1: a.y1 + dy, x2: a.x2 + dx, y2: a.y2 + dy }
-  if (a.type === 'pen') return { ...a, points: a.points.map(([x, y]) => [x + dx, y + dy] as [number, number]) }
-  return { ...a, x: a.x + dx, y: a.y + dy }
-}
