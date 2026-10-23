@@ -13112,9 +13112,16 @@ col.vimp-c-scene{ width:18% } col.vimp-c-verdict{ width:16% }
   animation: tct-skel-pulse 1.4s ease-in-out infinite;
 }
 
-.tcl-skeleton {
-  padding: 0;
+/* 표 칸의 높이는 진짜 표와 같은 규칙(.tcl-list-panel)이 정한다. 빈 줄이 그보다 많아도 스크롤하지 않는다. */
+.tcl-list-panel.is-loading .cp-list {
   overflow: hidden;
+}
+
+.tcl-folders--skeleton .skeleton-line {
+  display: block;
+  height: 14px;
+  margin: 9px var(--space-2);
+  animation: tct-skel-pulse 1.4s ease-in-out infinite;
 }
 
 @keyframes tct-skel-pulse {
@@ -13123,8 +13130,17 @@ col.vimp-c-scene{ width:18% } col.vimp-c-verdict{ width:16% }
   }
 }
 
+/* 화면 칩 줄 자리. 칩과 같은 높이의 막대로 줄 높이를 지킨다. */
+.tcl-filter-skel .skeleton-line {
+  height: 19px;
+  border-radius: 999px;
+  animation: tct-skel-pulse 1.4s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .tct-skel .skeleton-line {
+  .tcl-filter-skel .skeleton-line,
+  .tct-skel .skeleton-line,
+  .tcl-folders--skeleton .skeleton-line {
     animation: none;
   }
 }

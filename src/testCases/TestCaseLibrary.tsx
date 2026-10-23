@@ -800,9 +800,7 @@ export function TestCaseLibrary({
   const loadingRows = folderView ? !folderItems.ready : switchingVersion
   if (library.status === 'loading' || waitsForFolder || waitsForVersion) {
     return (
-      <div className="section-single">
-        <CaseTableSkeleton label={m.section.loading} />
-      </div>
+      <CaseTableSkeleton label={m.section.loading} />
     )
   }
 
@@ -883,7 +881,7 @@ export function TestCaseLibrary({
         status={folderList.status}
       />
       <section
-        className="panel tcl-list-panel"
+        className={'panel tcl-list-panel' + (loadingRows ? ' is-loading' : '')}
         ref={panelRef}
         tabIndex={-1}
         aria-label={m.section.title}
@@ -1066,17 +1064,27 @@ export function TestCaseLibrary({
           </div>
         </div>
 
-        <CaseSceneFilter
-          cases={inFolder}
-          labels={{
-            all: m.filters.allScenes,
-            noMatch: m.filters.noMatch,
-            scene: m.filters.scene,
-            search: m.filters.sceneSearch,
-          }}
-          onChange={(scene) => setFilters({ ...filters, scene })}
-          value={filters.scene}
-        />
+        {/* 화면 칩은 받은 케이스에서 나온다. 받는 동안 줄이 사라지면 표가 위로 올라붙었다가 다시 내려온다. */}
+        {loadingRows ? (
+          <div aria-hidden="true" className="cp-filter-row tcl-filter-skel">
+            <span className="cp-filter-label">{m.filters.scene}</span>
+            {[56, 88, 72, 64].map((width, chip) => (
+              <span className="skeleton-line" key={chip} style={{ width }} />
+            ))}
+          </div>
+        ) : (
+          <CaseSceneFilter
+            cases={inFolder}
+            labels={{
+              all: m.filters.allScenes,
+              noMatch: m.filters.noMatch,
+              scene: m.filters.scene,
+              search: m.filters.sceneSearch,
+            }}
+            onChange={(scene) => setFilters({ ...filters, scene })}
+            value={filters.scene}
+          />
+        )}
 
         {/* 선택 bar 가 나타나고 사라져도 표가 밀리지 않게 자리를 늘 잡아 둔다. 비어 있을 때는
             선택 조작 안내가 그 자리를 쓴다. */}
