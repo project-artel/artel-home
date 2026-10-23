@@ -20,10 +20,11 @@
 .rm-bot-lock { position: absolute; z-index: 905; pointer-events: none; }
 .abl--frame .abl-card { max-width: 360px; padding: 16px 20px 14px; }
 /* TS 편집 화면: 편집 칸(가운데 열)만 덮는다. 목록과 대화는 그대로 보인다.
-   격자의 칸을 차지하면 편집기가 다음 칸으로 밀린다. 절대 위치로 띄우되 가운데 열을 기준 상자로 삼는다. */
+   격자의 칸을 차지하면 편집기가 다음 칸으로 밀린다. 절대 위치로 띄우되 가운데 열을 기준 상자로 삼는다.
+   끝 선까지 적어야 한다(2 / 3) — 절대 위치에서 `2` 만 쓰면 끝이 격자 끝까지 늘어나 대화까지 덮는다. */
 .scenario-studio .st-edit:has(> .st-bot-lock, > .st-bot-banner) { position: relative; }
-.scenario-studio .st-edit > .st-bot-lock { position: absolute; inset: 0; grid-column: 2; grid-row: 1; z-index: 6; }
-.scenario-studio .st-edit > .st-bot-banner { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); grid-column: 2; grid-row: 1; z-index: 6; display: flex; align-items: center; gap: 10px; padding: 10px 12px 10px 16px; border: 1px solid var(--color-status-warning); border-radius: 10px; background: var(--color-bg-surface); color: var(--color-text-primary); font-size: 13px; white-space: nowrap; box-shadow: 0 10px 24px rgb(0 0 0 / 18%); }
+.scenario-studio .st-edit > .st-bot-lock { position: absolute; inset: 0; grid-column: 2 / 3; grid-row: 1 / 2; z-index: 6; }
+.scenario-studio .st-edit > .st-bot-banner { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); grid-column: 2 / 3; grid-row: 1 / 2; z-index: 6; display: flex; align-items: center; gap: 10px; padding: 10px 12px 10px 16px; border: 1px solid var(--color-status-warning); border-radius: 10px; background: var(--color-bg-surface); color: var(--color-text-primary); font-size: 13px; white-space: nowrap; box-shadow: 0 10px 24px rgb(0 0 0 / 18%); }
 /* 고르는 중: 맵 가운데에 카드 하나. */
 .rm-bot-lock-center { position: absolute; inset: 0; z-index: 14; display: grid; place-items: center; pointer-events: none; }
 .rmap-stage.has-chat .rm-bot-lock-center { right: 380px; }
