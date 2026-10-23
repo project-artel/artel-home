@@ -588,9 +588,10 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
       capture()
     }
     const item = target.closest<HTMLElement>('[data-annotation]')
-    // 묶음 상자 안 빈 곳은 영역 끌기다. 상자는 이름표를 잡고 옮긴다. 단 고른 것의 영역 안이면 그것을 옮긴다.
+    // 묶음 상자 안 빈 곳을 끌면 상자를 바로 옮긴다. ⌘ · Alt 를 누른 채 끌면 상자 안에서 영역으로 고른다.
+    // 고른 것의 영역 안이면 고른 것을 옮긴다.
     const inChosen = !event.shiftKey && chosenBounds !== null && inside(chosenBounds, w)
-    if (item && item.classList.contains('rma-section') && !inChosen) return startMarquee(item.dataset.annotation!)
+    if (item && item.classList.contains('rma-section') && !inChosen && repeat) return startMarquee(item.dataset.annotation!)
     if (item && item.classList.contains('rma-section') && inChosen) {
       interaction.current = { kind: 'item', id: '', lastX: w.x, lastY: w.y, moved: false, before: currentBoard(), carry: withSectionContents(chosen) }
       capture()
@@ -1160,7 +1161,6 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
           {marquee !== null && <div className="rma-marquee" style={{ left: marquee.x, top: marquee.y, width: marquee.w, height: marquee.h }} />}
           {selectedAnnotation !== undefined && editingItem === null && <SelectionBox annotation={selectedAnnotation} k={view.k} />}
         </div>
-        {scenarios.length === 0 && <p className="rmap-empty empty-note">{m.empty}</p>}
 
         <RunMapToolbar canRedo={history.redo.length > 0} canUndo={history.undo.length > 0} onRedo={redo} onTool={setTool} onUndo={undo} tool={activeTool} />
         <div className="rm-ctrls">
