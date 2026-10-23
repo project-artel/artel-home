@@ -81,8 +81,8 @@ export function useRunChatSession(
   onApplied?: () => void,
   onTurnEnded?: () => void,
   /**
-   * 말을 보내기 직전에 할 일(ARTEL-1265). 편집 화면은 모아 둔 자동저장을 먼저 끝낸다 — 보내는 순간 런이 잠기면
-   * 그 저장은 거절되고, AI 는 저장 안 된 수정을 모른 채 고친다.
+   * 말을 보내기 직전에 할 일(ARTEL-1265). 편집 화면은 모아 둔 자동저장을 먼저 끝낸다 — AI 는 보내는 순간 저장된
+   * 본문을 읽으므로, 저장 안 된 수정은 AI 가 모른 채 고치고, 그 수정은 나중에 AI 결과와 부딪힌다.
    */
   beforeSend?: () => Promise<unknown>,
 ) {
@@ -391,8 +391,7 @@ export function useRunChatSession(
         setStages([])
         setCount(null)
         setTurnStartedAt(null)
-        // 다른 사람의 Artel Bot 이 이 런을 고치는 중이다(423, ARTEL-1265).
-        setSendFailure(error instanceof ProjectApiError && error.status === 423 ? 'run-locked' : 'send-failed')
+        setSendFailure('send-failed')
         return false
       } finally {
         setSending(false)

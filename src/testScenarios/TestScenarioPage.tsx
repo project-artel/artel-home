@@ -16,7 +16,7 @@ import { RunVersionChip } from '../testRuns/RunVersionChip'
 import { getTestRun, type RunGameBuild } from '../testRuns/testRunApi'
 import { useRunChatSession } from '../testRuns/useRunChatSession'
 import { ArtelBotLock } from '../testRuns/runLock/ArtelBotLock'
-import { useRunLock } from '../testRuns/runLock/useRunLock'
+import { useRunLocks } from '../testRuns/runLock/useRunLock'
 import { useProjectChange } from '../live/useProjectChange'
 import { ApproveScenarioDialog } from './ApproveScenarioDialog'
 import { approveScenarioFailure } from './approveScenarioError'
@@ -126,9 +126,11 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
   const runChat = useRunChatSession(projectId, fromRun, onProposalApplied, onTurnEnded, flush)
 
   // ── Artel Bot 잠금(ARTEL-1265) ──
-  // 런을 Artel Bot 이 고치는 동안은 편집 칸을 흐리게 덮고 막는다. 보낸 사람 본인도 막는다 — 결과가 끝에 통째로 덮는다.
-  const runLock = useRunLock(projectId, fromRun)
-  const botLocked = runLock.locked
+  // Artel Bot 이 이 TS 를 고치는 동안은 편집 칸을 흐리게 덮고 막는다. 보낸 사람 본인도 막는다 — 결과가 끝에 통째로 덮는다.
+  // 같은 런의 다른 TS 는 막지 않는다.
+  const runLocks = useRunLocks(projectId, fromRun)
+  const scenarioLock = runLocks.get(String(scenarioId))
+  const botLocked = scenarioLock !== undefined
   const [unsavedDuringLock, setUnsavedDuringLock] = useState(false)
   const { dirty, working } = editor
   const latest = useRef({ dirty, working, botLocked })
@@ -361,9 +363,9 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
         ) : (
           <div className="edoc-shell at-top at-bottom"><main className="edoc-wrap"><div className="edoc" /></main></div>
         )}
-        {runLock.locked && (
+        {scenarioLock !== undefined && (
           <div className="st-bot-lock">
-            <ArtelBotLock lock={runLock} scope="editor" />
+            <ArtelBotLock lock={scenarioLock} scope="editor" />
           </div>
         )}
         {unsavedDuringLock && !botLocked && (
@@ -403,11 +405,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
             <AgentChatEmbedded />
           ) : (
             fromRun !== null && (
-              <RunChat
-                gameBuildId={runBuild?.gameBuildId ?? null}
-                lockedBy={runLock.locked && !runLock.mine ? runLock.requestedByName : null}
-                session={runChat}
-              />
+              <RunChat gameBuildId={runBuild?.gameBuildId ?? null} session={runChat} />
             )
           )}
         </aside>

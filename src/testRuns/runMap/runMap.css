@@ -277,3 +277,12 @@
   .rmf.is-sorting .rmf-step, .rmf.is-sorting .rmf-wire, .rmf.is-sorting .rmf-band, .rmf.is-sorting .rmf-band-name, .rmf.is-sorting { transition: none; }
   .rmf-step.is-slot .rmf-dot, .rmf-step.is-dropped .rmf-dot { animation: none; }
 }
+
+/* 맵 대화 칸(ARTEL-1265): 편집 화면의 대화 칸과 같은 것(.scenario-studio .st-chat)을 오른쪽에 띄운다.
+   .scenario-studio 는 화면 전체 격자(머리줄 52px + 본문)라, 여기서는 세로로 꽉 채우는 칸으로만 쓴다. */
+.rm-chat.scenario-studio { position: absolute; top: 0; right: 0; bottom: 0; z-index: 16; display: flex; flex-direction: column; height: auto; grid-template-rows: none; }
+.rm-chat.scenario-studio > .st-chat { flex: 1; min-height: 0; }
+.rmap-stage.has-chat .rm-drawer { right: 380px; }
+.rmap-stage.has-chat .rm-ctrls, .rmap-stage.has-chat .rm-toast { margin-right: 380px; }
+.rmap-chat-toggle { height: 30px; padding: 0 12px; border: 1px solid var(--color-border-subtle); border-radius: 8px; background: transparent; color: var(--color-text-secondary); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.rmap-chat-toggle.on { border-color: var(--color-action-primary); color: var(--color-text-primary); background: color-mix(in srgb, var(--color-action-primary) 10%, transparent); }

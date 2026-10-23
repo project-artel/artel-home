@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { appPath } from '../../appPath'
 import { useI18n } from '../../i18n/useI18n'
-import type { RunLock } from './runLockApi'
+import type { ScenarioLock } from './runLockApi'
 import './runLock.css'
 
 const clock = (ms: number) => {
@@ -10,10 +10,10 @@ const clock = (ms: number) => {
 }
 
 /**
- * Artel Bot 이 런을 고치는 동안 화면 위에 띄우는 카드(ARTEL-1265). 뒤를 흐리게 덮는 것은 쓰는 쪽(맵 · 편집 화면)이
- * 정한다 — 맵은 TS 프레임만 흐리고 메모는 쓸 수 있게 두고, 편집 화면은 편집 칸 전체를 덮는다.
+ * Artel Bot 이 시나리오를 고치는 동안 그 시나리오 위에 띄우는 카드(ARTEL-1265). 맵은 잠긴 TS 프레임 위에, 편집 화면은
+ * 잠긴 TS 를 볼 때 편집 칸 위에 띄운다. 뒤를 흐리게 덮는 것은 쓰는 쪽이 정한다.
  */
-export function ArtelBotLock({ lock, scope }: { lock: Extract<RunLock, { locked: true }>; scope: 'map' | 'editor' }) {
+export function ArtelBotLock({ lock, scope }: { lock: ScenarioLock; scope: 'frame' | 'editor' }) {
   const { t } = useI18n()
   const m = t.scenarios.botLock
   const stages = t.projectAgent.tasks.jobs.authoringStages
@@ -29,9 +29,9 @@ export function ArtelBotLock({ lock, scope }: { lock: Extract<RunLock, { locked:
       <div className="abl-card">
         <span aria-hidden="true" className="abl-mark">
           <span className="abl-ring" />
-          <img alt="" src={appPath('/artel-mark.svg')} />
+          <img alt="" src={appPath('/artel-bot-mark.png')} />
         </span>
-        <b className="abl-title">{m.title}</b>
+        <b className="abl-title">{lock.choosing ? m.choosingTitle : m.title}</b>
         <span className="abl-meta">
           <span>{who}</span>
           <span aria-hidden="true">·</span>
@@ -39,7 +39,7 @@ export function ArtelBotLock({ lock, scope }: { lock: Extract<RunLock, { locked:
           <span aria-hidden="true">·</span>
           <span className="mono">{clock(now - lock.startedAt)}</span>
         </span>
-        <p className="abl-note">{scope === 'map' ? m.mapNote : m.editorNote}</p>
+        <p className="abl-note">{lock.choosing ? m.choosingNote : scope === 'frame' ? m.frameNote : m.editorNote}</p>
       </div>
     </div>
   )

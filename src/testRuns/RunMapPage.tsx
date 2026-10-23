@@ -17,6 +17,8 @@ import { CaseImportDialog } from '../testScenarios/CaseImportDialog'
 import { createTestScenario, updateScenario } from '../testScenarios/scenarioApi'
 import { createEmptyStep, createHumanStep, type ScenarioDraft } from '../testScenarios/scenarioTypes'
 import { setRunScenarios } from './testRunApi'
+import { RunChat } from './RunChat'
+import { useRunChatSession } from './useRunChatSession'
 import { boxOf, contains, controlFor, dragBox, hasText, moved, resized, type Box, type BoxHandle } from './runMap/annotationGeometry'
 import { autoLayout, dropSlot, FRAME_W, frameHeight, HEAD_H } from './runMap/frameGeometry'
 import { moveRange } from './runMap/stepOrder'
@@ -31,7 +33,7 @@ import { TsFrame } from './runMap/TsFrame'
 import { useRunMapData } from './runMap/useRunMapData'
 import { ArtelBotLock } from './runLock/ArtelBotLock'
 import { isRunLocked } from './runLock/runLockApi'
-import { useRunLock } from './runLock/useRunLock'
+import { useRunLocks } from './runLock/useRunLock'
 import { previewScenario } from './runMap/runMapModel'
 import './runMap/runMap.css'
 
@@ -81,9 +83,12 @@ const newAnnotationId = () => `a${Date.now().toString(36)}${(annotationSeq++).to
 /** 복사한 것. 페이지를 옮겨도 남아 있어 다른 런 맵에도 붙여넣을 수 있다. */
 let clipboard: { kind: 'annotations'; items: RunMapAnnotation[] } | { kind: 'ts'; id: string } | null = null
 const PASTE_OFFSET = 24
-/** 이 칸이 TS(스텝 · 런 구성)를 고치나. 맵 배치 · 주석만 고치는 칸이 아니다. */
-const touchesTs = (change: Change): boolean =>
-  change.kind === 'many' ? change.changes.some(touchesTs) : change.kind !== 'board'
+/** 맵 오른쪽 대화 칸의 폭과 열림 기억. */
+const CHAT_W = 380
+const CHAT_OPEN_KEY = 'artel.runMap.chatOpen'
+/** 이 칸이 고치는 TS 들. 되돌리기가 Artel Bot 이 고치는 TS 를 건드리는지 본다. */
+const scenariosIn = (change: Change): string[] =>
+  change.kind === 'many' ? change.changes.flatMap(scenariosIn) : change.kind === 'scenario' ? [change.id] : []
 /** 고른 것. 하나면 손잡이를 띄우고, 여럿이면(영역 끌기 · Shift 누르기) 함께 옮기고 지우고 복사한다. */
 type Chosen = { items: string[]; frames: string[] }
 const NOTHING: Chosen = { items: [], frames: [] }
@@ -125,19 +130,41 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
   const data = useRunMapData(projectId, runId, () => saveTimer.current !== null || saving.current)
   const { scenarios, map, setMap, drafts, setDrafts, order, setOrder } = data
 
-  // Artel Bot 이 이 런을 고치는 동안은 TS 를 고치지 못한다(ARTEL-1265). 맵 배치 · 메모 · 도형은 그대로 쓴다.
-  const lock = useRunLock(projectId, runId)
-  const botLocked = lock.locked
-  const botLockedRef = useRef(botLocked)
-  useEffect(() => {
-    botLockedRef.current = botLocked
+  // ── 챗봇(ARTEL-1265) ── 편집 화면과 같은 대화(세션 = 사람 · 런)다. 어느 화면에서 말해도 같은 대화가 이어진다.
+  const [chatOpen, setChatOpen] = useState(() => {
+    try {
+      return window.localStorage.getItem(CHAT_OPEN_KEY) !== '0'
+    } catch {
+      return true
+    }
   })
-  // 풀리면 AI 가 고친 것을 다시 읽는다. 저장 알림(TEST_RUNS)도 오지만, 결과가 없던 턴은 알림이 없다.
-  const wasLocked = useRef(false)
+  const toggleChat = useCallback(() => {
+    setChatOpen((open) => {
+      try {
+        window.localStorage.setItem(CHAT_OPEN_KEY, open ? '0' : '1')
+      } catch {
+        /* 기억하지 못해도 화면은 돈다 */
+      }
+      return !open
+    })
+  }, [])
+  // AI 가 고친 것을 반영했거나 턴이 끝나면 맵을 다시 읽는다(저장 알림도 오지만 내 대화의 끝은 여기서 바로 안다).
+  const reloadQuietly = useCallback(() => void data.reload(undefined, true), [data])
+  const runChat = useRunChatSession(projectId, runId, reloadQuietly, reloadQuietly)
+
+  // Artel Bot 이 고치는 TS 는 고치지 못한다(ARTEL-1265). 다른 TS · 런 구성 · 맵 배치 · 메모 · 도형은 그대로 쓴다.
+  const botLocks = useRunLocks(projectId, runId)
+  const botLocksRef = useRef(botLocks)
   useEffect(() => {
-    if (wasLocked.current && !botLocked) void data.reload(undefined, true)
-    wasLocked.current = botLocked
-  }, [botLocked, data])
+    botLocksRef.current = botLocks
+  })
+  // 잠금이 풀린 TS 가 있으면 다시 읽는다. AI 가 고친 것은 저장 알림(TEST_RUNS)으로도 오지만, 풀림을 기준으로 한 번 더 맞춘다.
+  const lockedBefore = useRef<ReadonlySet<string>>(new Set())
+  useEffect(() => {
+    const now = new Set(botLocks.keys())
+    if ([...lockedBefore.current].some((id) => !now.has(id))) void data.reload(undefined, true)
+    lockedBefore.current = now
+  }, [botLocks, data])
 
   const [view, setView] = useState<View>({ x: 10, y: 64, k: 0.9 })
   const [tool, setTool] = useState<RunMapTool>('select')
@@ -290,15 +317,15 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     applyBoard(after)
     say(label, true)
   }, [applyBoard, say])
-  /** Artel Bot 이 고치는 중이면 TS 를 고치지 않고 알린다. 막았으면 true. */
-  const blockedByBot = useCallback(() => {
-    if (!botLockedRef.current) return false
+  /** [ids] 가운데 Artel Bot 이 고치는 TS 가 있으면 고치지 않고 알린다. 막았으면 true. */
+  const blockedByBot = useCallback((...ids: string[]) => {
+    if (!ids.some((id) => botLocksRef.current.has(id))) return false
     say(lockCopy.blocked)
     return true
   }, [say, lockCopy.blocked])
   const commitDraft = useCallback((id: string, next: ScenarioDraft, label: string) => {
     const before = drafts[id]
-    if (before === undefined || blockedByBot()) return
+    if (before === undefined || blockedByBot(id)) return
     setHistory((h) => record(h, { label, before: { kind: 'scenario', id, draft: before }, after: { kind: 'scenario', id, draft: next } }))
     void applyDraft(id, next)
     say(label, true)
@@ -308,7 +335,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
   const undo = useCallback(() => {
     const result = undoHistory(history)
     if (result === null) return
-    if (touchesTs(result.entry.before) && blockedByBot()) return
+    if (blockedByBot(...scenariosIn(result.entry.before))) return
     setHistory(result.history)
     apply(result.entry.before)
     say(m.toast.undone)
@@ -316,7 +343,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
   const redo = useCallback(() => {
     const result = redoHistory(history)
     if (result === null) return
-    if (touchesTs(result.entry.after) && blockedByBot()) return
+    if (blockedByBot(...scenariosIn(result.entry.after))) return
     setHistory(result.history)
     apply(result.entry.after)
     say(m.toast.redone)
@@ -358,7 +385,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
   const moveStepsAcross = useCallback((fromId: string, start: number, end: number, toId: string, before: number) => {
     const from = drafts[fromId]
     const to = drafts[toId]
-    if (from === undefined || to === undefined || blockedByBot()) return
+    if (from === undefined || to === undefined || blockedByBot(fromId, toId)) return
     const block = from.steps.slice(start, end + 1)
     const nextFrom = { ...from, steps: [...from.steps.slice(0, start), ...from.steps.slice(end + 1)] }
     const toSteps = [...to.steps]
@@ -394,13 +421,11 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
   }, [drafts, commitDraft, m.toast, position, pick])
 
   const changeOrder = useCallback((next: string[], label: string) => {
-    if (blockedByBot()) return
     setHistory((h) => record(h, { label, before: { kind: 'order', ids: order }, after: { kind: 'order', ids: next } }))
     void applyOrder(next)
     say(label, true)
-  }, [order, applyOrder, say, blockedByBot])
+  }, [order, applyOrder, say])
   const createTs = useCallback(async (at: { x: number; y: number }, copyOf?: string) => {
-    if (blockedByBot()) return
     try {
       const source = copyOf === undefined ? undefined : drafts[copyOf]
       const draft: ScenarioDraft = source !== undefined
@@ -419,7 +444,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     } catch {
       say(m.toast.saveFailed)
     }
-  }, [drafts, m, projectId, setDrafts, order, applyBoard, changeOrder, position, say, blockedByBot])
+  }, [drafts, m, projectId, setDrafts, order, applyBoard, changeOrder, position, say])
   const removeTs = useCallback((id: string) => {
     if (picked?.id === id) {
       setPicked(null)
@@ -624,10 +649,10 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
   const fit = useCallback(() => {
     const rect = stageRef.current?.getBoundingClientRect()
     if (!rect) return
-    const avail = rect.width - (drawerOpen ? 580 : 0)
+    const avail = rect.width - (drawerOpen ? 580 : 0) - (chatOpen ? CHAT_W : 0)
     const k = Math.max(MIN_K, Math.min(1, (avail - 30) / bounds.w, (rect.height - 80) / bounds.h))
     setView({ k, x: 10, y: 64 })
-  }, [bounds, drawerOpen])
+  }, [bounds, drawerOpen, chatOpen])
   const zoomAt = useCallback((cx: number, cy: number, factor: number) => {
     setView((v) => {
       const k = Math.max(MIN_K, Math.min(MAX_K, v.k * factor))
@@ -646,7 +671,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     const stage = stageRef.current
     if (stage === null) return undefined
     function onWheel(event: WheelEvent) {
-      if ((event.target as HTMLElement).closest('.rm-drawer')) return
+      if ((event.target as HTMLElement).closest('.rm-drawer, .rm-chat')) return
       event.preventDefault()
       const rect = stage!.getBoundingClientRect()
       zoomAt(event.clientX - rect.left, event.clientY - rect.top, event.deltaY < 0 ? 1.1 : 1 / 1.1)
@@ -661,7 +686,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     if (event.button !== 0 && event.button !== 1) return
     const target = event.target as HTMLElement
     // 단추는 제 일을 한다. 스텝 점도 단추지만 끌어 옮길 수 있어 여기서 받는다.
-    if (target.closest('button:not([data-step]), .rm-toolbar, .rm-ctrls, .rm-drawer, [contenteditable="true"]')) return
+    if (target.closest('button:not([data-step]), .rm-toolbar, .rm-ctrls, .rm-drawer, .rm-chat, [contenteditable="true"]')) return
     const w = toWorld(event.clientX, event.clientY)
     const capture = () => event.currentTarget.setPointerCapture(event.pointerId)
     const startPan = () => {
@@ -1023,7 +1048,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
   // ── 우클릭: 누른 자리에 따라 다르다 ──
   function onContextMenu(event: React.MouseEvent) {
     const target = event.target as HTMLElement
-    if (target.closest('.rm-drawer, .rm-toolbar, .rm-ctrls')) return
+    if (target.closest('.rm-drawer, .rm-chat, .rm-toolbar, .rm-ctrls')) return
     event.preventDefault()
     const w = toWorld(event.clientX, event.clientY)
     const at = { x: event.clientX, y: event.clientY }
@@ -1283,6 +1308,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
   const hoverStep = hover === null ? undefined : scenarios.find((s) => s.id === hover.id)?.steps[hover.index]
   const importScenario = importFor === null ? undefined : drafts[importFor]
   const stageBox = stageSize.width > 0 ? stageSize : null
+  const choosingLock = [...botLocks.values()].find((lock) => lock.choosing)
   const selectedAnnotation = selectedItem === null ? undefined : map.annotations.find((a) => a.id === selectedItem)
   // 주석을 고르면 툴바 끝에 색이 붙는다.
   const chosenAnnotations = map.annotations.filter((a) => chosen.items.includes(a.id))
@@ -1296,7 +1322,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     : null
 
   return (
-    <div className={'rmap' + (botLocked ? ' is-bot-locked' : '')}>
+    <div className="rmap">
       <header className="rmap-top">
         <Link className="rmap-back" to={`/projects/${encodeURIComponent(projectId)}`}>{m.back}</Link>
         <span className="rmap-name">{data.run?.name}</span>
@@ -1311,6 +1337,9 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
           <button onClick={openEditor} ref={editButton} type="button">{m.editView}</button>
           <button className="on" type="button">{m.mapView}</button>
         </div>
+        <button aria-pressed={chatOpen} className={'rmap-chat-toggle' + (chatOpen ? ' on' : '')} onClick={toggleChat} type="button">
+          {m.chatToggle}
+        </button>
       </header>
       <div className="rmap-tools">
         <label className="rmap-search">
@@ -1328,7 +1357,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
       </div>
       <div
         aria-label={m.canvasLabel}
-        className={'rmap-stage tool-' + activeTool + (panning ? ' is-panning' : '')}
+        className={'rmap-stage tool-' + activeTool + (panning ? ' is-panning' : '') + (chatOpen ? ' has-chat' : '')}
         onClick={onClick}
         onContextMenu={onContextMenu}
         onDoubleClick={onDoubleClick}
@@ -1368,6 +1397,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
                 folded={f.folded}
                 highlightScene={scene}
                 key={s.id}
+                botLocked={botLocks.has(s.id)}
                 dropped={landed?.id === s.id ? landed : null}
                 lifting={stepDrag !== null && (stepDrag.source.id === s.id || stepDrag.target?.id === s.id)}
                 marked={marks.has(s.id)}
@@ -1381,6 +1411,17 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
                 y={f.y}
                 z={z[s.id] ?? 1}
               />
+            )
+          })}
+          {scenarios.map((sc) => {
+            const lock = botLocks.get(sc.id)
+            // 고르는 중에는 TS 마다 카드를 띄우지 않는다(런 전체가 잠겨 카드가 TS 수만큼 생긴다). 가운데 하나만 띄운다.
+            if (lock === undefined || lock.choosing) return null
+            const f = frameOf(sc.id)
+            return (
+              <div className="rm-bot-lock" key={'lock' + sc.id} style={{ left: f.x, top: f.y, width: FRAME_W, height: Math.max(frameHeight(sc.steps.length, f.folded), 190) }}>
+                <ArtelBotLock lock={lock} scope="frame" />
+              </div>
             )
           })}
           <RunMapAnnotations annotations={map.annotations} authors={map.authors} editing={editingItem} k={view.k} marks={marks} onEditText={editText} selected={selectedItem} />
@@ -1425,7 +1466,18 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
             </span>
           </div>
         )}
-        {lock.locked && <ArtelBotLock lock={lock} scope="map" />}
+        {choosingLock !== undefined && (
+          <div className="rm-bot-lock-center">
+            <ArtelBotLock lock={choosingLock} scope="frame" />
+          </div>
+        )}
+        {chatOpen && (
+          <div className="scenario-studio rm-chat" style={{ width: CHAT_W }}>
+            <aside className="st-chat">
+              <RunChat gameBuildId={data.run?.gameBuild?.gameBuildId ?? null} session={runChat} />
+            </aside>
+          </div>
+        )}
         {toast && (
           <div className="rm-toast" role="status">
             {toast.text}

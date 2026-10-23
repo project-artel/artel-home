@@ -217,13 +217,10 @@ function AuthoringProgress({
 export function RunChat({
   gameBuildId = null,
   session,
-  lockedBy = null,
 }: {
   /** 런의 버전(ARTEL-1070). TC 칩으로 여는 케이스가 그 버전의 내용과 판정이다. 없으면 최신이다. */
   gameBuildId?: string | null
   session: RunChatSession
-  /** 다른 사람의 Artel Bot 이 이 런을 고치는 중이면 그 사람 이름(ARTEL-1265). 끝날 때까지 입력을 막는다. */
-  lockedBy?: string | null
 }) {
   const { t } = useI18n()
   const u = t.projects.workspace.uncovered
@@ -662,16 +659,10 @@ export function RunChat({
               <span>{c.draftMode.copy}</span>
             </div>
           )}
-          {lockedBy !== null && (
-            <div className="chat-draft-mode" role="status">
-              <strong>{t.scenarios.botLock.title}</strong>
-              <span>{t.scenarios.botLock.requestedBy(lockedBy)} · {t.scenarios.botLock.blocked}</span>
-            </div>
-          )}
           {session.sendFailure !== null && (
             <div className="inline-error" role="alert">
               <span aria-hidden="true">!</span>
-              {session.sendFailure === 'run-locked' ? t.scenarios.botLock.blocked : c.sendFailed}
+              {c.sendFailed}
             </div>
           )}
 
@@ -684,7 +675,7 @@ export function RunChat({
             ref={setInputNode}
             className="field-input field-input--multiline"
             aria-describedby="run-chat-hint"
-            disabled={session.sending || lockedBy !== null}
+            disabled={session.sending}
             id="run-chat-input"
             onChange={(event) => setInput(event.target.value)}
             onKeyDown={handleKeyDown}
@@ -706,7 +697,7 @@ export function RunChat({
             <button
               aria-label={session.sending ? c.sending : c.send}
               className="button button--primary button--compact chat-send"
-              disabled={session.sending || lockedBy !== null || input.trim().length === 0}
+              disabled={session.sending || input.trim().length === 0}
               title={session.sending ? c.sending : c.send}
               type="submit"
             >
