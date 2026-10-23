@@ -15,6 +15,9 @@ import { SplitHandle } from '../design-system/primitives/SplitHandle'
 import { RunVersionChip } from '../testRuns/RunVersionChip'
 import { getTestRun, type RunGameBuild } from '../testRuns/testRunApi'
 import { useRunChatSession } from '../testRuns/useRunChatSession'
+import { ArtelBotLock } from '../testRuns/runLock/ArtelBotLock'
+import { useRunLock } from '../testRuns/runLock/useRunLock'
+import { useProjectChange } from '../live/useProjectChange'
 import { ApproveScenarioDialog } from './ApproveScenarioDialog'
 import { approveScenarioFailure } from './approveScenarioError'
 import { DeleteScenarioDialog } from './DeleteScenarioDialog'
@@ -118,7 +121,38 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
   // 턴이 끝나면 레일만 다시 읽는다. 편집기는 건드리지 않는다 — `rebase` 는 `working` 을
   // 서버 값으로 덮으므로, 손으로 고치던 초안이 남의 턴 하나에 사라진다.
   const onTurnEnded = useCallback(() => setRailToken((token) => token + 1), [])
-  const runChat = useRunChatSession(projectId, fromRun, onProposalApplied, onTurnEnded)
+  // 말을 보내기 직전에 모아 둔 자동저장을 끝낸다(ARTEL-1265). 보내면 런이 잠겨 그 저장이 거절된다.
+  const { flush } = editor
+  const runChat = useRunChatSession(projectId, fromRun, onProposalApplied, onTurnEnded, flush)
+
+  // ── Artel Bot 잠금(ARTEL-1265) ──
+  // 런을 Artel Bot 이 고치는 동안은 편집 칸을 흐리게 덮고 막는다. 보낸 사람 본인도 막는다 — 결과가 끝에 통째로 덮는다.
+  const runLock = useRunLock(projectId, fromRun)
+  const botLocked = runLock.locked
+  const [unsavedDuringLock, setUnsavedDuringLock] = useState(false)
+  const { dirty, working } = editor
+  const latest = useRef({ dirty, working, botLocked })
+  useEffect(() => {
+    latest.current = { dirty, working, botLocked }
+  })
+  /** 서버의 지금 본문으로 편집기를 맞춘다. 같으면 건드리지 않는다(되돌리기 칸이 쌓이지 않게). */
+  const pullLatest = useCallback(() => {
+    if (!validId) return
+    getTestScenario(scenarioId)
+      .then((scenario) => {
+        if (JSON.stringify(scenario.payload) !== JSON.stringify(latest.current.working)) rebase(scenario.payload)
+      })
+      .catch(() => { /* 다음 알림에 다시 읽는다 */ })
+  }, [scenarioId, validId, rebase])
+  // 풀리면 AI 가 고친 것을 읽는다. 그 사이 손으로 고친 것이 저장되지 못했으면 덮지 않고 묻는다.
+  const wasLocked = useRef(false)
+  useEffect(() => {
+    if (wasLocked.current && !botLocked) {
+      if (latest.current.dirty) setUnsavedDuringLock(true)
+      else pullLatest()
+    }
+    wasLocked.current = botLocked
+  }, [botLocked, pullLatest])
 
   // The run's name for the crumb, when the studio was opened from a run. Fetched
   // here because the studio only carries the run id (?run=), not its name.
@@ -146,6 +180,16 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
   // 자동저장을 끈 턴의 draft(ARTEL-1075). 열어 두면 가운데와 헤더가 draft 를 따른다.
   const preview = useDraftPreview(projectId, runChat, runBuild)
   const activeDraft = preview.activeDraft
+  const activeDraftRef = useRef(activeDraft)
+  useEffect(() => {
+    activeDraftRef.current = activeDraft
+  })
+
+  // 다른 사람(맵 · 다른 편집 화면 · AI)이 이 TS 를 고치면 따라간다. 지금까지는 몰랐고, 다음 자동저장이 그것을 덮었다.
+  // 저장 안 된 손 편집이 있으면 따라가지 않는다 — 그건 이 화면의 자동저장이 곧 보낸다.
+  useProjectChange(projectId, 'TEST_RUNS', () => {
+    if (!latest.current.dirty && !latest.current.botLocked && activeDraftRef.current === null) pullLatest()
+  })
 
 
   // Header shortcuts (outside text fields, where the browser's own text-undo wins):
@@ -160,7 +204,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
         && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
       const key = event.key.toLowerCase()
       if (key === 'k') { event.preventDefault(); setSpecOpen(true); return }
-      if (inField) return
+      if (inField || latest.current.botLocked) return
       if (key === 'z' && !event.shiftKey) { event.preventDefault(); undo() }
       else if ((key === 'z' && event.shiftKey) || key === 'y') { event.preventDefault(); redo() }
     }
@@ -317,6 +361,22 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
         ) : (
           <div className="edoc-shell at-top at-bottom"><main className="edoc-wrap"><div className="edoc" /></main></div>
         )}
+        {runLock.locked && (
+          <div className="st-bot-lock">
+            <ArtelBotLock lock={runLock} scope="editor" />
+          </div>
+        )}
+        {unsavedDuringLock && !botLocked && (
+          <div className="st-bot-banner" role="alert">
+            <span>{t.scenarios.botLock.unsaved}</span>
+            <button className="button button--secondary button--compact" onClick={() => { setUnsavedDuringLock(false); pullLatest() }} type="button">
+              {t.scenarios.botLock.showLatest}
+            </button>
+            <button className="button button--primary button--compact" onClick={() => { setUnsavedDuringLock(false); void flush() }} type="button">
+              {t.scenarios.botLock.saveMine}
+            </button>
+          </div>
+        )}
         <SplitHandle label={t.scenarios.chat.widthHandle} {...split.handle} />
         <aside className="st-chat">
           {projectAgentEnabled && (
@@ -342,7 +402,13 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
           {chatAgent === 'project' ? (
             <AgentChatEmbedded />
           ) : (
-            fromRun !== null && <RunChat gameBuildId={runBuild?.gameBuildId ?? null} session={runChat} />
+            fromRun !== null && (
+              <RunChat
+                gameBuildId={runBuild?.gameBuildId ?? null}
+                lockedBy={runLock.locked && !runLock.mine ? runLock.requestedByName : null}
+                session={runChat}
+              />
+            )
           )}
         </aside>
       </div>

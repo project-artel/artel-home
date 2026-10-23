@@ -847,6 +847,18 @@ export const scenariosEn = {
     atStart: 'At the start',
     after: (n: number) => `After step ${n}`,
   },
+  botLock: {
+    title: 'Artel Bot is editing the scenarios',
+    mine: 'Your request',
+    requestedBy: (name: string) => `Requested by ${name}`,
+    working: 'Working',
+    mapNote: 'The map updates when it finishes. Notes and shapes still work meanwhile.',
+    editorNote: 'This screen updates to the latest when it finishes.',
+    blocked: 'Artel Bot is editing this run. Try again when it finishes.',
+    unsaved: 'Some edits could not be saved while Artel Bot was working.',
+    showLatest: 'Show the latest',
+    saveMine: 'Save mine over it',
+  },
 } as const
 
 export const scenariosKo: Localized<typeof scenariosEn> = {
@@ -1653,5 +1665,17 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     atEnd: (n: number) => `끝에 (스텝 ${n} 뒤)`,
     atStart: '맨 앞에',
     after: (n: number) => `스텝 ${n} 뒤에`,
+  },
+  botLock: {
+    title: 'Artel Bot 이 시나리오를 고치는 중',
+    mine: '내가 보낸 요청',
+    requestedBy: (name: string) => `${name} 님 요청`,
+    working: '작업 중',
+    mapNote: '끝나면 맵이 최신으로 바뀝니다. 그동안에도 메모와 도형은 쓸 수 있습니다.',
+    editorNote: '끝나면 이 화면이 최신으로 바뀝니다.',
+    blocked: 'Artel Bot 이 이 런을 고치는 중입니다. 끝나면 다시 해 주세요.',
+    unsaved: 'Artel Bot 이 고치는 동안 저장하지 못한 수정이 있습니다.',
+    showLatest: '최신 보기',
+    saveMine: '내 것으로 다시 저장',
   },
 }

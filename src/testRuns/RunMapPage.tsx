@@ -29,6 +29,9 @@ import { letterOf, TOOL_KEYS, type RunMapTool } from './runMap/runMapTools'
 import { StepHoverCard } from './runMap/StepHoverCard'
 import { TsFrame } from './runMap/TsFrame'
 import { useRunMapData } from './runMap/useRunMapData'
+import { ArtelBotLock } from './runLock/ArtelBotLock'
+import { isRunLocked } from './runLock/runLockApi'
+import { useRunLock } from './runLock/useRunLock'
 import { previewScenario } from './runMap/runMapModel'
 import './runMap/runMap.css'
 
@@ -78,6 +81,9 @@ const newAnnotationId = () => `a${Date.now().toString(36)}${(annotationSeq++).to
 /** 복사한 것. 페이지를 옮겨도 남아 있어 다른 런 맵에도 붙여넣을 수 있다. */
 let clipboard: { kind: 'annotations'; items: RunMapAnnotation[] } | { kind: 'ts'; id: string } | null = null
 const PASTE_OFFSET = 24
+/** 이 칸이 TS(스텝 · 런 구성)를 고치나. 맵 배치 · 주석만 고치는 칸이 아니다. */
+const touchesTs = (change: Change): boolean =>
+  change.kind === 'many' ? change.changes.some(touchesTs) : change.kind !== 'board'
 /** 고른 것. 하나면 손잡이를 띄우고, 여럿이면(영역 끌기 · Shift 누르기) 함께 옮기고 지우고 복사한다. */
 type Chosen = { items: string[]; frames: string[] }
 const NOTHING: Chosen = { items: [], frames: [] }
@@ -110,6 +116,7 @@ const inside = (box: Box, p: { x: number; y: number }) => p.x >= box.x && p.x <=
 function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) {
   const { t } = useI18n()
   const m = t.scenarios.map
+  const lockCopy = t.scenarios.botLock
   const navigate = useNavigate()
 
   // 맵 저장은 모아서 한다. 저장이 걸려 있는 동안은 서버에서 다시 읽은 맵으로 내 화면을 덮지 않는다.
@@ -117,6 +124,20 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
   const saving = useRef(false)
   const data = useRunMapData(projectId, runId, () => saveTimer.current !== null || saving.current)
   const { scenarios, map, setMap, drafts, setDrafts, order, setOrder } = data
+
+  // Artel Bot 이 이 런을 고치는 동안은 TS 를 고치지 못한다(ARTEL-1265). 맵 배치 · 메모 · 도형은 그대로 쓴다.
+  const lock = useRunLock(projectId, runId)
+  const botLocked = lock.locked
+  const botLockedRef = useRef(botLocked)
+  useEffect(() => {
+    botLockedRef.current = botLocked
+  })
+  // 풀리면 AI 가 고친 것을 다시 읽는다. 저장 알림(TEST_RUNS)도 오지만, 결과가 없던 턴은 알림이 없다.
+  const wasLocked = useRef(false)
+  useEffect(() => {
+    if (wasLocked.current && !botLocked) void data.reload(undefined, true)
+    wasLocked.current = botLocked
+  }, [botLocked, data])
 
   const [view, setView] = useState<View>({ x: 10, y: 64, k: 0.9 })
   const [tool, setTool] = useState<RunMapTool>('select')
@@ -242,20 +263,20 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     setDrafts((current) => ({ ...current, [id]: draft }))
     try {
       await updateScenario(Number(id), draft)
-    } catch {
-      say(m.toast.saveFailed)
+    } catch (error) {
+      say(isRunLocked(error) ? lockCopy.blocked : m.toast.saveFailed)
       void reload(undefined, true)
     }
-  }, [setDrafts, say, m.toast.saveFailed, reload])
+  }, [setDrafts, say, m.toast.saveFailed, lockCopy.blocked, reload])
   const applyOrder = useCallback(async (ids: string[]) => {
     setOrder(ids)
     try {
       await setRunScenarios(projectId, runId, ids)
-    } catch {
-      say(m.toast.saveFailed)
+    } catch (error) {
+      say(isRunLocked(error) ? lockCopy.blocked : m.toast.saveFailed)
       void reload(undefined, true)
     }
-  }, [projectId, runId, setOrder, say, m.toast.saveFailed, reload])
+  }, [projectId, runId, setOrder, say, m.toast.saveFailed, lockCopy.blocked, reload])
   const apply = useCallback(function applyChange(change: Change) {
     if (change.kind === 'many') change.changes.forEach(applyChange)
     else if (change.kind === 'board') applyBoard(change.board)
@@ -269,28 +290,37 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     applyBoard(after)
     say(label, true)
   }, [applyBoard, say])
+  /** Artel Bot 이 고치는 중이면 TS 를 고치지 않고 알린다. 막았으면 true. */
+  const blockedByBot = useCallback(() => {
+    if (!botLockedRef.current) return false
+    say(lockCopy.blocked)
+    return true
+  }, [say, lockCopy.blocked])
   const commitDraft = useCallback((id: string, next: ScenarioDraft, label: string) => {
     const before = drafts[id]
-    if (before === undefined) return
+    if (before === undefined || blockedByBot()) return
     setHistory((h) => record(h, { label, before: { kind: 'scenario', id, draft: before }, after: { kind: 'scenario', id, draft: next } }))
     void applyDraft(id, next)
     say(label, true)
-  }, [drafts, applyDraft, say])
+  }, [drafts, applyDraft, say, blockedByBot])
 
+  // 되돌리기 · 다시 하기도 TS 를 고치는 칸이면 잠긴 동안 막는다. 맵 배치 · 주석만 고치는 칸은 된다.
   const undo = useCallback(() => {
     const result = undoHistory(history)
     if (result === null) return
+    if (touchesTs(result.entry.before) && blockedByBot()) return
     setHistory(result.history)
     apply(result.entry.before)
     say(m.toast.undone)
-  }, [history, apply, say, m.toast.undone])
+  }, [history, apply, say, m.toast.undone, blockedByBot])
   const redo = useCallback(() => {
     const result = redoHistory(history)
     if (result === null) return
+    if (touchesTs(result.entry.after) && blockedByBot()) return
     setHistory(result.history)
     apply(result.entry.after)
     say(m.toast.redone)
-  }, [history, apply, say, m.toast.redone])
+  }, [history, apply, say, m.toast.redone, blockedByBot])
 
   // ── TS · 스텝 편집 ──
   const pick = useCallback((id: string, step: number | null = null) => {
@@ -328,7 +358,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
   const moveStepsAcross = useCallback((fromId: string, start: number, end: number, toId: string, before: number) => {
     const from = drafts[fromId]
     const to = drafts[toId]
-    if (from === undefined || to === undefined) return
+    if (from === undefined || to === undefined || blockedByBot()) return
     const block = from.steps.slice(start, end + 1)
     const nextFrom = { ...from, steps: [...from.steps.slice(0, start), ...from.steps.slice(end + 1)] }
     const toSteps = [...to.steps]
@@ -344,7 +374,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     void applyDraft(toId, nextTo)
     say(label, true)
     pick(toId, before)
-  }, [drafts, applyDraft, say, pick, position, m.toast])
+  }, [drafts, applyDraft, say, pick, position, m.toast, blockedByBot])
   const deleteStep = useCallback((id: string, index: number) => {
     const draft = drafts[id]
     if (draft === undefined) return
@@ -364,11 +394,13 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
   }, [drafts, commitDraft, m.toast, position, pick])
 
   const changeOrder = useCallback((next: string[], label: string) => {
+    if (blockedByBot()) return
     setHistory((h) => record(h, { label, before: { kind: 'order', ids: order }, after: { kind: 'order', ids: next } }))
     void applyOrder(next)
     say(label, true)
-  }, [order, applyOrder, say])
+  }, [order, applyOrder, say, blockedByBot])
   const createTs = useCallback(async (at: { x: number; y: number }, copyOf?: string) => {
+    if (blockedByBot()) return
     try {
       const source = copyOf === undefined ? undefined : drafts[copyOf]
       const draft: ScenarioDraft = source !== undefined
@@ -387,7 +419,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     } catch {
       say(m.toast.saveFailed)
     }
-  }, [drafts, m, projectId, setDrafts, order, applyBoard, changeOrder, position, say])
+  }, [drafts, m, projectId, setDrafts, order, applyBoard, changeOrder, position, say, blockedByBot])
   const removeTs = useCallback((id: string) => {
     if (picked?.id === id) {
       setPicked(null)
@@ -1264,7 +1296,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     : null
 
   return (
-    <div className="rmap">
+    <div className={'rmap' + (botLocked ? ' is-bot-locked' : '')}>
       <header className="rmap-top">
         <Link className="rmap-back" to={`/projects/${encodeURIComponent(projectId)}`}>{m.back}</Link>
         <span className="rmap-name">{data.run?.name}</span>
@@ -1393,6 +1425,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
             </span>
           </div>
         )}
+        {lock.locked && <ArtelBotLock lock={lock} scope="map" />}
         {toast && (
           <div className="rm-toast" role="status">
             {toast.text}

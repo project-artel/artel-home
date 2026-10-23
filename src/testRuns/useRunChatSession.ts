@@ -80,7 +80,16 @@ export function useRunChatSession(
   runId: string | null,
   onApplied?: () => void,
   onTurnEnded?: () => void,
+  /**
+   * 말을 보내기 직전에 할 일(ARTEL-1265). 편집 화면은 모아 둔 자동저장을 먼저 끝낸다 — 보내는 순간 런이 잠기면
+   * 그 저장은 거절되고, AI 는 저장 안 된 수정을 모른 채 고친다.
+   */
+  beforeSend?: () => Promise<unknown>,
 ) {
+  const beforeSendRef = useRef(beforeSend)
+  useEffect(() => {
+    beforeSendRef.current = beforeSend
+  })
   const { t } = useI18n()
   // 실패한 턴의 안내 문구(ARTEL-1072). 스트림 구독은 런이 바뀔 때만 다시 거므로 최신 언어를 ref 로 읽는다.
   const errorMessagesRef = useRef(t.scenarios.chat.errors)
@@ -367,6 +376,7 @@ export function useRunChatSession(
       setTurnStartedAt(Date.now())
       try {
         // draft 가 있는 동안은 draft 만 고친다(ARTEL-1075). 새 요청은 draft 를 승인하거나 버린 뒤에 보낸다.
+        await beforeSendRef.current?.()
         await sendRunChatMessage(projectId, runId, trimmed, autoApply, answer, drafts.length > 0)
         return true
       } catch (error: unknown) {
@@ -381,7 +391,8 @@ export function useRunChatSession(
         setStages([])
         setCount(null)
         setTurnStartedAt(null)
-        setSendFailure('send-failed')
+        // 다른 사람의 Artel Bot 이 이 런을 고치는 중이다(423, ARTEL-1265).
+        setSendFailure(error instanceof ProjectApiError && error.status === 423 ? 'run-locked' : 'send-failed')
         return false
       } finally {
         setSending(false)
