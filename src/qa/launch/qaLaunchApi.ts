@@ -23,6 +23,11 @@ export type QaRunSummary = {
   casesPassed: number | null
   casesTotal: number | null
   issueCount: number
+  /** 실행을 시작한 사람(app_user id). */
+  startedBy: string
+  /** 추가 검토로 고른 판정 수와, 그중 사람이 아직 정하지 않은 수(ARTEL-1255). */
+  reviewFlagged: number
+  reviewPending: number
 }
 
 export type SinceLastQaIssue = {
@@ -90,6 +95,9 @@ export function parseQaRunSummary(data: unknown): QaRunSummary | null {
     casesPassed: asCountOrNull(record.casesPassed),
     casesTotal: asCountOrNull(record.casesTotal),
     issueCount: asCountOrNull(record.issueCount) ?? 0,
+    startedBy: asString(record.startedBy),
+    reviewFlagged: asCountOrNull(record.reviewFlagged) ?? 0,
+    reviewPending: asCountOrNull(record.reviewPending) ?? 0,
   }
 }
 

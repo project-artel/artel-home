@@ -1,5 +1,5 @@
 import { apiFetch } from '../auth/authApi'
-import { asRecord, asString, readJson } from '../projects/projectApi'
+import { asRecord, asString, readJson, toApiError } from '../projects/projectApi'
 import { readVerdictDetail, type QaVerdictDetail } from './qaVerdictEvidence'
 
 /**
@@ -32,6 +32,16 @@ export type QaCodeCheckItem = {
 
 export type QaCodeCheck = { result: CodeCheckResult; items: QaCodeCheckItem[] }
 
+/** 사람이 정한 판정(ARTEL-1255). 있으면 화면은 이 결정을 그 스텝의 판정으로 보인다. */
+export type QaHumanDecision = {
+  passed: boolean
+  note: string | null
+  decidedBy: string | null
+  decidedAt: string | null
+  /** 코드 검사가 추가 검토로 골랐던 판정인가. */
+  flagged: boolean
+}
+
 export type QaStepVerdict = {
   logId: string
   step: number
@@ -45,8 +55,9 @@ export type QaStepVerdict = {
   judgedAt: string | null
   /** 검증 판정에만 있다. */
   codeCheck: QaCodeCheck | null
-  /** 사람이 추가로 검토할 판정인가. */
+  /** 사람이 추가로 검토할 판정인가. 사람이 정하면 false 다. */
   needsReview: boolean
+  humanDecision: QaHumanDecision | null
 }
 
 export type QaScenarioStepView = { step: number; title: string; caseId: string | null; expected: string | null }
@@ -65,8 +76,10 @@ export type QaTryVerdicts = {
   steps: QaScenarioStepView[]
   verdicts: QaStepVerdict[]
   issues: QaStepIssue[]
-  /** 추가 검토가 필요한 판정 수. */
+  /** 아직 사람이 정하지 않은 추가 검토 판정 수. */
   reviewCount: number
+  /** 추가 검토로 골랐다가 사람이 정한 판정 수. */
+  reviewedCount: number
 }
 
 export type QaRunVerdicts = {
@@ -135,6 +148,18 @@ function readAction(value: unknown): QaStepAction | null {
   return { kind, label: orNull(record.label), count: typeof record.count === 'number' ? record.count : 1 }
 }
 
+function readHumanDecision(value: unknown): QaHumanDecision | null {
+  const record = asRecord(value)
+  if (record === null || typeof record.passed !== 'boolean') return null
+  return {
+    passed: record.passed,
+    note: orNull(record.note),
+    decidedBy: orNull(record.decidedBy),
+    decidedAt: orNull(record.decidedAt),
+    flagged: record.flagged === true,
+  }
+}
+
 function readVerdict(value: unknown): QaStepVerdict | null {
   const record = asRecord(value)
   const step = asStep(record?.step)
@@ -152,6 +177,7 @@ function readVerdict(value: unknown): QaStepVerdict | null {
     judgedAt: orNull(record.judgedAt),
     codeCheck: readCodeCheck(record.codeCheck),
     needsReview: record.needsReview === true,
+    humanDecision: readHumanDecision(record.humanDecision),
   }
 }
 
@@ -185,6 +211,7 @@ function readTry(value: unknown): QaTryVerdicts | null {
     verdicts: list(record.verdicts, readVerdict),
     issues: list(record.issues, readIssue),
     reviewCount: typeof record.reviewCount === 'number' ? record.reviewCount : 0,
+    reviewedCount: typeof record.reviewedCount === 'number' ? record.reviewedCount : 0,
   }
 }
 
@@ -207,4 +234,28 @@ export async function getQaRunVerdicts(qaRunId: string, signal?: AbortSignal): P
   const response = await apiFetch(`/api/qa-runs/${encodeURIComponent(qaRunId)}/verdicts`, { signal })
   if (response.status === 404) return null
   return parseQaRunVerdicts(await readJson(response))
+}
+
+/**
+ * 사람이 스텝 판정을 통과 · 실패로 정한다(ARTEL-1255). 그 판정의 TC 판정도 따른다. 다시 보내면 덮어쓴다.
+ * `PUT /api/qa-runs/{qaRunId}/verdicts/{verdictLogId}/review`
+ */
+export async function reviewQaVerdict(
+  qaRunId: string,
+  verdictLogId: string,
+  passed: boolean,
+  note: string,
+): Promise<QaHumanDecision> {
+  const response = await apiFetch(
+    `/api/qa-runs/${encodeURIComponent(qaRunId)}/verdicts/${encodeURIComponent(verdictLogId)}/review`,
+    {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ decision: passed ? 'PASSED' : 'FAILED', note: note.trim().length > 0 ? note.trim() : null }),
+    },
+  )
+  if (!response.ok) throw await toApiError(response)
+  const decision = readHumanDecision(await readJson(response))
+  if (decision === null) throw new Error('review response could not be read')
+  return decision
 }

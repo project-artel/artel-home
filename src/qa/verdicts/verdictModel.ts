@@ -49,8 +49,10 @@ export function stepRows(scenario: QaTryVerdicts): StepRow[] {
     const verifying = verdict !== null
       ? verdict.isVerification
       : step.caseId !== null && (free || next === undefined || next.caseId !== step.caseId)
-    const state: StepState = verdict !== null
-      ? (verdict.passed ? 'passed' : 'failed')
+    // 사람이 정했으면 그 결정이 이 스텝의 판정이다(ARTEL-1255).
+    const passed = verdict === null ? null : (verdict.humanDecision?.passed ?? verdict.passed)
+    const state: StepState = passed !== null
+      ? (passed ? 'passed' : 'failed')
       : !active
         ? 'unreported'
         : !free && step.step === highest + 1 ? 'running' : 'pending'

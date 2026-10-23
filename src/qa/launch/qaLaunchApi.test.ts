@@ -9,7 +9,7 @@ function run(overrides: Partial<QaRunSummary>): QaRunSummary {
     id: '1', testRunId: 'r1', testRunName: '회귀 1차', gameInstanceId: 'g1', gameInstanceName: 'MacBook',
     gameBuildVersion: '1.1', model: 'openai/gpt-6.1-sol', reasoningEffort: 'medium', keySource: 'platform',
     status: 'COMPLETED', startedAt: '2026-10-13T07:00:00Z', completedAt: '2026-10-13T07:13:42Z',
-    casesPassed: 40, casesTotal: 42, issueCount: 2,
+    casesPassed: 40, casesTotal: 42, issueCount: 2, startedBy: '1', reviewFlagged: 0, reviewPending: 0,
     ...overrides,
   }
 }

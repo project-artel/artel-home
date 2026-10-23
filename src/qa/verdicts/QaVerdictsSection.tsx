@@ -32,7 +32,8 @@ export function QaVerdictsSection() {
 
   const [data, setData] = useState<QaRunVerdicts | null>(null)
   const [state, setState] = useState<'loading' | 'ready' | 'gone' | 'error'>('loading')
-  const [filter, setFilter] = useState<ListFilter>('checks')
+  // 끝 알림의 [검토하러 가기] 는 `?review=1` 로 온다. 그때는 추가 검토만 보인다.
+  const [filter, setFilter] = useState<ListFilter>(() => (searchParams.get('review') === '1' ? 'review' : 'checks'))
 
   const load = useCallback(
     (signal?: AbortSignal) =>
@@ -60,11 +61,19 @@ export function QaVerdictsSection() {
     return () => window.clearInterval(timer)
   }, [active, load])
 
-  const scenarioIndex = Math.max(0, data?.tries.findIndex((qaTry) => qaTry.qaTryId === searchParams.get('scenario')) ?? 0)
+  // 검토로 왔고 시나리오를 고르지 않았으면, 남은 추가 검토가 있는 첫 시나리오를 연다.
+  const reviewEntry = searchParams.get('review') === '1' && searchParams.get('scenario') === null
+  const scenarioIndex = Math.max(
+    0,
+    reviewEntry
+      ? (data?.tries.findIndex((qaTry) => qaTry.reviewCount > 0) ?? 0)
+      : (data?.tries.findIndex((qaTry) => qaTry.qaTryId === searchParams.get('scenario')) ?? 0),
+  )
   const scenario = data?.tries[scenarioIndex] ?? null
   const rows = useMemo(() => (scenario === null ? [] : stepRows(scenario)), [scenario])
   const tally = useMemo(() => tallyRows(rows), [rows])
-  const pickedStep = Number(searchParams.get('step')) || defaultStep(rows)
+  // 추가 검토만 보는 중이면 첫 검토 스텝을 연다.
+  const pickedStep = Number(searchParams.get('step')) || (filter === 'review' ? rows.find((row) => row.review)?.step : undefined) || defaultStep(rows)
   const selected = rows.find((row) => row.step === pickedStep) ?? null
 
   const choose = (changes: Record<string, string>) =>
@@ -194,7 +203,7 @@ export function QaVerdictsSection() {
 
           <div className="qv-body">
             <StepList filter={listFilter} onFilter={setFilter} onPick={(step) => choose({ scenario: scenario.qaTryId, step: String(step) })} rows={rows} selected={pickedStep} shown={shownRows} />
-            {selected !== null && <StepDetail projectId={projectId} row={selected} rows={rows} />}
+            {selected !== null && <StepDetail onDecided={() => void load()} projectId={projectId} qaRunId={qaRunId} row={selected} rows={rows} />}
           </div>
         </>
       )}

@@ -21,7 +21,7 @@ function run(id: string, startedAt: string, overrides: Partial<QaRunSummary> = {
     completedAt: null,
     casesPassed: 9,
     casesTotal: 15,
-    issueCount: 0,
+    issueCount: 0, startedBy: '1', reviewFlagged: 0, reviewPending: 0,
     ...overrides,
   }
 }
