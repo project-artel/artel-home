@@ -47,10 +47,11 @@ export function gameBuildDetailHref(projectId: string, buildId: string): string 
  * Which section a pathname is in. Read for the heading above the content;
  * anything that is not a known section (a deep page opened from one) falls
  * back to the dashboard label rather than rendering an empty heading.
+ * A section's own sub-page (`qa-history/:qaRunId`, ARTEL-1135) keeps that section's heading.
  */
 export function sectionIdFromPath(projectId: string, pathname: string): WorkspaceSectionId {
   const parts = projectPathSegments(projectId, pathname)
-  if (parts === null || parts.length > 1) return 'dashboard'
+  if (parts === null || (parts.length > 1 && !isSectionSubPage(parts))) return 'dashboard'
   return WORKSPACE_SECTIONS.find((section) => section.path === (parts[0] ?? ''))?.id ?? 'dashboard'
 }
 
@@ -60,10 +61,22 @@ export function sectionIdFromPath(projectId: string, pathname: string): Workspac
  */
 export function isSectionPath(projectId: string, pathname: string): boolean {
   const parts = projectPathSegments(projectId, pathname)
-  if (parts === null || parts.length > 1) return false
+  if (parts === null) return false
+  if (isSectionSubPage(parts)) return true
+  if (parts.length > 1) return false
   if (parts.length === 0) return true
   const [rest] = parts
   return WORKSPACE_SECTIONS.some((section) => section.path === rest)
+}
+
+/**
+ * 섹션 머리글 아래에 그리는 섹션의 하위 페이지(ARTEL-1135). 깊은 화면과 달리 자기 머리글이 없다 — QA 히스토리의
+ * 판정 근거 페이지는 히스토리 목록에서 열고 같은 머리글 아래 머문다.
+ */
+const SECTION_SUB_PAGES: ReadonlySet<string> = new Set(['qa-history'])
+
+function isSectionSubPage(parts: readonly string[]): boolean {
+  return parts.length === 2 && SECTION_SUB_PAGES.has(parts[0] ?? '')
 }
 
 /** 펼친 project rail 의 폭. App.css 의 `.project-workspace` grid 첫 칸과 같은 값이다. */
