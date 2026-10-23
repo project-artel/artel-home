@@ -1,8 +1,10 @@
-import { useState, type ReactNode } from 'react'
+import { useId, useState, type ReactNode } from 'react'
+import { Dialog } from '../../design-system/primitives/Dialog'
 import { Link } from 'react-router-dom'
 import { EdgeScrollbar } from '../../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../../i18n/useI18n'
-import type { QaCodeCheck, QaStepVerdict } from '../qaVerdictApi'
+import { shortWhen } from '../history/historyModel'
+import { reviewQaVerdict, type QaCodeCheck, type QaStepVerdict } from '../qaVerdictApi'
 import { actionLabel, earlierIssue, textParts, type StepRow } from './verdictModel'
 
 const ICONS = {
@@ -110,17 +112,183 @@ function CodeCheckSection({ check }: { check: QaCodeCheck }) {
 }
 
 /**
+ * 판정할 때 찍은 화면(ARTEL-1255). 알림 막대 아래에 크게 두고, 누르면 모달로 크게 본다. 지금 QA 는 판정마다 사진을
+ * 남기지 않아 대부분 없다.
+ */
+function VerdictShot({ verdict }: { verdict: QaStepVerdict }) {
+  const { t } = useI18n()
+  const shot = t.qa.verdicts.review.shot
+  const capture = verdict.captures[0]
+  // 사진이 없으면 자리를 두지 않는다. 판정마다 화면을 남기는 일(ARTEL-1257 쪽)이 들어오면 여기 보인다.
+  if (capture === undefined) return null
+  return (
+    <figure className="qv-shot">
+      <ZoomableCapture alt={shot.title} url={capture.url} />
+      <figcaption className="qv-shot-caption">{shot.title}</figcaption>
+    </figure>
+  )
+}
+
+/** 누르면 모달로 크게 보는 캡처. */
+function ZoomableCapture({ url, alt }: { url: string; alt: string }) {
+  const { t } = useI18n()
+  const shot = t.qa.verdicts.review.shot
+  const titleId = useId()
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <button aria-label={shot.open} className="qv-zoom" onClick={() => setOpen(true)} type="button">
+        <img alt={alt} loading="lazy" src={url} />
+      </button>
+      {open && (
+        <Dialog labelledBy={titleId} onClose={() => setOpen(false)} title={shot.title}>
+          <img alt={alt} className="qv-shot-full" src={url} />
+        </Dialog>
+      )}
+    </>
+  )
+}
+
+/** 사람이 판정을 정하는 줄. 정하면 화면을 다시 읽는다. */
+function DecideForm({
+  qaRunId,
+  verdict,
+  initialNote,
+  onDecided,
+  onCancel,
+}: {
+  qaRunId: string
+  verdict: QaStepVerdict
+  initialNote: string
+  onDecided: () => void
+  onCancel?: () => void
+}) {
+  const { t } = useI18n()
+  const d = t.qa.verdicts.review.decide
+  const [note, setNote] = useState(initialNote)
+  const [saving, setSaving] = useState(false)
+  const [failed, setFailed] = useState(false)
+
+  const decide = (passed: boolean) => {
+    setSaving(true)
+    setFailed(false)
+    reviewQaVerdict(qaRunId, verdict.logId, passed, note)
+      .then(() => onDecided())
+      .catch(() => setFailed(true))
+      .finally(() => setSaving(false))
+  }
+
+  return (
+    <div className="qv-decide">
+      <span className="qv-decide-prompt">{saving ? d.saving : d.prompt}</span>
+      <button className="button button--compact qv-decide-pass" disabled={saving} onClick={() => decide(true)} type="button">{d.pass}</button>
+      <button className="button button--compact qv-decide-fail" disabled={saving} onClick={() => decide(false)} type="button">{d.fail}</button>
+      <input
+        aria-label={d.note}
+        className="qv-decide-note"
+        disabled={saving}
+        maxLength={2000}
+        onChange={(event) => setNote(event.target.value)}
+        placeholder={d.notePlaceholder}
+        type="text"
+        value={note}
+      />
+      {onCancel !== undefined && (
+        <button className="button button--secondary button--compact" disabled={saving} onClick={onCancel} type="button">{d.cancel}</button>
+      )}
+      {failed && <p className="qv-decide-failed" role="alert">{d.failed}</p>}
+    </div>
+  )
+}
+
+/** 추가 검토 알림 막대 · 사람이 정한 결과 막대. 오른쪽은 판정 시점 화면 자리다. */
+function ReviewBar({ qaRunId, row, verdict, onDecided }: { qaRunId: string; row: StepRow; verdict: QaStepVerdict; onDecided: () => void }) {
+  const { t } = useI18n()
+  const copy = t.qa.verdicts
+  const d = copy.review.decide
+  const [editing, setEditing] = useState(false)
+  const decision = verdict.humanDecision
+
+  if (decision !== null) {
+    return (
+      <>
+      <div className={`qv-decided qv-decided--${decision.passed ? 'passed' : 'failed'}`}>
+        <div className="qv-review-main">
+          <p className="qv-decided-line">
+            <span className={`qv-code-result qv-code-result--${decision.passed ? 'passed' : 'failed'}`}>
+              <span aria-hidden="true" className="qv-dot" />
+              {d.decided(decision.passed)}
+            </span>
+            <span className="qv-muted">{d.by(decision.decidedBy, decision.decidedAt === null ? null : shortWhen(decision.decidedAt))}</span>
+            {!editing && <button className="qv-text-button" onClick={() => setEditing(true)} type="button">{d.redo}</button>}
+          </p>
+          {decision.note !== null && <p className="qv-decided-note">{d.note} <q>{decision.note}</q></p>}
+          {editing && (
+            <DecideForm
+              initialNote={decision.note ?? ''}
+              onCancel={() => setEditing(false)}
+              onDecided={() => {
+                setEditing(false)
+                onDecided()
+              }}
+              qaRunId={qaRunId}
+              verdict={verdict}
+            />
+          )}
+        </div>
+      </div>
+      <VerdictShot verdict={verdict} />
+      </>
+    )
+  }
+
+  if (!row.review) return null
+  return (
+    <>
+    <div className="qv-review-why">
+      <div className="qv-review-main">
+        <p className="qv-review-line">
+          <span className="qv-review-pill">
+            <span aria-hidden="true" className="qv-dot" />
+            {copy.review.label}
+          </span>
+          <span>
+            <VerdictWords passedWords={[copy.states.passed, 'passed']} text={copy.review.why[reviewReason(verdict)]} />
+          </span>
+        </p>
+        <DecideForm initialNote="" onDecided={onDecided} qaRunId={qaRunId} verdict={verdict} />
+      </div>
+    </div>
+    <VerdictShot verdict={verdict} />
+    </>
+  )
+}
+
+/**
  * 고른 스텝 하나의 근거. 기대와 실제를 나란히 두고, 그 아래 기대 항목별 근거와 판독 기록 대조, 판정한 이유,
  * 그 스텝에서 한 행동, 앞선 이슈, 스크린샷. 판정 전 스텝은 기대만 있다.
  */
-export function StepDetail({ projectId, row, rows }: { projectId: string; row: StepRow; rows: StepRow[] }) {
+export function StepDetail({
+  projectId,
+  qaRunId,
+  row,
+  rows,
+  onDecided,
+}: {
+  projectId: string
+  qaRunId: string
+  row: StepRow
+  rows: StepRow[]
+  onDecided: () => void
+}) {
   const { t } = useI18n()
   const copy = t.qa.verdicts
   const d = copy.detail
   const [scroller, setScroller] = useState<HTMLDivElement | null>(null)
   const verdict = row.verdict
   const issue = earlierIssue(rows, row.step)
-  const pill = verdict === null ? (row.state === 'running' ? 'running' : 'pending') : verdict.passed ? 'passed' : 'failed'
+  // 사람이 정했으면 그 결정이 판정이다. AI 원래 판정은 옆에 따로 보인다.
+  const pill = verdict === null ? (row.state === 'running' ? 'running' : 'pending') : row.state === 'passed' ? 'passed' : 'failed'
 
   return (
     <section aria-label={copy.step(row.step)} className="qv-detail">
@@ -132,6 +300,9 @@ export function StepDetail({ projectId, row, rows }: { projectId: string; row: S
               <span aria-hidden="true" className="qv-dot" />
               {copy.states[row.state]}
             </span>
+            {verdict?.humanDecision != null && verdict.humanDecision.passed !== verdict.passed && (
+              <span className="qv-ai-chip">{copy.review.decide.aiVerdict(verdict.passed)}</span>
+            )}
             {verdict !== null ? (
               // 근거 축을 끈 실행은 판정마다 `none` 이라 표시할 것이 없다. 근거를 낸 판정만 그 상태를 보인다.
               row.verifying && verdict.detail.status !== 'none' && (
@@ -142,17 +313,7 @@ export function StepDetail({ projectId, row, rows }: { projectId: string; row: S
             )}
           </div>
           <h2 className="qv-detail-title"><CodeText text={row.title} /></h2>
-          {verdict !== null && row.review && (
-            <p className="qv-review-why">
-              <span className="qv-review-pill">
-                <span aria-hidden="true" className="qv-dot" />
-                {copy.review.label}
-              </span>
-              <span>
-                <VerdictWords passedWords={[copy.states.passed, 'passed']} text={copy.review.why[reviewReason(verdict)]} />
-              </span>
-            </p>
-          )}
+          {verdict !== null && <ReviewBar onDecided={onDecided} qaRunId={qaRunId} row={row} verdict={verdict} />}
         </div>
 
         <div className="qv-cmp">
@@ -241,9 +402,7 @@ export function StepDetail({ projectId, row, rows }: { projectId: string; row: S
           ) : (
             <div className="qv-captures">
               {verdict.captures.map((capture) => (
-                <a href={capture.url} key={capture.captureId} rel="noreferrer" target="_blank">
-                  <img alt={capture.captureId} loading="lazy" src={capture.url} />
-                </a>
+                <ZoomableCapture alt={capture.captureId} key={capture.captureId} url={capture.url} />
               ))}
             </div>
           )}

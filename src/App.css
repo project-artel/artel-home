@@ -13251,7 +13251,7 @@ col.vimp-c-scene{ width:18% } col.vimp-c-verdict{ width:16% }
 .qv-issue-sev { font-size: 11px; font-weight: 600; color: var(--color-status-warning); }
 .qv-issue-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .qv-issue-body b { font-weight: 600; }
-.qv-captures { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--space-2); }
+.qv-captures { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)); gap: var(--space-3); max-width: 980px; }
 .qv-captures img { width: 100%; display: block; border-radius: 6px; border: 1px solid var(--color-border-subtle); }
 
 /* QA 히스토리 시나리오 상세의 진입점 */
@@ -13282,7 +13282,7 @@ col.vimp-c-scene{ width:18% } col.vimp-c-verdict{ width:16% }
 .qv-fchip-review { color: var(--color-agent-reasoning); border-color: color-mix(in srgb, var(--color-agent-reasoning) 55%, transparent); }
 .qv-fchip-review.on { color: var(--color-agent-reasoning); border-color: var(--color-agent-reasoning); }
 .qv-review-tag { font-size: 11px; font-weight: 600; padding: 0 7px; border-radius: 999px; color: var(--color-agent-reasoning); border: 1px solid color-mix(in srgb, var(--color-agent-reasoning) 55%, transparent); }
-.qv-review-why { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 12px 0 0; padding: 10px 14px; border: 1px solid color-mix(in srgb, var(--color-agent-reasoning) 45%, transparent); border-left: 3px solid var(--color-agent-reasoning); border-radius: 8px; background: color-mix(in srgb, var(--color-agent-reasoning) 9%, var(--color-bg-surface)); font-size: 14px; font-weight: 500; color: var(--color-text-primary); }
+.qv-review-why { display: block; margin: 12px 0 0; padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--color-agent-reasoning) 45%, transparent); border-left: 3px solid var(--color-agent-reasoning); border-radius: 8px; background: color-mix(in srgb, var(--color-agent-reasoning) 9%, var(--color-bg-surface)); font-size: 14px; font-weight: 500; color: var(--color-text-primary); }
 .qv-word-passed { color: var(--color-status-success); }
 .qv-word-failed { color: var(--color-status-critical); }
 .qv-ico--code { color: var(--color-agent-reasoning); background: color-mix(in srgb, var(--color-agent-reasoning) 16%, transparent); }
@@ -13298,6 +13298,81 @@ col.vimp-c-scene{ width:18% } col.vimp-c-verdict{ width:16% }
 .qv-code-value--failed { color: var(--color-status-critical); }
 .qv-code-value .qv-muted { font-family: inherit; font-weight: 400; font-size: 12px; }
 .qv-code-note { margin: 6px 0 0; font-size: 12px; color: var(--color-text-muted); }
+
+/* 사람이 판정 확정 · 판정 시점 화면 · QA 끝 알림 (ARTEL-1255) */
+.qv-review-main { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.qv-review-line, .qv-decided-line { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 0; }
+.qv-decide { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid color-mix(in srgb, var(--color-agent-reasoning) 30%, transparent); }
+.qv-decided .qv-decide { border-top-color: var(--color-border-subtle); }
+.qv-decide-prompt { font-size: 13px; color: var(--color-text-secondary); margin-right: 4px; }
+.qv-decide-pass { color: var(--color-status-success); border: 1px solid color-mix(in srgb, var(--color-status-success) 60%, transparent); background: transparent; }
+.qv-decide-fail { color: var(--color-status-critical); border: 1px solid color-mix(in srgb, var(--color-status-critical) 60%, transparent); background: transparent; }
+.qv-decide-pass:not(:disabled):hover { background: var(--color-status-success-muted); }
+.qv-decide-fail:not(:disabled):hover { background: var(--color-status-critical-muted); }
+.qv-decide-note { flex: 1 1 260px; min-height: 32px; padding: 0 10px; border: 1px solid var(--color-border-subtle); border-radius: 7px; background: var(--color-bg-canvas); color: var(--color-text-primary); font: inherit; font-size: 13px; }
+.qv-decide-note:focus-visible { outline: 2px solid var(--color-action-primary); outline-offset: 1px; }
+.qv-decide-failed { flex-basis: 100%; margin: 0; font-size: 12px; color: var(--color-status-critical); }
+.qv-decided { display: block; margin: 12px 0 0; padding: 12px 14px; border: 1px solid var(--color-border-subtle); border-left: 3px solid var(--color-border-strong); border-radius: 8px; background: var(--color-bg-surface); font-size: 14px; }
+.qv-decided--passed { border-left-color: var(--color-status-success); }
+.qv-decided--failed { border-left-color: var(--color-status-critical); }
+.qv-decided-note { margin: 0; font-size: 13px; color: var(--color-text-secondary); }
+.qv-decided-note q { color: var(--color-text-primary); }
+.qv-ai-chip { display: inline-flex; align-items: center; padding: 1px 9px; border: 1px solid var(--color-border-subtle); border-radius: 999px; font-size: 12px; color: var(--color-text-secondary); }
+.qv-text-button { margin-left: auto; padding: 0; border: 0; background: none; color: var(--color-text-secondary); font: inherit; font-size: 12.5px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.qv-text-button:hover { color: var(--color-text-primary); }
+.qv-shot { position: relative; margin: 12px 0 0; width: min(100%, 640px); aspect-ratio: 16 / 9; border: 1px solid var(--color-border-subtle); border-radius: 8px; background: var(--color-bg-canvas); overflow: hidden; display: grid; place-items: center; }
+.qv-zoom { all: unset; display: block; width: 100%; height: 100%; cursor: zoom-in; }
+.qv-zoom:focus-visible { outline: 2px solid var(--color-action-primary); outline-offset: -2px; }
+.qv-zoom img { display: block; width: 100%; height: 100%; object-fit: contain; background: #000; }
+/* 아래 스크린샷 칸도 크게: 칸마다 16:9, 한 줄에 둘까지. */
+.qv-captures .qv-zoom { width: 100%; height: auto; aspect-ratio: 16 / 9; border: 1px solid var(--color-border-subtle); border-radius: 8px; overflow: hidden; }
+.qv-shot-caption { position: absolute; left: 8px; bottom: 8px; padding: 1px 8px; border-radius: 999px; font-size: 11.5px; color: var(--color-text-primary); background: rgb(0 0 0 / 55%); }
+.dialog-panel:has(.qv-shot-full) { width: min(100%, 1400px); }
+.qv-shot-full { display: block; width: 100%; max-height: calc(100vh - 160px); object-fit: contain; background: #000; border-radius: 6px; }
+.qh-tile-slot { position: relative; flex: none; display: flex; }
+.qh-tile-review-space { display: block; height: 20px; }
+.qh-tile-slot > .qh-tile-review { position: absolute; left: 50%; bottom: 9px; transform: translateX(-50%); white-space: nowrap; text-decoration: none; }
+.qh-tile-slot > .qh-tile-review:hover { background: color-mix(in srgb, var(--color-agent-reasoning) 14%, transparent); }
+.qh-tile-slot > .qh-tile-review:focus-visible { outline: 2px solid var(--color-agent-reasoning); outline-offset: 2px; }
+.qh-tile-review { display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; padding: 0 7px; border-radius: 999px; font-size: 11px; font-weight: 600; color: var(--color-agent-reasoning); border: 1px solid color-mix(in srgb, var(--color-agent-reasoning) 55%, transparent); }
+.qh-tile-review .qv-dot { width: 6px; height: 6px; }
+.qh-tile-review.is-done { color: var(--color-text-muted); border-color: var(--color-border-subtle); }
+.qa-notice-stack { position: fixed; right: 20px; bottom: 20px; z-index: 300; display: flex; flex-direction: column; gap: 10px; }
+.qa-notice { width: min(380px, calc(100vw - 40px)); padding: 14px 16px; border: 1px solid var(--color-border-strong); border-left: 3px solid var(--color-agent-reasoning); border-radius: 10px; background: var(--color-bg-raised); box-shadow: 0 14px 40px rgb(0 0 0 / 45%); }
+.qa-notice-head { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.qa-notice-head svg { color: var(--color-agent-reasoning); flex: none; }
+.qa-notice-close { margin-left: auto; padding: 2px 4px; border: 0; background: none; color: var(--color-text-muted); font-size: 14px; cursor: pointer; }
+.qa-notice-close:hover { color: var(--color-text-primary); }
+.qa-notice-meta { margin: 6px 0 10px; font-size: 12.5px; color: var(--color-text-secondary); overflow-wrap: anywhere; }
+.qa-notice-stats { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.qa-notice-pill { display: inline-flex; align-items: center; gap: 6px; padding: 1px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; border: 1px solid var(--color-border-subtle); }
+.qa-notice-pill--passed { color: var(--color-status-success); border-color: color-mix(in srgb, var(--color-status-success) 55%, transparent); }
+.qa-notice-pill--failed { color: var(--color-status-critical); border-color: color-mix(in srgb, var(--color-status-critical) 55%, transparent); }
+.qa-notice-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* 상단바 알림함(ARTEL-1255). 버튼은 테마 버튼과 같은 네모, 펼침 칸은 QA 모델 고르기 창과 같은 판. */
+.qa-bell { position: relative; }
+.qa-bell-button { position: relative; }
+.qa-bell-button.is-open { color: var(--color-text-primary); background: var(--color-bg-hover); }
+.qa-bell-badge { position: absolute; top: -6px; right: -7px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 999px; background: var(--color-agent-reasoning); color: var(--color-bg-canvas); font: 700 10.5px/17px var(--font-mono); text-align: center; }
+.qa-bell-popover { position: absolute; z-index: 310; top: calc(100% + var(--space-2)); right: 0; width: min(400px, calc(100vw - 32px)); overflow: hidden; border: 1px solid var(--color-border-strong); border-radius: var(--radius-lg); background: var(--color-bg-surface); box-shadow: 0 14px 40px rgb(0 0 0 / 45%); }
+.qa-bell-head { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--color-border-subtle); font-size: 14px; }
+.qa-bell-count { padding: 0 7px; border-radius: 999px; background: var(--color-bg-raised); color: var(--color-text-secondary); font: 600 11px var(--font-mono); }
+.qa-bell-readall { margin-left: auto; padding: 0; border: 0; background: none; color: var(--color-text-secondary); font-size: 12px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.qa-bell-readall:hover { color: var(--color-text-primary); }
+.qa-bell-list { max-height: min(460px, 70vh); margin: 0; padding: 0; overflow-y: auto; list-style: none; }
+.qa-bell-item { display: grid; grid-template-columns: 10px minmax(0, 1fr); gap: 10px; width: 100%; padding: 12px 14px; border: 0; border-bottom: 1px solid var(--color-border-subtle); background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.qa-bell-item:hover, .qa-bell-item:focus-visible { background: var(--color-bg-hover); }
+.qa-bell-dot { width: 7px; height: 7px; margin-top: 7px; border-radius: 50%; background: var(--color-agent-reasoning); }
+.qa-bell-item.is-read .qa-bell-dot { background: transparent; }
+.qa-bell-body { display: flex; min-width: 0; flex-direction: column; gap: 2px; }
+.qa-bell-name { font-weight: 600; overflow-wrap: anywhere; }
+.qa-bell-item.is-read .qa-bell-name { color: var(--color-text-secondary); font-weight: 500; }
+.qa-bell-meta { color: var(--color-text-muted); font-size: 12px; overflow-wrap: anywhere; }
+.qa-bell-body .qa-notice-stats { margin: 4px 0 0; }
+.qa-bell-pill--done { color: var(--color-text-muted); }
+.qa-bell-empty { margin: 0; padding: 28px 14px; color: var(--color-text-muted); text-align: center; }
+.qa-bell-foot { margin: 0; padding: 10px 14px; color: var(--color-text-muted); font-size: 11.5px; }
 
 /* 케이스 표를 받는 동안의 빈 줄(ARTEL-1211). 진짜 줄과 같은 높이라 다 받아도 화면이 밀리지 않는다. */
 .tct-skel td {

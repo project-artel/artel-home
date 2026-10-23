@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { EdgeScrollbar } from '../../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../../i18n/useI18n'
 import type { TestRun } from '../../testRuns/testRunApi'
@@ -93,6 +94,7 @@ export function RunCard({
               key={run.id}
               onSelect={() => onSelect(run)}
               ordinal={ordinals.get(run.id) ?? null}
+              projectId={testRun.projectId}
               run={run}
               selected={run.id === selectedRunId}
               testRunName={testRun.name}
@@ -107,12 +109,14 @@ export function RunCard({
 }
 
 function RunTile({
+  projectId,
   run,
   ordinal,
   selected,
   testRunName,
   onSelect,
 }: {
+  projectId: string
   run: QaRunSummary
   ordinal: number | null
   selected: boolean
@@ -137,7 +141,9 @@ function RunTile({
   const when = shortWhen(run.startedAt)
   const circumference = 2 * Math.PI * 16
 
+  const review = run.reviewFlagged > 0
   return (
+    <div className="qh-tile-slot">
     <button
       aria-label={b.tileLabel(ordinal === null ? testRunName : `${testRunName} ${b.ordinal(ordinal)}`, when, result)}
       aria-pressed={selected}
@@ -167,6 +173,19 @@ function RunTile({
       </span>
       <span className={`qh-tile-result mono qh-tone-text--${tone}`}>{result}</span>
       <span className="qh-tile-when mono">{when}</span>
+      {/* 아래 검토 칩 자리. 칩은 타일 버튼 안에 둘 수 없어(버튼 안의 링크) 타일 위에 겹친다. */}
+      {review && <span aria-hidden="true" className="qh-tile-review-space" />}
     </button>
+    {review && (
+      // 누르면 그 실행의 판정 근거 페이지를 추가 검토 거르기로 연다(ARTEL-1255).
+      <Link
+        className={`qh-tile-review${run.reviewPending === 0 ? ' is-done' : ''}`}
+        to={`/projects/${encodeURIComponent(projectId)}/qa-history/${encodeURIComponent(run.id)}${run.reviewPending > 0 ? '?review=1' : ''}`}
+      >
+        <span aria-hidden="true" className="qv-dot" />
+        {run.reviewPending > 0 ? b.review(run.reviewPending) : b.reviewDone}
+      </Link>
+    )}
+    </div>
   )
 }
