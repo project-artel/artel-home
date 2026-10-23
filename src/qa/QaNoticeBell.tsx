@@ -87,6 +87,12 @@ export function QaNoticeBell() {
     return copy.ago(Math.max(0, Math.floor(elapsed / 60000)))
   }
 
+  // 실행 상태 FAILED 는 실패한 케이스가 있어도, 판정 없이 멈춰도 같다. 판정이 없으면 끝난 것이 아니라 멈춘 것이다.
+  function titleOf(status: string, casesTotal: number | null) {
+    if (status === 'CANCELLED') return copy.cancelled
+    return casesTotal === null ? copy.stopped : copy.finished
+  }
+
   const unread = notices.unreadCount
   return (
     <div className="qa-bell" ref={rootRef}>
@@ -148,7 +154,7 @@ export function QaNoticeBell() {
                       <button className={'qa-bell-item' + (notice.read ? ' is-read' : '')} onClick={() => go(notice)} type="button">
                         <span aria-hidden="true" className="qa-bell-dot" />
                         <span className="qa-bell-body">
-                          <span className="qa-bell-name">{copy.finished(run.testRunName ?? '')}</span>
+                          <span className="qa-bell-name">{titleOf(run.status, run.casesTotal)(run.testRunName ?? '')}</span>
                           <span className="qa-bell-meta">{meta}</span>
                           <span className="qa-notice-stats">
                             {run.casesTotal !== null && (

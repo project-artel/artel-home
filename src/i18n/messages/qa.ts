@@ -566,6 +566,9 @@ export const qaEn = {
     readAll: 'Mark all as read',
     empty: 'No finished QA runs yet.',
     finished: (testRun: string) => (testRun.length > 0 ? `QA finished · ${testRun}` : 'QA finished'),
+    /** 판정 하나 없이 끝났다: 시작하지 못했거나 도중에 멈췄다. */
+    stopped: (testRun: string) => (testRun.length > 0 ? `QA stopped · ${testRun}` : 'QA stopped'),
+    cancelled: (testRun: string) => (testRun.length > 0 ? `QA cancelled · ${testRun}` : 'QA cancelled'),
     build: (version: string) => `build ${version}`,
     ago: (minutes: number) => (minutes < 1 ? 'just now' : minutes < 60 ? `${minutes} min ago` : `${Math.floor(minutes / 60)} h ago`),
     reviewDone: 'Review done',
@@ -1188,6 +1191,9 @@ export const qaKo: Localized<typeof qaEn> = {
     readAll: '모두 읽음',
     empty: '끝난 QA 가 아직 없습니다.',
     finished: (testRun: string) => (testRun.length > 0 ? `QA 끝남 · ${testRun}` : 'QA 끝남'),
+    /** 판정 하나 없이 끝났다: 시작하지 못했거나 도중에 멈췄다. */
+    stopped: (testRun: string) => (testRun.length > 0 ? `QA 멈춤 · ${testRun}` : 'QA 멈춤'),
+    cancelled: (testRun: string) => (testRun.length > 0 ? `QA 취소 · ${testRun}` : 'QA 취소'),
     build: (version: string) => `빌드 ${version}`,
     ago: (minutes: number) => (minutes < 1 ? '방금' : minutes < 60 ? `${minutes}분 전` : `${Math.floor(minutes / 60)}시간 전`),
     reviewDone: '검토 끝',
