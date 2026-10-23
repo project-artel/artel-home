@@ -1294,7 +1294,7 @@ export function TestCaseLibrary({
                           <StatusPill labels={m} status={versionRow?.compareVerificationStatus ?? null} />
                         </td>
                       )}
-                      <td className="tct-quiet">
+                      <td className="tct-quiet tct-expected">
                         {testCase.expectedValue.length > 0 ? <InlineCode className="tct-code" text={testCase.expectedValue} /> : m.row.noExpectedValue}
                       </td>
                       <td className="tct-quiet mono">{formatDate(testCase.createdAt)}</td>
