@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { EdgeScrollbar } from '../../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../../i18n/useI18n'
+import type { QaCodeCheck, QaStepVerdict } from '../qaVerdictApi'
 import { actionLabel, earlierIssue, textParts, type StepRow } from './verdictModel'
 
 const ICONS = {
@@ -10,6 +11,7 @@ const ICONS = {
   actions: 'M5 3l14 8-6 2-2 6z',
   issue: 'M12 3l10 18H2zM12 10v4M12 17.5v.5',
   captures: 'M3 5h18v14H3zM3 16l5-5 4 4 3-3 6 6',
+  code: 'M8 9l-4 3 4 3M16 9l4 3-4 3M13 6l-2 12',
 } as const
 
 /** 섹션 머리: 색 바탕의 아이콘과 굵은 라벨. QA 히스토리 상세의 묶음 머리와 같은 모양이다. */
@@ -37,6 +39,76 @@ function CodeText({ text }: { text: string }) {
   )
 }
 
+/** 문구의 `*낱말*` 을 판정 색으로. 통과 쪽 낱말은 초록, 나머지는 빨강이다. */
+function VerdictWords({ text, passedWords }: { text: string; passedWords: string[] }) {
+  return (
+    <>
+      {text.split('*').map((part, index) =>
+        index % 2 === 1 ? (
+          <b className={passedWords.includes(part) ? 'qv-word-passed' : 'qv-word-failed'} key={index}>{part}</b>
+        ) : (
+          <span key={index}>{part}</span>
+        ),
+      )}
+    </>
+  )
+}
+
+/** 왜 추가 검토가 필요한가(ARTEL-1253). 서버의 기준과 같은 세 경우다. */
+function reviewReason(verdict: QaStepVerdict): 'passedNotConfirmed' | 'passedButFailed' | 'failedButPassed' {
+  if (!verdict.passed) return 'failedButPassed'
+  return verdict.codeCheck?.result === 'FAIL' ? 'passedButFailed' : 'passedNotConfirmed'
+}
+
+/** 코드 검사 결과: 결과 표시와 효과마다 대상 · 기대 · 기록된 값 · 결과 표. */
+function CodeCheckSection({ check }: { check: QaCodeCheck }) {
+  const { t } = useI18n()
+  const c = t.qa.verdicts.codeCheck
+  const tone = (result: QaCodeCheck['result']) => (result === 'PASS' ? 'passed' : result === 'FAIL' ? 'failed' : 'neutral')
+  return (
+    <div className="qv-sec">
+      <SectionTitle kind="code">
+        {c.title}
+        <span className={`qv-code-result qv-code-result--${tone(check.result)}`}>
+          {tone(check.result) !== 'neutral' && <span aria-hidden="true" className="qv-dot" />}
+          {c.results[check.result]}
+        </span>
+      </SectionTitle>
+      {check.items.length === 0 ? (
+        <span className="qv-muted">{c.noItems}</span>
+      ) : (
+        <table className="qv-code">
+          <colgroup><col /><col style={{ width: '18%' }} /><col style={{ width: '22%' }} /><col style={{ width: 120 }} /></colgroup>
+          <thead>
+            <tr><th>{c.columns.target}</th><th>{c.columns.expected}</th><th>{c.columns.observed}</th><th>{c.columns.result}</th></tr>
+          </thead>
+          <tbody>
+            {check.items.map((item, index) => (
+              <tr key={index}>
+                <td>
+                  <code className="qv-ic" translate="no">{item.target}</code>
+                  {c.kinds[item.kind] !== undefined && <span className="qv-code-kind"> {c.kinds[item.kind]}</span>}
+                </td>
+                <td className="qv-code-value mono">{item.expected ?? '–'}</td>
+                <td className={`qv-code-value mono qv-code-value--${tone(item.result)}`}>
+                  {item.observed ?? <span className="qv-muted">{item.note ?? c.itemResults.UNKNOWN}</span>}
+                </td>
+                <td>
+                  <span className={`qv-code-result qv-code-result--${tone(item.result)}`}>
+                    {tone(item.result) !== 'neutral' && <span aria-hidden="true" className="qv-dot" />}
+                    {c.itemResults[item.result]}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      <p className="qv-code-note">{c.footnote}</p>
+    </div>
+  )
+}
+
 /**
  * 고른 스텝 하나의 근거. 기대와 실제를 나란히 두고, 그 아래 기대 항목별 근거와 판독 기록 대조, 판정한 이유,
  * 그 스텝에서 한 행동, 앞선 이슈, 스크린샷. 판정 전 스텝은 기대만 있다.
@@ -61,12 +133,26 @@ export function StepDetail({ projectId, row, rows }: { projectId: string; row: S
               {copy.states[row.state]}
             </span>
             {verdict !== null ? (
-              row.verifying && <span className={`qv-ev qv-ev--${verdict.detail.status}`}>{copy.evidence[verdict.detail.status]}</span>
+              // 근거 축을 끈 실행은 판정마다 `none` 이라 표시할 것이 없다. 근거를 낸 판정만 그 상태를 보인다.
+              row.verifying && verdict.detail.status !== 'none' && (
+                <span className={`qv-ev qv-ev--${verdict.detail.status}`}>{copy.evidence[verdict.detail.status]}</span>
+              )
             ) : (
               <span className="qv-ev qv-ev--none">{copy.waiting}</span>
             )}
           </div>
           <h2 className="qv-detail-title"><CodeText text={row.title} /></h2>
+          {verdict !== null && row.review && (
+            <p className="qv-review-why">
+              <span className="qv-review-pill">
+                <span aria-hidden="true" className="qv-dot" />
+                {copy.review.label}
+              </span>
+              <span>
+                <VerdictWords passedWords={[copy.states.passed, 'passed']} text={copy.review.why[reviewReason(verdict)]} />
+              </span>
+            </p>
+          )}
         </div>
 
         <div className="qv-cmp">
@@ -118,6 +204,8 @@ export function StepDetail({ projectId, row, rows }: { projectId: string; row: S
             <p className="qv-quote">{verdict.detail.reason}</p>
           </div>
         )}
+
+        {verdict?.codeCheck != null && <CodeCheckSection check={verdict.codeCheck} />}
 
         <div className="qv-sec">
           <SectionTitle kind="actions">{d.actions}</SectionTitle>

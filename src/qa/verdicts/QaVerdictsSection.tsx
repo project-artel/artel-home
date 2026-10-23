@@ -16,7 +16,7 @@ const CELL_GAP_PX = 4
 /** 진행 중인 실행은 이 간격으로 다시 읽는다. 판정이 오는 대로 줄과 근거가 바뀐다. */
 const POLL_MS = 4000
 
-type ListFilter = 'all' | 'checks' | 'failed'
+type ListFilter = 'all' | 'checks' | 'failed' | 'review'
 
 /**
  * 시나리오 하나의 스텝별 판정 근거(ARTEL-1135). QA 히스토리 안 페이지다(`qa-history/:qaRunId`).
@@ -103,9 +103,12 @@ export function QaVerdictsSection() {
     )
   }
 
+  // 이 시나리오에 추가 검토가 없으면 그 거르기는 없다. 다른 시나리오에서 골랐어도 검증만으로 돌아간다.
+  const listFilter: ListFilter = filter === 'review' && tally.review === 0 ? 'checks' : filter
   const shownRows = rows.filter((row) =>
-    filter === 'all' ? true : filter === 'checks' ? row.verifying : row.state === 'failed',
+    listFilter === 'all' ? true : listFilter === 'checks' ? row.verifying : listFilter === 'review' ? row.review : row.state === 'failed',
   )
+  const runReview = data.tries.reduce((sum, qaTry) => sum + qaTry.reviewCount, 0)
   const elapsed = data.startedAt !== null && data.completedAt !== null
     ? Math.round((Date.parse(data.completedAt) - Date.parse(data.startedAt)) / 1000)
     : null
@@ -138,6 +141,12 @@ export function QaVerdictsSection() {
         )}
         {isStatus(data.status) && <QaStatusPill status={data.status} />}
         {elapsed !== null && <span className="qv-muted mono">{formatElapsedSeconds(elapsed)}</span>}
+        {runReview > 0 && (
+          <span className="qv-review-pill">
+            <span aria-hidden="true" className="qv-dot" />
+            {copy.review.count(runReview)}
+          </span>
+        )}
       </div>
 
       {scenario === null || rows.length === 0 ? (
@@ -171,6 +180,7 @@ export function QaVerdictsSection() {
               <span className="qv-muted mono">
                 {copy.summary(tally.checks, tally.passed, tally.failed, tally.actions, tally.issues)}
               </span>
+              {tally.review > 0 && <span className="qv-review-count">{copy.review.count(tally.review)}</span>}
             </div>
             <StepNavigator onPick={(step) => choose({ scenario: scenario.qaTryId, step: String(step) })} rows={rows} selected={pickedStep} />
             <div className="qv-legend">
@@ -178,11 +188,12 @@ export function QaVerdictsSection() {
               <span><i className="qv-sw qv-sw--failed" />{copy.legend.failed}</span>
               <span><i className="qv-sw qv-sw--action" />{copy.legend.action}</span>
               <span><i className="qv-sw qv-sw--issue" />{copy.legend.issue}</span>
+              <span><i className="qv-sw qv-sw--review" />{copy.legend.review}</span>
             </div>
           </section>
 
           <div className="qv-body">
-            <StepList filter={filter} onFilter={setFilter} onPick={(step) => choose({ scenario: scenario.qaTryId, step: String(step) })} rows={rows} selected={pickedStep} shown={shownRows} />
+            <StepList filter={listFilter} onFilter={setFilter} onPick={(step) => choose({ scenario: scenario.qaTryId, step: String(step) })} rows={rows} selected={pickedStep} shown={shownRows} />
             {selected !== null && <StepDetail projectId={projectId} row={selected} rows={rows} />}
           </div>
         </>
@@ -236,7 +247,7 @@ function StepNavigator({ onPick, rows, selected }: { onPick: (step: number) => v
           {rows.map((row) => (
             <button
               aria-current={row.step === selected ? 'step' : undefined}
-              aria-label={`${copy.step(row.step)} · ${copy.states[row.state]} · ${row.title}`}
+              aria-label={`${copy.step(row.step)} · ${copy.states[row.state]}${row.review ? ` · ${copy.review.label}` : ''} · ${row.title}`}
               className={`qv-cell qv-cell--${row.verifying || row.state === 'failed' ? row.state : `action qv-cell--${row.state}`}${row.step === selected ? ' is-selected' : ''}`}
               data-step={row.step}
               key={row.step}
@@ -247,6 +258,7 @@ function StepNavigator({ onPick, rows, selected }: { onPick: (step: number) => v
             >
               {row.step}
               {row.issues.length > 0 && <span aria-hidden="true" className="qv-cell-issue" />}
+              {row.review && <span aria-hidden="true" className="qv-cell-review" />}
             </button>
           ))}
         </div>
@@ -275,13 +287,26 @@ function StepList({
   const { t } = useI18n()
   const copy = t.qa.verdicts
   const [scroller, setScroller] = useState<HTMLDivElement | null>(null)
-  const counts = { all: rows.length, checks: rows.filter((row) => row.verifying).length, failed: rows.filter((row) => row.state === 'failed').length }
+  const counts = {
+    all: rows.length,
+    checks: rows.filter((row) => row.verifying).length,
+    failed: rows.filter((row) => row.state === 'failed').length,
+    review: rows.filter((row) => row.review).length,
+  }
+  // 추가 검토가 없으면 그 거르기는 숨긴다.
+  const keys = (['all', 'checks', 'failed', 'review'] as const).filter((key) => key !== 'review' || counts.review > 0)
 
   return (
     <div className="qv-list">
       <div className="qv-list-head" role="group" aria-label={copy.navigator}>
-        {(['all', 'checks', 'failed'] as const).map((key) => (
-          <button aria-pressed={filter === key} className={filter === key ? 'fchip on' : 'fchip'} key={key} onClick={() => onFilter(key)} type="button">
+        {keys.map((key) => (
+          <button
+            aria-pressed={filter === key}
+            className={(filter === key ? 'fchip on' : 'fchip') + (key === 'review' ? ' qv-fchip-review' : '')}
+            key={key}
+            onClick={() => onFilter(key)}
+            type="button"
+          >
             {copy.filters[key](counts[key])}
           </button>
         ))}
@@ -304,6 +329,7 @@ function StepList({
                     <span className="qv-row-meta">
                       <span className="qv-row-state">{copy.states[row.state]}</span>
                       {row.issues.length > 0 && <span className="qv-tag qv-tag--issue">{copy.issueTag}</span>}
+                      {row.review && <span className="qv-review-tag">{copy.review.label}</span>}
                     </span>
                   )}
                 </span>

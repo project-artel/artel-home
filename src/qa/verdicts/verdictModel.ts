@@ -20,6 +20,8 @@ export type StepRow = {
   verdict: QaStepVerdict | null
   /** 이 스텝에서 보고된 이슈. */
   issues: QaStepIssue[]
+  /** 사람이 추가로 검토할 판정인가(ARTEL-1253). */
+  review: boolean
 }
 
 const ACTIVE = new Set(['PENDING', 'STARTING', 'RUNNING'])
@@ -60,11 +62,12 @@ export function stepRows(scenario: QaTryVerdicts): StepRow[] {
       state,
       verdict,
       issues: scenario.issues.filter((issue) => issue.step === step.step),
+      review: verdict?.needsReview === true,
     }
   })
 }
 
-export type StepTally = { checks: number; passed: number; failed: number; actions: number; issues: number; judged: number }
+export type StepTally = { checks: number; passed: number; failed: number; actions: number; issues: number; judged: number; review: number }
 
 export function tallyRows(rows: StepRow[]): StepTally {
   const checks = rows.filter((row) => row.verifying)
@@ -75,6 +78,7 @@ export function tallyRows(rows: StepRow[]): StepTally {
     actions: rows.filter((row) => !row.verifying).length,
     issues: rows.reduce((sum, row) => sum + row.issues.length, 0),
     judged: rows.filter((row) => row.verdict !== null).length,
+    review: rows.filter((row) => row.review).length,
   }
 }
 
