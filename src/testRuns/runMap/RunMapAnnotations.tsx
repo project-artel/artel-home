@@ -72,12 +72,32 @@ export function RunMapAnnotations({
           <marker id="rma-ah" markerHeight="8" markerWidth="8" orient="auto" refX="7" refY="4" viewBox="0 0 8 8">
             <path className="rma-arrowhead" d="M0 0 L8 4 L0 8 z" />
           </marker>
+          <marker id="rma-ah-sel" markerHeight="8" markerWidth="8" orient="auto" refX="7" refY="4" viewBox="0 0 8 8">
+            <path className="rma-arrowhead is-selected" d="M0 0 L8 4 L0 8 z" />
+          </marker>
         </defs>
         {annotations.map((a) => {
           if (a.type === 'rect') return <rect className={'rma-shape' + sel(a.id)} data-annotation={a.id} height={a.h} key={a.id} rx={10} width={a.w} x={a.x} y={a.y} />
           if (a.type === 'ellipse') return <ellipse className={'rma-shape' + sel(a.id)} cx={a.x + a.w / 2} cy={a.y + a.h / 2} data-annotation={a.id} key={a.id} rx={a.w / 2} ry={a.h / 2} />
-          if (a.type === 'arrow') return <path className={'rma-arrow' + sel(a.id)} d={arrowPath(a)} data-annotation={a.id} key={a.id} markerEnd="url(#rma-ah)" />
-          if (a.type === 'pen') return <path className={'rma-pen' + sel(a.id)} d={a.points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' ')} data-annotation={a.id} key={a.id} />
+          // 선은 가늘어 맞히기 어렵다. 보이지 않는 굵은 선을 함께 깔아 그쪽으로 누르게 한다.
+          if (a.type === 'arrow') {
+            const d = arrowPath(a)
+            return (
+              <g key={a.id}>
+                <path className="rma-hit" d={d} data-annotation={a.id} />
+                <path className={'rma-arrow' + sel(a.id)} d={d} data-annotation={a.id} markerEnd={selected === a.id ? 'url(#rma-ah-sel)' : 'url(#rma-ah)'} />
+              </g>
+            )
+          }
+          if (a.type === 'pen') {
+            const d = a.points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' ')
+            return (
+              <g key={a.id}>
+                <path className="rma-hit" d={d} data-annotation={a.id} />
+                <path className={'rma-pen' + sel(a.id)} d={d} data-annotation={a.id} />
+              </g>
+            )
+          }
           return null
         })}
       </svg>

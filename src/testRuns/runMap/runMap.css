@@ -99,7 +99,9 @@
 .rma-svg { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; z-index: 900; }
 .rma-shape { fill: color-mix(in srgb, var(--color-text-primary) 6%, transparent); stroke: var(--color-text-secondary); stroke-width: 2; pointer-events: all; cursor: move; }
 .rma-arrow { fill: none; stroke: var(--color-text-primary); stroke-width: 2.2; pointer-events: stroke; cursor: move; }
+.rma-hit { fill: none; stroke: transparent; stroke-width: 16; stroke-linecap: round; pointer-events: stroke; cursor: move; }
 .rma-arrowhead { fill: var(--color-text-primary); }
+.rma-arrowhead.is-selected { fill: var(--color-action-primary); }
 .rma-pen { fill: none; stroke: var(--color-action-primary); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; pointer-events: stroke; cursor: move; }
 .rma-arrow.is-selected, .rma-pen.is-selected { stroke: var(--color-action-primary); }
 .rma-place { position: absolute; z-index: 901; }
