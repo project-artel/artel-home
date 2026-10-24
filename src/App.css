@@ -177,14 +177,110 @@
   to { transform: rotate(360deg); }
 }
 
+/* 로그인 판(ARTEL-1266): 왼쪽은 로고와 이름만, 오른쪽에 각 화면의 .login-panel. 좁은 화면에서는 왼쪽이 위의 띠가 된다. */
 .login-layout {
+  display: flex;
+  flex-wrap: wrap;
+  place-items: stretch;
+  --login-hero-wash:
+    radial-gradient(90% 70% at 95% 105%,
+      color-mix(in srgb, var(--color-action-primary-strong) 38%, transparent) 0%,
+      color-mix(in srgb, color-mix(in srgb, var(--color-action-primary-strong) 55%, var(--color-bg-surface)) 30%, transparent) 32%,
+      color-mix(in srgb, color-mix(in srgb, var(--color-action-primary-strong) 35%, var(--color-bg-surface)) 14%, transparent) 52%,
+      transparent 70%),
+    radial-gradient(60% 50% at 0% 0%,
+      color-mix(in srgb, color-mix(in srgb, var(--color-action-primary-strong) 40%, var(--color-bg-surface)) 20%, transparent),
+      transparent 65%);
+}
+
+:root[data-theme='dark'] .login-layout {
+  --login-hero-wash: radial-gradient(110% 80% at 90% 100%,
+    color-mix(in srgb, var(--color-action-primary) 22%, transparent),
+    transparent 55%);
+}
+
+.login-hero {
+  display: flex;
+  flex: 1 1 560px;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-6);
+  padding: var(--space-10);
+  border-right: 1px solid var(--color-border-subtle);
+  background-color: var(--color-bg-canvas);
+  background-image: var(--login-hero-wash);
+}
+
+.login-hero-mark {
+  width: 240px;
+  height: 240px;
+}
+
+:root[data-theme='dark'] .login-hero-mark {
+  content: url('/artel-logo-symbol-dark.png');
+}
+
+.login-hero-word {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.login-hero-name {
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.login-hero-product {
+  color: var(--color-text-secondary);
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.login-side {
   position: relative;
-  padding: var(--space-6);
-  background-image:
-    linear-gradient(var(--color-border-subtle) 1px, transparent 1px),
-    linear-gradient(90deg, var(--color-border-subtle) 1px, transparent 1px);
-  background-position: center;
-  background-size: 40px 40px;
+  display: flex;
+  flex: 0 1 560px;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-12);
+  background: var(--color-bg-surface);
+}
+
+@media (max-width: 960px) {
+  .login-hero {
+    flex-basis: 100%;
+    flex-direction: row;
+    gap: var(--space-3);
+    padding: var(--space-6) var(--space-5);
+    border-right: 0;
+    border-bottom: 1px solid var(--color-border-subtle);
+  }
+
+  .login-hero-mark {
+    width: 44px;
+    height: 44px;
+  }
+
+  .login-hero-name {
+    font-size: 20px;
+  }
+
+  .login-hero-product {
+    font-size: 14px;
+  }
+
+  .login-side {
+    flex: 1 1 100%;
+    align-items: flex-start;
+    padding: var(--space-12) var(--space-5);
+  }
 }
 
 .login-theme-toggle {
@@ -194,27 +290,7 @@
 }
 
 .login-panel {
-  width: min(100%, 420px);
-  padding: var(--space-10);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-lg);
-  background: var(--color-bg-surface);
-}
-
-.login-brand {
-  display: grid;
-  width: 48px;
-  height: 48px;
-  margin-bottom: var(--space-6);
-  place-items: center;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-raised);
-}
-
-.login-brand img {
-  width: 36px;
-  height: 36px;
+  width: min(100%, 380px);
 }
 
 .login-copy {
@@ -381,8 +457,7 @@
   height: 20px;
 }
 
-:root[data-theme='dark'] .brand-mark img,
-:root[data-theme='dark'] .login-brand img {
+:root[data-theme='dark'] .brand-mark img {
   content: url('/artel-mark-dark.svg');
 }
 
@@ -391,15 +466,10 @@
   height: 20px;
 }
 
-.login-brand img {
-  width: 36px;
-}
-
 /* Theme-specific logo: light mark (charcoal/orange) by default, white/orange in
    dark. The favicon swaps in theme.ts; the on-page marks swap here (data-theme is
    always set by the index.html boot script, so no media-query variant is needed). */
-:root[data-theme='dark'] .brand-mark img,
-:root[data-theme='dark'] .login-brand img {
+:root[data-theme='dark'] .brand-mark img {
   content: url('/artel-mark-dark.svg');
 }
 
@@ -540,14 +610,6 @@ h1 {
 
   .top-bar-actions {
     gap: var(--space-2);
-  }
-
-  .login-layout {
-    padding: var(--space-3);
-  }
-
-  .login-panel {
-    padding: var(--space-8) var(--space-5);
   }
 }
 
