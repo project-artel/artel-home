@@ -177,24 +177,25 @@
   to { transform: rotate(360deg); }
 }
 
-/* 로그인 판(ARTEL-1266): 왼쪽은 로고와 이름만, 오른쪽에 각 화면의 .login-panel. 좁은 화면에서는 왼쪽이 위의 띠가 된다. */
+/* 로그인 판(ARTEL-1266): 왼쪽은 로고와 이름만, 오른쪽에 각 화면의 .login-panel. 좁은 화면에서는 왼쪽이 위의 띠가 된다.
+   그라데이션 위치는 패널보다 40% 큰 .login-hero::before 층 기준이다. */
 .login-layout {
   display: flex;
   flex-wrap: wrap;
   place-items: stretch;
   --login-hero-wash:
-    radial-gradient(90% 70% at 95% 105%,
+    radial-gradient(64% 50% at 82% 89%,
       color-mix(in srgb, var(--color-action-primary-strong) 38%, transparent) 0%,
       color-mix(in srgb, color-mix(in srgb, var(--color-action-primary-strong) 55%, var(--color-bg-surface)) 30%, transparent) 32%,
       color-mix(in srgb, color-mix(in srgb, var(--color-action-primary-strong) 35%, var(--color-bg-surface)) 14%, transparent) 52%,
       transparent 70%),
-    radial-gradient(60% 50% at 0% 0%,
+    radial-gradient(43% 36% at 14% 14%,
       color-mix(in srgb, color-mix(in srgb, var(--color-action-primary-strong) 40%, var(--color-bg-surface)) 20%, transparent),
       transparent 65%);
 }
 
 :root[data-theme='dark'] .login-layout {
-  --login-hero-wash: radial-gradient(110% 80% at 90% 100%,
+  --login-hero-wash: radial-gradient(79% 57% at 79% 86%,
     color-mix(in srgb, var(--color-action-primary) 22%, transparent),
     transparent 55%);
 }
@@ -208,9 +209,53 @@
   justify-content: center;
   gap: var(--space-6);
   padding: var(--space-10);
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
   border-right: 1px solid var(--color-border-subtle);
   background-color: var(--color-bg-canvas);
+}
+
+/* 퍼스널 컬러 빛은 패널보다 큰 층에 그려 천천히 흘려보낸다. 로고와 이름은 그 위에 가만히 있다. */
+.login-hero::before,
+.login-hero::after {
+  position: absolute;
+  z-index: -1;
+  inset: -20%;
+  content: '';
+  pointer-events: none;
+}
+
+.login-hero::before {
   background-image: var(--login-hero-wash);
+  animation: login-wash-drift 22s ease-in-out infinite alternate;
+}
+
+/* 두 번째 빛은 반대쪽에서 다른 박자로 움직여 그라데이션이 한 덩어리로만 미끄러져 보이지 않게 한다. */
+.login-hero::after {
+  background-image: radial-gradient(40% 35% at 25% 70%,
+    color-mix(in srgb, var(--color-action-primary) 14%, transparent),
+    transparent 70%);
+  animation: login-wash-drift-alt 30s ease-in-out infinite alternate;
+}
+
+@keyframes login-wash-drift {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-7%, -5%) scale(1.08); }
+  100% { transform: translate(4%, -9%) scale(1.03); }
+}
+
+@keyframes login-wash-drift-alt {
+  0% { transform: translate(0, 0) scale(1); opacity: .6; }
+  50% { transform: translate(10%, -6%) scale(1.15); opacity: 1; }
+  100% { transform: translate(-6%, 8%) scale(.95); opacity: .7; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-hero::before,
+  .login-hero::after {
+    animation: none;
+  }
 }
 
 .login-hero-mark {
