@@ -1,5 +1,6 @@
 import { useCallback, useState, type CSSProperties } from 'react'
 import { PROJECT_RAIL_PX } from '../projects/workspace/sections'
+import { CHAT_RAIL_PX, useChatCollapsed } from './useChatCollapsed'
 
 /**
  * 대화 칸 폭. 사람마다 읽는 폭이 다르고 화면 크기도 다르니 값을 들고 있는다.
@@ -43,6 +44,8 @@ export function useChatWidth() {
   // 끄는 동안에도 이 수 하나만 바뀌고, 나머지는 CSS 변수가 받는다.
   const [chatWidth, setChatWidth] = useState(readChatWidth)
   const [splitting, setSplitting] = useState(false)
+  // 접으면 대화 칸은 막대 폭만 남는다. 펴면 기억한 폭으로 돌아간다.
+  const { collapsed, setCollapsed } = useChatCollapsed()
   const onChatWidth = useCallback((next: number) => {
     setChatWidth(next)
     try {
@@ -56,9 +59,12 @@ export function useChatWidth() {
   return {
     /** 바깥 `.scenario-studio` 에 그대로 얹는다. */
     studio: {
-      className: 'scenario-studio' + (splitting ? ' is-splitting' : ''),
-      style: { '--st-chat-w': `${Math.min(chatWidth, max)}px` } as CSSProperties,
+      className: 'scenario-studio' + (splitting ? ' is-splitting' : '') + (collapsed ? ' is-chat-collapsed' : ''),
+      style: { '--st-chat-w': `${collapsed ? CHAT_RAIL_PX : Math.min(chatWidth, max)}px` } as CSSProperties,
     },
+    /** 대화 칸을 접었나. 접으면 칸 대신 펴기 막대([ChatRail])를 그린다. */
+    collapsed,
+    setCollapsed,
     /**
      * `SplitHandle` 에 그대로 펼쳐 넣는다. `label` 만 화면이 고른다.
      * 경계는 가운데와 대화 사이다. 왼쪽으로 끌면 대화가 넓어지므로 부호가 뒤집힌다.

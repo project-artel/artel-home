@@ -25,6 +25,8 @@ export const PROJECT_CHANGE_TOPICS = [
   'KNOWLEDGE',
   'TEST_CASES',
   'TEST_RUNS',
+  // Artel Bot 이 런의 시나리오를 고치는 동안의 잠금과 풀림(ARTEL-1265).
+  'RUN_LOCKS',
   'USAGE',
 ] as const
 

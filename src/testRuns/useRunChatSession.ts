@@ -80,7 +80,16 @@ export function useRunChatSession(
   runId: string | null,
   onApplied?: () => void,
   onTurnEnded?: () => void,
+  /**
+   * 말을 보내기 직전에 할 일(ARTEL-1265). 편집 화면은 모아 둔 자동저장을 먼저 끝낸다 — AI 는 보내는 순간 저장된
+   * 본문을 읽으므로, 저장 안 된 수정은 AI 가 모른 채 고치고, 그 수정은 나중에 AI 결과와 부딪힌다.
+   */
+  beforeSend?: () => Promise<unknown>,
 ) {
+  const beforeSendRef = useRef(beforeSend)
+  useEffect(() => {
+    beforeSendRef.current = beforeSend
+  })
   const { t } = useI18n()
   // 실패한 턴의 안내 문구(ARTEL-1072). 스트림 구독은 런이 바뀔 때만 다시 거므로 최신 언어를 ref 로 읽는다.
   const errorMessagesRef = useRef(t.scenarios.chat.errors)
@@ -367,6 +376,7 @@ export function useRunChatSession(
       setTurnStartedAt(Date.now())
       try {
         // draft 가 있는 동안은 draft 만 고친다(ARTEL-1075). 새 요청은 draft 를 승인하거나 버린 뒤에 보낸다.
+        await beforeSendRef.current?.()
         await sendRunChatMessage(projectId, runId, trimmed, autoApply, answer, drafts.length > 0)
         return true
       } catch (error: unknown) {

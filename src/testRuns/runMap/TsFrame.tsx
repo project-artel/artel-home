@@ -25,6 +25,7 @@ export const TsFrame = memo(function TsFrame({
   onRename,
   dropped = null,
   lifting = false,
+  botLocked = false,
 }: {
   scenario: MapScenario
   /** 런 안의 순서(1부터). */
@@ -47,6 +48,8 @@ export const TsFrame = memo(function TsFrame({
   dropped?: { from: number; to: number } | null
   /** 이 프레임의 스텝을 끄는 중. 점이 새 자리로 미끄러지게 transition 을 켠다. */
   lifting?: boolean
+  /** Artel Bot 이 이 TS 를 고치는 중(ARTEL-1265). 흐리게 하고 누르지 못하게 한다. */
+  botLocked?: boolean
 }) {
   const { t } = useI18n()
   const m = t.scenarios.map
@@ -55,7 +58,7 @@ export const TsFrame = memo(function TsFrame({
 
   return (
     <div
-      className={'rmf' + (picked ? ' is-picked' : '') + (marked ? ' is-marked' : '') + (dimmed ? ' is-dim' : '') + (lifting ? ' is-sorting' : '')}
+      className={'rmf' + (picked ? ' is-picked' : '') + (marked ? ' is-marked' : '') + (dimmed ? ' is-dim' : '') + (lifting ? ' is-sorting' : '') + (botLocked ? ' is-bot-locked' : '')}
       data-scenario-id={scenario.id}
       style={{ left: x, top: y, width: FRAME_W, height, zIndex: z }}
     >
