@@ -13060,7 +13060,10 @@ col.vimp-c-scene{ width:18% } col.vimp-c-verdict{ width:16% }
 .app-main-frame:has(.page):not(:has(.project-workspace)) {
   height: calc(100dvh - var(--shell-topbar-h));
 }
+/* 넘기는 칸이 위치 기준이어야 안의 absolute 요소(.visually-hidden 등)가 칸 안에 갇힌다. 바깥 .scroll-frame 이
+   기준이면 그 요소가 문서를 늘려 브라우저 막대가 하나 더 생긴다. */
 .app-main-frame:has(.page):not(:has(.project-workspace)) > .workspace {
+  position: relative;
   height: 100%;
   overflow-y: auto;
   scrollbar-width: none;
