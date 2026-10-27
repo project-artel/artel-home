@@ -1,0 +1,18 @@
+.qe-panel { border-block-start: 1px solid var(--color-border-subtle); padding: 16px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; min-width: 0; }
+.qe-panel h3, .qe-panel h4, .qe-panel p { margin: 0; }
+.qe-panel label, .qe-panel form, .qe-attempt { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; min-width: 0; }
+.qe-panel select, .qe-panel textarea, .qe-panel input { min-width: 0; max-width: 100%; padding: 8px; color: var(--color-text-primary); background: var(--color-bg-surface); border: 1px solid var(--color-border-subtle); font: inherit; }
+.qe-panel textarea { min-height: 80px; resize: vertical; }
+.qe-panel video { width: 100%; max-height: 480px; display: block; }
+.qe-note { color: var(--color-text-secondary); font-size: 12px; }
+.qe-snapshot { display: grid; gap: 4px; margin-block: 8px; }
+.qe-snapshot dt { color: var(--color-text-secondary); font-size: 12px; }
+.qe-snapshot dd { margin: 0 0 8px; }
+.qe-snapshot dd, .qe-evidence-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.qe-links { display: flex; gap: 16px; flex-wrap: wrap; }
+.qe-review-submit { justify-self: start; }
+.qe-panel table { border-collapse: collapse; width: 100%; }
+.qe-panel th, .qe-panel td { padding: 8px; text-align: start; border-bottom: 1px solid var(--color-border-subtle); white-space: nowrap; }
+.qe-table { overflow: auto; }
+.qe-panel .qe-dates { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+.qe-question { padding: 12px; border: 1px solid var(--color-border-subtle); display: grid; gap: 8px; }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { EdgeScrollbar } from '../../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../../i18n/useI18n'
@@ -8,6 +8,8 @@ import { shortWhen } from '../history/historyModel'
 import { getQaRunVerdicts, type QaRunVerdicts } from '../qaVerdictApi'
 import { QA_TRY_STATUSES, qaRunPath, type QaTryStatus } from '../qaTypes'
 import { StepDetail } from './StepDetail'
+import { CaseEvaluationPanel } from '../evaluation/CaseEvaluationPanel'
+import { evaluationCopy } from '../evaluation/evaluationCopy'
 import { defaultStep, isActiveStatus, plainText, stepRows, tallyRows, type StepRow } from './verdictModel'
 
 /** 스텝 내비게이터 한 칸의 폭과 간격. 보이는 범위(`6–21 / 21`)를 스크롤 위치에서 셀 때 쓴다. */
@@ -121,6 +123,7 @@ export function QaVerdictsSection() {
   const elapsed = data.startedAt !== null && data.completedAt !== null
     ? Math.round((Date.parse(data.completedAt) - Date.parse(data.startedAt)) / 1000)
     : null
+  const evaluation = scenario && <CaseEvaluationPanel key={scenario.qaTryId} projectId={projectId} qaTryId={scenario.qaTryId} />
 
   return (
     <section className="qv" aria-labelledby="qv-scenario-title">
@@ -158,8 +161,12 @@ export function QaVerdictsSection() {
         )}
       </div>
 
-      {scenario === null || rows.length === 0 ? (
-        <p className="panel-empty">{copy.noSteps}</p>
+      {scenario?.reportingUnit === 'TEST_CASE' ? <ReferenceProcedure scenario={scenario} scenarios={data.tries} onScenario={goScenario}>{evaluation}</ReferenceProcedure> : scenario === null || rows.length === 0 ? (
+        <>
+          {scenario && <h1 className="qv-scn-title" id="qv-scenario-title">{scenario.scenarioTitle}</h1>}
+          {evaluation}
+          <p className="panel-empty">{copy.noSteps}</p>
+        </>
       ) : (
         <>
           <section className="qv-scn">
@@ -191,6 +198,7 @@ export function QaVerdictsSection() {
               </span>
               {tally.review > 0 && <span className="qv-review-count">{copy.review.count(tally.review)}</span>}
             </div>
+            {evaluation}
             <StepNavigator onPick={(step) => choose({ scenario: scenario.qaTryId, step: String(step) })} rows={rows} selected={pickedStep} />
             <div className="qv-legend">
               <span><i className="qv-sw qv-sw--passed" />{copy.legend.passed}</span>
@@ -209,6 +217,19 @@ export function QaVerdictsSection() {
       )}
     </section>
   )
+}
+
+function ReferenceProcedure({ scenario, scenarios, onScenario, children }: { scenario: QaRunVerdicts['tries'][number]; scenarios: QaRunVerdicts['tries']; onScenario: (index: number) => void; children?: ReactNode }) {
+  const { locale } = useI18n()
+  const copy = evaluationCopy[locale === 'ko' ? 'ko' : 'en']
+  return <section className="qv-scn">
+    <h1 id="qv-scenario-title">{scenario.scenarioTitle}</h1>
+    {scenarios.length > 1 && <select aria-label={copy.qa} value={scenario.qaTryId} onChange={event => onScenario(scenarios.findIndex(item => item.qaTryId === event.target.value))}>
+      {scenarios.map(item => <option key={item.qaTryId} value={item.qaTryId}>{item.scenarioTitle}</option>)}
+    </select>}
+    {children}
+    <details><summary>{copy.references}</summary><ol>{scenario.steps.map(step => <li key={step.step}>{step.title}</li>)}</ol></details>
+  </section>
 }
 
 function isStatus(value: string): value is QaTryStatus {

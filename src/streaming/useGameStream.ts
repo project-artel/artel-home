@@ -138,7 +138,7 @@ export function useGameStream(instanceId: string) {
     }
 
     function fail(failure: GameStreamFailure) {
-      settle('error', failure)
+      if (settle('error', failure) && failure === 'unreachable') scheduleAttempt(nextReconnectDelay())
     }
 
     function applyRemoteCandidate(candidate: RTCIceCandidateInit) {
@@ -201,11 +201,8 @@ export function useGameStream(instanceId: string) {
          * its own — and treating it as an error would blank a stream that is
          * about to come back.
          *
-         * `failed` is reported as its own state because it is the one outcome a
-         * retry cannot fix: with no TURN, a game and a browser on different
-         * networks negotiate fine and then carry no media. Left as a spinner it
-         * reads as a hang, and a network limitation gets filed as a broken
-         * stream.
+         * worker 재시작으로도 ICE가 실패한다. 오류 상태는 표시하고 backoff 후 다시
+         * 연결한다. 연결을 빼앗긴 탭은 별도 takenOver 상태이므로 자동 재연결하지 않는다.
          */
         if (opened.iceConnectionState === 'failed') {
           fail('unreachable')

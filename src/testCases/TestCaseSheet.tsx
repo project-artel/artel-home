@@ -8,6 +8,7 @@ import { SpecGradeChip } from './SpecGradeChip'
 import { TestCaseEditor, type VersionChoice } from './TestCaseEditor'
 import { describeVerifiedBuild } from './testCaseLibrary'
 import type { TestCase } from './testCaseTypes'
+import { CaseEvaluationPanel } from '../qa/evaluation/CaseEvaluationPanel'
 
 /**
  * The right-hand sheet that shows one TC and edits it.
@@ -104,6 +105,7 @@ export function TestCaseSheet({
           testCase={testCase}
           versionChoice={versionChoice}
         />
+        {testCase && <CaseEvaluationPanel key={`evaluation:${testCase.id}`} projectId={projectId} testCaseId={testCase.id} />}
       </aside>
     </>
   )
