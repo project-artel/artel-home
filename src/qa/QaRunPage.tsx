@@ -346,15 +346,15 @@ function FocusedTry({ qaRun, rail, tryId }: { qaRun: QaRun; rail: QaScenarioRail
       deriveQaProgress({
         scenarioSteps,
         executionMode,
-        logs: session.logs,
+        logs: session.verdictLogs,
         status: session.qaTry?.status ?? 'STARTING',
-        historyComplete: !session.hasMore,
+        historyComplete: session.loadStatus === 'ready',
       }),
-    [scenarioSteps, executionMode, session.hasMore, session.logs, session.qaTry?.status],
+    [scenarioSteps, executionMode, session.loadStatus, session.verdictLogs, session.qaTry?.status],
   )
 
   const contextUsage = useMemo(() => deriveQaContextUsage(session.logs), [session.logs])
-  const caseVerdicts = useMemo(() => deriveCaseVerdicts(session.logs), [session.logs])
+  const caseVerdicts = useMemo(() => deriveCaseVerdicts(session.verdictLogs), [session.verdictLogs])
 
   useActionBinding(QA_RUN_SWITCH_LOG_VIEW_ACTION, {
     target: () => logTabs.current,
