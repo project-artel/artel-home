@@ -11271,6 +11271,10 @@ col.mct-c-updated { width: 12%; }
 .ql-spacer { flex: 1; }
 .ql-link { color: var(--color-action-primary); font-size: 13px; font-weight: 600; text-decoration: none; }
 .ql-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.ql-text-button { align-self: flex-start; padding: 4px 0; border: 0; background: none; color: var(--color-action-primary); font: inherit; font-weight: 600; text-align: left; cursor: pointer; }
+.ql-text-button:focus-visible { outline: 2px solid var(--color-action-primary); outline-offset: 2px; }
+.ql-text-button:disabled { color: var(--color-text-muted); cursor: default; }
+.ql-version-error { flex-direction: column; align-items: flex-start; }
 .ql-empty { margin: 0; padding: var(--space-4); color: var(--color-text-muted); font-size: 13px; }
 
 /* 선택된 테스트 런 — 카드 전체가 버튼이고, 오른쪽 갈매기가 "누르면 바꾼다" 를 말한다. */
