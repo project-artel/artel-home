@@ -19,7 +19,7 @@ import {
 } from '../../projectAgent/specs/qa'
 import { sectionHref } from '../../projects/workspace/sections'
 import type { TestRun } from '../../testRuns/testRunApi'
-import { archLabelMissing, toArchRequest, withoutVisionKnobs, type QaArchSelection } from '../qaArch'
+import { archLabelMissing, changedSettingCount, toArchRequest, withoutVisionKnobs, type QaArchSelection } from '../qaArch'
 import { createQaRun, qaStartConflict } from '../qaApi'
 import { storeLastArch } from '../qaStartChoices'
 import { DEFAULT_QA_FUNCTION_OPTIONS, type QaFunctionOptions } from '../qaFunctionOptions'
@@ -121,6 +121,7 @@ export function LaunchPanel({
   // 지우는 대신 보낼 때 걷어 내므로, 모델을 되돌리면 고른 값이 그대로 살아 있다.
   const readsImages = model?.multimodal ?? true
   const effectiveArch = readsImages ? arch : withoutVisionKnobs(arch)
+  const changedSettings = changedSettingCount(effectiveArch)
 
   const versionCases = useRunVersionCases(projectId, run?.id ?? '', instance?.id ?? '', JSON.stringify(instance?.lastGameBuild))
   const skipped = versionCases.outside?.testCaseIds.length ?? 0
@@ -410,12 +411,11 @@ export function LaunchPanel({
           disabled={starting}
           onChange={setFunctionOptions}
           projectId={projectId}
+          summaryBadge={changedSettings > 0 ? <span className="qa-advanced-count">{p.advanced.changed(changedSettings)}</span> : undefined}
           value={functionOptions}
-        />
-
-        <div className="ql-field">
+        >
           <ArchSettings onChange={onArchChange} readsImages={readsImages} selection={effectiveArch} />
-        </div>
+        </QaFunctionOptionsFields>
 
         <div className="ql-field">
           <span className="ql-field-label">{l.checksTitle}</span>

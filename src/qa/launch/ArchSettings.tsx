@@ -7,7 +7,6 @@ import {
   QA_ENGINES,
   archEngine,
   changedKnobCount,
-  changedSettingCount,
   suggestArchLabel,
   withEngine,
   withKnob,
@@ -20,8 +19,7 @@ import {
 /**
  * 실행 설정 패널의 "고급 설정"(ARTEL-1091) — agent 구조 knob 과 label.
  *
- * 접힌 `details` 다. 기본 run 은 아무것도 고르지 않으므로, 펼치지 않은 사람에게는 제목 한 줄만
- * 보인다. knob 을 바꾸면 제목 옆에 바뀐 개수가 붙고 label 입력이 나타난다.
+ * 상위 패널의 고급 설정 안에 표시한다. knob을 바꾸면 label 입력이 나타난다.
  *
  * `readsImages` 가 false 면 vision 이 필요한 값은 option 을 잠근다. 이미 고른 값은 여기서 지우지
  * 않는다 — 보낼 때 `withoutVisionKnobs` 가 걷어 내므로, 모델을 되돌리면 고른 값이 그대로 산다.
@@ -45,16 +43,11 @@ export function ArchSettings({
   const labelId = useId()
   const engineId = useId()
   const changed = changedKnobCount(selection)
-  const changedSettings = changedSettingCount(selection)
   const engine = archEngine(selection)
   const engineLocked = engine === 'planner_executer'
 
   return (
-    <details className="qa-advanced">
-      <summary>
-        {advanced.title}
-        {changedSettings > 0 && <span className="qa-advanced-count">{advanced.changed(changedSettings)}</span>}
-      </summary>
+    <div className="qa-advanced">
       <p className="qa-advanced-hint">{advanced.hint}</p>
       {/* 엔진은 "서버 기본값" 칸이 없다. 서버 기본이 `agent` 이고, 그것을 "기본" 으로 보여 준다. 요청에는 `planner_executer` 일 때만 실린다. */}
       <div className="qa-advanced-grid">
@@ -125,7 +118,7 @@ export function ArchSettings({
           </div>
         )}
       </fieldset>
-    </details>
+    </div>
   )
 }
 
