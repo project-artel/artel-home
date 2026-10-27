@@ -1,7 +1,7 @@
 import { cloneElement, useEffect, useId, useLayoutEffect, useRef, useState, type HTMLAttributes, type ReactElement } from 'react'
 import { createPortal } from 'react-dom'
 import { useI18n } from '../i18n/useI18n'
-import { TestCaseDetails } from './TestCaseDetails'
+import { TestCasePreview } from './TestCasePreview'
 
 /** 기존 요소의 레이아웃과 클릭을 보존하고 상세 조회는 열릴 때만 수행한다. */
 export function TestCaseHover({ children, projectId, caseId, gameBuildId = null }: {
@@ -116,7 +116,7 @@ export function TestCaseHover({ children, projectId, caseId, gameBuildId = null 
         onDragStart={(event) => event.stopPropagation()}
         onKeyDown={(event) => event.stopPropagation()}>
         <button className="tc-hover-close" type="button" aria-label={t.scenarios.tcModal.close} onClick={() => { anchor.focus(); close() }}>✕</button>
-        <TestCaseDetails key={`${projectId}:${caseId}:${gameBuildId}`} projectId={projectId} caseId={String(caseId)} gameBuildId={gameBuildId} />
+        <TestCasePreview key={`${projectId}:${caseId}:${gameBuildId}`} projectId={projectId} caseId={String(caseId)} gameBuildId={gameBuildId} />
       </div>, document.body,
     )}
   </>
