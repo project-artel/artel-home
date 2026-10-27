@@ -30,6 +30,7 @@ function render(mode: ExecutionMode, flow: boolean, input = logs, scenarioSteps 
   return renderToStaticMarkup(createElement(LocaleContext.Provider, {
     value: { locale: 'ko', setLocale: () => {}, t: messages.ko },
   }, createElement(QaLogTimeline, {
+    projectId: 'test-project', gameBuildId: 'test-build',
     executionMode: mode, flow, scenarioSteps, logs: flow ? filterFlowLogs(input, mode) : input,
     focusRequest: null, hasMore: false, historyFailure: null, historyLoading: false,
     live: false, loadOlder: async () => false, onFocusResolved: () => {},
@@ -41,6 +42,7 @@ for (const flow of [true, false]) {
     assert.doesNotMatch(html, /class="qa-(?:flow-group|log-section|log-step)"/)
     assert.match(html, /TC #202/)
     assert.match(html, /TC #101/)
+    assert.match(html, /aria-haspopup="dialog"/)
     assert.ok(html.indexOf('move-first') < html.indexOf('verdict-second'))
     assert.ok(html.indexOf('verdict-second') < html.indexOf('move-between'))
     assert.ok(html.indexOf('move-between') < html.indexOf('verdict-first'))

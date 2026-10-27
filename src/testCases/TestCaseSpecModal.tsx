@@ -21,6 +21,7 @@ type Filter = 'ALL' | VerificationStatus
  * TC 는 처음부터 보이지 않는다. QA 는 런 버전에 없는 TC 의 연결을 지우기 때문이다.
  */
 export function TestCaseSpecModal({
+  gameBuildId,
   projectId,
   onClose,
   cases: givenCases,
@@ -28,6 +29,7 @@ export function TestCaseSpecModal({
   currentCaseId = null,
   scope,
 }: {
+  gameBuildId?: string | null
   projectId: string
   onClose: () => void
   /** 미리 읽어 둔 TC. 주면 프로젝트 전량을 따로 읽지 않는다. */
@@ -128,6 +130,7 @@ export function TestCaseSpecModal({
               ) : (
                 shown.map((testCase, index) => (
                   <CaseListRow
+                    gameBuildId={gameBuildId}
                     active={index === active}
                     fallbackTitle={`TC ${index + 1}`}
                     index={index}

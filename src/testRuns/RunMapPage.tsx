@@ -1,3 +1,4 @@
+import { TestCaseHover } from '../testCases/TestCaseHover'
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
@@ -26,7 +27,7 @@ import { getRunScenarios, getTestRun, type TestRun } from './testRunApi'
  */
 
 /** One step, flattened for the map: its action and the TC region ordinal (if any). */
-type StepLite = { action: string; tcNo: number | null; gap: boolean }
+type StepLite = { caseId: number | null; action: string; tcNo: number | null; gap: boolean }
 
 type ScenarioNode = {
   id: string
@@ -88,6 +89,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
               stepCount: steps.length,
               tcCount: seq,
               steps: steps.map((step, index) => ({
+                caseId: step.case_id,
                 action: step.action,
                 tcNo: tcNoByIndex.get(index) ?? null,
                 gap: isGapStep(step),
@@ -306,7 +308,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
                             {/* A gap has no ordinal — it is a notice sitting between steps, not one of them. */}
                             <span className="cnode-num mono">{step.gap ? '⚠' : String(j + 1).padStart(2, '0')}</span>
                             <span className="cnode-title">{step.action.length > 0 ? step.action : m.untitledStep}</span>
-                            {!step.gap && step.tcNo !== null && <span className="st-tc-badge">{m.tcUnit} {step.tcNo}</span>}
+                            {!step.gap && step.tcNo !== null && <TestCaseHover projectId={projectId} caseId={step.caseId} gameBuildId={run?.gameBuild?.gameBuildId}><span className="st-tc-badge">{m.tcUnit} {step.tcNo}</span></TestCaseHover>}
                           </span>
                         </button>
                       </Fragment>

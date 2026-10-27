@@ -1,3 +1,4 @@
+import { TestCaseHover } from '../testCases/TestCaseHover'
 import { useI18n } from '../i18n/useI18n'
 import type { VerificationStatus } from '../testCases/testCaseTypes'
 import { indexCasesById } from '../testScenarios/freeScenarioCases'
@@ -114,7 +115,7 @@ export function QaScenarioSteps({
     if (step === null) {
       return (
         <li key={row.step} className="qa-rail-step qa-rail-step--neutral">
-          <span className="qa-rail-step-no">{numberLabel}</span>
+          <TestCaseHover projectId={projectId} caseId={isFree ? scenarioSteps[row.step - 1]?.case_id : null} gameBuildId={gameBuildId}><span className="qa-rail-step-no">{numberLabel}</span></TestCaseHover>
           <span className="qa-rail-step-title">{title}</span>
         </li>
       )
@@ -142,7 +143,7 @@ export function QaScenarioSteps({
           />
         )}
         <span aria-hidden="true" className="qa-rail-step-glyph">{STATE_GLYPHS[step.state]}</span>
-        <span className="qa-rail-step-no">{numberLabel}</span>
+        <TestCaseHover projectId={projectId} caseId={isFree ? scenarioSteps[row.step - 1]?.case_id : null} gameBuildId={gameBuildId}><span className="qa-rail-step-no">{numberLabel}</span></TestCaseHover>
         <span className="qa-rail-step-title">{title}</span>
         {step.usedCheats.length > 0 && (
           <span className="gf-badge" translate="no">
@@ -188,7 +189,7 @@ export function QaScenarioSteps({
           return (
             <li key={`case-${blockIndex}`} className="qa-rail-case">
               <div className="qa-rail-case-head">
-                <span className="qa-rail-case-no">{s.caseLabel(block.caseNumber)}</span>
+                <TestCaseHover projectId={projectId} caseId={block.caseId} gameBuildId={gameBuildId}><span className="qa-rail-case-no">{s.caseLabel(block.caseNumber)}</span></TestCaseHover>
                 {caseVerdicts.has(String(block.caseId)) && (
                   <SavedVerdict status={caseVerdicts.get(String(block.caseId)) as VerificationStatus} />
                 )}

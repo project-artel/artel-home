@@ -1,3 +1,4 @@
+import { TestCaseHover } from '../testCases/TestCaseHover'
 import { useMemo, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { SceneChip } from '../testCases/SceneChip'
@@ -87,7 +88,7 @@ export function FreeScenarioEditor({
                   <div className="free-case-body">
                     <div className="free-case-head">
                       {showCaseContent && row.testCase !== null && <span className={`vdot ${row.testCase.verificationStatus}`} />}
-                      <span className="free-case-label">{m.tcLabel(row.caseId)}</span>
+                      <TestCaseHover projectId={projectId} caseId={row.caseId} gameBuildId={gameBuildId}><span className="free-case-label">{m.tcLabel(row.caseId)}</span></TestCaseHover>
                       {showCaseContent && (
                         <span className="free-case-title">
                           {row.testCase === null ? m.missingCase : row.testCase.step || m.missingCase}

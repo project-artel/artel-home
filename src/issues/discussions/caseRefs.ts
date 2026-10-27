@@ -7,6 +7,7 @@ import type { TestCase } from '../../testCases/testCaseTypes'
  */
 export type CaseRefs = {
   projectId: string
+  gameBuildId?: string | null
   cases: ReadonlyMap<string, TestCase>
   scope: string
   onOpen?: (testCase: TestCase) => void

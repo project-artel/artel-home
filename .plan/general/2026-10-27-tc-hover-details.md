@@ -1,0 +1,41 @@
+# 2026-10-27 — TC 호버 상세 팝오버 추가
+
+- Date: 2026-10-27
+- GitHub Issue: None
+- Status: Implemented
+
+## Goal
+TC 표시에서 전체 내용을 스크롤하고 복사할 수 있는 호버 팝오버를 제공한다.
+
+## Non-goals
+TC 편집, 기존 클릭 동작, 서버 계약 변경.
+
+## Context / Constraints
+사용자 변경을 보존한다. 목록 응답에는 evidenceGaps가 없어 상세 조회가 필요하다. 화면의 gameBuildId를 유지한다.
+
+## Approach (Checklist)
+- [x] **Step 0: Recon** 채팅, 토론, 시나리오, 선택 목록, 라이브러리, QA rail과 로그, 실행 맵 확인.
+- [x] **Step 1: Implementation** 공유 상세 본문과 팝오버 추가.
+- [x] **Step 2: Tests** 타입 검사, lint, 빌드, 호버 이동, 스크롤, 키보드, 화면 경계와 테마 검증.
+- [x] **Step 3: Rollout / Rollback** 프론트엔드 변경만 적용.
+
+## Validation
+- **Commands to run:** npm run typecheck, npm run lint, npm test, npm run build, git diff --check
+- **Expected output:** 관련 오류 없음. 호버와 포커스에서 전체 TC 표시, 기존 클릭 유지.
+
+## Risks & Rollback
+- **Risks:** 버전 혼동, 오래된 응답, 부모 클릭 전파.
+- **Rollback steps:** 이번 변경만 되돌린다.
+
+## Open Questions
+없음.
+
+## 검증 결과
+타입 검사 통과. 변경 파일 lint 오류 없음(RunMapPage의 기존 dependency 경고 1개). 단위 테스트 1,473개 통과. Vite 빌드 통과(기존 chunk 크기 경고). 모의 API 브라우저 검증에서 상세 요청 시점·빌드 버전·호버 이동·스크롤·포커스·Escape·기존 클릭·팔레트 방향키·오류 표시·테마·1440/1024/390px 경계 통과. 실제 로그인 서버 데이터 검증은 수행하지 않음.
+
+## 리뷰 반영
+RunMap의 gameBuild 필드, 목록의 버전 전달, 기존 ArrowDown 보존, 가져오기 목록의 TC 적용 누락 수정. 공유 상세 본문으로 중복 방지.
+`mousedown`과 `dragstart`의 portal 전파를 차단하고 부모 목록 핸들러가 실행되지 않는 브라우저 검증 통과.
+
+## PR 브랜치 적용
+최신 develop(c124166)에 TC 호버 변경만 적용했다. 가상 스크롤과 InlineCode, 판정 이력의 EditorBadge·carriedFrom, TC 목록 revision 갱신을 보존했다. 새 QA Flow·FREE Raw TC 표시에도 같은 팝오버를 적용했다. CSS는 전역 스타일에서 불러와 QA 서버 렌더링 테스트를 유지했다.

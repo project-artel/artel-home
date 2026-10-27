@@ -350,6 +350,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
       {/* ⌘K 명세 창도 이 런이 보는 TC 를 보인다(ARTEL-1115) — 런이 따르는 빌드 버전의 TC 와 그 버전의 판정이다. */}
       {specOpen && (
         <TestCaseSpecModal
+          gameBuildId={runBuild?.gameBuildId}
           cases={runCaseList}
           onClose={() => setSpecOpen(false)}
           projectId={projectId}
