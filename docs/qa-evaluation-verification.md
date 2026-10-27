@@ -1,6 +1,6 @@
 # TC 평가 화면과 영상 재생 검증
 
-2026-10-27에 로컬 orchestration 서버와 S3에 저장한 합성 WebRTC 영상으로 확인했다. 실제 Unity 게임의 QA 결과나 Agent 정확도 벤치마크는 아니다. 화면에 보이는 사용자·프로젝트·TC는 검증용 데이터다.
+2026-10-27에 자동 테스트와 초기 통합 검증을 진행했고, 2026-10-28에 최종 CSS를 적용한 화면을 로컬 orchestration 서버·S3와 연결해 다시 촬영했다. 실제 Unity 게임의 QA 결과나 Agent 정확도 벤치마크는 아니다. 화면에 보이는 사용자·프로젝트·TC는 검증용 데이터다.
 
 ## 실행 환경과 명령
 
@@ -21,6 +21,7 @@ npm run dev -- --host 127.0.0.1 --port 5176 --strictPort
 
 ```powershell
 node ../qa-evaluation-ui-check.cjs
+node ../qa-evaluation-final-screenshots.cjs
 npm run typecheck
 npx eslint src/qa/evaluation src/projects/workspace/ProjectWorkspace.tsx src/testCases/TestCaseSheet.tsx
 npm test
@@ -39,13 +40,15 @@ npm test
 | viewport | 1440px, 1024px, 360px에서 확인. 1024px·360px의 문서 가로 폭이 viewport와 일치 |
 | theme | 라이트 화면과 QA 평가 화면의 다크 theme 전환·영상 표시 확인 |
 | keyboard | 실제 결과 선택란에서 Tab으로 이유 textarea, 다음 Tab으로 평가 저장 버튼에 이동 |
-| 오류 | 최종 브라우저 실행에서 실패한 HTTP 요청, `pageerror`, console error 없음 |
+| 질문 | 내부 API로 질문을 만들고 대기 화면을 표시했다. 브라우저 답변 저장 후 질문이 해제됐다. 실제 게임 agent 재개는 이 검증에 포함하지 않았다. |
+| TC issue | 실패 이력, 원본·실제 판정, TC와 QA 실행 링크를 실제 API로 조회했다. |
+| 오류 | 최종 브라우저 실행에서 HTTP 400 이상 응답, `pageerror`, console error 없음 |
 
 프런트엔드 전체 테스트 1,498개가 통과했다. 신규 평가 모듈 테스트 12개에는 API 주소 중복 방지, snapshot 필드 해석, 영상·누락 구간 범위, 만료, 한국 날짜 경계가 포함된다.
 
 breadcrumb·제목 아래로 평가 패널을 옮긴 마지막 수정 후 `npm run typecheck`, 변경한 TS/TSX 파일의 ESLint, 신규 평가 모듈 12개 테스트를 다시 실행해 모두 통과했다.
 
-최종 스크린샷을 검토하면서 360px 화면의 내부 영역에서 긴 TC 선택 항목이 영상과 입력란을 오른쪽으로 밀어내는 문제를 발견했다. 문서 전체 폭만 검사해서는 잡히지 않는 grid의 최소 폭 문제였다. 평가 패널과 입력 폼의 열을 `minmax(0, 1fr)`로 지정하고 입력 요소에 `min-width: 0`을 적용했다. 현재 CSS를 읽는 Chromium 재현에서는 선택란·영상·textarea의 오른쪽 경계가 418px에서 320px로 줄어 336px 패널 경계 안에 들어왔다. 이 확인은 합성 HTML의 CSS 검증이며 서버 연결 검증을 대체하지 않는다.
+초기 스크린샷에서 360px 화면의 긴 TC 선택 항목이 영상과 입력란을 오른쪽으로 밀어내는 문제를 발견했다. 평가 패널과 입력 폼의 열을 `minmax(0, 1fr)`로 지정하고 입력 요소에 `min-width: 0`을 적용했다. 10월 28일 실제 API와 연결한 최종 화면에서 QA history 영상의 좌우 경계는 40~320px, TC 상세 영상은 약 64~326px였다. 선택란·영상·textarea가 패널 경계를 넘지 않는 것도 검사했다. 신뢰도 표는 좁은 화면에서 표 내부를 가로 스크롤한다.
 
 ## 화면
 
@@ -55,12 +58,32 @@ breadcrumb·제목 아래로 평가 패널을 옮긴 마지막 수정 후 `npm r
 
 ![1440px 라이트 화면의 TC 평가와 저장 영상](images/qa-evaluation-desktop.png)
 
-### 모바일 다크 화면과 내부 폭 수정
+### 모바일 다크 평가 화면
 
 ![360px 다크 화면의 TC 평가와 저장 영상](images/qa-evaluation-mobile-dark.png)
 
-위 두 화면은 실제 API·S3 연결 당시 촬영한 것으로, 마지막 모바일 내부 폭 수정 전이다. 다음 화면은 수정한 CSS와 평가 패널의 HTML 구조만 Chromium에 올린 별도 재현이다. 실제 API를 호출하지 않으며 영상 source도 연결하지 않는다. 긴 선택 항목이 있어도 영상과 입력란이 패널 경계 안에 남는지만 확인한다.
+### TC 상세 평가 화면
 
-![360px 합성 HTML에서 확인한 평가 패널 내부 폭 수정](images/qa-evaluation-mobile-layout.png)
+![TC 상세의 검증 당시 영상과 평가](images/qa-evaluation-tc-desktop.png)
+
+[360px TC 상세 화면](images/qa-evaluation-tc-mobile.png)
+
+### 프로젝트 신뢰도 화면
+
+![프로젝트 전체·기간별·TC별 신뢰도](images/qa-evaluation-reliability-desktop.png)
+
+[360px 신뢰도 화면](images/qa-evaluation-reliability-mobile.png)
+
+### 질문 대기와 답변 입력 화면
+
+![실제 API로 생성한 QA 질문과 답변 입력](images/qa-evaluation-question-desktop.png)
+
+[360px 질문 화면](images/qa-evaluation-question-mobile.png)
+
+### TC 실패 issue 이력 화면
+
+![TC 실패 이력과 TC·QA 실행 링크](images/qa-evaluation-issue-desktop.png)
+
+[360px issue 화면](images/qa-evaluation-issue-mobile.png)
 
 실제 Unity 연결, 운영 브라우저의 알림 권한 승인·알림 전달, 장시간 실행은 이 브라우저 검증 범위에 포함하지 않았다.
