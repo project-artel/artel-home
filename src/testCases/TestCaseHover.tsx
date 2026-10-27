@@ -1,6 +1,5 @@
 import { cloneElement, useEffect, useId, useLayoutEffect, useRef, useState, type HTMLAttributes, type ReactElement } from 'react'
 import { createPortal } from 'react-dom'
-import { useI18n } from '../i18n/useI18n'
 import { TestCasePreview } from './TestCasePreview'
 
 /** 기존 요소의 레이아웃과 클릭을 보존하고 상세 조회는 열릴 때만 수행한다. */
@@ -10,7 +9,6 @@ export function TestCaseHover({ children, projectId, caseId, gameBuildId = null 
   caseId: string | number | null | undefined
   gameBuildId?: string | null
 }) {
-  const { t } = useI18n()
   const id = useId()
   const [anchor, setAnchor] = useState<HTMLElement | null>(null)
   const panel = useRef<HTMLDivElement>(null)
@@ -66,7 +64,7 @@ export function TestCaseHover({ children, projectId, caseId, gameBuildId = null 
       const width = element.offsetWidth
       const height = element.offsetHeight
       const below = window.innerHeight - bounds.bottom - 8
-      const top = below >= height ? bounds.bottom + 4 : bounds.top - height - 4
+      const top = below >= height ? bounds.bottom + 8 : bounds.top - height - 8
       element.style.left = `${Math.max(8, Math.min(bounds.left, window.innerWidth - width - 8))}px`
       element.style.top = `${Math.max(8, Math.min(top, window.innerHeight - height - 8))}px`
     }
@@ -115,7 +113,6 @@ export function TestCaseHover({ children, projectId, caseId, gameBuildId = null 
         onMouseDown={(event) => event.stopPropagation()}
         onDragStart={(event) => event.stopPropagation()}
         onKeyDown={(event) => event.stopPropagation()}>
-        <button className="tc-hover-close" type="button" aria-label={t.scenarios.tcModal.close} onClick={() => { anchor.focus(); close() }}>✕</button>
         <TestCasePreview key={`${projectId}:${caseId}:${gameBuildId}`} projectId={projectId} caseId={String(caseId)} gameBuildId={gameBuildId} />
       </div>, document.body,
     )}
