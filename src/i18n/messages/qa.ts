@@ -236,6 +236,7 @@ export const qaEn = {
     stateLabels: {
       passed: 'Passed',
       failed: 'Failed',
+      inconclusive: 'Inconclusive',
       running: 'In progress',
       pending: 'Waiting',
       unreported: 'No verdict',
@@ -901,6 +902,7 @@ export const qaKo: Localized<typeof qaEn> = {
     stateLabels: {
       passed: '통과',
       failed: '실패',
+      inconclusive: '판단 불가',
       running: '진행 중',
       pending: '대기',
       unreported: '판정 없음',

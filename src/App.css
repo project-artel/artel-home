@@ -5305,6 +5305,8 @@ button.qa-rail-step--linked:hover{ background:var(--color-bg-hover); }
 .qa-rail-case-verdict--passed, .qa-rail-case-verdict--grade-correct{ color:var(--color-status-success); }
 .qa-rail-case-verdict--failed, .qa-rail-case-verdict--grade-wrong{ color:var(--color-status-critical); }
 .qa-rail-case-verdict--running{ color:var(--color-action-primary); }
+button.qa-rail-case-verdict{ padding:0; border:0; background:none; font-family:inherit; cursor:pointer; }
+.qa-rail-step--inconclusive .qa-rail-step-glyph, .qa-rail-case-verdict--inconclusive{ color:var(--color-status-warning); }
 .qa-console-rail-usage{ flex:none; max-height:50%; overflow-y:auto; border-top:1px solid var(--color-border-subtle); }
 .qa-console-rail-usage .qa-usage-panel{ margin:0; }
 .qa-usage-summary{ display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; padding:10px 14px; cursor:pointer; list-style:none; }
