@@ -1,3 +1,4 @@
+import { useTestCaseLabel } from '../testCases/testCaseIdentifiers'
 import { TestCaseHover } from '../testCases/TestCaseHover'
 import { useMemo, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
@@ -33,6 +34,7 @@ export function FreeScenarioEditor({
   projectId: string
 }) {
   const { t } = useI18n()
+  const caseLabel = useTestCaseLabel()
   const m = t.scenarios.free
   const { working } = editor
   const gameBuildId = build?.gameBuildId ?? gameBuildIdProp
@@ -88,7 +90,7 @@ export function FreeScenarioEditor({
                   <div className="free-case-body">
                     <div className="free-case-head">
                       {showCaseContent && row.testCase !== null && <span className={`vdot ${row.testCase.verificationStatus}`} />}
-                      <TestCaseHover projectId={projectId} caseId={row.caseId} gameBuildId={gameBuildId}><span className="free-case-label">{m.tcLabel(row.caseId)}</span></TestCaseHover>
+                      <TestCaseHover projectId={projectId} caseId={row.caseId} gameBuildId={gameBuildId}><span className="free-case-label">{caseLabel(row.caseId)}</span></TestCaseHover>
                       {showCaseContent && (
                         <span className="free-case-title">
                           {row.testCase === null ? m.missingCase : row.testCase.step || m.missingCase}
@@ -112,7 +114,7 @@ export function FreeScenarioEditor({
                     )}
                   </div>
                   <button
-                    aria-label={`${m.remove}: ${m.tcLabel(row.caseId)}`}
+                    aria-label={`${m.remove}: ${caseLabel(row.caseId)}`}
                     className="iconbtn iconbtn--danger"
                     onClick={() => editor.removeStep(row.index)}
                     title={m.remove}

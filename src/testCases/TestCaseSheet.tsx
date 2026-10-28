@@ -1,3 +1,4 @@
+import { useTestCaseLabel } from './testCaseIdentifiers'
 import { useEffect, useRef } from 'react'
 import type { Messages } from '../i18n/messages'
 import { useI18n } from '../i18n/useI18n'
@@ -46,6 +47,7 @@ export function TestCaseSheet({
   onSaved: (saved: TestCase) => void
 }) {
   const { t } = useI18n()
+  const caseLabel = useTestCaseLabel()
   const m = t.testCases
   const sheetRef = useRef<HTMLElement | null>(null)
 
@@ -72,6 +74,7 @@ export function TestCaseSheet({
       >
         <header className="tcl-sheet-head">
           <div className="tcl-sheet-tags">
+            {testCase && <span className="tc-id">{caseLabel(testCase.id)}</span>}
             {testCase !== null && (
               <>
                 <span className={`vpill ${testCase.verificationStatus}`}>

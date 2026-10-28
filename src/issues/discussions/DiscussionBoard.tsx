@@ -1,3 +1,4 @@
+import { useTestCaseLabel } from '../../testCases/testCaseIdentifiers'
 import { useEffect, useState, type FormEvent } from 'react'
 import { useI18n } from '../../i18n/useI18n'
 import { formatDateTime } from '../../projects/formatters'
@@ -39,6 +40,7 @@ export function DiscussionBoard({
   initialCategoryId?: string | null
 }) {
   const { t } = useI18n()
+  const caseLabel = useTestCaseLabel()
   const text = t.discussions
   const [filter, setFilter] = useState<Filter>('open')
   const [input, setInput] = useState('')
@@ -205,7 +207,7 @@ export function DiscussionBoard({
                       </span>
                     </span>
                     <span className="dc-post-title">{post.title}</span>
-                    <span className="dc-post-excerpt">{plainMarkdown(post.excerpt)}</span>
+                    <span className="dc-post-excerpt">{plainMarkdown(post.excerpt, caseLabel)}</span>
                     <span className="dc-post-meta">
                       <Avatar person={post.author} size="sm" />
                       <span>{post.author.displayName}</span>

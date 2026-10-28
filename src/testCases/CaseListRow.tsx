@@ -1,3 +1,4 @@
+import { useTestCaseLabel } from './testCaseIdentifiers'
 import { TestCaseHover } from './TestCaseHover'
 import { SceneChip } from './SceneChip'
 import { SpecGradeChip } from './SpecGradeChip'
@@ -39,6 +40,7 @@ export function CaseListRow({
   statusLabel: string
   testCase: TestCase
 }) {
+  const caseLabel = useTestCaseLabel()
   return (
     <TestCaseHover projectId={testCase.projectId} caseId={testCase.id} gameBuildId={gameBuildId}><button
       aria-current={selected ? true : undefined}
@@ -51,7 +53,7 @@ export function CaseListRow({
       <span className={`vdot ${testCase.verificationStatus}`} />
       <span className="cp-main">
         <span className="cp-title">{testCase.step.length > 0 ? testCase.step : fallbackTitle}</span>
-        <span className="cp-sub">{statusLabel}</span>
+        <span className="cp-sub"><span className="tc-id">{caseLabel(testCase.id)}</span> · {statusLabel}</span>
       </span>
       {/* Settled grades stay off the rows. A list where every row reads "확정" carries no
           information; the badge earns its space only on the cases that are not settled. */}

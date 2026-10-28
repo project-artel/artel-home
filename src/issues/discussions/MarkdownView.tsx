@@ -1,3 +1,4 @@
+import { useTestCaseLabel } from '../../testCases/testCaseIdentifiers'
 import { TestCaseHover } from '../../testCases/TestCaseHover'
 import { Fragment, type ReactNode } from 'react'
 import { useI18n } from '../../i18n/useI18n'
@@ -123,18 +124,19 @@ function renderInline(parts: MdInline[], mentions: readonly string[]): ReactNode
  * 흐리게 남긴다 — 다른 버전에서 지워졌거나 아직 읽는 중이다.
  */
 function CaseRefChip({ caseId }: { caseId: string }) {
+  const caseLabel = useTestCaseLabel()
   const { t } = useI18n()
   const refs = useCaseRefs()
   const testCase = refs?.cases.get(caseId)
   if (testCase === undefined)
     return (
       <span className="md-tc is-missing" title={t.discussions.caseMissing}>
-        <span className="md-tc-id">TC #{caseId}</span>
+        <span className="md-tc-id">{caseLabel(caseId)}</span>
       </span>
     )
   const body = (
     <>
-      <span className="md-tc-id">TC #{caseId}</span>
+      <span className="md-tc-id">{caseLabel(caseId)}</span>
       <span className="md-tc-scene">{testCase.scene}</span>
       <span className="md-tc-step">{testCase.step}</span>
       <span className={`md-tc-state md-tc-state--${testCase.verificationStatus.toLowerCase()}`}>

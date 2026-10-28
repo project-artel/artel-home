@@ -1,3 +1,4 @@
+import { TestCaseIdentifiersProvider } from '../../testCases/TestCaseIdentifiersProvider'
 import { useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { NotFoundPage } from '../../NotFoundPage'
 import { QaFinishedNotice } from '../../qa/QaFinishedNotice'
@@ -30,7 +31,7 @@ const STUDIO_FULL_RAIL_MIN_PX = 1440
  */
 export function ProjectWorkspaceRoute() {
   const { projectId = '' } = useParams()
-  return <ProjectWorkspace key={projectId} projectId={projectId} />
+  return <TestCaseIdentifiersProvider key={projectId} projectId={projectId}><ProjectWorkspace projectId={projectId} /></TestCaseIdentifiersProvider>
 }
 
 /**

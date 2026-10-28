@@ -227,10 +227,10 @@ export function parseMarkdownInline(text: string): MdInline[] {
 }
 
 /** 목록 줄의 짧은 글(excerpt)을 위해 표시 문자를 걷어낸 글. */
-export function plainMarkdown(source: string): string {
+export function plainMarkdown(source: string, caseLabel: (id: string) => string = () => 'TC-…'): string {
   return source
     .replace(/```[\s\S]*?(```|$)/g, ' ')
-    .replace(/\[\[tc:(\d+)\]\]/g, 'TC #$1')
+    .replace(/\[\[tc:(\d+)\]\]/g, (_, id: string) => caseLabel(id))
     .replace(/^\s{0,3}(#{1,6}|>|[-*+]\s+\[[ xX]\]|[-*+]|\d+[.)])\s+/gm, '')
     .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
     .replace(/(\*\*|__|~~|`)/g, '')

@@ -1,3 +1,4 @@
+import { useTestCaseLabel, useTestCaseIdentifiers } from './testCaseIdentifiers'
 import { TestCaseHover } from './TestCaseHover'
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
@@ -144,6 +145,8 @@ export function TestCaseLibrary({
   projectId: string
 }) {
   const { t, locale } = useI18n()
+  const caseLabel = useTestCaseLabel()
+  const { numbers: caseNumbers } = useTestCaseIdentifiers()
   const m = t.testCases
 
   const contentReviews = useContentReviews(projectId)
@@ -334,7 +337,7 @@ export function TestCaseLibrary({
   // 비교할 때 한쪽 버전에만 있는 줄은 정렬과 상관없이 표 아래로 모은다. 빗금 줄이 표 중간중간에 끼면 두 버전에
   // 다 있는 케이스를 읽다가 끊긴다.
   const shown = useMemo(() => {
-    const sorted = selectTestCases(inFolder, filters, sort)
+    const sorted = selectTestCases(inFolder, filters, sort, caseNumbers)
     // 폴더 안에서는 이 버전에 없는 케이스가 아래로 간다(ARTEL-1024).
     const onlyOneSide = folderView
       ? (testCase: TestCase) => itemById.get(testCase.id)?.inVersion === false
@@ -343,7 +346,7 @@ export function TestCaseLibrary({
         : (testCase: TestCase) => (rowById.get(testCase.id)?.presence ?? 'BOTH') !== 'BOTH'
     if (onlyOneSide === null) return sorted
     return [...sorted.filter((testCase) => !onlyOneSide(testCase)), ...sorted.filter(onlyOneSide)]
-  }, [inFolder, filters, sort, folderView, itemById, compareVersionId, rowById])
+  }, [inFolder, filters, sort, folderView, itemById, compareVersionId, rowById, caseNumbers])
   const tally = useMemo(() => tallyTestCases(inFolder), [inFolder])
   // 선택은 지금 보이는 줄에 묶인다. 필터가 줄을 숨기면 hook 이 그 줄을 선택에서 뺀다.
   const visibleIds = useMemo(() => shown.map((testCase) => testCase.id), [shown])
@@ -1276,6 +1279,7 @@ export function TestCaseLibrary({
                         {/* `td` 를 flex 로 만들면 그 칸만 table-cell 밖으로 나가, 행 배경이
                             나머지 칸과 0.5px 어긋나고 높이도 5.5px 짧아진다. 안에서 편다. */}
                         <span className="tct-step-in">
+                          <span className="tc-id">{caseLabel(testCase.id)}</span>
                           <span className={`vdot ${testCase.verificationStatus}`} />
                           {/* 출처 라벨은 스텝 앞에 둔다. 뒤에 두면 긴 스텝의 말줄임표에 잘린다. */}
                           {testCase.origin !== undefined && (

@@ -1,3 +1,4 @@
+import { useTestCaseLabel } from './testCaseIdentifiers'
 import { useEffect, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { getTestCase } from './testCaseApi'
@@ -10,6 +11,7 @@ export function TestCasePreview({ projectId, caseId, gameBuildId }: {
   gameBuildId: string | null
 }) {
   const { t } = useI18n()
+  const caseLabel = useTestCaseLabel()
   const labels = t.scenarios.tcModal
   const [testCase, setTestCase] = useState<TestCase | null>(null)
   const [failed, setFailed] = useState(false)
@@ -26,6 +28,7 @@ export function TestCasePreview({ projectId, caseId, gameBuildId }: {
   if (testCase === null) return <p className="tc-hover-note" role="status">{labels.loading}</p>
 
   return <>
+    <p className="tc-id">{caseLabel(testCase.id)}</p>
     <p className="tc-hover-step">{testCase.step || '—'}</p>
     <dl className="tc-hover-fields">
       <div>

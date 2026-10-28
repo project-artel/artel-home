@@ -1,3 +1,4 @@
+import { useTestCaseLabel } from '../testCases/testCaseIdentifiers'
 import { TestCaseHover } from '../testCases/TestCaseHover'
 import { useI18n } from '../i18n/useI18n'
 import type { VerificationStatus } from '../testCases/testCaseTypes'
@@ -80,6 +81,7 @@ export function QaScenarioSteps({
   scenarioSteps: ScenarioStep[]
 }) {
   const { t } = useI18n()
+  const caseLabel = useTestCaseLabel()
   const s = t.qa.steps
   const isFree = executionMode === 'FREE'
   // The case list is read only for a FREE scenario, whose rows have no text of their own
@@ -114,8 +116,10 @@ export function QaScenarioSteps({
       : [{ caseId: null, caseNumber: 0, rows }]
 
   function renderRow(row: StepRow) {
-    const title = row.title.length > 0 ? row.title : isFree ? s.caseLabel(row.step) : s.untitled(row.step)
-    const numberLabel = isFree ? s.caseLabel(row.step) : String(row.step)
+    const caseId = scenarioSteps[row.step - 1]?.case_id
+    const identifier = caseId == null ? null : caseLabel(caseId)
+    const title = row.title.length > 0 ? row.title : isFree && identifier ? identifier : s.untitled(row.step)
+    const numberLabel = isFree && identifier ? identifier : String(row.step)
     // TC 판정이 참고 절차 각각의 완료나 진행 위치를 뜻하지는 않는다.
     const step = !isFree && hasCaseReports && row.progress !== null
       && !['passed', 'failed', 'inconclusive'].includes(row.progress.state) ? null : row.progress
@@ -190,14 +194,14 @@ export function QaScenarioSteps({
           const state = report?.state ?? last?.state
           const grade = report === undefined ? last?.grade ?? null : null
           const logId = report?.logId ?? last?.verdictLogId
-          const label = state === undefined ? null : `${s.caseLabel(block.caseNumber)} · ${s.stateLabels[state]}`
+          const label = state === undefined ? null : `${caseLabel(block.caseId)} · ${s.stateLabels[state]}`
           const verdict = state === undefined ? null : (
             <><span aria-hidden="true">{STATE_GLYPHS[state]}</span>{s.stateLabels[state]}</>
           )
           return (
             <li key={`case-${blockIndex}`} className="qa-rail-case">
               <div className="qa-rail-case-head">
-                <TestCaseHover projectId={projectId} caseId={block.caseId} gameBuildId={gameBuildId}><span className="qa-rail-case-no">{s.caseLabel(block.caseNumber)}</span></TestCaseHover>
+                <TestCaseHover projectId={projectId} caseId={block.caseId} gameBuildId={gameBuildId}><span className="qa-rail-case-no">{caseLabel(block.caseId)}</span></TestCaseHover>
                 {caseVerdicts.has(String(block.caseId)) && (
                   <SavedVerdict status={caseVerdicts.get(String(block.caseId)) as VerificationStatus} />
                 )}

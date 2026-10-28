@@ -1,3 +1,4 @@
+import { useTestCaseLabel } from './testCaseIdentifiers'
 import { EditorBadge } from '../projects/EditorBadge'
 import { useEffect, useId, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
@@ -14,6 +15,7 @@ export function TestCaseDetails({ projectId, caseId, gameBuildId = null }: {
   gameBuildId?: string | null
 }) {
   const { t } = useI18n()
+  const caseLabel = useTestCaseLabel()
   const m = t.scenarios.tcModal
   const titleId = useId()
   const statusLabel = t.scenarios.composition.status
@@ -43,6 +45,7 @@ export function TestCaseDetails({ projectId, caseId, gameBuildId = null }: {
           <div className="tc-modal-body">
             <h3 id={titleId} className="tc-modal-title">{testCase.step || m.untitled}</h3>
             <div className="tc-modal-tags">
+              <span className="tc-id">{caseLabel(testCase.id)}</span>
               <SceneChip scene={testCase.scene} />
               <span className={`vpill ${testCase.verificationStatus}`}>
                 <span className={`vdot ${testCase.verificationStatus}`} />{statusLabel[testCase.verificationStatus]}

@@ -1,3 +1,4 @@
+import { TestCaseIdentifiersContext } from '../../testCases/testCaseIdentifiers'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createElement } from 'react'
@@ -14,9 +15,9 @@ function attempt(id: string, testCaseId: string, time: number): Attempt {
     caseSnapshot: { scene: null, precondition: null, step: `절차 ${testCaseId}`, expected: null } }
 }
 function render(options: Attempt[], current: Attempt) {
-  return renderToStaticMarkup(createElement(CaseAttemptPicker, {
+  return renderToStaticMarkup(createElement(TestCaseIdentifiersContext.Provider, { value: { projectId: '1', numbers: new Map(options.map(row => [row.testCaseId, row.testCaseId])) } }, createElement(CaseAttemptPicker, {
     id: 'picker', options, current, onSelect: () => {}, copy: evaluationCopy.ko,
-  }))
+  })))
 }
 
 test('TC를 중복 없이 자연수 순으로 표시하고 오래된 직접 링크보다 최신 시도를 우선한다', () => {
@@ -45,7 +46,7 @@ test('오래된 시도를 검토 중이면 선택 TC의 판정도 그 시도와 
   const old = { ...attempt('old', '2', 0), verdict: 'FAILED' as const, review: 'PASSED' as const }
   const latest = attempt('new', '2', 10)
   const html = render([old, latest], old)
-  assert.match(html, /aria-label="TC 2 · 실패 → 통과"/)
+  assert.match(html, /aria-label="TC-002 · 실패 → 통과"/)
   assert.match(html, /qe-case-glyph--FAILED/)
   assert.equal((html.match(/role="tab"/g) ?? []).length, 1)
 })

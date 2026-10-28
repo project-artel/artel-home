@@ -1,3 +1,4 @@
+import { useTestCaseLabel, useTestCaseIdentifiers } from '../../testCases/testCaseIdentifiers'
 import { useEffect, useRef } from 'react'
 import { shortWhen } from '../history/historyModel'
 import type { Attempt } from './evaluationApi'
@@ -13,8 +14,10 @@ function outcome(row: Attempt, copy: Copy) {
 export function CaseAttemptPicker({ id, options, current, onSelect, copy }: {
   id: string; options: Attempt[]; current: Attempt; onSelect: (id: string) => void; copy: Copy
 }) {
+  const caseLabel = useTestCaseLabel()
+  const { numbers } = useTestCaseIdentifiers()
   const rail = useRef<HTMLDivElement>(null)
-  const groups = groupCaseAttempts(options)
+  const groups = groupCaseAttempts(options, numbers)
   const attempts = groups.find(([caseId]) => caseId === current.testCaseId)?.[1] ?? []
   const caseIds = groups.map(([caseId]) => caseId).join(':')
 
@@ -44,12 +47,12 @@ export function CaseAttemptPicker({ id, options, current, onSelect, copy }: {
       {groups.map(([caseId, rows]) => {
         const selected = caseId === current.testCaseId
         const row = selected ? current : rows[0]
-        const label = `TC ${caseId} · ${outcome(row, copy)}`
+        const label = `${caseLabel(caseId)} · ${outcome(row, copy)}`
         return <button type="button" role="tab" key={caseId} id={`${id}-case-${caseId}`} aria-controls={`${id}-panel`}
           aria-selected={selected} tabIndex={selected ? 0 : -1} aria-label={label}
           className="qe-case-tab" title={row.caseSnapshot?.step ?? label}
           onClick={() => { if (!selected) onSelect(rows[0].id) }}>
-          <span className="qe-case-tab-head"><span className="mono">TC {caseId}</span>
+          <span className="qe-case-tab-head"><span className="mono">{caseLabel(caseId)}</span>
             <span aria-hidden="true" className={`qe-case-glyph qe-case-glyph--${row.verdict ?? 'running'}`}>
               {row.verdict === 'PASSED' ? '✓' : row.verdict === 'FAILED' ? '✕' : row.verdict === null ? '◐' : '?'}
             </span>

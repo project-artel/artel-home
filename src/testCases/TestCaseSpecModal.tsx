@@ -1,3 +1,4 @@
+import { useTestCaseLabel } from './testCaseIdentifiers'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { CaseListRow } from './CaseListRow'
@@ -41,6 +42,7 @@ export function TestCaseSpecModal({
   scope?: string
 }) {
   const { t } = useI18n()
+  const caseLabel = useTestCaseLabel()
   const p = t.scenarios.palette
   const statusLabel = t.scenarios.composition.status
 
@@ -74,10 +76,10 @@ export function TestCaseSpecModal({
           (scene === '' || testCase.scene === scene) &&
           // 명세 글은 이름을 백틱으로 감싼다. 쳐 넣는 사람은 백틱을 치지 않으니 빼고 맞춘다.
           (q === '' ||
-            [testCase.step, testCase.scene, testCase.precondition ?? '', testCase.expectedValue]
+            [caseLabel(testCase.id), testCase.id, testCase.step, testCase.scene, testCase.precondition ?? '', testCase.expectedValue]
               .some((part) => part.replace(/`/g, '').toLowerCase().includes(q))),
       ),
-    [cases, status, scene, q],
+    [cases, status, scene, q, caseLabel],
   )
 
   const nav = useCaseListNav(shown.length)
@@ -132,7 +134,7 @@ export function TestCaseSpecModal({
                   <CaseListRow
                     gameBuildId={gameBuildId}
                     active={index === active}
-                    fallbackTitle={`TC ${index + 1}`}
+                    fallbackTitle={caseLabel(testCase.id)}
                     index={index}
                     key={testCase.id}
                     onClick={() => (onPick !== undefined ? onPick(testCase) : setActive(index))}
@@ -154,9 +156,10 @@ export function TestCaseSpecModal({
                   <>
                     <div className="cp-info-head">
                       <span className={`vdot ${info.verificationStatus}`} />
-                      <span className="cp-info-title">{info.step.length > 0 ? info.step : `TC ${active + 1}`}</span>
+                      <span className="cp-info-title">{info.step.length > 0 ? info.step : caseLabel(info.id)}</span>
                     </div>
                     <div className="cp-info-tags">
+                      <span className="tc-id">{caseLabel(info.id)}</span>
                       <SceneChip scene={info.scene} />
                       <span className={`vpill ${info.verificationStatus}`}><span className={`vdot ${info.verificationStatus}`} />{statusLabel[info.verificationStatus]}</span>
                       {/* Always here, settled or not — the pane is the answer to

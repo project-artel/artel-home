@@ -1,3 +1,4 @@
+import { useTestCaseLabel } from '../../testCases/testCaseIdentifiers'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
@@ -9,6 +10,7 @@ import './evaluation.css'
 
 export function CaseIssueHistoryPanel({ projectId, issueId }: { projectId: string; issueId: string }) {
   const { locale } = useI18n()
+  const caseLabel = useTestCaseLabel()
   const copy = evaluationCopy[locale === 'ko' ? 'ko' : 'en']
   const [data, setData] = useState<CaseIssueHistory | null>(null)
   const [error, setError] = useState(false)
@@ -28,7 +30,7 @@ export function CaseIssueHistoryPanel({ projectId, issueId }: { projectId: strin
     <div className="qe-head">
       <h3>{copy.occurrences}</h3>
       <nav className="qe-links" aria-label={copy.occurrences}>
-        <Link className="button button--secondary button--compact" to={`/projects/${encodeURIComponent(projectId)}/test-cases?case=${encodeURIComponent(data.testCaseId)}`}>{copy.testcase} #{data.testCaseId}</Link>
+        <Link className="button button--secondary button--compact" to={`/projects/${encodeURIComponent(projectId)}/test-cases?case=${encodeURIComponent(data.testCaseId)}`}>{caseLabel(data.testCaseId)} · {copy.testcase}</Link>
         {data.previousIssueId && <Link className="button button--secondary button--compact" to={issueLink(data.previousIssueId)}>{copy.previousIssue} #{data.previousIssueId}</Link>}
         {data.mergedInto && <Link className="button button--secondary button--compact" to={issueLink(data.mergedInto)}>{copy.mergedIssue} #{data.mergedInto}</Link>}
       </nav>

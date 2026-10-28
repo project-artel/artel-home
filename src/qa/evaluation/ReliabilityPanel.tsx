@@ -1,3 +1,4 @@
+import { useTestCaseLabel } from '../../testCases/testCaseIdentifiers'
 import { useEffect, useState } from 'react'
 import { useI18n } from '../../i18n/useI18n'
 import { reliability, type Counts, type Reliability } from './evaluationApi'
@@ -9,6 +10,7 @@ const percentage = (value: number | null, digits = 1) => value === null ? '—' 
 
 export function ReliabilityPanel({ projectId }: { projectId: string }) {
   const { locale } = useI18n()
+  const caseLabel = useTestCaseLabel()
   const copy = evaluationCopy[locale === 'ko' ? 'ko' : 'en']
   const [from, setFrom] = useState(() => reliabilityDate(-30))
   const [to, setTo] = useState(() => reliabilityDate(0))
@@ -28,11 +30,11 @@ export function ReliabilityPanel({ projectId }: { projectId: string }) {
     <td>{rate(counts.falsePositiveRate, counts.falsePositives, counts.falsePositives + counts.trueNegatives)}</td>
     <td>{rate(counts.falseNegativeRate, counts.falseNegatives, counts.falseNegatives + counts.truePositives)}</td>
   </>
-  const table = (title: string, first: string, rows: { key: string; counts: Counts }[]) => <div className="qe-table">
+  const table = (title: string, first: string, rows: { key: string; label?: string; counts: Counts }[]) => <div className="qe-table">
     <h4>{title}</h4>
     <div className="qe-table-scroll"><table>
       <thead><tr><th scope="col">{first}</th><th scope="col">{copy.total}</th><th scope="col">{copy.reviewed}</th><th scope="col">{copy.coverage}</th><th scope="col">{copy.fp}</th><th scope="col">{copy.fn}</th></tr></thead>
-      <tbody>{rows.map(row => <tr key={row.key}><td>{row.key}</td>{cells(row.counts)}</tr>)}</tbody>
+      <tbody>{rows.map(row => <tr key={row.key}><td>{row.label ?? row.key}</td>{cells(row.counts)}</tr>)}</tbody>
     </table></div>
   </div>
   const overall = data?.overall
@@ -59,7 +61,7 @@ export function ReliabilityPanel({ projectId }: { projectId: string }) {
         <p className="qe-hint">{copy.bias} · {copy.inconclusive} {data.overall.inconclusiveReviews} · {copy.interrupted} {data.overall.interruptedFalseNegatives}</p>
         <div className="qe-tables">
           {table(copy.trend, copy.date, data.daily)}
-          {table(copy.cases, copy.case, data.cases.map(row => ({ ...row, key: `TC ${row.key}` })))}
+          {table(copy.cases, copy.case, data.cases.map(row => ({ ...row, label: caseLabel(row.key) })))}
         </div>
       </>}
     </div>

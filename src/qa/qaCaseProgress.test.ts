@@ -1,3 +1,4 @@
+import { TestCaseIdentifiersContext } from '../testCases/testCaseIdentifiers'
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { createElement } from 'react'
@@ -28,9 +29,9 @@ function progress(logs: QaLog[], executionMode: ExecutionMode = 'FREE', terminal
 function render(logs: QaLog[], executionMode: ExecutionMode = 'FREE', scenarioSteps = steps) {
   return renderToStaticMarkup(createElement(LocaleContext.Provider, {
     value: { locale: 'ko', setLocale: () => {}, t: messages.ko },
-  }, createElement(QaScenarioSteps, { projectId: '1', scenarioSteps, executionMode,
+  }, createElement(TestCaseIdentifiersContext.Provider, { value: { projectId: '1', numbers: new Map([1,2,3,4,5].map(n => [String(n), String(n)])) } }, createElement(QaScenarioSteps, { projectId: '1', scenarioSteps, executionMode,
     progress: deriveQaProgress({ scenarioSteps, logs, executionMode, status: 'RUNNING', historyComplete: false }),
-    caseReports: deriveQaCaseReports(logs), onJump: () => {} })))
+    caseReports: deriveQaCaseReports(logs), onJump: () => {} }))))
 }
 
 test('TC 판정이 도착한 순서와 무관하게 해당 TC에 표시된다', () => {
@@ -92,7 +93,7 @@ test('ORDERED의 TC 머리에는 판정을 표시하고 참고 절차를 완료 
   const html = render(reports, 'ORDERED')
   assert.equal((html.match(/qa-rail-case-verdict--passed/g) ?? []).length, 4)
   assert.match(html, /qa-rail-case-verdict--inconclusive/)
-  assert.match(html, /aria-label="TC 1 · /)
+  assert.match(html, /aria-label="TC-001 · /)
   assert.equal((html.match(/qa-rail-step--neutral/g) ?? []).length, 5)
   assert.doesNotMatch(html, /qa-rail-step--passed/)
 })

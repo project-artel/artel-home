@@ -9,7 +9,7 @@ import { VerdictPill } from './VerdictPill'
 import { ContentReviewBadge } from './ContentReviewPanel'
 import { contentReviews, getAttempt, issueHistory, type Attempt, type ContentReview } from './evaluationApi'
 import { evaluationCopy } from './evaluationCopy'
-import { contentReviewVideoPath } from './contentReviewModel'
+import { contentReviewVideoPath, revalidationRunName } from './contentReviewModel'
 
 const row: ContentReview = { testCaseId: '4', state: 'NEEDS_REVISION', note: '피해 비교 기준이 없습니다.',
   logId: '8', attemptId: 'attempt-4', qaTryId: '6', qaRunId: '6', updatedAt: '2026-10-28T00:00:00Z', revisedAt: null, resolvedAt: null }
@@ -58,4 +58,9 @@ test('TC 내용 문제로 바뀐 실패도 issue 이력을 읽을 수 있다', a
   const history = await issueHistory('1', '2')
   assert.equal(history.occurrences[0].review, 'TC_CONTENT_ISSUE')
   assert.equal(history.occurrences[0].validFailure, false)
+})
+
+test('프로젝트 번호를 모르는 TC의 재검증 이름에 placeholder를 저장하지 않는다', () => {
+  assert.equal(revalidationRunName('42', new Map(), '재검증'), null)
+  assert.equal(revalidationRunName('42', new Map([['42', '1']]), '재검증'), 'TC-001 · 재검증')
 })
