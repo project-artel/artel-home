@@ -1,11 +1,46 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { clipGaps, clipSegments, evidenceExpired } from './videoEvidence'
+import { clipDuration, clipElapsed, clipGaps, clipSeek, clipSegments, clipTimeLabel, evidenceExpired } from './videoEvidence'
 import type { Attempt, Playback, Segment } from './evaluationApi'
 
 const at = (seconds: number) => new Date(Date.UTC(2026, 9, 27, 0, 0, seconds)).toISOString()
 const attempt: Attempt = { id: 'attempt', qaTryId: '1', testCaseId: '42', startedAt: at(55), finishedAt: at(65), createdAt: at(55), verdict: 'PASSED', logId: '1', review: null, note: null }
 const segment = (id: string, from: number, to: number, state = 'READY'): Segment => ({ id, startedAt: at(from), endedAt: at(to), state, url: 'https://example.test/video' })
+
+test('TC 진행도는 원본 segment offset 대신 첫 재생 frame부터 0으로 표시한다', () => {
+  const clips = clipSegments(attempt, [segment('a', 0, 60), segment('b', 60, 120)])
+  assert.equal(clipDuration(clips), 25)
+  assert.equal(clipElapsed(clips, 'a', 45), 0)
+  assert.equal(clipElapsed(clips, 'a', 50), 5)
+  assert.equal(clipElapsed(clips, 'b', 3), 18)
+  assert.deepEqual(clipSeek(clips, 0), { id: 'a', time: 45 })
+  assert.deepEqual(clipSeek(clips, 15), { id: 'b', time: 0 })
+  assert.deepEqual(clipSeek(clips, 25), { id: 'b', time: 10 })
+  assert.deepEqual(clipSeek(clips, 100), { id: 'b', time: 10 })
+  assert.deepEqual(clipSeek(clips, -1), { id: 'a', time: 45 })
+})
+
+test('TC 전환 시 같은 segment라도 각 TC 시작을 상대 시간 0으로 계산한다', () => {
+  const source = [segment('shared', 0, 120)]
+  const first = clipSegments(attempt, source)
+  const second = clipSegments({ ...attempt, id: 'other', startedAt: at(85), finishedAt: at(95) }, source)
+  assert.deepEqual(clipSeek(first, 0), { id: 'shared', time: 45 })
+  assert.deepEqual(clipSeek(second, 0), { id: 'shared', time: 75 })
+  assert.equal(clipElapsed(second, 'shared', 75), 0)
+})
+
+test('누락 구간은 진행도 길이에서 제외하고 정확한 경계는 다음 영상으로 이동한다', () => {
+  const clips = clipSegments(attempt, [segment('a', 48, 50), segment('b', 60, 67)])
+  assert.equal(clipDuration(clips), 9)
+  assert.deepEqual(clipSeek(clips, 2), { id: 'b', time: 0 })
+  assert.equal(clipElapsed(clips, 'b', 0), 2)
+  assert.equal(clipElapsed(clips, 'a', -5), 0)
+  assert.equal(clipElapsed(clips, 'b', 100), 9)
+  assert.equal(clipSeek([], 0), null)
+  assert.equal(clipDuration([]), 0)
+  assert.equal(clipTimeLabel(0), '0:00')
+  assert.equal(clipTimeLabel(65.8), '1:05')
+})
 
 test('TC 시작 10초 전부터 보고 5초 후까지 segment 경계에서 자른다', () => {
   const result = clipSegments(attempt, [segment('a', 0, 60), segment('b', 60, 120)])

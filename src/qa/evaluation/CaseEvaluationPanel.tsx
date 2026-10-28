@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
 import { shortWhen } from '../history/historyModel'
@@ -7,6 +7,7 @@ import { evaluationCopy } from './evaluationCopy'
 import { VerdictPill } from './VerdictPill'
 import { clipGaps, clipSegments, evidenceExpired } from './videoEvidence'
 import { useProjectChange } from '../../live/useProjectChange'
+import { EvidencePlayer } from './EvidencePlayer'
 import './evaluation.css'
 
 const REVIEW_CHOICES = ['PASSED', 'FAILED', 'INCONCLUSIVE'] as const
@@ -116,7 +117,7 @@ function AttemptReview({ attempt, projectId, onSaved }: { attempt: api.Attempt; 
     <div className="qe-grid">
       <div className="qe-media">
         {!attempt.startedAt && <p className="qe-notice">{copy.unknownStart}</p>}
-        {video && <VideoEvidence key={video.recording?.id ?? 'none'} attempt={attempt} playback={video} />}
+        {video && <VideoEvidence key={`${attempt.id}:${video.recording?.id ?? 'none'}`} attempt={attempt} playback={video} />}
       </div>
       <div className="qe-info">
         <div className="qe-section">
@@ -189,13 +190,8 @@ function VideoEvidence({ attempt, playback }: { attempt: api.Attempt; playback: 
   const { locale } = useI18n()
   const copy = evaluationCopy[locale === 'ko' ? 'ko' : 'en']
   const segments = clipSegments(attempt, playback.segments)
-  const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null)
-  const continuePlaying = useRef(false)
-  const position = useRef<{ id: string; time: number; playing: boolean } | null>(null)
   const [now, setNow] = useState(Date.now)
   useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(timer) }, [])
-  const index = Math.max(0, segments.findIndex(segment => segment.id === selectedSegmentId))
-  const current = segments[index]
   const expired = evidenceExpired(attempt, playback, now)
   const clipStart = Date.parse(attempt.startedAt ?? attempt.finishedAt ?? attempt.createdAt) - 10000
   const clipEnd = attempt.finishedAt ? Date.parse(attempt.finishedAt) + 5000 : Infinity
@@ -204,24 +200,8 @@ function VideoEvidence({ attempt, playback }: { attempt: api.Attempt; playback: 
     segments.some((segment, position) => position > 0 && Date.parse(segment.startedAt) - Date.parse(segments[position - 1].endedAt) > 1000)
   const time = (value: string) => new Date(value).toLocaleTimeString(undefined, { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
   return <section className="qe-media" aria-label={copy.video}>
-    {expired ? <p className="qe-notice">{copy.expired}</p> : current ? <>
-      <video key={current.id} controls preload="metadata" playsInline src={current.url!} aria-label={copy.video}
-        onLoadedMetadata={event => {
-          const saved = position.current?.id === current.id ? position.current : null
-          event.currentTarget.currentTime = Math.min(current.to, Math.max(current.from, saved?.time ?? current.from))
-          if (continuePlaying.current || saved?.playing) { continuePlaying.current = false; void event.currentTarget.play().catch(() => {}) }
-        }}
-        onSeeking={event => { const video = event.currentTarget; if (video.currentTime < current.from) video.currentTime = current.from; else if (video.currentTime > current.to) video.currentTime = current.to }}
-        onTimeUpdate={event => { const video = event.currentTarget; if (video.readyState > 0) position.current = { id: current.id, time: video.currentTime, playing: !video.paused }; if (video.currentTime >= current.to) { const wasPlaying = !video.paused; video.pause(); if (index + 1 < segments.length) { continuePlaying.current = wasPlaying; setSelectedSegmentId(segments[index + 1].id) } } }}
-        onEnded={() => { if (index + 1 < segments.length) { continuePlaying.current = true; setSelectedSegmentId(segments[index + 1].id) } }} />
-      <div className="qe-media-bar">
-        <span className="mono">{shortWhen(current.startedAt)}</span>
-        <span>{index + 1} / {segments.length} {copy.segment}</span>
-        {segments.length > 1 && <select className="qe-select" aria-label={copy.next} value={current.id} onChange={event => setSelectedSegmentId(event.target.value)}>
-          {segments.map(segment => <option key={segment.id} value={segment.id}>{time(segment.startedAt)}</option>)}
-        </select>}
-      </div>
-    </> : <p className="qe-notice">{copy.unavailable}</p>}
+    {expired ? <p className="qe-notice">{copy.expired}</p> : segments.length > 0
+      ? <EvidencePlayer clips={segments} copy={copy} /> : <p className="qe-notice">{copy.unavailable}</p>}
     {playback.recording?.error && <p className="qe-notice qe-notice--error" role="status">{playback.recording.error}</p>}
     {missing && <div className="qe-notice" role="status">
       <span>{copy.gap}</span>
