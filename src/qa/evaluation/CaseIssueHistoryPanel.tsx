@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
+import { shortWhen } from '../history/historyModel'
 import { issueHistory, type CaseIssueHistory } from './evaluationApi'
 import { evaluationCopy } from './evaluationCopy'
+import { VerdictPill } from './VerdictPill'
+import './evaluation.css'
 
 export function CaseIssueHistoryPanel({ projectId, issueId }: { projectId: string; issueId: string }) {
   const { locale } = useI18n()
@@ -18,23 +21,32 @@ export function CaseIssueHistoryPanel({ projectId, issueId }: { projectId: strin
       .catch(() => { if (!controller.signal.aborted) setError(true) })
     return () => controller.abort()
   }, [projectId, issueId, retry])
-  if (error) return <p role="alert">{copy.error} <button className="button button--secondary" onClick={() => setRetry(value => value + 1)}>{copy.retry}</button></p>
+  if (error) return <p className="qe-status" role="alert">{copy.error} <button className="button button--secondary button--compact" onClick={() => setRetry(value => value + 1)} type="button">{copy.retry}</button></p>
   if (!data?.testCaseId) return null
   const issueLink = (id: string) => `/projects/${encodeURIComponent(projectId)}/issues?issue=${encodeURIComponent(id)}`
-  return <section className="qe-panel">
-    <h3>{copy.occurrences}</h3>
-    <nav className="qe-links">
-      <Link to={`/projects/${encodeURIComponent(projectId)}/test-cases?case=${encodeURIComponent(data.testCaseId)}`}>{copy.testcase} #{data.testCaseId}</Link>
-      {data.previousIssueId && <Link to={issueLink(data.previousIssueId)}>{copy.previousIssue} #{data.previousIssueId}</Link>}
-      {data.mergedInto && <Link to={issueLink(data.mergedInto)}>{copy.mergedIssue} #{data.mergedInto}</Link>}
-    </nav>
-    {data.autoClosed && <p>{copy.autoClosed}</p>}
-    <ol>{data.occurrences.map(item => <li key={item.attemptId}>
-      <p>{item.finishedAt ? new Date(item.finishedAt).toLocaleString() : '—'} · {item.falsePositive ? copy.falsePositive : item.validFailure ? copy.FAILED : copy.INCONCLUSIVE}</p>
-      <p>{copy.original}: {item.verdict ? copy[item.verdict] : '—'} · {copy.actual}: {item.review ? copy[item.review] : copy.unreviewed}</p>
-      {item.qaRunId ? <Link to={`/projects/${encodeURIComponent(projectId)}/qa-history/${encodeURIComponent(item.qaRunId)}?scenario=${encodeURIComponent(item.qaTryId)}&attempt=${encodeURIComponent(item.attemptId)}`}>{copy.qa} #{item.qaTryId}</Link> : <span>{copy.qa} #{item.qaTryId}</span>}
+  return <section className="qe-panel" aria-label={copy.occurrences}>
+    <div className="qe-head">
+      <h3>{copy.occurrences}</h3>
+      <nav className="qe-links" aria-label={copy.occurrences}>
+        <Link className="button button--secondary button--compact" to={`/projects/${encodeURIComponent(projectId)}/test-cases?case=${encodeURIComponent(data.testCaseId)}`}>{copy.testcase} #{data.testCaseId}</Link>
+        {data.previousIssueId && <Link className="button button--secondary button--compact" to={issueLink(data.previousIssueId)}>{copy.previousIssue} #{data.previousIssueId}</Link>}
+        {data.mergedInto && <Link className="button button--secondary button--compact" to={issueLink(data.mergedInto)}>{copy.mergedIssue} #{data.mergedInto}</Link>}
+      </nav>
+    </div>
+    {data.autoClosed && <p className="qe-status">{copy.autoClosed}</p>}
+    <ol className="qe-occ">{data.occurrences.map(item => <li key={item.attemptId}>
+      <span className="qe-meta mono">{item.finishedAt ? shortWhen(item.finishedAt) : '—'}</span>
+      <span className="qe-verdict-row">
+        <span className="qe-kicker">{copy.original}</span><VerdictPill verdict={item.verdict} copy={copy} empty="running" />
+        <span className="qe-arrow" aria-hidden="true">›</span>
+        <span className="qe-kicker">{copy.human}</span><VerdictPill verdict={item.review} copy={copy} empty="unreviewed" />
+        <span className="qe-meta">{item.falsePositive ? copy.falsePositive : item.validFailure ? copy.validFailure : copy.INCONCLUSIVE}</span>
+      </span>
+      {item.qaRunId
+        ? <Link className="table-link" to={`/projects/${encodeURIComponent(projectId)}/qa-history/${encodeURIComponent(item.qaRunId)}?scenario=${encodeURIComponent(item.qaTryId)}&attempt=${encodeURIComponent(item.attemptId)}`}>{copy.qa} #{item.qaTryId}</Link>
+        : <span className="table-link table-link--muted">{copy.qa} #{item.qaTryId}</span>}
     </li>)}</ol>
-    {more && <button className="button button--secondary" onClick={() => {
+    {more && <button className="button button--secondary button--compact qe-more" type="button" onClick={() => {
       const before = data.occurrences.at(-1)?.logId
       if (!before) return
       void issueHistory(projectId, issueId, undefined, before).then(next => { setData(previous => previous && { ...previous, occurrences: [...previous.occurrences, ...next.occurrences] }); setMore(next.occurrences.length === 100) }).catch(() => setError(true))

@@ -1,11 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
+import { shortWhen } from '../history/historyModel'
 import * as api from './evaluationApi'
 import { evaluationCopy } from './evaluationCopy'
+import { VerdictPill } from './VerdictPill'
 import { clipGaps, clipSegments, evidenceExpired } from './videoEvidence'
 import { useProjectChange } from '../../live/useProjectChange'
 import './evaluation.css'
+
+const REVIEW_CHOICES = ['PASSED', 'FAILED', 'INCONCLUSIVE'] as const
 
 export function CaseEvaluationPanel({ projectId, qaTryId, testCaseId }: { projectId: string; qaTryId?: string; testCaseId?: string }) {
   return <AttemptList key={`${projectId}:${qaTryId ?? ''}:${testCaseId ?? ''}`} projectId={projectId} qaTryId={qaTryId} testCaseId={testCaseId} />
@@ -15,6 +19,7 @@ function AttemptList({ projectId, qaTryId, testCaseId }: { projectId: string; qa
   const [params] = useSearchParams()
   const { locale } = useI18n()
   const copy = evaluationCopy[locale === 'ko' ? 'ko' : 'en']
+  const pickId = useId()
   const [rows, setRows] = useState<api.Attempt[]>([])
   const [selected, setSelected] = useState<string | null>(() => params.get('attempt'))
   const [linkedAttempt, setLinkedAttempt] = useState<api.Attempt | null>(null)
@@ -45,16 +50,23 @@ function AttemptList({ projectId, qaTryId, testCaseId }: { projectId: string; qa
   }, [projectId, selected, qaTryId, testCaseId])
   const options = linkedAttempt && !rows.some(row => row.id === linkedAttempt.id) ? [linkedAttempt, ...rows] : rows
   const current = options.find(row => row.id === selected) ?? rows[0]
+  const optionLabel = (row: api.Attempt) =>
+    `${shortWhen(row.startedAt ?? row.createdAt)} · TC ${row.testCaseId} · ${row.verdict ? copy[row.verdict] : copy.running} → ${row.review ? copy[row.review] : copy.unreviewed}`
   return <section className="qe-panel" aria-label={copy.title}>
-    <h3>{copy.title}</h3>
-    {loading && <p role="status">{copy.loading}</p>}
-    {error && <p role="alert">{copy.error} <button className="button button--secondary" onClick={() => void load()}>{copy.retry}</button></p>}
-    {!loading && !rows.length && <p>{copy.empty}</p>}
-    {options.length > 0 && <select aria-label={copy.title} value={current?.id} onChange={event => setSelected(event.target.value)}>
-      {options.map(row => <option key={row.id} value={row.id}>TC {row.testCaseId} · {new Date(row.startedAt ?? row.createdAt).toLocaleString()} · {row.verdict ? copy[row.verdict] : copy.running} · {row.review ? copy[row.review] : copy.unreviewed}</option>)}
-    </select>}
+    <div className="qe-head">
+      <h3>{copy.title}</h3>
+      {options.length > 0 && <div className="qe-attempt-pick">
+        <label htmlFor={pickId}>{copy.attempt}</label>
+        <select className="qe-select" id={pickId} value={current?.id} onChange={event => setSelected(event.target.value)}>
+          {options.map(row => <option key={row.id} value={row.id}>{optionLabel(row)}</option>)}
+        </select>
+      </div>}
+    </div>
+    {loading && <p className="qe-status" role="status">{copy.loading}</p>}
+    {error && <p className="qe-status" role="alert">{copy.error} <button className="button button--secondary button--compact" onClick={() => void load()} type="button">{copy.retry}</button></p>}
+    {!loading && !rows.length && <p className="qe-status">{copy.empty}</p>}
     {current && <AttemptReview key={current.id} attempt={current} projectId={projectId} onSaved={() => void load()} />}
-    {hasMore && rows.length > 0 && <button className="button button--secondary" onClick={() => {
+    {hasMore && rows.length > 0 && <button className="button button--secondary button--compact qe-more" type="button" onClick={() => {
       void api.attempts(projectId, { qaTryId, testCaseId, before: rows[rows.length - 1].createdAt, beforeId: rows[rows.length - 1].id })
         .then(next => { setRows(previous => [...previous, ...next.filter(row => !previous.some(existing => existing.id === row.id))]); setHasMore(next.length === 100) }).catch(() => setError(true))
     }}>{copy.more}</button>}
@@ -64,7 +76,8 @@ function AttemptList({ projectId, qaTryId, testCaseId }: { projectId: string; qa
 function AttemptReview({ attempt, projectId, onSaved }: { attempt: api.Attempt; projectId: string; onSaved: () => void }) {
   const { locale } = useI18n()
   const copy = evaluationCopy[locale === 'ko' ? 'ko' : 'en']
-  const [decision, setDecision] = useState(attempt.review ?? 'INCONCLUSIVE')
+  const actualId = useId()
+  const [decision, setDecision] = useState<api.Verdict>(attempt.review ?? 'INCONCLUSIVE')
   const [note, setNote] = useState(attempt.note ?? '')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
@@ -78,39 +91,98 @@ function AttemptReview({ attempt, projectId, onSaved }: { attempt: api.Attempt; 
     if (attempt.logId) void api.revisions(projectId, attempt.logId, controller.signal).then(setHistory).catch(() => { if (!controller.signal.aborted) setMessage(copy.error) })
     return () => { controller.abort(); window.clearInterval(timer) }
   }, [projectId, attempt.qaTryId, attempt.logId, copy.error])
+  const latest = history[0]
+  const snapshot = attempt.caseSnapshot
+  const snapshotRows = snapshot ? ([['scene', snapshot.scene], ['precondition', snapshot.precondition], ['step', snapshot.step], ['expected', snapshot.expected]] as const).filter(([, value]) => value) : []
   return <div className="qe-attempt">
-    <p>{copy.original}: <strong>{attempt.verdict ? copy[attempt.verdict] : copy.running}</strong></p>
-    {attempt.originalReason && <div><h4>{copy.originalReason}</h4><p className="qe-evidence-text">{attempt.originalReason}</p></div>}
-    {attempt.caseSnapshot && <details open><summary>{copy.snapshot}</summary><dl className="qe-snapshot">
-      {attempt.caseSnapshot.scene && <><dt>{copy.scene}</dt><dd>{attempt.caseSnapshot.scene}</dd></>}
-      {attempt.caseSnapshot.precondition && <><dt>{copy.precondition}</dt><dd>{attempt.caseSnapshot.precondition}</dd></>}
-      {attempt.caseSnapshot.step && <><dt>{copy.step}</dt><dd>{attempt.caseSnapshot.step}</dd></>}
-      {attempt.caseSnapshot.expected && <><dt>{copy.expected}</dt><dd>{attempt.caseSnapshot.expected}</dd></>}
-    </dl></details>}
-    <nav className="qe-links">
-      <Link className="table-link" to={`/projects/${encodeURIComponent(projectId)}/test-cases?case=${encodeURIComponent(attempt.testCaseId)}`}>{copy.testcase}</Link>
-      {attempt.qaRunId ? <Link className="table-link" to={`/projects/${encodeURIComponent(projectId)}/qa-history/${encodeURIComponent(attempt.qaRunId)}?scenario=${encodeURIComponent(attempt.qaTryId)}`}>{copy.qa} #{attempt.qaTryId}</Link> : <span>{copy.qa} #{attempt.qaTryId}</span>}
-    </nav>
-    {!attempt.startedAt && <p>{copy.unknownStart}</p>}
-    {video && <VideoEvidence key={video.recording?.id ?? 'none'} attempt={attempt} playback={video} />}
-    {attempt.logId && <form onSubmit={event => {
-      event.preventDefault(); setBusy(true); setMessage('')
-      void api.review(projectId, attempt.logId!, decision, note).then(async () => {
-        setHistory(await api.revisions(projectId, attempt.logId!)); setMessage(copy.saved); onSaved()
-      }).catch(() => setMessage(copy.error)).finally(() => setBusy(false))
-    }}>
-      <label>{copy.actual}<select aria-label={copy.actual} value={decision} onChange={event => setDecision(event.target.value as api.Verdict)}>
-        {(['PASSED', 'FAILED', 'INCONCLUSIVE'] as const).map(value => <option key={value} value={value}>{copy[value]}</option>)}
-      </select></label>
-      <label>{copy.reason}<textarea maxLength={2000} value={note} onChange={event => setNote(event.target.value)} /></label>
-      <p className="qe-note">{copy.help}</p>
-      <button className="button button--primary qe-review-submit" disabled={busy} type="submit">{copy.save}</button>
-    </form>}
-    {message && <p role="status">{message}</p>}
-    <details><summary>{copy.history} ({history.length})</summary>
-      <ol>{history.map(item => <li key={item.id}>{new Date(item.decidedAt).toLocaleString()} · {item.decision} · #{item.decidedBy ?? '—'}{item.note && <p>{item.note}</p>}</li>)}</ol>
-    </details>
+    <div className="qe-verdicts">
+      <div className="qe-verdict">
+        <span className="qe-kicker">{copy.original}</span>
+        <div className="qe-verdict-row">
+          <VerdictPill verdict={attempt.verdict} copy={copy} empty="running" />
+          {attempt.finishedAt && <span className="qe-meta mono">{shortWhen(attempt.finishedAt)}</span>}
+        </div>
+        {attempt.originalReason && <p className="qe-verdict-text">{attempt.originalReason}</p>}
+      </div>
+      <div className="qe-verdict">
+        <span className="qe-kicker">{copy.human}</span>
+        <div className="qe-verdict-row">
+          <VerdictPill verdict={attempt.review} copy={copy} empty="unreviewed" />
+          {attempt.review && latest && <span className="qe-meta">{shortWhen(latest.decidedAt)}{latest.decidedBy && ` · #${latest.decidedBy}`}</span>}
+        </div>
+        {attempt.review && attempt.note && <p className="qe-verdict-text">{attempt.note}</p>}
+      </div>
+    </div>
+    <div className="qe-grid">
+      <div className="qe-media">
+        {!attempt.startedAt && <p className="qe-notice">{copy.unknownStart}</p>}
+        {video && <VideoEvidence key={video.recording?.id ?? 'none'} attempt={attempt} playback={video} />}
+      </div>
+      <div className="qe-info">
+        <div className="qe-section">
+          {snapshotRows.length > 0 && <dl className="qe-snapshot">
+            {snapshotRows.map(([key, value]) => <div key={key}><dt>{copy[key]}</dt><dd>{value}</dd></div>)}
+          </dl>}
+          <nav className="qe-links" aria-label={copy.snapshot}>
+            <Link className="button button--secondary button--compact" to={`/projects/${encodeURIComponent(projectId)}/test-cases?case=${encodeURIComponent(attempt.testCaseId)}`}>{copy.testcase}</Link>
+            {attempt.qaRunId
+              ? <Link className="button button--secondary button--compact" to={`/projects/${encodeURIComponent(projectId)}/qa-history/${encodeURIComponent(attempt.qaRunId)}?scenario=${encodeURIComponent(attempt.qaTryId)}`}>{copy.qa} #{attempt.qaTryId}</Link>
+              : <span className="qe-chip">{copy.qa} <b>#{attempt.qaTryId}</b></span>}
+          </nav>
+        </div>
+        {attempt.logId && <form className="qe-form" onSubmit={event => {
+          event.preventDefault(); setBusy(true); setMessage('')
+          void api.review(projectId, attempt.logId!, decision, note).then(async () => {
+            setHistory(await api.revisions(projectId, attempt.logId!)); setMessage(copy.saved); onSaved()
+          }).catch(() => setMessage(copy.error)).finally(() => setBusy(false))
+        }}>
+          <div className="qe-field">
+            <span id={actualId}>{copy.actual}</span>
+            {/* 고른 하나만 Tab 에 걸리고, 나머지는 화살표로 옮긴다. 셋이 전부 Tab 정거장이면 이유 칸까지 세 번 눌러야 한다. */}
+            <div className="qe-seg" role="radiogroup" aria-labelledby={actualId} onKeyDown={event => {
+              const step = event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 0
+              if (step === 0) return
+              event.preventDefault()
+              const index = REVIEW_CHOICES.indexOf(decision as (typeof REVIEW_CHOICES)[number])
+              const next = REVIEW_CHOICES[(index + step + REVIEW_CHOICES.length) % REVIEW_CHOICES.length]
+              setDecision(next)
+              event.currentTarget.querySelector<HTMLButtonElement>(`[data-value="${next}"]`)?.focus()
+            }}>
+              {REVIEW_CHOICES.map(value => <button
+                aria-checked={decision === value}
+                className="qe-seg-btn"
+                data-value={value}
+                disabled={busy}
+                key={value}
+                onClick={() => setDecision(value)}
+                role="radio"
+                tabIndex={decision === value || !REVIEW_CHOICES.includes(decision as (typeof REVIEW_CHOICES)[number]) && value === REVIEW_CHOICES[0] ? 0 : -1}
+                type="button"
+              ><i aria-hidden="true" className={value} />{copy[value]}</button>)}
+            </div>
+          </div>
+          <label>{copy.reason}<textarea className="field-input field-input--multiline" maxLength={2000} value={note} onChange={event => setNote(event.target.value)} /></label>
+          <div className="qe-form-foot">
+            <span className="qe-hint">{copy.help}</span>
+            <button className="button button--primary button--compact" disabled={busy} type="submit">{copy.save}</button>
+          </div>
+        </form>}
+        {message && <p className="qe-status" role="status">{message}</p>}
+        <details className="qe-history"><summary>{copy.history} ({history.length})</summary>
+          <ol>{history.map(item => <li key={item.id}>
+            <span className="qe-meta mono">{shortWhen(item.decidedAt)}</span>
+            <VerdictPill verdict={isVerdict(item.decision) ? item.decision : null} copy={copy} empty="unreviewed" />
+            <span className="qe-meta">#{item.decidedBy ?? '—'}</span>
+            {item.note && <p>{item.note}</p>}
+          </li>)}</ol>
+        </details>
+      </div>
+    </div>
   </div>
+}
+
+function isVerdict(value: string): value is api.Verdict {
+  return value === 'PASSED' || value === 'FAILED' || value === 'INCONCLUSIVE' || value === 'INTERRUPTED'
 }
 
 function VideoEvidence({ attempt, playback }: { attempt: api.Attempt; playback: api.Playback }) {
@@ -130,10 +202,9 @@ function VideoEvidence({ attempt, playback }: { attempt: api.Attempt; playback: 
   const gaps = clipGaps(attempt, playback.gaps)
   const missing = gaps.length > 0 || playback.segments.some(segment => segment.state === 'UPLOADING' && Date.parse(segment.endedAt) > clipStart && Date.parse(segment.startedAt) < clipEnd) ||
     segments.some((segment, position) => position > 0 && Date.parse(segment.startedAt) - Date.parse(segments[position - 1].endedAt) > 1000)
-  return <section aria-label={copy.video}>
-    <h4>{copy.video}</h4>
-    {playback.recording?.error && <p role="status">{playback.recording.error}</p>}
-    {expired ? <p>{copy.expired}</p> : current ? <>
+  const time = (value: string) => new Date(value).toLocaleTimeString(undefined, { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  return <section className="qe-media" aria-label={copy.video}>
+    {expired ? <p className="qe-notice">{copy.expired}</p> : current ? <>
       <video key={current.id} controls preload="metadata" playsInline src={current.url!} aria-label={copy.video}
         onLoadedMetadata={event => {
           const saved = position.current?.id === current.id ? position.current : null
@@ -143,12 +214,18 @@ function VideoEvidence({ attempt, playback }: { attempt: api.Attempt; playback: 
         onSeeking={event => { const video = event.currentTarget; if (video.currentTime < current.from) video.currentTime = current.from; else if (video.currentTime > current.to) video.currentTime = current.to }}
         onTimeUpdate={event => { const video = event.currentTarget; if (video.readyState > 0) position.current = { id: current.id, time: video.currentTime, playing: !video.paused }; if (video.currentTime >= current.to) { const wasPlaying = !video.paused; video.pause(); if (index + 1 < segments.length) { continuePlaying.current = wasPlaying; setSelectedSegmentId(segments[index + 1].id) } } }}
         onEnded={() => { if (index + 1 < segments.length) { continuePlaying.current = true; setSelectedSegmentId(segments[index + 1].id) } }} />
-      <p>{new Date(current.startedAt).toLocaleString()} · {index + 1} / {segments.length}</p>
-      {segments.length > 1 && <select aria-label={copy.next} value={current.id} onChange={event => setSelectedSegmentId(event.target.value)}>
-        {segments.map(segment => <option key={segment.id} value={segment.id}>{new Date(segment.startedAt).toLocaleTimeString()}</option>)}
-      </select>}
-    </> : <p>{copy.unavailable}</p>}
-    {missing && <p role="status">{copy.gap}</p>}
-    {gaps.map((gap, position) => <p key={position}>{new Date(gap.startedAt).toLocaleString()} – {new Date(gap.endedAt).toLocaleTimeString()} · {gap.reason}</p>)}
+      <div className="qe-media-bar">
+        <span className="mono">{shortWhen(current.startedAt)}</span>
+        <span>{index + 1} / {segments.length} {copy.segment}</span>
+        {segments.length > 1 && <select className="qe-select" aria-label={copy.next} value={current.id} onChange={event => setSelectedSegmentId(event.target.value)}>
+          {segments.map(segment => <option key={segment.id} value={segment.id}>{time(segment.startedAt)}</option>)}
+        </select>}
+      </div>
+    </> : <p className="qe-notice">{copy.unavailable}</p>}
+    {playback.recording?.error && <p className="qe-notice qe-notice--error" role="status">{playback.recording.error}</p>}
+    {missing && <div className="qe-notice" role="status">
+      <span>{copy.gap}</span>
+      {gaps.length > 0 && <ul>{gaps.map((gap, position) => <li className="mono" key={position}>{time(gap.startedAt)} – {time(gap.endedAt)} · {gap.reason}</li>)}</ul>}
+    </div>}
   </section>
 }

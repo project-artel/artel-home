@@ -224,11 +224,11 @@ function ReferenceProcedure({ scenario, scenarios, onScenario, children }: { sce
   const copy = evaluationCopy[locale === 'ko' ? 'ko' : 'en']
   return <section className="qv-scn">
     <h1 id="qv-scenario-title">{scenario.scenarioTitle}</h1>
-    {scenarios.length > 1 && <select aria-label={copy.qa} value={scenario.qaTryId} onChange={event => onScenario(scenarios.findIndex(item => item.qaTryId === event.target.value))}>
+    {scenarios.length > 1 && <select className="qe-select" aria-label={copy.qa} value={scenario.qaTryId} onChange={event => onScenario(scenarios.findIndex(item => item.qaTryId === event.target.value))}>
       {scenarios.map(item => <option key={item.qaTryId} value={item.qaTryId}>{item.scenarioTitle}</option>)}
     </select>}
     {children}
-    <details><summary>{copy.references}</summary><ol>{scenario.steps.map(step => <li key={step.step}>{step.title}</li>)}</ol></details>
+    <details className="qe-refs"><summary>{copy.references}</summary><ol>{scenario.steps.map(step => <li key={step.step}>{step.title}</li>)}</ol></details>
   </section>
 }
 
