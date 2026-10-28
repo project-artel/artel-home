@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { listQaVerdicts } from './qaApi'
 import { deriveCaseVerdicts, deriveQaProgress } from './qaProgress'
+import { deriveQaCaseReports } from './qaCaseProgress'
 import { mergeQaVerdicts } from './qaVerdicts'
 import { loadQaTrySnapshot } from './qaTrySnapshot'
 import type { QaLog } from './qaTypes'
@@ -45,6 +46,27 @@ test('최근 50개에 판정이 없어도 재진입 조회로 통과와 실패�
     assert.equal(deriveCaseVerdicts(restored).get('11'), 'VERIFIED')
   }
   assert.equal(requested.filter((url) => url.endsWith('/verdicts')).length, 2)
+})
+
+test('전체 판정 snapshot으로 신규 TC report의 체크와 판단 불가도 복원한다', async (t) => {
+  const reports = [
+    log(1, 'STATUS', { case_id: 11, attempt_id: 1, case_outcome: 'PASSED', status: 'COMPLETED' }),
+    log(2, 'STATUS', { case_id: 12, attempt_id: 2, case_outcome: 'INCONCLUSIVE', status: 'INCONCLUSIVE' }),
+    log(3, 'CASE_VERDICT', { case_id: 11, verification_status: 'VERIFIED' }),
+  ]
+  t.mock.method(globalThis, 'fetch', async (input: string | URL | Request) => {
+    const url = String(input)
+    return Response.json(url.endsWith('/1') ? {
+      id: '1', testScenarioId: '7', gameInstanceId: '3', status: 'RUNNING',
+    } : url.includes('/verdicts') ? reports : { items: tail, hasMore: true, nextBeforeId: '4' })
+  })
+  const snapshot = await loadQaTrySnapshot('1')
+  const scenarioSteps = [11, 12].map(case_id => ({ ...createEmptyStep(), case_id }))
+  const restored = deriveQaProgress({ scenarioSteps, executionMode: 'FREE', logs: snapshot.verdictLogs,
+    status: 'RUNNING', historyComplete: true })
+  assert.deepEqual(restored.steps.map(step => step.state), ['passed', 'inconclusive'])
+  assert.deepEqual([restored.reported, restored.passed, restored.failed], [2, 1, 0])
+  assert.equal(deriveQaCaseReports(snapshot.verdictLogs).get('11')?.source, 'case_report')
 })
 
 test('로그 cursor를 확보한 후 판정을 조회하여 조회 사이의 판정 누락을 막는다', async (t) => {

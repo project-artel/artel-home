@@ -53,12 +53,6 @@ describe('ArchSettings', () => {
     assert.ok(html.indexOf('<code translate="no">engine</code>') < html.indexOf('<fieldset'))
   })
 
-  it('제목 옆 변경 수는 엔진만 바꿔도 1 이고, planner_executer 면 남겨 둔 knob 을 세지 않는다', () => {
-    assert.ok(render({ label: '', engine: 'planner_executer' }).includes(advanced.changed(1)))
-    assert.ok(render({ label: 'a', engine: 'planner_executer', macros: 'off', skills: 'off' }).includes(advanced.changed(1)))
-    assert.ok(render({ label: 'a', macros: 'off', skills: 'off' }).includes(advanced.changed(2)))
-    assert.equal(render({ label: '' }).includes('qa-advanced-count'), false)
-  })
 })
 
 describe('LaunchPanel', () => {
@@ -123,6 +117,14 @@ describe('LaunchPanel', () => {
       }),
     )
   const runBlocked = (html: string) => /<button aria-disabled="true" class="ql-run is-blocked"/.test(html)
+
+  it('제목 옆 변경 수는 엔진만 바꿔도 1 이고, planner_executer 면 남겨 둔 knob 을 세지 않는다', () => {
+    assert.ok(render({ label: '', engine: 'planner_executer' }).includes(advanced.changed(1)))
+    assert.ok(render({ label: 'a', engine: 'planner_executer', macros: 'off', skills: 'off' }).includes(advanced.changed(1)))
+    assert.ok(render({ label: 'a', macros: 'off', skills: 'off' }).includes(advanced.changed(2)))
+    assert.equal(render({ label: '' }).includes('qa-advanced-count'), false)
+  })
+
 
   it('planner_executer 는 실행을 막지 않고, label 도 요구하지 않는다', () => {
     const html = render({ label: '', engine: 'planner_executer', macros: 'off' })
