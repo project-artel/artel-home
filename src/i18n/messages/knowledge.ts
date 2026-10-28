@@ -82,6 +82,7 @@ export const knowledgeEn = {
   sources: {
     DOCS: 'From a document',
     QA: 'Observed in a run',
+    DEMONSTRATION: 'Human demonstration',
   },
   sourceShapes: {
     DOCS: 'square',
@@ -258,6 +259,7 @@ export const knowledgeKo: Localized<typeof knowledgeEn> = {
   sources: {
     DOCS: '문서에서 추출',
     QA: '런에서 관측',
+    DEMONSTRATION: '사람 시연',
   },
   sourceShapes: {
     DOCS: '사각형',

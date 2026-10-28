@@ -129,7 +129,7 @@ export function isKnownTag(tag: string): tag is KnownTag {
   return (KNOWN_TAGS as readonly string[]).includes(tag)
 }
 
-export const KNOWN_SOURCES = ['DOCS', 'QA'] as const
+export const KNOWN_SOURCES = ['DOCS', 'QA', 'DEMONSTRATION'] as const
 
 export type KnownSource = (typeof KNOWN_SOURCES)[number]
 

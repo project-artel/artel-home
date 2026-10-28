@@ -1,4 +1,5 @@
 import { discussionsEn, discussionsKo } from './messages/discussions'
+import { demonstrationsEn, demonstrationsKo } from './messages/demonstrations'
 import { accountEn, accountKo } from './messages/account'
 import { adminEn, adminKo } from './messages/admin'
 import { adminGraphEn, adminGraphKo } from './messages/adminGraph'
@@ -61,6 +62,7 @@ export const messages = {
     projects: projectsEn,
     qa: qaEn,
     scenarios: scenariosEn,
+    demonstrations: demonstrationsEn,
     testCases: testCasesEn,
     telemetry: telemetryEn,
     tracker: trackerEn,
@@ -89,6 +91,7 @@ export const messages = {
     projects: projectsKo,
     qa: qaKo,
     scenarios: scenariosKo,
+    demonstrations: demonstrationsKo,
     testCases: testCasesKo,
     telemetry: telemetryKo,
     tracker: trackerKo,
