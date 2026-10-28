@@ -3,7 +3,7 @@ import { asRecord } from '../projects/projectApi'
 import { useI18n } from '../i18n/useI18n'
 import { groupStepsByCase, type ExecutionMode, type ScenarioStep } from '../testScenarios/scenarioTypes'
 import { compareDecimalIds } from './qaApi'
-import { behaviorEndedOf, cheatNamesOf, usedCheatsOf } from './qaFunctionTimeline'
+import { behaviorEndedOf } from './qaFunctionTimeline'
 import {
   anchorOf,
   buildTimelineRows,
@@ -285,9 +285,6 @@ function QaLogRow({
   // TOOL 행은 `message` 가 tool 이름이다. 그것은 메타 줄의 칩으로 따로 보이므로, 본문
   // 자리에는 모델이 왜 불렀는지를 적은 `thought` 를 놓는다.
   const call = log.type === 'TOOL' ? toolCallOf(log) : null
-  // cheat 호출이 담긴 ACTION 행과, cheat 를 쓴 step 의 STATUS 행에 배지를 단다(ARTEL-1051).
-  const cheatNames = cheatNamesOf(log)
-  const usedCheats = log.type === 'STATUS' ? usedCheatsOf(log.payload) : []
   const behaviorEnded = log.type === 'BEHAVIOR_ENDED' ? behaviorEndedOf(log.payload) : null
   const functionText = t.gameFunctions.timeline
   const behaviorEndedMessage =
@@ -326,23 +323,6 @@ function QaLogRow({
           {executionMode === 'FREE'
             ? caseId !== null && <span className="qa-tc-badge" translate="no">TC #{caseId}</span>
             : step !== null && <span className="qa-log-step">{t.qa.steps.short(step)}</span>}
-          {cheatNames.length > 0 && (
-            <span className="gf-badge" translate="no">
-              {cheatNames.length === 1 && cheatNames[0].length > 0
-                ? functionText.cheatBadgeNamed(cheatNames[0])
-                : functionText.cheatBadge}
-            </span>
-          )}
-          {usedCheats.length > 0 && (
-            <span
-              className="gf-badge"
-              title={usedCheats
-                .map((used) => (used.success ? used.name : `${used.name} (${functionText.usedCheatFailed})`))
-                .join(', ')}
-            >
-              {functionText.usedCheats(usedCheats.length)}
-            </span>
-          )}
           {repeats > 1 && (
             /* Counted, not just styled: the number is the information. */
             <span className="qa-log-repeat">×{repeats}</span>

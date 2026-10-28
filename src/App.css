@@ -5282,7 +5282,6 @@ a.instance-name:hover {
 .qa-rail-step-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:1px; }
 .qa-rail-step{ position:relative; width:100%; display:grid; grid-template-columns:14px 20px minmax(0,1fr); align-items:baseline; gap:4px; padding:4px 6px 4px 8px; border:0; border-radius:4px; background:transparent; color:var(--color-text-secondary); font:inherit; font-size:12px; line-height:18px; text-align:left; }
 .qa-rail-step--neutral{ grid-template-columns:20px minmax(0,1fr); }
-.qa-rail-step--cheat{ grid-template-columns:14px 20px minmax(0,1fr) auto; }
 button.qa-rail-step--linked{ cursor:pointer; }
 button.qa-rail-step--linked:hover{ background:var(--color-bg-hover); }
 .qa-rail-step-glyph{ font-size:12px; text-align:center; }
@@ -11728,8 +11727,7 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
   line-height: 18px;
 }
 
-.gf-chip,
-.gf-badge {
+.gf-chip {
   display: inline-flex;
   align-items: center;
   padding: 0 6px;
@@ -11741,12 +11739,6 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
   font-weight: 500;
   line-height: 16px;
   white-space: nowrap;
-}
-
-/* 행에서 cheat 를 쓴 자리. 코랄은 에이전트의 조작에 쓰는 색이다. 글자도 함께 있어 색만으로 말하지 않는다. */
-.gf-badge {
-  border-color: var(--color-action-primary);
-  color: var(--color-action-primary);
 }
 
 /* 빌드 상세 */
