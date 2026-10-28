@@ -177,7 +177,7 @@ Agent의 실패 판정을 사람이 오탐으로 평가하면 해당 발생 이�
 
 인터뷰 이후 개발 요청을 받아 아래 구현 방식을 적용했다. 제품 요구사항을 구체화한 기술 결정이며 배포 완료를 뜻하지 않는다.
 
-- orch JVM 프로세스 안에서 WebRTC 수신·중계와 H.264 MP4 인코딩·S3 저장을 수행한다. 별도 media-worker나 FFmpeg 자식 프로세스는 사용하지 않는다. 기본 segment는 60초·최대 32 MiB이며 서버 전체 업로드 대기열은 10개·256 MiB, 재시도는 3회로 제한한다.
+- SDK와 브라우저는 기존 인증된 WebSocket으로 JPEG frame을 orch에 주고받는다. orch JVM 프로세스 안에서 영상 중계와 H.264 MP4 인코딩·S3 저장을 수행하며, WebRTC·UDP·TURN 연결에 의존하지 않는다. 별도 media-worker나 FFmpeg 자식 프로세스는 사용하지 않는다. 기본 segment는 60초·최대 32 MiB이며 서버 전체 업로드 대기열은 10개·256 MiB, 재시도는 3회로 제한한다.
 - `start_test_case`가 검증 시도 UUID를 만들고 `report_test_case`로 `PASSED`·`FAILED`·`INCONCLUSIVE`를 보고한다. 서버가 시작·완료 시각을 기록한다. 프레임의 서버 시각과 monotonic 시각을 연결해 영상 PTS와 저장 구간을 기록한다.
 - 앞 10초·뒤 5초는 저장된 영상 경계로 제한한다. 시작 tool 없이 기록된 과거 판정은 시작 시각을 추정하지 않는다. 보고 전 중단된 시도는 `INTERRUPTED`로 남긴다. 재연결·저장 실패 구간은 누락으로 표시한다.
 - 영상 보관은 각 segment 완료 시각부터 30일이다. QA가 대기 중이어도 오래된 segment부터 삭제한다. TC를 삭제해도 검증 당시 snapshot과 논리적 TC ID를 남겨 평가·issue 이력을 조회한다.

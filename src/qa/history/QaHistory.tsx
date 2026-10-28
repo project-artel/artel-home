@@ -135,7 +135,7 @@ export function QaHistory() {
     },
   })
 
-  // 검사 패널의 "타임라인" 링크가 가는 곳과 같다.
+  // 검사 패널의 "실행 기록" 링크가 가는 곳과 같다.
   useActionBinding(QA_HISTORY_OPEN_RUN_ACTION, {
     target: () => board.current,
     blocked: () => null,

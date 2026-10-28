@@ -1,18 +1,7 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, type ReactNode } from 'react'
 import { useGameStream } from './useGameStream'
+import { streamErrorNotice } from './streamErrors'
 import type { GameStreamFailure, GameStreamStatus } from './streamTypes'
-
-/**
- * Only the wall clock, because that is all the notice may show. A counter
- * ticking beside a frozen picture would be a real-time number interpolated over
- * a stream that stopped, and the log timeline is stamped in this same clock, so
- * one reading lines the two up.
- */
-const LOST_AT_FORMAT = new Intl.DateTimeFormat(undefined, {
-  hour: '2-digit',
-  minute: '2-digit',
-  second: '2-digit',
-})
 
 /**
  * How a non-live status is worded, how strongly it is coloured, and how much of
@@ -58,6 +47,7 @@ function describeStatus(
   failure: GameStreamFailure | null,
   hasFrame: boolean,
   lostAt: string | null,
+  errorCode: string | null,
 ): StatusNotice | null {
   if (status === 'live') return null
 
@@ -119,6 +109,11 @@ function describeStatus(
     }
   }
 
+  const versionError = streamErrorNotice(errorCode)
+  if (versionError !== null) {
+    return { tone: 'critical', placement: 'cover', ...versionError, retryLabel: null }
+  }
+
   if (failure === 'notPermitted') {
     return {
       tone: 'critical',
@@ -175,50 +170,37 @@ export function GameStreamView({
   instanceId: string
   overlay?: ReactNode
 }) {
-  const { failure, retry, status, stream } = useGameStream(instanceId)
-  const videoRef = useRef<HTMLVideoElement>(null)
-  /*
-   * When the picture stopped being live, held for as long as it stays stale.
-   * Stamped once per disconnect: one loss is retried several times, and
-   * restamping on each attempt would report the last retry as the moment the
-   * game stopped — which is the one thing this time is read for.
-   */
-  const [lostAt, setLostAt] = useState<string | null>(null)
-
-  // `srcObject` is not an attribute, so it cannot be set through JSX.
-  useEffect(() => {
-    const video = videoRef.current
-    if (video === null) return
-    video.srcObject = stream
-  }, [stream])
-
-  useEffect(() => {
-    if (status === 'live') {
-      setLostAt(null)
-      return
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const drawFrame = useCallback((frame: ImageBitmap) => {
+    const canvas = canvasRef.current
+    if (canvas === null) return
+    if (canvas.width !== frame.width || canvas.height !== frame.height) {
+      canvas.width = frame.width
+      canvas.height = frame.height
     }
+    const context = canvas.getContext('2d')
+    if (context === null) throw new Error('Game screen canvas is unavailable')
+    context.drawImage(frame, 0, 0)
+  }, [])
+  const { failure, retry, status, errorCode, hasFrame, lostAt } = useGameStream(instanceId, drawFrame)
 
-    // `connecting` is skipped rather than stamped: before the first frame there
-    // is nothing to have lost, and a retry after one carries the stamp the
-    // disconnect already left.
-    if (status === 'connecting') return
+  // 다른 instance의 마지막 장면이 현재 게임의 화면으로 남지 않게 한다.
+  useEffect(() => {
+    const canvas = canvasRef.current
+    canvas?.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height)
+  }, [instanceId])
 
-    setLostAt((previous) => previous ?? LOST_AT_FORMAT.format(new Date()))
-  }, [status])
-
-  const notice = describeStatus(status, failure, stream !== null, lostAt)
+  const notice = describeStatus(status, failure, hasFrame, lostAt, errorCode)
 
   return (
     <div className={className === undefined ? 'game-stream' : `game-stream ${className}`}>
-      {/* Muted and inline because there is no audio to play and autoplay is
-          refused otherwise; no controls because there is nothing to seek. */}
-      <video
+      <canvas
         aria-label="게임 화면"
-        autoPlay
         className="game-stream-video"
-        muted
-        playsInline
-        ref={videoRef}
+        height={1080}
+        ref={canvasRef}
+        role="img"
+        width={1920}
       />
 
       {overlay !== undefined && <div className="game-stream-annotations">{overlay}</div>}

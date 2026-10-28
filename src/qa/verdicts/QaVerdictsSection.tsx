@@ -116,6 +116,7 @@ export function QaVerdictsSection() {
     )
   }
 
+  const testRunPath = `/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(data.testRunId)}/edit`
   // 이 시나리오에 추가 검토가 없으면 그 거르기는 없다. 다른 시나리오에서 골랐어도 검증만으로 돌아간다.
   const listFilter: ListFilter = filter === 'review' && tally.review === 0 ? 'checks' : filter
   const shownRows = rows.filter((row) =>
@@ -133,7 +134,7 @@ export function QaVerdictsSection() {
         <nav aria-label={copy.navigator} className="qv-crumb">
           <Link to={historyPath}>{t.projects.workspace.nav.qaHistory}</Link>
           {data.gameBuildVersion !== null && <><span aria-hidden="true">›</span><span className="mono">{data.gameBuildVersion}</span></>}
-          <span aria-hidden="true">›</span><span>{data.testRunName}</span>
+          <span aria-hidden="true">›</span><Link to={testRunPath}>{data.testRunName}</Link>
           {data.startedAt !== null && <><span aria-hidden="true">›</span><b>{copy.runAt(shortWhen(data.startedAt))}</b></>}
         </nav>
         <div className="qv-top-actions">
@@ -152,18 +153,12 @@ export function QaVerdictsSection() {
             </button>
           )}
           <Link className="button button--secondary button--compact" to={qaRunPath(projectId, qaRunId, scenario?.qaTryId)}>{copy.timeline}</Link>
-          <Link
-            className="button button--secondary button--compact"
-            to={`/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(data.testRunId)}/edit`}
-          >
-            {copy.openTestRun}
-          </Link>
         </div>
       </header>
 
       <div className="qv-ctx">
         {data.gameBuildVersion !== null && <span className="qv-chip">{copy.build} <b className="mono">{data.gameBuildVersion}</b></span>}
-        <span className="qv-chip">{copy.testRun} <b>{data.testRunName}</b></span>
+        <span className="qv-chip">{copy.testRun} <Link to={testRunPath}><b>{data.testRunName}</b></Link></span>
         {scenario?.model !== null && scenario?.model !== undefined && (
           <span className="qv-chip">{copy.model} <b className="mono">{scenario.model.split('/').at(-1)}</b></span>
         )}

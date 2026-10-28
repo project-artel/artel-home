@@ -78,7 +78,12 @@ export function RunInspector({
               {ordinalLabel !== null && <b>{ordinalLabel}</b>}
               {isStatus(run.status) && <QaStatusPill status={run.status} />}
             </span>
-            <span className="qh-ellipsis qh-inspector-name">{testRunName}</span>
+            <Link
+              className="qh-ellipsis qh-inspector-name"
+              to={`/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(run.testRunId)}/edit`}
+            >
+              {testRunName}
+            </Link>
             <span className="qh-muted mono">{shortWhen(run.startedAt)}</span>
           </span>
         </div>
@@ -108,12 +113,6 @@ export function RunInspector({
             to={`/projects/${encodeURIComponent(projectId)}/qa-history/${encodeURIComponent(run.id)}${run.reviewPending > 0 ? '?review=1' : ''}`}
           >
             {b.reviewVerdicts}
-          </Link>
-          <Link
-            className="button button--secondary button--compact"
-            to={`/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(run.testRunId)}/edit`}
-          >
-            {b.openTestRun}
           </Link>
           <Link className="button button--secondary button--compact" to={qaRunPath(projectId, run.id)}>{b.timeline}</Link>
           <Link
