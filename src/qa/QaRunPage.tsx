@@ -489,6 +489,8 @@ function FocusedTry({ qaRun, rail, tryId }: { qaRun: QaRun; rail: QaScenarioRail
               <QaTryIssuePanel projectId={rail.projectId} qaTryId={session.qaTry.id} />
             ) : (
               <QaLogTimeline
+                projectId={rail.projectId}
+                gameBuildId={qaRun.testRunGameBuildId}
                 executionMode={executionMode}
                 flow={logView === 'flow'}
                 focusRequest={focusRequest}

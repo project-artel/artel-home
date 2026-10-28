@@ -1,3 +1,4 @@
+import { TestCaseHover } from '../testCases/TestCaseHover'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { asRecord } from '../projects/projectApi'
 import { useI18n } from '../i18n/useI18n'
@@ -180,7 +181,7 @@ function QaFlowDot({ kind, last }: { kind: FlowLine['kind'] | 'blocked' | 'verdi
  * 판정은 글이 아니라 덩어리의 상태다. 오른쪽 아래에 통과 · 실패만 붙고, 아무것도 안 해 보고
  * 내린 판정이면 그렇게 적는다 — try 46 에서 43 스텝 중 32 가 그랬다.
  */
-function QaFlowStep({ block, free = false, caseId = null, logId }: { block: FlowStep; free?: boolean; caseId?: string | null; logId?: string }) {
+function QaFlowStep({ projectId, gameBuildId, block, free = false, caseId = null, logId }: { projectId: string; gameBuildId: string | null; block: FlowStep; free?: boolean; caseId?: string | null; logId?: string }) {
   const { t } = useI18n()
   const text = t.qa.run
 
@@ -243,7 +244,7 @@ function QaFlowStep({ block, free = false, caseId = null, logId }: { block: Flow
             <div className="qa-flow-said">
               {block.reason !== null && <p className="qa-flow-reason">{block.reason}</p>}
               {/* 결과는 이유에 이어 붙이지 않는다. 붙이면 모델이 쓴 문장의 일부처럼 읽힌다. */}
-              <p className="qa-flow-call">{caseId !== null && <span translate="no">TC #{caseId} · </span>}{verdict}</p>
+              <p className="qa-flow-call">{caseId !== null && <TestCaseHover projectId={projectId} caseId={caseId} gameBuildId={gameBuildId}><span translate="no">TC #{caseId} · </span></TestCaseHover>}{verdict}</p>
             </div>
           </div>
         )}
@@ -253,6 +254,8 @@ function QaFlowStep({ block, free = false, caseId = null, logId }: { block: Flow
 }
 
 function QaLogRow({
+  projectId,
+  gameBuildId,
   executionMode,
   scenarioSteps,
   expanded,
@@ -260,6 +263,8 @@ function QaLogRow({
   onToggle,
   row,
 }: {
+  projectId: string
+  gameBuildId: string | null
   executionMode: ExecutionMode
   scenarioSteps: ScenarioStep[]
   expanded: boolean
@@ -321,7 +326,7 @@ function QaLogRow({
             <span className="qa-log-tool-name mono" translate="no">{call.tool}</span>
           )}
           {executionMode === 'FREE'
-            ? caseId !== null && <span className="qa-tc-badge" translate="no">TC #{caseId}</span>
+            ? caseId !== null && <TestCaseHover projectId={projectId} caseId={caseId} gameBuildId={gameBuildId}><span className="qa-tc-badge" translate="no">TC #{caseId}</span></TestCaseHover>
             : step !== null && <span className="qa-log-step">{t.qa.steps.short(step)}</span>}
           {repeats > 1 && (
             /* Counted, not just styled: the number is the information. */
@@ -405,6 +410,8 @@ function sectionId(section: SectionKey): string {
 }
 
 export function QaLogTimeline({
+  projectId,
+  gameBuildId = null,
   executionMode = 'ORDERED',
   focusRequest,
   hasMore,
@@ -420,6 +427,8 @@ export function QaLogTimeline({
   /** `흐름` 탭인가. true 면 한 행이 생각 · 행동 두 줄이고, 그 밖은 `Raw` 와 같다. */
   flow?: boolean
   executionMode?: ExecutionMode
+  projectId: string
+  gameBuildId?: string | null
   focusRequest: QaLogFocusRequest | null
   hasMore: boolean
   historyFailure: string | null
@@ -432,6 +441,7 @@ export function QaLogTimeline({
   scenarioSteps?: ScenarioStep[]
 }) {
   const { t } = useI18n()
+  const caseGroups = groupStepsByCase(scenarioSteps).filter((group) => group.caseId !== null)
   const orderedFlow = flow && executionMode === 'ORDERED'
   // `흐름` 은 로그 한 줄이 아니라 스텝 하나를 그린다. `PULSE` 는 행으로 안 서지만
   // 조작 대상의 이름이 거기에만 있으므로 사전을 만드는 데 쓴다.
@@ -728,26 +738,26 @@ export function QaLogTimeline({
         {orderedFlow
           ? flowGroups.map((group) => (
               <li className="qa-flow-group" key={group.key}>
-                <p className={`qa-flow-label${group.tcNo === null ? ' qa-flow-label--plain' : ''}`}>
+                <TestCaseHover projectId={projectId} caseId={group.tcNo === null ? null : caseGroups[group.tcNo - 1]?.caseId} gameBuildId={gameBuildId}><p className={`qa-flow-label${group.tcNo === null ? ' qa-flow-label--plain' : ''}`}>
                   {group.tcNo === null
                     ? t.qa.run.flowStepLabel(group.blocks[0].step)
                     : t.qa.steps.caseLabel(group.tcNo)}
-                </p>
+                </p></TestCaseHover>
                 <ol className="qa-flow-blocks">
                   {group.blocks.map((block) => (
-                    <QaFlowStep block={block} key={block.step} />
+                    <QaFlowStep projectId={projectId} gameBuildId={gameBuildId} block={block} key={block.step} />
                   ))}
                 </ol>
               </li>
             ))
           : flow ? freeFlow.map((block) => (
-              <QaFlowStep block={block} free caseId={block.caseId} logId={block.id} key={block.id} />
+              <QaFlowStep projectId={projectId} gameBuildId={gameBuildId} block={block} free caseId={block.caseId} logId={block.id} key={block.id} />
             )) : listItems.map((item) => {
               if (item.kind === 'header') {
             return (
               <li className="qa-log-section" key={item.id}>
                 {item.section.kind === 'tc' ? (
-                  <span className="qa-tc-badge">{t.qa.steps.caseLabel(item.section.tcNo)}</span>
+                  <TestCaseHover projectId={projectId} caseId={caseGroups[item.section.tcNo - 1]?.caseId} gameBuildId={gameBuildId}><span className="qa-tc-badge">{t.qa.steps.caseLabel(item.section.tcNo)}</span></TestCaseHover>
                 ) : (
                   <span className="qa-log-section-label">
                     {item.section.kind === 'action' ? t.qa.run.logAction : t.qa.run.logGeneral}
@@ -759,6 +769,8 @@ export function QaLogTimeline({
           const anchor = anchorOf(item.row)
           return (
             <QaLogRow
+              projectId={projectId}
+              gameBuildId={gameBuildId}
               executionMode={executionMode}
               scenarioSteps={scenarioSteps}
               expanded={expandedRows.has(anchor)}

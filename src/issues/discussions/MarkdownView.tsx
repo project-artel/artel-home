@@ -1,3 +1,4 @@
+import { TestCaseHover } from '../../testCases/TestCaseHover'
 import { Fragment, type ReactNode } from 'react'
 import { useI18n } from '../../i18n/useI18n'
 import { useCaseRefs } from './caseRefs'
@@ -142,7 +143,7 @@ function CaseRefChip({ caseId }: { caseId: string }) {
     </>
   )
   const title = `${testCase.scene} — ${testCase.step}\n→ ${testCase.expectedValue}`
-  return refs?.onOpen ? (
+  return <TestCaseHover projectId={testCase.projectId} caseId={caseId} gameBuildId={refs?.gameBuildId}>{refs?.onOpen ? (
     <button className="md-tc" onClick={() => refs.onOpen?.(testCase)} title={title} type="button">
       {body}
     </button>
@@ -150,7 +151,7 @@ function CaseRefChip({ caseId }: { caseId: string }) {
     <span className="md-tc" title={title}>
       {body}
     </span>
-  )
+  )}</TestCaseHover>
 }
 
 /** `@이름` 을 강조한다. 긴 이름부터 찾아 "Local" 이 "Local Tester" 를 먼저 먹지 않게 한다. */

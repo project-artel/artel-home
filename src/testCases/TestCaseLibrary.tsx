@@ -1,3 +1,4 @@
+import { TestCaseHover } from './TestCaseHover'
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { generateContentMapTestCases, type GeneratedTestCases } from '../contentMap/generateContentMapTestCases'
@@ -1278,13 +1279,13 @@ export function TestCaseLibrary({
                               {m.origin[testCase.origin]}
                             </span>
                           )}
-                          <span className="tct-step-text">
+                          <TestCaseHover projectId={projectId} caseId={testCase.id} gameBuildId={selectedBuildId}><span className="tct-step-text">
                             {testCase.step.length > 0 ? <InlineCode className="tct-code" text={testCase.step} /> : m.row.untitled}
                             {note !== null && <span className="tct-absent-note">{note}</span>}
                             {item?.hidden === true && (
                               <span className="tct-hidden-tag" title={m.folderItems.hiddenTitle}>{m.folderItems.hiddenTag}</span>
                             )}
-                          </span>
+                          </span></TestCaseHover>
                         </span>
                       </td>
                       <td><SceneChip scene={testCase.scene} /></td>

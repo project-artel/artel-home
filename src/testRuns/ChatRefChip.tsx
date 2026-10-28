@@ -1,3 +1,4 @@
+import { TestCaseHover } from '../testCases/TestCaseHover'
 import { useContext } from 'react'
 import { Link } from 'react-router-dom'
 import { ChatLinkContext, ChatRefsContext } from './chatRefContext'
@@ -56,16 +57,15 @@ export function ChatRefChip({ refKind, id }: { refKind: ChatRefKind; id: number 
     )
   }
 
-  // TC 는 라이브러리의 상세 시트를 그대로 연다(ARTEL-940). 따로 만든 작은 카드는 내용이 덜하고
-  // 그 시트와 어긋나게 된다.
+  // 클릭은 상세 시트를 열고 호버는 같은 버전의 내용을 조회한다.
   const openCase = link?.openCase
   if (openCase === undefined) {
-    return <span className="chat-ref chat-ref--tc">{tag}<span className="chat-ref-label" title={label}>{label}</span></span>
+    return <TestCaseHover projectId={link?.projectId ?? ""} caseId={id} gameBuildId={link?.gameBuildId}><span className="chat-ref chat-ref--tc">{tag}<span className="chat-ref-label">{label}</span></span></TestCaseHover>
   }
   // `<button>` 은 글줄 안에서 줄을 넘겨 흐르지 못해, 이름이 길면 앞뒤 문장을 끊고 한 덩어리로 섰다
   // (ARTEL-1107). 글 속 링크처럼 흐르도록 글 요소에 버튼 역할과 키를 준다.
   return (
-    <span
+    <TestCaseHover projectId={link?.projectId ?? ""} caseId={id} gameBuildId={link?.gameBuildId}><span
       className="chat-ref chat-ref--tc"
       onClick={() => openCase(id)}
       onKeyDown={(event) => {
@@ -77,7 +77,7 @@ export function ChatRefChip({ refKind, id }: { refKind: ChatRefKind; id: number 
       tabIndex={0}
     >
       {tag}<span className="chat-ref-label" title={label}>{label}</span>
-    </span>
+    </span></TestCaseHover>
   )
 }
 

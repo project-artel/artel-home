@@ -469,7 +469,7 @@ export function RunChat({
   }
 
   return (
-    <ChatLinkContext.Provider value={{ projectId: session.projectId, runId: session.runId, openCase }}>
+    <ChatLinkContext.Provider value={{ projectId: session.projectId, gameBuildId, runId: session.runId, openCase }}>
     <section className="panel scenario-chat" aria-labelledby="run-chat-title">
       <header className="panel-header">
         <h2 id="run-chat-title">

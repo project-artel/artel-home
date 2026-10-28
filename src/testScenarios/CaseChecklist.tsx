@@ -1,3 +1,4 @@
+import { TestCaseHover } from '../testCases/TestCaseHover'
 import { useId, useMemo, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { SceneChip } from '../testCases/SceneChip'
@@ -62,7 +63,7 @@ export function CaseChecklist({
                   type="checkbox"
                 />
                 <span className={`vdot ${testCase.verificationStatus}`} />
-                <span className="free-add-text">{describe(testCase)}</span>
+                <TestCaseHover projectId={testCase.projectId} caseId={testCase.id} gameBuildId={project.gameBuildId}><span className="free-add-text">{describe(testCase)}</span></TestCaseHover>
                 <SceneChip scene={testCase.scene} />
               </label>
             </li>

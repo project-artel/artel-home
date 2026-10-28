@@ -1,3 +1,4 @@
+import { TestCaseHover } from './TestCaseHover'
 import { SceneChip } from './SceneChip'
 import { SpecGradeChip } from './SpecGradeChip'
 import type { TestCase } from './testCaseTypes'
@@ -15,6 +16,7 @@ import type { TestCase } from './testCaseTypes'
  * editor is open. The palette only has `active`.
  */
 export function CaseListRow({
+  gameBuildId,
   active,
   fallbackTitle,
   index,
@@ -24,6 +26,7 @@ export function CaseListRow({
   statusLabel,
   testCase,
 }: {
+  gameBuildId?: string | null
   active: boolean
   /** Shown when the case has no step text yet. */
   fallbackTitle: string
@@ -37,7 +40,7 @@ export function CaseListRow({
   testCase: TestCase
 }) {
   return (
-    <button
+    <TestCaseHover projectId={testCase.projectId} caseId={testCase.id} gameBuildId={gameBuildId}><button
       aria-current={selected ? true : undefined}
       className={'cp-row' + (active ? ' active' : '') + (selected ? ' picked' : '')}
       data-index={index}
@@ -54,6 +57,6 @@ export function CaseListRow({
           information; the badge earns its space only on the cases that are not settled. */}
       <SpecGradeChip status={testCase.status} quietWhenSettled />
       <SceneChip scene={testCase.scene} />
-    </button>
+    </button></TestCaseHover>
   )
 }

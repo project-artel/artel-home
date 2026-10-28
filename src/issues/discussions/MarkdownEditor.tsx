@@ -230,6 +230,7 @@ export function MarkdownEditor({
         // ⌘K 창의 규칙은 `.cp-scope` 아래에서만 읽힌다.
         <div className="cp-scope">
         <TestCaseSpecModal
+          gameBuildId={refs.gameBuildId}
           cases={[...refs.cases.values()]}
           onClose={() => setPicking(false)}
           onPick={(testCase) => insertCase(testCase.id)}

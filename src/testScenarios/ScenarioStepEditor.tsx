@@ -1,3 +1,4 @@
+import { TestCaseHover } from '../testCases/TestCaseHover'
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { SplitHandle } from '../design-system/primitives/SplitHandle'
@@ -486,7 +487,7 @@ export function ScenarioStepEditor({
                             {b.generalStep}
                           </button>
                         ) : (
-                          <button
+                          <TestCaseHover projectId={projectId} caseId={step.case_id} gameBuildId={caseBuild?.gameBuildId}><button
                             className="se-tc"
                             onClick={(event) => {
                               event.stopPropagation()
@@ -496,7 +497,7 @@ export function ScenarioStepEditor({
                             type="button"
                           >
                             {b.caseOrdinal(tcNo)}
-                          </button>
+                          </button></TestCaseHover>
                         )}
                       </span>
                       <span className="se-row-scene">
@@ -605,6 +606,7 @@ export function ScenarioStepEditor({
       {linking !== null && linking < steps.length && (
         // TC 를 고르는 창은 ⌘K 의 TC 명세 창을 그대로 쓴다 — 같은 검색 · 상태 · 씬 거르기 · 미리 보기다.
         <TestCaseSpecModal
+          gameBuildId={caseBuild?.gameBuildId}
           cases={caseList}
           currentCaseId={steps[linking].case_id}
           onClose={() => setLinking(null)}
