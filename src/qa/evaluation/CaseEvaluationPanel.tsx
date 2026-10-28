@@ -8,6 +8,7 @@ import { VerdictPill } from './VerdictPill'
 import { clipGaps, clipSegments, evidenceExpired } from './videoEvidence'
 import { useProjectChange } from '../../live/useProjectChange'
 import { EvidencePlayer } from './EvidencePlayer'
+import { CaseAttemptPicker } from './CaseAttemptPicker'
 import './evaluation.css'
 
 const REVIEW_CHOICES = ['PASSED', 'FAILED', 'INCONCLUSIVE'] as const
@@ -51,22 +52,17 @@ function AttemptList({ projectId, qaTryId, testCaseId, id }: { projectId: string
   }, [projectId, selected, qaTryId, testCaseId])
   const options = linkedAttempt && !rows.some(row => row.id === linkedAttempt.id) ? [linkedAttempt, ...rows] : rows
   const current = options.find(row => row.id === selected) ?? rows[0]
-  const optionLabel = (row: api.Attempt) =>
-    `${shortWhen(row.startedAt ?? row.createdAt)} · TC ${row.testCaseId} · ${row.verdict ? copy[row.verdict] : copy.running} → ${row.review ? copy[row.review] : copy.unreviewed}`
   return <section className="qe-panel" aria-label={copy.title} id={id}>
     <div className="qe-head">
       <h3>{copy.title}</h3>
-      {options.length > 0 && <div className="qe-attempt-pick">
-        <label htmlFor={pickId}>{copy.attempt}</label>
-        <select className="qe-select" id={pickId} value={current?.id} onChange={event => setSelected(event.target.value)}>
-          {options.map(row => <option key={row.id} value={row.id}>{optionLabel(row)}</option>)}
-        </select>
-      </div>}
     </div>
+    {current && <CaseAttemptPicker id={pickId} options={options} current={current} onSelect={setSelected} copy={copy} />}
     {loading && <p className="qe-status" role="status">{copy.loading}</p>}
     {error && <p className="qe-status" role="alert">{copy.error} <button className="button button--secondary button--compact" onClick={() => void load()} type="button">{copy.retry}</button></p>}
     {!loading && !rows.length && <p className="qe-status">{copy.empty}</p>}
-    {current && <AttemptReview key={current.id} attempt={current} projectId={projectId} onSaved={() => void load()} />}
+    {current && <div role="tabpanel" id={`${pickId}-panel`} aria-labelledby={`${pickId}-case-${current.testCaseId}`}>
+      <AttemptReview key={current.id} attempt={current} projectId={projectId} onSaved={() => void load()} />
+    </div>}
     {hasMore && rows.length > 0 && <button className="button button--secondary button--compact qe-more" type="button" onClick={() => {
       void api.attempts(projectId, { qaTryId, testCaseId, before: rows[rows.length - 1].createdAt, beforeId: rows[rows.length - 1].id })
         .then(next => { setRows(previous => [...previous, ...next.filter(row => !previous.some(existing => existing.id === row.id))]); setHasMore(next.length === 100) }).catch(() => setError(true))

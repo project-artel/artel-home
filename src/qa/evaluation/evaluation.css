@@ -13,9 +13,23 @@
 
 .qe-panel select, .qe-panel textarea, .qe-panel input { min-width: 0; max-width: 100%; }
 .qe-select { height: 32px; padding: 0 28px 0 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); background: var(--color-bg-raised); color: var(--color-text-primary); font-size: 13px; }
-.qe-attempt-pick { display: flex; align-items: center; gap: var(--space-2); min-width: 0; max-width: 100%; }
-.qe-attempt-pick label { font-size: 12px; color: var(--color-text-secondary); white-space: nowrap; }
-.qe-attempt-pick select { flex: 1; min-width: 0; }
+.qe-attempt-picker { display: grid; gap: var(--space-2); min-width: 0; }
+.qe-case-tabs { position: relative; display: flex; gap: var(--space-2); overflow-x: auto; overscroll-behavior-inline: contain; padding: 2px 2px var(--space-2); min-width: 0; scrollbar-width: thin; }
+.qe-case-tab { flex: 0 0 172px; min-width: 0; display: grid; gap: 6px; align-content: start; padding: var(--space-3); text-align: left; font: inherit; border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); background: var(--color-bg-surface); color: var(--color-text-primary); cursor: pointer; }
+.qe-case-tab:hover { background: var(--color-bg-hover); }
+.qe-case-tab[aria-selected='true'] { border-color: var(--color-action-primary); box-shadow: inset 0 2px 0 var(--color-action-primary); background: var(--color-bg-raised); }
+.qe-case-tab-head { display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 600; }
+.qe-case-tab-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.qe-case-tab-status { font-size: 11px; color: var(--color-text-secondary); }
+.qe-case-glyph--PASSED { color: var(--color-status-success); }
+.qe-case-glyph--FAILED { color: var(--color-status-critical); }
+.qe-case-glyph--INCONCLUSIVE, .qe-case-glyph--INTERRUPTED { color: var(--color-status-warning); }
+.qe-case-glyph--running { color: var(--color-text-muted); }
+.qe-attempt-history { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+.qe-attempt-history > .qe-meta { flex: none; }
+.qe-attempt-options { display: flex; gap: var(--space-2); min-width: 0; overflow-x: auto; padding: 2px; }
+.qe-attempt-option { flex: none; padding: 5px 8px; font: inherit; font-size: 11px; color: var(--color-text-secondary); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); background: var(--color-bg-surface); cursor: pointer; }
+.qe-attempt-option[aria-pressed='true'] { color: var(--color-text-primary); border-color: var(--color-action-primary); }
 
 /* agent 판정과 사람 평가를 같은 폭의 두 칸으로 나란히 둔다 — 어느 쪽이 원본인지 라벨로만 구분하지 않는다. */
 .qe-verdicts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-lg); background: var(--color-bg-surface); overflow: hidden; }
