@@ -18,9 +18,8 @@ import {
   type StartOutcome,
 } from '../../projectAgent/specs/qa'
 import { sectionHref } from '../../projects/workspace/sections'
-import { versionMismatch } from '../../testRuns/runLibrary'
-import { getRunCasesOutsideBuild, type TestRun } from '../../testRuns/testRunApi'
-import { archLabelMissing, toArchRequest, withoutVisionKnobs, type QaArchSelection } from '../qaArch'
+import type { TestRun } from '../../testRuns/testRunApi'
+import { archLabelMissing, changedSettingCount, toArchRequest, withoutVisionKnobs, type QaArchSelection } from '../qaArch'
 import { createQaRun, qaStartConflict } from '../qaApi'
 import { storeLastArch } from '../qaStartChoices'
 import { DEFAULT_QA_FUNCTION_OPTIONS, type QaFunctionOptions } from '../qaFunctionOptions'
@@ -32,8 +31,10 @@ import { byAscendingEffort } from '../reasoningEfforts'
 import { TakeOverQaRunDialog } from '../TakeOverQaRunDialog'
 import { ArchSettings } from './ArchSettings'
 import { useDismiss } from './useDismiss'
+import { useRunVersionCases } from './useRunVersionCases'
+import { versionCaseBuildName } from './versionCaseBuildName'
 
-type Check = { tone: 'ok' | 'warn' | 'bad'; title: string; detail?: string; fix?: { label: string; to: string } }
+type Check = { tone: 'ok' | 'warn' | 'bad'; title: string; detail?: string; fix?: { label: string; to: string }; versionCases?: boolean }
 
 /**
  * QA 실행 화면의 오른쪽 "실행 설정" 패널(ARTEL-1084).
@@ -120,25 +121,20 @@ export function LaunchPanel({
   // 지우는 대신 보낼 때 걷어 내므로, 모델을 되돌리면 고른 값이 그대로 살아 있다.
   const readsImages = model?.multimodal ?? true
   const effectiveArch = readsImages ? arch : withoutVisionKnobs(arch)
+  const changedSettings = changedSettingCount(effectiveArch)
 
-  const mismatch = versionMismatch(run ?? undefined, instance ?? undefined)
-  // 켜진 게임 버전에 없는 이 TR 의 케이스 수(ARTEL-1070). 못 읽으면 알리지 않는다.
-  const skipped = useCasesOutsideBuild(projectId, run?.id ?? '', instance?.id ?? '')
-  const skippedGame = instance?.lastGameBuild == null ? null : instance.lastGameBuild.label ?? instance.lastGameBuild.version
+  const versionCases = useRunVersionCases(projectId, run?.id ?? '', instance?.id ?? '', JSON.stringify(instance?.lastGameBuild))
+  const skipped = versionCases.outside?.testCaseIds.length ?? 0
+  const skippedGame = versionCaseBuildName(versionCases.outside?.gameBuildId, builds, instance?.lastGameBuild ?? null) ?? l.currentVersion
   const checks: Check[] = []
   if (instance === null) checks.push({ tone: 'bad', title: l.noGame })
   else if (instance.connected) checks.push({ tone: 'ok', title: l.connected })
   else checks.push({ tone: 'bad', title: l.disconnected, detail: l.offline, fix: { label: l.install, to: sectionHref(projectId, 'setup') } })
   if (run !== null && instance !== null) {
-    if (mismatch === null) {
-      const version = run.gameBuild?.label ?? run.gameBuild?.version
-      if (version !== undefined) checks.push({ tone: 'ok', title: l.versionOk(version) })
-    } else {
-      checks.push({ tone: 'warn', title: l.versionDiff, detail: `${p.versionMismatch.basis(mismatch.run, mismatch.game)} ${p.versionMismatch.record(mismatch.game)}` })
-    }
-    // 켜진 게임 버전에 없는 이 TR 의 케이스(ARTEL-1070). QA 는 이 케이스들을 판정하지 않고 넘긴다 — 막지 않고 알린다.
-    if (skipped > 0 && skippedGame !== null) {
-      checks.push({ tone: 'warn', title: l.casesSkipped(skipped), detail: p.versionMismatch.skipped(skipped, skippedGame) })
+    if (skipped > 0) {
+      checks.push({ tone: 'warn', title: l.missingVersionCases(skipped, skippedGame), detail: l.addVersionCasesHint, versionCases: true })
+    } else if (versionCases.outside?.gameBuildId != null) {
+      checks.push({ tone: 'ok', title: run.gameBuild?.gameBuildId === versionCases.outside.gameBuildId ? l.versionOk(skippedGame) : l.recordVersion(skippedGame) })
     }
   }
   const runEditHref = run === null ? null : `/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(run.id)}/edit`
@@ -162,7 +158,7 @@ export function LaunchPanel({
    * `force` 는 사용자가 인수 대화상자에서 답했을 때만 true 다 — agent 는 절대 보내지 않는다.
    */
   async function start(force = false): Promise<StartOutcome | null> {
-    if (blocked || starting || run === null || instance === null || model === null) return null
+    if (blocked || starting || versionCases.pending || run === null || instance === null || model === null) return null
     setStarting(true)
     setFailure(null)
     try {
@@ -249,6 +245,7 @@ export function LaunchPanel({
   // 버튼이 막혀 있을 때 보이는 점검 항목 중 막힌 것들을 그대로 이유로 돌려준다.
   function startBlockedReason(): string | null {
     if (starting) return p.starting
+    if (versionCases.pending) return l.addingVersionCases
     if (run === null) return t.qa.errors.missingSelection
     if (!blocked) return null
     const reasons = checks.filter((check) => check.tone === 'bad').map((check) => check.title)
@@ -414,12 +411,11 @@ export function LaunchPanel({
           disabled={starting}
           onChange={setFunctionOptions}
           projectId={projectId}
+          summaryBadge={changedSettings > 0 ? <span className="qa-advanced-count">{p.advanced.changed(changedSettings)}</span> : undefined}
           value={functionOptions}
-        />
-
-        <div className="ql-field">
+        >
           <ArchSettings onChange={onArchChange} readsImages={readsImages} selection={effectiveArch} />
-        </div>
+        </QaFunctionOptionsFields>
 
         <div className="ql-field">
           <span className="ql-field-label">{l.checksTitle}</span>
@@ -433,10 +429,21 @@ export function LaunchPanel({
                   <span className="ql-check-title">{check.title}</span>
                   {check.detail !== undefined && <span className="ql-check-detail">{check.detail}</span>}
                   {check.fix !== undefined && <Link className="ql-link" to={check.fix.to}>{check.fix.label} →</Link>}
+                  {check.versionCases && (
+                    <button className="ql-text-button" disabled={starting || versionCases.pending} onClick={() => void versionCases.addAll()} type="button">
+                      {versionCases.pending ? l.addingVersionCases : l.addAllVersionCases(skippedGame)}
+                    </button>
+                  )}
                 </span>
               </li>
             ))}
           </ul>
+          {versionCases.failed && (
+            <div className="inline-error ql-version-error" role="alert">
+              {l.addVersionCasesFailed}
+              <button className="ql-text-button" disabled={versionCases.pending} onClick={versionCases.retry} type="button">{l.retryVersionCases}</button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -449,7 +456,8 @@ export function LaunchPanel({
           </div>
         )}
         <button
-          aria-disabled={blocked}
+          aria-disabled={blocked || starting || versionCases.pending}
+          disabled={starting || versionCases.pending}
           className={'ql-run' + (blocked ? ' is-blocked' : '')}
           onClick={() => void start()}
           ref={runButton}
@@ -483,22 +491,4 @@ function formatEta(ms: number): string {
 /** 한 줄에 넷까지. 그보다 많으면 두 줄로 나눠 글자가 잘리지 않게 한다(끔 · low · medium · high · xhigh · max 는 3 × 2). */
 function segColumns(count: number): number {
   return count <= 4 ? count : Math.ceil(count / 2)
-}
-
-/**
- * 이 TR 의 케이스 중 켜진 게임의 버전에 없는 것의 수(ARTEL-1070). 게임이나 TR 을 고르지 않았거나 읽지 못하면 0 이다
- * — 점검에 덧붙이는 정보라, 못 읽었다고 QA 를 막지 않는다.
- */
-function useCasesOutsideBuild(projectId: string, runId: string, instanceId: string): number {
-  const [counted, setCounted] = useState<{ key: string; count: number } | null>(null)
-  const key = `${runId}:${instanceId}`
-  useEffect(() => {
-    if (runId === '' || instanceId === '') return undefined
-    const controller = new AbortController()
-    getRunCasesOutsideBuild(projectId, runId, instanceId, controller.signal)
-      .then((outside) => setCounted({ key: `${runId}:${instanceId}`, count: outside.testCaseIds.length }))
-      .catch(() => undefined)
-    return () => controller.abort()
-  }, [projectId, runId, instanceId])
-  return counted !== null && counted.key === key ? counted.count : 0
 }

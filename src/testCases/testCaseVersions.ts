@@ -339,10 +339,11 @@ async function writeVersionCases(
   gameBuildId: string,
   suffix: string,
   caseIds: readonly string[],
+  includeGenerated = false,
 ): Promise<string[]> {
   const response = await apiFetch(`${versionsRoot(projectId)}/${encodeURIComponent(gameBuildId)}/cases${suffix}`, {
     method: 'POST',
-    ...jsonRequest({ caseIds }),
+    ...jsonRequest({ caseIds, includeGenerated }),
   })
   await expectOk(response)
   return asArray(asRecord(await readJson(response))?.caseIds)
@@ -351,11 +352,11 @@ async function writeVersionCases(
 }
 
 /**
- * 사용자 생성 케이스를 이 버전에 넣는다(ARTEL-1032). 자동 생성 케이스와 이미 든 것은 서버가 건너뛴다. 실제로 넣은 id 를
- * 돌려준다 — Undo 는 그것만 뺀다.
+ * 케이스를 이 버전에 넣는다. `includeGenerated`를 지정하면 자동 생성 케이스도 포함한다.
+ * 이미 있는 케이스는 유지하고 실제로 추가한 id만 돌려준다.
  */
-export function addCasesToVersion(projectId: string, gameBuildId: string, caseIds: readonly string[]) {
-  return writeVersionCases(projectId, gameBuildId, '', caseIds)
+export function addCasesToVersion(projectId: string, gameBuildId: string, caseIds: readonly string[], includeGenerated = false) {
+  return writeVersionCases(projectId, gameBuildId, '', caseIds, includeGenerated)
 }
 
 /** 사용자 생성 케이스를 이 버전에서 뺀다. 그 버전에서 받은 판정도 함께 지워진다. */
