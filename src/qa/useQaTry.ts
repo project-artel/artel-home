@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { asRecord } from '../projects/projectApi'
 import {
   compareDecimalIds,
-  getQaTry,
   listQaLogs,
   parseQaLogEvent,
   qaEventsUrl,
@@ -14,6 +13,8 @@ import {
   type QaTry,
   type QaTryStatus,
 } from './qaTypes'
+import { mergeQaVerdicts } from './qaVerdicts'
+import { loadQaTrySnapshot } from './qaTrySnapshot'
 
 type LoadStatus = 'loading' | 'ready' | 'missing' | 'error'
 
@@ -74,6 +75,7 @@ export function useQaTry(qaTryId: string) {
   const [loadStatus, setLoadStatus] = useState<LoadStatus>('loading')
   const [qaTry, setQaTry] = useState<QaTry | null>(null)
   const [logs, setLogs] = useState<QaLog[]>([])
+  const [verdictLogs, setVerdictLogs] = useState<QaLog[]>([])
   const [hasMore, setHasMore] = useState(false)
   const [nextBeforeId, setNextBeforeId] = useState<string | null>(null)
   const [historyLoading, setHistoryLoading] = useState(false)
@@ -89,11 +91,12 @@ export function useQaTry(qaTryId: string) {
     const controller = new AbortController()
     initialAfterIdRef.current = undefined
 
-    Promise.all([getQaTry(qaTryId, controller.signal), listQaLogs(qaTryId, undefined, controller.signal)])
-      .then(([loadedTry, page]) => {
+    loadQaTrySnapshot(qaTryId, controller.signal)
+      .then(({ qaTry: loadedTry, page, verdictLogs: loadedVerdicts }) => {
         if (generationRef.current !== generation) return
         setQaTry(loadedTry)
         setLogs(page.items)
+        setVerdictLogs(loadedVerdicts)
         setHasMore(page.hasMore)
         setNextBeforeId(page.nextBeforeId)
         initialAfterIdRef.current = page.items.at(-1)?.id
@@ -144,6 +147,7 @@ export function useQaTry(qaTryId: string) {
       }
 
       setLogs((current) => mergeLogs(current, [log]))
+      setVerdictLogs((current) => mergeQaVerdicts(current, [log]))
       const statusUpdate = statusFromLog(log)
       if (statusUpdate === null) return
 
@@ -202,11 +206,13 @@ export function useQaTry(qaTryId: string) {
     loadOlder,
     loadStatus,
     logs,
+    verdictLogs,
     qaTry,
     reload: () => {
       setLoadStatus('loading')
       setQaTry(null)
       setLogs([])
+      setVerdictLogs([])
       setHistoryFailure(null)
       setStreamState('closed')
       setReloadToken((value) => value + 1)
