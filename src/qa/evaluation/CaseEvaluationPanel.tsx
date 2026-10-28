@@ -11,11 +11,11 @@ import './evaluation.css'
 
 const REVIEW_CHOICES = ['PASSED', 'FAILED', 'INCONCLUSIVE'] as const
 
-export function CaseEvaluationPanel({ projectId, qaTryId, testCaseId }: { projectId: string; qaTryId?: string; testCaseId?: string }) {
-  return <AttemptList key={`${projectId}:${qaTryId ?? ''}:${testCaseId ?? ''}`} projectId={projectId} qaTryId={qaTryId} testCaseId={testCaseId} />
+export function CaseEvaluationPanel({ projectId, qaTryId, testCaseId, id }: { projectId: string; qaTryId?: string; testCaseId?: string; id?: string }) {
+  return <AttemptList key={`${projectId}:${qaTryId ?? ''}:${testCaseId ?? ''}`} projectId={projectId} qaTryId={qaTryId} testCaseId={testCaseId} id={id} />
 }
 
-function AttemptList({ projectId, qaTryId, testCaseId }: { projectId: string; qaTryId?: string; testCaseId?: string }) {
+function AttemptList({ projectId, qaTryId, testCaseId, id }: { projectId: string; qaTryId?: string; testCaseId?: string; id?: string }) {
   const [params] = useSearchParams()
   const { locale } = useI18n()
   const copy = evaluationCopy[locale === 'ko' ? 'ko' : 'en']
@@ -52,7 +52,7 @@ function AttemptList({ projectId, qaTryId, testCaseId }: { projectId: string; qa
   const current = options.find(row => row.id === selected) ?? rows[0]
   const optionLabel = (row: api.Attempt) =>
     `${shortWhen(row.startedAt ?? row.createdAt)} · TC ${row.testCaseId} · ${row.verdict ? copy[row.verdict] : copy.running} → ${row.review ? copy[row.review] : copy.unreviewed}`
-  return <section className="qe-panel" aria-label={copy.title}>
+  return <section className="qe-panel" aria-label={copy.title} id={id}>
     <div className="qe-head">
       <h3>{copy.title}</h3>
       {options.length > 0 && <div className="qe-attempt-pick">

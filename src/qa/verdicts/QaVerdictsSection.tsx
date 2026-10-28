@@ -17,6 +17,8 @@ const CELL_PX = 44
 const CELL_GAP_PX = 4
 /** 진행 중인 실행은 이 간격으로 다시 읽는다. 판정이 오는 대로 줄과 근거가 바뀐다. */
 const POLL_MS = 4000
+/** 머리의 `TC 판정 검토` 버튼이 내려가는 자리. */
+const EVALUATION_PANEL_ID = 'qe-review'
 
 type ListFilter = 'all' | 'checks' | 'failed' | 'review'
 
@@ -29,7 +31,7 @@ type ListFilter = 'all' | 'checks' | 'failed' | 'review'
 export function QaVerdictsSection() {
   const { projectId = '', qaRunId = '' } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const copy = t.qa.verdicts
 
   const [data, setData] = useState<QaRunVerdicts | null>(null)
@@ -123,7 +125,7 @@ export function QaVerdictsSection() {
   const elapsed = data.startedAt !== null && data.completedAt !== null
     ? Math.round((Date.parse(data.completedAt) - Date.parse(data.startedAt)) / 1000)
     : null
-  const evaluation = scenario && <CaseEvaluationPanel key={scenario.qaTryId} projectId={projectId} qaTryId={scenario.qaTryId} />
+  const evaluation = scenario && <CaseEvaluationPanel id={EVALUATION_PANEL_ID} key={scenario.qaTryId} projectId={projectId} qaTryId={scenario.qaTryId} />
 
   return (
     <section className="qv" aria-labelledby="qv-scenario-title">
@@ -135,6 +137,20 @@ export function QaVerdictsSection() {
           {data.startedAt !== null && <><span aria-hidden="true">›</span><b>{copy.runAt(shortWhen(data.startedAt))}</b></>}
         </nav>
         <div className="qv-top-actions">
+          {scenario?.reportingUnit === 'TEST_CASE' && (
+            // 평가가 이 화면의 주된 행동이라 유일한 primary 다. 패널은 아래에 있어서 누르면 거기로 내려가 시도 선택에 focus 를 준다.
+            <button
+              className="button button--primary button--compact"
+              onClick={() => {
+                const panel = document.getElementById(EVALUATION_PANEL_ID)
+                panel?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+                panel?.querySelector<HTMLElement>('select, button, textarea')?.focus({ preventScroll: true })
+              }}
+              type="button"
+            >
+              {evaluationCopy[locale === 'ko' ? 'ko' : 'en'].title}
+            </button>
+          )}
           <Link className="button button--secondary button--compact" to={qaRunPath(projectId, qaRunId, scenario?.qaTryId)}>{copy.timeline}</Link>
           <Link
             className="button button--secondary button--compact"

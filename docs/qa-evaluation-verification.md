@@ -62,6 +62,7 @@ breadcrumb·제목 아래로 평가 패널을 옮긴 마지막 수정 후 `npm r
 - QA 질문: 노랑 왼쪽 선 카드. 질문 문장을 제목 크기로 올리고 QA 실행 번호를 chip 링크로 둔다. 대기 질문이 없으면 아무것도 그리지 않는다.
 - 알림 구독 체크박스를 없앴다. `QA 실행` 패널에서 run 을 시작하면 클릭 직후 `Notification.requestPermission()` 을 호출하고, run 생성이 성공하면 그 프로젝트를 `PUT /qa-evaluation/question-subscription` 으로 구독한다.
 - issue 상세의 TC 실패 이력: 시각(mono) · Agent pill › 사람 pill · 분류(오탐·유효한 실패·판단 불가) · QA 실행 링크 한 줄이다.
+- 평가로 가는 길: QA 히스토리 실행 inspector 의 첫 버튼을 vermilion `판정 검토`(판정 페이지 링크)로 두고 `테스트 런 열기` 는 보조 버튼으로 내렸다. 판정 페이지 머리에도 vermilion `TC 판정 검토` 버튼이 있어 누르면 평가 패널로 내려가 시도 선택에 focus 가 간다. 전에는 inspector 의 판정 링크가 step 판정이 있을 때만 그려져서 TC 단위 실행에서는 판정 페이지로 가는 버튼이 없었다.
 
 실행한 명령과 결과: `npm run typecheck` 통과, 변경한 `src/qa/evaluation`·`src/qa/launch/LaunchPanel.tsx`·`src/qa/verdicts/QaVerdictsSection.tsx` 의 `npx eslint` 통과, 평가 모듈 테스트 12개 통과, `npm test` 1,498개 통과, `npm run build` 성공. 아래 화면은 이 수정 뒤 다시 촬영한 것이다.
 
@@ -70,6 +71,10 @@ breadcrumb·제목 아래로 평가 패널을 옮긴 마지막 수정 후 `npm r
 ## 화면
 
 영상의 초록 화면은 합성 영상이다. fixture에 실제 SDK가 계속 연결되어 있지 않아 연결 오류와 누락 구간 안내가 함께 표시된다. 이미 저장된 영상은 이 상태에서도 재생된다.
+
+### QA 히스토리 실행 inspector
+
+![실행 inspector 의 판정 검토 버튼](images/qa-evaluation-history-inspector.png)
 
 ### 데스크톱 평가 화면
 

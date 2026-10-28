@@ -102,8 +102,15 @@ export function RunInspector({
         </div>
 
         <div className="qh-inspector-links">
+          {/* 판정을 보고 평가하는 것이 이 화면의 주된 행동이라 유일한 primary 다. step 판정이 없는 TC 단위 실행도 이 버튼으로 간다. */}
           <Link
             className="button button--primary button--compact"
+            to={`/projects/${encodeURIComponent(projectId)}/qa-history/${encodeURIComponent(run.id)}${run.reviewPending > 0 ? '?review=1' : ''}`}
+          >
+            {b.reviewVerdicts}
+          </Link>
+          <Link
+            className="button button--secondary button--compact"
             to={`/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(run.testRunId)}/edit`}
           >
             {b.openTestRun}
