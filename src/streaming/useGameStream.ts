@@ -15,7 +15,7 @@ type GameStreamState = {
 }
 
 /** React는 연결 상태만 보관하고 JPEG frame은 바로 canvas에 그린다. */
-export function useGameStream(instanceId: string, onFrame: (frame: ImageBitmap) => void, stopOnDisconnect = false) {
+export function useGameStream(instanceId: string, onFrame: (frame: ImageBitmap) => void) {
   const [state, setState] = useState<GameStreamState>({ instanceId, status: 'connecting', failure: null, errorCode: null, hasFrame: false, lostAt: null })
   const [attempt, setAttempt] = useState(0)
   const consecutiveFailures = useRef(0)
@@ -38,9 +38,9 @@ export function useGameStream(instanceId: string, onFrame: (frame: ImageBitmap) 
     }),
     onFrame,
     onLive: () => { consecutiveFailures.current = 0 },
-    onRetry: () => { if (!stopOnDisconnect) setAttempt((previous) => previous + 1) },
+    onRetry: () => setAttempt((previous) => previous + 1),
     reconnectDelay: () => Math.min(1_000 * 2 ** consecutiveFailures.current++, 10_000),
-  }), [attempt, instanceId, onFrame, stopOnDisconnect])
+  }), [attempt, instanceId, onFrame])
 
   const current = state.instanceId === instanceId ? state : { status: 'connecting' as const, failure: null, errorCode: null, hasFrame: false, lostAt: null }
   return { status: current.status, failure: current.failure, errorCode: current.errorCode, hasFrame: current.hasFrame, lostAt: current.lostAt, retry }

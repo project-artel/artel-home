@@ -28,7 +28,7 @@
 
 원본 #228 head에는 다른 작성자의 [#222](https://github.com/project-artel/artel-home/pull/222), [#223](https://github.com/project-artel/artel-home/pull/223), [#225](https://github.com/project-artel/artel-home/pull/225)가 이미 포함돼 있다. 판정 근거·추가 검토·QA 종료 알림 화면에 필요한 기존 기반으로 통합 ancestry에 남겼다. 이 세 PR은 통합 종료 대상이 아니다.
 
-시연 기능은 orchestration [#379](https://github.com/project-artel/artel-orchestration-server/pull/379)와 SDK [#169](https://github.com/project-artel/artel-sdk/pull/169)의 시연·제어권 계약, 판정 snapshot은 orchestration [#382](https://github.com/project-artel/artel-orchestration-server/pull/382)의 `/verdicts` API를 사용한다. 영상·평가·질문·신뢰도는 orchestration [#383](https://github.com/project-artel/artel-orchestration-server/pull/383), agent [#275](https://github.com/project-artel/artel-agent-server/pull/275), SDK [#174](https://github.com/project-artel/artel-sdk/pull/174)의 계약과 함께 배포해야 한다. 이 원본 PR들은 저장소별 통합 PR의 포함 목록을 추적하는 링크다.
+시연 관련 원본 PR은 이력으로만 남으며 기능·데이터는 제거한다. 판정 snapshot은 orchestration [#382](https://github.com/project-artel/artel-orchestration-server/pull/382)의 `/verdicts` API를 사용한다. 영상·평가·질문·신뢰도는 orchestration [#383](https://github.com/project-artel/artel-orchestration-server/pull/383), agent [#275](https://github.com/project-artel/artel-agent-server/pull/275), SDK [#174](https://github.com/project-artel/artel-sdk/pull/174)의 계약과 함께 배포해야 한다. 이 원본 PR들은 저장소별 통합 PR의 포함 목록을 추적하는 링크다.
 
 ## 검증과 기존 화면 증거
 
@@ -41,4 +41,8 @@
 
 기존 화면과 실제 연결 검증 이력은 [영상·TC 평가 검증](qa-evaluation-verification.md), [TC 시연 기록](tc-demonstration.md) 및 각 원본 PR의 스크린샷을 보존했다. #228의 최신 TC 판정·상대 재생 진행도 캡처도 해당 원본 body에서 확인할 수 있다. `.plan/assets/2026-10-23-tc-demonstration`, `.plan/assets/qa-version-cases`, `.plan/assets/remove-cheat-indicators`, `.plan/assets/qa-verdict-restoration`, `.plan/assets/2026-10-27-tc-hover-details`의 기존 이미지도 포함한다.
 
-이번 통합 검증에서는 실행 중인 stack을 재시작하거나 유료 QA·실제 시연을 새로 시작하지 않았다. 원본 PR의 실제 브라우저·Unity 검증을 통합 branch의 새 실행 결과로 집계하지 않는다. 통합 후 시연 viewport의 실제 조작·화면 capture는 추가 확인 대상이다.
+이번 통합 검증에서는 실행 중인 stack을 재시작하거나 유료 QA·실제 시연을 새로 시작하지 않았다. 원본 PR의 실제 브라우저·Unity 검증을 통합 branch의 새 실행 결과로 집계하지 않는다. TC 시연 기능과 입력 제어, 검증 절차 추출·승인·agent 참고 연결은 이후 제거했다. 시연 기능은 더 이상 배포·검증 대상이 아니다.
+
+## TC 시연 기능 제거
+
+사용자 요청으로 시연 화면·입력 제어·판정 기록·검증 절차 추출과 승인·agent 참고를 제거했다. 기존 시연 데이터와 시연 전용 저장 객체 삭제는 orchestration의 정리 작업으로 처리한다. QA 실행 녹화와 판정 검토, 사용자 피드백은 유지한다. TC 번호 표시 변경은 별도 세션에서 진행한다.

@@ -2,8 +2,6 @@
 
 The React frontend for ARTEL Replay Studio.
 
-TC 검증 시연의 조작, 판정 저장, 절차 승인과 서버 설정은 [TC 검증 시연 사용](docs/tc-demonstration.md)을 참고한다.
-
 ## Requirements
 
 - Node.js 20.19 or newer
