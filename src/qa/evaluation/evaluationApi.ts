@@ -2,9 +2,12 @@ import { apiFetch } from '../../auth/authApi'
 import { asRecord, jsonRequest, readJson } from '../../projects/projectApi'
 
 export type Verdict = 'PASSED' | 'FAILED' | 'INCONCLUSIVE' | 'INTERRUPTED'
+export type ReviewDecision = Verdict | 'TC_CONTENT_ISSUE'
+export type ContentReviewState = 'NEEDS_REVISION' | 'NEEDS_REVALIDATION' | 'READY'
+export type ContentReview = { testCaseId: string; state: ContentReviewState; note: string | null; logId: string | null; attemptId: string | null; qaTryId: string | null; qaRunId: string | null; updatedAt: string; revisedAt: string | null; resolvedAt: string | null }
 export type CaseSnapshot = { scene: string | null; precondition: string | null; step: string | null; expected: string | null }
 export type Attempt = { id: string; qaTryId: string; qaRunId?: string | null; testCaseId: string; startedAt: string | null; finishedAt: string | null;
-  verdict: Verdict | null; logId: string | null; review: Verdict | null; note: string | null; createdAt: string;
+  verdict: Verdict | null; logId: string | null; review: ReviewDecision | null; note: string | null; createdAt: string;
   caseSnapshot?: CaseSnapshot | null; originalReason?: string | null }
 export type Revision = { id: string; decision: string; note: string | null; decidedBy: string | null; decidedAt: string }
 export type Segment = { id: string; startedAt: string; endedAt: string; state: string; url: string | null }
@@ -17,7 +20,7 @@ export type Counts = { total: number; reviewed: number; inconclusiveReviews: num
   falseNegativeRate: number | null; reviewCoverage: number | null }
 export type Reliability = { overall: Counts; daily: { key: string; counts: Counts }[]; cases: { key: string; counts: Counts }[] }
 export type CaseIssueHistory = { testCaseId: string | null; previousIssueId: string | null; mergedInto: string | null; autoClosed: boolean;
-  occurrences: { attemptId: string; qaTryId: string; qaRunId: string | null; logId: string | null; verdict: Verdict | null; review: Verdict | null; falsePositive: boolean; validFailure: boolean; finishedAt: string | null }[] }
+  occurrences: { attemptId: string; qaTryId: string; qaRunId: string | null; logId: string | null; verdict: Verdict | null; review: ReviewDecision | null; falsePositive: boolean; validFailure: boolean; finishedAt: string | null }[] }
 
 function record(value: unknown) { const result = asRecord(value); if (!result) throw new Error('Invalid evaluation response'); return result }
 function string(value: unknown): string { if (typeof value !== 'string') throw new Error('Invalid evaluation field'); return value }
@@ -29,13 +32,14 @@ function verdict(value: unknown): Verdict | null {
   if (value === 'PASSED' || value === 'FAILED' || value === 'INCONCLUSIVE' || value === 'INTERRUPTED') return value
   throw new Error('Invalid verdict')
 }
+function reviewDecision(value: unknown): ReviewDecision | null { return value === 'TC_CONTENT_ISSUE' ? value : verdict(value) }
 function attempt(value: unknown): Attempt {
   const row = record(value)
   const snapshot = asRecord(row.caseSnapshot)
   const text = (value: unknown) => typeof value === 'string' ? value : null
   const steps = snapshot && Array.isArray(snapshot.steps) && snapshot.steps.every(step => typeof step === 'string') ? snapshot.steps.join('\n') : null
   return { id: string(row.id), qaTryId: string(row.qaTryId), qaRunId: nullable(row.qaRunId), testCaseId: string(row.testCaseId), startedAt: nullable(row.startedAt),
-    finishedAt: nullable(row.finishedAt), verdict: verdict(row.verdict), logId: nullable(row.logId), review: verdict(row.review), note: nullable(row.note), createdAt: string(row.createdAt),
+    finishedAt: nullable(row.finishedAt), verdict: verdict(row.verdict), logId: nullable(row.logId), review: reviewDecision(row.review), note: nullable(row.note), createdAt: string(row.createdAt),
     originalReason: nullable(row.originalReason), caseSnapshot: snapshot ? { scene: text(snapshot.scene), precondition: text(snapshot.precondition),
       step: text(snapshot.step) ?? text(snapshot.test_step) ?? steps, expected: text(snapshot.expected) ?? text(snapshot.expected_value) ?? text(snapshot.expected_result) } : null }
 }
@@ -102,5 +106,16 @@ export async function issueHistory(project: string, id: string, signal?: AbortSi
   const row = record(await request(project, `/issues/${encodeURIComponent(id)}${beforeLogId ? '?beforeLogId=' + encodeURIComponent(beforeLogId) : ''}`, signal))
   return { testCaseId: nullable(row.testCaseId), previousIssueId: nullable(row.previousIssueId), mergedInto: nullable(row.mergedInto), autoClosed: row.autoClosed === true,
     occurrences: list(row.occurrences, value => { const item = record(value); return { attemptId: string(item.attemptId), qaTryId: string(item.qaTryId), qaRunId: nullable(item.qaRunId), logId: nullable(item.logId),
-      verdict: verdict(item.verdict), review: verdict(item.review), falsePositive: item.falsePositive === true, validFailure: item.validFailure === true, finishedAt: nullable(item.finishedAt) } }) }
+      verdict: verdict(item.verdict), review: reviewDecision(item.review), falsePositive: item.falsePositive === true, validFailure: item.validFailure === true, finishedAt: nullable(item.finishedAt) } }) }
+}
+
+export async function contentReviews(project: string, testCaseId?: string, signal?: AbortSignal): Promise<ContentReview[]> {
+  const query = testCaseId ? '?' + new URLSearchParams({ testCaseId }) : ''
+  return list(await request(project, '/case-content-reviews' + query, signal), value => {
+    const row = record(value)
+    if (row.state !== 'NEEDS_REVISION' && row.state !== 'NEEDS_REVALIDATION' && row.state !== 'READY') throw new Error('Invalid content review state')
+    return { testCaseId: string(row.testCaseId), state: row.state, note: nullable(row.note), logId: nullable(row.logId),
+      attemptId: nullable(row.attemptId), qaTryId: nullable(row.qaTryId), qaRunId: nullable(row.qaRunId), updatedAt: string(row.updatedAt),
+      revisedAt: nullable(row.revisedAt), resolvedAt: nullable(row.resolvedAt) }
+  })
 }

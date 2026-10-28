@@ -11,7 +11,7 @@ import { EvidencePlayer } from './EvidencePlayer'
 import { CaseAttemptPicker } from './CaseAttemptPicker'
 import './evaluation.css'
 
-const REVIEW_CHOICES = ['PASSED', 'FAILED', 'INCONCLUSIVE'] as const
+const REVIEW_CHOICES = ['PASSED', 'FAILED', 'INCONCLUSIVE', 'TC_CONTENT_ISSUE'] as const
 
 export function CaseEvaluationPanel({ projectId, qaTryId, testCaseId, id }: { projectId: string; qaTryId?: string; testCaseId?: string; id?: string }) {
   return <AttemptList key={`${projectId}:${qaTryId ?? ''}:${testCaseId ?? ''}`} projectId={projectId} qaTryId={qaTryId} testCaseId={testCaseId} id={id} />
@@ -74,7 +74,7 @@ function AttemptReview({ attempt, projectId, onSaved }: { attempt: api.Attempt; 
   const { locale } = useI18n()
   const copy = evaluationCopy[locale === 'ko' ? 'ko' : 'en']
   const actualId = useId()
-  const [decision, setDecision] = useState<api.Verdict>(attempt.review ?? 'INCONCLUSIVE')
+  const [decision, setDecision] = useState<api.ReviewDecision>(attempt.review ?? 'INCONCLUSIVE')
   const [note, setNote] = useState(attempt.note ?? '')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
@@ -130,12 +130,13 @@ function AttemptReview({ attempt, projectId, onSaved }: { attempt: api.Attempt; 
         {attempt.logId && <form className="qe-form" onSubmit={event => {
           event.preventDefault(); setBusy(true); setMessage('')
           void api.review(projectId, attempt.logId!, decision, note).then(async () => {
-            setHistory(await api.revisions(projectId, attempt.logId!)); setMessage(copy.saved); onSaved()
+            setMessage(copy.saved); window.dispatchEvent(new CustomEvent('artel:case-content-review', { detail: projectId })); onSaved()
+            try { setHistory(await api.revisions(projectId, attempt.logId!)) } catch { setMessage(copy.historyLoadFailed) }
           }).catch(() => setMessage(copy.error)).finally(() => setBusy(false))
         }}>
           <div className="qe-field">
             <span id={actualId}>{copy.actual}</span>
-            {/* 고른 하나만 Tab 에 걸리고, 나머지는 화살표로 옮긴다. 셋이 전부 Tab 정거장이면 이유 칸까지 세 번 눌러야 한다. */}
+            {/* 고른 항목만 Tab에 걸리고 나머지는 화살표로 이동한다. */}
             <div className="qe-seg" role="radiogroup" aria-labelledby={actualId} onKeyDown={event => {
               const step = event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 0
               if (step === 0) return
@@ -178,8 +179,8 @@ function AttemptReview({ attempt, projectId, onSaved }: { attempt: api.Attempt; 
   </div>
 }
 
-function isVerdict(value: string): value is api.Verdict {
-  return value === 'PASSED' || value === 'FAILED' || value === 'INCONCLUSIVE' || value === 'INTERRUPTED'
+function isVerdict(value: string): value is api.ReviewDecision {
+  return value === 'PASSED' || value === 'FAILED' || value === 'INCONCLUSIVE' || value === 'INTERRUPTED' || value === 'TC_CONTENT_ISSUE'
 }
 
 function VideoEvidence({ attempt, playback }: { attempt: api.Attempt; playback: api.Playback }) {

@@ -8,6 +8,7 @@ import { SpecGradeChip } from './SpecGradeChip'
 import { TestCaseEditor, type VersionChoice } from './TestCaseEditor'
 import { describeVerifiedBuild } from './testCaseLibrary'
 import type { TestCase } from './testCaseTypes'
+import { ContentReviewPanel } from '../qa/evaluation/ContentReviewPanel'
 import { CaseEvaluationPanel } from '../qa/evaluation/CaseEvaluationPanel'
 
 /**
@@ -24,6 +25,7 @@ export function TestCaseSheet({
   projectId,
   testCase,
   versionChoice,
+  editGameBuildId,
   onClose,
   onCreated = () => {},
   onDelete,
@@ -37,6 +39,7 @@ export function TestCaseSheet({
   testCase: TestCase | null
   /** 새 케이스를 넣을 버전 고르기(ARTEL-1032). */
   versionChoice?: VersionChoice
+  editGameBuildId?: string | null
   onClose: () => void
   onCreated?: (created: TestCase) => void
   onDelete: () => void
@@ -92,6 +95,7 @@ export function TestCaseSheet({
             {buildNote(testCase, builds, m, t.projects.builds.editorLabel)} · {m.outcome.addedAt(formatDate(testCase.createdAt))}
           </p>
         )}
+        {testCase && <ContentReviewPanel key={`content:${testCase.id}`} projectId={projectId} testCaseId={testCase.id} builds={builds} defaultBuildId={editGameBuildId ?? testCase.lastVerifiedBuildId} />}
         <TestCaseEditor
           builds={builds}
           folderId={folderId}
@@ -104,6 +108,7 @@ export function TestCaseSheet({
           projectId={projectId}
           testCase={testCase}
           versionChoice={versionChoice}
+          editGameBuildId={editGameBuildId}
         />
         {testCase && <CaseEvaluationPanel key={`evaluation:${testCase.id}`} projectId={projectId} testCaseId={testCase.id} />}
       </aside>

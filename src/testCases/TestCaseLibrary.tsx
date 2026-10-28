@@ -71,6 +71,9 @@ import {
   type TestCaseSort,
   type TestCaseTally,
 } from './testCaseLibrary'
+import { ContentReviewBadge } from '../qa/evaluation/ContentReviewPanel'
+import { useContentReviews } from '../qa/evaluation/useContentReviews'
+import { evaluationCopy } from '../qa/evaluation/evaluationCopy'
 import { VERIFICATION_STATUSES, type TestCase, type VerificationStatus } from './testCaseTypes'
 import { useFolderHistory } from './useFolderHistory'
 import { useFolderItems } from './useFolderItems'
@@ -140,9 +143,12 @@ export function TestCaseLibrary({
   builds: GameBuild[]
   projectId: string
 }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const m = t.testCases
 
+  const contentReviews = useContentReviews(projectId)
+  const contentByCase = new Map(contentReviews.rows.map(row => [row.testCaseId, row]))
+  const contentCopy = evaluationCopy[locale === 'en' ? 'en' : 'ko']
   const library = useTestCaseLibrary(projectId)
   // 편집기는 고른 케이스가 바뀔 때마다 다시 마운트되므로, 안내 문구를 그 안에 두면
   // 새 케이스를 추가한 직후 그 문구가 마운트와 함께 사라져 screen reader 에 닿지 않는다.
@@ -1010,6 +1016,7 @@ export function TestCaseLibrary({
           </div>
         </div>
 
+        {contentReviews.status === 'failed' && <p className="inline-error" role="alert">{contentCopy.contentStatus} · {contentCopy.error} <button type="button" className="button button--secondary button--compact" onClick={() => contentReviews.reload()}>{contentCopy.retry}</button></p>}
         <div className="tcl-status-row" data-tour="chips" ref={statusRow}>
           <span className="field-label">{m.filters.status}</span>
           <div className="tcl-chips">
@@ -1291,7 +1298,7 @@ export function TestCaseLibrary({
                       <td><SceneChip scene={testCase.scene} /></td>
                       <td><SpecGradeChip bare status={testCase.status} /></td>
                       <td>
-                        <StatusPill labels={m} status={result} />
+                        <div className="tct-content-status"><StatusPill labels={m} status={result} />{contentByCase.has(testCase.id) && <ContentReviewBadge row={contentByCase.get(testCase.id)!} />}</div>
                       </td>
                       {comparing && (
                         <td>
@@ -1346,6 +1353,7 @@ export function TestCaseLibrary({
           }}
           projectId={projectId}
           testCase={selected}
+          editGameBuildId={selectedBuildId}
           // 새 케이스는 기본으로 현재 버전(가장 최근)에 넣는다(ARTEL-1032). 폴더에서 만든 케이스도 버전 라이브러리에 바로 보인다.
           versionChoice={
             versionsMode

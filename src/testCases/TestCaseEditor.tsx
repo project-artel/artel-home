@@ -102,6 +102,7 @@ export function TestCaseEditor({
   projectId,
   testCase,
   versionChoice,
+  editGameBuildId,
   onCreated,
   onDelete,
   onDone,
@@ -117,6 +118,8 @@ export function TestCaseEditor({
   testCase: TestCase | null
   /** 있으면 새 케이스를 넣을 버전 칸이 생긴다(ARTEL-1032). 고친 케이스의 저장에는 실리지 않는다. */
   versionChoice?: VersionChoice
+  /** 지도 TC를 편집할 때 선택한 build snapshot만 수정한다. */
+  editGameBuildId?: string | null
   onCreated: (created: TestCase) => void
   onDelete: () => void
   onDone: () => void
@@ -206,7 +209,7 @@ export function TestCaseEditor({
         return
       }
 
-      const saved = await updateTestCase(projectId, testCase.id, patch ?? {})
+      const saved = await updateTestCase(projectId, testCase.id, { ...patch, ...(testCase.origin === 'MAP' && editGameBuildId ? { gameBuildId: editGameBuildId } : {}) })
       onSaved(saved)
       setDraft(toDraft(saved))
     } catch (error: unknown) {
