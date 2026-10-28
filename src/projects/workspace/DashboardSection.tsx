@@ -13,6 +13,7 @@ import { compareVersions, costByRun, countByDay, countByWeek, formatTokens, scen
 import { createFreeRun } from './dashboard/freeRun'
 import { FreeRunPicker } from './dashboard/FreeRunPicker'
 import { pickItems } from './dashboard/freeRunCases'
+import { DashboardReliability } from './dashboard/DashboardReliability'
 import { useDashboardData } from './dashboard/useDashboardData'
 import './dashboard/dashboard.css'
 import { sectionHref } from './sections'
@@ -143,6 +144,8 @@ export function DashboardSection() {
           <Meter value={coverage.total === 0 ? 0 : coverage.authored / coverage.total} />
         </Kpi>
       </div>
+
+      <DashboardReliability projectId={projectId} days={period} now={now.getTime()} />
 
       <div className="db-trio">
         {/* 검증 남은 TC */}

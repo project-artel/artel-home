@@ -246,3 +246,31 @@ a.db-row:focus-visible { outline: 2px solid var(--color-brand-accent); outline-o
   .frp-actions { flex-wrap: wrap; }
   .frp-summary { flex-basis: 100%; }
 }
+
+.db-reliability-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 4px 0 0; gap: 16px; }
+.db-reliability-stats > div { min-width: 0; border-left: 1px solid var(--color-border-subtle); padding-left: 14px; }
+.db-reliability-stats > div:first-child { border-left: 0; padding-left: 0; }
+.db-reliability-stats dt { color: var(--color-text-secondary); font-size: 12px; }
+.db-reliability-stats dd { margin: 4px 0 0; font: 600 26px var(--font-display); font-variant-numeric: tabular-nums; }
+.db-reliability-stats small { display: block; margin-top: 3px; color: var(--color-text-muted); font: 11px var(--font-mono); }
+.db-reliability-charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin-top: 10px; }
+.db-reliability-chart { min-width: 0; }
+.db-reliability-chart h3 { margin: 0; font-size: 13px; font-weight: 600; }
+.db-reliability-legend { display: flex; gap: 16px; min-height: 24px; font-size: 12px; align-items: center; }
+.db-reliability-chart:last-child h3 { margin-bottom: 24px; }
+.db-reliability-fp { color: var(--color-text-primary); }
+.db-reliability-fn { color: var(--color-agent-reasoning); }
+.db-reliability-scroll { min-width: 0; overflow-x: auto; }
+.db-reliability-chart svg { display: block; width: 100%; min-width: 420px; }
+.db-reliability-chart text { fill: var(--color-text-muted); font: 12px var(--font-mono); }
+.db-reliability-grid { stroke: var(--color-border-subtle); stroke-width: 1; }
+.db-reliability-bar { fill: var(--color-text-secondary); }
+.db-reliability-details { font-size: 12px; }
+.db-reliability-details summary { padding: 8px 0; cursor: pointer; color: var(--color-text-secondary); }
+.db-reliability-details table { width: 100%; min-width: 520px; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.db-reliability-details :is(th, td) { padding: 8px 12px; border-bottom: 1px solid var(--color-border-subtle); text-align: right; }
+.db-reliability-details :is(th, td):first-child { text-align: left; }
+.db-reliability-details caption { padding: 8px; text-align: left; color: var(--color-text-muted); }
+.db-reliability-details small { color: var(--color-text-muted); }
+@media (max-width: 900px) { .db-reliability-charts { grid-template-columns: minmax(0, 1fr); gap: 16px; } }
+@media (max-width: 520px) { .db-reliability-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .db-reliability-stats > div:nth-child(3) { border-left: 0; padding-left: 0; } }
