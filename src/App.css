@@ -11611,6 +11611,8 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
 .qh-inspector-title { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .qh-inspector-line { display: flex; align-items: center; gap: var(--space-2); }
 .qh-inspector-name { font-size: 13px; font-weight: 600; }
+.qh-inspector-name, .qv .qv-test-run-link { color: var(--color-text-primary); text-decoration: none; }
+.qh-inspector-name:hover, .qv .qv-test-run-link:hover { text-decoration: underline; text-underline-offset: 3px; }
 .qh-figures { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); padding: var(--space-4) var(--space-5) 0; }
 .qh-figures > div { display: flex; flex-direction: column; gap: 2px; padding: 10px; border-radius: var(--radius-md); background: var(--color-bg-raised); }
 .qh-figures span { color: var(--color-text-muted); font-size: 11px; }
