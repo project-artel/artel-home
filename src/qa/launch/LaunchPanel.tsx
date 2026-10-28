@@ -21,6 +21,7 @@ import { sectionHref } from '../../projects/workspace/sections'
 import type { TestRun } from '../../testRuns/testRunApi'
 import { archLabelMissing, changedSettingCount, toArchRequest, withoutVisionKnobs, type QaArchSelection } from '../qaArch'
 import { createQaRun, qaStartConflict } from '../qaApi'
+import { requestQuestionNotificationPermission, subscribeQuestionNotifications } from '../evaluation/questionNotificationOptIn'
 import { storeLastArch } from '../qaStartChoices'
 import { DEFAULT_QA_FUNCTION_OPTIONS, type QaFunctionOptions } from '../qaFunctionOptions'
 import { QaFunctionOptionsFields } from '../QaFunctionOptionsFields'
@@ -161,10 +162,13 @@ export function LaunchPanel({
     if (blocked || starting || versionCases.pending || run === null || instance === null || model === null) return null
     setStarting(true)
     setFailure(null)
+    // 알림 권한은 클릭 직후에 묻는다. run 생성 응답을 기다린 뒤에 물으면 브라우저가 창을 띄우지 않는다.
+    const permission = requestQuestionNotificationPermission()
     try {
       const created = await createQaRun(run.id, instance.id, model.id, model.keySource, selectedReasoning, force, toArchRequest(effectiveArch), functionOptions)
       // 시작이 성공한 구조만 다음 폼의 기본값이 된다. 고르다 만 값은 남기지 않는다.
       storeLastArch(effectiveArch)
+      void permission.then(() => subscribeQuestionNotifications(projectId))
       setTakeoverOpen(false)
       navigate(`/projects/${encodeURIComponent(projectId)}/qa-runs/${encodeURIComponent(created.id)}`)
       return { kind: 'started', qaRunId: created.id }

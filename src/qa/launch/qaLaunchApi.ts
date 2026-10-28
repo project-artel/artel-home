@@ -22,7 +22,13 @@ export type QaRunSummary = {
   completedAt: string | null
   casesPassed: number | null
   casesTotal: number | null
+  casesFailed?: number | null
   issueCount: number
+  /** 실행을 시작한 사람(app_user id). */
+  startedBy: string
+  /** 추가 검토로 고른 판정 수와, 그중 사람이 아직 정하지 않은 수(ARTEL-1255). */
+  reviewFlagged: number
+  reviewPending: number
 }
 
 export type SinceLastQaIssue = {
@@ -89,7 +95,11 @@ export function parseQaRunSummary(data: unknown): QaRunSummary | null {
     completedAt: asNullableString(record.completedAt),
     casesPassed: asCountOrNull(record.casesPassed),
     casesTotal: asCountOrNull(record.casesTotal),
+    casesFailed: asCountOrNull(record.casesFailed),
     issueCount: asCountOrNull(record.issueCount) ?? 0,
+    startedBy: asString(record.startedBy),
+    reviewFlagged: asCountOrNull(record.reviewFlagged) ?? 0,
+    reviewPending: asCountOrNull(record.reviewPending) ?? 0,
   }
 }
 
@@ -145,6 +155,58 @@ export async function listProjectQaRuns(
   const items = asRecord(await readJson(response))?.items
   return Array.isArray(items) ? items.map(parseQaRunSummary).filter((run): run is QaRunSummary => run !== null) : []
 }
+
+/** 상단바 알림함 한 줄(ARTEL-1255): 내가 시작해 끝난 실행과 그 프로젝트. */
+export type QaNotice = {
+  run: QaRunSummary
+  projectId: string
+  projectName: string
+  read: boolean
+}
+
+/** 알림함. [unreadCount] 는 [items] 밖의 오래된 것까지 센다. */
+export type QaNotices = { items: QaNotice[]; unreadCount: number }
+
+export function parseQaNotices(data: unknown): QaNotices {
+  const record = asRecord(data)
+  const items = Array.isArray(record?.items) ? record.items : []
+  return {
+    items: items.flatMap((item) => {
+      const entry = asRecord(item)
+      const run = parseQaRunSummary(entry?.run)
+      if (entry === null || run === null) return []
+      return [{ run, projectId: asString(entry.projectId), projectName: asString(entry.projectName), read: entry.read === true }]
+    }),
+    unreadCount: asCountOrNull(record?.unreadCount) ?? 0,
+  }
+}
+
+export async function listQaNotices(signal?: AbortSignal): Promise<QaNotices> {
+  const response = await apiFetch('/api/qa-notices?limit=10', { signal })
+  if (!response.ok) throw await toApiError(response)
+  return parseQaNotices(await readJson(response))
+}
+
+/** 알림 하나를 읽음으로. 서버가 고친 알림함을 돌려준다. */
+export async function readQaNotice(qaRunId: string): Promise<QaNotices> {
+  const response = await apiFetch(`/api/qa-notices/${encodeURIComponent(qaRunId)}/read`, { method: 'POST' })
+  if (!response.ok) throw await toApiError(response)
+  return parseQaNotices(await readJson(response))
+}
+
+export async function readAllQaNotices(): Promise<QaNotices> {
+  const response = await apiFetch('/api/qa-notices/read-all', { method: 'POST' })
+  if (!response.ok) throw await toApiError(response)
+  return parseQaNotices(await readJson(response))
+}
+
+/** 알림이 가리키는 곳. 검토할 판정이 남았으면 검토 화면으로 바로 간다. */
+export function qaNoticeTarget(projectId: string, run: Pick<QaRunSummary, 'id' | 'reviewPending'>): string {
+  return `/projects/${encodeURIComponent(projectId)}/qa-history/${encodeURIComponent(run.id)}${run.reviewPending > 0 ? '?review=1' : ''}`
+}
+
+/** 끝 알림이 새로 떴다. 상단바 알림함이 이 소식을 받고 다시 읽는다. */
+export const QA_NOTICES_CHANGED = 'artel:qa-notices-changed'
 
 export async function getSinceLastQa(projectId: string, testRunId: string, signal?: AbortSignal): Promise<SinceLastQa> {
   const response = await apiFetch(

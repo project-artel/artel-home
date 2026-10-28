@@ -8,6 +8,7 @@ import { QA_TRY_STATUSES, qaRunPath, type QaTry, type QaTryStatus } from '../qaT
 import type { QaRunSummary } from '../launch/qaLaunchApi'
 import { ringOf, shortWhen } from './historyModel'
 import { PickSketch } from './HistorySketch'
+import { useRunVerdicts } from './useRunVerdicts'
 
 /**
  * 고른 실행 하나(ARTEL-1100). 위는 그 실행의 결과를 숫자 셋과 큰 링으로, 아래는 시나리오마다 예전
@@ -30,6 +31,7 @@ export function RunInspector({
   const { t } = useI18n()
   const b = t.qa.history.board
   const [scroller, setScroller] = useState<HTMLDivElement | null>(null)
+  const verdicts = useRunVerdicts(run?.id ?? '')
 
   if (run === null) {
     return (
@@ -76,7 +78,12 @@ export function RunInspector({
               {ordinalLabel !== null && <b>{ordinalLabel}</b>}
               {isStatus(run.status) && <QaStatusPill status={run.status} />}
             </span>
-            <span className="qh-ellipsis qh-inspector-name">{testRunName}</span>
+            <Link
+              className="qh-ellipsis qh-inspector-name"
+              to={`/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(run.testRunId)}/edit`}
+            >
+              {testRunName}
+            </Link>
             <span className="qh-muted mono">{shortWhen(run.startedAt)}</span>
           </span>
         </div>
@@ -100,11 +107,12 @@ export function RunInspector({
         </div>
 
         <div className="qh-inspector-links">
+          {/* 판정을 보고 평가하는 것이 이 화면의 주된 행동이라 유일한 primary 다. step 판정이 없는 TC 단위 실행도 이 버튼으로 간다. */}
           <Link
             className="button button--primary button--compact"
-            to={`/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(run.testRunId)}/edit`}
+            to={`/projects/${encodeURIComponent(projectId)}/qa-history/${encodeURIComponent(run.id)}${run.reviewPending > 0 ? '?review=1' : ''}`}
           >
-            {b.openTestRun}
+            {b.reviewVerdicts}
           </Link>
           <Link className="button button--secondary button--compact" to={qaRunPath(projectId, run.id)}>{b.timeline}</Link>
           <Link
@@ -121,6 +129,8 @@ export function RunInspector({
               collapsible
               label={b.scenarioFallback(index + 1)}
               qaTryId={qaTry.id}
+              verdicts={verdicts?.get(qaTry.id)}
+              verdictsHref={`/projects/${encodeURIComponent(projectId)}/qa-history/${encodeURIComponent(run.id)}?scenario=${encodeURIComponent(qaTry.id)}`}
             />
             <div className="qh-scenario-links">
               <Link

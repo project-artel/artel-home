@@ -272,7 +272,10 @@ export function TestCaseLibrary({
   }, [stepFolderHistory, m.folders.announce])
   const [filters, setFilters] = useState<TestCaseFilters>(NO_FILTERS)
   const [sort, setSort] = useState<TestCaseSort>('FAILING_FIRST')
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const selectedId = searchParams.get('case')
+  const setSelectedId = useCallback((id: string | null) => {
+    setSearchParams(current => { const next = new URLSearchParams(current); if (id === null) next.delete('case'); else next.set('case', id); return next }, { replace: true })
+  }, [setSearchParams])
   const [creating, setCreating] = useState(false)
   const [deleting, setDeleting] = useState<TestCase | null>(null)
   const [isBulkDeleting, setIsBulkDeleting] = useState(false)

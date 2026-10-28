@@ -4,6 +4,8 @@ import { Link, NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../i18n/useI18n'
+import { QaNoticeBell } from '../qa/QaNoticeBell'
+import { QuestionNotifications } from '../qa/evaluation/QuestionNotifications'
 import { ThemeToggle } from '../ThemeToggle'
 
 /**
@@ -27,6 +29,7 @@ export function AppShell() {
 
   return (
     <div className="app-shell">
+      <QuestionNotifications userId={auth.user.id} />
       <header className="top-bar">
         <Link className="brand" to="/projects" aria-label={t.common.shell.brandHomeLabel}>
           <span className="brand-mark" aria-hidden="true">
@@ -47,6 +50,8 @@ export function AppShell() {
               {t.admin.shellLink}
             </NavLink>
           )}
+          {/* QA 끝 알림을 모아 둔다(ARTEL-1255). 프로젝트를 가리지 않아 모든 화면이 같이 쓰는 상단바에 둔다. */}
+          <QaNoticeBell />
           <ThemeToggle
             toDarkLabel={t.common.shell.switchToDark}
             toLightLabel={t.common.shell.switchToLight}

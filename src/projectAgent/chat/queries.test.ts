@@ -23,7 +23,7 @@ function summary(index: number): QaRunSummary {
     completedAt: null,
     casesPassed: 4,
     casesTotal: 5,
-    issueCount: 1,
+    issueCount: 1, startedBy: '1', reviewFlagged: 0, reviewPending: 0,
   }
 }
 

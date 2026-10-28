@@ -4,11 +4,11 @@ import { indexCasesById } from '../testScenarios/freeScenarioCases'
 import { groupStepsByCase, type ExecutionMode, type ScenarioStep } from '../testScenarios/scenarioTypes'
 import { useProjectCases } from '../testScenarios/useProjectCases'
 import type { QaProgress, QaStepGrade, QaStepProgress, QaStepState } from './qaProgress'
+import { summarizeQaCases, type QaCaseReport } from './qaCaseProgress'
 
 /**
- * A scenario's steps as a vertical list under its rail item, top to bottom in run
- * order, with the steps of one TC (verification region) nested under a head that
- * carries the region's verdict — its last step's.
+ * TC 목록과 참고 절차를 시나리오 순서로 표시한다. TC 머리는 case_id에 맞는
+ * 판정을 사용하고, 이전 실행 기록만 마지막 step 판정으로 표시한다.
  *
  * Only the focused scenario has a log stream, so only it gets `progress`: each
  * row then shows its verdict, and a judged row is a button that jumps to the log
@@ -23,6 +23,7 @@ import type { QaProgress, QaStepGrade, QaStepProgress, QaStepState } from './qaP
 const STATE_GLYPHS: Record<QaStepState, string> = {
   passed: '✓',
   failed: '✕',
+  inconclusive: '?',
   running: '◐',
   pending: '○',
   unreported: '—',
@@ -54,6 +55,7 @@ function stepRows(
 
 export function QaScenarioSteps({
   caseVerdicts = new Map(),
+  caseReports = new Map(),
   executionMode = 'ORDERED',
   gameBuildId = null,
   onJump,
@@ -62,9 +64,8 @@ export function QaScenarioSteps({
   scenarioSteps,
 }: {
   /**
-   * In a `FREE` scenario each step is one test case, listed as "TC n" with the case's own
-   * text, and the agent decides the order. Rows stay in scenario order and verdicts are
-   * matched by step number, so a verdict arriving out of order lands on its own row.
+   * FREE의 한 행은 TC다. 실행 순서와 무관하게 case_id로 판정을 대응하고
+   * 화면의 행 순서는 시나리오 순서를 유지한다.
    */
   executionMode?: ExecutionMode
   /** 판정 기준 버전(ARTEL-1070, TR 의 버전). FREE 시나리오의 케이스 내용을 이 버전으로 읽는다. 없으면 최신이다. */
@@ -72,6 +73,7 @@ export function QaScenarioSteps({
   projectId: string
   /** 서버가 TC 상태로 저장한 판정(ARTEL-995). TC 머리에 저장된 상태를 점으로 따로 보인다. */
   caseVerdicts?: ReadonlyMap<string, VerificationStatus>
+  caseReports?: ReadonlyMap<string, QaCaseReport>
   onJump?: (logId: string) => void
   progress: QaProgress | null
   scenarioSteps: ScenarioStep[]
@@ -90,6 +92,9 @@ export function QaScenarioSteps({
     return testCase !== undefined && testCase.step.length > 0 ? testCase.step : fallback
   }
   const rows = stepRows(scenarioSteps, progress, titleOf)
+  const caseSummary = summarizeQaCases(scenarioSteps, caseReports)
+  const hasCaseReports = scenarioSteps.some((step) => caseReports.get(String(step.case_id))?.source === 'case_report')
+  const summary = hasCaseReports ? caseSummary : progress
   if (rows.length === 0) return <p className="qa-rail-steps-empty">{t.qa.run.railNoSteps}</p>
 
   const rowByStep = new Map(rows.map((row) => [row.step, row]))
@@ -110,7 +115,9 @@ export function QaScenarioSteps({
   function renderRow(row: StepRow) {
     const title = row.title.length > 0 ? row.title : isFree ? s.caseLabel(row.step) : s.untitled(row.step)
     const numberLabel = isFree ? s.caseLabel(row.step) : String(row.step)
-    const step = row.progress
+    // TC 판정이 참고 절차 각각의 완료나 진행 위치를 뜻하지는 않는다.
+    const step = !isFree && hasCaseReports && row.progress !== null
+      && !['passed', 'failed', 'inconclusive'].includes(row.progress.state) ? null : row.progress
     if (step === null) {
       return (
         <li key={row.step} className="qa-rail-step qa-rail-step--neutral">
@@ -176,15 +183,24 @@ export function QaScenarioSteps({
         </p>
       )}
       {progress === null && <p className="qa-rail-steps-note">{t.qa.run.railVerdictsWhenOpen}</p>}
-      {progress !== null && progress.total > 0 && (
+      {summary !== null && summary.total > 0 && (
         <p className="qa-rail-steps-note mono">
-          {s.summary(progress.reported, progress.total, progress.passed, progress.failed)}
+          {s.summary(summary.reported, summary.total, summary.passed, summary.failed)}
         </p>
       )}
       <ol className="qa-rail-step-list">
         {blocks.map((block, blockIndex) => {
           if (block.caseId === null) return block.rows.map(renderRow)
           const last = block.rows.at(-1)?.progress ?? null
+          const caseReport = caseReports.get(String(block.caseId))
+          const report = caseReport?.source === 'case_report' ? caseReport : undefined
+          const state = report?.state ?? last?.state
+          const grade = report === undefined ? last?.grade ?? null : null
+          const logId = report?.logId ?? last?.verdictLogId
+          const label = state === undefined ? null : `${s.caseLabel(block.caseNumber)} · ${s.stateLabels[state]}`
+          const verdict = state === undefined ? null : (
+            <><span aria-hidden="true">{STATE_GLYPHS[state]}</span>{s.stateLabels[state]}</>
+          )
           return (
             <li key={`case-${blockIndex}`} className="qa-rail-case">
               <div className="qa-rail-case-head">
@@ -192,12 +208,12 @@ export function QaScenarioSteps({
                 {caseVerdicts.has(String(block.caseId)) && (
                   <SavedVerdict status={caseVerdicts.get(String(block.caseId)) as VerificationStatus} />
                 )}
-                {last !== null && (
-                  <span className={`qa-rail-case-verdict ${toneClass('qa-rail-case-verdict', last.state, last.grade)}`}>
-                    <span aria-hidden="true">{STATE_GLYPHS[last.state]}</span>
-                    {s.stateLabels[last.state]}
-                  </span>
-                )}
+                {state !== undefined && (logId == null || onJump === undefined ? (
+                  <span className={`qa-rail-case-verdict ${toneClass('qa-rail-case-verdict', state, grade)}`} title={label ?? undefined}>{verdict}</span>
+                ) : (
+                  <button type="button" className={`qa-rail-case-verdict ${toneClass('qa-rail-case-verdict', state, grade)}`}
+                    aria-label={label ?? undefined} onClick={() => onJump(logId)}>{verdict}</button>
+                ))}
               </div>
               <ol className="qa-rail-step-list">{block.rows.map(renderRow)}</ol>
             </li>

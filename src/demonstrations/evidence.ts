@@ -1,15 +1,23 @@
 import type { AnnotationInput, EvidenceInput, Outcome, Region } from './types'
 
 export function captureVideoFrame(video: HTMLVideoElement): EvidenceInput {
-  if (!video.videoWidth || !video.videoHeight) throw new Error('frame unavailable')
-  const scale = Math.min(1, 1920 / video.videoWidth, 1080 / video.videoHeight)
+  return captureFrame(video, video.videoWidth, video.videoHeight)
+}
+
+export function captureCanvasFrame(canvas: HTMLCanvasElement): EvidenceInput {
+  return captureFrame(canvas, canvas.width, canvas.height)
+}
+
+function captureFrame(source: CanvasImageSource, width: number, height: number): EvidenceInput {
+  if (!width || !height) throw new Error('frame unavailable')
+  const scale = Math.min(1, 1920 / width, 1080 / height)
   const canvas = document.createElement('canvas')
-  canvas.width = Math.floor(video.videoWidth * scale)
-  canvas.height = Math.floor(video.videoHeight * scale)
+  canvas.width = Math.floor(width * scale)
+  canvas.height = Math.floor(height * scale)
   const context = canvas.getContext('2d')
   if (!context) throw new Error('canvas unavailable')
   const capturedAt = new Date().toISOString()
-  context.drawImage(video, 0, 0, canvas.width, canvas.height)
+  context.drawImage(source, 0, 0, canvas.width, canvas.height)
   const dataUrl = canvas.toDataURL('image/png')
   if ((dataUrl.length - dataUrl.indexOf(',') - 1) * 3 / 4 > 2 * 1024 * 1024) throw new Error('frame too large')
   return { dataUrl, capturedAt, width: canvas.width, height: canvas.height }

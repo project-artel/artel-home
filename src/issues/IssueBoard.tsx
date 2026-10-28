@@ -4,6 +4,7 @@ import { Dialog } from '../design-system/primitives/Dialog'
 import { useI18n } from '../i18n/useI18n'
 import { formatDateTime } from '../projects/formatters'
 import { qaRunPath } from '../qa/qaTypes'
+import { CaseIssueHistoryPanel } from '../qa/evaluation/CaseIssueHistoryPanel'
 import { writeCasesDrag } from '../testCases/folderDrag'
 import { FolderPane, type FolderOperations, type FolderPaneMessages } from '../testCases/FolderPane'
 import { collectDescendantIds, type FolderCounts, type FolderSelection } from '../testCases/testCaseFolders'
@@ -936,6 +937,7 @@ function IssueSheet({
         </section>
       )}
 
+      <CaseIssueHistoryPanel key={issue.id} projectId={projectId} issueId={issue.id} />
       <details className="ib-raw">
         <summary>{t.issues.row.raw}</summary>
         <pre className="mono">{JSON.stringify(issue.detail, null, 2)}</pre>

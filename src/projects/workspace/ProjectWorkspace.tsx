@@ -1,5 +1,7 @@
 import { useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { NotFoundPage } from '../../NotFoundPage'
+import { QaFinishedNotice } from '../../qa/QaFinishedNotice'
+import { OperatorQuestions } from '../../qa/evaluation/OperatorQuestions'
 import { Link, Navigate, Outlet, useLocation, useParams } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
 import { AgentChatPanel, AgentReopenButton, AgentSplitHandle } from '../../projectAgent/AgentDock'
@@ -208,6 +210,7 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
         <div className="workspace-body" ref={setBodyNode}>
         <DockSuppressionProvider onChange={setPageHostsChat}>
         <WorkspaceContext.Provider value={value}>
+          <OperatorQuestions key={projectId} projectId={projectId} />
           {deep ? (
             <div className="workspace-deep">
               <Outlet />
@@ -241,6 +244,7 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
       {dockOpen && !agentHome && <AgentSplitHandle {...dock.handle} />}
       {dockOpen && <AgentChatPanel onClose={agentHome ? undefined : dock.closeChat} wide={agentHome} />}
       {dock.enabled && !dockOpen && !pageHostsChat && <AgentReopenButton onOpen={dock.openChat} />}
+      <QaFinishedNotice projectId={projectId} />
     </div>
     </ProjectAgentProviders>
   )

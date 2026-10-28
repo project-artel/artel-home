@@ -1,5 +1,6 @@
 import { useI18n } from '../../i18n/useI18n'
 import { QaHistory } from '../../qa/history/QaHistory'
+import { ReliabilityPanel } from '../../qa/evaluation/ReliabilityPanel'
 import { useWorkspace } from './workspaceContext'
 
 /**
@@ -10,7 +11,7 @@ import { useWorkspace } from './workspaceContext'
  */
 export function QaHistorySection() {
   const { t } = useI18n()
-  const { extrasStatus, reloadExtras } = useWorkspace()
+  const { extrasStatus, reloadExtras, projectId } = useWorkspace()
 
   if (extrasStatus === 'loading') return <p className="panel-empty">{t.qa.panel.loading}</p>
   if (extrasStatus === 'failed') {
@@ -24,5 +25,5 @@ export function QaHistorySection() {
       </div>
     )
   }
-  return <QaHistory />
+  return <><ReliabilityPanel projectId={projectId} /><QaHistory /></>
 }

@@ -3,7 +3,7 @@ import { useI18n } from '../i18n/useI18n'
 import { useGameStream } from '../streaming/useGameStream'
 import { unityButton, unityKey, videoPoint } from './control'
 import { useControl } from './useControl'
-import { BoundaryCaptureQueue, captureVideoFrame } from './evidence'
+import { BoundaryCaptureQueue, captureCanvasFrame } from './evidence'
 import type { EvidenceInput } from './types'
 
 export function DemonstrationViewport({ sessionId, instanceId, onInterrupted, onCapture, onBoundaryCapture, onFinish, onFreeze, busy, active }: {
@@ -13,7 +13,7 @@ export function DemonstrationViewport({ sessionId, instanceId, onInterrupted, on
 }) {
   const { t } = useI18n()
   const copy = t.demonstrations
-  const video = useRef<HTMLVideoElement>(null)
+  const canvas = useRef<HTMLCanvasElement>(null)
   const heldKeys = useRef(new Set<string>())
   const heldButtons = useRef(new Set<number>())
   const ended = useRef(false)
@@ -23,13 +23,13 @@ export function DemonstrationViewport({ sessionId, instanceId, onInterrupted, on
   const boundaryAfterFrame = useRef(true)
   const lastBoundaryAt = useRef(0)
   const boundaryCount = useRef(0)
-  const stream = useGameStream(String(instanceId), true)
   const control = useControl(sessionId, onInterrupted, active)
   const { stop } = control
   const [captureError, setCaptureError] = useState<string | null>(null)
   const [hasFrame, setHasFrame] = useState(false)
   const [judging, setJudging] = useState(false)
   const [captured, setCaptured] = useState<EvidenceInput | null>(null)
+  const lastFrameAt = useRef(0)
   useEffect(() => { boundarySave.current = onBoundaryCapture }, [onBoundaryCapture])
   useEffect(() => {
     const queue = new BoundaryCaptureQueue((frame) => boundarySave.current(frame), () => setCaptureError(copy.captureFailure))
@@ -38,50 +38,51 @@ export function DemonstrationViewport({ sessionId, instanceId, onInterrupted, on
   }, [copy.captureFailure])
   const captureBoundary = useCallback(() => {
     if (ended.current || boundaryCount.current >= 60) return true
-    if (!video.current || performance.now() - lastBoundaryAt.current < 250) return false
+    if (!canvas.current || performance.now() - lastBoundaryAt.current < 250) return false
     lastBoundaryAt.current = performance.now()
-    try { boundaryQueue.current?.enqueue(captureVideoFrame(video.current)); boundaryCount.current += 1 }
+    try { boundaryQueue.current?.enqueue(captureCanvasFrame(canvas.current)); boundaryCount.current += 1 }
     catch { setCaptureError(copy.captureFailure) }
     return true
   }, [copy.captureFailure])
+  const drawFrame = useCallback((frame: ImageBitmap) => {
+    if (ended.current || !canvas.current) return
+    const target = canvas.current
+    if (target.width !== frame.width || target.height !== frame.height) {
+      target.width = frame.width
+      target.height = frame.height
+    }
+    const context = target.getContext('2d')
+    if (!context) throw new Error('canvas unavailable')
+    context.drawImage(frame, 0, 0)
+    lastFrameAt.current = performance.now()
+    setHasFrame(true)
+    if (boundaryAfterFrame.current && captureBoundary()) boundaryAfterFrame.current = false
+  }, [captureBoundary])
+  const stream = useGameStream(String(instanceId), drawFrame, true)
   const interrupt = useCallback(() => {
     if (ended.current) return
     ended.current = true
-    video.current?.pause()
     stop(); onInterrupted()
   }, [stop, onInterrupted])
   useEffect(() => {
-    if (!active) { ended.current = true; stop(); video.current?.pause() }
+    if (!active) { ended.current = true; stop() }
   }, [active, stop])
-  useEffect(() => {
-    if (video.current !== null) video.current.srcObject = stream.stream
-  }, [stream.stream])
   useEffect(() => {
     if (stream.status !== 'live' && stream.status !== 'connecting') interrupt()
   }, [stream.status, interrupt])
   useEffect(() => {
-    const element = video.current
-    if (!element) return
-    let frameHandle = 0
-    let lastFrameAt = performance.now()
-    function frame() {
-      lastFrameAt = performance.now()
-      setHasFrame(true)
-      if (boundaryAfterFrame.current && captureBoundary()) boundaryAfterFrame.current = false
-      frameHandle = element!.requestVideoFrameCallback(frame)
-    }
-    frameHandle = element.requestVideoFrameCallback(frame)
+    lastFrameAt.current = performance.now()
     const timer = setInterval(() => {
-      if (performance.now() - lastFrameAt > 8000) interrupt()
+      if (performance.now() - lastFrameAt.current > 8000) interrupt()
     }, 1000)
-    return () => { clearInterval(timer); element.cancelVideoFrameCallback(frameHandle) }
-  }, [interrupt, captureBoundary])
+    return () => clearInterval(timer)
+  }, [interrupt])
 
   const enabled = !judging && active && control.ready && stream.status === 'live' && hasFrame
   function move(clientX: number, clientY: number) {
-    const element = video.current
+    const element = canvas.current
     if (!enabled || !element) return false
-    const point = videoPoint(clientX, clientY, element.getBoundingClientRect(), element.videoWidth, element.videoHeight)
+    const point = videoPoint(clientX, clientY, element.getBoundingClientRect(), element.width, element.height)
     return point !== null && control.send({ method: 'move_mouse', params: [point.x, point.y] })
   }
   function releaseHeldInputs() {
@@ -96,15 +97,14 @@ export function DemonstrationViewport({ sessionId, instanceId, onInterrupted, on
     try {
       let evidence = captured
       if (evidence === null) {
-        const element = video.current
-        if (!hasFrame || !element || element.videoWidth === 0) return
-        evidence = captureVideoFrame(element)
+        const element = canvas.current
+        if (!hasFrame || !element || element.width === 0) return
+        evidence = captureCanvasFrame(element)
         setCaptured(evidence)
       }
       onFreeze()
       setJudging(true)
       ended.current = true
-      video.current?.pause()
       boundaryQueue.current?.dispose()
       releaseHeldInputs()
       try { await onFinish() } finally { stop() }
@@ -157,7 +157,7 @@ export function DemonstrationViewport({ sessionId, instanceId, onInterrupted, on
         event.preventDefault(); heldKeys.current.delete(key); control.send({ method: 'key_up', params: [key] })
         boundaryAfterFrame.current = true
       }}>
-      <video ref={video} autoPlay muted playsInline aria-label={copy.live} />
+      <canvas ref={canvas} role="img" aria-label={copy.live} />
     </div>
     <p className="demo-hint">{copy.controlHint}</p>
     <p className="demo-mobile">{copy.mobile}</p>
