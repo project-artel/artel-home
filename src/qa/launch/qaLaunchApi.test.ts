@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { parseQaRunSummary, parseSinceLastQa, passRate, quickStarts, runDuration, type QaRunSummary } from './qaLaunchApi'
+import { parseQaNotices, parseQaRunSummary, parseSinceLastQa, qaNoticeTarget, passRate, quickStarts, runDuration, type QaRunSummary } from './qaLaunchApi'
 
 // QA 실행 화면이 읽는 두 조회(ARTEL-1084). 서버 응답이 비거나 칸이 빠져도 화면이 깨지지 않아야 한다.
 
@@ -9,7 +9,7 @@ function run(overrides: Partial<QaRunSummary>): QaRunSummary {
     id: '1', testRunId: 'r1', testRunName: '회귀 1차', gameInstanceId: 'g1', gameInstanceName: 'MacBook',
     gameBuildVersion: '1.1', model: 'openai/gpt-6.1-sol', reasoningEffort: 'medium', keySource: 'platform',
     status: 'COMPLETED', startedAt: '2026-10-13T07:00:00Z', completedAt: '2026-10-13T07:13:42Z',
-    casesPassed: 40, casesTotal: 42, issueCount: 2,
+    casesPassed: 40, casesTotal: 42, issueCount: 2, startedBy: '1', reviewFlagged: 0, reviewPending: 0,
     ...overrides,
   }
 }
@@ -53,4 +53,23 @@ test('통과율과 걸린 시간 — 모르면 null', () => {
   assert.equal(passRate(run({ casesTotal: null })), null)
   assert.equal(runDuration(run({})), 822_000)
   assert.equal(runDuration(run({ completedAt: null })), null)
+})
+
+test('알림함은 실행을 못 읽은 줄을 버리고, 읽지 않은 수가 없으면 0 이다', () => {
+  const parsed = parseQaNotices({
+    items: [
+      { run: { id: '33', status: 'COMPLETED', reviewPending: 6 }, projectId: '2', projectName: 'word-venture', read: false },
+      { run: {}, projectId: '2', projectName: 'word-venture', read: true },
+    ],
+  })
+  assert.equal(parsed.items.length, 1)
+  assert.equal(parsed.items[0].projectName, 'word-venture')
+  assert.equal(parsed.items[0].read, false)
+  assert.equal(parsed.unreadCount, 0)
+  assert.deepEqual(parseQaNotices(null), { items: [], unreadCount: 0 })
+})
+
+test('검토할 판정이 남은 알림은 검토 화면으로 바로 간다', () => {
+  assert.equal(qaNoticeTarget('2', { id: '33', reviewPending: 6 }), '/projects/2/qa-history/33?review=1')
+  assert.equal(qaNoticeTarget('2', { id: '34', reviewPending: 0 }), '/projects/2/qa-history/34')
 })

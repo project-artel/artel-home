@@ -21,6 +21,7 @@ import { MacroSection } from './macros/MacroSection'
 import { BuildPerformanceRoute } from './performance/BuildPerformancePage'
 import { PerformanceSection } from './performance/PerformanceSection'
 import { RunPerformanceRoute } from './performance/RunPerformancePage'
+import { QaVerdictsSection } from './qa/verdicts/QaVerdictsSection'
 import { GameInstanceDetailRoute } from './projects/GameInstanceDetailPage'
 import { ProjectListPage } from './projects/ProjectListPage'
 import { SetupPage } from './projects/SetupPage'
@@ -158,6 +159,7 @@ export function App() {
             {/* 빌드 상세는 `?build=` 로 연다. 밖의 `/game-builds/:buildId/performance` · `content-map` 은 segment 가
                 더 많은 별개 경로라 이 섹션과 겹치지 않는다. */}
             <Route path="game-builds" element={<GameBuildsSection />} />
+            <Route path="qa-history/:qaRunId" element={<QaVerdictsSection />} />
             <Route path="content-map" element={<ContentMapSection />} />
             <Route path="macros" element={<MacroSection />} />
             <Route path="performance" element={<PerformanceSection />} />

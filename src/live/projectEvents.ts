@@ -28,6 +28,7 @@ export const PROJECT_CHANGE_TOPICS = [
   // Artel Bot 이 런의 시나리오를 고치는 동안의 잠금과 풀림(ARTEL-1265).
   'RUN_LOCKS',
   'USAGE',
+  'QA_RUNS',
 ] as const
 
 export type ProjectChangeTopic = (typeof PROJECT_CHANGE_TOPICS)[number]

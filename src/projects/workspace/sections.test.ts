@@ -75,3 +75,17 @@ describe('챗 경로', () => {
     assert.equal(sectionIdFromPath('p1', '/projects/p1/chat/unknown'), 'dashboard')
   })
 })
+
+describe('섹션 하위 페이지', () => {
+  it('QA 히스토리의 판정 근거 페이지는 QA 히스토리 머리글 아래에 그린다 (ARTEL-1135)', () => {
+    assert.equal(isSectionPath('7', '/projects/7/qa-history/31'), true)
+    assert.equal(sectionIdFromPath('7', '/projects/7/qa-history/31'), 'qaHistory')
+    assert.equal(isDeepPath('7', '/projects/7/qa-history/31'), false)
+  })
+
+  it('하위 페이지가 없는 섹션의 두 칸 주소와 세 칸 주소는 섹션이 아니다', () => {
+    assert.equal(isSectionPath('7', '/projects/7/documents/31'), false)
+    assert.equal(isSectionPath('7', '/projects/7/qa-history/31/x'), false)
+    assert.equal(sectionIdFromPath('7', '/projects/7/qa-history/31/x'), 'dashboard')
+  })
+})
