@@ -1,10 +1,8 @@
-import { appPath } from '../appPath'
 import { useEffect, useState, type ReactNode } from 'react'
 import { composeNicknameTag, type AuthUser } from '../auth/authTypes'
 import { useAuth } from '../auth/useAuth'
 import { useI18n } from '../i18n/useI18n'
 import { LoginPage } from '../LoginPage'
-import { ThemeToggle } from '../ThemeToggle'
 import {
   buildDenyUrl,
   discardParkedMcpConnectRequest,
@@ -14,6 +12,7 @@ import {
   type McpConnectRequest,
 } from './mcpConnectRequest'
 import { createMcpHandoff, handoffFailure, type HandoffFailure } from './mcpHandoffApi'
+import { AuthLayout } from '../auth/AuthLayout'
 
 type Phase =
   | { kind: 'consent'; failure: HandoffFailure | null }
@@ -174,23 +173,14 @@ function McpConnectFrame({ children }: { children: ReactNode }) {
   const { t } = useI18n()
 
   return (
-    <main className="login-layout">
-      <div className="login-theme-toggle">
-        <ThemeToggle
-          toDarkLabel={t.common.shell.switchToDark}
-          toLightLabel={t.common.shell.switchToLight}
-        />
-      </div>
+    <AuthLayout>
       <section className="login-panel" aria-labelledby="mcp-connect-title">
-        <div className="login-brand" aria-hidden="true">
-          <img src={appPath('/artel-mark.svg')} alt="" />
-        </div>
         <p className="eyebrow">{t.common.mcpConnect.eyebrow}</p>
         <h1 id="mcp-connect-title">{t.common.mcpConnect.title}</h1>
         {children}
         <p className="login-note">{t.common.mcpConnect.note}</p>
       </section>
-    </main>
+    </AuthLayout>
   )
 }
 

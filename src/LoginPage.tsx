@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react'
-import { appPath } from './appPath'
 import { getOAuthLoginUrl } from './auth/authApi'
 import { enabledOAuthProviders } from './auth/oauthProviders'
 import { PasswordLoginForm } from './auth/PasswordLoginForm'
 import { oauthErrorMessage } from './auth/passwordFormErrors'
 import { getAuthProviders, type AuthProviders } from './auth/passwordAuthApi'
 import { useI18n } from './i18n/useI18n'
-import { ThemeToggle } from './ThemeToggle'
+import { AuthLayout } from './auth/AuthLayout'
 
 /**
  * The orchestration server reports a failed callback as `?error=oauth` (the
@@ -68,18 +67,8 @@ export function LoginPage({
   }, [oauthErrorCode])
 
   return (
-    <main className="login-layout">
-      <div className="login-theme-toggle">
-        <ThemeToggle
-          toDarkLabel={t.common.shell.switchToDark}
-          toLightLabel={t.common.shell.switchToLight}
-        />
-      </div>
+    <AuthLayout>
       <section className="login-panel" aria-labelledby="login-title">
-        <div className="login-brand" aria-hidden="true">
-          <img src={appPath('/artel-mark.svg')} alt="" />
-        </div>
-        <p className="eyebrow">ARTEL Replay Studio</p>
         <h1 id="login-title">{t.common.login.title}</h1>
         <p className="login-copy">{copy ?? t.common.login.copy}</p>
 
@@ -118,6 +107,6 @@ export function LoginPage({
           </>
         )}
       </section>
-    </main>
+    </AuthLayout>
   )
 }
