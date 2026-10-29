@@ -1,3 +1,4 @@
+import { buildDisplayName } from './buildEnvironment'
 import type { GameBuild } from './gameTypes'
 
 /**
@@ -43,7 +44,5 @@ export function selectBuild(
  */
 export function buildOptionText(build: GameBuild, editorLabel: string): string {
   if (build.isEditor) return `${editorLabel} · ${build.version}`
-
-  const label = build.label?.trim() ?? ''
-  return label.length === 0 ? build.version : `${build.version} · ${label}`
+  return buildDisplayName(build)
 }

@@ -1,3 +1,4 @@
+import { buildDisplayName } from '../buildEnvironment'
 import { useMemo, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
@@ -291,7 +292,7 @@ export function DashboardSection() {
                   <b className="db-ellipsis" role="cell">
                     {run.testRunName ?? `#${run.testRunId}`}
                   </b>
-                  <span role="cell">{run.gameBuildVersion && <span className="db-build">{run.gameBuildVersion}</span>}</span>
+                  <span role="cell">{run.gameBuildVersion && <span className="db-build">{buildDisplayName({ version: run.gameBuildVersion, isEditor: run.gameBuildIsEditor })}</span>}</span>
                   <span className="db-ellipsis db-muted" role="cell">
                     {[shortModel(run.model) ?? m.history.noAgent, run.gameInstanceName].filter(Boolean).join(' · ')}
                   </span>
@@ -495,7 +496,7 @@ export function DashboardSection() {
           </div>
           <div>
             <dt>{m.game.builds}</dt>
-            <dd className="db-mono">{gameBuilds.length === 0 ? m.game.noBuilds : gameBuilds.map((build) => build.version).join(' · ')}</dd>
+            <dd className="db-mono">{gameBuilds.length === 0 ? m.game.noBuilds : gameBuilds.map(buildDisplayName).join(' · ')}</dd>
           </div>
           <div>
             <dt>{m.game.document}</dt>

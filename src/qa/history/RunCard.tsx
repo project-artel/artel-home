@@ -1,3 +1,5 @@
+import { gameBuildName } from '../../testRuns/testRunApi'
+import { buildDisplayName } from '../../projects/buildEnvironment'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { EdgeScrollbar } from '../../design-system/primitives/EdgeScrollbar'
@@ -63,7 +65,7 @@ export function RunCard({
   const ordinals = runOrdinals(history.runs, history.complete)
   const latest = newestFirst[0]
   const issues = history.runs.reduce((sum, run) => sum + run.issueCount, 0)
-  const build = testRun.gameBuild?.label ?? testRun.gameBuild?.version ?? latest.gameBuildVersion
+  const build = testRun.gameBuild === null ? null : gameBuildName(testRun.gameBuild)
 
   return (
     <section aria-label={testRun.name} className="qh-card">
@@ -139,13 +141,14 @@ function RunTile({
           ? b.failed
           : b.noVerdict
   const when = shortWhen(run.startedAt)
+  const buildLabel = run.gameBuildVersion === null ? null : buildDisplayName({ version: run.gameBuildVersion, isEditor: run.gameBuildIsEditor })
   const circumference = 2 * Math.PI * 16
 
   const review = run.reviewFlagged > 0
   return (
     <div className="qh-tile-slot">
     <button
-      aria-label={b.tileLabel(ordinal === null ? testRunName : `${testRunName} ${b.ordinal(ordinal)}`, when, result)}
+      aria-label={[b.tileLabel(ordinal === null ? testRunName : `${testRunName} ${b.ordinal(ordinal)}`, when, result), buildLabel].filter(Boolean).join(' · ')}
       aria-pressed={selected}
       className={`qh-tile${selected ? ' is-selected' : ''}`}
       onClick={onSelect}
@@ -172,6 +175,7 @@ function RunTile({
         <span className="qh-ring-center mono">{center}</span>
       </span>
       <span className={`qh-tile-result mono qh-tone-text--${tone}`}>{result}</span>
+      {buildLabel !== null && <span className="qh-tile-when mono">{buildLabel}</span>}
       <span className="qh-tile-when mono">{when}</span>
       {/* 아래 검토 칩 자리. 칩은 타일 버튼 안에 둘 수 없어(버튼 안의 링크) 타일 위에 겹친다. */}
       {review && <span aria-hidden="true" className="qh-tile-review-space" />}

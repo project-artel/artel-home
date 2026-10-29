@@ -1,3 +1,4 @@
+import { buildDisplayName } from '../projects/buildEnvironment'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { NotFoundPage } from '../NotFoundPage'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
@@ -425,7 +426,7 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
           cases={runCaseList}
           onClose={() => setSpecOpen(false)}
           projectId={projectId}
-          scope={fromRun === null ? undefined : runBuild === null ? t.scenarios.stepsEditor.board.pickAll : t.scenarios.stepsEditor.board.pickVersion(runBuild.label ?? runBuild.version)}
+          scope={fromRun === null ? undefined : runBuild === null ? t.scenarios.stepsEditor.board.pickAll : t.scenarios.stepsEditor.board.pickVersion(buildDisplayName({ ...runBuild }))}
         />
       )}
 

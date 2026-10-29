@@ -14,6 +14,7 @@ export type QaRunSummary = {
   gameInstanceId: string
   gameInstanceName: string | null
   gameBuildVersion: string | null
+  gameBuildIsEditor?: boolean | null
   model: string | null
   reasoningEffort: string | null
   keySource: string | null
@@ -87,6 +88,7 @@ export function parseQaRunSummary(data: unknown): QaRunSummary | null {
     gameInstanceId: asString(record.gameInstanceId),
     gameInstanceName: asNullableString(record.gameInstanceName),
     gameBuildVersion: asNullableString(record.gameBuildVersion),
+    gameBuildIsEditor: typeof record.gameBuildIsEditor === 'boolean' ? record.gameBuildIsEditor : null,
     model: asNullableString(record.model),
     reasoningEffort: asNullableString(record.reasoningEffort),
     keySource: asNullableString(record.keySource),

@@ -1,3 +1,4 @@
+import { buildDisplayName } from '../../projects/buildEnvironment'
 import { useState } from 'react'
 import { SketchEmpty } from '../../emptyStates/SketchEmpty'
 import { BoardSketch } from '../history/HistorySketch'
@@ -80,7 +81,7 @@ export function RecentRuns({
                     <span className="ql-table-title">{run.testRunName ?? l.deletedRun}</span>
                     <span className="ql-table-sub">
                       <span className="mono">#{run.id}</span> · {modelLabel(run.model)} · {run.gameInstanceName ?? PLACEHOLDER}
-                      {run.gameBuildVersion !== null && <> <span className="mono">{run.gameBuildVersion}</span></>}
+                      {run.gameBuildVersion !== null && <> <span className="mono">{buildDisplayName({ version: run.gameBuildVersion, isEditor: run.gameBuildIsEditor })}</span></>}
                     </span>
                   </span>
                   <span role="cell">

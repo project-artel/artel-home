@@ -1,3 +1,4 @@
+import { buildDisplayName } from '../projects/buildEnvironment'
 import { useId, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { apiErrorMessage } from '../projects/apiErrorMessage'
@@ -403,7 +404,7 @@ export function TestCaseEditor({
           onChange={(functions) => setDraft({ ...draft, functions })}
           status={functionCatalog.status}
           value={draft.functions}
-          version={catalogBuild?.version ?? null}
+          version={catalogBuild === undefined || catalogBuild === null ? null : buildDisplayName(catalogBuild)}
         />
       )}
 

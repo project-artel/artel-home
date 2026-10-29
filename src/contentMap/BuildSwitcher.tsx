@@ -1,3 +1,4 @@
+import { buildEnvironment } from '../projects/buildEnvironment'
 import { forwardRef, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../i18n/useI18n'
@@ -19,7 +20,6 @@ export const BuildSwitcher = forwardRef<HTMLButtonElement, {
 }>(function BuildSwitcher({ builds, selected, onSelect }, ref) {
   const { t } = useI18n()
   const copy = t.contentMap.buildSwitcher
-  const editorLabel = t.projects.builds.editorLabel
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const panelId = useId()
@@ -32,10 +32,10 @@ export const BuildSwitcher = forwardRef<HTMLButtonElement, {
     const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean)
     if (words.length === 0) return ordered
     return ordered.filter((build) => {
-      const text = [build.version, build.label ?? '', build.isEditor ? editorLabel : '', build.id].join(' ').toLowerCase()
+      const text = [build.version, build.label ?? '', buildEnvironment(build.isEditor), build.id].join(' ').toLowerCase()
       return words.every((word) => text.includes(word))
     })
-  }, [ordered, query, editorLabel])
+  }, [ordered, query])
 
   // 바깥을 누르면 닫는다. Esc 는 패널의 onKeyDown 이 닫는다.
   useEffect(() => {
@@ -69,7 +69,7 @@ export const BuildSwitcher = forwardRef<HTMLButtonElement, {
       >
         <span className="cm-build-current-caption">{copy.caption}</span>
         <span className="cm-build-version mono">{selected.version}</span>
-        {selected.isEditor && <span className="cm-build-badge">{editorLabel}</span>}
+        <span className="cm-build-badge">{buildEnvironment(selected.isEditor)}</span>
         {label.length > 0 && <span className="cm-build-label">{label}</span>}
         <span className="cm-build-count">{copy.count(builds.length)}</span>
         <span aria-hidden="true" className="cm-build-caret">
@@ -118,7 +118,7 @@ export const BuildSwitcher = forwardRef<HTMLButtonElement, {
                     >
                       <span className="cm-build-option-head">
                         <span className="cm-build-version mono">{build.version}</span>
-                        {build.isEditor && <span className="cm-build-badge">{editorLabel}</span>}
+                        <span className="cm-build-badge">{buildEnvironment(build.isEditor)}</span>
                         {index === 0 && query.length === 0 && <span className="cm-build-badge cm-build-badge--new">{copy.newest}</span>}
                         {current && <span className="cm-build-badge cm-build-badge--current">{copy.current}</span>}
                       </span>

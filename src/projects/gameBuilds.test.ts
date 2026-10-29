@@ -86,10 +86,10 @@ describe('buildOptionText', () => {
     assert.equal(buildOptionText(editor, 'Editor'), 'Editor · 1.6.0')
   })
 
-  it('label 이 있으면 version · label, 비었으면 version 만 쓴다', () => {
-    assert.equal(buildOptionText(makeBuild('1', { label: 'QA' }), 'Editor'), '1.4.0 · QA')
-    assert.equal(buildOptionText(makeBuild('1', { label: '' }), 'Editor'), '1.4.0')
-    assert.equal(buildOptionText(makeBuild('1', { label: null }), 'Editor'), '1.4.0')
-    assert.equal(buildOptionText(makeBuild('1', { label: '   ' }), 'Editor'), '1.4.0')
+  it('Standalone 버전은 label 여부와 관계없이 환경을 표시한다', () => {
+    assert.equal(buildOptionText(makeBuild('1', { label: 'QA' }), 'Editor'), '1.4.0 · QA · Standalone')
+    assert.equal(buildOptionText(makeBuild('1', { label: '' }), 'Editor'), '1.4.0 · Standalone')
+    assert.equal(buildOptionText(makeBuild('1', { label: null }), 'Editor'), '1.4.0 · Standalone')
+    assert.equal(buildOptionText(makeBuild('1', { label: '   ' }), 'Editor'), '1.4.0 · Standalone')
   })
 })

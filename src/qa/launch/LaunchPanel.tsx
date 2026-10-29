@@ -1,3 +1,4 @@
+import { buildDisplayName } from '../../projects/buildEnvironment'
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { EdgeScrollbar } from '../../design-system/primitives/EdgeScrollbar'
@@ -303,7 +304,7 @@ export function LaunchPanel({
                 {instance !== null && (
                   <span className="ql-select-meta">
                     {instance.connected ? t.projects.instances.connected : t.projects.instances.notConnected}
-                    {instance.lastGameBuild !== null && ` · ${instance.lastGameBuild.label ?? instance.lastGameBuild.version}`}
+                    {instance.lastGameBuild !== null && ` · ${buildDisplayName(instance.lastGameBuild)}`}
                   </span>
                 )}
               </span>
@@ -326,7 +327,7 @@ export function LaunchPanel({
                         <span className="ql-select-name">{one.name}</span>
                         <span className="ql-select-meta">
                           {one.connected ? t.projects.instances.connected : t.projects.instances.notConnected}
-                          {one.lastGameBuild !== null && ` · ${one.lastGameBuild.label ?? one.lastGameBuild.version}`}
+                          {one.lastGameBuild !== null && ` · ${buildDisplayName(one.lastGameBuild)}`}
                         </span>
                       </span>
                       {one.id === instanceId && <CheckIcon size={15} />}

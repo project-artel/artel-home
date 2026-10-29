@@ -2,7 +2,6 @@ import { useEffect, useId, useMemo, useState } from 'react'
 import { Dialog } from '../design-system/primitives/Dialog'
 import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../i18n/useI18n'
-import { EditorBadge } from '../projects/EditorBadge'
 import { Picker } from './Picker'
 import { SceneChip } from './SceneChip'
 import { FolderIcon } from './FolderIcon'
@@ -154,7 +153,6 @@ export function VerdictImportDialog({
               {isTarget ? m.targetNote : m.nodeSummary(version.total, version.counts.VERIFIED, version.counts.FAILED)}
             </span>
           </span>
-          {version.isEditor && <EditorBadge />}
         </button>
       </li>
     )
@@ -243,7 +241,6 @@ export function VerdictImportDialog({
                 <span className="vimp-crumb">{m.crumb}</span>
                 <h3 className="vimp-title">
                   {versionName(source)}
-                  {source.isEditor && <EditorBadge />}
                 </h3>
                 <div className="vimp-stats">
                   <span className="vimp-stat">{m.stats.total} <b>{source.total}</b></span>

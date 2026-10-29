@@ -15,8 +15,8 @@ test('the version options end with the unversioned bucket the screen shows', () 
     'No version',
   )
   assert.deepEqual(options, [
-    { value: '7', label: '1.2.0' },
-    { value: '3', label: 'Beta' },
+    { value: '7', label: '1.2.0 · Unknown' },
+    { value: '3', label: '1.0 · Beta · Unknown' },
     { value: UNVERSIONED, label: 'No version' },
   ])
 })

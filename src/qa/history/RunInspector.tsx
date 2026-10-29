@@ -1,3 +1,4 @@
+import { buildDisplayName } from '../../projects/buildEnvironment'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { EdgeScrollbar } from '../../design-system/primitives/EdgeScrollbar'
@@ -84,6 +85,7 @@ export function RunInspector({
             >
               {testRunName}
             </Link>
+            {run.gameBuildVersion !== null && <span className="qh-muted mono">{buildDisplayName({ version: run.gameBuildVersion, isEditor: run.gameBuildIsEditor })}</span>}
             <span className="qh-muted mono">{shortWhen(run.startedAt)}</span>
           </span>
         </div>

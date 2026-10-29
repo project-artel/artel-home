@@ -64,15 +64,15 @@ describe('writtenBuildText', () => {
   const fromResponse = { buildVersion: '9.9.9', buildLabel: null }
 
   it('작업공간 목록에서 찾으면 build picker 와 같은 글을 쓴다', () => {
-    assert.equal(writtenBuildText({ ...fromResponse, gameBuildId: '1' }, builds, 'Editor'), '0.1.0 · 첫 빌드')
+    assert.equal(writtenBuildText({ ...fromResponse, gameBuildId: '1' }, builds, 'Editor'), '0.1.0 · 첫 빌드 · Standalone')
     assert.equal(writtenBuildText({ ...fromResponse, gameBuildId: '2' }, builds, 'Editor'), 'Editor · 0.2.0')
   })
 
   it('못 찾으면 응답의 version 과 label 로 같은 모양을 만든다', () => {
-    assert.equal(writtenBuildText({ ...fromResponse, gameBuildId: '7' }, builds, 'Editor'), '9.9.9')
+    assert.equal(writtenBuildText({ ...fromResponse, gameBuildId: '7' }, builds, 'Editor'), '9.9.9 · Unknown')
     assert.equal(
       writtenBuildText({ gameBuildId: '7', buildVersion: '9.9.9', buildLabel: '핫픽스' }, builds, 'Editor'),
-      '9.9.9 · 핫픽스',
+      '9.9.9 · 핫픽스 · Unknown',
     )
     assert.equal(writtenBuildText({ gameBuildId: '7', buildVersion: '', buildLabel: null }, builds, 'Editor'), '—')
   })

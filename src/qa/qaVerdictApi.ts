@@ -88,6 +88,7 @@ export type QaRunVerdicts = {
   testRunId: string
   testRunName: string
   gameBuildVersion: string | null
+  gameBuildIsEditor?: boolean | null
   status: string
   startedAt: string | null
   completedAt: string | null
@@ -224,6 +225,7 @@ export function parseQaRunVerdicts(value: unknown): QaRunVerdicts {
     testRunId: asString(record?.testRunId),
     testRunName: asString(record?.testRunName),
     gameBuildVersion: orNull(record?.gameBuildVersion),
+    gameBuildIsEditor: typeof record?.gameBuildIsEditor === 'boolean' ? record.gameBuildIsEditor : null,
     status: asString(record?.status),
     startedAt: orNull(record?.startedAt),
     completedAt: orNull(record?.completedAt),

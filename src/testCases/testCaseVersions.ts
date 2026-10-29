@@ -1,3 +1,4 @@
+import { buildDisplayName, parseBuildEnvironment } from '../projects/buildEnvironment'
 import { apiFetch } from '../auth/authApi'
 import { asNullableString, asRecord, asString, jsonRequest, readJson, toApiError } from '../projects/projectApi'
 import { parseTestCaseFolder, type TestCaseFolder } from './testCaseFolderApi'
@@ -19,7 +20,7 @@ export type TestCaseVersionSummary = {
   /** 프로젝트의 가장 최근 버전. 라이브러리가 기본으로 고르고 "현재 버전" 으로 표시한다. */
   latest: boolean
   /** editor 버전인가(ARTEL-1180). 같은 version 의 build 행과 따로 있어 배지로 가른다. 옛 서버는 보내지 않는다. */
-  isEditor: boolean
+  isEditor?: boolean | null
   total: number
   counts: Record<VerificationStatus, number>
   /** 넣은 버전 묶음. 없으면 null(ARTEL-1024). */
@@ -93,7 +94,7 @@ export function parseVersionList(data: unknown): TestCaseVersionSummary[] {
         label: asNullableString(record?.label),
         createdAt: asString(record?.createdAt),
         latest: record?.latest === true,
-        isEditor: record?.isEditor === true,
+        isEditor: parseBuildEnvironment(record?.isEditor),
         groupId: asNullableString(record?.groupId),
         hidden: record?.hidden === true,
         total: typeof record?.total === 'number' ? record.total : 0,
@@ -234,9 +235,9 @@ export async function listVersionCases(
   return parseVersionCases(await readJson(response), projectId)
 }
 
-/** 사람이 붙인 이름이 있으면 그것, 없으면 SDK 가 보고한 version. */
-export function versionName(summary: Pick<TestCaseVersionSummary, 'label' | 'version'>): string {
-  return summary.label !== null && summary.label.trim().length > 0 ? summary.label : summary.version
+/** 게임 버전과 label에 실행 환경을 함께 표시한다. */
+export function versionName(summary: Pick<TestCaseVersionSummary, 'label' | 'version' | 'isEditor'>): string {
+  return buildDisplayName(summary)
 }
 
 /**

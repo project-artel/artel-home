@@ -1,3 +1,4 @@
+import { buildEnvironment } from '../buildEnvironment'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
 import { formatDate, formatDateTime, PLACEHOLDER } from '../formatters'
@@ -10,7 +11,6 @@ import { BuildInstanceCount } from './BuildInstanceCount'
 import { GameBuildDetail } from './GameBuildDetail'
 import { QaStatusPill } from './QaStatusPill'
 import { gameBuildDetailSearch } from './sections'
-import { EditorBadge } from '../EditorBadge'
 import { useGameBuildSummaries } from './useGameBuildSummaries'
 import { useWorkspace } from './workspaceContext'
 
@@ -125,7 +125,7 @@ function GameBuildRow({ row }: { row: GameBuildSummary }) {
           >
             {row.version}
           </Link>
-          {row.isEditor && <EditorBadge />}
+          <span className="badge">{buildEnvironment(row.isEditor)}</span>
         </div>
         {hasLabel && <div className="gb-label">{row.label}</div>}
       </td>

@@ -82,12 +82,12 @@ describe('MacroVersionList', () => {
 
   it('build 는 최신부터, editor build 다음 맨 아래에 개발자 macro (MCP) 줄이 선다', () => {
     assert.match(html, /<h2 class="tcl-folders-title">버전<\/h2>/)
-    assert.deepEqual(names, ['0.3.0', '0.2.0 · 베타', '0.1.0', 'Editor · 0.3.0', '개발자 macro (MCP)'])
+    assert.deepEqual(names, ['0.3.0 · Standalone', '0.2.0 · 베타 · Standalone', '0.1.0 · Standalone', 'Editor · 0.3.0', '개발자 macro (MCP)'])
     assert.match(html, /class="tcl-folder tcl-version tcl-version--none"[^>]*><span class="tcl-folder-name">개발자 macro \(MCP\)/)
   })
 
   it('최신 build 에 현재를 달고, 수는 고른 build 와 개발자 macro 줄에 붙인다', () => {
-    assert.match(html, /0\.3\.0<\/span><span class="tcl-version-latest">현재<\/span>/)
+    assert.match(html, /0\.3\.0 · Standalone<\/span><span class="tcl-version-latest">현재<\/span>/)
     assert.match(html, /aria-current="true" class="tcl-folder tcl-version is-current"/)
     assert.deepEqual(countsOf(html), ['5', '12'])
   })
@@ -138,7 +138,7 @@ describe('MacroLibraryList', () => {
     )
     const chips = [...html.matchAll(/macro-build-chip--differs"[^>]*>([^<]+)</g)].map((match) => match[1])
     assert.deepEqual(chips, ['이전 버전', '이전 버전', '다른 버전'])
-    assert.match(html, /title="0\.1\.0 기준"/)
+    assert.match(html, /title="0\.1\.0 · Standalone 기준"/)
     assert.match(html, /<span class="macro-row-name">a_current<\/span>\(item, count\)/)
     assert.match(html, />상점을 열고 item 을 count 개 산다\.</)
     assert.doesNotMatch(html, /둘째 줄|tct-origin/)
@@ -173,8 +173,8 @@ describe('MacroSection', () => {
 
   it('build 화면의 제목 칩은 현재 버전 <build> 다', () => {
     const html = renderSection('?build=2')
-    assert.match(html, /현재 버전 <strong>0\.3\.0<\/strong>/)
-    assert.match(html, /aria-current="true" class="tcl-folder tcl-version is-current"[^>]*><span class="tcl-folder-name" title="0\.2\.0 · 베타">/)
+    assert.match(html, /현재 버전 <strong>0\.3\.0 · Standalone<\/strong>/)
+    assert.match(html, /aria-current="true" class="tcl-folder tcl-version is-current"[^>]*><span class="tcl-folder-name" title="0\.2\.0 · 베타 · Standalone">/)
   })
 
   it('build=developer 면 개발자 macro 화면이고 제목 칩이 개발자 macro 다', () => {
@@ -198,7 +198,7 @@ describe('MacroSheet', () => {
         referenceBuild: newer,
       }),
     )
-    assert.match(html, /<p class="tcl-sheet-meta">v3 · 0\.1\.0 기준 · nubuli 등록 · /)
+    assert.match(html, /<p class="tcl-sheet-meta">v3 · 0\.1\.0 · Standalone 기준 · nubuli 등록 · /)
     assert.match(html, /macro-build-chip--differs"[^>]*>이전 버전</)
     assert.match(html, /상점을 열고 item 을 count 개 산다\.\n둘째 줄/)
     assert.match(html, /source 를 불러오는 중…/)
