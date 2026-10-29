@@ -140,7 +140,7 @@ export function QaNoticeBell() {
                 {notices.items.map((notice) => {
                   const { run } = notice
                   const passed = run.casesPassed ?? 0
-                  const failed = run.casesTotal === null ? 0 : run.casesTotal - passed
+                  const failed = run.casesFailed
                   const ms = runDuration(run)
                   const seconds = ms === null ? null : Math.round(ms / 1000)
                   const meta = [
@@ -160,7 +160,7 @@ export function QaNoticeBell() {
                             {run.casesTotal !== null && (
                               <>
                                 <span className="qa-notice-pill qa-notice-pill--passed"><span aria-hidden="true" className="qv-dot" />{t.qa.finishedNotice.passed(passed)}</span>
-                                <span className="qa-notice-pill qa-notice-pill--failed"><span aria-hidden="true" className="qv-dot" />{t.qa.finishedNotice.failed(failed)}</span>
+                                {failed != null && <span className="qa-notice-pill qa-notice-pill--failed"><span aria-hidden="true" className="qv-dot" />{t.qa.finishedNotice.failed(failed)}</span>}
                               </>
                             )}
                             {run.reviewPending > 0 ? (

@@ -1,6 +1,14 @@
 import { formatTestCaseId } from './testCaseId'
 import type { GameBuild } from '../projects/gameTypes'
 import type { CaseOrigin, TestCase, VerificationStatus } from './testCaseTypes'
+import type { VersionCaseRow } from './testCaseVersions'
+
+export function editableCase(caseId: string | null, cases: readonly TestCase[], versionRows: readonly VersionCaseRow[] | null): TestCase | null {
+  if (versionRows !== null) {
+    return versionRows.find(row => row.testCase.id === caseId && row.presence !== 'ONLY_OTHER')?.testCase ?? null
+  }
+  return cases.find(testCase => testCase.id === caseId) ?? null
+}
 
 /*
  * 케이스 라이브러리 화면이 목록을 좁히고 줄 세우는 규칙.

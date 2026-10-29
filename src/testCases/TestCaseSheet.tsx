@@ -1,5 +1,5 @@
 import { useTestCaseLabel } from './testCaseIdentifiers'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Messages } from '../i18n/messages'
 import { useI18n } from '../i18n/useI18n'
 import { formatDate } from '../projects/formatters'
@@ -11,6 +11,7 @@ import { describeVerifiedBuild } from './testCaseLibrary'
 import type { TestCase } from './testCaseTypes'
 import { ContentReviewPanel } from '../qa/evaluation/ContentReviewPanel'
 import { CaseEvaluationPanel } from '../qa/evaluation/CaseEvaluationPanel'
+import { getTestCase } from './testCaseApi'
 
 /**
  * The right-hand sheet that shows one TC and edits it.
@@ -24,7 +25,7 @@ export function TestCaseSheet({
   folderId = null,
   knownScenes = [],
   projectId,
-  testCase,
+  testCase: listedCase,
   versionChoice,
   editGameBuildId,
   onClose,
@@ -50,6 +51,22 @@ export function TestCaseSheet({
   const caseLabel = useTestCaseLabel()
   const m = t.testCases
   const sheetRef = useRef<HTMLElement | null>(null)
+  const caseId = listedCase?.id ?? null
+  const detailSource = caseId !== null && editGameBuildId ? `${projectId}:${caseId}:${editGameBuildId}` : null
+  const [detail, setDetail] = useState<{ source: string; testCase: TestCase | null; failed: boolean } | null>(null)
+  const [detailRevision, setDetailRevision] = useState(0)
+  const loadedDetail = detailSource !== null && detail?.source === detailSource ? detail : null
+  const editorReady = detailSource === null || loadedDetail?.testCase != null
+  const testCase = loadedDetail?.testCase ?? listedCase
+
+  useEffect(() => {
+    if (caseId === null || !editGameBuildId || detailSource === null) return
+    const controller = new AbortController()
+    void getTestCase(projectId, caseId, controller.signal, { gameBuildId: editGameBuildId })
+      .then(saved => { if (!controller.signal.aborted) setDetail({ source: detailSource, testCase: saved, failed: false }) })
+      .catch(() => { if (!controller.signal.aborted) setDetail({ source: detailSource, testCase: null, failed: true }) })
+    return () => controller.abort()
+  }, [projectId, caseId, editGameBuildId, detailSource, detailRevision])
 
   // 시트가 열리면 초점을 안으로 옮긴다. 열어 놓고 초점이 뒤 표에 남아 있으면 키보드로
   // 시트에 닿을 방법이 없고, `Escape` 도 표가 먼저 받는다.
@@ -59,7 +76,7 @@ export function TestCaseSheet({
     // 닫으려는 것이 아니라 고치려는 것이다.
     const first = box?.querySelector<HTMLElement>('textarea, input') ?? box?.querySelector<HTMLElement>('button')
     first?.focus()
-  }, [])
+  }, [editorReady])
 
   return (
     <>
@@ -99,20 +116,26 @@ export function TestCaseSheet({
           </p>
         )}
         {testCase && <ContentReviewPanel key={`content:${testCase.id}`} projectId={projectId} testCaseId={testCase.id} builds={builds} defaultBuildId={editGameBuildId ?? testCase.lastVerifiedBuildId} />}
-        <TestCaseEditor
+        {!editorReady && (loadedDetail?.failed
+          ? <p role="alert">{t.scenarios.tcModal.error} <button className="button button--secondary button--compact" type="button" onClick={() => setDetailRevision(previous => previous + 1)}>{m.section.retry}</button></p>
+          : <p role="status">{t.scenarios.tcModal.loading}</p>)}
+        {editorReady && <TestCaseEditor
           builds={builds}
           folderId={folderId}
-          key={testCase?.id ?? 'new'}
+          key={`${testCase?.id ?? 'new'}:${editGameBuildId ?? ''}`}
           knownScenes={knownScenes}
           onCreated={onCreated}
           onDelete={onDelete}
           onDone={onClose}
-          onSaved={onSaved}
+          onSaved={saved => {
+            if (detailSource !== null) setDetail({ source: detailSource, testCase: saved, failed: false })
+            onSaved(saved)
+          }}
           projectId={projectId}
           testCase={testCase}
           versionChoice={versionChoice}
           editGameBuildId={editGameBuildId}
-        />
+        />}
         {testCase && <CaseEvaluationPanel key={`evaluation:${testCase.id}`} projectId={projectId} testCaseId={testCase.id} />}
       </aside>
     </>

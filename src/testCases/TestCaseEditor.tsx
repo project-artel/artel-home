@@ -132,6 +132,7 @@ export function TestCaseEditor({
   const [draft, setDraft] = useState<Draft>(() =>
     testCase === null ? BLANK_DRAFT : toDraft(testCase),
   )
+  const [savedCase, setSavedCase] = useState(testCase)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [failure, setFailure] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
@@ -157,7 +158,7 @@ export function TestCaseEditor({
     functionCatalog.status === 'loading' ||
     (functionCatalog.catalog !== null && !isCatalogEmpty(functionCatalog.catalog)) ||
     !sameCaseFunctions(draft.functions, ALL_CASE_FUNCTIONS)
-  const patch = creating ? null : toPatch(draft, testCase)
+  const patch = savedCase === null ? null : toPatch(draft, savedCase)
   const dirty = creating || Object.keys(patch ?? {}).length > 0
 
   function validate(): Record<string, string> {
@@ -210,6 +211,7 @@ export function TestCaseEditor({
       }
 
       const saved = await updateTestCase(projectId, testCase.id, { ...patch, ...(testCase.origin === 'MAP' && editGameBuildId ? { gameBuildId: editGameBuildId } : {}) })
+      setSavedCase(saved)
       onSaved(saved)
       setDraft(toDraft(saved))
     } catch (error: unknown) {
