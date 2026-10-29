@@ -2,6 +2,7 @@ import { useCallback, useId, useMemo, useRef, useState, type ReactNode } from 'r
 import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
 import { useI18n } from '../i18n/useI18n'
 import { ProjectApiError } from '../projects/projectApi'
+import { PaneIcon } from './PaneIcon'
 import { ContextMenu, type ContextMenuItem } from './ContextMenu'
 import { FolderDialog, type FolderDialogMode, type FolderDraft } from './FolderDialog'
 import { currentFolderDrag, dragKind, endFolderDrag, readDrag, writeFolderDrag, type DragPayload } from './folderDrag'
@@ -76,6 +77,7 @@ export function FolderPane({
   onToggleCollapsed,
   top,
   messages,
+  readOnly = false,
 }: {
   /** 접힌 창은 펼침 막대만 남는다(ARTEL-1022). */
   collapsed?: boolean
@@ -99,6 +101,11 @@ export function FolderPane({
   top?: ReactNode
   /** 문구를 바꿔 쓸 때(이슈 화면은 "케이스" 대신 "이슈", ARTEL-1114). 없으면 케이스 라이브러리 문구. */
   messages?: FolderPaneMessages
+  /**
+   * 고르기만 한다(TC 가져오기 창). 폴더 만들기 · 되돌리기 단추, 우클릭 메뉴, 끌어 옮기기가 없다.
+   * [operations] · [history] 는 부르지 않는다.
+   */
+  readOnly?: boolean
 }) {
   const { t } = useI18n()
   const m = messages ?? t.testCases.folders
@@ -166,6 +173,7 @@ export function FolderPane({
   }
 
   function dropHandlers(targetId: string | null): DropHandlers {
+    if (readOnly) return { onDragOver: () => {}, onDragLeave: () => {}, onDrop: () => {} }
     const key = targetId ?? 'root'
     return {
       onDragOver: (event) => {
@@ -259,10 +267,10 @@ export function FolderPane({
         {...dropHandlers(null)}
       >
         <div className="tcl-folders-titlewrap">
-          <h2 className="tcl-folders-title" id={headingId} title={m.dropToRoot}>{m.title}</h2>
-          <InfoHint>{m.menuHint}</InfoHint>
+          <h2 className="tcl-folders-title" id={headingId} title={readOnly ? undefined : m.dropToRoot}>{m.title}</h2>
+          {!readOnly && <InfoHint>{m.menuHint}</InfoHint>}
         </div>
-        <div className="tcl-folders-actions" data-tour="folder-actions" role="group" aria-label={m.toolbar.label}>
+        {!readOnly && <div className="tcl-folders-actions" data-tour="folder-actions" role="group" aria-label={m.toolbar.label}>
           <button
             aria-label={m.toolbar.undo}
             className="iconbtn"
@@ -292,7 +300,7 @@ export function FolderPane({
           >
             +
           </button>
-        </div>
+        </div>}
         {top === undefined && collapseButton}
       </div>
 
@@ -301,7 +309,7 @@ export function FolderPane({
         aria-busy={status === 'loading' || history.busy || undefined}
         className="tcl-folder-tree"
         data-tour="folders"
-        onContextMenu={(event) => openMenu(event, null)}
+        onContextMenu={readOnly ? undefined : (event) => openMenu(event, null)}
         ref={treeRef}
       >
         <ul className="tcl-folder-list">
@@ -332,7 +340,7 @@ export function FolderPane({
             dropHandlers={dropHandlers}
             dropTarget={dropTarget}
             nodes={tree}
-            onContextMenu={openMenu}
+            onContextMenu={readOnly ? undefined : openMenu}
             onSelect={onSelect}
             selectedId={selection.kind === 'folder' ? selection.id : null}
           />
@@ -461,7 +469,8 @@ function FolderBranch({
   dropTarget: string | null
   nested?: boolean
   nodes: readonly FolderNode[]
-  onContextMenu: (event: React.MouseEvent | React.KeyboardEvent, folder: TestCaseFolder) => void
+  /** 없으면 고르기만 하는 tree 다. 메뉴도 끌기도 없다. */
+  onContextMenu?: (event: React.MouseEvent | React.KeyboardEvent, folder: TestCaseFolder) => void
   onSelect: (selection: FolderSelection) => void
   selectedId: string | null
 }) {
@@ -472,11 +481,11 @@ function FolderBranch({
           <FolderItem
             count={counts.byFolder.get(node.folder.id) ?? 0}
             current={node.folder.id === selectedId}
-            dragFolderId={node.folder.id}
+            dragFolderId={onContextMenu === undefined ? undefined : node.folder.id}
             dropping={dropTarget === node.folder.id}
             label={node.folder.name}
             onClick={() => onSelect({ kind: 'folder', id: node.folder.id })}
-            onContextMenu={(event) => onContextMenu(event, node.folder)}
+            onContextMenu={onContextMenu === undefined ? undefined : (event) => onContextMenu(event, node.folder)}
           />
           {node.children.length > 0 && (
             <FolderBranch
@@ -496,20 +505,3 @@ function FolderBranch({
   )
 }
 
-/** 왼쪽 창 접기 · 펴기 그림. 창 모양 안에 방향 표시를 넣어 "창을 접는다" 로 읽히게 한다. */
-function PaneIcon({ collapsed }: { collapsed: boolean }) {
-  return (
-    <svg aria-hidden="true" className="tcl-pane-icon" viewBox="0 0 20 20">
-      <rect fill="none" height="14" rx="2.5" stroke="currentColor" strokeWidth="1.5" width="16" x="2" y="3" />
-      <path d="M7.5 3v14" stroke="currentColor" strokeWidth="1.5" />
-      <path
-        d={collapsed ? 'M11.5 8l2 2-2 2' : 'M13.5 8l-2 2 2 2'}
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth="1.5"
-      />
-    </svg>
-  )
-}

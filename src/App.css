@@ -12743,13 +12743,12 @@ button.gf-bar:focus-visible {
 .scenario-studio .se-row[draggable='true'] .se-row-main { cursor: grab; }
 .scenario-studio .se.is-dragging .se-row-main { cursor: grabbing; }
 .scenario-studio .se.is-dragging .se-insert { display: none; }
-.scenario-studio .se-row.is-lifted .se-row-main { opacity: .4; background: repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in srgb, var(--st-action) 8%, transparent) 6px 12px); outline: 1px dashed var(--st-action); outline-offset: -3px; }
-.scenario-studio .se-row.is-over-before::after,
-.scenario-studio .se-row.is-over-after::after { content: ''; position: absolute; left: 10px; right: 10px; z-index: 5; height: 3px; border-radius: 3px; background: var(--st-action); box-shadow: 0 0 0 3px color-mix(in srgb, var(--st-action) 20%, transparent); pointer-events: none; }
-.scenario-studio .se-row.is-over-before::after { top: -2px; }
-.scenario-studio .se-row.is-over-after::after { bottom: -2px; }
-.scenario-studio .se-row.is-over-before .se-row-main { transform: translateY(4px); }
-.scenario-studio .se-row.is-over-after .se-row-main { transform: translateY(-4px); }
+/* 잡은 줄: 들어 올린 카드처럼 그림자를 달고 포인터를 따라온다. 다른 줄은 useLiftSort 가 transform 으로 비켜 준다. */
+.scenario-studio .se-row.is-lifted { border-bottom-color: transparent; }
+.scenario-studio .se-row.is-lifted .se-row-main { background: var(--st-surface); border-radius: 8px; outline: 1.5px solid var(--st-action); outline-offset: -1px; box-shadow: 0 16px 32px rgb(0 0 0 / 28%), 0 3px 8px rgb(0 0 0 / 18%); cursor: grabbing; }
+.scenario-studio .se-row.is-lifted .se-grip { opacity: 1; color: var(--st-action); }
+.scenario-studio .se-row.is-settling .se-row-main { box-shadow: 0 2px 6px rgb(0 0 0 / 12%); transition: box-shadow 170ms var(--ease-standard); }
+body.is-lift-sorting, body.is-lift-sorting * { cursor: grabbing !important; user-select: none !important; }
 .scenario-studio .se-row .se-row-main { transition: transform 140ms var(--ease-standard), background 140ms var(--ease-standard); }
 .scenario-studio .se-row.is-dropped .se-row-main { animation: se-dropped 900ms var(--ease-standard); }
 @keyframes se-dropped {
@@ -13061,7 +13060,10 @@ col.vimp-c-scene{ width:18% } col.vimp-c-verdict{ width:16% }
 .app-main-frame:has(.page):not(:has(.project-workspace)) {
   height: calc(100dvh - var(--shell-topbar-h));
 }
+/* 넘기는 칸이 위치 기준이어야 안의 absolute 요소(.visually-hidden 등)가 칸 안에 갇힌다. 바깥 .scroll-frame 이
+   기준이면 그 요소가 문서를 늘려 브라우저 막대가 하나 더 생긴다. */
 .app-main-frame:has(.page):not(:has(.project-workspace)) > .workspace {
+  position: relative;
   height: 100%;
   overflow-y: auto;
   scrollbar-width: none;

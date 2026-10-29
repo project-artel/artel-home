@@ -62,6 +62,8 @@ export function VersionList({
   versions,
   messages,
   allRow,
+  readOnly = false,
+  showUnversioned = true,
 }: {
   groups: readonly VersionGroup[]
   onSelect: (gameBuildId: string) => void
@@ -77,6 +79,10 @@ export function VersionList({
    * 케이스 라이브러리는 늘 한 버전을 보므로 쓰지 않는다.
    */
   allRow?: { label: string; count: number; selected: boolean; onSelect: () => void }
+  /** 고르기만 한다(TC 가져오기 창). 묶음 만들기 단추, 우클릭 메뉴, 끌어 옮기기가 없고 [operations] 를 부르지 않는다. */
+  readOnly?: boolean
+  /** "버전 없음" 줄. TC 가져오기 창은 런의 버전 하나만 보이므로 끈다. */
+  showUnversioned?: boolean
 }) {
   const { t } = useI18n()
   const m = messages ?? t.testCases.versions
@@ -175,15 +181,15 @@ export function VersionList({
           className={'tcl-folder tcl-version' + (current ? ' is-current' : '') + (version.hidden ? ' is-hidden' : '')}
           // 튜토리얼이 "다른 라이브러리에서 가져오기" 를 설명할 때 밝게 두는 줄(ARTEL-1033).
           data-tour={version.latest && !version.hidden ? 'latest-version' : undefined}
-          draggable={!version.hidden}
+          draggable={!readOnly && !version.hidden}
           onClick={() => onSelect(version.gameBuildId)}
-          onContextMenu={(event) => openMenu(event, { kind: 'version', version })}
+          onContextMenu={readOnly ? undefined : (event) => openMenu(event, { kind: 'version', version })}
           onDragStart={(event) => {
             event.dataTransfer.setData(VERSION_TYPE, version.gameBuildId)
             event.dataTransfer.setData('text/plain', versionName(version))
             event.dataTransfer.effectAllowed = 'move'
           }}
-          onKeyDown={menuKeys({ kind: 'version', version })}
+          onKeyDown={readOnly ? undefined : menuKeys({ kind: 'version', version })}
           type="button"
         >
           <span className="tcl-folder-name" title={versionName(version)}>{versionName(version)}</span>
@@ -200,15 +206,15 @@ export function VersionList({
       aria-label={m.heading}
       className="tcl-versions"
       data-tour="versions"
-      onContextMenu={(event) => openMenu(event, { kind: 'root' })}
+      onContextMenu={readOnly ? undefined : (event) => openMenu(event, { kind: 'root' })}
     >
       <div
         className={'tcl-versions-head' + (dropTarget === 'root' ? ' is-drop-target' : '')}
         data-tour="version-head"
         {...dropHandlers('root', null)}
       >
-        <h2 className="tcl-folders-title" title={m.dropToUngroup}>{m.heading}</h2>
-        <button
+        <h2 className="tcl-folders-title" title={readOnly ? undefined : m.dropToUngroup}>{m.heading}</h2>
+        {!readOnly && <button
           aria-label={m.menu.createGroup}
           className="iconbtn tcl-versions-add"
           onClick={() => setNaming({ group: null })}
@@ -216,7 +222,7 @@ export function VersionList({
           type="button"
         >
           +
-        </button>
+        </button>}
       </div>
       <ul className="tcl-folder-list">
         {allRow && (
@@ -250,8 +256,8 @@ export function VersionList({
                     return next
                   })
                 }
-                onContextMenu={(event) => openMenu(event, { kind: 'group', group })}
-                onKeyDown={menuKeys({ kind: 'group', group })}
+                onContextMenu={readOnly ? undefined : (event) => openMenu(event, { kind: 'group', group })}
+                onKeyDown={readOnly ? undefined : menuKeys({ kind: 'group', group })}
                 title={group.name}
                 type="button"
               >
@@ -265,7 +271,7 @@ export function VersionList({
             </li>
           )
         })}
-        <li>
+        {showUnversioned && <li>
           <button
             aria-current={selectedId === UNVERSIONED ? 'true' : undefined}
             className={'tcl-folder tcl-version tcl-version--none' + (selectedId === UNVERSIONED ? ' is-current' : '')}
@@ -277,7 +283,7 @@ export function VersionList({
             <span className="tcl-folder-name">{m.unversioned}</span>
             <span className="tcl-folder-count">{unversionedTotal}</span>
           </button>
-        </li>
+        </li>}
       </ul>
       {hidden.length > 0 && (
         <div className="tcl-hidden-versions">

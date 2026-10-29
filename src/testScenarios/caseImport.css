@@ -1,0 +1,59 @@
+/* TC 가져오기 창(ARTEL-1245). TC 라이브러리 화면을 창으로 옮긴 것이라 표 · 칩 · 폴더 tree 는 라이브러리의 class 를 그대로 쓴다.
+   여기에는 창의 틀, 붙일 순서 줄, 서비스 스크롤 막대만 둔다. */
+.dialog-panel:has(.cid) {
+  width: min(100%, 1240px);
+  height: min(calc(100vh - var(--space-8)), 860px);
+  display: flex;
+  flex-direction: column;
+}
+.cid { display: flex; flex-direction: column; gap: var(--space-3); flex: 1; min-height: 0; }
+.cid-target { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--color-text-secondary); font-size: 12.5px; }
+.cid-target b { color: var(--color-text-primary); font-weight: 600; }
+.cid-target-no { font-family: var(--font-mono); font-size: 11px; padding: 1px 5px; border-radius: 4px; background: var(--color-text-primary); color: var(--color-bg-surface); }
+/* 행 높이를 창에서 받는다. auto 면 표 길이만큼 늘어나 창 밖으로 나간다. */
+.cid-body { display: grid; grid-template-columns: 240px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); gap: var(--space-3); flex: 1; min-height: 0; }
+.cid-body.is-flat { grid-template-columns: minmax(0, 1fr); }
+/* 라이브러리는 넓은 화면에서 왼쪽 창 높이를 화면 높이로 고정한다(100dvh). 창 안에서는 칸 높이를 따른다. */
+.cid .cid-body > .tcl-folders { height: auto; max-height: none; min-height: 0; overflow-y: auto; }
+.cid-main { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; min-height: 0; }
+.cid-tablewrap { position: relative; flex: 1; min-height: 0; border: 1px solid var(--st-border); border-radius: var(--radius-md); }
+.cid-scroll { height: 100%; overflow: auto; scrollbar-width: none; }
+.cid-scroll::-webkit-scrollbar { display: none; }
+.cid-scroll .tcl-table thead th { position: sticky; top: 0; z-index: 1; background: var(--color-bg-surface); }
+.cid-scroll .dialog-copy, .cid-scroll .inline-error { padding: var(--space-4); }
+col.cid-c-more { width: 64px; }
+.cid .tct-row { cursor: pointer; }
+.cid .tct-row.chosen td { background: color-mix(in srgb, var(--color-action-primary) 8%, transparent); }
+.cid-order { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 5px; border: 0; border-radius: 999px; background: var(--color-action-primary); color: var(--color-text-on-accent); font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; cursor: pointer; }
+.cid-order.is-static { cursor: inherit; }
+.cid-more { visibility: hidden; height: 24px; padding: 0 8px; border: 1px solid var(--color-border-strong); border-radius: 7px; background: var(--color-bg-surface); color: var(--color-text-secondary); font: inherit; font-size: 11.5px; cursor: pointer; }
+.cid .tct-row:hover .cid-more, .cid .tct-row.chosen .cid-more, .cid-more:focus-visible { visibility: visible; }
+
+/* 붙일 순서 줄: 누른 순서대로 쌓이고, 끌어서 순서를 바꾼다. */
+.cid-traywrap { position: relative; }
+.cid-tray { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 8px 12px 14px; border: 1px solid var(--st-border); border-radius: var(--radius-md); background: var(--color-bg-raised); overflow-x: auto; scrollbar-width: none; }
+.cid-tray::-webkit-scrollbar { display: none; }
+.cid-tray-label { flex: none; font-size: 12px; color: var(--color-text-muted); }
+.cid-tray-hint { font-size: 12px; color: var(--color-text-muted); }
+.cid-pick { flex: none; display: inline-flex; align-items: center; gap: 6px; max-width: 280px; height: 30px; padding: 0 4px; border: 1px solid var(--color-border-strong); border-radius: 8px; background: var(--color-bg-surface); font-size: 12px; cursor: grab; user-select: none; }
+.cid-pick.is-dragging { opacity: .4; }
+.cid-pick-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cid-pick button { flex: none; width: 20px; height: 20px; padding: 0; border: 0; border-radius: 5px; background: transparent; color: var(--color-text-muted); font-size: 14px; line-height: 1; cursor: pointer; }
+.cid-pick button:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
+.cid-actions { align-items: center; margin-top: 0; }
+.cid-count { margin-right: auto; color: var(--color-text-secondary); font-size: 13px; font-variant-numeric: tabular-nums; }
+.cid-where { min-width: 220px; }
+
+/* 서비스 스크롤 막대(EdgeScrollbar). 잡는 면은 넓고 투명하고, 보이는 것은 그 안의 브랜드 색 막대다. */
+.cid .edgebar { position: absolute; z-index: 3; pointer-events: none; }
+.cid .edgebar--right { top: 0; right: 0; width: 18px; }
+.cid .edgebar--bottom { left: 0; bottom: 2px; height: 14px; }
+.cid .edgebar-thumb { position: absolute; pointer-events: auto; cursor: grab; touch-action: none; }
+.cid .edgebar--right .edgebar-thumb { left: 0; right: 0; }
+.cid .edgebar--bottom .edgebar-thumb { top: 0; bottom: 0; }
+.cid .edgebar-thumb:active { cursor: grabbing; }
+.cid .edgebar-fill { position: absolute; border-radius: 2px; background: var(--color-brand-accent); transition: width 120ms var(--ease-standard), height 120ms var(--ease-standard), background 120ms var(--ease-standard); }
+.cid .edgebar--right .edgebar-fill { top: 0; bottom: 0; right: 0; width: 4px; }
+.cid .edgebar--bottom .edgebar-fill { left: 0; right: 0; bottom: 0; height: 4px; }
+.cid .edgebar--right.is-near .edgebar-fill { width: 11px; background: var(--color-brand-accent-strong); }
+.cid .edgebar--bottom.is-near .edgebar-fill { height: 11px; background: var(--color-brand-accent-strong); }
