@@ -1507,6 +1507,3 @@ export function TestCaseLibrary({
     </div>
   )
 }
-
-
-/** 한 버전의 판정 칸. 그 버전에 없는 케이스(null)는 "없음" 이다. */
