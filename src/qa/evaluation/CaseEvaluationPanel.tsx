@@ -1,5 +1,5 @@
 import { loadAttemptReview } from './loadAttemptReview'
-import { useCallback, useEffect, useId, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
 import { shortWhen } from '../history/historyModel'
@@ -25,14 +25,15 @@ function AttemptList({ projectId, qaTryId, testCaseId, id }: { projectId: string
   const pickId = useId()
   const [rows, setRows] = useState<api.Attempt[]>([])
   const [selected, setSelected] = useState<string | null>(() => params.get('attempt'))
+  const selectedRef = useRef(selected)
   const [linkedAttempt, setLinkedAttempt] = useState<api.Attempt | null>(null)
   const [hasMore, setHasMore] = useState(false)
   const [error, setError] = useState(false)
   const [loading, setLoading] = useState(true)
   const load = useCallback(async (signal?: AbortSignal) => {
-    try { const result = await loadAttemptReview(projectId, { qaTryId, testCaseId }, selected, signal); if (!signal?.aborted) { setRows(result.rows); setLinkedAttempt(result.linkedAttempt); setHasMore(result.rows.length === 100); setError(false) } }
-    catch { if (!signal?.aborted) setError(true) }
-    finally { if (!signal?.aborted) setLoading(false) }
+    try { const result = await loadAttemptReview(projectId, { qaTryId, testCaseId }, selected, signal); if (!signal?.aborted && selectedRef.current === selected) { setRows(result.rows); setLinkedAttempt(result.linkedAttempt); setHasMore(result.rows.length === 100); setError(false) } }
+    catch { if (!signal?.aborted && selectedRef.current === selected) setError(true) }
+    finally { if (!signal?.aborted && selectedRef.current === selected) setLoading(false) }
   }, [projectId, qaTryId, testCaseId, selected])
   useProjectChange(projectId, ['QA_RUNS', 'TEST_CASES'], () => void load())
   useEffect(() => {
@@ -49,12 +50,21 @@ function AttemptList({ projectId, qaTryId, testCaseId, id }: { projectId: string
     <div className="qe-head">
       <h3>{copy.title}</h3>
     </div>
-    {current && <CaseAttemptPicker id={pickId} options={options} current={current} onSelect={setSelected} copy={copy} />}
+    {current && <CaseAttemptPicker id={pickId} options={options} current={current} onSelect={attemptId => {
+      selectedRef.current = attemptId
+      const picked = options.find(row => row.id === attemptId)
+      if (picked) setLinkedAttempt(picked)
+      setSelected(attemptId)
+    }} copy={copy} />}
     {loading && <p className="qe-status" role="status">{copy.loading}</p>}
     {error && <p className="qe-status" role="alert">{copy.error} <button className="button button--secondary button--compact" onClick={() => void load()} type="button">{copy.retry}</button></p>}
     {!loading && !rows.length && <p className="qe-status">{copy.empty}</p>}
     {current && <div role="tabpanel" id={`${pickId}-panel`} aria-labelledby={`${pickId}-case-${current.testCaseId}`}>
-      <AttemptReview key={current.id} attempt={current} projectId={projectId} onSaved={() => void load()} />
+      <AttemptReview key={current.id} attempt={current} projectId={projectId} onSaved={saved => {
+        setRows(previous => previous.map(row => row.id === saved.id ? saved : row))
+        setLinkedAttempt(previous => selectedRef.current === saved.id || previous?.id === saved.id ? saved : previous)
+        void load()
+      }} />
     </div>}
     {hasMore && rows.length > 0 && <button className="button button--secondary button--compact qe-more" type="button" onClick={() => {
       void api.attempts(projectId, { qaTryId, testCaseId, before: rows[rows.length - 1].createdAt, beforeId: rows[rows.length - 1].id })
@@ -63,7 +73,7 @@ function AttemptList({ projectId, qaTryId, testCaseId, id }: { projectId: string
   </section>
 }
 
-function AttemptReview({ attempt, projectId, onSaved }: { attempt: api.Attempt; projectId: string; onSaved: () => void }) {
+function AttemptReview({ attempt, projectId, onSaved }: { attempt: api.Attempt; projectId: string; onSaved: (saved: api.Attempt) => void }) {
   const { locale } = useI18n()
   const copy = evaluationCopy[locale === 'ko' ? 'ko' : 'en']
   const actualId = useId()
@@ -123,7 +133,7 @@ function AttemptReview({ attempt, projectId, onSaved }: { attempt: api.Attempt; 
         {attempt.logId && <form className="qe-form" onSubmit={event => {
           event.preventDefault(); setBusy(true); setMessage('')
           void api.review(projectId, attempt.logId!, decision, note).then(async () => {
-            setMessage(copy.saved); window.dispatchEvent(new CustomEvent('artel:case-content-review', { detail: projectId })); onSaved()
+            setMessage(copy.saved); window.dispatchEvent(new CustomEvent('artel:case-content-review', { detail: projectId })); onSaved({ ...attempt, review: decision, note })
             try { setHistory(await api.revisions(projectId, attempt.logId!)) } catch { setMessage(copy.historyLoadFailed) }
           }).catch(() => setMessage(copy.error)).finally(() => setBusy(false))
         }}>

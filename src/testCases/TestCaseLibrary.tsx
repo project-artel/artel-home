@@ -1,4 +1,3 @@
-import { selectedLibraryCase } from './selectedLibraryCase'
 import { useTestCaseLabel, useTestCaseIdentifiers } from './testCaseIdentifiers'
 import { TestCaseHover } from './TestCaseHover'
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
@@ -67,6 +66,7 @@ import { useCaseListNav } from './useCaseListNav'
 import { useCaseSelection } from './useCaseSelection'
 import {
   hasActiveFilters,
+  editableCase,
   NO_FILTERS,
   selectTestCases,
   tallyTestCases,
@@ -370,7 +370,7 @@ export function TestCaseLibrary({
     }
   }, [selection.visibleState, shown.length])
 
-  const selected = selectedLibraryCase(selectedId, library.cases, versionsMode ? versionCases.rows : undefined)
+  const selected = editableCase(selectedId, library.cases, versionsMode ? versionCases.rows : null)
   // 팔레트와 같은 이동. `active` 는 키보드 커서고 `selectedId` 는 편집기가 열린 케이스라,
   // 둘은 따로 움직인다 — 훑어보는 것과 고르는 것이 같은 동작이 아니다.
   const nav = useCaseListNav(shown.length)
@@ -1331,6 +1331,7 @@ export function TestCaseLibrary({
 
       {sheetOpen && (
         <TestCaseSheet
+          key={`${projectId}:${selectedVersionId ?? ''}:${selected?.id ?? 'new'}`}
           builds={builds}
           folderId={folderSelection.kind === 'folder' ? folderSelection.id : null}
           knownScenes={knownScenes}
@@ -1349,6 +1350,7 @@ export function TestCaseLibrary({
             if (saved.origin !== 'MAP' || selectedBuildId === null || selectedBuildId === latestVersion?.gameBuildId) library.applySaved(saved)
             else refreshLibrary()
             refreshVersions()
+            refreshFolderItems()
             setAnnouncement(m.editor.saved)
           }}
           projectId={projectId}

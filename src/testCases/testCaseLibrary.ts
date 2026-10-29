@@ -1,6 +1,12 @@
+import { selectedLibraryCase } from './selectedLibraryCase'
 import { formatTestCaseId } from './testCaseId'
 import type { GameBuild } from '../projects/gameTypes'
 import type { CaseOrigin, TestCase, VerificationStatus } from './testCaseTypes'
+import type { VersionCaseRow } from './testCaseVersions'
+
+export function editableCase(caseId: string | null, cases: readonly TestCase[], versionRows: readonly VersionCaseRow[] | null): TestCase | null {
+  return selectedLibraryCase(caseId, cases, versionRows ?? undefined)
+}
 
 /*
  * 케이스 라이브러리 화면이 목록을 좁히고 줄 세우는 규칙.

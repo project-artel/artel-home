@@ -5,5 +5,7 @@ import type { VersionCaseRow } from './testCaseVersions'
 export function selectedLibraryCase(caseId: string | null, latest: readonly TestCase[], versionRows?: readonly VersionCaseRow[]): TestCase | null {
   if (versionRows === undefined) return latest.find(row => row.id === caseId) ?? null
   const row = versionRows.find(row => row.testCase.id === caseId && row.presence !== 'ONLY_OTHER')
-  return row === undefined ? null : { ...row.testCase, verificationStatus: row.verificationStatus ?? row.testCase.verificationStatus }
+  if (row === undefined) return null
+  return row.verificationStatus == null || row.verificationStatus === row.testCase.verificationStatus
+    ? row.testCase : { ...row.testCase, verificationStatus: row.verificationStatus }
 }
