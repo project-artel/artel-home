@@ -5,6 +5,7 @@ import { useAuth } from '../auth/useAuth'
 import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../i18n/useI18n'
 import { QaNoticeBell } from '../qa/QaNoticeBell'
+import { QuestionNotifications } from '../qa/evaluation/QuestionNotifications'
 import { ThemeToggle } from '../ThemeToggle'
 
 /**
@@ -28,6 +29,7 @@ export function AppShell() {
 
   return (
     <div className="app-shell">
+      <QuestionNotifications userId={auth.user.id} />
       <header className="top-bar">
         <Link className="brand" to="/projects" aria-label={t.common.shell.brandHomeLabel}>
           <span className="brand-mark" aria-hidden="true">

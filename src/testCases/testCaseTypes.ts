@@ -132,7 +132,7 @@ export type TestCaseInput = {
   verificationStatus?: VerificationStatus
   /** Only a create sends this; moving an existing case goes through `moveTestCases`. */
   folderId?: string | null
-  /** 만들면서 넣을 버전(ARTEL-1032). 만들 때만 보낸다. null 이면 "버전 없음"이다. */
+  /** 생성할 버전 또는 지도 TC 편집의 대상 버전. null이면 생성 시 "버전 없음"이다. */
   gameBuildId?: string | null
   /** 바꿨을 때만 보낸다. */
   functions?: CaseFunctions

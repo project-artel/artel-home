@@ -1,0 +1,57 @@
+import { useTestCaseLabel } from '../../testCases/testCaseIdentifiers'
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { useI18n } from '../../i18n/useI18n'
+import { shortWhen } from '../history/historyModel'
+import { issueHistory, type CaseIssueHistory } from './evaluationApi'
+import { evaluationCopy } from './evaluationCopy'
+import { VerdictPill } from './VerdictPill'
+import './evaluation.css'
+
+export function CaseIssueHistoryPanel({ projectId, issueId }: { projectId: string; issueId: string }) {
+  const { locale } = useI18n()
+  const caseLabel = useTestCaseLabel()
+  const copy = evaluationCopy[locale === 'ko' ? 'ko' : 'en']
+  const [data, setData] = useState<CaseIssueHistory | null>(null)
+  const [error, setError] = useState(false)
+  const [more, setMore] = useState(false)
+  const [retry, setRetry] = useState(0)
+  useEffect(() => {
+    const controller = new AbortController()
+    void issueHistory(projectId, issueId, controller.signal)
+      .then(result => { if (!controller.signal.aborted) { setData(result); setMore(result.occurrences.length === 100); setError(false) } })
+      .catch(() => { if (!controller.signal.aborted) setError(true) })
+    return () => controller.abort()
+  }, [projectId, issueId, retry])
+  if (error) return <p className="qe-status" role="alert">{copy.error} <button className="button button--secondary button--compact" onClick={() => setRetry(value => value + 1)} type="button">{copy.retry}</button></p>
+  if (!data?.testCaseId) return null
+  const issueLink = (id: string) => `/projects/${encodeURIComponent(projectId)}/issues?issue=${encodeURIComponent(id)}`
+  return <section className="qe-panel" aria-label={copy.occurrences}>
+    <div className="qe-head">
+      <h3>{copy.occurrences}</h3>
+      <nav className="qe-links" aria-label={copy.occurrences}>
+        <Link className="button button--secondary button--compact" to={`/projects/${encodeURIComponent(projectId)}/test-cases?case=${encodeURIComponent(data.testCaseId)}`}>{caseLabel(data.testCaseId)} · {copy.testcase}</Link>
+        {data.previousIssueId && <Link className="button button--secondary button--compact" to={issueLink(data.previousIssueId)}>{copy.previousIssue} #{data.previousIssueId}</Link>}
+        {data.mergedInto && <Link className="button button--secondary button--compact" to={issueLink(data.mergedInto)}>{copy.mergedIssue} #{data.mergedInto}</Link>}
+      </nav>
+    </div>
+    {data.autoClosed && <p className="qe-status">{copy.autoClosed}</p>}
+    <ol className="qe-occ">{data.occurrences.map(item => <li key={item.attemptId}>
+      <span className="qe-meta mono">{item.finishedAt ? shortWhen(item.finishedAt) : '—'}</span>
+      <span className="qe-verdict-row">
+        <span className="qe-kicker">{copy.original}</span><VerdictPill verdict={item.verdict} copy={copy} empty="running" />
+        <span className="qe-arrow" aria-hidden="true">›</span>
+        <span className="qe-kicker">{copy.human}</span><VerdictPill verdict={item.review} copy={copy} empty="unreviewed" />
+        <span className="qe-meta">{item.falsePositive ? copy.falsePositive : item.validFailure ? copy.validFailure : copy.INCONCLUSIVE}</span>
+      </span>
+      {item.qaRunId
+        ? <Link className="table-link" to={`/projects/${encodeURIComponent(projectId)}/qa-history/${encodeURIComponent(item.qaRunId)}?scenario=${encodeURIComponent(item.qaTryId)}&attempt=${encodeURIComponent(item.attemptId)}`}>{copy.qa} #{item.qaTryId}</Link>
+        : <span className="table-link table-link--muted">{copy.qa} #{item.qaTryId}</span>}
+    </li>)}</ol>
+    {more && <button className="button button--secondary button--compact qe-more" type="button" onClick={() => {
+      const before = data.occurrences.at(-1)?.logId
+      if (!before) return
+      void issueHistory(projectId, issueId, undefined, before).then(next => { setData(previous => previous && { ...previous, occurrences: [...previous.occurrences, ...next.occurrences] }); setMore(next.occurrences.length === 100) }).catch(() => setError(true))
+    }}>{copy.more}</button>}
+  </section>
+}

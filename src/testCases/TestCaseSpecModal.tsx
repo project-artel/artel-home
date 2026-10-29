@@ -1,3 +1,4 @@
+import { useTestCaseLabel } from './testCaseIdentifiers'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { CaseListRow } from './CaseListRow'
@@ -21,6 +22,7 @@ type Filter = 'ALL' | VerificationStatus
  * TC 는 처음부터 보이지 않는다. QA 는 런 버전에 없는 TC 의 연결을 지우기 때문이다.
  */
 export function TestCaseSpecModal({
+  gameBuildId,
   projectId,
   onClose,
   cases: givenCases,
@@ -28,6 +30,7 @@ export function TestCaseSpecModal({
   currentCaseId = null,
   scope,
 }: {
+  gameBuildId?: string | null
   projectId: string
   onClose: () => void
   /** 미리 읽어 둔 TC. 주면 프로젝트 전량을 따로 읽지 않는다. */
@@ -39,6 +42,7 @@ export function TestCaseSpecModal({
   scope?: string
 }) {
   const { t } = useI18n()
+  const caseLabel = useTestCaseLabel()
   const p = t.scenarios.palette
   const statusLabel = t.scenarios.composition.status
 
@@ -72,10 +76,10 @@ export function TestCaseSpecModal({
           (scene === '' || testCase.scene === scene) &&
           // 명세 글은 이름을 백틱으로 감싼다. 쳐 넣는 사람은 백틱을 치지 않으니 빼고 맞춘다.
           (q === '' ||
-            [testCase.step, testCase.scene, testCase.precondition ?? '', testCase.expectedValue]
+            [caseLabel(testCase.id), testCase.id, testCase.step, testCase.scene, testCase.precondition ?? '', testCase.expectedValue]
               .some((part) => part.replace(/`/g, '').toLowerCase().includes(q))),
       ),
-    [cases, status, scene, q],
+    [cases, status, scene, q, caseLabel],
   )
 
   const nav = useCaseListNav(shown.length)
@@ -128,8 +132,9 @@ export function TestCaseSpecModal({
               ) : (
                 shown.map((testCase, index) => (
                   <CaseListRow
+                    gameBuildId={gameBuildId}
                     active={index === active}
-                    fallbackTitle={`TC ${index + 1}`}
+                    fallbackTitle={caseLabel(testCase.id)}
                     index={index}
                     key={testCase.id}
                     onClick={() => (onPick !== undefined ? onPick(testCase) : setActive(index))}
@@ -151,9 +156,10 @@ export function TestCaseSpecModal({
                   <>
                     <div className="cp-info-head">
                       <span className={`vdot ${info.verificationStatus}`} />
-                      <span className="cp-info-title">{info.step.length > 0 ? info.step : `TC ${active + 1}`}</span>
+                      <span className="cp-info-title">{info.step.length > 0 ? info.step : caseLabel(info.id)}</span>
                     </div>
                     <div className="cp-info-tags">
+                      <span className="tc-id">{caseLabel(info.id)}</span>
                       <SceneChip scene={info.scene} />
                       <span className={`vpill ${info.verificationStatus}`}><span className={`vdot ${info.verificationStatus}`} />{statusLabel[info.verificationStatus]}</span>
                       {/* Always here, settled or not — the pane is the answer to

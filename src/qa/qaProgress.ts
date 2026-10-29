@@ -2,23 +2,21 @@ import { asRecord, asString } from '../projects/projectApi'
 import type { ExecutionMode, ScenarioStep } from '../testScenarios/scenarioTypes'
 import { asVerificationStatus, type VerificationStatus } from '../testCases/testCaseTypes'
 import { usedCheatsOf, type UsedCheat } from './qaFunctionTimeline'
+import { deriveQaCaseReports } from './qaCaseProgress'
 import { isTerminalQaStatus, type QaLog, type QaTryStatus } from './qaTypes'
 
 /**
- * What the run has done to each scenario step, read back from the log stream.
- *
- * The Agent reports a step exactly once, when it has judged it: `report_step`
- * emits a `STATUS` frame carrying `step`, the verdict, and the evidence for it.
- * Nothing announces a step *starting* — `StepStatus.STARTED` exists in the
- * protocol but no sender uses it, and `LOG`/`ACTION` frames leave their `step`
- * field null. So `running` is inferred from how far the verdicts have got, and
- * it is labelled as the run's frontier rather than presented as a report.
+ * 로그에서 읽은 판정 상태다. FREE는 case_id로 TC 판정을 대응하고,
+ * ORDERED는 이전 step 판정 기록을 보존한다. TC 판정만으로 참고 절차의
+ * 완료나 실행 위치를 추정하지 않는다.
  */
 export type QaStepState =
   /** Reported passed. */
   | 'passed'
   /** Reported failed. */
   | 'failed'
+  /** TC는 보고됐지만 실제 통과·실패를 결정하지 못했다. */
+  | 'inconclusive'
   /** No verdict, and the next one the Agent is expected to judge. */
   | 'running'
   /** No verdict, and the run has not reached it. */
@@ -99,7 +97,7 @@ export function stepOf(log: QaLog): number | null {
 }
 
 type Verdict = {
-  passed: boolean
+  passed: boolean | null
   message: string
   logId: string | null
   usedCheats: UsedCheat[]
@@ -196,6 +194,14 @@ export function deriveQaProgress({
   historyComplete: boolean
 }): QaProgress {
   const { verdicts, summaryTotal, summarySeen } = collectVerdicts(logs)
+  // FREE의 한 행은 참고 step이 아니라 TC다. 번호가 아닌 case_id로 원본 판정을 대응한다.
+  if (executionMode === 'FREE') {
+    const reports = deriveQaCaseReports(logs)
+    scenarioSteps.forEach((reference, index) => {
+      const report = reference.case_id == null ? undefined : reports.get(String(reference.case_id))
+      if (report !== undefined) verdicts.set(index + 1, report)
+    })
+  }
 
   const highestReported = verdicts.size === 0 ? 0 : Math.max(...verdicts.keys())
   const total =
@@ -212,6 +218,7 @@ export function deriveQaProgress({
   const steps: QaStepProgress[] = []
   let passed = 0
   let failed = 0
+  let reported = 0
   let labeled = 0
   let correct = 0
   let wrong = 0
@@ -221,16 +228,17 @@ export function deriveQaProgress({
     if (expectedPassed !== null) labeled += 1
     const verdict = verdicts.get(step)
     if (verdict !== undefined) {
-      if (verdict.passed) passed += 1
-      else failed += 1
+      reported += 1
+      if (verdict.passed === true) passed += 1
+      else if (verdict.passed === false) failed += 1
       const grade: QaStepGrade =
-        expectedPassed === null ? null : verdict.passed === expectedPassed ? 'correct' : 'wrong'
+        expectedPassed === null || verdict.passed === null ? null : verdict.passed === expectedPassed ? 'correct' : 'wrong'
       if (grade === 'correct') correct += 1
       else if (grade === 'wrong') wrong += 1
       steps.push({
         step,
         title: scenarioSteps[step - 1]?.action ?? '',
-        state: verdict.passed ? 'passed' : 'failed',
+        state: verdict.passed === null ? 'inconclusive' : verdict.passed ? 'passed' : 'failed',
         verdict: verdict.message.length > 0 ? verdict.message : null,
         verdictLogId: verdict.logId,
         expectedPassed,
@@ -271,7 +279,7 @@ export function deriveQaProgress({
     })
   }
 
-  return { steps, reported: verdicts.size, passed, failed, total, labeled, correct, wrong }
+  return { steps, reported, passed, failed, total, labeled, correct, wrong }
 }
 
 /** How full the Agent's LLM context window is, as of its latest model call. */

@@ -1,5 +1,12 @@
+import { selectedLibraryCase } from './selectedLibraryCase'
+import { formatTestCaseId } from './testCaseId'
 import type { GameBuild } from '../projects/gameTypes'
 import type { CaseOrigin, TestCase, VerificationStatus } from './testCaseTypes'
+import type { VersionCaseRow } from './testCaseVersions'
+
+export function editableCase(caseId: string | null, cases: readonly TestCase[], versionRows: readonly VersionCaseRow[] | null): TestCase | null {
+  return selectedLibraryCase(caseId, cases, versionRows ?? undefined)
+}
 
 /*
  * 케이스 라이브러리 화면이 목록을 좁히고 줄 세우는 규칙.
@@ -58,13 +65,13 @@ export function countScenes(cases: TestCase[]): SceneCount[] {
 }
 
 /**
- * 검색어가 닿는 곳은 케이스의 본문 네 필드다. id 는 뺐다 — 화면 어디에도 보이지 않는 값이라
- * 사용자가 그것으로 검색할 수 없고, 넣어 두면 우연히 숫자가 걸리는 행만 늘어난다.
+ * 표시 식별자와 원본 ID, 케이스 본문 네 필드로 검색한다.
  */
-function matchesQuery(testCase: TestCase, query: string): boolean {
+function matchesQuery(testCase: TestCase, query: string, numbers?: ReadonlyMap<string, string>): boolean {
   if (query.length === 0) return true
 
   return (
+    (numbers?.has(testCase.id) === true && formatTestCaseId(numbers.get(testCase.id)!).toLowerCase().includes(query)) || testCase.id.toLowerCase().includes(query) ||
     testCase.step.toLowerCase().includes(query) ||
     testCase.scene.toLowerCase().includes(query) ||
     testCase.expectedValue.toLowerCase().includes(query) ||
@@ -91,6 +98,7 @@ export function selectTestCases(
   cases: TestCase[],
   filters: TestCaseFilters,
   sort: TestCaseSort,
+  numbers?: ReadonlyMap<string, string>,
 ): TestCase[] {
   const query = filters.query.trim().toLowerCase()
   const shown = cases.filter(
@@ -98,7 +106,7 @@ export function selectTestCases(
       (filters.status === 'ALL' || testCase.verificationStatus === filters.status) &&
       (filters.scene.length === 0 || testCase.scene === filters.scene) &&
       (filters.origin === 'ALL' || testCase.origin === filters.origin) &&
-      matchesQuery(testCase, query),
+      matchesQuery(testCase, query, numbers),
   )
 
   if (sort === 'NEWEST') return shown

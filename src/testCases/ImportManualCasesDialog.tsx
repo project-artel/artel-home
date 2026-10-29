@@ -1,3 +1,4 @@
+import { TestCaseHover } from './TestCaseHover'
 import { useEffect, useId, useMemo, useState } from 'react'
 import { Dialog } from '../design-system/primitives/Dialog'
 import { useI18n } from '../i18n/useI18n'
@@ -182,7 +183,7 @@ export function ImportManualCasesDialog({
                           onChange={() => toggle([one], !picked.has(one.id))}
                           type="checkbox"
                         />
-                        <span className="mimp-case-step">{one.step.length > 0 ? one.step : t.testCases.row.untitled}</span>
+                        <TestCaseHover projectId={projectId} caseId={one.id} gameBuildId={source?.kind === "version" ? source.id === UNVERSIONED ? null : source.id : target.gameBuildId}><span className="mimp-case-step">{one.step.length > 0 ? one.step : t.testCases.row.untitled}</span></TestCaseHover>
                         <span className="mimp-case-scene">{one.scene}</span>
                       </label>
                     </li>

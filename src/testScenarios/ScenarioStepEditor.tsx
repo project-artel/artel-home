@@ -1,3 +1,5 @@
+import { useTestCaseLabel } from '../testCases/testCaseIdentifiers'
+import { TestCaseHover } from '../testCases/TestCaseHover'
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { SplitHandle } from '../design-system/primitives/SplitHandle'
@@ -67,6 +69,7 @@ export function ScenarioStepEditor({
   caseBuild?: RunGameBuild | null
 }) {
   const { t } = useI18n()
+  const caseLabel = useTestCaseLabel()
   const e = t.scenarios.stepsEditor
   const b = e.board
   const statusLabel = t.scenarios.composition.status
@@ -466,17 +469,17 @@ export function ScenarioStepEditor({
                             {b.generalStep}
                           </button>
                         ) : (
-                          <button
+                          <TestCaseHover projectId={projectId} caseId={step.case_id} gameBuildId={caseBuild?.gameBuildId}><button
                             className="se-tc"
                             onClick={(event) => {
                               event.stopPropagation()
-                              setTcView({ caseId: step.case_id as number, label: b.caseOrdinal(tcNo) })
+                              setTcView({ caseId: step.case_id as number, label: caseLabel(step.case_id as number) })
                             }}
-                            title={b.openCase(b.caseOrdinal(tcNo))}
+                            title={b.openCase(caseLabel(step.case_id as number))}
                             type="button"
                           >
-                            {b.caseOrdinal(tcNo)}
-                          </button>
+                            {caseLabel(step.case_id as number)}
+                          </button></TestCaseHover>
                         )}
                       </span>
                       <span className="se-row-scene">
@@ -585,6 +588,7 @@ export function ScenarioStepEditor({
       {linking !== null && linking < steps.length && (
         // TC 를 고르는 창은 ⌘K 의 TC 명세 창을 그대로 쓴다 — 같은 검색 · 상태 · 씬 거르기 · 미리 보기다.
         <TestCaseSpecModal
+          gameBuildId={caseBuild?.gameBuildId}
           cases={caseList}
           currentCaseId={steps[linking].case_id}
           onClose={() => setLinking(null)}
@@ -646,6 +650,7 @@ function StepInspector({
   onViewCase: (caseId: number, label: string) => void
 }) {
   const { t } = useI18n()
+  const caseLabel = useTestCaseLabel()
   const e = t.scenarios.stepsEditor
   const b = e.board
   const gap = isGapStep(step)
@@ -653,11 +658,11 @@ function StepInspector({
   const [caseScroller, setCaseScroller] = useState<HTMLDivElement | null>(null)
   const chip = gap
     ? b.gapChip
-    : caseOrdinal === null
+    : step.case_id === null
       ? b.noTcAction
       : testCase?.scene
-        ? b.caseChip(caseOrdinal, testCase.scene)
-        : b.caseOrdinal(caseOrdinal)
+        ? `${caseLabel(step.case_id)} · ${testCase.scene}`
+        : caseLabel(step.case_id)
 
   return (
     <section aria-label={gap ? b.gapRowPlain : b.stepLabel(number ?? index + 1)} className="se-detail" style={{ height }}>
@@ -758,7 +763,7 @@ function StepInspector({
             <span className="se-muted">{b.readOnly}</span>
             <span className="se-spacer" />
             {step.case_id !== null && caseOrdinal !== null && (
-              <button className="se-link" onClick={() => onViewCase(step.case_id as number, `TC ${caseOrdinal}`)} title={e.viewCase} type="button">
+              <button className="se-link" onClick={() => onViewCase(step.case_id as number, caseLabel(step.case_id as number))} title={e.viewCase} type="button">
                 {b.fullSpec}
                 <StudioIcon name="external" size={13} />
               </button>

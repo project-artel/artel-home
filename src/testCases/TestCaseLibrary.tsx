@@ -1,3 +1,5 @@
+import { useTestCaseLabel, useTestCaseIdentifiers } from './testCaseIdentifiers'
+import { TestCaseHover } from './TestCaseHover'
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { generateContentMapTestCases, type GeneratedTestCases } from '../contentMap/generateContentMapTestCases'
@@ -64,6 +66,7 @@ import { useCaseListNav } from './useCaseListNav'
 import { useCaseSelection } from './useCaseSelection'
 import {
   hasActiveFilters,
+  editableCase,
   NO_FILTERS,
   selectTestCases,
   tallyTestCases,
@@ -72,6 +75,9 @@ import {
   type TestCaseFilters,
   type TestCaseSort,
 } from './testCaseLibrary'
+import { ContentReviewBadge } from '../qa/evaluation/ContentReviewPanel'
+import { useContentReviews } from '../qa/evaluation/useContentReviews'
+import { evaluationCopy } from '../qa/evaluation/evaluationCopy'
 import { VERIFICATION_STATUSES, type TestCase } from './testCaseTypes'
 import { useFolderHistory } from './useFolderHistory'
 import { useFolderItems } from './useFolderItems'
@@ -133,9 +139,14 @@ export function TestCaseLibrary({
   builds: GameBuild[]
   projectId: string
 }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
+  const caseLabel = useTestCaseLabel()
+  const { numbers: caseNumbers } = useTestCaseIdentifiers()
   const m = t.testCases
 
+  const contentReviews = useContentReviews(projectId)
+  const contentByCase = new Map(contentReviews.rows.map(row => [row.testCaseId, row]))
+  const contentCopy = evaluationCopy[locale === 'en' ? 'en' : 'ko']
   const library = useTestCaseLibrary(projectId)
   // 편집기는 고른 케이스가 바뀔 때마다 다시 마운트되므로, 안내 문구를 그 안에 두면
   // 새 케이스를 추가한 직후 그 문구가 마운트와 함께 사라져 screen reader 에 닿지 않는다.
@@ -266,7 +277,10 @@ export function TestCaseLibrary({
   }, [stepFolderHistory, m.folders.announce])
   const [filters, setFilters] = useState<TestCaseFilters>(NO_FILTERS)
   const [sort, setSort] = useState<TestCaseSort>('FAILING_FIRST')
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const selectedId = searchParams.get('case')
+  const setSelectedId = useCallback((id: string | null) => {
+    setSearchParams(current => { const next = new URLSearchParams(current); if (id === null) next.delete('case'); else next.set('case', id); return next }, { replace: true })
+  }, [setSearchParams])
   const [creating, setCreating] = useState(false)
   const [deleting, setDeleting] = useState<TestCase | null>(null)
   const [isBulkDeleting, setIsBulkDeleting] = useState(false)
@@ -318,7 +332,7 @@ export function TestCaseLibrary({
   // 비교할 때 한쪽 버전에만 있는 줄은 정렬과 상관없이 표 아래로 모은다. 빗금 줄이 표 중간중간에 끼면 두 버전에
   // 다 있는 케이스를 읽다가 끊긴다.
   const shown = useMemo(() => {
-    const sorted = selectTestCases(inFolder, filters, sort)
+    const sorted = selectTestCases(inFolder, filters, sort, caseNumbers)
     // 폴더 안에서는 이 버전에 없는 케이스가 아래로 간다(ARTEL-1024).
     const onlyOneSide = folderView
       ? (testCase: TestCase) => itemById.get(testCase.id)?.inVersion === false
@@ -327,7 +341,7 @@ export function TestCaseLibrary({
         : (testCase: TestCase) => (rowById.get(testCase.id)?.presence ?? 'BOTH') !== 'BOTH'
     if (onlyOneSide === null) return sorted
     return [...sorted.filter((testCase) => !onlyOneSide(testCase)), ...sorted.filter(onlyOneSide)]
-  }, [inFolder, filters, sort, folderView, itemById, compareVersionId, rowById])
+  }, [inFolder, filters, sort, folderView, itemById, compareVersionId, rowById, caseNumbers])
   const tally = useMemo(() => tallyTestCases(inFolder), [inFolder])
   // 선택은 지금 보이는 줄에 묶인다. 필터가 줄을 숨기면 hook 이 그 줄을 선택에서 뺀다.
   const visibleIds = useMemo(() => shown.map((testCase) => testCase.id), [shown])
@@ -356,7 +370,7 @@ export function TestCaseLibrary({
     }
   }, [selection.visibleState, shown.length])
 
-  const selected = library.cases.find((testCase) => testCase.id === selectedId) ?? null
+  const selected = editableCase(selectedId, library.cases, versionsMode ? versionCases.rows : null)
   // 팔레트와 같은 이동. `active` 는 키보드 커서고 `selectedId` 는 편집기가 열린 케이스라,
   // 둘은 따로 움직인다 — 훑어보는 것과 고르는 것이 같은 동작이 아니다.
   const nav = useCaseListNav(shown.length)
@@ -1000,6 +1014,7 @@ export function TestCaseLibrary({
           </div>
         </div>
 
+        {contentReviews.status === 'failed' && <p className="inline-error" role="alert">{contentCopy.contentStatus} · {contentCopy.error} <button type="button" className="button button--secondary button--compact" onClick={() => contentReviews.reload()}>{contentCopy.retry}</button></p>}
         <div className="tcl-status-row" data-tour="chips" ref={statusRow}>
           <span className="field-label">{m.filters.status}</span>
           <div className="tcl-chips">
@@ -1259,6 +1274,7 @@ export function TestCaseLibrary({
                         {/* `td` 를 flex 로 만들면 그 칸만 table-cell 밖으로 나가, 행 배경이
                             나머지 칸과 0.5px 어긋나고 높이도 5.5px 짧아진다. 안에서 편다. */}
                         <span className="tct-step-in">
+                          <span className="tc-id">{caseLabel(testCase.id)}</span>
                           <span className={`vdot ${testCase.verificationStatus}`} />
                           {/* 출처 라벨은 스텝 앞에 둔다. 뒤에 두면 긴 스텝의 말줄임표에 잘린다. */}
                           {testCase.origin !== undefined && (
@@ -1269,19 +1285,19 @@ export function TestCaseLibrary({
                               {m.origin[testCase.origin]}
                             </span>
                           )}
-                          <span className="tct-step-text">
+                          <TestCaseHover projectId={projectId} caseId={testCase.id} gameBuildId={selectedBuildId}><span className="tct-step-text">
                             {testCase.step.length > 0 ? <InlineCode className="tct-code" text={testCase.step} /> : m.row.untitled}
                             {note !== null && <span className="tct-absent-note">{note}</span>}
                             {item?.hidden === true && (
                               <span className="tct-hidden-tag" title={m.folderItems.hiddenTitle}>{m.folderItems.hiddenTag}</span>
                             )}
-                          </span>
+                          </span></TestCaseHover>
                         </span>
                       </td>
                       <td><SceneChip scene={testCase.scene} /></td>
                       <td><SpecGradeChip bare status={testCase.status} /></td>
                       <td>
-                        <StatusPill labels={m} status={result} />
+                        <div className="tct-content-status"><StatusPill labels={m} status={result} />{contentByCase.has(testCase.id) && <ContentReviewBadge row={contentByCase.get(testCase.id)!} />}</div>
                       </td>
                       {comparing && (
                         <td>
@@ -1315,6 +1331,7 @@ export function TestCaseLibrary({
 
       {sheetOpen && (
         <TestCaseSheet
+          key={`${projectId}:${selectedVersionId ?? ''}:${selected?.id ?? 'new'}`}
           builds={builds}
           folderId={folderSelection.kind === 'folder' ? folderSelection.id : null}
           knownScenes={knownScenes}
@@ -1330,12 +1347,15 @@ export function TestCaseLibrary({
           }}
           onDelete={() => setDeleting(selected)}
           onSaved={(saved) => {
-            library.applySaved(saved)
+            if (saved.origin !== 'MAP' || selectedBuildId === null || selectedBuildId === latestVersion?.gameBuildId) library.applySaved(saved)
+            else refreshLibrary()
             refreshVersions()
+            refreshFolderItems()
             setAnnouncement(m.editor.saved)
           }}
           projectId={projectId}
           testCase={selected}
+          editGameBuildId={selectedBuildId}
           // 새 케이스는 기본으로 현재 버전(가장 최근)에 넣는다(ARTEL-1032). 폴더에서 만든 케이스도 버전 라이브러리에 바로 보인다.
           versionChoice={
             versionsMode
@@ -1487,6 +1507,3 @@ export function TestCaseLibrary({
     </div>
   )
 }
-
-
-/** 한 버전의 판정 칸. 그 버전에 없는 케이스(null)는 "없음" 이다. */

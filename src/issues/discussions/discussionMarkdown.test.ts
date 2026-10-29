@@ -68,6 +68,7 @@ describe('plainMarkdown', () => {
   })
 
   it('shows test case references as their number', () => {
-    assert.equal(plainMarkdown('[[tc:42]] 에서 깨짐'), 'TC #42 에서 깨짐')
+    assert.equal(plainMarkdown('[[tc:42]] 에서 깨짐', id => id === '42' ? 'TC-001' : 'TC-…'), 'TC-001 에서 깨짐')
+    assert.equal(plainMarkdown('[[tc:42]] 에서 깨짐'), 'TC-… 에서 깨짐')
   })
 })

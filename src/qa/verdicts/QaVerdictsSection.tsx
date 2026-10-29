@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { EdgeScrollbar } from '../../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../../i18n/useI18n'
@@ -8,6 +8,8 @@ import { shortWhen } from '../history/historyModel'
 import { getQaRunVerdicts, type QaRunVerdicts } from '../qaVerdictApi'
 import { QA_TRY_STATUSES, qaRunPath, type QaTryStatus } from '../qaTypes'
 import { StepDetail } from './StepDetail'
+import { CaseEvaluationPanel } from '../evaluation/CaseEvaluationPanel'
+import { evaluationCopy } from '../evaluation/evaluationCopy'
 import { defaultStep, isActiveStatus, plainText, stepRows, tallyRows, type StepRow } from './verdictModel'
 
 /** 스텝 내비게이터 한 칸의 폭과 간격. 보이는 범위(`6–21 / 21`)를 스크롤 위치에서 셀 때 쓴다. */
@@ -15,6 +17,8 @@ const CELL_PX = 44
 const CELL_GAP_PX = 4
 /** 진행 중인 실행은 이 간격으로 다시 읽는다. 판정이 오는 대로 줄과 근거가 바뀐다. */
 const POLL_MS = 4000
+/** 머리의 `TC 판정 검토` 버튼이 내려가는 자리. */
+const EVALUATION_PANEL_ID = 'qe-review'
 
 type ListFilter = 'all' | 'checks' | 'failed' | 'review'
 
@@ -27,7 +31,7 @@ type ListFilter = 'all' | 'checks' | 'failed' | 'review'
 export function QaVerdictsSection() {
   const { projectId = '', qaRunId = '' } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const copy = t.qa.verdicts
 
   const [data, setData] = useState<QaRunVerdicts | null>(null)
@@ -112,6 +116,7 @@ export function QaVerdictsSection() {
     )
   }
 
+  const testRunPath = `/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(data.testRunId)}/edit`
   // 이 시나리오에 추가 검토가 없으면 그 거르기는 없다. 다른 시나리오에서 골랐어도 검증만으로 돌아간다.
   const listFilter: ListFilter = filter === 'review' && tally.review === 0 ? 'checks' : filter
   const shownRows = rows.filter((row) =>
@@ -121,6 +126,7 @@ export function QaVerdictsSection() {
   const elapsed = data.startedAt !== null && data.completedAt !== null
     ? Math.round((Date.parse(data.completedAt) - Date.parse(data.startedAt)) / 1000)
     : null
+  const evaluation = scenario && <CaseEvaluationPanel id={EVALUATION_PANEL_ID} key={scenario.qaTryId} projectId={projectId} qaTryId={scenario.qaTryId} />
 
   return (
     <section className="qv" aria-labelledby="qv-scenario-title">
@@ -128,23 +134,31 @@ export function QaVerdictsSection() {
         <nav aria-label={copy.navigator} className="qv-crumb">
           <Link to={historyPath}>{t.projects.workspace.nav.qaHistory}</Link>
           {data.gameBuildVersion !== null && <><span aria-hidden="true">›</span><span className="mono">{data.gameBuildVersion}</span></>}
-          <span aria-hidden="true">›</span><span>{data.testRunName}</span>
+          <span aria-hidden="true">›</span><Link className="qv-test-run-link" to={testRunPath}>{data.testRunName}</Link>
           {data.startedAt !== null && <><span aria-hidden="true">›</span><b>{copy.runAt(shortWhen(data.startedAt))}</b></>}
         </nav>
         <div className="qv-top-actions">
+          {scenario?.reportingUnit === 'TEST_CASE' && (
+            // 평가가 이 화면의 주된 행동이라 유일한 primary 다. 패널은 아래에 있어서 누르면 거기로 내려가 시도 선택에 focus 를 준다.
+            <button
+              className="button button--primary button--compact"
+              onClick={() => {
+                const panel = document.getElementById(EVALUATION_PANEL_ID)
+                panel?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+                panel?.querySelector<HTMLElement>('select, button, textarea')?.focus({ preventScroll: true })
+              }}
+              type="button"
+            >
+              {evaluationCopy[locale === 'ko' ? 'ko' : 'en'].title}
+            </button>
+          )}
           <Link className="button button--secondary button--compact" to={qaRunPath(projectId, qaRunId, scenario?.qaTryId)}>{copy.timeline}</Link>
-          <Link
-            className="button button--secondary button--compact"
-            to={`/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(data.testRunId)}/edit`}
-          >
-            {copy.openTestRun}
-          </Link>
         </div>
       </header>
 
       <div className="qv-ctx">
         {data.gameBuildVersion !== null && <span className="qv-chip">{copy.build} <b className="mono">{data.gameBuildVersion}</b></span>}
-        <span className="qv-chip">{copy.testRun} <b>{data.testRunName}</b></span>
+        <span className="qv-chip">{copy.testRun} <Link className="qv-test-run-link" to={testRunPath}><b>{data.testRunName}</b></Link></span>
         {scenario?.model !== null && scenario?.model !== undefined && (
           <span className="qv-chip">{copy.model} <b className="mono">{scenario.model.split('/').at(-1)}</b></span>
         )}
@@ -158,8 +172,12 @@ export function QaVerdictsSection() {
         )}
       </div>
 
-      {scenario === null || rows.length === 0 ? (
-        <p className="panel-empty">{copy.noSteps}</p>
+      {scenario?.reportingUnit === 'TEST_CASE' ? <ReferenceProcedure scenario={scenario} scenarios={data.tries} onScenario={goScenario}>{evaluation}</ReferenceProcedure> : scenario === null || rows.length === 0 ? (
+        <>
+          {scenario && <h1 className="qv-scn-title" id="qv-scenario-title">{scenario.scenarioTitle}</h1>}
+          {evaluation}
+          <p className="panel-empty">{copy.noSteps}</p>
+        </>
       ) : (
         <>
           <section className="qv-scn">
@@ -191,6 +209,7 @@ export function QaVerdictsSection() {
               </span>
               {tally.review > 0 && <span className="qv-review-count">{copy.review.count(tally.review)}</span>}
             </div>
+            {evaluation}
             <StepNavigator onPick={(step) => choose({ scenario: scenario.qaTryId, step: String(step) })} rows={rows} selected={pickedStep} />
             <div className="qv-legend">
               <span><i className="qv-sw qv-sw--passed" />{copy.legend.passed}</span>
@@ -209,6 +228,19 @@ export function QaVerdictsSection() {
       )}
     </section>
   )
+}
+
+function ReferenceProcedure({ scenario, scenarios, onScenario, children }: { scenario: QaRunVerdicts['tries'][number]; scenarios: QaRunVerdicts['tries']; onScenario: (index: number) => void; children?: ReactNode }) {
+  const { locale } = useI18n()
+  const copy = evaluationCopy[locale === 'ko' ? 'ko' : 'en']
+  return <section className="qv-scn">
+    <h1 id="qv-scenario-title">{scenario.scenarioTitle}</h1>
+    {scenarios.length > 1 && <select className="qe-select" aria-label={copy.qa} value={scenario.qaTryId} onChange={event => onScenario(scenarios.findIndex(item => item.qaTryId === event.target.value))}>
+      {scenarios.map(item => <option key={item.qaTryId} value={item.qaTryId}>{item.scenarioTitle}</option>)}
+    </select>}
+    {children}
+    <details className="qe-refs"><summary>{copy.references}</summary><ol>{scenario.steps.map(step => <li key={step.step}>{step.title}</li>)}</ol></details>
+  </section>
 }
 
 function isStatus(value: string): value is QaTryStatus {

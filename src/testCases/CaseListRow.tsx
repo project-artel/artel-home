@@ -1,3 +1,5 @@
+import { useTestCaseLabel } from './testCaseIdentifiers'
+import { TestCaseHover } from './TestCaseHover'
 import { SceneChip } from './SceneChip'
 import { SpecGradeChip } from './SpecGradeChip'
 import type { TestCase } from './testCaseTypes'
@@ -15,6 +17,7 @@ import type { TestCase } from './testCaseTypes'
  * editor is open. The palette only has `active`.
  */
 export function CaseListRow({
+  gameBuildId,
   active,
   fallbackTitle,
   index,
@@ -24,6 +27,7 @@ export function CaseListRow({
   statusLabel,
   testCase,
 }: {
+  gameBuildId?: string | null
   active: boolean
   /** Shown when the case has no step text yet. */
   fallbackTitle: string
@@ -36,8 +40,9 @@ export function CaseListRow({
   statusLabel: string
   testCase: TestCase
 }) {
+  const caseLabel = useTestCaseLabel()
   return (
-    <button
+    <TestCaseHover projectId={testCase.projectId} caseId={testCase.id} gameBuildId={gameBuildId}><button
       aria-current={selected ? true : undefined}
       className={'cp-row' + (active ? ' active' : '') + (selected ? ' picked' : '')}
       data-index={index}
@@ -48,12 +53,12 @@ export function CaseListRow({
       <span className={`vdot ${testCase.verificationStatus}`} />
       <span className="cp-main">
         <span className="cp-title">{testCase.step.length > 0 ? testCase.step : fallbackTitle}</span>
-        <span className="cp-sub">{statusLabel}</span>
+        <span className="cp-sub"><span className="tc-id">{caseLabel(testCase.id)}</span> · {statusLabel}</span>
       </span>
       {/* Settled grades stay off the rows. A list where every row reads "확정" carries no
           information; the badge earns its space only on the cases that are not settled. */}
       <SpecGradeChip status={testCase.status} quietWhenSettled />
       <SceneChip scene={testCase.scene} />
-    </button>
+    </button></TestCaseHover>
   )
 }

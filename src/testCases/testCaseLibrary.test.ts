@@ -3,6 +3,7 @@ import test from 'node:test'
 import type { GameBuild } from '../projects/gameTypes'
 import {
   countScenes,
+  editableCase,
   describeVerifiedBuild,
   hasActiveFilters,
   NO_FILTERS,
@@ -46,6 +47,24 @@ function makeBuild(id: string, extra: Partial<GameBuild> = {}): GameBuild {
 function idsOf(cases: TestCase[]): string[] {
   return cases.map((testCase) => testCase.id)
 }
+
+test('선택한 build의 snapshot을 편집하고 최신 내용으로 fallback하지 않는다', () => {
+  const latest = makeCase('1', { origin: 'MAP', step: '최신 내용' })
+  const older = makeCase('1', { origin: 'MAP', step: '이전 build 내용' })
+  const row = { testCase: older, origin: 'MAP' as const, verificationStatus: null, presence: 'BOTH' as const, compareVerificationStatus: null }
+  assert.equal(editableCase('1', [latest], [row]), older)
+  assert.equal(editableCase('1', [latest], []), null)
+  assert.equal(editableCase('1', [latest], [{ ...row, presence: 'ONLY_OTHER' }]), null)
+  assert.equal(editableCase('1', [latest], [{ ...row, presence: 'ONLY_THIS' }]), older)
+})
+
+test('버전 없음과 수동 TC는 해당 편집 기준을 유지하고 신규 생성은 null이다', () => {
+  const manual = makeCase('1', { origin: 'MANUAL' })
+  const row = { testCase: manual, origin: 'MANUAL' as const, verificationStatus: null, presence: 'BOTH' as const, compareVerificationStatus: null }
+  assert.equal(editableCase('1', [manual], null), manual)
+  assert.equal(editableCase('1', [], [row]), manual)
+  assert.equal(editableCase(null, [manual], null), null)
+})
 
 test('필터가 하나도 없으면 받은 목록을 그대로 낸다', () => {
   const cases = [makeCase('1'), makeCase('2')]

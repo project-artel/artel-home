@@ -1,3 +1,5 @@
+import { useTestCaseIdentifiers, useTestCaseLabel } from '../testCases/testCaseIdentifiers'
+import { TestCaseHover } from '../testCases/TestCaseHover'
 import { useId, useMemo, useState } from 'react'
 import { Dialog } from '../design-system/primitives/Dialog'
 import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
@@ -79,6 +81,8 @@ export function CaseImportDialog({
   target: { position: number; title: string }
 }) {
   const { t } = useI18n()
+  const caseLabel = useTestCaseLabel()
+  const { numbers } = useTestCaseIdentifiers()
   const m = t.scenarios.caseImport
   const lib = t.testCases
   const titleId = useId()
@@ -109,7 +113,7 @@ export function CaseImportDialog({
 
   // ── 필터 ──
   const [filters, setFilters] = useState<TestCaseFilters>(NO_FILTERS)
-  const shown = useMemo(() => selectTestCases(inFolder, filters, 'NEWEST'), [inFolder, filters])
+  const shown = useMemo(() => selectTestCases(inFolder, filters, 'NEWEST', numbers), [inFolder, filters, numbers])
   const tally = useMemo(() => tallyTestCases(inFolder), [inFolder])
   const byId = useMemo(() => new Map(allCases.concat(inFolder).map((testCase) => [testCase.id, testCase])), [allCases, inFolder])
   const held = useMemo(() => {
@@ -298,16 +302,17 @@ export function CaseImportDialog({
                             </td>
                             <td className="tct-step">
                               <span className="tct-step-in">
+                                <span className="tc-id">{caseLabel(testCase.id)}</span>
                                 <span className={`vdot ${testCase.verificationStatus}`} />
                                 {testCase.origin !== undefined && (
                                   <span className={'tct-origin tct-origin--' + testCase.origin.toLowerCase()} title={testCase.origin === 'MAP' ? lib.origin.mapTitle : lib.origin.manualTitle}>
                                     {lib.origin[testCase.origin]}
                                   </span>
                                 )}
-                                <span className="tct-step-text">
+                                <TestCaseHover projectId={projectId} caseId={testCase.id} gameBuildId={gameBuildId}><span className="tct-step-text">
                                   {testCase.step.length > 0 ? <InlineCode className="tct-code" text={testCase.step} /> : lib.row.untitled}
                                   {times > 0 && <span className="tct-absent-note">{m.held(times)}</span>}
-                                </span>
+                                </span></TestCaseHover>
                               </span>
                             </td>
                             <td><SceneChip scene={testCase.scene} /></td>
@@ -356,8 +361,9 @@ export function CaseImportDialog({
                     }}
                   >
                     <span className="cid-order is-static">{index + 1}</span>
+                    <span className="tc-id">{caseLabel(pick.caseId)}</span>
                     <span className="cid-pick-text">
-                      {testCase !== undefined && testCase.step.length > 0 ? <InlineCode className="tct-code" text={testCase.step} /> : pick.caseId}
+                      {testCase !== undefined && testCase.step.length > 0 ? <InlineCode className="tct-code" text={testCase.step} /> : caseLabel(pick.caseId)}
                     </span>
                     <button
                       aria-label={m.addAgain}

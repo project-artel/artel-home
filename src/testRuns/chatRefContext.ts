@@ -10,6 +10,7 @@ export const ChatRefsContext = createContext<ChatRef[]>([])
  */
 export const ChatLinkContext = createContext<{
   projectId: string
+  gameBuildId?: string | null
   runId: string | null
   openCase?: (caseId: number) => void
 } | null>(null)

@@ -5344,7 +5344,6 @@ a.instance-name:hover {
 .qa-rail-step-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:1px; }
 .qa-rail-step{ position:relative; width:100%; display:grid; grid-template-columns:14px 20px minmax(0,1fr); align-items:baseline; gap:4px; padding:4px 6px 4px 8px; border:0; border-radius:4px; background:transparent; color:var(--color-text-secondary); font:inherit; font-size:12px; line-height:18px; text-align:left; }
 .qa-rail-step--neutral{ grid-template-columns:20px minmax(0,1fr); }
-.qa-rail-step--cheat{ grid-template-columns:14px 20px minmax(0,1fr) auto; }
 button.qa-rail-step--linked{ cursor:pointer; }
 button.qa-rail-step--linked:hover{ background:var(--color-bg-hover); }
 .qa-rail-step-glyph{ font-size:12px; text-align:center; }
@@ -5367,6 +5366,8 @@ button.qa-rail-step--linked:hover{ background:var(--color-bg-hover); }
 .qa-rail-case-verdict--passed, .qa-rail-case-verdict--grade-correct{ color:var(--color-status-success); }
 .qa-rail-case-verdict--failed, .qa-rail-case-verdict--grade-wrong{ color:var(--color-status-critical); }
 .qa-rail-case-verdict--running{ color:var(--color-action-primary); }
+button.qa-rail-case-verdict{ padding:0; border:0; background:none; font-family:inherit; cursor:pointer; }
+.qa-rail-step--inconclusive .qa-rail-step-glyph, .qa-rail-case-verdict--inconclusive{ color:var(--color-status-warning); }
 .qa-console-rail-usage{ flex:none; max-height:50%; overflow-y:auto; border-top:1px solid var(--color-border-subtle); }
 .qa-console-rail-usage .qa-usage-panel{ margin:0; }
 .qa-usage-summary{ display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; padding:10px 14px; cursor:pointer; list-style:none; }
@@ -11333,6 +11334,10 @@ col.mct-c-updated { width: 12%; }
 .ql-spacer { flex: 1; }
 .ql-link { color: var(--color-action-primary); font-size: 13px; font-weight: 600; text-decoration: none; }
 .ql-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.ql-text-button { align-self: flex-start; padding: 4px 0; border: 0; background: none; color: var(--color-action-primary); font: inherit; font-weight: 600; text-align: left; cursor: pointer; }
+.ql-text-button:focus-visible { outline: 2px solid var(--color-action-primary); outline-offset: 2px; }
+.ql-text-button:disabled { color: var(--color-text-muted); cursor: default; }
+.ql-version-error { flex-direction: column; align-items: flex-start; }
 .ql-empty { margin: 0; padding: var(--space-4); color: var(--color-text-muted); font-size: 13px; }
 
 /* 선택된 테스트 런 — 카드 전체가 버튼이고, 오른쪽 갈매기가 "누르면 바꾼다" 를 말한다. */
@@ -11668,6 +11673,8 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
 .qh-inspector-title { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .qh-inspector-line { display: flex; align-items: center; gap: var(--space-2); }
 .qh-inspector-name { font-size: 13px; font-weight: 600; }
+.qh-inspector-name, .qv .qv-test-run-link { color: var(--color-text-primary); text-decoration: none; }
+.qh-inspector-name:hover, .qv .qv-test-run-link:hover { text-decoration: underline; text-underline-offset: 3px; }
 .qh-figures { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2); padding: var(--space-4) var(--space-5) 0; }
 .qh-figures > div { display: flex; flex-direction: column; gap: 2px; padding: 10px; border-radius: var(--radius-md); background: var(--color-bg-raised); }
 .qh-figures span { color: var(--color-text-muted); font-size: 11px; }
@@ -11784,8 +11791,7 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
   line-height: 18px;
 }
 
-.gf-chip,
-.gf-badge {
+.gf-chip {
   display: inline-flex;
   align-items: center;
   padding: 0 6px;
@@ -11797,12 +11803,6 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
   font-weight: 500;
   line-height: 16px;
   white-space: nowrap;
-}
-
-/* 행에서 cheat 를 쓴 자리. 코랄은 에이전트의 조작에 쓰는 색이다. 글자도 함께 있어 색만으로 말하지 않는다. */
-.gf-badge {
-  border-color: var(--color-action-primary);
-  color: var(--color-action-primary);
 }
 
 /* 빌드 상세 */
@@ -13482,3 +13482,9 @@ col.vimp-c-scene{ width:18% } col.vimp-c-verdict{ width:16% }
     animation: none;
   }
 }
+
+.tc-id { flex-shrink: 0; color: var(--color-text-secondary); font-family: var(--font-mono); font-size: 11px; font-weight: 500; white-space: nowrap; }
+
+
+
+.tc-identifiers-status { position: fixed; z-index: 1200; right: var(--space-4); bottom: var(--space-4); max-width: calc(100vw - 32px); padding: var(--space-3); border: 1px solid var(--color-border-strong); background: var(--color-bg-surface); }

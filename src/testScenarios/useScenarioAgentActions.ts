@@ -1,3 +1,4 @@
+import { useTestCaseLabel } from '../testCases/testCaseIdentifiers'
 import { useLayoutEffect, useRef, type RefObject } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useActionBinding, useFieldBinding } from '../projectAgent/bindings'
@@ -45,11 +46,11 @@ export type ScenarioAgentActionsArgs = {
 }
 
 /** `testScenario.cases` 의 option. ORDERED 면 그 케이스의 첫 스텝 문장을 붙인다. FREE 스텝은 action 이 비어 있다. */
-function scenarioCaseOptions(draft: ScenarioDraft) {
+function scenarioCaseOptions(draft: ScenarioDraft, caseLabel: (id: string) => string) {
   const caseIds = caseIdsInDraft(draft)
   return listedOptions(caseIds, (caseId) => {
     const action = draft.steps.find((step) => String(step.case_id) === caseId)?.action ?? ''
-    return { value: caseId, label: action.length > 0 ? `TC #${caseId} ${action}` : `TC #${caseId}` }
+    return { value: caseId, label: action.length > 0 ? `${caseLabel(caseId)} ${action}` : caseLabel(caseId) }
   })
 }
 
@@ -62,6 +63,7 @@ function findElement(ref: RefObject<HTMLElement | null> | undefined, selector: s
  * 에 등록되므로 아무 일도 하지 않는다.
  */
 export function useScenarioAgentActions(args: ScenarioAgentActionsArgs): void {
+  const caseLabel = useTestCaseLabel()
   const { projectId, scenarioId, editor, runBuild, runBuildRunId = null, blockedReason = null, editorRef, titleRef } = args
   const [searchParams] = useSearchParams()
   const runId = searchParams.get('run')
@@ -108,7 +110,7 @@ export function useScenarioAgentActions(args: ScenarioAgentActionsArgs): void {
   useFieldBinding(TEST_SCENARIO_CASES_FIELD, {
     target: () => findElement(undefined, '.free-case-list') ?? editorTarget(),
     read: () => caseIdsInDraft(editor.working).length,
-    options: () => scenarioCaseOptions(editor.working),
+    options: () => scenarioCaseOptions(editor.working, caseLabel),
     write: readOnlyListWrite(TEST_SCENARIO_CASES_FIELD.name, 'use testScenario.addCases or testScenario.removeCases.'),
   })
 

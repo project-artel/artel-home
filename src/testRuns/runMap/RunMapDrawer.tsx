@@ -1,3 +1,5 @@
+import { TestCaseHover } from '../../testCases/TestCaseHover'
+import { useTestCaseLabel } from '../../testCases/testCaseIdentifiers'
 import { useEffect, useRef, useState } from 'react'
 import { EdgeScrollbar } from '../../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../../i18n/useI18n'
@@ -18,6 +20,8 @@ type Drag = { start: number; end: number }
  */
 export function RunMapDrawer({
   scenario,
+  projectId,
+  gameBuildId,
   position,
   total,
   pickedStep,
@@ -31,6 +35,8 @@ export function RunMapDrawer({
   onMoveSteps,
 }: {
   scenario: MapScenario
+  projectId: string
+  gameBuildId: string | null
   position: number
   total: number
   pickedStep: number | null
@@ -45,6 +51,7 @@ export function RunMapDrawer({
   onMoveSteps: (start: number, end: number, before: number) => void
 }) {
   const { t } = useI18n()
+  const caseLabel = useTestCaseLabel()
   const m = t.scenarios.map
   // 스크롤은 ref 로 움직이고, 서비스 스크롤 막대는 노드가 생기면 다시 재도록 state 로도 쥔다.
   const listRef = useRef<HTMLOListElement | null>(null)
@@ -117,7 +124,7 @@ export function RunMapDrawer({
         >
           <span className="rmd-no">{step.gap ? '!' : pad(index + 1)}</span>
           <span className="rmd-text">{step.action.length > 0 ? <InlineCode className="tct-code" text={step.action} /> : m.untitledStep}</span>
-          {step.gap ? <span className="rmd-gap-tag">GAP</span> : tcBadge !== null ? <span className="rmd-tc">{m.tcUnit} {tcBadge}</span> : <span />}
+          {step.gap ? <span className="rmd-gap-tag">GAP</span> : tcBadge !== null ? <TestCaseHover projectId={projectId} caseId={step.caseId} gameBuildId={gameBuildId}><span className="rmd-tc">{step.caseId !== null ? caseLabel(step.caseId) : '—'}</span></TestCaseHover> : <span />}
         </button>
       </li>
     )
@@ -177,16 +184,16 @@ export function RunMapDrawer({
                     >
                       <div className="rmd-tchead">
                         <span
-                          aria-label={m.drawer.dragTc(block.tc)}
+                          aria-label={m.drawer.dragTc(scenario.steps[block.start].caseId !== null ? caseLabel(scenario.steps[block.start].caseId!) : '—')}
                           className="rmd-handle"
                           draggable
                           onDragEnd={endDrag}
                           onDragStart={startDrag(block.start, block.end)}
-                          title={m.drawer.dragTc(block.tc)}
+                          title={m.drawer.dragTc(scenario.steps[block.start].caseId !== null ? caseLabel(scenario.steps[block.start].caseId!) : '—')}
                         >
                           ⋮⋮
                         </span>
-                        <span className="rmd-tc">{m.tcUnit} {block.tc}</span>
+                        <TestCaseHover projectId={projectId} caseId={scenario.steps[block.start].caseId} gameBuildId={gameBuildId}><span className="rmd-tc">{scenario.steps[block.start].caseId !== null ? caseLabel(scenario.steps[block.start].caseId!) : '—'}</span></TestCaseHover>
                         <span className="rmd-tcsize">{m.drawer.tcSteps(size)}</span>
                       </div>
                       <ol>{Array.from({ length: size }, (_, offset) => stepRow(block.start + offset, true))}</ol>

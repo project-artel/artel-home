@@ -837,7 +837,7 @@ export function DiscussionThread({
       )}
       {openCase && (
         <div className="cp-scope">
-          <TestCaseSpecModal cases={[openCase]} onClose={() => setOpenCase(null)} projectId={projectId} scope={caseScope} />
+          <TestCaseSpecModal gameBuildId={post.gameBuildId} cases={[openCase]} onClose={() => setOpenCase(null)} projectId={projectId} scope={caseScope} />
         </div>
       )}
     </div>

@@ -4,6 +4,7 @@ import type { TestCase } from '../testCases/testCaseTypes'
 import { useCaseListRevision } from './caseListRevision'
 
 export type ProjectCases = {
+  gameBuildId?: string | null
   status: 'loading' | 'ready' | 'error'
   cases: TestCase[]
 }
@@ -34,5 +35,5 @@ export function useProjectCases(projectId: string, enabled = true, gameBuildId: 
     return () => controller.abort()
   }, [projectId, enabled, gameBuildId, revision])
 
-  return loaded !== null && loaded.key === key ? loaded.result : { status: 'loading', cases: [] }
+  return { ...(loaded !== null && loaded.key === key ? loaded.result : { status: 'loading' as const, cases: [] }), gameBuildId }
 }

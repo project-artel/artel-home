@@ -22,6 +22,7 @@ export type QaRunSummary = {
   completedAt: string | null
   casesPassed: number | null
   casesTotal: number | null
+  casesFailed?: number | null
   issueCount: number
   /** 실행을 시작한 사람(app_user id). */
   startedBy: string
@@ -94,6 +95,7 @@ export function parseQaRunSummary(data: unknown): QaRunSummary | null {
     completedAt: asNullableString(record.completedAt),
     casesPassed: asCountOrNull(record.casesPassed),
     casesTotal: asCountOrNull(record.casesTotal),
+    casesFailed: asCountOrNull(record.casesFailed),
     issueCount: asCountOrNull(record.issueCount) ?? 0,
     startedBy: asString(record.startedBy),
     reviewFlagged: asCountOrNull(record.reviewFlagged) ?? 0,

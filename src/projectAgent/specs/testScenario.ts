@@ -37,7 +37,7 @@ export const TEST_SCENARIO_CASES_FIELD: FieldSpec = {
   name: 'testScenario.cases',
   page: 'testScenario',
   description: listedFieldDescription(
-    'the test cases the open scenario holds, in scenario order (label is "TC #id", with the first step text of that case in an ORDERED scenario)',
+    'the test cases the open scenario holds, in scenario order (label uses the project-specific TC number such as TC-001; option value remains the internal case ID, with the first step text in an ORDERED scenario)',
     'Use the values as caseIds of testScenario.removeCases. Ids of other test cases of the project are in testCases.listed on the case library page.',
   ),
 }

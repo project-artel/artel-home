@@ -10,6 +10,7 @@ import {
   readQaNotice,
   runDuration,
   type QaNotice,
+  type QaRunSummary,
   type QaNotices,
 } from './launch/qaLaunchApi'
 
@@ -139,8 +140,6 @@ export function QaNoticeBell() {
               <ul className="qa-bell-list">
                 {notices.items.map((notice) => {
                   const { run } = notice
-                  const passed = run.casesPassed ?? 0
-                  const failed = run.casesTotal === null ? 0 : run.casesTotal - passed
                   const ms = runDuration(run)
                   const seconds = ms === null ? null : Math.round(ms / 1000)
                   const meta = [
@@ -157,12 +156,7 @@ export function QaNoticeBell() {
                           <span className="qa-bell-name">{titleOf(run.status, run.casesTotal)(run.testRunName ?? '')}</span>
                           <span className="qa-bell-meta">{meta}</span>
                           <span className="qa-notice-stats">
-                            {run.casesTotal !== null && (
-                              <>
-                                <span className="qa-notice-pill qa-notice-pill--passed"><span aria-hidden="true" className="qv-dot" />{t.qa.finishedNotice.passed(passed)}</span>
-                                <span className="qa-notice-pill qa-notice-pill--failed"><span aria-hidden="true" className="qv-dot" />{t.qa.finishedNotice.failed(failed)}</span>
-                              </>
-                            )}
+                            <QaNoticeOutcome run={run} />
                             {run.reviewPending > 0 ? (
                               <span className="qv-review-pill"><span aria-hidden="true" className="qv-dot" />{t.qa.finishedNotice.review(run.reviewPending)}</span>
                             ) : run.reviewFlagged > 0 ? (
@@ -182,4 +176,14 @@ export function QaNoticeBell() {
       )}
     </div>
   )
+}
+
+/** 서버가 제공한 실제 실패 수만 표시하고 미검증 수를 실패로 추정하지 않는다. */
+export function QaNoticeOutcome({ run }: { run: QaRunSummary }) {
+  const { t } = useI18n()
+  if (run.casesTotal === null) return null
+  return <>
+    <span className="qa-notice-pill qa-notice-pill--passed"><span aria-hidden="true" className="qv-dot" />{t.qa.finishedNotice.passed(run.casesPassed ?? 0)}</span>
+    {run.casesFailed != null && <span className="qa-notice-pill qa-notice-pill--failed"><span aria-hidden="true" className="qv-dot" />{t.qa.finishedNotice.failed(run.casesFailed)}</span>}
+  </>
 }

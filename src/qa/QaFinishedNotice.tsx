@@ -74,7 +74,7 @@ export function QaFinishedNotice({ projectId }: { projectId: string }) {
     <div aria-live="polite" className="qa-notice-stack">
       {shown.map((run) => {
         const passed = run.casesPassed ?? 0
-        const failed = run.casesTotal === null ? 0 : run.casesTotal - passed
+          const failed = run.casesFailed
         const seconds = run.completedAt === null ? null : Math.round((Date.parse(run.completedAt) - Date.parse(run.startedAt)) / 1000)
         const target = qaNoticeTarget(projectId, run)
         return (
@@ -93,7 +93,7 @@ export function QaFinishedNotice({ projectId }: { projectId: string }) {
               {run.casesTotal !== null && (
                 <>
                   <span className="qa-notice-pill qa-notice-pill--passed"><span aria-hidden="true" className="qv-dot" />{copy.passed(passed)}</span>
-                  <span className="qa-notice-pill qa-notice-pill--failed"><span aria-hidden="true" className="qv-dot" />{copy.failed(failed)}</span>
+                    {failed != null && <span className="qa-notice-pill qa-notice-pill--failed"><span aria-hidden="true" className="qv-dot" />{copy.failed(failed)}</span>}
                 </>
               )}
               {run.reviewPending > 0 && (

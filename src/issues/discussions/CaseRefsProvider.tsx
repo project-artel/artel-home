@@ -18,5 +18,5 @@ export function CaseRefsProvider({
   children: ReactNode
 }) {
   const cases = useRunCases(projectId, gameBuildId)
-  return <CaseRefsContext.Provider value={{ projectId, cases, scope, onOpen }}>{children}</CaseRefsContext.Provider>
+  return <CaseRefsContext.Provider value={{ projectId, gameBuildId, cases, scope, onOpen }}>{children}</CaseRefsContext.Provider>
 }

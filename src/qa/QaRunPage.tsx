@@ -25,6 +25,7 @@ import { QaLogTimeline, type QaLogFocusRequest } from './QaLogTimeline'
 import { filterFlowLogs } from './qaFlow'
 import { QaScenarioRail, type QaScenarioRailProps } from './QaScenarioRail'
 import { deriveCaseVerdicts, deriveQaContextUsage, deriveQaProgress, isQaContextLog } from './qaProgress'
+import { deriveQaCaseReports } from './qaCaseProgress'
 import { isTerminalQaStatus, type QaRun, type QaTry } from './qaTypes'
 import { useQaTry } from './useQaTry'
 import { useScenarioSteps } from './useScenarioSteps'
@@ -346,15 +347,16 @@ function FocusedTry({ qaRun, rail, tryId }: { qaRun: QaRun; rail: QaScenarioRail
       deriveQaProgress({
         scenarioSteps,
         executionMode,
-        logs: session.logs,
+        logs: session.verdictLogs,
         status: session.qaTry?.status ?? 'STARTING',
-        historyComplete: !session.hasMore,
+        historyComplete: session.loadStatus === 'ready',
       }),
-    [scenarioSteps, executionMode, session.hasMore, session.logs, session.qaTry?.status],
+    [scenarioSteps, executionMode, session.loadStatus, session.verdictLogs, session.qaTry?.status],
   )
 
   const contextUsage = useMemo(() => deriveQaContextUsage(session.logs), [session.logs])
-  const caseVerdicts = useMemo(() => deriveCaseVerdicts(session.logs), [session.logs])
+  const caseVerdicts = useMemo(() => deriveCaseVerdicts(session.verdictLogs), [session.verdictLogs])
+  const caseReports = useMemo(() => deriveQaCaseReports(session.verdictLogs), [session.verdictLogs])
 
   useActionBinding(QA_RUN_SWITCH_LOG_VIEW_ACTION, {
     target: () => logTabs.current,
@@ -435,6 +437,7 @@ function FocusedTry({ qaRun, rail, tryId }: { qaRun: QaRun; rail: QaScenarioRail
           executionMode,
           onJump: jumpToLog,
           caseVerdicts,
+          caseReports,
         }}
       />
       <div className="qa-focus">
@@ -486,6 +489,8 @@ function FocusedTry({ qaRun, rail, tryId }: { qaRun: QaRun; rail: QaScenarioRail
               <QaTryIssuePanel projectId={rail.projectId} qaTryId={session.qaTry.id} />
             ) : (
               <QaLogTimeline
+                projectId={rail.projectId}
+                gameBuildId={qaRun.testRunGameBuildId}
                 executionMode={executionMode}
                 flow={logView === 'flow'}
                 focusRequest={focusRequest}

@@ -68,6 +68,7 @@ export type QaTryVerdicts = {
   qaTryId: string
   testScenarioId: string
   scenarioTitle: string
+  reportingUnit?: 'STEP' | 'TEST_CASE'
   executionMode: 'ORDERED' | 'FREE'
   status: string
   model: string | null
@@ -202,6 +203,7 @@ function readTry(value: unknown): QaTryVerdicts | null {
     qaTryId: asString(record.qaTryId),
     testScenarioId: asString(record.testScenarioId),
     scenarioTitle: asString(record.scenarioTitle),
+    reportingUnit: record.reportingUnit === 'TEST_CASE' ? 'TEST_CASE' : 'STEP',
     executionMode: record.executionMode === 'FREE' ? 'FREE' : 'ORDERED',
     status: asString(record.status),
     model: orNull(record.model),

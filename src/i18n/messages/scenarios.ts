@@ -1,3 +1,4 @@
+import { formatTestCaseId } from '../../testCases/testCaseId'
 import type { Localized } from '../messages'
 
 /** Strings for `src/testScenarios/*`. See `common.ts` for the typing convention. */
@@ -552,7 +553,7 @@ export const scenariosEn = {
       prev: '← Previous TS', next: 'Next TS →', close: 'Close',
       addStepEnd: '＋ Step at the end', addStepAfter: (n: number) => `＋ Step after ${n}`, importTcs: 'Import TC',
       dragHint: 'Drag ⋮⋮ to reorder steps or a whole TC. On the canvas, drag a step dot; hold ⌥ to drag its whole TC.',
-      dragStep: (n: number) => `Drag step ${n}`, dragTc: (n: number) => `Drag TC ${n}`,
+      dragStep: (n: number) => `Drag step ${n}`, dragTc: (identifier: string) => `Drag ${identifier}`,
       segmentSteps: (n: number) => `${n} steps`, tcSteps: (n: number) => `${n} steps`,
     },
     menu: {
@@ -802,7 +803,7 @@ export const scenariosEn = {
     hint: 'The QA agent verifies these in whatever order and way it chooses. Changes are saved automatically.',
     count: (count: number) => `${count} test case${count === 1 ? '' : 's'}`,
     empty: 'No test cases yet. Add at least one.',
-    tcLabel: (caseId: string) => `TC #${caseId}`,
+    tcLabel: (caseNumber: string) => formatTestCaseId(caseNumber),
     scene: 'Scene',
     expected: 'Expected',
     noExpected: 'No expected result',
@@ -1389,7 +1390,7 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
       prev: '← 이전 TS', next: '다음 TS →', close: '닫기',
       addStepEnd: '＋ 끝에 스텝', addStepAfter: (n: number) => `＋ ${n} 뒤에 스텝`, importTcs: 'TC 가져오기',
       dragHint: '⋮⋮ 를 끌어 스텝이나 TC 묶음의 순서를 바꿉니다. 캔버스에서는 스텝 점을 끌고, ⌥ 를 누르고 끌면 TC 전체가 옮겨집니다.',
-      dragStep: (n: number) => `스텝 ${n} 끌기`, dragTc: (n: number) => `TC ${n} 끌기`,
+      dragStep: (n: number) => `스텝 ${n} 끌기`, dragTc: (identifier: string) => `${identifier} 끌기`,
       segmentSteps: (n: number) => `스텝 ${n}개`, tcSteps: (n: number) => `스텝 ${n}개`,
     },
     menu: {
@@ -1625,7 +1626,7 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     hint: 'QA agent 가 순서와 방법을 스스로 정해 검증합니다. 변경은 자동으로 저장됩니다.',
     count: (count: number) => `테스트 케이스 ${count}건`,
     empty: '아직 테스트 케이스가 없습니다. 하나 이상 추가해 주세요.',
-    tcLabel: (caseId: string) => `TC #${caseId}`,
+    tcLabel: (caseNumber: string) => formatTestCaseId(caseNumber),
     scene: '화면',
     expected: '기대 결과',
     noExpected: '기대 결과 없음',

@@ -420,6 +420,17 @@ export async function getQaTry(qaTryId: string, signal?: AbortSignal): Promise<Q
   return parseQaTry(await readJson(response), response.status)
 }
 
+export async function listQaVerdicts(qaTryId: string, signal?: AbortSignal): Promise<QaLog[]> {
+  const response = await apiFetch(qaPath(qaTryId, '/verdicts'), { signal })
+  const data: unknown = await readJson(response)
+  if (!Array.isArray(data)) throw new ProjectApiError(response.status, 'Invalid QA verdict response')
+  return data.map((entry) => {
+    const log = parseQaLog(entry)
+    if (log === null) throw new ProjectApiError(response.status, 'Invalid QA verdict response')
+    return log
+  })
+}
+
 export async function listQaLogs(
   qaTryId: string,
   beforeId?: string,

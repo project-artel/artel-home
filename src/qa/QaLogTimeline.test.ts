@@ -1,3 +1,4 @@
+import { TestCaseIdentifiersContext } from '../testCases/testCaseIdentifiers'
 /// <reference types="node" />
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
@@ -29,18 +30,20 @@ const logs = [
 function render(mode: ExecutionMode, flow: boolean, input = logs, scenarioSteps = steps): string {
   return renderToStaticMarkup(createElement(LocaleContext.Provider, {
     value: { locale: 'ko', setLocale: () => {}, t: messages.ko },
-  }, createElement(QaLogTimeline, {
+  }, createElement(TestCaseIdentifiersContext.Provider, { value: { projectId: 'test-project', numbers: new Map([['101','41'],['202','7']]) } }, createElement(QaLogTimeline, {
+    projectId: 'test-project', gameBuildId: 'test-build',
     executionMode: mode, flow, scenarioSteps, logs: flow ? filterFlowLogs(input, mode) : input,
     focusRequest: null, hasMore: false, historyFailure: null, historyLoading: false,
     live: false, loadOlder: async () => false, onFocusResolved: () => {},
-  })))
+  }))))
 }
 for (const flow of [true, false]) {
   test(`FREE ${flow ? 'Flow' : 'Raw'}는 TC 구간 없이 시간순으로 판정을 표시한다`, () => {
     const html = render('FREE', flow)
     assert.doesNotMatch(html, /class="qa-(?:flow-group|log-section|log-step)"/)
-    assert.match(html, /TC #202/)
-    assert.match(html, /TC #101/)
+    assert.match(html, /TC-007/)
+    assert.match(html, /TC-041/)
+    assert.match(html, /aria-haspopup="dialog"/)
     assert.ok(html.indexOf('move-first') < html.indexOf('verdict-second'))
     assert.ok(html.indexOf('verdict-second') < html.indexOf('move-between'))
     assert.ok(html.indexOf('move-between') < html.indexOf('verdict-first'))
@@ -71,7 +74,7 @@ test('ORDERED의 Flow 구간과 Raw 구간을 유지한다', () => {
 
 test('FREE는 STATUS가 없는 부분 히스토리의 TC 판정도 같은 카드로 표시한다', () => {
   const html = render('FREE', true, [logs[4]])
-  assert.match(html, /TC #101/)
+  assert.match(html, /TC-041/)
   assert.match(html, /saved-verdict/)
   assert.match(html, /qa-flow-verdict--failed/)
   assert.doesNotMatch(html, /qa-flow-label|qa-flow-step-no/)

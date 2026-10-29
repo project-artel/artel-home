@@ -29,6 +29,7 @@ export const PROJECT_CHANGE_TOPICS = [
   'RUN_LOCKS',
   'USAGE',
   'QA_RUNS',
+  'QA_QUESTIONS',
 ] as const
 
 export type ProjectChangeTopic = (typeof PROJECT_CHANGE_TOPICS)[number]

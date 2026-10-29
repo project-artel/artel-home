@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import { useId, useState, type ReactNode } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { buildOptionText, selectBuild } from '../projects/gameBuilds'
 import { GameFunctionChoice } from '../projects/GameFunctionChoice'
@@ -34,12 +34,16 @@ export function QaFunctionOptionsFields({
   onChange,
   projectId,
   value,
+  children,
+  summaryBadge,
 }: {
   builds: GameBuild[]
   disabled: boolean
   onChange: (next: QaFunctionOptions) => void
   projectId: string
   value: QaFunctionOptions
+  children?: ReactNode
+  summaryBadge?: ReactNode
 }) {
   const { t } = useI18n()
   const m = t.gameFunctions.run
@@ -88,34 +92,38 @@ export function QaFunctionOptionsFields({
       >
         <ChevronDownIcon className={'ql-collapse-icon' + (open ? '' : ' is-collapsed')} size={16} />
         {m.advancedTitle}
+        {summaryBadge}
       </button>
       {!open && <p className="gf-advanced-summary">{functionOptionsSummary(value, catalogNames, m.summary)}</p>}
 
       {open && (
-        <fieldset className="gf-run" disabled={disabled} id={bodyId}>
-          <legend className="gf-run-title">{m.title}</legend>
-          <p className="gf-note">{m.hint}</p>
+        <div id={bodyId}>
+          <fieldset className="gf-run" disabled={disabled}>
+            <legend className="gf-run-title">{m.title}</legend>
+            <p className="gf-note">{m.hint}</p>
 
-          {builds.length === 0 ? (
-            <p className="gf-note">{m.noBuild}</p>
-          ) : (
-            <label className="gf-run-build" htmlFor={buildSelectId}>
-              <span>{m.buildLabel}</span>
-              <select id={buildSelectId} onChange={(event) => pickBuild(event.target.value)} value={build?.id ?? ''}>
-                {builds.map((candidate) => (
-                  <option key={candidate.id} value={candidate.id}>{buildOptionText(candidate, t.projects.builds.editorLabel)}</option>
-                ))}
-              </select>
-            </label>
-          )}
+            {builds.length === 0 ? (
+              <p className="gf-note">{m.noBuild}</p>
+            ) : (
+              <label className="gf-run-build" htmlFor={buildSelectId}>
+                <span>{m.buildLabel}</span>
+                <select id={buildSelectId} onChange={(event) => pickBuild(event.target.value)} value={build?.id ?? ''}>
+                  {builds.map((candidate) => (
+                    <option key={candidate.id} value={candidate.id}>{buildOptionText(candidate, t.projects.builds.editorLabel)}</option>
+                  ))}
+                </select>
+              </label>
+            )}
 
-          {status === 'loading' && <p className="gf-note" role="status">{m.catalogLoading}</p>}
-          {status === 'error' && <p className="gf-note" role="alert">{m.catalogFailed}</p>}
-          {ready && catalog.cheats.length + catalog.behaviors.length === 0 && <p className="gf-note">{m.catalogEmpty}</p>}
+            {status === 'loading' && <p className="gf-note" role="status">{m.catalogLoading}</p>}
+            {status === 'error' && <p className="gf-note" role="alert">{m.catalogFailed}</p>}
+            {ready && catalog.cheats.length + catalog.behaviors.length === 0 && <p className="gf-note">{m.catalogEmpty}</p>}
 
-          {axisChoice('cheats', m.cheats, catalog?.cheats ?? [])}
-          {axisChoice('behaviors', m.behaviors, catalog?.behaviors ?? [])}
-        </fieldset>
+            {axisChoice('cheats', m.cheats, catalog?.cheats ?? [])}
+            {axisChoice('behaviors', m.behaviors, catalog?.behaviors ?? [])}
+          </fieldset>
+          {children}
+        </div>
       )}
     </section>
   )

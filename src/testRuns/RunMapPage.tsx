@@ -1426,6 +1426,8 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
         </div>
         {drawerScenario && (
           <RunMapDrawer
+            projectId={projectId}
+            gameBuildId={data.run?.gameBuild?.gameBuildId ?? null}
             onAddStep={() => addStep(drawerScenario.id, picked === null || picked.step === null ? undefined : picked.step + 1)}
             onClose={() => setDrawerOpen(false)}
             onImportTcs={() => setImportFor(drawerScenario.id)}
@@ -1504,4 +1506,3 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     </div>
   )
 }
-

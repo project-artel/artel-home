@@ -1,0 +1,154 @@
+/* TC 평가 화면. 색·간격·radius 는 tokens.css 의 semantic token 만 쓴다.
+   `.qe-panel` 은 QA history 본문(넓음)과 TC 상세 sheet(좁음) 두 곳에 들어가므로
+   열 나누기는 viewport 가 아니라 container 폭으로 정한다. */
+.qe-panel { container-type: inline-size; border-block-start: 1px solid var(--color-border-subtle); padding: var(--space-4) 0 var(--space-5); display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); min-width: 0; }
+.qe-panel h3, .qe-panel h4, .qe-panel p { margin: 0; }
+.qe-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
+.qe-head h3 { font-size: 15px; line-height: 22px; font-weight: 600; }
+.qe-kicker { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--color-text-muted); }
+.qe-meta { font-size: 12px; color: var(--color-text-muted); }
+.qe-hint { font-size: 11px; color: var(--color-text-muted); }
+.qe-status { font-size: 13px; color: var(--color-text-secondary); }
+.qe-status[role='alert'] { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; color: var(--color-status-critical-strong); }
+
+.qe-panel select, .qe-panel textarea, .qe-panel input { min-width: 0; max-width: 100%; }
+.qe-select { height: 32px; padding: 0 28px 0 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); background: var(--color-bg-raised); color: var(--color-text-primary); font-size: 13px; }
+.qe-attempt-picker { display: grid; gap: var(--space-2); min-width: 0; }
+.qe-case-tabs { position: relative; display: flex; gap: var(--space-2); overflow-x: auto; overscroll-behavior-inline: contain; padding: 2px 2px var(--space-2); min-width: 0; scrollbar-width: thin; }
+.qe-case-tab { flex: 0 0 172px; min-width: 0; display: grid; gap: 6px; align-content: start; padding: var(--space-3); text-align: left; font: inherit; border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); background: var(--color-bg-surface); color: var(--color-text-primary); cursor: pointer; }
+.qe-case-tab:hover { background: var(--color-bg-hover); }
+.qe-case-tab[aria-selected='true'] { border-color: var(--color-action-primary); box-shadow: inset 0 2px 0 var(--color-action-primary); background: var(--color-bg-raised); }
+.qe-case-tab-head { display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 600; }
+.qe-case-tab-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.qe-case-tab-status { font-size: 11px; color: var(--color-text-secondary); }
+.qe-case-glyph--PASSED { color: var(--color-status-success); }
+.qe-case-glyph--FAILED { color: var(--color-status-critical); }
+.qe-case-glyph--INCONCLUSIVE, .qe-case-glyph--INTERRUPTED { color: var(--color-status-warning); }
+.qe-case-glyph--running { color: var(--color-text-muted); }
+.qe-attempt-history { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+.qe-attempt-history > .qe-meta { flex: none; }
+.qe-attempt-options { display: flex; gap: var(--space-2); min-width: 0; overflow-x: auto; padding: 2px; }
+.qe-attempt-option { flex: none; padding: 5px 8px; font: inherit; font-size: 11px; color: var(--color-text-secondary); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); background: var(--color-bg-surface); cursor: pointer; }
+.qe-attempt-option[aria-pressed='true'] { color: var(--color-text-primary); border-color: var(--color-action-primary); }
+
+/* agent 판정과 사람 평가를 같은 폭의 두 칸으로 나란히 둔다 — 어느 쪽이 원본인지 라벨로만 구분하지 않는다. */
+.qe-verdicts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-lg); background: var(--color-bg-surface); overflow: hidden; }
+.qe-verdict { display: grid; gap: 6px; align-content: start; padding: var(--space-3) 14px; min-width: 0; }
+.qe-verdict + .qe-verdict { border-inline-start: 1px solid var(--color-border-subtle); }
+.qe-verdict-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.qe-verdict-text { font-size: 13px; color: var(--color-text-secondary); white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.qe-pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px; border: 1px solid; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.qe-pill i { width: 8px; height: 8px; border-radius: 999px; background: currentColor; }
+.qe-pill--PASSED { color: var(--color-status-success); border-color: var(--color-status-success); background: var(--color-status-success-muted); }
+.qe-pill--FAILED { color: var(--color-status-critical-strong); border-color: var(--color-status-critical); background: var(--color-status-critical-muted); }
+.qe-pill--INCONCLUSIVE { color: var(--color-text-secondary); border-color: var(--color-status-warning); background: var(--color-status-warning-muted); }
+.qe-pill--INTERRUPTED, .qe-pill--running { color: var(--color-text-secondary); border-color: var(--color-border-strong); background: transparent; }
+.qe-pill--none { color: var(--color-text-muted); border-style: dashed; border-color: var(--color-border-strong); font-weight: 500; }
+
+.qe-attempt { display: grid; gap: var(--space-4); min-width: 0; }
+.qe-more { justify-self: start; }
+.qe-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-5); min-width: 0; }
+@container (min-width: 760px) { .qe-grid { grid-template-columns: minmax(0, 3fr) minmax(300px, 2fr); } }
+.qe-media { display: grid; gap: var(--space-2); min-width: 0; align-content: start; }
+.qe-media video { width: 100%; max-height: 480px; display: block; background: #000; border-radius: var(--radius-md); }
+.qe-player { min-width: 0; display: grid; gap: var(--space-2); }
+.qe-player-controls { display: flex; align-items: center; gap: var(--space-2); }
+.qe-player-controls input[type='range'] { flex: 1; width: 0; min-width: 40px; accent-color: var(--color-action-primary); }
+.qe-player-time { font-size: 11px; white-space: nowrap; color: var(--color-text-secondary); }
+.qe-player:fullscreen { background: var(--color-bg-canvas); padding: var(--space-4); align-content: center; }
+.qe-player:fullscreen video { max-height: calc(100vh - 90px); }
+.qe-media-bar { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; font-size: 12px; color: var(--color-text-secondary); }
+.qe-media-bar .qe-select { height: 28px; font-size: 12px; }
+.qe-notice { display: flex; gap: var(--space-2); align-items: baseline; flex-wrap: wrap; padding: var(--space-2) 10px; border: 1px solid var(--color-border-subtle); border-inline-start: 3px solid var(--color-status-warning); border-radius: var(--radius-sm); background: var(--color-bg-surface); font-size: 12px; color: var(--color-text-secondary); }
+.qe-notice--error { border-inline-start-color: var(--color-status-critical); }
+.qe-notice ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 2px; }
+
+.qe-info { display: grid; gap: var(--space-4); min-width: 0; align-content: start; }
+.qe-section { display: grid; gap: var(--space-2); }
+.qe-snapshot { display: grid; gap: 10px; margin: 0; }
+.qe-snapshot div { display: grid; gap: 2px; }
+.qe-snapshot dt { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--color-text-muted); }
+.qe-snapshot dd { margin: 0; font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.qe-links { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+
+.qe-form { display: grid; gap: var(--space-3); padding-top: var(--space-4); border-top: 1px solid var(--color-border-subtle); }
+.qe-form label, .qe-field { display: grid; gap: 6px; font-size: 12px; color: var(--color-text-secondary); }
+/* 값이 셋뿐이라 드롭다운에 감추지 않는다. 케이스 편집의 결과 선택(`tce-seg`)과 같은 모양이다. */
+.qe-seg { display: inline-flex; border: 1px solid var(--color-border-strong); border-radius: 7px; overflow: hidden; justify-self: start; max-width: 100%; }
+.qe-seg-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 11px; font: inherit; font-size: 12.5px; background: transparent; color: var(--color-text-primary); border: 0; border-right: 1px solid var(--color-border-strong); cursor: pointer; }
+.qe-seg-btn:last-child { border-right: 0; }
+.qe-seg-btn:hover { background: var(--color-bg-hover); }
+.qe-seg-btn[aria-checked='true'] { background: var(--color-bg-hover); box-shadow: inset 0 -2px 0 var(--color-brand-accent); }
+.qe-seg-btn:focus-visible { outline: 2px solid var(--color-brand-accent); outline-offset: -2px; }
+.qe-seg-btn:disabled { opacity: 0.6; cursor: default; }
+.qe-seg-btn i { width: 9px; height: 9px; border-radius: 999px; background: var(--color-text-muted); }
+.qe-seg-btn i.PASSED { background: var(--color-status-success); }
+.qe-seg-btn i.FAILED { background: var(--color-status-critical); }
+.qe-seg-btn i.INCONCLUSIVE { background: var(--color-status-warning); }
+.qe-form-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
+
+.qe-history summary, .qe-refs summary { font-size: 12px; color: var(--color-text-secondary); cursor: pointer; }
+.qe-history ol { list-style: none; margin: var(--space-2) 0 0; padding: 0; }
+.qe-history li { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; padding: var(--space-2) 0; border-top: 1px solid var(--color-border-subtle); font-size: 13px; }
+.qe-history li p { flex-basis: 100%; color: var(--color-text-secondary); white-space: pre-wrap; overflow-wrap: anywhere; }
+.qe-refs ol { margin: var(--space-2) 0 0; padding-inline-start: 22px; font-size: 13px; color: var(--color-text-secondary); }
+
+/* QA 질문: 답을 기다리는 상태라 왼쪽 선은 warning 색이다. */
+.qe-question { display: grid; gap: var(--space-3); padding: 14px var(--space-4); border: 1px solid var(--color-border-subtle); border-inline-start: 3px solid var(--color-status-warning); border-radius: var(--radius-lg); background: var(--color-bg-surface); }
+/* 작업공간 본문 위에 뜨므로 좌우 여백은 `.section-header` 와 같다. */
+.qe-questions { display: grid; gap: var(--space-3); padding: var(--space-4) var(--space-6) 0; }
+.qe-question-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.qe-question-text { font-size: 15px; line-height: 1.5; font-weight: 600; white-space: pre-wrap; overflow-wrap: anywhere; }
+.qe-chip { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border: 1px solid var(--color-border-subtle); border-radius: 999px; font-size: 12px; color: var(--color-text-secondary); background: var(--color-bg-surface); text-decoration: none; }
+.qe-chip b { color: var(--color-text-primary); font-weight: 600; }
+a.qe-chip:hover { border-color: var(--color-action-primary); color: var(--color-action-primary); }
+
+/* 신뢰도: QA history 제목 아래 접힌 한 줄. 수치 4개는 접힌 채로 읽힌다. 좌우 여백은 `.section-header` 와 같다. */
+.qe-rel { border-bottom: 1px solid var(--color-border-subtle); padding: 0 var(--space-6); }
+.qe-rel > summary { list-style: none; display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; padding: var(--space-3) 0; cursor: pointer; }
+.qe-rel > summary::-webkit-details-marker { display: none; }
+.qe-rel > summary h3 { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: var(--space-2); }
+.qe-rel > summary h3::before { content: '›'; display: inline-block; color: var(--color-text-muted); transition: transform var(--motion-fast) var(--ease-standard); }
+.qe-rel[open] > summary h3::before { transform: rotate(90deg); }
+.qe-stats { display: flex; gap: var(--space-5); flex-wrap: wrap; margin-inline-start: auto; }
+.qe-stat { display: grid; min-width: 64px; }
+.qe-stat span { font-size: 11px; color: var(--color-text-muted); }
+.qe-stat b { font: 600 16px/1.3 var(--font-mono); font-variant-numeric: tabular-nums; }
+.qe-stat small { font: 400 11px var(--font-mono); color: var(--color-text-muted); }
+.qe-rel-body { display: grid; gap: var(--space-4); padding: var(--space-1) 0 var(--space-4); }
+.qe-dates { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; }
+.qe-dates label { display: grid; gap: 4px; font-size: 12px; color: var(--color-text-secondary); }
+.qe-dates input { height: 32px; padding: 0 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); background: var(--color-bg-raised); color: var(--color-text-primary); font-size: 13px; }
+.qe-tables { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr)); gap: var(--space-6); }
+.qe-table { display: grid; gap: var(--space-2); min-width: 0; }
+.qe-table h4 { font-size: 13px; font-weight: 600; }
+.qe-table-scroll { overflow: auto; }
+.qe-table table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.qe-table th, .qe-table td { padding: 6px 8px; text-align: end; border-bottom: 1px solid var(--color-border-subtle); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.qe-table th { font-size: 11px; font-weight: 500; color: var(--color-text-muted); }
+.qe-table th:first-child, .qe-table td:first-child { text-align: start; padding-inline-start: 0; }
+.qe-table td:first-child { font-weight: 600; }
+.qe-table td small { color: var(--color-text-muted); font-size: 11px; margin-inline-start: 4px; }
+
+/* issue 상세의 TC 실패 이력. 여백은 이웃 `.ib-sheet-section` 과 같다. */
+.ib-sheet-body > .qe-panel { padding: var(--space-4) var(--space-5); border-block-start: 0; border-bottom: 1px solid var(--color-border-subtle); }
+.qe-occ { list-style: none; margin: 0; padding: 0; }
+.qe-occ li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--space-2) 14px; align-items: center; padding: 10px 0; border-top: 1px solid var(--color-border-subtle); font-size: 13px; }
+.qe-occ .qe-verdict-row { gap: 6px; }
+.qe-occ .qe-arrow { color: var(--color-text-muted); }
+@container (max-width: 560px) { .qe-occ li { grid-template-columns: minmax(0, 1fr); } }
+
+.qe-pill--TC_CONTENT_ISSUE { color: var(--color-text-primary); background: var(--color-bg-raised); border-color: var(--color-border-strong); }
+.qe-seg { flex-wrap: wrap; }
+.qe-seg-btn i.TC_CONTENT_ISSUE { background: var(--color-status-warning); }
+.qe-content-badge { display: inline-flex; align-items: center; width: max-content; max-width: 100%; gap: 5px; padding: 2px 7px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); color: var(--color-text-primary); background: var(--color-bg-raised); font-size: 11px; white-space: nowrap; }
+.qe-content-badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--color-status-warning); }
+.qe-content-badge--READY::before { background: var(--color-status-success); }
+.qe-content-panel { display: grid; gap: var(--space-3); min-width: 0; padding: var(--space-4); border-bottom: 1px solid var(--color-border-subtle); background: var(--color-bg-surface); }
+.qe-content-panel h3 { margin: 0; font-size: 13px; }
+.qe-content-panel .qe-head { flex-wrap: wrap; }
+.qe-content-reason { margin: 0; white-space: pre-wrap; font-size: 12px; color: var(--color-text-secondary); overflow-wrap: anywhere; }
+.qe-content-build { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); font-size: 12px; color: var(--color-text-secondary); }
+.qe-content-build select { max-width: 220px; }
+.tct-content-status { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
