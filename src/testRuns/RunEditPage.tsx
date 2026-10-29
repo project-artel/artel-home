@@ -11,6 +11,7 @@ import { useDraftPreview } from '../testScenarios/useDraftPreview'
 import { PlaylistAddIcon } from '../testScenarios/scenarioIcons'
 import type { ScenarioImportResult } from '../testScenarios/scenarioLibrary'
 import { useChatWidth } from '../testScenarios/useChatWidth'
+import { ChatRail } from './ChatRail'
 import { getRunScenarios, getTestRun, setRunScenarios, type TestRun } from './testRunApi'
 import { createTestScenario } from '../testScenarios/scenarioApi'
 import { RunChat } from './RunChat'
@@ -219,7 +220,11 @@ function RunEditPage({ projectId, runId }: { projectId: string; runId: string })
         )}
         <SplitHandle label={t.scenarios.chat.widthHandle} {...split.handle} />
         <aside className="st-chat">
-          <RunChat gameBuildId={state.run.gameBuild?.gameBuildId ?? null} session={runChat} />
+          {split.collapsed ? (
+            <ChatRail busy={runChat.awaitingReply} onExpand={() => split.setCollapsed(false)} />
+          ) : (
+            <RunChat gameBuildId={state.run.gameBuild?.gameBuildId ?? null} onCollapse={() => split.setCollapsed(true)} session={runChat} />
+          )}
         </aside>
       </div>
     </div>

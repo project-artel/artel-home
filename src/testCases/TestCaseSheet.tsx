@@ -102,7 +102,7 @@ export function TestCaseSheet({
         <TestCaseEditor
           builds={builds}
           folderId={folderId}
-          key={testCase?.id ?? 'new'}
+          key={`${testCase?.id ?? 'new'}:${editGameBuildId ?? ''}`}
           knownScenes={knownScenes}
           onCreated={onCreated}
           onDelete={onDelete}

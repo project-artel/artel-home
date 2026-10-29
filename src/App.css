@@ -177,14 +177,110 @@
   to { transform: rotate(360deg); }
 }
 
+/* 로그인 판(ARTEL-1266): 왼쪽은 로고와 이름만, 오른쪽에 각 화면의 .login-panel. 좁은 화면에서는 왼쪽이 위의 띠가 된다. */
 .login-layout {
+  display: flex;
+  flex-wrap: wrap;
+  place-items: stretch;
+  --login-hero-wash:
+    radial-gradient(90% 70% at 95% 105%,
+      color-mix(in srgb, var(--color-action-primary-strong) 38%, transparent) 0%,
+      color-mix(in srgb, color-mix(in srgb, var(--color-action-primary-strong) 55%, var(--color-bg-surface)) 30%, transparent) 32%,
+      color-mix(in srgb, color-mix(in srgb, var(--color-action-primary-strong) 35%, var(--color-bg-surface)) 14%, transparent) 52%,
+      transparent 70%),
+    radial-gradient(60% 50% at 0% 0%,
+      color-mix(in srgb, color-mix(in srgb, var(--color-action-primary-strong) 40%, var(--color-bg-surface)) 20%, transparent),
+      transparent 65%);
+}
+
+:root[data-theme='dark'] .login-layout {
+  --login-hero-wash: radial-gradient(110% 80% at 90% 100%,
+    color-mix(in srgb, var(--color-action-primary) 22%, transparent),
+    transparent 55%);
+}
+
+.login-hero {
+  display: flex;
+  flex: 1 1 560px;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-6);
+  padding: var(--space-10);
+  border-right: 1px solid var(--color-border-subtle);
+  background-color: var(--color-bg-canvas);
+  background-image: var(--login-hero-wash);
+}
+
+.login-hero-mark {
+  width: 240px;
+  height: 240px;
+}
+
+:root[data-theme='dark'] .login-hero-mark {
+  content: url('/artel-logo-symbol-dark.png');
+}
+
+.login-hero-word {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.login-hero-name {
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.login-hero-product {
+  color: var(--color-text-secondary);
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.login-side {
   position: relative;
-  padding: var(--space-6);
-  background-image:
-    linear-gradient(var(--color-border-subtle) 1px, transparent 1px),
-    linear-gradient(90deg, var(--color-border-subtle) 1px, transparent 1px);
-  background-position: center;
-  background-size: 40px 40px;
+  display: flex;
+  flex: 0 1 560px;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-12);
+  background: var(--color-bg-surface);
+}
+
+@media (max-width: 960px) {
+  .login-hero {
+    flex-basis: 100%;
+    flex-direction: row;
+    gap: var(--space-3);
+    padding: var(--space-6) var(--space-5);
+    border-right: 0;
+    border-bottom: 1px solid var(--color-border-subtle);
+  }
+
+  .login-hero-mark {
+    width: 44px;
+    height: 44px;
+  }
+
+  .login-hero-name {
+    font-size: 20px;
+  }
+
+  .login-hero-product {
+    font-size: 14px;
+  }
+
+  .login-side {
+    flex: 1 1 100%;
+    align-items: flex-start;
+    padding: var(--space-12) var(--space-5);
+  }
 }
 
 .login-theme-toggle {
@@ -194,27 +290,7 @@
 }
 
 .login-panel {
-  width: min(100%, 420px);
-  padding: var(--space-10);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-lg);
-  background: var(--color-bg-surface);
-}
-
-.login-brand {
-  display: grid;
-  width: 48px;
-  height: 48px;
-  margin-bottom: var(--space-6);
-  place-items: center;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-raised);
-}
-
-.login-brand img {
-  width: 36px;
-  height: 36px;
+  width: min(100%, 380px);
 }
 
 .login-copy {
@@ -381,8 +457,7 @@
   height: 20px;
 }
 
-:root[data-theme='dark'] .brand-mark img,
-:root[data-theme='dark'] .login-brand img {
+:root[data-theme='dark'] .brand-mark img {
   content: url('/artel-mark-dark.svg');
 }
 
@@ -391,15 +466,10 @@
   height: 20px;
 }
 
-.login-brand img {
-  width: 36px;
-}
-
 /* Theme-specific logo: light mark (charcoal/orange) by default, white/orange in
    dark. The favicon swaps in theme.ts; the on-page marks swap here (data-theme is
    always set by the index.html boot script, so no media-query variant is needed). */
-:root[data-theme='dark'] .brand-mark img,
-:root[data-theme='dark'] .login-brand img {
+:root[data-theme='dark'] .brand-mark img {
   content: url('/artel-mark-dark.svg');
 }
 
@@ -540,14 +610,6 @@ h1 {
 
   .top-bar-actions {
     gap: var(--space-2);
-  }
-
-  .login-layout {
-    padding: var(--space-3);
-  }
-
-  .login-panel {
-    padding: var(--space-8) var(--space-5);
   }
 }
 
@@ -12743,13 +12805,12 @@ button.gf-bar:focus-visible {
 .scenario-studio .se-row[draggable='true'] .se-row-main { cursor: grab; }
 .scenario-studio .se.is-dragging .se-row-main { cursor: grabbing; }
 .scenario-studio .se.is-dragging .se-insert { display: none; }
-.scenario-studio .se-row.is-lifted .se-row-main { opacity: .4; background: repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in srgb, var(--st-action) 8%, transparent) 6px 12px); outline: 1px dashed var(--st-action); outline-offset: -3px; }
-.scenario-studio .se-row.is-over-before::after,
-.scenario-studio .se-row.is-over-after::after { content: ''; position: absolute; left: 10px; right: 10px; z-index: 5; height: 3px; border-radius: 3px; background: var(--st-action); box-shadow: 0 0 0 3px color-mix(in srgb, var(--st-action) 20%, transparent); pointer-events: none; }
-.scenario-studio .se-row.is-over-before::after { top: -2px; }
-.scenario-studio .se-row.is-over-after::after { bottom: -2px; }
-.scenario-studio .se-row.is-over-before .se-row-main { transform: translateY(4px); }
-.scenario-studio .se-row.is-over-after .se-row-main { transform: translateY(-4px); }
+/* 잡은 줄: 들어 올린 카드처럼 그림자를 달고 포인터를 따라온다. 다른 줄은 useLiftSort 가 transform 으로 비켜 준다. */
+.scenario-studio .se-row.is-lifted { border-bottom-color: transparent; }
+.scenario-studio .se-row.is-lifted .se-row-main { background: var(--st-surface); border-radius: 8px; outline: 1.5px solid var(--st-action); outline-offset: -1px; box-shadow: 0 16px 32px rgb(0 0 0 / 28%), 0 3px 8px rgb(0 0 0 / 18%); cursor: grabbing; }
+.scenario-studio .se-row.is-lifted .se-grip { opacity: 1; color: var(--st-action); }
+.scenario-studio .se-row.is-settling .se-row-main { box-shadow: 0 2px 6px rgb(0 0 0 / 12%); transition: box-shadow 170ms var(--ease-standard); }
+body.is-lift-sorting, body.is-lift-sorting * { cursor: grabbing !important; user-select: none !important; }
 .scenario-studio .se-row .se-row-main { transition: transform 140ms var(--ease-standard), background 140ms var(--ease-standard); }
 .scenario-studio .se-row.is-dropped .se-row-main { animation: se-dropped 900ms var(--ease-standard); }
 @keyframes se-dropped {
@@ -13061,7 +13122,10 @@ col.vimp-c-scene{ width:18% } col.vimp-c-verdict{ width:16% }
 .app-main-frame:has(.page):not(:has(.project-workspace)) {
   height: calc(100dvh - var(--shell-topbar-h));
 }
+/* 넘기는 칸이 위치 기준이어야 안의 absolute 요소(.visually-hidden 등)가 칸 안에 갇힌다. 바깥 .scroll-frame 이
+   기준이면 그 요소가 문서를 늘려 브라우저 막대가 하나 더 생긴다. */
 .app-main-frame:has(.page):not(:has(.project-workspace)) > .workspace {
+  position: relative;
   height: 100%;
   overflow-y: auto;
   scrollbar-width: none;

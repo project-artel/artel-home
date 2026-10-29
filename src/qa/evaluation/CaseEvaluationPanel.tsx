@@ -1,3 +1,4 @@
+import { loadAttemptReview } from './loadAttemptReview'
 import { useCallback, useEffect, useId, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
@@ -29,28 +30,20 @@ function AttemptList({ projectId, qaTryId, testCaseId, id }: { projectId: string
   const [error, setError] = useState(false)
   const [loading, setLoading] = useState(true)
   const load = useCallback(async (signal?: AbortSignal) => {
-    try { const result = await api.attempts(projectId, { qaTryId, testCaseId }, signal); setRows(result); setHasMore(result.length === 100); setError(false) }
+    try { const result = await loadAttemptReview(projectId, { qaTryId, testCaseId }, selected, signal); if (!signal?.aborted) { setRows(result.rows); setLinkedAttempt(result.linkedAttempt); setHasMore(result.rows.length === 100); setError(false) } }
     catch { if (!signal?.aborted) setError(true) }
     finally { if (!signal?.aborted) setLoading(false) }
-  }, [projectId, qaTryId, testCaseId])
+  }, [projectId, qaTryId, testCaseId, selected])
   useProjectChange(projectId, ['QA_RUNS', 'TEST_CASES'], () => void load())
   useEffect(() => {
     const controller = new AbortController()
-    void api.attempts(projectId, { qaTryId, testCaseId }, controller.signal)
-      .then(result => { if (!controller.signal.aborted) { setRows(result); setHasMore(result.length === 100); setError(false) } })
+    void loadAttemptReview(projectId, { qaTryId, testCaseId }, selected, controller.signal)
+      .then(result => { if (!controller.signal.aborted) { setRows(result.rows); setLinkedAttempt(result.linkedAttempt); setHasMore(result.rows.length === 100); setError(false) } })
       .catch(() => { if (!controller.signal.aborted) setError(true) })
       .finally(() => { if (!controller.signal.aborted) setLoading(false) })
     return () => controller.abort()
-  }, [projectId, qaTryId, testCaseId])
-  useEffect(() => {
-    if (!selected) return
-    const controller = new AbortController()
-    void api.getAttempt(projectId, selected, controller.signal).then(row => {
-      if (!controller.signal.aborted && (!qaTryId || row.qaTryId === qaTryId) && (!testCaseId || row.testCaseId === testCaseId)) setLinkedAttempt(row)
-    }).catch(() => { if (!controller.signal.aborted) setError(true) })
-    return () => controller.abort()
-  }, [projectId, selected, qaTryId, testCaseId])
-  const options = linkedAttempt && !rows.some(row => row.id === linkedAttempt.id) ? [linkedAttempt, ...rows] : rows
+  }, [projectId, qaTryId, testCaseId, selected])
+  const options = linkedAttempt?.id === selected && !rows.some(row => row.id === linkedAttempt.id) ? [linkedAttempt, ...rows] : rows
   const current = options.find(row => row.id === selected) ?? rows[0]
   return <section className="qe-panel" aria-label={copy.title} id={id}>
     <div className="qe-head">

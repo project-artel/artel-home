@@ -1,9 +1,9 @@
 import { useId, useState, type FormEvent } from 'react'
 import { useI18n } from '../i18n/useI18n'
-import { ThemeToggle } from '../ThemeToggle'
 import { useAuth } from './useAuth'
 import { PASSWORD_MIN_LENGTH, changePassword } from './passwordAuthApi'
 import { passwordChangeErrorMessage } from './passwordFormErrors'
+import { AuthLayout } from './AuthLayout'
 
 /**
  * Shown instead of the whole app while `/api/auth/me` reports
@@ -50,15 +50,8 @@ export function ForcePasswordChangePage() {
   }
 
   return (
-    <main className="login-layout">
-      <div className="login-theme-toggle">
-        <ThemeToggle
-          toDarkLabel={t.common.shell.switchToDark}
-          toLightLabel={t.common.shell.switchToLight}
-        />
-      </div>
+    <AuthLayout>
       <section className="login-panel" aria-labelledby="password-change-title">
-        <p className="eyebrow">ARTEL Replay Studio</p>
         <h1 id="password-change-title">{copy.title}</h1>
         <p className="login-copy">{copy.copy}</p>
 
@@ -98,6 +91,6 @@ export function ForcePasswordChangePage() {
           </button>
         </form>
       </section>
-    </main>
+    </AuthLayout>
   )
 }

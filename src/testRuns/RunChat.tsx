@@ -1,6 +1,7 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
+import { PaneIcon } from '../testCases/PaneIcon'
 import { Dialog } from '../design-system/primitives/Dialog'
 import { ChatAsks, ChatMessageBody, ChatReplyBody } from './ChatMessageBody'
 import { ChatLinkContext } from './chatRefContext'
@@ -217,10 +218,13 @@ function AuthoringProgress({
 export function RunChat({
   gameBuildId = null,
   session,
+  onCollapse,
 }: {
   /** 런의 버전(ARTEL-1070). TC 칩으로 여는 케이스가 그 버전의 내용과 판정이다. 없으면 최신이다. */
   gameBuildId?: string | null
   session: RunChatSession
+  /** 있으면 머리줄 오른쪽에 대화 칸 접기 단추를 둔다. */
+  onCollapse?: () => void
 }) {
   const { t } = useI18n()
   const u = t.projects.workspace.uncovered
@@ -475,6 +479,11 @@ export function RunChat({
         <h2 id="run-chat-title">
           <StudioIcon className="run-chat-star" name="sparkles" size={15} />
           {c.title}
+          {onCollapse !== undefined && (
+            <button aria-expanded aria-label={c.collapse} className="run-chat-collapse" onClick={onCollapse} title={c.collapse} type="button">
+              <PaneIcon collapsed={false} side="right" />
+            </button>
+          )}
         </h2>
         {/* 제목 줄과 상태 줄을 나눈다(ARTEL-1107). 셋이 제목 옆에 붙어 있으면 좁은 칸에서
             제목이 밀리고, 커버리지와 자동 적용이 같은 무게로 읽혔다. */}

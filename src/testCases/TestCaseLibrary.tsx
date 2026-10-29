@@ -1,3 +1,4 @@
+import { selectedLibraryCase } from './selectedLibraryCase'
 import { useTestCaseLabel, useTestCaseIdentifiers } from './testCaseIdentifiers'
 import { TestCaseHover } from './TestCaseHover'
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
@@ -28,6 +29,7 @@ import type { GameBuild } from '../projects/gameTypes'
 import { ProjectApiError } from '../projects/projectApi'
 import { CaseSceneFilter } from './CaseSceneFilter'
 import { SceneChip } from './SceneChip'
+import { StatusPill } from './StatusPill'
 import { SpecGradeChip } from './SpecGradeChip'
 import { CaseSelectionBar, type SelectionAction } from './CaseSelectionBar'
 import {
@@ -68,14 +70,15 @@ import {
   NO_FILTERS,
   selectTestCases,
   tallyTestCases,
+  countOf,
+  STATUS_CLASS,
   type TestCaseFilters,
   type TestCaseSort,
-  type TestCaseTally,
 } from './testCaseLibrary'
 import { ContentReviewBadge } from '../qa/evaluation/ContentReviewPanel'
 import { useContentReviews } from '../qa/evaluation/useContentReviews'
 import { evaluationCopy } from '../qa/evaluation/evaluationCopy'
-import { VERIFICATION_STATUSES, type TestCase, type VerificationStatus } from './testCaseTypes'
+import { VERIFICATION_STATUSES, type TestCase } from './testCaseTypes'
 import { useFolderHistory } from './useFolderHistory'
 import { useFolderItems } from './useFolderItems'
 import { useTestCaseFolders } from './useTestCaseFolders'
@@ -117,14 +120,6 @@ import { useRowWindow } from './useRowWindow'
 import { CaseSkeletonRows, CaseTableSkeleton } from './CaseTableSkeleton'
 import { InlineCode } from '../contentMap/InlineCode'
 
-/** `vdot` 와 결과 pill 이 상태마다 쓰는 CSS 접미사. 대문자 상태값을 클래스에 그대로 넣지 않는다. */
-const STATUS_CLASS: Record<VerificationStatus, string> = {
-  VERIFIED: 'verified',
-  FAILED: 'failed',
-  REGRESSION: 'regression',
-  DRAFT: 'draft',
-  BROKEN: 'broken',
-}
 
 /**
  * 프로젝트의 재사용 테스트 케이스를 한자리에 모아 보고 고치는 화면.
@@ -375,7 +370,7 @@ export function TestCaseLibrary({
     }
   }, [selection.visibleState, shown.length])
 
-  const selected = library.cases.find((testCase) => testCase.id === selectedId) ?? null
+  const selected = selectedLibraryCase(selectedId, library.cases, versionsMode ? versionCases.rows : undefined)
   // 팔레트와 같은 이동. `active` 는 키보드 커서고 `selectedId` 는 편집기가 열린 케이스라,
   // 둘은 따로 움직인다 — 훑어보는 것과 고르는 것이 같은 동작이 아니다.
   const nav = useCaseListNav(shown.length)
@@ -1351,7 +1346,8 @@ export function TestCaseLibrary({
           }}
           onDelete={() => setDeleting(selected)}
           onSaved={(saved) => {
-            library.applySaved(saved)
+            if (saved.origin !== 'MAP' || selectedBuildId === null || selectedBuildId === latestVersion?.gameBuildId) library.applySaved(saved)
+            else refreshLibrary()
             refreshVersions()
             setAnnouncement(m.editor.saved)
           }}
@@ -1510,27 +1506,5 @@ export function TestCaseLibrary({
   )
 }
 
-function countOf(tally: TestCaseTally, status: VerificationStatus): number {
-  if (status === 'VERIFIED') return tally.verified
-  if (status === 'FAILED') return tally.failed
-  if (status === 'REGRESSION') return tally.regression
-  if (status === 'BROKEN') return tally.broken
-  return tally.draft
-}
 
 /** 한 버전의 판정 칸. 그 버전에 없는 케이스(null)는 "없음" 이다. */
-function StatusPill({
-  labels,
-  status,
-}: {
-  labels: ReturnType<typeof useI18n>['t']['testCases']
-  status: VerificationStatus | null
-}) {
-  if (status === null) return <span className="vpill vpill--absent">{labels.versions.absent}</span>
-  return (
-    <span className={`vpill ${status}`}>
-      <span className={`vdot ${status}`} />
-      {labels.outcome[status]}
-    </span>
-  )
-}

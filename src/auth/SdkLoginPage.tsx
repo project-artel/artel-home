@@ -1,11 +1,10 @@
-import { appPath } from '../appPath'
 import { useEffect, useState } from 'react'
 import { createSdkLoginCode } from './authApi'
 import { callbackUrl, parkRequest, readRelayRequest } from './sdkLoginRequest'
 import { useAuth } from './useAuth'
 import { useI18n } from '../i18n/useI18n'
 import { LoginPage } from '../LoginPage'
-import { ThemeToggle } from '../ThemeToggle'
+import { AuthLayout } from './AuthLayout'
 
 /**
  * The page the SDK opens in the browser to trade the user's console session for
@@ -109,17 +108,8 @@ function SdkLoginPanel({ message, onRetry }: { message: string; onRetry?: () => 
   const { t } = useI18n()
 
   return (
-    <main className="login-layout">
-      <div className="login-theme-toggle">
-        <ThemeToggle
-          toDarkLabel={t.common.shell.switchToDark}
-          toLightLabel={t.common.shell.switchToLight}
-        />
-      </div>
+    <AuthLayout>
       <section className="login-panel" aria-labelledby="sdk-login-title">
-        <div className="login-brand" aria-hidden="true">
-          <img src={appPath('/artel-mark.svg')} alt="" />
-        </div>
         <p className="eyebrow">{t.common.sdkLogin.eyebrow}</p>
         <h1 id="sdk-login-title">{t.common.sdkLogin.title}</h1>
 
@@ -138,6 +128,6 @@ function SdkLoginPanel({ message, onRetry }: { message: string; onRetry?: () => 
 
         <p className="login-note">{t.common.sdkLogin.note}</p>
       </section>
-    </main>
+    </AuthLayout>
   )
 }
