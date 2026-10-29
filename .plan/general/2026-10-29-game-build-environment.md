@@ -39,3 +39,6 @@
 - 390px/1440px, light/dark의 실제 컴포넌트 fixture에서 세 환경의 실행 선택, 상세 표시, 페이지 overflow 및 브라우저 오류 확인. 운영 E2E는 아니다.
 - 전체 lint 오류 4개는 원래 useCaseListNav, RunListPanel, RunNameCrumb, useStepEditor에서도 재현된다. 변경 파일의 오류는 RunListPanel의 기존 set-state-in-effect 1건뿐이다.
 - plan-review와 pair-review PASS. 서버 반영 뒤 home 반영이 필요하며 배포는 하지 않았다.
+
+## 버전 옆 환경 표시 보완
+모든 게임 버전 바로 뒤에 실행 환경을 표시한다. label이 있어도 `version · Editor/Standalone/Unknown · label` 순서를 사용한다. 비용 차트 tooltip과 프로젝트 챗의 QA 실행 요약에도 같은 표시를 적용한다.

@@ -8,6 +8,6 @@ export function buildEnvironment(isEditor: boolean | null | undefined): string {
 
 export function buildDisplayName(build: { version: string; label?: string | null; isEditor?: boolean | null }): string {
   const label = build.label?.trim()
-  const name = label ? `${build.version} · ${label}` : build.version
-  return `${name} · ${buildEnvironment(build.isEditor)}`
+  const name = `${build.version} · ${buildEnvironment(build.isEditor)}`
+  return label ? `${name} · ${label}` : name
 }

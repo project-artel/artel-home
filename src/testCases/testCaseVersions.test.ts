@@ -30,7 +30,7 @@ const list = parseVersionList({
 test('버전 목록은 id 없는 줄을 버리고 다섯 상태 수를 늘 채운다', () => {
   assert.equal(list.length, 2)
   assert.deepEqual(list[0].counts, { VERIFIED: 1, FAILED: 1, REGRESSION: 0, DRAFT: 1, BROKEN: 0 })
-  assert.equal(versionName(list[1]), '1.0 · 알파 · Unknown')
+  assert.equal(versionName(list[1]), '1.0 · Unknown · 알파')
   assert.equal(versionName(list[0]), '1.1 · Unknown')
 })
 

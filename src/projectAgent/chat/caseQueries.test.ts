@@ -76,12 +76,12 @@ test('buildCaseList resolves folder and build names and states the build scope',
   const unscoped = buildCaseList(cases, {}, 0, lookups, undefined)
   assert.equal(unscoped.scope, null)
   assert.equal(unscoped.rows[0].folderName, 'Smoke')
-  assert.equal(unscoped.rows[0].lastVerifiedBuild, '1.5 · Beta · Standalone')
+  assert.equal(unscoped.rows[0].lastVerifiedBuild, '1.5 · Standalone · Beta')
   assert.equal(unscoped.rows[0].origin, null)
   assert.equal(unscoped.rows[0].specStatus, 'ready')
   const scoped = buildCaseList(cases, {}, 0, lookups, '5')
-  assert.equal(scoped.scope?.build, '1.5 · Beta · Standalone')
-  assert.match(scoped.scope?.note ?? '', /Only cases in build 1\.5 · Beta · Standalone/)
+  assert.equal(scoped.scope?.build, '1.5 · Standalone · Beta')
+  assert.match(scoped.scope?.note ?? '', /Only cases in build 1\.5 · Standalone · Beta/)
   assert.equal(buildCaseList([makeCase(2, { lastVerifiedBuildId: '77' })], {}, 0, lookups, undefined).rows[0].lastVerifiedBuild, '77')
 })
 
@@ -103,7 +103,7 @@ test('trimCaseBuilds puts the newest verdict first', () => {
     verdictCarriedFromBuildId: null,
   })
   const result = trimCaseBuilds([item('1', null), item('2', 'Beta')], [])
-  assert.deepEqual(result.rows.map((row) => [row.build, row.verificationStatus]), [['1.2 · Beta · Standalone', 'REGRESSION'], ['1.1 · Standalone', 'VERIFIED']])
+  assert.deepEqual(result.rows.map((row) => [row.build, row.verificationStatus]), [['1.2 · Standalone · Beta', 'REGRESSION'], ['1.1 · Standalone', 'VERIFIED']])
 })
 
 test('runQuery rejects an unknown verificationStatus and a test_case without id before any request', async () => {

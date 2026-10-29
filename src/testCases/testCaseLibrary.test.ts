@@ -176,7 +176,7 @@ test('build 이름은 label 을 쓰고, 없으면 version 으로 떨어진다', 
     makeBuild('11', { label: '   ', version: '1.5.2' }),
   ]
 
-  assert.equal(describeVerifiedBuild('10', builds, 'Editor'), '1.4.0 · 1차 QA 빌드 · Standalone')
+  assert.equal(describeVerifiedBuild('10', builds, 'Editor'), '1.4.0 · Standalone · 1차 QA 빌드')
   assert.equal(describeVerifiedBuild('11', builds, 'Editor'), '1.5.2 · Standalone')
 })
 

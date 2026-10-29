@@ -1,3 +1,4 @@
+import { buildDisplayName } from '../../projects/buildEnvironment'
 import { listProjectIssues } from '../../issues/issueApi'
 import { ISSUE_SEVERITIES, ISSUE_STATUSES, type Issue, type IssueSeverity, type IssueStatus } from '../../issues/issueTypes'
 import { getQaRun, listQaTries } from '../../qa/qaApi'
@@ -45,7 +46,7 @@ export function trimQaHistory(runs: readonly QaRunSummary[]): QueryRows<QaHistor
       qaRunId: run.id,
       testRunId: run.testRunId,
       testRunName: run.testRunName,
-      build: run.gameBuildVersion,
+      build: run.gameBuildVersion === null ? null : buildDisplayName({ version: run.gameBuildVersion, isEditor: run.gameBuildIsEditor }),
       model: run.model,
       status: run.status,
       startedAt: run.startedAt,

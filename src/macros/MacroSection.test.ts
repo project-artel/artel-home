@@ -82,7 +82,7 @@ describe('MacroVersionList', () => {
 
   it('build 는 최신부터, editor build 다음 맨 아래에 개발자 macro (MCP) 줄이 선다', () => {
     assert.match(html, /<h2 class="tcl-folders-title">버전<\/h2>/)
-    assert.deepEqual(names, ['0.3.0 · Standalone', '0.2.0 · 베타 · Standalone', '0.1.0 · Standalone', 'Editor · 0.3.0', '개발자 macro (MCP)'])
+    assert.deepEqual(names, ['0.3.0 · Standalone', '0.2.0 · Standalone · 베타', '0.1.0 · Standalone', '0.3.0 · Editor', '개발자 macro (MCP)'])
     assert.match(html, /class="tcl-folder tcl-version tcl-version--none"[^>]*><span class="tcl-folder-name">개발자 macro \(MCP\)/)
   })
 
@@ -174,7 +174,7 @@ describe('MacroSection', () => {
   it('build 화면의 제목 칩은 현재 버전 <build> 다', () => {
     const html = renderSection('?build=2')
     assert.match(html, /현재 버전 <strong>0\.3\.0 · Standalone<\/strong>/)
-    assert.match(html, /aria-current="true" class="tcl-folder tcl-version is-current"[^>]*><span class="tcl-folder-name" title="0\.2\.0 · 베타 · Standalone">/)
+    assert.match(html, /aria-current="true" class="tcl-folder tcl-version is-current"[^>]*><span class="tcl-folder-name" title="0\.2\.0 · Standalone · 베타">/)
   })
 
   it('build=developer 면 개발자 macro 화면이고 제목 칩이 개발자 macro 다', () => {

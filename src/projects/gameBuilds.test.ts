@@ -81,13 +81,13 @@ describe('versionBuilds', () => {
 })
 
 describe('buildOptionText', () => {
-  it('editor build 는 Editor 뒤에 version 을 붙인다', () => {
+  it('Editor build도 버전 바로 다음에 실행 환경을 표시한다', () => {
     const editor = makeBuild('3', { isEditor: true, version: '1.6.0', label: 'ignored' })
-    assert.equal(buildOptionText(editor, 'Editor'), 'Editor · 1.6.0')
+    assert.equal(buildOptionText(editor, 'Editor'), '1.6.0 · Editor')
   })
 
   it('Standalone 버전은 label 여부와 관계없이 환경을 표시한다', () => {
-    assert.equal(buildOptionText(makeBuild('1', { label: 'QA' }), 'Editor'), '1.4.0 · QA · Standalone')
+    assert.equal(buildOptionText(makeBuild('1', { label: 'QA' }), 'Editor'), '1.4.0 · Standalone · QA')
     assert.equal(buildOptionText(makeBuild('1', { label: '' }), 'Editor'), '1.4.0 · Standalone')
     assert.equal(buildOptionText(makeBuild('1', { label: null }), 'Editor'), '1.4.0 · Standalone')
     assert.equal(buildOptionText(makeBuild('1', { label: '   ' }), 'Editor'), '1.4.0 · Standalone')

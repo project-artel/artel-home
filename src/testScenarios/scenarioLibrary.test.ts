@@ -44,7 +44,7 @@ test('트리는 버전 → 런 → 시나리오로 읽고, id 없는 시나리�
   assert.deepEqual(versions[1].testRuns[0].testScenarios.map((s) => s.testScenarioId), ['101', '201'])
   assert.equal(versions[1].testRuns[0].testScenarios[0].caseCount, 0)
   assert.equal(versions[0].testRuns[1].testScenarios[0].caseCount, 3)
-  assert.equal(versionLabel(versions[1], '없음'), '1.0.0 · 알파 · Unknown')
+  assert.equal(versionLabel(versions[1], '없음'), '1.0.0 · Unknown · 알파')
   assert.equal(versionLabel(versions[2], '없음'), '없음')
 })
 
