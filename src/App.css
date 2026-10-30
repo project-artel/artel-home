@@ -13495,6 +13495,9 @@ col.vimp-c-scene{ width:18% } col.vimp-c-verdict{ width:16% }
 .scenario-studio .st-chat .chat-recs { margin-top: 12px; border: 1px solid var(--st-draft); border-radius: 10px; background: var(--st-surface); overflow: hidden; }
 .scenario-studio .st-chat .chat-recs-head { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--st-border); flex-wrap: wrap; }
 .scenario-studio .st-chat .chat-recs-icon { color: var(--st-draft); }
+.scenario-studio .st-chat .chat-recs-expand { margin: 0 0 0 auto; }
+/* 크게 보기 창 안의 카드. 창이 테두리를 맡으므로 카드의 틀은 걷는다. */
+.scenario-studio .st-chat .chat-recs--wide { margin-top: 0; border: 0; }
 .scenario-studio .st-chat .chat-recs-hint { color: var(--st-text-2); font-size: 12px; }
 .scenario-studio .st-chat .chat-recs-list { list-style: none; margin: 0; padding: 0; }
 .scenario-studio .st-chat .chat-recs-item { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 10px; padding: 10px 14px; border-bottom: 1px solid var(--st-border); }

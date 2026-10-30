@@ -1,4 +1,6 @@
-import { useContext, useEffect, useState } from 'react'
+import { useContext, useEffect, useId, useState } from 'react'
+import { Dialog } from '../design-system/primitives/Dialog'
+import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../i18n/useI18n'
 import { StudioIcon } from '../testScenarios/studioIcons'
 import { ChatLinkContext } from './chatRefContext'
@@ -25,6 +27,10 @@ export function ChatRecommendations({ recommendations }: { recommendations: Case
   const [picked, setPicked] = useState<Set<string>>(() => new Set(recommendations.map((one) => one.id)))
   const [working, setWorking] = useState(false)
   const [failed, setFailed] = useState(false)
+  // 여럿이면 대화 칸에서 네 칸이 좁게 접힌다. "크게 보기" 로 같은 카드를 가운데 창에 연다 — 대화 속 표와 같은 창이다.
+  const [wide, setWide] = useState(false)
+  const titleId = useId()
+  const [dialogScroller, setDialogScroller] = useState<HTMLDivElement | null>(null)
 
   useEffect(() => {
     if (link?.runId == null) return
@@ -78,13 +84,22 @@ export function ChatRecommendations({ recommendations }: { recommendations: Case
   })
   const chosen = pending.filter((one) => picked.has(one.id)).map((one) => one.id)
 
-  return (
-    <section aria-label={m.title(items.length)} className="chat-recs">
-      <header className="chat-recs-head">
-        <StudioIcon className="chat-recs-icon" name="bulb" size={15} />
-        <strong>{m.title(items.length)}</strong>
-        {pending.length > 0 && <span className="chat-recs-hint">{m.hint}</span>}
-      </header>
+  const head = (
+    <header className="chat-recs-head">
+      <StudioIcon className="chat-recs-icon" name="bulb" size={15} />
+      <strong>{m.title(items.length)}</strong>
+      {pending.length > 0 && <span className="chat-recs-hint">{m.hint}</span>}
+      {items.length > 1 && (
+        <button className="chat-md-table-expand chat-recs-expand" onClick={() => setWide(true)} type="button">
+          <StudioIcon name="maximize" size={13} />
+          {m.expand}
+        </button>
+      )}
+    </header>
+  )
+  // 대화 칸과 창이 같은 상태를 쓴다. 창에서 고르고 저장해도 대화 속 카드가 함께 바뀐다.
+  const body = (
+    <>
       <ul className="chat-recs-list">
         {items.map((one) => (
           <li className={`chat-recs-item is-${one.status.toLowerCase()}`} key={one.id}>
@@ -140,6 +155,29 @@ export function ChatRecommendations({ recommendations }: { recommendations: Case
           {working && <span className="chat-recs-hint" role="status">{m.working}</span>}
           {failed && <span className="chat-recs-error" role="alert">{m.failed}</span>}
         </footer>
+      )}
+    </>
+  )
+
+  return (
+    <section aria-label={m.title(items.length)} className="chat-recs">
+      {head}
+      {body}
+      {wide && (
+        <Dialog labelledBy={titleId} onClose={() => setWide(false)} title={m.title(items.length)}>
+          {/* 창은 body 로 뜬다. 대화 칸의 범위 이름을 함께 달아 카드 모양이 같게 한다. */}
+          <div className="scenario-studio chat-table-scope">
+            <div className="st-chat chat-table-dialog">
+              <div className="chat-table-dialog-scroll" ref={setDialogScroller}>
+                {/* 제목은 창이 단다. */}
+                <section aria-label={m.title(items.length)} className="chat-recs chat-recs--wide">
+                  {body}
+                </section>
+              </div>
+              <EdgeScrollbar label={m.title(items.length)} scroller={dialogScroller} side="right" />
+            </div>
+          </div>
+        </Dialog>
       )}
     </section>
   )

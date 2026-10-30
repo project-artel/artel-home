@@ -210,6 +210,10 @@ export function ChatMessageBody({
  * 넓어지면 가로로 밀린다. 밀리는 쪽은 네이티브 막대 대신 끝의 가림과 화살표로 알리고, 넓게 읽고 싶으면
  * "표 크게 보기" 로 같은 표를 창 크기로 연다.
  */
+/** 이보다 줄 · 칸이 많은 표는 넘치지 않아도 "표 크게 보기" 를 단다. */
+const WIDE_TABLE_ROWS = 5
+const WIDE_TABLE_COLUMNS = 4
+
 function ChatTable({ header, rows }: { header: Inline[][]; rows: Inline[][][] }) {
   const { t } = useI18n()
   const c = t.scenarios.chat
@@ -270,7 +274,8 @@ function ChatTable({ header, rows }: { header: Inline[][]; rows: Inline[][][] })
       <span aria-hidden="true" className={`chat-md-table-fade chat-md-table-fade--right${edge.right ? ' is-end' : ''}`}>
         <StudioIcon name="chevronRight" size={14} />
       </span>
-      {overflowing && (
+      {/* 옆으로 넘칠 때만이 아니라, 줄이나 칸이 많아 대화 칸에서 읽기 힘들 때도 크게 볼 수 있게 한다. */}
+      {(overflowing || rows.length > WIDE_TABLE_ROWS || header.length > WIDE_TABLE_COLUMNS) && (
         <button className="chat-md-table-expand" onClick={() => setWide(true)} type="button">
           <StudioIcon name="maximize" size={13} />
           {c.tableExpand}
