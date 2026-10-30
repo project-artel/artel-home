@@ -3,6 +3,7 @@ import { Dialog } from '../design-system/primitives/Dialog'
 import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../i18n/useI18n'
 import { StudioIcon } from '../testScenarios/studioIcons'
+import { useTestCaseLabel } from '../testCases/testCaseIdentifiers'
 import { ChatLinkContext } from './chatRefContext'
 import {
   discardCaseRecommendations,
@@ -23,6 +24,8 @@ export function ChatRecommendations({ recommendations }: { recommendations: Case
   const { t } = useI18n()
   const m = t.scenarios.chat.recommendations
   const link = useContext(ChatLinkContext)
+  // 다른 화면과 같은 번호(프로젝트 안 TC 번호)로 보인다. DB id 를 그대로 보이면 목록의 번호와 어긋난다.
+  const caseLabel = useTestCaseLabel()
   const [items, setItems] = useState(recommendations)
   const [picked, setPicked] = useState<Set<string>>(() => new Set(recommendations.map((one) => one.id)))
   const [working, setWorking] = useState(false)
@@ -125,7 +128,7 @@ export function ChatRecommendations({ recommendations }: { recommendations: Case
             ) : one.status === 'SAVED' ? (
               <p className="chat-recs-done">
                 <StudioIcon name="check" size={14} />
-                <span>{m.saved(one.testCaseId ?? '')} · {one.step || one.expectedValue} → {one.expectedValue}</span>
+                <span>{m.saved(one.testCaseId == null ? '' : caseLabel(one.testCaseId))} · {one.step || one.expectedValue} → {one.expectedValue}</span>
                 <span className="chat-recs-hint">{m.savedNote}</span>
                 {one.testCaseId != null && link.openCase !== undefined && (
                   <button className="chat-recs-link" onClick={() => link.openCase?.(Number(one.testCaseId))} type="button">{m.openTc}</button>
