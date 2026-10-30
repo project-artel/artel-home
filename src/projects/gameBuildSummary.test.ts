@@ -103,6 +103,17 @@ describe('parseGameBuildSummaryList', () => {
   })
 })
 
+describe('parseGameBuildSummaryList isEditor', () => {
+  it('없는 값은 null, false 와 true 는 그대로 읽는다', () => {
+    const withoutField: Record<string, unknown> = { ...SUMMARY_ROW }
+    delete withoutField.isEditor
+    const parsed = parseGameBuildSummaryList({
+      items: [withoutField, { ...SUMMARY_ROW, isEditor: false }, { ...SUMMARY_ROW, isEditor: true }],
+    })
+    assert.deepEqual(parsed.map((row) => row.isEditor), [null, false, true])
+  })
+})
+
 describe('fallbackBuildSummaries', () => {
   it('instance 의 lastGameBuild 로 수와 마지막 보고를 세고, 서버만 아는 수는 null 로 둔다', () => {
     const builds = [makeBuild('12'), makeBuild('13', { version: '1.2.0' })]
