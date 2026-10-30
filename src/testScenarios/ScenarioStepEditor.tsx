@@ -659,7 +659,7 @@ function StepInspector({
   const chip = gap
     ? b.gapChip
     : step.case_id === null
-      ? b.noTcAction
+      ? (step.recommendation_id !== undefined ? b.recommendedTc : b.noTcAction)
       : testCase?.scene
         ? `${caseLabel(step.case_id)} · ${testCase.scene}`
         : caseLabel(step.case_id)

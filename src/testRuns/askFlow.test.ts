@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { choicesOf, composeAnswers } from './askFlow'
+import { answeredOf, choicesOf, composeAnswers } from './askFlow'
 import type { RunChatQuestion } from './runChatApi'
 
 // 입력 칸 위에서 하나씩 답하고, 다 답하면 평범한 대화 한 줄로 보낸다(ARTEL-1118).
@@ -31,3 +31,21 @@ test('전부 건너뛰면 보낼 것이 없다', () => {
   assert.equal(composeAnswers([ask('a', '넣을까요?')], [{ kind: 'skip' }]), null)
   assert.equal(composeAnswers([ask('a', '넣을까요?')], [{ kind: 'text', text: '   ' }]), null)
 })
+
+test('질문지 묶음은 건너뛴 것만 빼고 질문 · 고른 보기와 함께 한 번에 모인다', () => {
+  const asks: RunChatQuestion[] = [
+    { id: 'gap:광장→숲', text: '광장→숲 구간을 어떻게 넘어가나요?', why: null, options: [{ id: 'auto', label: '저절로 넘어감', detail: null }], allowFreeText: true },
+    { id: 'gap:숲→광장', text: '숲→광장 구간을 어떻게 넘어가나요?', why: null, options: [], allowFreeText: true },
+    { id: 'gap:광장→대장간', text: '광장→대장간 구간을 어떻게 넘어가나요?', why: null, options: [], allowFreeText: true },
+  ]
+  const answered = answeredOf(
+    asks,
+    [{ kind: 'text', text: '지도를 열고 숲을 누른다' }, { kind: 'skip' }, { kind: 'option', text: '저절로 넘어감' }],
+    [null, null, 'auto'],
+  )
+  assert.deepEqual(answered.map((one) => [one.question.id, one.answer.text, one.optionId]), [
+    ['gap:광장→숲', '지도를 열고 숲을 누른다', null],
+    ['gap:광장→대장간', '저절로 넘어감', 'auto'],
+  ])
+})
+
