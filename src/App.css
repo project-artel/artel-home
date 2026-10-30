@@ -4276,6 +4276,8 @@ a.instance-name:hover {
 .run-chat-toggle input{ accent-color:var(--st-action); }
 /* 자동저장을 끈 저작 결과(ARTEL-1075). 저장된 것과 섞여 읽히지 않게, 점선 테두리와 종류 띠로
    "아직 저장 안 된 미리보기" 임을 보인다. 새로 생김=초록, 바뀜=노랑, 합쳐져 빠짐=지운 줄. */
+/* 대화 연결이 끊긴 동안. 놓인 자리는 draft 안내와 같고, 색은 '답이 안 온다' 알림(.authoring-progress-stalled)의 경고색이다. */
+.run-chat-connection{ flex:none; margin:0; padding:8px 12px; border-top:1px solid color-mix(in srgb, var(--st-warn, #b45309) 35%, transparent); font-size:12px; line-height:1.5; color:var(--st-warn, #b45309); background:color-mix(in srgb, var(--st-warn, #b45309) 8%, transparent); }
 .run-chat-draft-note{ flex:none; margin:0; padding:8px 12px; border-top:1px solid var(--st-border); font-size:12px; line-height:1.5; color:var(--st-text-2); background:var(--st-draft-dim); }
 .scenario-studio .draft-bar{ display:flex; flex-direction:column; gap:8px; margin:8px 10px 0; padding:10px; border:1px dashed var(--st-draft); border-radius:8px; background:var(--st-draft-dim); }
 .scenario-studio .draft-bar-text{ margin:0; display:flex; flex-direction:column; gap:2px; font-size:12px; line-height:1.45; color:var(--st-text-2); }

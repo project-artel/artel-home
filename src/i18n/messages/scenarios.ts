@@ -156,6 +156,7 @@ export const scenariosEn = {
      */
     cancelHint: 'Press Esc twice to cancel this request',
     cancelArmed: 'Press Esc once more to end the request',
+    reconnecting: 'Connection to the conversation was lost. Reconnecting… Refresh if this stays.',
     sending: 'Sending…',
     send: 'Send',
     sendFailed: 'The message could not be sent. Please try again.',
@@ -1032,6 +1033,7 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     // 취소 안내(ARTEL-956). 기다리는 동안에만 전송 안내를 대신한다.
     cancelHint: 'ESC 두 번 누르면 요청 취소',
     cancelArmed: 'ESC 를 한 번 더 눌러 요청 종료',
+    reconnecting: '대화 연결이 끊겼어요. 다시 연결하는 중이에요. 계속 이러면 새로고침해 주세요.',
     sending: '전송 중…',
     send: '전송',
     sendFailed: '메시지를 전송하지 못했습니다. 다시 시도해 주세요.',

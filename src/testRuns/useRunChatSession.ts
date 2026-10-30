@@ -110,6 +110,8 @@ export function useRunChatSession(
   // 처음 읽기가 끝났는가. 그전의 빈 배열은 "없다" 가 아니라 "아직 모른다" 다.
   const [draftsLoaded, setDraftsLoaded] = useState(false)
   const [connected, setConnected] = useState(false)
+  // 붙어 있다가 끊겼다. 처음 붙기 전의 `connected=false` 와 가른다 — 그때 "끊겼다" 고 하면 거짓이다.
+  const [reconnecting, setReconnecting] = useState(false)
   const [awaitingReply, setAwaitingReply] = useState(false)
   const [sending, setSending] = useState(false)
   const [sendFailure, setSendFailure] = useState<string | null>(null)
@@ -191,7 +193,10 @@ export function useRunChatSession(
       })
 
     source = new EventSource(runChatStreamUrl(projectId, runId), { withCredentials: true })
-    source.addEventListener('open', () => setConnected(true))
+    source.addEventListener('open', () => {
+      setConnected(true)
+      setReconnecting(false)
+    })
     source.addEventListener('result', (event: Event) => {
       if (!(event instanceof MessageEvent)) return
       const parsed = parseRunStreamEvent(event.data)
@@ -366,6 +371,7 @@ export function useRunChatSession(
       }
       // Transport hiccup: mark disconnected; EventSource retries on its own.
       setConnected(false)
+      setReconnecting(true)
     })
 
     return () => {
@@ -587,6 +593,7 @@ export function useRunChatSession(
     drafts,
     draftsLoaded,
     connected,
+    reconnecting,
     // 지금 단계의 n/N 과, 한도를 넘겨 끊긴 것으로 보이는지 (ARTEL-952).
     count,
     stalled,
