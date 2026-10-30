@@ -27,6 +27,23 @@ export type KeyLike = {
 /** 질문 하나에 대한 답. 보기를 골랐거나, 직접 썼거나, 건너뛰었다. */
 export type AskAnswer = { kind: 'option'; text: string } | { kind: 'text'; text: string } | { kind: 'skip' }
 
+/** 다 답한 질문 하나: 무엇을 물었고, 무엇으로 답했고, 고른 보기가 무엇인지. */
+export type AskAnswered = { question: RunChatQuestion; answer: Exclude<AskAnswer, { kind: 'skip' }>; optionId: string | null }
+
+type FlowState = {
+  key: string | null
+  step: number
+  answers: AskAnswer[]
+  optionIds: (string | null)[]
+  highlight: number
+  typing: boolean
+  closed: boolean
+}
+
+function fresh(key: string | null): FlowState {
+  return { key, step: 0, answers: [], optionIds: [], highlight: 0, typing: false, closed: false }
+}
+
 /** 고를 수 있는 줄: 질문의 보기들, 그리고 직접 입력 · 건너뛰기. */
 export type AskChoice = { kind: 'option'; label: string } | { kind: 'own' } | { kind: 'skip' }
 
@@ -50,6 +67,18 @@ export function composeAnswers(asks: readonly RunChatQuestion[], answers: readon
   if (given.length === 0) return null
   if (asks.length === 1) return given[0].text
   return given.map((one, index) => `${index + 1}. ${one.ask.text} → ${one.text}`).join('\n')
+}
+
+/** 다 답한 묶음에서 보낼 것만 — 건너뛴 질문은 빠진다. 질문 · 고른 보기를 함께 든다. */
+export function answeredOf(
+  asks: readonly RunChatQuestion[],
+  answers: readonly AskAnswer[],
+  optionIds: readonly (string | null)[],
+): AskAnswered[] {
+  return asks.flatMap((question, index): AskAnswered[] => {
+    const one = answers[index]
+    return one === undefined || one.kind === 'skip' ? [] : [{ question, answer: one, optionId: optionIds[index] ?? null }]
+  })
 }
 
 export type AskFlow = {
@@ -79,16 +108,15 @@ export function useAskFlow(
   asks: readonly RunChatQuestion[],
   send: (text: string) => void,
   /**
-   * 하나 답할 때마다 바로 보낸다. 오케가 계산으로 낸 질문(경로 공백)이 이 길이다 — 답이 그 자리에 스텝으로
-   * 들어가야 해서, 어느 질문 · 어느 보기인지를 그대로 실어 보낸다. 없으면 다 답한 뒤 한 줄로 모아 보낸다.
+   * 다 답한 뒤 질문 · 보기를 그대로 실어 한 번에 보낸다. 오케가 계산으로 낸 질문(경로 공백 · 계약)이 이 길이다 — 답이
+   * 그 자리에 들어가야 해서 어느 질문 · 어느 보기인지가 필요하다. 하나 답할 때마다 보내던 때는 질문 넷에 요청이 넷
+   * 나가 둘째부터 앞선 턴에 막혔다. 건너뛴 것은 빠진다. 없으면 다 답한 뒤 한 줄로 모아 [send] 로 보낸다.
    */
-  answerEach?: (question: RunChatQuestion, answer: AskAnswer, optionId: string | null) => void,
+  answerAll?: (answered: AskAnswered[]) => void,
 ): AskFlow {
-  const [state, setState] = useState<{ key: string | null; step: number; answers: AskAnswer[]; highlight: number; typing: boolean; closed: boolean }>({
-    key: null, step: 0, answers: [], highlight: 0, typing: false, closed: false,
-  })
+  const [state, setState] = useState<FlowState>(fresh(null))
   // 묶음이 바뀌면(새 답이 왔으면) 처음부터. 렌더 중에 고치지 않고, 열쇠가 다르면 첫 상태로 읽는다.
-  const live = state.key === key ? state : { key, step: 0, answers: [], highlight: 0, typing: false, closed: false }
+  const live = state.key === key ? state : fresh(key)
   const open = key !== null && asks.length > 0 && !live.closed && live.step < asks.length
   const current = open ? asks[live.step] : null
   const choices = current === null ? [] : choicesOf(current)
@@ -96,10 +124,14 @@ export function useAskFlow(
   function advance(answer: AskAnswer, optionId: string | null = null) {
     const answers = [...live.answers]
     answers[live.step] = answer
+    const optionIds = [...live.optionIds]
+    optionIds[live.step] = optionId
     const step = live.step + 1
-    setState({ ...live, answers, step, highlight: 0, typing: false })
-    if (answerEach !== undefined) {
-      if (current !== null && answer.kind !== 'skip') answerEach(current, answer, optionId)
+    setState({ ...live, answers, optionIds, step, highlight: 0, typing: false })
+    if (answerAll !== undefined) {
+      if (step < asks.length) return
+      const answered = answeredOf(asks, answers, optionIds)
+      if (answered.length > 0) answerAll(answered)
       return
     }
     if (step >= asks.length) {

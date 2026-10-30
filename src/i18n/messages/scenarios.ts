@@ -168,6 +168,7 @@ export const scenariosEn = {
      * the list collapses runs of it and counts them with `stageRepeat`.
      */
     stageSent: 'Request sent',
+    stagePreparingCases: 'Reading your test cases (only long the first time)',
     // 워크플로 노드 (ARTEL-952). 사용자가 보는 말로 적는다 — 노드 이름(B·C·D)이 아니라
     // 그 노드가 하는 일로.
     stageGrouping: 'Grouping the cases into scenarios',
@@ -1042,6 +1043,7 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
      * 한 줄로 접고 `stageRepeat`으로 횟수를 센다.
      */
     stageSent: '요청 보냄',
+    stagePreparingCases: 'TC 를 읽고 정리하는 중 (처음 한 번만 오래 걸려요)',
     // 워크플로 노드 (ARTEL-952). 노드 이름(B·C·D)이 아니라 그 노드가 하는 일로 적는다.
     stageGrouping: '케이스를 시나리오로 묶는 중',
     stageGrouped: '케이스를 묶었어요',

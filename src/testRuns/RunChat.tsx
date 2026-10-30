@@ -9,7 +9,7 @@ import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { StudioIcon } from '../testScenarios/studioIcons'
 import { ChatSketch } from '../testScenarios/studioSketches'
 import { AskDock } from './AskDock'
-import { DOCK_MIN_QUESTIONS, useAskFlow, type AskAnswer } from './askFlow'
+import { DOCK_MIN_QUESTIONS, useAskFlow, type AskAnswer, type AskAnswered } from './askFlow'
 import type { RunChatQuestion as AskQuestion } from './runChatApi'
 
 const NO_ASKS: AskQuestion[] = []
@@ -278,6 +278,7 @@ export function RunChat({
   // 있었는지는 대화에 남은 문장이 말한다 — 다 끝난 눈금은 읽을거리만 하나 늘린다.
   const stageLabels: Partial<Record<AuthoringStage, string>> = {
     sent: c.stageSent,
+    preparing_cases: c.stagePreparingCases,
     // 워크플로 노드 (ARTEL-952)
     grouping: c.stageGrouping,
     grouped: c.stageGrouped,
@@ -336,8 +337,8 @@ export function RunChat({
   const [threadNode, setThreadNode] = useState<HTMLOListElement | null>(null)
   const [inputNode, setInputNode] = useState<HTMLTextAreaElement | null>(null)
   // 입력 칸 위에서 하나씩 물을 것(ARTEL-1118). 사용자가 마지막으로 말한 **뒤에** 온 질문만 — 한 마디라도 했으면
-  // 대화가 이미 다음으로 넘어간 것이다. 오케가 계산으로 낸 질문(경로 공백)이 먼저다: 답이 그 자리에 스텝으로
-  // 들어가므로 하나씩 바로 보내고, 모델의 질문은 다 답한 뒤 한 줄로 모아 보낸다.
+  // 대화가 이미 다음으로 넘어간 것이다. 오케가 계산으로 낸 질문(경로 공백)이 먼저다: 답이 그 자리에 들어가므로
+  // 질문 · 보기를 실어 다 답한 뒤 한 번에 보내고, 모델의 질문은 다 답한 뒤 한 줄로 모아 보낸다.
   const lastUserIndex = session.messages.map((message) => message.role).lastIndexOf('USER')
   const sinceUser = session.messages.slice(lastUserIndex + 1)
   const quiet = !session.awaitingReply && !session.sending && !session.closed
@@ -362,6 +363,17 @@ export function RunChat({
       if (sent) setInput('')
     })
   }, [session])
+  // 질문지 한 묶음은 끝까지 답한 뒤 한 번에 보낸다. 하나씩 보내면 둘째부터 앞선 턴에 막힌다.
+  const answerCodeAll = useCallback((answered: AskAnswered[]) => {
+    void session.send('', undefined, answered.map(({ question, answer, optionId }) => ({
+      questionId: question.id,
+      optionIds: optionId === null ? [] : [optionId],
+      text: answer.kind === 'text' ? answer.text : undefined,
+      displayText: `${question.text} → ${answer.text}`,
+    }))).then((sent) => {
+      if (sent) setInput('')
+    })
+  }, [session])
   const agentAsks = agentSource?.reply?.asks ?? NO_ASKS
   // 선택 박스는 고를 것이 많을 때만(ARTEL-1118). 하나 · 둘이면 답 말풍선의 보기 칩으로 답한다.
   const codeDock = codeAsks.length >= DOCK_MIN_QUESTIONS
@@ -372,7 +384,7 @@ export function RunChat({
     codeSource === null || !codeDock ? null : `${codeSource.id}:${codeAsks.map((ask) => ask.id).join(',')}`,
     codeAsks,
     sendAnswers,
-    answerCode,
+    answerCodeAll,
   )
   const askFlow = codeSource !== null ? codeFlow : agentFlow
   // 박스 없이 칩으로 답하는 줄. 모델의 질문은 그 말을 입력 칸에 채우고(보내는 것은 사용자다), 오케의 질문은

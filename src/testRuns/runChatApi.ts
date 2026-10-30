@@ -196,6 +196,8 @@ export type RunChatFailure = {
  */
 export const AUTHORING_STAGES = [
   'sent',
+  // 저작을 열기 전 글 TC 의 계약을 정리하는 중. 처음 여는 프로젝트만 길다(실측 TC 73건 136초).
+  'preparing_cases',
   // 워크플로 노드 (ARTEL-952). `thinking` 은 루프 시절 값이다 — 모델 호출마다 울려서
   // "몇 바퀴 돌았나" 를 세라는 설계였다. 워크플로에는 바퀴가 없고 노드가 있다.
   'grouping',
@@ -260,6 +262,8 @@ export type RunChatProgress = {
  */
 export const STAGE_STALL_MS: Record<AuthoringStage, number> = {
   sent: 30_000,
+  // 서버가 이만큼(8분)까지 정리를 기다린다. 실측 136초의 세 배를 넘는다.
+  preparing_cases: 480_000,
   grouping: 180_000,
   grouped: 30_000,
   bridging: 180_000,
@@ -353,7 +357,19 @@ export type RunChatDraftEvent = {
   drafts: DraftScenario[]
 }
 
+/**
+ * SSE 에 붙자마자 오는 지금 턴 상태. 끊긴 사이의 진행 · 결과는 다시 오지 않으므로, 새로고침이나 재연결 뒤에는 이것으로
+ * 도는 턴을 이어 보이거나(단계가 있다) 끝난 턴의 기다림을 놓는다(단계가 없다).
+ */
+export type RunChatTurnState = {
+  type: 'turn'
+  stage: AuthoringStage | null
+  done?: number
+  total?: number
+}
+
 export type RunChatStreamEvent =
+  | RunChatTurnState
   | RunChatResult
   | RunChatFailure
   | RunChatProgress
@@ -392,6 +408,8 @@ export async function sendRunChatMessage(
   autoApply: boolean,
   answer?: RunChatAnswer,
   draftOnly = false,
+  /** 질문지 한 묶음의 답. 하나씩 보내면 둘째부터 앞선 턴에 막힌다. */
+  answers: RunChatAnswer[] = [],
 ): Promise<void> {
   const response = await apiFetch(chatPath(projectId, runId, '/message'), {
     method: 'POST',
@@ -403,6 +421,7 @@ export async function sendRunChatMessage(
       answer: answer
         ? { question_id: answer.questionId, option_ids: answer.optionIds, text: answer.text ?? null }
         : null,
+      answers: answers.map((one) => ({ question_id: one.questionId, option_ids: one.optionIds, text: one.text ?? null })),
       // `displayText` stays here on purpose — see its doc comment.
     }),
   })
@@ -777,6 +796,16 @@ export function parseRunStreamEvent(data: string): RunChatStreamEvent | null {
   }
   if (record.type === 'notice') {
     return { type: 'notice', message: asString(record.message) }
+  }
+  if (record.type === 'turn') {
+    const count = (value: unknown): number | undefined =>
+      typeof value === 'number' && Number.isFinite(value) ? value : undefined
+    return {
+      type: 'turn',
+      stage: isAuthoringStage(record.stage) ? record.stage : null,
+      done: count(record.done),
+      total: count(record.total),
+    }
   }
   if (record.type === 'question') {
     const question = parseQuestion(record.question)
