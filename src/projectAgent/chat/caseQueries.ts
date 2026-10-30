@@ -187,7 +187,7 @@ export function trimCaseBuilds(history: readonly CaseVerdictHistoryItem[], versi
   return pageRows(
     [...history].reverse().map((item): CaseBuildRow => ({
       gameBuildId: item.gameBuildId,
-      build: item.label !== null && item.label.trim().length > 0 ? item.label : item.version || buildName(versions, item.gameBuildId),
+      build: item.version ? versionName(item) : buildName(versions, item.gameBuildId),
       verificationStatus: item.verificationStatus,
     })),
     0,

@@ -1,3 +1,4 @@
+import { buildDisplayName } from '../../projects/buildEnvironment'
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { EdgeScrollbar } from '../../design-system/primitives/EdgeScrollbar'
@@ -133,7 +134,7 @@ export function QaVerdictsSection() {
       <header className="qv-top">
         <nav aria-label={copy.navigator} className="qv-crumb">
           <Link to={historyPath}>{t.projects.workspace.nav.qaHistory}</Link>
-          {data.gameBuildVersion !== null && <><span aria-hidden="true">›</span><span className="mono">{data.gameBuildVersion}</span></>}
+          {data.gameBuildVersion !== null && <><span aria-hidden="true">›</span><span className="mono">{buildDisplayName({ version: data.gameBuildVersion, isEditor: data.gameBuildIsEditor })}</span></>}
           <span aria-hidden="true">›</span><Link className="qv-test-run-link" to={testRunPath}>{data.testRunName}</Link>
           {data.startedAt !== null && <><span aria-hidden="true">›</span><b>{copy.runAt(shortWhen(data.startedAt))}</b></>}
         </nav>
@@ -157,7 +158,7 @@ export function QaVerdictsSection() {
       </header>
 
       <div className="qv-ctx">
-        {data.gameBuildVersion !== null && <span className="qv-chip">{copy.build} <b className="mono">{data.gameBuildVersion}</b></span>}
+        {data.gameBuildVersion !== null && <span className="qv-chip">{copy.build} <b className="mono">{buildDisplayName({ version: data.gameBuildVersion, isEditor: data.gameBuildIsEditor })}</b></span>}
         <span className="qv-chip">{copy.testRun} <Link className="qv-test-run-link" to={testRunPath}><b>{data.testRunName}</b></Link></span>
         {scenario?.model !== null && scenario?.model !== undefined && (
           <span className="qv-chip">{copy.model} <b className="mono">{scenario.model.split('/').at(-1)}</b></span>

@@ -25,7 +25,6 @@ import {
   type TestCaseVersionSummary,
 } from '../testCases/testCaseVersions'
 import { useTestCaseVersionList } from '../testCases/useTestCaseVersions'
-import { EditorBadge } from '../projects/EditorBadge'
 import { VersionTreeDialog } from '../testCases/VersionTreeDialog'
 import { ClipboardListIcon } from '../testScenarios/scenarioIcons'
 import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
@@ -400,7 +399,6 @@ export function RunListPanel({
             <span className="trl-node-name">{label}</span>
             <span className="trl-muted">{r.runCount(count)}</span>
           </span>
-          {options.version?.isEditor === true && <EditorBadge />}
           {options.latest === true && <span className="trl-badge">{v.latest}</span>}
         </button>
         {folderNodes(key, null)}
@@ -570,9 +568,6 @@ export function RunListPanel({
                 )}
                 <h3>
                   {selectedFolder?.name ?? bucketLabel}
-                  {selectedFolder === null && versions.find((version) => version.gameBuildId === bucket)?.isEditor === true && (
-                    <> <EditorBadge /></>
-                  )}
                 </h3>
               </div>
               <span className="trl-chip">{r.runCount(shown.length)}</span>

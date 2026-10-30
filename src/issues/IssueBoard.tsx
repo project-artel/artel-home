@@ -1,3 +1,4 @@
+import { useBuildDisplayName } from '../projects/useBuildDisplayName'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Dialog } from '../design-system/primitives/Dialog'
@@ -107,6 +108,7 @@ export function IssueBoard({
   onClearSelected: () => void
 }) {
   const { t } = useI18n()
+  const buildName = useBuildDisplayName()
   const b = t.issues.board
   const fm = t.testCases.folders
   const h = fm.history
@@ -725,7 +727,7 @@ export function IssueBoard({
                     </td>
                     <td>
                       {origin?.buildVersion ? (
-                        <span className="ib-version" title={origin.buildLabel ?? undefined}>{origin.buildVersion}</span>
+                        <span className="ib-version" title={origin.buildLabel ?? undefined}>{buildName(origin.gameBuildId, origin.buildVersion)}</span>
                       ) : (
                         <span className="ib-quiet">{b.none}</span>
                       )}
@@ -825,6 +827,7 @@ function IssueSheet({
   onClose: () => void
 }) {
   const { t } = useI18n()
+  const buildName = useBuildDisplayName()
   const b = t.issues.board
   const detail = parseIssueDetail(issue.detail)
   const origin = issue.origin
@@ -879,7 +882,7 @@ function IssueSheet({
           <dd>
             {origin?.buildVersion ? (
               <>
-                <span className="ib-version">{origin.buildVersion}</span>
+                <span className="ib-version">{buildName(origin.gameBuildId, origin.buildVersion)}</span>
                 {origin.buildLabel && <span className="ib-build-label">{origin.buildLabel}</span>}
               </>
             ) : (

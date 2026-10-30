@@ -1,3 +1,4 @@
+import { buildDisplayName } from '../../projects/buildEnvironment'
 import { useTestCaseIdentifiers } from '../../testCases/testCaseIdentifiers'
 import { useContext, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -41,7 +42,7 @@ export function ContentReviewPanel({ projectId, testCaseId, builds = [], default
       {row.state === 'NEEDS_REVALIDATION' && <>
         <label className="qe-content-build">{copy.revalidationBuild}<select className="qe-select" disabled={busy} value={selectedBuild} onChange={event => setBuildId(event.target.value)}>
           {!builds.length && <option value="">—</option>}
-          {builds.map(build => <option key={build.id} value={build.id}>{build.label || build.version}</option>)}
+          {builds.map(build => <option key={build.id} value={build.id}>{buildDisplayName(build)}</option>)}
         </select></label>
         <button className="button button--primary button--compact" disabled={busy || !selectedBuild || runName === null} type="button" onClick={() => {
           if (runName === null) return

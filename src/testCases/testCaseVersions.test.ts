@@ -30,8 +30,8 @@ const list = parseVersionList({
 test('버전 목록은 id 없는 줄을 버리고 다섯 상태 수를 늘 채운다', () => {
   assert.equal(list.length, 2)
   assert.deepEqual(list[0].counts, { VERIFIED: 1, FAILED: 1, REGRESSION: 0, DRAFT: 1, BROKEN: 0 })
-  assert.equal(versionName(list[1]), '알파')
-  assert.equal(versionName(list[0]), '1.1')
+  assert.equal(versionName(list[1]), '1.0 · Unknown · 알파')
+  assert.equal(versionName(list[0]), '1.1 · Unknown')
 })
 
 test('고른 버전이 없거나 모르는 버전이면 최신 버전, 비교는 다른 버전일 때만', () => {
@@ -154,5 +154,5 @@ test('버전 목록이 editor 버전을 표시한다(ARTEL-1181)', () => {
     ],
   })
   assert.equal(editor.isEditor, true)
-  assert.equal(build.isEditor, false)
+  assert.equal(build.isEditor, null)
 })

@@ -1,3 +1,4 @@
+import { buildDisplayName } from './buildEnvironment'
 import { useId, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { apiErrorMessage } from './apiErrorMessage'
@@ -161,7 +162,7 @@ function GameBuildRow({
         onClick={() => setExpanded(!expanded)}
         type="button"
       >
-        <span className="mono build-version">{build.version}</span>
+        <span className="mono build-version">{buildDisplayName(build)}</span>
         {/* An empty string and `null` both mean "no label"; the server clears
             with `''`, so treating only `null` as empty would print a blank gap. */}
         <span className={hasLabel ? 'build-label' : 'build-label build-label--empty'}>
@@ -188,7 +189,7 @@ function GameBuildRow({
                     editable version field would lose whatever was typed. */}
                 <p className="build-version-note">
                   {t.projects.builds.versionNoteBefore}
-                  <span className="mono">{build.version}</span>
+                  <span className="mono">{buildDisplayName(build)}</span>
                   {t.projects.builds.versionNoteAfter}
                 </p>
 
@@ -256,7 +257,7 @@ function GameBuildRow({
             <>
               <dl className="detail-fields">
                 <dt>{t.projects.builds.versionField}</dt>
-                <dd className="mono">{build.version}</dd>
+                <dd className="mono">{buildDisplayName(build)}</dd>
 
                 <dt>{t.projects.builds.labelLabel}</dt>
                 <dd>

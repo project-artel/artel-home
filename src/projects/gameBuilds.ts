@@ -1,3 +1,4 @@
+import { buildDisplayName } from './buildEnvironment'
 import type { GameBuild } from './gameTypes'
 
 /**
@@ -37,13 +38,9 @@ export function selectBuild(
 }
 
 /**
- * Text of one `<option>` in a build picker. The editor build reads
- * `Editor · 1.4.0`: the version is secondary because it only says which Player
- * Settings value the editor last reported.
+ * 버전 바로 다음에 실행 환경을 표시한다. Editor의 version은 마지막으로 보고한 Player Settings 값이다.
  */
 export function buildOptionText(build: GameBuild, editorLabel: string): string {
-  if (build.isEditor) return `${editorLabel} · ${build.version}`
-
-  const label = build.label?.trim() ?? ''
-  return label.length === 0 ? build.version : `${build.version} · ${label}`
+  if (build.isEditor) return `${build.version} · ${editorLabel}`
+  return buildDisplayName(build)
 }

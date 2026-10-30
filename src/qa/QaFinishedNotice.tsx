@@ -1,3 +1,4 @@
+import { buildDisplayName } from '../projects/buildEnvironment'
 import { useCallback, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
@@ -87,7 +88,7 @@ export function QaFinishedNotice({ projectId }: { projectId: string }) {
               <button aria-label={copy.close} className="qa-notice-close" onClick={() => dismiss(run.id)} type="button">✕</button>
             </div>
             <p className="qa-notice-meta">
-              {copy.meta(run.testRunName ?? '', run.gameBuildVersion, seconds === null ? null : formatElapsedSeconds(seconds))}
+              {copy.meta(run.testRunName ?? '', run.gameBuildVersion === null ? null : buildDisplayName({ version: run.gameBuildVersion, isEditor: run.gameBuildIsEditor }), seconds === null ? null : formatElapsedSeconds(seconds))}
             </p>
             <div className="qa-notice-stats">
               {run.casesTotal !== null && (

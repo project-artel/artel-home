@@ -44,7 +44,7 @@ test('트리는 버전 → 런 → 시나리오로 읽고, id 없는 시나리�
   assert.deepEqual(versions[1].testRuns[0].testScenarios.map((s) => s.testScenarioId), ['101', '201'])
   assert.equal(versions[1].testRuns[0].testScenarios[0].caseCount, 0)
   assert.equal(versions[0].testRuns[1].testScenarios[0].caseCount, 3)
-  assert.equal(versionLabel(versions[1], '없음'), '알파')
+  assert.equal(versionLabel(versions[1], '없음'), '1.0.0 · Unknown · 알파')
   assert.equal(versionLabel(versions[2], '없음'), '없음')
 })
 
@@ -78,7 +78,7 @@ test('런 전체 고르기는 빠진 것을 런 순서대로 뒤에 붙이고, �
 test('고른 것의 출처는 트리에서 처음 나온 곳이다', () => {
   const origins = scenarioOrigins(parseScenarioLibrary(wire), '버전 없음', '어느 런에도 없음')
 
-  assert.deepEqual(origins.get('201'), { title: '보스전', from: '2.0.0 · 2.0 다른 런' })
+  assert.deepEqual(origins.get('201'), { title: '보스전', from: '2.0.0 · Unknown · 2.0 다른 런' })
   assert.deepEqual(origins.get('301'), { title: '', from: '버전 없음 · 어느 런에도 없음' })
 })
 

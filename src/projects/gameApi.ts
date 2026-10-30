@@ -1,4 +1,5 @@
 import { apiFetch } from '../auth/authApi'
+import { parseBuildEnvironment } from './buildEnvironment'
 import {
   asNullableString,
   asRecord,
@@ -56,7 +57,7 @@ function toItemArray(data: unknown): unknown[] {
  * engine ARTEL-75 can store, so a missing value means the field was omitted,
  * not that the instance belongs to some other engine.
  */
-function parseInstance(data: unknown): GameInstance | null {
+export function parseInstance(data: unknown): GameInstance | null {
   const record = asRecord(data)
   if (record === null) return null
 
@@ -85,7 +86,7 @@ function parseInstanceBuild(data: unknown): InstanceBuild | null {
     gameBuildId,
     version: asString(record.version),
     label: asNullableString(record.label),
-    isEditor: asBoolean(record.isEditor),
+    isEditor: parseBuildEnvironment(record.isEditor),
   }
 }
 
@@ -104,7 +105,7 @@ export function parseBuild(data: unknown): GameBuild | null {
     version,
     label: asNullableString(record.label),
     notes: asNullableString(record.notes),
-    isEditor: asBoolean(record.isEditor),
+    isEditor: parseBuildEnvironment(record.isEditor),
     createdAt: asString(record.createdAt),
     updatedAt: asString(record.updatedAt),
   }

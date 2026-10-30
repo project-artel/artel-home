@@ -1,3 +1,4 @@
+import { useBuildDisplayName } from '../../projects/useBuildDisplayName'
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Dialog } from '../../design-system/primitives/Dialog'
 import { InfoHint } from '../../design-system/primitives/InfoHint'
@@ -136,6 +137,7 @@ export function DiscussionThread({
   onEdit: (post: DiscussionDetail) => void
 }) {
   const { t } = useI18n()
+  const buildName = useBuildDisplayName()
   const text = t.discussions
   const [post, setPost] = useState<DiscussionDetail | null>(null)
   const [loadError, setLoadError] = useState(false)
@@ -475,7 +477,7 @@ export function DiscussionThread({
   }
 
   // 본문 · 댓글의 TC 는 글의 빌드 버전에 든 것이다.
-  const caseScope = post.buildVersion ? text.caseScope(post.buildVersion) : text.caseScopeAll
+  const caseScope = post.buildVersion ? text.caseScope(buildName(post.gameBuildId, post.buildVersion)) : text.caseScopeAll
   return (
     <CaseRefsProvider gameBuildId={post.gameBuildId} onOpen={setOpenCase} projectId={projectId} scope={caseScope}>
     <div className="dc-thread">
@@ -582,7 +584,7 @@ export function DiscussionThread({
             {post.pinned && <PinnedMark />}
             {post.buildVersion && (
               <span className="ib-version" title={text.buildVersion}>
-                {post.buildVersion}
+                {buildName(post.gameBuildId, post.buildVersion)}
               </span>
             )}
           </div>

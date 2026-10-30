@@ -1,3 +1,4 @@
+import { buildDisplayName } from '../projects/buildEnvironment'
 import type { GameInstance } from '../projects/gameTypes'
 import type { TestCaseVersionSummary } from '../testCases/testCaseVersions'
 import type { TestRun } from './testRunApi'
@@ -63,7 +64,7 @@ export function versionMismatch(run: TestRun | undefined, instance: GameInstance
   const gameBuild = instance?.lastGameBuild ?? null
   if (runBuild === null || gameBuild === null) return null
   const same = gameBuild.isEditor ? gameBuild.version === runBuild.version : gameBuild.gameBuildId === runBuild.gameBuildId
-  return same ? null : { run: runBuild.label ?? runBuild.version, game: gameBuild.label ?? gameBuild.version }
+  return same ? null : { run: buildDisplayName(runBuild), game: buildDisplayName(gameBuild) }
 }
 
 /** 폴더가 든 칸. */

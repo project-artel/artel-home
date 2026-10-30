@@ -1,3 +1,4 @@
+import { useBuildDisplayName } from '../../projects/useBuildDisplayName'
 import { useTestCaseLabel } from '../../testCases/testCaseIdentifiers'
 import { useEffect, useState, type FormEvent } from 'react'
 import { useI18n } from '../../i18n/useI18n'
@@ -40,6 +41,7 @@ export function DiscussionBoard({
   initialCategoryId?: string | null
 }) {
   const { t } = useI18n()
+  const buildName = useBuildDisplayName()
   const caseLabel = useTestCaseLabel()
   const text = t.discussions
   const [filter, setFilter] = useState<Filter>('open')
@@ -181,7 +183,7 @@ export function DiscussionBoard({
                       <span className="dc-post-facet">
                         <span className="dc-cap">{text.buildVersion}</span>
                         {post.buildVersion ? (
-                          <span className="ib-version">{post.buildVersion}</span>
+                          <span className="ib-version">{buildName(post.gameBuildId, post.buildVersion)}</span>
                         ) : (
                           <span className="dc-facet-empty">{text.noVersion}</span>
                         )}
