@@ -13488,3 +13488,29 @@ col.vimp-c-scene{ width:18% } col.vimp-c-verdict{ width:16% }
 
 
 .tc-identifiers-status { position: fixed; z-index: 1200; right: var(--space-4); bottom: var(--space-4); max-width: calc(100vw - 32px); padding: var(--space-3); border: 1px solid var(--color-border-strong); background: var(--color-bg-surface); }
+
+/* 추천 TC 카드 — 답 말풍선 안. 시나리오 draft(왼쪽 목록)와 다른 자리 · 다른 이름이라 노란 테두리만 같은 결이다. */
+.scenario-studio .st-chat .chat-recs { margin-top: 12px; border: 1px solid var(--st-draft); border-radius: 10px; background: var(--st-surface); overflow: hidden; }
+.scenario-studio .st-chat .chat-recs-head { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--st-border); flex-wrap: wrap; }
+.scenario-studio .st-chat .chat-recs-icon { color: var(--st-draft); }
+.scenario-studio .st-chat .chat-recs-hint { color: var(--st-text-2); font-size: 12px; }
+.scenario-studio .st-chat .chat-recs-list { list-style: none; margin: 0; padding: 0; }
+.scenario-studio .st-chat .chat-recs-item { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 10px; padding: 10px 14px; border-bottom: 1px solid var(--st-border); }
+.scenario-studio .st-chat .chat-recs-item:last-child { border-bottom: 0; }
+.scenario-studio .st-chat .chat-recs-check { grid-row: span 2; margin-top: 18px; }
+.scenario-studio .st-chat .chat-recs-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 0; grid-column: -2 / -1; }
+.scenario-studio .st-chat .chat-recs-grid dt { color: var(--st-muted); font-size: 11px; }
+.scenario-studio .st-chat .chat-recs-grid dd { margin: 2px 0 0; overflow-wrap: anywhere; }
+.scenario-studio .st-chat .chat-recs-why { grid-column: -2 / -1; margin: 0; color: var(--st-text-2); font-size: 12px; }
+.scenario-studio .st-chat .chat-recs-done { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0; color: var(--st-verified); }
+.scenario-studio .st-chat .chat-recs-done > span:first-of-type { color: var(--st-text); }
+.scenario-studio .st-chat .chat-recs-done.is-muted { color: var(--st-muted); }
+.scenario-studio .st-chat .chat-recs-link { margin-left: auto; border: 0; background: none; color: var(--color-action-primary); cursor: pointer; font: inherit; font-size: 13px; }
+.scenario-studio .st-chat .chat-recs-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 14px; background: var(--st-raised); border-top: 1px solid var(--st-border); }
+.scenario-studio .st-chat .chat-recs-actions button { border-radius: 6px; padding: 7px 12px; font: inherit; font-size: 13px; cursor: pointer; }
+.scenario-studio .st-chat .chat-recs-primary { border: 0; background: var(--color-action-primary); color: var(--st-canvas); font-weight: 600; }
+.scenario-studio .st-chat .chat-recs-secondary { border: 1px solid var(--st-border-strong); background: transparent; color: var(--st-text); }
+.scenario-studio .st-chat .chat-recs-ghost { border: 0; background: transparent; color: var(--st-text-2); }
+.scenario-studio .st-chat .chat-recs-actions button:disabled { opacity: 0.5; cursor: default; }
+.scenario-studio .st-chat .chat-recs-error { color: var(--st-broken); font-size: 12px; }
+@media (max-width: 720px) { .scenario-studio .st-chat .chat-recs-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

@@ -66,6 +66,39 @@ export type ChatReply = {
    * bulb. The user answers in the chat; an option only fills the input with its words.
    */
   asks: RunChatQuestion[]
+  /** 이 턴이 추천한 TC — 시나리오에 필요한데 만드는 TC 가 없던 것. 저장하면 사용자 TC 가 된다. 없으면 키가 없다. */
+  recommendations?: CaseRecommendation[]
+}
+
+/** 저작이 추천한 TC 하나. 저장 전까지 시나리오 스텝은 `recommendation_id` 로 이것을 가리킨다. */
+export type CaseRecommendation = {
+  id: string
+  scene: string
+  precondition: string
+  step: string
+  expectedValue: string
+  why: string
+  status: 'PENDING' | 'SAVED' | 'DISCARDED'
+  testCaseId: string | null
+}
+
+const RECOMMENDATION_STATUSES = ['PENDING', 'SAVED', 'DISCARDED'] as const
+
+export function parseRecommendations(value: unknown): CaseRecommendation[] {
+  if (!Array.isArray(value)) return []
+  return value.flatMap((entry) => {
+    const record = asRecord(entry)
+    if (record === null) return []
+    const id = asString(record.id)
+    const expectedValue = asString(record.expectedValue)
+    const status = RECOMMENDATION_STATUSES.find((one) => one === record.status) ?? 'PENDING'
+    if (id.length === 0 || expectedValue.length === 0) return []
+    const testCaseId = asString(record.testCaseId)
+    return [{
+      id, scene: asString(record.scene), precondition: asString(record.precondition), step: asString(record.step),
+      expectedValue, why: asString(record.why), status, testCaseId: testCaseId.length > 0 ? testCaseId : null,
+    }]
+  })
 }
 
 /**
@@ -139,7 +172,11 @@ export function parseReply(value: unknown): ChatReply | null {
   const asks = Array.isArray(record.asks)
     ? record.asks.map(parseQuestion).filter((ask): ask is RunChatQuestion => ask !== null)
     : []
-  return { result, detail: asString(record.detail), changes: parseChanges(record.changes), asks }
+  const recommendations = parseRecommendations(record.recommendations)
+  return {
+    result, detail: asString(record.detail), changes: parseChanges(record.changes), asks,
+    ...(recommendations.length > 0 ? { recommendations } : {}),
+  }
 }
 
 export type RunChatFailure = {
@@ -718,7 +755,7 @@ export function parseRunStreamEvent(data: string): RunChatStreamEvent | null {
       type: 'result',
       message: asString(record.message),
       scenarios,
-      reply: parseReply(record.reply),
+      reply: withRecommendations(parseReply(record.reply), record.recommendations),
       refs: parseRefs(record.refs),
     }
   }
@@ -763,4 +800,34 @@ export function parseRunStreamEvent(data: string): RunChatStreamEvent | null {
     return { type: 'draft', drafts: parseDrafts(record.drafts) }
   }
   return null
+}
+
+/** 실시간 결과 프레임은 추천 TC 를 답 바깥에 싣는다. 답에 붙여 저장된 답과 같은 모양으로 그린다. */
+function withRecommendations(reply: ChatReply | null, value: unknown): ChatReply | null {
+  const recommendations = parseRecommendations(value)
+  return reply === null || recommendations.length === 0 ? reply : { ...reply, recommendations }
+}
+
+function recommendationPath(projectId: string, runId: string, suffix = ''): string {
+  return `/api/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(runId)}/case-recommendations${suffix}`
+}
+
+/** 이 런의 추천 TC 와 지금 상태. 저장된 답의 카드가 상태를 다시 읽는다. */
+export async function listCaseRecommendations(projectId: string, runId: string): Promise<CaseRecommendation[]> {
+  const response = await apiFetch(recommendationPath(projectId, runId))
+  if (!response.ok) throw await toApiError(response)
+  return parseRecommendations(await readJson(response))
+}
+
+/** 추천 TC 를 저장한다. 저장한 것을 돌려준다. 시나리오의 그 스텝은 새 TC 를 확인하는 스텝이 된다. */
+export async function saveCaseRecommendations(projectId: string, runId: string, ids: string[]): Promise<CaseRecommendation[]> {
+  const response = await apiFetch(recommendationPath(projectId, runId, '/save'), { method: 'POST', ...jsonRequest({ ids }) })
+  if (!response.ok) throw await toApiError(response)
+  return parseRecommendations(await readJson(response))
+}
+
+/** 추천 TC 를 버린다. 그 스텝은 판정 없는 스텝으로 남는다. */
+export async function discardCaseRecommendations(projectId: string, runId: string, ids: string[]): Promise<void> {
+  const response = await apiFetch(recommendationPath(projectId, runId, '/discard'), { method: 'POST', ...jsonRequest({ ids }) })
+  if (!response.ok) throw await toApiError(response)
 }

@@ -6,6 +6,7 @@ import { useI18n } from '../i18n/useI18n'
 import { StudioIcon } from '../testScenarios/studioIcons'
 import { parseChatMarkdown, parseInline, type ChatMarkdownOptions, type Inline } from './chatMarkdown'
 import { ChatCodeBlock } from './ChatCodeBlock'
+import { ChatRecommendations } from './ChatRecommendations'
 import { ChatRefChip } from './ChatRefChip'
 import { ChatLinkContext, ChatRefsContext } from './chatRefContext'
 import type { ChatRef, ChatReply, RunChatQuestion, ScenarioChange } from './runChatApi'
@@ -48,6 +49,8 @@ export function ChatReplyBody({ reply, refs = [], onPickAsk }: {
         </div>
       )}
       {reply.detail.trim().length > 0 && <ChatMessageBody body={reply.detail} refs={refs} />}
+      {/* 추천 TC 는 설명 바로 아래, 질문 위다 — 설명이 "아래 TC 를 추천해요" 라고 말한다. */}
+      {reply.recommendations !== undefined && <ChatRecommendations recommendations={reply.recommendations} />}
       {reply.asks.length > 0 && <ChatAsks asks={reply.asks} onPick={onPickAsk} />}
     </div>
     </ChatRefsContext.Provider>

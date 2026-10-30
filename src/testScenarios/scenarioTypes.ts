@@ -54,6 +54,8 @@ export type ScenarioStep = {
    * the next authoring turn.
    */
   step_source: 'CASE' | 'CAPABILITY' | 'UNKNOWN' | 'HUMAN' | null
+  /** 아직 저장하지 않은 추천 TC 를 확인하는 스텝이면 그 추천 id. 저장하면 `case_id` 로 바뀐다. 없으면 키가 없다. */
+  recommendation_id?: number
 }
 
 /** A notice block, not a step to run. */
