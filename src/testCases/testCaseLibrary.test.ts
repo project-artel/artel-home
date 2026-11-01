@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import type { GameBuild } from '../projects/gameTypes'
 import {
+  countKinds,
   countScenes,
   editableCase,
   describeVerifiedBuild,
@@ -105,7 +106,7 @@ test('씬과 검증 상태 필터는 함께 걸린다', () => {
     makeCase('3', { scene: 'Shop', verificationStatus: 'BROKEN' }),
   ]
 
-  const filters = { query: '', scene: 'Lobby', status: 'BROKEN' as VerificationStatus, origin: 'ALL' as const }
+  const filters = { query: '', scene: 'Lobby', status: 'BROKEN' as VerificationStatus, origin: 'ALL' as const, kind: 'ALL' as const }
   assert.deepEqual(idsOf(selectTestCases(cases, filters, 'NEWEST')), ['1'])
   assert.equal(hasActiveFilters(filters), true)
 })
@@ -203,4 +204,17 @@ test('출처 필터는 자동 생성 · 사용자 생성을 가르고, 출처를
   assert.deepEqual(only('MAP'), ['1'])
   assert.deepEqual(only('MANUAL'), ['2'])
   assert.equal(hasActiveFilters({ ...NO_FILTERS, origin: 'MANUAL' }), true)
+})
+
+test('종류 필터는 예외만 · 기능만 고르고, 종류를 모르는 케이스는 기능이다', () => {
+  const cases = [
+    makeCase('1', { kind: 'FUNCTION' }),
+    makeCase('2', { kind: 'EXCEPTION' }),
+    makeCase('3'),
+  ]
+
+  assert.deepEqual(idsOf(selectTestCases(cases, { ...NO_FILTERS, kind: 'EXCEPTION' }, 'NEWEST')), ['2'])
+  assert.deepEqual(idsOf(selectTestCases(cases, { ...NO_FILTERS, kind: 'FUNCTION' }, 'NEWEST')), ['1', '3'])
+  assert.equal(hasActiveFilters({ ...NO_FILTERS, kind: 'EXCEPTION' }), true)
+  assert.deepEqual(countKinds(cases), { FUNCTION: 2, EXCEPTION: 1 })
 })

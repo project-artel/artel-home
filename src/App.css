@@ -10316,6 +10316,8 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
 .tce-seg-btn:hover{ background:var(--st-hover); }
 .tce-seg-btn.on{ background:var(--color-bg-hover); box-shadow:inset 0 -2px 0 var(--color-brand-accent); }
 .tce-seg-btn:focus-visible{ outline:2px solid var(--color-brand-accent); outline-offset:-2px; }
+/* 단추가 둘뿐인 선택(종류)은 칸 폭으로 늘이지 않는다 (ARTEL-1308). */
+.tce-seg--fit{ align-self:flex-start; }
 
 .tcl-sheet .tcl-editor{ display:flex; flex-direction:column; gap:14px; }
 .tcl-sheet .tcl-editor-head h3{ margin:0; font-size:14px; }
@@ -10969,6 +10971,14 @@ col.mct-c-updated { width: 12%; }
   background:color-mix(in srgb, var(--color-brand-accent) 14%, transparent);
   color:var(--color-text-primary);
 }
+
+/* 예외 TC 라벨 (ARTEL-1308). 출처 라벨과 같은 모양, 색만 경고 쪽이다. */
+.tct-kind--exception{
+  border:1px solid color-mix(in srgb, var(--color-status-warning) 60%, transparent);
+  background:color-mix(in srgb, var(--color-status-warning) 14%, transparent);
+  color:var(--color-text-primary);
+}
+.tct-kind-pre{ color:var(--color-text-muted); }
 
 /* 버전 트리 모달 · 새 케이스의 버전 칸 (ARTEL-1032) */
 .vtree{

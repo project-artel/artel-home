@@ -94,3 +94,12 @@ test('test case 응답의 folderId 는 문자열이거나 null 이고, 없으면
   assert.equal(parseTestCase({ ...base, folderId: null })?.folderId, null)
   assert.equal(parseTestCase(base)?.folderId, null)
 })
+
+test('test case 응답의 kind 는 EXCEPTION 이 아니면 FUNCTION 이다', () => {
+  const base = { id: '1', step: 's', expectedValue: 'e' }
+
+  assert.equal(parseTestCase({ ...base, kind: 'EXCEPTION' })?.kind, 'EXCEPTION')
+  assert.equal(parseTestCase({ ...base, kind: 'FUNCTION' })?.kind, 'FUNCTION')
+  assert.equal(parseTestCase(base)?.kind, 'FUNCTION')
+  assert.equal(parseTestCase({ ...base, kind: 'edge' })?.kind, 'FUNCTION')
+})

@@ -276,6 +276,13 @@ export const testCasesEn = {
     mapTitle: 'Generated from the content map',
     manualTitle: 'Written by a person',
   },
+  kind: {
+    label: 'Kind',
+    all: 'All',
+    FUNCTION: 'Feature',
+    EXCEPTION: 'Exception',
+    exceptionTitle: 'Checks that the game refuses or blocks when a condition is not met',
+  },
   tour: {
     help: 'Help',
     helpTitle: 'Show the case library tutorial again',
@@ -333,7 +340,7 @@ export const testCasesEn = {
       },
       chips: {
         title: 'Filter by result and source',
-        body: 'Result chips narrow the table to one verdict. Source chips split auto-generated cases (from the content map) from user-created ones.',
+        body: 'Result chips narrow the table to one verdict. Source chips split auto-generated cases (from the content map) from user-created ones. Kind chips split feature cases from exception cases, which check that the game blocks when a condition is not met.',
       },
       table: {
         title: 'The case table',
@@ -829,6 +836,13 @@ export const testCasesKo: Localized<typeof testCasesEn> = {
     mapTitle: '콘텐츠 맵에서 자동으로 만든 케이스',
     manualTitle: '사용자가 직접 만든 케이스',
   },
+  kind: {
+    label: '종류',
+    all: '전체',
+    FUNCTION: '기능',
+    EXCEPTION: '예외',
+    exceptionTitle: '조건이 맞지 않을 때 게임이 막는지 확인하는 케이스',
+  },
   tour: {
     help: '도움말',
     helpTitle: '케이스 라이브러리 튜토리얼을 다시 봅니다',
@@ -886,7 +900,7 @@ export const testCasesKo: Localized<typeof testCasesEn> = {
       },
       chips: {
         title: '결과 · 출처로 거르기',
-        body: '결과 칩은 판정 하나로 표를 좁힙니다. 출처 칩은 콘텐츠 맵에서 자동 생성된 TC 와 사용자 생성 TC 를 가릅니다.',
+        body: '결과 칩은 판정 하나로 표를 좁힙니다. 출처 칩은 콘텐츠 맵에서 자동 생성된 TC 와 사용자 생성 TC 를 가릅니다. 종류 칩은 기능 TC 와, 조건이 안 맞을 때 막히는지 보는 예외 TC 를 가릅니다.',
       },
       table: {
         title: 'TC 표',
