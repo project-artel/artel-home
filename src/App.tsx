@@ -33,6 +33,7 @@ import { UsageSection } from './usage/UsageSection'
 import { ProjectWorkspaceRoute } from './projects/workspace/ProjectWorkspace'
 import { QaHistorySection } from './projects/workspace/QaHistorySection'
 import { GameBuildsSection } from './projects/workspace/GameBuildsSection'
+import { GlossarySection } from './projects/workspace/GlossarySection'
 import { QaSection } from './projects/workspace/QaSection'
 import { SettingsSection } from './projects/workspace/SettingsSection'
 import { SetupSection } from './projects/workspace/SetupSection'
@@ -159,6 +160,7 @@ export function App() {
             {/* 빌드 상세는 `?build=` 로 연다. 밖의 `/game-builds/:buildId/performance` · `content-map` 은 segment 가
                 더 많은 별개 경로라 이 섹션과 겹치지 않는다. */}
             <Route path="game-builds" element={<GameBuildsSection />} />
+            <Route path="glossary" element={<GlossarySection />} />
             <Route path="qa-history/:qaRunId" element={<QaVerdictsSection />} />
             <Route path="content-map" element={<ContentMapSection />} />
             <Route path="macros" element={<MacroSection />} />

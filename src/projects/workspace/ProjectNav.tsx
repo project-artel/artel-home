@@ -20,6 +20,8 @@ const ICON_PATHS: Record<WorkspaceSectionId, string[]> = {
   qaHistory: ['M3 4.2h10', 'M3 8h10', 'M3 11.8h6.5'],
   // 겹쳐 쌓인 상자 셋. 버전마다 하나씩 쌓이는 빌드 목록을 15px 안에서 그린다.
   gameBuilds: ['M8 2.2l5.6 2.8L8 7.8 2.4 5z', 'M2.4 8l5.6 2.8L13.6 8', 'M2.4 11l5.6 2.8 5.6-2.8'],
+  // 책 한 권: 가운데 접힌 선과 두 쪽의 줄. 이름과 뜻을 모아 둔 목록이다(ARTEL-1313).
+  glossary: ['M8 4v9.4', 'M8 4C6.6 3 4.4 2.8 2.4 3.2v9.4c2-.4 4.2-.2 5.6.8', 'M8 4c1.4-1 3.6-1.2 5.6-.8v9.4c-2-.4-4.2-.2-5.6.8'],
   // A box holding two smaller boxes, with a line leaving it: a scene container,
   // the screens inside it, and a transition out. The drawing's own shape, small.
   contentMap: ['M2.2 3h7.6v7.6H2.2z', 'M3.8 4.6h1.9v1.9H3.8z', 'M6.4 4.6h1.9v1.9H6.4z', 'M9.8 6.8h2.6v6.4H6.6'],
