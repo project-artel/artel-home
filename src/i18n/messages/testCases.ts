@@ -323,6 +323,7 @@ export const testCasesEn = {
     exceptionTitle: 'Checks that the game refuses or blocks when a condition is not met',
     transition: 'Scene change',
     transitionTitle: (scene: string) => `Moves to ${scene}`,
+    transitionFilterTitle: 'Only cases that move to another screen. Combines with Feature / Exception.',
   },
   tour: {
     help: 'Help',
@@ -924,6 +925,7 @@ export const testCasesKo: Localized<typeof testCasesEn> = {
     exceptionTitle: '조건이 맞지 않을 때 게임이 막는지 확인하는 케이스',
     transition: '씬 전이',
     transitionTitle: (scene: string) => `${scene} 화면으로 갑니다`,
+    transitionFilterTitle: '다른 화면으로 가는 TC 만 봅니다. 기능 · 예외와 함께 걸 수 있어요.',
   },
   tour: {
     help: '도움말',
