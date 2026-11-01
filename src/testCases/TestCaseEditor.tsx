@@ -346,7 +346,7 @@ export function TestCaseEditor({
             </div>
           </div>
         )}
-        <div className="tce-field">
+        <div className="tce-field tce-field--full">
           <label className="tce-label" htmlFor={sceneId}>{m.scene}</label>
           <input
             aria-describedby={fieldErrors.scene ? `${sceneId}-error` : undefined}
@@ -383,8 +383,9 @@ export function TestCaseEditor({
           </datalist>
         </div>
 
-        {/* 도착 화면(ARTEL-1313). 화면 칸과 같은 입력이다. 누가 정했든(MCP · QA · AI) 여기서 고치고, 고친 값은 덮이지 않는다. */}
-        <div className="tce-field">
+        {/* 도착 화면(ARTEL-1313). 화면 칸과 같은 입력이다. 누가 정했든(MCP · QA · AI) 여기서 고치고, 고친 값은 덮이지 않는다.
+            한 줄을 다 쓴다 — 옆 칸에 두면 칩 줄이 그 칸을 넓혀 화면 칸이 좁아지고 칩이 세로로 쌓였다. */}
+        <div className="tce-field tce-field--full">
           <label className="tce-label" htmlFor={arrivalId}>{m.arrivesAt}<InfoHint>{m.arrivesAtHint}</InfoHint></label>
           <input
             className="tce-input tce-input--one"
