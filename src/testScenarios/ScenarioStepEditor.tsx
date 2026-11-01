@@ -1,4 +1,5 @@
 import { useTestCaseLabel } from '../testCases/testCaseIdentifiers'
+import { sceneNamesOf, scenePattern } from '../testCases/sceneHighlight'
 import { TestCaseHover } from '../testCases/TestCaseHover'
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
 import { InfoHint } from '../design-system/primitives/InfoHint'
@@ -76,7 +77,7 @@ export function ScenarioStepEditor({
   const { working } = editor
   const steps = working.steps
   const cases = useRunCases(projectId, caseBuild?.gameBuildId ?? null)
-  const sceneMatcher = useMemo(() => scenePattern(cases), [cases])
+  const sceneMatcher = useMemo(() => scenePattern(sceneNamesOf(cases.values())), [cases])
   const caseList = useMemo(() => [...cases.values()], [cases])
   const [detailHeight, setDetailHeight] = useDetailHeight()
 
@@ -875,17 +876,6 @@ function wholeMatch(pattern: RegExp, text: string): boolean {
   return parts.length === 3 && parts[0] === '' && parts[2] === ''
 }
 
-/**
- * 프로젝트 TC 의 씬 이름으로 만든 찾기 식. 긴 이름부터 맞춰 `Map_scene` 이 `Map` 에 먹히지 않게 하고,
- * 앞뒤가 영숫자이면 이름의 일부로 보고 건너뛴다. 세 글자보다 짧은 이름은 흔한 낱말과 겹쳐 뺀다.
- */
-function scenePattern(cases: ReadonlyMap<string, TestCase>): RegExp | null {
-  const names = [...new Set([...cases.values()].map((testCase) => testCase.scene).filter((scene): scene is string => typeof scene === 'string' && scene.length >= 3))]
-  if (names.length === 0) return null
-  names.sort((left, right) => right.length - left.length)
-  const escaped = names.map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-  return new RegExp(`(?<![A-Za-z0-9_])(${escaped.join('|')})(?![A-Za-z0-9_])`)
-}
 
 /**
  * 가운데 칸의 스크롤 표시. 스튜디오는 좌·우 칸에만 막대(`EdgeScrollbar`)를 두고 가운데는 위아래 끝의

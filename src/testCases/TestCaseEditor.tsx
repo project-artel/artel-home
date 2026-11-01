@@ -40,6 +40,7 @@ type Draft = {
   verificationStatus: VerificationStatus
   functions: CaseFunctions
   kind: CaseKind
+  arrivesAt: string
 }
 
 const BLANK_DRAFT: Draft = {
@@ -50,6 +51,7 @@ const BLANK_DRAFT: Draft = {
   verificationStatus: DEFAULT_VERIFICATION_STATUS,
   functions: ALL_CASE_FUNCTIONS,
   kind: 'FUNCTION',
+  arrivesAt: '',
 }
 
 function toDraft(testCase: TestCase): Draft {
@@ -61,6 +63,7 @@ function toDraft(testCase: TestCase): Draft {
     verificationStatus: testCase.verificationStatus,
     functions: testCase.functions ?? ALL_CASE_FUNCTIONS,
     kind: testCase.kind ?? 'FUNCTION',
+    arrivesAt: testCase.arrivesAt ?? '',
   }
 }
 
@@ -88,6 +91,7 @@ function toPatch(draft: Draft, saved: TestCase): TestCaseInput {
     patch.functions = toWireCaseFunctions(draft.functions)
   }
   if (draft.kind !== (saved.kind ?? 'FUNCTION')) patch.kind = draft.kind
+  if (draft.arrivesAt.trim() !== (saved.arrivesAt ?? '')) patch.arrivesAt = draft.arrivesAt.trim()
 
   return patch
 }
@@ -153,6 +157,7 @@ export function TestCaseEditor({
   const expectedValueId = useId()
   const verificationId = useId()
   const kindId = useId()
+  const arrivalId = useId()
   const sceneListId = useId()
 
   const creating = testCase === null
@@ -209,6 +214,7 @@ export function TestCaseEditor({
           verificationStatus: draft.verificationStatus,
           // 기능이 기본이라 예외일 때만 보낸다.
           ...(draft.kind === 'EXCEPTION' ? { kind: draft.kind } : {}),
+          ...(draft.arrivesAt.trim().length > 0 ? { arrivesAt: draft.arrivesAt.trim() } : {}),
           folderId,
           gameBuildId: versionChoice === undefined ? null : versionId,
           // 전부 허용이 기본이라 바꾸지 않았으면 보내지 않는다.
@@ -376,6 +382,36 @@ export function TestCaseEditor({
           </datalist>
         </div>
 
+        {/* 도착 화면(ARTEL-1313). 화면 칸과 같은 입력이다. 누가 정했든(MCP · QA · AI) 여기서 고치고, 고친 값은 덮이지 않는다. */}
+        <div className="tce-field">
+          <label className="tce-label" htmlFor={arrivalId}>{m.arrivesAt}<InfoHint>{m.arrivesAtHint}</InfoHint></label>
+          <input
+            className="tce-input tce-input--one"
+            disabled={pending}
+            id={arrivalId}
+            list={sceneListId}
+            onChange={(event) => setDraft({ ...draft, arrivesAt: event.target.value })}
+            placeholder={m.arrivesAtPlaceholder}
+            value={draft.arrivesAt}
+          />
+          {knownScenes.length > 0 && (
+            <div className="tce-known">
+              <span className="tce-known-label">{m.sceneKnown}</span>
+              {knownScenes.map((name) => (
+                <button
+                  className={'fchip' + (draft.arrivesAt === name ? ' on' : '')}
+                  disabled={pending}
+                  key={name}
+                  onClick={() => setDraft({ ...draft, arrivesAt: draft.arrivesAt === name ? '' : name })}
+                  type="button"
+                >
+                  {name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* 새 케이스는 늘 미검증으로 시작한다(서버가 정한다). 만들 때 고르게 하면 고른 값이 말없이 버려졌다. */}
         {creating ? (
           <div className="tce-field">
@@ -383,7 +419,8 @@ export function TestCaseEditor({
             <p className="field-hint">{m.newCaseStatus}</p>
           </div>
         ) : (
-        <div className="tce-field">
+        // 도착 화면이 화면 옆에 서서(ARTEL-1313) 결과는 한 줄을 다 쓴다. 다섯 단추가 반 칸에 들어가지 않는다.
+        <div className="tce-field tce-field--full">
           <span className="tce-label" id={verificationId}>{m.verification}</span>
           {/* 값이 셋뿐이다. 드롭다운은 고르기 전에는 무엇이 있는지 감추는데, 셋은 다 보여도 된다. */}
           <div className="tce-seg" role="radiogroup" aria-labelledby={verificationId}>

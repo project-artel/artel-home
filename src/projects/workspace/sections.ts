@@ -15,6 +15,7 @@ export const WORKSPACE_SECTIONS = [
   { id: 'performance', path: 'performance', group: 'qa' },
   { id: 'documents', path: 'documents', group: 'data' },
   { id: 'gameBuilds', path: 'game-builds', group: 'data' },
+  { id: 'glossary', path: 'glossary', group: 'data' },
   { id: 'contentMap', path: 'content-map', group: 'data' },
   { id: 'knowledge', path: 'knowledge', group: 'data' },
   { id: 'setup', path: 'setup', group: 'management' },
