@@ -34,9 +34,11 @@ export type TestCaseFilters = {
   origin: 'ALL' | CaseOrigin
   /** 종류(ARTEL-1308). `ALL` 은 가리지 않는다. 종류를 모르는 케이스는 기능이다. */
   kind: 'ALL' | CaseKind
+  /** 씬 전이 TC 만(ARTEL-1313). 도착 화면이 있는 TC 다. 종류와 겹칠 수 있어 따로 켜고 끈다. */
+  transition: boolean
 }
 
-export const NO_FILTERS: TestCaseFilters = { query: '', scene: '', status: 'ALL', origin: 'ALL', kind: 'ALL' }
+export const NO_FILTERS: TestCaseFilters = { query: '', scene: '', status: 'ALL', origin: 'ALL', kind: 'ALL', transition: false }
 
 /** 하나라도 걸려 있으면 빈 목록의 문구가 "아직 없음"이 아니라 "조건에 맞는 것이 없음"이 된다. */
 export function hasActiveFilters(filters: TestCaseFilters): boolean {
@@ -45,7 +47,8 @@ export function hasActiveFilters(filters: TestCaseFilters): boolean {
     filters.scene.length > 0 ||
     filters.status !== 'ALL' ||
     filters.origin !== 'ALL' ||
-    filters.kind !== 'ALL'
+    filters.kind !== 'ALL' ||
+    filters.transition
   )
 }
 
@@ -113,6 +116,7 @@ export function selectTestCases(
       (filters.scene.length === 0 || testCase.scene === filters.scene) &&
       (filters.origin === 'ALL' || testCase.origin === filters.origin) &&
       (filters.kind === 'ALL' || (testCase.kind ?? 'FUNCTION') === filters.kind) &&
+      (!filters.transition || (testCase.arrivesAt ?? '').length > 0) &&
       matchesQuery(testCase, query, numbers),
   )
 
@@ -182,9 +186,12 @@ export const STATUS_CLASS: Record<VerificationStatus, string> = {
 
 /** 결과 chip 옆의 수. */
 /** 종류마다 몇 건인가(ARTEL-1308). 종류를 모르는 케이스는 기능으로 센다. */
-export function countKinds(cases: TestCase[]): Record<CaseKind, number> {
-  const counts: Record<CaseKind, number> = { FUNCTION: 0, EXCEPTION: 0 }
-  for (const testCase of cases) counts[testCase.kind ?? 'FUNCTION'] += 1
+export function countKinds(cases: TestCase[]): Record<CaseKind, number> & { transition: number } {
+  const counts = { FUNCTION: 0, EXCEPTION: 0, transition: 0 }
+  for (const testCase of cases) {
+    counts[testCase.kind ?? 'FUNCTION'] += 1
+    if ((testCase.arrivesAt ?? '').length > 0) counts.transition += 1
+  }
   return counts
 }
 
@@ -194,4 +201,35 @@ export function countOf(tally: TestCaseTally, status: VerificationStatus): numbe
   if (status === 'REGRESSION') return tally.regression
   if (status === 'BROKEN') return tally.broken
   return tally.draft
+}
+
+/**
+ * 편집 창의 화면 · 도착 화면 칩에 쓰는 씬 순서(ARTEL-1313). 화면 칸은 TC 가 많은 씬부터, 도착 화면 칸은 도착 화면으로
+ * 많이 쓴 씬부터(그다음 TC 가 많은 씬) 놓는다. 칩은 앞 일곱 개만 보이고 나머지는 검색 팝업에서 찾는다.
+ */
+export type SceneUsage = {
+  scenes: string[]
+  sceneCounts: Map<string, number>
+  arrivals: string[]
+  arrivalCounts: Map<string, number>
+}
+
+export const NO_SCENE_USAGE: SceneUsage = { scenes: [], sceneCounts: new Map(), arrivals: [], arrivalCounts: new Map() }
+
+export function sceneUsageOf(cases: TestCase[]): SceneUsage {
+  const sceneCounts = new Map<string, number>()
+  const arrivalCounts = new Map<string, number>()
+  for (const testCase of cases) {
+    const scene = testCase.scene.trim()
+    if (scene.length > 0) sceneCounts.set(scene, (sceneCounts.get(scene) ?? 0) + 1)
+    const arrival = testCase.arrivesAt?.trim() ?? ''
+    if (arrival.length > 0) arrivalCounts.set(arrival, (arrivalCounts.get(arrival) ?? 0) + 1)
+  }
+  const byCount = (counts: Map<string, number>) => (left: string, right: string) =>
+    (counts.get(right) ?? 0) - (counts.get(left) ?? 0) || left.localeCompare(right)
+  const scenes = [...sceneCounts.keys()].sort(byCount(sceneCounts))
+  const arrivals = [...new Set([...arrivalCounts.keys(), ...scenes])].sort(
+    (left, right) => (arrivalCounts.get(right) ?? 0) - (arrivalCounts.get(left) ?? 0) || byCount(sceneCounts)(left, right),
+  )
+  return { scenes, sceneCounts, arrivals, arrivalCounts }
 }

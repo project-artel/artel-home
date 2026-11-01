@@ -10307,6 +10307,8 @@ col.tct-c-res{ width:10% } col.tct-c-exp{ width:24% } col.tct-c-added{ width:10%
   padding-top:12px; border-top:1px solid var(--st-border); }
 .tce-field{ min-width:0; display:flex; flex-direction:column; gap:6px; }
 .tce-known{ display:flex; flex-wrap:wrap; align-items:center; gap:5px; }
+/* 편집 창의 씬 칩 줄은 라벨과 칩을 한 줄로 흘린다. 칩 묶음 상자는 그 흐름에 끼어들지 않는다 (ARTEL-1313). */
+.tce-known-chips{ display:contents; }
 .tce-known-label{ font-family:var(--st-mono); font-size:10px; color:var(--st-text-2); margin-right:2px; }
 /* 값이 셋뿐인 것을 드롭다운에 감추지 않는다. */
 .tce-seg{ display:inline-flex; border:1px solid var(--st-border-strong); border-radius:7px; overflow:hidden; }

@@ -73,6 +73,7 @@ import {
   selectTestCases,
   tallyTestCases,
   countKinds,
+  sceneUsageOf,
   countOf,
   STATUS_CLASS,
   type TestCaseFilters,
@@ -403,10 +404,7 @@ export function TestCaseLibrary({
     setSelectedId(null)
   }, [setCreating, setSelectedId])
   // 화면 이름은 대부분 이미 쓰던 것 중 하나다. 편집기에 넘겨 칩으로 고르게 한다.
-  const knownScenes = useMemo(
-    () => [...new Set(library.cases.map((one) => one.scene.trim()).filter((one) => one.length > 0))].sort(),
-    [library.cases],
-  )
+  const sceneUsage = useMemo(() => sceneUsageOf(library.cases), [library.cases])
 
   function startCreating() {
     setSelectedId(null)
@@ -1067,6 +1065,16 @@ export function TestCaseLibrary({
                 {kind === 'ALL' ? m.kind.all : m.kind[kind]} {kind === 'ALL' ? tally.total : kinds[kind]}
               </button>
             ))}
+            {/* 씬 전이(ARTEL-1313)는 기능 · 예외와 겹치는 표시라 따로 켜고 끈다. */}
+            <button
+              aria-pressed={filters.transition}
+              className={filters.transition ? 'fchip on' : 'fchip'}
+              onClick={() => setFilters({ ...filters, transition: !filters.transition })}
+              title={m.kind.transitionFilterTitle}
+              type="button"
+            >
+              {m.kind.transition} {kinds.transition}
+            </button>
             {folderView && hiddenCount > 0 && (
               <button
                 aria-pressed={showHidden}
@@ -1368,7 +1376,7 @@ export function TestCaseLibrary({
           key={`${projectId}:${selectedVersionId ?? ''}:${selected?.id ?? 'new'}`}
           builds={builds}
           folderId={folderSelection.kind === 'folder' ? folderSelection.id : null}
-          knownScenes={knownScenes}
+          sceneUsage={sceneUsage}
           onClose={closeSheet}
           onCreated={(created) => {
             library.applyCreated(created)

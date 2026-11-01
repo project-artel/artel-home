@@ -1,4 +1,6 @@
 import { useId, useState } from 'react'
+import { SceneChipPicker } from './CaseSceneFilter'
+import { NO_SCENE_USAGE, type SceneUsage } from './testCaseLibrary'
 import { useI18n } from '../i18n/useI18n'
 import { apiErrorMessage } from '../projects/apiErrorMessage'
 import { ProjectApiError } from '../projects/projectApi'
@@ -107,7 +109,7 @@ function toPatch(draft: Draft, saved: TestCase): TestCaseInput {
  */
 export function TestCaseEditor({
   builds = [],
-  knownScenes = [],
+  sceneUsage = NO_SCENE_USAGE,
   folderId = null,
   projectId,
   testCase,
@@ -121,7 +123,8 @@ export function TestCaseEditor({
   /** 빌드 목록. cheat · behavior 이름을 읽어 올 빌드를 정하는 데 쓴다(ARTEL-1051). */
   builds?: GameBuild[]
   /** Screen names already used in this project, offered as chips and as a `datalist`. */
-  knownScenes?: string[]
+  /** 화면 · 도착 화면 칩의 순서와 수(ARTEL-1313). */
+  sceneUsage?: SceneUsage
   /** 새 케이스를 만들 폴더. 고른 케이스를 고치는 저장에는 실리지 않는다 — 저장이 폴더를 풀면 안 된다. */
   folderId?: string | null
   projectId: string
@@ -361,24 +364,21 @@ export function TestCaseEditor({
           {fieldErrors.scene && (
             <p className="field-error" id={`${sceneId}-error`}>{fieldErrors.scene}</p>
           )}
-          {knownScenes.length > 0 && (
-            <div className="tce-known">
-              <span className="tce-known-label">{m.sceneKnown}</span>
-              {knownScenes.map((name) => (
-                <button
-                  className={'fchip' + (draft.scene === name ? ' on' : '')}
-                  disabled={pending}
-                  key={name}
-                  onClick={() => setDraft({ ...draft, scene: name })}
-                  type="button"
-                >
-                  {name}
-                </button>
-              ))}
-            </div>
-          )}
+          <SceneChipPicker
+            chipsClassName="tce-known-chips"
+            counts={sceneUsage.sceneCounts}
+            disabled={pending}
+            label={m.sceneKnown}
+            labelClassName="tce-known-label"
+            noMatch={t.testCases.filters.noMatch}
+            onChange={(scene) => setDraft({ ...draft, scene })}
+            ranked={sceneUsage.scenes}
+            rowClassName="tce-known"
+            searchPlaceholder={t.testCases.filters.sceneSearch}
+            value={draft.scene}
+          />
           <datalist id={sceneListId}>
-            {knownScenes.map((name) => <option key={name} value={name} />)}
+            {sceneUsage.scenes.map((name) => <option key={name} value={name} />)}
           </datalist>
         </div>
 
@@ -395,22 +395,19 @@ export function TestCaseEditor({
             placeholder={m.arrivesAtPlaceholder}
             value={draft.arrivesAt}
           />
-          {knownScenes.length > 0 && (
-            <div className="tce-known">
-              <span className="tce-known-label">{m.sceneKnown}</span>
-              {knownScenes.map((name) => (
-                <button
-                  className={'fchip' + (draft.arrivesAt === name ? ' on' : '')}
-                  disabled={pending}
-                  key={name}
-                  onClick={() => setDraft({ ...draft, arrivesAt: draft.arrivesAt === name ? '' : name })}
-                  type="button"
-                >
-                  {name}
-                </button>
-              ))}
-            </div>
-          )}
+          <SceneChipPicker
+            chipsClassName="tce-known-chips"
+            counts={sceneUsage.arrivalCounts}
+            disabled={pending}
+            label={m.sceneKnown}
+            labelClassName="tce-known-label"
+            noMatch={t.testCases.filters.noMatch}
+            onChange={(arrivesAt) => setDraft({ ...draft, arrivesAt })}
+            ranked={sceneUsage.arrivals}
+            rowClassName="tce-known"
+            searchPlaceholder={t.testCases.filters.sceneSearch}
+            value={draft.arrivesAt}
+          />
         </div>
 
         {/* 새 케이스는 늘 미검증으로 시작한다(서버가 정한다). 만들 때 고르게 하면 고른 값이 말없이 버려졌다. */}
