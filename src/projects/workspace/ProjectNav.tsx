@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { CollapseIcon } from '../../design-system/primitives/CollapseIcon'
 import { useI18n } from '../../i18n/useI18n'
 import { readNavCollapsed, storeNavCollapsed } from './navCollapse'
@@ -93,6 +93,19 @@ export function ProjectNav({
   const { t } = useI18n()
   const workspace = t.projects.workspace
   const nav = workspace.nav
+  const { pathname } = useLocation()
+  const navigate = useNavigate()
+  const visibleSections = WORKSPACE_SECTIONS.filter(section => section.id !== 'chat' || agentEnabled)
+  // 별도 경로로 열리는 상세 화면도 진입한 섹션을 메뉴에 표시한다.
+  const navPathname = pathname
+    .replace(`${sectionHref(projectId, 'test-scenarios')}/`, `${sectionHref(projectId, 'test-runs')}/`)
+    .replace(`${sectionHref(projectId, 'qa-runs')}/`, `${sectionHref(projectId, 'qa-history')}/`)
+    .replace(`${sectionHref(projectId, 'instances')}/`, `${sectionHref(projectId, 'qa')}/`)
+  const currentSection = [...visibleSections].sort((left, right) => right.path.length - left.path.length)
+    .find(section => {
+      const href = sectionHref(projectId, section.path)
+      return navPathname === href || navPathname.startsWith(href + '/')
+    }) ?? visibleSections[0]
   const [storedCollapsed, setStoredCollapsed] = useState(readNavCollapsed)
   const [expandedHere, setExpandedHere] = useState(false)
   const [lastForce, setLastForce] = useState(forceCollapsed)
@@ -146,6 +159,17 @@ export function ProjectNav({
           {projectName.slice(0, 1).toUpperCase()}
         </span>
       </div>
+
+      <select
+        aria-label={workspace.navLabel}
+        className="project-nav-select"
+        onChange={event => navigate(event.target.value)}
+        value={sectionHref(projectId, currentSection.path)}
+      >
+        {visibleSections.map(section => (
+          <option key={section.id} value={sectionHref(projectId, section.path)}>{nav[section.id]}</option>
+        ))}
+      </select>
 
       <div className="project-nav-groups">
         {[null, ...WORKSPACE_NAV_GROUPS].map((group) => (

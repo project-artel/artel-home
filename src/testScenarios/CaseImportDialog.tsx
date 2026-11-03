@@ -236,7 +236,7 @@ export function CaseImportDialog({
               value={filters.scene}
             />
             <div className="cid-tablewrap">
-              <div className="cid-scroll" ref={setTableEl}>
+              <div aria-label={m.title} className="cid-scroll" ref={setTableEl} role="region" tabIndex={0}>
                 {failed ? (
                   <p className="inline-error" role="alert">{m.loadFailed}</p>
                 ) : loading ? (

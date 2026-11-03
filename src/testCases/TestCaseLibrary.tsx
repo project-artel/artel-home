@@ -1151,7 +1151,7 @@ export function TestCaseLibrary({
           >
             {loadingRows && <p className="visually-hidden" role="status">{m.section.loading}</p>}
             <div className="cp-fade cp-fade--top" aria-hidden="true"><span className="cp-fade-hint">▴</span></div>
-            <div className="cp-list tcl-scroll" onScroll={onScroll} ref={attachList}>
+            <div aria-label={m.section.title} className="cp-list tcl-scroll" onScroll={onScroll} ref={attachList} role="region" tabIndex={0}>
               <table className="tcl-table">
                 <colgroup>
                   <col className="tct-c-check" />
