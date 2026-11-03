@@ -3,6 +3,7 @@ import { Dialog } from '../design-system/primitives/Dialog'
 import { useI18n } from '../i18n/useI18n'
 import {
   CASE_FILE_ACCEPT,
+  downloadImportTemplate,
   importCases,
   previewCaseImport,
   type CaseImportPreview,
@@ -102,6 +103,24 @@ export function CaseFileImportDialog({
             type="file"
           />
         </div>
+
+        {/* 처음 쓰는 사람을 위한 양식. 엑셀은 필터 · 종류 고르기 목록 · 작성법 시트가 든다. */}
+        <p className="cfi-template">
+          <span>{m.template}</span>
+          {(['xlsx', 'csv'] as const).map((format) => (
+            <button
+              className="button button--secondary button--compact"
+              disabled={pending}
+              key={format}
+              onClick={() => {
+                downloadImportTemplate(projectId, format).catch(() => setFailure(m.templateFailed))
+              }}
+              type="button"
+            >
+              {format === 'xlsx' ? m.templateXlsx : m.templateCsv}
+            </button>
+          ))}
+        </p>
 
         {read.kind === 'reading' && <p className="panel-empty" aria-busy="true">{m.reading}</p>}
         {read.kind === 'failed' && (

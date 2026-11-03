@@ -11038,6 +11038,7 @@ col.mct-c-updated { width: 12%; }
 .cfi-file{ display:flex; flex-direction:column; gap:2px; min-width:0; }
 .cfi-file-name{ font-family:var(--font-mono, ui-monospace, monospace); font-size:12px; overflow-wrap:anywhere; }
 .cfi-file-meta, .cfi-file-hint{ font-size:12px; color:var(--color-text-muted); }
+.cfi-template{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:0; font-size:12px; color:var(--color-text-muted); }
 .cfi-counts{ display:flex; flex-wrap:wrap; gap:6px; }
 .cfi-pill{ padding:2px 10px; border:1px solid var(--color-border-strong); border-radius:999px; font-size:12px; white-space:nowrap; }
 .cfi-pill--new{ border-color:var(--color-status-success); color:var(--color-status-success); }
