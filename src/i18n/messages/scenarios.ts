@@ -755,23 +755,6 @@ export const scenariosEn = {
     /** A verdict brought over from another version (ARTEL-1181), not one QA gave on this version. */
     carriedFrom: (source: string | null) => (source === null ? 'brought from another version' : `brought from ${source}`),
   },
-  /**
-   * The spec author's grade, shown by `SpecGradeChip` wherever a case appears.
-   * Sits outside `tcModal` because two screens share it — the detail card and
-   * the case library.
-   *
-   * A grade with no entry in `grades` falls back to its raw value: we do not
-   * own this vocabulary, so a new one must show up as itself rather than vanish.
-   */
-  specGrade: {
-    label: 'Spec',
-    grades: {
-      ready: 'Ready',
-      candidate: 'Candidate',
-      review: 'Needs review',
-      unsupported: 'Not runnable',
-    },
-  },
   specViewer: {
     title: 'Test case spec',
     count: (n: number) => `${n} case${n === 1 ? '' : 's'}`,
@@ -1610,15 +1593,6 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     verdictHistory: '게임 버전별',
     thisVersion: '(지금 이 케이스)',
     carriedFrom: (source: string | null) => (source === null ? '다른 버전에서 가져온 판정' : `${source} 에서 가져온 판정`),
-  },
-  specGrade: {
-    label: '명세 상태',
-    grades: {
-      ready: '확정',
-      candidate: '미확정',
-      review: '검토 대기',
-      unsupported: '실행 불가',
-    },
   },
   specViewer: {
     title: '테스트 케이스 명세',

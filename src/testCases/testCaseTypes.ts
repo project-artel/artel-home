@@ -66,16 +66,6 @@ export type TestCase = {
   step: string
   precondition: string | null
   expectedValue: string
-  /**
-   * The status the spec's author set ("ready" and so on), or `null` for a case
-   * that predates the field or was written by hand here.
-   *
-   * Deliberately separate from `verificationStatus`: that one is what OUR QA run
-   * concluded, this one is what the spec side declared. Folding them into one
-   * field would lose the difference between "the spec is ready" and "we have
-   * verified it", which is exactly the pair a reviewer needs to see.
-   */
-  status: string | null
   verificationStatus: VerificationStatus
   /** The last game build a run verified this case against, or `null` if never. */
   lastVerifiedBuildId: string | null
@@ -88,51 +78,13 @@ export type TestCase = {
   kind?: CaseKind
   /** 하고 나면 가는 화면(씬 전이 TC). 화면이 안 바뀌면 null. */
   arrivesAt?: string | null
-  /**
-   * Why the spec side graded this case the way it did — reason codes from
-   * `metadata.source.evidence_gaps`, empty when there is nothing to say.
-   *
-   * Only the single-case endpoint sends these; a list response omits the field
-   * entirely and it parses to `[]`. That is deliberate on the server side: a
-   * project can hold a thousand cases, and a reason a reviewer reads one at a
-   * time does not belong on every row of every list.
-   */
+  /** 명세 근거에서 확인이 필요한 이유 코드. 단건 응답에만 포함되며 목록에서는 빈 배열로 읽는다. */
   evidenceGaps: string[]
   /**
    * 이 케이스를 돌 때 에이전트에게 허락하는 cheat · behavior(ARTEL-1051). 서버가 이 필드를 아직 안 보내면
    * 없다 — 그 경우와 "전부 허용" 을 같게 다루지만, 저장할 때 모르는 값을 덮어쓰지 않으려고 구분해 둔다.
    */
   functions?: CaseFunctions
-}
-
-/**
- * How loudly to draw a spec grade. The grade is the spec author's own judgement
- * of its wording, so `ready` should read as "nothing to see" and everything
- * below it should catch the eye — the point of showing the grade at all is the
- * cases that are NOT settled.
- */
-export type SpecGradeTone = 'settled' | 'provisional' | 'blocked'
-
-/**
- * The grades the spec side defines (agent-server ARTEL-327):
- * `ready` wording is settled · `candidate` not settled yet · `review` waiting on
- * a person · `unsupported` could not be grounded in the build, so it cannot run.
- *
- * A table rather than a chain of comparisons, because we do NOT own this
- * vocabulary. Today the spec side plans to send only `ready` and `candidate`,
- * but that is undecided, and a value we have not seen must render as an ordinary
- * chip instead of breaking the card. Adding a grade later is one line here.
- */
-const SPEC_GRADE_TONES: Record<string, SpecGradeTone> = {
-  ready: 'settled',
-  candidate: 'provisional',
-  review: 'provisional',
-  unsupported: 'blocked',
-}
-
-/** The tone for a grade, or `null` for one we do not know — draw those neutrally. */
-export function specGradeTone(status: string): SpecGradeTone | null {
-  return SPEC_GRADE_TONES[status.toLowerCase()] ?? null
 }
 
 /**

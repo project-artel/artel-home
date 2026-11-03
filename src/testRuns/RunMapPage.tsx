@@ -637,8 +637,11 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     const rect = stageRef.current?.getBoundingClientRect()
     if (!rect) return
     // 서랍은 대화 칸 자리에 겹쳐 뜬다(나란히 서지 않는다). 오른쪽에서 빼는 것은 둘 중 넓은 쪽이다.
-    const avail = rect.width - Math.max(drawerOpen ? 580 : 0, chatOpen ? CHAT_W : CHAT_RAIL_PX)
-    const k = Math.max(MIN_K, Math.min(1, (avail - 30) / bounds.w, (rect.height - 80) / bounds.h))
+    const chat = stageRef.current?.querySelector('.rm-chat')?.getBoundingClientRect()
+    const bottomChat = chatOpen && window.matchMedia('(max-width: 720px)').matches
+    const avail = rect.width - Math.max(drawerOpen ? Math.min(580, rect.width) : 0, bottomChat ? 0 : (chat?.width ?? CHAT_RAIL_PX))
+    const height = rect.height - (bottomChat ? (chat?.height ?? 0) : 0)
+    const k = Math.max(MIN_K, Math.min(1, (avail - 30) / bounds.w, (height - 80) / bounds.h))
     setView({ k, x: 10, y: 64 })
   }, [bounds, drawerOpen, chatOpen])
   const zoomAt = useCallback((cx: number, cy: number, factor: number) => {

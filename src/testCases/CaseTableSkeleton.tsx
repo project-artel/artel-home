@@ -39,13 +39,12 @@ export function CaseTableSkeleton({ label }: { label: string }) {
                 <col className="tct-c-check" />
                 <col className="tct-c-step" />
                 <col className="tct-c-scene" />
-                <col className="tct-c-spec" />
                 <col className="tct-c-res" />
                 <col className="tct-c-exp" />
                 <col className="tct-c-added" />
               </colgroup>
               <tbody>
-                <CaseSkeletonRows columns={7} />
+                <CaseSkeletonRows columns={6} />
               </tbody>
             </table>
           </div>

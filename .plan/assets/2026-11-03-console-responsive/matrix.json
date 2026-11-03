@@ -1,0 +1,674 @@
+[
+  {
+    "route": "dashboard",
+    "width": 320,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "test-cases",
+    "width": 320,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "test-runs",
+    "width": 320,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "macros",
+    "width": 320,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "qa",
+    "width": 320,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "qa-history",
+    "width": 320,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "issues",
+    "width": 320,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "performance",
+    "width": 320,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "documents",
+    "width": 320,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "game-builds",
+    "width": 320,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "content-map",
+    "width": 320,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "knowledge",
+    "width": 320,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "setup",
+    "width": 320,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "usage",
+    "width": 320,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "members",
+    "width": 320,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "settings",
+    "width": 320,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "dashboard",
+    "width": 768,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "test-cases",
+    "width": 768,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "test-runs",
+    "width": 768,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "macros",
+    "width": 768,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "qa",
+    "width": 768,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "qa-history",
+    "width": 768,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "issues",
+    "width": 768,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "performance",
+    "width": 768,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "documents",
+    "width": 768,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "game-builds",
+    "width": 768,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "content-map",
+    "width": 768,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "knowledge",
+    "width": 768,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "setup",
+    "width": 768,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "usage",
+    "width": 768,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "members",
+    "width": 768,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "settings",
+    "width": 768,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "dashboard",
+    "width": 1440,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "test-cases",
+    "width": 1440,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "test-runs",
+    "width": 1440,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "macros",
+    "width": 1440,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "qa",
+    "width": 1440,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "qa-history",
+    "width": 1440,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "issues",
+    "width": 1440,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "performance",
+    "width": 1440,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "documents",
+    "width": 1440,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "game-builds",
+    "width": 1440,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "content-map",
+    "width": 1440,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "knowledge",
+    "width": 1440,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "setup",
+    "width": 1440,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "usage",
+    "width": 1440,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "members",
+    "width": 1440,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "settings",
+    "width": 1440,
+    "theme": "light",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "dashboard",
+    "width": 320,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "test-cases",
+    "width": 320,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "test-runs",
+    "width": 320,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "macros",
+    "width": 320,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "qa",
+    "width": 320,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "qa-history",
+    "width": 320,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "issues",
+    "width": 320,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "performance",
+    "width": 320,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "documents",
+    "width": 320,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "game-builds",
+    "width": 320,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "content-map",
+    "width": 320,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "knowledge",
+    "width": 320,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "setup",
+    "width": 320,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "usage",
+    "width": 320,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "members",
+    "width": 320,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "settings",
+    "width": 320,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "dashboard",
+    "width": 768,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "test-cases",
+    "width": 768,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "test-runs",
+    "width": 768,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "macros",
+    "width": 768,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "qa",
+    "width": 768,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "qa-history",
+    "width": 768,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "issues",
+    "width": 768,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "performance",
+    "width": 768,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "documents",
+    "width": 768,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "game-builds",
+    "width": 768,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "content-map",
+    "width": 768,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "knowledge",
+    "width": 768,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "setup",
+    "width": 768,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "usage",
+    "width": 768,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "members",
+    "width": 768,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "settings",
+    "width": 768,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "dashboard",
+    "width": 1440,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "test-cases",
+    "width": 1440,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "test-runs",
+    "width": 1440,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "macros",
+    "width": 1440,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "qa",
+    "width": 1440,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "qa-history",
+    "width": 1440,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "issues",
+    "width": 1440,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "performance",
+    "width": 1440,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "documents",
+    "width": 1440,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "game-builds",
+    "width": 1440,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "content-map",
+    "width": 1440,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "knowledge",
+    "width": 1440,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "setup",
+    "width": 1440,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "usage",
+    "width": 1440,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "members",
+    "width": 1440,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  },
+  {
+    "route": "settings",
+    "width": 1440,
+    "theme": "dark",
+    "alerts": [],
+    "overflow": false
+  }
+]

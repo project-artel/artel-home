@@ -25,7 +25,6 @@ function testCase(id: string, overrides: Partial<TestCase> = {}): TestCase {
     step: `step of ${id}`,
     precondition: null,
     expectedValue: `expected of ${id}`,
-    status: null,
     verificationStatus: 'DRAFT',
     lastVerifiedBuildId: null,
     createdAt: '',

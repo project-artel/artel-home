@@ -32,7 +32,6 @@ import { ProjectApiError } from '../projects/projectApi'
 import { CaseSceneFilter } from './CaseSceneFilter'
 import { SceneChip } from './SceneChip'
 import { StatusPill } from './StatusPill'
-import { SpecGradeChip } from './SpecGradeChip'
 import { CaseSelectionBar, type SelectionAction } from './CaseSelectionBar'
 import {
   addItemsCommand,
@@ -1178,13 +1177,12 @@ export function TestCaseLibrary({
           >
             {loadingRows && <p className="visually-hidden" role="status">{m.section.loading}</p>}
             <div className="cp-fade cp-fade--top" aria-hidden="true"><span className="cp-fade-hint">▴</span></div>
-            <div className="cp-list tcl-scroll" onScroll={onScroll} ref={attachList}>
+            <div aria-label={m.section.title} className="cp-list tcl-scroll" onScroll={onScroll} ref={attachList} role="region" tabIndex={0}>
               <table className="tcl-table">
                 <colgroup>
                   <col className="tct-c-check" />
                   <col className="tct-c-step" />
                   <col className="tct-c-scene" />
-                  <col className="tct-c-spec" />
                   <col className="tct-c-res" />
                   {comparing && <col className="tct-c-res" />}
                   <col className="tct-c-exp" />
@@ -1206,7 +1204,6 @@ export function TestCaseLibrary({
                     </th>
                     <th scope="col">{m.editor.step}</th>
                     <th scope="col">{m.editor.scene}</th>
-                    <th scope="col">{m.editor.specGrade}</th>
                     <th scope="col">
                       {versionsMode && selectedVersion !== undefined
                         ? m.versions.statusOn(versionName(selectedVersion))
@@ -1220,10 +1217,10 @@ export function TestCaseLibrary({
                   </tr>
                 </thead>
                 <tbody>
-                  {loadingRows && <CaseSkeletonRows columns={comparing ? 8 : 7} />}
+                  {loadingRows && <CaseSkeletonRows columns={comparing ? 7 : 6} />}
                   {!loadingRows && rows.padTop > 0 && (
                     <tr aria-hidden="true" className="tct-spacer">
-                      <td colSpan={comparing ? 8 : 7} style={{ height: rows.padTop }} />
+                      <td colSpan={comparing ? 7 : 6} style={{ height: rows.padTop }} />
                     </tr>
                   )}
                   {(loadingRows ? [] : shown.slice(rows.start, rows.end)).map((testCase, offset) => {
@@ -1338,7 +1335,6 @@ export function TestCaseLibrary({
                         </span>
                       </td>
                       <td><SceneChip scene={testCase.scene} /></td>
-                      <td><SpecGradeChip bare status={testCase.status} /></td>
                       <td>
                         <div className="tct-content-status"><StatusPill labels={m} status={result} />{contentByCase.has(testCase.id) && <ContentReviewBadge row={contentByCase.get(testCase.id)!} />}</div>
                       </td>
@@ -1356,7 +1352,7 @@ export function TestCaseLibrary({
                   })}
                   {!loadingRows && rows.padBottom > 0 && (
                     <tr aria-hidden="true" className="tct-spacer">
-                      <td colSpan={comparing ? 8 : 7} style={{ height: rows.padBottom }} />
+                      <td colSpan={comparing ? 7 : 6} style={{ height: rows.padBottom }} />
                     </tr>
                   )}
                 </tbody>

@@ -65,8 +65,6 @@ export type CaseRow = {
   step: string
   precondition: string | null
   expectedValue: string
-  /** 기획 쪽이 매긴 등급(ready, candidate 등). QA 판정이 아니다. */
-  specStatus: string | null
   verificationStatus: VerificationStatus
   origin: 'MAP' | 'MANUAL' | null
   folderId: string | null
@@ -94,7 +92,6 @@ export function toCaseRow(testCase: TestCase, lookups: CaseLookups): CaseRow {
     step: testCase.step,
     precondition: testCase.precondition,
     expectedValue: testCase.expectedValue,
-    specStatus: testCase.status,
     verificationStatus: testCase.verificationStatus,
     origin: testCase.origin ?? null,
     folderId: testCase.folderId,

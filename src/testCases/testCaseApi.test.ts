@@ -95,6 +95,13 @@ test('test case 응답의 folderId 는 문자열이거나 null 이고, 없으면
   assert.equal(parseTestCase(base)?.folderId, null)
 })
 
+test('TC 응답의 명세 등급은 읽지 않고 QA 판정은 유지한다', () => {
+  const parsed = parseTestCase({ id: '7', projectId: '1', scene: 'Lobby', step: '시작', expectedValue: '열림', status: 'ready', verificationStatus: 'VERIFIED' })
+  assert.ok(parsed)
+  assert.equal(Object.hasOwn(parsed, 'status'), false)
+  assert.equal(parsed.verificationStatus, 'VERIFIED')
+})
+
 test('test case 응답의 kind 는 EXCEPTION 이 아니면 FUNCTION 이다', () => {
   const base = { id: '1', step: 's', expectedValue: 'e' }
 

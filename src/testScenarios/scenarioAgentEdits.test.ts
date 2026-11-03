@@ -15,7 +15,7 @@ import { buildFreeScenarioDraft, createEmptyStep, type ScenarioDraft, type Scena
 
 function testCase(id: string, origin: 'MAP' | 'MANUAL' = 'MANUAL'): TestCase {
   return {
-    id, projectId: '1', scene: 'Shop', step: `step ${id}`, precondition: null, expectedValue: '', status: null,
+    id, projectId: '1', scene: 'Shop', step: `step ${id}`, precondition: null, expectedValue: '',
     verificationStatus: 'DRAFT', lastVerifiedBuildId: null, createdAt: '', folderId: null, evidenceGaps: [], origin,
   }
 }

@@ -1,0 +1,58 @@
+{
+  "fixture": "mock API without TC status",
+  "results": [
+    {
+      "width": 1280,
+      "theme": "light",
+      "heads": [
+        "",
+        "스텝",
+        "화면",
+        "결과",
+        "기대결과",
+        "추가"
+      ],
+      "overflow": false
+    },
+    {
+      "width": 1280,
+      "theme": "dark",
+      "heads": [
+        "",
+        "스텝",
+        "화면",
+        "결과",
+        "기대결과",
+        "추가"
+      ],
+      "overflow": false
+    },
+    {
+      "width": 360,
+      "theme": "light",
+      "heads": [
+        "",
+        "스텝",
+        "화면",
+        "결과",
+        "기대결과",
+        "추가"
+      ],
+      "overflow": false
+    },
+    {
+      "width": 360,
+      "theme": "dark",
+      "heads": [
+        "",
+        "스텝",
+        "화면",
+        "결과",
+        "기대결과",
+        "추가"
+      ],
+      "overflow": false
+    }
+  ],
+  "errors": []
+}
