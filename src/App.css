@@ -13491,6 +13491,14 @@ col.vimp-c-scene{ width:18% } col.vimp-c-verdict{ width:16% }
 
 .tc-identifiers-status { position: fixed; z-index: 1200; right: var(--space-4); bottom: var(--space-4); max-width: calc(100vw - 32px); padding: var(--space-3); border: 1px solid var(--color-border-strong); background: var(--color-bg-surface); }
 
+.qa-version-choice-actions {
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.qa-version-choice-actions .button {
+  white-space: normal;
+}
 /* 추천 TC 카드 — 답 말풍선 안. 시나리오 draft(왼쪽 목록)와 다른 자리 · 다른 이름이라 노란 테두리만 같은 결이다. */
 .scenario-studio .st-chat .chat-recs { margin-top: 12px; border: 1px solid var(--st-draft); border-radius: 10px; background: var(--st-surface); overflow: hidden; }
 .scenario-studio .st-chat .chat-recs-head { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--st-border); flex-wrap: wrap; }

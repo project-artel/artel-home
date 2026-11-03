@@ -1,0 +1,70 @@
+[
+  {
+    "name": "취소 및 Escape는 추가와 실행을 하지 않음",
+    "result": "PASS"
+  },
+  {
+    "name": "건너뛰기는 추가 없이 시작",
+    "result": "PASS"
+  },
+  {
+    "name": "기본 Enter는 버전 추가 완료 후 실행",
+    "result": "PASS"
+  },
+  {
+    "name": "추가 실패는 모달을 유지하고 실행을 막음, 재시도 가능",
+    "result": "PASS"
+  },
+  {
+    "name": "조회 실패는 실행을 막음",
+    "result": "PASS"
+  },
+  {
+    "name": "실행 단축키도 선택 모달 표시",
+    "result": "PASS"
+  },
+  {
+    "name": "새 누락 TC는 다시 선택해야 함",
+    "result": "PASS"
+  },
+  {
+    "name": "모달 중 게임 버전 변경 시 이전 선택 무효화",
+    "result": "PASS"
+  },
+  {
+    "name": "이어받기에도 건너뛰기 선택 유지",
+    "result": "PASS"
+  },
+  {
+    "name": "연속 실행 요청은 QA를 한 번만 시작",
+    "result": "PASS"
+  },
+  {
+    "name": "추가 후에도 누락이 남으면 실행을 막음",
+    "result": "PASS"
+  },
+  {
+    "name": "추가 중 게임 빌드가 바뀌면 실행을 막음",
+    "result": "PASS"
+  },
+  {
+    "name": "현재 버전에 모두 있으면 모달 없이 실행",
+    "result": "PASS"
+  },
+  {
+    "name": "501건은 나눠 추가한 뒤 실행",
+    "result": "PASS"
+  },
+  {
+    "name": "서버 빌드만 변경돼도 실제 추가할 버전 표시",
+    "result": "PASS"
+  },
+  {
+    "name": "모르는 서버 빌드라면 오래된 버전 대신 실행 차단",
+    "result": "PASS"
+  },
+  {
+    "name": "양쪽 테마와 모바일에서 모달 표시 및 overflow 확인",
+    "result": "PASS"
+  }
+]

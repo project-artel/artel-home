@@ -61,6 +61,7 @@ export const QA_ACTIONS: ActionSpec[] = [QA_START_RUN_ACTION]
 export type StartOutcome =
   | { kind: 'started'; qaRunId: string }
   | { kind: 'takeoverNeeded' }
+  | { kind: 'versionChoiceNeeded'; message: string }
   | { kind: 'failed'; message: string }
 
 export type QaStartDependencies = {
@@ -79,6 +80,7 @@ export function createQaStartRunner(dependencies: QaStartDependencies): () => Pr
     const outcome = await dependencies.start()
     if (outcome === null) throw new Error(dependencies.blockedReason() ?? dependencies.blockedHint)
     if (outcome.kind === 'takeoverNeeded') throw new Error(tasksCopy().errors.qaRunActive)
+    if (outcome.kind === 'versionChoiceNeeded') throw new Error(outcome.message)
     if (outcome.kind === 'failed') throw new Error(outcome.message)
     return { qaRunId: outcome.qaRunId }
   }
