@@ -23,8 +23,10 @@ export type VersionChoice = {
   defaultId: string | null
 }
 import {
+  CASE_KINDS,
   DEFAULT_VERIFICATION_STATUS,
   VERIFICATION_STATUSES,
+  type CaseKind,
   type TestCase,
   type TestCaseInput,
   type VerificationStatus,
@@ -38,6 +40,7 @@ type Draft = {
   expectedValue: string
   verificationStatus: VerificationStatus
   functions: CaseFunctions
+  kind: CaseKind
 }
 
 const BLANK_DRAFT: Draft = {
@@ -47,6 +50,7 @@ const BLANK_DRAFT: Draft = {
   expectedValue: '',
   verificationStatus: DEFAULT_VERIFICATION_STATUS,
   functions: ALL_CASE_FUNCTIONS,
+  kind: 'FUNCTION',
 }
 
 function toDraft(testCase: TestCase): Draft {
@@ -57,6 +61,7 @@ function toDraft(testCase: TestCase): Draft {
     expectedValue: testCase.expectedValue,
     verificationStatus: testCase.verificationStatus,
     functions: testCase.functions ?? ALL_CASE_FUNCTIONS,
+    kind: testCase.kind ?? 'FUNCTION',
   }
 }
 
@@ -83,6 +88,7 @@ function toPatch(draft: Draft, saved: TestCase): TestCaseInput {
   if (!sameCaseFunctions(draft.functions, saved.functions ?? ALL_CASE_FUNCTIONS)) {
     patch.functions = toWireCaseFunctions(draft.functions)
   }
+  if (draft.kind !== (saved.kind ?? 'FUNCTION')) patch.kind = draft.kind
 
   return patch
 }
@@ -129,6 +135,7 @@ export function TestCaseEditor({
   const { t } = useI18n()
   const m = t.testCases.editor
   const statusLabel = t.testCases.outcome
+  const kindLabel = t.testCases.kind
 
   const [draft, setDraft] = useState<Draft>(() =>
     testCase === null ? BLANK_DRAFT : toDraft(testCase),
@@ -146,6 +153,7 @@ export function TestCaseEditor({
   const preconditionId = useId()
   const expectedValueId = useId()
   const verificationId = useId()
+  const kindId = useId()
   const sceneListId = useId()
 
   const creating = testCase === null
@@ -200,6 +208,8 @@ export function TestCaseEditor({
           precondition: draft.precondition.trim().length > 0 ? draft.precondition.trim() : null,
           expectedValue: draft.expectedValue.trim(),
           verificationStatus: draft.verificationStatus,
+          // 기능이 기본이라 예외일 때만 보낸다.
+          ...(draft.kind === 'EXCEPTION' ? { kind: draft.kind } : {}),
           folderId,
           gameBuildId: versionChoice === undefined ? null : versionId,
           // 전부 허용이 기본이라 바꾸지 않았으면 보내지 않는다.
@@ -395,6 +405,27 @@ export function TestCaseEditor({
           </div>
         </div>
         )}
+
+        <div className="tce-field">
+          <span className="tce-label" id={kindId}>{kindLabel.label}</span>
+          {/* 결과와 같은 선택 단추다(ARTEL-1308). 예외는 조건이 안 맞을 때 막히는지 보는 케이스다. */}
+          <div className="tce-seg tce-seg--fit" role="radiogroup" aria-labelledby={kindId}>
+            {CASE_KINDS.map((kind) => (
+              <button
+                aria-checked={draft.kind === kind}
+                className={'tce-seg-btn' + (draft.kind === kind ? ' on' : '')}
+                disabled={pending}
+                key={kind}
+                onClick={() => setDraft({ ...draft, kind })}
+                role="radio"
+                title={kind === 'EXCEPTION' ? kindLabel.exceptionTitle : undefined}
+                type="button"
+              >
+                {kindLabel[kind]}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {showFunctions && (
