@@ -121,6 +121,9 @@ import { CASE_LIBRARY_TOUR, caseLibraryTourSteps } from './tour/caseLibraryTour'
 import { useTour } from './tour/useTour'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useRowWindow } from './useRowWindow'
+import { exportTestCases, type CaseFileFormat } from './caseFileApi'
+import { CaseFileImportDialog } from './CaseFileImportDialog'
+import { ContextMenu } from './ContextMenu'
 import { CaseSkeletonRows, CaseTableSkeleton } from './CaseTableSkeleton'
 import { InlineCode } from '../contentMap/InlineCode'
 
@@ -291,6 +294,10 @@ export function TestCaseLibrary({
   const [isMoving, setIsMoving] = useState(false)
   const [isAddingToVersion, setIsAddingToVersion] = useState(false)
   const [importTarget, setImportTarget] = useState<TestCaseVersionSummary | null>(null)
+  // 파일에서 가져오기(ARTEL-1328): 넣을 버전(id 또는 unversioned)과 창 제목에 쓸 이름.
+  const [fileImport, setFileImport] = useState<{ target: string; name: string } | null>(null)
+  // 목록 위 "내보내기 ▾" 의 메뉴 자리.
+  const [exportMenu, setExportMenu] = useState<{ x: number; y: number } | null>(null)
   // 판정 결과를 받을 버전(ARTEL-1181). 버전 메뉴의 "다른 버전에서 판정 결과 가져오기" 가 연다.
   const [verdictTarget, setVerdictTarget] = useState<TestCaseVersionSummary | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
@@ -573,6 +580,27 @@ export function TestCaseLibrary({
     },
     importManual: (version) => setImportTarget(version),
     importVerdicts: (version) => setVerdictTarget(version),
+    exportCases: (version, format) => runExport(format, version === null ? UNVERSIONED : version.gameBuildId),
+    importCases: (version) =>
+      setFileImport(
+        version === null
+          ? { target: UNVERSIONED, name: m.versions.unversioned }
+          : { target: version.gameBuildId, name: versionName(version) },
+      ),
+  }
+
+  /**
+   * TC 를 파일로 내려받는다(ARTEL-1328). [ids] 를 주면 그 TC 만(목록 위 버튼 — 지금 보이는 목록). 버전은 결과 칸의 기준이다.
+   * 폴더를 보는 중이면 여러 버전의 TC 가 섞이므로 버전을 정하지 않는다(결과는 TC 의 판정).
+   */
+  function runExport(format: CaseFileFormat, target: string | null, ids?: readonly string[]) {
+    exportTestCases(projectId, format, target, ids).then(
+      (fileName) => setAnnouncement(m.caseFile.exported(fileName)),
+      () => {
+        setGenerationNotice(m.caseFile.exportFailed)
+        setAnnouncement(m.caseFile.exportFailed)
+      },
+    )
   }
 
   /** 판정 가져오기 창이 끝났을 때. 몇 건을 왜 못 가져왔는지 안내줄에 남긴다(ARTEL-1181). */
@@ -941,6 +969,21 @@ export function TestCaseLibrary({
               type="button"
             >
               {m.section.generateFromMap}
+            </button>
+            <button
+              aria-expanded={exportMenu !== null}
+              aria-haspopup="menu"
+              className="button button--secondary button--compact"
+              data-tour="export-cases"
+              disabled={shown.length === 0}
+              onClick={(event) => {
+                const rect = event.currentTarget.getBoundingClientRect()
+                setExportMenu({ x: rect.left, y: rect.bottom + 4 })
+              }}
+              title={m.section.exportCasesTitle}
+              type="button"
+            >
+              {m.section.exportCases} ▾
             </button>
             <button
               className="button button--primary button--compact"
@@ -1436,6 +1479,42 @@ export function TestCaseLibrary({
           onGenerated={handleGenerated}
           projectId={projectId}
           versions={versionList.versions}
+        />
+      )}
+
+      {exportMenu !== null && (
+        <ContextMenu
+          items={(['xlsx', 'csv'] as const).map((format) => ({
+            label: format === 'xlsx' ? m.versions.menu.xlsx : m.versions.menu.csv,
+            onSelect: () =>
+              runExport(
+                format,
+                folderSelection.kind === 'all' ? selectedVersionId : null,
+                shown.map((testCase) => testCase.id),
+              ),
+          }))}
+          label={m.section.exportCases}
+          onClose={() => setExportMenu(null)}
+          x={exportMenu.x}
+          y={exportMenu.y}
+        />
+      )}
+
+      {fileImport !== null && (
+        <CaseFileImportDialog
+          onClose={() => setFileImport(null)}
+          onImported={(result) => {
+            const notice =
+              m.caseFile.done(result.created.length, result.updated.length) +
+              (result.rejected.length > 0 ? m.caseFile.doneRejected(result.rejected.length) : '')
+            setFileImport(null)
+            refreshAfterFolderChange()
+            setGenerationNotice(notice)
+            setAnnouncement(notice)
+          }}
+          projectId={projectId}
+          target={fileImport.target}
+          targetName={fileImport.name}
         />
       )}
 

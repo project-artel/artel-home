@@ -2,6 +2,7 @@ import { useCallback, useId, useMemo, useState } from 'react'
 import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
 import { Dialog } from '../design-system/primitives/Dialog'
 import { useI18n } from '../i18n/useI18n'
+import type { CaseFileFormat } from './caseFileApi'
 import { ContextMenu, type ContextMenuItem } from './ContextMenu'
 import { EditorBadge } from '../projects/EditorBadge'
 import { NameDialog } from './NameDialog'
@@ -27,6 +28,10 @@ export type VersionOperations = {
   importManual?: (version: TestCaseVersionSummary) => void
   /** 다른 버전의 판정을 이 버전 TC 에 가져오는 창을 연다(ARTEL-1181). */
   importVerdicts?: (version: TestCaseVersionSummary) => void
+  /** 이 버전(null 이면 "버전 없음")의 TC 를 파일로 내보낸다(ARTEL-1328). */
+  exportCases?: (version: TestCaseVersionSummary | null, format: CaseFileFormat) => void
+  /** 파일에서 이 버전(null 이면 "버전 없음")으로 TC 를 가져오는 창을 연다(ARTEL-1328). */
+  importCases?: (version: TestCaseVersionSummary | null) => void
 }
 
 /** 끄는 버전. 폴더 끌기와 섞이지 않게 형식을 따로 쓴다. */
@@ -36,11 +41,13 @@ type MenuState =
   | { x: number; y: number; kind: 'root' }
   | { x: number; y: number; kind: 'group'; group: VersionGroup }
   | { x: number; y: number; kind: 'version'; version: TestCaseVersionSummary }
+  | { x: number; y: number; kind: 'unversioned' }
 
 type MenuTarget =
   | { kind: 'root' }
   | { kind: 'group'; group: VersionGroup }
   | { kind: 'version'; version: TestCaseVersionSummary }
+  | { kind: 'unversioned' }
 
 /**
  * 라이브러리 왼쪽 맨 위의 "버전" 묶음(ARTEL-1022). 최신 버전이 맨 위이고, 지금 버전에는 칩이 붙는다.
@@ -113,8 +120,27 @@ export function VersionList({
     if (event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')) openMenu(event, target)
   }
 
+  /** TC 내보내기 ▶(Excel · CSV) · TC 가져오기…(ARTEL-1328). 버전과 "버전 없음" 이 같이 쓴다. */
+  function fileItems(version: TestCaseVersionSummary | null): ContextMenuItem[] {
+    const exportCases = operations.exportCases
+    const importCases = operations.importCases
+    const items: ContextMenuItem[] = []
+    if (exportCases !== undefined) {
+      items.push({
+        label: m.menu.exportCases,
+        children: [
+          { label: m.menu.xlsx, onSelect: () => exportCases(version, 'xlsx') },
+          { label: m.menu.csv, onSelect: () => exportCases(version, 'csv') },
+        ],
+      })
+    }
+    if (importCases !== undefined) items.push({ label: m.menu.importCases, onSelect: () => importCases(version) })
+    return items
+  }
+
   function menuItems(state: MenuState): ContextMenuItem[] {
     if (state.kind === 'root') return [{ label: m.menu.createGroup, onSelect: () => setNaming({ group: null }) }]
+    if (state.kind === 'unversioned') return fileItems(null)
     if (state.kind === 'group') {
       const group = state.group
       return [
@@ -131,13 +157,15 @@ export function VersionList({
     }
     const importManual = operations.importManual
     const importVerdicts = operations.importVerdicts
+    const files = fileItems(version).map((item, index) => (index === 0 ? { ...item, separatorBefore: true } : item))
     return [
       { label: m.menu.copyToFolder, onSelect: () => void operations.copyToFolder(version) },
       ...(importManual === undefined ? [] : [{ label: m.menu.importManual, onSelect: () => importManual(version) }]),
       ...(importVerdicts === undefined || versions.length < 2
         ? []
         : [{ label: m.menu.importVerdicts, onSelect: () => importVerdicts(version) }]),
-      { label: m.menu.moveToGroup, disabled: groups.length === 0, onSelect: () => setMoving(version) },
+      ...files,
+      { label: m.menu.moveToGroup, disabled: groups.length === 0, onSelect: () => setMoving(version), separatorBefore: files.length > 0 },
       ...(version.groupId === null
         ? []
         : [{ label: m.menu.ungroup, onSelect: () => void operations.assignGroup(version, null) }]),
@@ -277,6 +305,8 @@ export function VersionList({
             className={'tcl-folder tcl-version tcl-version--none' + (selectedId === UNVERSIONED ? ' is-current' : '')}
             data-tour="unversioned"
             onClick={() => onSelect(UNVERSIONED)}
+            onContextMenu={readOnly || fileItems(null).length === 0 ? undefined : (event) => openMenu(event, { kind: 'unversioned' })}
+            onKeyDown={readOnly || fileItems(null).length === 0 ? undefined : menuKeys({ kind: 'unversioned' })}
             title={m.unversionedTitle}
             type="button"
           >
@@ -308,7 +338,9 @@ export function VersionList({
               ? m.menu.labelFor(versionName(menu.version))
               : menu.kind === 'group'
                 ? m.menu.labelFor(menu.group.name)
-                : m.menu.label
+                : menu.kind === 'unversioned'
+                  ? m.menu.labelFor(m.unversioned)
+                  : m.menu.label
           }
           onClose={closeMenu}
           x={menu.x}
