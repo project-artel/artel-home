@@ -89,20 +89,20 @@ export function GameIdentityPanel({ projectId, buildId, layout = 'cards' }: {
           : identities.length === 0 ? <p className="panel-empty">{messages.empty}</p>
             : layout === 'table' ? <div className="gi-table-scroll" role="region" aria-label={messages.tableLabel} tabIndex={0}>
               <table className="data-table gi-table" aria-label={messages.tableLabel}>
-                <thead><tr>{[messages.name, messages.meaning, messages.kind, messages.identifies, messages.source, messages.version, messages.status, messages.actions].map((label) => <th key={label} scope="col">{label}</th>)}</tr></thead>
+                <thead><tr>{[messages.name, messages.meaning, messages.kind, messages.identifies, messages.source, messages.status, messages.actions].map((label) => <th key={label} scope="col">{label}</th>)}</tr></thead>
                 <tbody>{identities.map((identity) => <tr key={identity.name}>
                   <th scope="row" className="mono gi-name" translate="no">{identity.name}</th>
                   <td><span>{identity.meaning}</span><p className="gi-note">{messages.changesWhen}: {identity.changesWhen}</p></td>
                   <td>{identity.kind}{identity.base !== null && <p className="gi-note">{messages.base}: {identity.base}</p>}</td>
                   <td>{identity.identifies}<p className="gi-note">{messages.role}: {identity.role}</p></td>
-                  <td>{identity.source}</td><td>{identity.version}</td>
+                  <td>{identity.source}</td>
                   <td>{identity.deleted ? messages.deleted : messages.active}</td><td>{actions(identity)}</td>
                 </tr>)}</tbody>
               </table>
             </div> : <ul className="gi-list">{identities.map((identity) => (
               <li key={identity.name} className="gi-item">
                 <div className="gi-heading"><strong className="mono gi-name" translate="no">{identity.name}</strong><span className="badge">{identity.deleted ? messages.deleted : messages.active}</span></div>
-                <p className="gi-note">{messages.source}: {identity.source} · {messages.version}: {identity.version}</p>
+                <p className="gi-note">{messages.source}: {identity.source}</p>
                 <IdentityFields identity={identity} />
                 {actions(identity)}
               </li>
