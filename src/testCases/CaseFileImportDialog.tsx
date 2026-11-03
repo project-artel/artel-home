@@ -60,6 +60,7 @@ export function CaseFileImportDialog({
   const preview = read.kind === 'read' ? read.preview : null
   const toImport = preview === null ? 0 : preview.counts.new + preview.counts.edit
   // 볼 것(고침 · 새로 · 못 넣음)을 위로, 바뀌지 않는 줄은 아래로 모은다. 같은 처리 안에서는 파일 순서다.
+  // 서버는 그대로인 줄을 목록에 싣지 않는다(개수만). 바뀌는 줄과 못 넣는 줄만 보고 확정한다.
   const rows = preview === null ? [] : [...preview.rows].sort((a, b) => RANK[a.status] - RANK[b.status] || a.line - b.line)
 
   return (
@@ -85,7 +86,7 @@ export function CaseFileImportDialog({
             ) : (
               <>
                 <span className="cfi-file-name">{file.name}</span>
-                {preview !== null && <span className="cfi-file-meta">{preview.format.toUpperCase()} · {m.rowCount(preview.rows.length)}</span>}
+                {preview !== null && <span className="cfi-file-meta">{preview.format.toUpperCase()} · {m.rowCount(preview.counts.new + preview.counts.edit + preview.counts.same + preview.counts.rejected)}</span>}
               </>
             )}
           </div>
