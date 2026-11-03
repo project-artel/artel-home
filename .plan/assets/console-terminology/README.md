@@ -31,3 +31,7 @@
 - locale 모듈 14개의 AST 비교에서 기존 key와 보간 표현식 보존 확인. 빈 로그용 문구 3개만 양쪽 locale에 추가.
 - `formatTestCaseId`, `useTestCaseLabel` 구현 변경 없음.
 - 독립 검토의 필수 수정 사항 반영 후 `VERDICT: PASS`.
+
+## 추가 용어 감사
+
+runtime agent guide, tool description·승인 요약, QA 조회 오류 및 로컬 순번 문구도 같은 기준으로 보완했다. `TC-001`은 프로젝트가 발급한 식별자이며, 시나리오 안의 순번은 `Test Case 1`로 구분한다. API·도구·enum 이름과 실제 식별자 formatter는 유지했다. Source AST에서 주석·테스트를 제외한 문자열과 JSX 문구를 재검색해 일반 `TC`, 이전 메뉴 이름·시나리오 유형명·`QA Try`가 남지 않았는지 확인했다.

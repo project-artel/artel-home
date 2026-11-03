@@ -15,7 +15,7 @@ API·DB·enum·경로·테스트 동작 변경, 다른 로컬 작업 포함, 테
 ## Context / Constraints
 
 - origin/develop 기반 독립 worktree 사용.
-- 개념은 Test Case, 목록은 Test Cases. 실제 식별자는 기존 프로젝트 번호 TC-000 형식 유지. 순번이나 DB id를 프로젝트 식별 번호로 바꾸지 않는다.
+- 개념은 Test Case, 목록은 Test Cases. 실제 식별자는 기존 프로젝트 번호 TC-000 형식 유지. 로컬 순번은 Test Case로 표시하며 순번이나 DB id를 프로젝트 식별 번호로 바꾸지 않는다.
 - 단계 기반 / Step-based, Test Case 기반 / Test case-based. ORDERED·FREE 직렬화 값 유지.
 - 테스트 내용 / Test description, 단계 / Step, 사전 조건 / Preconditions, 기대 결과 / Expected result, Test Case 검증 상태 / Test case verification status.
 - 테스트 커버리지 / Test coverage. 시나리오 포함 여부를 계산하는 기존 의미와 도움말 유지.
@@ -46,3 +46,4 @@ API·DB·enum·경로·테스트 동작 변경, 다른 로컬 작업 포함, 테
 - Pair review에서 가져오기 띄어쓰기, 추천 저장 대상, 검색 도움말을 수정한 뒤 VERDICT: PASS.
 - [화면 검증과 한계](../assets/console-terminology/README.md).
 - Jira ARTEL-1353 검토 중. Draft 해제는 사람이 검토한 뒤 직접 진행한다.
+- 추가 감사에서 runtime agent guide·도구 설명·승인 카드·QA 조회 오류·로컬 순번에 남은 일반 약칭을 보완했다. API·enum·실제 프로젝트 식별자 formatter는 유지했다. 내부 option ID와 TC-000 식별자의 차이를 schema 설명에 명시했다. 전체 테스트 1,615개 및 추가 관련 테스트 22개, build·변경 파일 lint 통과. 독립 재검토 PASS.

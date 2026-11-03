@@ -28,9 +28,10 @@ Keep API paths, field names, enum values, tools, and quoted code unchanged.
 
 ## Apply names in context
 
-- Keep TC only in actual identifier displays such as TC-001 and existing
-  numeric reference labels. Generic headings, count labels and actions spell
-  out Test Case. Do not change identifier behavior as part of copy cleanup.
+- Keep TC only in actual identifier displays such as TC-001. Generic headings,
+  count labels, actions, and local ordinal labels spell out Test Case. Local
+  scenario positions are ordinals, not project identifiers; never format them
+  as TC-000. Do not change identifier behavior as part of copy cleanup.
 - Use action labels such as `Test Case 추가` / `Add Test Case` and
   `Test Case 연결` / `Link Test Case`. Use locale-appropriate plural grammar.
 - Name QA run loading errors and logs directly. Do not expose the internal

@@ -238,7 +238,7 @@ export const qaEn = {
     /** Why a step is clickable, and why the rest are not. */
     jumpHint: 'Select a judged step to open the log entry that judged it.',
     jump: (step: number) => `Go to the log for step ${step}`,
-    caseLabel: (n: number) => `TC ${n}`,
+    caseLabel: (n: number) => `Test Case ${n}`,
     freeNote: 'Test Case-based scenario: the agent picks the order, so verdicts can arrive in any order.',
     freeBadge: 'Test Case-based',
     savedTitle: (status: string) => `Saved to the Test Case as ${status}`,
@@ -449,7 +449,7 @@ export const qaEn = {
     flowNoAttempt: 'tried nothing',
     /** TC 가 안 붙은 조작 스텝의 라벨. */
     flowStepLabel: (step: number) => `Step ${step}`,
-    flowCaseLabel: (caseNo: string) => `TC ${caseNo}`,
+    flowCaseLabel: (caseNo: string) => `Test Case ${caseNo}`,
     /**
      * 행동 한 줄. 도구 이름은 안 보인다 — 읽는 사람이 묻는 것은 무엇을 했는가다.
      * 목록에 없는 도구는 `flowDidOther` 로 떨어진다.
@@ -922,7 +922,7 @@ export const qaKo: Localized<typeof qaEn> = {
     empty: '이 실행에는 추적할 단계가 없습니다.',
     jumpHint: '판정된 단계를 선택하면 그 판정을 남긴 로그로 이동합니다.',
     jump: (step: number) => `단계 ${step}의 로그로 이동`,
-    caseLabel: (n: number) => `TC ${n}`,
+    caseLabel: (n: number) => `Test Case ${n}`,
     freeNote: 'Test Case 기반 시나리오: agent 가 순서를 정하므로 판정이 어떤 순서로든 올 수 있습니다.',
     freeBadge: 'Test Case 기반',
     savedTitle: (status: string) => `Test Case에 ${status}(으)로 저장됨`,
@@ -1106,7 +1106,7 @@ export const qaKo: Localized<typeof qaEn> = {
     flowFailed: '실패',
     flowNoAttempt: '아무것도 안 해 봄',
     flowStepLabel: (step: number) => `단계 ${step}`,
-    flowCaseLabel: (caseNo: string) => `TC ${caseNo}`,
+    flowCaseLabel: (caseNo: string) => `Test Case ${caseNo}`,
     flowDid: {
       press_key: (what) => (what === null ? '키를 눌렀다' : `${what} 키를 눌렀다`),
       hold_key: (what) => (what === null ? '키를 누르고 있었다' : `${what} 키를 누르고 있었다`),

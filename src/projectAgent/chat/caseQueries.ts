@@ -262,7 +262,7 @@ export async function runTestCases(
     ...result,
     hiddenExcluded: {
       count: inFolder.hiddenExcluded,
-      note: `${inFolder.hiddenExcluded} cases hidden in this folder are not listed, the same as the case library does by default.`,
+      note: `${inFolder.hiddenExcluded} Test Cases hidden in this folder are not listed, matching the default Test Cases view.`,
     },
   }
 }
