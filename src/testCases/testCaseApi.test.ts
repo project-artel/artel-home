@@ -101,3 +101,12 @@ test('TC 응답의 명세 등급은 읽지 않고 QA 판정은 유지한다', ()
   assert.equal(Object.hasOwn(parsed, 'status'), false)
   assert.equal(parsed.verificationStatus, 'VERIFIED')
 })
+
+test('test case 응답의 kind 는 EXCEPTION 이 아니면 FUNCTION 이다', () => {
+  const base = { id: '1', step: 's', expectedValue: 'e' }
+
+  assert.equal(parseTestCase({ ...base, kind: 'EXCEPTION' })?.kind, 'EXCEPTION')
+  assert.equal(parseTestCase({ ...base, kind: 'FUNCTION' })?.kind, 'FUNCTION')
+  assert.equal(parseTestCase(base)?.kind, 'FUNCTION')
+  assert.equal(parseTestCase({ ...base, kind: 'edge' })?.kind, 'FUNCTION')
+})

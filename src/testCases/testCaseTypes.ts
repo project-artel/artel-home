@@ -45,6 +45,18 @@ export function asCaseOrigin(value: unknown): CaseOrigin | undefined {
   return value === 'MAP' || value === 'MANUAL' ? value : undefined
 }
 
+/**
+ * 기능(`FUNCTION`) · 예외(`EXCEPTION`)(ARTEL-1308). 예외 TC 는 조건이 안 맞을 때 막히는지, 되풀이를 막는지 본다.
+ * 서버가 칸을 안 보내는 옛 응답과 모르는 값은 기능으로 읽는다 — 거의 모든 TC 가 기능이다.
+ */
+export type CaseKind = 'FUNCTION' | 'EXCEPTION'
+
+export const CASE_KINDS: readonly CaseKind[] = ['FUNCTION', 'EXCEPTION']
+
+export function asCaseKind(value: unknown): CaseKind {
+  return value === 'EXCEPTION' ? 'EXCEPTION' : 'FUNCTION'
+}
+
 export type TestCase = {
   id: string
   projectId: string
@@ -62,6 +74,10 @@ export type TestCase = {
   folderId: string | null
   /** 자동 생성(`MAP`) · 사용자 생성(`MANUAL`). 모르면 없다. */
   origin?: CaseOrigin
+  /** 기능 · 예외. 모르면 기능이다. */
+  kind?: CaseKind
+  /** 하고 나면 가는 화면(씬 전이 TC). 화면이 안 바뀌면 null. */
+  arrivesAt?: string | null
   /** 명세 근거에서 확인이 필요한 이유 코드. 단건 응답에만 포함되며 목록에서는 빈 배열로 읽는다. */
   evidenceGaps: string[]
   /**
@@ -88,6 +104,10 @@ export type TestCaseInput = {
   gameBuildId?: string | null
   /** 바꿨을 때만 보낸다. */
   functions?: CaseFunctions
+  /** 기능 · 예외. 바꿨을 때만 보낸다. 만들 때 비우면 기능이다. */
+  kind?: CaseKind
+  /** 도착 화면. 바꿨을 때만 보낸다. 빈 문자열은 "화면이 안 바뀐다" 로 정한다. */
+  arrivesAt?: string
 }
 
 /** One position in a scenario's ordered case composition (`/cases`). */

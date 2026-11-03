@@ -1,5 +1,7 @@
 import { buildDisplayName } from '../projects/buildEnvironment'
 import { useId, useState } from 'react'
+import { SceneChipPicker } from './CaseSceneFilter'
+import { NO_SCENE_USAGE, type SceneUsage } from './testCaseLibrary'
 import { useI18n } from '../i18n/useI18n'
 import { apiErrorMessage } from '../projects/apiErrorMessage'
 import { ProjectApiError } from '../projects/projectApi'
@@ -23,8 +25,10 @@ export type VersionChoice = {
   defaultId: string | null
 }
 import {
+  CASE_KINDS,
   DEFAULT_VERIFICATION_STATUS,
   VERIFICATION_STATUSES,
+  type CaseKind,
   type TestCase,
   type TestCaseInput,
   type VerificationStatus,
@@ -38,6 +42,8 @@ type Draft = {
   expectedValue: string
   verificationStatus: VerificationStatus
   functions: CaseFunctions
+  kind: CaseKind
+  arrivesAt: string
 }
 
 const BLANK_DRAFT: Draft = {
@@ -47,6 +53,8 @@ const BLANK_DRAFT: Draft = {
   expectedValue: '',
   verificationStatus: DEFAULT_VERIFICATION_STATUS,
   functions: ALL_CASE_FUNCTIONS,
+  kind: 'FUNCTION',
+  arrivesAt: '',
 }
 
 function toDraft(testCase: TestCase): Draft {
@@ -57,6 +65,8 @@ function toDraft(testCase: TestCase): Draft {
     expectedValue: testCase.expectedValue,
     verificationStatus: testCase.verificationStatus,
     functions: testCase.functions ?? ALL_CASE_FUNCTIONS,
+    kind: testCase.kind ?? 'FUNCTION',
+    arrivesAt: testCase.arrivesAt ?? '',
   }
 }
 
@@ -83,6 +93,8 @@ function toPatch(draft: Draft, saved: TestCase): TestCaseInput {
   if (!sameCaseFunctions(draft.functions, saved.functions ?? ALL_CASE_FUNCTIONS)) {
     patch.functions = toWireCaseFunctions(draft.functions)
   }
+  if (draft.kind !== (saved.kind ?? 'FUNCTION')) patch.kind = draft.kind
+  if (draft.arrivesAt.trim() !== (saved.arrivesAt ?? '')) patch.arrivesAt = draft.arrivesAt.trim()
 
   return patch
 }
@@ -98,7 +110,7 @@ function toPatch(draft: Draft, saved: TestCase): TestCaseInput {
  */
 export function TestCaseEditor({
   builds = [],
-  knownScenes = [],
+  sceneUsage = NO_SCENE_USAGE,
   folderId = null,
   projectId,
   testCase,
@@ -112,7 +124,8 @@ export function TestCaseEditor({
   /** 빌드 목록. cheat · behavior 이름을 읽어 올 빌드를 정하는 데 쓴다(ARTEL-1051). */
   builds?: GameBuild[]
   /** Screen names already used in this project, offered as chips and as a `datalist`. */
-  knownScenes?: string[]
+  /** 화면 · 도착 화면 칩의 순서와 수(ARTEL-1313). */
+  sceneUsage?: SceneUsage
   /** 새 케이스를 만들 폴더. 고른 케이스를 고치는 저장에는 실리지 않는다 — 저장이 폴더를 풀면 안 된다. */
   folderId?: string | null
   projectId: string
@@ -129,6 +142,7 @@ export function TestCaseEditor({
   const { t } = useI18n()
   const m = t.testCases.editor
   const statusLabel = t.testCases.outcome
+  const kindLabel = t.testCases.kind
 
   const [draft, setDraft] = useState<Draft>(() =>
     testCase === null ? BLANK_DRAFT : toDraft(testCase),
@@ -146,6 +160,8 @@ export function TestCaseEditor({
   const preconditionId = useId()
   const expectedValueId = useId()
   const verificationId = useId()
+  const kindId = useId()
+  const arrivalId = useId()
   const sceneListId = useId()
 
   const creating = testCase === null
@@ -200,6 +216,9 @@ export function TestCaseEditor({
           precondition: draft.precondition.trim().length > 0 ? draft.precondition.trim() : null,
           expectedValue: draft.expectedValue.trim(),
           verificationStatus: draft.verificationStatus,
+          // 기능이 기본이라 예외일 때만 보낸다.
+          ...(draft.kind === 'EXCEPTION' ? { kind: draft.kind } : {}),
+          ...(draft.arrivesAt.trim().length > 0 ? { arrivesAt: draft.arrivesAt.trim() } : {}),
           folderId,
           gameBuildId: versionChoice === undefined ? null : versionId,
           // 전부 허용이 기본이라 바꾸지 않았으면 보내지 않는다.
@@ -330,7 +349,7 @@ export function TestCaseEditor({
             </div>
           </div>
         )}
-        <div className="tce-field">
+        <div className="tce-field tce-field--full">
           <label className="tce-label" htmlFor={sceneId}>{m.scene}</label>
           <input
             aria-describedby={fieldErrors.scene ? `${sceneId}-error` : undefined}
@@ -346,25 +365,50 @@ export function TestCaseEditor({
           {fieldErrors.scene && (
             <p className="field-error" id={`${sceneId}-error`}>{fieldErrors.scene}</p>
           )}
-          {knownScenes.length > 0 && (
-            <div className="tce-known">
-              <span className="tce-known-label">{m.sceneKnown}</span>
-              {knownScenes.map((name) => (
-                <button
-                  className={'fchip' + (draft.scene === name ? ' on' : '')}
-                  disabled={pending}
-                  key={name}
-                  onClick={() => setDraft({ ...draft, scene: name })}
-                  type="button"
-                >
-                  {name}
-                </button>
-              ))}
-            </div>
-          )}
+          <SceneChipPicker
+            chipsClassName="tce-known-chips"
+            counts={sceneUsage.sceneCounts}
+            disabled={pending}
+            label={m.sceneKnown}
+            labelClassName="tce-known-label"
+            noMatch={t.testCases.filters.noMatch}
+            onChange={(scene) => setDraft({ ...draft, scene })}
+            ranked={sceneUsage.scenes}
+            rowClassName="tce-known"
+            searchPlaceholder={t.testCases.filters.sceneSearch}
+            value={draft.scene}
+          />
           <datalist id={sceneListId}>
-            {knownScenes.map((name) => <option key={name} value={name} />)}
+            {sceneUsage.scenes.map((name) => <option key={name} value={name} />)}
           </datalist>
+        </div>
+
+        {/* 도착 화면(ARTEL-1313). 화면 칸과 같은 입력이다. 누가 정했든(MCP · QA · AI) 여기서 고치고, 고친 값은 덮이지 않는다.
+            한 줄을 다 쓴다 — 옆 칸에 두면 칩 줄이 그 칸을 넓혀 화면 칸이 좁아지고 칩이 세로로 쌓였다. */}
+        <div className="tce-field tce-field--full">
+          <label className="tce-label" htmlFor={arrivalId}>{m.arrivesAt}<InfoHint>{m.arrivesAtHint}</InfoHint></label>
+          <input
+            className="tce-input tce-input--one"
+            disabled={pending}
+            id={arrivalId}
+            list={sceneListId}
+            onChange={(event) => setDraft({ ...draft, arrivesAt: event.target.value })}
+            placeholder={m.arrivesAtPlaceholder}
+            value={draft.arrivesAt}
+          />
+          <SceneChipPicker
+            chipsClassName="tce-known-chips"
+            counts={sceneUsage.arrivalCounts}
+            disabled={pending}
+            label={m.sceneKnown}
+            labelClassName="tce-known-label"
+            noMatch={t.testCases.filters.noMatch}
+            onChange={(arrivesAt) => setDraft({ ...draft, arrivesAt })}
+            ranked={sceneUsage.arrivals}
+            rowClassName="tce-known"
+            searchPlaceholder={t.testCases.filters.sceneSearch}
+            value={draft.arrivesAt}
+          />
         </div>
 
         {/* 새 케이스는 늘 미검증으로 시작한다(서버가 정한다). 만들 때 고르게 하면 고른 값이 말없이 버려졌다. */}
@@ -374,7 +418,8 @@ export function TestCaseEditor({
             <p className="field-hint">{m.newCaseStatus}</p>
           </div>
         ) : (
-        <div className="tce-field">
+        // 도착 화면이 화면 옆에 서서(ARTEL-1313) 결과는 한 줄을 다 쓴다. 다섯 단추가 반 칸에 들어가지 않는다.
+        <div className="tce-field tce-field--full">
           <span className="tce-label" id={verificationId}>{m.verification}</span>
           {/* 값이 셋뿐이다. 드롭다운은 고르기 전에는 무엇이 있는지 감추는데, 셋은 다 보여도 된다. */}
           <div className="tce-seg" role="radiogroup" aria-labelledby={verificationId}>
@@ -395,6 +440,27 @@ export function TestCaseEditor({
           </div>
         </div>
         )}
+
+        <div className="tce-field">
+          <span className="tce-label" id={kindId}>{kindLabel.label}</span>
+          {/* 결과와 같은 선택 단추다(ARTEL-1308). 예외는 조건이 안 맞을 때 막히는지 보는 케이스다. */}
+          <div className="tce-seg tce-seg--fit" role="radiogroup" aria-labelledby={kindId}>
+            {CASE_KINDS.map((kind) => (
+              <button
+                aria-checked={draft.kind === kind}
+                className={'tce-seg-btn' + (draft.kind === kind ? ' on' : '')}
+                disabled={pending}
+                key={kind}
+                onClick={() => setDraft({ ...draft, kind })}
+                role="radio"
+                title={kind === 'EXCEPTION' ? kindLabel.exceptionTitle : undefined}
+                type="button"
+              >
+                {kindLabel[kind]}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {showFunctions && (

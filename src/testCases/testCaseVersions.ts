@@ -2,7 +2,7 @@ import { buildDisplayName, parseBuildEnvironment } from '../projects/buildEnviro
 import { apiFetch } from '../auth/authApi'
 import { asNullableString, asRecord, asString, jsonRequest, readJson, toApiError } from '../projects/projectApi'
 import { parseTestCaseFolder, type TestCaseFolder } from './testCaseFolderApi'
-import { asVerificationStatus, type TestCase, type VerificationStatus } from './testCaseTypes'
+import { asCaseKind, asVerificationStatus, type TestCase, type VerificationStatus } from './testCaseTypes'
 
 /*
  * 케이스 라이브러리의 버전 보기(ARTEL-1022).
@@ -134,6 +134,8 @@ export function parseVersionCases(data: unknown, projectId: string): VersionCase
           folderId: asNullableString(record?.folderId),
           evidenceGaps: [],
           origin: record?.origin === 'MANUAL' ? 'MANUAL' : 'MAP',
+          kind: asCaseKind(record?.kind),
+          arrivesAt: asNullableString(record?.arrivesAt),
         },
         origin: record?.origin === 'MANUAL' ? 'MANUAL' : 'MAP',
         verificationStatus,

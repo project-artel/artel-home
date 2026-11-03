@@ -33,8 +33,22 @@ export function useRunVersionCases(projectId: string, runId: string, instanceId:
 
   const outside = loaded?.key === key ? loaded.outside : null
 
-  async function addAll() {
-    if (adding.current || outside?.gameBuildId == null) return
+  async function refresh(): Promise<RunCasesOutsideBuild | null> {
+    const startedGeneration = generation.current
+    try {
+      const fresh = await getRunCasesOutsideBuild(projectId, runId, instanceId)
+      if (generation.current !== startedGeneration) return null
+      setLoaded({ key, outside: fresh })
+      setFailedKey(null)
+      return fresh
+    } catch {
+      if (generation.current === startedGeneration) setFailedKey(key)
+      return null
+    }
+  }
+
+  async function addAll(expected: RunCasesOutsideBuild | null = null) {
+    if (adding.current || outside?.gameBuildId == null) return false
     adding.current = true
     setPending(true)
     setFailedKey(null)
@@ -42,28 +56,36 @@ export function useRunVersionCases(projectId: string, runId: string, instanceId:
     try {
       // 클릭 직전에 다시 읽어 게임 버전이 바뀌었으면 추가 대상부터 갱신한다.
       const fresh = await getRunCasesOutsideBuild(projectId, runId, instanceId)
-      if (generation.current !== startedGeneration) return
+      if (generation.current !== startedGeneration) return false
       if (fresh.gameBuildId !== outside.gameBuildId) {
         setLoaded({ key, outside: fresh })
-        return
+        return false
+      }
+      if (expected !== null && (fresh.gameBuildId !== expected.gameBuildId ||
+        fresh.testCaseIds.some((id) => !expected.testCaseIds.includes(id)))) {
+        setLoaded({ key, outside: fresh })
+        return false
       }
       if (fresh.gameBuildId !== null && fresh.testCaseIds.length > 0) {
         for (let offset = 0; offset < fresh.testCaseIds.length; offset += MAX_BULK_SELECTION) {
-          if (generation.current !== startedGeneration) return
+          if (generation.current !== startedGeneration) return false
           await addCasesToVersion(projectId, fresh.gameBuildId, fresh.testCaseIds.slice(offset, offset + MAX_BULK_SELECTION), true)
         }
       }
       const remaining = await getRunCasesOutsideBuild(projectId, runId, instanceId)
-      if (generation.current !== startedGeneration) return
+      if (generation.current !== startedGeneration) return false
       setLoaded({ key, outside: remaining })
-      if (remaining.testCaseIds.length > 0) setFailedKey(key)
+      const complete = remaining.gameBuildId === fresh.gameBuildId && remaining.testCaseIds.length === 0
+      if (!complete) setFailedKey(key)
+      return complete
     } catch {
       if (generation.current === startedGeneration) setFailedKey(key)
+      return false
     } finally {
       adding.current = false
       setPending(false)
     }
   }
 
-  return { outside, pending, failed: failedKey === key, addAll, retry: () => setRevision((value) => value + 1) }
+  return { outside, pending, failed: failedKey === key, refresh, addAll, retry: () => setRevision((value) => value + 1) }
 }

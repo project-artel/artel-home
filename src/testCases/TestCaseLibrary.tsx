@@ -1,5 +1,7 @@
 import { buildDisplayName } from '../projects/buildEnvironment'
 import { useTestCaseLabel, useTestCaseIdentifiers } from './testCaseIdentifiers'
+import { sceneNamesOf, scenePattern } from './sceneHighlight'
+import { SceneMarkedText } from './SceneMarkedText'
 import { TestCaseHover } from './TestCaseHover'
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
@@ -70,6 +72,8 @@ import {
   NO_FILTERS,
   selectTestCases,
   tallyTestCases,
+  countKinds,
+  sceneUsageOf,
   countOf,
   STATUS_CLASS,
   type TestCaseFilters,
@@ -78,7 +82,7 @@ import {
 import { ContentReviewBadge } from '../qa/evaluation/ContentReviewPanel'
 import { useContentReviews } from '../qa/evaluation/useContentReviews'
 import { evaluationCopy } from '../qa/evaluation/evaluationCopy'
-import { VERIFICATION_STATUSES, type TestCase } from './testCaseTypes'
+import { CASE_KINDS, VERIFICATION_STATUSES, type TestCase } from './testCaseTypes'
 import { useFolderHistory } from './useFolderHistory'
 import { useFolderItems } from './useFolderItems'
 import { useTestCaseFolders } from './useTestCaseFolders'
@@ -343,6 +347,8 @@ export function TestCaseLibrary({
     return [...sorted.filter((testCase) => !onlyOneSide(testCase)), ...sorted.filter(onlyOneSide)]
   }, [inFolder, filters, sort, folderView, itemById, compareVersionId, rowById, caseNumbers])
   const tally = useMemo(() => tallyTestCases(inFolder), [inFolder])
+  const kinds = useMemo(() => countKinds(inFolder), [inFolder])
+  const sceneMatcher = useMemo(() => scenePattern(sceneNamesOf(inFolder)), [inFolder])
   // 선택은 지금 보이는 줄에 묶인다. 필터가 줄을 숨기면 hook 이 그 줄을 선택에서 뺀다.
   const visibleIds = useMemo(() => shown.map((testCase) => testCase.id), [shown])
   const selection = useCaseSelection(visibleIds)
@@ -398,10 +404,7 @@ export function TestCaseLibrary({
     setSelectedId(null)
   }, [setCreating, setSelectedId])
   // 화면 이름은 대부분 이미 쓰던 것 중 하나다. 편집기에 넘겨 칩으로 고르게 한다.
-  const knownScenes = useMemo(
-    () => [...new Set(library.cases.map((one) => one.scene.trim()).filter((one) => one.length > 0))].sort(),
-    [library.cases],
-  )
+  const sceneUsage = useMemo(() => sceneUsageOf(library.cases), [library.cases])
 
   function startCreating() {
     setSelectedId(null)
@@ -1049,6 +1052,29 @@ export function TestCaseLibrary({
                 {origin === 'ALL' ? m.origin.all : m.origin[origin]}
               </button>
             ))}
+            <span className="tcl-chips-sep" aria-hidden="true" />
+            <span className="field-label">{m.kind.label}</span>
+            {(['ALL', ...CASE_KINDS] as const).map((kind) => (
+              <button
+                aria-pressed={filters.kind === kind}
+                className={filters.kind === kind ? 'fchip on' : 'fchip'}
+                key={kind}
+                onClick={() => setFilters({ ...filters, kind })}
+                type="button"
+              >
+                {kind === 'ALL' ? m.kind.all : m.kind[kind]} {kind === 'ALL' ? tally.total : kinds[kind]}
+              </button>
+            ))}
+            {/* 씬 전이(ARTEL-1313)는 기능 · 예외와 겹치는 표시라 따로 켜고 끈다. */}
+            <button
+              aria-pressed={filters.transition}
+              className={filters.transition ? 'fchip on' : 'fchip'}
+              onClick={() => setFilters({ ...filters, transition: !filters.transition })}
+              title={m.kind.transitionFilterTitle}
+              type="button"
+            >
+              {m.kind.transition} {kinds.transition}
+            </button>
             {folderView && hiddenCount > 0 && (
               <button
                 aria-pressed={showHidden}
@@ -1283,8 +1309,24 @@ export function TestCaseLibrary({
                               {m.origin[testCase.origin]}
                             </span>
                           )}
+                          {/* 예외만 표시한다. 대부분이 기능이라 줄마다 "기능" 을 달면 아무것도 가르지 못한다. */}
+                          {testCase.kind === 'EXCEPTION' && (
+                            <span className="tct-origin tct-kind--exception" title={m.kind.exceptionTitle}>
+                              {m.kind.EXCEPTION}
+                            </span>
+                          )}
+                          {/* 씬 전이 TC(ARTEL-1313). 도착 화면이 있으면 붙는다. 어디로 가는지는 라벨에 올리면 보인다. */}
+                          {testCase.arrivesAt && (
+                            <span className="tct-origin tct-kind--transition" title={m.kind.transitionTitle(testCase.arrivesAt)}>
+                              {m.kind.transition}
+                            </span>
+                          )}
                           <TestCaseHover projectId={projectId} caseId={testCase.id} gameBuildId={selectedBuildId}><span className="tct-step-text">
-                            {testCase.step.length > 0 ? <InlineCode className="tct-code" text={testCase.step} /> : m.row.untitled}
+                            {testCase.step.length > 0 ? <SceneMarkedText codeClassName="tct-code" pattern={sceneMatcher} text={testCase.step} /> : m.row.untitled}
+                            {/* 예외 TC 는 같은 조작의 기능 TC 와 사전조건으로만 갈린다. 그래서 함께 보인다. */}
+                            {testCase.kind === 'EXCEPTION' && testCase.precondition !== null && (
+                              <span className="tct-kind-pre"> · {testCase.precondition}</span>
+                            )}
                             {note !== null && <span className="tct-absent-note">{note}</span>}
                             {item?.hidden === true && (
                               <span className="tct-hidden-tag" title={m.folderItems.hiddenTitle}>{m.folderItems.hiddenTag}</span>
@@ -1331,7 +1373,7 @@ export function TestCaseLibrary({
           key={`${projectId}:${selectedVersionId ?? ''}:${selected?.id ?? 'new'}`}
           builds={builds}
           folderId={folderSelection.kind === 'folder' ? folderSelection.id : null}
-          knownScenes={knownScenes}
+          sceneUsage={sceneUsage}
           onClose={closeSheet}
           onCreated={(created) => {
             library.applyCreated(created)

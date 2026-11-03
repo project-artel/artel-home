@@ -1,4 +1,5 @@
 import { useTestCaseLabel } from './testCaseIdentifiers'
+import type { SceneUsage } from './testCaseLibrary'
 import { useEffect, useRef, useState } from 'react'
 import type { Messages } from '../i18n/messages'
 import { useI18n } from '../i18n/useI18n'
@@ -22,7 +23,7 @@ import { getTestCase } from './testCaseApi'
 export function TestCaseSheet({
   builds = [],
   folderId = null,
-  knownScenes = [],
+  sceneUsage,
   projectId,
   testCase: listedCase,
   versionChoice,
@@ -33,7 +34,7 @@ export function TestCaseSheet({
   onSaved,
 }: {
   builds?: GameBuild[]
-  knownScenes?: string[]
+  sceneUsage?: SceneUsage
   /** 새 케이스를 넣을 폴더. */
   folderId?: string | null
   projectId: string
@@ -121,7 +122,7 @@ export function TestCaseSheet({
           builds={builds}
           folderId={folderId}
           key={`${testCase?.id ?? 'new'}:${editGameBuildId ?? ''}`}
-          knownScenes={knownScenes}
+          sceneUsage={sceneUsage}
           onCreated={onCreated}
           onDelete={onDelete}
           onDone={onClose}

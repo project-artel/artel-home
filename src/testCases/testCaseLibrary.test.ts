@@ -2,6 +2,8 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import type { GameBuild } from '../projects/gameTypes'
 import {
+  sceneUsageOf,
+  countKinds,
   countScenes,
   editableCase,
   describeVerifiedBuild,
@@ -104,7 +106,7 @@ test('씬과 검증 상태 필터는 함께 걸린다', () => {
     makeCase('3', { scene: 'Shop', verificationStatus: 'BROKEN' }),
   ]
 
-  const filters = { query: '', scene: 'Lobby', status: 'BROKEN' as VerificationStatus, origin: 'ALL' as const }
+  const filters = { query: '', scene: 'Lobby', status: 'BROKEN' as VerificationStatus, origin: 'ALL' as const, kind: 'ALL' as const, transition: false }
   assert.deepEqual(idsOf(selectTestCases(cases, filters, 'NEWEST')), ['1'])
   assert.equal(hasActiveFilters(filters), true)
 })
@@ -202,4 +204,43 @@ test('출처 필터는 자동 생성 · 사용자 생성을 가르고, 출처를
   assert.deepEqual(only('MAP'), ['1'])
   assert.deepEqual(only('MANUAL'), ['2'])
   assert.equal(hasActiveFilters({ ...NO_FILTERS, origin: 'MANUAL' }), true)
+})
+
+test('종류 필터는 예외만 · 기능만 고르고, 종류를 모르는 케이스는 기능이다', () => {
+  const cases = [
+    makeCase('1', { kind: 'FUNCTION' }),
+    makeCase('2', { kind: 'EXCEPTION' }),
+    makeCase('3'),
+  ]
+
+  assert.deepEqual(idsOf(selectTestCases(cases, { ...NO_FILTERS, kind: 'EXCEPTION' }, 'NEWEST')), ['2'])
+  assert.deepEqual(idsOf(selectTestCases(cases, { ...NO_FILTERS, kind: 'FUNCTION' }, 'NEWEST')), ['1', '3'])
+  assert.equal(hasActiveFilters({ ...NO_FILTERS, kind: 'EXCEPTION' }), true)
+  assert.deepEqual(countKinds(cases), { FUNCTION: 2, EXCEPTION: 1, transition: 0 })
+})
+
+test('화면 칩은 TC 가 많은 씬부터, 도착 화면 칩은 도착 화면으로 많이 쓴 씬부터 놓는다', () => {
+  const cases = [
+    makeCase('1', { scene: '광장', arrivesAt: '숲' }),
+    makeCase('2', { scene: '광장', arrivesAt: '숲' }),
+    makeCase('3', { scene: '광장' }),
+    makeCase('4', { scene: '여관', arrivesAt: '광장' }),
+    makeCase('5', { scene: '대장간' }),
+  ]
+  const usage = sceneUsageOf(cases)
+  assert.deepEqual(usage.scenes, ['광장', '대장간', '여관'])
+  assert.deepEqual(usage.arrivals, ['숲', '광장', '대장간', '여관'])
+  assert.equal(usage.arrivalCounts.get('숲'), 2)
+})
+
+test('씬 전이 칩은 도착 화면이 있는 TC 만 남기고, 종류와 함께 걸린다', () => {
+  const cases = [
+    makeCase('1', { arrivesAt: '숲' }),
+    makeCase('2', { arrivesAt: '광장', kind: 'EXCEPTION' }),
+    makeCase('3'),
+  ]
+  assert.deepEqual(idsOf(selectTestCases(cases, { ...NO_FILTERS, transition: true }, 'NEWEST')), ['1', '2'])
+  assert.deepEqual(idsOf(selectTestCases(cases, { ...NO_FILTERS, transition: true, kind: 'FUNCTION' }, 'NEWEST')), ['1'])
+  assert.equal(hasActiveFilters({ ...NO_FILTERS, transition: true }), true)
+  assert.equal(countKinds(cases).transition, 2)
 })
