@@ -70,7 +70,7 @@ export async function exportTestCases(
   return fileName
 }
 
-/** 가져오기 양식을 받아 저장한다. 엑셀은 머리글 필터 · 종류 고르기 목록 · 작성법 시트가 든 표다. 지우지 않아도 되는 예시 한 줄((예시))이 들어 있다. */
+/** 가져오기 양식을 받아 저장한다. 엑셀은 머리글 필터 · 종류 고르기 목록 · 작성법 시트가 든 표다. 지우지 않아도 되는 예시 한 줄이 들어 있다. */
 export async function downloadImportTemplate(projectId: string, format: CaseFileFormat): Promise<string> {
   const response = await apiFetch(`${root(projectId)}/imports/template?format=${format}`)
   if (!response.ok) throw await toApiError(response)
