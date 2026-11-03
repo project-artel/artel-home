@@ -27,10 +27,11 @@ const logs = [
   log('5', 'CASE_VERDICT', { case_id: 101, verification_status: 'FAILED' }, 'saved-verdict'),
   log('6', 'PULSE', {}, 'pulse-only'),
 ]
-function render(mode: ExecutionMode, flow: boolean, input = logs, scenarioSteps = steps): string {
+function render(mode: ExecutionMode, flow: boolean, input = logs, scenarioSteps = steps,
+  numbers: ReadonlyMap<string, string> = new Map([['101','41'],['202','7'],['20','14']])): string {
   return renderToStaticMarkup(createElement(LocaleContext.Provider, {
     value: { locale: 'ko', setLocale: () => {}, t: messages.ko },
-  }, createElement(TestCaseIdentifiersContext.Provider, { value: { projectId: 'test-project', numbers: new Map([['101','41'],['202','7']]) } }, createElement(QaLogTimeline, {
+  }, createElement(TestCaseIdentifiersContext.Provider, { value: { projectId: 'test-project', numbers } }, createElement(QaLogTimeline, {
     projectId: 'test-project', gameBuildId: 'test-build',
     executionMode: mode, flow, scenarioSteps, logs: flow ? filterFlowLogs(input, mode) : input,
     focusRequest: null, hasMore: false, historyFailure: null, historyLoading: false,
@@ -50,13 +51,32 @@ for (const flow of [true, false]) {
     const middle = html.slice(html.indexOf('data-log-id="3"'), html.indexOf('data-log-id="4"'))
     assert.doesNotMatch(middle, /TC #|qa-tc-badge/)
     assert.equal(html.includes('pulse-only'), !flow)
-    assert.match(html, /saved-verdict/)
+    assert.match(html, /TC-041 → FAILED/)
     if (flow) {
       assert.match(html, /qa-flow-card/)
       assert.match(html, /qa-flow-dot--thought/)
       assert.match(html, /qa-flow-dot--action/)
       assert.doesNotMatch(html, /qa-log-meta|qa-flow-step-no|qa-flow-label/)
     }
+  })
+  test(`${flow ? 'Flow' : 'Raw'} 번호 조회 전에도 서로 다른 TC 판정은 합쳐지지 않는다`, () => {
+    const input = [
+      log('1', 'CASE_VERDICT', { case_id: 20, verification_status: 'VERIFIED' }, 'TC 20 → VERIFIED'),
+      log('2', 'CASE_VERDICT', { case_id: 21, verification_status: 'VERIFIED' }, 'TC 21 → VERIFIED'),
+    ]
+    const html = render('FREE', flow, input, [], new Map())
+    assert.equal((html.match(/TC-… → VERIFIED/g) ?? []).length, 2)
+  })
+}
+
+for (const flow of [true, false]) {
+  test(`${flow ? 'Flow' : 'Raw'} 판정 본문은 배지와 같은 프로젝트 식별 번호를 사용한다`, () => {
+    const input = [log('1', 'CASE_VERDICT', { case_id: 20, verification_status: 'VERIFIED' }, 'TC 20 → VERIFIED')]
+    const html = render('FREE', flow, input)
+    assert.match(html, /TC-014 → VERIFIED/)
+    assert.doesNotMatch(html, /TC 20|TC-020/)
+    assert.equal(input[0].message, 'TC 20 → VERIFIED')
+    assert.match(render('FREE', flow, input, [], new Map()), /TC-… → VERIFIED/)
   })
 }
 test('FREE의 매핑 없는 STATUS와 비판정 STATUS에는 TC를 추정하지 않는다', () => {
@@ -75,7 +95,7 @@ test('ORDERED의 Flow 구간과 Raw 구간을 유지한다', () => {
 test('FREE는 STATUS가 없는 부분 히스토리의 TC 판정도 같은 카드로 표시한다', () => {
   const html = render('FREE', true, [logs[4]])
   assert.match(html, /TC-041/)
-  assert.match(html, /saved-verdict/)
+  assert.match(html, /TC-041 → FAILED/)
   assert.match(html, /qa-flow-verdict--failed/)
   assert.doesNotMatch(html, /qa-flow-label|qa-flow-step-no/)
 })
