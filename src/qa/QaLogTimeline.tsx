@@ -23,6 +23,7 @@ import {
 import { buildFreeFlow, buildFlowSteps, objectNamesOf, type FlowAction, type FlowLine, type FlowStep } from './qaFlow'
 import { stepOf } from './qaProgress'
 import type { QaLog } from './qaTypes'
+import { qaLogMessage } from './qaLogMessage'
 
 /**
  * A request to bring one log into view.
@@ -423,7 +424,7 @@ export function QaLogTimeline({
   live,
   loadOlder,
   flow = false,
-  logs,
+  logs: sourceLogs,
   onFocusResolved,
   scenarioSteps = [],
 }: {
@@ -445,6 +446,10 @@ export function QaLogTimeline({
 }) {
   const { t } = useI18n()
   const caseLabel = useTestCaseLabel()
+  const logs = useMemo(() => sourceLogs.map(log => {
+    const message = qaLogMessage(log, caseLabel)
+    return message === log.message ? log : { ...log, message }
+  }), [sourceLogs, caseLabel])
   const caseGroups = groupStepsByCase(scenarioSteps).filter((group) => group.caseId !== null)
   const orderedFlow = flow && executionMode === 'ORDERED'
   // `흐름` 은 로그 한 줄이 아니라 스텝 하나를 그린다. `PULSE` 는 행으로 안 서지만
