@@ -14,4 +14,13 @@
 .gi-form-grid textarea { min-height: 80px; resize: vertical; }
 .gi-form-wide { grid-column: 1 / -1; }
 .gi-panel .form-actions { flex-wrap: wrap; }
+.gi-build-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.gi-build-toolbar .cm-build-switcher { min-width: 0; max-width: 100%; }
+.gi-table-scroll { max-width: 100%; overflow-x: auto; }
+.gi-table { min-width: 980px; }
+.gi-table th, .gi-table td { vertical-align: top; }
+.gi-table .gi-name { min-width: 160px; white-space: nowrap; overflow-wrap: normal; }
+.gi-table td:nth-child(2) { min-width: 180px; max-width: 280px; overflow-wrap: anywhere; }
+.gi-table .form-actions { min-width: 150px; margin: 0; }
+.gi-table .gi-note { margin-block: var(--space-2) 0; }
 @media (max-width: 600px) { .gi-form-grid { grid-template-columns: 1fr; } .gi-panel .button { min-height: 44px; } }

@@ -14,6 +14,10 @@ export const gameIdentitiesEn = {
   deleted: 'Deleted', active: 'Active', source: 'Source', version: 'Version', build: 'Build',
   createdBy: 'Created by', createdAt: 'Created', revision: 'Revision ID',
   name: 'Name (Type.member)', kind: 'Kind', base: 'Ordinal base', noBase: 'Unspecified',
+  noBuilds: 'No game builds have been registered. Connect a game with the SDK first.',
+  openBuilds: 'View game builds', openBuild: 'View selected build',
+  buildNotFound: 'The selected build could not be found. Select another build.',
+  chooseLatestBuild: 'View the latest build', tableLabel: 'Game identity list', actions: 'Actions', status: 'Status',
   meaning: 'Meaning', changesWhen: 'Changes when', identifies: 'Identifies', role: 'Role',
   deleteConfirm: (name: string) => `Delete ${name} from this build? Its revision history will remain.`,
 } as const
@@ -32,6 +36,10 @@ export const gameIdentitiesKo: Localized<typeof gameIdentitiesEn> = {
   deleted: '삭제됨', active: '사용 중', source: '출처', version: 'Version', build: '빌드',
   createdBy: '등록자', createdAt: '등록 시각', revision: 'Revision ID',
   name: '이름 (Type.member)', kind: 'Kind', base: 'Ordinal 시작값', noBase: '지정 안 함',
+  noBuilds: '등록된 게임 빌드가 없습니다. SDK가 포함된 게임을 먼저 연결해 주세요.',
+  openBuilds: '게임 빌드 보기', openBuild: '선택한 빌드 보기',
+  buildNotFound: '선택한 빌드를 찾을 수 없습니다. 다른 빌드를 선택해 주세요.',
+  chooseLatestBuild: '최신 빌드 보기', tableLabel: 'Game identity 목록', actions: '작업', status: '상태',
   meaning: '의미', changesWhen: '값이 바뀌는 조건', identifies: '구분하는 대상', role: 'Role',
   deleteConfirm: (name: string) => `이 빌드에서 ${name}을 삭제하시겠습니까? Revision 이력은 유지됩니다.`,
 }
