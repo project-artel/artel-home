@@ -68,6 +68,11 @@ export type RunChatSession = ReturnType<typeof useRunChatSession>
  * What the user's line says when they only pressed a button. The picked labels are
  * already phrased as instructions, so echoing them reads as something a person wrote.
  */
+/** 질문지 한 묶음의 답을 서버가 대화에 남기는 모양(`1. 질문 → 답`)으로. 새로고침 전후가 같게 보인다. */
+function batchSummary(answers: readonly RunChatAnswer[]): string {
+  return answers.map((one, index) => `${index + 1}. ${one.displayText ?? one.text ?? ''}`).join('\n')
+}
+
 function answerSummary(answer: RunChatAnswer | undefined): string {
   if (answer === undefined) return ''
   const said = answer.text?.trim() ?? ''
@@ -105,6 +110,8 @@ export function useRunChatSession(
   // 처음 읽기가 끝났는가. 그전의 빈 배열은 "없다" 가 아니라 "아직 모른다" 다.
   const [draftsLoaded, setDraftsLoaded] = useState(false)
   const [connected, setConnected] = useState(false)
+  // 붙어 있다가 끊겼다. 처음 붙기 전의 `connected=false` 와 가른다 — 그때 "끊겼다" 고 하면 거짓이다.
+  const [reconnecting, setReconnecting] = useState(false)
   const [awaitingReply, setAwaitingReply] = useState(false)
   const [sending, setSending] = useState(false)
   const [sendFailure, setSendFailure] = useState<string | null>(null)
@@ -118,6 +125,12 @@ export function useRunChatSession(
    * 대화에 "요청을 취소했습니다" 가 세 줄 남았다.
    */
   const cancellingRef = useRef(false)
+  // SSE 리스너가 읽는 지금 값. 리스너는 런이 바뀔 때만 다시 걸리므로 state 를 직접 읽으면 옛 값을 본다.
+  const awaitingRef = useRef(false)
+  const sendingRef = useRef(false)
+  useEffect(() => {
+    awaitingRef.current = awaitingReply
+  }, [awaitingReply])
   const [applyFailure, setApplyFailure] = useState<string | null>(null)
   const [autoApply, setAutoApplyState] = useState(readAutoApply)
 
@@ -180,7 +193,10 @@ export function useRunChatSession(
       })
 
     source = new EventSource(runChatStreamUrl(projectId, runId), { withCredentials: true })
-    source.addEventListener('open', () => setConnected(true))
+    source.addEventListener('open', () => {
+      setConnected(true)
+      setReconnecting(false)
+    })
     source.addEventListener('result', (event: Event) => {
       if (!(event instanceof MessageEvent)) return
       const parsed = parseRunStreamEvent(event.data)
@@ -217,6 +233,31 @@ export function useRunChatSession(
       const parsed = parseRunStreamEvent(event.data)
       if (parsed === null || parsed.type !== 'draft') return
       setDrafts(parsed.drafts)
+    })
+    // 붙자마자 오는 지금 턴 상태. 새로고침 · 연결 끊김 뒤에 진행 표시를 되살리거나, 끊긴 사이 끝난 턴의 기다림을 놓는다.
+    source.addEventListener('turn', (event: Event) => {
+      if (!(event instanceof MessageEvent)) return
+      const parsed = parseRunStreamEvent(event.data)
+      if (parsed === null || parsed.type !== 'turn') return
+      const { stage } = parsed
+      if (stage === null) {
+        // 보내는 중이면 서버가 아직 턴을 잡기 전일 수 있다. 기다리지 않던 화면이면 놓칠 것이 없다.
+        if (sendingRef.current || !awaitingRef.current) return
+        setAwaitingReply(false)
+        setStages([])
+        setCount(null)
+        setTurnStartedAt(null)
+        setStalled(false)
+        void listRunChatMessages(projectId, runId).then(setMessages, () => undefined)
+        void getRunChatDraft(projectId, runId).then(setDrafts, () => undefined)
+        onTurnEndedRef.current?.()
+        return
+      }
+      setStalled(false)
+      setAwaitingReply(true)
+      setTurnStartedAt((previous) => previous ?? Date.now())
+      setCount(parsed.done === undefined && parsed.total === undefined ? null : { done: parsed.done, total: parsed.total })
+      setStages((previous) => (previous[previous.length - 1] === stage ? previous : [...previous, stage]))
     })
     source.addEventListener('progress', (event: Event) => {
       if (!(event instanceof MessageEvent)) return
@@ -330,6 +371,7 @@ export function useRunChatSession(
       }
       // Transport hiccup: mark disconnected; EventSource retries on its own.
       setConnected(false)
+      setReconnecting(true)
     })
 
     return () => {
@@ -339,33 +381,35 @@ export function useRunChatSession(
   }, [projectId, runId])
 
   const send = useCallback(
-    async (message: string, answer?: RunChatAnswer): Promise<boolean> => {
+    async (message: string, answer?: RunChatAnswer, answers: RunChatAnswer[] = []): Promise<boolean> => {
       const trimmed = message.trim()
       // An answer can stand on its own: picking an option is a complete reply, so an
       // empty message is only rejected when there is nothing else to send.
       if (runId === null || sending) return false
-      if (trimmed.length === 0 && answer === undefined) return false
+      if (trimmed.length === 0 && answer === undefined && answers.length === 0) return false
       setSending(true)
+      sendingRef.current = true
       setSendFailure(null)
       inFlightAutoApply.current = autoApply
+      const answered = new Set([...(answer === undefined ? [] : [answer.questionId]), ...answers.map((one) => one.questionId)])
       setMessages((previous) => [
         // The answered question loses its buttons — it has been answered, and leaving
         // them live invites a second answer to a question that is no longer pending.
         ...previous.map((m) =>
           // **답한 것만 지운다**(ARTEL-630). 묶음의 나머지는 아직 답을 기다린다 — 하나 답했다고
           // 다 치우면 물어본 보람이 없다.
-          answer === undefined
+          answered.size === 0
             ? m
             : {
                 ...m,
-                question: m.question?.id === answer.questionId ? null : m.question,
-                questions: m.questions?.filter((q) => q.id !== answer.questionId),
+                question: m.question != null && answered.has(m.question.id) ? null : m.question,
+                questions: m.questions?.filter((q) => !answered.has(q.id)),
               },
         ),
         {
           id: `user-${previous.length}`,
           role: 'USER' as const,
-          content: trimmed.length > 0 ? trimmed : answerSummary(answer),
+          content: trimmed.length > 0 ? trimmed : answers.length > 0 ? batchSummary(answers) : answerSummary(answer),
           createdAt: null,
           pending: true,
         },
@@ -377,7 +421,7 @@ export function useRunChatSession(
       try {
         // draft 가 있는 동안은 draft 만 고친다(ARTEL-1075). 새 요청은 draft 를 승인하거나 버린 뒤에 보낸다.
         await beforeSendRef.current?.()
-        await sendRunChatMessage(projectId, runId, trimmed, autoApply, answer, drafts.length > 0)
+        await sendRunChatMessage(projectId, runId, trimmed, autoApply, answer, drafts.length > 0, answers)
         return true
       } catch (error: unknown) {
         // 서버가 아는 draft 와 화면의 것이 갈렸다(다른 탭에서 승인했거나 서버가 다시 떴다). draft 를 다시 읽어
@@ -395,6 +439,7 @@ export function useRunChatSession(
         return false
       } finally {
         setSending(false)
+        sendingRef.current = false
       }
     },
     [projectId, runId, sending, autoApply, drafts.length],
@@ -548,6 +593,7 @@ export function useRunChatSession(
     drafts,
     draftsLoaded,
     connected,
+    reconnecting,
     // 지금 단계의 n/N 과, 한도를 넘겨 끊긴 것으로 보이는지 (ARTEL-952).
     count,
     stalled,

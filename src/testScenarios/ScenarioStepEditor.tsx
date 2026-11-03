@@ -1,3 +1,4 @@
+import { buildDisplayName } from '../projects/buildEnvironment'
 import { useTestCaseLabel } from '../testCases/testCaseIdentifiers'
 import { TestCaseHover } from '../testCases/TestCaseHover'
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
@@ -594,7 +595,7 @@ export function ScenarioStepEditor({
           onClose={() => setLinking(null)}
           onPick={(testCase) => linkCase(linking, Number(testCase.id))}
           projectId={projectId}
-          scope={caseBuild === null ? b.pickAll : b.pickVersion(caseBuild.label ?? caseBuild.version)}
+          scope={caseBuild === null ? b.pickAll : b.pickVersion(buildDisplayName({ ...caseBuild }))}
         />
       )}
       {tcView !== null && (
@@ -659,7 +660,7 @@ function StepInspector({
   const chip = gap
     ? b.gapChip
     : step.case_id === null
-      ? b.noTcAction
+      ? (step.recommendation_id !== undefined ? b.recommendedTc : b.noTcAction)
       : testCase?.scene
         ? `${caseLabel(step.case_id)} · ${testCase.scene}`
         : caseLabel(step.case_id)

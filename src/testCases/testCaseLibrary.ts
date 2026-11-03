@@ -1,3 +1,4 @@
+import { buildDisplayName } from '../projects/buildEnvironment'
 import { selectedLibraryCase } from './selectedLibraryCase'
 import { formatTestCaseId } from './testCaseId'
 import type { GameBuild } from '../projects/gameTypes'
@@ -160,8 +161,7 @@ export function describeVerifiedBuild(
   // 이름으로는 맞지 않다.
   if (build.isEditor) return editorLabel
 
-  const label = build.label?.trim() ?? ''
-  return label.length > 0 ? label : build.version
+  return buildDisplayName(build)
 }
 
 /** `vdot` 와 결과 pill 이 상태마다 쓰는 CSS 접미사. 대문자 상태값을 클래스에 그대로 넣지 않는다. */

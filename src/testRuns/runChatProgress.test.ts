@@ -65,3 +65,17 @@ test('한도는 노드가 걸리는 시간에 비례한다', () => {
   // 쪽보다 나쁘다 — 앞은 멀쩡한 턴을 버리게 하고, 뒤는 16시간을 기다리게 했다.
   assert.ok(STAGE_STALL_MS.writing >= 150_000)
 })
+
+test('붙자마자 오는 턴 상태: 도는 턴은 단계를, 없으면 null 을 든다', () => {
+  assert.deepEqual(parseRunStreamEvent(JSON.stringify({ type: 'turn', stage: 'preparing_cases', done: null, total: null })), {
+    type: 'turn', stage: 'preparing_cases', done: undefined, total: undefined,
+  })
+  assert.deepEqual(parseRunStreamEvent(JSON.stringify({ type: 'turn' })), {
+    type: 'turn', stage: null, done: undefined, total: undefined,
+  })
+})
+
+test('계약 정리 단계는 서버가 기다리는 만큼 끊김으로 보지 않는다', () => {
+  assert.ok(STAGE_STALL_MS.preparing_cases >= 136_000 * 3)
+})
+

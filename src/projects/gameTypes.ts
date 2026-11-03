@@ -59,7 +59,7 @@ export type InstanceBuild = {
   gameBuildId: string
   version: string
   label: string | null
-  isEditor: boolean
+  isEditor: boolean | null
 }
 
 export type GameBuild = {
@@ -76,9 +76,9 @@ export type GameBuild = {
   /**
    * The one build per project that the Unity editor reports. It shares a version
    * string with development builds but is not a game version, so version lists
-   * skip it. Servers that predate ARTEL-1014 omit the field; it parses as `false`.
+   * skip it. Servers that predate ARTEL-1014 omit the field; it parses as `null`, which screens show as Unknown.
    */
-  isEditor: boolean
+  isEditor: boolean | null
   createdAt: string
   updatedAt: string
 }

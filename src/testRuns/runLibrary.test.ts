@@ -68,9 +68,9 @@ test('켜진 게임이 TR 버전과 다르면 둘을 알리고, editor 는 버�
   })
   const target = run('a', '1', '1.4.0')
   assert.equal(versionMismatch(target, instance('1', '1.4.0')), null)
-  assert.deepEqual(versionMismatch(target, instance('2', '1.5.0')), { run: '1.4.0', game: '1.5.0' })
+  assert.deepEqual(versionMismatch(target, instance('2', '1.5.0')), { run: '1.4.0 · Unknown', game: '1.5.0 · Standalone' })
   assert.equal(versionMismatch(target, instance('99', '1.4.0', true)), null)
-  assert.deepEqual(versionMismatch(target, instance('99', '1.5.0', true)), { run: '1.4.0', game: '1.5.0' })
+  assert.deepEqual(versionMismatch(target, instance('99', '1.5.0', true)), { run: '1.4.0 · Unknown', game: '1.5.0 · Editor' })
   assert.equal(versionMismatch(run('b', null), instance('2', '1.5.0')), null)
 })
 

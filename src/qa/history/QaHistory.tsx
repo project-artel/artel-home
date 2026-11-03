@@ -1,3 +1,4 @@
+import { gameBuildName } from '../../testRuns/testRunApi'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { EdgeScrollbar } from '../../design-system/primitives/EdgeScrollbar'
@@ -221,7 +222,7 @@ export function QaHistory() {
         </div>
         <div className="qh-rail-body">
           <ul className="qh-tree">
-            {strays.map((build) => versionRow(build.gameBuildId, build.label ?? build.version))}
+            {strays.map((build) => versionRow(build.gameBuildId, gameBuildName(build)))}
             {entries.map((entry) =>
               entry.kind === 'version' ? (
                 versionRow(entry.version.gameBuildId, versionName(entry.version), { latest: entry.version.latest, version: entry.version })
@@ -332,7 +333,7 @@ function nameOfBucket(bucket: string, versions: readonly TestCaseVersionSummary[
   const version = versions.find((one) => one.gameBuildId === bucket)
   if (version !== undefined) return versionName(version)
   const stray = strays.find((one) => one.gameBuildId === bucket)
-  return stray?.label ?? stray?.version ?? bucket
+  return stray === undefined ? bucket : gameBuildName(stray)
 }
 
 /** 한 번도 돌린 적이 없을 때. 무엇이 여기 쌓이는지를 그림으로 먼저 보인다. */

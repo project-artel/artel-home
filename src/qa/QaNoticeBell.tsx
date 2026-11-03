@@ -1,3 +1,4 @@
+import { buildDisplayName } from '../projects/buildEnvironment'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
@@ -144,7 +145,7 @@ export function QaNoticeBell() {
                   const seconds = ms === null ? null : Math.round(ms / 1000)
                   const meta = [
                     notice.projectName,
-                    run.gameBuildVersion === null ? null : copy.build(run.gameBuildVersion),
+                    run.gameBuildVersion === null ? null : copy.build(buildDisplayName({ version: run.gameBuildVersion, isEditor: run.gameBuildIsEditor })),
                     run.completedAt === null ? null : when(run.completedAt),
                     seconds === null ? null : formatElapsedSeconds(seconds),
                   ].filter(Boolean).join(' · ')

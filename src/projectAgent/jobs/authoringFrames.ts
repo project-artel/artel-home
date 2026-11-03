@@ -50,6 +50,8 @@ export function interpretFrame(frame: RunChatStreamEvent, copy: TasksCopy): Fram
     }
     case 'applied':
     case 'draft':
+    // 재연결 때 지금 상태를 다시 알리는 프레임이다. 작업 목록은 진행 프레임으로 이미 따라간다.
+    case 'turn':
       return { kind: 'ignore' }
   }
 }
