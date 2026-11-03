@@ -2,7 +2,7 @@
 
 - Date: 2026-11-03
 - GitHub Issue: None (Jira: ARTEL-1353)
-- Status: Implemented; draft PR preparation
+- Status: Draft PR #244 opened; human review pending
 
 ## Goal
 
@@ -27,7 +27,7 @@ API·DB·enum·경로·테스트 동작 변경, 다른 로컬 작업 포함, 테
 - [x] **Step 0: Recon** — locale, 사용 컴포넌트, 프로젝트 식별자 formatter, agent 지시문 확인.
 - [x] **Step 1: Implementation** — locale 문자열과 하드코딩된 사용자 문구 수정. AGENTS.md에 .agents/docs/product-terminology.md 필수 읽기 링크 추가.
 - [x] **Step 2: Tests** — typecheck·build 및 1,615개 테스트 통과. 변경 파일 lint 통과. 전체 lint의 기존 오류 5건은 변경하지 않은 파일에만 존재. locale key·보간 구조 및 식별자 formatter 보존 확인. 양쪽 언어·테마·너비의 fixture 기반 렌더링 확인.
-- [ ] **Step 3: Rollout / Rollback** — develop 대상 draft PR. assignee·chore label 및 Jira 링크. revert로 복구.
+- [x] **Step 3: Rollout / Rollback** — develop 대상 [draft PR #244](https://github.com/project-artel/artel-home/pull/244) 생성. assignee·chore label 및 Jira 링크 확인. revert로 복구. 병합·배포 없음.
 
 ## Validation
 - **Commands to run:** npm run typecheck, npm run lint, npm test, npm run build, git diff --check.
@@ -45,3 +45,4 @@ API·DB·enum·경로·테스트 동작 변경, 다른 로컬 작업 포함, 테
 - FAST REVIEW: PASS, MEDIUM REVIEW: PASS, HEAVY REVIEW: PASS.
 - Pair review에서 가져오기 띄어쓰기, 추천 저장 대상, 검색 도움말을 수정한 뒤 VERDICT: PASS.
 - [화면 검증과 한계](../assets/console-terminology/README.md).
+- Jira ARTEL-1353 검토 중. Draft 해제는 사람이 검토한 뒤 직접 진행한다.
