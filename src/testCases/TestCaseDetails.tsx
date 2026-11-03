@@ -4,7 +4,6 @@ import { useEffect, useId, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { formatDate } from '../projects/formatters'
 import { SceneChip } from './SceneChip'
-import { SpecGradeChip } from './SpecGradeChip'
 import { getTestCase, getVerdictHistory, type CaseVerdictHistoryItem } from './testCaseApi'
 import type { TestCase } from './testCaseTypes'
 
@@ -50,8 +49,6 @@ export function TestCaseDetails({ projectId, caseId, gameBuildId = null }: {
               <span className={`vpill ${testCase.verificationStatus}`}>
                 <span className={`vdot ${testCase.verificationStatus}`} />{statusLabel[testCase.verificationStatus]}
               </span>
-              {/* 명세 상태와 QA 검증 상태를 별도로 표시한다. */}
-              <SpecGradeChip status={testCase.status} />
             </div>
             <p className="tc-modal-note">{t.testCases.outcome.addedAt(formatDate(testCase.createdAt))}</p>
             {testCase.origin !== undefined && <p className="tc-modal-note">{t.testCases.origin[testCase.origin]}</p>}

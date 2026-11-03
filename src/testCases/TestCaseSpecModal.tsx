@@ -4,7 +4,6 @@ import { useI18n } from '../i18n/useI18n'
 import { CaseListRow } from './CaseListRow'
 import { CaseSceneFilter } from './CaseSceneFilter'
 import { SceneChip } from './SceneChip'
-import { SpecGradeChip } from './SpecGradeChip'
 import { listTestCases } from './testCaseApi'
 import { VERIFICATION_STATUSES, type TestCase, type VerificationStatus } from './testCaseTypes'
 import { useCaseListNav } from './useCaseListNav'
@@ -166,7 +165,6 @@ export function TestCaseSpecModal({
                           "what is this case?", so the grade belongs in it.
                           `evidenceGaps` does NOT: the list response omits it by
                           design, and this pane reads from the list. */}
-                      <SpecGradeChip status={info.status} />
                       {currentCaseId !== null && String(currentCaseId) === info.id && <span className="cp-info-current">{p.pickCurrent}</span>}
                     </div>
                     <dl className="cp-info-fields">

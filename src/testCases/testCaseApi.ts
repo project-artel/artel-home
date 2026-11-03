@@ -59,7 +59,6 @@ export function parseTestCase(data: unknown): TestCase | null {
     step: asString(record.step),
     precondition: asNullableString(record.precondition),
     expectedValue: asString(record.expectedValue),
-    status: asNullableString(record.status),
     verificationStatus: asVerificationStatus(record.verificationStatus),
     lastVerifiedBuildId: asNullableString(record.lastVerifiedBuildId),
     createdAt: asString(record.createdAt),

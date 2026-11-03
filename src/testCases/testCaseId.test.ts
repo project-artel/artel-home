@@ -15,7 +15,7 @@ import { LocaleContext } from '../i18n/LocaleContext'
 import { messages } from '../i18n/messages'
 
 function row(id: string): TestCase {
-  return { id, projectId: '1', scene: 'Battle', step: '동일한 절차', precondition: null, expectedValue: '동일한 결과', status: null,
+  return { id, projectId: '1', scene: 'Battle', step: '동일한 절차', precondition: null, expectedValue: '동일한 결과',
     verificationStatus: 'DRAFT', lastVerifiedBuildId: null, createdAt: '2026-10-28T00:00:00Z', folderId: null, evidenceGaps: [] }
 }
 function Label({ id }: { id: string }) { return createElement('span', null, useTestCaseLabel()(id)) }

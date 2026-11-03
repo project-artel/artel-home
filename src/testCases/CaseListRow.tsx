@@ -1,7 +1,6 @@
 import { useTestCaseLabel } from './testCaseIdentifiers'
 import { TestCaseHover } from './TestCaseHover'
 import { SceneChip } from './SceneChip'
-import { SpecGradeChip } from './SpecGradeChip'
 import type { TestCase } from './testCaseTypes'
 
 /**
@@ -55,9 +54,6 @@ export function CaseListRow({
         <span className="cp-title">{testCase.step.length > 0 ? testCase.step : fallbackTitle}</span>
         <span className="cp-sub"><span className="tc-id">{caseLabel(testCase.id)}</span> · {statusLabel}</span>
       </span>
-      {/* Settled grades stay off the rows. A list where every row reads "확정" carries no
-          information; the badge earns its space only on the cases that are not settled. */}
-      <SpecGradeChip status={testCase.status} quietWhenSettled />
       <SceneChip scene={testCase.scene} />
     </button></TestCaseHover>
   )

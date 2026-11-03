@@ -33,7 +33,6 @@ function makeCase(id: string, folderId: string | null, extra: Partial<TestCase> 
     step: `step ${id}`,
     precondition: null,
     expectedValue: 'something happens',
-    status: null,
     verificationStatus: 'DRAFT',
     lastVerifiedBuildId: null,
     createdAt: '2026-08-27T00:00:00.000Z',

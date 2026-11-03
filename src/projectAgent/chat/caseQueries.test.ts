@@ -15,7 +15,6 @@ function makeCase(index: number, patch: Partial<TestCase> = {}): TestCase {
     step: `step ${index}`,
     precondition: null,
     expectedValue: `expected ${index}`,
-    status: 'ready',
     verificationStatus: 'DRAFT',
     lastVerifiedBuildId: null,
     createdAt: 'c',
@@ -78,7 +77,7 @@ test('buildCaseList resolves folder and build names and states the build scope',
   assert.equal(unscoped.rows[0].folderName, 'Smoke')
   assert.equal(unscoped.rows[0].lastVerifiedBuild, 'Beta')
   assert.equal(unscoped.rows[0].origin, null)
-  assert.equal(unscoped.rows[0].specStatus, 'ready')
+  assert.equal(Object.hasOwn(unscoped.rows[0], 'specStatus'), false)
   const scoped = buildCaseList(cases, {}, 0, lookups, '5')
   assert.equal(scoped.scope?.build, 'Beta')
   assert.match(scoped.scope?.note ?? '', /Only cases in build Beta/)

@@ -81,8 +81,6 @@ export const testCasesEn = {
        Numbering them says so; three identical boxes stacked do not. */
     content: 'Content',
     sceneKnown: 'Screens already in use',
-    specGrade: 'Spec grade',
-    specGradeNone: 'The spec set no grade',
     save: 'Save',
     saving: 'Saving…',
     create: 'Add case',
@@ -634,8 +632,6 @@ export const testCasesKo: Localized<typeof testCasesEn> = {
     pickVersionTitle: '새 케이스를 넣을 버전',
     content: '내용',
     sceneKnown: '이미 쓰고 있는 화면',
-    specGrade: '명세 등급',
-    specGradeNone: '명세가 등급을 남기지 않았습니다',
     save: '저장',
     saving: '저장하는 중…',
     create: '케이스 추가',

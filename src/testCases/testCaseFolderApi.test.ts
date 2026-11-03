@@ -173,10 +173,10 @@ test('폴더 항목은 버전에 없는 케이스와 숨김을 함께 싣는다'
       gameBuildId: '12',
       items: [
         { testCaseId: '41', position: 0, hidden: false, hiddenGameBuildIds: [], inVersion: true, origin: 'MAP',
-          scene: 'Title', step: '시작', precondition: null, expectedValue: '넘어간다', status: 'runnable',
+          scene: 'Title', step: '시작', precondition: null, expectedValue: '넘어간다',
           verificationStatus: 'FAILED', createdAt: '2026-10-13T00:00:00Z' },
         { testCaseId: '42', position: 1, hidden: true, hiddenGameBuildIds: ['12', '9'], inVersion: false, origin: 'MAP',
-          scene: 'Map', step: '옛 기능', precondition: null, expectedValue: '열린다', status: null,
+          scene: 'Map', step: '옛 기능', precondition: null, expectedValue: '열린다',
           verificationStatus: null, createdAt: '2026-10-12T00:00:00Z' },
         { position: 2 },
       ],

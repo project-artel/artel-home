@@ -126,7 +126,6 @@ export function parseVersionCases(data: unknown, projectId: string): VersionCase
           step: asString(record?.step),
           precondition: asNullableString(record?.precondition),
           expectedValue: asString(record?.expectedValue),
-          status: asNullableString(record?.status),
           // 이 버전에 없는 케이스도 표의 한 줄이라 상태 칸이 비면 안 된다. 화면은 presence 로 "없음" 을 따로 그린다.
           verificationStatus: verificationStatus ?? 'DRAFT',
           lastVerifiedBuildId: null,

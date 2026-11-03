@@ -10,7 +10,6 @@ import { FolderPane, type FolderOperations } from '../testCases/FolderPane'
 import { Picker } from '../testCases/Picker'
 import { SceneChip } from '../testCases/SceneChip'
 import { SearchField } from '../testCases/SearchField'
-import { SpecGradeChip } from '../testCases/SpecGradeChip'
 import { StatusPill } from '../testCases/StatusPill'
 import { countOf, NO_FILTERS, selectTestCases, STATUS_CLASS, tallyTestCases, type TestCaseFilters } from '../testCases/testCaseLibrary'
 import { ALL_FOLDERS, countFromFolders, filterByFolder, type FolderSelection } from '../testCases/testCaseFolders'
@@ -250,7 +249,6 @@ export function CaseImportDialog({
                       <col className="tct-c-check" />
                       <col />
                       <col className="tct-c-scene" />
-                      <col className="tct-c-spec" />
                       <col className="tct-c-res" />
                       <col className="tct-c-exp" />
                       <col className="cid-c-more" />
@@ -272,7 +270,6 @@ export function CaseImportDialog({
                         </th>
                         <th scope="col">{lib.editor.step}</th>
                         <th scope="col">{lib.editor.scene}</th>
-                        <th scope="col">{lib.editor.specGrade}</th>
                         <th scope="col">{lib.filters.status}</th>
                         <th scope="col">{lib.editor.expectedValue}</th>
                         <th scope="col"><span className="visually-hidden">{m.addAgain}</span></th>
@@ -316,7 +313,6 @@ export function CaseImportDialog({
                               </span>
                             </td>
                             <td><SceneChip scene={testCase.scene} /></td>
-                            <td><SpecGradeChip bare status={testCase.status} /></td>
                             <td><StatusPill labels={lib} status={testCase.verificationStatus} /></td>
                             <td className="tct-quiet tct-expected">
                               {testCase.expectedValue.length > 0 ? <InlineCode className="tct-code" text={testCase.expectedValue} /> : lib.row.noExpectedValue}

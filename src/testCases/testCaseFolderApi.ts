@@ -176,7 +176,6 @@ export function parseFolderItems(data: unknown, projectId: string): FolderItemLi
           step: asString(item?.step),
           precondition: asNullableString(item?.precondition),
           expectedValue: asString(item?.expectedValue),
-          status: asNullableString(item?.status),
           verificationStatus: verificationStatus ?? 'DRAFT',
           lastVerifiedBuildId: null,
           createdAt: asString(item?.createdAt),

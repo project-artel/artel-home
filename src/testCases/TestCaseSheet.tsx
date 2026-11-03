@@ -5,7 +5,6 @@ import { useI18n } from '../i18n/useI18n'
 import { formatDate } from '../projects/formatters'
 import type { GameBuild } from '../projects/gameTypes'
 import { SceneChip } from './SceneChip'
-import { SpecGradeChip } from './SpecGradeChip'
 import { TestCaseEditor, type VersionChoice } from './TestCaseEditor'
 import { describeVerifiedBuild } from './testCaseLibrary'
 import type { TestCase } from './testCaseTypes'
@@ -99,7 +98,6 @@ export function TestCaseSheet({
                   {m.outcome[testCase.verificationStatus]}
                 </span>
                 <SceneChip scene={testCase.scene} />
-                <SpecGradeChip status={testCase.status} />
               </>
             )}
           </div>
