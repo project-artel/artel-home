@@ -1,3 +1,4 @@
+import { gameBuildName } from '../../testRuns/testRunApi'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { SketchEmpty } from '../../emptyStates/SketchEmpty'
 import { TestRunSketch } from '../../emptyStates/sketches'
@@ -243,7 +244,7 @@ function QaLaunchReady() {
 
   const runPath = run === null
     ? []
-    : [run.gameBuild?.label ?? run.gameBuild?.version ?? l.noVersion, ...(run.folderId === null ? [] : [...folderPath(folders, run.folderId), ...folders.filter((folder) => folder.id === run.folderId)].map((folder) => folder.name))]
+    : [run.gameBuild == null ? l.noVersion : gameBuildName(run.gameBuild), ...(run.folderId === null ? [] : [...folderPath(folders, run.folderId), ...folders.filter((folder) => folder.id === run.folderId)].map((folder) => folder.name))]
   const lastDuration = since?.lastQaRun === null || since === null ? null : runDuration(since.lastQaRun)
   const modelOf = (id: string | null) => offered.find((model) => model.id === id)
 

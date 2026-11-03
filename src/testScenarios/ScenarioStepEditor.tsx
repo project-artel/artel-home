@@ -1,3 +1,4 @@
+import { buildDisplayName } from '../projects/buildEnvironment'
 import { useTestCaseLabel } from '../testCases/testCaseIdentifiers'
 import { sceneNamesOf, scenePattern } from '../testCases/sceneHighlight'
 import { TestCaseHover } from '../testCases/TestCaseHover'
@@ -595,7 +596,7 @@ export function ScenarioStepEditor({
           onClose={() => setLinking(null)}
           onPick={(testCase) => linkCase(linking, Number(testCase.id))}
           projectId={projectId}
-          scope={caseBuild === null ? b.pickAll : b.pickVersion(caseBuild.label ?? caseBuild.version)}
+          scope={caseBuild === null ? b.pickAll : b.pickVersion(buildDisplayName({ ...caseBuild }))}
         />
       )}
       {tcView !== null && (

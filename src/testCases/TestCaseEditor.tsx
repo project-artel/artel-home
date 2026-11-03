@@ -1,3 +1,4 @@
+import { buildDisplayName } from '../projects/buildEnvironment'
 import { useId, useState } from 'react'
 import { SceneChipPicker } from './CaseSceneFilter'
 import { NO_SCENE_USAGE, type SceneUsage } from './testCaseLibrary'
@@ -469,7 +470,7 @@ export function TestCaseEditor({
           onChange={(functions) => setDraft({ ...draft, functions })}
           status={functionCatalog.status}
           value={draft.functions}
-          version={catalogBuild?.version ?? null}
+          version={catalogBuild === undefined || catalogBuild === null ? null : buildDisplayName(catalogBuild)}
         />
       )}
 

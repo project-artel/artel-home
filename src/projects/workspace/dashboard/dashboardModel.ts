@@ -1,3 +1,4 @@
+import { buildDisplayName } from '../../buildEnvironment'
 /**
  * 대시보드가 그리는 숫자(ARTEL-1164). 화면이 받은 응답을 그대로 넘기면 여기서 접는다 — 서버를 더 부르지 않고,
  * 같은 입력이면 늘 같은 출력이라 테스트가 화면 없이 숫자를 잡는다.
@@ -157,7 +158,7 @@ export type CostPoint = { qaRunId: string; startedAt: string; build: string; tok
 export function costByRun(
   usage: readonly { qaTryId: string; totals: { inputTokens: number; outputTokens: number; costUsd: number | null } }[],
   runOfTry: ReadonlyMap<string, string | null>,
-  runs: readonly { id: string; startedAt: string; gameBuildVersion: string | null }[],
+  runs: readonly { id: string; startedAt: string; gameBuildVersion: string | null; gameBuildIsEditor?: boolean | null }[],
 ): CostPoint[] {
   const runById = new Map(runs.map((run) => [run.id, run]))
   const byRun = new Map<string, CostPoint>()
@@ -165,7 +166,7 @@ export function costByRun(
     const runId = runOfTry.get(row.qaTryId)
     const run = runId ? runById.get(runId) : undefined
     if (!run) continue
-    const point = byRun.get(run.id) ?? { qaRunId: run.id, startedAt: run.startedAt, build: run.gameBuildVersion ?? '—', tokens: 0, costUsd: 0 }
+    const point = byRun.get(run.id) ?? { qaRunId: run.id, startedAt: run.startedAt, build: run.gameBuildVersion === null ? '—' : buildDisplayName({ version: run.gameBuildVersion, isEditor: run.gameBuildIsEditor }), tokens: 0, costUsd: 0 }
     point.tokens += row.totals.inputTokens + row.totals.outputTokens
     point.costUsd = point.costUsd === null || row.totals.costUsd === null ? null : point.costUsd + row.totals.costUsd
     byRun.set(run.id, point)

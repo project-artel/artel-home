@@ -152,6 +152,7 @@ test('qa.startRun turns a takeover, a failure and a blocked form into errors', a
   const runnerFor = (outcome: StartOutcome | null) =>
     createQaStartRunner({ start: async () => outcome, blockedReason: () => 'game not connected', blockedHint: 'blocked' })
   await assert.rejects(runnerFor({ kind: 'takeoverNeeded' })(), /already running another QA run/)
+  await assert.rejects(runnerFor({ kind: 'versionChoiceNeeded', message: 'Choose a TC version action' })(), /Choose a TC version action/)
   await assert.rejects(runnerFor({ kind: 'failed', message: 'server said no' })(), /server said no/)
   await assert.rejects(runnerFor(null)(), /game not connected/)
 })
