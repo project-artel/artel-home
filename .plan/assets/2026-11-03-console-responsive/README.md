@@ -24,4 +24,6 @@
 
 ## 코드 검증
 
-`npm run build`, `npm test` 164 suites/1,598 tests, 변경 TSX의 ESLint, `git diff --check` 통과. 독립 코드 리뷰에서 발견한 모바일 봇 작업 표시 영역과 긴 작업자명 잘림도 수정하고 PASS를 받았다.
+`npm run build`, `npm test` 164 suites/1,605 tests, 변경 TSX의 ESLint, `git diff --check` 통과. 독립 코드 리뷰에서 발견한 모바일 봇 작업 표시 영역과 긴 작업자명 잘림도 수정하고 PASS를 받았다.
+
+최신 develop의 TC 종류·도착 화면 기능을 병합한 뒤에도 build와 1,605개 테스트가 통과했다. TC 22개 폭·테마 조합과 편집 창 9개 조합을 다시 확인하고 해당 캡처를 교체했다. `tc-widths-after-merge.json`에 목록의 재검증 결과가 있다.

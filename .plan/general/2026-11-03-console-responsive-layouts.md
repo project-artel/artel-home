@@ -23,7 +23,7 @@ PR #240 캡처에서 놓친 좁은 화면의 잘림·겹침·접근 불가능한
 ## Validation
 `npm run build`, `npm test`, 변경 TSX/CSS lint, 브라우저 너비별 비교 캡처 및 조작 확인. API fixture를 사용한 부분과 실제 stack 검증을 구분한다.
 
-- `npm test`: 164 suites, 1,598 tests 통과.
+- `npm test`: 164 suites, 1,605 tests 통과.
 - `npm run build`, 변경 TSX 4개 ESLint, `git diff --check` 통과.
 - 메뉴 선택·뒤로/앞으로 이동·상세 경로 선택값·agent 비활성 메뉴·desktop 접힘 설정 보존 확인.
 - TC 표와 가져오기 표의 키보드 가로 스크롤이 오른쪽 끝까지 도달했다. 가져오기에서 TC를 선택하고 붙이기 버튼이 활성화되는 것까지 확인했다.
