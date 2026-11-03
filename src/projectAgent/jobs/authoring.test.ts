@@ -26,7 +26,7 @@ test('progress frames read as the stage name with an optional count', () => {
   assert.deepEqual(interpretFrame({ type: 'progress', stage: 'grouping', done: 1, total: 4 }, copy()), {
     kind: 'progress',
     stage: 'grouping',
-    text: 'Grouping test cases (1/4)',
+    text: 'Grouping Test Cases (1/4)',
   })
 })
 

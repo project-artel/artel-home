@@ -85,6 +85,10 @@ the name the code gave it.
 
 ## Writing Style
 
+Follow [`.agents/docs/product-terminology.md`](.agents/docs/product-terminology.md)
+before writing or changing console copy, proposing product names, or describing
+Test Cases, scenarios, coverage, and QA records in plans and reviews.
+
 Follow [`.agents/docs/writing-style.md`](.agents/docs/writing-style.md) for chat
 replies, reviews, plans, handoffs, issues, commit titles and bodies, pull
 requests, release notes, source comments, and all frontend copy (including
