@@ -13490,6 +13490,7 @@ col.vimp-c-scene{ width:18% } col.vimp-c-verdict{ width:16% }
 .tc-identifiers-status { position: fixed; z-index: 1200; right: var(--space-4); bottom: var(--space-4); max-width: calc(100vw - 32px); padding: var(--space-3); border: 1px solid var(--color-border-strong); background: var(--color-bg-surface); }
 
 .qa-version-choice-actions {
+  justify-content: center;
   flex-wrap: wrap;
 }
 
