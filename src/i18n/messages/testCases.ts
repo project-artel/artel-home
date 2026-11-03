@@ -489,7 +489,7 @@ export const testCasesEn = {
   },
   caseFile: {
     title: (target: string) => `Import cases into ${target}`,
-    hint: 'Excel (.xlsx) or CSV (.csv). Columns: TC number, kind, scene, precondition, step, expected, arrives at. A row with a number edits that case and adds it to this version; a row without one creates a case. The result column is not read. Start from the template if you have no file yet.',
+    hint: 'Excel (.xlsx) or CSV (.csv). Columns: TC number, kind, scene, precondition, step, expected, arrives at. A row with a number edits that case and adds it to this version; a row without one creates a case. The result column is not read. Start from the template if you have no file yet; its example row (number "(예시)") is skipped on import.',
     template: 'No file yet? Start from the template:',
     templateXlsx: 'Excel template',
     templateCsv: 'CSV template',
@@ -1129,7 +1129,7 @@ export const testCasesKo: Localized<typeof testCasesEn> = {
   },
   caseFile: {
     title: (target: string) => `${target} 에 TC 가져오기`,
-    hint: 'Excel(.xlsx) · CSV(.csv). 칸: TC 번호 · 종류 · 화면 · 사전조건 · 조작 · 기대결과 · 도착 화면. 번호가 있는 줄은 그 TC 를 고치고 이 버전에 넣고, 번호가 없으면 새로 만듭니다. 결과 칸은 읽지 않아요. 파일이 없으면 양식에서 시작하세요.',
+    hint: 'Excel(.xlsx) · CSV(.csv). 칸: TC 번호 · 종류 · 화면 · 사전조건 · 조작 · 기대결과 · 도착 화면. 번호가 있는 줄은 그 TC 를 고치고 이 버전에 넣고, 번호가 없으면 새로 만듭니다. 결과 칸은 읽지 않아요. 파일이 없으면 양식에서 시작하세요. 양식의 예시 줄(번호 칸이 (예시))은 가져올 때 건너뜁니다.',
     template: '파일이 없으면 양식에서 시작하세요:',
     templateXlsx: 'Excel 양식',
     templateCsv: 'CSV 양식',
