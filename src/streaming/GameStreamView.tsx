@@ -18,6 +18,7 @@ import type { GameStreamFailure, GameStreamStatus } from './streamTypes'
  * off up to 10s, which is long enough to be worth skipping by hand.
  */
 type StatusNotice = {
+  kind?: 'disconnected'
   tone: 'pending' | 'warning' | 'critical'
   placement: 'cover' | 'banner'
   label: string
@@ -109,9 +110,16 @@ function describeStatus(
     }
   }
 
-  const versionError = streamErrorNotice(errorCode)
-  if (versionError !== null) {
-    return { tone: 'critical', placement: 'cover', ...versionError, retryLabel: null }
+  const errorNotice = streamErrorNotice(errorCode)
+  if (errorNotice !== null) {
+    const canRetry = errorNotice.retryLabel !== null
+    return {
+      ...errorNotice,
+      kind: canRetry ? 'disconnected' : undefined,
+      tone: canRetry ? 'warning' : 'critical',
+      placement: canRetry && hasFrame ? 'banner' : 'cover',
+      detail: canRetry && hasFrame ? staleFrameDetail(lostAt) : errorNotice.detail,
+    }
   }
 
   if (failure === 'notPermitted') {
@@ -209,7 +217,7 @@ export function GameStreamView({
         /* One polite region for the whole notice: the label and the detail are
            a single summarised state change, not a log to read out line by line. */
         <div
-          className={`game-stream-notice game-stream-notice--${notice.tone} game-stream-notice--${notice.placement}`}
+          className={`game-stream-notice game-stream-notice--${notice.tone} game-stream-notice--${notice.placement}${notice.kind === 'disconnected' ? ' game-stream-notice--disconnected' : ''}`}
           role="status"
         >
           {notice.tone === 'pending' ? (

@@ -166,9 +166,9 @@ test('이전 transport와 SDK update 오류는 자동 재시도하지 않는다'
   oldSdk.stop()
 })
 
-test('업데이트 오류는 SDK와 서버의 조치를 구분해서 표시한다', () => {
-  assert.deepEqual(streamErrorNotice('SDK_UPDATE_REQUIRED'), { label: 'SDK 업데이트 필요', detail: '게임의 ARTEL SDK를 업데이트한 뒤 다시 실행해 주세요.' })
-  assert.deepEqual(streamErrorNotice('SERVER_TRANSPORT_MISMATCH'), { label: '서버 업데이트 필요', detail: '서버가 이 화면의 영상 전송 방식을 지원하지 않습니다. 서버를 업데이트해 주세요.' })
+test('모호한 SDK 오류는 연결 끊김과 재연결 버튼을 표시하고 서버 불일치는 유지한다', () => {
+  assert.deepEqual(streamErrorNotice('SDK_UPDATE_REQUIRED'), { label: '연결 끊김', detail: '게임 화면 연결이 끊겼습니다.', retryLabel: '재연결 시도' })
+  assert.deepEqual(streamErrorNotice('SERVER_TRANSPORT_MISMATCH'), { label: '서버 업데이트 필요', detail: '서버가 이 화면의 영상 전송 방식을 지원하지 않습니다. 서버를 업데이트해 주세요.', retryLabel: null })
   assert.equal(streamErrorNotice('INVALID_FRAME'), null)
 })
 
