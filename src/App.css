@@ -11033,11 +11033,9 @@ col.mct-c-updated { width: 12%; }
 /* 파일에서 TC 가져오기(ARTEL-1328). 가져오기 창(.mimp)과 같은 간격 · 색 토큰을 쓴다. */
 .dialog-panel:has(.cfi){ width:min(100%, 860px); }
 .cfi{ display:flex; flex-direction:column; gap:var(--space-3); min-width:0; }
-.cfi-drop{ display:flex; align-items:center; justify-content:space-between; gap:var(--space-3); padding:var(--space-3); border:1.5px dashed var(--color-border-strong); border-radius:var(--radius-md); }
-.cfi-drop.is-dragging{ border-color:var(--color-brand-accent); background:color-mix(in srgb, var(--color-brand-accent) 10%, transparent); }
-.cfi-file{ display:flex; flex-direction:column; gap:2px; min-width:0; }
-.cfi-file-name{ font-family:var(--font-mono, ui-monospace, monospace); font-size:12px; overflow-wrap:anywhere; }
-.cfi-file-meta, .cfi-file-hint{ font-size:12px; color:var(--color-text-muted); }
+/* 끌어 놓기 칸은 기획 문서 화면의 .dw-drop 이다. 창 안이라 큰 칸의 높이만 줄인다. */
+.cfi .dw-drop--large{ min-height:240px; }
+.cfi-file-name{ font-family:var(--font-mono, ui-monospace, monospace); overflow-wrap:anywhere; }
 .cfi-template{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:0; font-size:12px; color:var(--color-text-muted); }
 .cfi-counts{ display:flex; flex-wrap:wrap; gap:6px; }
 .cfi-pill{ padding:2px 10px; border:1px solid var(--color-border-strong); border-radius:999px; font-size:12px; white-space:nowrap; }

@@ -13,6 +13,19 @@ import {
 
 type Read = { kind: 'idle' } | { kind: 'reading' } | { kind: 'read'; preview: CaseImportPreview } | { kind: 'failed'; message: string }
 
+/** Tabler Icons(MIT) `file-spreadsheet`. 기획 문서 화면의 끌어 놓기 칸(`dw-drop`)과 같은 세트 · 같은 모양이다. */
+const SPREADSHEET_PATH = 'M14 3v4a1 1 0 0 0 1 1h4 M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z M8 11h8v7h-8z M8 15h8 M11 11v7'
+
+function SpreadsheetGlyph({ size }: { size: number }) {
+  return (
+    <span aria-hidden="true" className="dw-drop-icon">
+      <svg fill="none" height={size} stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" viewBox="0 0 24 24" width={size}>
+        <path d={SPREADSHEET_PATH} />
+      </svg>
+    </span>
+  )
+}
+
 const ORDER: readonly CaseImportStatus[] = ['NEW', 'EDIT', 'SAME', 'REJECTED']
 const RANK: Record<CaseImportStatus, number> = { EDIT: 0, NEW: 1, REJECTED: 2, SAME: 3 }
 
@@ -66,8 +79,9 @@ export function CaseFileImportDialog({
   return (
     <Dialog hint={m.hint} labelledBy={titleId} onClose={onClose} title={m.title(targetName)}>
       <div className="cfi">
+        {/* 기획 문서 화면의 끌어 놓기 칸(`dw-drop`)을 그대로 쓴다. 파일을 고르기 전에는 크게, 고른 뒤에는 한 줄로. */}
         <div
-          className={'cfi-drop' + (dragging ? ' is-dragging' : '')}
+          className={'dw-drop' + (file === null ? ' dw-drop--large' : '') + (dragging ? ' is-dragging' : '')}
           onDragLeave={() => setDragging(false)}
           onDragOver={(event) => {
             if (!event.dataTransfer.types.includes('Files')) return
@@ -80,17 +94,26 @@ export function CaseFileImportDialog({
             choose(event.dataTransfer.files[0])
           }}
         >
-          <div className="cfi-file">
+          <SpreadsheetGlyph size={file === null ? 56 : 24} />
+          <span className="dw-drop-text">
             {file === null ? (
-              <span className="cfi-file-hint">{m.dropHere}</span>
+              <>
+                <b>{m.dropTitle}</b>
+                <span>{m.dropHint}</span>
+              </>
             ) : (
               <>
-                <span className="cfi-file-name">{file.name}</span>
-                {preview !== null && <span className="cfi-file-meta">{preview.format.toUpperCase()} · {m.rowCount(preview.counts.new + preview.counts.edit + preview.counts.same + preview.counts.rejected)}</span>}
+                <b className="cfi-file-name">{file.name}</b>
+                {preview !== null && <span>{preview.format.toUpperCase()} · {m.rowCount(preview.counts.new + preview.counts.edit + preview.counts.same + preview.counts.rejected)}</span>}
               </>
             )}
-          </div>
-          <button className="button button--secondary button--compact" disabled={pending} onClick={() => input.current?.click()} type="button">
+          </span>
+          <button
+            className={`button ${file === null ? 'button--primary' : 'button--secondary'} button--compact`}
+            disabled={pending}
+            onClick={() => input.current?.click()}
+            type="button"
+          >
             {file === null ? m.pick : m.pickAnother}
           </button>
           <input
