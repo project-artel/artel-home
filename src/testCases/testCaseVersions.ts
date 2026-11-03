@@ -136,6 +136,7 @@ export function parseVersionCases(data: unknown, projectId: string): VersionCase
           evidenceGaps: [],
           origin: record?.origin === 'MANUAL' ? 'MANUAL' : 'MAP',
           kind: asCaseKind(record?.kind),
+          arrivesAt: asNullableString(record?.arrivesAt),
         },
         origin: record?.origin === 'MANUAL' ? 'MANUAL' : 'MAP',
         verificationStatus,

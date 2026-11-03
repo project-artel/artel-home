@@ -69,6 +69,7 @@ export function parseTestCase(data: unknown): TestCase | null {
     evidenceGaps: asStringArray(record.evidenceGaps),
     origin: asCaseOrigin(record.origin),
     kind: asCaseKind(record.kind),
+    arrivesAt: asNullableString(record.arrivesAt),
     functions: parseCaseFunctions(record.functions) ?? undefined,
   }
 }

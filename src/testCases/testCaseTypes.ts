@@ -86,6 +86,8 @@ export type TestCase = {
   origin?: CaseOrigin
   /** 기능 · 예외. 모르면 기능이다. */
   kind?: CaseKind
+  /** 하고 나면 가는 화면(씬 전이 TC). 화면이 안 바뀌면 null. */
+  arrivesAt?: string | null
   /**
    * Why the spec side graded this case the way it did — reason codes from
    * `metadata.source.evidence_gaps`, empty when there is nothing to say.
@@ -152,6 +154,8 @@ export type TestCaseInput = {
   functions?: CaseFunctions
   /** 기능 · 예외. 바꿨을 때만 보낸다. 만들 때 비우면 기능이다. */
   kind?: CaseKind
+  /** 도착 화면. 바꿨을 때만 보낸다. 빈 문자열은 "화면이 안 바뀐다" 로 정한다. */
+  arrivesAt?: string
 }
 
 /** One position in a scenario's ordered case composition (`/cases`). */

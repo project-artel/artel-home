@@ -37,11 +37,6 @@ export function CaseSceneFilter({
   onChange: (scene: string) => void
   value: string
 }) {
-  const [searchOpen, setSearchOpen] = useState(false)
-  const [query, setQuery] = useState('')
-  const [pinned, setPinned] = useState<string[]>([])
-  const [atEnd, setAtEnd] = useState(false)
-
   // Distinct scenes, most-frequent first — the scalable filter source.
   const counts = useMemo(() => {
     const tally = new Map<string, number>()
@@ -57,10 +52,69 @@ export function CaseSceneFilter({
     [counts],
   )
 
+  return (
+    <SceneChipPicker
+      allLabel={labels.all}
+      chipsClassName="cp-chips"
+      counts={counts}
+      label={labels.scene}
+      labelClassName="cp-filter-label"
+      noMatch={labels.noMatch}
+      onChange={onChange}
+      ranked={scenes}
+      rowClassName="cp-filter-row"
+      searchPlaceholder={labels.search}
+      value={value}
+    />
+  )
+}
+
+/**
+ * 씬 칩 줄과 "＋N" 검색 팝업(ARTEL-1313 에서 화면 필터에서 떼어 냄). 많이 쓰는 순 [ranked] 의 앞 일곱 개만 칩으로 보이고,
+ * 나머지는 팝업에서 찾는다. 팝업에서 고른 씬은 칩 줄 앞에 붙는다. 화면 필터와 케이스 편집 창의 화면 · 도착 화면 칸이 같이 쓴다 —
+ * 씬이 수십 개인 프로젝트에서 칩을 다 깔면 칸이 수십 줄로 늘어난다.
+ *
+ * @property allLabel 주면 맨 앞에 "전체" 칩을 둔다(필터). 편집 칸은 주지 않는다.
+ * @property counts 팝업에서 이름 옆에 보이는 수.
+ */
+export function SceneChipPicker({
+  allLabel,
+  chipsClassName,
+  counts,
+  disabled = false,
+  label,
+  labelClassName,
+  noMatch,
+  onChange,
+  ranked,
+  rowClassName,
+  searchPlaceholder,
+  value,
+}: {
+  allLabel?: string
+  chipsClassName?: string
+  counts: ReadonlyMap<string, number>
+  disabled?: boolean
+  label: string
+  labelClassName: string
+  noMatch: string
+  onChange: (scene: string) => void
+  ranked: readonly string[]
+  rowClassName: string
+  searchPlaceholder: string
+  value: string
+}) {
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const [pinned, setPinned] = useState<string[]>([])
+  const [atEnd, setAtEnd] = useState(false)
+  const scenes = ranked
   // The chip row: pinned (recently searched) first, then frequency order, capped.
   const chipScenes = useMemo(() => {
     const seen = new Set<string>()
     const out: string[] = []
+    // 지금 고른 씬은 늘 칩 줄에 있다 — 앞 일곱 개 밖이면 무엇이 골라졌는지 안 보인다.
+    if (value !== '' && scenes.includes(value)) { seen.add(value); out.push(value) }
     for (const name of pinned) {
       if (scenes.includes(name) && !seen.has(name)) { seen.add(name); out.push(name) }
     }
@@ -69,7 +123,7 @@ export function CaseSceneFilter({
       if (!seen.has(name)) { seen.add(name); out.push(name) }
     }
     return out.slice(0, MAX_SCENE_CHIPS)
-  }, [pinned, scenes])
+  }, [pinned, scenes, value])
 
   const searchResults = useMemo(() => {
     const needle = query.trim().toLowerCase()
@@ -94,15 +148,18 @@ export function CaseSceneFilter({
 
   return (
     <>
-      <div className="cp-filter-row">
-        <span className="cp-filter-label">{labels.scene}</span>
-        <div className="cp-chips">
-          <button className={value === '' ? 'fchip on' : 'fchip'} onClick={() => onChange('')} type="button">
-            {labels.all}
-          </button>
+      <div className={rowClassName}>
+        <span className={labelClassName}>{label}</span>
+        <div className={chipsClassName}>
+          {allLabel !== undefined && (
+            <button className={value === '' ? 'fchip on' : 'fchip'} disabled={disabled} onClick={() => onChange('')} type="button">
+              {allLabel}
+            </button>
+          )}
           {chipScenes.map((name) => (
             <button
               className={value === name ? 'fchip on' : 'fchip'}
+              disabled={disabled}
               key={name}
               onClick={() => onChange(value === name ? '' : name)}
               type="button"
@@ -111,7 +168,7 @@ export function CaseSceneFilter({
             </button>
           ))}
           {scenes.length > chipScenes.length && (
-            <button className="fchip cp-more" onClick={() => setSearchOpen(true)} type="button">
+            <button className="fchip cp-more" disabled={disabled} onClick={() => setSearchOpen(true)} type="button">
               ＋{scenes.length - chipScenes.length}
             </button>
           )}
@@ -131,7 +188,7 @@ export function CaseSceneFilter({
                   if (event.key === 'Escape') close()
                   if (event.key === 'Enter' && searchResults[0] !== undefined) pick(searchResults[0])
                 }}
-                placeholder={labels.search}
+                placeholder={searchPlaceholder}
                 value={query}
               />
               <button className="cp-esc" onClick={close} type="button">ESC</button>
@@ -145,7 +202,7 @@ export function CaseSceneFilter({
             >
               <div className="cp-catpop-list">
                 {searchResults.length === 0 ? (
-                  <p className="cp-catpop-empty">{labels.noMatch}</p>
+                  <p className="cp-catpop-empty">{noMatch}</p>
                 ) : (
                   searchResults.map((name) => (
                     <button
