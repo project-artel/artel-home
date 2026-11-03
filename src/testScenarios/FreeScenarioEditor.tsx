@@ -1,3 +1,4 @@
+import { buildDisplayName } from '../projects/buildEnvironment'
 import { useTestCaseLabel } from '../testCases/testCaseIdentifiers'
 import { TestCaseHover } from '../testCases/TestCaseHover'
 import { useMemo, useState } from 'react'
@@ -38,7 +39,7 @@ export function FreeScenarioEditor({
   const m = t.scenarios.free
   const { working } = editor
   const gameBuildId = build?.gameBuildId ?? gameBuildIdProp
-  const buildName = build === null ? null : build.label ?? build.version
+  const buildName = build === null ? null : buildDisplayName(build)
   // 케이스 내용과 "프로젝트에 없음" 은 전체 목록으로 가린다. 빌드로 좁힌 목록만 보면 그 빌드에
   // `test_case_version` 행이 없는 케이스가 모두 지워진 것처럼 보인다.
   const projectCases = useProjectCases(projectId, true, null)

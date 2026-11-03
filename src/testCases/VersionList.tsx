@@ -3,7 +3,6 @@ import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDi
 import { Dialog } from '../design-system/primitives/Dialog'
 import { useI18n } from '../i18n/useI18n'
 import { ContextMenu, type ContextMenuItem } from './ContextMenu'
-import { EditorBadge } from '../projects/EditorBadge'
 import { NameDialog } from './NameDialog'
 import { Picker } from './Picker'
 import {
@@ -193,7 +192,6 @@ export function VersionList({
           type="button"
         >
           <span className="tcl-folder-name" title={versionName(version)}>{versionName(version)}</span>
-          {version.isEditor && <EditorBadge />}
           {version.latest && <span className="tcl-version-latest">{m.latest}</span>}
           <span className="tcl-folder-count">{version.total}</span>
         </button>

@@ -1,3 +1,4 @@
+import { buildDisplayName } from '../projects/buildEnvironment'
 import { useTestCaseLabel, useTestCaseIdentifiers } from './testCaseIdentifiers'
 import { TestCaseHover } from './TestCaseHover'
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
@@ -650,8 +651,8 @@ export function TestCaseLibrary({
     // 방금 만든 버전을 연다. 그 버전이 목록에 새로 생겼다.
     setVersionParams(candidate.gameBuildId, null)
     const notice = candidate.generated
-      ? m.generate.overwritten(candidate.version, result.created, result.updated, result.deleted + result.broken)
-      : m.generate.done(candidate.version, result.created, result.carriedOver, result.verdictsCarried)
+      ? m.generate.overwritten(buildDisplayName(candidate), result.created, result.updated, result.deleted + result.broken)
+      : m.generate.done(buildDisplayName(candidate), result.created, result.carriedOver, result.verdictsCarried)
     setGenerationNotice(notice)
     setAnnouncement(notice)
   }

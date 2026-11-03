@@ -1,3 +1,4 @@
+import { buildDisplayName, parseBuildEnvironment } from '../projects/buildEnvironment'
 import { apiFetch } from '../auth/authApi'
 import { asNullableString, asRecord, asString, jsonRequest, readJson, toApiError } from '../projects/projectApi'
 import { parseExecutionMode } from '../testScenarios/scenarioApi'
@@ -13,6 +14,7 @@ import type { ExecutionMode } from '../testScenarios/scenarioTypes'
 export type RunGameBuild = {
   gameBuildId: string
   version: string
+  isEditor?: boolean | null
   label: string | null
 }
 
@@ -61,12 +63,12 @@ export function parseRunGameBuild(data: unknown): RunGameBuild | null {
   if (record === null) return null
   const gameBuildId = asString(record.gameBuildId)
   if (gameBuildId.length === 0) return null
-  return { gameBuildId, version: asString(record.version), label: asNullableString(record.label) }
+  return { gameBuildId, version: asString(record.version), label: asNullableString(record.label), isEditor: parseBuildEnvironment(record.isEditor) }
 }
 
 /** 사람이 붙인 이름이 있으면 그것, 없으면 SDK 가 보고한 version. */
 export function gameBuildName(build: RunGameBuild): string {
-  return build.label !== null && build.label.trim().length > 0 ? build.label : build.version
+  return buildDisplayName(build)
 }
 
 /** One slot of a run's scenario composition: position + the scenario id it points at. */

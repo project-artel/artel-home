@@ -1,3 +1,4 @@
+import { buildDisplayName } from '../projects/buildEnvironment'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { readCarryOver, readCarryVerdicts, storeCarryOver, storeCarryVerdicts } from '../contentMap/carryOverChoice'
 import { generateContentMapTestCases, type GeneratedTestCases } from '../contentMap/generateContentMapTestCases'
@@ -7,7 +8,6 @@ import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { ProgressRing } from '../design-system/primitives/ProgressRing'
 import { Switch } from '../design-system/primitives/Switch'
-import { EditorBadge } from '../projects/EditorBadge'
 import { StudioIcon } from '../testScenarios/studioIcons'
 import { FolderIcon } from './FolderIcon'
 import { SearchField } from './SearchField'
@@ -197,13 +197,12 @@ export function GenerateTestCasesDialog({
           <FolderIcon />
           <span className="vimp-node-text">
             <span className="vimp-node-name">
-              {candidate.version}
+              {buildDisplayName({ ...candidate, label: null })}
               {candidate.label !== null && candidate.label.length > 0 && <span className="gen-label"> · {candidate.label}</span>}
             </span>
             <span className="vimp-node-sub">{summary(candidate)}</span>
           </span>
-          <span className={`gen-outcome gen-outcome--${outcome}`}>{m.outcome[outcome](candidate.version)}</span>
-          {candidate.isEditor && <EditorBadge />}
+          <span className={`gen-outcome gen-outcome--${outcome}`}>{m.outcome[outcome](buildDisplayName(candidate))}</span>
         </button>
       </li>
     )
@@ -338,7 +337,7 @@ export function GenerateTestCasesDialog({
         <ConfirmActionDialog
           body={
             <>
-              <p>{m.overwrite.lead(chosen.version, chosen.mapCases, chosen.judged)}</p>
+              <p>{m.overwrite.lead(buildDisplayName(chosen), chosen.mapCases, chosen.judged)}</p>
               <ul className="gen-warning">
                 <li>{m.overwrite.kept}</li>
                 <li>{m.overwrite.removed}</li>
@@ -356,7 +355,7 @@ export function GenerateTestCasesDialog({
             void run(chosen)
           }}
           pendingLabel={m.pending}
-          title={m.overwrite.title(chosen.version)}
+          title={m.overwrite.title(buildDisplayName(chosen))}
           toFailureMessage={failureMessage}
         />
       )}

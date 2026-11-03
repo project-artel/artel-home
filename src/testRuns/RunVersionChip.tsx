@@ -10,7 +10,7 @@ export function RunVersionChip({ build }: { build: RunGameBuild | null }) {
   if (build === null) return null
   const name = gameBuildName(build)
   return (
-    <span className="run-version-chip" title={t.scenarios.runList.versionTitle(build.version)}>
+    <span className="run-version-chip" title={t.scenarios.runList.versionTitle(name)}>
       {name}
     </span>
   )

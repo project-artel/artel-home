@@ -1,3 +1,4 @@
+import { useBuildDisplayName } from '../../projects/useBuildDisplayName'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Dialog } from '../../design-system/primitives/Dialog'
 import { EdgeScrollbar } from '../../design-system/primitives/EdgeScrollbar'
@@ -47,6 +48,7 @@ export function IssueLinkDialog({
   onDone: (issues: LinkedIssue[]) => void
 }) {
   const { t } = useI18n()
+  const buildName = useBuildDisplayName()
   const text = t.discussions
   const b = t.issues.board
   const [picked, setPicked] = useState<LinkedIssue[]>([...initial])
@@ -90,7 +92,7 @@ export function IssueLinkDialog({
     const version = versions.versions.find((one) => one.gameBuildId === id)
     if (version) return versionName(version)
     const facet = all?.builds.find((one) => one.gameBuildId === id)
-    return facet?.label || facet?.version || id
+    return facet?.version ? buildName(id, facet.version, facet.label) : id
   }
   const builds = useMemo(() => {
     const rows = (all?.builds ?? []).filter((one) => one.gameBuildId !== null)
@@ -349,7 +351,7 @@ export function IssueLinkDialog({
                       </span>
                       <span className="il2-scenario">{issue.origin?.testScenarioTitle}</span>
                     </span>
-                    <span className="ib-version">{issue.origin?.buildVersion ?? '—'}</span>
+                    <span className="ib-version">{issue.origin?.buildVersion ? buildName(issue.origin.gameBuildId, issue.origin.buildVersion) : '—'}</span>
                     <span className="il2-tr" title={issue.origin?.testRunName ?? undefined}>
                       {issue.origin?.testRunName ?? '—'}
                     </span>

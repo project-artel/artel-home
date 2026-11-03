@@ -85,7 +85,7 @@ describe('costByRun', () => {
         { id: '9', startedAt: '2026-10-01T06:37:00Z', gameBuildVersion: '0.9' },
       ],
     )
-    assert.deepEqual(points.map((p) => [p.qaRunId, p.build, p.tokens]), [['17', '1.1-e2e', 505], ['24', '1.0', 3_030]])
+    assert.deepEqual(points.map((p) => [p.qaRunId, p.build, p.tokens]), [['17', '1.1-e2e · Unknown', 505], ['24', '1.0 · Unknown', 3_030]])
     assert.equal(points[1].costUsd?.toFixed(2), '0.05')
     // 단가를 모르는 시도가 섞이면 그 실행의 비용은 모른다.
     assert.equal(points[0].costUsd, null)

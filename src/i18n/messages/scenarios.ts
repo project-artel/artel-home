@@ -66,6 +66,28 @@ export const scenariosEn = {
       generic: 'Could not handle the request. Please try again.',
     },
     // The result box of an agent answer (ARTEL-938).
+    recommendations: {
+      title: (n: number) => `${n} recommended TC${n === 1 ? '' : 's'}`,
+      hint: 'Not saved yet. Saving adds it to this project\'s TCs.',
+      scene: 'Screen',
+      precondition: 'Precondition',
+      step: 'Action',
+      expected: 'Expected',
+      why: 'Why',
+      save: 'Save as TC',
+      saveSelected: 'Save selected',
+      saveAll: 'Save all',
+      saveAndEdit: 'Save and edit',
+      discard: 'Discard',
+      working: 'Saving…',
+      expand: 'Open wide',
+      saved: (label: string) => `Saved as ${label}`,
+      savedNote: 'The scenario step now checks this TC.',
+      discarded: 'Discarded. The step stays as a plain step.',
+      openTc: 'Open TC',
+      failed: 'Could not save the recommended TC. Please try again.',
+      select: (text: string) => `Select ${text}`,
+    },
     changes: {
       created: 'Added',
       updated: 'Changed',
@@ -135,6 +157,7 @@ export const scenariosEn = {
      */
     cancelHint: 'Press Esc twice to cancel this request',
     cancelArmed: 'Press Esc once more to end the request',
+    reconnecting: 'Connection to the conversation was lost. Reconnecting… Refresh if this stays.',
     sending: 'Sending…',
     send: 'Send',
     sendFailed: 'The message could not be sent. Please try again.',
@@ -147,6 +170,7 @@ export const scenariosEn = {
      * the list collapses runs of it and counts them with `stageRepeat`.
      */
     stageSent: 'Request sent',
+    stagePreparingCases: 'Reading your test cases (only long the first time)',
     // 워크플로 노드 (ARTEL-952). 사용자가 보는 말로 적는다 — 노드 이름(B·C·D)이 아니라
     // 그 노드가 하는 일로.
     stageGrouping: 'Grouping the cases into scenarios',
@@ -693,6 +717,7 @@ export const scenariosEn = {
       caseChip: (n: number, scene: string) => `TC ${String(n).padStart(2, '0')} · ${scene}`,
       caseOrdinal: (n: number) => `TC ${String(n).padStart(2, '0')}`,
       noTcAction: 'Action without a TC',
+      recommendedTc: 'Recommended TC',
       gapChip: 'Not written yet',
       previous: 'Previous step',
       next: 'Next step',
@@ -927,6 +952,28 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
       busy: '이전 요청을 아직 처리하고 있습니다. 끝난 뒤 다시 보내 주세요.',
       generic: '요청을 처리하지 못했습니다. 다시 시도해 주세요.',
     },
+    recommendations: {
+      title: (n: number) => `추천 TC ${n}개`,
+      hint: '아직 저장하지 않았어요. 저장하면 이 프로젝트의 TC가 돼요.',
+      scene: '화면',
+      precondition: '사전조건',
+      step: '행동',
+      expected: '기대 결과',
+      why: '왜',
+      save: 'TC로 저장',
+      saveSelected: '고른 것 저장',
+      saveAll: '모두 TC로 저장',
+      saveAndEdit: '고쳐서 저장',
+      discard: '버리기',
+      working: '저장하는 중…',
+      expand: '크게 보기',
+      saved: (label: string) => `${label}로 저장했어요`,
+      savedNote: '시나리오의 그 스텝이 이 TC로 확인돼요.',
+      discarded: '버렸어요. 그 스텝은 판정 없는 스텝으로 남아요.',
+      openTc: 'TC 열기',
+      failed: '추천 TC를 저장하지 못했어요. 다시 시도해 주세요.',
+      select: (text: string) => `${text} 고르기`,
+    },
     changes: {
       created: '추가',
       updated: '수정',
@@ -988,6 +1035,7 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     // 취소 안내(ARTEL-956). 기다리는 동안에만 전송 안내를 대신한다.
     cancelHint: 'ESC 두 번 누르면 요청 취소',
     cancelArmed: 'ESC 를 한 번 더 눌러 요청 종료',
+    reconnecting: '대화 연결이 끊겼어요. 다시 연결하는 중이에요. 계속 이러면 새로고침해 주세요.',
     sending: '전송 중…',
     send: '전송',
     sendFailed: '메시지를 전송하지 못했습니다. 다시 시도해 주세요.',
@@ -999,6 +1047,7 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
      * 한 줄로 접고 `stageRepeat`으로 횟수를 센다.
      */
     stageSent: '요청 보냄',
+    stagePreparingCases: 'TC 를 읽고 정리하는 중 (처음 한 번만 오래 걸려요)',
     // 워크플로 노드 (ARTEL-952). 노드 이름(B·C·D)이 아니라 그 노드가 하는 일로 적는다.
     stageGrouping: '케이스를 시나리오로 묶는 중',
     stageGrouped: '케이스를 묶었어요',
@@ -1530,6 +1579,7 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
       caseChip: (n: number, scene: string) => `TC ${String(n).padStart(2, '0')} · ${scene}`,
       caseOrdinal: (n: number) => `TC ${String(n).padStart(2, '0')}`,
       noTcAction: 'TC 없는 행동',
+      recommendedTc: '추천 TC',
       gapChip: '아직 작성되지 않은 구간',
       previous: '이전 단계',
       next: '다음 단계',
