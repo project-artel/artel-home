@@ -66,6 +66,39 @@ export type ChatReply = {
    * bulb. The user answers in the chat; an option only fills the input with its words.
    */
   asks: RunChatQuestion[]
+  /** 이 턴이 추천한 TC — 시나리오에 필요한데 만드는 TC 가 없던 것. 저장하면 사용자 TC 가 된다. 없으면 키가 없다. */
+  recommendations?: CaseRecommendation[]
+}
+
+/** 저작이 추천한 TC 하나. 저장 전까지 시나리오 스텝은 `recommendation_id` 로 이것을 가리킨다. */
+export type CaseRecommendation = {
+  id: string
+  scene: string
+  precondition: string
+  step: string
+  expectedValue: string
+  why: string
+  status: 'PENDING' | 'SAVED' | 'DISCARDED'
+  testCaseId: string | null
+}
+
+const RECOMMENDATION_STATUSES = ['PENDING', 'SAVED', 'DISCARDED'] as const
+
+export function parseRecommendations(value: unknown): CaseRecommendation[] {
+  if (!Array.isArray(value)) return []
+  return value.flatMap((entry) => {
+    const record = asRecord(entry)
+    if (record === null) return []
+    const id = asString(record.id)
+    const expectedValue = asString(record.expectedValue)
+    const status = RECOMMENDATION_STATUSES.find((one) => one === record.status) ?? 'PENDING'
+    if (id.length === 0 || expectedValue.length === 0) return []
+    const testCaseId = asString(record.testCaseId)
+    return [{
+      id, scene: asString(record.scene), precondition: asString(record.precondition), step: asString(record.step),
+      expectedValue, why: asString(record.why), status, testCaseId: testCaseId.length > 0 ? testCaseId : null,
+    }]
+  })
 }
 
 /**
@@ -139,7 +172,11 @@ export function parseReply(value: unknown): ChatReply | null {
   const asks = Array.isArray(record.asks)
     ? record.asks.map(parseQuestion).filter((ask): ask is RunChatQuestion => ask !== null)
     : []
-  return { result, detail: asString(record.detail), changes: parseChanges(record.changes), asks }
+  const recommendations = parseRecommendations(record.recommendations)
+  return {
+    result, detail: asString(record.detail), changes: parseChanges(record.changes), asks,
+    ...(recommendations.length > 0 ? { recommendations } : {}),
+  }
 }
 
 export type RunChatFailure = {
@@ -159,6 +196,8 @@ export type RunChatFailure = {
  */
 export const AUTHORING_STAGES = [
   'sent',
+  // 저작을 열기 전 글 TC 의 계약을 정리하는 중. 처음 여는 프로젝트만 길다(실측 TC 73건 136초).
+  'preparing_cases',
   // 워크플로 노드 (ARTEL-952). `thinking` 은 루프 시절 값이다 — 모델 호출마다 울려서
   // "몇 바퀴 돌았나" 를 세라는 설계였다. 워크플로에는 바퀴가 없고 노드가 있다.
   'grouping',
@@ -223,6 +262,8 @@ export type RunChatProgress = {
  */
 export const STAGE_STALL_MS: Record<AuthoringStage, number> = {
   sent: 30_000,
+  // 서버가 이만큼(8분)까지 정리를 기다린다. 실측 136초의 세 배를 넘는다.
+  preparing_cases: 480_000,
   grouping: 180_000,
   grouped: 30_000,
   bridging: 180_000,
@@ -316,7 +357,19 @@ export type RunChatDraftEvent = {
   drafts: DraftScenario[]
 }
 
+/**
+ * SSE 에 붙자마자 오는 지금 턴 상태. 끊긴 사이의 진행 · 결과는 다시 오지 않으므로, 새로고침이나 재연결 뒤에는 이것으로
+ * 도는 턴을 이어 보이거나(단계가 있다) 끝난 턴의 기다림을 놓는다(단계가 없다).
+ */
+export type RunChatTurnState = {
+  type: 'turn'
+  stage: AuthoringStage | null
+  done?: number
+  total?: number
+}
+
 export type RunChatStreamEvent =
+  | RunChatTurnState
   | RunChatResult
   | RunChatFailure
   | RunChatProgress
@@ -355,6 +408,8 @@ export async function sendRunChatMessage(
   autoApply: boolean,
   answer?: RunChatAnswer,
   draftOnly = false,
+  /** 질문지 한 묶음의 답. 하나씩 보내면 둘째부터 앞선 턴에 막힌다. */
+  answers: RunChatAnswer[] = [],
 ): Promise<void> {
   const response = await apiFetch(chatPath(projectId, runId, '/message'), {
     method: 'POST',
@@ -366,6 +421,7 @@ export async function sendRunChatMessage(
       answer: answer
         ? { question_id: answer.questionId, option_ids: answer.optionIds, text: answer.text ?? null }
         : null,
+      answers: answers.map((one) => ({ question_id: one.questionId, option_ids: one.optionIds, text: one.text ?? null })),
       // `displayText` stays here on purpose — see its doc comment.
     }),
   })
@@ -718,7 +774,7 @@ export function parseRunStreamEvent(data: string): RunChatStreamEvent | null {
       type: 'result',
       message: asString(record.message),
       scenarios,
-      reply: parseReply(record.reply),
+      reply: withRecommendations(parseReply(record.reply), record.recommendations),
       refs: parseRefs(record.refs),
     }
   }
@@ -740,6 +796,16 @@ export function parseRunStreamEvent(data: string): RunChatStreamEvent | null {
   }
   if (record.type === 'notice') {
     return { type: 'notice', message: asString(record.message) }
+  }
+  if (record.type === 'turn') {
+    const count = (value: unknown): number | undefined =>
+      typeof value === 'number' && Number.isFinite(value) ? value : undefined
+    return {
+      type: 'turn',
+      stage: isAuthoringStage(record.stage) ? record.stage : null,
+      done: count(record.done),
+      total: count(record.total),
+    }
   }
   if (record.type === 'question') {
     const question = parseQuestion(record.question)
@@ -763,4 +829,34 @@ export function parseRunStreamEvent(data: string): RunChatStreamEvent | null {
     return { type: 'draft', drafts: parseDrafts(record.drafts) }
   }
   return null
+}
+
+/** 실시간 결과 프레임은 추천 TC 를 답 바깥에 싣는다. 답에 붙여 저장된 답과 같은 모양으로 그린다. */
+function withRecommendations(reply: ChatReply | null, value: unknown): ChatReply | null {
+  const recommendations = parseRecommendations(value)
+  return reply === null || recommendations.length === 0 ? reply : { ...reply, recommendations }
+}
+
+function recommendationPath(projectId: string, runId: string, suffix = ''): string {
+  return `/api/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(runId)}/case-recommendations${suffix}`
+}
+
+/** 이 런의 추천 TC 와 지금 상태. 저장된 답의 카드가 상태를 다시 읽는다. */
+export async function listCaseRecommendations(projectId: string, runId: string): Promise<CaseRecommendation[]> {
+  const response = await apiFetch(recommendationPath(projectId, runId))
+  if (!response.ok) throw await toApiError(response)
+  return parseRecommendations(await readJson(response))
+}
+
+/** 추천 TC 를 저장한다. 저장한 것을 돌려준다. 시나리오의 그 스텝은 새 TC 를 확인하는 스텝이 된다. */
+export async function saveCaseRecommendations(projectId: string, runId: string, ids: string[]): Promise<CaseRecommendation[]> {
+  const response = await apiFetch(recommendationPath(projectId, runId, '/save'), { method: 'POST', ...jsonRequest({ ids }) })
+  if (!response.ok) throw await toApiError(response)
+  return parseRecommendations(await readJson(response))
+}
+
+/** 추천 TC 를 버린다. 그 스텝은 판정 없는 스텝으로 남는다. */
+export async function discardCaseRecommendations(projectId: string, runId: string, ids: string[]): Promise<void> {
+  const response = await apiFetch(recommendationPath(projectId, runId, '/discard'), { method: 'POST', ...jsonRequest({ ids }) })
+  if (!response.ok) throw await toApiError(response)
 }

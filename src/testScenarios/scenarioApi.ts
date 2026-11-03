@@ -84,6 +84,8 @@ function parseStep(data: unknown): ScenarioStep | null {
     // no key here at all, and reading a missing answer as "expected to pass" would
     // score every unlabelled step as one the agent got right.
     expected_passed: typeof record.expected_passed === 'boolean' ? record.expected_passed : null,
+    // 추천 TC 를 가리키는 스텝. 편집기가 스텝을 통째로 되쓰므로 여기서 버리면 저장할 때 지워진다.
+    ...(typeof record.recommendation_id === 'number' ? { recommendation_id: record.recommendation_id } : {}),
   }
 }
 

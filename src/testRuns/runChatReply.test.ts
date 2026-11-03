@@ -142,3 +142,13 @@ test('코드가 낸 질문(경로 공백)은 그대로 모달 질문이다', () 
   assert.equal(stored.question?.id, 'gap:x')
   assert.equal(stored.reply, null)
 })
+
+test('추천 TC 는 저장된 답과 실시간 결과 프레임 둘 다에서 답에 붙는다', () => {
+  const rec = { id: '7', scene: '여관', precondition: '여관 안에 있다.', step: '저녁까지 쉰다.', expectedValue: '밤이 된다.', why: '밤을 만드는 TC 가 없다', status: 'PENDING', testCaseId: null }
+  const stored = parseReply({ kind: 'reply', result: '만들었어요', recommendations: [rec, { id: '', expectedValue: 'x' }] })
+  assert.deepEqual(stored?.recommendations, [{ ...rec, testCaseId: null }])
+  const live = parseRunStreamEvent(JSON.stringify({ type: 'result', message: 'ok', reply: { result: '만들었어요' }, recommendations: [{ ...rec, status: 'SAVED', testCaseId: '81' }] }))
+  assert.equal(live?.type === 'result' ? live.reply?.recommendations?.[0].testCaseId : null, '81')
+  // 추천이 없으면 키가 없다 — 예전 답의 모양 그대로다.
+  assert.equal('recommendations' in (parseReply({ kind: 'reply', result: '만들었어요' }) ?? {}), false)
+})
