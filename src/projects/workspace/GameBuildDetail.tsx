@@ -1,3 +1,4 @@
+import { buildEnvironment } from '../buildEnvironment'
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
@@ -114,7 +115,7 @@ export function GameBuildDetail({
         <header className="gb-detail-head">
           <h2 className="gb-detail-title" id="gb-detail-title">
             <span className="mono" translate="no">{build.version}</span>
-            {build.isEditor && <span className="badge">{t.gameBuilds.list.editorBadge}</span>}
+            <span className="badge">{buildEnvironment(build.isEditor)}</span>
           </h2>
           <p className={hasLabel ? 'gb-detail-label' : 'gb-detail-label detail-empty'}>
             {hasLabel ? build.label : m.noLabel}

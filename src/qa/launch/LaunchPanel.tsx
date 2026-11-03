@@ -1,3 +1,4 @@
+import { buildDisplayName } from '../../projects/buildEnvironment'
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { EdgeScrollbar } from '../../design-system/primitives/EdgeScrollbar'
@@ -18,7 +19,7 @@ import {
   type StartOutcome,
 } from '../../projectAgent/specs/qa'
 import { sectionHref } from '../../projects/workspace/sections'
-import type { TestRun } from '../../testRuns/testRunApi'
+import type { TestRun, RunCasesOutsideBuild } from '../../testRuns/testRunApi'
 import { archLabelMissing, changedSettingCount, toArchRequest, withoutVisionKnobs, type QaArchSelection } from '../qaArch'
 import { createQaRun, qaStartConflict } from '../qaApi'
 import { requestQuestionNotificationPermission, subscribeQuestionNotifications } from '../evaluation/questionNotificationOptIn'
@@ -33,9 +34,12 @@ import { TakeOverQaRunDialog } from '../TakeOverQaRunDialog'
 import { ArchSettings } from './ArchSettings'
 import { useDismiss } from './useDismiss'
 import { useRunVersionCases } from './useRunVersionCases'
+import { RunVersionCasesDialog } from './RunVersionCasesDialog'
 import { versionCaseBuildName } from './versionCaseBuildName'
 
 type Check = { tone: 'ok' | 'warn' | 'bad'; title: string; detail?: string; fix?: { label: string; to: string }; versionCases?: boolean }
+type VersionPrompt = { key: string; force: boolean; outside: RunCasesOutsideBuild; version: string }
+type VersionChoice = { prompt: VersionPrompt; action: 'add' | 'skip' }
 
 /**
  * QA 실행 화면의 오른쪽 "실행 설정" 패널(ARTEL-1084).
@@ -102,6 +106,9 @@ export function LaunchPanel({
   const [starting, setStarting] = useState(false)
   const [failure, setFailure] = useState<string | null>(null)
   const [takeoverOpen, setTakeoverOpen] = useState(false)
+  const [versionPrompt, setVersionPrompt] = useState<VersionPrompt | null>(null)
+  const [takeoverChoice, setTakeoverChoice] = useState<VersionChoice | null>(null)
+  const startInFlight = useRef(false)
   const [functionOptions, setFunctionOptions] = useState<QaFunctionOptions>(DEFAULT_QA_FUNCTION_OPTIONS)
 
   const instance = instances.find((one) => one.id === instanceId) ?? null
@@ -127,6 +134,8 @@ export function LaunchPanel({
   const versionCases = useRunVersionCases(projectId, run?.id ?? '', instance?.id ?? '', JSON.stringify(instance?.lastGameBuild))
   const skipped = versionCases.outside?.testCaseIds.length ?? 0
   const skippedGame = versionCaseBuildName(versionCases.outside?.gameBuildId, builds, instance?.lastGameBuild ?? null) ?? l.currentVersion
+  const selectionKey = JSON.stringify([projectId, run?.id, instance?.id, instance?.lastGameBuild])
+  const visibleVersionPrompt = versionPrompt?.key === selectionKey ? versionPrompt : null
   const checks: Check[] = []
   if (instance === null) checks.push({ tone: 'bad', title: l.noGame })
   else if (instance.connected) checks.push({ tone: 'ok', title: l.connected })
@@ -158,13 +167,41 @@ export function LaunchPanel({
    * 버튼, 단축키, agent 가 함께 쓴다. 시작하지 않았으면 null 이다(막혀 있거나 이미 시작하는 중).
    * `force` 는 사용자가 인수 대화상자에서 답했을 때만 true 다 — agent 는 절대 보내지 않는다.
    */
-  async function start(force = false): Promise<StartOutcome | null> {
-    if (blocked || starting || versionCases.pending || run === null || instance === null || model === null) return null
+  async function start(force = false, choice: VersionChoice | null = null): Promise<StartOutcome | null> {
+    if (blocked || startInFlight.current || versionCases.pending || run === null || instance === null || model === null) return null
+    startInFlight.current = true
     setStarting(true)
     setFailure(null)
     // 알림 권한은 클릭 직후에 묻는다. run 생성 응답을 기다린 뒤에 물으면 브라우저가 창을 띄우지 않는다.
     const permission = requestQuestionNotificationPermission()
     try {
+      const fresh = await versionCases.refresh()
+      if (fresh === null) {
+        setFailure(l.addVersionCasesFailed)
+        return { kind: 'failed', message: l.addVersionCasesFailed }
+      }
+      if (fresh.testCaseIds.length > 0) {
+        const accepted = choice !== null && choice.prompt.key === selectionKey &&
+          choice.prompt.outside.gameBuildId === fresh.gameBuildId &&
+          fresh.testCaseIds.every((id) => choice.prompt.outside.testCaseIds.includes(id))
+        if (!accepted) {
+          const version = versionCaseBuildName(fresh.gameBuildId, builds, instance.lastGameBuild)
+          if (version === null) {
+            setVersionPrompt(null)
+            setFailure(l.versionChoiceUnavailable)
+            return { kind: 'failed', message: l.versionChoiceUnavailable }
+          }
+          setTakeoverOpen(false)
+          setVersionPrompt({ key: selectionKey, force, outside: fresh, version })
+          return { kind: 'versionChoiceNeeded', message: l.versionChoiceRequired }
+        }
+        if (choice.action === 'add' && !await versionCases.addAll(fresh)) {
+          setFailure(l.addVersionCasesFailed)
+          return { kind: 'failed', message: l.addVersionCasesFailed }
+        }
+      }
+      setVersionPrompt(null)
+      setTakeoverChoice(choice)
       const created = await createQaRun(run.id, instance.id, model.id, model.keySource, selectedReasoning, force, toArchRequest(effectiveArch), functionOptions)
       // 시작이 성공한 구조만 다음 폼의 기본값이 된다. 고르다 만 값은 남기지 않는다.
       storeLastArch(effectiveArch)
@@ -190,8 +227,10 @@ export function LaunchPanel({
                 ? error.message
                 : t.qa.errors.startFailed
       setFailure(message)
-      setStarting(false)
       return { kind: 'failed', message }
+    } finally {
+      startInFlight.current = false
+      setStarting(false)
     }
   }
 
@@ -249,6 +288,7 @@ export function LaunchPanel({
   // 버튼이 막혀 있을 때 보이는 점검 항목 중 막힌 것들을 그대로 이유로 돌려준다.
   function startBlockedReason(): string | null {
     if (starting) return p.starting
+    if (visibleVersionPrompt !== null) return l.versionChoiceRequired
     if (versionCases.pending) return l.addingVersionCases
     if (run === null) return t.qa.errors.missingSelection
     if (!blocked) return null
@@ -259,7 +299,7 @@ export function LaunchPanel({
   useActionBinding(QA_START_RUN_ACTION, {
     target: () => runButton.current,
     blocked: startBlockedReason,
-    run: createQaStartRunner({ start, blockedReason: startBlockedReason, blockedHint: l.blockedHint }),
+    run: () => createQaStartRunner({ start, blockedReason: startBlockedReason, blockedHint: l.blockedHint })(),
   })
 
   // ⌘↵ — 첫 렌더의 0 은 누른 것이 아니다.
@@ -303,7 +343,7 @@ export function LaunchPanel({
                 {instance !== null && (
                   <span className="ql-select-meta">
                     {instance.connected ? t.projects.instances.connected : t.projects.instances.notConnected}
-                    {instance.lastGameBuild !== null && ` · ${instance.lastGameBuild.label ?? instance.lastGameBuild.version}`}
+                    {instance.lastGameBuild !== null && ` · ${buildDisplayName(instance.lastGameBuild)}`}
                   </span>
                 )}
               </span>
@@ -326,7 +366,7 @@ export function LaunchPanel({
                         <span className="ql-select-name">{one.name}</span>
                         <span className="ql-select-meta">
                           {one.connected ? t.projects.instances.connected : t.projects.instances.notConnected}
-                          {one.lastGameBuild !== null && ` · ${one.lastGameBuild.label ?? one.lastGameBuild.version}`}
+                          {one.lastGameBuild !== null && ` · ${buildDisplayName(one.lastGameBuild)}`}
                         </span>
                       </span>
                       {one.id === instanceId && <CheckIcon size={15} />}
@@ -453,7 +493,7 @@ export function LaunchPanel({
 
       <EdgeScrollbar label={l.title} scroller={panelScroller} side="right" />
       <div className="ql-panel-foot">
-        {failure !== null && !takeoverOpen && (
+        {failure !== null && !takeoverOpen && visibleVersionPrompt === null && (
           <div className="inline-error" role="alert">
             <span aria-hidden="true">!</span>
             {failure}
@@ -475,11 +515,22 @@ export function LaunchPanel({
         </p>
       </div>
 
-      {takeoverOpen && (
+      {visibleVersionPrompt !== null && (
+        <RunVersionCasesDialog
+          count={visibleVersionPrompt.outside.testCaseIds.length}
+          version={visibleVersionPrompt.version}
+          failure={failure}
+          pending={starting || versionCases.pending}
+          onClose={() => { setVersionPrompt(null); setFailure(null) }}
+          onAdd={() => void start(visibleVersionPrompt.force, { prompt: visibleVersionPrompt, action: 'add' })}
+          onSkip={() => void start(visibleVersionPrompt.force, { prompt: visibleVersionPrompt, action: 'skip' })}
+        />
+      )}
+      {takeoverOpen && visibleVersionPrompt === null && (
         <TakeOverQaRunDialog
           failure={failure}
           onClose={() => setTakeoverOpen(false)}
-          onConfirm={() => void start(true)}
+          onConfirm={() => void start(true, takeoverChoice)}
           pending={starting}
         />
       )}

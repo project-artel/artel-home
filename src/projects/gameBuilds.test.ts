@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { parseBuild } from './gameApi'
+import { parseBuild, parseInstance } from './gameApi'
 import { buildOptionText, selectBuild, versionBuilds } from './gameBuilds'
 import type { GameBuild } from './gameTypes'
 
@@ -21,8 +21,8 @@ function makeBuild(id: string, extra: Partial<GameBuild> = {}): GameBuild {
 describe('parseBuild isEditor', () => {
   const base = { id: '7', version: '1.4.0' }
 
-  it('필드가 없는 옛 서버 응답은 false 로 읽는다', () => {
-    assert.equal(parseBuild({ id: '7', version: '1.4.0' })?.isEditor, false)
+  it('필드가 없는 옛 서버 응답은 null(모름)로 읽는다', () => {
+    assert.equal(parseBuild({ id: '7', version: '1.4.0' })?.isEditor, null)
   })
 
   it('true 와 false 를 그대로 읽는다', () => {
@@ -30,9 +30,19 @@ describe('parseBuild isEditor', () => {
     assert.equal(parseBuild({ id: '7', version: '1.4.0', isEditor: false })?.isEditor, false)
   })
 
-  it('boolean 이 아닌 값은 false 로 읽는다', () => {
-    assert.equal(parseBuild({ ...base, isEditor: 'true' })?.isEditor, false)
-    assert.equal(parseBuild({ ...base, isEditor: null })?.isEditor, false)
+  it('boolean 이 아닌 값은 null 로 읽는다', () => {
+    assert.equal(parseBuild({ ...base, isEditor: 'true' })?.isEditor, null)
+    assert.equal(parseBuild({ ...base, isEditor: null })?.isEditor, null)
+  })
+})
+
+describe('parseInstance lastGameBuild isEditor', () => {
+  const instance = (build: Record<string, unknown>) => ({ id: '1', name: 'pc', lastGameBuild: { gameBuildId: '7', version: '1.2.0', ...build } })
+
+  it('없는 값은 null, false 와 true 는 그대로 읽는다', () => {
+    assert.equal(parseInstance(instance({}))?.lastGameBuild?.isEditor, null)
+    assert.equal(parseInstance(instance({ isEditor: false }))?.lastGameBuild?.isEditor, false)
+    assert.equal(parseInstance(instance({ isEditor: true }))?.lastGameBuild?.isEditor, true)
   })
 })
 
@@ -81,15 +91,15 @@ describe('versionBuilds', () => {
 })
 
 describe('buildOptionText', () => {
-  it('editor build 는 Editor 뒤에 version 을 붙인다', () => {
+  it('Editor build도 버전 바로 다음에 실행 환경을 표시한다', () => {
     const editor = makeBuild('3', { isEditor: true, version: '1.6.0', label: 'ignored' })
-    assert.equal(buildOptionText(editor, 'Editor'), 'Editor · 1.6.0')
+    assert.equal(buildOptionText(editor, 'Editor'), '1.6.0 · Editor')
   })
 
-  it('label 이 있으면 version · label, 비었으면 version 만 쓴다', () => {
-    assert.equal(buildOptionText(makeBuild('1', { label: 'QA' }), 'Editor'), '1.4.0 · QA')
-    assert.equal(buildOptionText(makeBuild('1', { label: '' }), 'Editor'), '1.4.0')
-    assert.equal(buildOptionText(makeBuild('1', { label: null }), 'Editor'), '1.4.0')
-    assert.equal(buildOptionText(makeBuild('1', { label: '   ' }), 'Editor'), '1.4.0')
+  it('Standalone 버전은 label 여부와 관계없이 환경을 표시한다', () => {
+    assert.equal(buildOptionText(makeBuild('1', { label: 'QA' }), 'Editor'), '1.4.0 · Standalone · QA')
+    assert.equal(buildOptionText(makeBuild('1', { label: '' }), 'Editor'), '1.4.0 · Standalone')
+    assert.equal(buildOptionText(makeBuild('1', { label: null }), 'Editor'), '1.4.0 · Standalone')
+    assert.equal(buildOptionText(makeBuild('1', { label: '   ' }), 'Editor'), '1.4.0 · Standalone')
   })
 })

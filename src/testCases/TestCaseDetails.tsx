@@ -1,5 +1,5 @@
+import { buildDisplayName } from '../projects/buildEnvironment'
 import { useTestCaseLabel } from './testCaseIdentifiers'
-import { EditorBadge } from '../projects/EditorBadge'
 import { useEffect, useId, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { formatDate } from '../projects/formatters'
@@ -95,7 +95,6 @@ export function TestCaseDetails({ projectId, caseId, gameBuildId = null }: {
                           <li className="tc-gap" key={item.gameBuildId}>
                             <span className={`vdot ${item.verificationStatus}`} />{' '}
                             {historyName(item)}
-                            {item.isEditor && <> <EditorBadge /></>}
                             {' · '}{statusLabel[item.verificationStatus]}
                             {item.verdictCarriedFromBuildId !== null &&
                               ` · ${m.carriedFrom(source === undefined ? null : historyName(source))}`}
@@ -114,5 +113,5 @@ export function TestCaseDetails({ projectId, caseId, gameBuildId = null }: {
 }
 
 function historyName(item: CaseVerdictHistoryItem): string {
-  return item.label !== null && item.label.trim().length > 0 ? item.label : item.version
+  return buildDisplayName(item)
 }

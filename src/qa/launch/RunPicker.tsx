@@ -1,3 +1,4 @@
+import { buildDisplayName } from '../../projects/buildEnvironment'
 import { useMemo, useState } from 'react'
 import { EdgeScrollbar } from '../../design-system/primitives/EdgeScrollbar'
 import { Link } from 'react-router-dom'
@@ -50,10 +51,10 @@ export function RunPicker({
   // 버전(빌드 목록에 없는 것)도 런이 있으면 보인다.
   const versions = useMemo(() => {
     const known = builds.filter((build) => !build.isEditor).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-    const list = known.map((build) => ({ bucket: build.id, name: build.label ?? build.version }))
+    const list = known.map((build) => ({ bucket: build.id, name: buildDisplayName(build) }))
     for (const run of runs) {
       if (run.gameBuild !== null && !list.some((one) => one.bucket === run.gameBuild?.gameBuildId)) {
-        list.push({ bucket: run.gameBuild.gameBuildId, name: run.gameBuild.label ?? run.gameBuild.version })
+        list.push({ bucket: run.gameBuild.gameBuildId, name: buildDisplayName({ ...run.gameBuild }) })
       }
     }
     list.push({ bucket: NO_VERSION, name: l.noVersion })
@@ -145,7 +146,7 @@ export function RunPicker({
                     <span className="ql-run-option-text">
                       <span className="ql-run-option-name">{run.name}</span>
                       <span className="ql-run-option-meta">
-                        {[run.gameBuild?.label ?? run.gameBuild?.version, l.runMeta(run.scenarioCount)].filter(Boolean).join(' · ')}
+                        {[run.gameBuild == null ? null : buildDisplayName({ ...run.gameBuild }), l.runMeta(run.scenarioCount)].filter(Boolean).join(' · ')}
                       </span>
                     </span>
                     <span className="ql-run-option-last">
