@@ -1,3 +1,4 @@
+import { buildDisplayName } from '../projects/buildEnvironment'
 import { PLACEHOLDER } from '../projects/formatters'
 import { buildOptionText } from '../projects/gameBuilds'
 import type { GameBuild } from '../projects/gameTypes'
@@ -116,5 +117,5 @@ export function writtenBuildText(
   const version = macro.buildVersion.trim()
   const label = macro.buildLabel?.trim() ?? ''
   if (version.length === 0) return label.length === 0 ? PLACEHOLDER : label
-  return label.length === 0 ? version : `${version} · ${label}`
+  return buildDisplayName({ version, label })
 }

@@ -1,3 +1,4 @@
+import { parseBuildEnvironment } from '../projects/buildEnvironment'
 import { apiFetch } from '../auth/authApi'
 import {
   asNullableString,
@@ -270,7 +271,7 @@ export type CaseVerdictHistoryItem = {
   label: string | null
   verificationStatus: VerificationStatus
   /** editor 버전인가(ARTEL-1180). */
-  isEditor: boolean
+  isEditor?: boolean | null
   /** 이 판정을 다른 버전에서 가져왔으면 그 build. 이 버전에서 본 판정이면 null(ARTEL-1180). */
   verdictCarriedFromBuildId: string | null
 }
@@ -289,7 +290,7 @@ export function parseVerdictHistory(data: unknown): CaseVerdictHistoryItem[] {
         version: asString(record?.version),
         label: asNullableString(record?.label),
         verificationStatus: asVerificationStatus(record?.verificationStatus),
-        isEditor: record?.isEditor === true,
+        isEditor: parseBuildEnvironment(record?.isEditor),
         verdictCarriedFromBuildId: asNullableString(record?.verdictCarriedFromBuildId),
       }
     })

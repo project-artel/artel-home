@@ -1,6 +1,7 @@
 import { asNullableString, asRecord, asString, isOneOf } from './projectApi'
 import { QA_TRY_STATUSES, type QaTryStatus } from '../qa/qaTypes'
 import type { GameBuild, GameInstance } from './gameTypes'
+import { parseBuildEnvironment } from './buildEnvironment'
 
 /**
  * 게임 빌드 섹션(ARTEL-1105)이 한 줄에 그리는 빌드 요약. 서버의 `GET .../game-builds/summary`(ARTEL-1104) 응답이다.
@@ -12,7 +13,8 @@ export type GameBuildSummary = {
   gameBuildId: string
   version: string
   label: string | null
-  isEditor: boolean
+  /** 서버가 값을 보내지 않으면 null 이고, 화면은 Unknown 을 그린다. */
+  isEditor: boolean | null
   createdAt: string
   /** 이 빌드로 마지막 보고한 instance 들의 `lastConnectedAt` 중 가장 늦은 것. instance 가 없으면 null. */
   lastReportedAt: string | null
@@ -71,7 +73,7 @@ export function parseGameBuildSummary(data: unknown): GameBuildSummary | null {
     gameBuildId,
     version,
     label: asNullableString(record.label),
-    isEditor: record.isEditor === true,
+    isEditor: parseBuildEnvironment(record.isEditor),
     createdAt: asString(record.createdAt),
     lastReportedAt: asNullableString(record.lastReportedAt),
     instanceCount: asCountOrNull(record.instanceCount),
