@@ -2342,6 +2342,16 @@ a.instance-name:hover {
   height: 14px;
 }
 
+/* 마지막 게임 frame의 색과 무관하게 끊김 안내를 읽을 수 있게 한다. */
+.game-stream-notice--disconnected {
+  background: var(--color-bg-surface);
+}
+
+.game-stream-notice--disconnected .game-stream-notice-label,
+.game-stream-notice--disconnected .game-stream-mark {
+  color: var(--color-text-primary);
+}
+
 .qa-status {
   display: inline-flex;
   min-height: 24px;
