@@ -37,7 +37,7 @@ test('argument schemas are objects and every required name is declared', () => {
   }
   const remove = TEST_CASES_ACTIONS.find((action) => action.id === 'testCases.delete')
   assert.equal(remove?.args.properties?.testCaseIds?.items?.type, 'string')
-  assert.equal(remove?.summarize({ testCaseIds: ['1', '2'] }), 'Delete 2 test cases')
+  assert.equal(remove?.summarize({ testCaseIds: ['1', '2'] }), 'Delete 2 Test Cases')
 })
 
 const result: GeneratedTestCases = { created: 3, updated: 0, deleted: 0, broken: 0, carriedOver: 1 } as GeneratedTestCases

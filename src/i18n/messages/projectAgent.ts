@@ -96,8 +96,8 @@ export const projectAgentEn = {
   tasks: {
     summaries: {
       scan: 'Scan the running game for screens',
-      scanAndGenerateTestCases: 'Scan the running game and generate test cases',
-      overwriteTestCases: 'Overwrite the generated test cases of the selected build',
+      scanAndGenerateTestCases: 'Scan the running game and generate Test Cases',
+      overwriteTestCases: 'Overwrite the generated Test Cases of the selected build',
       startQaRun: 'Start a QA run with the current form',
       createTestRun: (name: string) => `Create the test run "${name}"`,
     },
@@ -127,19 +127,19 @@ export const projectAgentEn = {
       scanWaiting: 'Waiting for the game to start the scan',
       scanReading: (documents: number) => `Scanning, ${documents} documents read`,
       scanReadingNoCount: 'Scanning',
-      scanGeneratingTestCases: 'Scan finished, generating test cases',
+      scanGeneratingTestCases: 'Scan finished, generating Test Cases',
       scanFinished: (buildId: string, documents: number | null) =>
         documents === null
           ? `The scan of build ${buildId} finished.`
           : `The scan of build ${buildId} finished and ${documents} documents were read.`,
       scanFinishedWithTestCases: (buildId: string, documents: number | null, created: number, carriedOver: number) =>
-        `The scan of build ${buildId} finished${documents === null ? '' : ` with ${documents} documents`}, and ${created} test cases were created (${carriedOver} carried over).`,
+        `The scan of build ${buildId} finished${documents === null ? '' : ` with ${documents} documents`}, and ${created} Test Cases were created (${carriedOver} carried over).`,
       scanTestCasesSkipped: (buildId: string) =>
-        `The scan of build ${buildId} finished, but test case generation was skipped because the build already has test cases.`,
+        `The scan of build ${buildId} finished, but Test Case generation was skipped because the build already has Test Cases.`,
       scanFailed: (buildId: string, reason: string | null) =>
         `The scan of build ${buildId} failed${reason === null ? '.' : `: ${reason}`}`,
       scanTestCasesFailed: (buildId: string, reason: string | null) =>
-        `The scan of build ${buildId} finished, but test case generation failed${reason === null ? '.' : `: ${reason}`}`,
+        `The scan of build ${buildId} finished, but Test Case generation failed${reason === null ? '.' : `: ${reason}`}`,
       qaPending: 'Waiting for the run to start',
       qaProgress: (done: number, total: number) => `Scenario ${done}/${total}`,
       qaFinished: (qaRunId: string, completed: number, total: number, failed: number) =>
@@ -154,13 +154,13 @@ export const projectAgentEn = {
       authoringDone: 'Scenarios written',
       authoringStages: {
         sent: 'Instruction sent',
-        grouping: 'Grouping test cases',
-        grouped: 'Test cases grouped',
+        grouping: 'Grouping Test Cases',
+        grouped: 'Test Cases grouped',
         bridging: 'Connecting screens',
         thinking: 'Thinking',
-        looking_up_cases: 'Looking up test cases',
-        preparing_cases: 'Reading test cases',
-        reading_cases: 'Finding cases',
+        looking_up_cases: 'Looking up Test Cases',
+        preparing_cases: 'Reading Test Cases',
+        reading_cases: 'Finding Test Cases',
         reading_versions: 'Comparing versions',
         reading_verdicts: 'Reading QA verdicts',
         reading_qa_runs: 'Reading QA runs',
@@ -168,7 +168,7 @@ export const projectAgentEn = {
         reading_scenarios: 'Reading scenarios and test runs',
         reading_builds: 'Reading builds',
         splitting: 'Splitting the requests',
-        reading_case: 'Reading a test case',
+        reading_case: 'Reading a Test Case',
         finding_path: 'Finding a path',
         writing: 'Writing scenarios',
         saving: 'Saving scenarios',
@@ -278,8 +278,8 @@ export const projectAgentKo: Localized<typeof projectAgentEn> = {
   tasks: {
     summaries: {
       scan: '실행 중인 게임을 스캔해 화면 지도 만들기',
-      scanAndGenerateTestCases: '실행 중인 게임을 스캔하고 TC 생성하기',
-      overwriteTestCases: '고른 빌드의 생성된 TC 덮어쓰기',
+      scanAndGenerateTestCases: '실행 중인 게임을 스캔하고 Test Case 생성하기',
+      overwriteTestCases: '고른 빌드의 생성된 Test Case 덮어쓰기',
       startQaRun: '현재 입력한 설정으로 QA 실행 시작',
       createTestRun: (name: string) => `테스트 런 "${name}" 만들기`,
     },
@@ -309,19 +309,19 @@ export const projectAgentKo: Localized<typeof projectAgentEn> = {
       scanWaiting: '게임이 스캔을 시작하기를 기다리는 중',
       scanReading: (documents: number) => `스캔 중, 문서 ${documents}건 읽음`,
       scanReadingNoCount: '스캔 중',
-      scanGeneratingTestCases: '스캔 완료, TC 생성 중',
+      scanGeneratingTestCases: '스캔 완료, Test Case 생성 중',
       scanFinished: (buildId: string, documents: number | null) =>
         documents === null
           ? `빌드 ${buildId} 스캔이 끝났습니다.`
           : `빌드 ${buildId} 스캔이 끝났고 문서 ${documents}건을 읽었습니다.`,
       scanFinishedWithTestCases: (buildId: string, documents: number | null, created: number, carriedOver: number) =>
-        `빌드 ${buildId} 스캔이 끝났습니다${documents === null ? '' : ` (문서 ${documents}건)`}. TC ${created}건을 만들었습니다(이어 넣은 것 ${carriedOver}건).`,
+        `빌드 ${buildId} 스캔이 끝났습니다${documents === null ? '' : ` (문서 ${documents}건)`}. Test Case ${created}건을 만들었습니다(이어 넣은 것 ${carriedOver}건).`,
       scanTestCasesSkipped: (buildId: string) =>
-        `빌드 ${buildId} 스캔은 끝났지만, 이미 TC 가 있는 빌드라 TC 생성은 건너뛰었습니다.`,
+        `빌드 ${buildId} 스캔은 끝났지만, 이미 Test Case가 있는 빌드라 Test Case 생성은 건너뛰었습니다.`,
       scanFailed: (buildId: string, reason: string | null) =>
         `빌드 ${buildId} 스캔이 실패했습니다${reason === null ? '.' : `: ${reason}`}`,
       scanTestCasesFailed: (buildId: string, reason: string | null) =>
-        `빌드 ${buildId} 스캔은 끝났지만 TC 생성이 실패했습니다${reason === null ? '.' : `: ${reason}`}`,
+        `빌드 ${buildId} 스캔은 끝났지만 Test Case 생성이 실패했습니다${reason === null ? '.' : `: ${reason}`}`,
       qaPending: '실행이 시작되기를 기다리는 중',
       qaProgress: (done: number, total: number) => `시나리오 ${done}/${total}`,
       qaFinished: (qaRunId: string, completed: number, total: number, failed: number) =>
@@ -336,13 +336,13 @@ export const projectAgentKo: Localized<typeof projectAgentEn> = {
       authoringDone: '시나리오 작성 완료',
       authoringStages: {
         sent: '지시를 보냄',
-        grouping: 'TC 묶는 중',
-        grouped: 'TC 묶음 완료',
+        grouping: 'Test Case 묶는 중',
+        grouped: 'Test Case 묶음 완료',
         bridging: '화면 잇는 중',
         thinking: '생각하는 중',
-        looking_up_cases: 'TC 찾는 중',
-        preparing_cases: 'TC 를 읽고 정리하는 중',
-        reading_cases: '케이스 찾는 중',
+        looking_up_cases: 'Test Case 찾는 중',
+        preparing_cases: 'Test Case를 읽고 정리하는 중',
+        reading_cases: 'Test Case 찾는 중',
         reading_versions: '버전별 내용 비교 중',
         reading_verdicts: 'QA 판정 기록 읽는 중',
         reading_qa_runs: 'QA 실행 기록 읽는 중',
@@ -350,7 +350,7 @@ export const projectAgentKo: Localized<typeof projectAgentEn> = {
         reading_scenarios: '시나리오 · 테스트 런 읽는 중',
         reading_builds: '빌드 확인 중',
         splitting: '요청을 나누는 중',
-        reading_case: 'TC 읽는 중',
+        reading_case: 'Test Case 읽는 중',
         finding_path: '경로 찾는 중',
         writing: '시나리오 쓰는 중',
         saving: '시나리오 저장 중',

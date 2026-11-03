@@ -9,7 +9,7 @@ import { listedFieldDescription } from './listedOptions'
 
 const CASE_IDS_ARGUMENT = {
   type: 'array',
-  description: 'Test case ids (TC numbers) as strings, for example ["12", "40"].',
+  description: 'Internal Test Case ids as strings, for example ["12", "40"]. Use option values, not project identifiers such as TC-001.',
   items: { type: 'string' },
 } as const
 
@@ -24,7 +24,7 @@ const BUILD_CHECK_NOTE =
 
 function caseCount(args: Record<string, unknown>): string {
   const count = Array.isArray(args.caseIds) ? args.caseIds.length : 0
-  return `${count} test case${count === 1 ? '' : 's'}`
+  return `${count} Test Case${count === 1 ? '' : 's'}`
 }
 
 export const TEST_SCENARIO_TITLE_FIELD: FieldSpec = {
@@ -37,8 +37,8 @@ export const TEST_SCENARIO_CASES_FIELD: FieldSpec = {
   name: 'testScenario.cases',
   page: 'testScenario',
   description: listedFieldDescription(
-    'the test cases the open scenario holds, in scenario order (label uses the project-specific TC number such as TC-001; option value remains the internal case ID, with the first step text in an ORDERED scenario)',
-    'Use the values as caseIds of testScenario.removeCases. Ids of other test cases of the project are in testCases.listed on the case library page.',
+    'the Test Cases the open scenario holds, in scenario order (label uses the project-specific identifier such as TC-001; option value remains the internal case ID, with the first step text in a step-based scenario)',
+    'Use the values as caseIds of testScenario.removeCases. Ids of other Test Cases of the project are in testCases.listed on the Test Cases page.',
   ),
 }
 
@@ -47,11 +47,11 @@ export const TEST_SCENARIO_CONVERT_TO_FREE_ACTION: ActionSpec = {
   page: 'testScenario',
   risk: 'approve',
   description:
-    'Convert the open ORDERED scenario to a FREE scenario (a bundle of test cases the QA agent verifies in its own order). Each linked test case is kept once, in first-seen order; steps without a test case are dropped. The change is saved automatically and can be undone. ' +
+    'Convert the open step-based scenario to a Test Case-based scenario (a bundle of Test Cases the QA agent verifies in its own order). Each linked Test Case is kept once, in first-seen order; steps without a Test Case are dropped. The change is saved automatically and can be undone. ' +
     BUILD_CHECK_NOTE +
     ' Returns {keptCaseIds, droppedSteps: [{index, action}], droppedMissing}. Blocked when the scenario is already FREE.',
   args: { type: 'object', properties: { dropMissing: DROP_MISSING_ARGUMENT } },
-  summarize: (args) => (args.dropMissing === true ? 'Convert this scenario to FREE without the cases missing from the build' : 'Convert this scenario to FREE'),
+  summarize: (args) => (args.dropMissing === true ? 'Convert this scenario to Test Case-based without the Test Cases missing from the build' : 'Convert this scenario to Test Case-based'),
 }
 
 export const TEST_SCENARIO_ADD_CASES_ACTION: ActionSpec = {
@@ -59,7 +59,7 @@ export const TEST_SCENARIO_ADD_CASES_ACTION: ActionSpec = {
   page: 'testScenario',
   risk: 'auto',
   description:
-    'Add test cases to the open FREE scenario, at the end. Cases already in the scenario are ignored. Fails, naming them, when an id is not a test case of the project. ' +
+    'Add Test Cases to the open Test Case-based scenario, at the end. Test Cases already in the scenario are ignored. Fails, naming them, when an id is not a Test Case of the project. ' +
     BUILD_CHECK_NOTE +
     ' Returns {added, alreadyInScenario, droppedMissing}. Blocked when the scenario is not FREE.',
   args: {
@@ -75,7 +75,7 @@ export const TEST_SCENARIO_REMOVE_CASES_ACTION: ActionSpec = {
   page: 'testScenario',
   risk: 'auto',
   description:
-    'Remove test cases from the open FREE scenario (the ✕ on each row), by ids from testScenario.cases. The cases themselves stay in the project. Returns {removed, notInScenario}. Blocked when the scenario is not FREE.',
+    'Remove Test Cases from the open Test Case-based scenario (the ✕ on each row), by ids from testScenario.cases. The Test Cases themselves stay in the project. Returns {removed, notInScenario}. Blocked when the scenario is not FREE.',
   args: { type: 'object', properties: { caseIds: CASE_IDS_ARGUMENT }, required: ['caseIds'] },
   summarize: (args) => `Remove ${caseCount(args)} from this scenario`,
 }
@@ -85,7 +85,7 @@ export const TEST_SCENARIO_ADD_CASES_TO_BUILD_ACTION: ActionSpec = {
   page: 'testScenario',
   risk: 'approve',
   description:
-    'Put existing test cases into the build version of the test run the scenario was opened from, so a run on that build can use them. scope run_build adds them to that build only; run_build_and_later also adds them to every newer build. Only user-made (MANUAL) cases can be added. Returns {builds: [{gameBuildId, version, added}], skipped: [{caseId, reason: "map_origin" | "already_present" | "not_found", gameBuildId?}]}. It does not change the scenario; call testScenario.convertToFree or testScenario.addCases again afterwards. Blocked when the scenario was not opened from a test run with a build version.',
+    'Put existing Test Cases into the build version of the test run the scenario was opened from, so a run on that build can use them. scope run_build adds them to that build only; run_build_and_later also adds them to every newer build. Only user-made (MANUAL) cases can be added. Returns {builds: [{gameBuildId, version, added}], skipped: [{caseId, reason: "map_origin" | "already_present" | "not_found", gameBuildId?}]}. It does not change the scenario; call testScenario.convertToFree or testScenario.addCases again afterwards. Blocked when the scenario was not opened from a test run with a build version.',
   args: {
     type: 'object',
     properties: {

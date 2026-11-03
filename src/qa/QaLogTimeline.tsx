@@ -709,8 +709,8 @@ export function QaLogTimeline({
   if (logs.length === 0) {
     return (
       <div className="qa-log-empty">
-        <p>No logs have been recorded for this QA Try.</p>
-        {live && <span>New activity will appear here.</span>}
+        <p>{t.qa.run.logsEmpty}</p>
+        {live && <span>{t.qa.run.logsEmptyLive}</span>}
       </div>
     )
   }
@@ -722,7 +722,7 @@ export function QaLogTimeline({
       ref={viewportRef}
       tabIndex={0}
       role="region"
-      aria-label="QA Try activity log"
+      aria-label={t.qa.run.logsRegion}
     >
       <div className="qa-log-history-controls">
         <div aria-hidden="true" ref={sentinelRef} />

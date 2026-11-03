@@ -174,7 +174,7 @@ export function MarkdownEditor({
                 title={text.tools.testCase}
                 type="button"
               >
-                TC
+                Test Case
               </button>
             </span>
           )}

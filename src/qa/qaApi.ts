@@ -51,7 +51,7 @@ function optionalId(value: unknown): string | null {
 
 function parseStatus(value: unknown, status: number): QaTryStatus {
   if (!isOneOf(value, QA_TRY_STATUSES)) {
-    throw new ProjectApiError(status, 'The server returned an unknown QA Try status.')
+    throw new ProjectApiError(status, 'The server returned an unknown QA run status.')
   }
   return value
 }
@@ -67,11 +67,11 @@ function parseLogType(value: unknown): QaLogType | null {
 export function parseQaTry(data: unknown, status = 200): QaTry {
   const record = asRecord(data)
   if (record === null) {
-    throw new ProjectApiError(status, 'The server returned an unreadable QA Try.')
+    throw new ProjectApiError(status, 'The server returned an unreadable QA run.')
   }
 
   return {
-    id: requiredId(record.id, 'QA Try id', status),
+    id: requiredId(record.id, 'QA run id', status),
     testScenarioId: requiredId(record.testScenarioId, 'test scenario id', status),
     gameInstanceId: requiredId(record.gameInstanceId, 'game instance id', status),
     agentSessionId: optionalId(record.agentSessionId),
@@ -404,7 +404,7 @@ export async function listQaTries(
   const response = await apiFetch(`${QA_ROOT}?${params}`, { signal })
   const data = await readJson(response)
   if (!Array.isArray(data)) {
-    throw new ProjectApiError(response.status, 'The server returned an unreadable QA Try list.')
+    throw new ProjectApiError(response.status, 'The server returned an unreadable QA run list.')
   }
   return data.flatMap((item) => {
     try {

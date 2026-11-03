@@ -27,7 +27,7 @@ export function TestCaseIdentifiersProvider({ projectId, children }: { projectId
   return <TestCaseIdentifiersContext.Provider value={{ projectId, numbers: current?.numbers ?? EMPTY }}>
     {children}
     {current?.failed && <div className="inline-error tc-identifiers-status" role="alert">
-      <span className="tc-id">TC</span> {copy.error}
+      <span className="tc-id">Test Case</span> {copy.error}
       <button className="button button--secondary button--compact" type="button" onClick={() => setRevision(value => value + 1)}>{copy.retry}</button>
     </div>}
   </TestCaseIdentifiersContext.Provider>
