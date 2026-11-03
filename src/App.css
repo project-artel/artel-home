@@ -10931,6 +10931,10 @@ col.mct-c-updated { width: 12%; }
 .ctx-menu-item:hover, .ctx-menu-item:focus-visible{ background:var(--color-bg-hover); outline:none; }
 .ctx-menu-item--danger{ color:var(--color-status-critical); }
 .ctx-menu-item:disabled{ opacity:.4; cursor:default; }
+.ctx-menu-item--parent{ display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.ctx-menu-item--parent.is-open{ background:var(--color-bg-hover); }
+.ctx-menu-caret{ font-size:9px; color:var(--color-text-muted); }
+.ctx-menu-separator{ margin:4px 2px; border:0; border-top:1px solid var(--color-border-subtle, var(--color-border-strong)); }
 
 /* 버전 묶음 · 숨긴 버전 · 버전 없음 (ARTEL-1024) */
 .tcl-versions-head{ display:flex; align-items:center; gap:4px; min-height:28px; border-radius:var(--radius-md); }
@@ -11017,6 +11021,32 @@ col.mct-c-updated { width: 12%; }
 
 /* 다른 라이브러리에서 사용자 생성 TC 가져오기 (ARTEL-1032) */
 .dialog-panel:has(.mimp){ width:min(100%, 860px); }
+/* 파일에서 TC 가져오기(ARTEL-1328). 가져오기 창(.mimp)과 같은 간격 · 색 토큰을 쓴다. */
+.dialog-panel:has(.cfi){ width:min(100%, 860px); }
+.cfi{ display:flex; flex-direction:column; gap:var(--space-3); min-width:0; }
+/* 끌어 놓기 칸은 기획 문서 화면의 .dw-drop 이다. 창 안이라 큰 칸의 높이만 줄인다. */
+.cfi .dw-drop--large{ min-height:240px; }
+.cfi-file-name{ font-family:var(--font-mono, ui-monospace, monospace); overflow-wrap:anywhere; }
+.cfi-template{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:0; font-size:12px; color:var(--color-text-muted); }
+.cfi-counts{ display:flex; flex-wrap:wrap; gap:6px; }
+.cfi-pill{ padding:2px 10px; border:1px solid var(--color-border-strong); border-radius:999px; font-size:12px; white-space:nowrap; }
+.cfi-pill--new{ border-color:var(--color-status-success); color:var(--color-status-success); }
+.cfi-pill--edit{ border-color:var(--color-status-warning); color:var(--color-status-warning); }
+.cfi-pill--rejected{ border-color:var(--color-status-critical); color:var(--color-status-critical); }
+.cfi-table-wrap{ max-height:min(48vh, 420px); overflow:auto; border:1px solid var(--color-border-subtle); border-radius:var(--radius-md); }
+.cfi-table{ width:100%; border-collapse:collapse; font-size:12px; }
+.cfi-table th{ position:sticky; top:0; background:var(--color-bg-raised); text-align:left; font-weight:500; color:var(--color-text-muted); padding:6px 8px; border-bottom:1px solid var(--color-border-subtle); white-space:nowrap; }
+.cfi-table td{ padding:7px 8px; border-bottom:1px solid var(--color-border-subtle); vertical-align:top; }
+.cfi-table tr.is-same td{ opacity:.55; }
+.cfi-number{ font-family:var(--font-mono, ui-monospace, monospace); white-space:nowrap; }
+.cfi-tag{ display:inline-block; padding:1px 6px; border-radius:4px; font-size:11px; white-space:nowrap; background:var(--color-bg-hover); }
+.cfi-tag--new{ color:var(--color-status-success); }
+.cfi-tag--edit{ color:var(--color-status-warning); }
+.cfi-tag--rejected{ color:var(--color-status-critical); }
+.cfi-changes{ display:block; margin-top:2px; font-size:11px; color:var(--color-text-muted); }
+.cfi-reason{ color:var(--color-status-critical); }
+.cfi-table .tct-origin{ margin-right:6px; }
+
 .mimp{ display:flex; flex-direction:column; gap:var(--space-3); }
 .mimp-body{ display:grid; grid-template-columns:240px minmax(0, 1fr); gap:var(--space-3); height:min(52vh, 460px); }
 .mimp-sources, .mimp-cases{
