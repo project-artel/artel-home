@@ -58,7 +58,7 @@ test('재계획은 evidence 를 Planner 로 되돌리고 거절 사유를 보인
   assert.equal(dock.refusal, null)
 })
 
-test('evidence 뒤에 재계획이 없으면 Evaluator 차례이고 판정은 다음 step 에도 남는다', () => {
+test('evidence 뒤에 재계획이 없으면 Evaluator 차례이고 다음 step 이 시작하면 창을 비운다', () => {
   const logs = [plan(6, ['developer:a']), evidence(6, 3)]
   let dock = deriveAgentDock(logs, true)
   assert.equal(dock.active, 'evaluator')
@@ -71,8 +71,10 @@ test('evidence 뒤에 재계획이 없으면 Evaluator 차례이고 판정은 �
 
   logs.push(writing(7))
   dock = deriveAgentDock(logs, true)
+  assert.equal(dock.step, 7)
   assert.equal(dock.plan, null, '새 step 이면 앞 step 의 계획을 지운다')
-  assert.equal(dock.verdict?.step, 6)
+  assert.equal(dock.verdict, null, '앞 step 의 판정도 지운다')
+  assert.equal(dock.turn, null)
 })
 
 test('목표를 이뤄 끝난 step 은 중단으로 적지 않는다', () => {

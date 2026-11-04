@@ -166,9 +166,9 @@ export function deriveAgentDock(logs: readonly QaLog[], live: boolean): AgentDoc
     if (!isAgentLog(log)) continue
     const payload = asRecord(log.payload) ?? {}
     const step = stepNumber(payload.step)
-    // 새 step 이면 앞 step 의 계획은 끝난 것이다. 판정은 다음 판정까지 남긴다.
+    // 새 step 이면 앞 step 의 계획과 판정은 끝난 것이라 창을 비운다.
     if (step !== null && !isVerdict(log) && step !== state.step) {
-      state = { ...EMPTY, step, verdict: state.verdict }
+      state = { ...EMPTY, step }
       reads = null
     }
     if (isVerdict(log)) {
