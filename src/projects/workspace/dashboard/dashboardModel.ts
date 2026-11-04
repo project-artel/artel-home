@@ -32,7 +32,7 @@ export type VersionComparison = {
   dropped: number
   /** 이번 빌드에만 있는 TC. */
   added: number
-  /** 두 버전 사이에 판정이나 있고 없음이 바뀐 TC. "바뀐 Test Case" 표가 그린다. 비교하지 않으면 비어 있다. */
+  /** 두 버전 사이에 판정이 바뀌었거나 한쪽에만 있는 TC. "바뀐 Test Case" 표가 그린다. 비교하지 않으면 비어 있다. */
   changed: ChangedCase[]
 }
 
