@@ -65,6 +65,7 @@ check(await page.locator('.qa-timeline-chart').count()===1,'접힌 타임라인�
  await page.waitForSelector('[data-log-id="1"]');await page.waitForFunction(()=>!document.querySelector('[role="alert"]'));
  check(true,'기존 로그가 남은 시점 조회 실패에서 재시도 복구');
  await slider.fill('4');await page.waitForFunction(()=>!document.querySelector('video'));check(true,'gap 선택 시 이전 프레임 제거');
+ check((await page.locator('.qa-focus-game').boundingBox()).height>200,'일부 gap에서는 영상 영역 크기 유지');
  await page.screenshot({path:'.plan/assets/qa-replay/gap.png',fullPage:true});
  await slider.fill('0');await page.waitForFunction(()=>document.querySelector('video')?.readyState>=2);
  await page.getByRole('button',{name:'재생',exact:true}).click();await search.focus();
@@ -94,7 +95,40 @@ check(await page.locator('.qa-timeline-chart').count()===1,'접힌 타임라인�
  await page.screenshot({path:'.plan/assets/qa-replay/tail-gap.png',fullPage:true});
  await load('?many');await page.waitForFunction(()=>document.querySelectorAll('.qa-timeline-case').length===101);check(true,'101개 attempt 페이지 로드');
  await page.goto(base+'?error');await page.waitForSelector('.qa-replay-status[role=alert]');await page.screenshot({path:'.plan/assets/qa-replay/error.png',fullPage:true});check(true,'녹화 오류 표시');
+
+ check((await page.locator('.qa-focus-game').boundingBox()).height<100,'녹화 API 오류는 빈 플레이어 대신 작은 안내 표시');
+ await page.evaluate(()=>window.recordingRecovered=true);await page.getByRole('button',{name:'다시 시도',exact:true}).click();
+ await page.waitForFunction(()=>document.querySelector('video')?.readyState>=2);
+ check(await page.locator('.qa-stage-resize').isVisible(),'조회 재시도 성공 시 영상 레이아웃 복구');
  await page.goto(base+'?expired');await page.getByText('보관 기간 30일이 지나 영상이 삭제됐습니다.').waitFor();await page.screenshot({path:'.plan/assets/qa-replay/expired.png',fullPage:true});check(true,'보관 만료 표시');
+
+ check((await page.locator('.qa-focus-game').boundingBox()).height<100,'보관 만료 상태의 영상 빈 영역 제거');
+ await page.setViewportSize({width:1440,height:900});
+ for(const mode of ['no-recording','no-segments','pending']){
+   await page.goto(base+'?'+mode);await page.waitForSelector('.qa-execution-timeline');
+   await page.waitForSelector('.qa-replay-without-video');
+   check(!await page.locator('video').count() && (await page.locator('.qa-focus-game').boundingBox()).height<100,mode+'는 영상 영역을 작은 안내로 축소');
+   check((await page.locator('.qa-stage-chat').boundingBox()).height>300 && !await page.locator('.qa-stage-resize').isVisible(),mode+'에서 채팅이 남는 공간을 사용');
+   check(await page.getByRole('button',{name:'재생',exact:true}).isDisabled(),mode+'에서 재생 버튼 비활성화');
+   await page.getByRole('slider',{name:'QA 녹화 실행 바'}).fill('6');await page.waitForSelector('[data-log-id="7"]');
+   check(true,mode+'에서도 타임라인과 로그 탐색 유지');
+   if(mode==='no-recording'){
+     await page.screenshot({path:'.plan/assets/qa-replay/no-recording-light.png',fullPage:true});
+     await page.evaluate(()=>document.documentElement.dataset.theme='dark');
+     await page.screenshot({path:'.plan/assets/qa-replay/no-recording-dark.png',fullPage:true});
+     await page.setViewportSize({width:390,height:844});
+     check(await page.evaluate(()=>document.documentElement.scrollWidth<=390),'영상 없는390px 화면 가로 넘침 없음');
+     await page.screenshot({path:'.plan/assets/qa-replay/no-recording-mobile.png',fullPage:true});
+     await page.setViewportSize({width:1440,height:900});
+   }
+ }
+
+ await page.goto(base+'?media-error');await page.waitForSelector('.qa-replay-without-video[role=alert]');
+ check(!await page.locator('video').count() && (await page.locator('.qa-focus-game').boundingBox()).height<100,'영상 파일 오류에서도 빈 플레이어 제거');
+ await page.evaluate(()=>window.mediaRecovered=true);
+ await page.locator('.qa-replay-without-video').getByRole('button',{name:'다시 시도',exact:true}).click();
+ await page.waitForFunction(()=>document.querySelector('video')?.readyState>=2);
+ check(!await page.locator('.qa-replay-without-video').count(),'영상 파일 재시도 성공 시 플레이어 복구');
  await load('?history');await search.fill('needle-0');await page.waitForFunction(()=>window.historyPageReads===1);
  check(true,'검색 시 이전 로그 자동 조회');
  await page.goto(base+'?live');await page.getByRole('tab',{name:'Raw',exact:true}).click();await search.fill('needle-live');

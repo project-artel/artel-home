@@ -123,3 +123,12 @@
 .qa-timeline-resize:hover > span, .qa-timeline-resize[data-resizing='true'] > span { background:var(--color-action-primary); }
 .qa-timeline-resize:focus-visible { outline:2px solid var(--color-action-primary); outline-offset:2px; }
 html:has(.qa-timeline-resize[data-resizing='true']) { cursor:row-resize; user-select:none; }
+.qa-stage:has(.qa-replay-without-video) .qa-stage-top { flex:none; }
+.qa-stage:has(.qa-replay-without-video) .qa-focus-game { flex:1; width:100%; height:auto; aspect-ratio:auto; border:0; border-radius:0; background:transparent; }
+.qa-stage:has(.qa-replay-without-video) .qa-now, .qa-stage:has(.qa-replay-without-video) .qa-stage-resize { display:none; }
+.qa-stage:has(.qa-replay-without-video) .qa-stage-chat { flex:1; }
+.qa-replay-without-video { display:flex; align-items:center; flex-wrap:wrap; gap:8px; padding:8px 0 12px; }
+@media(max-width:1180px) {
+  .qa-focus-center:has(.qa-replay-without-video) { flex:none; min-height:320px; }
+  .qa-stage:has(.qa-replay-without-video) { min-height:320px; }
+}

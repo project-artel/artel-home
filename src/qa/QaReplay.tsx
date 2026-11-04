@@ -125,13 +125,15 @@ export function QaReplay({ projectId, qaTry, onPosition, timelineHost }: {
     setMediaFailed(false)
     setReload(value => value + 1)
   }
-  if (failed) return <div className="qa-replay-status" role="alert">{evidence.error} <button className="button button--secondary" type="button" onClick={refresh}>{evidence.retry}</button></div>
-  if (!data) return <p className="qa-replay-status" role="status">{evidence.loading}</p>
-  if (!bounds) return <p className="qa-replay-status">{evidence.unavailable}</p>
+  if (failed) return <div className="qa-replay-status qa-replay-without-video" role="alert">{evidence.error} <button className="button button--secondary" type="button" onClick={refresh}>{evidence.retry}</button></div>
+  if (!data) return <p className="qa-replay-status qa-replay-without-video" role="status">{evidence.loading}</p>
+  if (!bounds) return <p className="qa-replay-status qa-replay-without-video">{evidence.unavailable}</p>
   const expired = data.playback.recording?.expiresAt != null && Date.parse(data.playback.recording.expiresAt) <= data.loadedAt
+  const hasVideo = !expired && !mediaFailed && data.playback.segments.some(candidate => candidate.state === 'READY' && candidate.url !== null && Date.parse(candidate.endedAt) > bounds.start && Date.parse(candidate.startedAt) < bounds.end)
+  const preparing = data.playback.segments.some(candidate => candidate.state !== 'READY' && candidate.state !== 'EXPIRED')
 
   return <>
-    <div className="qa-replay-screen">
+    {hasVideo ? <div className="qa-replay-screen">
       {segment && !mediaFailed ? <video key={segment.id} ref={videoRef} src={segment.url!} muted playsInline preload="metadata" aria-label={evidence.video}
         onLoadedMetadata={event => {
           const video = event.currentTarget
@@ -154,8 +156,11 @@ export function QaReplay({ projectId, qaTry, onPosition, timelineHost }: {
           else if (Date.parse(segment.endedAt) < bounds.end) seek(Date.parse(segment.endedAt), false, false)
           else { resumeRef.current = false; setPlaying(false); setTimestamp(bounds.end); positionRef.current(bounds.end, false) }
         }} /> : <p role="status">{expired ? evidence.expired : mediaFailed ? evidence.error : data.playback.recording === null ? evidence.unavailable : evidence.gap}</p>}
-    </div>
-    {timelineHost && createPortal(<QaExecutionTimeline bounds={bounds} timestamp={currentTime} playback={data.playback} attempts={data.attempts} playing={playing} playable={segment !== null && !mediaFailed} onSeek={seek} onRefresh={refresh} onTogglePlay={() => {
+    </div> : <div className="qa-replay-status qa-replay-without-video" role={mediaFailed ? 'alert' : 'status'}>
+      {expired ? evidence.expired : mediaFailed ? evidence.error : preparing ? evidence.loading : evidence.unavailable}
+      {mediaFailed && <button className="button button--secondary" type="button" onClick={refresh}>{evidence.retry}</button>}
+    </div>}
+    {timelineHost && createPortal(<QaExecutionTimeline bounds={bounds} timestamp={currentTime} playback={data.playback} attempts={data.attempts} playing={playing} playable={hasVideo && segment !== null} onSeek={seek} onRefresh={refresh} onTogglePlay={() => {
       const video = videoRef.current
       if (!video) return
       if (video.paused) { resumeRef.current = true; void video.play().catch(() => setPlaying(false)) }

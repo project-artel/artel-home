@@ -10,7 +10,7 @@
 
 ## 결과
 
-Chromium 화면 회귀 40개가 통과했습니다.
+Chromium 화면 회귀 59개가 통과했습니다.
 
 - 기존 영상 로드, TC 반복 시도와 시작 시각 없는 attempt 표시.
 - pulse 기본 제외·포함 전환, 메시지 필터·payload find와 Enter 이동.
@@ -46,3 +46,5 @@ Chromium 화면 회귀 40개가 통과했습니다.
 2026-11-04 develop1418c7b 통합 후 전체 테스트1635개, Chromium40개, build와 충돌 해결 파일 ESLint를 다시 확인했습니다. 모델 API 오류 안내·실행 안 함 표시와 replay 기능을 함께 유지합니다.
 
 통합 시 추가된 not_started 시나리오는 녹화 player를 mount하지 않습니다. fixture에서 공유 run 녹화가 있더라도 video와 타임라인이 표시되지 않는 회귀를 추가했습니다. not-started.png는 이 상태입니다.
+
+영상이 없거나 보관 만료·준비 중·조회 오류인 경우 큰 영상 영역을 제거하고 짧은 안내만 남깁니다. 채팅이 확보된 공간을 사용하며 유효한 시간 범위의 TC 타임라인과 로그는 유지됩니다. 일부 gap은 기존 영상 배치를 유지합니다. API·영상 파일 오류 후 재시도 복구와 무영상 상태의 양 테마·모바일 배치를 확인했습니다. no-recording-light.png, no-recording-dark.png, no-recording-mobile.png에 캡처를 남겼습니다. 이번 보완은 Chromium59개, 시간·로그 테스트11개, build 및 변경 파일 ESLint로 확인했습니다. 전체1635개 테스트는 직전 develop 통합 시 통과한 결과입니다.

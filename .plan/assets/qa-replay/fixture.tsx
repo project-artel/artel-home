@@ -39,7 +39,12 @@ window.fetch=async input=>{
  if(path.endsWith('/logs') && historyMode){if(url.searchParams.has('beforeId')){Object.assign(window,{historyPageReads:1});return response({items:[],hasMore:false,nextBeforeId:null})}return response({items:logs,hasMore:true,nextBeforeId:'1'})}
  if(path.endsWith('/logs') && Reflect.get(window,'failNextContext')) { return response({},503) }
  if(path.endsWith('/logs'))return response({items:url.searchParams.has('beforeId')?logs.slice(0,4):logs.slice(4),hasMore:!url.searchParams.has('beforeId'),nextBeforeId:url.searchParams.has('beforeId')?null:'5'})
- if(path.endsWith('/recording') && mode.has('error')) return response({},503)
+ if(path.endsWith('/recording') && mode.has('error') && !Reflect.get(window,'recordingRecovered')) return response({},503)
+
+
+ if(path.endsWith('/recording') && mode.has('media-error') && !Reflect.get(window,'mediaRecovered'))return response({recording:{id:'recording',startedAt:at(0),endedAt:at(8),expiresAt:at(86400*30),error:null},segments:[{...segment('broken',0,8),url:location.origin+'/.plan/assets/qa-replay/missing-video.mp4'}],gaps:[]})
+ if(path.endsWith('/recording') && mode.has('no-recording'))return response({recording:null,segments:[],gaps:[]})
+ if(path.endsWith('/recording') && (mode.has('no-segments') || mode.has('pending')))return response({recording:{id:'recording',startedAt:at(0),endedAt:at(8),expiresAt:at(86400*30),error:null},segments:mode.has('pending')?[{...segment('pending',0,8),state:'PENDING',url:null}]:[],gaps:[]})
  if(path.endsWith('/recording') && mode.has('expired'))return response({recording:{id:'recording',startedAt:at(0),endedAt:at(8),expiresAt:at(1),error:null},segments:[],gaps:[]})
  if(path.endsWith('/recording'))return response({recording:{id:'recording',startedAt:at(0),endedAt:at(8),expiresAt:at(86400*30),error:null},segments:tail?[segment('s1',0,3)]:[segment('s1',0,3),segment('s2',5,8)],gaps:[{startedAt:at(3),endedAt:at(5),reason:'fixture gap'}]})
  if(path.endsWith('/attempts'))return response(many?(url.searchParams.has('before')?rows.slice(100):rows.slice(0,100)):rows)
