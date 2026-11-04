@@ -191,9 +191,12 @@
   .trl-search { margin-inline: var(--space-4); }
   .trl-cols { display: none; }
   .trl-list { padding-inline: var(--space-3); }
-  .trl-row { grid-template-columns: 28px minmax(0, 1fr) 36px; gap: var(--space-2); }
-  .trl-row > :nth-child(n + 3) { grid-column: 2 / -1; }
-  .trl-row > :last-child { grid-column: 3; grid-row: 1; }
+  /* 줄 앞 checkbox 칸이 첫 칸이다(ARTEL-1378). 이름 아래로 내려가는 칸은 넷째부터다. */
+  .trl-row { grid-template-columns: 32px 28px minmax(0, 1fr) 36px; gap: var(--space-2); }
+  .trl-row > :nth-child(n + 4) { grid-column: 3 / -1; }
+  .trl-row > :last-child { grid-column: 4; grid-row: 1; }
+  .trl-selection { height: auto; margin-inline: var(--space-4); }
+  .trl-selection .tcl-selection-bar { flex-wrap: wrap; }
   .workspace-body:has(.qh), .workspace-body:has(.qh-empty) { overflow-y: auto; }
   .section-content:has(.qh), .section-content:has(.qh-empty) { flex: none; }
   .qh { display: flex; flex: none; flex-direction: column; overflow: visible; }
