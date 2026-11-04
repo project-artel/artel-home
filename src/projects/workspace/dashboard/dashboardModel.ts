@@ -3,7 +3,7 @@ import { buildDisplayName } from '../../buildEnvironment'
  * 대시보드가 그리는 숫자(ARTEL-1164). 화면이 받은 응답을 그대로 넘기면 여기서 접는다 — 서버를 더 부르지 않고,
  * 같은 입력이면 늘 같은 출력이라 테스트가 화면 없이 숫자를 잡는다.
  */
-import type { VerificationStatus } from '../../../testCases/testCaseTypes'
+import type { TestCase, VerificationStatus } from '../../../testCases/testCaseTypes'
 import type { VersionCaseRow } from '../../../testCases/testCaseVersions'
 
 /** 최신 빌드의 판정 전 TC 를, 이전 빌드에서의 결과로 나눈다. 무엇부터 볼지가 보이게. */
@@ -32,7 +32,16 @@ export type VersionComparison = {
   dropped: number
   /** 이번 빌드에만 있는 TC. */
   added: number
+  /** 두 버전 사이에 판정이나 있고 없음이 바뀐 TC. "바뀐 Test Case" 표가 그린다. 비교하지 않으면 비어 있다. */
+  changed: ChangedCase[]
 }
+
+export type ChangeKind = 'BROKE' | 'FIXED' | 'STILL_FAILING' | 'ADDED' | 'DROPPED'
+
+export type ChangedCase = { kind: ChangeKind; testCase: TestCase; before: VerificationStatus | null; now: VerificationStatus | null }
+
+/** 표에서 먼저 볼 순서. */
+export const CHANGE_KINDS: ChangeKind[] = ['BROKE', 'STILL_FAILING', 'FIXED', 'ADDED', 'DROPPED']
 
 export type StatusCounts = { passed: number; failed: number; regression: number; pending: number; broken: number }
 
@@ -61,19 +70,32 @@ export function compareVersions(rows: readonly VersionCaseRow[], compared: boole
   let fixed = 0
   let broke = 0
   let stillFailing = 0
+  const changed: ChangedCase[] = []
+  const note = (kind: ChangeKind, row: VersionCaseRow) =>
+    changed.push({ kind, testCase: row.testCase, before: row.compareVerificationStatus, now: row.verificationStatus })
   for (const row of inCurrent) {
     const now = row.verificationStatus
     const before = compared && row.presence === 'BOTH' ? row.compareVerificationStatus : null
+    if (compared && row.presence === 'ONLY_THIS') note('ADDED', row)
     if (isPending(now)) {
       if (isFailing(before)) remaining.wasFailing.push(row.testCase.id)
       else if (before === 'VERIFIED') remaining.wasPassing.push(row.testCase.id)
       else remaining.firstTime.push(row.testCase.id)
       continue
     }
-    if (isFailing(before) && now === 'VERIFIED') fixed++
-    else if (before === 'VERIFIED' && isFailing(now)) broke++
-    else if (isFailing(before) && isFailing(now)) stillFailing++
+    if (isFailing(before) && now === 'VERIFIED') {
+      fixed++
+      note('FIXED', row)
+    } else if (before === 'VERIFIED' && isFailing(now)) {
+      broke++
+      note('BROKE', row)
+    } else if (isFailing(before) && isFailing(now)) {
+      stillFailing++
+      note('STILL_FAILING', row)
+    }
   }
+  if (compared) for (const row of rows) if (row.presence === 'ONLY_OTHER') note('DROPPED', row)
+  changed.sort((a, b) => CHANGE_KINDS.indexOf(a.kind) - CHANGE_KINDS.indexOf(b.kind))
   return {
     total: inCurrent.length,
     current: count(inCurrent.map((row) => row.verificationStatus)),
@@ -84,6 +106,7 @@ export function compareVersions(rows: readonly VersionCaseRow[], compared: boole
     stillFailing,
     dropped: compared ? rows.filter((row) => row.presence === 'ONLY_OTHER').length : 0,
     added: compared ? rows.filter((row) => row.presence === 'ONLY_THIS').length : 0,
+    changed,
   }
 }
 
