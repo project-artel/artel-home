@@ -10,6 +10,7 @@ function check(ok,text){assert.ok(ok,text);checks++;console.log('PASS',text)}
  const load=async(query='')=>{await page.goto(base+query);await page.waitForSelector('.qa-execution-timeline');await page.waitForFunction(()=>document.querySelector('video')?.readyState>=2)};
  await load();await page.waitForSelector('[data-log-id="1"]');
  check(await page.locator('.qa-timeline-track').count()===2,'TC별 track 표시');
+ check(!await page.locator('.qa-timeline-gap-label').count(),'타임라인에서 영상 누락 구간 수 숨김');
  check(await page.locator('.qa-replay-timeline-host').evaluate(e=>e.previousElementSibling.classList.contains('qa-console-grid')),'시나리오를 포함한 전체 영역 아래 타임라인');
  check((await page.locator('.qa-raw-controls').boundingBox()).height<65,'검색과 필터 도구 모음 65px 미만');
  check(!await page.locator('.gf-logs-extras').count(),'Raw의 cheat/behavior 요약 숨김');
@@ -68,6 +69,7 @@ await handle.press('ArrowUp');await handle.press('ArrowUp');await handle.press('
  await search.fill('');await page.getByRole('button',{name:'다시 시도',exact:true}).last().click();
  await page.waitForFunction(()=>document.querySelector('video')?.readyState>0&&document.querySelector('video').paused&&document.querySelector('video').currentTime<.1);
  check(true,'다시 시도 시 재생 위치와 상태 초기화');
+ await slider.fill('0.1');await page.waitForFunction(()=>document.querySelector('video')?.readyState>=2);
  await page.screenshot({path:'.plan/assets/qa-replay/desktop-light.png',fullPage:true});
  await page.evaluate(()=>document.documentElement.dataset.theme='dark');await page.screenshot({path:'.plan/assets/qa-replay/desktop-dark.png',fullPage:true});
  await page.setViewportSize({width:390,height:844});await page.screenshot({path:'.plan/assets/qa-replay/mobile-dark.png',fullPage:true});

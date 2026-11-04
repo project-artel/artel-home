@@ -76,8 +76,7 @@ export function QaExecutionTimeline({ bounds, timestamp, playback, attempts, pla
           if (scroll.current) scroll.current.scrollLeft = Math.max(0, percentage(timestamp) / 100 * (scroll.current.scrollWidth - 84) - scroll.current.clientWidth / 2)
         })
       }}>{[1, 2, 4, 8, 16].map(value => <option key={value} value={value}>{value}×</option>)}</select></>}
-      <span className="qa-timeline-gap-label">{playback.gaps.length > 0 ? copy.gaps(playback.gaps.length) : ''}</span>
-      <button className="qa-icon-button" type="button" aria-label={evidence.retry} title={evidence.retry} onClick={onRefresh}><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M20 7v5h-5" /><path d="M19.4 12a7.5 7.5 0 1 0-1.8 5" /></svg></button>
+      <button className="qa-icon-button qa-timeline-refresh" type="button" aria-label={evidence.retry} title={evidence.retry} onClick={onRefresh}><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M20 7v5h-5" /><path d="M19.4 12a7.5 7.5 0 1 0-1.8 5" /></svg></button>
       <button className="qa-icon-button qa-timeline-collapse" type="button" aria-label={collapsed ? copy.expand : copy.collapse} title={collapsed ? copy.expand : copy.collapse} aria-expanded={!collapsed} onClick={() => setCollapsed(value => !value)}><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={collapsed ? 'm6 15 6-6 6 6' : 'm6 9 6 6 6-6'} /></svg></button>
     </header>
     {!collapsed && <>
