@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { attemptRange, firstReplayTimestamp, logAt, replayBounds, segmentAt } from './qaReplayModel'
+import { attemptRange, caseTimelineTracks, firstReplayTimestamp, logAt, replayBounds, segmentAt } from './qaReplayModel'
 import { DEFAULT_QA_LOG_FILTER, filterQaLogs, qaLogContains } from './qaLogFilter'
 import { parseQaLog } from './qaApi'
 import type { Attempt, Playback, Segment } from './evaluation/evaluationApi'
@@ -66,4 +66,11 @@ test('필터와 find는 payload·메시지·ID를 대소문자 구분 없이 검
   assert.equal(qaLogContains(logs[1], 'needle'), false)
   assert.deepEqual(filterQaLogs(logs, { ...DEFAULT_QA_LOG_FILTER, type: 'ERROR', direction: 'ORCHE_INTERNAL', text: 'MESSAGE' }).map(row => row.id), ['2'])
   assert.equal(filterQaLogs(logs, { ...DEFAULT_QA_LOG_FILTER, type: 'ERROR', text: 'needle' }).length, 0)
+})
+
+test('동시 TC는 별도 track, 같은 TC의 겹친 시도는 별도 lane에 표시한다', () => {
+  const make = (id: string, testCaseId: string, start: number, end: number) => ({ ...attempt, id, testCaseId, startedAt: at(start), finishedAt: at(end) })
+  const tracks = caseTimelineTracks([make('c', '3', 8, 12), make('b', '4', 2, 9), make('a', '3', 1, 8), make('d', '3', 3, 7)], { start: milliseconds(0), end: milliseconds(20) })
+  assert.deepEqual(tracks.map(track => [track.caseId, track.laneEnds.length]), [['3', 2], ['4', 1]])
+  assert.deepEqual(tracks[0].intervals.map(item => [item.attempt.id, item.lane]), [['a', 0], ['d', 1], ['c', 0]])
 })

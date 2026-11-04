@@ -49,3 +49,7 @@ origin/develop의 evaluationApi.playback/attempts가 기존 서버 녹화와 실
 - raw 검색은 한 줄 도구 모음이며 필터는 popover로 접었다. QA 진행 중 새 SSE 로그에도 필터가 유지된다.
 - 실제 QA12(19분·검증18건)에서 초기 영상 decode와 TC 구간 이동·툴바82px·독립 타임라인130px를 확인했다. 사용자 데이터는 수정하지 않았다.
 - 브라우저 fixture25 PASS. 기존16개 TC·101개 attempt·gap·검색·실시간 SSE 포함.
+
+## 추가 반영
+
+타임라인을 시나리오를 포함한 전체 영역 아래로 이동했습니다. 경계선의 SVG 버튼으로 접고 펼치며 시간축을 확대할 수 있습니다. 동시 검증은 TC별 track, 같은 TC의 겹친 반복 검증은 lane으로 분리합니다. Raw는 검색창과 필터 아이콘만 두고 cheat·behavior 요약을 숨깁니다. 검색 시 과거 로그를 자동 조회하고 시점 이동은 가까운 verdict cursor부터 조회합니다. 영상 프레임 시간으로 bar를 갱신하며 이전 video 이벤트는 무시합니다. Chromium30개와 전체1626개 테스트로 확인했습니다.

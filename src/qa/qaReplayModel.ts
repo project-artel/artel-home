@@ -25,6 +25,23 @@ export function attemptRange(attempt: Attempt, bounds: { start: number; end: num
   return Number.isFinite(start) && Number.isFinite(end) && end > start ? { start, end } : null
 }
 
+export function caseTimelineTracks(attempts: Attempt[], bounds: { start: number; end: number }) {
+  type Interval = { attempt: Attempt; range: { start: number; end: number }; lane: number }
+  const tracks = new Map<string, { caseId: string; laneEnds: number[]; intervals: Interval[] }>()
+  const ordered = attempts.map(attempt => ({ attempt, range: attemptRange(attempt, bounds) }))
+    .filter(item => item.range !== null).sort((left, right) => left.range!.start - right.range!.start)
+  for (const { attempt, range } of ordered) {
+    if (range === null) continue
+    let track = tracks.get(attempt.testCaseId)
+    if (!track) { track = { caseId: attempt.testCaseId, laneEnds: [], intervals: [] }; tracks.set(attempt.testCaseId, track) }
+    let lane = track.laneEnds.findIndex(end => end <= range.start)
+    if (lane === -1) lane = track.laneEnds.length
+    track.laneEnds[lane] = range.end
+    track.intervals.push({ attempt, range, lane })
+  }
+  return [...tracks.values()]
+}
+
 export function logAt(logs: QaLog[], timestamp: number) {
   let nearest: QaLog | null = null
   for (const log of logs) {

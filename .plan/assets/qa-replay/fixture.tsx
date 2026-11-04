@@ -26,7 +26,8 @@ const attempts=[{id:'a',testCaseId:'101',startedAt:at(0.5),finishedAt:at(2.5),ve
 const mode=new URLSearchParams(location.search)
 const tail = new URLSearchParams(location.search).has('tail')
 const many = new URLSearchParams(location.search).has('many')
-const rows = many?Array.from({length:101},(_,index)=>({...attempts[0],id:`attempt-${index}`,createdAt:at(101-index)})):attempts
+const overlap = mode.has('overlap')
+const rows = overlap ? [...attempts, {...attempts[0], id:'d',startedAt:at(1),finishedAt:at(6)}, {...attempts[1],id:'e',startedAt:at(1),finishedAt:at(4)}] : many?Array.from({length:101},(_,index)=>({...attempts[0],id:`attempt-${index}`,createdAt:at(101-index)})):attempts
 const response=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json'}})
 // 로컬 fixture만 사용하며 사용자 QA 데이터에는 접근하지 않는다.
 window.fetch=async input=>{
@@ -35,6 +36,7 @@ window.fetch=async input=>{
  if(path==='/api/qa-tries/6')return response(qaTry)
  if(path.endsWith('/verdicts'))return response([])
  if(path.endsWith('/logs') && historyMode){if(url.searchParams.has('beforeId')){Object.assign(window,{historyPageReads:1});return response({items:[],hasMore:false,nextBeforeId:null})}return response({items:logs,hasMore:true,nextBeforeId:'1'})}
+ if(path.endsWith('/logs') && Reflect.get(window,'failNextContext')) { return response({},503) }
  if(path.endsWith('/logs'))return response({items:url.searchParams.has('beforeId')?logs.slice(0,4):logs.slice(4),hasMore:!url.searchParams.has('beforeId'),nextBeforeId:url.searchParams.has('beforeId')?null:'5'})
  if(path.endsWith('/recording') && mode.has('error')) return response({},503)
  if(path.endsWith('/recording') && mode.has('expired'))return response({recording:{id:'recording',startedAt:at(0),endedAt:at(8),expiresAt:at(1),error:null},segments:[],gaps:[]})

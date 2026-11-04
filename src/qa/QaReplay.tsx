@@ -55,10 +55,34 @@ export function QaReplay({ projectId, qaTry, onPosition, timelineHost }: {
   const currentTime = timestamp ?? initialTime ?? bounds?.start ?? 0
   const segment = data ? selectedSegmentId === null ? segmentAt(data.playback.segments, currentTime) : data.playback.segments.find(candidate => candidate.id === selectedSegmentId) ?? null : null
   const segmentId = segment?.id
+  const segmentStartedAt = segment?.startedAt
+  const boundsEnd = bounds?.end
   useEffect(() => {
     const video = videoRef.current
     return () => { video?.pause() }
   }, [segmentId])
+  useEffect(() => {
+    const video = videoRef.current
+    if (!playing || !video || segmentStartedAt === undefined || boundsEnd === undefined) return
+    const start = Date.parse(segmentStartedAt)
+    let stopped = false
+    let request = 0
+    let lastSample = 0
+    const nativeFrames = typeof video.requestVideoFrameCallback === 'function'
+    function sample(now: number) {
+      if (stopped || videoRef.current !== video) return
+      if (now - lastSample >= 100 && !video!.paused) {
+        lastSample = now
+        const value = Math.min(boundsEnd!, start + video!.currentTime * 1000)
+        setTimestamp(value)
+        positionRef.current(value, false)
+        if (value >= boundsEnd!) { resumeRef.current = false; video!.pause(); return }
+      }
+      request = nativeFrames ? video!.requestVideoFrameCallback(sample) : window.requestAnimationFrame(sample)
+    }
+    request = nativeFrames ? video.requestVideoFrameCallback(sample) : window.requestAnimationFrame(sample)
+    return () => { stopped = true; if (nativeFrames) video.cancelVideoFrameCallback(request); else window.cancelAnimationFrame(request) }
+  }, [playing, segmentId, segmentStartedAt, boundsEnd])
   const boundsStart = initialTime ?? bounds?.start ?? null
   useEffect(() => {
     if (boundsStart !== null && timestamp === null) positionRef.current(boundsStart, true)
@@ -114,9 +138,11 @@ export function QaReplay({ projectId, qaTry, onPosition, timelineHost }: {
           video.currentTime = Math.max(0, ((seekRef.current ?? currentTime) - Date.parse(segment.startedAt)) / 1000)
           if (resumeRef.current) void video.play().catch(() => setPlaying(false))
         }}
-        onPlay={() => { setSelectedSegmentId(segment.id); setPlaying(true) }} onPause={() => setPlaying(false)}
+        onPlay={event => { if (event.currentTarget === videoRef.current) { setSelectedSegmentId(segment.id); setPlaying(true) } }}
+        onPause={event => { if (event.currentTarget === videoRef.current) setPlaying(false) }}
         onError={() => { setMediaFailed(true); setPlaying(false) }}
         onTimeUpdate={event => {
+          if (event.currentTarget !== videoRef.current) return
           const value = Math.min(bounds.end, Date.parse(segment.startedAt) + event.currentTarget.currentTime * 1000)
           setTimestamp(value); positionRef.current(value, false)
           if (value >= bounds.end) { event.currentTarget.pause(); resumeRef.current = false }

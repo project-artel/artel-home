@@ -10,19 +10,22 @@
 
 ## 결과
 
-Chromium 화면 회귀 25개가 통과했습니다.
+Chromium 화면 회귀 30개가 통과했습니다.
 
 - 기존 영상 로드, TC 반복 시도와 시작 시각 없는 attempt 표시.
 - pulse 기본 제외·포함 전환, 메시지 필터·payload find와 Enter 이동.
 - TC 선택과 실행 바 탐색 시 segment offset 및 시점 로그 동기화.
-- 이전 로그 페이지 로드, 100개 초과 attempt 페이지 로드.
+- 검색 시 이전 로그 자동 조회, 100개 초과 attempt 페이지 로드.
+- 시나리오 아래 전체 폭 타임라인, 경계선에 겹친 SVG 접기·펼치기 버튼, 시간축 확대.
+- 동시 TC별 track과 같은 TC 반복 검증의 겹친 lane, 현재 TC3건 표시.
+- 시점 로그 조회 성공 뒤 다른 seek 실패·재시도 복구, 재생 버튼과 시간 바 진행.
 - 영상 중간 gap 및 마지막 영상 이후 gap에서 이전 프레임 제거.
 - 실제 영상 종료 후 다음 segment 재생, 재시도 시 0초·정지 초기화.
 - 재생·검색·키보드 실행 바 탐색 중 입력 포커스 유지.
 - 라이트·다크, 1440px·1024px·390px 화면과 가로 넘침 확인.
 - 녹화 API 오류·재시도와 보관 만료 안내, 브라우저 pageerror 없음.
 
-전체 테스트 1,622개, build, 변경 파일 ESLint와 diff-check도 통과했습니다. 전체 lint는 수정하지 않은 `authoringFrames.ts`, `useCaseListNav.ts`, `RunListPanel.tsx`, `RunNameCrumb.tsx`, `useStepEditor.ts`의 기존 오류 5개와 경고 3개로 실패합니다. build에는 기존 bundle 크기 경고가 남습니다.
+전체 테스트 1,626개, build, 변경 파일 ESLint와 diff-check도 통과했습니다. 전체 lint는 수정하지 않은 `authoringFrames.ts`, `useCaseListNav.ts`, `RunListPanel.tsx`, `RunNameCrumb.tsx`, `useStepEditor.ts`의 기존 오류 5개와 경고 3개로 실패합니다. build에는 기존 bundle 크기 경고가 남습니다.
 
 ## 캡처
 
@@ -31,4 +34,4 @@ Chromium 화면 회귀 25개가 통과했습니다.
 - `gap.png`, `tail-gap.png`: 중간·끝 누락 구간.
 - `error.png`, `expired.png`: API 오류와 보관 만료.
 
-사용자 검토 후 실행 바는 독립 타임라인으로 이동했고 TC 시간 구간을 비율대로 표시한다. raw 필터는 접힌 popover와 한 줄 검색으로 변경했다. QA 진행 중 새 SSE 로그에도 필터를 적용하는 브라우저 회귀를 추가했다. 실제 QA12의 영상 decode·구간18개·로컬 화면도 읽기 전용으로 확인했다.
+실제 QA12의 영상 decode, TC별16개 track, Raw 로그 표시, 1.3초 재생 시 bar1.3과 일시 정지 버튼, 접기·펼치기와4배 확대를 읽기 전용으로 확인했습니다.

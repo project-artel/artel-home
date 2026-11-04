@@ -710,7 +710,8 @@ export function QaLogTimeline({
   if (logs.length === 0) {
     return (
       <div className="qa-log-empty">
-        <p>{historyLoading ? t.qa.run.loading : t.qa.rawLogs.empty}</p>
+        <p role={historyFailure !== null ? 'alert' : 'status'}>{historyLoading ? t.qa.run.loading : historyFailure ?? t.qa.rawLogs.empty}</p>
+        {historyFailure !== null && <button className="button button--secondary button--compact" onClick={loadOlder} type="button">{t.qa.panel.retry}</button>}
         {live && <span>New activity will appear here.</span>}
       </div>
     )
@@ -731,7 +732,7 @@ export function QaLogTimeline({
         {historyFailure !== null && (
           <>
             <span role="alert">{historyFailure}</span>
-            <button className="button button--secondary button--compact" onClick={requestOlder} type="button">
+            <button className="button button--secondary button--compact" onClick={loadOlder} type="button">
               Retry older logs
             </button>
           </>
