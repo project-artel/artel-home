@@ -18,6 +18,8 @@ import { GameStreamView } from '../streaming/GameStreamView'
 import { QaTryIssuePanel } from '../issues/QaTryIssuePanel'
 import { listTestScenarios } from '../testScenarios/scenarioApi'
 import { cancelQaRun, compareDecimalIds, getQaRun, isDecimalId } from './qaApi'
+import { isAgentRun } from './agentDockState'
+import { QaAgentDock } from './QaAgentDock'
 import { QaBehaviorLanes } from './QaBehaviorLanes'
 import { QaFocusStage } from './QaFocusStage'
 import { QaRunFunctionOptions } from './QaFunctionOptionsSummary'
@@ -29,7 +31,7 @@ import { notStartedCount, stopLinesOf, stopNoticeOf, type QaStopNotice } from '.
 import { deriveCaseVerdicts, deriveQaContextUsage, deriveQaProgress, isQaContextLog } from './qaProgress'
 import { deriveQaCaseReports } from './qaCaseProgress'
 import { isTerminalQaStatus, QA_STOP_NOT_STARTED, type QaLog, type QaRun, type QaTry } from './qaTypes'
-
+import { useQaAgentLogs } from './useQaAgentLogs'
 import { useQaTry } from './useQaTry'
 import { useScenarioSteps } from './useScenarioSteps'
 import { QaRawLogControls } from './QaRawLogControls'
@@ -388,8 +390,11 @@ function FocusedTry({
 
   const { t } = useI18n()
   const session = useQaTry(tryId)
+  const agentLogs = useQaAgentLogs(tryId, session.logs)
   const { steps: scenarioSteps, executionMode } = useScenarioSteps(session.qaTry?.testScenarioId ?? null)
   const [logView, setLogView] = useState<'flow' | 'raw' | 'issues'>('flow')
+  // planner–executer 런은 로그 탭 대신 에이전트 창을 보인다.
+  const agentRun = isAgentRun(agentLogs)
   const logTabs = useRef<HTMLDivElement>(null)
   const [focusRequest, setFocusRequest] = useState<QaLogFocusRequest | null>(null)
   const [rawFilter, setRawFilter] = useState(DEFAULT_QA_LOG_FILTER)
@@ -403,6 +408,8 @@ function FocusedTry({
   const [replayLogsFailure, setReplayLogsFailure] = useState<string | null>(null)
   const [replayLogsRetry, setReplayLogsRetry] = useState(0)
   const historicalLogs = useMemo(() => replayTimestamp === null ? session.logs : session.logs.filter(log => Date.parse(log.createdAt) <= replayTimestamp), [session.logs, replayTimestamp])
+  // 에이전트 창도 왼쪽 스텝처럼 타임라인 재생 위치까지의 상태를 그린다.
+  const dockLogs = useMemo(() => replayTimestamp === null ? agentLogs : agentLogs.filter(log => Date.parse(log.createdAt) <= replayTimestamp), [agentLogs, replayTimestamp])
   const historicalVerdicts = useMemo(() => replayTimestamp === null ? session.verdictLogs : session.verdictLogs.filter(log => Date.parse(log.createdAt) <= replayTimestamp), [session.verdictLogs, replayTimestamp])
 
   const progress = useMemo(
@@ -430,7 +437,13 @@ function FocusedTry({
   useActionBinding(QA_RUN_SWITCH_LOG_VIEW_ACTION, {
     target: () => logTabs.current,
     blocked: () =>
-      session.loadStatus === 'error' ? t.qa.run.loadFailed : session.qaTry === null ? t.qa.run.loading : null,
+      session.loadStatus === 'error'
+        ? t.qa.run.loadFailed
+        : session.qaTry === null
+          ? t.qa.run.loading
+          : agentRun
+            ? t.qa.run.agentDock.noLogTabs
+            : null,
     run: async (args) => {
       const view = requireLogView(args)
       setLogView(view)
@@ -565,7 +578,7 @@ function FocusedTry({
           progress,
           scenarioSteps,
           executionMode,
-          onJump: jumpToLog,
+          onJump: agentRun ? undefined : jumpToLog,
           caseVerdicts,
           caseReports,
         }}
@@ -595,13 +608,15 @@ function FocusedTry({
           />
         </div>
 
-        <aside className="qa-focus-logs-col" aria-label={t.qa.run.logsTitle}>
+        <aside className="qa-focus-logs-col" aria-label={agentRun ? t.qa.run.agentDock.title : t.qa.run.logsTitle}>
           <header className="qa-focus-logs-head">
+            {agentRun ? <strong className="qa-agent-dock-title">{t.qa.run.agentDock.title}</strong> : (
             <div className="qa-log-tabs" ref={logTabs} role="tablist">
               <button className={logView === 'flow' ? 'on' : ''} onClick={() => setLogView('flow')} role="tab" aria-selected={logView === 'flow'} type="button">{t.qa.run.logsFlow}</button>
               <button className={logView === 'raw' ? 'on' : ''} onClick={() => setLogView('raw')} role="tab" aria-selected={logView === 'raw'} type="button">{t.qa.run.logsRaw}</button>
               <button className={logView === 'issues' ? 'on' : ''} onClick={() => setLogView('issues')} role="tab" aria-selected={logView === 'issues'} type="button">{t.qa.run.tabIssues}</button>
             </div>
+            )}
             {/* Carried over from `QaTryPage` (ARTEL-723): the stream state and the
                 loaded-log count. A summarized state, so `aria-live` fits DESIGN.md's
                 "do not announce every live log entry" rule. */}
@@ -611,20 +626,22 @@ function FocusedTry({
                   {streamLabel}
                 </span>
               )}
-              <span className="qa-focus-logs-count mono">{t.qa.run.logsCount(session.logs.length)}</span>
+              {!agentRun && <span className="qa-focus-logs-count mono">{t.qa.run.logsCount(session.logs.length)}</span>}
             </div>
           </header>
-            {logView === 'raw' && <QaRawLogControls
+            {!agentRun && logView === 'raw' && <QaRawLogControls
               filter={rawFilter} onFilter={(filter) => { setRawFilter(filter); setAllReplayLogs(true); setFoundLogId(null); setFocusRequest(null) }}
               query={findQuery} onQuery={(query) => { setFindQuery(query); setFoundLogId(null); setFocusRequest(null) }}
               matches={findMatches.length} current={foundIndex} onFind={findNext}
             />}
-          {logView !== 'raw' && <div className="gf-logs-extras">
+          {!agentRun && logView !== 'raw' && <div className="gf-logs-extras">
             <QaRunFunctionOptions qaTryId={session.qaTry.id} />
             <QaBehaviorLanes logs={session.logs} onJump={jumpToLog} />
           </div>}
           <div className="qa-focus-logs-body">
-            {logView === 'issues' ? (
+            {agentRun ? (
+              <QaAgentDock live={active} logs={dockLogs} />
+            ) : logView === 'issues' ? (
               <QaTryIssuePanel projectId={rail.projectId} qaTryId={session.qaTry.id} />
             ) : (
               <QaLogTimeline
