@@ -36,6 +36,7 @@ import { qaLogMessage } from './qaLogMessage'
 export type QaLogFocusRequest = {
   logId: string
   token: number
+  scrollOnly?: boolean
 }
 
 const DATE_FORMAT = new Intl.DateTimeFormat(undefined, {
@@ -666,7 +667,7 @@ export function QaLogTimeline({
       setNearLiveEdge(false)
       setUnseenLogs(0)
       setFocusedLogId(logId)
-      element.focus({ preventScroll: true })
+      if (!focusRequest?.scrollOnly) element.focus({ preventScroll: true })
       onFocusResolved()
     }
 
@@ -746,8 +747,10 @@ export function QaLogTimeline({
   if (logs.length === 0) {
     return (
       <div className="qa-log-empty">
-        <p>{t.qa.run.logsEmpty}</p>
+        <p role={historyFailure !== null ? 'alert' : 'status'}>{historyLoading ? t.qa.run.loading : historyFailure ?? t.qa.rawLogs.empty}</p>
+        {historyFailure !== null && <button className="button button--secondary button--compact" onClick={loadOlder} type="button">{t.qa.panel.retry}</button>}
         {live && <span>{t.qa.run.logsEmptyLive}</span>}
+
       </div>
     )
   }
@@ -767,7 +770,7 @@ export function QaLogTimeline({
         {historyFailure !== null && (
           <>
             <span role="alert">{historyFailure}</span>
-            <button className="button button--secondary button--compact" onClick={requestOlder} type="button">
+            <button className="button button--secondary button--compact" onClick={loadOlder} type="button">
               Retry older logs
             </button>
           </>

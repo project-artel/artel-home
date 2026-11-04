@@ -44,9 +44,8 @@ test('engine 이 생기기 전에 저장된 값은 agent 엔진으로 그대로 
   assert.equal(archEngine(read), 'agent')
 })
 
-test('planner_executer 와 남겨 둔 knob 이 같은 키에 함께 저장되고 돌아온다', () => {
+test('planner_executer 로 돌렸어도 다음 화면은 agent 로 열리고, knob 과 label 만 돌아온다', () => {
   const storage = fakeStorage()
-  const selection = { label: 'arm', phase_cycle: 'off', engine: 'planner_executer' } as const
-  storeLastArch(selection, storage)
-  assert.deepEqual(readLastArch(storage), selection)
+  storeLastArch({ label: 'arm', phase_cycle: 'off', engine: 'planner_executer' }, storage)
+  assert.deepEqual(readLastArch(storage), { label: 'arm', phase_cycle: 'off' })
 })
