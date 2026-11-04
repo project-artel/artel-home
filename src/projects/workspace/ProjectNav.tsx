@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { CollapseIcon } from '../../design-system/primitives/CollapseIcon'
 import { useI18n } from '../../i18n/useI18n'
@@ -149,6 +149,39 @@ export function ProjectNav({
     </li>
   )
 
+  // 실험실은 "프로젝트 데이터" 바로 아래에 선다(ARTEL-1379, 사용자 지시). 관리 묶음은 그대로 맨 아래다.
+  const labGroup = labSections.length > 0 ? (
+    <section aria-labelledby="project-nav-lab" className="project-nav-group project-nav-group--lab">
+      <button
+        aria-controls="project-nav-lab-list"
+        aria-expanded={labShown}
+        className="nav-item nav-lab-toggle"
+        id="project-nav-lab"
+        onClick={() => {
+          const next = !labShown
+          setLabOpen(next)
+          storeLabOpen(next)
+        }}
+        title={collapsed ? workspace.navGroups.lab : workspace.labHint}
+        type="button"
+      >
+        <LabIcon />
+        <span className={collapsed ? 'nav-label visually-hidden' : 'nav-label'}>{workspace.navGroups.lab}</span>
+        {!collapsed && <span className="nav-lab-badge">{workspace.labBadge}</span>}
+        {!collapsed && (
+          <span aria-hidden="true" className={'nav-lab-chevron' + (labShown ? ' is-open' : '')}>
+            <CollapseIcon direction="right" />
+          </span>
+        )}
+      </button>
+      {labShown && (
+        <ul className="project-nav-list project-nav-list--lab" id="project-nav-lab-list">
+          {labSections.map(navItem)}
+        </ul>
+      )}
+    </section>
+  ) : null
+
   return (
     <nav
       aria-label={workspace.navLabel}
@@ -204,7 +237,8 @@ export function ProjectNav({
 
       <div className="project-nav-groups">
         {[null, ...WORKSPACE_NAV_GROUPS.filter((group) => group !== LAB_NAV_GROUP)].map((group) => (
-          <section className={`project-nav-group project-nav-group--${group ?? 'primary'}`} key={group ?? 'primary'} aria-labelledby={group === null ? undefined : 'project-nav-' + group}>
+          <Fragment key={group ?? 'primary'}>
+          <section className={`project-nav-group project-nav-group--${group ?? 'primary'}`} aria-labelledby={group === null ? undefined : 'project-nav-' + group}>
             {group !== null && (
               <h2 className={collapsed ? 'visually-hidden' : 'project-nav-group-label'} id={'project-nav-' + group}>
                 {workspace.navGroups[group]}
@@ -214,38 +248,9 @@ export function ProjectNav({
               {WORKSPACE_SECTIONS.filter((section) => section.group === group && (section.id !== 'chat' || agentEnabled)).map(navItem)}
             </ul>
           </section>
+          {group === 'data' && labGroup}
+          </Fragment>
         ))}
-        {labSections.length > 0 && (
-          <section aria-labelledby="project-nav-lab" className="project-nav-group project-nav-group--lab">
-            <button
-              aria-controls="project-nav-lab-list"
-              aria-expanded={labShown}
-              className="nav-item nav-lab-toggle"
-              id="project-nav-lab"
-              onClick={() => {
-                const next = !labShown
-                setLabOpen(next)
-                storeLabOpen(next)
-              }}
-              title={collapsed ? workspace.navGroups.lab : workspace.labHint}
-              type="button"
-            >
-              <LabIcon />
-              <span className={collapsed ? 'nav-label visually-hidden' : 'nav-label'}>{workspace.navGroups.lab}</span>
-              {!collapsed && <span className="nav-lab-badge">{workspace.labBadge}</span>}
-              {!collapsed && (
-                <span aria-hidden="true" className={'nav-lab-chevron' + (labShown ? ' is-open' : '')}>
-                  <CollapseIcon direction="right" />
-                </span>
-              )}
-            </button>
-            {labShown && (
-              <ul className="project-nav-list project-nav-list--lab" id="project-nav-lab-list">
-                {labSections.map(navItem)}
-              </ul>
-            )}
-          </section>
-        )}
       </div>
     </nav>
   )

@@ -6,18 +6,9 @@ export const usageEn = {
   panelSubtitle: 'Tokens this project used over the last twelve weeks.',
   sectionTitle: 'Model spend',
   api: {
-    tabsLabel: 'API management',
-    spendTab: 'Model spend',
-    keysTab: 'API keys',
     keysScope: 'Applies to your whole account. Other members do not see these keys.',
     spendTitle: 'Last 12 weeks by feature',
-    spendLink: 'Model spend tab',
     noSpend: 'No model calls in the last 12 weeks.',
-    tips: [
-      { title: 'Pick it when running QA', body: 'Choose “my key” in the QA model picker to bill a run to this key.' },
-      { title: 'Stored encrypted', body: 'Only the last four characters are shown. Keys never appear in logs or on screen.' },
-      { title: 'Spend adds up here', body: 'Tokens and cost spent with a key add up in the model spend tab.' },
-    ],
   },
   sectionSubtitle: (zone: string) =>
     `The last twelve weeks. A day starts at midnight in ${zone}, and the window counts when a model was called — not when the record reached us.`,
@@ -83,18 +74,9 @@ export const usageKo: Localized<typeof usageEn> = {
   panelSubtitle: '최근 12주 동안 이 프로젝트가 쓴 토큰입니다.',
   sectionTitle: '모델 지출',
   api: {
-    tabsLabel: 'API 관리',
-    spendTab: '모델 지출',
-    keysTab: 'API 키',
     keysScope: '내 계정 전체에 적용됩니다. 다른 멤버에게는 보이지 않습니다.',
     spendTitle: '최근 12주 기능별 지출',
-    spendLink: '모델 지출 탭',
     noSpend: '최근 12주에는 모델 호출이 없습니다.',
-    tips: [
-      { title: 'QA 실행에서 고르기', body: 'QA 실행 창의 모델 고르기에서 “내 키” 를 고르면 이 키로 과금됩니다.' },
-      { title: '저장은 암호화', body: '끝 네 자리만 보입니다. 로그와 화면에 키가 남지 않습니다.' },
-      { title: '쓴 만큼은 모델 지출에', body: '키로 쓴 토큰과 비용은 모델 지출 탭에 함께 쌓입니다.' },
-    ],
   },
   sectionSubtitle: (zone: string) =>
     `최근 12주입니다. 하루는 ${zone} 자정에 시작하고, 기간은 모델을 호출한 시각 기준입니다 — 기록이 우리에게 도착한 시각이 아닙니다.`,
