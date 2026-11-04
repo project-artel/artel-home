@@ -13697,3 +13697,5 @@ col.vimp-c-scene{ width:18% } col.vimp-c-verdict{ width:16% }
 .api-overview .usage-figure dd { font-size: clamp(22px, 2vw, 34px); }
 .api-overview .usage-figure dt { font-size: 13px; }
 @media (max-width: 1100px) { .api-top { grid-template-columns: minmax(0, 1fr); } .api-overview .usage-overview { grid-template-columns: minmax(0, 1fr); } }
+/* 키운 잔디는 칸 안에 다 들어간다. 넘김 막대를 두지 않는다(서비스에 네이티브 막대는 없다). */
+.api-overview .usage-overview-grass, .api-overview .grass-plot { overflow: visible; }
