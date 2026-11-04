@@ -28,7 +28,7 @@ export const CONTENT_MAP_SCAN_AND_GENERATE_ACTION: ActionSpec = {
   page: 'contentMap',
   risk: 'auto',
   description:
-    'Scan like contentMap.scan and, once the scan documents are read, also generate test cases (TCs) for the build. Returns at once with {queued: true, buildId}; watch it with watch_job {kind: "content_map_scan", id: buildId}. Fails with the server message when the build already has TCs; use contentMap.overwriteTestCases in that case if the user wants them replaced.',
+    'Scan like contentMap.scan and, once the scan documents are read, also generate Test Cases for the build. Returns at once with {queued: true, buildId}; watch it with watch_job {kind: "content_map_scan", id: buildId}. Fails with the server message when the build already has Test Cases; use contentMap.overwriteTestCases in that case if the user wants them replaced.',
   args: { type: 'object', properties: {} },
   summarize: () => tasksCopy().summaries.scanAndGenerateTestCases,
 }
@@ -38,7 +38,7 @@ export const CONTENT_MAP_OVERWRITE_ACTION: ActionSpec = {
   page: 'contentMap',
   risk: 'approve',
   description:
-    'Regenerate the test cases of the selected build from its already-loaded screen map and replace the ones generated earlier. Destructive for hand-edited generated cases, so the user approves it. Runs synchronously and returns the counts {created, updated, deleted, broken, carriedOver}. Blocked until the build has an ingested screen map.',
+    'Regenerate the Test Cases of the selected build from its already-loaded screen map and replace the ones generated earlier. Destructive for hand-edited generated cases, so the user approves it. Runs synchronously and returns the counts {created, updated, deleted, broken, carriedOver}. Blocked until the build has an ingested screen map.',
   args: { type: 'object', properties: {} },
   summarize: () => tasksCopy().summaries.overwriteTestCases,
 }

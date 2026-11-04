@@ -104,7 +104,7 @@ export function TestCaseHover({ children, projectId, caseId, gameBuildId = null 
       },
     })}
     {anchor !== null && createPortal(
-      <div className="tc-hover" id={id} role="dialog" aria-label="TC" tabIndex={-1} ref={panel}
+      <div className="tc-hover" id={id} role="dialog" aria-label="Test Case" tabIndex={-1} ref={panel}
         onMouseEnter={() => { hovering.current = true; cancelTimer() }}
         onMouseLeave={() => { hovering.current = false; scheduleClose() }}
         onFocus={cancelTimer} onBlur={scheduleClose}

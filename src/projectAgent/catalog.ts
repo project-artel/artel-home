@@ -64,10 +64,10 @@ export const GLOBAL_LINKS: GlobalLink[] = [
 export const PAGE_CATALOG: PageCatalogEntry[] = [
   { id: 'home', title: 'Agent home', path: '', params: [], description: 'The index route. No page is open beside the chat.', fields: [], actions: [] },
   { id: 'documents', title: 'Planning documents', path: 'documents', params: [], description: 'Uploaded planning documents of the project.', fields: DOCUMENTS_FIELDS, actions: DOCUMENTS_ACTIONS },
-  { id: 'testCases', title: 'Case library', path: 'test-cases', params: [], description: 'Test cases (TC) grouped by game version.', fields: TEST_CASES_FIELDS, actions: TEST_CASES_ACTIONS },
+  { id: 'testCases', title: 'Test Cases', path: 'test-cases', params: [], description: 'Test Cases grouped by game version.', fields: TEST_CASES_FIELDS, actions: TEST_CASES_ACTIONS },
   { id: 'testRuns', title: 'Test runs', path: 'test-runs', params: [], description: 'Test runs: a named set of scenarios to run as QA. List of runs grouped by game version (one version at a time) with a button to create a new one.', fields: TEST_RUNS_FIELDS, actions: TEST_RUNS_ACTIONS },
   { id: 'qa', title: 'Run QA', path: 'qa', params: [], description: 'Start a QA run of a test run on a connected game. Set the form fields, then call qa.startRun.', fields: QA_FIELDS, actions: QA_ACTIONS },
-  { id: 'qaHistory', title: 'QA history', path: 'qa-history', params: [], description: 'Past QA runs and their results.', fields: QA_HISTORY_FIELDS, actions: QA_HISTORY_ACTIONS },
+  { id: 'qaHistory', title: 'QA run history', path: 'qa-history', params: [], description: 'Past QA runs and their results.', fields: QA_HISTORY_FIELDS, actions: QA_HISTORY_ACTIONS },
   { id: 'contentMap', title: 'Screen map', path: 'content-map', params: ['build'], description: 'The content map of a game build: scenes and screens found by an evidence scan. Scan actions act on the selected build.', fields: CONTENT_MAP_FIELDS, actions: CONTENT_MAP_ACTIONS },
   { id: 'macros', title: 'Macros', path: 'macros', params: [], description: 'Macros registered by a game build.', fields: MACROS_FIELDS, actions: MACROS_ACTIONS },
   { id: 'performance', title: 'Performance', path: 'performance', params: [], description: 'Performance reports per build.', fields: PERFORMANCE_FIELDS, actions: PERFORMANCE_ACTIONS },
@@ -80,7 +80,7 @@ export const PAGE_CATALOG: PageCatalogEntry[] = [
   { id: 'settings', title: 'Project settings', path: 'settings', params: [], description: 'Project name, genre, issue tracker link, and deleting the project.', fields: SETTINGS_FIELDS, actions: SETTINGS_ACTIONS },
   { id: 'setup', title: 'Setup', path: 'setup', params: [], description: 'Per-project setup guide: the Unity SDK install step and the artel CLI commands with this project\'s id filled in. It has no list of game instances or builds.', fields: SETUP_FIELDS, actions: SETUP_ACTIONS },
   { id: 'testRunEdit', title: 'Test run editor', path: 'test-runs/:runId/edit', params: ['runId'], description: 'Edit the scenarios of one test run.', fields: TEST_RUN_EDIT_FIELDS, actions: TEST_RUN_EDIT_ACTIONS },
-  { id: 'testScenario', title: 'Scenario editor', path: 'test-scenarios/:testScenarioId', params: ['testScenarioId', 'run'], description: 'One scenario open in the editor. run is the test run it was opened from; that run\'s build version decides which test cases a run can use. An ORDERED scenario is steps run top to bottom; a FREE scenario is a bundle of test cases. The approve button and the scenario list on the left of a run are the testRunEdit actions, which are also registered here.', fields: TEST_SCENARIO_FIELDS, actions: TEST_SCENARIO_ACTIONS },
+  { id: 'testScenario', title: 'Scenario editor', path: 'test-scenarios/:testScenarioId', params: ['testScenarioId', 'run'], description: 'One scenario open in the editor. run is the test run it was opened from; that run\'s build version decides which Test Cases a run can use. A step-based scenario is steps run top to bottom; a Test Case-based scenario is a bundle of Test Cases. The approve button and the scenario list on the left of a run are the testRunEdit actions, which are also registered here.', fields: TEST_SCENARIO_FIELDS, actions: TEST_SCENARIO_ACTIONS },
 ]
 
 /** 서버로 보내는 모양. 함수(`summarize`)를 빼고 JSON 으로 만든다. */

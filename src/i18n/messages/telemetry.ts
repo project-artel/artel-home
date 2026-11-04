@@ -29,7 +29,7 @@ export const telemetryEn = {
       items: [
         'Number of finished scenario runs, and the number per status (completed, failed, cancelled and so on)',
         'Total steps and passed steps',
-        'Total test cases and passed test cases',
+        'Total Test Cases and passed Test Cases',
         'Sum and maximum of run time, in seconds',
         'Calls per tool name. Only names of tools built into ARTEL are sent; every other name is counted under other.',
       ],
@@ -55,7 +55,7 @@ export const telemetryEn = {
   notSentTitle: 'Never sent',
   notSent: [
     'Raw QA run records: log messages, agent reasoning, actions, screen captures, game state',
-    'Content maps, knowledge documents, scenarios, test case text, project names, game names',
+    'Content maps, knowledge documents, scenarios, Test Case text, project names, game names',
     'Emails, names, user ids, IP addresses',
     'Names of functions a game registered',
   ],
@@ -85,7 +85,7 @@ export const telemetryKo: Localized<typeof telemetryEn> = {
       items: [
         '끝난 scenario 실행 수와 상태(완료, 실패, 취소 등)별 수',
         'step 전체 수와 통과 수',
-        'test case 전체 수와 통과 수',
+        'Test Case 전체 수와 통과 수',
         '실행 시간의 합과 최댓값(초)',
         'tool 이름별 호출 수. ARTEL 에 내장된 tool 이름만 보내고, 나머지는 other 로 합쳐서 셉니다.',
       ],
@@ -111,7 +111,7 @@ export const telemetryKo: Localized<typeof telemetryEn> = {
   notSentTitle: '보내지 않는 값',
   notSent: [
     'QA run 의 원본 기록: 로그 메시지, agent 의 추론, action, screen capture, game state',
-    'content map, knowledge 문서, scenario, test case 본문, 프로젝트 이름, 게임 이름',
+    'content map, knowledge 문서, scenario, Test Case 본문, 프로젝트 이름, 게임 이름',
     'email, 이름, user id, IP 주소',
     '게임이 등록한 함수의 이름',
   ],

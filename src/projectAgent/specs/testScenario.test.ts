@@ -32,5 +32,5 @@ test('testScenario summaries are one line and count the cases', () => {
     assert.ok(line.length > 0 && !line.includes('\n'), action.id)
   }
   const addToBuild = TEST_SCENARIO_ACTIONS.find((action) => action.id === 'testScenario.addCasesToBuild')
-  assert.match(addToBuild?.summarize({ caseIds: ['1', '2'], scope: 'run_build_and_later' }) ?? '', /2 test cases.*every later/)
+  assert.match(addToBuild?.summarize({ caseIds: ['1', '2'], scope: 'run_build_and_later' }) ?? '', /2 Test Cases.*every later/)
 })

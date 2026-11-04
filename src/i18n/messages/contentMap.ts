@@ -95,7 +95,7 @@ export const contentMapEn = {
     instanceLabel: 'Game to scan',
     noInstanceOption: 'No connected game at the last check',
     action: 'Rescan evidence',
-    actionWithTestCases: 'Scan and create test cases',
+    actionWithTestCases: 'Scan and create Test Cases',
     running: 'Asking the game…',
     // No "refresh to pick that up" here anymore: the scan status and ingest
     // progress below now update themselves from the events stream, so telling
@@ -137,8 +137,8 @@ export const contentMapEn = {
     },
   },
   generate: {
-    carryOver: 'Bring along user-created test cases from the previous version',
-    carryOverHint: 'User-created test cases in the previous game build that this build does not have yet are added too.',
+    carryOver: 'Bring along user-created Test Cases from the previous version',
+    carryOverHint: 'User-created Test Cases in the previous game build that this build does not have yet are added too.',
   },
   // Live scan state and the events-stream connection it rides on. The donut
   // comes from `phase` · `progress` (ARTEL-1179); an older server sends
@@ -149,7 +149,7 @@ export const contentMapEn = {
       SCANNING: 'Scanning scenes',
       UPLOADING: 'Uploading',
       INGESTING: 'Reading the map',
-      GENERATING_TEST_CASES: 'Creating test cases',
+      GENERATING_TEST_CASES: 'Creating Test Cases',
     },
     sceneCount: (done: number, total: number) => `scene ${done} of ${total}`,
     stepCount: (done: number, total: number) => `step ${done} of ${total}`,
@@ -172,13 +172,13 @@ export const contentMapEn = {
     streamDegraded: 'Live updates interrupted. Reconnecting…',
     streamOffline: 'Live updates lost. Reload the page to reconnect.',
     testCases: {
-      pending: 'Test cases will be created once the scan finishes and the map is read.',
+      pending: 'Test Cases will be created once the scan finishes and the map is read.',
       generated: (created: number, carriedOver: number) =>
-        `Created ${created} test cases from this scan` + (carriedOver > 0 ? `, and carried over ${carriedOver} user-created ones.` : '.'),
-      skipped: 'This build already had test cases, so none were created.',
-      failed: 'The scan finished but test cases could not be created.',
-      notMade: 'The scan did not finish cleanly, so no test cases were created.',
-      openLibrary: 'Open the case library',
+        `Created ${created} Test Cases from this scan` + (carriedOver > 0 ? `, and carried over ${carriedOver} user-created ones.` : '.'),
+      skipped: 'This build already had Test Cases, so none were created.',
+      failed: 'The scan finished but Test Cases could not be created.',
+      notMade: 'The scan did not finish cleanly, so no Test Cases were created.',
+      openLibrary: 'Open the Test Cases',
     },
   },
   summary: {
@@ -668,7 +668,7 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
     instanceLabel: '스캔할 게임',
     noInstanceOption: '마지막 확인 때 붙어 있는 게임 없음',
     action: '근거 다시 스캔',
-    actionWithTestCases: '스캔하고 TC 생성',
+    actionWithTestCases: '스캔하고 Test Case 생성',
     running: '게임에 요청하는 중…',
     requested: '스캔을 요청했습니다. 게임이 응답하면 아래에 상태가 나타납니다.',
     failed: '스캔을 시작하지 못했습니다.',
@@ -698,8 +698,8 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
     },
   },
   generate: {
-    carryOver: '이전 버전의 사용자 생성 케이스 가져오기',
-    carryOverHint: '이전 게임 빌드의 사용자 생성 케이스 중 현재 빌드에 없는 케이스를 가져옵니다.',
+    carryOver: '이전 버전의 사용자 생성 Test Case 가져오기',
+    carryOverHint: '이전 게임 빌드의 사용자 생성 Test Case 중 현재 빌드에 없는 Test Case를 가져옵니다.',
   },
   scanStatus: {
     requested: '스캔하는 중…',
@@ -707,7 +707,7 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
       SCANNING: '씬 스캔',
       UPLOADING: '업로드',
       INGESTING: '지도 읽기',
-      GENERATING_TEST_CASES: 'TC 생성',
+      GENERATING_TEST_CASES: 'Test Case 생성',
     },
     sceneCount: (done: number, total: number) => `씬 ${total}개 중 ${done}개`,
     stepCount: (done: number, total: number) => `${total}걸음 중 ${done}걸음`,
@@ -725,13 +725,13 @@ export const contentMapKo: Localized<typeof contentMapEn> = {
     streamDegraded: '실시간 갱신 연결이 끊어졌습니다. 다시 연결하는 중…',
     streamOffline: '실시간 갱신 연결이 끊겼습니다. 페이지를 다시 열면 다시 연결됩니다.',
     testCases: {
-      pending: '스캔이 끝나고 지도가 읽히면 TC 를 만듭니다.',
+      pending: '스캔이 끝나고 지도가 읽히면 Test Case를 만듭니다.',
       generated: (created: number, carriedOver: number) =>
-        `이 스캔으로 TC ${created}건을 만들었습니다` + (carriedOver > 0 ? `. 사용자 생성 TC ${carriedOver}건을 이어 넣었습니다.` : '.'),
-      skipped: '이 빌드에는 이미 TC 가 있어 만들지 않았습니다.',
-      failed: '스캔은 끝났지만 TC 를 만들지 못했습니다.',
-      notMade: '스캔이 깨끗하게 끝나지 않아 TC 를 만들지 않았습니다.',
-      openLibrary: '케이스 라이브러리 열기',
+        `이 스캔으로 Test Case ${created}건을 만들었습니다` + (carriedOver > 0 ? `. 사용자 생성 Test Case ${carriedOver}건을 이어 넣었습니다.` : '.'),
+      skipped: '이 빌드에는 이미 Test Case가 있어 만들지 않았습니다.',
+      failed: '스캔은 끝났지만 Test Case를 만들지 못했습니다.',
+      notMade: '스캔이 깨끗하게 끝나지 않아 Test Case를 만들지 않았습니다.',
+      openLibrary: 'Test Cases 열기',
     },
   },
   summary: {

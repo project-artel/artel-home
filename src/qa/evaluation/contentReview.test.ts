@@ -24,8 +24,8 @@ test('TC 내용 문제 평가는 agent 원본판정과 별개로 해석한다', 
   assert.equal(result.verdict, 'INCONCLUSIVE')
   assert.equal(result.review, 'TC_CONTENT_ISSUE')
   assert.equal(result.note, row.note)
-  assert.match(renderToStaticMarkup(createElement(VerdictPill, { verdict: result.review, copy: evaluationCopy.ko, empty: 'unreviewed' })), /TC 내용 문제/)
-  assert.match(renderToStaticMarkup(createElement(CaseAttemptPicker, { id: 'test', options: [result], current: result, onSelect: () => {}, copy: evaluationCopy.ko })), /판단 불가 → TC 내용 문제/)
+  assert.match(renderToStaticMarkup(createElement(VerdictPill, { verdict: result.review, copy: evaluationCopy.ko, empty: 'unreviewed' })), /Test Case 내용 문제/)
+  assert.match(renderToStaticMarkup(createElement(CaseAttemptPicker, { id: 'test', options: [result], current: result, onSelect: () => {}, copy: evaluationCopy.ko })), /판단 불가 → Test Case 내용 문제/)
 })
 
 test('내용 상태를 해석하고 알려지지 않은 상태는 정상으로 숨기지 않는다', async () => {
