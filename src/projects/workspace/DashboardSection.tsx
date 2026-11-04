@@ -12,7 +12,7 @@ import { versionName } from '../../testCases/testCaseVersions'
 import { VersionTreeDialog } from '../../testCases/VersionTreeDialog'
 import { formatDate } from '../formatters'
 import { versionBuilds } from '../gameBuilds'
-import { CostChart, Meter, OutcomeStrip, Spark, StackBar, WeekBars } from './dashboard/DashboardCharts'
+import { CostChart, LiveGlyph, Meter, OutcomeStrip, Spark, StackBar, WeekBars } from './dashboard/DashboardCharts'
 import { ChangedCasesDialog } from './dashboard/ChangedCasesDialog'
 import { compareVersions, costByRun, countByDay, countByWeek, formatTokens, scenarioHistories, shortDay, weekStarts, type StatusCounts } from './dashboard/dashboardModel'
 import { createFreeRun } from './dashboard/freeRun'
@@ -136,7 +136,7 @@ export function DashboardSection() {
           tone={liveRuns.length > 0 ? 'reasoning' : undefined}
           value={data.qaRuns.status === 'ready' ? String(liveRuns.length) : '—'}
         >
-          <Spark tone="default" values={qaPerDay} />
+          <LiveGlyph label={(id) => `#${id}`} runs={liveRuns} />
         </Kpi>
         <Kpi
           delta={failedRuns > 0 ? m.kpi.failed(failedRuns) : m.kpi.noFailures}

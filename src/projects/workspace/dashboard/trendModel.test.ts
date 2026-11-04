@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import type { TrendBucket, TrendBuild } from './qaVerdictTrendApi'
-import { buildMarks, dayKey, rollingPassRate, splitAt, summarizeTrend, trendSlots, weekKey } from './trendModel'
+import { buildMarks, dayKey, splitAt, summarizeTrend, trendSlots, weekKey } from './trendModel'
 
 const bucket = (key: string, passed: number, failed: number, regression = 0, undecided = 0, extra: Partial<TrendBucket> = {}): TrendBucket => ({
   key,
@@ -40,15 +40,6 @@ describe('trendSlots', () => {
     const weeks = trendSlots([], 'WEEK', new Date('2026-09-30T15:00:00Z'), new Date('2026-10-12T15:00:00Z'), SEOUL)
     assert.deepEqual(weeks.map((slot) => slot.key), ['2026-09-28', '2026-10-05', '2026-10-12'])
     assert.equal(trendSlots([bucket('9', 1, 0), bucket('12', 0, 1)], 'RUN', new Date(0), new Date(1), SEOUL).length, 2)
-  })
-})
-
-describe('rollingPassRate', () => {
-  it('weights each day by how many verdicts it had', () => {
-    const slots = trendSlots([bucket('2026-10-01', 1, 0), bucket('2026-10-02', 0, 9)], 'DAY', new Date('2026-09-30T15:00:00Z'), new Date('2026-10-02T15:00:00Z'), SEOUL)
-    // 하루씩 평균하면 50% 지만, 판정 10건 중 1건 통과라 10% 다.
-    assert.deepEqual(rollingPassRate(slots, 7), [1, 0.1])
-    assert.deepEqual(rollingPassRate(slots, 1), [1, 0])
   })
 })
 

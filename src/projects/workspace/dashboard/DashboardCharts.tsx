@@ -1,4 +1,5 @@
 import { formatTokens, shortDay, type CostPoint, type TryOutcome } from './dashboardModel'
+import { ProgressRing } from '../../../design-system/primitives/ProgressRing'
 import { useWidth } from './useWidth'
 
 /** 숫자 칸 옆의 작은 막대. 마지막 막대(지금)만 [tone] 으로 칠한다. 장식이라 `aria-hidden` — 옆 숫자가 같은 것을 말한다. */
@@ -154,6 +155,30 @@ export function OutcomeStrip({ outcomes, label }: { outcomes: readonly TryOutcom
       {outcomes.map((outcome, index) => (
         <span className={`db-cell db-cell--${outcome.toLowerCase()}`} key={index} />
       ))}
+    </span>
+  )
+}
+
+/**
+ * 진행 중 QA 칸의 그림(ARTEL-1387). 다른 숫자 칸처럼 날마다 막대를 그리면 QA 실행 칸과 똑같아 보여서, 돌고 있으면
+ * 실행마다 진행 원을, 없으면 비어 있는 원을 그린다. 진행 원은 판정 수를 알면 그만큼 차고, 모르면 돈다.
+ */
+export function LiveGlyph({ runs, label }: { runs: readonly { id: string; casesPassed: number | null; casesFailed?: number | null; casesTotal: number | null }[]; label: (id: string) => string }) {
+  if (runs.length === 0) {
+    return (
+      <svg aria-hidden="true" className="db-live-idle" height="34" viewBox="0 0 34 34" width="34">
+        <circle cx="17" cy="17" fill="none" r="14" strokeDasharray="3 4" strokeWidth="2" />
+        <circle cx="17" cy="17" r="3" />
+      </svg>
+    )
+  }
+  return (
+    <span className="db-live-rings">
+      {runs.slice(0, 3).map((run) => {
+        const done = (run.casesPassed ?? 0) + (run.casesFailed ?? 0)
+        const percent = run.casesTotal ? Math.round((done / run.casesTotal) * 100) : null
+        return <ProgressRing key={run.id} label={label(run.id)} percent={percent} size={34} />
+      })}
     </span>
   )
 }

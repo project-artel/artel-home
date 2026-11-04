@@ -311,19 +311,18 @@ a.db-kpi-value:hover b { text-decoration: underline; text-underline-offset: 4px;
 .db-trend-stats small { display: block; margin-top: 3px; overflow: hidden; color: var(--color-text-muted); font-size: 11.5px; text-overflow: ellipsis; white-space: nowrap; }
 .db-trend-key { flex: none; width: 16px; height: 0; border-top: 2px solid; }
 .db-trend-key--rate { border-color: var(--db-series-1); }
-.db-trend-key--avg { border-color: var(--color-text-secondary); border-top-style: dashed; }
-.db-trend-key--build { width: 0; height: 12px; border-top: 0; border-left: 2px dashed var(--color-agent-reasoning); }
 .db-trend-plot { position: relative; min-width: 0; }
 .db-trend-chart .db-trend-pass { fill: var(--color-status-success); }
 .db-trend-chart .db-trend-fail { fill: var(--color-status-critical); }
-.db-trend-chart .db-trend-regression { fill: var(--color-status-warning); }
 .db-trend-chart .db-trend-undecided { fill: var(--color-border-strong); }
 .db-trend-focus { fill: var(--color-bg-hover); }
+.db-trend-built { fill: color-mix(in srgb, var(--color-agent-reasoning) 9%, transparent); }
+.db-trend-key--build { color: var(--color-agent-reasoning); font-size: 10px; }
+.db-trend-build { fill: var(--color-agent-reasoning); font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; }
+.db-trend-panel { fill: var(--color-text-secondary); font-size: 11.5px; font-weight: 600; }
+.db-trend-area { fill: color-mix(in srgb, var(--db-series-1) 12%, transparent); }
 .db-trend-rate { fill: none; stroke: var(--db-series-1); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
 .db-trend-rate-dot { fill: var(--db-series-1); stroke: var(--color-bg-surface); stroke-width: 1.5; }
-.db-trend-avg { fill: none; stroke: var(--color-text-secondary); stroke-width: 1.5; stroke-dasharray: 5 4; }
-.db-trend-build line { stroke: var(--color-agent-reasoning); stroke-width: 1.5; stroke-dasharray: 4 3; }
-.db-trend-build text { fill: var(--color-agent-reasoning); font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; }
 .db-trend-hit { fill: transparent; cursor: pointer; }
 .db-trend-tip { position: absolute; top: 8px; z-index: 2; display: flex; flex-direction: column; gap: 8px; width: 260px; padding: 10px 12px; border: 1px solid var(--color-border-strong); border-radius: 8px; background: var(--color-bg-raised); font-size: 12px; pointer-events: none; }
 .db-trend-tip.is-pinned { pointer-events: auto; border-color: var(--color-text-secondary); }
@@ -350,3 +349,7 @@ a.db-kpi-value:hover b { text-decoration: underline; text-underline-offset: 4px;
   .db-trend-controls { margin-left: 0; }
   .db-trend-tip { width: 220px; }
 }
+.db-live-idle { justify-self: end; }
+.db-live-idle circle:first-child { stroke: var(--color-border-strong); }
+.db-live-idle circle:last-child { fill: var(--color-border-strong); }
+.db-live-rings { display: flex; justify-content: flex-end; gap: 6px; }

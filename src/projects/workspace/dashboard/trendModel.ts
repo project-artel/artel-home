@@ -1,6 +1,6 @@
 /**
- * QA 판정 추이가 그리는 숫자(ARTEL-1387). 서버 칸(`qaVerdictTrendApi`)을 받아 빈 날을 채우고, 통과율 · 7칸 평균 ·
- * 요약을 접는다. 같은 입력이면 늘 같은 출력이라 테스트가 화면 없이 숫자를 잡는다.
+ * QA 판정 추이가 그리는 숫자(ARTEL-1387). 서버 칸(`qaVerdictTrendApi`)을 받아 빈 날을 채우고, 통과율과 요약을
+ * 접는다. 같은 입력이면 늘 같은 출력이라 테스트가 화면 없이 숫자를 잡는다.
  */
 import type { TrendBucket, TrendBucketUnit, TrendBuild } from './qaVerdictTrendApi'
 
@@ -48,15 +48,6 @@ export function trendSlots(buckets: readonly TrendBucket[], unit: TrendBucketUni
   const step = unit === 'WEEK' ? 7 * DAY_MS : DAY_MS
   for (let ms = keyToUtc(unit === 'WEEK' ? weekKey(first) : first); ms <= keyToUtc(last); ms += step) keys.push(utcToKey(ms))
   return keys.map((key) => slotOf(byKey.get(key) ?? empty(key)))
-}
-
-/** 칸마다 앞 [window] 칸(자신 포함)을 합친 통과율. 칸마다 통과율을 평균하지 않는다 — 판정 1건짜리 날이 20건짜리 날과 같은 무게가 된다. */
-export function rollingPassRate(slots: readonly TrendSlot[], window = 7): (number | null)[] {
-  return slots.map((_, index) => {
-    const part = slots.slice(Math.max(0, index - window + 1), index + 1)
-    const judged = part.reduce((sum, slot) => sum + slot.judged, 0)
-    return judged === 0 ? null : part.reduce((sum, slot) => sum + slot.passed, 0) / judged
-  })
 }
 
 /** 칸이 시작하는 시각. 날 · 주는 열쇠의 그 날(시간대의 자정과 몇 시간 어긋나도 칸을 고르기에는 충분하다). */

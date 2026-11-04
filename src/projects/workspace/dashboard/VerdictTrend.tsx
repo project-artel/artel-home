@@ -8,14 +8,16 @@ import { buildDisplayName } from '../../buildEnvironment'
 import { sectionHref } from '../sections'
 import { useWidth } from './useWidth'
 import { fetchQaVerdictTrend, type QaVerdictTrend, type TrendBucketUnit } from './qaVerdictTrendApi'
-import { buildMarks, dayKey, rollingPassRate, shortKey, splitAt, summarizeTrend, trendSlots, weekKey, type TrendSlot } from './trendModel'
+import { buildMarks, dayKey, shortKey, splitAt, summarizeTrend, trendSlots, weekKey, type TrendSlot } from './trendModel'
 
 const UNITS: TrendBucketUnit[] = ['DAY', 'WEEK', 'RUN']
-const HEIGHT = 326
-const TOP = 48
-const BOTTOM = 290
+const RATE_TOP = 26
+const RATE_BOTTOM = 136
+const COUNT_TOP = 176
+const COUNT_BOTTOM = 316
+const DATE_Y = 334
 const X0 = 44
-const RIGHT = 46
+const RIGHT = 12
 const DAY_MS = 86_400_000
 const ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
 
@@ -76,7 +78,6 @@ export function VerdictTrend({
     return {
       slots,
       summary: summarizeTrend(slots, previous, trend.builds, unit, ZONE),
-      rolling: rollingPassRate(all, 7).slice(all.length - slots.length),
       marks: buildMarks(slots, trend.builds, unit, ZONE),
     }
   }, [trend, unit, from, now, since])
@@ -203,21 +204,14 @@ export function VerdictTrend({
 
           <ul className="db-legend db-legend--row">
             <LegendSwatch label={m.passed} tone="success" />
-            <LegendSwatch label={m.failed} tone="critical" />
-            <LegendSwatch label={m.regression} tone="warning" />
+            <LegendSwatch label={m.failedWithRegression} tone="critical" />
             <LegendSwatch label={m.undecidedLegend} tone="muted" />
             <li>
               <span aria-hidden="true" className="db-trend-key db-trend-key--rate" />
               {m.rateLine}
             </li>
-            {unit !== 'WEEK' && (
-              <li>
-                <span aria-hidden="true" className="db-trend-key db-trend-key--avg" />
-                {m.avgLine[unit]}
-              </li>
-            )}
             <li>
-              <span aria-hidden="true" className="db-trend-key db-trend-key--build" />
+              <span aria-hidden="true" className="db-trend-key--build">▲</span>
               {m.newBuild}
             </li>
           </ul>
@@ -227,7 +221,8 @@ export function VerdictTrend({
           ) : (
             <div className="db-trend-plot" onMouseLeave={() => setHover(null)} ref={plot}>
               <TrendChart
-                avg={unit === 'WEEK' ? null : view.rolling}
+                countTitle={m.countPanel}
+                rateTitle={m.ratePanel}
                 label={m.chartLabel(view.slots.length, view.summary.judged, pct(view.summary.passRate))}
                 labelOf={labelOf}
                 marks={view.marks.map((mark) => ({ index: mark.index, label: buildDisplayName({ version: mark.build.version, isEditor: mark.build.isEditor }) }))}
@@ -313,9 +308,12 @@ function slotCenter(index: number, count: number, width: number): number {
   return X0 + slot * index + slot / 2
 }
 
+/**
+ * 두 칸을 위아래로 겹친 그림. 위는 통과율 선, 아래는 판정 건수 막대다 — 한 칸에 두 축을 겹치면 선이 어느 축인지
+ * 헷갈렸다. 둘은 같은 가로 자리를 쓰고, 날짜 아래 줄에 새 빌드가 올라온 날을 ▲ 로 단다.
+ */
 function TrendChart({
   slots,
-  avg,
   marks,
   width,
   refCallback,
@@ -325,9 +323,10 @@ function TrendChart({
   onPick,
   label,
   labelOf,
+  rateTitle,
+  countTitle,
 }: {
   slots: readonly TrendSlot[]
-  avg: readonly (number | null)[] | null
   marks: readonly { index: number; label: string }[]
   width: number
   refCallback: (node: SVGSVGElement | null) => void
@@ -337,91 +336,102 @@ function TrendChart({
   onPick: (index: number) => void
   label: string
   labelOf: (slot: TrendSlot) => string
+  rateTitle: string
+  countTitle: string
 }) {
   const x1 = Math.max(X0 + 40, width - RIGHT)
   const slot = (x1 - X0) / Math.max(1, slots.length)
-  const bar = Math.max(3, Math.min(30, slot * 0.62))
-  const top = Math.max(4, ...slots.map((one) => one.judged + one.undecided))
-  const max = niceMax(top)
-  const y = (value: number) => BOTTOM - (value / max) * (BOTTOM - TOP)
-  const yRate = (rate: number) => BOTTOM - rate * (BOTTOM - TOP)
+  const bar = Math.max(3, Math.min(28, slot * 0.6))
+  const max = niceMax(Math.max(4, ...slots.map((one) => one.judged + one.undecided)))
+  const yCount = (value: number) => COUNT_BOTTOM - (value / max) * (COUNT_BOTTOM - COUNT_TOP)
+  const yRate = (rate: number) => RATE_BOTTOM - rate * (RATE_BOTTOM - RATE_TOP)
   const cx = (index: number) => X0 + slot * index + slot / 2
-  const every = Math.max(1, Math.ceil(slots.length / Math.max(1, Math.floor((x1 - X0) / 52))))
+  const every = Math.max(1, Math.ceil(slots.length / Math.max(1, Math.floor((x1 - X0) / 64))))
+  const placed = placeLabels(marks.map((mark) => ({ ...mark, x: cx(mark.index) })))
+  const rows = placed.reduce((most, mark) => Math.max(most, mark.row + 1), 0)
+  const height = DATE_Y + 8 + rows * LABEL_ROW
   // 판정이 없던 칸은 건너뛰고 앞뒤 점을 잇는다 — 끊으면 하루 걸러 돈 기간에는 선 없이 점만 남는다.
-  const path = (values: readonly (number | null)[]) =>
-    values
-      .map((value, index) => (value === null ? null : `${cx(index).toFixed(1)} ${yRate(value).toFixed(1)}`))
-      .filter((point): point is string => point !== null)
-      .map((point, index) => `${index === 0 ? 'M' : 'L'}${point}`)
-      .join(' ')
-  const rates = slots.map((one) => one.passRate)
+  const points = slots.map((one, index) => (one.passRate === null ? null : { x: cx(index), y: yRate(one.passRate), index })).filter((point) => point !== null)
+  const line = points.map((point, index) => `${index === 0 ? 'M' : 'L'}${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(' ')
+  const area = points.length > 1 ? `${line} L${points[points.length - 1].x.toFixed(1)} ${RATE_BOTTOM} L${points[0].x.toFixed(1)} ${RATE_BOTTOM} Z` : ''
   return (
-    <svg aria-label={label} className="db-chart db-trend-chart" ref={refCallback} role="img" style={{ height: HEIGHT }} viewBox={`0 0 ${width} ${HEIGHT}`}>
-      {[0, 0.25, 0.5, 0.75, 1].map((fraction) => {
-        const lineY = BOTTOM - fraction * (BOTTOM - TOP)
-        return (
-          <g key={fraction}>
-            <line className={fraction === 0 ? 'db-axis' : 'db-grid'} x1={X0 - 6} x2={x1} y1={lineY} y2={lineY} />
-            <text className="db-tick" textAnchor="end" x={X0 - 10} y={lineY + 4}>
-              {Math.round(max * fraction)}
-            </text>
-            <text className="db-tick" textAnchor="start" x={x1 + 8} y={lineY + 4}>
-              {Math.round(fraction * 100)}%
-            </text>
-          </g>
-        )
-      })}
-      {placeLabels(marks.map((mark) => ({ ...mark, x: cx(mark.index) - slot / 2 }))).map((mark, index) => (
-        <g className="db-trend-build" key={`${mark.index}-${mark.label}-${index}`}>
-          <line x1={mark.x} x2={mark.x} y1={18 + mark.row * LABEL_ROW} y2={BOTTOM} />
-          <text textAnchor="start" x={mark.x + 4} y={14 + mark.row * LABEL_ROW}>
-            {mark.label}
+    <svg aria-label={label} className="db-chart db-trend-chart" ref={refCallback} role="img" style={{ height }} viewBox={`0 0 ${width} ${height}`}>
+      {shown !== null && (
+        <rect className="db-trend-focus" height={COUNT_BOTTOM - RATE_TOP + 8} width={slot} x={cx(shown) - slot / 2} y={RATE_TOP - 4} />
+      )}
+
+      <text className="db-trend-panel" x={X0} y={RATE_TOP - 10}>
+        {rateTitle}
+      </text>
+      {[0, 0.5, 1].map((fraction) => (
+        <g key={`r${fraction}`}>
+          <line className={fraction === 0 ? 'db-axis' : 'db-grid'} x1={X0} x2={x1} y1={yRate(fraction)} y2={yRate(fraction)} />
+          <text className="db-tick" textAnchor="end" x={X0 - 8} y={yRate(fraction) + 4}>
+            {Math.round(fraction * 100)}%
+          </text>
+        </g>
+      ))}
+      {area && <path className="db-trend-area" d={area} />}
+      <path className="db-trend-rate" d={line} />
+      {points.map((point) => (
+        <circle className="db-trend-rate-dot" cx={point.x} cy={point.y} key={point.index} r={shown === point.index ? 4.5 : 3} />
+      ))}
+
+      <text className="db-trend-panel" x={X0} y={COUNT_TOP - 10}>
+        {countTitle}
+      </text>
+      {[0, 0.5, 1].map((fraction) => (
+        <g key={`c${fraction}`}>
+          <line className={fraction === 0 ? 'db-axis' : 'db-grid'} x1={X0} x2={x1} y1={yCount(max * fraction)} y2={yCount(max * fraction)} />
+          <text className="db-tick" textAnchor="end" x={X0 - 8} y={yCount(max * fraction) + 4}>
+            {Math.round(max * fraction)}
           </text>
         </g>
       ))}
       {slots.map((one, index) => {
+        // 회귀는 실패와 같은 색으로 쌓는다 — 숫자는 위 요약과 툴팁이 따로 말한다.
         const parts: [number, string][] = [
           [one.passed, 'db-trend-pass'],
-          [one.failed, 'db-trend-fail'],
-          [one.regression, 'db-trend-regression'],
+          [one.failed + one.regression, 'db-trend-fail'],
           [one.undecided, 'db-trend-undecided'],
         ]
         let base = 0
         return (
-          <g className={shown === index ? 'is-shown' : undefined} key={one.key}>
-            {shown === index && <rect className="db-trend-focus" height={BOTTOM - TOP + 6} width={slot} x={cx(index) - slot / 2} y={TOP - 6} />}
+          <g key={one.key}>
             {parts.map(([value, className]) => {
               if (value === 0) return null
-              const y0 = y(base)
+              const y0 = yCount(base)
               base += value
-              const y1 = y(base)
+              const y1 = yCount(base)
               return <rect className={className} height={Math.max(1, y0 - y1)} key={className} width={bar} x={cx(index) - bar / 2} y={y1} />
             })}
           </g>
         )
       })}
-      {avg && <path className="db-trend-avg" d={path(avg)} />}
-      <path className="db-trend-rate" d={path(rates)} />
-      {rates.map((rate, index) =>
-        rate === null ? null : <circle className="db-trend-rate-dot" cx={cx(index)} cy={yRate(rate)} key={index} r={shown === index ? 4.5 : 3} />,
-      )}
+
       {slots.map((one, index) =>
         index % every === 0 ? (
-          <text className="db-tick db-tick--day" key={one.key} textAnchor="middle" x={cx(index)} y={HEIGHT - 12}>
+          <text className="db-tick db-tick--day" key={`d-${one.key}`} textAnchor="middle" x={cx(index)} y={DATE_Y}>
             {labelOf(one)}
           </text>
         ) : null,
       )}
+      {placed.map((mark, index) => (
+        <text className="db-trend-build" key={`${mark.index}-${mark.label}-${index}`} textAnchor="start" x={mark.x - 4} y={DATE_Y + 16 + mark.row * LABEL_ROW}>
+          ▲ {mark.label}
+        </text>
+      ))}
+
       {slots.map((one, index) => (
         <rect
           className={`db-trend-hit${pinned === index ? ' is-pinned' : ''}`}
-          height={BOTTOM - TOP + 6}
-          key={one.key}
+          height={COUNT_BOTTOM - RATE_TOP + 8}
+          key={`h-${one.key}`}
           onClick={() => onPick(index)}
           onMouseEnter={() => onHover(index)}
           width={slot}
           x={cx(index) - slot / 2}
-          y={TOP - 6}
+          y={RATE_TOP - 4}
         />
       ))}
     </svg>
@@ -525,7 +535,7 @@ const RUNS_IN_TIP = 6
 /** 고정폭 글씨 한 자 폭(10.5px mono). 빌드 이름이 겹치는지 어림한다. */
 const LABEL_CHAR = 6.6
 
-/** 빌드 이름이 앞 이름과 겹치면 한 줄 아래로 내린다. 세 줄이 다 차면 다시 첫 줄부터 쓴다. */
+/** 빌드 이름이 앞 이름과 겹치면 한 줄 아래로 내린다. 세 줄이 다 차면 가장 먼저 비는 줄에 쓴다. */
 function placeLabels<T extends { x: number; label: string }>(marks: readonly T[]): (T & { row: number })[] {
   const ends = [-Infinity, -Infinity, -Infinity]
   return [...marks]
@@ -533,7 +543,7 @@ function placeLabels<T extends { x: number; label: string }>(marks: readonly T[]
     .map((mark) => {
       const free = ends.findIndex((end) => end <= mark.x)
       const row = free === -1 ? ends.indexOf(Math.min(...ends)) : free
-      ends[row] = mark.x + 8 + mark.label.length * LABEL_CHAR
+      ends[row] = mark.x + 18 + mark.label.length * LABEL_CHAR
       return { ...mark, row }
     })
 }
