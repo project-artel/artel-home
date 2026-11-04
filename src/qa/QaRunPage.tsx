@@ -18,6 +18,7 @@ import { GameStreamView } from '../streaming/GameStreamView'
 import { QaTryIssuePanel } from '../issues/QaTryIssuePanel'
 import { listTestScenarios } from '../testScenarios/scenarioApi'
 import { cancelQaRun, getQaRun, isDecimalId } from './qaApi'
+import { QaAgentDock } from './QaAgentDock'
 import { QaBehaviorLanes } from './QaBehaviorLanes'
 import { QaFocusStage } from './QaFocusStage'
 import { QaRunFunctionOptions } from './QaFunctionOptionsSummary'
@@ -29,6 +30,7 @@ import { notStartedCount, stopLinesOf, stopNoticeOf, type QaStopNotice } from '.
 import { deriveCaseVerdicts, deriveQaContextUsage, deriveQaProgress, isQaContextLog } from './qaProgress'
 import { deriveQaCaseReports } from './qaCaseProgress'
 import { isTerminalQaStatus, QA_STOP_NOT_STARTED, type QaRun, type QaTry } from './qaTypes'
+import { useQaAgentLogs } from './useQaAgentLogs'
 import { useQaTry } from './useQaTry'
 import { useScenarioSteps } from './useScenarioSteps'
 
@@ -375,6 +377,7 @@ function FocusedTry({
 }) {
   const { t } = useI18n()
   const session = useQaTry(tryId)
+  const agentLogs = useQaAgentLogs(tryId, session.logs)
   const { steps: scenarioSteps, executionMode } = useScenarioSteps(session.qaTry?.testScenarioId ?? null)
   const [logView, setLogView] = useState<'flow' | 'raw' | 'issues'>('flow')
   const logTabs = useRef<HTMLDivElement>(null)
@@ -470,6 +473,7 @@ function FocusedTry({
             : t.qa.run.streamStored
 
   return (
+    <>
     <div className="qa-console-grid">
       <QaScenarioRail
         {...rail}
@@ -554,6 +558,8 @@ function FocusedTry({
         </aside>
       </div>
     </div>
+    <QaAgentDock live={active} logs={agentLogs} />
+    </>
   )
 }
 
