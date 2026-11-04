@@ -15,7 +15,9 @@ import { useAuth } from '../auth/useAuth'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { isLocale, LOCALE_LABELS, LOCALES } from '../i18n/locale'
 import { useI18n } from '../i18n/useI18n'
-import { SettingsLayout } from '../layouts/SettingsLayout'
+import { SettingsArt, SettingsScreenHead, SettingsTabs, TabIcon } from '../layouts/SettingsTabs'
+import { useCliTokens } from '../auth/useCliTokens'
+import { listLlmKeys } from './llmKeyApi'
 import { listProjects } from '../projects/projectApi'
 import type { ProjectSummary } from '../projects/projectTypes'
 
@@ -62,27 +64,58 @@ export function AccountSettingsPage() {
         </div>
       </header>
 
-      {/* 왼쪽 목차 + 칸 격자(ARTEL-1208). 칸은 예전 그대로이고, 언어를 고르는 환경 칸이 더해졌다. */}
-      <SettingsLayout
-        items={[
-          { targetId: 'profile-title', label: copy.profile.title },
-          { targetId: 'email-title', label: copy.email.title },
-          { targetId: 'preferences-title', label: copy.preferences.title },
-          { targetId: 'llm-keys-title', label: copy.llmKeys.title },
-          { targetId: 'cli-tokens-title', label: copy.cliTokens.title },
-        ]}
+      {/* 왼쪽 탭 + 오른쪽 한 화면(ARTEL-1380). 칸은 예전 그대로이고 탭마다 하나씩 선다. LLM API 키는 프로젝트의
+          API 관리로 옮겼다(ARTEL-1379) — 탭 아래에 그 길을 남긴다. */}
+      <SettingsTabs
+        aside={<KeysMovedNote />}
         label={copy.tocLabel}
-      >
-        <ProfilePanel applyProfile={auth.applyProfile} user={auth.user} />
-        <EmailPanel
-          applyEmailVerified={auth.applyEmailVerified}
-          applyPendingEmail={auth.applyPendingEmail}
-          user={auth.user}
-        />
-        <PreferencesPanel />
-        <LlmKeysMovedPanel />
-        <CliTokenPanel />
-      </SettingsLayout>
+        tabs={[
+          {
+            id: 'profile',
+            label: copy.profile.title,
+            content: (
+              <>
+                <ProfileOverview user={auth.user} />
+                <ProfilePanel applyProfile={auth.applyProfile} user={auth.user} />
+              </>
+            ),
+          },
+          {
+            id: 'email',
+            label: copy.email.title,
+            content: (
+              <>
+                <SettingsScreenHead body={copy.screens.email} icon={<TabIcon d="M4 6h16v12H4zM4 7l8 6 8-6" />} />
+                <EmailPanel
+                  applyEmailVerified={auth.applyEmailVerified}
+                  applyPendingEmail={auth.applyPendingEmail}
+                  user={auth.user}
+                />
+              </>
+            ),
+          },
+          {
+            id: 'preferences',
+            label: copy.preferences.title,
+            content: (
+              <>
+                <SettingsScreenHead body={copy.screens.preferences} icon={<TabIcon d="M4 5h16v11H4zM9 20h6M12 16v4" />} />
+                <PreferencesPanel />
+              </>
+            ),
+          },
+          {
+            id: 'cli-tokens',
+            label: copy.cliTokens.title,
+            content: (
+              <>
+                <SettingsScreenHead body={copy.screens.cliTokens} icon={<TabIcon d="M4 5h16v14H4zM8 10l3 2-3 2M13 15h3" />} />
+                <CliTokenPanel />
+              </>
+            ),
+          },
+        ]}
+      />
     </section>
   )
 }
@@ -543,46 +576,113 @@ function EmailPanel({
   )
 }
 
-/**
- * LLM API 키가 있던 자리(ARTEL-1379). 키는 프로젝트의 API 관리로 옮겼고, 여기에는 그리로 가는 길만 남긴다 — 계정 설정을
- * 찾아온 사람이 키가 사라졌다고 읽지 않게. 키는 계정 단위라 어느 프로젝트로 가도 같은 키다.
- */
-function LlmKeysMovedPanel() {
-  const { t } = useI18n()
-  const copy = t.account.llmKeys
-  const [projects, setProjects] = useState<ProjectSummary[] | null>(null)
-
+/** 내가 든 프로젝트 몇 개(ARTEL-1380). 숫자 칸과 API 관리 바로 가기가 함께 쓴다. 못 읽으면 빈 목록이다. */
+function useMyProjects(): { items: ProjectSummary[]; total: number } | null {
+  const [state, setState] = useState<{ items: ProjectSummary[]; total: number } | null>(null)
   useEffect(() => {
     const controller = new AbortController()
-    listProjects({ page: 0, size: 3, signal: controller.signal })
-      .then((page) => setProjects(page.items))
-      .catch(() => setProjects([]))
+    listProjects({ page: 0, size: 100, signal: controller.signal })
+      .then((page) => setState({ items: page.items, total: page.total }))
+      .catch(() => setState({ items: [], total: 0 }))
     return () => controller.abort()
   }, [])
+  return state
+}
+
+function keysHref(project: ProjectSummary): string {
+  return `/projects/${encodeURIComponent(project.id)}/api?tab=keys`
+}
+
+/**
+ * LLM API 키가 있던 자리(ARTEL-1379). 키는 프로젝트의 API 관리로 옮겼고, 탭 아래에 그리로 가는 길만 남긴다 — 계정
+ * 설정을 찾아온 사람이 키가 사라졌다고 읽지 않게. 키는 계정 단위라 어느 프로젝트로 가도 같은 키다.
+ */
+function KeysMovedNote() {
+  const { t } = useI18n()
+  const copy = t.account
+  const projects = useMyProjects()
+  const first = projects?.items[0] ?? null
+  return (
+    <p className="settings-tabs-note">
+      {copy.keysNote}
+      {first !== null && (
+        <>
+          {' '}
+          <Link to={keysHref(first)}>{copy.llmKeys.openIn(first.name)} ›</Link>
+        </>
+      )}
+    </p>
+  )
+}
+
+/** 프로필 탭 머리(ARTEL-1380). 큰 머리 + 숫자 칸으로 화면을 채운다. 값은 이미 있는 API(프로젝트 · 키 · CLI 토큰)만 쓴다. */
+function ProfileOverview({ user }: { user: AuthUser }) {
+  const { t } = useI18n()
+  const copy = t.account
+  const projects = useMyProjects()
+  const cli = useCliTokens()
+  const [keyCount, setKeyCount] = useState<number | null>(null)
+  useEffect(() => {
+    const controller = new AbortController()
+    listLlmKeys(controller.signal)
+      .then((keys) => setKeyCount(keys.length))
+      .catch(() => setKeyCount(null))
+    return () => controller.abort()
+  }, [])
+  const avatar = user.identities.find((identity) => identity.avatarUrl !== null)?.avatarUrl ?? null
+  const owned = projects?.items.filter((project) => project.myRole === 'OWNER').length ?? 0
+  const first = projects?.items[0] ?? null
 
   return (
-    <section aria-labelledby="llm-keys-title" className="panel settings-wide">
-      <header className="panel-header">
-        <h2 id="llm-keys-title">{copy.movedTitle}</h2>
-      </header>
-      <p className="settings-hint">{copy.movedBody}</p>
-      {projects !== null && (
-        projects.length === 0 ? (
-          <p className="panel-empty">{copy.noProjects}</p>
-        ) : (
-          <div className="llm-keys-moved-links">
-            {projects.map((project) => (
-              <Link
-                className="button button--secondary button--compact"
-                key={project.id}
-                to={`/projects/${encodeURIComponent(project.id)}/api?tab=keys`}
-              >
-                {copy.openIn(project.name)}
-              </Link>
-            ))}
+    <>
+      <section aria-label={user.nickname} className="panel">
+        <div className="settings-hero">
+          <SettingsArt />
+          <span aria-hidden="true" className="settings-hero-mark settings-hero-mark--round">
+            {avatar !== null ? <img alt="" src={avatar} /> : user.nickname.slice(0, 1).toUpperCase()}
+          </span>
+          <div className="settings-hero-body">
+            <div className="settings-hero-name">
+              <h2>{user.nickname}</h2>
+            </div>
+            <span className="settings-hero-meta mono">{composeNicknameTag(user.nickname, user.userTag)}</span>
+            <div className="settings-hero-chips">
+              {user.identities.map((identity) => (
+                <span className="badge" key={`${identity.provider}:${identity.login}`}>
+                  {identity.provider} · {identity.login}
+                </span>
+              ))}
+              <span className="badge">{user.emailVerified ? copy.chips.verified : copy.chips.unverified}</span>
+              {user.locale !== null && <span className="badge">{LOCALE_LABELS[user.locale]}</span>}
+            </div>
           </div>
-        )
-      )}
-    </section>
+        </div>
+      </section>
+      <div className="settings-stats">
+        <div className="settings-stat">
+          <span className="settings-stat-label">{copy.stats.projects}</span>
+          <span className="settings-stat-value">{projects === null ? '—' : projects.total}</span>
+          <span className="settings-stat-sub">{copy.stats.projectsSub(owned)}</span>
+        </div>
+        {first !== null ? (
+          <Link className="settings-stat" to={keysHref(first)}>
+            <span className="settings-stat-label">{copy.stats.llmKeys}</span>
+            <span className="settings-stat-value">{keyCount === null ? '—' : keyCount}</span>
+            <span className="settings-stat-sub">{copy.stats.llmKeysSub} ›</span>
+          </Link>
+        ) : (
+          <div className="settings-stat">
+            <span className="settings-stat-label">{copy.stats.llmKeys}</span>
+            <span className="settings-stat-value">{keyCount === null ? '—' : keyCount}</span>
+            <span className="settings-stat-sub">{copy.stats.llmKeysSub}</span>
+          </div>
+        )}
+        <div className="settings-stat">
+          <span className="settings-stat-label">{copy.stats.cliTokens}</span>
+          <span className="settings-stat-value">{cli.status === 'ready' ? cli.tokens.length : '—'}</span>
+          <span className="settings-stat-sub">{copy.stats.cliTokensSub}</span>
+        </div>
+      </div>
+    </>
   )
 }

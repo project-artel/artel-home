@@ -10,6 +10,24 @@ import type { Localized } from '../messages'
 export const accountEn = {
   eyebrow: 'Account',
   title: 'Account settings',
+  screens: {
+    email: 'The address project invitations and notices go to. Invitations need a verified address.',
+    preferences: 'How the screens look for you. Saved to your account, so other browsers follow.',
+    cliTokens: 'Tokens the artel CLI signs in with. Each one can be revoked on its own.',
+  },
+  stats: {
+    projects: 'Projects',
+    projectsSub: (owned: number) => `Owner of ${owned}`,
+    llmKeys: 'LLM API keys',
+    llmKeysSub: 'Managed under API management',
+    cliTokens: 'CLI tokens',
+    cliTokensSub: 'Revoke them under the CLI tokens tab',
+  },
+  chips: {
+    verified: 'Email verified',
+    unverified: 'Email not verified',
+  },
+  keysNote: 'LLM API keys moved to API management in each project.',
   tocLabel: 'Account settings sections',
   preferences: {
     title: 'Preferences',
@@ -158,6 +176,24 @@ export const accountEn = {
 export const accountKo: Localized<typeof accountEn> = {
   eyebrow: '계정',
   title: '계정 설정',
+  screens: {
+    email: '프로젝트 초대와 알림을 받을 주소입니다. 초대를 받으려면 주소 확인이 필요합니다.',
+    preferences: '나에게 보이는 화면의 환경입니다. 계정에 저장되어 다른 브라우저에서도 따라옵니다.',
+    cliTokens: 'artel CLI 가 로그인할 때 쓰는 토큰입니다. 하나씩 따로 폐기할 수 있습니다.',
+  },
+  stats: {
+    projects: '참여 프로젝트',
+    projectsSub: (owned: number) => `OWNER ${owned}`,
+    llmKeys: 'LLM API 키',
+    llmKeysSub: 'API 관리에서 관리',
+    cliTokens: 'CLI 토큰',
+    cliTokensSub: 'CLI 토큰 탭에서 폐기',
+  },
+  chips: {
+    verified: '이메일 확인됨',
+    unverified: '이메일 미확인',
+  },
+  keysNote: 'LLM API 키는 각 프로젝트의 API 관리로 옮겼습니다.',
   tocLabel: '계정 설정 목차',
   preferences: {
     title: '환경',
