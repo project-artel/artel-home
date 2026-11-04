@@ -16,8 +16,26 @@ function check(ok,text){assert.ok(ok,text);checks++;console.log('PASS',text)}
  check(!await page.getByText('이전 로그 불러와 검색',{exact:true}).count() && !await page.getByText('선택 시점',{exact:true}).count() && !await page.getByText('pulse 제외',{exact:true}).count(),'불필요한 버튼 제거');
  check(await page.locator('.qa-timeline-collapse svg').count()===1 && (await page.locator('.qa-timeline-collapse').textContent())==='','접기 버튼 SVG 아이콘');
  await page.getByRole('button',{name:'타임라인 접기'}).click();
- check(!await page.locator('.qa-timeline-chart').count(),'타임라인 아래로 접기');
- await page.getByRole('button',{name:'타임라인 펼치기'}).click();
+ 
+check(!await page.locator('.qa-timeline-chart').count(),'타임라인 아래로 접기');
+const backgroundBox=await page.locator('.qa-focus-game').boundingBox();
+
+ 
+await page.getByRole('button',{name:'타임라인 펼치기'}).click();
+const expandedBox=await page.locator('.qa-focus-game').boundingBox();
+check(Math.abs(backgroundBox.y-expandedBox.y)<1 && Math.abs(backgroundBox.height-expandedBox.height)<1,'타임라인 펼쳐도 기존 영상 위치와 크기 유지');
+const handle=page.getByRole('separator',{name:'타임라인 높이 조절'}), handleBox=await handle.boundingBox();
+const beforeHeight=await page.locator('.qa-timeline-scroll').evaluate(e=>e.clientHeight);
+await page.mouse.move(handleBox.x+handleBox.width/2,handleBox.y+handleBox.height/2);
+await page.mouse.down();await page.mouse.move(handleBox.x+handleBox.width/2,handleBox.y-100,{steps:8});await page.mouse.up();
+check((await page.locator('.qa-timeline-scroll').evaluate(e=>e.clientHeight))>beforeHeight+90,'경계 드래그로 높이 증가');
+const draggedBox=await page.locator('.qa-focus-game').boundingBox();
+check(Math.abs(expandedBox.y-draggedBox.y)<1 && Math.abs(expandedBox.height-draggedBox.height)<1,'높이를 늘려도 기존 영상 레이아웃 유지');
+await handle.focus();await handle.press('ArrowDown');
+check(Number(await handle.getAttribute('aria-valuenow'))<beforeHeight+107,'키보드로 높이 감소');
+await handle.press('Home');check(Number(await handle.getAttribute('aria-valuenow'))===64,'키보드 최소 높이');
+await handle.press('ArrowUp');await handle.press('ArrowUp');await handle.press('ArrowUp');await handle.press('ArrowUp');
+
  await page.getByLabel('시간축 확대').selectOption('4');
  check(await page.locator('.qa-timeline-scroll').evaluate(e=>e.scrollWidth>e.clientWidth*3),'시간축 확대와 수평 스크롤');
  await page.getByLabel('시간축 확대').selectOption('1');

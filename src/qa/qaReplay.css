@@ -85,9 +85,9 @@
 .qa-replay-timeline-host { flex:none; }
 .qa-focus:has(.qa-execution-timeline) { grid-template-rows:unset; }
 .qa-execution-timeline { position:relative; padding:8px 16px 7px; }
-.qa-timeline-collapse { position:absolute; top:-13px; left:50%; transform:translateX(-50%); z-index:4; width:44px; height:24px; border:1px solid var(--color-border-strong); border-radius:5px; background:var(--color-bg-surface); color:var(--color-text-primary); }
+.qa-timeline-collapse { position:absolute; top:-13px; left:calc(50% + 44px); transform:translateX(-50%); z-index:4; width:32px; height:24px; border:1px solid var(--color-border-strong); border-radius:5px; background:var(--color-bg-surface); color:var(--color-text-primary); }
 .qa-execution-timeline--collapsed { padding-bottom:8px; }
-.qa-timeline-scroll { max-height:155px; overflow:auto; margin-top:5px; border-top:1px solid var(--color-border-subtle); }
+.qa-timeline-scroll { overflow:auto; margin-top:5px; border-top:1px solid var(--color-border-subtle); }
 .qa-timeline-chart { position:relative; margin:0; min-width:100%; }
 .qa-timeline-axis { position:sticky; top:0; margin-left:84px; z-index:3; padding:3px 0 8px; background:var(--color-bg-surface); }
 .qa-timeline-ruler { line-height:16px; padding-bottom:8px; }
@@ -116,3 +116,10 @@
   .qa-execution-timeline { padding-inline:10px; }
   .qa-timeline-zoom { width:48px; }
 }
+.qa-replay-timeline-host { position:absolute; bottom:0; left:0; right:0; z-index:6; }
+.qa-timeline-resize { position:absolute; top:-7px; left:0; right:0; height:14px; cursor:row-resize; touch-action:none; z-index:3; }
+.qa-timeline-resize > span { position:absolute; left:50%; top:0; transform:translateX(-50%); width:56px; height:14px; display:grid; place-items:center; border:1px solid var(--color-border-strong); border-radius:4px; background:var(--color-bg-surface); }
+.qa-timeline-resize > span::after { content:''; width:26px; height:3px; border-block:1px solid var(--color-text-secondary); }
+.qa-timeline-resize:hover > span, .qa-timeline-resize[data-resizing='true'] > span { border-color:var(--color-action-primary); }
+.qa-timeline-resize:focus-visible { outline:2px solid var(--color-action-primary); outline-offset:2px; }
+html:has(.qa-timeline-resize[data-resizing='true']) { cursor:row-resize; user-select:none; }
