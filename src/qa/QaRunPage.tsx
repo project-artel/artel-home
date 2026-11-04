@@ -29,6 +29,10 @@ import { deriveQaCaseReports } from './qaCaseProgress'
 import { isTerminalQaStatus, type QaRun, type QaTry } from './qaTypes'
 import { useQaTry } from './useQaTry'
 import { useScenarioSteps } from './useScenarioSteps'
+import { QaRawLogControls } from './QaRawLogControls'
+import { DEFAULT_QA_LOG_FILTER, filterQaLogs, qaLogContains } from './qaLogFilter'
+import { QaReplay } from './QaReplay'
+import { logAt } from './qaReplayModel'
 
 export function QaRunRoute() {
   const { projectId = '', qaRunId = '' } = useParams()
@@ -341,20 +345,27 @@ function FocusedTry({ qaRun, rail, tryId }: { qaRun: QaRun; rail: QaScenarioRail
   const [logView, setLogView] = useState<'flow' | 'raw' | 'issues'>('flow')
   const logTabs = useRef<HTMLDivElement>(null)
   const [focusRequest, setFocusRequest] = useState<QaLogFocusRequest | null>(null)
+  const [rawFilter, setRawFilter] = useState(DEFAULT_QA_LOG_FILTER)
+  const [findQuery, setFindQuery] = useState('')
+  const [foundLogId, setFoundLogId] = useState<string | null>(null)
+  const [replayTimestamp, setReplayTimestamp] = useState<number | null>(null)
+  const [replayJump, setReplayJump] = useState<number | null>(null)
+  const historicalLogs = useMemo(() => replayTimestamp === null ? session.logs : session.logs.filter(log => Date.parse(log.createdAt) <= replayTimestamp), [session.logs, replayTimestamp])
+  const historicalVerdicts = useMemo(() => replayTimestamp === null ? session.verdictLogs : session.verdictLogs.filter(log => Date.parse(log.createdAt) <= replayTimestamp), [session.verdictLogs, replayTimestamp])
 
   const progress = useMemo(
     () =>
       deriveQaProgress({
         scenarioSteps,
         executionMode,
-        logs: session.verdictLogs,
-        status: session.qaTry?.status ?? 'STARTING',
+        logs: historicalVerdicts,
+        status: replayTimestamp === null || replayTimestamp >= Date.parse(session.qaTry?.completedAt ?? '') ? session.qaTry?.status ?? 'STARTING' : 'RUNNING',
         historyComplete: session.loadStatus === 'ready',
       }),
-    [scenarioSteps, executionMode, session.loadStatus, session.verdictLogs, session.qaTry?.status],
+    [scenarioSteps, executionMode, session.loadStatus, historicalVerdicts, session.qaTry?.status, session.qaTry?.completedAt, replayTimestamp],
   )
 
-  const contextUsage = useMemo(() => deriveQaContextUsage(session.logs), [session.logs])
+  const contextUsage = useMemo(() => deriveQaContextUsage(historicalLogs), [historicalLogs])
   const caseVerdicts = useMemo(() => deriveCaseVerdicts(session.verdictLogs), [session.verdictLogs])
   const caseReports = useMemo(() => deriveQaCaseReports(session.verdictLogs), [session.verdictLogs])
 
@@ -378,9 +389,40 @@ function FocusedTry({ qaRun, rail, tryId }: { qaRun: QaRun; rail: QaScenarioRail
   const shownLogs = useMemo(() => {
     // Context readings are shown by the gauge, in one place, not as a line per model call.
     const withoutContext = session.logs.filter((log) => !isQaContextLog(log))
-    if (logView !== 'flow') return withoutContext
+    if (logView !== 'flow') return filterQaLogs(withoutContext, rawFilter)
     return filterFlowLogs(withoutContext, executionMode)
-  }, [logView, session.logs, executionMode])
+  }, [logView, session.logs, executionMode, rawFilter])
+
+  const onReplayPosition = useCallback((timestamp: number, seek: boolean) => {
+    setReplayTimestamp(timestamp)
+    if (seek) { setLogView('raw'); setReplayJump(timestamp) }
+  }, [])
+  const { logs: loadedLogs, hasMore: hasOlderLogs, historyLoading: loadingOlderLogs, historyFailure: olderLogsFailure, loadOlder: loadOlderLogs } = session
+  useEffect(() => {
+    if (replayJump === null) return
+    const oldest = loadedLogs[0]
+    if (hasOlderLogs && (oldest === undefined || Date.parse(oldest.createdAt) > replayJump)) {
+      if (!loadingOlderLogs && olderLogsFailure === null) void loadOlderLogs()
+      return
+    }
+    const target = logAt(shownLogs, replayJump)
+    const frame = window.requestAnimationFrame(() => {
+      if (target !== null) setFocusRequest(current => ({ logId: target.id, token: (current?.token ?? 0) + 1, scrollOnly: true }))
+      setReplayJump(null)
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [replayJump, shownLogs, loadedLogs, hasOlderLogs, loadingOlderLogs, olderLogsFailure, loadOlderLogs])
+
+  const findMatches = useMemo(() => findQuery.trim() === '' ? [] : shownLogs.filter((log) => qaLogContains(log, findQuery)), [shownLogs, findQuery])
+  const foundIndex = findMatches.findIndex((log) => log.id === foundLogId)
+  function findNext(direction: -1 | 1) {
+    if (findMatches.length === 0) return
+    const index = foundIndex < 0 ? (direction === 1 ? 0 : findMatches.length - 1) : (foundIndex + direction + findMatches.length) % findMatches.length
+    const logId = findMatches[index].id
+    setFoundLogId(logId)
+    setFocusRequest((current) => ({ logId, token: (current?.token ?? 0) + 1, scrollOnly: true }))
+  }
+
 
   // Carried over from the retired `QaTryPage` (ARTEL-723): a failed load needs
   // its own retry, distinct from the plain "still loading" state below — the
@@ -450,11 +492,12 @@ function FocusedTry({ qaRun, rail, tryId }: { qaRun: QaRun; rail: QaScenarioRail
                 {active ? (
                   <GameStreamView instanceId={session.qaTry.gameInstanceId} />
                 ) : (
-                  <div className="qa-focus-game-ended">{t.qa.run.endedGame}</div>
+                  <QaReplay projectId={rail.projectId} qaTry={session.qaTry} onPosition={onReplayPosition} />
                 )}
               </section>
             }
             logs={session.logs}
+            historicalLogs={historicalLogs}
             progress={progress}
             qaRun={qaRun}
             qaTryId={session.qaTry.id}
@@ -481,6 +524,12 @@ function FocusedTry({ qaRun, rail, tryId }: { qaRun: QaRun; rail: QaScenarioRail
             </div>
           </header>
           <div className="gf-logs-extras">
+            {logView === 'raw' && <QaRawLogControls
+              filter={rawFilter} onFilter={(filter) => { setRawFilter(filter); setFoundLogId(null); setFocusRequest(null) }}
+              query={findQuery} onQuery={(query) => { setFindQuery(query); setFoundLogId(null); setFocusRequest(null) }}
+              matches={findMatches.length} current={foundIndex} onFind={findNext}
+              hasMore={session.hasMore} loading={session.historyLoading} onLoadOlder={() => { void session.loadOlder() }}
+            />}
             <QaRunFunctionOptions qaTryId={session.qaTry.id} />
             <QaBehaviorLanes logs={session.logs} onJump={jumpToLog} />
           </div>

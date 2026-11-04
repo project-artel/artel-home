@@ -53,6 +53,7 @@ export function QaFocusStage({
   contextUsage,
   game,
   logs,
+  historicalLogs = logs,
   progress,
   qaRun,
   qaTryId,
@@ -61,6 +62,7 @@ export function QaFocusStage({
   contextUsage: QaContextUsage | null
   game: ReactNode
   logs: QaLog[]
+  historicalLogs?: QaLog[]
   progress: QaProgress
   qaRun: QaRun
   qaTryId: string
@@ -131,7 +133,7 @@ export function QaFocusStage({
     <div className="qa-stage" ref={stageRef}>
       <div className="qa-stage-top">
         {game}
-        <QaNowPanel contextUsage={contextUsage} logs={logs} progress={progress} />
+        <QaNowPanel contextUsage={contextUsage} logs={historicalLogs} progress={progress} />
       </div>
       <div
         aria-label={t.qa.run.resizeChat}

@@ -35,6 +35,7 @@ import { qaLogMessage } from './qaLogMessage'
 export type QaLogFocusRequest = {
   logId: string
   token: number
+  scrollOnly?: boolean
 }
 
 const DATE_FORMAT = new Intl.DateTimeFormat(undefined, {
@@ -629,7 +630,7 @@ export function QaLogTimeline({
       setNearLiveEdge(false)
       setUnseenLogs(0)
       setFocusedLogId(logId)
-      element.focus({ preventScroll: true })
+      if (!focusRequest?.scrollOnly) element.focus({ preventScroll: true })
       onFocusResolved()
     }
 

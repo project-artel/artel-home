@@ -2,6 +2,12 @@ import type { Localized } from '../messages'
 
 /** Strings for `src/qa/*`. See `common.ts` for the typing convention. */
 export const qaEn = {
+  replay: { timeline: 'QA recording timeline', intervals: 'TC verification intervals', unknownStart: 'Start time unknown · jump to report' },
+  rawLogs: {
+    filter: 'Filter text', type: 'Type', direction: 'Direction', all: 'All',
+    includePulse: 'Include pulse relay', find: 'Find in filtered logs',
+    previous: 'Previous match', next: 'Next match', loadOlder: 'Load older logs to search',
+  },
   statusLabels: {
     PENDING: 'Waiting',
     STARTING: 'Starting',
@@ -688,6 +694,12 @@ export const qaEn = {
 } as const
 
 export const qaKo: Localized<typeof qaEn> = {
+  replay: { timeline: 'QA 녹화 실행 바', intervals: 'TC 검증 구간', unknownStart: '시작 시각 없음 · 결과 보고 시점으로 이동' },
+  rawLogs: {
+    filter: '텍스트 필터', type: '종류', direction: '방향', all: '전체',
+    includePulse: 'pulse relay 포함', find: '필터 결과에서 찾기',
+    previous: '이전 검색 결과', next: '다음 검색 결과', loadOlder: '이전 로그 불러와 검색',
+  },
   statusLabels: {
     PENDING: '대기 중',
     STARTING: '시작 중',
