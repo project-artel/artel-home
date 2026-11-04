@@ -23,6 +23,7 @@ function tryWith(status: QaTryStatus, id: string): QaTry {
     startedAt: null,
     completedAt: null,
     qaRunId: '55',
+    stop: null,
   }
 }
 
@@ -37,6 +38,8 @@ function runWith(status: QaTryStatus, tries: QaTryStatus[]): QaRun {
     startedAt: null,
     completedAt: null,
     tries: tries.map((one, index) => tryWith(one, String(index))),
+    stop: null,
+    discarded: false,
   }
 }
 

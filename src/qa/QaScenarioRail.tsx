@@ -5,7 +5,7 @@ import type { QaProgress } from './qaProgress'
 import type { QaCaseReport } from './qaCaseProgress'
 import { QaRunUsagePanel } from './QaRunUsagePanel'
 import { QaScenarioSteps } from './QaScenarioSteps'
-import type { QaTry } from './qaTypes'
+import { QA_STOP_NOT_STARTED, type QaTry } from './qaTypes'
 import { useScenarioSteps } from './useScenarioSteps'
 
 /** What the rail knows about the focused scenario, from its log stream. */
@@ -108,6 +108,8 @@ function RailScenario({
   title: string
 }) {
   const { t } = useI18n()
+  // 앞 시나리오가 모델 API 오류로 멈춰 돌지 않은 시나리오(ARTEL-1372). 미판정 배지 대신 "실행 안 함" 이다.
+  const notRun = entry.stop?.code === QA_STOP_NOT_STARTED
   const stepsId = `qa-rail-steps-${entry.id}`
   return (
     <li className={`qa-rail-entry${expanded ? ' qa-rail-entry--expanded' : ''}`}>
@@ -128,12 +130,20 @@ function RailScenario({
           onClick={onFocus}
           type="button"
         >
-          <span className={`qa-rail-dot qa-rail-dot--${entry.status.toLowerCase()}`} aria-hidden="true" />
+          <span className={`qa-rail-dot qa-rail-dot--${notRun ? 'pending' : entry.status.toLowerCase()}`} aria-hidden="true" />
           <span className="qa-rail-no">{number}</span>
           <span className="qa-rail-title">{title}</span>
-          <span className={`qa-run-status qa-run-status--${entry.status.toLowerCase()}`}>
-            {t.qa.statusLabels[entry.status]}
-          </span>
+          {notRun ? (
+            <span className="qa-rail-not-run">{t.qa.run.stop.notRun}</span>
+          ) : (
+            <span className={`qa-run-status qa-run-status--${entry.status.toLowerCase()}`}>
+              {t.qa.statusLabels[entry.status]}
+            </span>
+          )}
+          {/* 모델 API 오류로 멈춘 시나리오의 까닭(ARTEL-1372). 미판정 배지만으로는 왜인지 모른다. */}
+          {entry.stop !== null && !notRun && (
+            <span className="qa-rail-reason">{t.qa.run.stop.short(entry.stop.code)}</span>
+          )}
         </button>
       </div>
       {expanded && (

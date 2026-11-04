@@ -47,7 +47,10 @@ function run(status: QaRun['status'], completed: number, total: number): QaRun {
       startedAt: null,
       completedAt: null,
       qaRunId: '55',
+      stop: null,
     })),
+    stop: null,
+    discarded: false,
   }
 }
 
