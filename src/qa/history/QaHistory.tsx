@@ -2,6 +2,8 @@ import { gameBuildName } from '../../testRuns/testRunApi'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { EdgeScrollbar } from '../../design-system/primitives/EdgeScrollbar'
+import { SplitHandle } from '../../design-system/primitives/SplitHandle'
+import { PaneIcon } from '../../testCases/PaneIcon'
 import { useI18n } from '../../i18n/useI18n'
 import { useActionBinding, useFieldBinding } from '../../projectAgent/bindings'
 import { requireKnownId } from '../../projectAgent/specs/fieldWriters'
@@ -21,11 +23,12 @@ import { listRunFolders, type RunFolder } from '../../testRuns/testRunFolders'
 import { offeredQaModels } from '../qaModelGroups'
 import { qaRunPath } from '../qaTypes'
 import type { QaRunSummary } from '../launch/qaLaunchApi'
-import { countByFilter, runOrdinals, testRunsUnder, type HistoryFilter } from './historyModel'
+import { countByFilter, ringOf, runOrdinals, testRunsUnder, type HistoryFilter } from './historyModel'
 import { BoardSketch } from './HistorySketch'
 import { RunCard } from './RunCard'
 import { RunInspector } from './RunInspector'
 import { useHistoryRuns } from './useHistoryRuns'
+import { useInspectorWidth } from './useInspectorWidth'
 
 type Place = { bucket: string; folderId: string | null }
 
@@ -55,6 +58,21 @@ export function QaHistory() {
   const [versionMenu, setVersionMenu] = useState<{ version: TestCaseVersionSummary; x: number; y: number } | null>(null)
   const [failure, setFailure] = useState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
+  // 오른쪽 상세 칸의 폭과 접힘(ARTEL-1381). 경계를 끌거나 `]` 로 접고 편다.
+  const inspector = useInspectorWidth()
+  const { collapsed: inspectorCollapsed, setCollapsed: setInspectorCollapsed } = inspector
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.key !== ']' || event.metaKey || event.ctrlKey || event.altKey) return
+      const target = event.target
+      // 글자를 쓰는 자리에서는 `]` 가 글자다.
+      if (target instanceof HTMLElement && target.closest('input, textarea, select, [contenteditable="true"]') !== null) return
+      event.preventDefault()
+      setInspectorCollapsed(!inspectorCollapsed)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [inspectorCollapsed, setInspectorCollapsed])
   const [mainScroller, setMainScroller] = useState<HTMLDivElement | null>(null)
   const offered = useMemo(() => offeredQaModels(models), [models])
 
@@ -214,7 +232,7 @@ export function QaHistory() {
   if (ranRuns.length === 0) return <HistoryEmpty projectId={projectId} />
 
   return (
-    <div className="qh" ref={board}>
+    <div {...inspector.board} ref={board}>
       <nav aria-label={b.versionsTitle} className="qh-rail">
         <div className="qh-rail-head">
           <span>{b.versionsTitle}</span>
@@ -308,13 +326,38 @@ export function QaHistory() {
         <EdgeScrollbar label={placeName} scroller={mainScroller} side="right" />
       </div>
 
-      <RunInspector
-        ordinalLabel={selectedOrdinal === null ? null : b.ordinal(selectedOrdinal)}
-        projectId={projectId}
-        run={visibleSelected}
-        testRunName={selectedTestRun?.name ?? ''}
-        tries={visibleSelected === null ? [] : tries.filter((qaTry) => qaTry.qaRunId === visibleSelected.id)}
-      />
+      {/* 두 번 누르면 기본 폭. 손잡이 자체는 저작 화면 대화 칸과 같은 `SplitHandle` 이다. */}
+      <div className="qh-split" onDoubleClick={inspector.reset}>
+        <SplitHandle label={b.inspectorWidth} {...inspector.handle} />
+      </div>
+      {inspector.collapsed ? (
+        // 접힌 상세. 저작 화면의 접힌 대화 칸(`ChatRail`)과 같은 막대이고, 막대 전체가 펴기 단추다.
+        <button
+          aria-expanded={false}
+          aria-label={b.expandInspector}
+          className="tcl-rail qh-inspector-rail"
+          onClick={() => inspector.setCollapsed(false)}
+          title={b.expandInspector}
+          type="button"
+        >
+          <span className="tcl-rail-icon"><PaneIcon collapsed side="right" /></span>
+          <span className="tcl-rail-label">
+            {visibleSelected === null
+              ? b.inspectorTitle
+              : `${selectedTestRun?.name ?? ''}${selectedOrdinal === null ? '' : ` · ${b.ordinal(selectedOrdinal)}`}`}
+          </span>
+          {visibleSelected !== null && <i aria-hidden="true" className={`qh-rail-dot qh-rail-dot--${ringOf(visibleSelected).tone}`} />}
+        </button>
+      ) : (
+        <RunInspector
+          onCollapse={() => inspector.setCollapsed(true)}
+          ordinalLabel={selectedOrdinal === null ? null : b.ordinal(selectedOrdinal)}
+          projectId={projectId}
+          run={visibleSelected}
+          testRunName={selectedTestRun?.name ?? ''}
+          tries={visibleSelected === null ? [] : tries.filter((qaTry) => qaTry.qaRunId === visibleSelected.id)}
+        />
+      )}
 
       {versionMenu !== null && (
         <ContextMenu
