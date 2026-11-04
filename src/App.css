@@ -13657,3 +13657,17 @@ col.vimp-c-scene{ width:18% } col.vimp-c-verdict{ width:16% }
 .trl-selection .tcl-selection-bar{ height:100%; min-height:0; border-radius:10px; flex-wrap:nowrap; }
 .trl-bulk-names{ margin:8px 0 0; padding-left:18px; max-height:160px; overflow:auto; scrollbar-width:none; color:var(--color-text-secondary); font-size:13px; }
 .trl-drag-ghost{ position:fixed; top:-1000px; left:-1000px; padding:8px 12px; border:1px solid var(--color-brand-accent); border-radius:8px; background:var(--color-bg-surface); color:var(--color-text-primary); font-size:12.5px; font-weight:600; white-space:nowrap; box-shadow:0 10px 24px rgb(0 0 0 / 35%); }
+
+/* 폴더에 담기 창에서 폴더가 없을 때 바로 만들기(ARTEL-1378). */
+.move-cases-create { display: flex; gap: var(--space-2); width: min(100%, 360px); }
+.move-cases-create .field-input { flex: 1; min-width: 0; }
+
+/* 선택 상자는 평소에 숨는다(ARTEL-1378). 줄에 올리거나 포커스가 가거나, 하나라도 고른 동안만 보인다. 칸은 그대로라 줄이 흔들리지 않는다. */
+.trl-check input { opacity: 0; transition: opacity 120ms var(--ease-standard); }
+.trl-row:hover .trl-check input,
+.trl-row:focus-within .trl-check input,
+.trl-check input:focus-visible,
+.trl-list.has-selection .trl-check input,
+.trl-cols:hover .trl-check input,
+.trl-cols.has-selection .trl-check input { opacity: 1; }
+@media (hover: none) { .trl-check input { opacity: 1; } }

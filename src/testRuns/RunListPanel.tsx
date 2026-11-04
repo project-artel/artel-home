@@ -712,7 +712,7 @@ export function RunListPanel({
                   />
                 </label>
                 )}
-                <div className="trl-cols">
+                <div className={'trl-cols' + (selection.count > 0 ? ' has-selection' : '')}>
                   <label className="tct-check trl-check">
                     <input
                       aria-label={r.selection.selectAll}
@@ -740,7 +740,7 @@ export function RunListPanel({
               ) : (
                 <ul
                   aria-label={r.columns.name}
-                  className="trl-list"
+                  className={'trl-list' + (selection.count > 0 ? ' has-selection' : '')}
                   onKeyDown={(event) => {
                     if (event.key === 'Escape' && selection.count > 0) selection.clear()
                   }}
