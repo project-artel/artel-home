@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { isDeepPath, isSectionPath, projectPathSegments, sectionIdFromPath } from './sections'
+import { isDeepPath, isSectionPath, projectPathSegments, sectionHref, sectionIdFromPath, WORKSPACE_SECTIONS } from './sections'
 
 describe('isDeepPath', () => {
   it('깊은 화면 일곱 개를 깊은 경로로 본다', () => {
@@ -30,6 +30,20 @@ describe('isDeepPath', () => {
   it('content-map 으로 넘기는 옛 경로와 다른 project 의 경로는 깊지 않다', () => {
     assert.equal(isDeepPath('p1', '/projects/p1/game-builds/b1/content-map'), false)
     assert.equal(isDeepPath('p1', '/projects/p2/qa-runs/q1'), false)
+  })
+})
+
+describe('Game identity 목록 경로', () => {
+  it('프로젝트 데이터 메뉴에서 같은 목록 route와 머리글을 사용한다', () => {
+    const section = WORKSPACE_SECTIONS.find((item) => item.id === 'gameIdentities')!
+    assert.equal(section.group, 'data')
+    const path = sectionHref('a b', section.path)
+    assert.equal(path, '/projects/a%20b/game-identities')
+    assert.equal(sectionIdFromPath('a b', path), 'gameIdentities')
+    assert.equal(isSectionPath('a b', `${path}/`), true)
+    assert.equal(isDeepPath('a b', path), false)
+    assert.equal(isSectionPath('a b', `${path}/unknown`), false)
+    assert.equal(isSectionPath('other', path), false)
   })
 })
 
