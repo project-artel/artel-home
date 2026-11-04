@@ -29,6 +29,16 @@
   grid-template-rows: minmax(190px, 1fr) minmax(230px, 1.4fr) minmax(150px, 1fr);
 }
 
+/* 끝난 런은 타임라인이 창 아래를 덮는다. 내용 높이만 써서 Evaluator 가 가려지지 않게 한다. */
+.qa-console:has(.qa-execution-timeline) .qa-agent-rows {
+  grid-template-rows: auto auto auto;
+  align-content: start;
+}
+
+.qa-console:has(.qa-execution-timeline) .qa-agent-stem {
+  flex: none;
+}
+
 .qa-agent-row {
   min-height: 0;
   display: flex;

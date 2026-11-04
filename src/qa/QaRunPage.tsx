@@ -408,6 +408,8 @@ function FocusedTry({
   const [replayLogsFailure, setReplayLogsFailure] = useState<string | null>(null)
   const [replayLogsRetry, setReplayLogsRetry] = useState(0)
   const historicalLogs = useMemo(() => replayTimestamp === null ? session.logs : session.logs.filter(log => Date.parse(log.createdAt) <= replayTimestamp), [session.logs, replayTimestamp])
+  // 에이전트 창도 왼쪽 스텝처럼 타임라인 재생 위치까지의 상태를 그린다.
+  const dockLogs = useMemo(() => replayTimestamp === null ? agentLogs : agentLogs.filter(log => Date.parse(log.createdAt) <= replayTimestamp), [agentLogs, replayTimestamp])
   const historicalVerdicts = useMemo(() => replayTimestamp === null ? session.verdictLogs : session.verdictLogs.filter(log => Date.parse(log.createdAt) <= replayTimestamp), [session.verdictLogs, replayTimestamp])
 
   const progress = useMemo(
@@ -638,7 +640,7 @@ function FocusedTry({
           </div>}
           <div className="qa-focus-logs-body">
             {agentRun ? (
-              <QaAgentDock live={active} logs={agentLogs} />
+              <QaAgentDock live={active} logs={dockLogs} />
             ) : logView === 'issues' ? (
               <QaTryIssuePanel projectId={rail.projectId} qaTryId={session.qaTry.id} />
             ) : (
