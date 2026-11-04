@@ -11318,7 +11318,7 @@ col.mct-c-updated { width: 12%; }
 .trl-chip{ flex:none; padding:4px 12px; border-radius:999px; background:var(--color-bg-hover); color:var(--color-text-secondary); font-size:12px; white-space:nowrap; }
 .trl-search{ flex:none; display:flex; align-items:center; gap:10px; height:44px; margin:0 28px 12px; padding:0 14px; border:1px solid var(--color-border-subtle); border-radius:10px; background:var(--color-bg-raised); color:var(--color-text-muted); }
 .trl-search input{ flex:1; min-width:0; height:100%; border:0; background:transparent; color:var(--color-text-primary); font:inherit; font-size:14px; outline:none; }
-.trl-cols, .trl-row{ display:grid; grid-template-columns:28px minmax(0, 1fr) 72px minmax(150px, 200px) 120px 36px; gap:12px; align-items:center; }
+.trl-cols, .trl-row{ display:grid; grid-template-columns:32px 28px minmax(0, 1fr) 72px minmax(150px, 200px) 120px 36px; gap:12px; align-items:center; }
 .trl-cols{ flex:none; padding:0 40px 8px; font-size:12px; color:var(--color-text-muted); }
 .trl-list{ list-style:none; margin:0; padding:0 28px 16px; }
 .trl-row{ min-height:56px; padding:6px 12px; border-radius:10px; cursor:pointer; color:var(--color-text-primary); }
@@ -11343,7 +11343,7 @@ col.mct-c-updated { width: 12%; }
   .trl{ flex-direction:column; height:auto; }
   .trl-side{ width:auto; border-right:0; border-bottom:1px solid var(--color-border-subtle); }
   .trl-cols{ display:none; }
-  .trl-cols, .trl-row{ grid-template-columns:28px minmax(0, 1fr) 36px; }
+  .trl-cols, .trl-row{ grid-template-columns:32px 28px minmax(0, 1fr) 36px; }
   .trl-row .trl-num, .trl-row .trl-qa, .trl-row .trl-date{ display:none; }
 }
 /* 테스트 런 폴더 (ARTEL-1049): 빌드 버전 아래 폴더 트리와 목록의 폴더 줄 */
@@ -13649,3 +13649,11 @@ col.vimp-c-scene{ width:18% } col.vimp-c-verdict{ width:16% }
 .scenario-studio .st-chat .chat-recs-actions button:disabled { opacity: 0.5; cursor: default; }
 .scenario-studio .st-chat .chat-recs-error { color: var(--st-broken); font-size: 12px; }
 @media (max-width: 720px) { .scenario-studio .st-chat .chat-recs-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* 테스트 런 여러 개 고르기(ARTEL-1378). 줄 앞 checkbox 칸 · 고른 줄 · 선택 막대 · 여럿을 끌 때의 미리 보기. */
+.trl-check{ width:32px; height:32px; margin-left:-6px; }
+.trl-row.is-picked, .trl-list > li:nth-child(odd) .trl-row.is-picked{ background:color-mix(in srgb, var(--color-brand-accent) 12%, transparent); box-shadow:inset 3px 0 0 var(--color-brand-accent); }
+.trl-selection{ flex:none; height:44px; margin:0 28px 12px; }
+.trl-selection .tcl-selection-bar{ height:100%; min-height:0; border-radius:10px; flex-wrap:nowrap; }
+.trl-bulk-names{ margin:8px 0 0; padding-left:18px; max-height:160px; overflow:auto; scrollbar-width:none; color:var(--color-text-secondary); font-size:13px; }
+.trl-drag-ghost{ position:fixed; top:-1000px; left:-1000px; padding:8px 12px; border:1px solid var(--color-brand-accent); border-radius:8px; background:var(--color-bg-surface); color:var(--color-text-primary); font-size:12.5px; font-weight:600; white-space:nowrap; box-shadow:0 10px 24px rgb(0 0 0 / 35%); }
