@@ -26,10 +26,7 @@ export const qaEn = {
       visionLocked:
         'This model does not read images, so vision=on and screen_capture other than on_demand are unavailable.',
       engineLocked:
-        'The planner–executer engine does not use the settings below. Your values are kept and apply again when you switch back to the default engine.',
-      engines: { agent: 'Default', planner_executer: 'planner–executer' },
-      engineHint:
-        'Which engine runs the QA. Default is the tool-loop agent. planner–executer has a planner write each step as functions and an executer play them. In a Test Case-based scenario it plays the Test Cases of the scene on screen first.',
+        'The Plan & Execute engine does not use the settings below. Your values are kept and apply again when you switch back to Workflow.',
       axes: {
         phase_cycle:
           'How strictly the run follows OBSERVE → DECIDE → ACT → VERIFY → UPDATE_MEMORY. off is the free tool loop; lite adds a memory turn; full adds a decide turn.',
@@ -187,6 +184,10 @@ export const qaEn = {
       noGame: 'Choose a game',
       offline: 'Turn on the Artel SDK in the game. Once it connects, it appears here on its own and you can run.',
       agentLabel: 'Agent',
+      engineTitle: 'Engine',
+      engines: { agent: 'Workflow', planner_executer: 'Plan & Execute' },
+      engineHint:
+        'Workflow: one agent plays the game with macros and tools.\nPlan & Execute: Planner writes the plan, Executor picks each action, and Evaluator judges the result. In a Test Case-based scenario it plays the Test Cases of the scene on screen first.',
       reasoningTitle: 'Reasoning',
       reasoningOff: 'Off',
       reasoningHint: 'Higher means more careful judgement.\nIt is also slower and costs more.',
@@ -748,10 +749,7 @@ export const qaKo: Localized<typeof qaEn> = {
       visionLocked:
         '이 모델은 이미지를 읽지 않아 vision=on 과 on_demand 이외의 screen_capture 를 쓸 수 없습니다.',
       engineLocked:
-        'planner–executer 엔진은 아래 설정을 쓰지 않습니다. 고른 값은 그대로 두었다가 기본 엔진으로 돌아가면 다시 씁니다.',
-      engines: { agent: '기본', planner_executer: 'planner–executer' },
-      engineHint:
-        'QA 를 돌리는 엔진. 기본은 tool loop agent 입니다. planner–executer 는 planner 가 단계마다 함수를 쓰고 executer 가 그것을 실행합니다. Test Case 기반 시나리오에서는 지금 화면의 씬에서 검증할 Test Case부터 돌립니다.',
+        'Plan & Execute 엔진은 아래 설정을 쓰지 않습니다. 고른 값은 그대로 두었다가 워크플로우로 돌아가면 다시 씁니다.',
       axes: {
         phase_cycle:
           'run 이 OBSERVE → DECIDE → ACT → VERIFY → UPDATE_MEMORY 를 얼마나 엄격하게 따를지. off 는 자유로운 tool loop, lite 는 memory 턴 하나, full 은 decide 턴까지 더합니다.',
@@ -906,6 +904,10 @@ export const qaKo: Localized<typeof qaEn> = {
       noGame: '게임을 고르세요',
       offline: '게임에서 Artel SDK 를 켜 주세요. 연결되면 목록에 자동으로 나타나고 바로 실행할 수 있습니다.',
       agentLabel: '에이전트',
+      engineTitle: '엔진',
+      engines: { agent: '워크플로우', planner_executer: 'Plan & Execute' },
+      engineHint:
+        '워크플로우: 에이전트 하나가 macro 와 tool 로 게임을 진행합니다.\nPlan & Execute: Planner 가 계획을 쓰고, Executor 가 행동을 고르고, Evaluator 가 결과를 판정합니다. Test Case 기반 시나리오에서는 지금 화면의 씬에서 검증할 Test Case부터 돌립니다.',
       reasoningTitle: '추론 강도',
       reasoningOff: '끔',
       reasoningHint: '높을수록 한 수 한 수를 신중하게 판단합니다.\n대신 느리고 비쌉니다.',
