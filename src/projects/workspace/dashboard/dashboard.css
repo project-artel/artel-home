@@ -4,6 +4,10 @@
   --db-series-2: var(--color-brand-accent);
   --db-series-3: var(--color-status-success);
   --db-series-4: var(--color-agent-reasoning);
+  --db-series-5: #f0a040;
+  --db-series-6: #2fc6c0;
+  --db-series-7: #e879f9;
+  --db-series-8: #a3e635;
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
@@ -353,3 +357,23 @@ a.db-kpi-value:hover b { text-decoration: underline; text-underline-offset: 4px;
 .db-live-idle circle:first-child { stroke: var(--color-border-strong); }
 .db-live-idle circle:last-child { fill: var(--color-border-strong); }
 .db-live-rings { display: flex; justify-content: flex-end; gap: 6px; }
+.db-runline .db-line { transition: opacity var(--motion-fast) var(--ease-standard); }
+.db-runline.is-dim { opacity: 0.25; }
+.db-dot--hollow { fill: var(--color-bg-surface); stroke: currentColor; stroke-width: 1.5; }
+.db-runs { display: flex; flex-direction: column; }
+.db-runs-row { display: grid; grid-template-columns: 36px minmax(0, 1.6fr) 140px 120px 100px 56px 56px; gap: 12px; align-items: center; min-height: 36px; border-top: 1px solid var(--color-border-subtle); font-size: 12.5px; }
+.db-runs-row--head { min-height: 28px; border-top: 0; color: var(--color-text-muted); font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; }
+.db-runs-row a { color: var(--color-text-primary); text-decoration: none; }
+.db-runs-row a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.db-runs-row.is-off > :not(:first-child) { opacity: 0.5; }
+.db-runs-toggle { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; border-radius: 4px; background: transparent; cursor: pointer; }
+.db-runs-toggle > span { width: 14px; height: 14px; border: 2px solid currentColor; border-radius: 3px; box-sizing: border-box; }
+.db-runs-toggle[aria-pressed='true'] > span { background: currentColor; }
+.db-runs-toggle:hover { background: var(--color-bg-hover); }
+.db-runs-toggle:focus-visible { outline: 2px solid var(--color-brand-accent); outline-offset: 1px; }
+.db-trend-stats--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@container db (max-width: 640px) {
+  .db-runs-row { grid-template-columns: 32px minmax(0, 1fr) 96px 72px; }
+  .db-runs-row > :is(:nth-child(3), :nth-child(6), :nth-child(7)) { display: none; }
+}
+.db-trend-build-tick { stroke: var(--color-agent-reasoning); stroke-width: 2; }

@@ -20,7 +20,7 @@ import { FreeRunPicker } from './dashboard/FreeRunPicker'
 import { pickItems } from './dashboard/freeRunCases'
 import { DashboardReliability } from './dashboard/DashboardReliability'
 import { useDashboardData, useVersionPair } from './dashboard/useDashboardData'
-import { VerdictTrend } from './dashboard/VerdictTrend'
+import { TestRunTrend } from './dashboard/TestRunTrend'
 import './dashboard/dashboard.css'
 import { sectionHref } from './sections'
 import { useWorkspace } from './workspaceContext'
@@ -55,7 +55,8 @@ export function DashboardSection() {
   const versions = useVersionPair(projectId, data.library, versionId)
   const settled = extrasStatus === 'ready'
   const [now] = useState(() => new Date())
-  const since = useMemo(() => new Date(now.getTime() - period * 86_400_000).toISOString(), [now, period])
+  const sinceDate = useMemo(() => new Date(now.getTime() - period * 86_400_000), [now, period])
+  const since = sinceDate.toISOString()
 
   const qaRuns = useMemo(() => (data.qaRuns.status === 'ready' ? data.qaRuns.value : []), [data.qaRuns])
   const inPeriod = qaRuns.filter((run) => run.startedAt >= since)
@@ -179,13 +180,7 @@ export function DashboardSection() {
         </div>
       </div>
 
-      <VerdictTrend
-        days={period}
-        now={now}
-        projectId={projectId}
-        qaRuns={qaRuns}
-        version={pair ? { gameBuildId: pair.current.gameBuildId, name: currentName } : null}
-      />
+      <TestRunTrend builds={builds} live={LIVE} projectId={projectId} qaRuns={qaRuns} since={sinceDate} />
 
       <div className="db-trio">
         {/* 검증 남은 TC */}
