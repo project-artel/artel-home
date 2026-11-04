@@ -42,3 +42,10 @@ origin/develop의 evaluationApi.playback/attempts가 기존 서버 녹화와 실
 - Chromium fixture: 19 PASS. 합성 API와 로컬 MP4로 전체 QA 화면을 구동했다. 운영 데이터·실제 게임 QA E2E는 미실행.
 - 변경 파일 ESLint·diff-check PASS. 전체 lint는 변경하지 않은 파일의 기존 5 errors / 3 warnings.
 - 시나리오 변경은 기존 FocusedTry의 tryId key로 상태를 분리한다. 별도 시나리오 전환 브라우저 회귀는 수행하지 않았다.
+
+## 사용자 검토 후 수정
+- 영상 내부 실행 바와 TC 목록을 제거하고 로그·영상 아래 독립 실행 타임라인으로 이동했다. TC 구간은 실제 시간 비율과 판정 상태로 표시하며 작은 구간도 select로 선택할 수 있다.
+- 시작·TC 선택 시 구간 내 첫 재생 가능한 영상으로 이동한다. raw는 선택 시점까지 최근 80개만 보여 미래 로그를 섞지 않으며 전체 로그로 전환할 수 있다.
+- raw 검색은 한 줄 도구 모음이며 필터는 popover로 접었다. QA 진행 중 새 SSE 로그에도 필터가 유지된다.
+- 실제 QA12(19분·검증18건)에서 초기 영상 decode와 TC 구간 이동·툴바82px·독립 타임라인130px를 확인했다. 사용자 데이터는 수정하지 않았다.
+- 브라우저 fixture25 PASS. 기존16개 TC·101개 attempt·gap·검색·실시간 SSE 포함.

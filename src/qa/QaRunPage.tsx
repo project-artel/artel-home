@@ -350,6 +350,8 @@ function FocusedTry({ qaRun, rail, tryId }: { qaRun: QaRun; rail: QaScenarioRail
   const [foundLogId, setFoundLogId] = useState<string | null>(null)
   const [replayTimestamp, setReplayTimestamp] = useState<number | null>(null)
   const [replayJump, setReplayJump] = useState<number | null>(null)
+  const [timelineHost, setTimelineHost] = useState<HTMLDivElement | null>(null)
+  const [allReplayLogs, setAllReplayLogs] = useState(false)
   const historicalLogs = useMemo(() => replayTimestamp === null ? session.logs : session.logs.filter(log => Date.parse(log.createdAt) <= replayTimestamp), [session.logs, replayTimestamp])
   const historicalVerdicts = useMemo(() => replayTimestamp === null ? session.verdictLogs : session.verdictLogs.filter(log => Date.parse(log.createdAt) <= replayTimestamp), [session.verdictLogs, replayTimestamp])
 
@@ -382,20 +384,24 @@ function FocusedTry({ qaRun, rail, tryId }: { qaRun: QaRun; rail: QaScenarioRail
 
   const jumpToLog = useCallback((logId: string) => {
     setLogView('raw')
+    setAllReplayLogs(true)
     setFocusRequest((current) => ({ logId, token: (current?.token ?? 0) + 1 }))
   }, [])
   const clearFocusRequest = useCallback(() => setFocusRequest(null), [])
 
-  const shownLogs = useMemo(() => {
+  const filteredLogs = useMemo(() => {
     // Context readings are shown by the gauge, in one place, not as a line per model call.
     const withoutContext = session.logs.filter((log) => !isQaContextLog(log))
     if (logView !== 'flow') return filterQaLogs(withoutContext, rawFilter)
     return filterFlowLogs(withoutContext, executionMode)
   }, [logView, session.logs, executionMode, rawFilter])
+  const shownLogs = useMemo(() => replayTimestamp !== null && !allReplayLogs && logView === 'raw'
+    ? filteredLogs.filter(log => Date.parse(log.createdAt) <= replayTimestamp).slice(-80) : filteredLogs,
+  [filteredLogs, replayTimestamp, allReplayLogs, logView])
 
   const onReplayPosition = useCallback((timestamp: number, seek: boolean) => {
     setReplayTimestamp(timestamp)
-    if (seek) { setLogView('raw'); setReplayJump(timestamp) }
+    if (seek) { setLogView('raw'); setAllReplayLogs(false); setReplayJump(timestamp) }
   }, [])
   const { logs: loadedLogs, hasMore: hasOlderLogs, historyLoading: loadingOlderLogs, historyFailure: olderLogsFailure, loadOlder: loadOlderLogs } = session
   useEffect(() => {
@@ -413,12 +419,13 @@ function FocusedTry({ qaRun, rail, tryId }: { qaRun: QaRun; rail: QaScenarioRail
     return () => window.cancelAnimationFrame(frame)
   }, [replayJump, shownLogs, loadedLogs, hasOlderLogs, loadingOlderLogs, olderLogsFailure, loadOlderLogs])
 
-  const findMatches = useMemo(() => findQuery.trim() === '' ? [] : shownLogs.filter((log) => qaLogContains(log, findQuery)), [shownLogs, findQuery])
+  const findMatches = useMemo(() => findQuery.trim() === '' ? [] : filteredLogs.filter((log) => qaLogContains(log, findQuery)), [filteredLogs, findQuery])
   const foundIndex = findMatches.findIndex((log) => log.id === foundLogId)
   function findNext(direction: -1 | 1) {
     if (findMatches.length === 0) return
     const index = foundIndex < 0 ? (direction === 1 ? 0 : findMatches.length - 1) : (foundIndex + direction + findMatches.length) % findMatches.length
     const logId = findMatches[index].id
+    setAllReplayLogs(true)
     setFoundLogId(logId)
     setFocusRequest((current) => ({ logId, token: (current?.token ?? 0) + 1, scrollOnly: true }))
   }
@@ -485,6 +492,7 @@ function FocusedTry({ qaRun, rail, tryId }: { qaRun: QaRun; rail: QaScenarioRail
       <div className="qa-focus">
         <div className="qa-focus-center">
           <QaFocusStage
+            replay={!active}
             chatDisabled={session.qaTry.status !== 'RUNNING'}
             contextUsage={contextUsage}
             game={
@@ -492,7 +500,7 @@ function FocusedTry({ qaRun, rail, tryId }: { qaRun: QaRun; rail: QaScenarioRail
                 {active ? (
                   <GameStreamView instanceId={session.qaTry.gameInstanceId} />
                 ) : (
-                  <QaReplay projectId={rail.projectId} qaTry={session.qaTry} onPosition={onReplayPosition} />
+                  <QaReplay projectId={rail.projectId} qaTry={session.qaTry} onPosition={onReplayPosition} timelineHost={timelineHost} />
                 )}
               </section>
             }
@@ -523,13 +531,14 @@ function FocusedTry({ qaRun, rail, tryId }: { qaRun: QaRun; rail: QaScenarioRail
               <span className="qa-focus-logs-count mono">{t.qa.run.logsCount(session.logs.length)}</span>
             </div>
           </header>
-          <div className="gf-logs-extras">
             {logView === 'raw' && <QaRawLogControls
-              filter={rawFilter} onFilter={(filter) => { setRawFilter(filter); setFoundLogId(null); setFocusRequest(null) }}
+              filter={rawFilter} onFilter={(filter) => { setRawFilter(filter); setAllReplayLogs(true); setFoundLogId(null); setFocusRequest(null) }}
               query={findQuery} onQuery={(query) => { setFindQuery(query); setFoundLogId(null); setFocusRequest(null) }}
               matches={findMatches.length} current={foundIndex} onFind={findNext}
-              hasMore={session.hasMore} loading={session.historyLoading} onLoadOlder={() => { void session.loadOlder() }}
+              hasMore={session.hasMore} loading={session.historyLoading} onLoadOlder={() => { setAllReplayLogs(true); void session.loadOlder() }}
+              scoped={replayTimestamp !== null && !allReplayLogs} onToggleScope={replayTimestamp === null ? undefined : () => setAllReplayLogs(value => !value)}
             />}
+          <div className="gf-logs-extras">
             <QaRunFunctionOptions qaTryId={session.qaTry.id} />
             <QaBehaviorLanes logs={session.logs} onJump={jumpToLog} />
           </div>
@@ -543,7 +552,7 @@ function FocusedTry({ qaRun, rail, tryId }: { qaRun: QaRun; rail: QaScenarioRail
                 executionMode={executionMode}
                 flow={logView === 'flow'}
                 focusRequest={focusRequest}
-                hasMore={session.hasMore}
+                hasMore={session.hasMore && (active || allReplayLogs)}
                 historyFailure={session.historyFailure}
                 historyLoading={session.historyLoading}
                 live={active}
@@ -555,6 +564,7 @@ function FocusedTry({ qaRun, rail, tryId }: { qaRun: QaRun; rail: QaScenarioRail
             )}
           </div>
         </aside>
+        <div className="qa-replay-timeline-host" ref={setTimelineHost} />
       </div>
     </div>
   )

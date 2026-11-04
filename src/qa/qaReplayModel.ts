@@ -12,6 +12,12 @@ export function segmentAt(segments: Segment[], timestamp: number) {
     Date.parse(segment.startedAt) <= timestamp && timestamp < Date.parse(segment.endedAt)) ?? null
 }
 
+export function firstReplayTimestamp(segments: Segment[], bounds: { start: number; end: number }): number {
+  const starts = segments.filter(segment => segment.state === 'READY' && segment.url !== null && Date.parse(segment.endedAt) > bounds.start && Date.parse(segment.startedAt) < bounds.end)
+    .map(segment => Math.max(bounds.start, Date.parse(segment.startedAt)))
+  return starts.length > 0 ? Math.min(...starts) : bounds.start
+}
+
 export function attemptRange(attempt: Attempt, bounds: { start: number; end: number }) {
   if (attempt.startedAt === null) return null
   const start = Math.max(bounds.start, Date.parse(attempt.startedAt))

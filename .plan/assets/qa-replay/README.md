@@ -10,7 +10,7 @@
 
 ## 결과
 
-Chromium 화면 회귀 19개가 통과했습니다.
+Chromium 화면 회귀 25개가 통과했습니다.
 
 - 기존 영상 로드, TC 반복 시도와 시작 시각 없는 attempt 표시.
 - pulse 기본 제외·포함 전환, 메시지 필터·payload find와 Enter 이동.
@@ -22,7 +22,7 @@ Chromium 화면 회귀 19개가 통과했습니다.
 - 라이트·다크, 1440px·1024px·390px 화면과 가로 넘침 확인.
 - 녹화 API 오류·재시도와 보관 만료 안내, 브라우저 pageerror 없음.
 
-전체 테스트 1,621개, build, 변경 파일 ESLint와 diff-check도 통과했습니다. 전체 lint는 수정하지 않은 `authoringFrames.ts`, `useCaseListNav.ts`, `RunListPanel.tsx`, `RunNameCrumb.tsx`, `useStepEditor.ts`의 기존 오류 5개와 경고 3개로 실패합니다. build에는 기존 bundle 크기 경고가 남습니다.
+전체 테스트 1,622개, build, 변경 파일 ESLint와 diff-check도 통과했습니다. 전체 lint는 수정하지 않은 `authoringFrames.ts`, `useCaseListNav.ts`, `RunListPanel.tsx`, `RunNameCrumb.tsx`, `useStepEditor.ts`의 기존 오류 5개와 경고 3개로 실패합니다. build에는 기존 bundle 크기 경고가 남습니다.
 
 ## 캡처
 
@@ -30,3 +30,5 @@ Chromium 화면 회귀 19개가 통과했습니다.
 - `mobile-dark.png`, `tablet-light.png`: 작은 화면 실행 바.
 - `gap.png`, `tail-gap.png`: 중간·끝 누락 구간.
 - `error.png`, `expired.png`: API 오류와 보관 만료.
+
+사용자 검토 후 실행 바는 독립 타임라인으로 이동했고 TC 시간 구간을 비율대로 표시한다. raw 필터는 접힌 popover와 한 줄 검색으로 변경했다. QA 진행 중 새 SSE 로그에도 필터를 적용하는 브라우저 회귀를 추가했다. 실제 QA12의 영상 decode·구간18개·로컬 화면도 읽기 전용으로 확인했다.

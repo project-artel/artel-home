@@ -8,9 +8,19 @@ import '../../../src/styles/index.css'
 import '../../../src/App.css'
 
 const at = (seconds: number) => new Date(Date.UTC(2026,10,4) + seconds * 1000).toISOString()
-const qaTry = {id:'6',testScenarioId:'7',gameInstanceId:'3',agentSessionId:null,status:'COMPLETED',startedAt:at(0),completedAt:at(8),qaRunId:'2'}
+const live = new URLSearchParams(location.search).has('live')
+const qaTry = {id:'6',testScenarioId:'7',gameInstanceId:'3',agentSessionId:null,status:live?'RUNNING':'COMPLETED',startedAt:at(0),completedAt:at(8),qaRunId:'2'}
+const sources: EventTarget[] = []
+if (live) {
+  class FixtureEvents extends EventTarget { readyState=1; constructor(){super();sources.push(this)} close(){this.readyState=2} }
+  Object.assign(FixtureEvents,{CLOSED:2})
+  window.EventSource = FixtureEvents as unknown as typeof EventSource
+  Object.assign(window,{emitQaLog:(row:unknown)=>sources.forEach(source=>source.dispatchEvent(new MessageEvent('log',{data:JSON.stringify(row)})))})
+}
 const run = {id:'2',testRunId:'1',gameInstanceId:'3',status:'COMPLETED',startedAt:at(0),completedAt:at(8),tries:[qaTry]}
-const logs = Array.from({length:9},(_,time)=>({id:String(time+1),qaTryId:'6',messageId:null,correlationId:null,direction:'ORCHE_INTERNAL',type:time===2?'PULSE':'LOG',message:time===2?'Pulse relayed.':`시점 ${time}초 로그`,payload:{event:`needle-${time}`},createdAt:at(time)}))
+const historyMode=new URLSearchParams(location.search).has('history')
+Object.assign(window,{historyPageReads:0})
+const logs = Array.from({length:historyMode?201:9},(_,index)=>{const time=historyMode?index/25:index;return {id:String(index+1),qaTryId:'6',messageId:null,correlationId:null,direction:'ORCHE_INTERNAL',type:index===2?'PULSE':'LOG',message:index===2?'Pulse relayed.':`시점 ${time}초 로그`,payload:{event:`needle-${index}`},createdAt:at(time)}})
 const segment=(id:string,start:number,end:number)=>({id,startedAt:at(start),endedAt:at(end),state:'READY',url:`${location.origin}/.plan/assets/qa-replay/video.mp4`})
 const attempts=[{id:'a',testCaseId:'101',startedAt:at(0.5),finishedAt:at(2.5),verdict:'PASSED'}, {id:'b',testCaseId:'102',startedAt:at(5),finishedAt:at(7),verdict:'FAILED'}, {id:'c',testCaseId:'101',startedAt:null,finishedAt:at(7.5),verdict:'INCONCLUSIVE'}].map(row=>({...row,qaTryId:'6',createdAt:row.finishedAt,logId:null,review:null,note:null}))
 const mode=new URLSearchParams(location.search)
@@ -24,6 +34,7 @@ window.fetch=async input=>{
  if(path==='/api/qa-runs/2')return response(run)
  if(path==='/api/qa-tries/6')return response(qaTry)
  if(path.endsWith('/verdicts'))return response([])
+ if(path.endsWith('/logs') && historyMode){if(url.searchParams.has('beforeId')){Object.assign(window,{historyPageReads:1});return response({items:[],hasMore:false,nextBeforeId:null})}return response({items:logs,hasMore:true,nextBeforeId:'1'})}
  if(path.endsWith('/logs'))return response({items:url.searchParams.has('beforeId')?logs.slice(0,4):logs.slice(4),hasMore:!url.searchParams.has('beforeId'),nextBeforeId:url.searchParams.has('beforeId')?null:'5'})
  if(path.endsWith('/recording') && mode.has('error')) return response({},503)
  if(path.endsWith('/recording') && mode.has('expired'))return response({recording:{id:'recording',startedAt:at(0),endedAt:at(8),expiresAt:at(1),error:null},segments:[],gaps:[]})

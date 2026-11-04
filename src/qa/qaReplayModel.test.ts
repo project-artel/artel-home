@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { attemptRange, logAt, replayBounds, segmentAt } from './qaReplayModel'
+import { attemptRange, firstReplayTimestamp, logAt, replayBounds, segmentAt } from './qaReplayModel'
 import { DEFAULT_QA_LOG_FILTER, filterQaLogs, qaLogContains } from './qaLogFilter'
 import { parseQaLog } from './qaApi'
 import type { Attempt, Playback, Segment } from './evaluation/evaluationApi'
@@ -11,6 +11,13 @@ const milliseconds = (seconds: number) => Date.parse(at(seconds))
 const segment = (id: string, start: number, end: number, state = 'READY'): Segment => ({ id, startedAt: at(start), endedAt: at(end), state, url: 'https://example.test/video.mp4' })
 const log = (id: string, time: number, type: QaLog['type'] = 'LOG'): QaLog => ({ id, qaTryId: '1', messageId: null, correlationId: null, direction: 'ORCHE_TO_AGENT', type, message: 'Message', payload: { nested: 'needle' }, createdAt: at(time) })
 const attempt: Attempt = { id: 'attempt', qaTryId: '1', testCaseId: '3', startedAt: at(5), finishedAt: at(15), verdict: 'PASSED', logId: null, review: null, note: null, createdAt: at(5) }
+
+test('시작과 TC 구간에 gap이 있으면 구간 안의 첫 재생 가능한 시각을 고른다', () => {
+  const bounds = { start: milliseconds(0), end: milliseconds(20) }
+  assert.equal(firstReplayTimestamp([segment('later', 10, 20), segment('first', 3, 8)], bounds), milliseconds(3))
+  assert.equal(firstReplayTimestamp([segment('other', 0, 3), segment('inside', 8, 12)], { start: milliseconds(5), end: milliseconds(10) }), milliseconds(8))
+  assert.equal(firstReplayTimestamp([], bounds), milliseconds(0))
+})
 
 test('재생은 실제 시각으로 segment 경계와 gap을 구분한다', () => {
   const segments = [segment('a', 0, 10), segment('b', 12, 20), segment('c', 20, 30, 'PENDING')]

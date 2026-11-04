@@ -2,11 +2,12 @@ import type { Localized } from '../messages'
 
 /** Strings for `src/qa/*`. See `common.ts` for the typing convention. */
 export const qaEn = {
-  replay: { timeline: 'QA recording timeline', intervals: 'TC verification intervals', unknownStart: 'Start time unknown · jump to report' },
+  replay: { title: 'Execution timeline', timeline: 'QA recording timeline', intervals: 'TC verification intervals', unknownStart: 'Start time unknown · jump to report', gaps: (count: number) => `${count} video gaps`, unknownIntervals: (count: number) => `${count} attempts without a start time` },
   rawLogs: {
     filter: 'Filter text', type: 'Type', direction: 'Direction', all: 'All',
     includePulse: 'Include pulse relay', find: 'Find in filtered logs',
     previous: 'Previous match', next: 'Next match', loadOlder: 'Load older logs to search',
+    filters: 'Filters', reset: 'Reset', pulseHidden: 'Pulse hidden', selectedTime: 'At playhead', allLogs: 'All logs', empty: 'No logs at this time match the filters.',
   },
   statusLabels: {
     PENDING: 'Waiting',
@@ -694,11 +695,12 @@ export const qaEn = {
 } as const
 
 export const qaKo: Localized<typeof qaEn> = {
-  replay: { timeline: 'QA 녹화 실행 바', intervals: 'TC 검증 구간', unknownStart: '시작 시각 없음 · 결과 보고 시점으로 이동' },
+  replay: { title: '실행 타임라인', timeline: 'QA 녹화 실행 바', intervals: 'TC 검증 구간', unknownStart: '시작 시각 없음 · 결과 보고 시점으로 이동', gaps: (count: number) => `영상 누락 ${count}구간`, unknownIntervals: (count: number) => `시작 시각 없는 검증 ${count}건` },
   rawLogs: {
     filter: '텍스트 필터', type: '종류', direction: '방향', all: '전체',
     includePulse: 'pulse relay 포함', find: '필터 결과에서 찾기',
     previous: '이전 검색 결과', next: '다음 검색 결과', loadOlder: '이전 로그 불러와 검색',
+    filters: '필터', reset: '초기화', pulseHidden: 'pulse 제외', selectedTime: '선택 시점', allLogs: '전체 로그', empty: '선택 시점과 필터에 맞는 로그가 없습니다.',
   },
   statusLabels: {
     PENDING: '대기 중',

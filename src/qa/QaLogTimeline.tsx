@@ -710,7 +710,7 @@ export function QaLogTimeline({
   if (logs.length === 0) {
     return (
       <div className="qa-log-empty">
-        <p>No logs have been recorded for this QA Try.</p>
+        <p>{historyLoading ? t.qa.run.loading : t.qa.rawLogs.empty}</p>
         {live && <span>New activity will appear here.</span>}
       </div>
     )
