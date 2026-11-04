@@ -461,8 +461,6 @@ export const scenariosEn = {
       deleteSelected: (count: number) => `Delete ${count} selected`,
     },
     selection: {
-      selectRow: (name: string) => `Select ${name}`,
-      selectAll: 'Select every run shown',
       move: 'Move to version · folder',
       copy: 'Duplicate',
     },
@@ -1333,8 +1331,6 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
       deleteSelected: (count: number) => `선택한 ${count}개 삭제`,
     },
     selection: {
-      selectRow: (name: string) => `${name} 고르기`,
-      selectAll: '보이는 런 모두 고르기',
       move: '버전 · 폴더로 옮기기',
       copy: '복제',
     },
