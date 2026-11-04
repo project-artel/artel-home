@@ -20,7 +20,7 @@ import {
 } from '../../projectAgent/specs/qa'
 import { sectionHref } from '../../projects/workspace/sections'
 import type { TestRun, RunCasesOutsideBuild } from '../../testRuns/testRunApi'
-import { archLabelMissing, changedSettingCount, toArchRequest, withoutVisionKnobs, type QaArchSelection } from '../qaArch'
+import { QA_ENGINES, archEngine, archLabelMissing, changedSettingCount, toArchRequest, withEngine, withoutVisionKnobs, type QaArchSelection } from '../qaArch'
 import { createQaRun, qaStartConflict } from '../qaApi'
 import { requestQuestionNotificationPermission, subscribeQuestionNotifications } from '../evaluation/questionNotificationOptIn'
 import { storeLastArch } from '../qaStartChoices'
@@ -385,6 +385,30 @@ export function LaunchPanel({
           <label className="ql-field-label" htmlFor={modelSelectId}>{l.agentLabel}</label>
           <QaModelPicker disabled={models.length === 0} id={modelSelectId} models={models} onChange={onModelChange} popoverWidth={460} value={modelKey} />
           {model !== null && reasoning === null && <p className="qa-reasoning-unavailable">{p.reasoningUnavailable}</p>}
+        </div>
+
+        <div className="ql-field">
+          <span className="ql-field-head">
+            <span className="ql-field-label">{l.engineTitle}</span>
+            <InfoHint>{l.engineHint}</InfoHint>
+          </span>
+          <div aria-label={l.engineTitle} className="ql-seg" role="radiogroup" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+            {QA_ENGINES.map((engine) => {
+              const on = archEngine(arch) === engine
+              return (
+                <button
+                  aria-checked={on}
+                  className={'ql-seg-item' + (on ? ' is-on' : '')}
+                  key={engine}
+                  onClick={() => onArchChange(withEngine(arch, engine))}
+                  role="radio"
+                  type="button"
+                >
+                  {l.engines[engine]}
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         {model !== null && reasoning !== null && (

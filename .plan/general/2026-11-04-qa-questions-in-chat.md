@@ -22,7 +22,7 @@ agent 질문 정책, 서버 API, 질문 알림 권한은 바꾸지 않는다.
 ## Validation
 - **Commands to run:** focused node tests, npm run typecheck, npm run build, changed-file ESLint; 가능하면 브라우저 렌더 검토.
 - **Expected output:** 질문과 답변이 채팅에 표시되고 질문 답변은 전용 API로 전달된다. 다른 QA에 답하지 않는다.
-- **Results:** `node --import ./scripts/node-test-hooks.mjs --test "src/qa/**/*.test.ts"` 265개 통과, `npm run typecheck`와 `npm run build` 통과, 변경 파일 ESLint 통과. Vite 기존 bundle 크기 경고가 있다.
+- **Results:** `node --import ./scripts/node-test-hooks.mjs --test "src/qa/**/*.test.ts"` 285개 통과, `npm run typecheck`와 `npm run build` 통과, 변경 파일 ESLint 통과. Vite 기존 bundle 크기 경고가 있다.
 
 ## Risks & Rollback
 - **Risks:** SSE/주기 갱신과 답변 경쟁, 선택한 QA 전환 시 이전 답변 노출, 다른 탭에서 먼저 답변한 경우 409.
@@ -32,3 +32,5 @@ agent 질문 정책, 서버 API, 질문 알림 권한은 바꾸지 않는다.
 브라우저는 localhost Vite에 연결할 때 IAB와 Chrome 모두 ERR_CONNECTION_TIMED_OUT이 발생했다. 실제 화면의 두 테마·모바일·키보드 검토와 실제 QA 재개는 미검증이다. 샘플 preview는 .work에만 있고 제품에는 포함하지 않는다.
 
 계획 리뷰에서 초기 조회 중 전송 차단과 답변 동작 표시를 반영했다. pair-review의 4000자 초안 제한 지적을 send와 버튼에 반영했다.
+
+최신 develop의 QA replay 변경과 병합했다. QaFocusStage의 replay prop과 질문의 projectId/key를 모두 보존했다. 병합 후 QA 테스트 285개가 통과했다.
