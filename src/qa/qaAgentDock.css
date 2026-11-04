@@ -1,54 +1,38 @@
-/* 실행 화면 하단 에이전트 창. 높이는 고정이라 내용이 바뀌어도 위쪽 영상이 흔들리지 않는다. */
+/* 로그 창 자리에 들어가는 에이전트 창. 세 칸의 높이는 비율로 고정이라 내용이 바뀌어도 아이콘 자리가 흔들리지 않는다. */
 .qa-agent-dock {
-  flex: none;
-  height: 280px;
+  flex: 1;
+  min-height: 0;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 8px 24px 12px;
-  border-top: 1px solid var(--color-border-strong);
-  background: var(--color-bg-surface);
+  gap: 8px;
+  padding: 10px 14px 12px;
+}
+
+.qa-agent-dock-title {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .qa-agent-dock-head {
   flex: none;
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  font-size: 14px;
-}
-
-.qa-agent-dock-head strong {
-  font-family: var(--font-display);
-  font-weight: 600;
-}
-
-.qa-agent-dock-head .mono {
   font-size: 12px;
   color: var(--color-text-secondary);
 }
 
-.qa-agent-scroll {
-  flex: 1 1 0;
+.qa-agent-rows {
+  flex: 1;
   min-height: 0;
-  overflow-x: auto;
-}
-
-.qa-agent-grid {
-  height: 100%;
-  min-width: 1040px;
+  overflow-y: auto;
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.3fr) minmax(0, 1fr);
-  grid-template-rows: 44px minmax(0, 1fr);
-  column-gap: 12px;
+  grid-template-rows: minmax(190px, 1fr) minmax(230px, 1.4fr) minmax(150px, 1fr);
 }
 
-.qa-agent-top {
+.qa-agent-row {
+  min-height: 0;
   display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
+  flex-direction: column;
 }
 
 .qa-agent-who {
@@ -59,10 +43,10 @@
   opacity: 0.6;
 }
 
-.qa-agent-top.is-on .qa-agent-who,
-.qa-agent-stem.is-on,
+.qa-agent-row.is-on .qa-agent-who,
+.qa-agent-row.is-on .qa-agent-stem > *,
 .qa-agent-dock--idle .qa-agent-who,
-.qa-agent-dock--idle .qa-agent-stem {
+.qa-agent-dock--idle .qa-agent-stem > * {
   opacity: 1;
 }
 
@@ -90,7 +74,7 @@
   color: var(--color-status-success);
 }
 
-.qa-agent-top.is-on .qa-agent-icon {
+.qa-agent-row.is-on .qa-agent-icon {
   border: 2px solid var(--color-action-primary);
 }
 
@@ -113,7 +97,7 @@
   color: var(--color-text-secondary);
 }
 
-.qa-agent-top.is-on .qa-agent-status {
+.qa-agent-row.is-on .qa-agent-status {
   color: var(--color-action-primary);
 }
 
@@ -155,79 +139,69 @@
   }
 }
 
-/* 에이전트 사이의 선 */
+/* 에이전트 사이의 선. 아이콘 아래 선에 이어진다. */
 .qa-agent-line {
-  flex: 1 1 auto;
-  min-width: 48px;
+  flex: none;
+  position: relative;
+  height: 26px;
+  margin-left: 19px;
+  padding-left: 12px;
+  display: flex;
+  align-items: center;
+  border-left: 2px solid var(--color-border-strong);
+}
+
+/* 다음 에이전트로 넘어가는 동안 아이콘 사이 선 전체가 켜진다. 빨간 테두리는 아이콘에만 둔다. */
+.qa-agent-row.is-passing .qa-agent-stem,
+.qa-agent-row.is-passing .qa-agent-line {
+  border-left-color: var(--color-text-primary);
 }
 
 .qa-agent-line-tag {
-  display: block;
-  height: 16px;
   overflow: hidden;
   font-size: 11px;
-  line-height: 16px;
-  text-align: center;
   white-space: nowrap;
-}
-
-.qa-agent-line-track {
-  position: relative;
-  display: block;
-  height: 8px;
-}
-
-.qa-agent-line-track::before {
-  content: '';
-  position: absolute;
-  top: 3px;
-  right: 0;
-  left: 0;
-  height: 2px;
-  background: var(--color-border-subtle);
-}
-
-.qa-agent-line--on .qa-agent-line-track::before {
-  background: var(--color-text-secondary);
+  text-overflow: ellipsis;
 }
 
 .qa-agent-line-dot {
   position: absolute;
-  top: 0;
+  left: -5px;
   width: 8px;
   height: 8px;
   border-radius: var(--radius-sm);
-  background: var(--color-action-primary);
+  background: var(--color-text-primary);
 }
 
-.qa-agent-line-dot--right {
-  animation: qa-agent-go-right 1.2s linear infinite;
+.qa-agent-line-dot--down {
+  animation: qa-agent-go-down 1.2s linear infinite;
 }
 
-.qa-agent-line-dot--left {
-  animation: qa-agent-go-left 1.2s linear infinite;
+.qa-agent-line-dot--up {
+  animation: qa-agent-go-up 1.2s linear infinite;
 }
 
-@keyframes qa-agent-go-right {
+@keyframes qa-agent-go-down {
   from {
-    left: 0;
+    top: 0;
   }
   to {
-    left: calc(100% - 8px);
+    top: calc(100% - 8px);
   }
 }
 
-@keyframes qa-agent-go-left {
+@keyframes qa-agent-go-up {
   from {
-    left: calc(100% - 8px);
+    top: calc(100% - 8px);
   }
   to {
-    left: 0;
+    top: 0;
   }
 }
 
 /* 아이콘에서 자기 블럭으로 내려오는 선과 작은 블럭 */
 .qa-agent-stem {
+  flex: 1 1 0;
   min-height: 0;
   margin-left: 19px;
   padding: 6px 0 0 12px;
@@ -236,11 +210,10 @@
   align-items: flex-start;
   gap: 4px;
   border-left: 2px solid var(--color-border-strong);
-  opacity: 0.6;
 }
 
-.qa-agent-stem.is-on {
-  border-left-color: var(--color-action-primary);
+.qa-agent-stem > * {
+  opacity: 0.6;
 }
 
 .qa-agent-block {
@@ -471,8 +444,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .qa-agent-dots i,
-  .qa-agent-line-dot--right,
-  .qa-agent-line-dot--left {
+  .qa-agent-line-dot--down,
+  .qa-agent-line-dot--up {
     animation: none;
   }
 }

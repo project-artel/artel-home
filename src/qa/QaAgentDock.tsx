@@ -6,7 +6,6 @@ import { macroName } from './peWords'
 import {
   agentOptions,
   deriveAgentDock,
-  isAgentRun,
   type AgentDockState,
   type AgentEdge,
   type AgentName,
@@ -109,32 +108,29 @@ function AgentHead({
   )
 }
 
-/** 두 에이전트 사이의 선. 무엇이 넘어가는 중이면 밝아지고 점이 그 방향으로 움직인다. */
-function AgentLine({ tag, direction }: { tag: string | null; direction: 'right' | 'left' | null }) {
+/** 위아래 두 에이전트 사이의 선. 무엇이 넘어가는 중이면 밝아지고 점이 그 방향으로 움직인다. */
+function AgentLine({ tag, direction }: { tag: string | null; direction: 'down' | 'up' | null }) {
   return (
-    <div className={`qa-agent-line${direction === null ? '' : ' qa-agent-line--on'}`}>
+    <div className="qa-agent-line">
+      {direction !== null && <i className={`qa-agent-line-dot qa-agent-line-dot--${direction}`} />}
       <span className="qa-agent-line-tag mono">{tag}</span>
-      <span className="qa-agent-line-track">
-        {direction !== null && <i className={`qa-agent-line-dot qa-agent-line-dot--${direction}`} />}
-      </span>
     </div>
   )
 }
 
 function edgeTag(edge: AgentEdge, text: Text): string {
-  if (edge.kind === 'plan') return `${text.planTag(edge.plan, edge.actions)} →`
+  if (edge.kind === 'plan') return `↓ ${text.planTag(edge.plan, edge.actions)}`
   const reads = edge.reads === null ? 'evidence' : text.evidenceTag(edge.reads)
-  return edge.kind === 'replan' ? `← ${reads}` : `${reads} →`
+  return edge.kind === 'replan' ? `↑ ${reads}` : `↓ ${reads}`
 }
 
-/** 하단 고정 창. planner–executer 런에서만 보이고, 세 에이전트의 지금 상태만 그린다. */
+/** planner–executer 런에서 로그 창 자리에 들어가는 창. 세 에이전트의 지금 상태만 위에서 아래로 그린다. */
 export function QaAgentDock({ logs, live }: { logs: QaLog[]; live: boolean }) {
   const { t } = useI18n()
   const text = t.qa.run.agentDock
   const pe = t.qa.run.pe
   const dock = useMemo(() => deriveAgentDock(logs, live), [logs, live])
   const macros = useMemo(() => new Set((dock.plan?.actions ?? []).map(macroName)), [dock.plan])
-  if (!isAgentRun(logs)) return null
 
   const firstEdge = dock.edge === null || dock.edge.kind === 'evaluate' ? null : dock.edge
   const lastEdge = dock.edge?.kind === 'evaluate' ? dock.edge : null
@@ -144,25 +140,11 @@ export function QaAgentDock({ logs, live }: { logs: QaLog[]; live: boolean }) {
   return (
     <PeMacroNames.Provider value={macros}>
       <section aria-label={text.title} className={`qa-agent-dock${dock.active === null ? ' qa-agent-dock--idle' : ''}`}>
-        <header className="qa-agent-dock-head">
-          <strong>{text.title}</strong>
-          {dock.step !== null && <span className="mono">{text.step(dock.step)}</span>}
-        </header>
-        <div className="qa-agent-scroll">
-          <div aria-live="polite" className="qa-agent-grid">
-            <div className={`qa-agent-top${dock.active === 'planner' ? ' is-on' : ''}`}>
-              <AgentHead dock={dock} icon={<PlannerIcon />} label="Planner" name="planner" text={text} />
-              <AgentLine direction={firstEdge === null ? null : firstEdge.kind === 'plan' ? 'right' : 'left'} tag={firstEdge === null ? null : edgeTag(firstEdge, text)} />
-            </div>
-            <div className={`qa-agent-top${dock.active === 'executor' ? ' is-on' : ''}`}>
-              <AgentHead dock={dock} icon={<ExecutorIcon />} label="Executor" name="executor" text={text} />
-              <AgentLine direction={lastEdge === null ? null : 'right'} tag={lastEdge === null ? null : edgeTag(lastEdge, text)} />
-            </div>
-            <div className={`qa-agent-top${dock.active === 'evaluator' ? ' is-on' : ''}`}>
-              <AgentHead dock={dock} icon={<EvaluatorIcon />} label="Evaluator" name="evaluator" text={text} />
-            </div>
-
-            <div className={`qa-agent-stem${dock.active === 'planner' ? ' is-on' : ''}`}>
+        {dock.step !== null && <header className="qa-agent-dock-head mono">{text.step(dock.step)}</header>}
+        <div aria-live="polite" className="qa-agent-rows">
+          <div className={`qa-agent-row qa-agent-row--planner${dock.active === 'planner' ? ' is-on' : ''}${firstEdge === null ? '' : ' is-passing'}`}>
+            <AgentHead dock={dock} icon={<PlannerIcon />} label="Planner" name="planner" text={text} />
+            <div className="qa-agent-stem">
               <div className="qa-agent-block">
                 <div className="qa-agent-block-title">
                   <strong>{plan === null ? text.noPlan : text.plan(plan.number)}</strong>
@@ -174,8 +156,12 @@ export function QaAgentDock({ logs, live }: { logs: QaLog[]; live: boolean }) {
                 <div className="qa-agent-note"><PeText text={pe} value={text.refused(refusal.answer, refusal.reason)} /></div>
               )}
             </div>
+            <AgentLine direction={firstEdge === null ? null : firstEdge.kind === 'plan' ? 'down' : 'up'} tag={firstEdge === null ? null : edgeTag(firstEdge, text)} />
+          </div>
 
-            <div className={`qa-agent-stem${dock.active === 'executor' ? ' is-on' : ''}`}>
+          <div className={`qa-agent-row qa-agent-row--executor${dock.active === 'executor' ? ' is-on' : ''}${lastEdge === null ? '' : ' is-passing'}`}>
+            <AgentHead dock={dock} icon={<ExecutorIcon />} label="Executor" name="executor" text={text} />
+            <div className="qa-agent-stem">
               {turn === null ? (
                 <div className="qa-agent-block qa-agent-block--idle">{dock.executed ? text.finished : text.awaitingPlan}</div>
               ) : (
@@ -216,8 +202,12 @@ export function QaAgentDock({ logs, live }: { logs: QaLog[]; live: boolean }) {
                 </div>
               )}
             </div>
+            <AgentLine direction={lastEdge === null ? null : 'down'} tag={lastEdge === null ? null : edgeTag(lastEdge, text)} />
+          </div>
 
-            <div className={`qa-agent-stem${dock.active === 'evaluator' ? ' is-on' : ''}`}>
+          <div className={`qa-agent-row qa-agent-row--evaluator${dock.active === 'evaluator' ? ' is-on' : ''}`}>
+            <AgentHead dock={dock} icon={<EvaluatorIcon />} label="Evaluator" name="evaluator" text={text} />
+            <div className="qa-agent-stem">
               <div className="qa-agent-block">
                 <strong className="qa-agent-verdict">{verdict === null ? text.noVerdict : text.verdict(verdict.step, verdict.passed)}</strong>
                 {verdict !== null && <p><PeText text={pe} value={verdict.message} /></p>}

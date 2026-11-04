@@ -440,6 +440,7 @@ export const qaEn = {
     },
     agentDock: {
       title: 'Agents',
+      noLogTabs: 'This run shows the agent panel instead of log tabs.',
       step: (step: number) => `Step ${step}`,
       active: 'Working',
       waiting: 'Waiting',
@@ -1181,6 +1182,7 @@ export const qaKo: Localized<typeof qaEn> = {
     },
     agentDock: {
       title: '에이전트',
+      noLogTabs: '이 실행은 로그 탭 대신 에이전트 창을 보여 줍니다.',
       step: (step: number) => `스텝 ${step}`,
       active: '행동 중',
       waiting: '대기',
