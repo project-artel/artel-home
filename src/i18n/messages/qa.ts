@@ -9,6 +9,7 @@ export const qaEn = {
     COMPLETED: 'Completed',
     FAILED: 'Failed',
     CANCELLED: 'Cancelled',
+    UNDECIDED: 'Undecided',
   },
   panel: {
     advanced: {
@@ -420,6 +421,38 @@ export const qaEn = {
     title: 'QA run',
     subtitle: 'The run executes its scenarios in order.',
     progress: (done: number, total: number) => `${done} / ${total} scenarios finished`,
+    progressStopped: (ran: number, total: number, notRun: number) =>
+      `${ran} / ${total} scenarios ran · ${notRun} not run`,
+    // 모델 API 오류로 QA 가 멈췄을 때(ARTEL-1372). 제공사 이름은 쓰지 않는다 — 어느 회사 키인지가 아니라 무엇이
+    // 모자란지가 사용자가 할 일을 정한다.
+    stop: {
+      dialogTitle: 'QA stopped on a model API error',
+      cause: (code: string) => {
+        if (code === 'llm_credit_exhausted') return 'The API token balance is exhausted'
+        if (code === 'llm_auth_failed') return 'The API key was rejected'
+        if (code === 'llm_model_unavailable') return 'This model is not available'
+        return 'The model API rejected the request'
+      },
+      short: (code: string) => {
+        if (code === 'llm_credit_exhausted') return 'Stopped: API tokens ran out'
+        if (code === 'llm_auth_failed') return 'Stopped: API key was rejected'
+        if (code === 'llm_model_unavailable') return 'Stopped: model not available'
+        return 'Stopped on a model API error'
+      },
+      flowTitle: (code: string) => {
+        const kind = code === 'llm_credit_exhausted' ? 'out of API tokens' : code === 'llm_auth_failed' ? 'API key rejected' : code === 'llm_model_unavailable' ? 'model unavailable' : 'error'
+        return `Model API error · ${kind}`
+      },
+      notJudged: 'This is not a verdict on the game, so it is undecided.',
+      discarded: 'No scenario was judged, so this run does not stay in QA history.',
+      kept: 'Scenarios judged before the error stay in QA history.',
+      retryOtherModel: 'Run again with another model',
+      llmKeySettings: 'LLM key settings',
+      closeAndSeeLogs: 'Close and see the logs',
+      notRun: 'Not run',
+      notRunLine: 'Not run because an earlier scenario stopped on a model API error.',
+      restNotRun: (count: number) => `The same error would repeat, so the remaining ${count} scenarios did not run.`,
+    },
     scenario: (n: number) => `Scenario ${n}`,
     openTry: 'Open',
     cancel: 'Cancel run',
@@ -698,6 +731,7 @@ export const qaKo: Localized<typeof qaEn> = {
     COMPLETED: '완료',
     FAILED: '실패',
     CANCELLED: '취소됨',
+    UNDECIDED: '미판정',
   },
   panel: {
     advanced: {
@@ -1082,6 +1116,36 @@ export const qaKo: Localized<typeof qaEn> = {
     title: 'QA 실행',
     subtitle: '런의 시나리오를 순서대로 실행합니다.',
     progress: (done: number, total: number) => `시나리오 ${done} / ${total} 완료`,
+    progressStopped: (ran: number, total: number, notRun: number) =>
+      `시나리오 ${ran} / ${total} 실행 · ${notRun}개 실행 안 함`,
+    stop: {
+      dialogTitle: '모델 API 오류로 QA 를 멈췄습니다',
+      cause: (code: string) => {
+        if (code === 'llm_credit_exhausted') return 'API 토큰이 부족합니다'
+        if (code === 'llm_auth_failed') return 'API 키가 거부되었습니다'
+        if (code === 'llm_model_unavailable') return '이 모델을 쓸 수 없습니다'
+        return '모델 API 가 요청을 거절했습니다'
+      },
+      short: (code: string) => {
+        if (code === 'llm_credit_exhausted') return 'API 토큰 부족으로 멈춤'
+        if (code === 'llm_auth_failed') return 'API 키 오류로 멈춤'
+        if (code === 'llm_model_unavailable') return '쓸 수 없는 모델이라 멈춤'
+        return '모델 API 오류로 멈춤'
+      },
+      flowTitle: (code: string) => {
+        const kind = code === 'llm_credit_exhausted' ? 'API 토큰 부족' : code === 'llm_auth_failed' ? 'API 키 거부' : code === 'llm_model_unavailable' ? '모델 없음' : '오류'
+        return `모델 API 오류 · ${kind}`
+      },
+      notJudged: '게임을 검증한 결과가 아니라서 미판정입니다.',
+      discarded: '판정한 시나리오가 없어 이 실행은 QA 히스토리에 남지 않습니다.',
+      kept: '오류 전에 판정한 시나리오는 QA 히스토리에 남습니다.',
+      retryOtherModel: '다른 모델로 다시 실행',
+      llmKeySettings: 'LLM 키 설정',
+      closeAndSeeLogs: '닫고 로그 보기',
+      notRun: '실행 안 함',
+      notRunLine: '앞 시나리오가 모델 API 오류로 멈춰 실행하지 않았습니다.',
+      restNotRun: (count: number) => `다시 해도 같은 오류라 남은 시나리오 ${count}개는 실행하지 않았습니다.`,
+    },
     scenario: (n: number) => `시나리오 ${n}`,
     openTry: '열기',
     cancel: '런 종료',

@@ -1276,6 +1276,53 @@ h1 {
   font-size: 13px;
 }
 
+/* 모델 API 오류로 멈춘 QA 의 창(ARTEL-1372, 시안 안 2). 뒤의 런 화면은 흐려 두고 창은 가운데 정렬이다. */
+.dialog-scrim:has(.qa-stop) {
+  backdrop-filter: blur(5px);
+}
+
+.dialog-panel:has(.qa-stop) {
+  width: min(100%, 480px);
+  border-color: var(--color-status-critical);
+  text-align: center;
+}
+
+.qa-stop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.qa-stop .dialog-copy {
+  line-height: 1.6;
+}
+
+.qa-stop-art {
+  margin-bottom: var(--space-3);
+}
+
+.qa-stop-art-shadow { fill: var(--color-overlay-scrim); opacity: 0.5; }
+.qa-stop-art-top { fill: var(--color-bg-hover); stroke: var(--color-border-strong); stroke-width: 1; stroke-linejoin: round; }
+.qa-stop-art-left { fill: var(--color-bg-surface); stroke: var(--color-border-strong); stroke-width: 1; stroke-linejoin: round; }
+.qa-stop-art-right { fill: var(--color-bg-canvas); stroke: var(--color-border-strong); stroke-width: 1; stroke-linejoin: round; }
+.qa-stop-art-hole { fill: var(--color-status-critical-muted); stroke: var(--color-status-critical); stroke-width: 1; stroke-dasharray: 3 2; }
+.qa-stop-art-chip-top { fill: var(--color-status-critical); }
+.qa-stop-art-chip-side { fill: var(--color-status-critical-strong); }
+.qa-stop-art-chip-face { fill: color-mix(in srgb, var(--color-status-critical) 80%, var(--color-bg-canvas)); }
+.qa-stop-art-spark { fill: none; stroke: var(--color-status-critical); stroke-width: 2; stroke-linecap: round; }
+
+.qa-stop-cause {
+  margin: 0 0 var(--space-2);
+  color: var(--color-status-critical);
+  font-weight: 600;
+}
+
+
+.qa-stop-actions {
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -2393,6 +2440,11 @@ a.instance-name:hover {
   color: var(--color-status-warning);
 }
 
+/* 미판정(ARTEL-1372): 실패도 통과도 아니라서 중립색이다. */
+.qa-status--undecided {
+  color: var(--color-text-secondary);
+}
+
 .sr-status {
   position: absolute;
   width: 1px;
@@ -2733,6 +2785,24 @@ a.instance-name:hover {
 .qa-flow-dot--blocked {
   background: var(--color-status-warning);
 }
+
+.qa-flow-dot--stop {
+  background: var(--color-status-critical);
+}
+
+.qa-flow-stop-title {
+  display: block;
+}
+
+.qa-flow-stop--stop .qa-flow-stop-title {
+  color: var(--color-status-critical);
+  font-weight: 600;
+}
+
+.qa-flow-stop--thought .qa-flow-stop-title {
+  color: var(--color-text-secondary);
+}
+
 
 .qa-flow-link {
   position: absolute;
@@ -5163,6 +5233,7 @@ a.instance-name:hover {
 .qa-run-status--completed{ background:var(--st-verified,#2e9e6b); color:#fff; }
 .qa-run-status--failed{ background:var(--color-status-danger,#d64545); color:#fff; }
 .qa-run-status--cancelled{ background:var(--color-text-muted,#888); color:#fff; }
+.qa-run-status--undecided{ background:transparent; color:var(--color-text-secondary); box-shadow:inset 0 0 0 1px var(--color-border-strong); }
 
 /* Step→TC 내용 모달 + 클릭 배지 (ARTEL-289 #3) */
 .scenario-studio .st-tc-badge--btn{ cursor:pointer; border:none; }
@@ -5298,6 +5369,10 @@ a.instance-name:hover {
 .qa-rail-dot--failed{ background:var(--color-status-critical,#d64545); }
 .qa-rail-dot--cancelled{ background:var(--color-text-muted); }
 .qa-rail-dot--pending{ background:transparent; border:1.5px solid var(--color-border-strong); }
+.qa-rail-dot--undecided{ background:var(--color-text-secondary); }
+/* 모델 API 오류로 멈춘 까닭과 돌지 않은 시나리오(ARTEL-1372). 까닭 줄은 제목 칸 아래에 붙는다. */
+.qa-rail-reason{ grid-column:3 / -1; font-size:11px; color:var(--color-status-critical); overflow-wrap:anywhere; }
+.qa-rail-not-run{ font-size:11px; color:var(--color-text-muted); white-space:nowrap; }
 .qa-rail-item .qa-run-status{ font-size:10px; }
 
 /* 포커스 영역: 중앙(게임+타임라인) | 우측(로그) */

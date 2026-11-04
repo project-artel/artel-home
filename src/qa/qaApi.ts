@@ -25,6 +25,7 @@ import {
   type QaReasoningSelection,
   type QaRun,
   type QaTry,
+  type QaStop,
   type QaTryStatus,
 } from './qaTypes'
 import type { QaArchRequest } from './qaArch'
@@ -79,6 +80,18 @@ export function parseQaTry(data: unknown, status = 200): QaTry {
     startedAt: asNullableString(record.startedAt),
     completedAt: asNullableString(record.completedAt),
     qaRunId: optionalId(record.qaRunId),
+    stop: parseStop(record.stop),
+  }
+}
+
+/** 까닭은 `code` 가 있을 때만 읽는다. 옛 서버는 이 필드를 보내지 않는다. */
+export function parseStop(data: unknown): QaStop | null {
+  const record = asRecord(data)
+  if (record === null || typeof record.code !== 'string' || record.code === '') return null
+  return {
+    code: record.code,
+    provider: asNullableString(record.provider),
+    message: asNullableString(record.message),
   }
 }
 
@@ -173,6 +186,8 @@ export function parseQaRun(data: unknown, status = 200): QaRun {
     completedAt: asNullableString(record.completedAt),
     tries,
     testRunGameBuildId: asNullableString(record.testRunGameBuildId),
+    stop: parseStop(record.stop),
+    discarded: record.discarded === true,
   }
 }
 
