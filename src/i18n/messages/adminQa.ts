@@ -93,7 +93,7 @@ export const adminQaEn = {
     axis: 'Axis',
     verdictCoverage: 'Verdict coverage',
     stepPassRate: 'Step pass rate',
-    casePassRate: 'TC pass rate',
+    casePassRate: 'Test Case pass rate',
     scoreCoverage: 'Grading coverage',
     missRate: 'Miss rate',
     falseAlarmRate: 'False alarm rate',
@@ -105,7 +105,7 @@ export const adminQaEn = {
     stepDetail: (passed: number, steps: number, runs: number) =>
       `Passed ${passed} / steps ${steps} · ${runs} runs`,
     caseDetail: (passed: number, cases: number, runs: number) =>
-      `Passed ${passed} / TC ${cases} · ${runs} runs`,
+      `Passed ${passed} / Test Case ${cases} · ${runs} runs`,
     missDetail: (miss: number, expectedFail: number) =>
       `Misses ${miss} / expected to fail ${expectedFail}`,
     falseAlarmDetail: (falseAlarm: number, expectedPass: number) =>
@@ -227,8 +227,8 @@ export const adminQaKo: Localized<typeof adminQaEn> = {
       `진행 중 ${active} · 취소 ${cancelled}`,
     completionRate: '완주율',
     completedFailed: (completed: string, failed: string) => `완주 ${completed} · 실패 ${failed}`,
-    stepPassRate: '스텝 합격률',
-    stepPassDetail: (passed: number, total: number) => `통과 ${passed} / 스텝 ${total}`,
+    stepPassRate: '단계 합격률',
+    stepPassDetail: (passed: number, total: number) => `통과 ${passed} / 단계 ${total}`,
     verdictCoverage: (coverage: string, known: string, runs: string) =>
       `판정 커버리지 ${coverage} · 런 ${known}/${runs}`,
     missFalseAlarm: '미탐 / 오탐',
@@ -251,20 +251,20 @@ export const adminQaKo: Localized<typeof adminQaEn> = {
     note: '합격률은 에이전트의 자기채점. 미탐·오탐은 사람이 단 기대 라벨과 대조한 결과',
     axis: '축',
     verdictCoverage: '판정 커버리지',
-    stepPassRate: '스텝 합격률',
-    casePassRate: 'TC 합격률',
+    stepPassRate: '단계 합격률',
+    casePassRate: 'Test Case 합격률',
     scoreCoverage: '채점 커버리지',
     missRate: '미탐률',
     falseAlarmRate: '오탐률',
     unreportedRate: '미보고율',
     footnote:
-      '미탐은 **실패해야 하는 스텝을 통과라 보고한 것**이라 못 찾은 버그가 되고, 오탐은 그 반대다. 두 비율의 분모가 서로 다르다(각각 실패 기대 스텝 수, 통과 기대 스텝 수). 판정이 오지 않은 스텝은 어느 쪽에도 들지 않고 미보고율이 따로 진다.',
+      '미탐은 **실패해야 하는 단계를 통과라 보고한 것**이라 못 찾은 버그가 되고, 오탐은 그 반대다. 두 비율의 분모가 서로 다르다(각각 실패 기대 단계 수, 통과 기대 단계 수). 판정이 오지 않은 단계는 어느 쪽에도 들지 않고 미보고율이 따로 진다.',
     noVerdict: '판정 없음',
     noGrading: '채점 없음',
     stepDetail: (passed: number, steps: number, runs: number) =>
-      `통과 ${passed} / 스텝 ${steps} · 런 ${runs}건`,
+      `통과 ${passed} / 단계 ${steps} · 런 ${runs}건`,
     caseDetail: (passed: number, cases: number, runs: number) =>
-      `통과 ${passed} / TC ${cases} · 런 ${runs}건`,
+      `통과 ${passed} / Test Case ${cases} · 런 ${runs}건`,
     missDetail: (miss: number, expectedFail: number) =>
       `미탐 ${miss} / 실패 기대 ${expectedFail}`,
     falseAlarmDetail: (falseAlarm: number, expectedPass: number) =>
@@ -288,12 +288,12 @@ export const adminQaKo: Localized<typeof adminQaEn> = {
         note: '칸은 런 수와 완주율. 완주는 QA 통과가 아니라 런이 끝까지 돌았다는 뜻',
       },
       stepPass: {
-        label: '스텝 합격률',
-        note: '칸은 런 수, 자기채점 스텝 합격률, 그 비율이 얹힌 판정 커버리지',
+        label: '단계 합격률',
+        note: '칸은 런 수, 자기채점 단계 합격률, 그 비율이 얹힌 판정 커버리지',
       },
       miss: {
         label: '미탐률',
-        note: '칸은 런 수, 실패 기대 스텝 중 통과라 보고한 비율, 그 비율이 얹힌 채점 커버리지',
+        note: '칸은 런 수, 실패 기대 단계 중 통과라 보고한 비율, 그 비율이 얹힌 채점 커버리지',
       },
     },
     caption: (row: string, column: string, metric: string) =>

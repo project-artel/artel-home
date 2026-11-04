@@ -1,3 +1,4 @@
+import { gameIdentitiesEn, gameIdentitiesKo } from './messages/gameIdentities'
 import { discussionsEn, discussionsKo } from './messages/discussions'
 import { accountEn, accountKo } from './messages/account'
 import { adminEn, adminKo } from './messages/admin'
@@ -52,6 +53,7 @@ export const messages = {
     gameBuilds: gameBuildsEn,
     dashboard: dashboardEn,
     gameFunctions: gameFunctionsEn,
+    gameIdentities: gameIdentitiesEn,
     issues: issuesEn,
     discussions: discussionsEn,
     knowledge: knowledgeEn,
@@ -80,6 +82,7 @@ export const messages = {
     gameBuilds: gameBuildsKo,
     dashboard: dashboardKo,
     gameFunctions: gameFunctionsKo,
+    gameIdentities: gameIdentitiesKo,
     issues: issuesKo,
     discussions: discussionsKo,
     knowledge: knowledgeKo,

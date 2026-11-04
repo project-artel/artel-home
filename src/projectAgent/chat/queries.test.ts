@@ -66,7 +66,10 @@ test('trimQaRun trims scenarios to 20 rows', () => {
       startedAt: null,
       completedAt: null,
       qaRunId: '55',
+      stop: null,
     })),
+    stop: null,
+    discarded: false,
   }
   const trimmed = trimQaRun(run)
   assert.equal(trimmed.scenarios.rows.length, 20)
@@ -154,6 +157,7 @@ test('trimQaTryHistory groups tries by QA run and marks a run failed when any tr
     startedAt: '2026-10-20T00:00:00Z',
     completedAt: null,
     qaRunId,
+    stop: null,
   })
   const result = trimQaTryHistory([qaTry('1', '55', 'COMPLETED'), qaTry('2', '55', 'FAILED'), qaTry('3', null, 'COMPLETED')])
   assert.deepEqual(

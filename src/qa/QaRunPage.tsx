@@ -23,10 +23,13 @@ import { QaFocusStage } from './QaFocusStage'
 import { QaRunFunctionOptions } from './QaFunctionOptionsSummary'
 import { QaLogTimeline, type QaLogFocusRequest } from './QaLogTimeline'
 import { filterFlowLogs } from './qaFlow'
+import { QaRunStopDialog } from './QaRunStopDialog'
 import { QaScenarioRail, type QaScenarioRailProps } from './QaScenarioRail'
+import { notStartedCount, stopLinesOf, stopNoticeOf, type QaStopNotice } from './qaStop'
 import { deriveCaseVerdicts, deriveQaContextUsage, deriveQaProgress, isQaContextLog } from './qaProgress'
 import { deriveQaCaseReports } from './qaCaseProgress'
-import { isTerminalQaStatus, type QaLog, type QaRun, type QaTry } from './qaTypes'
+import { isTerminalQaStatus, QA_STOP_NOT_STARTED, type QaLog, type QaRun, type QaTry } from './qaTypes'
+
 import { useQaTry } from './useQaTry'
 import { useScenarioSteps } from './useScenarioSteps'
 import { QaRawLogControls } from './QaRawLogControls'
@@ -120,6 +123,14 @@ function QaRunPage({
   const consoleRoot = useRef<HTMLElement>(null)
   const cancelButton = useRef<HTMLButtonElement>(null)
   const performanceLink = useRef<HTMLAnchorElement>(null)
+  // 모델 API 오류로 멈춘 까닭(ARTEL-1372). 오류 프레임은 SSE 로 먼저 오고 런 조회는 다음 폴링에 오므로, 프레임이
+  // 오는 순간 창을 띄우고 런을 곧바로 다시 읽는다. 사용자가 닫으면 이 화면에서는 다시 띄우지 않는다.
+  const [liveStop, setLiveStop] = useState<QaStopNotice | null>(null)
+  const [stopDismissed, setStopDismissed] = useState(false)
+  const onStopSeen = useCallback((notice: QaStopNotice) => {
+    setLiveStop((current) => current ?? notice)
+    refresh.current()
+  }, [])
 
   useEffect(() => {
     stop.current = false
@@ -192,9 +203,12 @@ function QaRunPage({
   // Auto-advance: follow the active scenario unless the operator has pinned one.
   const activeTryId = run?.tries.find((entry) => !isTerminalQaStatus(entry.status))?.id ?? null
   const lastTryId = run?.tries.at(-1)?.id ?? null
+  // 모델 API 오류로 멈춘 런은 마지막 시나리오가 아니라 멈춘 시나리오를 보인다(ARTEL-1372). 뒤는 모두 실행 안 함이라
+  // 볼 것이 없고, 오류 원문도 멈춘 시나리오의 로그에만 있다.
+  const stoppedTryId = run?.tries.find((entry) => entry.stop !== null && entry.stop.code !== QA_STOP_NOT_STARTED)?.id ?? null
   const [following, setFollowing] = useState(initialTryId === null)
   const [pinnedTryId, setPinnedTryId] = useState<string | null>(initialTryId)
-  const focusedTryId = following ? (activeTryId ?? lastTryId) : pinnedTryId
+  const focusedTryId = following ? (activeTryId ?? stoppedTryId ?? lastTryId) : pinnedTryId
   // A scenario's steps are shown while it is focused, unless the operator folded
   // it, and stay shown after focus moves on only if the operator opened them.
   // Entering a scenario always unfolds it, which is why focusing drops its entry.
@@ -266,6 +280,8 @@ function QaRunPage({
 
   const done = run.tries.filter((entry) => isTerminalQaStatus(entry.status)).length
   const active = !isTerminalQaStatus(run.status)
+  const stopNotice = stopNoticeOf(run, liveStop)
+  const notRun = notStartedCount(run)
   const focusedTry = run.tries.find((entry) => entry.id === focusedTryId) ?? null
 
   const scenarioTitle = scenarioTitleOf
@@ -291,7 +307,11 @@ function QaRunPage({
           <span className={`qa-run-status qa-run-status--${run.status.toLowerCase()}`}>
             {t.qa.statusLabels[run.status]}
           </span>
-          <span className="qa-console-progress">{t.qa.run.progress(done, run.tries.length)}</span>
+          <span className="qa-console-progress">
+            {notRun > 0
+              ? t.qa.run.progressStopped(run.tries.length - notRun, run.tries.length, notRun)
+              : t.qa.run.progress(done, run.tries.length)}
+          </span>
         </div>
         <div className="qa-console-top-actions">
           <Link
@@ -319,7 +339,8 @@ function QaRunPage({
       </header>
 
       {focusedTry !== null ? (
-        <FocusedTry key={focusedTry.id} qaRun={run} rail={rail} tryId={focusedTry.id} timelineHost={timelineHost} />
+        <FocusedTry key={focusedTry.id} onStopSeen={onStopSeen} qaRun={run} rail={rail} tryId={focusedTry.id} timelineHost={timelineHost} />
+
       ) : (
         <div className="qa-console-grid">
           <QaScenarioRail {...rail} focused={null} />
@@ -327,6 +348,16 @@ function QaRunPage({
         </div>
       )}
       <div className="qa-replay-timeline-host" ref={setTimelineHost} />
+
+      {stopNotice !== null && !stopDismissed && (
+        <QaRunStopDialog
+          discarded={run.discarded}
+          notice={stopNotice}
+          onClose={() => setStopDismissed(true)}
+          relaunchTo={`${projectLink(projectId)}/qa?run=${encodeURIComponent(run.testRunId)}`}
+        />
+      )}
+
     </section>
   )
 }
@@ -341,7 +372,20 @@ function QaRunPage({
  * own state (which scenarios are unfolded) lives in the parent, so remounting
  * here on a scenario change does not reset it.
  */
-function FocusedTry({ qaRun, rail, tryId, timelineHost }: { qaRun: QaRun; rail: QaScenarioRailProps; tryId: string; timelineHost: HTMLDivElement | null }) {
+function FocusedTry({
+  onStopSeen,
+  timelineHost,
+  qaRun,
+  rail,
+  tryId,
+}: {
+  timelineHost: HTMLDivElement | null
+  onStopSeen: (notice: QaStopNotice) => void
+  qaRun: QaRun
+  rail: QaScenarioRailProps
+  tryId: string
+}) {
+
   const { t } = useI18n()
   const session = useQaTry(tryId)
   const { steps: scenarioSteps, executionMode } = useScenarioSteps(session.qaTry?.testScenarioId ?? null)
@@ -376,6 +420,12 @@ function FocusedTry({ qaRun, rail, tryId, timelineHost }: { qaRun: QaRun; rail: 
   const contextUsage = useMemo(() => deriveQaContextUsage(historicalLogs), [historicalLogs])
   const caseVerdicts = useMemo(() => deriveCaseVerdicts(session.verdictLogs), [session.verdictLogs])
   const caseReports = useMemo(() => deriveQaCaseReports(session.verdictLogs), [session.verdictLogs])
+  const stopLines = useMemo(() => stopLinesOf(session.logs), [session.logs])
+  const stopError = stopLines.find((line) => line.kind === 'error')
+  useEffect(() => {
+    if (stopError === undefined || stopError.kind !== 'error') return
+    onStopSeen({ code: stopError.code })
+  }, [onStopSeen, stopError])
 
   useActionBinding(QA_RUN_SWITCH_LOG_VIEW_ACTION, {
     target: () => logTabs.current,
@@ -530,6 +580,8 @@ function FocusedTry({ qaRun, rail, tryId, timelineHost }: { qaRun: QaRun; rail: 
               <section className="qa-focus-game" aria-label={active ? t.qa.run.liveGame : t.qa.run.endedGame}>
                 {active ? (
                   <GameStreamView instanceId={session.qaTry.gameInstanceId} />
+                ) : session.qaTry.stop?.code === QA_STOP_NOT_STARTED ? (
+                  <p className="panel-empty">{t.qa.run.stop.notRunLine}</p>
                 ) : (
                   <QaReplay projectId={rail.projectId} qaTry={session.qaTry} onPosition={onReplayPosition} timelineHost={timelineHost} />
                 )}
@@ -589,6 +641,8 @@ function FocusedTry({ qaRun, rail, tryId, timelineHost }: { qaRun: QaRun; rail: 
                 logs={shownLogs}
                 onFocusResolved={clearFocusRequest}
                 scenarioSteps={scenarioSteps}
+                stopLines={stopLines}
+                restNotRun={stopError === undefined ? 0 : notStartedCount(qaRun)}
               />
             )}
           </div>

@@ -102,6 +102,9 @@ check(await page.locator('.qa-timeline-chart').count()===1,'접힌 타임라인�
  await page.getByText('needle-live arrives',{exact:true}).waitFor();check(true,'QA 진행 중 SSE 로그 필터 적용');
  await page.evaluate(()=>window.emitQaLog({id:'11',qaTryId:'6',type:'LOG',direction:'ORCHE_INTERNAL',message:'hidden live log',payload:null,createdAt:'2026-11-04T00:00:11Z'}));
  check(!await page.getByText('hidden live log',{exact:true}).count(),'실시간 불일치 로그 숨김');
+ await page.goto(base+'?not-started');await page.getByText('앞 시나리오가 모델 API 오류로 멈춰 실행하지 않았습니다.',{exact:true}).waitFor();
+ check(!await page.locator('video').count() && !await page.locator('.qa-execution-timeline').count(),'실행 안 한 시나리오는 공유 녹화를 표시하지 않음');
+ await page.screenshot({path:'.plan/assets/qa-replay/not-started.png',fullPage:true});
  check(errors.length===0,'브라우저 pageerror 없음');console.log(JSON.stringify({checks,errors}));
  }finally{await browser.close()}
 })().catch(e=>{console.error(e);process.exit(1)});

@@ -590,7 +590,7 @@ export const projectsEn = {
     expandNav: 'Expand the section rail',
     allProjects: 'All projects',
     seeAll: 'See all →',
-    recentQa: 'Recent QA runs',
+    recentQa: 'Recent QA',
     noOpenIssues: 'Nothing unresolved.',
     noBuilds: 'No build has reported in yet.',
     noInstances: 'No game instance is connected.',
@@ -599,17 +599,18 @@ export const projectsEn = {
     generalTitle: 'General',
     dangerTitle: 'Danger zone',
     dangerCopy:
-      'Deleting a project removes its test runs, QA history, and issues. This cannot be undone.',
-    navGroups: { cases: 'Cases', qa: 'QA', data: 'Project data', management: 'Management' },
+      'Deleting a project removes its test runs, QA run history, and issues. This cannot be undone.',
+    navGroups: { cases: 'Test Cases', qa: 'QA', data: 'Project data', management: 'Management' },
     nav: {
       dashboard: 'Dashboard',
       chat: 'Chat',
       documents: 'Planning document',
-      testCases: 'Case library',
+      testCases: 'Test Cases',
       testRuns: 'Test runs',
       qa: 'Run QA',
-      qaHistory: 'QA history',
+      qaHistory: 'QA run history',
       gameBuilds: 'Game builds',
+      gameIdentities: 'Variable metadata',
       contentMap: 'Screen map',
       macros: 'Macros',
       performance: 'Performance',
@@ -629,20 +630,20 @@ export const projectsEn = {
       allClear: 'All clear',
       connected: (connected: number, total: number) => `${connected} of ${total} connected`,
       /** The authoring axis: how many cases some scenario reaches. */
-      coverage: 'Case coverage',
+      coverage: 'Test coverage',
       coverageOf: (authored: number, total: number) => `${authored} of ${total} in a scenario`,
       uncoveredLeft: (count: number) => `${count} not covered yet`,
-      allCovered: 'Every case is covered',
-      noCases: 'No cases yet',
+      allCovered: 'Every Test Case is covered',
+      noCases: 'No Test Cases yet',
     },
     /**
      * The uncovered panel. Scenes rather than ids: a case number is not something
      * the user knows, and it is not shown anywhere else either.
      */
     uncovered: {
-      title: 'Cases no scenario reaches',
-      empty: 'Every case is carried by some scenario.',
-      sceneCount: (count: number) => `${count} cases`,
+      title: 'Test Cases no scenario reaches',
+      empty: 'Every Test Case is carried by some scenario.',
+      sceneCount: (count: number) => `${count} Test Cases`,
       /** Fills the composer rather than sending — the proposal is the user's to edit. */
       draftRequest: 'Write a scenario for these',
       /** The post-turn suggestion chip. Names the gap so the offer is concrete. */
@@ -653,13 +654,13 @@ export const projectsEn = {
        * 라벨만으로는 무엇을 세는지 갈리지 않으므로, 도움말이 그 선을 그어 준다.
        */
       remainingHelp:
-        "Cases in this project that no scenario covers — including scenarios in other runs. Not limited to the run you are editing.",
+        "Test Cases in this project that no scenario covers — including scenarios in other runs. Not limited to the run you are editing.",
       /** The other chip: asks rather than tells. Lands on the agent's coverage tool. */
       requestFor: (scene: string, count: number) =>
-        `Write a scenario covering the ${count} cases still uncovered in ${scene}.`,
+        `Write a scenario covering the ${count} Test Cases still uncovered in ${scene}.`,
       /** The verification axis, kept beside the authoring one rather than merged. */
       verification: (verified: number, draft: number, broken: number) =>
-        `${verified} verified · ${draft} not run · ${broken} broken`,
+        `${verified} verified · ${draft} not run · ${broken} source missing`,
     },
   },
 } as const
@@ -1199,7 +1200,7 @@ export const projectsKo: Localized<typeof projectsEn> = {
     expandNav: '섹션 레일 펼치기',
     allProjects: '전체 프로젝트',
     seeAll: '전체 보기 →',
-    recentQa: '최근 QA 실행',
+    recentQa: '최근 QA',
     noOpenIssues: '미해결 이슈가 없습니다.',
     noBuilds: '아직 보고된 빌드가 없습니다.',
     noInstances: '연결된 게임 인스턴스가 없습니다.',
@@ -1207,17 +1208,18 @@ export const projectsKo: Localized<typeof projectsEn> = {
     reviewToc: '검토',
     generalTitle: '일반',
     dangerTitle: '위험 구역',
-    dangerCopy: '프로젝트를 삭제하면 테스트 런, QA 기록, 이슈가 모두 사라집니다. 되돌릴 수 없습니다.',
-    navGroups: { cases: '케이스', qa: 'QA', data: '프로젝트 데이터', management: '관리' },
+    dangerCopy: '프로젝트를 삭제하면 테스트 런, QA 실행 기록, 이슈가 모두 사라집니다. 되돌릴 수 없습니다.',
+    navGroups: { cases: 'Test Case', qa: 'QA', data: '프로젝트 데이터', management: '관리' },
     nav: {
       dashboard: '대시보드',
       chat: '챗',
       documents: '기획 문서',
-      testCases: '케이스 라이브러리',
+      testCases: 'Test Cases',
       testRuns: '테스트 런',
       qa: 'QA 실행',
-      qaHistory: 'QA 히스토리',
+      qaHistory: 'QA 실행 기록',
       gameBuilds: '게임 빌드',
+      gameIdentities: '변수 메타데이터',
       contentMap: '화면 지도',
       macros: 'Macro',
       performance: '성능',
@@ -1236,24 +1238,24 @@ export const projectsKo: Localized<typeof projectsEn> = {
       noFailures: '실패 없음',
       allClear: '모두 처리됨',
       connected: (connected: number, total: number) => `${total}개 중 ${connected}개 연결됨`,
-      coverage: '케이스 커버리지',
+      coverage: '테스트 커버리지',
       coverageOf: (authored: number, total: number) => `${total}건 중 ${authored}건이 시나리오에 있음`,
       uncoveredLeft: (count: number) => `${count}건이 아직 안 담김`,
-      allCovered: '모든 케이스가 담겼습니다',
-      noCases: '케이스가 아직 없습니다',
+      allCovered: '모든 Test Case가 담겼습니다',
+      noCases: 'Test Case가 아직 없습니다',
     },
     uncovered: {
-      title: '어떤 시나리오에도 담기지 않은 케이스',
-      empty: '모든 케이스가 어떤 시나리오엔가 담겨 있습니다.',
+      title: '어떤 시나리오에도 담기지 않은 Test Case',
+      empty: '모든 Test Case가 어떤 시나리오엔가 담겨 있습니다.',
       sceneCount: (count: number) => `${count}건`,
-      draftRequest: '이 케이스로 시나리오 만들기',
+      draftRequest: '이 Test Case로 시나리오 만들기',
       remainingLabel: '프로젝트 미커버',
       remainingHelp:
-        '이 프로젝트의 케이스 중 어떤 시나리오에도 담기지 않은 수입니다. 다른 런에 담긴 것도 담긴 것으로 세므로, 지금 편집 중인 런에 한정된 수가 아닙니다.',
+        '이 프로젝트의 Test Case 중 어떤 시나리오에도 담기지 않은 수입니다. 다른 런에 담긴 것도 담긴 것으로 세므로, 지금 편집 중인 런에 한정된 수가 아닙니다.',
       requestFor: (scene: string, count: number) =>
         `${scene}에서 아직 시나리오에 담기지 않은 ${count}건을 검증하는 시나리오를 만들어줘.`,
       verification: (verified: number, draft: number, broken: number) =>
-        `검증됨 ${verified} · 미실행 ${draft} · 깨짐 ${broken}`,
+        `검증됨 ${verified} · 미실행 ${draft} · 원본 누락 ${broken}`,
     },
   },
 }

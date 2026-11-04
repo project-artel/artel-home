@@ -37,7 +37,7 @@ export const DOCUMENTS_DELETE_ACTION: ActionSpec = {
   page: 'documents',
   risk: 'approve',
   description:
-    'Permanently delete one uploaded planning document version, as the page does after its delete confirmation. Use it when the user asks to remove a document, for example one whose extraction failed. Content map scans and generated test cases built from it are not undone. Returns {deleted: true, documentId}.',
+    'Permanently delete one uploaded planning document version, as the page does after its delete confirmation. Use it when the user asks to remove a document, for example one whose extraction failed. Content map scans and generated Test Cases built from it are not undone. Returns {deleted: true, documentId}.',
   args: {
     type: 'object',
     properties: {

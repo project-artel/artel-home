@@ -56,8 +56,8 @@ test('deleteListed refuses more than 500 cases', () => {
 
 test('deleteListed needs approval and its summary states the count and the filter', () => {
   assert.equal(TEST_CASES_DELETE_LISTED_ACTION.risk, 'approve')
-  assert.equal(TEST_CASES_DELETE_LISTED_ACTION.summarize({ expectedCount: 35, filter: 'no version' }), "Delete 35 test cases in 'no version'")
-  assert.equal(TEST_CASES_DELETE_LISTED_ACTION.summarize({ expectedCount: 1 }), 'Delete 1 test case in the current list')
+  assert.equal(TEST_CASES_DELETE_LISTED_ACTION.summarize({ expectedCount: 35, filter: 'no version' }), "Delete 35 Test Cases in 'no version'")
+  assert.equal(TEST_CASES_DELETE_LISTED_ACTION.summarize({ expectedCount: 1 }), 'Delete 1 Test Case in the current list')
 })
 
 test('every action that takes an id has a read-only list of valid ids on the same page', () => {

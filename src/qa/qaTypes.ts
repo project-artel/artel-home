@@ -7,6 +7,9 @@ export const QA_TRY_STATUSES = [
   'COMPLETED',
   'FAILED',
   'CANCELLED',
+  // 게임을 검증하지 못하고 끝났다(ARTEL-1372). 모델 API 가 크레딧 · 인증 · 모델 오류로 거절해 QA 가 멈춘
+  // 시나리오와, 그 때문에 시작하지 못한 시나리오다. 실패가 아니다. 까닭은 `stop`.
+  'UNDECIDED',
 ] as const
 
 export type QaTryStatus = (typeof QA_TRY_STATUSES)[number]
@@ -62,7 +65,22 @@ export type QaTry = {
    * muted row instead of a link when this is `null`, never a dead link.
    */
   qaRunId: string | null
+  /** `status` 가 `UNDECIDED` 일 때 왜 판정하지 못했는가. 옛 서버나 다른 끝 상태면 null. */
+  stop: QaStop | null
 }
+
+/**
+ * 미판정으로 끝난 까닭(ARTEL-1371). `code` 는 `llm_credit_exhausted` · `llm_auth_failed` · `llm_model_unavailable`
+ * 이거나, 앞 시나리오가 멈춰 시작하지 못한 시나리오의 `not_started` 다.
+ */
+export type QaStop = {
+  code: string
+  /** `anthropic` · `openai` · `openrouter` · `bedrock`. 모르면 null. */
+  provider: string | null
+  message: string | null
+}
+
+export const QA_STOP_NOT_STARTED = 'not_started'
 
 /**
  * A QA_Run (TR 단위 실행): the run's scenarios run in order, each as its own
@@ -80,6 +98,10 @@ export type QaRun = {
   tries: QaTry[]
   /** 판정 기준이 된 케이스 내용의 버전 — TR 이 따르는 게임 빌드다(ARTEL-1070). TR 에 버전이 없으면 null — 최신이다. */
   testRunGameBuildId: string | null
+  /** QA 를 멈춘 모델 API 오류. 멈추지 않은 run 이나 옛 서버면 null. */
+  stop: QaStop | null
+  /** 판정 없이 오류로 끝나 버린 run 이다. 히스토리 · 알림함에는 나오지 않는다. */
+  discarded: boolean
 }
 
 export type QaReasoningCapability =
@@ -169,7 +191,7 @@ export type QaLogPage = {
 export type QaStreamState = 'connecting' | 'live' | 'degraded' | 'offline' | 'closed'
 
 export function isTerminalQaStatus(status: QaTryStatus): boolean {
-  return status === 'COMPLETED' || status === 'FAILED' || status === 'CANCELLED'
+  return status === 'COMPLETED' || status === 'FAILED' || status === 'CANCELLED' || status === 'UNDECIDED'
 }
 
 /**

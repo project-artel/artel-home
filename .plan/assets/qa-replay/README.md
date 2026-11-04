@@ -10,7 +10,7 @@
 
 ## 결과
 
-Chromium 화면 회귀 39개가 통과했습니다.
+Chromium 화면 회귀 40개가 통과했습니다.
 
 - 기존 영상 로드, TC 반복 시도와 시작 시각 없는 attempt 표시.
 - pulse 기본 제외·포함 전환, 메시지 필터·payload find와 Enter 이동.
@@ -26,7 +26,7 @@ Chromium 화면 회귀 39개가 통과했습니다.
 - 라이트·다크, 1440px·1024px·390px 화면과 가로 넘침 확인.
 - 녹화 API 오류·재시도와 보관 만료 안내, 브라우저 pageerror 없음.
 
-전체 테스트 1,626개, build, 변경 파일 ESLint와 diff-check도 통과했습니다. 전체 lint는 수정하지 않은 `authoringFrames.ts`, `useCaseListNav.ts`, `RunListPanel.tsx`, `RunNameCrumb.tsx`, `useStepEditor.ts`의 기존 오류 5개와 경고 3개로 실패합니다. build에는 기존 bundle 크기 경고가 남습니다.
+전체 테스트 1,635개, build, 변경 파일 ESLint와 diff-check도 통과했습니다. 전체 lint는 수정하지 않은 `authoringFrames.ts`, `useCaseListNav.ts`, `RunListPanel.tsx`, `RunNameCrumb.tsx`, `useStepEditor.ts`의 기존 오류 5개와 경고 3개로 실패합니다. build에는 기존 bundle 크기 경고가 남습니다.
 
 ## 캡처
 
@@ -42,3 +42,7 @@ Chromium 화면 회귀 39개가 통과했습니다.
 드래그 손잡이는 경계선의 얇은 선으로 표시하고 접기 버튼은 오른쪽 도구 모음에 둡니다. 영상 누락 구간 수는 표시하지 않으며 해당 시점을 선택하면 영상 영역에서 안내합니다.
 
 아래로 드래그하면 접히고 접힌 상태에서 위로 드래그하면 펼쳐집니다. 접힌 실행 바49px만큼 본문 공간을 확보하며, 추가로 펼쳐지는 영역은 overlay입니다. 브라우저에서 본문 하단과 접힌 bar 상단이 일치하는지 확인했습니다.
+
+2026-11-04 develop1418c7b 통합 후 전체 테스트1635개, Chromium40개, build와 충돌 해결 파일 ESLint를 다시 확인했습니다. 모델 API 오류 안내·실행 안 함 표시와 replay 기능을 함께 유지합니다.
+
+통합 시 추가된 not_started 시나리오는 녹화 player를 mount하지 않습니다. fixture에서 공유 run 녹화가 있더라도 video와 타임라인이 표시되지 않는 회귀를 추가했습니다. not-started.png는 이 상태입니다.

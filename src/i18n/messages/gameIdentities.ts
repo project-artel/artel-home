@@ -1,0 +1,46 @@
+import type { Localized } from '../messages'
+
+export const gameIdentitiesEn = {
+  title: 'Variable metadata', add: 'Register', edit: 'Edit', remove: 'Delete', restore: 'Register again',
+  save: 'Save', cancel: 'Cancel', retry: 'Retry', loading: 'Loading variable metadata…',
+  empty: 'No variable metadata is registered for this build.', failed: 'Variable metadata could not be loaded.',
+  saveFailed: 'The change could not be saved. Check the fields and try again.',
+  conflict: 'This variable’s metadata changed elsewhere. The list has been reloaded. Open it again to review and edit the latest content.',
+  alreadyExists: 'This name is registered for this build. Open Edit to change it.',
+  history: 'History', historyTitle: 'Project revision history', close: 'Close',
+  historyFailed: 'The revision history could not be loaded.', historyEmpty: 'No revisions recorded.',
+  historyHint: 'History includes all builds. Previous revisions are read-only.',
+  buildHint: 'Changes apply to this build. Existing QA snapshots keep their recorded declarations.',
+  deleted: 'Deleted', active: 'Active', source: 'Source', version: 'Version', build: 'Build',
+  createdBy: 'Created by', createdAt: 'Created', revision: 'Revision ID',
+  name: 'Name (Type.member)', kind: 'Kind', base: 'Ordinal base', noBase: 'Unspecified',
+  noBuilds: 'No game builds have been registered. Connect a game with the SDK first.',
+  openBuilds: 'View game builds', openBuild: 'View selected build',
+  buildNotFound: 'The selected build could not be found. Select another build.',
+  chooseLatestBuild: 'View the latest build', tableLabel: 'Variable metadata list', actions: 'Actions', status: 'Status',
+  meaning: 'Meaning', changesWhen: 'Changes when', identifies: 'Identifies', role: 'Role',
+  deleteConfirm: (name: string) => `Delete metadata for ${name} from this build? Its history will remain.`,
+} as const
+
+export const gameIdentitiesKo: Localized<typeof gameIdentitiesEn> = {
+  title: '변수 메타데이터', add: '등록', edit: '수정', remove: '삭제', restore: '다시 등록',
+  save: '저장', cancel: '취소', retry: '다시 시도', loading: '변수 메타데이터를 불러오는 중…',
+  empty: '이 빌드에 등록된 변수 메타데이터가 없습니다.', failed: '변수 메타데이터를 불러오지 못했습니다.',
+  saveFailed: '변경 사항을 저장하지 못했습니다. 입력 내용을 확인하고 다시 시도해 주세요.',
+  conflict: '다른 곳에서 변경된 항목입니다. 목록을 새로 불러왔습니다. 항목을 다시 열어 최신 내용을 확인하고 수정해 주세요.',
+  alreadyExists: '이 빌드에 등록된 이름입니다. 수정 버튼으로 항목을 열어 변경해 주세요.',
+  history: '이력', historyTitle: '프로젝트 revision 이력', close: '닫기',
+  historyFailed: 'Revision 이력을 불러오지 못했습니다.', historyEmpty: '기록된 revision이 없습니다.',
+  historyHint: '모든 빌드의 이력입니다. 이전 revision은 읽기 전용입니다.',
+  buildHint: '변경 사항은 이 빌드에 적용됩니다. 기존 QA snapshot에는 당시 선언이 유지됩니다.',
+  deleted: '삭제됨', active: '사용 중', source: '출처', version: 'Version', build: '빌드',
+  createdBy: '등록자', createdAt: '등록 시각', revision: 'Revision ID',
+  name: '이름 (Type.member)', kind: 'Kind', base: 'Ordinal 시작값', noBase: '지정 안 함',
+  noBuilds: '등록된 게임 빌드가 없습니다. SDK가 포함된 게임을 먼저 연결해 주세요.',
+  openBuilds: '게임 빌드 보기', openBuild: '선택한 빌드 보기',
+  buildNotFound: '선택한 빌드를 찾을 수 없습니다. 다른 빌드를 선택해 주세요.',
+  chooseLatestBuild: '최신 빌드 보기', tableLabel: '변수 메타데이터 목록', actions: '작업', status: '상태',
+  meaning: '의미', changesWhen: '값이 바뀌는 조건', identifies: '구분하는 대상', role: 'Role',
+  deleteConfirm: (name: string) => `이 빌드에서 ${name}의 메타데이터를 삭제하시겠습니까? 변경 이력은 유지됩니다.`,
+}
+

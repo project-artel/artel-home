@@ -23,6 +23,7 @@ function tryWith(status: QaTryStatus, id: string): QaTry {
     startedAt: null,
     completedAt: null,
     qaRunId: '55',
+    stop: null,
   }
 }
 
@@ -37,6 +38,8 @@ function runWith(status: QaTryStatus, tries: QaTryStatus[]): QaRun {
     startedAt: null,
     completedAt: null,
     tries: tries.map((one, index) => tryWith(one, String(index))),
+    stop: null,
+    discarded: false,
   }
 }
 
@@ -121,7 +124,7 @@ test('with test case generation the job waits until generation ends', () => {
   const generated = scan({ state: 'SUCCEEDED', ingestedDocuments: 31, testCases: { state: 'GENERATED', created: 120, carriedOver: 8, reason: null } })
   const done = translateScan(generated, '7', STARTED, copy)
   assert.equal(done.state, 'finished')
-  assert.equal(done.detail, 'The scan of build 7 finished with 31 documents, and 120 test cases were created (8 carried over).')
+  assert.equal(done.detail, 'The scan of build 7 finished with 31 documents, and 120 Test Cases were created (8 carried over).')
   assert.equal(done.data?.created, 120)
 })
 

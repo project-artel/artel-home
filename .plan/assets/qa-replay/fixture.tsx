@@ -9,7 +9,8 @@ import '../../../src/App.css'
 
 const at = (seconds: number) => new Date(Date.UTC(2026,10,4) + seconds * 1000).toISOString()
 const live = new URLSearchParams(location.search).has('live')
-const qaTry = {id:'6',testScenarioId:'7',gameInstanceId:'3',agentSessionId:null,status:live?'RUNNING':'COMPLETED',startedAt:at(0),completedAt:at(8),qaRunId:'2'}
+const notStarted = new URLSearchParams(location.search).has('not-started')
+const qaTry = {id:'6',testScenarioId:'7',gameInstanceId:'3',agentSessionId:null,status:notStarted?'UNDECIDED':live?'RUNNING':'COMPLETED',stop:notStarted?{code:'not_started',provider:null,message:null}:null,startedAt:notStarted?null:at(0),completedAt:at(8),qaRunId:'2'}
 const sources: EventTarget[] = []
 if (live) {
   class FixtureEvents extends EventTarget { readyState=1; constructor(){super();sources.push(this)} close(){this.readyState=2} }

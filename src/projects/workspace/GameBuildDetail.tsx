@@ -1,3 +1,4 @@
+import { GameIdentityPanel } from '../GameIdentityPanel'
 import { buildEnvironment } from '../buildEnvironment'
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -165,6 +166,8 @@ export function GameBuildDetail({
           </Link>
         </nav>
       </section>
+
+      <GameIdentityPanel key={`${projectId}/${buildId}`} projectId={projectId} buildId={buildId} />
 
       <div className="gb-detail-columns">
         <section className="panel gb-catalog">

@@ -21,6 +21,7 @@ import {
   type TimelineRow,
 } from './qaLogGrouping'
 import { buildFreeFlow, buildFlowSteps, objectNamesOf, type FlowAction, type FlowLine, type FlowStep } from './qaFlow'
+import type { QaStopLine } from './qaStop'
 import { stepOf } from './qaProgress'
 import type { QaLog } from './qaTypes'
 import { qaLogMessage } from './qaLogMessage'
@@ -166,13 +167,43 @@ function QaFoldedEvent({
 }
 
 /** 덩어리 왼쪽의 원 하나. 생각과 행동을 눈으로 가른다. */
-function QaFlowDot({ kind, last }: { kind: FlowLine['kind'] | 'blocked' | 'verdict'; last: boolean }) {
+function QaFlowDot({ kind, last }: { kind: FlowLine['kind'] | 'blocked' | 'verdict' | 'stop'; last: boolean }) {
   return (
     <span aria-hidden="true" className="qa-flow-rail">
       <span className={`qa-flow-dot qa-flow-dot--${kind}`} />
       {!last && <span className="qa-flow-link" />}
     </span>
   )
+}
+
+/**
+ * 모델 API 오류로 멈춘 자리(ARTEL-1372). 스텝 카드와 같은 모양으로 `흐름` 끝에 붙인다 — 오류 프레임은 판정도
+ * 조작도 아니라 스텝 묶음에 들어가지 않고, 들어가지 않으면 흐름 탭이 "Beginning of log" 만 남는다.
+ */
+function QaStopLines({ lines, restNotRun }: { lines: QaStopLine[]; restNotRun: number }) {
+  const { t } = useI18n()
+  const copy = t.qa.run.stop
+  const rows: { key: string; kind: 'stop' | 'thought'; title: string }[] = []
+  for (const line of lines) {
+    if (line.kind === 'error') {
+      rows.push({ key: line.id, kind: 'stop', title: copy.flowTitle(line.code) })
+      if (restNotRun > 0) rows.push({ key: `${line.id}:rest`, kind: 'thought', title: copy.restNotRun(restNotRun) })
+    } else {
+      rows.push({ key: line.id, kind: 'thought', title: copy.notRunLine })
+    }
+  }
+  return rows.map((row, index) => (
+    <li className={`qa-flow-step qa-flow-stop qa-flow-stop--${row.kind}`} data-log-id={row.key} key={row.key}>
+      <div className="qa-flow-card">
+        <p className="qa-flow-line">
+          <QaFlowDot kind={row.kind} last={index === rows.length - 1} />
+          <span className="qa-flow-said">
+            <span className="qa-flow-stop-title">{row.title}</span>
+          </span>
+        </p>
+      </div>
+    </li>
+  ))
 }
 
 /**
@@ -428,6 +459,8 @@ export function QaLogTimeline({
   logs: sourceLogs,
   onFocusResolved,
   scenarioSteps = [],
+  stopLines = [],
+  restNotRun = 0,
 }: {
   /** `흐름` 탭인가. true 면 한 행이 생각 · 행동 두 줄이고, 그 밖은 `Raw` 와 같다. */
   flow?: boolean
@@ -444,6 +477,10 @@ export function QaLogTimeline({
   onFocusResolved: () => void
   /** Scenario steps, so consecutive logs can be grouped under their TC region (#6). */
   scenarioSteps?: ScenarioStep[]
+  /** 모델 API 오류로 멈춘 줄(ARTEL-1372). `흐름` 끝에 붙는다. `Raw` 는 이미 그 프레임을 그대로 보인다. */
+  stopLines?: QaStopLine[]
+  /** 이 시나리오의 오류 때문에 돌지 않은 뒤 시나리오 수. 오류 줄 아래에 한 줄로 말한다. */
+  restNotRun?: number
 }) {
   const { t } = useI18n()
   const caseLabel = useTestCaseLabel()
@@ -712,7 +749,8 @@ export function QaLogTimeline({
       <div className="qa-log-empty">
         <p role={historyFailure !== null ? 'alert' : 'status'}>{historyLoading ? t.qa.run.loading : historyFailure ?? t.qa.rawLogs.empty}</p>
         {historyFailure !== null && <button className="button button--secondary button--compact" onClick={loadOlder} type="button">{t.qa.panel.retry}</button>}
-        {live && <span>New activity will appear here.</span>}
+        {live && <span>{t.qa.run.logsEmptyLive}</span>}
+
       </div>
     )
   }
@@ -724,7 +762,7 @@ export function QaLogTimeline({
       ref={viewportRef}
       tabIndex={0}
       role="region"
-      aria-label="QA Try activity log"
+      aria-label={t.qa.run.logsRegion}
     >
       <div className="qa-log-history-controls">
         <div aria-hidden="true" ref={sentinelRef} />
@@ -792,6 +830,7 @@ export function QaLogTimeline({
             />
           )
         })}
+        {flow && <QaStopLines lines={stopLines} restNotRun={restNotRun} />}
       </ol>
 
       {!nearLiveEdge && unseenLogs > 0 && (
