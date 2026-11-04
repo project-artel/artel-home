@@ -11,6 +11,7 @@ export const accountEn = {
   eyebrow: 'Account',
   title: 'Account settings',
   screens: {
+    profile: 'How other members see you. The tag after the name tells two people with the same nickname apart.',
     email: 'The address project invitations and notices go to. Invitations need a verified address.',
     preferences: 'How the screens look for you. Saved to your account, so other browsers follow.',
     cliTokens: 'Tokens the artel CLI signs in with. Each one can be revoked on its own.',
@@ -27,7 +28,6 @@ export const accountEn = {
     verified: 'Email verified',
     unverified: 'Email not verified',
   },
-  keysNote: 'LLM API keys moved to API management in each project.',
   tocLabel: 'Account settings sections',
   preferences: {
     title: 'Preferences',
@@ -133,10 +133,6 @@ export const accountEn = {
   },
   llmKeys: {
     title: 'LLM API keys',
-    movedTitle: 'LLM API keys moved to API management',
-    movedBody: 'Register and replace keys under API management in any project. A key still applies to your whole account.',
-    openIn: (project: string) => `${project} · API keys`,
-    noProjects: 'Open a project to manage your keys.',
     intro: 'Run QA on your own key and the AI cost is billed to it. A key is stored only after it works.',
     reach: {
       anthropic: 'Claude models',
@@ -177,6 +173,7 @@ export const accountKo: Localized<typeof accountEn> = {
   eyebrow: '계정',
   title: '계정 설정',
   screens: {
+    profile: '다른 멤버에게 보이는 내 이름입니다. 이름 뒤의 태그로 같은 닉네임을 가진 사람을 가립니다.',
     email: '프로젝트 초대와 알림을 받을 주소입니다. 초대를 받으려면 주소 확인이 필요합니다.',
     preferences: '나에게 보이는 화면의 환경입니다. 계정에 저장되어 다른 브라우저에서도 따라옵니다.',
     cliTokens: 'artel CLI 가 로그인할 때 쓰는 토큰입니다. 하나씩 따로 폐기할 수 있습니다.',
@@ -193,7 +190,6 @@ export const accountKo: Localized<typeof accountEn> = {
     verified: '이메일 확인됨',
     unverified: '이메일 미확인',
   },
-  keysNote: 'LLM API 키는 각 프로젝트의 API 관리로 옮겼습니다.',
   tocLabel: '계정 설정 목차',
   preferences: {
     title: '환경',
@@ -298,10 +294,6 @@ export const accountKo: Localized<typeof accountEn> = {
   },
   llmKeys: {
     title: 'LLM API 키',
-    movedTitle: 'LLM API 키는 API 관리로 옮겼습니다',
-    movedBody: '어느 프로젝트에서든 API 관리의 API 키 탭에서 등록 · 교체합니다. 키는 그대로 내 계정 전체에 적용됩니다.',
-    openIn: (project: string) => `${project} · API 키`,
-    noProjects: '프로젝트를 열면 키를 관리할 수 있습니다.',
     intro: 'QA 를 내 키로 돌리면 AI 비용이 이 키로 청구됩니다. 키는 실제로 동작하는지 확인한 뒤에만 저장합니다.',
     reach: {
       anthropic: 'Claude 모델',

@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
-import { SettingsArt, SettingsScreenHead, SettingsTabs, TabIcon, type SettingsTab } from '../../layouts/SettingsTabs'
+import { SettingsScreenFill, SettingsTabs, type SettingsTab } from '../../layouts/SettingsTabs'
+import { BuildSketch, ModelChipSketch, ReviewSketch, TrackerSketch } from '../../emptyStates/sketches'
 import { useActionBinding, useFieldBinding } from '../../projectAgent/bindings'
 import { requireKnownId } from '../../projectAgent/specs/fieldWriters'
 import {
@@ -231,7 +232,6 @@ export function SettingsSection() {
           </>
         ) : (
           <div className="settings-hero">
-            <SettingsArt />
             <span aria-hidden="true" className="settings-hero-mark">{project.name.slice(0, 1).toUpperCase()}</span>
             <div className="settings-hero-body">
               <div className="settings-hero-name">
@@ -287,6 +287,7 @@ export function SettingsSection() {
           <div><dt>{w.settingsFacts.tracker}</dt><dd>{trackerLink?.repository ?? w.settingsFacts.trackerNone}</dd></div>
         </dl>
       </section>
+      <SettingsScreenFill body={w.settingsScreens.general} sketch={<BuildSketch />} title={w.generalTitle} />
     </>
   )
 
@@ -297,8 +298,8 @@ export function SettingsSection() {
       label: t.tracker.panel.title,
       content: (
         <>
-          <SettingsScreenHead body={w.settingsScreens.tracker} icon={<TabIcon d="M7 7h10v10H7zM4 12h3M17 12h3M12 4v3M12 17v3" />} />
           <TrackerLinkPanel />
+          <SettingsScreenFill body={w.settingsScreens.tracker} sketch={<TrackerSketch />} title={t.tracker.panel.title} />
         </>
       ),
     },
@@ -307,8 +308,8 @@ export function SettingsSection() {
       label: w.reviewToc,
       content: (
         <>
-          <SettingsScreenHead body={w.settingsScreens.review} icon={<TabIcon d="M5 12l4 4L19 6" />} />
           <ReviewSettingsPanel canEdit={owner} projectId={project.id} />
+          <SettingsScreenFill body={w.settingsScreens.review} sketch={<ReviewSketch />} title={w.reviewToc} />
         </>
       ),
     },
@@ -317,8 +318,8 @@ export function SettingsSection() {
       label: t.projectAgent.model.projectTitle,
       content: (
         <>
-          <SettingsScreenHead body={w.settingsScreens.agent} icon={<TabIcon d="M12 3l2.5 5.5L20 11l-5.5 2.5L12 19l-2.5-5.5L4 11l5.5-2.5z" />} />
           <ProjectAgentModelPanel canEdit={owner} models={models} projectId={project.id} />
+          <SettingsScreenFill body={w.settingsScreens.agent} sketch={<ModelChipSketch />} title={t.projectAgent.model.projectTitle} />
         </>
       ),
     },

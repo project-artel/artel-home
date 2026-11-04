@@ -1006,12 +1006,14 @@
 
 /* ── 설정 · 계정: 왼쪽 탭 + 오른쪽 한 화면(ARTEL-1380) ──────────── */
 .settings-tabs {
+  flex: 1;
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr);
   gap: var(--space-6);
-  align-items: start;
+  align-items: stretch;
 }
 .settings-tabs-side {
+  align-self: start;
   position: sticky;
   top: var(--space-4);
   display: flex;
@@ -1028,15 +1030,6 @@
   cursor: pointer;
 }
 .settings-tabs .settings-toc-link[aria-selected='true'] { font-weight: 700; }
-.settings-tabs-note {
-  padding: 10px 12px;
-  border: 1px dashed var(--color-border-strong);
-  border-radius: 8px;
-  color: var(--color-text-muted);
-  font-size: 12px;
-  line-height: 1.6;
-}
-.settings-tabs-note a { color: var(--color-action-primary); }
 .settings-screen {
   display: flex;
   flex-direction: column;
@@ -1047,40 +1040,12 @@
 .settings-screen > .panel { margin: 0; }
 @keyframes settings-screen-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .settings-screen { animation: none; } }
-.settings-screen-head {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  min-height: 96px;
-  padding: var(--space-4) var(--space-5);
-  overflow: hidden;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 10px;
-  background: var(--color-bg-surface);
-}
-.settings-screen-head p { position: relative; margin: 0; max-width: 640px; color: var(--color-text-secondary); font-size: 13.5px; line-height: 1.6; }
-.settings-screen-icon {
-  position: relative;
-  flex: none;
-  width: 48px;
-  height: 48px;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 12px;
-  background: var(--color-bg-raised);
-  color: var(--color-action-primary);
-}
-.settings-screen-head.is-danger .settings-screen-icon { color: var(--color-status-critical); }
-.settings-screen-art { position: absolute; right: -8px; top: 0; width: 320px; height: 100%; opacity: .6; }
-.settings-art-line { stroke: var(--color-border-strong); stroke-width: 1.2; stroke-dasharray: 6 6; animation: settings-art-flow 2.4s linear infinite; }
-.settings-art-dot { fill: var(--color-border-strong); }
-.settings-art-dot--hot { fill: var(--color-action-primary); animation: settings-art-pulse 2s ease-in-out infinite; }
-.settings-art-ring { stroke: var(--color-border-subtle); stroke-width: 1; }
-@keyframes settings-art-flow { from { stroke-dashoffset: 24; } to { stroke-dashoffset: 0; } }
-@keyframes settings-art-pulse { 0%, 100% { opacity: .4; } 50% { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .settings-art-line, .settings-art-dot--hot { animation: none; } }
+/* 칸 아래 남는 자리는 그 탭의 손그림과 설명이 받는다. */
+.settings-screen-fill { flex: 1; display: flex; min-height: 0; }
+.settings-screen-fill .sketch-empty { min-height: 320px; }
+/* 화면 높이까지 채운다. 프로젝트 설정은 작업공간 칸, 계정 설정은 페이지가 높이를 준다. */
+.section-content:has(.settings-tabs) { display: flex; flex: 1; flex-direction: column; min-height: 0; }
+.page:has(.settings-tabs) { display: flex; flex-direction: column; min-height: 100%; }
 /* 일반 · 프로필 탭: 큰 머리, 숫자 칸, 정보 표 */
 .settings-hero { position: relative; display: flex; align-items: center; gap: var(--space-5); padding: var(--space-6); overflow: hidden; }
 .settings-hero-mark {
@@ -1104,7 +1069,6 @@
 .settings-hero-meta { color: var(--color-text-muted); font-size: 12.5px; }
 .settings-hero-desc { margin: 0; color: var(--color-text-secondary); line-height: 1.6; max-width: 720px; }
 .settings-hero-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.settings-hero .settings-screen-art { width: 380px; opacity: .45; }
 .settings-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--space-3); }
 .settings-stat {
   display: flex;
@@ -1129,6 +1093,5 @@ a.settings-stat:hover { border-color: var(--color-border-strong); }
   .settings-tabs { grid-template-columns: minmax(0, 1fr); }
   .settings-tabs-side { position: static; }
   .settings-tabs .settings-toc { display: flex; flex-wrap: wrap; }
-  .settings-screen-art { display: none; }
   .settings-facts { grid-template-columns: minmax(0, 1fr); }
 }

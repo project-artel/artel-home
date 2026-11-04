@@ -15,7 +15,8 @@ import { useAuth } from '../auth/useAuth'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { isLocale, LOCALE_LABELS, LOCALES } from '../i18n/locale'
 import { useI18n } from '../i18n/useI18n'
-import { SettingsArt, SettingsScreenHead, SettingsTabs, TabIcon } from '../layouts/SettingsTabs'
+import { SettingsScreenFill, SettingsTabs } from '../layouts/SettingsTabs'
+import { DisplaySketch, IdCardSketch, MailSketch, TerminalSketch } from '../emptyStates/sketches'
 import { useCliTokens } from '../auth/useCliTokens'
 import { listLlmKeys } from './llmKeyApi'
 import { listProjects } from '../projects/projectApi'
@@ -67,7 +68,6 @@ export function AccountSettingsPage() {
       {/* 왼쪽 탭 + 오른쪽 한 화면(ARTEL-1380). 칸은 예전 그대로이고 탭마다 하나씩 선다. LLM API 키는 프로젝트의
           API 관리로 옮겼다(ARTEL-1379) — 탭 아래에 그 길을 남긴다. */}
       <SettingsTabs
-        aside={<KeysMovedNote />}
         label={copy.tocLabel}
         tabs={[
           {
@@ -77,6 +77,7 @@ export function AccountSettingsPage() {
               <>
                 <ProfileOverview user={auth.user} />
                 <ProfilePanel applyProfile={auth.applyProfile} user={auth.user} />
+                <SettingsScreenFill body={copy.screens.profile} sketch={<IdCardSketch />} title={copy.profile.title} />
               </>
             ),
           },
@@ -85,12 +86,12 @@ export function AccountSettingsPage() {
             label: copy.email.title,
             content: (
               <>
-                <SettingsScreenHead body={copy.screens.email} icon={<TabIcon d="M4 6h16v12H4zM4 7l8 6 8-6" />} />
                 <EmailPanel
                   applyEmailVerified={auth.applyEmailVerified}
                   applyPendingEmail={auth.applyPendingEmail}
                   user={auth.user}
                 />
+                <SettingsScreenFill body={copy.screens.email} sketch={<MailSketch />} title={copy.email.title} />
               </>
             ),
           },
@@ -99,8 +100,8 @@ export function AccountSettingsPage() {
             label: copy.preferences.title,
             content: (
               <>
-                <SettingsScreenHead body={copy.screens.preferences} icon={<TabIcon d="M4 5h16v11H4zM9 20h6M12 16v4" />} />
                 <PreferencesPanel />
+                <SettingsScreenFill body={copy.screens.preferences} sketch={<DisplaySketch />} title={copy.preferences.title} />
               </>
             ),
           },
@@ -109,8 +110,8 @@ export function AccountSettingsPage() {
             label: copy.cliTokens.title,
             content: (
               <>
-                <SettingsScreenHead body={copy.screens.cliTokens} icon={<TabIcon d="M4 5h16v14H4zM8 10l3 2-3 2M13 15h3" />} />
                 <CliTokenPanel />
+                <SettingsScreenFill body={copy.screens.cliTokens} sketch={<TerminalSketch />} title={copy.cliTokens.title} />
               </>
             ),
           },
@@ -590,29 +591,7 @@ function useMyProjects(): { items: ProjectSummary[]; total: number } | null {
 }
 
 function keysHref(project: ProjectSummary): string {
-  return `/projects/${encodeURIComponent(project.id)}/api?tab=keys`
-}
-
-/**
- * LLM API 키가 있던 자리(ARTEL-1379). 키는 프로젝트의 API 관리로 옮겼고, 탭 아래에 그리로 가는 길만 남긴다 — 계정
- * 설정을 찾아온 사람이 키가 사라졌다고 읽지 않게. 키는 계정 단위라 어느 프로젝트로 가도 같은 키다.
- */
-function KeysMovedNote() {
-  const { t } = useI18n()
-  const copy = t.account
-  const projects = useMyProjects()
-  const first = projects?.items[0] ?? null
-  return (
-    <p className="settings-tabs-note">
-      {copy.keysNote}
-      {first !== null && (
-        <>
-          {' '}
-          <Link to={keysHref(first)}>{copy.llmKeys.openIn(first.name)} ›</Link>
-        </>
-      )}
-    </p>
-  )
+  return `/projects/${encodeURIComponent(project.id)}/api`
 }
 
 /** 프로필 탭 머리(ARTEL-1380). 큰 머리 + 숫자 칸으로 화면을 채운다. 값은 이미 있는 API(프로젝트 · 키 · CLI 토큰)만 쓴다. */
@@ -637,7 +616,6 @@ function ProfileOverview({ user }: { user: AuthUser }) {
     <>
       <section aria-label={user.nickname} className="panel">
         <div className="settings-hero">
-          <SettingsArt />
           <span aria-hidden="true" className="settings-hero-mark settings-hero-mark--round">
             {avatar !== null ? <img alt="" src={avatar} /> : user.nickname.slice(0, 1).toUpperCase()}
           </span>

@@ -1,5 +1,6 @@
 import { useId, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { SketchEmpty } from '../emptyStates/SketchEmpty'
 import './screens.css'
 
 export type SettingsTab = {
@@ -64,37 +65,13 @@ export function SettingsTabs({ label, tabs, aside }: { label: string; tabs: Sett
 }
 
 /**
- * 탭 화면 머리(ARTEL-1380). 아이콘 · 한 줄 설명 · 오른쪽 장식 그림으로 칸 위를 채운다. 칸 제목은 칸이 이미 갖고
- * 있어 여기서 다시 말하지 않는다.
+ * 탭 화면의 남는 자리(ARTEL-1380). 칸 아래에 그 탭이 무엇을 하는지 손그림(`sketches.tsx`)과 함께 둔다 — 칸 하나만
+ * 두면 큰 창의 아래가 통째로 빈다. 그림은 빈 화면 그림과 같은 `SketchEmpty` 를 쓴다.
  */
-export function SettingsScreenHead({ icon, body, tone }: { icon: ReactNode; body: string; tone?: 'danger' }) {
+export function SettingsScreenFill({ sketch, title, body }: { sketch: ReactNode; title: string; body: string }) {
   return (
-    <div className={'settings-screen-head' + (tone === 'danger' ? ' is-danger' : '')}>
-      <span aria-hidden="true" className="settings-screen-icon">{icon}</span>
-      <p>{body}</p>
-      <SettingsArt />
+    <div className="settings-screen-fill">
+      <SketchEmpty body={body} sketch={sketch} title={title} />
     </div>
-  )
-}
-
-/** 탭 머리 · 일반 탭 머리 뒤의 장식 그림. 점선이 이어지고 한 점이 깜박인다. */
-export function SettingsArt() {
-  return (
-    <svg aria-hidden="true" className="settings-screen-art" fill="none" viewBox="0 0 320 96">
-      <path className="settings-art-line" d="M8 84 L92 22 L150 64 L214 14 L312 72" />
-      <circle className="settings-art-dot settings-art-dot--hot" cx="92" cy="22" r="5" />
-      <circle className="settings-art-dot" cx="214" cy="14" r="4" />
-      <circle className="settings-art-dot" cx="150" cy="64" r="3" />
-      <circle className="settings-art-ring" cx="262" cy="52" r="26" />
-    </svg>
-  )
-}
-
-/** 탭 머리의 24px 선 아이콘 하나. */
-export function TabIcon({ d }: { d: string }) {
-  return (
-    <svg aria-hidden="true" fill="none" height="22" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" viewBox="0 0 24 24" width="22">
-      <path d={d} />
-    </svg>
   )
 }
