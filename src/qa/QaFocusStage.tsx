@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { QaChatPanel } from './QaChatPanel'
+import { useOperatorQuestions } from './evaluation/useOperatorQuestions'
+import { waitingQuestion } from './qaChat'
 import { QaContextGauge } from './QaContextGauge'
 import { QaRunChangesPanel } from './QaRunChangesPanel'
 import { toolCallOf } from './qaLogGrouping'
@@ -49,6 +51,7 @@ function storeChatHeight(heightPixels: number) {
  * its scroll position survive the switch.
  */
 export function QaFocusStage({
+  projectId,
   chatDisabled,
   contextUsage,
   game,
@@ -57,6 +60,7 @@ export function QaFocusStage({
   qaRun,
   qaTryId,
 }: {
+  projectId: string
   chatDisabled: boolean
   contextUsage: QaContextUsage | null
   game: ReactNode
@@ -67,7 +71,11 @@ export function QaFocusStage({
 }) {
   const { t } = useI18n()
   const stageRef = useRef<HTMLDivElement>(null)
-  const [dockView, setDockView] = useState<'chat' | 'changes'>('chat')
+  const questions = useOperatorQuestions(projectId)
+  const pendingQuestion = waitingQuestion(questions.questions, qaTryId)
+  const [dock, setDock] = useState<{ view: 'chat' | 'changes'; questionId: string | null }>({ view: 'chat', questionId: null })
+  const dockView = pendingQuestion !== null && dock.questionId !== pendingQuestion.id ? 'chat' : dock.view
+  const setDockView = (view: 'chat' | 'changes') => setDock({ view, questionId: pendingQuestion?.id ?? null })
   const changes = useQaRunChanges(qaRun)
   const [chatHeight, setChatHeight] = useState(readStoredChatHeight)
   const [maximumChatHeight, setMaximumChatHeight] = useState<number | null>(null)
@@ -154,7 +162,7 @@ export function QaFocusStage({
           </button>
         </div>
         <div className="qa-stage-dock-body" hidden={dockView !== 'chat'} role="tabpanel">
-          <QaChatPanel disabled={chatDisabled} logs={logs} qaTryId={qaTryId} />
+          <QaChatPanel disabled={chatDisabled} logs={logs} qaTryId={qaTryId} projectId={projectId} questions={questions} />
         </div>
         {dockView === 'changes' && (
           <div className="qa-stage-dock-body qa-stage-dock-body--scroll" role="tabpanel">

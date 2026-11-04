@@ -487,6 +487,8 @@ function FocusedTry({
       <div className="qa-focus">
         <div className="qa-focus-center">
           <QaFocusStage
+            key={session.qaTry.id}
+            projectId={rail.projectId}
             chatDisabled={session.qaTry.status !== 'RUNNING'}
             contextUsage={contextUsage}
             game={

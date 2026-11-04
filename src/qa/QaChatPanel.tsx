@@ -2,38 +2,20 @@ import { useEffect, useRef, useState } from 'react'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
 import { ProjectApiError } from '../projects/projectApi'
-import { sendQaMessage } from './qaApi'
+import { chatTurns, sendChatMessage, waitingQuestion, type ChatTurn } from './qaChat'
+import { evaluationCopy } from './evaluation/evaluationCopy'
+import type { useOperatorQuestions } from './evaluation/useOperatorQuestions'
 import type { QaLog } from './qaTypes'
 
-type ChatTurn = {
-  id: string
-  role: 'USER' | 'AGENT'
-  message: string
-  pending: boolean
-}
-
-/**
- * The operator conversation, derived from the log stream rather than kept
- * separately: every turn is already persisted as a `CHAT` row, so the timeline
- * and this panel cannot disagree, and a reload replays the conversation for free.
- */
-function turnsFromLogs(logs: QaLog[]): ChatTurn[] {
-  return logs
-    .filter((log) => log.type === 'CHAT' && log.direction !== 'ORCHE_TO_AGENT')
-    .map((log) => ({
-      id: log.id,
-      // The relay copy is filtered out above, so direction alone names the speaker.
-      role: log.direction === 'USER_TO_ORCHE' ? 'USER' : 'AGENT',
-      message: log.message,
-      pending: false,
-    }))
-}
-
 export function QaChatPanel({
+  projectId,
+  questions,
   disabled,
   logs,
   qaTryId,
 }: {
+  projectId: string
+  questions: ReturnType<typeof useOperatorQuestions>
   disabled: boolean
   logs: QaLog[]
   qaTryId: string
@@ -47,9 +29,12 @@ export function QaChatPanel({
   // and each entry is one short string.
   const [pendingTurns, setPendingTurns] = useState<ChatTurn[]>([])
   const viewportRef = useRef<HTMLDivElement>(null)
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
+  const copy = evaluationCopy[locale === 'ko' ? 'ko' : 'en']
+  const question = waitingQuestion(questions.questions, qaTryId)
+  const canSend = !disabled && questions.ready && !sending
 
-  const delivered = turnsFromLogs(logs)
+  const delivered = chatTurns(logs, questions.questions, qaTryId)
   const deliveredUserMessages = new Set(
     delivered.filter((turn) => turn.role === 'USER').map((turn) => turn.message),
   )
@@ -64,27 +49,31 @@ export function QaChatPanel({
   useEffect(() => {
     const viewport = viewportRef.current
     if (viewport !== null) viewport.scrollTop = viewport.scrollHeight
-  }, [turns.length])
+  }, [turns.length, question?.id])
 
   async function send() {
     const message = draft.trim()
-    if (message.length === 0 || sending || disabled) return
+    if (message.length === 0 || !canSend || (question !== null && message.length > 4000)) return
 
     setSending(true)
     setFailure(null)
     setPendingTurns((current) => [
       ...current,
-      { id: `pending-${current.length}`, role: 'USER', message, pending: true },
+      { id: `pending-${current.length}`, role: 'USER', message, pending: true, createdAt: new Date().toISOString() },
     ])
 
     try {
-      await sendQaMessage(qaTryId, message)
+      await sendChatMessage(projectId, qaTryId, message, question)
+      if (question !== null) await questions.reload()
       setDraft('')
     } catch (error: unknown) {
       setPendingTurns((current) => current.filter((turn) => turn.message !== message))
       setFailure(
-        error instanceof ProjectApiError ? error.message : t.qa.chat.sendFailed,
+        error instanceof ProjectApiError && error.status === 409 && question !== null
+          ? copy.answered
+          : error instanceof ProjectApiError ? error.message : t.qa.chat.sendFailed,
       )
+      if (question !== null) await questions.reload()
     } finally {
       setSending(false)
     }
@@ -107,9 +96,10 @@ export function QaChatPanel({
             {turns.map((turn) => (
               <li className={`qa-chat-turn qa-chat-turn--${turn.role.toLowerCase()}`} key={turn.id}>
                 <span className="qa-chat-author">
-                  {turn.role === 'USER' ? t.qa.chat.you : t.qa.chat.agent}
+                  {turn.questionAnswer ? copy.answerLabel : turn.role === 'USER' ? t.qa.chat.you : t.qa.chat.agent}
                 </span>
                 <p>{turn.message}</p>
+                {turn.waiting && !disabled && <span className="qa-chat-pending" role="status">{copy.waiting}</span>}
                 {turn.pending && <span className="qa-chat-pending">{t.qa.chat.sending}</span>}
               </li>
             ))}
@@ -120,6 +110,7 @@ export function QaChatPanel({
         </p>
       </div>
 
+      {questions.failed && <p className="inline-error" role="alert">{copy.error}</p>}
       {failure !== null && (
         <div className="inline-error" role="alert">
           <span aria-hidden="true">!</span>
@@ -138,29 +129,30 @@ export function QaChatPanel({
           }}
         >
           <label className="visually-hidden" htmlFor="qa-chat-input">
-            {t.qa.chat.inputLabel}
+            {question !== null ? copy.answerLabel : t.qa.chat.inputLabel}
           </label>
           <textarea
-            disabled={sending}
+            disabled={!canSend}
+            maxLength={question !== null ? 4000 : undefined}
             id="qa-chat-input"
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={(event) => {
               // Enter sends; Shift+Enter is a newline. Matches the scenario chat.
-              if (event.key === 'Enter' && !event.shiftKey) {
+              if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
                 event.preventDefault()
                 void send()
               }
             }}
-            placeholder={t.qa.chat.placeholder}
+            placeholder={question !== null ? copy.answerLabel : t.qa.chat.placeholder}
             rows={2}
             value={draft}
           />
           <button
             className="button button--primary"
-            disabled={sending || draft.trim().length === 0}
+            disabled={!canSend || draft.trim().length === 0 || (question !== null && draft.trim().length > 4000)}
             type="submit"
           >
-            {sending ? t.qa.chat.sending : t.qa.chat.send}
+            {sending ? t.qa.chat.sending : question !== null ? copy.answer : t.qa.chat.send}
           </button>
         </form>
       )}
