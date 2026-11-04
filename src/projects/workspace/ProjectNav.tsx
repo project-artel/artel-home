@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { CollapseIcon } from '../../design-system/primitives/CollapseIcon'
 import { useI18n } from '../../i18n/useI18n'
-import { readNavCollapsed, storeNavCollapsed } from './navCollapse'
-import { sectionHref, WORKSPACE_NAV_GROUPS, WORKSPACE_SECTIONS, type WorkspaceSectionId } from './sections'
+import { readLabOpen, readNavCollapsed, storeLabOpen, storeNavCollapsed } from './navCollapse'
+import { LAB_NAV_GROUP, sectionHref, WORKSPACE_NAV_GROUPS, WORKSPACE_SECTIONS, type WorkspaceSectionId } from './sections'
 
 /**
  * Line icons at 15px, drawn from `currentColor` so a section's icon takes the
@@ -38,6 +38,17 @@ const ICON_PATHS: Record<WorkspaceSectionId, string[]> = {
   // 사람 둘. 한 명은 앞에, 한 명은 뒤에 반쯤 가려 서서 "혼자가 아니다" 를 15px 안에서 말한다.
   members: ['M6.2 8.6a3.4 3.4 0 1 1 0-5.2', 'M2.2 13.4c0-2.2 1.8-3.4 4-3.4s4 1.2 4 3.4', 'M10.4 4a2.8 2.8 0 0 1 0 4.4', 'M11.4 10.3c1.5.4 2.4 1.5 2.4 3.1'],
   settings: ['M8 1.8v2M8 12.2v2M1.8 8h2M12.2 8h2M3.6 3.6l1.4 1.4M11 11l1.4 1.4M12.4 3.6L11 5M5 11l-1.4 1.4'],
+}
+
+/** 실험실 묶음 머리의 플라스크. 같은 15px 선 그림이다. */
+const LAB_ICON_PATHS = ['M6.2 2.4h3.6', 'M6.8 2.4v4.2L3.2 12.6a.9.9 0 0 0 .8 1.4h8a.9.9 0 0 0 .8-1.4L9.2 6.6V2.4', 'M4.6 10.2h6.8']
+
+function LabIcon() {
+  return (
+    <svg aria-hidden="true" className="nav-icon" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.3} viewBox="0 0 16 16">
+      {LAB_ICON_PATHS.map((d) => <path d={d} key={d} />)}
+    </svg>
+  )
 }
 
 function SectionIcon({ id }: { id: WorkspaceSectionId }) {
@@ -116,8 +127,27 @@ export function ProjectNav({
     setExpandedHere(false)
   }
   const collapsed = forceCollapsed ? !expandedHere : storedCollapsed
+  // 실험실은 처음에 접혀 있고, 그 안의 화면을 보고 있으면 저절로 펴진다(ARTEL-1379).
+  const [labOpen, setLabOpen] = useState(readLabOpen)
+  const labShown = labOpen || currentSection.group === LAB_NAV_GROUP
+  const labSections = visibleSections.filter((section) => section.group === LAB_NAV_GROUP)
 
   const toggleLabel = collapsed ? workspace.expandNav : workspace.collapseNav
+
+  const navItem = (section: (typeof WORKSPACE_SECTIONS)[number]) => (
+    <li key={section.id}>
+      <NavLink
+        className={({ isActive }) => isActive ? 'nav-item nav-item--active' : 'nav-item'}
+        end={section.path.length === 0 || section.id === 'chat'}
+        title={collapsed ? nav[section.id] : undefined}
+        to={sectionHref(projectId, section.path)}
+      >
+        <SectionIcon id={section.id} />
+        <span className={collapsed ? 'nav-label visually-hidden' : 'nav-label'}>{nav[section.id]}</span>
+        <NavCount alert={section.id === 'issues'} value={counts[section.id] ?? null} />
+      </NavLink>
+    </li>
+  )
 
   return (
     <nav
@@ -173,7 +203,7 @@ export function ProjectNav({
       </select>
 
       <div className="project-nav-groups">
-        {[null, ...WORKSPACE_NAV_GROUPS].map((group) => (
+        {[null, ...WORKSPACE_NAV_GROUPS.filter((group) => group !== LAB_NAV_GROUP)].map((group) => (
           <section className={`project-nav-group project-nav-group--${group ?? 'primary'}`} key={group ?? 'primary'} aria-labelledby={group === null ? undefined : 'project-nav-' + group}>
             {group !== null && (
               <h2 className={collapsed ? 'visually-hidden' : 'project-nav-group-label'} id={'project-nav-' + group}>
@@ -181,23 +211,41 @@ export function ProjectNav({
               </h2>
             )}
             <ul className="project-nav-list">
-              {WORKSPACE_SECTIONS.filter((section) => section.group === group && (section.id !== 'chat' || agentEnabled)).map((section) => (
-                <li key={section.id}>
-                  <NavLink
-                    className={({ isActive }) => isActive ? 'nav-item nav-item--active' : 'nav-item'}
-                    end={section.path.length === 0 || section.id === 'chat'}
-                    title={collapsed ? nav[section.id] : undefined}
-                    to={sectionHref(projectId, section.path)}
-                  >
-                    <SectionIcon id={section.id} />
-                    <span className={collapsed ? 'nav-label visually-hidden' : 'nav-label'}>{nav[section.id]}</span>
-                    <NavCount alert={section.id === 'issues'} value={counts[section.id] ?? null} />
-                  </NavLink>
-                </li>
-              ))}
+              {WORKSPACE_SECTIONS.filter((section) => section.group === group && (section.id !== 'chat' || agentEnabled)).map(navItem)}
             </ul>
           </section>
         ))}
+        {labSections.length > 0 && (
+          <section aria-labelledby="project-nav-lab" className="project-nav-group project-nav-group--lab">
+            <button
+              aria-controls="project-nav-lab-list"
+              aria-expanded={labShown}
+              className="nav-item nav-lab-toggle"
+              id="project-nav-lab"
+              onClick={() => {
+                const next = !labShown
+                setLabOpen(next)
+                storeLabOpen(next)
+              }}
+              title={collapsed ? workspace.navGroups.lab : workspace.labHint}
+              type="button"
+            >
+              <LabIcon />
+              <span className={collapsed ? 'nav-label visually-hidden' : 'nav-label'}>{workspace.navGroups.lab}</span>
+              {!collapsed && <span className="nav-lab-badge">{workspace.labBadge}</span>}
+              {!collapsed && (
+                <span aria-hidden="true" className={'nav-lab-chevron' + (labShown ? ' is-open' : '')}>
+                  <CollapseIcon direction="right" />
+                </span>
+              )}
+            </button>
+            {labShown && (
+              <ul className="project-nav-list project-nav-list--lab" id="project-nav-lab-list">
+                {labSections.map(navItem)}
+              </ul>
+            )}
+          </section>
+        )}
       </div>
     </nav>
   )

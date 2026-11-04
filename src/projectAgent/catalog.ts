@@ -73,7 +73,7 @@ export const PAGE_CATALOG: PageCatalogEntry[] = [
   { id: 'performance', title: 'Performance', path: 'performance', params: [], description: 'Performance reports per build.', fields: PERFORMANCE_FIELDS, actions: PERFORMANCE_ACTIONS },
   { id: 'issues', title: 'Issues', path: 'issues', params: [], description: 'Issues found by QA runs.', fields: ISSUES_FIELDS, actions: ISSUES_ACTIONS },
   { id: 'knowledge', title: 'Knowledge graph', path: 'knowledge', params: [], description: 'Knowledge extracted from documents.', fields: KNOWLEDGE_FIELDS, actions: KNOWLEDGE_ACTIONS },
-  { id: 'usage', title: 'Spend', path: 'usage', params: [], description: 'LLM spend of the project.', fields: USAGE_FIELDS, actions: USAGE_ACTIONS },
+  { id: 'usage', title: 'Spend', path: 'api', params: [], description: 'LLM spend of the project and the user\'s LLM API keys.', fields: USAGE_FIELDS, actions: USAGE_ACTIONS },
   { id: 'qaRun', title: 'QA run', path: 'qa-runs/:qaRunId', params: ['qaRunId'], description: 'One QA run: live game, scenario steps, logs.', fields: QA_RUN_FIELDS, actions: QA_RUN_ACTIONS },
   { id: 'testRun', title: 'Test run map', path: 'test-runs/:runId', params: ['runId'], description: 'The scenario map of one test run.', fields: TEST_RUN_FIELDS, actions: TEST_RUN_ACTIONS },
   { id: 'members', title: 'Members', path: 'members', params: [], description: 'Members of this project and invitations.', fields: MEMBERS_FIELDS, actions: MEMBERS_ACTIONS },

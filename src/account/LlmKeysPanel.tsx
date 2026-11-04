@@ -2,6 +2,7 @@ import { useCallback, useEffect, useId, useState } from 'react'
 import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
+import { ProviderLogo } from '../qa/launch/ProviderLogo'
 import { CircleCheckIcon, CircleXIcon } from '../qa/qaModelIcons'
 import { deleteLlmKey, listLlmKeys, llmKeyRefusal, registerLlmKey } from './llmKeyApi'
 import {
@@ -28,7 +29,10 @@ type KeysState = { status: 'loading' | 'ready' | 'error'; keys: LlmKey[] }
  * The key never comes back from the server. What a row shows is the masked hint
  * the server returns, the same one the model picker shows.
  */
-export function LlmKeysPanel() {
+/**
+ * @param note 머리 아래 한 줄. API 관리 화면은 키가 계정 단위라는 것을 여기 밝힌다(ARTEL-1379).
+ */
+export function LlmKeysPanel({ note }: { note?: string } = {}) {
   const { t } = useI18n()
   const copy = t.account.llmKeys
   const inputId = useId()
@@ -107,6 +111,7 @@ export function LlmKeysPanel() {
           {copy.title}
           <InfoHint>{copy.intro}</InfoHint>
         </h2>
+        {note !== undefined && <p className="llm-key-scope">{note}</p>}
       </header>
 
       {state.status === 'loading' && <p className="panel-empty">{copy.loading}</p>}
@@ -129,6 +134,10 @@ export function LlmKeysPanel() {
             return (
               <li className="llm-key-row" key={service}>
                 <div className="llm-key-summary">
+                  {/* QA 실행 모델 고르기와 같은 제공사 로고다. OpenRouter 는 로고가 없어 첫 글자로 선다. */}
+                  <span className="llm-key-logo">
+                    <ProviderLogo provider={service} size={20} />
+                  </span>
                   <div className="llm-key-name">
                     <strong>{name}</strong>
                     <span>{copy.reach[service]}</span>
