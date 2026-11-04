@@ -20,7 +20,7 @@ import { FreeRunPicker } from './dashboard/FreeRunPicker'
 import { pickItems } from './dashboard/freeRunCases'
 import { DashboardReliability } from './dashboard/DashboardReliability'
 import { useDashboardData, useVersionPair } from './dashboard/useDashboardData'
-import { TestRunTrend } from './dashboard/TestRunTrend'
+import { BuildVerification } from './dashboard/BuildVerification'
 import './dashboard/dashboard.css'
 import { sectionHref } from './sections'
 import { useWorkspace } from './workspaceContext'
@@ -33,12 +33,13 @@ const LIVE = new Set(['RUNNING', 'STARTING', 'PENDING'])
 const SERIES = ['series-1', 'series-2', 'series-3', 'series-4'] as const
 
 /**
- * 프로젝트 대시보드(ARTEL-1164). 숫자 칸 아래에 QA 판정 추이를 크게 두고(ARTEL-1387), 돌아온 사람이 먼저 묻는 세 가지 —
+ * 프로젝트 대시보드(ARTEL-1164). 숫자 칸 아래에 이번 빌드 검증 진행과 출시 판단을 크게 두고(ARTEL-1387), 돌아온 사람이 먼저 묻는 세 가지 —
  * 검증할 게 몇 개 남았나, 문제가 몇 개인가, 이전 버전보다 나아졌나 — 를 그 아래에 둔다. 세 칸은 케이스 라이브러리 칸에서
  * 고른 버전(처음엔 최신)을 따른다. 그 아래 진행 중인 QA · 끝난 QA · 실행마다 비용 · 이슈 흐름 · 시나리오별 최근 결과 ·
  * QA agent 신뢰도, 맨 밑에 게임 정보를 둔다.
  * Sentry 프로젝트 화면(숫자 카드 + 추세)과 BrowserStack Testing Trends(빌드 요약 · 테스트마다 최근 결과 칸)를 참고했다.
- * 서버는 늘리지 않았다 — 칸마다 이미 있는 API 를 읽고(`useDashboardData`) 숫자는 `dashboardModel` 이 접는다.
+ * 가운데 칸은 빌드 검증 진행 API(ARTEL-1386)를 읽고, 나머지 칸은 이미 있는 API 를 읽어(`useDashboardData`) 숫자를
+ * `dashboardModel` 이 접는다.
  */
 export function DashboardSection() {
   const { t } = useI18n()
@@ -180,7 +181,13 @@ export function DashboardSection() {
         </div>
       </div>
 
-      <TestRunTrend builds={builds} live={LIVE} projectId={projectId} qaRuns={qaRuns} since={sinceDate} />
+      <BuildVerification
+        gameBuildId={pair?.current.gameBuildId ?? null}
+        onPickVersion={() => setVersionPickerOpen(true)}
+        projectId={projectId}
+        versionName={currentName}
+        waiting={versions.status === 'loading'}
+      />
 
       <div className="db-trio">
         {/* 검증 남은 TC */}

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import type { TestCase, VerificationStatus } from '../../../testCases/testCaseTypes'
 import type { VersionCaseRow, VersionPresence } from '../../../testCases/testCaseVersions'
-import { compareVersions, costByRun, countByDay, countByWeek, runSeries, scenarioHistories, weekStarts } from './dashboardModel'
+import { compareVersions, costByRun, countByDay, countByWeek, scenarioHistories, weekStarts } from './dashboardModel'
 
 const row = (id: string, now: VerificationStatus | null, before: VerificationStatus | null, presence: VersionPresence = 'BOTH'): VersionCaseRow => ({
   testCase: { id } as TestCase,
@@ -107,36 +107,5 @@ describe('weeks and days', () => {
 
   it('counts per day with today last', () => {
     assert.deepEqual(countByDay(['2026-10-20T01:00:00', '2026-10-18T23:00:00', '2026-10-20T09:00:00'], new Date('2026-10-20T12:00:00'), 3), [1, 0, 2])
-  })
-})
-
-describe('runSeries', () => {
-  const run = (id: string, testRunId: string, startedAt: string, passed: number | null, total: number | null, status = 'FAILED') => ({
-    id,
-    testRunId,
-    testRunName: `TR ${testRunId}`,
-    startedAt,
-    status,
-    casesPassed: passed,
-    casesTotal: total,
-    gameBuildVersion: '1.0',
-    gameBuildIsEditor: false,
-  })
-
-  it('keeps each test run on its own line, oldest first, busiest run first', () => {
-    const series = runSeries(
-      [
-        run('3', 'b', '2026-10-03T00:00:00Z', 2, 4),
-        run('1', 'a', '2026-10-01T00:00:00Z', 1, 4),
-        run('2', 'a', '2026-10-02T00:00:00Z', null, null),
-        run('4', 'a', '2026-10-04T00:00:00Z', 3, 4, 'RUNNING'),
-        run('0', 'a', '2026-09-01T00:00:00Z', 4, 4),
-      ],
-      '2026-09-30T00:00:00Z',
-      new Set(['RUNNING']),
-    )
-    assert.deepEqual(series.map((one) => [one.testRunId, one.points.map((point) => point.qaRunId)]), [['a', ['1', '2']], ['b', ['3']]])
-    assert.equal(series[0].points[0].rate, 0.25)
-    assert.equal(series[0].points[1].rate, null)
   })
 })
