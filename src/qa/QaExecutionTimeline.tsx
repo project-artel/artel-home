@@ -38,26 +38,29 @@ export function QaExecutionTimeline({ bounds, timestamp, playback, attempts, pla
   const current = ranges.filter(({ range }) => timestamp >= range.start && timestamp < range.end)
   const unknown = attempts.filter(attempt => attempt.startedAt === null)
   return <section ref={panel} className={`qa-execution-timeline${collapsed ? ' qa-execution-timeline--collapsed' : ''}`} aria-label={copy.timeline}>
-    <div className="qa-timeline-resize" role="separator" tabIndex={0} aria-label={copy.resize} aria-orientation="horizontal" aria-valuemin={64} aria-valuemax={maximumHeight} aria-valuenow={shownHeight} data-resizing={resizing}
+    <div className="qa-timeline-resize" role="separator" tabIndex={0} aria-label={copy.resize} aria-orientation="horizontal" aria-valuemin={0} aria-valuemax={maximumHeight} aria-valuenow={collapsed ? 0 : shownHeight} data-resizing={resizing}
       onPointerDown={event => {
         if (event.button !== 0) return
         event.preventDefault()
         event.currentTarget.setPointerCapture(event.pointerId)
-        drag.current = { y: event.clientY, height: collapsed ? 64 : shownHeight }
+        drag.current = { y: event.clientY, height: collapsed ? 0 : shownHeight }
         setResizing(true)
       }}
       onPointerMove={event => {
         if (!drag.current) return
-        if (Math.abs(event.clientY - drag.current.y) > 3) setCollapsed(false)
-        resizeTo(drag.current.height + drag.current.y - event.clientY)
+        if (Math.abs(event.clientY - drag.current.y) <= 3) return
+        const nextHeight = drag.current.height + drag.current.y - event.clientY
+        setCollapsed(nextHeight <= 24)
+        if (nextHeight > 24) resizeTo(nextHeight)
       }}
       onPointerUp={event => { drag.current = null; setResizing(false); event.currentTarget.releasePointerCapture(event.pointerId) }}
       onLostPointerCapture={() => { drag.current = null; setResizing(false) }}
       onKeyDown={event => {
         if (!['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return
         event.preventDefault()
+        if (event.key === 'ArrowDown' && (collapsed || shownHeight === 64)) { setCollapsed(true); return }
         setCollapsed(false)
-        resizeTo(event.key === 'Home' ? 64 : event.key === 'End' ? maximumHeight : shownHeight + (event.key === 'ArrowUp' ? 24 : -24))
+        resizeTo(event.key === 'Home' ? 64 : event.key === 'End' ? maximumHeight : collapsed ? 64 : shownHeight + (event.key === 'ArrowUp' ? 24 : -24))
       }}><span aria-hidden="true" /></div>
     <header className="qa-execution-head">
       <button className="qa-icon-button" type="button" disabled={!playable} aria-label={playing ? evidence.pause : evidence.play} onClick={onTogglePlay}>

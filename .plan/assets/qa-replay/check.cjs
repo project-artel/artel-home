@@ -36,6 +36,17 @@ await handle.focus();await handle.press('ArrowDown');
 check(Number(await handle.getAttribute('aria-valuenow'))<beforeHeight+107,'키보드로 높이 감소');
 await handle.press('Home');check(Number(await handle.getAttribute('aria-valuenow'))===64,'키보드 최소 높이');
 await handle.press('ArrowUp');await handle.press('ArrowUp');await handle.press('ArrowUp');await handle.press('ArrowUp');
+const closeHandleBox=await handle.boundingBox();
+await page.mouse.move(closeHandleBox.x+closeHandleBox.width/2,closeHandleBox.y+closeHandleBox.height/2);
+await page.mouse.down();await page.mouse.move(closeHandleBox.x+closeHandleBox.width/2,closeHandleBox.y+230,{steps:10});await page.mouse.up();
+check(!await page.locator('.qa-timeline-chart').count(),'아래로 드래그하여 타임라인 접기');
+const dockBox=await page.locator('.qa-execution-timeline').boundingBox(), mainBox=await page.locator('.qa-console-grid').boundingBox();
+check(Math.abs(mainBox.y+mainBox.height-dockBox.y)<2,'접힌 실행 바 높이만큼 본문 공간 확보');
+const reopenBox=await handle.boundingBox();
+await page.mouse.move(reopenBox.x+reopenBox.width/2,reopenBox.y+reopenBox.height/2);
+await page.mouse.down();await page.mouse.move(reopenBox.x+reopenBox.width/2,reopenBox.y-150,{steps:8});await page.mouse.up();
+check(await page.locator('.qa-timeline-chart').count()===1,'접힌 타임라인을 위로 드래그하여 펼치기');
+
 
  await page.getByLabel('시간축 확대').selectOption('4');
  check(await page.locator('.qa-timeline-scroll').evaluate(e=>e.scrollWidth>e.clientWidth*3),'시간축 확대와 수평 스크롤');

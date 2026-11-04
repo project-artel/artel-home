@@ -117,6 +117,7 @@
   .qa-timeline-zoom { width:48px; }
 }
 .qa-replay-timeline-host { position:absolute; bottom:0; left:0; right:0; z-index:6; }
+.qa-console:has(.qa-execution-timeline) .qa-console-grid { margin-bottom:49px; }
 .qa-timeline-resize { position:absolute; top:-7px; left:0; right:0; height:14px; cursor:row-resize; touch-action:none; z-index:3; }
 .qa-timeline-resize > span { position:absolute; left:50%; top:5px; transform:translateX(-50%); width:36px; height:3px; border-radius:2px; background:var(--color-text-secondary); }
 .qa-timeline-resize:hover > span, .qa-timeline-resize[data-resizing='true'] > span { background:var(--color-action-primary); }
