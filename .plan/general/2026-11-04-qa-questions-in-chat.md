@@ -22,15 +22,20 @@ agent 질문 정책, 서버 API, 질문 알림 권한은 바꾸지 않는다.
 ## Validation
 - **Commands to run:** focused node tests, npm run typecheck, npm run build, changed-file ESLint; 가능하면 브라우저 렌더 검토.
 - **Expected output:** 질문과 답변이 채팅에 표시되고 질문 답변은 전용 API로 전달된다. 다른 QA에 답하지 않는다.
-- **Results:** `node --import ./scripts/node-test-hooks.mjs --test "src/qa/**/*.test.ts"` 285개 통과, `npm run typecheck`와 `npm run build` 통과, 변경 파일 ESLint 통과. Vite 기존 bundle 크기 경고가 있다.
+- **Results:** `node --import ./scripts/node-test-hooks.mjs --test "src/qa/**/*.test.ts"` 286개 통과, `npm run typecheck`와 `npm run build` 통과, 변경 파일 ESLint 통과. Vite 기존 bundle 크기 경고가 있다.
 
 ## Risks & Rollback
 - **Risks:** SSE/주기 갱신과 답변 경쟁, 선택한 QA 전환 시 이전 답변 노출, 다른 탭에서 먼저 답변한 경우 409.
 - **Rollback steps:** 이 변경만 되돌린다. 데이터 migration 없음.
 
 ## Open Questions
-브라우저는 localhost Vite에 연결할 때 IAB와 Chrome 모두 ERR_CONNECTION_TIMED_OUT이 발생했다. 실제 화면의 두 테마·모바일·키보드 검토와 실제 QA 재개는 미검증이다. 샘플 preview는 .work에만 있고 제품에는 포함하지 않는다.
+실제 게임 SDK/agent 실행 재개는 확인하지 않았다. 캡처는 로컬 테스트 DB의 별도 QA 실행 120255와 실제 backend API를 사용했다. 게임 영상 연결은 없는 상태다.
 
-계획 리뷰에서 초기 조회 중 전송 차단과 답변 동작 표시를 반영했다. pair-review의 4000자 초안 제한 지적을 send와 버튼에 반영했다.
-
-최신 develop의 QA replay 변경과 병합했다. QaFocusStage의 replay prop과 질문의 projectId/key를 모두 보존했다. 병합 후 QA 테스트 285개가 통과했다.
+## 전체 앱 검증
+- 실제 앱 route: /projects/110147/qa-runs/120255?try=120255. 기존 WSL backend와 DB에 로컬 transport proxy로 연결했다. API 응답을 mock하거나 별도 화면을 렌더링하지 않았다.
+- 질문 생성은 실제 internal API, 답변은 실제 answer API를 사용했다. 저장된 답변 복원과 변경 사항 탭에서 새 질문 시 채팅 자동 표시를 확인했다.
+- 질문 조회를 잠시 지연하고 별도 API로 먼저 답한 뒤 UI에서 재전송하여 실제 409와 최신 상태 갱신을 확인했다.
+- desktop 두 테마와 모바일 390×844에서 전체 앱 캡처 7장을 저장했다. 모바일에서 발견한 채팅 내역 높이 1.6px 문제를 최소 채팅 높이 240px과 세로 스크롤로 수정했다. 수정 후 질문 영역 높이는 100.8px이며 가로 overflow가 없다.
+- 답변 후 자동 표시한 채팅이 이전 탭으로 돌아가는 문제를 발견하여, 질문의 대기 상태가 아닌 최신 질문 ID로 표시 기준을 유지했다. 회귀 테스트를 추가했다.
+- 공통 DESIGN과 콘솔 PR 지시문에 실제 앱 전체 화면 캡처와 분리 렌더링 대체 금지를 명시했다. 기존 분리 preview는 삭제했고 PR에는 첨부하지 않았다.
+- 계획 리뷰의 초기 조회 중 전송 차단과 답변 동작 표시, pair-review의 4000자 제한과 모바일 레이아웃 검토를 반영했다.

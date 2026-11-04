@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { LocaleContext } from '../i18n/LocaleContext'
 import { messages } from '../i18n/messages'
 import { QaChatPanel } from './QaChatPanel'
-import { chatTurns, sendChatMessage, waitingQuestion } from './qaChat'
+import { chatTurns, latestQuestionId, sendChatMessage, waitingQuestion } from './qaChat'
 import { questions, type Question } from './evaluation/evaluationApi'
 import { ProjectApiError } from '../projects/projectApi'
 import type { QaLog } from './qaTypes'
@@ -32,6 +32,12 @@ test('선택한 QA의 질문과 저장된 답변을 CHAT 사이에 시간순으�
 test('다른 QA와 종료된 질문은 답변 대상으로 선택하지 않는다', () => {
   assert.equal(waitingQuestion([{ ...question, qaTryId: '7' }, { ...question, state: 'CANCELLED' }], '6'), null)
   assert.equal(waitingQuestion([question, { ...question, id: 'earlier', createdAt: '2026-11-04T00:00:00Z' }], '6')?.id, 'earlier')
+})
+
+test('질문이 답변 완료로 바뀌어도 채팅 자동 표시 기준은 유지한다', () => {
+  assert.equal(latestQuestionId([question], '6'), question.id)
+  assert.equal(latestQuestionId([{ ...question, state: 'ANSWERED', answer: '설정 메뉴입니다.' }], '6'), question.id)
+  assert.equal(latestQuestionId([{ ...question, qaTryId: '7' }], '6'), null)
 })
 
 test('질문 답변은 전용 answer API로 보내고 일반 채팅은 messages API로 보낸다', async () => {

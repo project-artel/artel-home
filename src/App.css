@@ -5511,6 +5511,7 @@ button.qa-rail-case-verdict{ padding:0; border:0; background:none; font-family:i
 @media (max-width:820px){
   .qa-console-grid{ grid-template-columns:1fr; grid-template-rows:auto minmax(0,1fr); }
   .qa-console-rail{ border-right:0; border-bottom:1px solid var(--color-border-subtle); max-height:160px; }
+  .qa-focus{ grid-template-rows:minmax(440px,auto) minmax(240px,auto); overflow-y:auto; }
 }
 
 /* QA 2단 판정 패널 (ARTEL-290 #4) */

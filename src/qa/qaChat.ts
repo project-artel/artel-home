@@ -28,6 +28,11 @@ export function waitingQuestion(questions: Question[], qaTryId: string): Questio
     .sort((left, right) => Date.parse(left.createdAt) - Date.parse(right.createdAt))[0] ?? null
 }
 
+export function latestQuestionId(questions: Question[], qaTryId: string): string | null {
+  return questions.filter(question => question.qaTryId === qaTryId)
+    .sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt))[0]?.id ?? null
+}
+
 export async function sendChatMessage(projectId: string, qaTryId: string, message: string, question: Question | null): Promise<void> {
   if (question !== null) {
     if (question.qaTryId !== qaTryId || question.state !== 'WAITING') throw new Error('Question is not waiting for this QA')

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type Poin
 import { useI18n } from '../i18n/useI18n'
 import { QaChatPanel } from './QaChatPanel'
 import { useOperatorQuestions } from './evaluation/useOperatorQuestions'
-import { waitingQuestion } from './qaChat'
+import { latestQuestionId } from './qaChat'
 import { QaContextGauge } from './QaContextGauge'
 import { QaRunChangesPanel } from './QaRunChangesPanel'
 import { toolCallOf } from './qaLogGrouping'
@@ -12,7 +12,7 @@ import { useQaRunChanges } from './useQaRunChanges'
 
 /** The chat's height when the viewer has never resized it. */
 const DEFAULT_CHAT_HEIGHT_PIXELS = 240
-const MINIMUM_CHAT_HEIGHT_PIXELS = 140
+const MINIMUM_CHAT_HEIGHT_PIXELS = 240
 /** The game keeps at least this much height, however far the chat is dragged. */
 const MINIMUM_GAME_HEIGHT_PIXELS = 160
 /** One arrow-key press on the resize handle. */
@@ -76,10 +76,10 @@ export function QaFocusStage({
   const { t } = useI18n()
   const stageRef = useRef<HTMLDivElement>(null)
   const questions = useOperatorQuestions(projectId)
-  const pendingQuestion = waitingQuestion(questions.questions, qaTryId)
+  const questionId = latestQuestionId(questions.questions, qaTryId)
   const [dock, setDock] = useState<{ view: 'chat' | 'changes'; questionId: string | null }>({ view: 'chat', questionId: null })
-  const dockView = pendingQuestion !== null && dock.questionId !== pendingQuestion.id ? 'chat' : dock.view
-  const setDockView = (view: 'chat' | 'changes') => setDock({ view, questionId: pendingQuestion?.id ?? null })
+  const dockView = questionId !== null && dock.questionId !== questionId ? 'chat' : dock.view
+  const setDockView = (view: 'chat' | 'changes') => setDock({ view, questionId })
   const changes = useQaRunChanges(qaRun)
   const [chatHeight, setChatHeight] = useState(readStoredChatHeight)
   const [maximumChatHeight, setMaximumChatHeight] = useState<number | null>(null)
