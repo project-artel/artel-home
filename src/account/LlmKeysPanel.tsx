@@ -114,7 +114,26 @@ export function LlmKeysPanel({ note }: { note?: string } = {}) {
         {note !== undefined && <p className="llm-key-scope">{note}</p>}
       </header>
 
-      {state.status === 'loading' && <p className="panel-empty">{copy.loading}</p>}
+      {/* 받는 동안 진짜 줄과 같은 높이의 빈 줄 셋. 다 받아도 칸이 밀리지 않는다(케이스 표와 같은 방식). */}
+      {state.status === 'loading' && (
+        <>
+          <p className="visually-hidden" role="status">{copy.loading}</p>
+          <ul aria-hidden="true" className="llm-key-list llm-key-list--skeleton">
+            {LLM_KEY_SERVICES.map((service) => (
+              <li className="llm-key-row" key={service}>
+                <div className="llm-key-summary">
+                  <span className="llm-key-logo skeleton-block" />
+                  <span className="llm-key-skel-text">
+                    <span className="skeleton-line" style={{ width: '42%' }} />
+                    <span className="skeleton-line skeleton-line--short" />
+                  </span>
+                  <span className="skeleton-line llm-key-skel-button" />
+                </div>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
 
       {state.status === 'error' && (
         <div className="inline-error" role="alert">

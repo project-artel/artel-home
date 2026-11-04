@@ -33,11 +33,13 @@ export function ApiSection() {
           <header className="panel-header">
             <h2 id="api-share-title">{a.spendTitle}</h2>
           </header>
-          {status === 'loading' && <p className="panel-empty">{u.loading}</p>}
+          {status === 'loading' && <ShareSkeleton />}
           {status === 'error' && <p className="panel-empty">{u.loadFailed}</p>}
           {status === 'ready' && usage !== null && <FeatureShare byService={usage.byService} total={usage.total} />}
         </section>
       </div>
+
+      {status === 'loading' && <SpendSkeleton label={u.loading} />}
 
       {status === 'ready' && usage !== null && grid !== null && (
         <>
@@ -365,5 +367,74 @@ function SpendTable({
         </div>
       )}
     </section>
+  )
+}
+
+/** 도넛 칸을 받는 동안: 고리 하나와 범례 줄 셋(ARTEL-1379). */
+function ShareSkeleton() {
+  return (
+    <div aria-hidden="true" className="api-share-body api-skel">
+      <span className="api-skel-ring" />
+      <span className="api-skel-lines">
+        {[60, 48, 36].map((width) => <span className="skeleton-line" key={width} style={{ width: `${width}%` }} />)}
+      </span>
+    </div>
+  )
+}
+
+/**
+ * 잔디 · 수치 · 표를 받는 동안의 화면(ARTEL-1379). 진짜 화면과 같은 칸 · 같은 크기라 다 받아도 밀리지 않는다. 막대는
+ * 케이스 표의 빈 줄과 같은 박동(`tct-skel-pulse`)으로 깜박인다.
+ */
+function SpendSkeleton({ label }: { label: string }) {
+  return (
+    <>
+      <p className="visually-hidden" role="status">{label}</p>
+      <section aria-hidden="true" className="panel api-overview api-skel">
+        <header className="panel-header">
+          <span className="skeleton-line" style={{ width: 120 }} />
+        </header>
+        <div className="usage-overview">
+          <div className="api-skel-grass">
+            {Array.from({ length: 84 }, (_, cell) => <span className="skeleton-block" key={cell} />)}
+          </div>
+          <div className="api-figures">
+            {[0, 1, 2, 3].map((card) => (
+              <div className="api-figure" key={card}>
+                <span className="skeleton-line" style={{ width: '38%' }} />
+                <span className="skeleton-line api-skel-value" style={{ width: `${54 + card * 6}%` }} />
+                <span className="skeleton-line skeleton-line--short" />
+                <span className="api-skel-bars">
+                  {Array.from({ length: 14 }, (_, bar) => <span className="skeleton-block" key={bar} style={{ height: `${20 + ((bar * 37 + card * 11) % 70)}%` }} />)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+      <div aria-hidden="true" className="usage-breakdowns api-skel">
+        {[0, 1].map((table) => (
+          <section className="panel api-table" key={table}>
+            <header className="panel-header">
+              <span className="skeleton-line" style={{ width: 80 }} />
+            </header>
+            <div className="api-table-rows">
+              {[0, 1, 2].map((row) => (
+                <div className="api-table-row" key={row}>
+                  <span className="api-table-name">
+                    <span className="api-table-icon skeleton-block" />
+                    <span className="skeleton-line" style={{ width: `${50 - row * 8}%` }} />
+                  </span>
+                  <span className="skeleton-line" />
+                  <span className="skeleton-line" />
+                  <span className="skeleton-line" />
+                  <span className="skeleton-line" />
+                </div>
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+    </>
   )
 }
