@@ -104,6 +104,7 @@
   .qh .qh-rail { max-height: 240px; border-right: 0; }
   .qh .qh-main { height: auto; min-height: 320px; overflow: visible; padding: var(--space-3); }
   .qh .qh-inspector { min-height: 400px; }
+  .qh .qh-split, .qh .qh-inspector-rail, .qh .qh-inspector-collapse { display: none; }
   .qh .qh-filters { flex-wrap: wrap; }
   .ql .ql-main { padding: var(--space-3); }
   .ql .ql-picker { width: calc(100vw - 24px); }

@@ -320,6 +320,10 @@ export const qaEn = {
     /** The board layout (ARTEL-1100): version tree, a card per test run, a tile per run. */
     board: {
       versionsTitle: 'Game versions',
+      inspectorWidth: 'Detail panel width (double-click to reset)',
+      collapseInspector: 'Collapse the detail panel (])',
+      expandInspector: 'Expand the detail panel (])',
+      inspectorTitle: 'Run detail',
       newestFirst: 'Newest first',
       noVersion: 'No version',
       latest: 'Latest',
@@ -1080,6 +1084,10 @@ export const qaKo: Localized<typeof qaEn> = {
   history: {
     /** 보드 배치(ARTEL-1100): 버전 트리, 테스트 런마다 카드, 실행마다 타일. */
     board: {
+      inspectorWidth: '상세 칸 폭 (두 번 누르면 기본 폭)',
+      collapseInspector: '상세 칸 접기 (])',
+      expandInspector: '상세 칸 펴기 (])',
+      inspectorTitle: '실행 상세',
       versionsTitle: '게임 버전',
       newestFirst: '최신순',
       noVersion: '버전 없음',
