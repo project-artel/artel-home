@@ -1,0 +1,144 @@
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const assert=require('node:assert/strict'); let checks=0;
+function check(ok,text){assert.ok(ok,text);checks++;console.log('PASS',text)}
+(async()=>{
+ const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_EXECUTABLE});
+ try {
+ const page=await browser.newPage({viewport:{width:1440,height:900}}), errors=[];
+ page.on('pageerror',e=>errors.push(e.message));
+ const base='http://127.0.0.1:5195/.plan/assets/qa-replay/index.html';
+ const load=async(query='')=>{await page.goto(base+query);await page.waitForSelector('.qa-execution-timeline');await page.waitForFunction(()=>document.querySelector('video')?.readyState>=2)};
+ await load();await page.waitForSelector('[data-log-id="1"]');
+ check(await page.locator('.qa-timeline-track').count()===2,'TC별 track 표시');
+ check(!await page.locator('.qa-timeline-gap-label').count(),'타임라인에서 영상 누락 구간 수 숨김');
+ check(await page.locator('.qa-replay-timeline-host').evaluate(e=>e.previousElementSibling.classList.contains('qa-console-grid')),'시나리오를 포함한 전체 영역 아래 타임라인');
+ check((await page.locator('.qa-raw-controls').boundingBox()).height<65,'검색과 필터 도구 모음 65px 미만');
+ check(!await page.locator('.gf-logs-extras').count(),'Raw의 cheat/behavior 요약 숨김');
+ check(!await page.getByText('이전 로그 불러와 검색',{exact:true}).count() && !await page.getByText('선택 시점',{exact:true}).count() && !await page.getByText('pulse 제외',{exact:true}).count(),'불필요한 버튼 제거');
+ check(await page.locator('.qa-timeline-collapse svg').count()===1 && (await page.locator('.qa-timeline-collapse').textContent())==='','접기 버튼 SVG 아이콘');
+ await page.getByRole('button',{name:'타임라인 접기'}).click();
+
+check(!await page.locator('.qa-timeline-chart').count(),'타임라인 아래로 접기');
+const backgroundBox=await page.locator('.qa-focus-game').boundingBox();
+
+
+await page.getByRole('button',{name:'타임라인 펼치기'}).click();
+const expandedBox=await page.locator('.qa-focus-game').boundingBox();
+check(Math.abs(backgroundBox.y-expandedBox.y)<1 && Math.abs(backgroundBox.height-expandedBox.height)<1,'타임라인 펼쳐도 기존 영상 위치와 크기 유지');
+const handle=page.getByRole('separator',{name:'타임라인 높이 조절'}), handleBox=await handle.boundingBox();
+const beforeHeight=await page.locator('.qa-timeline-scroll').evaluate(e=>e.clientHeight);
+await page.mouse.move(handleBox.x+handleBox.width/2,handleBox.y+handleBox.height/2);
+await page.mouse.down();await page.mouse.move(handleBox.x+handleBox.width/2,handleBox.y-100,{steps:8});await page.mouse.up();
+check((await page.locator('.qa-timeline-scroll').evaluate(e=>e.clientHeight))>beforeHeight+90,'경계 드래그로 높이 증가');
+const draggedBox=await page.locator('.qa-focus-game').boundingBox();
+check(Math.abs(expandedBox.y-draggedBox.y)<1 && Math.abs(expandedBox.height-draggedBox.height)<1,'높이를 늘려도 기존 영상 레이아웃 유지');
+await handle.focus();await handle.press('ArrowDown');
+check(Number(await handle.getAttribute('aria-valuenow'))<beforeHeight+107,'키보드로 높이 감소');
+await handle.press('Home');check(Number(await handle.getAttribute('aria-valuenow'))===64,'키보드 최소 높이');
+await handle.press('ArrowUp');await handle.press('ArrowUp');await handle.press('ArrowUp');await handle.press('ArrowUp');
+const closeHandleBox=await handle.boundingBox();
+await page.mouse.move(closeHandleBox.x+closeHandleBox.width/2,closeHandleBox.y+closeHandleBox.height/2);
+await page.mouse.down();await page.mouse.move(closeHandleBox.x+closeHandleBox.width/2,closeHandleBox.y+230,{steps:10});await page.mouse.up();
+check(!await page.locator('.qa-timeline-chart').count(),'아래로 드래그하여 타임라인 접기');
+const dockBox=await page.locator('.qa-execution-timeline').boundingBox(), mainBox=await page.locator('.qa-console-grid').boundingBox();
+check(Math.abs(mainBox.y+mainBox.height-dockBox.y)<2,'접힌 실행 바 높이만큼 본문 공간 확보');
+const reopenBox=await handle.boundingBox();
+await page.mouse.move(reopenBox.x+reopenBox.width/2,reopenBox.y+reopenBox.height/2);
+await page.mouse.down();await page.mouse.move(reopenBox.x+reopenBox.width/2,reopenBox.y-150,{steps:8});await page.mouse.up();
+check(await page.locator('.qa-timeline-chart').count()===1,'접힌 타임라인을 위로 드래그하여 펼치기');
+
+
+ await page.getByLabel('시간축 확대').selectOption('4');
+ check(await page.locator('.qa-timeline-scroll').evaluate(e=>e.scrollWidth>e.clientWidth*3),'시간축 확대와 수평 스크롤');
+ await page.getByLabel('시간축 확대').selectOption('1');
+ const filter=page.getByRole('button',{name:'필터',exact:true}),search=page.getByLabel('로그 검색');
+ check(!await page.locator('[data-log-id="3"]').count(),'pulse 기본 제외');
+ await filter.click();await page.getByLabel('pulse relay 포함').check();
+ await page.waitForSelector('[data-log-id="3"]');check(true,'필터에서 pulse 포함');
+ await page.getByLabel('pulse relay 포함').uncheck();await filter.press('Escape');
+ check(!await page.locator('.qa-log-filter-popover').count(),'Escape로 필터 닫기');
+ const slider=page.getByRole('slider',{name:'QA 녹화 실행 바'});
+ await slider.fill('6');await page.waitForFunction(()=>Math.abs(document.querySelector('video')?.currentTime-1)<.15);
+ await page.waitForSelector('[data-log-id="7"]');check(true,'6초로 이동하면 영상 offset1초와 주변 raw 로그 표시');
+ await page.evaluate(()=>window.failNextContext=true);await slider.fill('1');
+ await page.getByRole('alert').waitFor();await page.evaluate(()=>window.failNextContext=false);await page.getByRole('button',{name:'Retry older logs'}).click();
+ await page.waitForSelector('[data-log-id="1"]');await page.waitForFunction(()=>!document.querySelector('[role="alert"]'));
+ check(true,'기존 로그가 남은 시점 조회 실패에서 재시도 복구');
+ await slider.fill('4');await page.waitForFunction(()=>!document.querySelector('video'));check(true,'gap 선택 시 이전 프레임 제거');
+ check((await page.locator('.qa-focus-game').boundingBox()).height>200,'일부 gap에서는 영상 영역 크기 유지');
+ await page.screenshot({path:'.plan/assets/qa-replay/gap.png',fullPage:true});
+ await slider.fill('0');await page.waitForFunction(()=>document.querySelector('video')?.readyState>=2);
+ await page.getByRole('button',{name:'재생',exact:true}).click();await search.focus();
+ await page.waitForFunction(()=>Number(document.querySelector('.qa-timeline-seek').value)>.5);
+ check(await page.getByRole('button',{name:'일시 정지',exact:true}).count()===1,'재생 버튼 상태와 시간 바 진행');
+ check(await search.evaluate(e=>document.activeElement===e),'재생 중 검색 포커스 유지');
+ await page.waitForFunction(()=>Number(document.querySelector('.qa-timeline-seek').value)>5.2,null,{timeout:10000});
+ check(await page.getByRole('button',{name:'일시 정지',exact:true}).count()===1,'segment 전환 이후에도 재생 상태 유지');
+ await page.getByRole('button',{name:'일시 정지',exact:true}).click();
+ await search.fill('needle-6');await search.press('Enter');
+ await page.waitForSelector('.qa-log-row--focused[data-log-id="7"]');
+ check(await search.evaluate(e=>document.activeElement===e),'payload 검색과 Enter 이동에서 입력 포커스 유지');
+ await search.fill('');await page.getByRole('button',{name:'다시 시도',exact:true}).last().click();
+ await page.waitForFunction(()=>document.querySelector('video')?.readyState>0&&document.querySelector('video').paused&&document.querySelector('video').currentTime<.1);
+ check(true,'다시 시도 시 재생 위치와 상태 초기화');
+ await slider.fill('0.1');await page.waitForFunction(()=>document.querySelector('video')?.readyState>=2);
+ await page.screenshot({path:'.plan/assets/qa-replay/desktop-light.png',fullPage:true});
+ await page.evaluate(()=>document.documentElement.dataset.theme='dark');await page.screenshot({path:'.plan/assets/qa-replay/desktop-dark.png',fullPage:true});
+ await page.setViewportSize({width:390,height:844});await page.screenshot({path:'.plan/assets/qa-replay/mobile-dark.png',fullPage:true});
+ check(await page.evaluate(()=>document.documentElement.scrollWidth<=390),'390px 가로 넘침 없음');
+ await page.setViewportSize({width:1024,height:900});await page.evaluate(()=>document.documentElement.dataset.theme='light');
+ await page.screenshot({path:'.plan/assets/qa-replay/tablet-light.png',fullPage:true});check(await slider.isVisible(),'1024px 타임라인 표시');
+ await load('?overlap');await slider.fill('1.5');await page.waitForFunction(()=>document.querySelectorAll('.qa-timeline-selected>span').length===3);
+ check(await page.locator('.qa-timeline-track').first().evaluate(e=>e.getBoundingClientRect().height>=68),'겹친 같은 TC는 별도 lane, 동시 TC3건 표시');
+ await load('?tail');await page.getByRole('button',{name:'재생',exact:true}).click();await page.waitForFunction(()=>!document.querySelector('video'));
+ check(Number(await slider.inputValue())===3,'마지막 영상 뒤 gap에서 끝 프레임 제거');
+ await page.screenshot({path:'.plan/assets/qa-replay/tail-gap.png',fullPage:true});
+ await load('?many');await page.waitForFunction(()=>document.querySelectorAll('.qa-timeline-case').length===101);check(true,'101개 attempt 페이지 로드');
+ await page.goto(base+'?error');await page.waitForSelector('.qa-replay-status[role=alert]');await page.screenshot({path:'.plan/assets/qa-replay/error.png',fullPage:true});check(true,'녹화 오류 표시');
+
+ check((await page.locator('.qa-focus-game').boundingBox()).height<100,'녹화 API 오류는 빈 플레이어 대신 작은 안내 표시');
+ await page.evaluate(()=>window.recordingRecovered=true);await page.getByRole('button',{name:'다시 시도',exact:true}).click();
+ await page.waitForFunction(()=>document.querySelector('video')?.readyState>=2);
+ check(await page.locator('.qa-stage-resize').isVisible(),'조회 재시도 성공 시 영상 레이아웃 복구');
+ await page.goto(base+'?expired');await page.getByText('보관 기간 30일이 지나 영상이 삭제됐습니다.').waitFor();await page.screenshot({path:'.plan/assets/qa-replay/expired.png',fullPage:true});check(true,'보관 만료 표시');
+
+ check((await page.locator('.qa-focus-game').boundingBox()).height<100,'보관 만료 상태의 영상 빈 영역 제거');
+ await page.setViewportSize({width:1440,height:900});
+ for(const mode of ['no-recording','no-segments','pending']){
+   await page.goto(base+'?'+mode);await page.waitForSelector('.qa-execution-timeline');
+   await page.waitForSelector('.qa-replay-without-video');
+   check(!await page.locator('video').count() && (await page.locator('.qa-focus-game').boundingBox()).height<100,mode+'는 영상 영역을 작은 안내로 축소');
+   check((await page.locator('.qa-stage-chat').boundingBox()).height>300 && !await page.locator('.qa-stage-resize').isVisible(),mode+'에서 채팅이 남는 공간을 사용');
+   check(await page.getByRole('button',{name:'재생',exact:true}).isDisabled(),mode+'에서 재생 버튼 비활성화');
+   await page.getByRole('slider',{name:'QA 녹화 실행 바'}).fill('6');await page.waitForSelector('[data-log-id="7"]');
+   check(true,mode+'에서도 타임라인과 로그 탐색 유지');
+   if(mode==='no-recording'){
+     await page.screenshot({path:'.plan/assets/qa-replay/no-recording-light.png',fullPage:true});
+     await page.evaluate(()=>document.documentElement.dataset.theme='dark');
+     await page.screenshot({path:'.plan/assets/qa-replay/no-recording-dark.png',fullPage:true});
+     await page.setViewportSize({width:390,height:844});
+     check(await page.evaluate(()=>document.documentElement.scrollWidth<=390),'영상 없는390px 화면 가로 넘침 없음');
+     await page.screenshot({path:'.plan/assets/qa-replay/no-recording-mobile.png',fullPage:true});
+     await page.setViewportSize({width:1440,height:900});
+   }
+ }
+
+ await page.goto(base+'?media-error');await page.waitForSelector('.qa-replay-without-video[role=alert]');
+ check(!await page.locator('video').count() && (await page.locator('.qa-focus-game').boundingBox()).height<100,'영상 파일 오류에서도 빈 플레이어 제거');
+ await page.evaluate(()=>window.mediaRecovered=true);
+ await page.locator('.qa-replay-without-video').getByRole('button',{name:'다시 시도',exact:true}).click();
+ await page.waitForFunction(()=>document.querySelector('video')?.readyState>=2);
+ check(!await page.locator('.qa-replay-without-video').count(),'영상 파일 재시도 성공 시 플레이어 복구');
+ await load('?history');await search.fill('needle-0');await page.waitForFunction(()=>window.historyPageReads===1);
+ check(true,'검색 시 이전 로그 자동 조회');
+ await page.goto(base+'?live');await page.getByRole('tab',{name:'Raw',exact:true}).click();await search.fill('needle-live');
+ await page.evaluate(()=>window.emitQaLog({id:'10',qaTryId:'6',type:'LOG',direction:'ORCHE_INTERNAL',message:'needle-live arrives',payload:null,createdAt:'2026-11-04T00:00:10Z'}));
+ await page.getByText('needle-live arrives',{exact:true}).waitFor();check(true,'QA 진행 중 SSE 로그 필터 적용');
+ await page.evaluate(()=>window.emitQaLog({id:'11',qaTryId:'6',type:'LOG',direction:'ORCHE_INTERNAL',message:'hidden live log',payload:null,createdAt:'2026-11-04T00:00:11Z'}));
+ check(!await page.getByText('hidden live log',{exact:true}).count(),'실시간 불일치 로그 숨김');
+ await page.goto(base+'?not-started');await page.getByText('앞 시나리오가 모델 API 오류로 멈춰 실행하지 않았습니다.',{exact:true}).waitFor();
+ check(!await page.locator('video').count() && !await page.locator('.qa-execution-timeline').count(),'실행 안 한 시나리오는 공유 녹화를 표시하지 않음');
+ await page.screenshot({path:'.plan/assets/qa-replay/not-started.png',fullPage:true});
+ check(errors.length===0,'브라우저 pageerror 없음');console.log(JSON.stringify({checks,errors}));
+ }finally{await browser.close()}
+})().catch(e=>{console.error(e);process.exit(1)});

@@ -103,11 +103,11 @@ export function changedKnobCount(selection: QaArchSelection): number {
 }
 
 /**
- * 고급 설정 제목 옆의 "n개 변경". `planner_executer` 면 엔진 하나만 센다 — 남겨 둔 tool loop knob 은
- * 그 run 에 쓰이지 않으므로 바뀐 것으로 세지 않는다.
+ * 고급 설정 제목 옆의 "n개 변경". 엔진은 고급 설정 밖에서 고르므로 세지 않는다. `planner_executer` 면
+ * 0 이다 — 남겨 둔 tool loop knob 은 그 run 에 쓰이지 않는다.
  */
 export function changedSettingCount(selection: QaArchSelection): number {
-  return archEngine(selection) === 'planner_executer' ? 1 : changedKnobCount(selection)
+  return archEngine(selection) === 'planner_executer' ? 0 : changedKnobCount(selection)
 }
 
 export function archEngine(selection: QaArchSelection): QaEngine {

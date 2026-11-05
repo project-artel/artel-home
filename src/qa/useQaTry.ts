@@ -29,7 +29,7 @@ function isAscending(logs: QaLog[]): boolean {
   return true
 }
 
-function mergeLogs(current: QaLog[], incoming: QaLog[]): QaLog[] {
+export function mergeLogs(current: QaLog[], incoming: QaLog[]): QaLog[] {
   if (incoming.length === 0) return current
   if (current.length === 0 || !isAscending(incoming)) return mergeSorted(current, incoming)
 

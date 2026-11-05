@@ -53,6 +53,8 @@ export function QaFocusStage({
   contextUsage,
   game,
   logs,
+  historicalLogs = logs,
+  replay = false,
   progress,
   qaRun,
   qaTryId,
@@ -61,6 +63,8 @@ export function QaFocusStage({
   contextUsage: QaContextUsage | null
   game: ReactNode
   logs: QaLog[]
+  historicalLogs?: QaLog[]
+  replay?: boolean
   progress: QaProgress
   qaRun: QaRun
   qaTryId: string
@@ -78,11 +82,11 @@ export function QaFocusStage({
     const stage = stageRef.current
     if (stage === null) return undefined
     const observer = new ResizeObserver(([entry]) => {
-      setMaximumChatHeight(Math.max(MINIMUM_CHAT_HEIGHT_PIXELS, entry.contentRect.height - MINIMUM_GAME_HEIGHT_PIXELS))
+      setMaximumChatHeight(Math.max(MINIMUM_CHAT_HEIGHT_PIXELS, entry.contentRect.height - (replay ? 260 : MINIMUM_GAME_HEIGHT_PIXELS)))
     })
     observer.observe(stage)
     return () => observer.disconnect()
-  }, [])
+  }, [replay])
 
   const clampChatHeight = useCallback(
     (heightPixels: number) =>
@@ -131,7 +135,7 @@ export function QaFocusStage({
     <div className="qa-stage" ref={stageRef}>
       <div className="qa-stage-top">
         {game}
-        <QaNowPanel contextUsage={contextUsage} logs={logs} progress={progress} />
+        <QaNowPanel contextUsage={contextUsage} logs={historicalLogs} progress={progress} />
       </div>
       <div
         aria-label={t.qa.run.resizeChat}
