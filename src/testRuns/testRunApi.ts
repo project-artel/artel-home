@@ -128,6 +128,25 @@ export async function createTestRun(
   return run
 }
 
+/**
+ * TR 을 복제한다(ARTEL-1377). 시나리오는 원래 순서대로 복사본이 되고 이름 뒤에 "사본" 이 붙는다. 자리를 주지 않으면
+ * 원본과 같은 버전 · 폴더다. 폴더를 주면 그 폴더 안, `unversioned` 면 버전 없음, `gameBuildId` 면 그 버전 바로 아래.
+ */
+export async function copyTestRun(
+  projectId: string,
+  runId: string,
+  place: { gameBuildId?: string; unversioned?: boolean; folderId?: string } = {},
+): Promise<TestRun> {
+  const response = await apiFetch(`${runsRoot(projectId)}/${encodeURIComponent(runId)}/copies`, {
+    method: 'POST',
+    ...jsonRequest(place),
+  })
+  if (!response.ok) throw await toApiError(response)
+  const run = parseTestRun(await readJson(response))
+  if (run === null) throw new Error('The server did not return a run.')
+  return run
+}
+
 export async function getTestRun(
   projectId: string,
   runId: string,

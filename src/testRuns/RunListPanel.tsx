@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type DragEvent, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type DragEvent, type MouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { useActionBinding, useFieldBinding } from '../projectAgent/bindings'
@@ -17,6 +17,8 @@ import { formatDate } from '../projects/formatters'
 import { ProjectApiError } from '../projects/projectApi'
 import type { ExtrasStatus } from '../projects/workspace/workspaceContext'
 import { ContextMenu, type ContextMenuItem } from '../testCases/ContextMenu'
+import { CaseSelectionBar } from '../testCases/CaseSelectionBar'
+import { useCaseSelection } from '../testCases/useCaseSelection'
 import {
   arrangeVersions,
   hiddenVersions,
@@ -51,6 +53,7 @@ import {
 } from './testRunFolders'
 import {
   changeRunGameBuild,
+  copyTestRun,
   createTestRun,
   deleteTestRun,
   gameBuildName,
@@ -62,8 +65,26 @@ import {
 } from './testRunApi'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 
-/** TR 을 끌어 다른 버전에 놓을 때 싣는 형식. 다른 끌기(파일 등)와 섞이지 않게 따로 둔다. */
+/** TR 을 끌어 다른 버전에 놓을 때 싣는 형식. 다른 끌기(파일 등)와 섞이지 않게 따로 둔다. 고른 런 id 들의 JSON 배열이다(ARTEL-1378). */
 const RUN_DRAG = 'application/x-artel-test-run'
+
+/** 꾹 누르기로 보는 시간과, 그 사이 이만큼 움직이면 꾹 누르기가 아니라 끌기다. */
+const PRESS_MS = 450
+const PRESS_SLOP = 6
+/** 고르며 끌 때 목록 위아래 끝에서 저절로 넘기는 자리와 한 번에 넘기는 양. */
+const SWEEP_EDGE = 48
+const SWEEP_STEP = 14
+
+/** 끌어 온 런 id 들. 예전 형식(id 하나)도 받는다. */
+function draggedRunIds(raw: string): string[] {
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    if (Array.isArray(parsed)) return parsed.filter((id): id is string => typeof id === 'string')
+  } catch {
+    // id 하나만 실린 예전 형식이다.
+  }
+  return raw.length > 0 ? [raw] : []
+}
 
 /**
  * The project's TestRuns (ARTEL-1049). A run follows one build version — the game build whose test cases its scenarios
@@ -117,7 +138,9 @@ export function RunListPanel({
   const [showHidden, setShowHidden] = useState(false)
   const [creating, setCreating] = useState(false)
   const newRunButton = useRef<HTMLButtonElement>(null)
-  const [moving, setMoving] = useState<TestRun | null>(null)
+  // 버전 바꾸기 창에 넘긴 런들. 우클릭 한 줄이면 하나, 선택 막대면 고른 것 전부다(ARTEL-1378).
+  const [moving, setMoving] = useState<TestRun[] | null>(null)
+  const [bulkDeleting, setBulkDeleting] = useState<TestRun[] | null>(null)
   const [menu, setMenu] = useState<{ run: TestRun; x: number; y: number } | null>(null)
   // 버전 칸의 우클릭 메뉴. 숨기기는 케이스 라이브러리와 같은 설정이라 거기서도 숨는다.
   const [versionMenu, setVersionMenu] = useState<{ bucket: string; version: TestCaseVersionSummary | null; x: number; y: number } | null>(null)
@@ -277,12 +300,141 @@ export function RunListPanel({
   }
 
   function menuItems(run: TestRun): ContextMenuItem[] {
+    // 고른 줄 위에서 열면 고른 것 전부에 건다. 고르지 않은 줄이면 그 줄 하나다.
+    const group = selection.isSelected(run.id) && selection.count > 1 ? pickedRuns : [run]
+    const many = group.length > 1
     return [
       { label: r.menu.open, onSelect: () => openRun(run.id) },
       { label: r.menu.rename, onSelect: () => setNaming({ kind: 'renameRun', run }) },
-      { label: r.menu.changeVersion, onSelect: () => setMoving(run) },
-      { label: r.delete, onSelect: () => setPendingDelete(run), danger: true },
+      { label: many ? r.menu.copySelected(group.length) : r.menu.copy, onSelect: () => void transferRuns(group, null, null, true) },
+      { label: r.menu.changeVersion, onSelect: () => setMoving(group) },
+      many
+        ? { label: r.menu.deleteSelected(group.length), onSelect: () => setBulkDeleting(group), danger: true }
+        : { label: r.delete, onSelect: () => setPendingDelete(run), danger: true },
     ]
+  }
+
+  /**
+   * 런 여럿을 버전 · 폴더로 옮기거나 복제한다(ARTEL-1378). [target] 이 null 이면 제자리 복제다 — 서버가 원본과 같은 버전 ·
+   * 폴더에 만든다. 하나라도 실패하면 나머지는 그대로 하고, 못 한 것의 이름을 알린다.
+   */
+  async function transferRuns(list: TestRun[], target: string | null, folder: RunFolder | null, copy: boolean) {
+    if (list.length === 0) return
+    if (!copy && target !== null && list.length === 1) {
+      await moveRun(list[0], target, folder)
+      selection.clear()
+      return
+    }
+    setFailure(null)
+    setNotice(null)
+    const failed: string[] = []
+    let done = 0
+    for (const run of list) {
+      try {
+        if (copy) {
+          await copyTestRun(
+            projectId,
+            run.id,
+            target === null ? {} : folder !== null ? { folderId: folder.id } : target === NO_VERSION ? { unversioned: true } : { gameBuildId: target },
+          )
+          done += 1
+        } else if (target !== null && !(bucketOf(run) === target && (run.folderId ?? null) === (folder?.id ?? null))) {
+          await changeRunGameBuild(projectId, run.id, target === NO_VERSION ? null : target, folder?.id ?? null)
+          done += 1
+        }
+      } catch {
+        failed.push(run.name.length > 0 ? run.name : r.untitled)
+      }
+    }
+    await onChanged()
+    const place =
+      target === null
+        ? selectedFolder === null ? bucketLabel : `${bucketLabel} › ${selectedFolder.name}`
+        : folder === null ? bucketName(target) : `${bucketName(target)} › ${folder.name}`
+    if (done > 0) setNotice(copy ? r.copied(done, place) : r.movedMany(done, place))
+    if (failed.length > 0) setFailure(r.transferFailed(failed.join(', ')))
+    selection.clear()
+  }
+
+  /**
+   * 줄 click(ARTEL-1378). 그냥 click 은 런을 열고, `⌘`(Windows 는 Ctrl)는 그 줄을 넣거나 빼며, `Shift` 는 시작점부터 그
+   * 줄까지를 고른다 — 케이스 라이브러리와 같다. 고르는 click 은 런을 열지 않는다.
+   */
+  function clickRun(event: MouseEvent, run: TestRun) {
+    // 꾹 눌러 고른 뒤 손을 떼면 click 이 한 번 온다. 그 click 은 런을 열지 않는다.
+    if (swallowClick.current) {
+      swallowClick.current = false
+      return
+    }
+    const additive = event.metaKey || event.ctrlKey
+    if (event.shiftKey) {
+      event.preventDefault()
+      selection.selectRangeTo(run.id, additive)
+      return
+    }
+    // 고르는 중이면(하나라도 골랐으면) 그냥 click 도 넣기 · 빼기다. 다 빼면 다시 click 이 런을 연다.
+    if (additive || selection.count > 0) {
+      selection.toggle(run.id)
+      return
+    }
+    openRun(run.id)
+  }
+
+  /**
+   * 꾹 누르기(ARTEL-1378). 줄을 [PRESS_MS] 동안 움직이지 않고 누르면 그 줄을 고르고, 손을 떼지 않은 채 아래위로 끌면
+   * 지나간 줄까지 이어서 고른다. 누르자마자 움직이면 꾹 누르기가 아니라 끌어 옮기기다 — 브라우저의 끌기가 그대로 간다.
+   */
+  function startPress(event: ReactPointerEvent<HTMLDivElement>, run: TestRun) {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey) return
+    if ((event.target as HTMLElement).closest('button') !== null) return
+    const startX = event.clientX
+    const startY = event.clientY
+    const additive = selection.count > 0
+    const row = event.currentTarget
+    setPressing(run.id)
+    const timer = window.setTimeout(() => {
+      setPressing(null)
+      // 이미 고른 줄이면 고른 채로 시작점만 옮긴다(두 번 뒤집기).
+      if (selection.isSelected(run.id)) selection.toggle(run.id)
+      selection.toggle(run.id)
+      sweep.current = { anchor: run.id, additive, row }
+      swallowClick.current = true
+      setSweeping(true)
+    }, PRESS_MS)
+    function cancel(moveEvent: PointerEvent) {
+      if (Math.hypot(moveEvent.clientX - startX, moveEvent.clientY - startY) > PRESS_SLOP) end()
+    }
+    function end() {
+      window.clearTimeout(timer)
+      setPressing(null)
+      window.removeEventListener('pointermove', cancel)
+      window.removeEventListener('pointerup', end)
+      window.removeEventListener('pointercancel', end)
+    }
+    window.addEventListener('pointermove', cancel)
+    window.addEventListener('pointerup', end)
+    window.addEventListener('pointercancel', end)
+  }
+
+
+  /** 고른 줄을 끌면 고른 것 전부가, 아니면 그 줄 하나가 실린다. 여럿이면 몇 개를 끄는지 미리 보기로 보인다. */
+  function startDrag(event: DragEvent, run: TestRun) {
+    // 꾹 눌러 고르는 중에는 끌어 옮기기가 아니다.
+    if (sweep.current !== null || sweeping) {
+      event.preventDefault()
+      return
+    }
+    const group = selection.isSelected(run.id) ? pickedRuns : [run]
+    event.dataTransfer.setData(RUN_DRAG, JSON.stringify(group.map((one) => one.id)))
+    event.dataTransfer.effectAllowed = 'copyMove'
+    if (group.length > 1) {
+      const ghost = document.createElement('div')
+      ghost.className = 'trl-drag-ghost'
+      ghost.textContent = r.dragLabel(group.length)
+      document.body.appendChild(ghost)
+      event.dataTransfer.setDragImage(ghost, 14, 14)
+      window.setTimeout(() => ghost.remove(), 0)
+    }
   }
 
   async function toggleHidden(version: TestCaseVersionSummary) {
@@ -322,16 +474,17 @@ export function RunListPanel({
       onDragOver: (event: DragEvent) => {
         if (!event.dataTransfer.types.includes(RUN_DRAG)) return
         event.preventDefault()
-        event.dataTransfer.dropEffect = 'move'
+        // ⌥ 를 누르고 있으면 복제다. 커서가 + 로 바뀌어 놓기 전에 알 수 있다.
+        event.dataTransfer.dropEffect = event.altKey ? 'copy' : 'move'
         setDropTarget(key)
       },
       onDrop: (event: DragEvent) => {
-        const runId = event.dataTransfer.getData(RUN_DRAG)
+        const ids = draggedRunIds(event.dataTransfer.getData(RUN_DRAG))
         setDropTarget(null)
-        const dragged = runs.find((one) => one.id === runId)
-        if (dragged === undefined) return
+        const dragged = ids.map((id) => runs.find((one) => one.id === id)).filter((one): one is TestRun => one !== undefined)
+        if (dragged.length === 0) return
         event.preventDefault()
-        void moveRun(dragged, target, folder)
+        void transferRuns(dragged, target, folder, event.altKey)
       },
     }
   }
@@ -412,6 +565,45 @@ export function RunListPanel({
   const needle = query.trim().toLowerCase()
   const listed = needle === '' ? shown : shown.filter((run) => `${run.name} ${run.description ?? ''}`.toLowerCase().includes(needle))
   const listedFolders = needle === '' ? shownFolders : shownFolders.filter((folder) => folder.name.toLowerCase().includes(needle))
+  // 보이는 줄에서만 고른다(ARTEL-1378). 버전 · 폴더 · 검색이 바뀌어 안 보이게 된 줄은 선택에서 빠진다.
+  const listedIds = listed.map((run) => run.id)
+  const selection = useCaseSelection(listedIds)
+  const pickedRuns = listed.filter((run) => selection.isSelected(run.id))
+  const [pressing, setPressing] = useState<string | null>(null)
+  const [sweeping, setSweeping] = useState(false)
+  const sweep = useRef<{ anchor: string; additive: boolean; row: HTMLElement } | null>(null)
+  const swallowClick = useRef(false)
+
+  // 고르며 끄는 동안: 손가락 밑의 줄까지 고르고, 목록 끝에 닿으면 저절로 넘긴다. 손을 떼면 끝난다.
+  useEffect(() => {
+    if (!sweeping) return undefined
+    const scroller = listRef.current?.closest<HTMLElement>('.trl-scroll') ?? null
+    function onMove(event: PointerEvent) {
+      const state = sweep.current
+      if (state === null) return
+      const under = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>('[data-run-id]')
+      const id = under?.dataset.runId
+      if (id !== undefined) selection.selectRangeTo(id, state.additive)
+      if (scroller !== null) {
+        const box = scroller.getBoundingClientRect()
+        if (event.clientY > box.bottom - SWEEP_EDGE) scroller.scrollBy({ top: SWEEP_STEP })
+        else if (event.clientY < box.top + SWEEP_EDGE) scroller.scrollBy({ top: -SWEEP_STEP })
+      }
+      event.preventDefault()
+    }
+    function onUp() {
+      sweep.current = null
+      setSweeping(false)
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    window.addEventListener('pointercancel', onUp)
+    return () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+      window.removeEventListener('pointercancel', onUp)
+    }
+  }, [sweeping, selection])
 
   // agent 가 목록을 읽고 런을 여는 길. 보이는 줄과 같은 `listed` 를 읽고, 줄을 누르는 것과 같은 `openRun` 을 부른다.
   const searchBox = useRef<HTMLLabelElement>(null)
@@ -584,6 +776,21 @@ export function RunListPanel({
             </div>
             {shown.length + shownFolders.length > 0 && (
               <>
+                {/* 고르면 검색창 자리에 선택 막대가 선다. 위에 끼우면 줄이 밀려 다음 click 이 다른 줄에 맞는다. */}
+                {selection.count > 0 ? (
+                  <div className="trl-selection">
+                    <CaseSelectionBar
+                      actions={[{ label: r.selection.copy, onClick: () => void transferRuns(pickedRuns, null, null, true) }]}
+                      count={selection.count}
+                      isLimitReached={selection.isLimitReached}
+                      limitNoteId="trl-selection-limit"
+                      moveLabel={r.selection.move}
+                      onClear={selection.clear}
+                      onDelete={() => setBulkDeleting(pickedRuns)}
+                      onMove={() => setMoving(pickedRuns)}
+                    />
+                  </div>
+                ) : (
                 <label className="trl-search" ref={searchBox}>
                   <SearchIcon />
                   <input
@@ -594,6 +801,7 @@ export function RunListPanel({
                     value={query}
                   />
                 </label>
+                )}
                 <div aria-hidden="true" className="trl-cols">
                   <span />
                   <span>{r.columns.name}</span>
@@ -611,7 +819,14 @@ export function RunListPanel({
                   <p>{runs.length === 0 ? r.empty : selectedFolder === null ? r.emptyVersion : r.folders.empty}</p>
                 </div>
               ) : (
-                <ul aria-label={r.columns.name} className="trl-list" ref={listRef}>
+                <ul
+                  aria-label={r.columns.name}
+                  className={'trl-list' + (selection.count > 0 ? ' has-selection' : '') + (sweeping ? ' is-sweeping' : '')}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Escape' && selection.count > 0) selection.clear()
+                  }}
+                  ref={listRef}
+                >
                   {listedFolders.map((folder) => (
                     <li key={`folder:${folder.id}`}>
                       <div
@@ -650,29 +865,38 @@ export function RunListPanel({
                       </div>
                     </li>
                   ))}
-                  {listed.map((run) => (
+                  {listed.map((run) => {
+                    const picked = selection.isSelected(run.id)
+                    const runName = run.name.length > 0 ? run.name : r.untitled
+                    return (
                     <li key={run.id}>
                       <div
-                        className="trl-row"
+                        aria-selected={selection.count > 0 ? picked : undefined}
+                        className={'trl-row' + (picked ? ' is-picked' : '') + (pressing === run.id ? ' is-pressing' : '')}
+                        data-run-id={run.id}
                         draggable
-                        onClick={() => openRun(run.id)}
+                        onClick={(event) => clickRun(event, run)}
+                        onPointerDown={(event) => startPress(event, run)}
                         onContextMenu={(event) => {
                           event.preventDefault()
                           setMenu({ run, x: event.clientX, y: event.clientY })
                         }}
-                        onDragStart={(event) => {
-                          event.dataTransfer.setData(RUN_DRAG, run.id)
-                          event.dataTransfer.effectAllowed = 'move'
-                        }}
+                        onDragStart={(event) => startDrag(event, run)}
                         onKeyDown={(event) => {
+                          if (event.target !== event.currentTarget) return
                           if (event.key === 'Enter') openRun(run.id)
+                          // 키보드로는 Space 가 꾹 누르기 대신이다 — 그 줄을 넣거나 뺀다.
+                          if (event.key === ' ') {
+                            event.preventDefault()
+                            selection.toggle(run.id)
+                          }
                         }}
                         role="button"
                         tabIndex={0}
                       >
                         <ClipboardListIcon className="trl-row-icon" />
                         <span className="trl-row-title">
-                          <span className="trl-row-name">{run.name.length > 0 ? run.name : r.untitled}</span>
+                          <span className="trl-row-name">{runName}</span>
                           {run.description !== null && run.description.length > 0 && (
                             <span className="trl-row-desc">{run.description}</span>
                           )}
@@ -696,7 +920,8 @@ export function RunListPanel({
                         </button>
                       </div>
                     </li>
-                  ))}
+                    )
+                  })}
                   {listed.length + listedFolders.length === 0 && <li className="trl-nomatch">{r.noMatch(query.trim())}</li>}
                 </ul>
               )}
@@ -808,15 +1033,56 @@ export function RunListPanel({
           confirmLabel={r.changeVersion.confirm}
           groups={versionList.groups}
           hint={r.changeVersion.hint}
-          initialId={moving.gameBuild?.gameBuildId ?? null}
+          initialId={moving[0]?.gameBuild?.gameBuildId ?? null}
           onClose={() => setMoving(null)}
           onConfirm={async (gameBuildId) => {
-            const run = moving
+            const list = moving
             setMoving(null)
-            await moveRun(run, gameBuildId ?? NO_VERSION)
+            await transferRuns(list, gameBuildId ?? NO_VERSION, null, false)
           }}
-          title={r.changeVersion.title(moving.name.length > 0 ? moving.name : r.untitled)}
+          title={
+            moving.length === 1
+              ? r.changeVersion.title(moving[0].name.length > 0 ? moving[0].name : r.untitled)
+              : r.changeVersion.titleMany(moving.length)
+          }
           versions={versions}
+        />
+      )}
+
+      {bulkDeleting !== null && (
+        <ConfirmActionDialog
+          body={
+            <>
+              <p>{r.bulkDelete.copy}</p>
+              <ul className="trl-bulk-names">
+                {bulkDeleting.map((run) => (
+                  <li key={run.id}>{run.name.length > 0 ? run.name : r.untitled}</li>
+                ))}
+              </ul>
+            </>
+          }
+          cancelLabel={r.cancel}
+          confirmLabel={r.bulkDelete.confirm(bulkDeleting.length)}
+          onClose={() => setBulkDeleting(null)}
+          onConfirm={async () => {
+            const list = bulkDeleting
+            const failed: string[] = []
+            for (const run of list) {
+              try {
+                // 담은 시나리오는 남긴다. 여럿을 한 번에 지울 때 런마다 무엇이 함께 없어지는지 묻지 않는다.
+                await deleteTestRun(projectId, run.id, false)
+              } catch {
+                failed.push(run.name.length > 0 ? run.name : r.untitled)
+              }
+            }
+            selection.clear()
+            await onChanged()
+            if (failed.length > 0) throw new Error(failed.join(', '))
+            setBulkDeleting(null)
+          }}
+          pendingLabel={r.deleting}
+          title={r.bulkDelete.title(bulkDeleting.length)}
+          toFailureMessage={() => r.bulkDelete.failed}
         />
       )}
 

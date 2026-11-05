@@ -240,3 +240,25 @@ export function PerformanceSketch() {
     </svg>
   )
 }
+
+const FOLDER_BACK = 'M62 46 Q60 38 69 38 L128 37 L144 54 L262 53 Q271 53 271 62 L272 150 Q272 158 263 158 L70 160 Q62 160 62 152 Z'
+const FOLDER_FRONT = 'M58 76 Q57 68 66 68 L266 66 Q275 66 274 75 L268 152 Q267 160 258 160 L70 162 Q61 162 61 154 Z'
+
+/** 폴더가 하나도 없을 때(ARTEL-1378): 비어 있는 폴더 하나와 그 위에 떠 있는 + 표. 앞판을 덮어 두께를 낸다. */
+export function FolderSketch() {
+  return (
+    <svg aria-hidden="true" className="qh-sketch" fill="none" viewBox="0 0 330 196">
+      <path className="qh-sketch-depth" d={FOLDER_BACK} transform="translate(8 8)" />
+      <path className="qh-sketch-face" d={FOLDER_BACK} />
+      <path className="qh-sketch-face" d={FOLDER_FRONT} />
+      <path className="qh-sketch-edge" d="M274 75 L282 84 M268 152 L276 161 M61 154 L69 163" />
+      <path className="qh-sketch-dash" d="M96 100 Q160 98 230 100" />
+      <path className="qh-sketch-soft" d="M96 124 Q140 122 186 124" />
+      <circle className="qh-sketch-depth" cx="252" cy="34" r="16" />
+      <circle className="qh-sketch-face" cx="248" cy="30" r="16" />
+      <path d="M248 22 L248 38 M240 30 L256 30" />
+      <path className="qh-sketch-soft" d="M40 40 l0 10 M35 45 l10 0 M300 120 l0 8 M296 124 l8 0" />
+      <ellipse className="qh-sketch-shade" cx="168" cy="180" rx="118" ry="6" />
+    </svg>
+  )
+}
