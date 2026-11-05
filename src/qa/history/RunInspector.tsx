@@ -2,6 +2,7 @@ import { buildDisplayName } from '../../projects/buildEnvironment'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { EdgeScrollbar } from '../../design-system/primitives/EdgeScrollbar'
+import { PaneIcon } from '../../testCases/PaneIcon'
 import { useI18n } from '../../i18n/useI18n'
 import { QaHistoryDetail } from '../../projects/workspace/QaHistoryDetail'
 import { QaStatusPill } from '../../projects/workspace/QaStatusPill'
@@ -17,12 +18,15 @@ import { useRunVerdicts } from './useRunVerdicts'
  * 두 벌 만들면 한쪽만 고쳐지는 날이 온다.
  */
 export function RunInspector({
+  onCollapse,
   projectId,
   run,
   ordinalLabel,
   testRunName,
   tries,
 }: {
+  /** 상세 칸을 접는다(ARTEL-1381). 오른쪽 위 구석의 단추가 부른다. */
+  onCollapse?: () => void
   projectId: string
   run: QaRunSummary | null
   ordinalLabel: string | null
@@ -37,6 +41,7 @@ export function RunInspector({
   if (run === null) {
     return (
       <aside aria-label={b.pickRun} className="qh-inspector">
+        {onCollapse !== undefined && <CollapseButton label={b.collapseInspector} onCollapse={onCollapse} />}
         <div className="qh-inspector-empty">
           <PickSketch />
           <b>{b.pickTitle}</b>
@@ -53,6 +58,7 @@ export function RunInspector({
 
   return (
     <aside aria-label={testRunName} className="qh-inspector">
+      {onCollapse !== undefined && <CollapseButton label={b.collapseInspector} onCollapse={onCollapse} />}
       <div className="qh-inspector-scroll" ref={setScroller}>
         <div className="qh-inspector-head">
           <span className={`qh-ring qh-ring--lg qh-tone--${tone}`}>
@@ -153,4 +159,13 @@ export function RunInspector({
 /** 서버가 새 상태를 보내도 화면이 깨지지 않게, 아는 상태만 알약으로 그린다. */
 function isStatus(value: string): value is QaTryStatus {
   return (QA_TRY_STATUSES as readonly string[]).includes(value)
+}
+
+/** 상세 칸 오른쪽 위의 접기 단추. 저작 화면 대화 칸의 접기 단추와 같은 그림이다. */
+function CollapseButton({ label, onCollapse }: { label: string; onCollapse: () => void }) {
+  return (
+    <button aria-expanded aria-label={label} className="qh-inspector-collapse" onClick={onCollapse} title={label} type="button">
+      <PaneIcon collapsed={false} side="right" />
+    </button>
+  )
 }

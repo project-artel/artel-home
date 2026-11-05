@@ -11699,7 +11699,7 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
 .workspace-body:has(.qh), .workspace-body:has(.qh-empty) { overflow: hidden; }
 .workspace-body:has(.qh) .section-header, .workspace-body:has(.qh-empty) .section-header { width: 100%; }
 .section-content:has(.qh), .section-content:has(.qh-empty) { display: flex; flex: 1; flex-direction: column; width: 100%; min-height: 0; padding: 0; }
-.qh { display: grid; flex: 1; grid-template-columns: 236px minmax(0, 1fr) 340px; min-height: 0; border-top: 1px solid var(--color-border-subtle); }
+.qh { display: grid; flex: 1; grid-template-columns: 236px minmax(0, 1fr) 6px var(--qh-inspector-w, 340px); min-height: 0; border-top: 1px solid var(--color-border-subtle); }
 .qh-muted { color: var(--color-text-muted); font-size: 12px; }
 .qh-spacer { flex: 1; }
 .qh-ellipsis { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -13674,3 +13674,127 @@ col.vimp-c-scene{ width:18% } col.vimp-c-verdict{ width:16% }
 .trl-list.is-sweeping .trl-row.is-picked{ animation:trl-pick 180ms var(--ease-standard); }
 @keyframes trl-pick{ from{ box-shadow:inset 0 0 0 1px var(--color-brand-accent), inset 3px 0 0 var(--color-brand-accent); } to{ box-shadow:inset 3px 0 0 var(--color-brand-accent); } }
 @media (prefers-reduced-motion: reduce){ .trl-row.is-pressing::after{ animation:none; transform:none; } .trl-list.is-sweeping .trl-row.is-picked{ animation:none; } }
+
+/* QA 실행 기록 상세 칸 폭 · 접기(ARTEL-1381). 경계는 저작 화면 대화 칸의 `.st-split` 과 같은 모양이다. */
+.qh-split { display: flex; min-height: 0; }
+.qh .st-split { position: relative; width: 6px; cursor: col-resize; background: none; border: 0; padding: 0; touch-action: none; align-self: stretch; z-index: 4; }
+.qh .st-split::before { content: ""; position: absolute; inset: 0 -3px; }
+.qh .st-split::after { content: ""; position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; margin-left: -0.5px; background: var(--color-border-subtle); transition: background 120ms var(--ease-standard), width 120ms var(--ease-standard); }
+.qh .st-split:hover::after, .qh .st-split.is-dragging::after, .qh .st-split:focus-visible::after { background: var(--color-brand-accent); width: 3px; margin-left: -1.5px; }
+.qh .st-split:focus-visible { outline: none; }
+.qh .st-split-grip { position: absolute; top: 50%; left: 50%; width: 5px; height: 34px; transform: translate(-50%, -50%); border-radius: 999px; z-index: 1; background: var(--color-border-strong); transition: background 120ms var(--ease-standard), height 120ms var(--ease-standard); }
+.qh .st-split:hover .st-split-grip, .qh .st-split:focus-visible .st-split-grip, .qh .st-split.is-dragging .st-split-grip { background: var(--color-brand-accent); height: 56px; }
+.qh.is-splitting { user-select: none; cursor: col-resize; }
+/* 접힌 동안 폭 손잡이는 쓸 일이 없다. 칸은 그대로 두어 격자가 밀리지 않게 한다. */
+.qh.is-inspector-collapsed .st-split { visibility: hidden; pointer-events: none; }
+.qh-inspector .qh-inspector-collapse { position: absolute; top: 10px; right: 10px; z-index: 2; display: inline-grid; place-items: center; width: 26px; height: 26px; padding: 0; border: 1px solid var(--color-border-subtle); border-radius: 6px; background: var(--color-bg-surface); color: var(--color-text-secondary); cursor: pointer; }
+.qh-inspector .qh-inspector-collapse:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
+.qh-inspector .qh-inspector-collapse:focus-visible { outline: 2px solid var(--color-brand-accent); outline-offset: 2px; }
+.qh-inspector-rail { position: relative; border-left: 1px solid var(--color-border-subtle); border-radius: 0; background: var(--color-bg-surface); min-height: 0; }
+.qh-rail-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-border-strong); }
+.qh-rail-dot--pass { background: var(--color-status-success); }
+.qh-rail-dot--partial { background: var(--color-status-warning); }
+.qh-rail-dot--fail { background: var(--color-status-critical); }
+.qh-rail-dot--running { background: var(--color-agent-reasoning); }
+
+/* 사이드바 맨 아래 실험실 묶음(ARTEL-1379). 관리 묶음 아래, 점선으로 갈라 실험 단계임을 보인다. */
+.project-nav-group--lab { margin-top: var(--space-2); padding-top: var(--space-2); border-top: 1px dashed var(--color-border-subtle); }
+.nav-lab-toggle { width: 100%; border: 0; background: none; font: inherit; text-align: left; cursor: pointer; }
+.nav-lab-badge { margin-left: auto; display: inline-flex; align-items: center; height: 16px; padding: 0 5px; border: 1px solid var(--color-agent-reasoning); border-radius: 999px; color: var(--color-agent-reasoning); font-size: 9.5px; font-weight: 700; letter-spacing: .04em; }
+.nav-lab-chevron { display: inline-flex; color: var(--color-text-muted); transition: transform 120ms var(--ease-standard); }
+.nav-lab-chevron.is-open { transform: rotate(90deg); }
+.project-nav:not(.project-nav--collapsed) .project-nav-list--lab { padding-left: 14px; }
+
+/* API 관리(ARTEL-1379). 한 화면: 위 키 + 기능별 그래프, 가운데 크게 키운 잔디(남는 높이), 아래 기능별 · 모델별 표. */
+.llm-key-scope { margin: 4px 0 0; color: var(--color-text-muted); font-size: 12.5px; }
+.llm-key-logo { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid var(--color-border-subtle); border-radius: 10px; background: var(--color-bg-raised); color: var(--color-text-primary); }
+.llm-key-logo .provider-logo--text { font-size: 13px; }
+.llm-keys-moved-links { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.section-content:has(.api-page) { display: flex; flex: 1; flex-direction: column; width: 100%; min-height: 0; }
+.workspace-body:has(.api-page) .section-header { width: 100%; }
+.api-page { flex: 1; display: flex; flex-direction: column; gap: var(--space-4); min-height: 0; }
+.api-page > .panel, .api-top > .panel { margin: 0; }
+.api-top { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(360px, 1fr); gap: var(--space-4); align-items: stretch; }
+.api-share { display: flex; flex-direction: column; }
+.api-share-body { flex: 1; display: flex; align-items: center; gap: var(--space-6); padding: var(--space-2) var(--space-5) var(--space-5); }
+.api-donut { flex: none; width: 168px; height: 168px; }
+.api-donut-track { fill: none; stroke: var(--color-bg-hover); stroke-width: 14; }
+.api-donut-arc { fill: none; stroke-width: 14; transition: stroke-dasharray 300ms var(--ease-standard); }
+.api-donut-value { fill: var(--color-text-primary); font-size: 15px; font-weight: 800; font-family: var(--font-mono); }
+.api-donut-label { fill: var(--color-text-muted); font-size: 8.5px; font-family: var(--font-mono); }
+.api-share-legend { flex: 1; min-width: 0; list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.api-share-legend li { display: grid; grid-template-columns: 10px minmax(0, 1fr) 56px 72px; gap: var(--space-2); align-items: center; min-height: 36px; }
+.api-share-dot { width: 10px; height: 10px; border-radius: 3px; }
+.api-share-name { display: flex; flex-direction: column; min-width: 0; font-weight: 600; font-size: 13px; }
+.api-share-name .mono { font-weight: 400; font-size: 11px; color: var(--color-text-muted); }
+.api-share-pct, .api-share-cost { text-align: right; font-size: 12.5px; color: var(--color-text-secondary); }
+/* 잔디 칸이 남는 높이를 받고, 잔디 · 수치를 그 크기에 맞게 키운다. 예전 사용량 화면의 13px 칸은 이 큰 칸에서 점처럼 보였다. */
+.api-overview { flex: 1; display: flex; flex-direction: column; min-height: 360px; }
+.api-overview .usage-overview { flex: 1; grid-template-columns: max-content minmax(0, 1fr); justify-content: stretch; align-content: center; column-gap: clamp(32px, 5vw, 96px); padding: var(--space-5) clamp(var(--space-5), 4vw, 80px); }
+.api-overview .grass-cell { width: clamp(16px, 2.1vw, 34px); height: clamp(16px, 2.1vw, 34px); border-radius: 5px; }
+.api-overview .grass-grid { border-spacing: 5px; margin: -5px; }
+.api-overview .grass-weekdays { grid-template-rows: repeat(7, clamp(16px, 2.1vw, 34px)); gap: 5px; }
+.api-overview .grass-weekday { line-height: clamp(16px, 2.1vw, 34px); font-size: 12px; }
+.api-overview .usage-overview .usage-figures { grid-template-columns: repeat(2, minmax(220px, 1fr)); row-gap: var(--space-6); }
+.api-overview .usage-figure dd { font-size: clamp(22px, 2vw, 34px); }
+.api-overview .usage-figure dt { font-size: 13px; }
+@media (max-width: 1100px) { .api-top { grid-template-columns: minmax(0, 1fr); } .api-overview .usage-overview { grid-template-columns: minmax(0, 1fr); } }
+/* 키운 잔디는 칸 안에 다 들어간다. 넘김 막대를 두지 않는다(서비스에 네이티브 막대는 없다). */
+.api-overview .usage-overview-grass, .api-overview .grass-plot { overflow: visible; }
+
+/* API 관리 그래프 색(ARTEL-1379). 회색 한 계열이면 조각이 안 갈려 서로 다른 색 계열을 쓴다. 코랄(실패) · 초록(통과)은
+   뜻이 있는 색이라 지출에 쓰지 않는다. */
+.api-page { --api-c0: #8f7cf6; --api-c1: #5b8def; --api-c2: #e6a93a; --api-c3: #34b6c2; --api-c4: #d873b5; --api-c5: var(--color-border-strong); }
+.api-tone-0 { stroke: var(--api-c0); background: var(--api-c0); }
+.api-tone-1 { stroke: var(--api-c1); background: var(--api-c1); }
+.api-tone-2 { stroke: var(--api-c2); background: var(--api-c2); }
+.api-tone-3 { stroke: var(--api-c3); background: var(--api-c3); }
+.api-tone-4 { stroke: var(--api-c4); background: var(--api-c4); }
+.api-tone-5 { stroke: var(--api-c5); background: var(--api-c5); }
+.api-ink-0 { color: var(--api-c0); } .api-ink-1 { color: var(--api-c1); } .api-ink-2 { color: var(--api-c2); }
+.api-ink-3 { color: var(--api-c3); } .api-ink-4 { color: var(--api-c4); } .api-ink-5 { color: var(--api-c5); }
+.api-fill-0 { background: var(--api-c0); } .api-fill-1 { background: var(--api-c1); } .api-fill-2 { background: var(--api-c2); }
+.api-fill-3 { background: var(--api-c3); } .api-fill-4 { background: var(--api-c4); } .api-fill-5 { background: var(--api-c5); }
+/* 수치 카드: 아이콘 · 값 · 설명 · 작은 막대 그래프 */
+.api-figures { display: grid; grid-template-columns: repeat(2, minmax(240px, 1fr)); gap: var(--space-4); min-width: 0; }
+.api-figure { display: flex; flex-direction: column; gap: 6px; padding: var(--space-4) var(--space-5); border: 1px solid var(--color-border-subtle); border-radius: 12px; background: var(--color-bg-raised); min-width: 0; }
+.api-figure-head { display: flex; align-items: center; gap: var(--space-2); }
+.api-figure-icon { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 9px; background: color-mix(in srgb, currentColor 14%, transparent); }
+.api-figure-label { color: var(--color-text-secondary); font-size: 13px; font-weight: 600; }
+.api-figure-value { font-size: clamp(22px, 2vw, 32px); font-weight: 800; color: var(--color-text-primary); }
+.api-figure-hint { color: var(--color-text-muted); font-size: 12px; }
+.api-figure-chart { margin-top: auto; padding-top: var(--space-2); }
+.api-minibars { display: block; width: 100%; height: 40px; }
+.api-minibars rect { fill: currentColor; opacity: .32; }
+.api-minibars rect.is-hot { opacity: 1; }
+.api-overview .usage-overview { grid-template-columns: max-content minmax(0, 1fr); }
+/* 기능별 · 모델별: 아이콘 · 색 막대 · 넓은 줄 */
+.api-table-rows { display: flex; flex-direction: column; padding: 0 var(--space-4) var(--space-4); }
+.api-table-row { display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(140px, 1.4fr) 110px 90px 64px; gap: var(--space-3); align-items: center; min-height: 56px; padding: 0 var(--space-2); border-top: 1px solid var(--color-border-subtle); }
+.api-table-row--head { min-height: 32px; border-top: 0; color: var(--color-text-muted); font-size: 12px; }
+.api-table-row .num { text-align: right; font-size: 13px; }
+.api-table-name { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+.api-table-icon { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; border: 1px solid var(--color-border-subtle); background: var(--color-bg-raised); }
+.api-table-label { display: flex; flex-direction: column; min-width: 0; }
+.api-table-label b { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.api-table-label .mono { font-size: 11px; color: var(--color-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.api-table-share { display: flex; align-items: center; gap: var(--space-2); }
+.api-table-share .mono { font-size: 12.5px; color: var(--color-text-secondary); min-width: 48px; text-align: right; }
+.api-table-bar { flex: 1; height: 8px; border-radius: 999px; background: var(--color-bg-hover); overflow: hidden; }
+.api-table-bar span { display: block; height: 100%; border-radius: inherit; }
+@media (max-width: 1100px) { .api-figures { grid-template-columns: minmax(0, 1fr); } .api-table-row { grid-template-columns: minmax(0, 1fr) 120px 80px; } .api-table-row > :nth-child(3), .api-table-row > :nth-child(5) { display: none; } }
+
+/* API 관리를 받는 동안(ARTEL-1379): 진짜 칸과 같은 틀에 케이스 표의 박동(`tct-skel-pulse`)으로 깜박이는 막대 · 칸. */
+.skeleton-block { display: block; border-radius: 6px; background: var(--color-bg-hover); }
+.api-skel .skeleton-line, .api-skel .skeleton-block, .llm-key-list--skeleton .skeleton-line, .llm-key-list--skeleton .skeleton-block { animation: tct-skel-pulse 1.4s ease-in-out infinite; }
+.api-skel .skeleton-line, .llm-key-list--skeleton .skeleton-line { display: block; max-width: 100%; }
+.llm-key-list--skeleton .llm-key-logo { border: 0; }
+.llm-key-skel-text { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.llm-key-skel-button { width: 56px; height: 28px; }
+.api-skel-ring { flex: none; width: 168px; height: 168px; border-radius: 50%; border: 14px solid var(--color-bg-hover); animation: tct-skel-pulse 1.4s ease-in-out infinite; }
+.api-skel-lines { flex: 1; display: flex; flex-direction: column; gap: 14px; }
+.api-skel-grass { display: grid; grid-template-columns: repeat(12, clamp(16px, 2.1vw, 34px)); grid-auto-rows: clamp(16px, 2.1vw, 34px); grid-auto-flow: column; grid-template-rows: repeat(7, clamp(16px, 2.1vw, 34px)); gap: 5px; }
+.api-skel-value { height: 26px; }
+.api-skel-bars { margin-top: auto; display: flex; align-items: flex-end; gap: 4px; height: 40px; }
+.api-skel-bars .skeleton-block { flex: 1; border-radius: 2px; }
+@media (prefers-reduced-motion: reduce) { .api-skel .skeleton-line, .api-skel .skeleton-block, .api-skel-ring, .llm-key-list--skeleton .skeleton-line, .llm-key-list--skeleton .skeleton-block { animation: none; } }

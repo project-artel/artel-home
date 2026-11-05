@@ -15,15 +15,15 @@ import { LaunchPanel } from './LaunchPanel.tsx'
 
 /*
  * QA 실행 설정의 엔진 선택(ARTEL-1119)이 무엇을 그리는지 서버 렌더 결과의 글로 확인한다.
- * 고급 설정의 첫 줄이 `engine` 이고, `planner_executer` 면 아래 tool loop 축이 잠긴다. 두 엔진 모두 FREE
- * 시나리오를 돌리므로(ARTEL-1149) "실행 전 점검" 은 엔진 때문에 실행을 막지 않는다.
+ * 엔진은 에이전트와 추론 강도 사이의 버튼이고 늘 하나가 켜져 있다. `planner_executer` 면 고급 설정의 tool loop
+ * 축이 잠긴다. 두 엔진 모두 FREE 시나리오를 돌리므로(ARTEL-1149) "실행 전 점검" 은 엔진 때문에 실행을 막지 않는다.
  */
 
 function renderKorean(element: ReactElement): string {
   const value = { locale: 'ko' as const, setLocale: () => {}, t: messages.ko }
   return renderToStaticMarkup(
     createElement(MemoryRouter, null, createElement(LocaleContext.Provider, { value }, element)),
-  )
+  ).replaceAll('&amp;', '&') // 문구의 `Plan & Execute` 를 그대로 비교한다.
 }
 
 const advanced = messages.ko.qa.panel.advanced
@@ -33,13 +33,10 @@ describe('ArchSettings', () => {
   const render = (selection: QaArchSelection) =>
     renderKorean(createElement(ArchSettings, { onChange: () => {}, readsImages: true, selection }))
 
-  it('첫 줄이 engine 이고 기본 엔진이 골라져 있다', () => {
+  it('엔진 선택은 고급 설정에 없고, agent 면 축을 잠그지 않는다', () => {
     const html = render({ label: '' })
-    const engineAt = html.indexOf('<code translate="no">engine</code>')
-    assert.ok(engineAt >= 0)
-    assert.ok(engineAt < html.indexOf('<code translate="no">phase_cycle</code>'))
-    assert.match(html, /<option value="agent" selected="">기본<\/option>/)
-    assert.match(html, /<option value="planner_executer">planner–executer<\/option>/)
+    assert.equal(html.includes('<code translate="no">engine</code>'), false)
+    assert.ok(html.includes('<code translate="no">phase_cycle</code>'))
     assert.doesNotMatch(html, /<fieldset[^>]*disabled/)
     assert.equal(html.includes(advanced.engineLocked), false)
   })
@@ -49,8 +46,6 @@ describe('ArchSettings', () => {
     assert.match(html, /<fieldset class="qa-advanced-fieldset" disabled="">/)
     assert.ok(html.includes(advanced.engineLocked))
     assert.match(html, /<option value="off" selected="">off<\/option>/)
-    // engine 선택은 잠금 틀 밖에 있어야 되돌릴 수 있다.
-    assert.ok(html.indexOf('<code translate="no">engine</code>') < html.indexOf('<fieldset'))
   })
 
 })
@@ -118,9 +113,24 @@ describe('LaunchPanel', () => {
     )
   const runBlocked = (html: string) => /<button aria-disabled="true" class="ql-run is-blocked"/.test(html)
 
-  it('제목 옆 변경 수는 엔진만 바꿔도 1 이고, planner_executer 면 남겨 둔 knob 을 세지 않는다', () => {
-    assert.ok(render({ label: '', engine: 'planner_executer' }).includes(advanced.changed(1)))
-    assert.ok(render({ label: 'a', engine: 'planner_executer', macros: 'off', skills: 'off' }).includes(advanced.changed(1)))
+  const onEngines = (html: string) =>
+    [...html.matchAll(/<button aria-checked="true" class="ql-seg-item is-on"[^>]*>([^<]*)</g)].map((match) => match[1])
+
+  it('엔진은 에이전트 다음에 있고, 기본은 워크플로우다', () => {
+    const html = render({ label: '' })
+    const engineAt = html.indexOf(`aria-label="${panel.engineTitle}"`)
+    assert.ok(engineAt > html.indexOf(panel.agentLabel))
+    assert.ok(engineAt < html.indexOf(panel.checksTitle))
+    assert.deepEqual(onEngines(html), [panel.engines.agent])
+  })
+
+  it('planner_executer 를 고르면 Plan & Execute 만 켜져 있다', () => {
+    assert.deepEqual(onEngines(render({ label: '', engine: 'planner_executer' })), [panel.engines.planner_executer])
+  })
+
+  it('제목 옆 변경 수는 엔진을 세지 않고, planner_executer 면 남겨 둔 knob 도 세지 않는다', () => {
+    assert.equal(render({ label: '', engine: 'planner_executer' }).includes('qa-advanced-count'), false)
+    assert.equal(render({ label: 'a', engine: 'planner_executer', macros: 'off', skills: 'off' }).includes('qa-advanced-count'), false)
     assert.ok(render({ label: 'a', macros: 'off', skills: 'off' }).includes(advanced.changed(2)))
     assert.equal(render({ label: '' }).includes('qa-advanced-count'), false)
   })

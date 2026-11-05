@@ -450,9 +450,13 @@ export async function listQaLogs(
   qaTryId: string,
   beforeId?: string,
   signal?: AbortSignal,
+  /** 이 타입의 행만 받는다. 커서(`nextBeforeId`)도 그 행들 사이를 넘는다. */
+  types?: readonly string[],
+  size = 50,
 ): Promise<QaLogPage> {
-  const params = new URLSearchParams({ size: '50' })
+  const params = new URLSearchParams({ size: String(size) })
   if (beforeId !== undefined) params.set('beforeId', beforeId)
+  if (types !== undefined && types.length > 0) params.set('types', types.join(','))
 
   const response = await apiFetch(`${qaPath(qaTryId, '/logs')}?${params}`, { signal })
   return parseLogPage(await readJson(response), response.status)
