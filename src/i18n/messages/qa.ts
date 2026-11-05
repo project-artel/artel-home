@@ -2,6 +2,13 @@ import type { Localized } from '../messages'
 
 /** Strings for `src/qa/*`. See `common.ts` for the typing convention. */
 export const qaEn = {
+  replay: { title: 'Execution timeline', zoom: 'Timeline zoom', resize: 'Resize timeline height', collapse: 'Collapse timeline', expand: 'Expand timeline', timeline: 'QA recording timeline', intervals: 'TC verification intervals', unknownStart: 'Start time unknown · jump to report', gaps: (count: number) => `${count} video gaps`, unknownIntervals: (count: number) => `${count} attempts without a start time` },
+  rawLogs: {
+    filter: 'Filter text', type: 'Type', direction: 'Direction', all: 'All',
+    includePulse: 'Include pulse relay', find: 'Find in filtered logs',
+    previous: 'Previous match', next: 'Next match', loadOlder: 'Load older logs to search',
+    search: 'Search logs', filters: 'Filters', reset: 'Reset', pulseHidden: 'Pulse hidden', selectedTime: 'At playhead', allLogs: 'All logs', empty: 'No logs to display.',
+  },
   statusLabels: {
     PENDING: 'Waiting',
     STARTING: 'Starting',
@@ -26,10 +33,7 @@ export const qaEn = {
       visionLocked:
         'This model does not read images, so vision=on and screen_capture other than on_demand are unavailable.',
       engineLocked:
-        'The planner–executer engine does not use the settings below. Your values are kept and apply again when you switch back to the default engine.',
-      engines: { agent: 'Default', planner_executer: 'planner–executer' },
-      engineHint:
-        'Which engine runs the QA. Default is the tool-loop agent. planner–executer has a planner write each step as functions and an executer play them. In a Test Case-based scenario it plays the Test Cases of the scene on screen first.',
+        'The Plan & Execute engine does not use the settings below. Your values are kept and apply again when you switch back to Workflow.',
       axes: {
         phase_cycle:
           'How strictly the run follows OBSERVE → DECIDE → ACT → VERIFY → UPDATE_MEMORY. off is the free tool loop; lite adds a memory turn; full adds a decide turn.',
@@ -187,6 +191,10 @@ export const qaEn = {
       noGame: 'Choose a game',
       offline: 'Turn on the Artel SDK in the game. Once it connects, it appears here on its own and you can run.',
       agentLabel: 'Agent',
+      engineTitle: 'Engine',
+      engines: { agent: 'Workflow', planner_executer: 'Plan & Execute' },
+      engineHint:
+        'Workflow: one agent plays the game with macros and tools.\nPlan & Execute: Planner writes the plan, Executor picks each action, and Evaluator judges the result. In a Test Case-based scenario it plays the Test Cases of the scene on screen first.',
       reasoningTitle: 'Reasoning',
       reasoningOff: 'Off',
       reasoningHint: 'Higher means more careful judgement.\nIt is also slower and costs more.',
@@ -422,6 +430,53 @@ export const qaEn = {
     startFailed: 'The QA run could not be started.',
   },
   run: {
+    pe: {
+      errorTag: 'Error',
+      stop: {
+        inline: (fit: boolean, seconds: string) => (fit ? `no fitting action for ${seconds}s` : `no runnable action for ${seconds}s`),
+      },
+      results: {
+        effect_met: 'effect seen',
+        effect_unmet: 'no effect',
+        unobservable: 'effect not readable',
+        unobserved: 'effect not read',
+        already_true: 'already true',
+        stale_target: 'target gone',
+        precondition_false: 'not ready',
+        input_rejected: 'input refused',
+        contract_error: 'contract error',
+        none_fits: 'no action fit',
+        REPLAN: 'ask for a new plan',
+        EXPAND_STATE: 'ask to see more',
+      } as Record<string, string>,
+    },
+    agentDock: {
+      title: 'Agents',
+      noLogTabs: 'This run shows the agent panel instead of log tabs.',
+      step: (step: number) => `Step ${step}`,
+      active: 'Working',
+      waiting: 'Waiting',
+      writing: 'Writing a plan',
+      replanning: 'Rewriting the plan',
+      rewriting: 'Writing again',
+      handoff: (plan: number) => `Plan ${plan} sent`,
+      turn: (turn: number) => `Turn ${turn}`,
+      judging: 'Judging',
+      judged: 'Judged',
+      plan: (plan: number) => `Plan ${plan}`,
+      noPlan: 'No plan yet',
+      planMeta: (actions: number, facts: number) => (facts > 0 ? `${actions} actions · ${facts} facts` : `${actions} actions`),
+      planTag: (plan: number, actions: number) => `Plan ${plan} · ${actions} actions`,
+      evidenceTag: (reads: number) => `Evidence · ${reads} reads`,
+      refused: (answer: string, reason: string) => `Refused ${answer}: ${reason}`,
+      awaitingPlan: 'Waiting for a plan',
+      finished: 'Run finished',
+      noOptions: 'No action available',
+      confidence: 'Confidence',
+      noVerdict: 'No verdict yet',
+      verdict: (step: number, passed: boolean) => `Step ${step} · ${passed ? 'Passed' : 'Failed'}`,
+      stopped: (reason: string) => `Executor stopped: ${reason}`,
+    },
     title: 'QA run',
     subtitle: 'The run executes its scenarios in order.',
     progress: (done: number, total: number) => `${done} / ${total} scenarios finished`,
@@ -728,6 +783,13 @@ export const qaEn = {
 } as const
 
 export const qaKo: Localized<typeof qaEn> = {
+  replay: { title: '실행 타임라인', zoom: '시간축 확대', resize: '타임라인 높이 조절', collapse: '타임라인 접기', expand: '타임라인 펼치기', timeline: 'QA 녹화 실행 바', intervals: 'TC 검증 구간', unknownStart: '시작 시각 없음 · 결과 보고 시점으로 이동', gaps: (count: number) => `영상 누락 ${count}구간`, unknownIntervals: (count: number) => `시작 시각 없는 검증 ${count}건` },
+  rawLogs: {
+    filter: '텍스트 필터', type: '종류', direction: '방향', all: '전체',
+    includePulse: 'pulse relay 포함', find: '필터 결과에서 찾기',
+    previous: '이전 검색 결과', next: '다음 검색 결과', loadOlder: '이전 로그 불러와 검색',
+    search: '로그 검색', filters: '필터', reset: '초기화', pulseHidden: 'pulse 제외', selectedTime: '선택 시점', allLogs: '전체 로그', empty: '표시할 로그가 없습니다.',
+  },
   statusLabels: {
     PENDING: '대기 중',
     STARTING: '시작 중',
@@ -752,10 +814,7 @@ export const qaKo: Localized<typeof qaEn> = {
       visionLocked:
         '이 모델은 이미지를 읽지 않아 vision=on 과 on_demand 이외의 screen_capture 를 쓸 수 없습니다.',
       engineLocked:
-        'planner–executer 엔진은 아래 설정을 쓰지 않습니다. 고른 값은 그대로 두었다가 기본 엔진으로 돌아가면 다시 씁니다.',
-      engines: { agent: '기본', planner_executer: 'planner–executer' },
-      engineHint:
-        'QA 를 돌리는 엔진. 기본은 tool loop agent 입니다. planner–executer 는 planner 가 단계마다 함수를 쓰고 executer 가 그것을 실행합니다. Test Case 기반 시나리오에서는 지금 화면의 씬에서 검증할 Test Case부터 돌립니다.',
+        'Plan & Execute 엔진은 아래 설정을 쓰지 않습니다. 고른 값은 그대로 두었다가 워크플로우로 돌아가면 다시 씁니다.',
       axes: {
         phase_cycle:
           'run 이 OBSERVE → DECIDE → ACT → VERIFY → UPDATE_MEMORY 를 얼마나 엄격하게 따를지. off 는 자유로운 tool loop, lite 는 memory 턴 하나, full 은 decide 턴까지 더합니다.',
@@ -910,6 +969,10 @@ export const qaKo: Localized<typeof qaEn> = {
       noGame: '게임을 고르세요',
       offline: '게임에서 Artel SDK 를 켜 주세요. 연결되면 목록에 자동으로 나타나고 바로 실행할 수 있습니다.',
       agentLabel: '에이전트',
+      engineTitle: '엔진',
+      engines: { agent: '워크플로우', planner_executer: 'Plan & Execute' },
+      engineHint:
+        '워크플로우: 에이전트 하나가 macro 와 tool 로 게임을 진행합니다.\nPlan & Execute: Planner 가 계획을 쓰고, Executor 가 행동을 고르고, Evaluator 가 결과를 판정합니다. Test Case 기반 시나리오에서는 지금 화면의 씬에서 검증할 Test Case부터 돌립니다.',
       reasoningTitle: '추론 강도',
       reasoningOff: '끔',
       reasoningHint: '높을수록 한 수 한 수를 신중하게 판단합니다.\n대신 느리고 비쌉니다.',
@@ -1121,6 +1184,53 @@ export const qaKo: Localized<typeof qaEn> = {
     startFailed: 'QA를 시작하지 못했습니다.',
   },
   run: {
+    pe: {
+      errorTag: '오류',
+      stop: {
+        inline: (fit: boolean, seconds: string) => (fit ? `${seconds}초간 맞는 행동 없음` : `${seconds}초간 할 수 있는 행동 없음`),
+      },
+      results: {
+        effect_met: '효과 확인',
+        effect_unmet: '효과 없음',
+        unobservable: '효과 확인 불가',
+        unobserved: '효과 못 읽음',
+        already_true: '이미 성립',
+        stale_target: '대상 사라짐',
+        precondition_false: '준비 안 됨',
+        input_rejected: '입력 거절',
+        contract_error: '계약 오류',
+        none_fits: '맞는 행동 없음',
+        REPLAN: '계획 다시 요청',
+        EXPAND_STATE: '더 보기 요청',
+      } as Record<string, string>,
+    },
+    agentDock: {
+      title: '에이전트',
+      noLogTabs: '이 실행은 로그 탭 대신 에이전트 창을 보여 줍니다.',
+      step: (step: number) => `스텝 ${step}`,
+      active: '행동 중',
+      waiting: '대기',
+      writing: '계획 작성 중',
+      replanning: '재계획 작성 중',
+      rewriting: '다시 작성 중',
+      handoff: (plan: number) => `계획 ${plan} 전달`,
+      turn: (turn: number) => `turn ${turn}`,
+      judging: '판정 중',
+      judged: '판정 완료',
+      plan: (plan: number) => `계획 ${plan}`,
+      noPlan: '아직 계획 없음',
+      planMeta: (actions: number, facts: number) => (facts > 0 ? `행동 ${actions} · facts ${facts}` : `행동 ${actions}`),
+      planTag: (plan: number, actions: number) => `계획 ${plan} · 행동 ${actions}`,
+      evidenceTag: (reads: number) => `evidence ${reads}회`,
+      refused: (answer: string, reason: string) => `거절 ${answer} · ${reason}`,
+      awaitingPlan: '계획을 기다리는 중',
+      finished: '실행 끝남',
+      noOptions: '고를 수 있는 행동 없음',
+      confidence: 'confidence',
+      noVerdict: '아직 판정 없음',
+      verdict: (step: number, passed: boolean) => `스텝 ${step} · ${passed ? '통과' : '실패'}`,
+      stopped: (reason: string) => `Executor 중단: ${reason}`,
+    },
     title: 'QA 실행',
     subtitle: '런의 시나리오를 순서대로 실행합니다.',
     progress: (done: number, total: number) => `시나리오 ${done} / ${total} 완료`,

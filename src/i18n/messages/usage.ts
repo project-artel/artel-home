@@ -5,6 +5,15 @@ export const usageEn = {
   panelTitle: 'Model spend',
   panelSubtitle: 'Tokens this project used over the last twelve weeks.',
   sectionTitle: 'Model spend',
+  api: {
+    keysScope: 'Applies to your whole account. Other members do not see these keys.',
+    spendTitle: 'Last 12 weeks by feature',
+    noSpend: 'No model calls in the last 12 weeks.',
+    weeklyCaption: 'Tokens per week, oldest first',
+    recentCaption: 'Last 14 days',
+    vsToday: (delta: string) => `${delta} against today`,
+    busiestOn: (date: string) => `On ${date}`,
+  },
   sectionSubtitle: (zone: string) =>
     `The last twelve weeks. A day starts at midnight in ${zone}, and the window counts when a model was called — not when the record reached us.`,
   seeAll: 'Breakdown',
@@ -68,6 +77,15 @@ export const usageKo: Localized<typeof usageEn> = {
   panelTitle: '모델 지출',
   panelSubtitle: '최근 12주 동안 이 프로젝트가 쓴 토큰입니다.',
   sectionTitle: '모델 지출',
+  api: {
+    keysScope: '내 계정 전체에 적용됩니다. 다른 멤버에게는 보이지 않습니다.',
+    spendTitle: '최근 12주 기능별 지출',
+    noSpend: '최근 12주에는 모델 호출이 없습니다.',
+    weeklyCaption: '주마다 쓴 토큰, 오래된 주부터',
+    recentCaption: '최근 14일',
+    vsToday: (delta: string) => `오늘 대비 ${delta}`,
+    busiestOn: (date: string) => `${date}`,
+  },
   sectionSubtitle: (zone: string) =>
     `최근 12주입니다. 하루는 ${zone} 자정에 시작하고, 기간은 모델을 호출한 시각 기준입니다 — 기록이 우리에게 도착한 시각이 아닙니다.`,
   seeAll: '자세히',

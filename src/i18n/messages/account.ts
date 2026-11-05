@@ -115,6 +115,10 @@ export const accountEn = {
   },
   llmKeys: {
     title: 'LLM API keys',
+    movedTitle: 'LLM API keys moved to API management',
+    movedBody: 'Register and replace keys under API management in any project. A key still applies to your whole account.',
+    openIn: (project: string) => `${project} · API keys`,
+    noProjects: 'Open a project to manage your keys.',
     intro: 'Run QA on your own key and the AI cost is billed to it. A key is stored only after it works.',
     reach: {
       anthropic: 'Claude models',
@@ -258,6 +262,10 @@ export const accountKo: Localized<typeof accountEn> = {
   },
   llmKeys: {
     title: 'LLM API 키',
+    movedTitle: 'LLM API 키는 API 관리로 옮겼습니다',
+    movedBody: '어느 프로젝트에서든 API 관리의 API 키 탭에서 등록 · 교체합니다. 키는 그대로 내 계정 전체에 적용됩니다.',
+    openIn: (project: string) => `${project} · API 키`,
+    noProjects: '프로젝트를 열면 키를 관리할 수 있습니다.',
     intro: 'QA 를 내 키로 돌리면 AI 비용이 이 키로 청구됩니다. 키는 실제로 동작하는지 확인한 뒤에만 저장합니다.',
     reach: {
       anthropic: 'Claude 모델',

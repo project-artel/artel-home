@@ -1,7 +1,10 @@
 import type { Messages } from '../../i18n/messages'
 
 /** 네비게이션 그룹과 각 화면의 경로를 한곳에서 관리한다. */
-export const WORKSPACE_NAV_GROUPS = ['cases', 'qa', 'data', 'management'] as const
+export const WORKSPACE_NAV_GROUPS = ['cases', 'qa', 'data', 'management', 'lab'] as const
+
+/** 사이드바 맨 아래에 접어 두는 실험 단계 화면 묶음(ARTEL-1379). 바뀌거나 사라질 수 있다. */
+export const LAB_NAV_GROUP = 'lab'
 
 export const WORKSPACE_SECTIONS = [
   { id: 'dashboard', path: '', group: null },
@@ -16,12 +19,13 @@ export const WORKSPACE_SECTIONS = [
   { id: 'documents', path: 'documents', group: 'data' },
   { id: 'gameBuilds', path: 'game-builds', group: 'data' },
   { id: 'gameIdentities', path: 'game-identities', group: 'data' },
-  { id: 'contentMap', path: 'content-map', group: 'data' },
   { id: 'knowledge', path: 'knowledge', group: 'data' },
   { id: 'setup', path: 'setup', group: 'management' },
-  { id: 'usage', path: 'usage', group: 'management' },
+  // "사용량" 은 "API 관리" 가 되었다(ARTEL-1379). 옛 주소 `usage` 는 App 라우트가 여기로 넘긴다.
+  { id: 'usage', path: 'api', group: 'management' },
   { id: 'members', path: 'members', group: 'management' },
   { id: 'settings', path: 'settings', group: 'management' },
+  { id: 'contentMap', path: 'content-map', group: 'lab' },
 ] as const satisfies ReadonlyArray<{ id: string; path: string; group: (typeof WORKSPACE_NAV_GROUPS)[number] | null }>
 
 export type WorkspaceSectionId = (typeof WORKSPACE_SECTIONS)[number]['id']
