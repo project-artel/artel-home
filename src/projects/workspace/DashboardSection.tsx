@@ -580,7 +580,7 @@ export function DashboardSection() {
             const name = m.remaining.runName(currentName, caseIds.length, shortDay(new Date().toISOString()))
             const runId = await createFreeRun(projectId, pair.current.gameBuildId, name, caseIds)
             await refreshRuns()
-            navigate(`${sectionHref(projectId, 'qa')}?run=${encodeURIComponent(runId)}&engine=agent`)
+            navigate(`${sectionHref(projectId, 'qa')}?run=${encodeURIComponent(runId)}`)
           }}
           remaining={comparison.remaining}
         />

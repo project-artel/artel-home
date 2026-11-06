@@ -1572,6 +1572,7 @@ export function TestCaseLibrary({
           mode={folderView ? 'moveItems' : 'add'}
           onClose={() => setIsMoving(false)}
           onConfirm={placeSelected}
+          onCreateFolder={(name) => operations.create({ name, parentId: null })}
           rows={folderView ? moveTargets.filter((row) => row.folder.id !== openFolderId) : moveTargets}
         />
       )}

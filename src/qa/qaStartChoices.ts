@@ -6,9 +6,11 @@
  *
  * 저장은 선택을 바꿀 때마다가 아니라 run 을 시작하는 순간에 한다. 고르다 만 값이 아니라 실제로
  * 돌린 값만 다음 폼의 기본값이 되게 하려는 것이다. 저장이 막혀 있으면 기억하지 않는다.
+ *
+ * 엔진은 기억하지 않는다. 화면을 열면 늘 `agent` 가 골라져 있고, 다른 엔진은 그때 눌러서 고른다.
  */
 
-import { EMPTY_ARCH_SELECTION, parseArchSelection, type QaArchSelection } from './qaArch'
+import { EMPTY_ARCH_SELECTION, parseArchSelection, withEngine, type QaArchSelection } from './qaArch'
 
 export const LAST_ARCH_STORAGE_KEY = 'artel.qa.lastArch'
 
@@ -22,7 +24,8 @@ export function readLastArch(storage?: ReadableStorage): QaArchSelection {
   try {
     const text = storageOf(storage).getItem(LAST_ARCH_STORAGE_KEY)
     if (text === null) return EMPTY_ARCH_SELECTION
-    return parseArchSelection(JSON.parse(text)) ?? EMPTY_ARCH_SELECTION
+    const stored = parseArchSelection(JSON.parse(text))
+    return stored === null ? EMPTY_ARCH_SELECTION : withEngine(stored, 'agent')
   } catch {
     return EMPTY_ARCH_SELECTION
   }

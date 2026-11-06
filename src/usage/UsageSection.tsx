@@ -108,7 +108,7 @@ interface Row {
  * price would sort to the bottom on cost, hiding whichever feature actually did
  * the most work.
  */
-function Breakdown({
+export function Breakdown({
   axisLabel,
   note,
   rows,

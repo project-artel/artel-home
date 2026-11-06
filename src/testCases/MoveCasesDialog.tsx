@@ -1,4 +1,6 @@
 import { useId, useState } from 'react'
+import { SketchEmpty } from '../emptyStates/SketchEmpty'
+import { FolderSketch } from '../emptyStates/sketches'
 import { Dialog } from '../design-system/primitives/Dialog'
 import { useI18n } from '../i18n/useI18n'
 import { FolderPicker } from './FolderPicker'
@@ -20,7 +22,13 @@ export function MoveCasesDialog({
   onClose,
   onConfirm,
   rows,
+  onCreateFolder,
 }: {
+  /**
+   * 담을 폴더가 하나도 없을 때 이 창에서 바로 만든다(ARTEL-1378). 주면 빈 화면에 이름 칸과 만들기 단추가 서고, 만든
+   * 폴더가 [rows] 로 돌아오면 고르기 칸이 선다.
+   */
+  onCreateFolder?: (name: string) => Promise<void>
   count: number
   initialFolderId: string | null
   mode?: 'move' | 'add' | 'moveItems'
@@ -44,6 +52,26 @@ export function MoveCasesDialog({
   )
   const [failure, setFailure] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [creating, setCreating] = useState(false)
+  // 폴더가 없으면 고르기 칸을 그리지 않는다. 빈 고르기 칸은 펼쳐진 채 단추를 덮었다.
+  const empty = !allowsNone && rows.length === 0
+  if (folderId === null && !allowsNone && rows.length > 0) setFolderId(rows[0].folder.id)
+
+  async function createFolder() {
+    const name = newName.trim()
+    if (onCreateFolder === undefined || name.length === 0) return
+    setCreating(true)
+    setFailure(null)
+    try {
+      await onCreateFolder(name)
+      setNewName('')
+    } catch {
+      setFailure(items.createFailed)
+    } finally {
+      setCreating(false)
+    }
+  }
 
   async function confirm(event: React.FormEvent) {
     event.preventDefault()
@@ -60,18 +88,52 @@ export function MoveCasesDialog({
   return (
     <Dialog labelledBy={titleId} onClose={onClose} title={m.title(count)}>
       <form className="form" onSubmit={(event) => void confirm(event)}>
-        {!allowsNone && rows.length === 0 && (
-          <p className="field-hint" role="status">{mode === 'add' ? items.noFolders : items.noOtherFolders}</p>
-        )}
-        <div className="field">
-          <FolderPicker
-            label={m.destination}
-            noneLabel={allowsNone ? m.noFolder : undefined}
-            onChange={setFolderId}
-            rows={rows}
-            value={folderId}
+        {empty ? (
+          <SketchEmpty
+            actions={
+              onCreateFolder !== undefined && mode === 'add' ? (
+                <span className="move-cases-create">
+                  <input
+                    aria-label={items.newFolderName}
+                    className="field-input"
+                    disabled={creating}
+                    onChange={(event) => setNewName(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault()
+                        void createFolder()
+                      }
+                    }}
+                    placeholder={items.newFolderName}
+                    value={newName}
+                  />
+                  <button
+                    className="button button--secondary"
+                    disabled={creating || newName.trim().length === 0}
+                    onClick={() => void createFolder()}
+                    type="button"
+                  >
+                    {items.createFolder}
+                  </button>
+                </span>
+              ) : undefined
+            }
+            compact
+            sketch={<FolderSketch />}
+            surface
+            title={mode === 'add' ? items.noFolders : items.noOtherFolders}
           />
-        </div>
+        ) : (
+          <div className="field">
+            <FolderPicker
+              label={m.destination}
+              noneLabel={allowsNone ? m.noFolder : undefined}
+              onChange={setFolderId}
+              rows={rows}
+              value={folderId}
+            />
+          </div>
+        )}
 
         {failure !== null && (
           <div className="inline-error" role="alert">

@@ -15,7 +15,7 @@ export type FocusedScenarioDetail = {
   progress: QaProgress
   scenarioSteps: ScenarioStep[]
   executionMode: ExecutionMode
-  onJump: (logId: string) => void
+  onJump?: (logId: string) => void
   /** 이 실행이 TC 상태로 저장한 판정(ARTEL-995). `case_id` → 저장된 상태. */
   caseVerdicts: ReadonlyMap<string, VerificationStatus>
   caseReports: ReadonlyMap<string, QaCaseReport>
