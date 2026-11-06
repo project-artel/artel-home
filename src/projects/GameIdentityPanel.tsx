@@ -1,4 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { GameVariableSketch } from '../emptyStates/sketches'
+import { SketchEmpty } from '../emptyStates/SketchEmpty'
 import { useI18n } from '../i18n/useI18n'
 import { formatDateTime } from './formatters'
 import { ProjectApiError } from './projectApi'
@@ -86,7 +88,9 @@ export function GameIdentityPanel({ projectId, buildId, layout = 'cards' }: {
       {error && <p className="inline-error" role="alert">{error}</p>}
       {failed ? <div className="inline-error" role="alert">{messages.failed}<button className="button button--secondary button--compact" type="button" onClick={refresh}>{messages.retry}</button></div>
         : identities === null ? <p role="status">{messages.loading}</p>
-          : identities.length === 0 ? <p className="panel-empty">{messages.empty}</p>
+          : identities.length === 0 ? (layout === 'table'
+            ? <SketchEmpty body={messages.emptyBody} compact sketch={<GameVariableSketch />} surface title={messages.emptyTitle} />
+            : <p className="panel-empty">{messages.empty}</p>)
             : layout === 'table' ? <div className="gi-table-scroll" role="region" aria-label={messages.tableLabel} tabIndex={0}>
               <table className="data-table gi-table" aria-label={messages.tableLabel}>
                 <thead><tr>{[messages.name, messages.meaning, messages.kind, messages.identifies, messages.source, messages.status, messages.actions].map((label) => <th key={label} scope="col">{label}</th>)}</tr></thead>
