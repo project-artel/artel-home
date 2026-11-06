@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
-import { useProjectChange } from '../../live/useProjectChange'
+import { useOperatorQuestions } from './useOperatorQuestions'
+import { qaRunPath } from '../qaTypes'
 import * as api from './evaluationApi'
 import { evaluationCopy } from './evaluationCopy'
 import { ProjectApiError } from '../../projects/projectApi'
@@ -14,18 +15,8 @@ import './evaluation.css'
 export function OperatorQuestions({ projectId }: { projectId: string }) {
   const { locale } = useI18n()
   const copy = evaluationCopy[locale === 'ko' ? 'ko' : 'en']
-  const [questions, setQuestions] = useState<api.Question[]>([])
-  const [message, setMessage] = useState('')
-  const load = useCallback(() => {
-    void api.questions(projectId).then(result => { setQuestions(result); setMessage('') }).catch(() => setMessage(copy.error))
-  }, [projectId, copy.error])
-  useEffect(() => {
-    let active = true
-    void api.questions(projectId).then(result => { if (active) setQuestions(result) }).catch(() => { if (active) setMessage(copy.error) })
-    return () => { active = false }
-  }, [projectId, copy.error])
-  useProjectChange(projectId, ['QA_QUESTIONS', 'QA_RUNS'], load)
-  useEffect(() => { const timer = window.setInterval(load, 10000); return () => clearInterval(timer) }, [load])
+  const { questions, failed, reload: load } = useOperatorQuestions(projectId)
+  const message = failed ? copy.error : ''
   const waiting = questions.filter(question => question.state === 'WAITING')
   if (waiting.length === 0 && !message) return null
   return <section className="qe-questions" aria-label={copy.questions}>
@@ -40,7 +31,7 @@ function QuestionForm({ question, projectId, reload }: { question: api.Question;
   const [answer, setAnswer] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const runLink = question.qaRunId ? `/projects/${encodeURIComponent(projectId)}/qa-history/${encodeURIComponent(question.qaRunId)}?scenario=${encodeURIComponent(question.qaTryId)}` : null
+  const runLink = question.qaRunId ? qaRunPath(projectId, question.qaRunId, question.qaTryId) : null
   return <form className="qe-question" onSubmit={event => {
     event.preventDefault(); setBusy(true)
     void api.answer(projectId, question.id, answer).then(reload).catch(error => { setError(error instanceof ProjectApiError && error.status === 409 ? copy.answered : copy.error); reload() }).finally(() => setBusy(false))

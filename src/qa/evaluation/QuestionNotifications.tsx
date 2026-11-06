@@ -4,6 +4,7 @@ import { useI18n } from '../../i18n/useI18n'
 import { projectEvents } from '../../live/projectEvents'
 import { evaluationCopy } from './evaluationCopy'
 import { questions, subscribedProjects } from './evaluationApi'
+import { qaRunPath } from '../qaTypes'
 
 export function QuestionNotifications({ userId }: { userId: string }) {
   const { locale } = useI18n()
@@ -25,7 +26,7 @@ export function QuestionNotifications({ userId }: { userId: string }) {
             if (question.state !== 'WAITING' || seen.includes(question.id)) continue
             const notice = new Notification(title, { body: question.question, tag: `qa-question-${question.id}` })
             seen.push(question.id)
-            notice.onclick = () => { window.focus(); navigate(`/projects/${encodeURIComponent(project)}/qa-history${question.qaRunId ? '/' + encodeURIComponent(question.qaRunId) : ''}`); notice.close() }
+            notice.onclick = () => { window.focus(); navigate(question.qaRunId ? qaRunPath(project, question.qaRunId, question.qaTryId) : `/projects/${encodeURIComponent(project)}/qa-history`); notice.close() }
           }
           try { localStorage.setItem(seenKey, JSON.stringify(seen.slice(-200))) } catch { /* 저장소 접근이 막혀도 알림은 전달한다. */ }
         }

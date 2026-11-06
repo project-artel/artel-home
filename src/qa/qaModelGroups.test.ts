@@ -91,6 +91,19 @@ test('one OpenRouter key groups models from several makers', () => {
   assert.deepEqual(openrouter?.models.map((m) => m.provider), ['openai', 'x-ai'])
 })
 
+test('search keeps project and personal models for the same key provider in separate groups', () => {
+  const groups = groupQaModels([
+    model({ id: 'gpt/personal', keySource: 'user', keyProvider: 'openai', keyRegistered: false }),
+    model({ id: 'gpt/shared', keySource: 'project', keyProvider: 'openai', keyHint: 'project-hint' }),
+  ], 'gpt')
+
+  assert.deepEqual(groups.user.map((group) => [group.keySource, group.registered, group.keyHint]), [
+    ['user', false, null],
+    ['project', true, 'project-hint'],
+  ])
+  assert.deepEqual(selectableQaModelKeys(groups), ['project:gpt/shared'])
+})
+
 test('a user model with no keyProvider is grouped under its maker', () => {
   const groups = groupQaModels([model({ id: 'a/b', provider: 'acme', keySource: 'user' })])
 

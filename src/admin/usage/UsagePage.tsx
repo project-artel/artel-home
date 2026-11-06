@@ -123,7 +123,7 @@ export default function UsagePage() {
 
   return (
     <div className="shell">
-      <header className="topbar">
+      <header className="admin-toolbar">
         <ProjectPicker
           projects={projects}
           value={scope}
@@ -131,8 +131,8 @@ export default function UsagePage() {
           allowAll
         />
 
-        <span className="field">
-          <label className="field__label" htmlFor={fromFieldId}>{strings.period}</label>
+        <span className="admin-field">
+          <label className="admin-field__label" htmlFor={fromFieldId}>{strings.period}</label>
           <input
             className="control control--date"
             id={fromFieldId}
@@ -145,7 +145,7 @@ export default function UsagePage() {
               if (next) updateRequest({ from: startOfDay(next) })
             }}
           />
-          <span className="field__label" aria-hidden="true">–</span>
+          <span className="admin-field__label" aria-hidden="true">–</span>
           <input
             className="control control--date"
             id={toFieldId}
@@ -163,7 +163,7 @@ export default function UsagePage() {
 
       </header>
 
-      <main className="main">
+      <div className="main">
         {error && (
           <div className="notice notice--critical" role="alert">
             <p className="notice__title">{strings.loadFailedTitle}</p>
@@ -248,7 +248,7 @@ export default function UsagePage() {
           </>
         )}
         {data === null && loading && <div className="notice">{strings.loadingSpend}</div>}
-      </main>
+      </div>
     </div>
   )
 }

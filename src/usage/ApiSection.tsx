@@ -22,13 +22,19 @@ export function ApiSection() {
   const { t } = useI18n()
   const a = t.usage.api
   const u = t.usage
-  const { projectId } = useWorkspace()
+  const { projectId, project, reloadExtras } = useWorkspace()
   const { status, usage, grid, today } = useProjectUsage(projectId)
 
   return (
     <div className="api-page">
       <div className="api-top">
-        <LlmKeysPanel note={a.keysScope} />
+        <LlmKeysPanel
+          key={projectId}
+          note={a.keysScope}
+          projectId={projectId}
+          canManage={project.myRole === 'OWNER'}
+          onChange={reloadExtras}
+        />
         <section aria-labelledby="api-share-title" className="panel api-share">
           <header className="panel-header">
             <h2 id="api-share-title">{a.spendTitle}</h2>

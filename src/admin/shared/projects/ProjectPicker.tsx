@@ -112,8 +112,8 @@ export function ProjectPicker({
   const placeholder = projects === null ? strings.loading : empty ? strings.none : strings.search
 
   return (
-    <span className="field">
-      <label className="field__label" htmlFor={fieldId}>
+    <span className="admin-field">
+      <label className="admin-field__label" htmlFor={fieldId}>
         {strings.label}
       </label>
       <div className="picker" ref={rootRef}>

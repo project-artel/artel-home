@@ -1,5 +1,5 @@
-import { useEffect, useId, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useId, useState } from 'react'
+import { LlmKeysPanel } from './LlmKeysPanel'
 import { AuthApiError, registerEmail, updateMyLocale, updateMyProfile, verifyEmail } from '../auth/authApi'
 import {
   EMAIL_MAX_LENGTH,
@@ -16,8 +16,7 @@ import { InfoHint } from '../design-system/primitives/InfoHint'
 import { isLocale, LOCALE_LABELS, LOCALES } from '../i18n/locale'
 import { useI18n } from '../i18n/useI18n'
 import { SettingsLayout } from '../layouts/SettingsLayout'
-import { listProjects } from '../projects/projectApi'
-import type { ProjectSummary } from '../projects/projectTypes'
+
 
 type ProfileFormDraft = {
   nickname: string
@@ -80,7 +79,7 @@ export function AccountSettingsPage() {
           user={auth.user}
         />
         <PreferencesPanel />
-        <LlmKeysMovedPanel />
+        <LlmKeysPanel />
         <CliTokenPanel />
       </SettingsLayout>
     </section>
@@ -539,50 +538,6 @@ function EmailPanel({
       )}
 
       <p aria-live="polite" className="visually-hidden">{announcement}</p>
-    </section>
-  )
-}
-
-/**
- * LLM API 키가 있던 자리(ARTEL-1379). 키는 프로젝트의 API 관리로 옮겼고, 여기에는 그리로 가는 길만 남긴다 — 계정 설정을
- * 찾아온 사람이 키가 사라졌다고 읽지 않게. 키는 계정 단위라 어느 프로젝트로 가도 같은 키다.
- */
-function LlmKeysMovedPanel() {
-  const { t } = useI18n()
-  const copy = t.account.llmKeys
-  const [projects, setProjects] = useState<ProjectSummary[] | null>(null)
-
-  useEffect(() => {
-    const controller = new AbortController()
-    listProjects({ page: 0, size: 3, signal: controller.signal })
-      .then((page) => setProjects(page.items))
-      .catch(() => setProjects([]))
-    return () => controller.abort()
-  }, [])
-
-  return (
-    <section aria-labelledby="llm-keys-title" className="panel settings-wide">
-      <header className="panel-header">
-        <h2 id="llm-keys-title">{copy.movedTitle}</h2>
-      </header>
-      <p className="settings-hint">{copy.movedBody}</p>
-      {projects !== null && (
-        projects.length === 0 ? (
-          <p className="panel-empty">{copy.noProjects}</p>
-        ) : (
-          <div className="llm-keys-moved-links">
-            {projects.map((project) => (
-              <Link
-                className="button button--secondary button--compact"
-                key={project.id}
-                to={`/projects/${encodeURIComponent(project.id)}/api?tab=keys`}
-              >
-                {copy.openIn(project.name)}
-              </Link>
-            ))}
-          </div>
-        )
-      )}
     </section>
   )
 }
