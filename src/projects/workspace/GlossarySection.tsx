@@ -1,128 +1,137 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useI18n } from '../../i18n/useI18n'
+import type { GameIdentity } from '../gameIdentityApi'
+import { linkOf, type StateFilter } from './glossaryLinks'
 import {
   editGlossaryTerm,
-  fetchGlossary,
   TERM_KINDS,
   type GlossaryTerm,
   type GlossaryTermEdit,
+  type TermKind,
 } from '../../testCases/glossaryApi'
-import { useWorkspace } from './workspaceContext'
-
-type Load = { status: 'loading' } | { status: 'failed' } | { status: 'ready'; terms: GlossaryTerm[] }
 
 /**
- * 용어집(ARTEL-1313). 저작이 TC 를 잇는 데 쓰는 상태 이름 · 시작 값을 보고 고친다.
- *
- * **지금은 화면에 걸지 않는다.** 용어집은 게임의 실제 데이터라 사용자에게 내보일지 정하지 않았다(2026-11-02 결정).
- * 사이드바 · 라우트에서만 뺐고, 컴포넌트와 API(`case-glossary`)는 그대로 둔다 — 걸 때는 `sections.ts` 에
- * `{ id: 'glossary', path: 'glossary', group: 'data' }`, `App.tsx` 에 라우트, 사이드바 아이콘 · 이름을 되돌린다.
- *
- * 표는 게임 빌드와 같은 모양이다. 줄을 누르면 케이스 편집과 같은 오른쪽 창이 열린다. 여기서 고친 칸은 사람이 정한 것이
- * 되어 AI 정리 · MCP 가 덮지 않는다. "확인 필요" 는 서버가 정한다 — 설명이 없거나, 시작 값을 모르거나, 시작 값이 종류와
- * 안 맞는 이름이다.
+ * 게임 사전의 상태 이름 탭(ARTEL-1396, 예전 용어집 ARTEL-1313). 저작이 TC 를 잇는 데 쓰는 상태 이름 · 시작 값을 보고 고치고,
+ * 이름마다 게임이 SDK 로 알려 준 변수를 잇는다. 표는 게임 빌드와 같은 모양이고, 줄을 누르면 케이스 편집과 같은 오른쪽 창이
+ * 열린다. 여기서 고친 칸은 사람이 정한 것이 되어 AI 정리 · MCP 가 덮지 않는다. "확인 필요" 는 서버가 정한다 — 설명이 없거나,
+ * 시작 값을 모르거나, 시작 값이 종류와 안 맞는 이름이다.
  */
-export function GlossarySection() {
-  const { projectId } = useWorkspace()
+export function GlossaryStates({
+  projectId,
+  terms,
+  variables,
+  buildName,
+  onSaved,
+}: {
+  projectId: string
+  terms: readonly GlossaryTerm[]
+  /** 고른 빌드의 게임 변수. 잇기 고르기와 표의 ✓ 가 이것을 본다. */
+  variables: readonly GameIdentity[]
+  buildName: string
+  onSaved: (term: GlossaryTerm) => void
+}) {
   const { t } = useI18n()
   const m = t.testCases.glossary
-  const [load, setLoad] = useState<Load>({ status: 'loading' })
-  const [onlyIssues, setOnlyIssues] = useState(false)
+  const [filter, setFilter] = useState<StateFilter>('all')
   const [editing, setEditing] = useState<GlossaryTerm | null>(null)
-  const [revision, setRevision] = useState(0)
 
-  useEffect(() => {
-    const controller = new AbortController()
-    void fetchGlossary(projectId, controller.signal)
-      .then((terms) => { if (!controller.signal.aborted) setLoad({ status: 'ready', terms }) })
-      .catch(() => { if (!controller.signal.aborted) setLoad({ status: 'failed' }) })
-    return () => controller.abort()
-  }, [projectId, revision])
-
-  const terms = useMemo(() => (load.status === 'ready' ? load.terms : []), [load])
-  const flagged = useMemo(() => terms.filter((term) => term.issues.length > 0), [terms])
-  const shown = onlyIssues ? flagged : terms
+  const counts = useMemo(() => ({
+    all: terms.length,
+    issues: terms.filter((term) => term.issues.length > 0).length,
+    linked: terms.filter((term) => linkOf(term, variables).kind === 'found').length,
+    unlinked: terms.filter((term) => linkOf(term, variables).kind !== 'found').length,
+  }), [terms, variables])
+  const shown = terms.filter((term) =>
+    filter === 'all' ? true
+      : filter === 'issues' ? term.issues.length > 0
+        : filter === 'linked' ? linkOf(term, variables).kind === 'found'
+          : linkOf(term, variables).kind !== 'found')
 
   const saved = useCallback((term: GlossaryTerm) => {
-    setLoad((current) => current.status === 'ready'
-      ? { status: 'ready', terms: current.terms.map((item) => (item.name === term.name ? term : item)) }
-      : current)
+    onSaved(term)
     setEditing(null)
-  }, [])
+  }, [onSaved])
+
+  if (terms.length === 0) return <p className="panel-empty panel-empty--inset">{m.empty}</p>
 
   return (
     // `cp-scope`: 케이스 편집 창과 같은 오른쪽 창 · 입력을 쓰므로 그 색 변수를 단다.
-    <div className="section-single cp-scope">
-      <p className="section-intro">{m.intro}</p>
-
-      <section aria-label={m.label} className="panel panel--flush">
-        {load.status === 'loading' && <p className="panel-empty panel-empty--inset">{m.loading}</p>}
-        {load.status === 'failed' && (
-          <div className="inline-error inline-error--inset" role="alert">
-            <span aria-hidden="true">!</span>
-            {m.loadFailed}
-            <button className="button button--secondary button--compact" onClick={() => { setLoad({ status: 'loading' }); setRevision((value) => value + 1) }} type="button">
-              {m.retry}
-            </button>
-          </div>
-        )}
-        {load.status === 'ready' && terms.length === 0 && <p className="panel-empty panel-empty--inset">{m.empty}</p>}
-        {load.status === 'ready' && terms.length > 0 && (
-          <>
-            <div className="gls-chips tcl-chips">
-              <button aria-pressed={!onlyIssues} className={onlyIssues ? 'fchip' : 'fchip on'} onClick={() => setOnlyIssues(false)} type="button">
-                {m.all} {terms.length}
-              </button>
-              <button aria-pressed={onlyIssues} className={onlyIssues ? 'fchip on' : 'fchip'} onClick={() => setOnlyIssues(true)} type="button">
-                {m.needsCheck} {flagged.length}
-              </button>
-            </div>
-            <div aria-label={m.scrollRegion} className="gb-table-scroll" role="region" tabIndex={0}>
-              <table className="data-table gb-table gls-table">
-                <thead>
-                  <tr>
-                    <th scope="col">{m.nameColumn}</th>
-                    <th scope="col">{m.kindColumn}</th>
-                    <th scope="col">{m.meaningColumn}</th>
-                    <th scope="col">{m.startColumn}</th>
-                    <th scope="col">{m.aliasesColumn}</th>
-                    <th scope="col">{m.usedByColumn}</th>
-                    <th scope="col">{m.setByColumn}</th>
-                    <th scope="col"><span className="visually-hidden">{m.issuesColumn}</span></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {shown.map((term) => (
-                    <tr className="gb-row" key={term.name} onClick={() => setEditing(term)}>
-                      <td>
-                        <button className="table-link mono gls-name" onClick={(event) => { event.stopPropagation(); setEditing(term) }} translate="no" type="button">
-                          {term.name}
-                        </button>
-                      </td>
-                      <td className="table-meta mono">{term.kind}</td>
-                      <td className={term.meaning ? undefined : 'table-meta'}>{term.meaning || m.noMeaning}</td>
-                      <td className="table-meta mono">{term.start}</td>
-                      <td className="table-meta">{term.aliases.length > 0 ? term.aliases.join(', ') : '—'}</td>
-                      <td className="table-meta">{term.usedBy}</td>
-                      <td className="table-meta">{m.source[decidedBy(term)]}</td>
-                      <td>
-                        {term.issues.length > 0 && (
-                          <span className="gls-flag">{term.issues.map((issue) => m.issue[issue]).join(' · ')}</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
-        )}
-      </section>
+    <section aria-label={m.label} className="panel panel--flush cp-scope">
+      <div className="gls-chips tcl-chips" role="group" aria-label={m.filterLabel}>
+        {(['all', 'issues', 'linked', 'unlinked'] as const).map((key) => (
+          <button aria-pressed={filter === key} className={filter === key ? 'fchip on' : 'fchip'} key={key} onClick={() => setFilter(key)} type="button">
+            {m.filters[key]} {counts[key]}
+          </button>
+        ))}
+      </div>
+      <div aria-label={m.scrollRegion} className="gb-table-scroll" role="region" tabIndex={0}>
+        <table className="data-table gb-table gls-table">
+          <thead>
+            <tr>
+              <th scope="col">{m.nameColumn}</th>
+              <th scope="col">{m.kindColumn}</th>
+              <th scope="col">{m.startColumn}</th>
+              <th scope="col">{m.meaningColumn}</th>
+              <th scope="col">{m.variableColumn}</th>
+              <th className="gls-num" scope="col">{m.usedByColumn}</th>
+              <th scope="col">{m.setByColumn}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {shown.map((term) => (
+              <tr className={editing?.name === term.name ? 'gb-row is-selected' : 'gb-row'} key={term.name} onClick={() => setEditing(term)}>
+                <td>
+                  <button className="table-link gls-name" onClick={(event) => { event.stopPropagation(); setEditing(term) }} translate="no" type="button">
+                    {term.name}
+                  </button>
+                  {term.issues.length > 0 && <span className="gls-flag">{term.issues.map((issue) => m.issue[issue]).join(' · ')}</span>}
+                </td>
+                <td><span className="gls-kind">{m.kindShort[term.kind as TermKind] ?? term.kind}</span></td>
+                <td className="table-meta mono">{term.start}</td>
+                <td className={term.meaning ? 'gls-meaning' : 'gls-meaning table-meta'}>{term.meaning || m.noMeaning}</td>
+                <td><LinkCell link={linkOf(term, variables)} /></td>
+                <td className="table-meta gls-num">{term.usedBy}</td>
+                <td className={`gls-by gls-by--${decidedBy(term)}`}>{m.source[decidedBy(term)]}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {editing !== null && (
-        <GlossaryTermSheet key={editing.name} onClose={() => setEditing(null)} onSaved={saved} projectId={projectId} term={editing} />
+        <GlossaryTermSheet
+          buildName={buildName}
+          key={editing.name}
+          onClose={() => setEditing(null)}
+          onSaved={saved}
+          projectId={projectId}
+          term={editing}
+          variables={variables}
+        />
       )}
-    </div>
+    </section>
+  )
+}
+
+/** 표의 게임 변수 칸. 색만으로 말하지 않게 ✓ · ! · — 와 글자를 함께 둔다. */
+function LinkCell({ link }: { link: ReturnType<typeof linkOf> }) {
+  const { t } = useI18n()
+  const m = t.testCases.glossary
+  if (link.kind === 'none') return <span className="gls-link gls-link--none"><i aria-hidden="true">—</i>{m.linkNone}</span>
+  if (link.kind === 'missing')
+    return (
+      <span className="gls-link gls-link--missing" title={m.linkMissingHint}>
+        <i aria-hidden="true">!</i>
+        <span className="mono" translate="no">{link.name}</span>
+        {m.linkMissing}
+      </span>
+    )
+  return (
+    <span className="gls-link gls-link--found">
+      <i aria-hidden="true">✓</i>
+      <span className="mono" translate="no">{link.variable.name}</span>
+      <span className="gls-link-kind">{link.variable.kind}</span>
+    </span>
   )
 }
 
@@ -134,7 +143,7 @@ function decidedBy(term: GlossaryTerm): 'user' | 'mcp' | 'ai' {
   return 'ai'
 }
 
-type Draft = { kind: string; meaning: string; options: string; start: string; aliases: string }
+type Draft = { kind: string; meaning: string; options: string; start: string; aliases: string; gameVariable: string }
 
 function toDraft(term: GlossaryTerm): Draft {
   return {
@@ -143,6 +152,7 @@ function toDraft(term: GlossaryTerm): Draft {
     options: term.options.join(', '),
     start: term.start === 'unknown' ? '' : term.start,
     aliases: term.aliases.join(', '),
+    gameVariable: term.gameVariable ?? '',
   }
 }
 
@@ -158,13 +168,16 @@ function toEdit(term: GlossaryTerm, draft: Draft): GlossaryTermEdit {
   if (list(draft.options).join(',') !== term.options.join(',')) edit.options = list(draft.options)
   if (draft.start.trim().length > 0 && draft.start.trim() !== term.start) edit.start = draft.start.trim()
   if (list(draft.aliases).join(',') !== term.aliases.join(',')) edit.aliases = list(draft.aliases)
+  if (draft.gameVariable !== (term.gameVariable ?? '')) edit.gameVariable = draft.gameVariable
   return edit
 }
 
 /** 용어 하나를 고치는 오른쪽 창. 케이스 편집 창(`TestCaseSheet`)과 같은 틀 · 같은 입력이다. */
-function GlossaryTermSheet({ projectId, term, onClose, onSaved }: {
+function GlossaryTermSheet({ projectId, term, variables, buildName, onClose, onSaved }: {
   projectId: string
   term: GlossaryTerm
+  variables: readonly GameIdentity[]
+  buildName: string
   onClose: () => void
   onSaved: (term: GlossaryTerm) => void
 }) {
@@ -179,6 +192,8 @@ function GlossaryTermSheet({ projectId, term, onClose, onSaved }: {
   const startId = useId()
   const optionsId = useId()
   const aliasesId = useId()
+  const variableId = useId()
+  const chosen = variables.find((item) => item.name === draft.gameVariable && !item.deleted) ?? null
   const edit = toEdit(term, draft)
   const dirty = Object.keys(edit).length > 1
   const options = list(draft.options)
@@ -279,6 +294,27 @@ function GlossaryTermSheet({ projectId, term, onClose, onSaved }: {
               <label className="tce-label" htmlFor={aliasesId}>{m.aliasesColumn}</label>
               <input className="tce-input tce-input--one" disabled={pending} id={aliasesId} onChange={(event) => setDraft({ ...draft, aliases: event.target.value })} placeholder={m.listPlaceholder} value={draft.aliases} />
             </div>
+          </div>
+
+          <div className="tce-field tce-field--full gls-variable">
+            <label className="tce-label" htmlFor={variableId}>
+              {m.variableColumn} <span className="gls-variable-build mono">{buildName}</span>
+            </label>
+            <select className="tce-input tce-input--one" disabled={pending} id={variableId} onChange={(event) => setDraft({ ...draft, gameVariable: event.target.value })} value={draft.gameVariable}>
+              <option value="">{m.linkNone}</option>
+              {draft.gameVariable !== '' && chosen === null && <option value={draft.gameVariable}>{draft.gameVariable} · {m.linkMissing}</option>}
+              {variables.filter((item) => !item.deleted).map((item) => (
+                <option key={item.id} value={item.name}>{item.name} · {item.kind}{item.meaning ? ` · ${item.meaning}` : ''}</option>
+              ))}
+            </select>
+            {chosen !== null ? (
+              <dl className="gls-variable-card">
+                <div><dt>{m.variableMeaning}</dt><dd>{chosen.meaning || m.noMeaning}</dd></div>
+                <div><dt>{m.variableChanges}</dt><dd>{chosen.changesWhen || m.noMeaning}</dd></div>
+              </dl>
+            ) : (
+              <span className="gls-variable-hint">{variables.length === 0 ? m.noVariables : m.variableHint}</span>
+            )}
           </div>
 
           {failed !== null && <p className="inline-error" role="alert">{failed}</p>}

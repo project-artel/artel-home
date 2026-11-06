@@ -1,7 +1,7 @@
 import type { Localized } from '../messages'
 
 export const gameIdentitiesEn = {
-  title: 'Variable metadata', add: 'Register', edit: 'Edit', remove: 'Delete', restore: 'Register again',
+  title: 'Game variables', add: 'Register', edit: 'Edit', remove: 'Delete', restore: 'Register again',
   save: 'Save', cancel: 'Cancel', retry: 'Retry', loading: 'Loading variable metadata…',
   empty: 'No variable metadata is registered for this build.', failed: 'Variable metadata could not be loaded.',
   saveFailed: 'The change could not be saved. Check the fields and try again.',
@@ -20,10 +20,33 @@ export const gameIdentitiesEn = {
   chooseLatestBuild: 'View the latest build', tableLabel: 'Variable metadata list', actions: 'Actions', status: 'Status',
   meaning: 'Meaning', changesWhen: 'Changes when', identifies: 'Identifies', role: 'Role',
   deleteConfirm: (name: string) => `Delete metadata for ${name} from this build? Its history will remain.`,
+  dictionary: {
+    intro: 'The names Test Cases and QA runs use — states and screen moves — matched to the variables the game reports through the SDK. A field you fix here is yours: AI cleanup and MCP will not overwrite it.',
+    tabsLabel: 'Game dictionary',
+    tabs: { states: 'State names', exits: 'Screen moves', variables: 'Game variables' },
+    results: {
+      states: 'State names',
+      statesSub: (n: number) => `${n} used by Test Cases`,
+      linked: 'Linked to a game variable',
+      linkedSub: (build: string, n: number) => `${build} reports ${n} variables`,
+      flagged: 'Needs a check',
+      flaggedSub: 'no meaning, unknown or mismatched start value',
+      exits: 'Screen moves',
+      exitsSub: 'every move has a way',
+      exitsNoWay: (n: number) => `${n} with no way yet`,
+    },
+    exitsEmpty: 'No screen moves yet. They appear when a person or MCP tells a way, or when QA walks through one.',
+    exitRoute: 'From → to',
+    exitHow: 'How',
+    exitBy: 'Told by',
+    to: 'to',
+    noWay: 'No way yet',
+    seenByQa: 'Seen in QA',
+  },
 } as const
 
 export const gameIdentitiesKo: Localized<typeof gameIdentitiesEn> = {
-  title: '변수 메타데이터', add: '등록', edit: '수정', remove: '삭제', restore: '다시 등록',
+  title: '게임 변수', add: '등록', edit: '수정', remove: '삭제', restore: '다시 등록',
   save: '저장', cancel: '취소', retry: '다시 시도', loading: '변수 메타데이터를 불러오는 중…',
   empty: '이 빌드에 등록된 변수 메타데이터가 없습니다.', failed: '변수 메타데이터를 불러오지 못했습니다.',
   saveFailed: '변경 사항을 저장하지 못했습니다. 입력 내용을 확인하고 다시 시도해 주세요.',
@@ -42,5 +65,28 @@ export const gameIdentitiesKo: Localized<typeof gameIdentitiesEn> = {
   chooseLatestBuild: '최신 빌드 보기', tableLabel: '변수 메타데이터 목록', actions: '작업', status: '상태',
   meaning: '의미', changesWhen: '값이 바뀌는 조건', identifies: '구분하는 대상', role: 'Role',
   deleteConfirm: (name: string) => `이 빌드에서 ${name}의 메타데이터를 삭제하시겠습니까? 변경 이력은 유지됩니다.`,
+  dictionary: {
+    intro: 'TC 와 QA 실행에서 쓰는 이름(상태 · 화면 이동)을 모아, 게임이 SDK 로 알려 준 변수와 맞춥니다. 여기서 고친 칸은 사람이 정한 것이 되어 AI 정리와 MCP 가 덮지 않습니다.',
+    tabsLabel: '게임 사전',
+    tabs: { states: '상태 이름', exits: '화면 이동', variables: '게임 변수' },
+    results: {
+      states: '상태 이름',
+      statesSub: (n: number) => `TC 가 쓰는 이름 ${n}`,
+      linked: '게임 변수와 이음',
+      linkedSub: (build: string, n: number) => `${build} 가 알려 준 변수 ${n}`,
+      flagged: '확인 필요',
+      flaggedSub: '설명 없음 · 시작 값 모름 · 종류와 안 맞음',
+      exits: '화면 이동',
+      exitsSub: '모든 이동에 방법이 있음',
+      exitsNoWay: (n: number) => `방법 없음 ${n}`,
+    },
+    exitsEmpty: '아직 화면 이동이 없습니다. 사람이나 MCP 가 길을 알려 주거나 QA 가 지나가면 생깁니다.',
+    exitRoute: '어디서 → 어디로',
+    exitHow: '어떻게',
+    exitBy: '알려 준 쪽',
+    to: '에서',
+    noWay: '방법 없음',
+    seenByQa: 'QA 가 봄',
+  },
 }
 

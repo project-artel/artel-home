@@ -1,0 +1,61 @@
+/* 게임 사전(ARTEL-1396). 맨 위 숫자 칸 넷 · 탭 · 상태 이름 / 화면 이동 표. 색만으로 뜻을 말하지 않게 표시와 글자를 함께 둔다. */
+.gd { display: flex; flex-direction: column; gap: var(--space-4); }
+.gd-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.gd-head .section-intro { flex: 1 1 420px; margin: 0; }
+
+.gd-results { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
+.gd-result { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 12px 14px; border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); background: var(--color-bg-surface); }
+.gd-result-icon { display: grid; flex: none; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--color-bg-raised); color: var(--color-text-secondary); }
+.gd-result.is-good .gd-result-icon { background: var(--color-status-success-muted); color: var(--color-status-success); }
+.gd-result.is-warn .gd-result-icon { background: var(--color-status-warning-muted); color: var(--color-status-warning); }
+.gd-result-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.gd-result-label { color: var(--color-text-secondary); font-size: 12px; }
+.gd-result-value { color: var(--color-text-secondary); font-size: 13px; }
+.gd-result-value b { color: var(--color-text-primary); font: 700 20px/1.15 var(--font-display); font-variant-numeric: tabular-nums; }
+.gd-result.is-warn .gd-result-value b { color: var(--color-status-warning); }
+.gd-result.is-good .gd-result-value b { color: var(--color-status-success); }
+.gd-result-sub { overflow: hidden; color: var(--color-text-muted); font-size: 11.5px; text-overflow: ellipsis; white-space: nowrap; }
+
+.gd-tabs { align-self: flex-start; }
+.gd-tabs button { display: inline-flex; align-items: center; gap: 6px; }
+.gd-tab-count { min-width: 18px; padding: 0 5px; border-radius: 999px; background: color-mix(in srgb, currentColor 14%, transparent); font-family: var(--font-mono); font-size: 11px; line-height: 17px; text-align: center; }
+
+.gd-skeleton { display: flex; flex-direction: column; gap: 14px; padding: var(--space-4); }
+.gd-skeleton .skeleton-line { display: block; width: 100%; height: 18px; animation: tct-skel-pulse 1.4s ease-in-out infinite; }
+
+/* 상태 이름 표 */
+.gls-table td { vertical-align: middle; }
+.gls-table .gls-name { display: block; font-weight: 700; }
+.gls-table .gls-flag { margin-top: 2px; font-size: 11.5px; }
+.gls-kind { display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border: 1px solid var(--color-border-strong); border-radius: 999px; color: var(--color-text-secondary); font-size: 11.5px; white-space: nowrap; }
+.gls-meaning { max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gls-num { text-align: right; font-variant-numeric: tabular-nums; }
+.gls-link { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; white-space: nowrap; }
+.gls-link > i { display: grid; flex: none; place-items: center; width: 16px; height: 16px; border-radius: 999px; font-size: 10px; font-style: normal; font-weight: 800; }
+.gls-link--found > i { background: var(--color-status-success-muted); color: var(--color-status-success); }
+.gls-link--found .mono { color: var(--color-text-primary); }
+.gls-link-kind { color: var(--color-text-muted); }
+.gls-link--missing { color: var(--color-status-warning); }
+.gls-link--missing > i { background: var(--color-status-warning-muted); }
+.gls-link--none { color: var(--color-text-muted); }
+.gls-link--none > i { border: 1px dashed var(--color-border-strong); }
+.gls-by { font-size: 12px; font-weight: 600; white-space: nowrap; }
+.gls-by--user { color: var(--color-text-primary); }
+.gls-by--mcp { color: var(--color-agent-reasoning); }
+.gls-by--ai { color: var(--color-text-muted); }
+.gb-row.is-selected { background: color-mix(in srgb, var(--color-brand-accent) 10%, transparent); box-shadow: inset 2px 0 0 var(--color-brand-accent); }
+
+/* 오른쪽 창의 게임 변수 칸 */
+.gls-variable { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: var(--radius-md); background: var(--color-bg-raised); }
+.gls-variable-build { margin-left: 6px; color: var(--color-text-muted); font-size: 11px; font-weight: 500; }
+.gls-variable-card { display: grid; gap: 6px; margin: 0; }
+.gls-variable-card > div { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 8px; }
+.gls-variable-card dt { color: var(--color-text-muted); font-size: 12px; }
+.gls-variable-card dd { margin: 0; color: var(--color-text-secondary); font-size: 12.5px; }
+.gls-variable-hint { color: var(--color-text-muted); font-size: 12px; }
+
+/* 화면 이동 표 */
+.gd-route { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+.gd-route-arrow { color: var(--color-brand-accent); font-weight: 700; }
+
+@media (max-width: 900px) { .gd-results { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

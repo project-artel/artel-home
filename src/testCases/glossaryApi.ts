@@ -19,11 +19,18 @@ export type GlossaryTerm = {
   /** 새 게임을 시작할 때 값. 모르면 `unknown`. */
   start: string
   aliases: string[]
-  setBy: Record<'kind' | 'meaning' | 'options' | 'start', TermSource>
+  setBy: Record<'kind' | 'meaning' | 'options' | 'start' | 'gameVariable', TermSource>
   issues: TermIssue[]
   /** 이 이름을 필요 · 남김으로 쓰는 TC 수. */
   usedBy: number
+  /** 이 이름에 이은 게임 변수(SDK 가 알려 준 변수 이름, ARTEL-1396). 없으면 null. */
+  gameVariable: string | null
 }
+
+/** 화면 이동 하나(ARTEL-1396). [source] 는 알려 준 쪽, QA 가 지나가며 본 것은 null. */
+export type GlossaryExit = { from: string; to: string; by: string; source: TermSource | null }
+
+export type GlossaryBook = { terms: GlossaryTerm[]; exits: GlossaryExit[] }
 
 /** 사람이 고친 칸만 보낸다. */
 export type GlossaryTermEdit = {
@@ -33,6 +40,8 @@ export type GlossaryTermEdit = {
   options?: string[]
   start?: string
   aliases?: string[]
+  /** 빈 값이면 연결을 끊는다. */
+  gameVariable?: string
 }
 
 function root(projectId: string): string {
@@ -40,11 +49,31 @@ function root(projectId: string): string {
 }
 
 export async function fetchGlossary(projectId: string, signal?: AbortSignal): Promise<GlossaryTerm[]> {
+  return (await fetchGlossaryBook(projectId, signal)).terms
+}
+
+/** 상태 이름과 화면 이동을 함께 읽는다(게임 사전, ARTEL-1396). */
+export async function fetchGlossaryBook(projectId: string, signal?: AbortSignal): Promise<GlossaryBook> {
   const response = await apiFetch(root(projectId), { signal })
   if (!response.ok) throw await toApiError(response)
-  const body = asRecord(await readJson(response))
+  return parseGlossaryBook(await readJson(response))
+}
+
+export function parseGlossaryBook(data: unknown): GlossaryBook {
+  const body = asRecord(data)
   const terms = Array.isArray(body?.terms) ? body.terms : []
-  return terms.map(parseGlossaryTerm).filter((term): term is GlossaryTerm => term !== null)
+  const exits = Array.isArray(body?.exits) ? body.exits : []
+  return {
+    terms: terms.map(parseGlossaryTerm).filter((term): term is GlossaryTerm => term !== null),
+    exits: exits.flatMap((value): GlossaryExit[] => {
+      const record = asRecord(value)
+      const from = asString(record?.from)
+      const to = asString(record?.to)
+      if (record === null || from.length === 0 || to.length === 0) return []
+      const source = SOURCES.includes(record.source as TermSource) ? (record.source as TermSource) : null
+      return [{ from, to, by: asString(record.by), source }]
+    }),
+  }
 }
 
 export async function editGlossaryTerm(projectId: string, edit: GlossaryTermEdit): Promise<GlossaryTerm> {
@@ -79,8 +108,15 @@ export function parseGlossaryTerm(value: unknown): GlossaryTerm | null {
     options: strings(record.options),
     start: asString(record.start) || 'unknown',
     aliases: strings(record.aliases),
-    setBy: { kind: asSource(setBy.kind), meaning: asSource(setBy.meaning), options: asSource(setBy.options), start: asSource(setBy.start) },
+    setBy: {
+      kind: asSource(setBy.kind),
+      meaning: asSource(setBy.meaning),
+      options: asSource(setBy.options),
+      start: asSource(setBy.start),
+      gameVariable: asSource(setBy.game_variable),
+    },
     issues: strings(record.issues).filter((issue): issue is TermIssue => ISSUES.includes(issue as TermIssue)),
     usedBy: typeof record.usedBy === 'number' ? record.usedBy : 0,
+    gameVariable: typeof record.gameVariable === 'string' && record.gameVariable.length > 0 ? record.gameVariable : null,
   }
 }
