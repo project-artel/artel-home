@@ -46,7 +46,7 @@ export function groupQaModels(models: QaModel[], query = ''): QaModelGroups {
   const platform = matches.filter((model) => model.keySource === 'platform')
   const byProvider = new Map<string, QaUserProviderGroup>()
   for (const model of matches) {
-    if (model.keySource !== 'user') continue
+    if (model.keySource === 'platform') continue
     const service = qaKeyServiceOf(model)
     const group = byProvider.get(service) ?? {
       provider: service,

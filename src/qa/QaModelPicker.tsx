@@ -60,6 +60,7 @@ export function QaModelPicker({
   onChange,
   value,
   popoverWidth,
+  projectKeySettings,
 }: {
   /**
    * 주면 목록을 트리거 폭이 아니라 이 폭으로, 트리거 오른쪽 끝에 맞춰 화면에 고정해 연다(ARTEL-1084).
@@ -67,6 +68,7 @@ export function QaModelPicker({
    * CSS 로 넓히면 패널 밖이 잘리므로, 열 때 트리거 자리를 재서 `position: fixed` 로 띄운다.
    */
   popoverWidth?: number
+  projectKeySettings?: string
   disabled: boolean
   /** Given to the trigger, so the field's `<label htmlFor>` names it. */
   id: string
@@ -281,7 +283,7 @@ export function QaModelPicker({
             ) : (
               <span className="qa-model-badge qa-model-badge--user">
                 <KeyIcon size={14} />
-                {llmKeyApiName(qaKeyServiceOf(selected))}
+                {selected.keySource === 'project' ? p.projectKeyBadge : llmKeyApiName(qaKeyServiceOf(selected))}
               </span>
             )}
             <ProviderLogo provider={selected.provider} size={18} />
@@ -352,8 +354,8 @@ export function QaModelPicker({
                   <>
                     {keyStatus(shownTab.registered, shownTab.keyHint)}
                     {!shownTab.registered && (
-                      <Link className="qa-model-register-link" to="/account">
-                        {p.registerKey}
+                      <Link className="qa-model-register-link" to={projectKeySettings ?? '/account'}>
+                        {projectKeySettings === undefined ? p.registerKey : p.manageProjectKeys}
                       </Link>
                     )}
                   </>
