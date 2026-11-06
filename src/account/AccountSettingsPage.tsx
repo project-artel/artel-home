@@ -1,6 +1,5 @@
 import { useEffect, useId, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { LlmKeysPanel } from './LlmKeysPanel'
 import { AuthApiError, registerEmail, updateMyLocale, updateMyProfile, verifyEmail } from '../auth/authApi'
 import {
   EMAIL_MAX_LENGTH,
@@ -17,7 +16,8 @@ import { InfoHint } from '../design-system/primitives/InfoHint'
 import { isLocale, LOCALE_LABELS, LOCALES } from '../i18n/locale'
 import { useI18n } from '../i18n/useI18n'
 import { SettingsScreenFill, SettingsTabs } from '../layouts/SettingsTabs'
-import { DisplaySketch, IdCardSketch, MailSketch, ModelChipSketch, TerminalSketch } from '../emptyStates/sketches'
+import { DisplaySketch, IdCardSketch, MailSketch, TerminalSketch } from '../emptyStates/sketches'
+import { AccountApiTab } from '../usage/ApiSection'
 import { useCliTokens } from '../auth/useCliTokens'
 import { listLlmKeys } from './llmKeyApi'
 import { listProjects } from '../projects/projectApi'
@@ -58,7 +58,7 @@ export function AccountSettingsPage() {
 
   const copy = t.account
   return (
-    <section className="page page--wide" aria-labelledby="account-title">
+    <section className="page page--wide page--account" aria-labelledby="account-title">
       <header className="page-header">
         <div>
           <p className="eyebrow">{copy.eyebrow}</p>
@@ -66,8 +66,8 @@ export function AccountSettingsPage() {
         </div>
       </header>
 
-      {/* 왼쪽 탭 + 오른쪽 한 화면(ARTEL-1380). 칸은 예전 그대로이고 탭마다 하나씩 선다. LLM API 키 탭은 내 개인 키다 —
-          프로젝트 키는 그 프로젝트의 API 관리에서 다루고, 개인 키를 거기 연결할 수 있다. */}
+      {/* 왼쪽 탭 + 오른쪽 한 화면(ARTEL-1380). 칸은 예전 그대로이고 탭마다 하나씩 선다. API 관리 탭은 내 개인 키와
+          모델 지출이다(ARTEL-1393) — 프로젝트 키는 그 프로젝트의 API 관리에서 다루고, 개인 키를 거기 연결할 수 있다. */}
       <SettingsTabs
         label={copy.tocLabel}
         tabs={[
@@ -107,14 +107,9 @@ export function AccountSettingsPage() {
             ),
           },
           {
-            id: 'llm-keys',
-            label: copy.llmKeys.title,
-            content: (
-              <>
-                <LlmKeysPanel />
-                <SettingsScreenFill body={copy.screens.llmKeys} sketch={<ModelChipSketch />} title={copy.llmKeys.title} />
-              </>
-            ),
+            id: 'api',
+            label: t.usage.api.tab,
+            content: <AccountApiTab />,
           },
           {
             id: 'cli-tokens',
@@ -601,7 +596,7 @@ function useMyProjects(): { items: ProjectSummary[]; total: number } | null {
   return state
 }
 
-const KEYS_HREF = '/account?tab=llm-keys'
+const KEYS_HREF = '/account?tab=api'
 
 /** 프로필 탭 머리(ARTEL-1380). 큰 머리 + 숫자 칸으로 화면을 채운다. 값은 이미 있는 API(프로젝트 · 키 · CLI 토큰)만 쓴다. */
 function ProfileOverview({ user }: { user: AuthUser }) {

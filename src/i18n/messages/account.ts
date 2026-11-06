@@ -14,7 +14,6 @@ export const accountEn = {
     profile: 'How other members see you. The tag after the name tells two people with the same nickname apart.',
     email: 'The address project invitations and notices go to. Invitations need a verified address.',
     preferences: 'How the screens look for you. Saved to your account, so other browsers follow.',
-    llmKeys: 'Your own provider keys. Link one in a project\'s API management and that project\'s QA can run on it.',
     cliTokens: 'Tokens the artel CLI signs in with. Each one can be revoked on its own.',
   },
   stats: {
@@ -184,7 +183,6 @@ export const accountKo: Localized<typeof accountEn> = {
     profile: '다른 멤버에게 보이는 내 이름입니다. 이름 뒤의 태그로 같은 닉네임을 가진 사람을 가립니다.',
     email: '프로젝트 초대와 알림을 받을 주소입니다. 초대를 받으려면 주소 확인이 필요합니다.',
     preferences: '나에게 보이는 화면의 환경입니다. 계정에 저장되어 다른 브라우저에서도 따라옵니다.',
-    llmKeys: '내 제공사 키입니다. 프로젝트의 API 관리에서 연결하면 그 프로젝트의 QA 가 이 키로 돕니다.',
     cliTokens: 'artel CLI 가 로그인할 때 쓰는 토큰입니다. 하나씩 따로 폐기할 수 있습니다.',
   },
   stats: {

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useProjectChange } from '../live/useProjectChange'
 import { usePolling } from '../live/usePolling'
 import { buildGrass, type GrassGrid } from './grass'
-import { fetchProjectUsage, type ProjectUsage } from './usageApi'
+import { fetchUsage, type ProjectUsage } from './usageApi'
 
 export type UsageStatus = 'loading' | 'ready' | 'error'
 
@@ -24,6 +24,14 @@ export interface ProjectUsageRead {
  * returns to `loading`, and one that fails keeps the figures already on screen.
  */
 export function useProjectUsage(projectId: string): ProjectUsageRead {
+  return useUsage(projectId)
+}
+
+/**
+ * [useProjectUsage] 의 넓은 판(ARTEL-1393). [projectId] 가 null 이면 볼 수 있는 전 프로젝트 합산이다 — 프로젝트 변경
+ * 흐름이 없으니 polling 만 한다. [enabled] 가 false 면 읽지 않는다(같은 것을 두 번 읽지 않게).
+ */
+export function useUsage(projectId: string | null, enabled = true): ProjectUsageRead {
   // Pinned on mount. Reading the clock per render would let the window slide
   // mid-session, and a viewer whose tab is open past midnight would see the
   // grid and the request disagree about which day is "today".
@@ -36,11 +44,12 @@ export function useProjectUsage(projectId: string): ProjectUsageRead {
   // answer cannot overwrite a newer one. A failure becomes `error` only while
   // nothing has loaded yet.
   const load = useCallback(() => {
+    if (!enabled) return
     inFlight.current?.abort()
     const controller = new AbortController()
     inFlight.current = controller
 
-    fetchProjectUsage(projectId, today, controller.signal)
+    fetchUsage(projectId, today, controller.signal)
       .then((result) => {
         setUsage(result)
         setStatus('ready')
@@ -49,14 +58,14 @@ export function useProjectUsage(projectId: string): ProjectUsageRead {
         if (controller.signal.aborted) return
         setStatus((current) => (current === 'ready' ? current : 'error'))
       })
-  }, [projectId, today])
+  }, [projectId, today, enabled])
 
   useEffect(() => {
     load()
     return () => inFlight.current?.abort()
   }, [load])
 
-  const live = useProjectChange(projectId, 'USAGE', load)
+  const live = useProjectChange(enabled ? projectId : null, 'USAGE', load)
   usePolling(load, undefined, !live)
 
   const grid = useMemo(

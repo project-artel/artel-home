@@ -123,6 +123,7 @@ test('trimUsage keeps cost, calls and tokens per service and model', () => {
     daily: [{ date: '2026-10-01', totals }],
     byService: [{ service: 'QA', totals }],
     byModel: [{ provider: 'p', model: 'm', totals }],
+    byProject: [],
     zone: 'Asia/Seoul',
   }
   const trimmed = trimUsage(usage)

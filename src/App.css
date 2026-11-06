@@ -13748,3 +13748,60 @@ col.vimp-c-scene{ width:18% } col.vimp-c-verdict{ width:16% }
 .api-skel-bars { margin-top: auto; display: flex; align-items: flex-end; gap: 4px; height: 40px; }
 .api-skel-bars .skeleton-block { flex: 1; border-radius: 2px; }
 @media (prefers-reduced-motion: reduce) { .api-skel .skeleton-line, .api-skel .skeleton-block, .api-skel-ring, .llm-key-list--skeleton .skeleton-line, .llm-key-list--skeleton .skeleton-block { animation: none; } }
+
+/* 계정 설정의 API 관리 탭(ARTEL-1393). 위는 키, 아래는 모델 지출 — 왼쪽 프로젝트 목록, 오른쪽 고른 프로젝트의 금액. */
+.api-page--account { flex: none; }
+.api-spend { display: flex; flex-direction: column; }
+.api-spend .panel-header { display: flex; align-items: baseline; gap: var(--space-3); }
+.api-spend-hint { color: var(--color-text-muted); font-size: 12px; }
+.api-spend-body { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: var(--space-5); padding: 0 var(--space-5) var(--space-5); }
+/* 목록은 오른쪽 상세 칸 높이에 맞춘다 — 목록이 줄 높이를 정하지 않게 basis 0 으로 두고 안에서 넘긴다. */
+.api-spend-body { align-items: stretch; }
+.api-projects-frame { position: relative; display: flex; flex-direction: column; gap: 4px; min-height: 0; }
+.api-projects-scroll { flex: 1 1 0; min-height: 240px; overflow-y: auto; scrollbar-width: none; }
+.api-projects-scroll::-webkit-scrollbar { display: none; }
+.api-projects { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0 6px 0 0; list-style: none; }
+.api-projects-caption { padding: 0 12px 4px; color: var(--color-text-muted); font-size: 11.5px; }
+.api-project { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 10px; align-items: center; width: 100%; padding: 10px 12px; border: 1px solid transparent; border-radius: var(--radius-md); background: transparent; color: var(--color-text-primary); font: inherit; text-align: left; cursor: pointer; }
+.api-project:hover { background: var(--color-bg-hover); }
+.api-project:focus-visible { outline: 2px solid var(--color-brand-accent); outline-offset: 1px; }
+.api-project.is-selected { border-color: var(--color-brand-accent); background: color-mix(in srgb, var(--color-brand-accent) 10%, transparent); }
+.api-project-name { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.api-project-name b { overflow: hidden; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.api-project-cost { font-size: 14px; }
+.api-project-share { grid-column: 1 / 3; display: flex; align-items: center; gap: 8px; color: var(--color-text-muted); font-size: 11px; }
+.api-project-share .api-table-bar { flex: none; width: 96px; height: 5px; }
+.api-project--skeleton { display: flex; flex-direction: column; gap: 8px; padding: 12px; }
+.api-project--skeleton .skeleton-line { display: block; width: 70%; animation: tct-skel-pulse 1.4s ease-in-out infinite; }
+.api-spend-detail { display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; padding-left: var(--space-5); border-left: 1px solid var(--color-border-subtle); }
+.api-spend-detail-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.api-spend-detail-head > b { font-size: 15px; }
+.api-spend-window { color: var(--color-text-muted); font-size: 12px; }
+.api-spend-open { margin-left: auto; color: var(--color-brand-accent); font-size: 12px; font-weight: 600; text-decoration: none; }
+.api-spend-open:hover { text-decoration: underline; text-underline-offset: 3px; }
+.api-spend-overview { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); align-items: stretch; }
+.api-spend-card { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; padding: var(--space-4) var(--space-5); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); background: var(--color-bg-raised); }
+.api-spend-card-title { color: var(--color-text-secondary); font-size: 12px; font-weight: 600; }
+.api-spend-card .api-share-body { flex: 1; padding: 0; gap: var(--space-5); }
+.api-spend-card .api-donut { width: 132px; height: 132px; }
+.api-spend-card .api-share-legend li { grid-template-columns: 10px minmax(0, 1fr) 52px 64px; min-height: 32px; }
+.api-spend-card--grass .usage-overview-grass { flex: 1; display: flex; align-items: center; justify-content: center; overflow: visible; }
+.api-spend-card--grass .grass-plot { overflow: visible; }
+.api-spend-card--grass .grass-cell { width: 18px; height: 18px; border-radius: 4px; }
+.api-spend-card--grass .grass-grid { border-spacing: 4px; margin: -4px; }
+.api-spend-card--grass .grass-weekdays { grid-template-rows: repeat(7, 18px); gap: 4px; }
+.api-spend-card--grass .grass-weekday { line-height: 18px; }
+.api-spend-detail .api-figures { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.api-spend-detail .usage-breakdowns { grid-template-columns: minmax(0, 1fr); }
+.api-spend-detail .usage-breakdowns > .panel { margin: 0; }
+@media (max-width: 1280px) { .api-spend-overview { grid-template-columns: minmax(0, 1fr); } .api-spend-detail .api-figures { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 960px) { .api-spend-body { grid-template-columns: minmax(0, 1fr); } .api-spend-detail { padding-left: 0; border-left: 0; } }
+
+/* 계정 설정은 프로젝트 설정과 같은 바탕을 쓴다(ARTEL-1393). 바깥 화면의 모눈 바탕은 프로젝트 목록 같은 넓은 화면용이다. */
+.workspace:has(.page--account) { background-image: none; }
+/* 프로젝트 목록의 EdgeScrollbar(ARTEL-1393). QA 모델 고르기(`qa-model-popover`)와 같은 막대다. */
+.api-projects-frame .edgebar { position: absolute; z-index: 2; right: 0; width: 18px; pointer-events: none; }
+.api-projects-frame .edgebar-thumb { position: absolute; right: 0; left: 0; cursor: grab; pointer-events: auto; touch-action: none; }
+.api-projects-frame .edgebar-thumb:active { cursor: grabbing; }
+.api-projects-frame .edgebar-fill { position: absolute; top: 0; right: 0; bottom: 0; width: 4px; background: var(--color-action-primary); transition: width 120ms var(--ease-standard), background 120ms var(--ease-standard); }
+.api-projects-frame .edgebar.is-near .edgebar-fill { width: 11px; background: var(--color-action-primary-strong); }
