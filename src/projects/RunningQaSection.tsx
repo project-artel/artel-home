@@ -47,8 +47,9 @@ export function RunningQaSection({ projects }: { projects: readonly ProjectSumma
   }, [projects])
 
   useEffect(() => {
-    void refresh()
+    const initial = window.setTimeout(() => void refresh(), 0)
     return () => {
+      window.clearTimeout(initial)
       request.current?.abort()
       request.current = null
     }
@@ -120,8 +121,9 @@ function QaPreview({ runId }: { runId: string }) {
   }, [runId])
 
   useEffect(() => {
-    void refresh()
+    const initial = window.setTimeout(() => void refresh(), 0)
     return () => {
+      window.clearTimeout(initial)
       request.current?.abort()
       request.current = null
     }
