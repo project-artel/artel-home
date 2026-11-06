@@ -429,3 +429,4 @@ a.db-kpi-value:hover b { text-decoration: underline; text-underline-offset: 4px;
 
 .db-bv-bar > i { opacity: 0.85; }
 .db-bv-bar-label .db-bv-of { color: var(--color-text-primary); opacity: 0.85; }
+.db-bv-bar-name { font-weight: 600; }

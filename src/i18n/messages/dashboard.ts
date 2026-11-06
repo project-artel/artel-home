@@ -38,7 +38,7 @@ export const dashboardEn = {
     emptyVersionBody: (version: string) => `This panel shows, day by day, how close a build is to its release criteria. ${version} has no Test Cases yet — put some in from the case library.`,
     openLibrary: 'Open the case library',
     since: (date: string, days: number) => `uploaded ${date} · day ${days}`,
-    judged: 'judged',
+    judged: 'Test Cases judged',
     allJudged: 'every Test Case is judged',
     etaUnknown: 'appears once three days have built up',
     results: {
@@ -276,7 +276,7 @@ export const dashboardKo: Localized<typeof dashboardEn> = {
     emptyVersionBody: (version: string) => `이 칸은 빌드가 출시 기준에 얼마나 다가갔는지 날마다 보여 줍니다. ${version} 에는 담긴 TC 가 없어 셀 것이 없습니다. 케이스 라이브러리에서 TC 를 담아 주세요.`,
     openLibrary: '케이스 라이브러리 열기',
     since: (date: string, days: number) => `${date} 올라옴 · ${days}일째`,
-    judged: '판정',
+    judged: 'TC 판정',
     allJudged: 'TC 를 모두 판정했습니다',
     etaUnknown: '사흘치가 쌓이면 계산합니다',
     results: {

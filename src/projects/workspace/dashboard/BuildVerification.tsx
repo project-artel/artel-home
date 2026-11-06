@@ -217,7 +217,7 @@ function VerificationBody({
               ))}
             </span>
             <b className="db-bv-bar-label">
-              <span className="db-bv-pct">{pct}%</span> {m.judged} <span className="db-bv-of">{judged}/{summary.total}</span>
+              <span className="db-bv-bar-name">{m.judged}</span> <span className="db-bv-pct">{pct}%</span> <span className="db-bv-of">{judged}/{summary.total}</span>
             </b>
           </div>
         </header>
