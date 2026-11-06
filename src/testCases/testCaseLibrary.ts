@@ -2,7 +2,7 @@ import { buildDisplayName } from '../projects/buildEnvironment'
 import { selectedLibraryCase } from './selectedLibraryCase'
 import { formatTestCaseId } from './testCaseId'
 import type { GameBuild } from '../projects/gameTypes'
-import type { CaseKind, CaseOrigin, TestCase, VerificationStatus } from './testCaseTypes'
+import type { CaseKind, CaseOrigin, TestCase, TestCaseReviewStatus, VerificationStatus } from './testCaseTypes'
 import type { VersionCaseRow } from './testCaseVersions'
 
 export function editableCase(caseId: string | null, cases: readonly TestCase[], versionRows: readonly VersionCaseRow[] | null): TestCase | null {
@@ -35,11 +35,13 @@ export type TestCaseFilters = {
   origin: 'ALL' | CaseOrigin
   /** 종류(ARTEL-1308). `ALL` 은 가리지 않는다. 종류를 모르는 케이스는 기능이다. */
   kind: 'ALL' | CaseKind
+  /** 검토 상태. `ALL` 은 가리지 않는다. */
+  review: 'ALL' | TestCaseReviewStatus
   /** 씬 전이 TC 만(ARTEL-1313). 도착 화면이 있는 TC 다. 종류와 겹칠 수 있어 따로 켜고 끈다. */
   transition: boolean
 }
 
-export const NO_FILTERS: TestCaseFilters = { query: '', scene: '', status: 'ALL', origin: 'ALL', kind: 'ALL', transition: false }
+export const NO_FILTERS: TestCaseFilters = { query: '', scene: '', status: 'ALL', origin: 'ALL', kind: 'ALL', review: 'ALL', transition: false }
 
 /** 하나라도 걸려 있으면 빈 목록의 문구가 "아직 없음"이 아니라 "조건에 맞는 것이 없음"이 된다. */
 export function hasActiveFilters(filters: TestCaseFilters): boolean {
@@ -49,6 +51,7 @@ export function hasActiveFilters(filters: TestCaseFilters): boolean {
     filters.status !== 'ALL' ||
     filters.origin !== 'ALL' ||
     filters.kind !== 'ALL' ||
+    filters.review !== 'ALL' ||
     filters.transition
   )
 }
@@ -104,6 +107,11 @@ const FAILING_FIRST_RANK: Record<VerificationStatus, number> = {
  * 다시 정렬하면, 같은 초에 만들어진 케이스들의 순서만 서버와 어긋난다.
  * `FAILING_FIRST` 는 상태 순위로만 세우고 같은 순위 안에서는 원래 순서를 지킨다(안정 정렬).
  */
+/** 승인 대기 수. 검토 칩과 배지가 쓴다. */
+export function countDrafts(cases: readonly TestCase[]): number {
+  return cases.filter((testCase) => testCase.reviewStatus === 'DRAFT').length
+}
+
 export function selectTestCases(
   cases: TestCase[],
   filters: TestCaseFilters,
@@ -117,6 +125,7 @@ export function selectTestCases(
       (filters.scene.length === 0 || testCase.scene === filters.scene) &&
       (filters.origin === 'ALL' || testCase.origin === filters.origin) &&
       (filters.kind === 'ALL' || (testCase.kind ?? 'FUNCTION') === filters.kind) &&
+      (filters.review === 'ALL' || (testCase.reviewStatus ?? 'READY') === filters.review) &&
       (!filters.transition || (testCase.arrivesAt ?? '').length > 0) &&
       matchesQuery(testCase, query, numbers),
   )

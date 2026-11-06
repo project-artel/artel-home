@@ -3,6 +3,7 @@ import test from 'node:test'
 import type { GameBuild } from '../projects/gameTypes'
 import {
   sceneUsageOf,
+  countDrafts,
   countKinds,
   countScenes,
   editableCase,
@@ -106,7 +107,7 @@ test('씬과 검증 상태 필터는 함께 걸린다', () => {
     makeCase('3', { scene: 'Shop', verificationStatus: 'BROKEN' }),
   ]
 
-  const filters = { query: '', scene: 'Lobby', status: 'BROKEN' as VerificationStatus, origin: 'ALL' as const, kind: 'ALL' as const, transition: false }
+  const filters = { query: '', scene: 'Lobby', status: 'BROKEN' as VerificationStatus, origin: 'ALL' as const, kind: 'ALL' as const, review: 'ALL' as const, transition: false }
   assert.deepEqual(idsOf(selectTestCases(cases, filters, 'NEWEST')), ['1'])
   assert.equal(hasActiveFilters(filters), true)
 })
@@ -243,4 +244,16 @@ test('씬 전이 칩은 도착 화면이 있는 TC 만 남기고, 종류와 함�
   assert.deepEqual(idsOf(selectTestCases(cases, { ...NO_FILTERS, transition: true, kind: 'FUNCTION' }, 'NEWEST')), ['1'])
   assert.equal(hasActiveFilters({ ...NO_FILTERS, transition: true }), true)
   assert.equal(countKinds(cases).transition, 2)
+})
+
+test('review filter keeps only the chosen review status and counts drafts', () => {
+  const draft = makeCase('1', { reviewStatus: 'DRAFT' })
+  const ready = makeCase('2', { reviewStatus: 'READY' })
+  const unknown = makeCase('3')
+  const all = [draft, ready, unknown]
+
+  assert.deepEqual(selectTestCases(all, { ...NO_FILTERS, review: 'DRAFT' }, 'NEWEST').map((one) => one.id), ['1'])
+  assert.deepEqual(selectTestCases(all, { ...NO_FILTERS, review: 'READY' }, 'NEWEST').map((one) => one.id), ['2', '3'])
+  assert.equal(countDrafts(all), 1)
+  assert.equal(hasActiveFilters({ ...NO_FILTERS, review: 'DRAFT' }), true)
 })

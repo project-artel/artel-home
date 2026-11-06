@@ -13,6 +13,7 @@ import {
   buildFreeScenarioDraft,
   type ChatMessage,
   type ExecutionMode,
+  type ScenarioReviewItem,
   type ScenarioDraft,
   type ScenarioRole,
   type ScenarioStep,
@@ -179,6 +180,7 @@ export function parseScenarioSummary(data: unknown): TestScenarioSummary | null 
     createdAt: asString(record.createdAt),
     updatedAt: asString(record.updatedAt),
     executionMode: parseExecutionMode(record.execution_mode),
+    reviewStatus: record.reviewStatus === 'DRAFT' ? 'DRAFT' : 'READY',
   }
 }
 
@@ -200,6 +202,59 @@ export async function listTestScenarios(
   return toItemArray(await readJson(response))
     .map(parseScenarioSummary)
     .filter((summary): summary is TestScenarioSummary => summary !== null)
+}
+
+function text(value: unknown): string | null {
+  return typeof value === 'string' && value !== '' ? value : null
+}
+
+/** 승인 대기 시나리오: `GET /api/projects/{projectId}/test-scenario/review-queue`. */
+export async function listScenarioReviewQueue(projectId: string, signal?: AbortSignal): Promise<ScenarioReviewItem[]> {
+  const response = await apiFetch(
+    `/api/projects/${encodeURIComponent(projectId)}/test-scenario/review-queue`,
+    { signal },
+  )
+  return toItemArray(await readJson(response)).flatMap((data) => {
+    const record = asRecord(data)
+    const id = record === null ? NaN : Number(record.testScenarioId)
+    if (record === null || !Number.isFinite(id) || typeof record.updatedAt !== 'string') return []
+    return [{
+      id: String(id),
+      testScenarioId: id,
+      updatedAt: record.updatedAt,
+      rejectable: record.rejectable === true,
+      title: text(record.title) ?? '',
+      description: text(record.description) ?? '',
+      executionMode: record.executionMode === 'FREE' ? 'FREE' as const : 'ORDERED' as const,
+      runs: toItemArray(record.runs).flatMap((run) => {
+        const item = asRecord(run)
+        return item === null ? [] : [{ id: String(item.id), name: text(item.name) ?? '' }]
+      }),
+      steps: toItemArray(record.steps).flatMap((step) => {
+        const item = asRecord(step)
+        return item === null ? [] : [{
+          action: text(item.action) ?? '',
+          testCaseId: text(item.testCaseId),
+          scene: text(item.scene),
+          precondition: text(item.precondition),
+          expectedValue: text(item.expectedValue),
+        }]
+      }),
+    }]
+  })
+}
+
+/** 승인 대기 시나리오를 결정한다. 읽은 뒤 바뀌었거나 이미 처리됐으면 409 다. */
+export async function decideScenarioReview(
+  projectId: string,
+  item: Pick<ScenarioReviewItem, 'testScenarioId' | 'updatedAt'>,
+  decision: 'APPROVE' | 'REJECT',
+): Promise<void> {
+  const response = await apiFetch(
+    `/api/projects/${encodeURIComponent(projectId)}/test-scenario/${encodeURIComponent(item.testScenarioId)}/review`,
+    { method: 'POST', ...jsonRequest({ decision, expectedUpdatedAt: item.updatedAt }) },
+  )
+  if (!response.ok) throw await toApiError(response)
 }
 
 export async function createTestScenario(projectId: number): Promise<number> {

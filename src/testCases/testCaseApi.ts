@@ -14,11 +14,14 @@ import {
   asCaseOrigin,
   asVerificationStatus,
   MAX_BULK_SELECTION,
+  type CaseReviewItem,
+  type ReviewDecision,
   type TestCase,
   type TestCaseCoverage,
   type TestCaseInput,
   type UncoveredScene,
   type VerificationStatus,
+  type TestCaseReviewStatus,
 } from './testCaseTypes'
 
 /*
@@ -68,6 +71,8 @@ export function parseTestCase(data: unknown): TestCase | null {
     evidenceGaps: asStringArray(record.evidenceGaps),
     origin: asCaseOrigin(record.origin),
     kind: asCaseKind(record.kind),
+    reviewStatus: record.reviewStatus === 'DRAFT' ? 'DRAFT' : 'READY',
+    reviewRequestedBy: typeof record.reviewRequestedBy === 'string' ? record.reviewRequestedBy : undefined,
     arrivesAt: asNullableString(record.arrivesAt),
     functions: parseCaseFunctions(record.functions) ?? undefined,
   }
@@ -169,6 +174,75 @@ export async function updateTestCase(
   })
   if (!response.ok) throw await toApiError(response)
   return requireCase(await readJson(response), response.status)
+}
+
+/** 검토 상태만 바꾼다. 다른 칸은 서버가 건드리지 않는다. */
+export async function setTestCaseReviewStatus(
+  projectId: string,
+  caseId: string,
+  reviewStatus: TestCaseReviewStatus,
+): Promise<void> {
+  const response = await apiFetch(casePath(projectId, caseId), {
+    method: 'PUT',
+    ...jsonRequest({ reviewStatus }),
+  })
+  if (!response.ok) throw await toApiError(response)
+}
+
+/** 한 번에 보내는 요청 수. 일괄 API 가 없어 나눠 보낸다. */
+const REVIEW_CONCURRENCY = 6
+
+/** 여러 건의 검토 상태를 바꾸고 실패한 수를 돌려준다. 실패한 건은 그대로 남는다. */
+export async function reviewTestCases(
+  projectId: string,
+  caseIds: readonly string[],
+  reviewStatus: TestCaseReviewStatus,
+): Promise<number> {
+  let failed = 0
+  const queue = [...caseIds]
+  await Promise.all(
+    Array.from({ length: Math.min(REVIEW_CONCURRENCY, queue.length) }, async () => {
+      for (let next = queue.shift(); next !== undefined; next = queue.shift()) {
+        try {
+          await setTestCaseReviewStatus(projectId, next, reviewStatus)
+        } catch {
+          failed += 1
+        }
+      }
+    }),
+  )
+  return failed
+}
+
+/** 내가 승인을 요청한 Test Case: `GET .../test-cases/review-queue`. */
+export async function listCaseReviewQueue(projectId: string, signal?: AbortSignal): Promise<CaseReviewItem[]> {
+  const response = await apiFetch(`${casesRoot(projectId)}/review-queue`, { signal })
+  return toItemArray(await readJson(response)).flatMap((data) => {
+    const record = asRecord(data)
+    if (record === null || typeof record.id !== 'string' || typeof record.updatedAt !== 'string') return []
+    return [{
+      id: record.id,
+      scene: asString(record.scene),
+      step: asString(record.step),
+      precondition: typeof record.precondition === 'string' && record.precondition !== '' ? record.precondition : null,
+      expectedValue: asString(record.expectedValue),
+      kind: asString(record.kind),
+      updatedAt: record.updatedAt,
+    }]
+  })
+}
+
+/** 승인 대기 Test Case 를 결정한다. 읽은 뒤 바뀌었거나 이미 처리됐으면 409 다. */
+export async function decideCaseReview(
+  projectId: string,
+  item: Pick<CaseReviewItem, 'id' | 'updatedAt'>,
+  decision: ReviewDecision,
+): Promise<void> {
+  const response = await apiFetch(`${casesRoot(projectId)}/${encodeURIComponent(item.id)}/review`, {
+    method: 'POST',
+    ...jsonRequest({ decision, expectedUpdatedAt: item.updatedAt }),
+  })
+  if (!response.ok) throw await toApiError(response)
 }
 
 export async function deleteTestCase(projectId: string, caseId: string): Promise<void> {

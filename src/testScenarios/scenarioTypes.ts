@@ -196,6 +196,28 @@ export type TestScenarioSummary = {
   createdAt: string
   updatedAt: string
   executionMode: ExecutionMode
+  /** `DRAFT` 는 승인 전이라 QA 에 쓰지 않는다. 모르면 승인된 것으로 다룬다. */
+  reviewStatus?: 'DRAFT' | 'READY'
+}
+
+/** 승인 대기 시나리오 하나. 팝업이 읽는 내용을 모두 싣는다. */
+export type ScenarioReviewItem = {
+  id: string
+  testScenarioId: number
+  updatedAt: string
+  /** 승인된 시나리오를 고친 것이면 false. 이전 본문이 남지 않아 거절(삭제)할 수 없다. */
+  rejectable: boolean
+  title: string
+  description: string
+  executionMode: ExecutionMode
+  runs: { id: string; name: string }[]
+  steps: {
+    action: string
+    testCaseId: string | null
+    scene: string | null
+    precondition: string | null
+    expectedValue: string | null
+  }[]
 }
 
 /** The server ignores `type` today; it is sent because the contract declares it. */

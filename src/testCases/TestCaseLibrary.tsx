@@ -28,6 +28,8 @@ import {
 } from '../projectAgent/specs/testCases'
 import { formatDate } from '../projects/formatters'
 import type { GameBuild } from '../projects/gameTypes'
+import { listMembers } from '../projects/memberApi'
+import type { ProjectMember } from '../projects/memberTypes'
 import { ProjectApiError } from '../projects/projectApi'
 import { CaseSceneFilter } from './CaseSceneFilter'
 import { SceneChip } from './SceneChip'
@@ -50,7 +52,7 @@ import { Picker } from './Picker'
 import { SearchField } from './SearchField'
 import { hasPointerMoved, type PointerPosition } from './pointerMovement'
 import { planDeleteCases, planDeleteListed } from './deleteCasesPlan'
-import { bulkDeleteTestCases, deleteTestCase } from './testCaseApi'
+import { bulkDeleteTestCases, deleteTestCase, reviewTestCases } from './testCaseApi'
 import {
   ALL_FOLDERS,
   buildFolderTree,
@@ -70,6 +72,7 @@ import {
   hasActiveFilters,
   editableCase,
   NO_FILTERS,
+  countDrafts,
   selectTestCases,
   tallyTestCases,
   countKinds,
@@ -87,6 +90,8 @@ import { useFolderHistory } from './useFolderHistory'
 import { useFolderItems } from './useFolderItems'
 import { useTestCaseFolders } from './useTestCaseFolders'
 import { useTestCaseLibrary } from './useTestCaseLibrary'
+import type { TestCaseReviewStatus } from './testCaseTypes'
+
 import {
   absenceNote,
   isBuildId,
@@ -282,6 +287,16 @@ export function TestCaseLibrary({
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [stepFolderHistory, m.folders.announce])
+  const [members, setMembers] = useState<readonly ProjectMember[]>([])
+  useEffect(() => {
+    const controller = new AbortController()
+    listMembers(projectId, controller.signal).then(setMembers).catch(() => {
+      // 이름을 못 읽어도 승인 대기 표시는 그대로 보인다.
+    })
+    return () => controller.abort()
+  }, [projectId])
+  const requesterName = (testCase: TestCase): string | null =>
+    members.find((member) => member.userId === testCase.reviewRequestedBy)?.displayName ?? null
   // 대시보드의 "실패한 Test Case 보기" 같은 링크는 `?status=` 로 판정 거르기를 켠 채 연다(ARTEL-1387).
   const [filters, setFilters] = useState<TestCaseFilters>(() => {
     const status = searchParams.get('status')
@@ -359,6 +374,7 @@ export function TestCaseLibrary({
   }, [inFolder, filters, sort, folderView, itemById, compareVersionId, rowById, caseNumbers])
   const tally = useMemo(() => tallyTestCases(inFolder), [inFolder])
   const kinds = useMemo(() => countKinds(inFolder), [inFolder])
+  const draftCount = useMemo(() => countDrafts(inFolder), [inFolder])
   const sceneMatcher = useMemo(() => scenePattern(sceneNamesOf(inFolder)), [inFolder])
   // 선택은 지금 보이는 줄에 묶인다. 필터가 줄을 숨기면 hook 이 그 줄을 선택에서 뺀다.
   const visibleIds = useMemo(() => shown.map((testCase) => testCase.id), [shown])
@@ -504,6 +520,21 @@ export function TestCaseLibrary({
     if (selectedId !== null && caseIds.includes(selectedId)) setSelectedId(null)
     setIsBulkDeleting(false)
     setAnnouncement(m.bulkDelete.done(deleted > 0 ? deleted : caseIds.length))
+  }
+
+  const [reviewing, setReviewing] = useState(false)
+  const [reviewError, setReviewError] = useState<string | null>(null)
+
+  /** 검토 상태를 바꾼다. 실패한 건은 그대로 남고 목록이 사실을 다시 읽는다. */
+  async function reviewCases(caseIds: readonly string[], status: TestCaseReviewStatus) {
+    setReviewing(true)
+    setReviewError(null)
+    const failed = await reviewTestCases(projectId, caseIds, status)
+    refreshAfterFolderChange()
+    clearSelection()
+    setReviewing(false)
+    if (failed > 0) setReviewError(m.review.failed(failed))
+    setAnnouncement(status === 'READY' ? m.review.approved(caseIds.length - failed) : m.review.returned(caseIds.length - failed))
   }
 
   const folderName = (folderId: string) => folderList.folders.find((one) => one.id === folderId)?.name ?? ''
@@ -809,8 +840,18 @@ export function TestCaseLibrary({
     versionsMode && selectedManualIds.length > 0
       ? [{ label: m.addToVersion.action, onClick: () => setIsAddingToVersion(true) }]
       : []
+  const selectedReview = [...selection.selectedIds].map((caseId) => shown.find((one) => one.id === caseId)?.reviewStatus ?? 'READY')
+  const reviewActions: SelectionAction[] = [
+    ...(selectedReview.includes('DRAFT')
+      ? [{ label: m.review.approve, onClick: () => runQuietly(reviewCases([...selection.selectedIds], 'READY')) }]
+      : []),
+    ...(selectedReview.includes('READY')
+      ? [{ label: m.review.returnToDraft, onClick: () => runQuietly(reviewCases([...selection.selectedIds], 'DRAFT')) }]
+      : []),
+  ]
   const selectionActions: SelectionAction[] = folderView
     ? [
+        ...reviewActions,
         ...addToVersionAction,
         { label: m.folderItems.remove, onClick: () => runQuietly(removeSelectedFromFolder()) },
         ...(versionsMode && selectedItems.some((item) => !item.hidden)
@@ -820,7 +861,7 @@ export function TestCaseLibrary({
           ? [{ label: m.folderItems.show, onClick: () => runQuietly(setSelectedHidden(false)) }]
           : []),
       ]
-    : addToVersionAction
+    : [...reviewActions, ...addToVersionAction]
 
   const undoFolder = async () => {
     const command = await folderHistory.step('undo')
@@ -1065,6 +1106,35 @@ export function TestCaseLibrary({
         </div>
 
         {contentReviews.status === 'failed' && <p className="inline-error" role="alert">{contentCopy.contentStatus} · {contentCopy.error} <button type="button" className="button button--secondary button--compact" onClick={() => contentReviews.reload()}>{contentCopy.retry}</button></p>}
+        {(draftCount > 0 || filters.review !== 'ALL') && (
+          <div className="tcl-review-row">
+            <span className="field-label">{m.review.label}</span>
+            <div className="tcl-chips">
+              {(['ALL', 'DRAFT', 'READY'] as const).map((review) => (
+                <button
+                  aria-pressed={filters.review === review}
+                  className={filters.review === review ? 'fchip on' : 'fchip'}
+                  key={review}
+                  onClick={() => setFilters({ ...filters, review })}
+                  type="button"
+                >
+                  {m.review[review]} {review === 'ALL' ? inFolder.length : review === 'DRAFT' ? draftCount : inFolder.length - draftCount}
+                </button>
+              ))}
+            </div>
+            {reviewError !== null && <span className="tcl-review-note" role="alert">{reviewError}</span>}
+            {filters.review === 'DRAFT' && shown.length > 0 && (
+              <button
+                className="button button--primary button--compact tcl-review-all"
+                disabled={reviewing}
+                onClick={() => runQuietly(reviewCases(visibleIds, 'READY'))}
+                type="button"
+              >
+                {reviewing ? m.review.approving : m.review.approveShown(shown.length)}
+              </button>
+            )}
+          </div>
+        )}
         <div className="tcl-status-row" data-tour="chips" ref={statusRow}>
           <span className="field-label">{m.filters.status}</span>
           <div className="tcl-chips">
@@ -1354,6 +1424,12 @@ export function TestCaseLibrary({
                               title={testCase.origin === 'MAP' ? m.origin.mapTitle : m.origin.manualTitle}
                             >
                               {m.origin[testCase.origin]}
+                            </span>
+                          )}
+                          {testCase.reviewStatus === 'DRAFT' && (
+                            <span className="tct-origin tct-review--draft" title={m.review.draftTitle}>
+                              {m.review.DRAFT}
+                              {requesterName(testCase) !== null && ` · ${requesterName(testCase)}`}
                             </span>
                           )}
                           {/* 예외만 표시한다. 대부분이 기능이라 줄마다 "기능" 을 달면 아무것도 가르지 못한다. */}

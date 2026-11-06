@@ -133,6 +133,8 @@ export function parseVersionCases(data: unknown, projectId: string): VersionCase
           createdAt: asString(record?.createdAt),
           folderId: asNullableString(record?.folderId),
           evidenceGaps: [],
+          reviewStatus: record?.reviewStatus === 'DRAFT' ? 'DRAFT' : 'READY',
+          reviewRequestedBy: typeof record?.reviewRequestedBy === 'string' ? record.reviewRequestedBy : undefined,
           origin: record?.origin === 'MANUAL' ? 'MANUAL' : 'MAP',
           kind: asCaseKind(record?.kind),
           arrivesAt: asNullableString(record?.arrivesAt),
