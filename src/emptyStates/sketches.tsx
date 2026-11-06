@@ -262,3 +262,85 @@ export function FolderSketch() {
     </svg>
   )
 }
+
+const NAME_TAG = 'M70 62 L100 42 L250 44 Q258 44 258 52 L258 122 Q258 130 250 130 L100 132 L70 112 Z'
+
+/** 상태 이름이 없을 때(ARTEL-1396): 뒤에 한 장 더 겹친 이름표와 그 끈. 앞 이름표의 값 자리는 비어 있다. */
+export function StateNameSketch() {
+  return (
+    <svg aria-hidden="true" className="qh-sketch" fill="none" viewBox="0 0 330 196">
+      <path className="qh-sketch-face qh-sketch-soft" d={NAME_TAG} transform="translate(30 -20)" />
+      <path className="qh-sketch-depth" d={NAME_TAG} transform="translate(10 10)" />
+      <path className="qh-sketch-edge" d="M258 52 L268 62 M258 122 L268 132 M100 132 L110 142" />
+      <path className="qh-sketch-face" d={NAME_TAG} />
+      <circle cx="92" cy="87" r="6" />
+      <path className="qh-sketch-soft" d="M88 82 Q64 70 50 44 Q46 34 54 30" />
+      {/* 이름과 아직 비어 있는 시작 값 */}
+      <path d="M118 72 Q170 70 226 72" />
+      <path className="qh-sketch-soft" d="M118 100 l10 0 M118 106 l10 0" />
+      <path className="qh-sketch-dash" d="M140 103 L196 103" />
+      <path className="qh-sketch-soft" d="M296 36 l0 10 M291 41 l10 0 M34 132 l0 8 M30 136 l8 0" />
+      <ellipse className="qh-sketch-shade" cx="170" cy="176" rx="112" ry="6" />
+    </svg>
+  )
+}
+
+const SMALL_SCREEN = 'M2 6 Q1 0 8 0 L104 1 Q111 1 111 8 L110 80 Q110 87 103 87 L8 86 Q1 86 1 79 Z'
+
+/** 화면 이동이 없을 때(ARTEL-1396): 두께 있는 화면 둘과 그 사이에 아직 점선인 길. */
+export function ScreenMoveSketch() {
+  return (
+    <svg aria-hidden="true" className="qh-sketch" fill="none" viewBox="0 0 330 196">
+      {[{ x: 26, y: 58 }, { x: 192, y: 58 }].map(({ x, y }) => (
+        <g key={x} transform={`translate(${x} ${y})`}>
+          <path className="qh-sketch-depth" d={SMALL_SCREEN} transform="translate(8 9)" />
+          <path className="qh-sketch-edge" d="M111 8 L119 17 M110 80 L118 89 M1 79 L9 88" />
+          <path className="qh-sketch-face" d={SMALL_SCREEN} />
+        </g>
+      ))}
+      {/* 왼쪽은 아는 화면, 오른쪽은 아직 모르는 화면 */}
+      <path className="qh-sketch-soft" d="M38 124 Q62 102 84 118 Q106 98 128 120" />
+      <path d="M42 76 Q70 74 98 76" />
+      <path className="qh-sketch-dash" d="M208 76 L262 76 M208 96 L246 96" />
+      <path className="qh-sketch-soft" d="M276 118 a8 8 0 1 1 8 8 l0 6 M284 140 l0 1" />
+      {/* 두 화면 사이의 길 */}
+      <path className="qh-sketch-dash" d="M120 50 Q166 8 214 50" />
+      <path d="M203 46 L214 50 L210 39" />
+      <path className="qh-sketch-soft" d="M164 150 l0 10 M159 155 l10 0 M304 30 l0 8 M300 34 l8 0" />
+      <ellipse className="qh-sketch-shade" cx="168" cy="178" rx="132" ry="6" />
+    </svg>
+  )
+}
+
+const VARIABLE_CARD = 'M40 30 Q38 22 47 22 L230 20 Q239 20 239 29 L240 150 Q240 158 231 158 L48 159 Q40 159 40 151 Z'
+
+/** 게임 변수가 없을 때(ARTEL-1396): 이름 = 값 줄이 담길 카드와 그 옆의 눈금판. 마지막 줄은 비어 있다. */
+export function GameVariableSketch() {
+  return (
+    <svg aria-hidden="true" className="qh-sketch" fill="none" viewBox="0 0 330 196">
+      <path className="qh-sketch-depth" d={VARIABLE_CARD} transform="translate(10 12)" />
+      <path className="qh-sketch-edge" d="M239 29 L249 41 M240 150 L250 162 M40 151 L50 163" />
+      <path className="qh-sketch-face" d={VARIABLE_CARD} />
+      {[0, 1, 2].map((index) => {
+        const y = 52 + index * 34
+        const blank = index === 2
+        return (
+          <g key={index}>
+            <path d={`M58 ${y - 7} L72 ${y - 7} L72 ${y + 7} L58 ${y + 7} Z`} strokeDasharray={blank ? '3 4' : undefined} />
+            <path className={blank ? 'qh-sketch-dash' : undefined} d={`M84 ${y} Q118 ${y - 1} ${index === 1 ? 140 : 152} ${y}`} />
+            <path className="qh-sketch-soft" d={`M164 ${y - 3} l8 0 M164 ${y + 3} l8 0`} />
+            <path className={blank ? 'qh-sketch-dash' : 'qh-sketch-soft'} d={`M184 ${y} L${index === 0 ? 214 : 204} ${y}`} />
+          </g>
+        )
+      })}
+      {/* 눈금판: 바늘이 아직 가운데 */}
+      <circle className="qh-sketch-depth" cx="276" cy="128" r="26" />
+      <circle className="qh-sketch-face" cx="272" cy="122" r="26" />
+      <path className="qh-sketch-soft" d="M254 130 A20 20 0 0 1 290 130" />
+      <path d="M272 124 L272 106" />
+      <circle cx="272" cy="124" r="3" />
+      <path className="qh-sketch-soft" d="M296 36 l0 10 M291 41 l10 0 M24 104 l0 8 M20 108 l8 0" />
+      <ellipse className="qh-sketch-shade" cx="160" cy="180" rx="124" ry="6" />
+    </svg>
+  )
+}

@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { BuildSwitcher } from '../../contentMap/BuildSwitcher'
 import { newestFirst } from '../../contentMap/latestBuild'
+import { ScreenMoveSketch } from '../../emptyStates/sketches'
+import { SketchEmpty } from '../../emptyStates/SketchEmpty'
 import { useI18n } from '../../i18n/useI18n'
 import { fetchGlossaryBook, type GlossaryBook, type GlossaryTerm } from '../../testCases/glossaryApi'
 import { buildDisplayName } from '../buildEnvironment'
@@ -179,7 +181,11 @@ function Result({ icon, label, value, unit, sub, tone }: { icon: string; label: 
 function ExitTable({ exits }: { exits: GlossaryBook['exits'] }) {
   const { t } = useI18n()
   const m = t.gameIdentities.dictionary
-  if (exits.length === 0) return <p className="panel-empty panel-empty--inset">{m.exitsEmpty}</p>
+  if (exits.length === 0) return (
+    <section className="panel">
+      <SketchEmpty body={m.exitsEmpty} compact surface sketch={<ScreenMoveSketch />} title={m.exitsEmptyTitle} />
+    </section>
+  )
   return (
     <section aria-label={m.tabs.exits} className="panel panel--flush">
       <div aria-label={m.tabs.exits} className="gb-table-scroll" role="region" tabIndex={0}>

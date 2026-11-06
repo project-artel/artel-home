@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { StateNameSketch } from '../../emptyStates/sketches'
+import { SketchEmpty } from '../../emptyStates/SketchEmpty'
 import { useI18n } from '../../i18n/useI18n'
 import type { GameIdentity } from '../gameIdentityApi'
 import { linkOf, type StateFilter } from './glossaryLinks'
@@ -52,7 +54,11 @@ export function GlossaryStates({
     setEditing(null)
   }, [onSaved])
 
-  if (terms.length === 0) return <p className="panel-empty panel-empty--inset">{m.empty}</p>
+  if (terms.length === 0) return (
+    <section className="panel">
+      <SketchEmpty body={t.gameIdentities.dictionary.statesEmptyBody} compact surface sketch={<StateNameSketch />} title={t.gameIdentities.dictionary.statesEmptyTitle} />
+    </section>
+  )
 
   return (
     // `cp-scope`: 케이스 편집 창과 같은 오른쪽 창 · 입력을 쓰므로 그 색 변수를 단다.
