@@ -11038,6 +11038,10 @@ col.mct-c-updated { width: 12%; }
   font-size:10px; font-weight:600; letter-spacing:.01em; white-space:nowrap;
 }
 .tct-origin--map{ border:1px solid var(--color-border-subtle); color:var(--color-text-muted); }
+.tct-review--draft{ background:var(--color-status-warning-muted); color:var(--color-status-warning); }
+.tcl-review-row{ display:flex; align-items:center; gap:10px; min-height:38px; padding:4px 0; }
+.tcl-review-note{ font-size:12px; color:var(--color-status-critical); }
+.tcl-review-all{ margin-left:auto; }
 .tct-origin--manual{
   border:1px solid color-mix(in srgb, var(--color-brand-accent) 55%, transparent);
   background:color-mix(in srgb, var(--color-brand-accent) 14%, transparent);
@@ -13526,6 +13530,8 @@ col.vimp-c-scene{ width:18% } col.vimp-c-verdict{ width:16% }
 .qh-tile-review .qv-dot { width: 6px; height: 6px; }
 .qh-tile-review.is-done { color: var(--color-text-muted); border-color: var(--color-border-subtle); }
 .qa-notice-stack { position: fixed; right: 20px; bottom: 20px; z-index: 300; display: flex; flex-direction: column; gap: 10px; }
+/* 알림이 팝업의 버튼을 가리지 않게, 팝업이 떠 있는 동안 숨긴다. */
+body:has(.dialog-scrim) .qa-notice-stack { visibility: hidden; }
 .qa-notice { width: min(380px, calc(100vw - 40px)); padding: 14px 16px; border: 1px solid var(--color-border-strong); border-left: 3px solid var(--color-agent-reasoning); border-radius: 10px; background: var(--color-bg-raised); box-shadow: 0 14px 40px rgb(0 0 0 / 45%); }
 .qa-notice-head { display: flex; align-items: center; gap: 8px; font-size: 14px; }
 .qa-notice-head svg { color: var(--color-agent-reasoning); flex: none; }
@@ -13798,3 +13804,26 @@ col.vimp-c-scene{ width:18% } col.vimp-c-verdict{ width:16% }
 .api-skel-bars { margin-top: auto; display: flex; align-items: flex-end; gap: 4px; height: 40px; }
 .api-skel-bars .skeleton-block { flex: 1; border-radius: 2px; }
 @media (prefers-reduced-motion: reduce) { .api-skel .skeleton-line, .api-skel .skeleton-block, .api-skel-ring, .llm-key-list--skeleton .skeleton-line, .llm-key-list--skeleton .skeleton-block { animation: none; } }
+
+/* 승인 대기 Test Case 팝업 */
+.dialog-panel:has(.crd){ width:min(100%, 720px); }
+.crd-all{ display:flex; align-items:center; gap:8px; margin-bottom:var(--space-2); font-size:13px; color:var(--color-text-secondary); }
+.crd-list{ max-height:min(56vh, 520px); overflow-y:auto; border:1px solid var(--color-border-subtle); border-radius:var(--radius-md); }
+.crd-scene{ position:sticky; top:0; margin:0; padding:6px 12px; background:var(--color-bg-raised); border-bottom:1px solid var(--color-border-subtle); font-size:12.5px; font-weight:600; color:var(--color-text-primary); }
+.crd-scene span{ margin-left:4px; font-weight:400; color:var(--color-text-muted); }
+.crd-row{ display:grid; grid-template-columns:18px 1fr; align-items:start; gap:8px; padding:10px 12px; border-bottom:1px solid var(--color-border-subtle); cursor:pointer; }
+.crd-row:hover{ background:var(--color-bg-hover); }
+.crd-body{ display:flex; flex-direction:column; gap:4px; min-width:0; overflow-wrap:anywhere; }
+.crd-step{ font-size:14px; font-weight:600; color:var(--color-text-primary); }
+.crd-kind{ margin-left:6px; padding:0 7px; font-weight:400; border:1px solid var(--color-border-strong); border-radius:999px; font-size:11px; color:var(--color-text-secondary); }
+.crd-field{ display:grid; grid-template-columns:92px 1fr; gap:10px; font-size:13px; line-height:19px; color:var(--color-text-primary); }
+.crd-field b{ font-size:12px; font-weight:600; }
+.crd-field--precondition b{ color:var(--color-status-warning); }
+.crd-field--expected b{ color:var(--color-status-success); }
+.crd-row--head{ background:var(--color-bg-canvas); }
+.crd-note{ font-size:12.5px; color:var(--color-text-secondary); }
+.crd-steps{ margin:0; padding:8px 12px 10px 44px; border-bottom:1px solid var(--color-border-subtle); display:flex; flex-direction:column; gap:10px; }
+.crd-steps > li{ display:list-item; }
+.crd-step-action{ display:block; margin-bottom:3px; font-size:13px; font-weight:600; color:var(--color-text-primary); }
+.crd-kind--changed{ border-color:var(--color-status-warning); color:var(--color-status-warning); }
+.crd-reject{ color:var(--color-status-critical); border-color:color-mix(in srgb, var(--color-status-critical) 55%, transparent); }

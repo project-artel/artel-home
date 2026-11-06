@@ -409,6 +409,8 @@ export function ScenarioList({
                 <span className="scnrow-name">{item.title.length > 0 ? item.title : s.untitled}</span>
                 {absorber !== undefined ? (
                   <span className="draft-tag draft-tag--gone">{d.kindGone}</span>
+                ) : item.reviewStatus === 'DRAFT' ? (
+                  <span className="draft-tag">{t.scenarios.reviewNotice.pending}</span>
                 ) : (
                   <span className="scnrow-meta">{formatDay(item.updatedAt || item.createdAt)}</span>
                 )}

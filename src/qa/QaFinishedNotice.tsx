@@ -72,7 +72,7 @@ export function QaFinishedNotice({ projectId }: { projectId: string }) {
 
   if (shown.length === 0) return null
   return (
-    <div aria-live="polite" className="qa-notice-stack">
+    <>
       {shown.map((run) => {
         const passed = run.casesPassed ?? 0
           const failed = run.casesFailed
@@ -121,6 +121,6 @@ export function QaFinishedNotice({ projectId }: { projectId: string }) {
           </section>
         )
       })}
-    </div>
+    </>
   )
 }

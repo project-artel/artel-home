@@ -2,6 +2,8 @@ import { TestCaseIdentifiersProvider } from '../../testCases/TestCaseIdentifiers
 import { useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { NotFoundPage } from '../../NotFoundPage'
 import { QaFinishedNotice } from '../../qa/QaFinishedNotice'
+import { CaseReviewNotice } from '../../testCases/CaseReviewNotice'
+import { ScenarioReviewNotice } from '../../testScenarios/ScenarioReviewNotice'
 import { OperatorQuestions } from '../../qa/evaluation/OperatorQuestions'
 import { Link, Navigate, Outlet, useLocation, useParams } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
@@ -245,7 +247,12 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
       {dockOpen && !agentHome && <AgentSplitHandle {...dock.handle} />}
       {dockOpen && <AgentChatPanel onClose={agentHome ? undefined : dock.closeChat} wide={agentHome} />}
       {dock.enabled && !dockOpen && !pageHostsChat && <AgentReopenButton onOpen={dock.openChat} />}
-      <QaFinishedNotice projectId={projectId} />
+      {/* 오른쪽 아래 알림은 한 줄로 쌓는다. 비어 있으면 자리를 차지하지 않는다. */}
+      <div aria-live="polite" className="qa-notice-stack">
+        <CaseReviewNotice projectId={projectId} />
+        <ScenarioReviewNotice projectId={projectId} />
+        <QaFinishedNotice projectId={projectId} />
+      </div>
     </div>
     </ProjectAgentProviders>
   )

@@ -57,6 +57,23 @@ export function asCaseKind(value: unknown): CaseKind {
   return value === 'EXCEPTION' ? 'EXCEPTION' : 'FUNCTION'
 }
 
+/** 검토 상태. `DRAFT` 는 승인 전이라 시나리오와 QA 에 쓰지 않는다. 검증 결과와는 다른 값이다. */
+export type TestCaseReviewStatus = 'DRAFT' | 'READY'
+
+/** 승인 대기 건에 사람이 내린 결정. */
+export type ReviewDecision = 'APPROVE' | 'REJECT'
+
+/** 승인 대기 Test Case 하나. 팝업이 읽는 내용을 모두 싣는다. */
+export type CaseReviewItem = {
+  id: string
+  scene: string
+  step: string
+  precondition: string | null
+  expectedValue: string
+  kind: string
+  updatedAt: string
+}
+
 export type TestCase = {
   id: string
   projectId: string
@@ -76,6 +93,10 @@ export type TestCase = {
   origin?: CaseOrigin
   /** 기능 · 예외. 모르면 기능이다. */
   kind?: CaseKind
+  /** 검토 상태. 모르면 승인된 것으로 다룬다. 이 값이 없던 때의 서버가 그렇다. */
+  reviewStatus?: TestCaseReviewStatus
+  /** 승인을 요청한 사람의 id. 요청 중이 아니면 없다. */
+  reviewRequestedBy?: string
   /** 하고 나면 가는 화면(씬 전이 TC). 화면이 안 바뀌면 null. */
   arrivesAt?: string | null
   /** 명세 근거에서 확인이 필요한 이유 코드. 단건 응답에만 포함되며 목록에서는 빈 배열로 읽는다. */
