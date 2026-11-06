@@ -29,7 +29,7 @@ import { DashboardSection } from './projects/workspace/DashboardSection'
 import { DocumentsSection } from './projects/workspace/DocumentsSection'
 import { IssuesSection } from './projects/workspace/IssuesSection'
 import { MembersSection } from './projects/workspace/MembersSection'
-import { ApiSection, UsageRedirect } from './usage/ApiSection'
+import { ApiRedirect, ProjectUsageSection } from './usage/ApiSection'
 import { ProjectWorkspaceRoute } from './projects/workspace/ProjectWorkspace'
 import { QaHistorySection } from './projects/workspace/QaHistorySection'
 import { GameBuildsSection } from './projects/workspace/GameBuildsSection'
@@ -168,9 +168,9 @@ export function App() {
             <Route path="issues" element={<IssuesSection />} />
             <Route path="knowledge" element={<KnowledgeSection />} />
             <Route path="setup" element={<SetupSection />} />
-            <Route path="api" element={<ApiSection />} />
-            {/* 예전 "사용량" 주소(ARTEL-1379). */}
-            <Route path="usage" element={<UsageRedirect />} />
+            <Route path="usage" element={<ProjectUsageSection />} />
+            {/* 예전 "API 관리" 주소(ARTEL-1393). */}
+            <Route path="api" element={<ApiRedirect />} />
             <Route path="members" element={<MembersSection />} />
             <Route path="settings" element={<SettingsSection />} />
             {/* The working screens render beside the rail too, but without the

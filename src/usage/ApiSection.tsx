@@ -258,97 +258,42 @@ function useMyProjectList(): ProjectSummary[] | null {
 }
 
 /**
- * API 관리(ARTEL-1379). 예전 "사용량" 화면(모델 지출)과 계정 설정에 있던 LLM API 키를 한 화면에 둔다. 위는 키와 기능별
- * 지출 그래프, 가운데는 최근 12주 잔디를 칸 크기에 맞게 키워 남는 높이를 받고, 아래는 기능별 · 모델별 표다.
+ * 프로젝트의 사용량(ARTEL-1393). 이 프로젝트에서 나간 모델 지출만 둔다 — 멤버 모두의 합이고, 누가 썼는지는 가르지 않는다
+ * (시나리오 작성 지출은 사용자를 모른다). 칸은 계정 설정 API 관리 탭의 오른쪽 상세와 같다. 프로젝트 키는 프로젝트 설정의
+ * LLM API 키 탭으로 옮겼다.
  */
-export function ApiSection() {
+export function ProjectUsageSection() {
   const { t } = useI18n()
-  const a = t.usage.api
   const u = t.usage
-  const { projectId, project, reloadExtras } = useWorkspace()
-  const { status, usage, grid, today } = useProjectUsage(projectId)
+  const { projectId } = useWorkspace()
+  const read = useProjectUsage(projectId)
 
   return (
     <div className="api-page">
-      <div className="api-top">
-        <LlmKeysPanel
-          key={projectId}
-          note={a.keysScope}
-          projectId={projectId}
-          canManage={project.myRole === 'OWNER'}
-          onChange={reloadExtras}
-        />
-        <section aria-labelledby="api-share-title" className="panel api-share">
-          <header className="panel-header">
-            <h2 id="api-share-title">{a.spendTitle}</h2>
-          </header>
-          {status === 'loading' && <ShareSkeleton />}
-          {status === 'error' && <p className="panel-empty">{u.loadFailed}</p>}
-          {status === 'ready' && usage !== null && <FeatureShare byService={usage.byService} total={usage.total} />}
-        </section>
-      </div>
-
-      {status === 'loading' && <SpendSkeleton label={u.loading} />}
-
-      {status === 'ready' && usage !== null && grid !== null && (
-        <>
-          <section aria-labelledby="api-overview-title" className="panel api-overview">
-            <header className="panel-header">
-              <h2 id="api-overview-title">
-                {u.sectionTitle}
-                <InfoHint>{u.sectionSubtitle(usage.zone)}</InfoHint>
-              </h2>
-            </header>
-            {usage.total.calls === 0 ? (
-              <p className="panel-empty">{u.nothingYet}</p>
-            ) : (
-              <div className="usage-overview">
-                <div className="usage-overview-grass">
-                  <UsageGrass grid={grid} zone={usage.zone} />
-                </div>
-                <SpendFigures grid={grid} today={today} total={usage.total} />
-              </div>
-            )}
-          </section>
-
-          <div className="usage-breakdowns">
-            <SpendTable
-              axis={u.featureAxis}
-              note={u.embeddingNote}
-              rows={usage.byService.map((cell) => ({
-                key: cell.service,
-                label: serviceLabel(cell.service, u.services),
-                sub: cell.service,
-                icon: <FeatureIcon service={cell.service} />,
-                totals: cell.totals,
-              }))}
-              title={u.byFeature}
-              total={usage.total}
-            />
-            <SpendTable
-              axis={u.modelAxis}
-              rows={usage.byModel.map((cell) => ({
-                key: `${cell.provider}/${cell.model}`,
-                label: cell.model,
-                sub: cell.provider,
-                // 모델 제공사 로고. bedrock 처럼 중개 이름이면 모델 이름에서 회사를 읽는다(ProviderLogo 가 포함으로 찾는다).
-                icon: <ProviderLogo provider={`${cell.provider} ${cell.model}`} size={20} />,
-                totals: cell.totals,
-              }))}
-              title={u.byModel}
-              total={usage.total}
-            />
-          </div>
-        </>
-      )}
+      <section aria-labelledby="api-spend-title" className="panel api-spend">
+        <header className="panel-header">
+          <h2 id="api-spend-title">
+            {t.usage.api.spendSection}
+            <InfoHint>{u.sectionSubtitle(read.usage?.zone ?? Intl.DateTimeFormat().resolvedOptions().timeZone)}</InfoHint>
+          </h2>
+          <span className="api-spend-window">{t.usage.api.window}</span>
+        </header>
+        <div className="api-spend-detail">
+          <SpendDetail read={read} />
+        </div>
+      </section>
     </div>
   )
 }
 
-/** 옛 주소 `…/usage` 를 새 주소로 넘긴다. 북마크와 다른 화면의 링크가 계속 산다. */
-export function UsageRedirect() {
+/**
+ * 옛 주소 `…/api` 를 넘긴다(ARTEL-1393). 키 탭(`?tab=keys`)으로 오던 링크는 프로젝트 설정의 LLM API 키 탭으로, 나머지는
+ * 사용량으로 간다. 북마크와 다른 화면의 링크가 계속 산다.
+ */
+export function ApiRedirect() {
   const { search } = useLocation()
-  return <Navigate replace to={`../api${search}`} />
+  const keys = new URLSearchParams(search).get('tab') === 'keys'
+  return <Navigate replace to={keys ? '../settings?tab=llm-keys' : '../usage'} />
 }
 
 /**

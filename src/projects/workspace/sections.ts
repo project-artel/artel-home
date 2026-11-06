@@ -21,8 +21,8 @@ export const WORKSPACE_SECTIONS = [
   { id: 'gameIdentities', path: 'game-identities', group: 'data' },
   { id: 'knowledge', path: 'knowledge', group: 'data' },
   { id: 'setup', path: 'setup', group: 'management' },
-  // "사용량" 은 "API 관리" 가 되었다(ARTEL-1379). 옛 주소 `usage` 는 App 라우트가 여기로 넘긴다.
-  { id: 'usage', path: 'api', group: 'management' },
+  // 이 프로젝트의 모델 지출(ARTEL-1393). 예전 "API 관리" 주소 `api` 는 App 라우트가 여기로 넘긴다.
+  { id: 'usage', path: 'usage', group: 'management' },
   { id: 'members', path: 'members', group: 'management' },
   { id: 'settings', path: 'settings', group: 'management' },
   { id: 'contentMap', path: 'content-map', group: 'lab' },
