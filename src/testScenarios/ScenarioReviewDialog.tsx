@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
 import { Dialog } from '../design-system/primitives/Dialog'
 import { useI18n } from '../i18n/useI18n'
-import { settleReviews, useReviewSelection, type SettleOutcome } from '../testCases/reviewSelection'
+import { NO_OUTCOME, settleReviews, useReviewSelection, type SettleOutcome } from '../testCases/reviewSelection'
+import type { ReviewResult } from '../testCases/useReviewQueueNotice'
 import { decideScenarioReview } from './scenarioApi'
 import type { ScenarioReviewItem } from './scenarioTypes'
 
@@ -19,8 +20,8 @@ export function ScenarioReviewDialog({
   projectId: string
   scenarios: readonly ScenarioReviewItem[]
   onClose: () => void
-  /** 결정 결과를 다시 읽는다. */
-  onReviewed: () => void
+  /** 끝난 결정을 알린다. 받는 쪽이 완료 안내를 띄우고 대기 목록을 다시 읽는다. */
+  onReviewed: (result: ReviewResult) => void
 }) {
   const { t } = useI18n()
   const copy = t.scenarios.reviewNotice
@@ -29,15 +30,15 @@ export function ScenarioReviewDialog({
   const { chosen } = selection
   const rejectable = chosen.filter((scenario) => scenario.rejectable)
   const [pending, setPending] = useState(false)
-  const [outcome, setOutcome] = useState<SettleOutcome>({ stale: 0, failed: 0 })
+  const [outcome, setOutcome] = useState<SettleOutcome>(NO_OUTCOME)
   const [confirmingReject, setConfirmingReject] = useState(false)
 
   const decide = async (targets: readonly ScenarioReviewItem[], decision: 'APPROVE' | 'REJECT') => {
     setPending(true)
-    setOutcome({ stale: 0, failed: 0 })
+    setOutcome(NO_OUTCOME)
     const result = await settleReviews(targets, (item) => decideScenarioReview(projectId, item, decision))
     setPending(false)
-    onReviewed()
+    onReviewed({ decision, count: result.done })
     if (result.stale > 0 || result.failed > 0) setOutcome(result)
     else onClose()
   }

@@ -32,17 +32,20 @@ export function useReviewSelection<T extends Reviewable>(items: readonly T[]) {
   }
 }
 
-/** 결정 결과. 이미 처리된 건은 원하던 일이 끝났거나 남이 먼저 정한 것이라 실패로 치지 않는다. */
-export type SettleOutcome = { stale: number; failed: number }
+/** 결정 결과. 이미 처리된 건은 원하던 일이 끝났거나 남이 먼저 정한 것이라 실패로 치지 않지만, [done] 에도 넣지 않는다. */
+export type SettleOutcome = { done: number; stale: number; failed: number }
+
+export const NO_OUTCOME: SettleOutcome = { done: 0, stale: 0, failed: 0 }
 
 export async function settleReviews<T>(items: readonly T[], decide: (item: T) => Promise<void>): Promise<SettleOutcome> {
-  const outcome = { stale: 0, failed: 0 }
+  const outcome = { ...NO_OUTCOME }
   const queue = [...items]
   await Promise.all(
     Array.from({ length: Math.min(DECISION_CONCURRENCY, queue.length) }, async () => {
       for (let next = queue.shift(); next !== undefined; next = queue.shift()) {
         try {
           await decide(next)
+          outcome.done += 1
         } catch (error: unknown) {
           const code = error instanceof ProjectApiError ? error.code : null
           const gone = error instanceof ProjectApiError && error.status === 404

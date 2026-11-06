@@ -677,6 +677,7 @@ export const qaEn = {
   noticeBell: {
     label: 'Notifications',
     labelUnread: (n: number) => `Notifications, ${n} unread`,
+    labelPending: (unread: number, pending: number) => `Notifications, ${unread > 0 ? `${unread} unread, ` : ''}${pending} waiting for approval`,
     title: 'Notifications',
     readAll: 'Mark all as read',
     empty: 'No finished QA runs yet.',
@@ -687,6 +688,9 @@ export const qaEn = {
     build: (version: string) => `build ${version}`,
     ago: (minutes: number) => (minutes < 1 ? 'just now' : minutes < 60 ? `${minutes} min ago` : `${Math.floor(minutes / 60)} h ago`),
     reviewDone: 'Review done',
+    reviewPending: (project: string) => `Waiting for approval · ${project}`,
+    reviewCases: (count: number) => `${count} Test Case(s)`,
+    reviewScenarios: (count: number) => `${count} scenario(s)`,
     foot: 'Opens the verdicts of that run. If verdicts still need review, opens the review screen.',
   },
   verdicts: {
@@ -1415,6 +1419,7 @@ export const qaKo: Localized<typeof qaEn> = {
   noticeBell: {
     label: '알림',
     labelUnread: (n: number) => `알림, 안 읽은 것 ${n}건`,
+    labelPending: (unread: number, pending: number) => `알림, ${unread > 0 ? `안 읽은 것 ${unread}건, ` : ''}승인 대기 ${pending}건`,
     title: '알림',
     readAll: '모두 읽음',
     empty: '끝난 QA 가 아직 없습니다.',
@@ -1425,6 +1430,9 @@ export const qaKo: Localized<typeof qaEn> = {
     build: (version: string) => `빌드 ${version}`,
     ago: (minutes: number) => (minutes < 1 ? '방금' : minutes < 60 ? `${minutes}분 전` : `${Math.floor(minutes / 60)}시간 전`),
     reviewDone: '검토 끝',
+    reviewPending: (project: string) => `승인 대기 · ${project}`,
+    reviewCases: (count: number) => `Test Case ${count}건`,
+    reviewScenarios: (count: number) => `시나리오 ${count}건`,
     foot: '누르면 그 실행의 판정 근거로 갑니다. 검토할 판정이 남았으면 검토 화면으로 바로 갑니다.',
   },
   verdicts: {

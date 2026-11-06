@@ -1386,6 +1386,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
                 highlightScene={scene}
                 key={s.id}
                 botLocked={botLocks.has(s.id)}
+                reviewPending={data.reviewPendingIds.has(s.id)}
                 dropped={landed?.id === s.id ? landed : null}
                 lifting={stepDrag !== null && (stepDrag.source.id === s.id || stepDrag.target?.id === s.id)}
                 marked={marks.has(s.id)}

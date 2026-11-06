@@ -2,9 +2,10 @@ import { useMemo, useState } from 'react'
 import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
 import { Dialog } from '../design-system/primitives/Dialog'
 import { useI18n } from '../i18n/useI18n'
-import { settleReviews, useReviewSelection, type SettleOutcome } from './reviewSelection'
+import { NO_OUTCOME, settleReviews, useReviewSelection, type SettleOutcome } from './reviewSelection'
 import { decideCaseReview } from './testCaseApi'
 import type { CaseReviewItem, ReviewDecision } from './testCaseTypes'
+import type { ReviewResult } from './useReviewQueueNotice'
 
 /**
  * 승인 대기 Test Case 를 화면별로 보여 주고 고른 것을 승인하거나 거절(삭제)한다. 체크를 푼 건은 승인 대기로 남는다.
@@ -19,8 +20,8 @@ export function CaseReviewDialog({
   projectId: string
   cases: readonly CaseReviewItem[]
   onClose: () => void
-  /** 결정 결과를 다시 읽는다. */
-  onReviewed: () => void
+  /** 끝난 결정을 알린다. 받는 쪽이 완료 안내를 띄우고 대기 목록을 다시 읽는다. */
+  onReviewed: (result: ReviewResult) => void
 }) {
   const { t } = useI18n()
   const copy = t.testCases.reviewNotice
@@ -28,7 +29,7 @@ export function CaseReviewDialog({
   const selection = useReviewSelection(cases)
   const { chosen } = selection
   const [pending, setPending] = useState(false)
-  const [outcome, setOutcome] = useState<SettleOutcome>({ stale: 0, failed: 0 })
+  const [outcome, setOutcome] = useState<SettleOutcome>(NO_OUTCOME)
   const [confirmingReject, setConfirmingReject] = useState(false)
 
   const scenes = useMemo(() => {
@@ -39,10 +40,10 @@ export function CaseReviewDialog({
 
   const decide = async (decision: ReviewDecision) => {
     setPending(true)
-    setOutcome({ stale: 0, failed: 0 })
+    setOutcome(NO_OUTCOME)
     const result = await settleReviews(chosen, (item) => decideCaseReview(projectId, item, decision))
     setPending(false)
-    onReviewed()
+    onReviewed({ decision, count: result.done })
     if (result.stale > 0 || result.failed > 0) setOutcome(result)
     else onClose()
   }

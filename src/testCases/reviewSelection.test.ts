@@ -3,7 +3,7 @@ import test from 'node:test'
 import { ProjectApiError } from '../projects/projectApi'
 import { settleReviews } from './reviewSelection'
 
-test('바뀐 건과 실패만 세고 이미 처리된 건은 실패로 치지 않는다', async () => {
+test('끝낸 건과 바뀐 건, 실패를 세고 이미 처리된 건은 어디에도 넣지 않는다', async () => {
   const errors: Record<string, Error | undefined> = {
     ok: undefined,
     stale: new ProjectApiError(409, '바뀜', 'review_stale'),
@@ -18,6 +18,6 @@ test('바뀐 건과 실패만 세고 이미 처리된 건은 실패로 치지 �
     if (errors[item] !== undefined) throw errors[item]
   })
 
-  assert.deepEqual(outcome, { stale: 1, failed: 1 })
+  assert.deepEqual(outcome, { done: 1, stale: 1, failed: 1 })
   assert.deepEqual([...seen].sort(), Object.keys(errors).sort())
 })
