@@ -339,7 +339,7 @@ function CreateUserForm({ onCreated }: { onCreated: (heading: string, password: 
         </span>
         <button
           type="submit"
-          className="control control--action"
+          className="control adm-primary"
           disabled={submitting || email.trim() === '' || name.trim() === ''}
         >
           {submitting ? t.adminSettings.users.creating : t.adminSettings.users.create}

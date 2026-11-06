@@ -1,11 +1,20 @@
+.workspace:has(> .admin-console) {
+  background-image: none;
+}
+
 .page.admin-console {
-  width: min(100%, 1600px);
+  width: min(100%, 1280px);
   min-width: 0;
   color: var(--color-text-primary);
 }
 
+.admin-console > .page-header {
+  margin-bottom: var(--space-3);
+}
+
 .admin-console__nav {
   border-bottom: 1px solid var(--color-border-subtle);
+  margin-bottom: var(--space-4);
 }
 
 .admin-console__loading {
