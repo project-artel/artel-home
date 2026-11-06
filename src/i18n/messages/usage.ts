@@ -6,7 +6,7 @@ export const usageEn = {
   panelSubtitle: 'Tokens this project used over the last twelve weeks.',
   sectionTitle: 'Model spend',
   api: {
-    keysScope: 'Applies to your whole account. Other members do not see these keys.',
+    keysScope: 'Project members with QA access can run QA with these keys.',
     spendTitle: 'Last 12 weeks by feature',
     noSpend: 'No model calls in the last 12 weeks.',
     weeklyCaption: 'Tokens per week, oldest first',
@@ -78,7 +78,7 @@ export const usageKo: Localized<typeof usageEn> = {
   panelSubtitle: '최근 12주 동안 이 프로젝트가 쓴 토큰입니다.',
   sectionTitle: '모델 지출',
   api: {
-    keysScope: '내 계정 전체에 적용됩니다. 다른 멤버에게는 보이지 않습니다.',
+    keysScope: 'QA 실행 권한이 있는 프로젝트 멤버가 이 키를 사용할 수 있어요.',
     spendTitle: '최근 12주 기능별 지출',
     noSpend: '최근 12주에는 모델 호출이 없습니다.',
     weeklyCaption: '주마다 쓴 토큰, 오래된 주부터',

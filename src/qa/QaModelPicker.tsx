@@ -60,6 +60,7 @@ export function QaModelPicker({
   onChange,
   value,
   popoverWidth,
+  projectKeySettings,
 }: {
   /**
    * 주면 목록을 트리거 폭이 아니라 이 폭으로, 트리거 오른쪽 끝에 맞춰 화면에 고정해 연다(ARTEL-1084).
@@ -67,6 +68,7 @@ export function QaModelPicker({
    * CSS 로 넓히면 패널 밖이 잘리므로, 열 때 트리거 자리를 재서 `position: fixed` 로 띄운다.
    */
   popoverWidth?: number
+  projectKeySettings?: string
   disabled: boolean
   /** Given to the trigger, so the field's `<label htmlFor>` names it. */
   id: string
@@ -97,16 +99,15 @@ export function QaModelPicker({
     // 어디서 넣는지를 말하는 자리가 이 탭이다 — 감추면 사용자는 키를 넣을 수 있다는 것부터 모른다.
     ...[
       ...LLM_KEY_SERVICES,
-      ...all.user
-        .map((group) => group.provider)
+      ...[...new Set(all.user.map((group) => group.provider))]
         .filter((service) => !(LLM_KEY_SERVICES as readonly string[]).includes(service)),
     ].map((service) => {
-      const group = all.user.find((entry) => entry.provider === service)
+      const providerGroups = all.user.filter((entry) => entry.provider === service)
       return {
         id: service,
-        count: group?.models.length ?? 0,
-        registered: group?.registered ?? false,
-        keyHint: group?.keyHint ?? null,
+        count: providerGroups.reduce((count, group) => count + group.models.length, 0),
+        registered: providerGroups.some((group) => group.registered),
+        keyHint: providerGroups.find((group) => group.registered)?.keyHint ?? null,
       }
     }),
   ]
@@ -157,16 +158,20 @@ export function QaModelPicker({
     )
     setActive(value)
     const rect = triggerRef.current?.getBoundingClientRect()
+    const below = rect === undefined ? 0 : window.innerHeight - rect.bottom - 12
+    const above = rect === undefined ? 0 : rect.top - 12
+    const openAbove = below < 360 && above > below
     setPopoverBox(
       popoverWidth === undefined || rect === undefined
         ? undefined
         : {
             position: 'fixed',
-            top: rect.bottom + 4,
+            top: openAbove ? 'auto' : rect.bottom + 4,
+            bottom: openAbove ? window.innerHeight - rect.top + 4 : 'auto',
             left: Math.max(8, Math.min(rect.right, window.innerWidth - 8) - popoverWidth),
             right: 'auto',
             width: Math.min(popoverWidth, window.innerWidth - 24),
-            maxHeight: `calc(100vh - ${Math.round(rect.bottom) + 16}px)`,
+            maxHeight: openAbove ? above : below,
           },
     )
     setOpen(true)
@@ -281,7 +286,7 @@ export function QaModelPicker({
             ) : (
               <span className="qa-model-badge qa-model-badge--user">
                 <KeyIcon size={14} />
-                {llmKeyApiName(qaKeyServiceOf(selected))}
+                {selected.keySource === 'project' ? p.projectKeyBadge : llmKeyApiName(qaKeyServiceOf(selected))}
               </span>
             )}
             <ProviderLogo provider={selected.provider} size={18} />
@@ -352,8 +357,8 @@ export function QaModelPicker({
                   <>
                     {keyStatus(shownTab.registered, shownTab.keyHint)}
                     {!shownTab.registered && (
-                      <Link className="qa-model-register-link" to="/account">
-                        {p.registerKey}
+                      <Link className="qa-model-register-link" to={projectKeySettings ?? '/account'}>
+                        {projectKeySettings === undefined ? p.registerKey : p.manageProjectKeys}
                       </Link>
                     )}
                   </>
@@ -376,17 +381,17 @@ export function QaModelPicker({
 
             {groups.user.length > 0 && (
               <li className="qa-model-group" role="presentation">
-                <div className="qa-model-section" hidden={tabbed}>
-                  <KeyIcon size={15} />
-                  <span className="qa-model-section-title">{p.userSection}</span>
-                  <span>· {p.userSectionHint}</span>
-                </div>
                 {groups.user.map((group) => (
                   <ul
-                    aria-label={`${p.userSection} · ${llmKeyServiceName(group.provider)}`}
-                    key={group.provider}
+                    aria-label={`${group.keySource === 'project' ? p.projectKeyBadge : p.userSection} · ${llmKeyServiceName(group.provider)}`}
+                    key={`${group.keySource}:${group.provider}`}
                     role="group"
                   >
+                    <li className="qa-model-section" hidden={tabbed} role="presentation">
+                      <KeyIcon size={15} />
+                      <span className="qa-model-section-title">{group.keySource === 'project' ? p.projectKeyBadge : p.userSection}</span>
+                      <span>· {group.keySource === 'project' ? p.projectKeyBillingHint : p.userSectionHint}</span>
+                    </li>
                     {/* 탭 아래 안내 줄이 같은 것을 말하므로, 탭으로 볼 때는 감춘다. */}
                     <li className="qa-model-provider" hidden={tabbed} role="presentation">
                       <span>{llmKeyServiceName(group.provider)}</span>
