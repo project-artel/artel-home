@@ -13805,8 +13805,10 @@ col.vimp-c-scene{ width:18% } col.vimp-c-verdict{ width:16% }
 .api-spend .panel-header { display: flex; align-items: baseline; gap: var(--space-3); }
 .api-spend-hint { color: var(--color-text-muted); font-size: 12px; }
 .api-spend-body { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: var(--space-5); padding: 0 var(--space-5) var(--space-5); }
+/* 목록은 오른쪽 상세 칸 높이에 맞춘다 — 목록이 줄 높이를 정하지 않게 basis 0 으로 두고 안에서 넘긴다. */
+.api-spend-body { align-items: stretch; }
 .api-projects-frame { position: relative; display: flex; flex-direction: column; gap: 4px; min-height: 0; }
-.api-projects-scroll { max-height: 660px; overflow-y: auto; scrollbar-width: none; }
+.api-projects-scroll { flex: 1 1 0; min-height: 240px; overflow-y: auto; scrollbar-width: none; }
 .api-projects-scroll::-webkit-scrollbar { display: none; }
 .api-projects { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0 6px 0 0; list-style: none; }
 .api-projects-caption { padding: 0 12px 4px; color: var(--color-text-muted); font-size: 11.5px; }
@@ -13836,3 +13838,12 @@ col.vimp-c-scene{ width:18% } col.vimp-c-verdict{ width:16% }
 .api-spend-detail .usage-breakdowns > .panel { margin: 0; }
 @media (max-width: 1280px) { .api-spend-overview { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 960px) { .api-spend-body { grid-template-columns: minmax(0, 1fr); } .api-spend-detail { padding-left: 0; border-left: 0; } }
+
+/* 계정 설정은 프로젝트 설정과 같은 바탕을 쓴다(ARTEL-1393). 바깥 화면의 모눈 바탕은 프로젝트 목록 같은 넓은 화면용이다. */
+.workspace:has(.page--account) { background-image: none; }
+/* 프로젝트 목록의 EdgeScrollbar(ARTEL-1393). QA 모델 고르기(`qa-model-popover`)와 같은 막대다. */
+.api-projects-frame .edgebar { position: absolute; z-index: 2; right: 0; width: 18px; pointer-events: none; }
+.api-projects-frame .edgebar-thumb { position: absolute; right: 0; left: 0; cursor: grab; pointer-events: auto; touch-action: none; }
+.api-projects-frame .edgebar-thumb:active { cursor: grabbing; }
+.api-projects-frame .edgebar-fill { position: absolute; top: 0; right: 0; bottom: 0; width: 4px; background: var(--color-action-primary); transition: width 120ms var(--ease-standard), background 120ms var(--ease-standard); }
+.api-projects-frame .edgebar.is-near .edgebar-fill { width: 11px; background: var(--color-action-primary-strong); }

@@ -58,7 +58,7 @@ export function AccountSettingsPage() {
 
   const copy = t.account
   return (
-    <section className="page page--wide" aria-labelledby="account-title">
+    <section className="page page--wide page--account" aria-labelledby="account-title">
       <header className="page-header">
         <div>
           <p className="eyebrow">{copy.eyebrow}</p>
