@@ -99,16 +99,15 @@ export function QaModelPicker({
     // 어디서 넣는지를 말하는 자리가 이 탭이다 — 감추면 사용자는 키를 넣을 수 있다는 것부터 모른다.
     ...[
       ...LLM_KEY_SERVICES,
-      ...all.user
-        .map((group) => group.provider)
+      ...[...new Set(all.user.map((group) => group.provider))]
         .filter((service) => !(LLM_KEY_SERVICES as readonly string[]).includes(service)),
     ].map((service) => {
-      const group = all.user.find((entry) => entry.provider === service)
+      const providerGroups = all.user.filter((entry) => entry.provider === service)
       return {
         id: service,
-        count: group?.models.length ?? 0,
-        registered: group?.registered ?? false,
-        keyHint: group?.keyHint ?? null,
+        count: providerGroups.reduce((count, group) => count + group.models.length, 0),
+        registered: providerGroups.some((group) => group.registered),
+        keyHint: providerGroups.find((group) => group.registered)?.keyHint ?? null,
       }
     }),
   ]
@@ -382,17 +381,17 @@ export function QaModelPicker({
 
             {groups.user.length > 0 && (
               <li className="qa-model-group" role="presentation">
-                <div className="qa-model-section" hidden={tabbed}>
-                  <KeyIcon size={15} />
-                  <span className="qa-model-section-title">{p.userSection}</span>
-                  <span>· {p.userSectionHint}</span>
-                </div>
                 {groups.user.map((group) => (
                   <ul
-                    aria-label={`${p.userSection} · ${llmKeyServiceName(group.provider)}`}
-                    key={group.provider}
+                    aria-label={`${group.keySource === 'project' ? p.projectKeyBadge : p.userSection} · ${llmKeyServiceName(group.provider)}`}
+                    key={`${group.keySource}:${group.provider}`}
                     role="group"
                   >
+                    <li className="qa-model-section" hidden={tabbed} role="presentation">
+                      <KeyIcon size={15} />
+                      <span className="qa-model-section-title">{group.keySource === 'project' ? p.projectKeyBadge : p.userSection}</span>
+                      <span>· {group.keySource === 'project' ? p.projectKeyBillingHint : p.userSectionHint}</span>
+                    </li>
                     {/* 탭 아래 안내 줄이 같은 것을 말하므로, 탭으로 볼 때는 감춘다. */}
                     <li className="qa-model-provider" hidden={tabbed} role="presentation">
                       <span>{llmKeyServiceName(group.provider)}</span>

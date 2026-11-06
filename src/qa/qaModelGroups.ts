@@ -9,8 +9,9 @@ export function qaKeyServiceOf(model: Pick<QaModel, 'keyProvider' | 'provider'>)
   return model.keyProvider ?? model.provider
 }
 
-/** One key service's models in the `user` section, with the state of its key. */
+/** Models for one key service and ownership scope. */
 export type QaUserProviderGroup = {
+  keySource: 'user' | 'project'
   /** `keyProvider`, or the model's own `provider` when the server names none. */
   provider: string
   registered: boolean
@@ -48,7 +49,9 @@ export function groupQaModels(models: QaModel[], query = ''): QaModelGroups {
   for (const model of matches) {
     if (model.keySource === 'platform') continue
     const service = qaKeyServiceOf(model)
-    const group = byProvider.get(service) ?? {
+    const groupKey = `${model.keySource}:${service}`
+    const group = byProvider.get(groupKey) ?? {
+      keySource: model.keySource,
       provider: service,
       registered: false,
       keyHint: null,
@@ -57,7 +60,7 @@ export function groupQaModels(models: QaModel[], query = ''): QaModelGroups {
     group.models.push(model)
     group.registered ||= model.keyRegistered
     group.keyHint ??= model.keyHint
-    byProvider.set(service, group)
+    byProvider.set(groupKey, group)
   }
   const rank = (service: string) => {
     const at = (LLM_KEY_SERVICES as readonly string[]).indexOf(service)
