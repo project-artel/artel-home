@@ -100,7 +100,7 @@ export function ProviderKeyCard({
       )}
 
       <form className="adm-key__form" onSubmit={onSubmit}>
-        <label className="field__label" htmlFor={keyFieldId}>
+        <label className="admin-field__label" htmlFor={keyFieldId}>
           {t.adminSettings.common.newKey}
           <InfoHint>{keyHint}</InfoHint>
         </label>

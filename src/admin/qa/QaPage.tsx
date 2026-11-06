@@ -241,11 +241,11 @@ export default function QaPage() {
 
   return (
     <>
-      <header className="topbar">
+      <header className="admin-toolbar">
         <ProjectPicker projects={projects} value={projectId} onChange={changeProject} allowAll />
 
-        <span className="field">
-          <label className="field__label" htmlFor={fromFieldId}>
+        <span className="admin-field">
+          <label className="admin-field__label" htmlFor={fromFieldId}>
             {t.filters.period}
           </label>
           <input
@@ -260,7 +260,7 @@ export default function QaPage() {
               if (next) setFrom(startOfDay(next))
             }}
           />
-          <span className="field__label" aria-hidden="true">
+          <span className="admin-field__label" aria-hidden="true">
             –
           </span>
           <input
@@ -278,8 +278,8 @@ export default function QaPage() {
           />
         </span>
 
-        <span className="field">
-          <label className="field__label" htmlFor={testRunFieldId}>
+        <span className="admin-field">
+          <label className="admin-field__label" htmlFor={testRunFieldId}>
             {t.filters.testRun}
           </label>
           <select
@@ -312,8 +312,8 @@ export default function QaPage() {
           </select>
         </span>
 
-        <span className="field">
-          <label className="field__label" htmlFor={labelFieldId}>
+        <span className="admin-field">
+          <label className="admin-field__label" htmlFor={labelFieldId}>
             {t.filters.label}
           </label>
           <select
@@ -349,7 +349,7 @@ export default function QaPage() {
 
       </header>
 
-      <main className="main">
+      <div className="main">
         {failed && (
           <div className="notice notice--critical" role="alert">
             <p className="notice__title">{t.loadFailedTitle}</p>
@@ -401,7 +401,7 @@ export default function QaPage() {
         )}
 
         {data === null && loading && <div className="notice">{t.loadingStats}</div>}
-      </main>
+      </div>
     </>
   )
 }

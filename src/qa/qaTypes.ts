@@ -129,7 +129,7 @@ export type QaReasoningCapability =
  * The same model can appear once under each, so a model's identity in the picker
  * is the pair, not the id (`qaModelOptionKey`).
  */
-export const QA_KEY_SOURCES = ['platform', 'user'] as const
+export const QA_KEY_SOURCES = ['platform', 'user', 'project'] as const
 export type QaKeySource = (typeof QA_KEY_SOURCES)[number]
 
 /** USD per million tokens, the unit `llm_model.pricing` is stored in. */

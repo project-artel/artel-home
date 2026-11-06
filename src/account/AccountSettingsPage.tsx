@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { LlmKeysPanel } from './LlmKeysPanel'
 import { AuthApiError, registerEmail, updateMyLocale, updateMyProfile, verifyEmail } from '../auth/authApi'
 import {
   EMAIL_MAX_LENGTH,
@@ -16,7 +17,7 @@ import { InfoHint } from '../design-system/primitives/InfoHint'
 import { isLocale, LOCALE_LABELS, LOCALES } from '../i18n/locale'
 import { useI18n } from '../i18n/useI18n'
 import { SettingsScreenFill, SettingsTabs } from '../layouts/SettingsTabs'
-import { DisplaySketch, IdCardSketch, MailSketch, TerminalSketch } from '../emptyStates/sketches'
+import { DisplaySketch, IdCardSketch, MailSketch, ModelChipSketch, TerminalSketch } from '../emptyStates/sketches'
 import { useCliTokens } from '../auth/useCliTokens'
 import { listLlmKeys } from './llmKeyApi'
 import { listProjects } from '../projects/projectApi'
@@ -65,8 +66,8 @@ export function AccountSettingsPage() {
         </div>
       </header>
 
-      {/* 왼쪽 탭 + 오른쪽 한 화면(ARTEL-1380). 칸은 예전 그대로이고 탭마다 하나씩 선다. LLM API 키는 프로젝트의
-          API 관리로 옮겼다(ARTEL-1379) — 탭 아래에 그 길을 남긴다. */}
+      {/* 왼쪽 탭 + 오른쪽 한 화면(ARTEL-1380). 칸은 예전 그대로이고 탭마다 하나씩 선다. LLM API 키 탭은 내 개인 키다 —
+          프로젝트 키는 그 프로젝트의 API 관리에서 다루고, 개인 키를 거기 연결할 수 있다. */}
       <SettingsTabs
         label={copy.tocLabel}
         tabs={[
@@ -102,6 +103,16 @@ export function AccountSettingsPage() {
               <>
                 <PreferencesPanel />
                 <SettingsScreenFill body={copy.screens.preferences} sketch={<DisplaySketch />} title={copy.preferences.title} />
+              </>
+            ),
+          },
+          {
+            id: 'llm-keys',
+            label: copy.llmKeys.title,
+            content: (
+              <>
+                <LlmKeysPanel />
+                <SettingsScreenFill body={copy.screens.llmKeys} sketch={<ModelChipSketch />} title={copy.llmKeys.title} />
               </>
             ),
           },
@@ -577,7 +588,7 @@ function EmailPanel({
   )
 }
 
-/** 내가 든 프로젝트 몇 개(ARTEL-1380). 숫자 칸과 API 관리 바로 가기가 함께 쓴다. 못 읽으면 빈 목록이다. */
+/** 내가 든 프로젝트 몇 개(ARTEL-1380). 숫자 칸이 쓴다. 못 읽으면 빈 목록이다. */
 function useMyProjects(): { items: ProjectSummary[]; total: number } | null {
   const [state, setState] = useState<{ items: ProjectSummary[]; total: number } | null>(null)
   useEffect(() => {
@@ -590,9 +601,7 @@ function useMyProjects(): { items: ProjectSummary[]; total: number } | null {
   return state
 }
 
-function keysHref(project: ProjectSummary): string {
-  return `/projects/${encodeURIComponent(project.id)}/api`
-}
+const KEYS_HREF = '/account?tab=llm-keys'
 
 /** 프로필 탭 머리(ARTEL-1380). 큰 머리 + 숫자 칸으로 화면을 채운다. 값은 이미 있는 API(프로젝트 · 키 · CLI 토큰)만 쓴다. */
 function ProfileOverview({ user }: { user: AuthUser }) {
@@ -610,7 +619,6 @@ function ProfileOverview({ user }: { user: AuthUser }) {
   }, [])
   const avatar = user.identities.find((identity) => identity.avatarUrl !== null)?.avatarUrl ?? null
   const owned = projects?.items.filter((project) => project.myRole === 'OWNER').length ?? 0
-  const first = projects?.items[0] ?? null
 
   return (
     <>
@@ -642,19 +650,11 @@ function ProfileOverview({ user }: { user: AuthUser }) {
           <span className="settings-stat-value">{projects === null ? '—' : projects.total}</span>
           <span className="settings-stat-sub">{copy.stats.projectsSub(owned)}</span>
         </div>
-        {first !== null ? (
-          <Link className="settings-stat" to={keysHref(first)}>
-            <span className="settings-stat-label">{copy.stats.llmKeys}</span>
-            <span className="settings-stat-value">{keyCount === null ? '—' : keyCount}</span>
-            <span className="settings-stat-sub">{copy.stats.llmKeysSub} ›</span>
-          </Link>
-        ) : (
-          <div className="settings-stat">
-            <span className="settings-stat-label">{copy.stats.llmKeys}</span>
-            <span className="settings-stat-value">{keyCount === null ? '—' : keyCount}</span>
-            <span className="settings-stat-sub">{copy.stats.llmKeysSub}</span>
-          </div>
-        )}
+        <Link className="settings-stat" to={KEYS_HREF}>
+          <span className="settings-stat-label">{copy.stats.llmKeys}</span>
+          <span className="settings-stat-value">{keyCount === null ? '—' : keyCount}</span>
+          <span className="settings-stat-sub">{copy.stats.llmKeysSub} ›</span>
+        </Link>
         <div className="settings-stat">
           <span className="settings-stat-label">{copy.stats.cliTokens}</span>
           <span className="settings-stat-value">{cli.status === 'ready' ? cli.tokens.length : '—'}</span>

@@ -119,10 +119,10 @@ function IssueWorkspace() {
   return (
     <div className="dc-workspace">
       <div className="dc-tabs-row">
-        <nav aria-label={t.issues.page.title} className="dc-tabs">
+        <nav aria-label={t.issues.page.title} className="section-nav">
           <button
             aria-current={team ? 'page' : undefined}
-            className="dc-tab"
+            className="section-nav__item"
             onClick={() => navigate('team')}
             type="button"
           >
@@ -130,7 +130,7 @@ function IssueWorkspace() {
           </button>
           <button
             aria-current={!team && !categoriesTab ? 'page' : undefined}
-            className="dc-tab"
+            className="section-nav__item"
             onClick={() => navigate('issues')}
             type="button"
           >
@@ -138,7 +138,7 @@ function IssueWorkspace() {
           </button>
           <button
             aria-current={categoriesTab ? 'page' : undefined}
-            className="dc-tab"
+            className="section-nav__item"
             onClick={() => navigate('categories')}
             type="button"
           >

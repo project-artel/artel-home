@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { QaChatPanel } from './QaChatPanel'
+import { useOperatorQuestions } from './evaluation/useOperatorQuestions'
+import { latestQuestionId } from './qaChat'
 import { QaContextGauge } from './QaContextGauge'
 import { QaRunChangesPanel } from './QaRunChangesPanel'
 import { toolCallOf } from './qaLogGrouping'
@@ -10,7 +12,7 @@ import { useQaRunChanges } from './useQaRunChanges'
 
 /** The chat's height when the viewer has never resized it. */
 const DEFAULT_CHAT_HEIGHT_PIXELS = 240
-const MINIMUM_CHAT_HEIGHT_PIXELS = 140
+const MINIMUM_CHAT_HEIGHT_PIXELS = 240
 /** The game keeps at least this much height, however far the chat is dragged. */
 const MINIMUM_GAME_HEIGHT_PIXELS = 160
 /** One arrow-key press on the resize handle. */
@@ -49,6 +51,7 @@ function storeChatHeight(heightPixels: number) {
  * its scroll position survive the switch.
  */
 export function QaFocusStage({
+  projectId,
   chatDisabled,
   contextUsage,
   game,
@@ -59,6 +62,7 @@ export function QaFocusStage({
   qaRun,
   qaTryId,
 }: {
+  projectId: string
   chatDisabled: boolean
   contextUsage: QaContextUsage | null
   game: ReactNode
@@ -71,7 +75,11 @@ export function QaFocusStage({
 }) {
   const { t } = useI18n()
   const stageRef = useRef<HTMLDivElement>(null)
-  const [dockView, setDockView] = useState<'chat' | 'changes'>('chat')
+  const questions = useOperatorQuestions(projectId)
+  const questionId = latestQuestionId(questions.questions, qaTryId)
+  const [dock, setDock] = useState<{ view: 'chat' | 'changes'; questionId: string | null }>({ view: 'chat', questionId: null })
+  const dockView = questionId !== null && dock.questionId !== questionId ? 'chat' : dock.view
+  const setDockView = (view: 'chat' | 'changes') => setDock({ view, questionId })
   const changes = useQaRunChanges(qaRun)
   const [chatHeight, setChatHeight] = useState(readStoredChatHeight)
   const [maximumChatHeight, setMaximumChatHeight] = useState<number | null>(null)
@@ -158,7 +166,7 @@ export function QaFocusStage({
           </button>
         </div>
         <div className="qa-stage-dock-body" hidden={dockView !== 'chat'} role="tabpanel">
-          <QaChatPanel disabled={chatDisabled} logs={logs} qaTryId={qaTryId} />
+          <QaChatPanel disabled={chatDisabled} logs={logs} qaTryId={qaTryId} projectId={projectId} questions={questions} />
         </div>
         {dockView === 'changes' && (
           <div className="qa-stage-dock-body qa-stage-dock-body--scroll" role="tabpanel">

@@ -6,7 +6,7 @@ import type { Issue } from '../../../issues/issueTypes'
 import { listQaTries } from '../../../qa/qaApi'
 import type { QaTry } from '../../../qa/qaTypes'
 import { listProjectQaRuns, type QaRunSummary } from '../../../qa/launch/qaLaunchApi'
-import { listTestCaseVersions, listVersionCases, type TestCaseVersionSummary, type VersionCaseRow } from '../../../testCases/testCaseVersions'
+import { listTestCaseVersions, listVersionCases, type TestCaseVersionSummary, type VersionCaseRow, type VersionLibrary } from '../../../testCases/testCaseVersions'
 import { listTestScenarios } from '../../../testScenarios/scenarioApi'
 import type { TestScenarioSummary } from '../../../testScenarios/scenarioTypes'
 
@@ -16,7 +16,7 @@ export type VersionPair = { current: TestCaseVersionSummary; previous: TestCaseV
 
 export type DashboardData = {
   qaRuns: Loaded<QaRunSummary[]>
-  versions: Loaded<VersionPair | null>
+  library: Loaded<VersionLibrary>
   tries: Loaded<QaTry[]>
   usage: Loaded<QaRunUsage[]>
   scenarios: Loaded<TestScenarioSummary[]>
@@ -25,17 +25,23 @@ export type DashboardData = {
 
 const LOADING: DashboardData = {
   qaRuns: { status: 'loading' },
-  versions: { status: 'loading' },
+  library: { status: 'loading' },
   tries: { status: 'loading' },
   usage: { status: 'loading' },
   scenarios: { status: 'loading' },
   issues: { status: 'loading' },
 }
 
-/** 화면에 보이는 버전 중 최신과 그 바로 앞. 만든 순서로 고른다 — 이름(1.10 · 1.9)으로 줄 세우면 틀린다. */
-export function pickVersions(versions: readonly TestCaseVersionSummary[]): { current: TestCaseVersionSummary; previous: TestCaseVersionSummary | null } | null {
+/**
+ * 고른 버전(없으면 최신)과 그 바로 앞. 만든 순서로 고른다 — 이름(1.10 · 1.9)으로 줄 세우면 틀린다. 숨긴 버전은 고른
+ * 것일 때만 쓰고, 비교 상대로는 쓰지 않는다(ARTEL-1387).
+ */
+export function pickVersions(
+  versions: readonly TestCaseVersionSummary[],
+  selectedId: string | null = null,
+): { current: TestCaseVersionSummary; previous: TestCaseVersionSummary | null } | null {
   const shown = versions.filter((version) => !version.hidden).sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-  const current = shown.find((version) => version.latest) ?? shown[0]
+  const current = versions.find((version) => version.gameBuildId === selectedId) ?? shown.find((version) => version.latest) ?? shown[0]
   if (current === undefined) return null
   const previous = shown.find((version) => version.gameBuildId !== current.gameBuildId && version.createdAt <= current.createdAt) ?? null
   return { current, previous }
@@ -68,17 +74,37 @@ export function useDashboardData(projectId: string, reloadKey: number): Dashboar
     void settle('usage', fetchQaRunUsage({ projectId, from, to: now }, 100, signal))
     void settle('scenarios', listTestScenarios(Number(projectId), signal))
     void settle('issues', listProjectIssues(projectId, {}, undefined, signal).then((page) => page.items))
-    void settle(
-      'versions',
-      listTestCaseVersions(projectId, signal).then(async (library) => {
-        const pair = pickVersions(library.versions)
-        if (pair === null) return null
-        const rows = await listVersionCases(projectId, pair.current.gameBuildId, pair.previous?.gameBuildId ?? null, signal)
-        return { ...pair, rows }
-      }),
-    )
+    void settle('library', listTestCaseVersions(projectId, signal))
     return () => controller.abort()
   }, [projectId, key])
 
   return data.key === key ? data.value : LOADING
+}
+
+/**
+ * 고른 버전과 그 앞 버전의 케이스 줄(ARTEL-1387). 버전 목록은 [useDashboardData] 가 한 번 읽고, 버전을 바꿀 때마다
+ * 여기서 줄만 다시 읽는다.
+ */
+export function useVersionPair(projectId: string, library: Loaded<VersionLibrary>, selectedId: string | null): Loaded<VersionPair | null> {
+  const pair = library.status === 'ready' ? pickVersions(library.value.versions, selectedId) : null
+  const currentId = pair?.current.gameBuildId ?? null
+  const previousId = pair?.previous?.gameBuildId ?? null
+  const key = `${projectId}#${currentId}#${previousId}`
+  const [rows, setRows] = useState<{ key: string; value: Loaded<VersionCaseRow[]> }>({ key: '', value: { status: 'loading' } })
+
+  useEffect(() => {
+    if (currentId === null) return
+    const controller = new AbortController()
+    listVersionCases(projectId, currentId, previousId, controller.signal)
+      .then((value) => setRows({ key, value: { status: 'ready', value } }))
+      .catch((error: unknown) => {
+        if (!(error instanceof DOMException && error.name === 'AbortError')) setRows({ key, value: { status: 'failed' } })
+      })
+    return () => controller.abort()
+  }, [projectId, currentId, previousId, key])
+
+  if (library.status !== 'ready') return library
+  if (pair === null) return { status: 'ready', value: null }
+  const loaded = rows.key === key ? rows.value : { status: 'loading' as const }
+  return loaded.status === 'ready' ? { status: 'ready', value: { ...pair, rows: loaded.value } } : loaded
 }

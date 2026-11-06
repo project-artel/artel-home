@@ -14,7 +14,7 @@ export type Segment = { id: string; startedAt: string; endedAt: string; state: s
 export type Gap = { startedAt: string; endedAt: string; reason: string }
 export type Playback = { recording: { id: string; startedAt: string; endedAt: string | null; expiresAt: string | null; error: string | null } | null;
   segments: Segment[]; gaps: Gap[] }
-export type Question = { id: string; qaTryId: string; qaRunId: string | null; question: string; state: string; answer: string | null; createdAt: string }
+export type Question = { id: string; qaTryId: string; qaRunId: string | null; question: string; state: string; answer: string | null; createdAt: string; answeredAt?: string | null }
 export type Counts = { total: number; reviewed: number; inconclusiveReviews: number; truePositives: number; trueNegatives: number;
   falsePositives: number; falseNegatives: number; interruptedFalseNegatives: number; falsePositiveRate: number | null;
   falseNegativeRate: number | null; reviewCoverage: number | null }
@@ -88,7 +88,7 @@ export async function reliability(project: string, from: string, to: string, sig
 }
 export async function questions(project: string, signal?: AbortSignal): Promise<Question[]> {
   return list(await request(project, '/questions', signal), value => { const row = record(value); return { id: string(row.id), qaTryId: string(row.qaTryId),
-    qaRunId: nullable(row.qaRunId), question: string(row.question), state: string(row.state), answer: nullable(row.answer), createdAt: string(row.createdAt) } })
+    qaRunId: nullable(row.qaRunId), question: string(row.question), state: string(row.state), answer: nullable(row.answer), createdAt: string(row.createdAt), answeredAt: nullable(row.answeredAt) } })
 }
 export async function answer(project: string, id: string, answer: string) { await request(project, `/questions/${encodeURIComponent(id)}/answer`, undefined, 'POST', { answer }) }
 export async function subscription(project: string, subscribed?: boolean): Promise<boolean> {

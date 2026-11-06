@@ -291,8 +291,8 @@ export async function cancelQaRun(qaRunId: string): Promise<void> {
   if (!response.ok) throw await toApiError(response)
 }
 
-export async function listQaModels(signal?: AbortSignal): Promise<QaModel[]> {
-  const response = await apiFetch(QA_MODELS_ROOT, { signal })
+export async function listQaModels(signal?: AbortSignal, projectId?: string): Promise<QaModel[]> {
+  const response = await apiFetch(projectId === undefined ? QA_MODELS_ROOT : `${QA_MODELS_ROOT}?projectId=${encodeURIComponent(projectId)}`, { signal })
   return parseQaModels(await readJson(response), response.status)
 }
 
@@ -363,7 +363,7 @@ export function parseQaModels(data: unknown, status: number): QaModel[] {
       multimodal: record.multimodal,
       reasoning: parsedReasoning,
       keySource,
-      keyProvider: keySource === 'user' && typeof record.keyProvider === 'string'
+      keyProvider: keySource !== 'platform' && typeof record.keyProvider === 'string'
         ? record.keyProvider
         : null,
       // A user model is only callable once its provider has a key; a missing
