@@ -159,16 +159,20 @@ export function QaModelPicker({
     )
     setActive(value)
     const rect = triggerRef.current?.getBoundingClientRect()
+    const below = rect === undefined ? 0 : window.innerHeight - rect.bottom - 12
+    const above = rect === undefined ? 0 : rect.top - 12
+    const openAbove = below < 360 && above > below
     setPopoverBox(
       popoverWidth === undefined || rect === undefined
         ? undefined
         : {
             position: 'fixed',
-            top: rect.bottom + 4,
+            top: openAbove ? 'auto' : rect.bottom + 4,
+            bottom: openAbove ? window.innerHeight - rect.top + 4 : 'auto',
             left: Math.max(8, Math.min(rect.right, window.innerWidth - 8) - popoverWidth),
             right: 'auto',
             width: Math.min(popoverWidth, window.innerWidth - 24),
-            maxHeight: `calc(100vh - ${Math.round(rect.bottom) + 16}px)`,
+            maxHeight: openAbove ? above : below,
           },
     )
     setOpen(true)
