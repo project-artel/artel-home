@@ -1,7 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
-import { QaFunctionOptionsSummary } from '../../qa/QaFunctionOptionsSummary'
 import { elapsedSeconds, getQaTryDetail, type QaTryDetail } from '../../qa/qaTryDetailApi'
 import type { QaTryVerdicts } from '../../qa/qaVerdictApi'
 import { plainText, stepRows, tallyRows } from '../../qa/verdicts/verdictModel'
@@ -127,7 +126,6 @@ export function QaHistoryDetail({
           <RunDetailVerdicts href={verdictsHref} scenario={verdicts} />
         )}
         <RunDetailCost detail={detail} />
-        <QaFunctionOptionsSummary options={detail.functionOptions} />
       </div>
 
       <RunDetailTools detail={detail} />
