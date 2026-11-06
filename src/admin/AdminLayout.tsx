@@ -21,28 +21,24 @@ export function AdminLayout() {
   const { t } = useI18n()
 
   return (
-    <div className="admin-console">
-      <header className="admin-console__head">
-        <h1 className="admin-console__title">
+    <section aria-labelledby="admin-title" className="page admin-console">
+      <header className="page-header">
+        <h1 id="admin-title">
           {t.admin.title}
           <InfoHint>{t.admin.subtitle}</InfoHint>
         </h1>
-        <nav className="admin-console__tabs" aria-label={t.admin.tabsLabel}>
-          {ADMIN_TABS.map((tab) => (
-            <NavLink
-              key={tab}
-              to={`/admin/${tab}`}
-              className={({ isActive }) => (isActive ? 'control control--action' : 'control')}
-            >
-              {t.admin.tabs[tab]}
-            </NavLink>
-          ))}
-        </nav>
       </header>
+      <nav className="section-nav admin-console__nav" aria-label={t.admin.tabsLabel}>
+        {ADMIN_TABS.map((tab) => (
+          <NavLink key={tab} to={`/admin/${tab}`} className="section-nav__item">
+            {t.admin.tabs[tab]}
+          </NavLink>
+        ))}
+      </nav>
       <Suspense fallback={<p className="admin-console__loading">{t.admin.states.loading}</p>}>
         <Outlet />
       </Suspense>
       <UsageStatsPrompt />
-    </div>
+    </section>
   )
 }

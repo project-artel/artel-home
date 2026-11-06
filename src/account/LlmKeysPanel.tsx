@@ -5,6 +5,7 @@ import { useI18n } from '../i18n/useI18n'
 import { ProviderLogo } from '../qa/launch/ProviderLogo'
 import { CircleCheckIcon, CircleXIcon } from '../qa/qaModelIcons'
 import { deleteLlmKey, listLlmKeys, llmKeyRefusal, registerLlmKey } from './llmKeyApi'
+import { changeProjectLlmKey, listProjectLlmKeys, registerProjectLlmKey, type ProjectLlmKey } from './projectLlmKeyApi'
 import {
   LLM_KEY_SERVICES,
   llmKeyServiceName,
@@ -12,7 +13,7 @@ import {
   type LlmKeyService,
 } from './llmKeyTypes'
 
-type KeysState = { status: 'loading' | 'ready' | 'error'; keys: LlmKey[] }
+type KeysState = { status: 'loading' | 'ready' | 'error'; keys: ProjectLlmKey[] }
 
 /**
  * The user's own LLM API keys — one row per service the QA model picker has a
@@ -32,7 +33,9 @@ type KeysState = { status: 'loading' | 'ready' | 'error'; keys: LlmKey[] }
 /**
  * @param note 머리 아래 한 줄. API 관리 화면은 키가 계정 단위라는 것을 여기 밝힌다(ARTEL-1379).
  */
-export function LlmKeysPanel({ note }: { note?: string } = {}) {
+export function LlmKeysPanel({
+  note, projectId, canManage = true, onChange,
+}: { note?: string; projectId?: string; canManage?: boolean; onChange?: () => void } = {}) {
   const { t } = useI18n()
   const copy = t.account.llmKeys
   const inputId = useId()
@@ -44,8 +47,19 @@ export function LlmKeysPanel({ note }: { note?: string } = {}) {
   const [saving, setSaving] = useState(false)
   const [removing, setRemoving] = useState<LlmKeyService | null>(null)
   const [announcement, setAnnouncement] = useState('')
+  const [personalKeys, setPersonalKeys] = useState<LlmKey[]>([])
+  const [linking, setLinking] = useState<LlmKeyService | null>(null)
+  const removingLink = removing !== null && state.keys.some((key) => key.service === removing && key.linked)
 
-  const read = useCallback((signal?: AbortSignal) => listLlmKeys(signal), [])
+  const read = useCallback((signal?: AbortSignal) =>
+    projectId === undefined ? listLlmKeys(signal) : listProjectLlmKeys(projectId, signal), [projectId])
+
+  useEffect(() => {
+    if (projectId === undefined) return
+    const controller = new AbortController()
+    void listLlmKeys(controller.signal).then(setPersonalKeys).catch(() => {})
+    return () => controller.abort()
+  }, [projectId])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -89,11 +103,17 @@ export function LlmKeysPanel({ note }: { note?: string } = {}) {
     setDraftError(null)
     setSaving(true)
     try {
-      const saved = await registerLlmKey(service, apiKey)
-      setState((current) => ({
-        status: 'ready',
-        keys: [...current.keys.filter((key) => key.service !== service), saved],
-      }))
+      if (projectId === undefined) {
+        const saved = await registerLlmKey(service, apiKey)
+        setState((current) => ({
+          status: 'ready',
+          keys: [...current.keys.filter((key) => key.service !== service), saved],
+        }))
+      } else {
+        await registerProjectLlmKey(projectId, service, apiKey)
+        reload()
+        onChange?.()
+      }
       setEditing(null)
       setDraft('')
       setAnnouncement(copy.savedAnnouncement(llmKeyServiceName(service)))
@@ -109,7 +129,7 @@ export function LlmKeysPanel({ note }: { note?: string } = {}) {
       <header className="panel-header">
         <h2 id="llm-keys-title">
           {copy.title}
-          <InfoHint>{copy.intro}</InfoHint>
+          {projectId === undefined && <InfoHint>{copy.intro}</InfoHint>}
         </h2>
         {note !== undefined && <p className="llm-key-scope">{note}</p>}
       </header>
@@ -164,7 +184,7 @@ export function LlmKeysPanel({ note }: { note?: string } = {}) {
                   {key !== null ? (
                     <span className="llm-key-status llm-key-status--ok">
                       <CircleCheckIcon size={14} />
-                      {copy.verified(key.keyHint)}
+                      {key.linked ? copy.linkedKey(key.keyHint) : copy.verified(key.keyHint)}
                     </span>
                   ) : (
                     <span className="llm-key-status llm-key-status--missing">
@@ -174,20 +194,25 @@ export function LlmKeysPanel({ note }: { note?: string } = {}) {
                   )}
                   {editing !== service && (
                     <div className="llm-key-actions">
-                      <button
+                      {canManage && <button
                         className="button button--secondary button--compact"
                         onClick={() => startEditing(service)}
                         type="button"
                       >
                         {key !== null ? copy.replace : copy.register}
-                      </button>
-                      {key !== null && (
+                      </button>}
+                      {projectId !== undefined && key === null && personalKeys.some((personal) => personal.service === service) && (
+                        <button className="button button--secondary button--compact" onClick={() => setLinking(service)} type="button">
+                          {copy.linkKey}
+                        </button>
+                      )}
+                      {key !== null && (canManage || key.ownLink) && (
                         <button
                           className="button button--secondary button--compact"
                           onClick={() => setRemoving(service)}
                           type="button"
                         >
-                          {copy.remove}
+                          {key.linked ? copy.unlinkKey : copy.remove}
                         </button>
                       )}
                     </div>
@@ -244,13 +269,18 @@ export function LlmKeysPanel({ note }: { note?: string } = {}) {
 
       {removing !== null && (
         <ConfirmActionDialog
-          body={copy.removeBody}
+          body={removingLink ? copy.unlinkBody : projectId === undefined ? copy.removePersonalBody : copy.removeBody}
           cancelLabel={copy.cancel}
-          confirmLabel={copy.remove}
+          confirmLabel={removingLink ? copy.unlinkKey : copy.remove}
           onClose={() => setRemoving(null)}
           onConfirm={async () => {
             const service = removing
-            await deleteLlmKey(service)
+            if (projectId === undefined) {
+              await deleteLlmKey(service)
+            } else {
+              await changeProjectLlmKey(projectId, service, 'DELETE', !canManage)
+              onChange?.()
+            }
             setState((current) => ({
               status: 'ready',
               keys: current.keys.filter((key) => key.service !== service),
@@ -259,8 +289,26 @@ export function LlmKeysPanel({ note }: { note?: string } = {}) {
             setAnnouncement(copy.removedAnnouncement(llmKeyServiceName(service)))
           }}
           pendingLabel={copy.removing}
-          title={copy.removeTitle(llmKeyServiceName(removing))}
+          title={removingLink ? copy.unlinkKey : copy.removeTitle(llmKeyServiceName(removing))}
           toFailureMessage={() => copy.removeFailed}
+        />
+      )}
+
+      {linking !== null && projectId !== undefined && (
+        <ConfirmActionDialog
+          body={copy.linkBody}
+          cancelLabel={copy.cancel}
+          confirmLabel={copy.linkKey}
+          onClose={() => setLinking(null)}
+          onConfirm={async () => {
+            await changeProjectLlmKey(projectId, linking, 'PUT', true)
+            setLinking(null)
+            reload()
+            onChange?.()
+          }}
+          pendingLabel={copy.checking}
+          title={copy.linkKey}
+          toFailureMessage={() => copy.linkFailed}
         />
       )}
 

@@ -1,4 +1,4 @@
-import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useEffect, useState, type ReactNode } from 'react'
 import { LlmKeysPanel } from '../account/LlmKeysPanel'
 import { ProviderLogo } from '../qa/launch/ProviderLogo'
@@ -7,18 +7,19 @@ import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
 import { listProjects } from '../projects/projectApi'
 import type { Genre, ProjectSummary } from '../projects/projectTypes'
+import { useWorkspace } from '../projects/workspace/workspaceContext'
 import { formatCost, totalTokens } from './format'
 import { dayAt, dayTokens, toDateKey, type GrassDay, type GrassGrid } from './grass'
 import { serviceLabel, type ProjectUsage, type UsageTotals } from './usageApi'
 import { UsageGrass } from './UsageGrass'
-import { useUsage, type ProjectUsageRead } from './useProjectUsage'
+import { useProjectUsage, useUsage, type ProjectUsageRead } from './useProjectUsage'
 
 const compact = new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 })
 const percents = new Intl.NumberFormat(undefined, { style: 'percent', maximumFractionDigits: 1 })
 
 /**
- * 계정 설정의 API 관리 탭(ARTEL-1393). 예전(ARTEL-1379)에는 프로젝트 사이드바 밑에 있었지만, LLM API 키는 계정 단위라
- * 계정 설정으로 옮겼다. 위는 키, 아래는 모델 지출 — 왼쪽 프로젝트 목록에서 누르면 오른쪽에 그 프로젝트의 금액이 자세히
+ * 계정 설정의 API 관리 탭(ARTEL-1393). 위는 내 개인 키(프로젝트 키는 프로젝트의 [ApiSection] 에서 다루고, 개인 키를
+ * 거기 연결한다), 아래는 내가 든 프로젝트 전체의 모델 지출 — 왼쪽 프로젝트 목록에서 누르면 오른쪽에 그 프로젝트의 금액이 자세히
  * 나온다. 목록은 볼 수 있는 전 프로젝트 합산을 한 번 읽어 `byProject` 로 그리고, 고른 프로젝트만 따로 읽는다.
  * 고른 프로젝트는 주소(`?project=`)에 남는다.
  */
@@ -46,7 +47,7 @@ export function AccountApiTab() {
 
   return (
     <div className="api-page api-page--account">
-      <LlmKeysPanel note={a.keysScope} />
+      <LlmKeysPanel note={a.accountKeysScope} />
       <section aria-labelledby="api-spend-title" className="panel api-spend">
         <header className="panel-header">
           <h2 id="api-spend-title">
@@ -256,11 +257,98 @@ function useMyProjectList(): ProjectSummary[] | null {
   return projects
 }
 
-/** 옛 주소 `…/api` · `…/usage` 를 계정 설정 API 관리 탭으로 넘긴다(ARTEL-1393). 북마크와 다른 화면의 링크가 계속 산다. */
-export function ApiRedirect() {
-  const { projectId } = useParams()
-  const query = projectId ? `&project=${encodeURIComponent(projectId)}` : ''
-  return <Navigate replace to={`/account?tab=api${query}`} />
+/**
+ * API 관리(ARTEL-1379). 예전 "사용량" 화면(모델 지출)과 계정 설정에 있던 LLM API 키를 한 화면에 둔다. 위는 키와 기능별
+ * 지출 그래프, 가운데는 최근 12주 잔디를 칸 크기에 맞게 키워 남는 높이를 받고, 아래는 기능별 · 모델별 표다.
+ */
+export function ApiSection() {
+  const { t } = useI18n()
+  const a = t.usage.api
+  const u = t.usage
+  const { projectId, project, reloadExtras } = useWorkspace()
+  const { status, usage, grid, today } = useProjectUsage(projectId)
+
+  return (
+    <div className="api-page">
+      <div className="api-top">
+        <LlmKeysPanel
+          key={projectId}
+          note={a.keysScope}
+          projectId={projectId}
+          canManage={project.myRole === 'OWNER'}
+          onChange={reloadExtras}
+        />
+        <section aria-labelledby="api-share-title" className="panel api-share">
+          <header className="panel-header">
+            <h2 id="api-share-title">{a.spendTitle}</h2>
+          </header>
+          {status === 'loading' && <ShareSkeleton />}
+          {status === 'error' && <p className="panel-empty">{u.loadFailed}</p>}
+          {status === 'ready' && usage !== null && <FeatureShare byService={usage.byService} total={usage.total} />}
+        </section>
+      </div>
+
+      {status === 'loading' && <SpendSkeleton label={u.loading} />}
+
+      {status === 'ready' && usage !== null && grid !== null && (
+        <>
+          <section aria-labelledby="api-overview-title" className="panel api-overview">
+            <header className="panel-header">
+              <h2 id="api-overview-title">
+                {u.sectionTitle}
+                <InfoHint>{u.sectionSubtitle(usage.zone)}</InfoHint>
+              </h2>
+            </header>
+            {usage.total.calls === 0 ? (
+              <p className="panel-empty">{u.nothingYet}</p>
+            ) : (
+              <div className="usage-overview">
+                <div className="usage-overview-grass">
+                  <UsageGrass grid={grid} zone={usage.zone} />
+                </div>
+                <SpendFigures grid={grid} today={today} total={usage.total} />
+              </div>
+            )}
+          </section>
+
+          <div className="usage-breakdowns">
+            <SpendTable
+              axis={u.featureAxis}
+              note={u.embeddingNote}
+              rows={usage.byService.map((cell) => ({
+                key: cell.service,
+                label: serviceLabel(cell.service, u.services),
+                sub: cell.service,
+                icon: <FeatureIcon service={cell.service} />,
+                totals: cell.totals,
+              }))}
+              title={u.byFeature}
+              total={usage.total}
+            />
+            <SpendTable
+              axis={u.modelAxis}
+              rows={usage.byModel.map((cell) => ({
+                key: `${cell.provider}/${cell.model}`,
+                label: cell.model,
+                sub: cell.provider,
+                // 모델 제공사 로고. bedrock 처럼 중개 이름이면 모델 이름에서 회사를 읽는다(ProviderLogo 가 포함으로 찾는다).
+                icon: <ProviderLogo provider={`${cell.provider} ${cell.model}`} size={20} />,
+                totals: cell.totals,
+              }))}
+              title={u.byModel}
+              total={usage.total}
+            />
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+/** 옛 주소 `…/usage` 를 새 주소로 넘긴다. 북마크와 다른 화면의 링크가 계속 산다. */
+export function UsageRedirect() {
+  const { search } = useLocation()
+  return <Navigate replace to={`../api${search}`} />
 }
 
 /**

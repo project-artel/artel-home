@@ -7,7 +7,6 @@ export const usageEn = {
   sectionTitle: 'Model spend',
   api: {
     tab: 'API management',
-    keysScope: 'Applies to your whole account, in every project. Other members do not see these keys.',
     spendSection: 'Model spend',
     spendHint: 'Pick a project to see its spend in detail.',
     projectsCaption: 'Projects · last 12 weeks',
@@ -17,6 +16,8 @@ export const usageEn = {
     calls: (n: number) => `${n} calls`,
     shareTitle: 'Share by feature',
     grassTitle: 'Tokens per day',
+    keysScope: 'Project members with QA access can run QA with these keys.',
+    accountKeysScope: 'Your personal keys. Link one in a project\'s API management and that project\'s QA can run on it.',
     spendTitle: 'Last 12 weeks by feature',
     noSpend: 'No model calls in the last 12 weeks.',
     weeklyCaption: 'Tokens per week, oldest first',
@@ -89,7 +90,6 @@ export const usageKo: Localized<typeof usageEn> = {
   sectionTitle: '모델 지출',
   api: {
     tab: 'API 관리',
-    keysScope: '내 계정 전체에 적용되고, 어느 프로젝트에서 돌려도 이 키를 씁니다. 다른 멤버에게는 보이지 않습니다.',
     spendSection: '모델 지출',
     spendHint: '프로젝트를 누르면 그 프로젝트의 금액이 자세히 나옵니다.',
     projectsCaption: '프로젝트 · 최근 12주',
@@ -99,6 +99,8 @@ export const usageKo: Localized<typeof usageEn> = {
     calls: (n: number) => `호출 ${n}`,
     shareTitle: '기능별 비중',
     grassTitle: '하루마다 쓴 토큰',
+    keysScope: 'QA 실행 권한이 있는 프로젝트 멤버가 이 키를 사용할 수 있어요.',
+    accountKeysScope: '내 개인 키입니다. 프로젝트의 API 관리에서 연결하면 그 프로젝트의 QA 가 이 키로 돕니다.',
     spendTitle: '최근 12주 기능별 지출',
     noSpend: '최근 12주에는 모델 호출이 없습니다.',
     weeklyCaption: '주마다 쓴 토큰, 오래된 주부터',

@@ -93,7 +93,7 @@ export default function UsersPage() {
 
   return (
     <div className="shell">
-      <main className="main">
+      <div className="main">
         {issued !== null && (
           <TemporaryPasswordNotice
             heading={issued.heading}
@@ -217,7 +217,7 @@ export default function UsersPage() {
             {busyUserId !== null ? t.adminSettings.users.saving : ''}
           </span>
         </section>
-      </main>
+      </div>
     </div>
   )
 }
@@ -293,7 +293,7 @@ function CreateUserForm({ onCreated }: { onCreated: (heading: string, password: 
       </div>
       <form className="adm-form" onSubmit={submit}>
         <span className="adm-field">
-          <label className="field__label" htmlFor={emailId}>
+          <label className="admin-field__label" htmlFor={emailId}>
             {t.adminSettings.users.email}
           </label>
           <input
@@ -307,7 +307,7 @@ function CreateUserForm({ onCreated }: { onCreated: (heading: string, password: 
           />
         </span>
         <span className="adm-field">
-          <label className="field__label" htmlFor={nameId}>
+          <label className="admin-field__label" htmlFor={nameId}>
             {t.adminSettings.users.name}
           </label>
           <input
@@ -321,7 +321,7 @@ function CreateUserForm({ onCreated }: { onCreated: (heading: string, password: 
           />
         </span>
         <span className="adm-field">
-          <label className="field__label" htmlFor={roleId}>
+          <label className="admin-field__label" htmlFor={roleId}>
             {t.adminSettings.users.role}
           </label>
           <select
@@ -339,7 +339,7 @@ function CreateUserForm({ onCreated }: { onCreated: (heading: string, password: 
         </span>
         <button
           type="submit"
-          className="control control--action"
+          className="control adm-primary"
           disabled={submitting || email.trim() === '' || name.trim() === ''}
         >
           {submitting ? t.adminSettings.users.creating : t.adminSettings.users.create}

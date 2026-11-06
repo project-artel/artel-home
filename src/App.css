@@ -3242,6 +3242,8 @@ a.instance-name:hover {
 /* 그림자 없이 배경 한 단계와 1px 선으로 띄운다(DESIGN.md). */
 .qa-model-popover {
   position: absolute;
+  display: flex;
+  flex-direction: column;
   z-index: 20;
   top: calc(100% + var(--space-1));
   right: 0;
@@ -3255,6 +3257,10 @@ a.instance-name:hover {
 /* 두 구획을 가르는 탭. 개수가 붙어 있어 다른 쪽에 무엇이 있는지 늘 보인다. */
 .qa-model-tabs {
   display: flex;
+  flex: 0 0 auto;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
   gap: var(--space-1);
   padding: var(--space-2) var(--space-2) 0;
   border-bottom: 1px solid var(--color-border-subtle);
@@ -3262,6 +3268,7 @@ a.instance-name:hover {
 
 .qa-model-tab {
   display: inline-flex;
+  flex: 0 0 auto;
   min-height: 36px;
   align-items: center;
   gap: var(--space-2);
@@ -3342,6 +3349,7 @@ a.instance-name:hover {
 /* 막대는 네이티브가 아니라 EdgeScrollbar 가 그린다 — 시나리오 rail 과 같은 막대다. */
 .qa-model-list {
   max-height: 340px;
+  min-height: 0;
   margin: 0;
   overflow-y: auto;
   padding: 0 0 var(--space-2);
@@ -5511,6 +5519,7 @@ button.qa-rail-case-verdict{ padding:0; border:0; background:none; font-family:i
 @media (max-width:820px){
   .qa-console-grid{ grid-template-columns:1fr; grid-template-rows:auto minmax(0,1fr); }
   .qa-console-rail{ border-right:0; border-bottom:1px solid var(--color-border-subtle); max-height:160px; }
+  .qa-focus{ grid-template-rows:minmax(440px,auto) minmax(240px,auto); overflow-y:auto; }
 }
 
 /* QA 2단 판정 패널 (ARTEL-290 #4) */
@@ -12229,65 +12238,6 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
   flex: none;
   max-height: 40%;
   overflow-y: auto;
-}
-
-.gf-summary {
-  padding: var(--space-2) 14px;
-  border-bottom: 1px solid var(--color-border-subtle);
-}
-
-.gf-summary-title {
-  margin: 0 0 var(--space-1);
-  color: var(--color-text-muted);
-  font-family: var(--font-sans);
-  font-size: 11px;
-  font-weight: 650;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.gf-summary-list {
-  display: grid;
-  gap: var(--space-1);
-  margin: 0;
-}
-
-.gf-summary-row {
-  display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
-  gap: var(--space-2);
-  font-size: 12px;
-}
-
-.gf-summary-row dt {
-  color: var(--color-text-muted);
-}
-
-.gf-summary-row dd {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1) var(--space-3);
-  margin: 0;
-  color: var(--color-text-primary);
-  overflow-wrap: anywhere;
-}
-
-.gf-summary-key {
-  margin-inline-end: var(--space-1);
-  color: var(--color-text-muted);
-}
-
-.gf-mode {
-  font-weight: 650;
-}
-
-.gf-mode--on {
-  color: var(--color-status-success);
-}
-
-.gf-mode--off,
-.gf-mode--unknown {
-  color: var(--color-text-muted);
 }
 
 /* behavior 줄 */

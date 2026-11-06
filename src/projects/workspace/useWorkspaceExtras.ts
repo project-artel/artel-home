@@ -77,7 +77,7 @@ export function useWorkspaceExtras(projectId: string) {
     Promise.all([
       refreshRuns(),
       listQaTries(projectId, controller.signal),
-      listQaModels(controller.signal),
+      listQaModels(controller.signal, projectId),
       listProjectIssues(projectId, { status: 'OPEN' }, undefined, controller.signal),
       getTrackerLink(projectId, controller.signal),
     ])

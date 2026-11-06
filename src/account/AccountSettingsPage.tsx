@@ -66,8 +66,8 @@ export function AccountSettingsPage() {
         </div>
       </header>
 
-      {/* 왼쪽 탭 + 오른쪽 한 화면(ARTEL-1380). 칸은 예전 그대로이고 탭마다 하나씩 선다. LLM API 키와 모델 지출은
-          API 관리 탭에 있다(ARTEL-1393). */}
+      {/* 왼쪽 탭 + 오른쪽 한 화면(ARTEL-1380). 칸은 예전 그대로이고 탭마다 하나씩 선다. API 관리 탭은 내 개인 키와
+          모델 지출이다(ARTEL-1393) — 프로젝트 키는 그 프로젝트의 API 관리에서 다루고, 개인 키를 거기 연결할 수 있다. */}
       <SettingsTabs
         label={copy.tocLabel}
         tabs={[
@@ -583,7 +583,7 @@ function EmailPanel({
   )
 }
 
-/** 내가 든 프로젝트 몇 개(ARTEL-1380). 숫자 칸과 API 관리 바로 가기가 함께 쓴다. 못 읽으면 빈 목록이다. */
+/** 내가 든 프로젝트 몇 개(ARTEL-1380). 숫자 칸이 쓴다. 못 읽으면 빈 목록이다. */
 function useMyProjects(): { items: ProjectSummary[]; total: number } | null {
   const [state, setState] = useState<{ items: ProjectSummary[]; total: number } | null>(null)
   useEffect(() => {
