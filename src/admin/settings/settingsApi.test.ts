@@ -21,6 +21,8 @@ import {
   putBedrockKey,
   createAdminUser,
   listLlmModels,
+  discoverLlmModels,
+  importLlmModel,
   parseAdminLlmModel,
   setLlmModelEnabled,
   parseLlmSettings,
@@ -224,6 +226,27 @@ describe('admin llm model endpoints', () => {
     assert.equal((await listLlmModels()).length, 2)
     stubFetch({})
     assert.deepEqual(await listLlmModels(), [])
+  })
+
+  it('loads import candidates for the selected provider', async () => {
+    const candidate = { id: 'gpt-6.1-terra', label: 'GPT-6.1 Terra' }
+    const fetchMock = stubFetch([candidate])
+
+    assert.deepEqual(await discoverLlmModels('openai'), [candidate])
+    const [url] = fetchMock.mock.calls[0].arguments
+    assert.equal(url, 'http://localhost:8080/api/admin/llm-models/discovery?provider=openai')
+  })
+
+  it('imports a candidate using the provider and model ID', async () => {
+    const fetchMock = stubFetch({ ...modelBody, id: 'gpt/gpt-6.1-terra', route: 'gpt' })
+
+    const result = await importLlmModel('openai', 'gpt-6.1-terra')
+
+    const [url, init] = fetchMock.mock.calls[0].arguments
+    assert.equal(url, 'http://localhost:8080/api/admin/llm-models/import')
+    assert.equal(init?.method, 'POST')
+    assert.deepEqual(JSON.parse(init?.body as string), { provider: 'openai', id: 'gpt-6.1-terra' })
+    assert.equal(result.route, 'gpt')
   })
 
   it('patches with the id in the body and reads back the row', async () => {
