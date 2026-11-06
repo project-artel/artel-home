@@ -241,63 +241,57 @@ export function PerformanceSketch() {
   )
 }
 
-const CALENDAR = 'M118 16 L246 36 L226 150 L98 124 Z'
+const CALENDAR = 'M98 22 Q96 14 105 14 L227 13 Q235 13 235 21 L236 110 Q236 118 228 118 L106 119 Q98 119 98 111 Z'
 const PERSON = 'M-18 50 Q-16 22 0 20 Q16 22 18 50 Z'
 
 /**
- * 대시보드 이번 빌드 검증 진행이 빌 때(ARTEL-1387): 비스듬히 놓인 큰 달력과, 그 왼쪽 위 · 오른쪽 아래에서 달력을
- * 보며 고민하는 두 사람 — 한 사람은 턱을 괴고, 한 사람은 달력 모서리를 가리킨다.
+ * 대시보드 이번 빌드 검증 진행이 빌 때(ARTEL-1387): 벽에 걸린 큰 달력과, 그 아래에서 달력을 올려다보며 고민하는
+ * 두 사람 — 한 사람은 턱을 괴고, 한 사람은 동그라미 친 날을 가리킨다.
  */
 export function CalendarSketch() {
+  const columns = [1, 2, 3, 4, 5, 6].map((step) => 98 + step * 19.7)
   return (
     <svg aria-hidden="true" className="qh-sketch" fill="none" viewBox="0 0 330 196">
-      {/* 비스듬한 달력 판과 두께 */}
-      <path className="qh-sketch-depth" d={CALENDAR} transform="translate(8 9)" />
-      <path className="qh-sketch-edge" d="M246 36 L254 45 M226 150 L234 159 M98 124 L106 133" />
+      {/* 달력 판과 두께 */}
+      <path className="qh-sketch-depth" d={CALENDAR} transform="translate(9 10)" />
+      <path className="qh-sketch-edge" d="M235 21 L244 32 M236 110 L245 121 M98 111 L107 122" />
       <path className="qh-sketch-face" d={CALENDAR} />
-      {/* 고리 둘, 머리 띠, 달 이름 */}
-      <path d="M152.6 21.4 Q150 12 155 9 M211.4 30.6 Q209 21 214 18" />
-      <path d="M114.6 37.7 L241.4 58.7" />
-      <path className="qh-sketch-soft" d="M164.6 34.6 L195.4 39.6" />
+      {/* 고리 둘과 머리 띠 */}
+      <path d="M132 6 Q128 6 128 12 L128 20 M202 6 Q198 6 198 12 L198 20" />
+      <path d="M99 36 Q166 35 235 35" />
+      <path className="qh-sketch-soft" d="M150 26 Q166 25 182 26" />
       {/* 칸 */}
-      <path
-        className="qh-sketch-soft"
-        d="M132.3 40.6 L116.6 126.1 M150.6 43.7 L134.9 129.8 M168.9 46.7 L153.2 133.5 M187.1 49.7 L171.4 137.2 M205.4 52.7 L189.7 140.9 M223.7 55.8 L208 144.6 M111.5 59.5 L236.5 81.3 M107.5 81.1 L232.5 104.1 M103.5 102.7 L228.5 126.9"
-      />
-      {/* 지난 날은 사선, 고민하는 날은 점선 동그라미, 끝낸 날은 체크 */}
-      <path
-        className="qh-sketch-soft"
-        d="M114.5 55.5 L127.8 44.4 M132.7 58.7 L146.1 47.4 M151 61.8 L164.4 50.5 M169.3 65 L182.7 53.6 M187.6 68.2 L201 56.6 M205.9 71.3 L219.3 59.7 M224.2 74.5 L237.5 62.7 M110.5 77.1 L123.8 66.1 M128.7 80.5 L142.1 69.3 M147 83.8 L160.4 72.6"
-      />
-      <ellipse className="qh-sketch-dash" cx="186" cy="107" rx="12" ry="9" transform="rotate(10 186 107)" />
-      <path d="M195 133 l4 4 l7 -8" />
-      {/* 왼쪽 위 사람: 턱을 괴고 달력을 본다 */}
-      <g transform="translate(62 96)">
+      <path className="qh-sketch-soft" d={`${columns.map((x) => `M${x} 40 L${x} 114`).join(' ')} M100 58 L234 58 M100 77 L234 77 M100 96 L234 96`} />
+      {/* 지난 날은 사선, 고민하는 날은 점선 동그라미 */}
+      <path className="qh-sketch-soft" d="M102 54 l12 -11 M122 54 l12 -11 M141 54 l12 -11 M161 54 l12 -11 M102 73 l12 -11 M122 73 l12 -11" />
+      <ellipse className="qh-sketch-dash" cx="190" cy="86" rx="13" ry="10" />
+      <path d="M209 105 l4 4 l7 -8" />
+      {/* 왼쪽 사람: 턱을 괴고 올려다본다 */}
+      <g transform="translate(58 122) scale(1.15)">
         <circle className="qh-sketch-depth" cx="4" cy="4" r="11" />
         <path className="qh-sketch-depth" d={PERSON} transform="translate(4 4)" />
         <path className="qh-sketch-face" d={PERSON} />
         <circle className="qh-sketch-face" cx="0" cy="0" r="11" />
-        <path className="qh-sketch-soft" d="M3 -3 l0 1 M8 -4 l0 1" />
+        <path className="qh-sketch-soft" d="M2 -3 l0 1 M7 -4 l0 1" />
         <path d="M11 44 Q22 30 10 13" />
         <circle className="qh-sketch-face" cx="9" cy="11" r="3.2" />
       </g>
-      <path d="M72 58 Q72 50 80 50 Q88 50 88 57 Q88 63 80 65 L80 69" />
-      <circle cx="80" cy="75" r="1.2" />
-      <circle className="qh-sketch-soft" cx="72" cy="82" r="2" />
-      {/* 오른쪽 아래 사람: 달력 모서리를 가리킨다 */}
-      <g transform="translate(268 134)">
+      {/* 생각: 물음표와 거품 */}
+      <path d="M80 86 Q80 78 88 78 Q96 78 96 85 Q96 91 88 93 L88 97" />
+      <circle cx="88" cy="103" r="1.2" />
+      <circle className="qh-sketch-soft" cx="78" cy="112" r="2" />
+      {/* 오른쪽 사람: 동그라미 친 날을 가리킨다 */}
+      <g transform="translate(274 120) scale(1.15)">
         <circle className="qh-sketch-depth" cx="4" cy="4" r="11" />
         <path className="qh-sketch-depth" d={PERSON} transform="translate(4 4)" />
         <path className="qh-sketch-face" d={PERSON} />
         <circle className="qh-sketch-face" cx="0" cy="0" r="11" />
-        <path className="qh-sketch-soft" d="M-8 -4 l0 1 M-3 -3 l0 1" />
-        <path d="M-12 30 Q-24 20 -30 6" />
-        <circle className="qh-sketch-face" cx="-31" cy="4" r="3.2" />
+        <path className="qh-sketch-soft" d="M-7 -4 l0 1 M-2 -3 l0 1" />
+        <path d="M-12 30 Q-26 20 -32 4" />
+        <circle className="qh-sketch-face" cx="-33" cy="2" r="3.2" />
       </g>
-      {/* 움직임 선 */}
-      <path className="qh-sketch-soft" d="M24 84 Q36 82 46 82 M120 174 Q140 176 160 179" />
-      <path className="qh-sketch-soft" d="M290 40 l0 10 M285 45 l10 0 M40 30 l0 8 M36 34 l8 0" />
-      <ellipse className="qh-sketch-shade" cx="176" cy="186" rx="130" ry="5" />
+      <path className="qh-sketch-soft" d="M34 40 l0 10 M29 45 l10 0 M304 30 l0 8 M300 34 l8 0" />
+      <ellipse className="qh-sketch-shade" cx="166" cy="182" rx="138" ry="6" />
     </svg>
   )
 }
