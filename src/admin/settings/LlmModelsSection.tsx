@@ -2,16 +2,27 @@ import { useEffect, useId, useState } from 'react'
 import { useI18n } from '../../i18n/useI18n'
 import { adminFormat } from '../shared/format'
 import {
+  discoverLlmModels,
+  importLlmModel,
   listLlmModels,
   replaceLlmModel,
   setLlmModelEnabled,
   type AdminLlmModel,
+  type LlmDiscoveryProvider,
+  type LlmModelCandidate,
   type LlmModelRoute,
 } from './settingsApi'
 import { MODEL_GROUP_LABEL, filterModels, groupModelsByRoute, type ModelGroup } from './modelCatalog'
 import { useAdminFailure } from './useAdminRequest'
 import { InfoHint } from '../../design-system/primitives/InfoHint'
 import { CollapseIcon } from '../../design-system/primitives/CollapseIcon'
+
+const PROVIDERS: readonly LlmDiscoveryProvider[] = ['openrouter', 'openai', 'claude']
+const PROVIDER_LABEL = {
+  openrouter: MODEL_GROUP_LABEL.openrouter,
+  openai: MODEL_GROUP_LABEL.gpt,
+  claude: MODEL_GROUP_LABEL.claude,
+} as const
 
 export function ModelRow({
   model,
@@ -98,15 +109,20 @@ function ModelGroupBlock({
   )
 }
 
-/** route 별로 묶은 모델 목록. 행마다 switch 하나이고, 여기서 바꿀 수 있는 값은 `enabled` 뿐이다. */
 export function LlmModelsSection() {
   const { t, locale } = useI18n()
   const [models, setModels] = useState<AdminLlmModel[] | null>(null)
   const [pendingIds, setPendingIds] = useState<ReadonlySet<string>>(new Set())
   const [query, setQuery] = useState('')
   const [expandedRoutes, setExpandedRoutes] = useState<ReadonlySet<LlmModelRoute>>(new Set())
+  const [provider, setProvider] = useState<LlmDiscoveryProvider>('openrouter')
+  const [candidates, setCandidates] = useState<LlmModelCandidate[] | null>(null)
+  const [selectedId, setSelectedId] = useState('')
+  const [importStatus, setImportStatus] = useState<'idle' | 'loading' | 'adding'>('idle')
   const { error, setError, fail } = useAdminFailure()
   const filterId = useId()
+  const providerId = useId()
+  const candidateId = useId()
 
   useEffect(() => {
     const controller = new AbortController()
@@ -146,7 +162,43 @@ export function LlmModelsSection() {
     })
   }
 
+  async function discover() {
+    setImportStatus('loading')
+    setError(null)
+    setCandidates(null)
+    setSelectedId('')
+    try {
+      setCandidates(await discoverLlmModels(provider))
+    } catch (cause) {
+      fail(cause)
+    } finally {
+      setImportStatus('idle')
+    }
+  }
+
+  async function add() {
+    if (!selectedId) return
+    setImportStatus('adding')
+    setError(null)
+    try {
+      const added = await importLlmModel(provider, selectedId)
+      setModels((current) => {
+        if (current === null) return [added]
+        return current.some((model) => model.id === added.id) ? replaceLlmModel(current, added) : [...current, added]
+      })
+      setCandidates((current) => current?.filter((model) => model.id !== selectedId) ?? null)
+      setSelectedId('')
+      setQuery('')
+      setExpanded(added.route, true)
+    } catch (cause) {
+      fail(cause)
+    } finally {
+      setImportStatus('idle')
+    }
+  }
+
   const format = adminFormat(locale)
+  const copy = t.adminSettings.modelImport
   const filtering = query.trim() !== ''
   const groups = models === null ? [] : groupModelsByRoute(filterModels(models, query))
   const enabledTotal = models?.filter((model) => model.enabled).length ?? 0
@@ -164,6 +216,74 @@ export function LlmModelsSection() {
           </span>
         )}
       </div>
+      {models !== null && (
+        <div className="adm-form">
+          <span className="adm-field">
+            <label className="field__label" htmlFor={providerId}>
+              {copy.provider}
+            </label>
+            <select
+              id={providerId}
+              className="control adm-input"
+              value={provider}
+              disabled={importStatus !== 'idle'}
+              onChange={(event) => {
+                const next = PROVIDERS.find((value) => value === event.target.value)
+                if (next === undefined) return
+                setProvider(next)
+                setCandidates(null)
+                setSelectedId('')
+                setError(null)
+              }}
+            >
+              {PROVIDERS.map((value) => (
+                <option key={value} value={value}>
+                  {PROVIDER_LABEL[value]}
+                </option>
+              ))}
+            </select>
+          </span>
+          <button type="button" className="control" disabled={importStatus !== 'idle'} onClick={() => void discover()}>
+            {importStatus === 'loading' ? copy.loading : copy.discover}
+          </button>
+          {candidates !== null && candidates.length > 0 && (
+            <>
+              <span className="adm-field adm-field--wide adm-model-candidates">
+                <label className="field__label" htmlFor={candidateId}>
+                  {copy.candidate}
+                </label>
+                <select
+                  id={candidateId}
+                  className="control adm-input"
+                  value={selectedId}
+                  disabled={importStatus !== 'idle'}
+                  onChange={(event) => setSelectedId(event.target.value)}
+                >
+                  <option value="">{copy.select}</option>
+                  {candidates.map((model) => (
+                    <option key={model.id} value={model.id}>
+                      {model.label === model.id ? model.id : `${model.label} (${model.id})`}
+                    </option>
+                  ))}
+                </select>
+              </span>
+              <button
+                type="button"
+                className="control control--action"
+                disabled={importStatus !== 'idle' || !selectedId}
+                onClick={() => void add()}
+              >
+                {importStatus === 'adding' ? copy.adding : copy.add}
+              </button>
+            </>
+          )}
+          {candidates?.length === 0 && (
+            <span className="section__note" role="status">
+              {copy.empty}
+            </span>
+          )}
+        </div>
+      )}
       {error !== null && (
         <p className="notice notice--critical adm-section-notice" role="alert">
           {error}

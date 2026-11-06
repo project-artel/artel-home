@@ -244,10 +244,15 @@ export async function checkLlmModels(): Promise<LlmKeyCheck> {
 }
 
 export type LlmModelRoute = 'openrouter' | 'bedrock' | 'claude' | 'gpt'
+export type LlmDiscoveryProvider = 'openrouter' | 'openai' | 'claude'
+
+export interface LlmModelCandidate {
+  id: string
+  label: string
+}
 
 const LLM_MODEL_ROUTES: readonly LlmModelRoute[] = ['openrouter', 'bedrock', 'claude', 'gpt']
 
-/** One row of the model catalog. Only `enabled` can be changed from the admin page. */
 export interface AdminLlmModel {
   id: string
   label: string
@@ -285,6 +290,26 @@ export async function listLlmModels(signal?: AbortSignal): Promise<AdminLlmModel
   const body = await readJson(await apiFetch('/api/admin/llm-models', { signal }))
   const items = Array.isArray(body) ? body : asRecord(body).items
   return Array.isArray(items) ? items.map(parseAdminLlmModel) : []
+}
+
+export async function discoverLlmModels(provider: LlmDiscoveryProvider): Promise<LlmModelCandidate[]> {
+  const query = new URLSearchParams({ provider })
+  const body = await readJson(await apiFetch(`/api/admin/llm-models/discovery?${query}`))
+  if (!Array.isArray(body)) throw new Error('Invalid model discovery response')
+  return body.flatMap((value) => {
+    const row = asRecord(value)
+    const id = asNullableString(row.id)
+    return id ? [{ id, label: asNullableString(row.label) ?? id }] : []
+  })
+}
+
+export async function importLlmModel(provider: LlmDiscoveryProvider, id: string): Promise<AdminLlmModel> {
+  const response = await apiFetch('/api/admin/llm-models/import', {
+    method: 'POST',
+    headers: JSON_HEADERS,
+    body: JSON.stringify({ provider, id }),
+  })
+  return parseAdminLlmModel(await readJson(response))
 }
 
 /** The id goes in the body because model ids contain `/` and `:`. Answers the updated row. */
