@@ -19,6 +19,8 @@ export const WORKSPACE_SECTIONS = [
   { id: 'documents', path: 'documents', group: 'data' },
   { id: 'gameBuilds', path: 'game-builds', group: 'data' },
   { id: 'gameIdentities', path: 'game-identities', group: 'data' },
+  // 게임 사전(ARTEL-1396): 용어집(상태 이름 · 화면 이동)을 게임 변수와 맞추는 화면. 변수 메타데이터와는 따로다.
+  { id: 'glossary', path: 'game-dictionary', group: 'data' },
   { id: 'knowledge', path: 'knowledge', group: 'data' },
   { id: 'setup', path: 'setup', group: 'management' },
   // "사용량" 은 "API 관리" 가 되었다(ARTEL-1379). 옛 주소 `usage` 는 App 라우트가 여기로 넘긴다.

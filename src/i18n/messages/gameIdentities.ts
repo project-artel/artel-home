@@ -1,7 +1,7 @@
 import type { Localized } from '../messages'
 
 export const gameIdentitiesEn = {
-  title: 'Game variables', add: 'Register', edit: 'Edit', remove: 'Delete', restore: 'Register again',
+  title: 'Variable metadata', add: 'Register', edit: 'Edit', remove: 'Delete', restore: 'Register again',
   save: 'Save', cancel: 'Cancel', retry: 'Retry', loading: 'Loading variable metadata…',
   empty: 'No variable metadata is registered for this build.', failed: 'Variable metadata could not be loaded.',
   saveFailed: 'The change could not be saved. Check the fields and try again.',
@@ -23,7 +23,8 @@ export const gameIdentitiesEn = {
   dictionary: {
     intro: 'The names Test Cases and QA runs use — states and screen moves — matched to the variables the game reports through the SDK. A field you fix here is yours: AI cleanup and MCP will not overwrite it.',
     tabsLabel: 'Game dictionary',
-    tabs: { states: 'State names', exits: 'Screen moves', variables: 'Game variables' },
+    tabs: { states: 'State names', exits: 'Screen moves' },
+    openVariables: 'Open variable metadata ›',
     results: {
       states: 'State names',
       statesSub: (n: number) => `${n} used by Test Cases`,
@@ -46,7 +47,7 @@ export const gameIdentitiesEn = {
 } as const
 
 export const gameIdentitiesKo: Localized<typeof gameIdentitiesEn> = {
-  title: '게임 변수', add: '등록', edit: '수정', remove: '삭제', restore: '다시 등록',
+  title: '변수 메타데이터', add: '등록', edit: '수정', remove: '삭제', restore: '다시 등록',
   save: '저장', cancel: '취소', retry: '다시 시도', loading: '변수 메타데이터를 불러오는 중…',
   empty: '이 빌드에 등록된 변수 메타데이터가 없습니다.', failed: '변수 메타데이터를 불러오지 못했습니다.',
   saveFailed: '변경 사항을 저장하지 못했습니다. 입력 내용을 확인하고 다시 시도해 주세요.',
@@ -68,7 +69,8 @@ export const gameIdentitiesKo: Localized<typeof gameIdentitiesEn> = {
   dictionary: {
     intro: 'TC 와 QA 실행에서 쓰는 이름(상태 · 화면 이동)을 모아, 게임이 SDK 로 알려 준 변수와 맞춥니다. 여기서 고친 칸은 사람이 정한 것이 되어 AI 정리와 MCP 가 덮지 않습니다.',
     tabsLabel: '게임 사전',
-    tabs: { states: '상태 이름', exits: '화면 이동', variables: '게임 변수' },
+    tabs: { states: '상태 이름', exits: '화면 이동' },
+    openVariables: '변수 메타데이터에서 보기 ›',
     results: {
       states: '상태 이름',
       statesSub: (n: number) => `TC 가 쓰는 이름 ${n}`,
