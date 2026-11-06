@@ -14,7 +14,7 @@ import { useWorkspace } from '../../projects/workspace/workspaceContext'
 import { folderPath } from '../../testRuns/runLibrary'
 import { listRunFolders, type RunFolder } from '../../testRuns/testRunFolders'
 import { ChevronDownIcon, PencilIcon } from '../qaModelIcons'
-import { withEngine, type QaArchSelection } from '../qaArch'
+import type { QaArchSelection } from '../qaArch'
 import { offeredQaModels } from '../qaModelGroups'
 import { readLastArch } from '../qaStartChoices'
 import { qaModelOptionKey, type QaModel } from '../qaTypes'
@@ -131,13 +131,11 @@ function QaLaunchReady() {
    * 밀어 넣으면 목록이 늦게 도착할 때마다 덮어쓰기 경쟁이 생긴다.
    */
   // 다른 화면이 런을 골라 보낼 수 있다(`?run=`, ARTEL-1164 대시보드의 Free 실행).
-  // `&engine=agent` 가 오면 엔진도 맞춰 둔다. 고른 뒤에는 사용자가 바꾼 것이 이긴다.
   const [searchParams] = useSearchParams()
   const askedRun = searchParams.get('run')
-  const askedAgent = searchParams.get('engine') === 'agent'
   const [choice, setChoice] = useState<Choice>(() => (askedRun === null ? {} : { runId: askedRun }))
   // agent 구조는 서버의 실행 기록에 없으므로(ARTEL-1091) 마지막으로 시작한 값을 이 브라우저에서 읽는다.
-  const [arch, setArch] = useState<QaArchSelection>(() => (askedAgent ? withEngine(readLastArch(), 'agent') : readLastArch()))
+  const [arch, setArch] = useState<QaArchSelection>(() => readLastArch())
 
   const [pickerOpen, setPickerOpen] = useState(false)
   const pickerAnchor = useRef<HTMLDivElement>(null)

@@ -4,13 +4,10 @@ import {
   EMPTY_ARCH_SELECTION,
   QA_ARCH_AXES,
   QA_ARCH_LABEL_MAX_LENGTH,
-  QA_ENGINES,
   archEngine,
   changedKnobCount,
   suggestArchLabel,
-  withEngine,
   withKnob,
-  type QaEngine,
   type QaArchAxis,
   type QaArchKnobKey,
   type QaArchSelection,
@@ -25,9 +22,9 @@ import {
  * 않는다 — 보낼 때 `withoutVisionKnobs` 가 걷어 내므로, 모델을 되돌리면 고른 값이 그대로 산다.
  * 그래서 `selection` 은 걷어 낸 뒤의 값을 받는다. 화면이 보내는 것과 같은 것을 보여 주기 위해서다.
  *
- * 첫 줄은 엔진(ARTEL-1119)이다. `planner_executer` 를 고르면 그 아래 축 전체를 `fieldset disabled` 로
- * 잠근다. 아래 knob 은 모두 `agent` 엔진의 것이라 그 엔진은 읽지 않고, 요청에도 실리지 않는다. 값은
- * 지우지 않는다 — vision 잠금과 같은 이유로, 기본 엔진으로 돌아가면 고른 값이 그대로 산다.
+ * 엔진(ARTEL-1119)은 패널에서 고른다. `planner_executer` 면 축 전체를 `fieldset disabled` 로 잠근다.
+ * knob 은 모두 `agent` 엔진의 것이라 그 엔진은 읽지 않고, 요청에도 실리지 않는다. 값은 지우지 않는다 —
+ * vision 잠금과 같은 이유로, `agent` 로 돌아가면 고른 값이 그대로 산다.
  */
 export function ArchSettings({
   selection,
@@ -41,32 +38,12 @@ export function ArchSettings({
   const { t } = useI18n()
   const advanced = t.qa.panel.advanced
   const labelId = useId()
-  const engineId = useId()
   const changed = changedKnobCount(selection)
-  const engine = archEngine(selection)
-  const engineLocked = engine === 'planner_executer'
+  const engineLocked = archEngine(selection) === 'planner_executer'
 
   return (
     <div className="qa-advanced">
       <p className="qa-advanced-hint">{advanced.hint}</p>
-      {/* 엔진은 "서버 기본값" 칸이 없다. 서버 기본이 `agent` 이고, 그것을 "기본" 으로 보여 준다. 요청에는 `planner_executer` 일 때만 실린다. */}
-      <div className="qa-advanced-grid">
-        <label className="qa-advanced-field" htmlFor={engineId}>
-          <code translate="no">engine</code>
-          <select
-            id={engineId}
-            onChange={(event) => onChange(withEngine(selection, event.target.value as QaEngine))}
-            value={engine}
-          >
-            {QA_ENGINES.map((value) => (
-              <option key={value} value={value}>
-                {advanced.engines[value]}
-              </option>
-            ))}
-          </select>
-          <small>{advanced.engineHint}</small>
-        </label>
-      </div>
       {/* 버전 불일치 안내와 같은 모양. amber 글자만으로는 cream 배경에서 대비가 모자라 `!` 표식을 붙인다. */}
       {engineLocked && (
         <p className="qa-version-mismatch qa-advanced-locked" role="status">

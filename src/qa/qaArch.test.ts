@@ -118,10 +118,10 @@ test('label 점검은 planner_executer 에서 건너뛴다', () => {
   assert.equal(archLabelMissing({ label: '', engine: 'agent', macros: 'off' }), true)
 })
 
-test('changedSettingCount 는 planner_executer 면 엔진 하나만 센다', () => {
+test('changedSettingCount 는 엔진을 세지 않고, planner_executer 면 남겨 둔 knob 도 세지 않는다', () => {
   assert.equal(changedSettingCount({ label: '' }), 0)
-  assert.equal(changedSettingCount({ label: '', engine: 'planner_executer' }), 1)
-  assert.equal(changedSettingCount({ label: '', engine: 'planner_executer', macros: 'off', skills: 'off' }), 1)
+  assert.equal(changedSettingCount({ label: '', engine: 'planner_executer' }), 0)
+  assert.equal(changedSettingCount({ label: '', engine: 'planner_executer', macros: 'off', skills: 'off' }), 0)
   assert.equal(changedSettingCount({ label: 'a', macros: 'off', skills: 'off' }), 2)
 })
 
