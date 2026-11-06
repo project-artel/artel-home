@@ -169,11 +169,47 @@ function VerificationBody({
               </span>
             </button>
             <span className="db-bv-meta">{m.since(uploaded, days.length)}</span>
-            <span className="db-bv-eta">
-              {summary.pending === 0 ? m.allJudged : finish === null ? m.etaUnknown : m.eta(finish.days, finish.perDay.toFixed(1))}
-            </span>
           </div>
-          <p className="db-bv-headline">{m.headline[readiness.level](readiness.met, readiness.gates.length, summary.pending)}</p>
+          <ul className="db-bv-results">
+            <li className={readiness.met === readiness.gates.length ? 'db-bv-result is-good' : 'db-bv-result is-bad'}>
+              <ResultIcon name="checklist" />
+              <span className="db-bv-result-text">
+                <span className="db-bv-result-label">{m.results.criteria}</span>
+                <span className="db-bv-result-value">
+                  <b>{readiness.met}</b>/{readiness.gates.length}
+                  <span aria-hidden="true" className="db-bv-squares">
+                    {readiness.gates.map((gate) => (
+                      <i className={gate.met ? 'is-met' : undefined} key={gate.key} title={m.release.gates[gate.key]} />
+                    ))}
+                  </span>
+                </span>
+                <span className="db-bv-result-rule">{readiness.met === readiness.gates.length ? m.results.allMet : m.results.missed(readiness.gates.filter((gate) => !gate.met).map((gate) => m.release.gates[gate.key]).join(' · '))}</span>
+              </span>
+            </li>
+            <li className={summary.pending === 0 ? 'db-bv-result is-good' : 'db-bv-result is-bad'}>
+              <ResultIcon name="hourglass" />
+              <span className="db-bv-result-text">
+                <span className="db-bv-result-label">{m.results.pending}</span>
+                <span className="db-bv-result-value">
+                  <b>{summary.pending}</b>
+                  {m.release.countUnit}
+                </span>
+                <span className="db-bv-result-rule">{m.results.pendingOf(summary.total)}</span>
+              </span>
+            </li>
+            <li className="db-bv-result">
+              <ResultIcon name="calendar" />
+              <span className="db-bv-result-text">
+                <span className="db-bv-result-label">{m.results.finish}</span>
+                <span className="db-bv-result-value">
+                  <b>{summary.pending === 0 ? m.results.done : finish === null ? '—' : m.results.days(finish.days)}</b>
+                </span>
+                <span className="db-bv-result-rule">
+                  {summary.pending === 0 ? m.allJudged : finish === null ? m.etaUnknown : m.results.pace(finish.perDay.toFixed(1))}
+                </span>
+              </span>
+            </li>
+          </ul>
           <div className="db-bv-progress">
             <span aria-hidden="true" className="db-bv-bar">
               {STATES.map((state) => (
@@ -229,6 +265,30 @@ function VerificationBody({
         </Link>
       </aside>
     </>
+  )
+}
+
+/** Tabler Icons(MIT) outline — 시나리오 스튜디오 아이콘(`studioIcons`)과 같은 세트. */
+const RESULT_ICONS = {
+  checklist: ['M3.5 5.5l1.5 1.5l2.5 -2.5', 'M3.5 11.5l1.5 1.5l2.5 -2.5', 'M3.5 17.5l1.5 1.5l2.5 -2.5', 'M11 6l9 0', 'M11 12l9 0', 'M11 18l9 0'],
+  hourglass: [
+    'M6.5 7h11',
+    'M6.5 17h11',
+    'M6 20v-2a6 6 0 1 1 12 0v2a1 1 0 0 1 -1 1h-10a1 1 0 0 1 -1 -1z',
+    'M6 4v2a6 6 0 1 0 12 0v-2a1 1 0 0 0 -1 -1h-10a1 1 0 0 0 -1 1z',
+  ],
+  calendar: ['M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12z', 'M16 3v4', 'M8 3v4', 'M4 11h16', 'M8 15h2v2h-2z'],
+}
+
+function ResultIcon({ name }: { name: keyof typeof RESULT_ICONS }) {
+  return (
+    <span aria-hidden="true" className="db-bv-result-icon">
+      <svg fill="none" height="18" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" viewBox="0 0 24 24" width="18">
+        {RESULT_ICONS[name].map((d) => (
+          <path d={d} key={d} />
+        ))}
+      </svg>
+    </span>
   )
 }
 
