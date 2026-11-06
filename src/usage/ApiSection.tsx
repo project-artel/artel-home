@@ -200,14 +200,18 @@ function SpendDetail({ read }: { read: ProjectUsageRead }) {
   return (
     <>
       <div className="api-spend-overview">
-        <div className="usage-overview-grass">
-          <UsageGrass grid={grid} zone={usage.zone} />
-        </div>
-        <div className="api-spend-side">
+        <div className="api-spend-card">
+          <span className="api-spend-card-title">{t.usage.api.shareTitle}</span>
           <FeatureShare byService={usage.byService} total={usage.total} />
-          <SpendFigures grid={grid} today={today} total={usage.total} />
+        </div>
+        <div className="api-spend-card api-spend-card--grass">
+          <span className="api-spend-card-title">{t.usage.api.grassTitle}</span>
+          <div className="usage-overview-grass">
+            <UsageGrass grid={grid} zone={usage.zone} />
+          </div>
         </div>
       </div>
+      <SpendFigures grid={grid} today={today} total={usage.total} />
       <div className="usage-breakdowns">
         <SpendTable
           axis={u.featureAxis}

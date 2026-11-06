@@ -13829,14 +13829,22 @@ col.vimp-c-scene{ width:18% } col.vimp-c-verdict{ width:16% }
 .api-spend-window { color: var(--color-text-muted); font-size: 12px; }
 .api-spend-open { margin-left: auto; color: var(--color-brand-accent); font-size: 12px; font-weight: 600; text-decoration: none; }
 .api-spend-open:hover { text-decoration: underline; text-underline-offset: 3px; }
-.api-spend-overview { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-5); align-items: center; }
-.api-spend-overview .usage-overview-grass, .api-spend-overview .grass-plot { overflow: visible; }
-.api-spend-side { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
-.api-spend-side .api-share-body { padding: 0; }
-.api-spend-side .api-donut { width: 128px; height: 128px; }
+.api-spend-overview { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); align-items: stretch; }
+.api-spend-card { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; padding: var(--space-4) var(--space-5); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); background: var(--color-bg-raised); }
+.api-spend-card-title { color: var(--color-text-secondary); font-size: 12px; font-weight: 600; }
+.api-spend-card .api-share-body { flex: 1; padding: 0; gap: var(--space-5); }
+.api-spend-card .api-donut { width: 132px; height: 132px; }
+.api-spend-card .api-share-legend li { grid-template-columns: 10px minmax(0, 1fr) 52px 64px; min-height: 32px; }
+.api-spend-card--grass .usage-overview-grass { flex: 1; display: flex; align-items: center; justify-content: center; overflow: visible; }
+.api-spend-card--grass .grass-plot { overflow: visible; }
+.api-spend-card--grass .grass-cell { width: 18px; height: 18px; border-radius: 4px; }
+.api-spend-card--grass .grass-grid { border-spacing: 4px; margin: -4px; }
+.api-spend-card--grass .grass-weekdays { grid-template-rows: repeat(7, 18px); gap: 4px; }
+.api-spend-card--grass .grass-weekday { line-height: 18px; }
+.api-spend-detail .api-figures { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .api-spend-detail .usage-breakdowns { grid-template-columns: minmax(0, 1fr); }
 .api-spend-detail .usage-breakdowns > .panel { margin: 0; }
-@media (max-width: 1280px) { .api-spend-overview { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 1280px) { .api-spend-overview { grid-template-columns: minmax(0, 1fr); } .api-spend-detail .api-figures { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 960px) { .api-spend-body { grid-template-columns: minmax(0, 1fr); } .api-spend-detail { padding-left: 0; border-left: 0; } }
 
 /* 계정 설정은 프로젝트 설정과 같은 바탕을 쓴다(ARTEL-1393). 바깥 화면의 모눈 바탕은 프로젝트 목록 같은 넓은 화면용이다. */
