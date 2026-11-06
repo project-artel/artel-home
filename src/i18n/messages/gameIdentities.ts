@@ -27,7 +27,7 @@ export const gameIdentitiesEn = {
     results: {
       states: 'State names',
       statesSub: (n: number) => `${n} used by Test Cases`,
-      linked: 'Linked to a game variable',
+      linked: 'Knowledge matched',
       linkedSub: (build: string, n: number) => `${build} reports ${n} variables`,
       flagged: 'Needs a check',
       flaggedSub: 'no meaning, unknown or mismatched start value',
@@ -72,7 +72,7 @@ export const gameIdentitiesKo: Localized<typeof gameIdentitiesEn> = {
     results: {
       states: '상태 이름',
       statesSub: (n: number) => `TC 가 쓰는 이름 ${n}`,
-      linked: '게임 변수와 이음',
+      linked: '지식 매칭',
       linkedSub: (build: string, n: number) => `${build} 가 알려 준 변수 ${n}`,
       flagged: '확인 필요',
       flaggedSub: '설명 없음 · 시작 값 모름 · 종류와 안 맞음',
