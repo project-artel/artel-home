@@ -20,6 +20,7 @@ import { performanceEn, performanceKo } from './messages/performance'
 import { projectAgentEn, projectAgentKo } from './messages/projectAgent'
 import { projectsEn, projectsKo } from './messages/projects'
 import { qaEn, qaKo } from './messages/qa'
+import { releaseEn, releaseKo } from './messages/release'
 import { scenariosEn, scenariosKo } from './messages/scenarios'
 import { testCasesEn, testCasesKo } from './messages/testCases'
 import { telemetryEn, telemetryKo } from './messages/telemetry'
@@ -62,6 +63,7 @@ export const messages = {
     projectAgent: projectAgentEn,
     projects: projectsEn,
     qa: qaEn,
+    release: releaseEn,
     scenarios: scenariosEn,
     testCases: testCasesEn,
     telemetry: telemetryEn,
@@ -91,6 +93,7 @@ export const messages = {
     projectAgent: projectAgentKo,
     projects: projectsKo,
     qa: qaKo,
+    release: releaseKo,
     scenarios: scenariosKo,
     testCases: testCasesKo,
     telemetry: telemetryKo,

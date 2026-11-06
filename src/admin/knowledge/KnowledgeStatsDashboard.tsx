@@ -109,7 +109,7 @@ export function KnowledgeStatsDashboard() {
 
   return (
     <div className="shell">
-      <header className="topbar">
+      <header className="admin-toolbar">
         <ProjectPicker
           projects={projects}
           value={projectId}
@@ -122,8 +122,8 @@ export function KnowledgeStatsDashboard() {
           allLabel={t.admin.picker.all}
         />
 
-        <span className="field">
-          <label className="field__label" htmlFor={fromFieldId}>
+        <span className="admin-field">
+          <label className="admin-field__label" htmlFor={fromFieldId}>
             {strings.period}
           </label>
           <input
@@ -142,7 +142,7 @@ export function KnowledgeStatsDashboard() {
               }
             }}
           />
-          <span className="field__label" aria-hidden="true">
+          <span className="admin-field__label" aria-hidden="true">
             –
           </span>
           <input
@@ -166,7 +166,7 @@ export function KnowledgeStatsDashboard() {
 
       </header>
 
-      <main className="main">
+      <div className="main">
         {error && (
           <div className="notice notice--critical" role="alert">
             <p className="notice__title">{strings.loadFailedTitle}</p>
@@ -219,7 +219,7 @@ export function KnowledgeStatsDashboard() {
         )}
 
         {data === null && loading && <div className="notice">{strings.loading}</div>}
-      </main>
+      </div>
     </div>
   )
 }

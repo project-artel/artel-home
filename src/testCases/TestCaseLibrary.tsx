@@ -85,7 +85,7 @@ import {
 import { ContentReviewBadge } from '../qa/evaluation/ContentReviewPanel'
 import { useContentReviews } from '../qa/evaluation/useContentReviews'
 import { evaluationCopy } from '../qa/evaluation/evaluationCopy'
-import { CASE_KINDS, VERIFICATION_STATUSES, type TestCase } from './testCaseTypes'
+import { CASE_KINDS, VERIFICATION_STATUSES, type TestCase, type VerificationStatus } from './testCaseTypes'
 import { useFolderHistory } from './useFolderHistory'
 import { useFolderItems } from './useFolderItems'
 import { useTestCaseFolders } from './useTestCaseFolders'
@@ -297,7 +297,11 @@ export function TestCaseLibrary({
   }, [projectId])
   const requesterName = (testCase: TestCase): string | null =>
     members.find((member) => member.userId === testCase.reviewRequestedBy)?.displayName ?? null
-  const [filters, setFilters] = useState<TestCaseFilters>(NO_FILTERS)
+  // 대시보드의 "실패한 Test Case 보기" 같은 링크는 `?status=` 로 판정 거르기를 켠 채 연다(ARTEL-1387).
+  const [filters, setFilters] = useState<TestCaseFilters>(() => {
+    const status = searchParams.get('status')
+    return VERIFICATION_STATUSES.includes(status as VerificationStatus) ? { ...NO_FILTERS, status: status as VerificationStatus } : NO_FILTERS
+  })
   const [sort, setSort] = useState<TestCaseSort>('FAILING_FIRST')
   const selectedId = searchParams.get('case')
   const setSelectedId = useCallback((id: string | null) => {

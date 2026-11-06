@@ -1,21 +1,26 @@
 import { buildDisplayName } from '../buildEnvironment'
 import { useMemo, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import type { dashboardEn } from '../../i18n/messages/dashboard'
 import { useI18n } from '../../i18n/useI18n'
 import { ISSUE_SEVERITIES, type Issue } from '../../issues/issueTypes'
 import { SeverityTag } from '../../issues/SeverityTag'
+import type { QaRunSummary } from '../../qa/launch/qaLaunchApi'
 import { qaRunPath } from '../../qa/qaTypes'
 import type { TestCaseCoverage } from '../../testCases/testCaseTypes'
 import { versionName } from '../../testCases/testCaseVersions'
+import { VersionTreeDialog } from '../../testCases/VersionTreeDialog'
 import { formatDate } from '../formatters'
 import { versionBuilds } from '../gameBuilds'
-import { CostChart, Meter, OutcomeStrip, Spark, StackBar, WeekBars } from './dashboard/DashboardCharts'
-import { compareVersions, costByRun, countByDay, countByWeek, formatTokens, scenarioHistories, shortDay, weekStarts } from './dashboard/dashboardModel'
+import { CostChart, LiveGlyph, Meter, OutcomeStrip, Spark, StackBar, WeekBars } from './dashboard/DashboardCharts'
+import { ChangedCasesDialog } from './dashboard/ChangedCasesDialog'
+import { compareVersions, costByRun, countByDay, countByWeek, formatTokens, scenarioHistories, shortDay, weekStarts, type StatusCounts } from './dashboard/dashboardModel'
 import { createFreeRun } from './dashboard/freeRun'
 import { FreeRunPicker } from './dashboard/FreeRunPicker'
 import { pickItems } from './dashboard/freeRunCases'
 import { DashboardReliability } from './dashboard/DashboardReliability'
-import { useDashboardData } from './dashboard/useDashboardData'
+import { useDashboardData, useVersionPair } from './dashboard/useDashboardData'
+import { BuildVerification } from './dashboard/BuildVerification'
 import './dashboard/dashboard.css'
 import { sectionHref } from './sections'
 import { useWorkspace } from './workspaceContext'
@@ -23,14 +28,18 @@ import { useWorkspace } from './workspaceContext'
 const PERIODS = [7, 30, 90] as const
 type Period = (typeof PERIODS)[number]
 const HISTORY_ROWS = 8
+const LIVE = new Set(['RUNNING', 'STARTING', 'PENDING'])
 /** 빌드 선 색. 같은 순서로 돌려 쓴다 — 빌드 이름으로 색을 정하면 새 빌드마다 색이 바뀐다. */
 const SERIES = ['series-1', 'series-2', 'series-3', 'series-4'] as const
 
 /**
- * 프로젝트 대시보드(ARTEL-1164). 돌아온 사람이 먼저 묻는 세 가지 — 검증할 게 몇 개 남았나, 문제가 몇 개인가, 이전 버전보다
- * 나아졌나 — 를 위에 두고, 그 아래 QA 히스토리 · 실행마다 비용 · 이슈 흐름 · 시나리오별 최근 결과, 맨 밑에 게임 정보를 둔다.
+ * 프로젝트 대시보드(ARTEL-1164). 숫자 칸 아래에 이번 빌드 검증 진행과 출시 판단을 크게 두고(ARTEL-1387), 돌아온 사람이 먼저 묻는 세 가지 —
+ * 검증할 게 몇 개 남았나, 문제가 몇 개인가, 이전 버전보다 나아졌나 — 를 그 아래에 둔다. 세 칸은 케이스 라이브러리 칸에서
+ * 고른 버전(처음엔 최신)을 따른다. 그 아래 진행 중인 QA · 끝난 QA · 실행마다 비용 · 이슈 흐름 · 시나리오별 최근 결과 ·
+ * QA agent 신뢰도, 맨 밑에 게임 정보를 둔다.
  * Sentry 프로젝트 화면(숫자 카드 + 추세)과 BrowserStack Testing Trends(빌드 요약 · 테스트마다 최근 결과 칸)를 참고했다.
- * 서버는 늘리지 않았다 — 칸마다 이미 있는 API 를 읽고(`useDashboardData`) 숫자는 `dashboardModel` 이 접는다.
+ * 가운데 칸은 빌드 검증 진행 API(ARTEL-1386)를 읽고, 나머지 칸은 이미 있는 API 를 읽어(`useDashboardData`) 숫자를
+ * `dashboardModel` 이 접는다.
  */
 export function DashboardSection() {
   const { t } = useI18n()
@@ -40,14 +49,22 @@ export function DashboardSection() {
   const [period, setPeriod] = useState<Period>(30)
   const [hidden, setHidden] = useState<ReadonlySet<string>>(new Set())
   const [freeRunOpen, setFreeRunOpen] = useState(false)
+  const [versionId, setVersionId] = useState<string | null>(null)
+  const [versionPickerOpen, setVersionPickerOpen] = useState(false)
+  const [changesOpen, setChangesOpen] = useState(false)
   const data = useDashboardData(projectId, 0)
+  const versions = useVersionPair(projectId, data.library, versionId)
   const settled = extrasStatus === 'ready'
   const [now] = useState(() => new Date())
-  const since = useMemo(() => new Date(now.getTime() - period * 86_400_000).toISOString(), [now, period])
+  const sinceDate = useMemo(() => new Date(now.getTime() - period * 86_400_000), [now, period])
+  const since = sinceDate.toISOString()
 
   const qaRuns = useMemo(() => (data.qaRuns.status === 'ready' ? data.qaRuns.value : []), [data.qaRuns])
   const inPeriod = qaRuns.filter((run) => run.startedAt >= since)
-  const pair = data.versions.status === 'ready' ? data.versions.value : null
+  // 진행 중인 실행은 기간과 상관없이 따로 보이고, QA 실행 수 · 최근 QA 는 끝난 실행만 센다.
+  const liveRuns = qaRuns.filter((run) => LIVE.has(run.status))
+  const finished = inPeriod.filter((run) => !LIVE.has(run.status))
+  const pair = versions.status === 'ready' ? versions.value : null
   const comparison = pair === null ? null : compareVersions(pair.rows, pair.previous !== null)
   const currentName = pair ? versionName(pair.current) : ''
   const previousName = pair?.previous ? versionName(pair.previous) : ''
@@ -59,7 +76,7 @@ export function DashboardSection() {
   const allIssues = data.issues.status === 'ready' ? data.issues.value : openIssues
   const issuesPerWeek = countByWeek(allIssues.map((issue) => issue.reportedAt), weeks)
   const resolvedPerWeek = countByWeek(allIssues.map((issue) => issue.resolvedAt), weeks)
-  const failedRuns = inPeriod.filter((run) => run.status === 'FAILED').length
+  const failedRuns = finished.filter((run) => run.status === 'FAILED').length
   const urgent = openIssues.filter((issue) => issue.severity === 'BLOCKER' || issue.severity === 'CRITICAL')
 
   // 비용
@@ -114,15 +131,21 @@ export function DashboardSection() {
       </div>
 
       <div className="db-kpis">
-        <Kpi delta={m.kpi.thisWeek(runsPerWeek[7])} href={sectionHref(projectId, 'test-runs')} label={m.kpi.testRuns} value={settled ? String(runs.length) : '—'}>
-          <Spark tone="default" values={runsPerWeek} />
+        <Kpi
+          delta={liveRuns.length === 0 ? m.kpi.liveNone : liveRuns.slice(0, 3).map((run) => `#${run.id}`).join(' · ')}
+          href={sectionHref(projectId, 'qa')}
+          label={m.kpi.live}
+          tone={liveRuns.length > 0 ? 'reasoning' : undefined}
+          value={data.qaRuns.status === 'ready' ? String(liveRuns.length) : '—'}
+        >
+          <LiveGlyph label={(id) => `#${id}`} runs={liveRuns} />
         </Kpi>
         <Kpi
           delta={failedRuns > 0 ? m.kpi.failed(failedRuns) : m.kpi.noFailures}
           href={sectionHref(projectId, 'qa-history')}
           label={m.kpi.qaRuns}
           tone={failedRuns > 0 ? 'critical' : undefined}
-          value={data.qaRuns.status === 'ready' ? String(inPeriod.length) : '—'}
+          value={data.qaRuns.status === 'ready' ? String(finished.length) : '—'}
         >
           <Spark tone={failedRuns > 0 ? 'critical' : 'default'} values={qaPerDay} />
         </Kpi>
@@ -135,18 +158,48 @@ export function DashboardSection() {
         >
           <Spark tone={openIssues.length > 0 ? 'warning' : 'default'} values={issuesPerWeek} />
         </Kpi>
-        <Kpi
-          delta={coverage.unauthored > 0 ? m.kpi.uncovered(coverage.unauthored) : m.kpi.allCovered}
-          href={sectionHref(projectId, 'test-cases')}
-          label={m.kpi.coverage}
-          tone={coverage.unauthored > 0 ? 'warning' : undefined}
-          value={settled ? `${coverage.authored}/${coverage.total}` : '—'}
-        >
+        <div className="db-kpi">
+          <span className="db-kpi-text">
+            <span className="db-kpi-head">
+              <span className="db-kpi-label">{m.kpi.library}</span>
+              {pair && (
+                <button aria-label={m.kpi.pickVersion(currentName)} className="db-build db-version-pick" onClick={() => setVersionPickerOpen(true)} type="button">
+                  {currentName}
+                  <span aria-hidden="true">▾</span>
+                </button>
+              )}
+            </span>
+            <Link className="db-kpi-value" to={sectionHref(projectId, 'test-cases') + (pair ? `?version=${encodeURIComponent(pair.current.gameBuildId)}` : '')}>
+              <b>{settled ? `${coverage.authored}/${coverage.total}` : '—'}</b>
+              <span className={coverage.unauthored > 0 ? 'db-kpi-delta db-warning' : 'db-kpi-delta'}>
+                {coverage.unauthored > 0 ? m.kpi.uncovered(coverage.unauthored) : m.kpi.allCovered}
+              </span>
+            </Link>
+            {comparison && <span className="db-kpi-delta">{m.kpi.judgedOf(judgedPct)}</span>}
+          </span>
           <Meter value={coverage.total === 0 ? 0 : coverage.authored / coverage.total} />
-        </Kpi>
+        </div>
       </div>
 
-      <DashboardReliability projectId={projectId} days={period} now={now.getTime()} />
+      <BuildVerification
+        gameBuildId={pair?.current.gameBuildId ?? null}
+        onPickVersion={() => setVersionPickerOpen(true)}
+        projectId={projectId}
+        version={
+          pair
+            ? {
+                version: pair.current.version,
+                label: pair.current.label,
+                isEditor: pair.current.isEditor,
+                latest: pair.current.latest,
+                count: data.library.status === 'ready' ? data.library.value.versions.filter((one) => !one.hidden).length : 0,
+              }
+            : null
+        }
+        versionName={currentName}
+        waiting={versions.status === 'loading'}
+        canEdit={project.myRole === 'OWNER'}
+      />
 
       <div className="db-trio">
         {/* 검증 남은 TC */}
@@ -158,7 +211,7 @@ export function DashboardSection() {
             {pair && <span className="db-build">{currentName}</span>}
           </header>
           {comparison === null ? (
-            <p className="db-quiet">{data.versions.status === 'failed' ? m.failedToLoad : data.versions.status === 'loading' ? '…' : m.compare.noVersions}</p>
+            <p className="db-quiet">{versions.status === 'failed' ? m.failedToLoad : versions.status === 'loading' ? '…' : m.compare.noVersions}</p>
           ) : (
             <>
               <p className="db-big">
@@ -223,27 +276,18 @@ export function DashboardSection() {
             )}
           </header>
           {comparison === null || pair === null ? (
-            <p className="db-quiet">{data.versions.status === 'failed' ? m.failedToLoad : m.compare.noVersions}</p>
+            <p className="db-quiet">{versions.status === 'failed' ? m.failedToLoad : versions.status === 'loading' ? '…' : m.compare.noVersions}</p>
           ) : (
             <>
-              <div className="db-compare">
-                {comparison.previous && <CompareRow build={previousName} counts={comparison.previous} labels={m.compare} />}
-                <CompareRow build={currentName} counts={comparison.current} labels={m.compare} />
-              </div>
-              <ul className="db-legend db-legend--row">
-                <Legend label={m.compare.passed} tone="success" />
-                <Legend label={m.compare.failed} tone="critical" />
-                <Legend label={m.compare.pending} tone="muted" />
-              </ul>
+              <CompareTable comparison={comparison} current={currentName} labels={m.compare} previous={comparison.previous ? previousName : null} />
               {comparison.previous ? (
                 <>
-                  <div className="db-changes">
-                    <Change label={m.compare.fixed} tone={comparison.fixed > 0 ? 'success' : undefined} value={comparison.fixed} />
-                    <Change label={m.compare.broke} tone={comparison.broke > 0 ? 'critical' : undefined} value={comparison.broke} />
-                    <Change label={m.compare.stillFailing} tone={comparison.stillFailing > 0 ? 'critical' : undefined} value={comparison.stillFailing} />
-                    <Change label={m.compare.dropped} value={comparison.dropped} />
-                  </div>
                   <p className="db-quiet">{m.compare.note(comparison.total, currentName, judgedPct, left)}</p>
+                  {comparison.changed.length > 0 && (
+                    <button className="db-more db-link-button" onClick={() => setChangesOpen(true)} type="button">
+                      {m.compare.changedLink(comparison.changed.length)}
+                    </button>
+                  )}
                 </>
               ) : (
                 <p className="db-quiet">{m.compare.single}</p>
@@ -253,69 +297,45 @@ export function DashboardSection() {
         </section>
       </div>
 
+      {/* 진행 중인 QA */}
+      <section aria-labelledby="db-live" className="db-card db-card--flush">
+        <header className="db-card-head db-card-head--pad">
+          <h2 id="db-live">{m.live.title}</h2>
+          <span className="db-quiet">{m.live.sub(liveRuns.length)}</span>
+        </header>
+        {data.qaRuns.status === 'failed' ? (
+          <p className="db-quiet db-pad">{m.failedToLoad}</p>
+        ) : liveRuns.length === 0 ? (
+          <p className="db-quiet db-pad">{data.qaRuns.status === 'loading' ? '…' : m.live.empty}</p>
+        ) : (
+          <div aria-label={m.live.title} className="db-table" role="table">
+            <HistoryHead labels={m.history} />
+            {liveRuns.map((run) => (
+              <RunRow key={run.id} labels={m.history} live projectId={projectId} run={run} when={m.live.started(Math.max(0, Math.round((now.getTime() - Date.parse(run.startedAt)) / 60_000)))} />
+            ))}
+          </div>
+        )}
+      </section>
+
       {/* QA 히스토리 */}
       <section aria-labelledby="db-hist" className="db-card db-card--flush">
         <header className="db-card-head db-card-head--pad">
           <h2 id="db-hist">{m.history.title}</h2>
-          <span className="db-quiet">
-            {m.history.sub(Math.min(HISTORY_ROWS, inPeriod.length), inPeriod.filter((run) => run.status === 'RUNNING' || run.status === 'STARTING').length)}
-          </span>
+          <span className="db-quiet">{m.history.sub(Math.min(HISTORY_ROWS, finished.length))}</span>
           <Link className="db-more" to={sectionHref(projectId, 'qa-history')}>
             {m.history.all}
           </Link>
         </header>
         {data.qaRuns.status === 'failed' ? (
           <p className="db-quiet db-pad">{m.failedToLoad}</p>
-        ) : inPeriod.length === 0 ? (
+        ) : finished.length === 0 ? (
           <p className="db-quiet db-pad">{data.qaRuns.status === 'loading' ? '…' : m.history.empty}</p>
         ) : (
           <div aria-label={m.history.title} className="db-table" role="table">
-            <div className="db-row db-row--head" role="row">
-              <span role="columnheader">#</span>
-              <span role="columnheader">{m.history.colRun}</span>
-              <span role="columnheader">{m.history.colBuild}</span>
-              <span role="columnheader">{m.history.colAgent}</span>
-              <span role="columnheader">{m.history.colPassed}</span>
-              <span role="columnheader">{m.history.colStatus}</span>
-              <span role="columnheader">{m.history.colIssues}</span>
-              <span role="columnheader">{m.history.colWhen}</span>
-            </div>
-            {inPeriod.slice(0, HISTORY_ROWS).map((run) => {
-              const live = run.status === 'RUNNING' || run.status === 'STARTING'
-              const pct = run.casesTotal ? Math.round(((run.casesPassed ?? 0) / run.casesTotal) * 100) : 0
+            <HistoryHead labels={m.history} />
+            {finished.slice(0, HISTORY_ROWS).map((run) => {
               const took = run.completedAt ? m.history.took(Math.round((Date.parse(run.completedAt) - Date.parse(run.startedAt)) / 60_000)) : m.history.inProgress
-              return (
-                <Link className={`db-row${live ? ' is-live' : ''}`} key={run.id} role="row" to={qaRunPath(projectId, run.id)}>
-                  <span className="db-mono db-muted" role="cell">
-                    #{run.id}
-                  </span>
-                  <b className="db-ellipsis" role="cell">
-                    {run.testRunName ?? `#${run.testRunId}`}
-                  </b>
-                  <span role="cell">{run.gameBuildVersion && <span className="db-build">{buildDisplayName({ version: run.gameBuildVersion, isEditor: run.gameBuildIsEditor })}</span>}</span>
-                  <span className="db-ellipsis db-muted" role="cell">
-                    {[shortModel(run.model) ?? m.history.noAgent, run.gameInstanceName].filter(Boolean).join(' · ')}
-                  </span>
-                  <span className="db-pass" role="cell">
-                    <span className="db-meter">
-                      <span
-                        className={live ? 'db-tone-reasoning' : pct >= 80 ? 'db-tone-success' : pct >= 40 ? 'db-tone-warning' : 'db-tone-critical'}
-                        style={{ width: `${pct}%` }}
-                      />
-                    </span>
-                    <span className="db-mono">{run.casesTotal ? `${run.casesPassed ?? 0}/${run.casesTotal}` : '—'}</span>
-                  </span>
-                  <span className={`db-status db-status--${run.status.toLowerCase()}`} role="cell">
-                    {m.history.status[run.status] ?? run.status}
-                  </span>
-                  <span className={`db-mono ${run.issueCount > 0 ? 'db-warning' : 'db-muted'}`} role="cell">
-                    {run.issueCount > 0 ? run.issueCount : '—'}
-                  </span>
-                  <span className="db-muted" role="cell">
-                    {formatDate(run.startedAt)} · {took}
-                  </span>
-                </Link>
-              )
+              return <RunRow key={run.id} labels={m.history} projectId={projectId} run={run} when={`${formatDate(run.startedAt)} · ${took}`} />
             })}
           </div>
         )}
@@ -438,10 +458,13 @@ export function DashboardSection() {
         )}
       </section>
 
+      <DashboardReliability projectId={projectId} days={period} now={now.getTime()} />
+
       <div className="db-pair db-pair--even">
         <section aria-labelledby="db-trs" className="db-card">
           <header className="db-card-head">
             <h2 id="db-trs">{m.recentRuns}</h2>
+            {settled && <span className="db-quiet">{m.recentRunsSub(runs.length, runsPerWeek[7])}</span>}
             <Link className="db-more" to={sectionHref(projectId, 'test-runs')}>
               {t.projects.workspace.seeAll}
             </Link>
@@ -518,6 +541,35 @@ export function DashboardSection() {
         {project.description !== null && project.description.length > 0 && <p className="db-quiet">{project.description}</p>}
       </section>
 
+      {versionPickerOpen && data.library.status === 'ready' && pair && (
+        <VersionTreeDialog
+          confirmLabel={m.versionPicker.confirm}
+          groups={data.library.value.groups}
+          hint={m.versionPicker.hint}
+          initialId={pair.current.gameBuildId}
+          onClose={() => setVersionPickerOpen(false)}
+          onConfirm={(gameBuildId) => {
+            setVersionId(gameBuildId)
+            setVersionPickerOpen(false)
+          }}
+          title={m.versionPicker.title}
+          versions={data.library.value.versions}
+        />
+      )}
+
+      {changesOpen && pair && comparison && (
+        <ChangedCasesDialog
+          changed={comparison.changed}
+          current={currentName}
+          libraryHref={(change) => {
+            const version = change.kind === 'DROPPED' && pair.previous ? pair.previous.gameBuildId : pair.current.gameBuildId
+            return `${sectionHref(projectId, 'test-cases')}?version=${encodeURIComponent(version)}&case=${encodeURIComponent(change.testCase.id)}`
+          }}
+          onClose={() => setChangesOpen(false)}
+          previous={previousName}
+        />
+      )}
+
       {freeRunOpen && pair && comparison && (
         <FreeRunPicker
           build={currentName}
@@ -537,7 +589,7 @@ export function DashboardSection() {
   )
 }
 
-function Kpi({ href, label, value, delta, tone, children }: { href: string; label: string; value: string; delta: string; tone?: 'critical' | 'warning'; children: ReactNode }) {
+function Kpi({ href, label, value, delta, tone, children }: { href: string; label: string; value: string; delta: string; tone?: 'critical' | 'warning' | 'reasoning'; children: ReactNode }) {
   return (
     <Link className="db-kpi" to={href}>
       <span className="db-kpi-text">
@@ -572,15 +624,6 @@ function Tile({ href, value, label, tone }: { href: string; value: number | stri
   )
 }
 
-function Change({ value, label, tone }: { value: number; label: string; tone?: 'success' | 'critical' }) {
-  return (
-    <span className="db-change">
-      <b className={tone ? `db-${tone}` : undefined}>{value}</b>
-      <span>{label}</span>
-    </span>
-  )
-}
-
 function IssueLines({ issues, href }: { issues: readonly Issue[]; href: (issue: Issue) => string }) {
   return (
     <ul className="db-issue-lines">
@@ -596,33 +639,118 @@ function IssueLines({ issues, href }: { issues: readonly Issue[]; href: (issue: 
   )
 }
 
-function CompareRow({
-  build,
-  counts,
-  labels,
-}: {
-  build: string
-  counts: { passed: number; failed: number; regression: number; pending: number; broken: number }
-  labels: { passed: string; failed: string; pending: string }
-}) {
-  const failed = counts.failed + counts.regression
-  const pending = counts.pending + counts.broken
+type CompareLabels = { colResult: string; colChange: string; passed: string; failed: string; pending: string; fixed: string; broke: string; stillFailing: string; dropped: string; added: string }
+
+/**
+ * 이전 버전과 비교를 표로(ARTEL-1387). 위 세 줄은 두 버전의 판정 수와 차이, 아래 다섯 줄은 두 버전 사이에 바뀐 Test Case
+ * 수다. 아래 줄은 한쪽에만 있는 수라 이전 칸이 비고, 빠진 Test Case 만 이전 칸에 선다.
+ */
+function CompareTable({ comparison, previous, current, labels }: { comparison: { previous: StatusCounts | null; current: StatusCounts; fixed: number; broke: number; stillFailing: number; dropped: number; added: number }; previous: string | null; current: string; labels: CompareLabels }) {
+  const folded = (counts: StatusCounts) => ({ passed: counts.passed, failed: counts.failed + counts.regression, pending: counts.pending + counts.broken })
+  const now = folded(comparison.current)
+  const before = comparison.previous ? folded(comparison.previous) : null
+  const results: { label: string; key: 'passed' | 'failed' | 'pending'; good: 1 | -1 | 0 }[] = [
+    { label: labels.passed, key: 'passed', good: 1 },
+    { label: labels.failed, key: 'failed', good: -1 },
+    { label: labels.pending, key: 'pending', good: 0 },
+  ]
+  const moves: { label: string; before: number | null; now: number | null; good: 1 | -1 | 0 }[] = [
+    { label: labels.fixed, before: null, now: comparison.fixed, good: 1 },
+    { label: labels.broke, before: null, now: comparison.broke, good: -1 },
+    { label: labels.stillFailing, before: null, now: comparison.stillFailing, good: -1 },
+    { label: labels.added, before: null, now: comparison.added, good: 0 },
+    { label: labels.dropped, before: comparison.dropped, now: null, good: 0 },
+  ]
+  const change = (value: number, good: 1 | -1 | 0) => (
+    <td className={value === 0 || good === 0 ? 'db-muted' : value * good > 0 ? 'db-success' : 'db-critical'}>{value === 0 ? '0' : `${value > 0 ? '+' : '−'}${Math.abs(value)}`}</td>
+  )
   return (
-    <div className="db-compare-row">
-      <span className="db-mono db-strong">{build}</span>
-      <StackBar
-        label={`${build}: ${labels.passed} ${counts.passed}, ${labels.failed} ${failed}, ${labels.pending} ${pending}`}
-        parts={[
-          { value: counts.passed, tone: 'success' },
-          { value: failed, tone: 'critical' },
-          { value: pending, tone: 'muted' },
-        ]}
-        tall
-      />
-      <span className="db-mono db-muted">
-        {counts.passed} · {failed} · {pending}
-      </span>
+    <table className="db-cmp-table">
+      <thead>
+        <tr>
+          <th scope="col">{labels.colResult}</th>
+          {previous !== null && <th scope="col">{previous}</th>}
+          <th scope="col">{current}</th>
+          {previous !== null && <th scope="col">{labels.colChange}</th>}
+        </tr>
+      </thead>
+      <tbody>
+        {results.map((row) => (
+          <tr key={row.key}>
+            <th scope="row">
+              <span aria-hidden="true" className={`db-swatch db-tone-${row.key === 'passed' ? 'success' : row.key === 'failed' ? 'critical' : 'muted'}`} />
+              {row.label}
+            </th>
+            {before !== null && <td>{before[row.key]}</td>}
+            <td className="db-strong">{now[row.key]}</td>
+            {before !== null && change(now[row.key] - before[row.key], row.good)}
+          </tr>
+        ))}
+      </tbody>
+      {previous !== null && (
+        <tbody className="db-cmp-moves">
+          {moves.map((row) => (
+            <tr key={row.label}>
+              <th scope="row">{row.label}</th>
+              <td>{row.before ?? '—'}</td>
+              <td className="db-strong">{row.now ?? '—'}</td>
+              {change((row.now ?? 0) - (row.before ?? 0), row.good)}
+            </tr>
+          ))}
+        </tbody>
+      )}
+    </table>
+  )
+}
+
+type HistoryLabels = typeof dashboardEn.history
+
+function HistoryHead({ labels }: { labels: HistoryLabels }) {
+  return (
+    <div className="db-row db-row--head" role="row">
+      <span role="columnheader">#</span>
+      <span role="columnheader">{labels.colRun}</span>
+      <span role="columnheader">{labels.colBuild}</span>
+      <span role="columnheader">{labels.colAgent}</span>
+      <span role="columnheader">{labels.colPassed}</span>
+      <span role="columnheader">{labels.colStatus}</span>
+      <span role="columnheader">{labels.colIssues}</span>
+      <span role="columnheader">{labels.colWhen}</span>
     </div>
+  )
+}
+
+/** 진행 중인 QA · 최근 QA 가 함께 쓰는 실행 한 줄. */
+function RunRow({ run, projectId, labels, when, live = false }: { run: QaRunSummary; projectId: string; labels: HistoryLabels; when: string; live?: boolean }) {
+  const pct = run.casesTotal ? Math.round(((run.casesPassed ?? 0) / run.casesTotal) * 100) : 0
+  return (
+    <Link className={`db-row${live ? ' is-live' : ''}`} role="row" to={qaRunPath(projectId, run.id)}>
+      <span className="db-mono db-muted" role="cell">
+        #{run.id}
+      </span>
+      <b className="db-ellipsis" role="cell">
+        {run.testRunName ?? `#${run.testRunId}`}
+      </b>
+      <span role="cell">{run.gameBuildVersion && <span className="db-build">{buildDisplayName({ version: run.gameBuildVersion, isEditor: run.gameBuildIsEditor })}</span>}</span>
+      <span className="db-ellipsis db-muted" role="cell">
+        {[shortModel(run.model) ?? labels.noAgent, run.gameInstanceName].filter(Boolean).join(' · ')}
+      </span>
+      <span className="db-pass" role="cell">
+        <span className="db-meter">
+          <span className={live ? 'db-tone-reasoning' : pct >= 80 ? 'db-tone-success' : pct >= 40 ? 'db-tone-warning' : 'db-tone-critical'} style={{ width: `${pct}%` }} />
+        </span>
+        <span className="db-mono">{run.casesTotal ? `${run.casesPassed ?? 0}/${run.casesTotal}` : '—'}</span>
+      </span>
+      <span className={`db-status db-status--${run.status.toLowerCase()}`} role="cell">
+        {labels.status[run.status] ?? run.status}
+      </span>
+      <span className={`db-mono ${run.issueCount > 0 ? 'db-warning' : 'db-muted'}`} role="cell">
+        {run.issueCount > 0 ? run.issueCount : '—'}
+      </span>
+      <span className="db-muted" role="cell">
+        {when}
+      </span>
+    </Link>
   )
 }
 

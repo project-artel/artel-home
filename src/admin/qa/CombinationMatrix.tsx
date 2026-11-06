@@ -98,8 +98,8 @@ export function CombinationMatrix({ cells }: { cells: QaStatsCell[] }) {
           </InfoHint>
         </h2>
         <span className="topbar__spacer" />
-        <span className="field">
-          <label className="field__label" htmlFor={metricId}>
+        <span className="admin-field">
+          <label className="admin-field__label" htmlFor={metricId}>
             {t.matrix.metric}
           </label>
           <select
@@ -115,8 +115,8 @@ export function CombinationMatrix({ cells }: { cells: QaStatsCell[] }) {
             ))}
           </select>
         </span>
-        <span className="field">
-          <label className="field__label" htmlFor={rowId}>
+        <span className="admin-field">
+          <label className="admin-field__label" htmlFor={rowId}>
             {t.matrix.row}
           </label>
           <select
@@ -132,8 +132,8 @@ export function CombinationMatrix({ cells }: { cells: QaStatsCell[] }) {
             ))}
           </select>
         </span>
-        <span className="field">
-          <label className="field__label" htmlFor={colId}>
+        <span className="admin-field">
+          <label className="admin-field__label" htmlFor={colId}>
             {t.matrix.column}
           </label>
           <select

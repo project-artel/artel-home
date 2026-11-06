@@ -37,6 +37,10 @@ describe('compareVersions', () => {
     assert.equal(result.stillFailing, 1)
     assert.equal(result.dropped, 1)
     assert.equal(result.added, 1)
+    assert.deepEqual(
+      result.changed.map((change) => [change.kind, change.testCase.id]),
+      [['BROKE', '7'], ['STILL_FAILING', '6'], ['FIXED', '5'], ['ADDED', '10'], ['DROPPED', '9']],
+    )
     assert.deepEqual(result.current, { passed: 2, failed: 2, regression: 0, pending: 5, broken: 0 })
     assert.deepEqual(result.previous, { passed: 4, failed: 3, regression: 1, pending: 1, broken: 0 })
   })

@@ -5,7 +5,7 @@ import { QaFinishedNotice } from '../../qa/QaFinishedNotice'
 import { CaseReviewNotice } from '../../testCases/CaseReviewNotice'
 import { ScenarioReviewNotice } from '../../testScenarios/ScenarioReviewNotice'
 import { OperatorQuestions } from '../../qa/evaluation/OperatorQuestions'
-import { Link, Navigate, Outlet, useLocation, useParams } from 'react-router-dom'
+import { Link, Navigate, Outlet, useLocation, useMatch, useParams } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
 import { AgentChatPanel, AgentReopenButton, AgentSplitHandle } from '../../projectAgent/AgentDock'
 import { AgentSessionProvider } from '../../projectAgent/chat/AgentSessionProvider'
@@ -49,6 +49,7 @@ export function ProjectWorkspaceRoute() {
  * nothing else — no request, no spinner, no scroll jump back to a loading line.
  */
 function ProjectWorkspace({ projectId }: { projectId: string }) {
+  const qaConsole = useMatch('/projects/:projectId/qa-runs/:qaRunId')
   const {
     applyBuild,
     applyDocumentStatus,
@@ -213,7 +214,7 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
         <div className="workspace-body" ref={setBodyNode}>
         <DockSuppressionProvider onChange={setPageHostsChat}>
         <WorkspaceContext.Provider value={value}>
-          <OperatorQuestions key={projectId} projectId={projectId} />
+          {qaConsole === null && <OperatorQuestions key={projectId} projectId={projectId} />}
           {deep ? (
             <div className="workspace-deep">
               <Outlet />

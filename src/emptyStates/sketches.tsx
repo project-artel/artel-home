@@ -241,6 +241,150 @@ export function PerformanceSketch() {
   )
 }
 
+const CARD = 'M30 30 Q28 21 38 21 L192 19 Q202 19 202 29 L203 150 Q203 159 193 159 L39 161 Q29 161 29 151 Z'
+const SIDE_BOX = 'M226 56 Q224 48 233 48 L300 47 Q308 47 308 55 L309 120 Q309 128 300 128 L234 129 Q226 129 226 121 Z'
+
+/** 이슈 트래커 탭(ARTEL-1380): 이슈 카드 하나가 점선을 따라 저장소 상자로 건너간다. */
+export function TrackerSketch() {
+  return (
+    <svg aria-hidden="true" className="qh-sketch" fill="none" viewBox="0 0 330 196">
+      <path className="qh-sketch-depth" d={CARD} transform="translate(9 10)" />
+      <path className="qh-sketch-edge" d="M202 29 L211 39 M203 150 L212 160 M29 151 L38 161" />
+      <path className="qh-sketch-face" d={CARD} />
+      <circle cx="52" cy="46" r="7" />
+      <path d="M68 46 Q108 44 150 46" />
+      <path className="qh-sketch-soft" d="M48 74 Q110 72 178 74 M48 94 Q100 92 160 94 M48 114 Q96 112 132 114" />
+      <path className="qh-sketch-dash" d="M48 138 L96 138" />
+      <path className="qh-sketch-depth" d={SIDE_BOX} transform="translate(7 8)" />
+      <path className="qh-sketch-face" d={SIDE_BOX} />
+      <path d="M248 74 L262 66 L276 74 L276 92 L262 100 L248 92 Z" />
+      <path className="qh-sketch-soft" d="M262 66 L262 100 M248 74 L276 92" />
+      <path className="qh-sketch-dash" d="M204 88 Q214 70 226 76" />
+      <path className="qh-sketch-soft" d="M290 22 l0 10 M285 27 l10 0" />
+      <ellipse className="qh-sketch-shade" cx="168" cy="182" rx="134" ry="6" />
+    </svg>
+  )
+}
+
+/** 검토 탭(ARTEL-1380): 체크 줄 셋이 있는 검토 카드와 그 위에 찍힌 승인 도장. 마지막 줄은 아직 빈 자리다. */
+export function ReviewSketch() {
+  return (
+    <svg aria-hidden="true" className="qh-sketch" fill="none" viewBox="0 0 330 196">
+      <path className="qh-sketch-depth" d={CARD} transform="translate(59 10)" />
+      <path className="qh-sketch-face" d={CARD} transform="translate(50 0)" />
+      {[0, 1, 2].map((index) => {
+        const y = 56 + index * 32
+        return (
+          <g key={index}>
+            <path className={index === 2 ? 'qh-sketch-dash' : undefined} d={`M98 ${y - 8} h16 v16 h-16 Z`} />
+            {index < 2 && <path d={`M101 ${y} l4 4 l7 -8`} />}
+            <path className={index === 2 ? 'qh-sketch-dash' : 'qh-sketch-soft'} d={`M126 ${y} Q170 ${y - 1} ${index === 1 ? 200 : 222} ${y}`} />
+          </g>
+        )
+      })}
+      <circle className="qh-sketch-depth" cx="252" cy="140" r="24" />
+      <circle className="qh-sketch-face" cx="248" cy="134" r="24" />
+      <circle className="qh-sketch-soft" cx="248" cy="134" r="16" />
+      <path d="M238 134 l7 7 l13 -14" />
+      <path className="qh-sketch-soft" d="M40 40 l0 10 M35 45 l10 0" />
+      <ellipse className="qh-sketch-shade" cx="168" cy="182" rx="124" ry="6" />
+    </svg>
+  )
+}
+
+/** 프로젝트 agent 모델 탭(ARTEL-1380): 반짝이가 박힌 모델 칩 하나와 거기서 나가는 대화 말풍선. */
+export function ModelChipSketch() {
+  return (
+    <svg aria-hidden="true" className="qh-sketch" fill="none" viewBox="0 0 330 196">
+      <path className="qh-sketch-depth" d="M100 52 L190 52 L190 142 L100 142 Z" transform="translate(9 9)" />
+      <path className="qh-sketch-face" d="M100 52 Q99 44 108 44 L182 44 Q191 44 191 53 L191 134 Q191 143 182 143 L108 143 Q100 143 100 134 Z" />
+      <path className="qh-sketch-soft" d="M112 30 v14 M132 30 v14 M152 30 v14 M172 30 v14 M112 143 v14 M132 143 v14 M152 143 v14 M172 143 v14 M86 64 h14 M86 84 h14 M86 104 h14 M86 124 h14 M191 64 h14 M191 84 h14 M191 104 h14 M191 124 h14" />
+      <path d="M145 70 L151 88 L169 94 L151 100 L145 118 L139 100 L121 94 L139 88 Z" />
+      <path className="qh-sketch-depth" d="M226 52 Q224 44 233 44 L290 44 Q298 44 298 52 L298 80 Q298 88 290 88 L246 88 L234 98 L236 88 Q226 88 226 80 Z" transform="translate(6 6)" />
+      <path className="qh-sketch-face" d="M226 52 Q224 44 233 44 L290 44 Q298 44 298 52 L298 80 Q298 88 290 88 L246 88 L234 98 L236 88 Q226 88 226 80 Z" />
+      <path className="qh-sketch-soft" d="M238 60 Q262 58 286 60 M238 72 Q256 71 270 72" />
+      <path className="qh-sketch-dash" d="M206 96 Q216 88 226 88" />
+      <ellipse className="qh-sketch-shade" cx="160" cy="180" rx="110" ry="6" />
+    </svg>
+  )
+}
+
+/** 이메일 주소 탭(ARTEL-1380): 반쯤 열린 봉투와 거기서 나오는 초대장 한 장. */
+export function MailSketch() {
+  return (
+    <svg aria-hidden="true" className="qh-sketch" fill="none" viewBox="0 0 330 196">
+      <path className="qh-sketch-face" d="M120 30 Q119 22 128 22 L214 21 Q223 21 223 30 L224 104 L120 106 Z" />
+      <path className="qh-sketch-soft" d="M138 44 Q170 42 204 44 M138 60 Q164 58 190 60" />
+      <path d="M150 78 l6 6 l12 -12" />
+      <path className="qh-sketch-depth" d="M82 84 L262 82 L262 168 L82 170 Z" transform="translate(9 8)" />
+      <path className="qh-sketch-face" d="M82 84 L172 132 L262 82 L262 160 Q262 168 254 168 L90 170 Q82 170 82 162 Z" />
+      <path d="M82 84 L172 132 L262 82" />
+      <path className="qh-sketch-soft" d="M82 166 L150 124 M262 164 L194 124" />
+      <path className="qh-sketch-soft" d="M60 40 l0 10 M55 45 l10 0 M286 36 l0 8 M282 40 l8 0" />
+      <ellipse className="qh-sketch-shade" cx="172" cy="184" rx="104" ry="6" />
+    </svg>
+  )
+}
+
+/** 환경 탭(ARTEL-1380): 화면 하나와 그 앞의 언어 토글. 토글 한쪽이 켜져 있다. */
+export function DisplaySketch() {
+  return (
+    <svg aria-hidden="true" className="qh-sketch" fill="none" viewBox="0 0 330 196">
+      <path className="qh-sketch-depth" d="M70 26 L256 24 L258 132 L72 134 Z" transform="translate(9 9)" />
+      <path className="qh-sketch-face" d="M70 34 Q69 25 79 25 L246 24 Q256 24 256 33 L257 124 Q257 133 247 133 L80 134 Q71 134 71 125 Z" />
+      <path className="qh-sketch-soft" d="M92 52 Q130 50 172 52 M92 70 Q120 69 150 70" />
+      <path className="qh-sketch-dash" d="M92 92 L136 92" />
+      <path d="M150 134 L146 154 M178 134 L182 154 M128 156 Q164 152 200 156" />
+      <path className="qh-sketch-depth" d="M196 96 Q196 84 208 84 L262 84 Q274 84 274 96 Q274 108 262 108 L208 108 Q196 108 196 96 Z" transform="translate(5 5)" />
+      <path className="qh-sketch-face" d="M196 96 Q196 84 208 84 L262 84 Q274 84 274 96 Q274 108 262 108 L208 108 Q196 108 196 96 Z" />
+      <circle cx="252" cy="96" r="8" />
+      <path className="qh-sketch-soft" d="M210 96 h14" />
+      <ellipse className="qh-sketch-shade" cx="166" cy="178" rx="112" ry="6" />
+    </svg>
+  )
+}
+
+/** CLI 토큰 탭(ARTEL-1380): 프롬프트가 깜박이는 터미널 창과 그 옆의 토큰 꼬리표. */
+export function TerminalSketch() {
+  return (
+    <svg aria-hidden="true" className="qh-sketch" fill="none" viewBox="0 0 330 196">
+      <path className="qh-sketch-depth" d="M56 28 L238 26 L240 150 L58 152 Z" transform="translate(9 9)" />
+      <path className="qh-sketch-face" d="M56 36 Q55 27 65 27 L228 26 Q238 26 238 35 L239 142 Q239 151 229 151 L66 152 Q57 152 57 143 Z" />
+      <path className="qh-sketch-soft" d="M57 46 L238 45" />
+      <circle className="qh-sketch-soft" cx="70" cy="36" r="3" />
+      <circle className="qh-sketch-soft" cx="82" cy="36" r="3" />
+      <path d="M76 70 l12 9 l-12 9" />
+      <path className="qh-sketch-soft" d="M98 88 Q130 86 160 88" />
+      <path d="M76 108 l12 9 l-12 9" />
+      <path className="qh-sketch-dash" d="M98 126 L112 126" />
+      <path d="M252 92 L292 80 L300 88 L300 108 L260 120 L252 112 Z" />
+      <circle cx="259" cy="103" r="2.5" />
+      <path className="qh-sketch-soft" d="M268 104 L290 97 M268 112 L282 108" />
+      <path className="qh-sketch-dash" d="M240 104 L252 102" />
+      <ellipse className="qh-sketch-shade" cx="168" cy="182" rx="128" ry="6" />
+    </svg>
+  )
+}
+
+/** 프로필 탭(ARTEL-1380): 둥근 얼굴 자리와 이름 줄이 있는 신분증 한 장, 옆에 걸린 꼬리 끈. */
+export function IdCardSketch() {
+  return (
+    <svg aria-hidden="true" className="qh-sketch" fill="none" viewBox="0 0 330 196">
+      <path className="qh-sketch-depth" d="M74 50 L256 48 L258 160 L76 162 Z" transform="translate(9 9)" />
+      <path className="qh-sketch-face" d="M74 58 Q73 49 83 49 L246 48 Q256 48 256 57 L257 152 Q257 161 247 161 L84 162 Q75 162 75 153 Z" />
+      <path className="qh-sketch-soft" d="M150 30 L150 49 M180 30 L180 49 M150 30 Q165 20 180 30" />
+      <circle cx="122" cy="104" r="24" />
+      <path className="qh-sketch-soft" d="M106 120 Q122 108 138 120" />
+      <circle className="qh-sketch-soft" cx="122" cy="96" r="8" />
+      <path d="M164 90 Q196 88 230 90" />
+      <path className="qh-sketch-soft" d="M164 110 Q190 109 216 110" />
+      <path className="qh-sketch-dash" d="M164 130 L200 130" />
+      <path className="qh-sketch-soft" d="M282 60 l0 10 M277 65 l10 0" />
+      <ellipse className="qh-sketch-shade" cx="168" cy="182" rx="112" ry="6" />
+    </svg>
+  )
+}
+
 const FOLDER_BACK = 'M62 46 Q60 38 69 38 L128 37 L144 54 L262 53 Q271 53 271 62 L272 150 Q272 158 263 158 L70 160 Q62 160 62 152 Z'
 const FOLDER_FRONT = 'M58 76 Q57 68 66 68 L266 66 Q275 66 274 75 L268 152 Q267 160 258 160 L70 162 Q61 162 61 154 Z'
 
@@ -259,6 +403,61 @@ export function FolderSketch() {
       <path d="M248 22 L248 38 M240 30 L256 30" />
       <path className="qh-sketch-soft" d="M40 40 l0 10 M35 45 l10 0 M300 120 l0 8 M296 124 l8 0" />
       <ellipse className="qh-sketch-shade" cx="168" cy="180" rx="118" ry="6" />
+    </svg>
+  )
+}
+
+const CALENDAR = 'M98 22 Q96 14 105 14 L227 13 Q235 13 235 21 L236 110 Q236 118 228 118 L106 119 Q98 119 98 111 Z'
+const PERSON = 'M-18 50 Q-16 22 0 20 Q16 22 18 50 Z'
+
+/**
+ * 대시보드 이번 빌드 검증 진행이 빌 때(ARTEL-1387): 벽에 걸린 큰 달력과, 그 아래에서 달력을 올려다보며 고민하는
+ * 두 사람 — 한 사람은 턱을 괴고, 한 사람은 동그라미 친 날을 가리킨다.
+ */
+export function CalendarSketch() {
+  const columns = [1, 2, 3, 4, 5, 6].map((step) => 98 + step * 19.7)
+  return (
+    <svg aria-hidden="true" className="qh-sketch" fill="none" viewBox="0 0 330 196">
+      {/* 달력 판과 두께 */}
+      <path className="qh-sketch-depth" d={CALENDAR} transform="translate(9 10)" />
+      <path className="qh-sketch-edge" d="M235 21 L244 32 M236 110 L245 121 M98 111 L107 122" />
+      <path className="qh-sketch-face" d={CALENDAR} />
+      {/* 고리 둘과 머리 띠 */}
+      <path d="M132 6 Q128 6 128 12 L128 20 M202 6 Q198 6 198 12 L198 20" />
+      <path d="M99 36 Q166 35 235 35" />
+      <path className="qh-sketch-soft" d="M150 26 Q166 25 182 26" />
+      {/* 칸 */}
+      <path className="qh-sketch-soft" d={`${columns.map((x) => `M${x} 40 L${x} 114`).join(' ')} M100 58 L234 58 M100 77 L234 77 M100 96 L234 96`} />
+      {/* 지난 날은 사선, 고민하는 날은 점선 동그라미 */}
+      <path className="qh-sketch-soft" d="M102 54 l12 -11 M122 54 l12 -11 M141 54 l12 -11 M161 54 l12 -11 M102 73 l12 -11 M122 73 l12 -11" />
+      <ellipse className="qh-sketch-dash" cx="190" cy="86" rx="13" ry="10" />
+      <path d="M209 105 l4 4 l7 -8" />
+      {/* 왼쪽 사람: 턱을 괴고 올려다본다 */}
+      <g transform="translate(58 122) scale(1.15)">
+        <circle className="qh-sketch-depth" cx="4" cy="4" r="11" />
+        <path className="qh-sketch-depth" d={PERSON} transform="translate(4 4)" />
+        <path className="qh-sketch-face" d={PERSON} />
+        <circle className="qh-sketch-face" cx="0" cy="0" r="11" />
+        <path className="qh-sketch-soft" d="M2 -3 l0 1 M7 -4 l0 1" />
+        <path d="M11 44 Q22 30 10 13" />
+        <circle className="qh-sketch-face" cx="9" cy="11" r="3.2" />
+      </g>
+      {/* 생각: 물음표와 거품 */}
+      <path d="M80 86 Q80 78 88 78 Q96 78 96 85 Q96 91 88 93 L88 97" />
+      <circle cx="88" cy="103" r="1.2" />
+      <circle className="qh-sketch-soft" cx="78" cy="112" r="2" />
+      {/* 오른쪽 사람: 동그라미 친 날을 가리킨다 */}
+      <g transform="translate(274 120) scale(1.15)">
+        <circle className="qh-sketch-depth" cx="4" cy="4" r="11" />
+        <path className="qh-sketch-depth" d={PERSON} transform="translate(4 4)" />
+        <path className="qh-sketch-face" d={PERSON} />
+        <circle className="qh-sketch-face" cx="0" cy="0" r="11" />
+        <path className="qh-sketch-soft" d="M-7 -4 l0 1 M-2 -3 l0 1" />
+        <path d="M-12 30 Q-26 20 -32 4" />
+        <circle className="qh-sketch-face" cx="-33" cy="2" r="3.2" />
+      </g>
+      <path className="qh-sketch-soft" d="M34 40 l0 10 M29 45 l10 0 M304 30 l0 8 M300 34 l8 0" />
+      <ellipse className="qh-sketch-shade" cx="166" cy="182" rx="138" ry="6" />
     </svg>
   )
 }

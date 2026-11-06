@@ -23,7 +23,7 @@ export default function SettingsPage() {
   const [claudeConfigured, setClaudeConfigured] = useState<boolean | null>(null)
 
   return (
-    <main className="main adm-settings">
+    <div className="main adm-settings">
       <FeatureModelsSection
         openRouterKeyConfigured={openRouterConfigured}
         typesafeKeyConfigured={typesafeConfigured}
@@ -55,6 +55,6 @@ export default function SettingsPage() {
       <p className="adm-visually-hidden" aria-live="polite">
         {announcement}
       </p>
-    </main>
+    </div>
   )
 }

@@ -129,6 +129,15 @@ test('parseQaModels reads an unknown keySource as the platform key', () => {
   assert.equal(parseQaModels([{ ...MODEL_FIELDS, keySource: 'team' }], 200)[0].keySource, 'platform')
 })
 
+test('parseQaModels keeps the project key source and provider for QA launch', () => {
+  const [model] = parseQaModels([
+    { ...MODEL_FIELDS, keySource: 'project', keyProvider: 'openai', keyRegistered: true },
+  ], 200)
+  assert.equal(model.keySource, 'project')
+  assert.equal(model.keyProvider, 'openai')
+  assert.equal(model.keyRegistered, true)
+})
+
 test('qaRunRequestBody has no arch key when arch is null', () => {
   const body = qaRunRequestBody('1', '2', 'm', 'platform', null, false, null)
   assert.equal('arch' in body, false)

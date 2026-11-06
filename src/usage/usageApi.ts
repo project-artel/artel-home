@@ -3,18 +3,19 @@ import { asRecord, asString, ProjectApiError, readJson } from '../projects/proje
 import { grassWindow, type DayTotals } from './grass'
 
 /**
- * One project's spend over the grass window.
+ * Spend over the grass window — one project's, or every project the viewer can see.
  *
- * The same `/api/llm-usage/stats` the admin dashboard reads, narrowed to one
- * project. The axes the server folds are all here; this screen uses `total`,
- * `daily`, `byService` and `byModel`, and leaves `byProject` alone — with a
- * `projectId` in the query that axis is always one row.
+ * The same `/api/llm-usage/stats` the admin dashboard reads. With a `projectId`
+ * it is narrowed to that project and `byProject` is one row; without one the
+ * server sums every project the viewer is a member of, and `byProject` is the
+ * per-project list the account's API 관리 tab draws (ARTEL-1393).
  */
 export interface ProjectUsage {
   total: UsageTotals
   daily: { date: string; totals: DayTotals }[]
   byService: { service: string; totals: UsageTotals }[]
   byModel: { provider: string; model: string; totals: UsageTotals }[]
+  byProject: { projectId: string; projectName: string; totals: UsageTotals }[]
   /** The zone the server cut days in. The graph says which one, so midnight is not a guess. */
   zone: string
 }
@@ -80,20 +81,25 @@ function list(value: unknown): unknown[] {
  *   clock so a caller can pin it, and so the request and the grid cannot end up
  *   on two different days when the read straddles midnight.
  */
-export async function fetchProjectUsage(
-  projectId: string,
+export async function fetchProjectUsage(projectId: string, today: Date, signal?: AbortSignal): Promise<ProjectUsage> {
+  return fetchUsage(projectId, today, signal)
+}
+
+/** [projectId] null 이면 볼 수 있는 전 프로젝트 합산이다(ARTEL-1393). */
+export async function fetchUsage(
+  projectId: string | null,
   today: Date,
   signal?: AbortSignal,
 ): Promise<ProjectUsage> {
   const { start, end } = grassWindow(today)
   const params = new URLSearchParams({
-    projectId,
     from: start.toISOString(),
     // The server's `to` is exclusive, so today is included only by asking for
     // tomorrow's midnight.
     to: new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1).toISOString(),
     zone: localZone(),
   })
+  if (projectId !== null) params.set('projectId', projectId)
 
   const response = await apiFetch(`/api/llm-usage/stats?${params}`, { signal })
   const body = asRecord(await readJson(response))
@@ -128,6 +134,12 @@ export async function fetchProjectUsage(
           totals: parseTotals(asRecord(cell.totals)),
         },
       ]
+    }),
+    byProject: list(body.byProject).flatMap((raw) => {
+      const cell = asRecord(raw)
+      const projectId = cell === null ? '' : asString(cell.projectId, '')
+      if (cell === null || projectId === '') return []
+      return [{ projectId, projectName: asString(cell.projectName, ''), totals: parseTotals(asRecord(cell.totals)) }]
     }),
   }
 }
