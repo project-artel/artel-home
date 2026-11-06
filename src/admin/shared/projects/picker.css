@@ -1,6 +1,6 @@
-/* Moved from admin-page. Every rule is nested under .admin-console so the class names (.field, .control, .table, ...) never reach the rest of the console. */
+/* Moved from admin-page. Every rule is nested under .admin-console so the class names (.admin-field, .control, .table, ...) never reach the rest of the console. */
 .admin-console {
-  /* 프로젝트 선택기. `.control`과 `.field`는 dashboard.css가 정의한 것을 그대로 쓴다. */
+  /* 프로젝트 선택기. `.control`과 `.admin-field`는 dashboard.css가 정의한 것을 그대로 쓴다. */
   
   .picker {
     position: relative;

@@ -61,7 +61,7 @@ export default function GraphPage() {
       {projectId === null ? (
         <>
           <GraphToolbar {...toolbar} />
-          <main className="main">
+          <div className="main">
             {projectsFailed && (
               <div className="notice notice--critical" role="alert">
                 <p className="notice__title">{t.admin.states.loadFailed}</p>
@@ -70,7 +70,7 @@ export default function GraphPage() {
             {projects?.length === 0 && !projectsFailed && (
               <div className="notice">{t.adminGraph.noProjects}</div>
             )}
-          </main>
+          </div>
         </>
       ) : (
         <ProjectGraph {...toolbar} projectId={projectId} />
@@ -99,7 +99,7 @@ function ProjectGraph(props: ToolbarProps & { projectId: string }) {
   return (
     <>
       <GraphToolbar {...props} />
-      <main className="main">
+      <div className="main">
         <section aria-labelledby="graph-title" className="kg-admin-graph">
           <div className="section__head">
             <h2 className="section__title" id="graph-title">
@@ -115,7 +115,7 @@ function ProjectGraph(props: ToolbarProps & { projectId: string }) {
             status={status}
           />
         </section>
-      </main>
+      </div>
     </>
   )
 }
@@ -132,11 +132,11 @@ function GraphToolbar({
   const format = adminFormat(locale)
 
   return (
-    <header className="topbar">
+    <header className="admin-toolbar">
       <ProjectPicker onChange={onProjectChange} projects={projects} value={projectId} />
 
-      <span className="field">
-        <label className="field__label" htmlFor={limitFieldId}>
+      <span className="admin-field">
+        <label className="admin-field__label" htmlFor={limitFieldId}>
           {t.adminGraph.toolbar.nodeLimitLabel}
         </label>
         <select

@@ -338,7 +338,7 @@
     gap: var(--space-1);
   }
 
-  .adm-key__form .field__label {
+  .adm-key__form .admin-field__label {
     display: inline-flex;
     align-items: center;
     gap: var(--space-1);
