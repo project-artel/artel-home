@@ -12232,65 +12232,6 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
   overflow-y: auto;
 }
 
-.gf-summary {
-  padding: var(--space-2) 14px;
-  border-bottom: 1px solid var(--color-border-subtle);
-}
-
-.gf-summary-title {
-  margin: 0 0 var(--space-1);
-  color: var(--color-text-muted);
-  font-family: var(--font-sans);
-  font-size: 11px;
-  font-weight: 650;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.gf-summary-list {
-  display: grid;
-  gap: var(--space-1);
-  margin: 0;
-}
-
-.gf-summary-row {
-  display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
-  gap: var(--space-2);
-  font-size: 12px;
-}
-
-.gf-summary-row dt {
-  color: var(--color-text-muted);
-}
-
-.gf-summary-row dd {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1) var(--space-3);
-  margin: 0;
-  color: var(--color-text-primary);
-  overflow-wrap: anywhere;
-}
-
-.gf-summary-key {
-  margin-inline-end: var(--space-1);
-  color: var(--color-text-muted);
-}
-
-.gf-mode {
-  font-weight: 650;
-}
-
-.gf-mode--on {
-  color: var(--color-status-success);
-}
-
-.gf-mode--off,
-.gf-mode--unknown {
-  color: var(--color-text-muted);
-}
-
 /* behavior 줄 */
 .gf-lanes {
   border-bottom: 1px solid var(--color-border-subtle);

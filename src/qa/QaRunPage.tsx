@@ -22,7 +22,6 @@ import { isAgentRun } from './agentDockState'
 import { QaAgentDock } from './QaAgentDock'
 import { QaBehaviorLanes } from './QaBehaviorLanes'
 import { QaFocusStage } from './QaFocusStage'
-import { QaRunFunctionOptions } from './QaFunctionOptionsSummary'
 import { QaLogTimeline, type QaLogFocusRequest } from './QaLogTimeline'
 import { filterFlowLogs } from './qaFlow'
 import { QaRunStopDialog } from './QaRunStopDialog'
@@ -637,7 +636,6 @@ function FocusedTry({
               matches={findMatches.length} current={foundIndex} onFind={findNext}
             />}
           {!agentRun && logView !== 'raw' && <div className="gf-logs-extras">
-            <QaRunFunctionOptions qaTryId={session.qaTry.id} />
             <QaBehaviorLanes logs={session.logs} onJump={jumpToLog} />
           </div>}
           <div className="qa-focus-logs-body">
