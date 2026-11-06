@@ -262,3 +262,58 @@ export function FolderSketch() {
     </svg>
   )
 }
+
+const CALENDAR = 'M98 22 Q96 14 105 14 L227 13 Q235 13 235 21 L236 110 Q236 118 228 118 L106 119 Q98 119 98 111 Z'
+const PERSON = 'M-18 50 Q-16 22 0 20 Q16 22 18 50 Z'
+
+/**
+ * 대시보드 이번 빌드 검증 진행이 빌 때(ARTEL-1387): 벽에 걸린 큰 달력과, 그 아래에서 달력을 올려다보며 고민하는
+ * 두 사람 — 한 사람은 턱을 괴고, 한 사람은 동그라미 친 날을 가리킨다.
+ */
+export function CalendarSketch() {
+  const columns = [1, 2, 3, 4, 5, 6].map((step) => 98 + step * 19.7)
+  return (
+    <svg aria-hidden="true" className="qh-sketch" fill="none" viewBox="0 0 330 196">
+      {/* 달력 판과 두께 */}
+      <path className="qh-sketch-depth" d={CALENDAR} transform="translate(9 10)" />
+      <path className="qh-sketch-edge" d="M235 21 L244 32 M236 110 L245 121 M98 111 L107 122" />
+      <path className="qh-sketch-face" d={CALENDAR} />
+      {/* 고리 둘과 머리 띠 */}
+      <path d="M132 6 Q128 6 128 12 L128 20 M202 6 Q198 6 198 12 L198 20" />
+      <path d="M99 36 Q166 35 235 35" />
+      <path className="qh-sketch-soft" d="M150 26 Q166 25 182 26" />
+      {/* 칸 */}
+      <path className="qh-sketch-soft" d={`${columns.map((x) => `M${x} 40 L${x} 114`).join(' ')} M100 58 L234 58 M100 77 L234 77 M100 96 L234 96`} />
+      {/* 지난 날은 사선, 고민하는 날은 점선 동그라미 */}
+      <path className="qh-sketch-soft" d="M102 54 l12 -11 M122 54 l12 -11 M141 54 l12 -11 M161 54 l12 -11 M102 73 l12 -11 M122 73 l12 -11" />
+      <ellipse className="qh-sketch-dash" cx="190" cy="86" rx="13" ry="10" />
+      <path d="M209 105 l4 4 l7 -8" />
+      {/* 왼쪽 사람: 턱을 괴고 올려다본다 */}
+      <g transform="translate(58 122) scale(1.15)">
+        <circle className="qh-sketch-depth" cx="4" cy="4" r="11" />
+        <path className="qh-sketch-depth" d={PERSON} transform="translate(4 4)" />
+        <path className="qh-sketch-face" d={PERSON} />
+        <circle className="qh-sketch-face" cx="0" cy="0" r="11" />
+        <path className="qh-sketch-soft" d="M2 -3 l0 1 M7 -4 l0 1" />
+        <path d="M11 44 Q22 30 10 13" />
+        <circle className="qh-sketch-face" cx="9" cy="11" r="3.2" />
+      </g>
+      {/* 생각: 물음표와 거품 */}
+      <path d="M80 86 Q80 78 88 78 Q96 78 96 85 Q96 91 88 93 L88 97" />
+      <circle cx="88" cy="103" r="1.2" />
+      <circle className="qh-sketch-soft" cx="78" cy="112" r="2" />
+      {/* 오른쪽 사람: 동그라미 친 날을 가리킨다 */}
+      <g transform="translate(274 120) scale(1.15)">
+        <circle className="qh-sketch-depth" cx="4" cy="4" r="11" />
+        <path className="qh-sketch-depth" d={PERSON} transform="translate(4 4)" />
+        <path className="qh-sketch-face" d={PERSON} />
+        <circle className="qh-sketch-face" cx="0" cy="0" r="11" />
+        <path className="qh-sketch-soft" d="M-7 -4 l0 1 M-2 -3 l0 1" />
+        <path d="M-12 30 Q-26 20 -32 4" />
+        <circle className="qh-sketch-face" cx="-33" cy="2" r="3.2" />
+      </g>
+      <path className="qh-sketch-soft" d="M34 40 l0 10 M29 45 l10 0 M304 30 l0 8 M300 34 l8 0" />
+      <ellipse className="qh-sketch-shade" cx="166" cy="182" rx="138" ry="6" />
+    </svg>
+  )
+}
