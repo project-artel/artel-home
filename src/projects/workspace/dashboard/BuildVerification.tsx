@@ -11,8 +11,12 @@ import {
 import { daysToFinish, evaluateRelease, judgedOf, RELEASE_LEVELS, type Gate, type ReleaseLevel } from '../../../release/releaseModel'
 import { SketchEmpty } from '../../../emptyStates/SketchEmpty'
 import { CalendarSketch } from '../../../emptyStates/sketches'
+import { buildEnvironment } from '../../buildEnvironment'
+import '../../../contentMap/contentMap.css'
 import { sectionHref } from '../sections'
 import { useWidth } from './useWidth'
+
+export type VersionChoice = { version: string; label: string | null; isEditor: boolean | null | undefined; latest: boolean; count: number }
 
 type Loaded<T> = { status: 'loading' } | { status: 'ready'; value: T } | { status: 'failed' }
 
@@ -41,12 +45,15 @@ export function BuildVerification({
   projectId,
   gameBuildId,
   versionName,
+  version,
   onPickVersion,
   waiting,
 }: {
   projectId: string
   gameBuildId: string | null
   versionName: string
+  /** 버전 고르기 단추에 보일 것. 화면 지도의 빌드 고르기 단추(`cm-build-current`)와 같은 모양이다. */
+  version: VersionChoice | null
   onPickVersion: () => void
   /** 버전 목록을 아직 받는 중이면 빈 화면 대신 스켈레톤을 보인다. */
   waiting: boolean
@@ -108,7 +115,7 @@ export function BuildVerification({
           title={m.emptyVersion}
         />
       ) : (
-        <VerificationBody criteria={criteria.value} onPickVersion={onPickVersion} progress={loaded.value} projectId={projectId} versionName={versionName} />
+        <VerificationBody criteria={criteria.value} onPickVersion={onPickVersion} progress={loaded.value} projectId={projectId} version={version} versionName={versionName} />
       )}
     </section>
   )
@@ -119,12 +126,14 @@ function VerificationBody({
   criteria,
   projectId,
   versionName,
+  version,
   onPickVersion,
 }: {
   progress: BuildVerificationProgress
   criteria: ReleaseCriteria
   projectId: string
   versionName: string
+  version: VersionChoice | null
   onPickVersion: () => void
 }) {
   const { t } = useI18n()
@@ -148,9 +157,16 @@ function VerificationBody({
             <h2 className="db-bv-title" id="db-bv-title">
               {m.title}
             </h2>
-            <button aria-label={t.dashboard.kpi.pickVersion(versionName)} className="db-build db-version-pick" onClick={onPickVersion} type="button">
-              {versionName}
-              <span aria-hidden="true">▾</span>
+            <button aria-label={t.dashboard.kpi.pickVersion(versionName)} className="cm-build-current db-bv-version" onClick={onPickVersion} type="button">
+              <span className="cm-build-current-caption">{t.contentMap.buildSwitcher.caption}</span>
+              <span className="cm-build-version mono">{version?.version ?? summary.build.version}</span>
+              <span className="cm-build-badge">{buildEnvironment(version?.isEditor ?? summary.build.isEditor)}</span>
+              {version?.latest && <span className="cm-build-badge cm-build-badge--new">{t.contentMap.buildSwitcher.newest}</span>}
+              {version?.label && <span className="cm-build-label">{version.label}</span>}
+              {version && <span className="cm-build-count">{t.contentMap.buildSwitcher.count(version.count)}</span>}
+              <span aria-hidden="true" className="cm-build-caret">
+                ▾
+              </span>
             </button>
             <span className="db-bv-meta">{m.since(uploaded, days.length)}</span>
             <span className="db-bv-eta">
@@ -159,14 +175,14 @@ function VerificationBody({
           </div>
           <p className="db-bv-headline">{m.headline[readiness.level](readiness.met, readiness.gates.length, summary.pending)}</p>
           <div className="db-bv-progress">
-            <b>
-              <span className="db-bv-pct">{pct}%</span> {m.judged} <span className="db-bv-of">{judged}/{summary.total}</span>
-            </b>
             <span aria-hidden="true" className="db-bv-bar">
               {STATES.map((state) => (
                 <i className={`db-tone-${state.tone}`} key={state.key} style={{ width: share(summary[state.key]) }} />
               ))}
             </span>
+            <b className="db-bv-bar-label">
+              <span className="db-bv-pct">{pct}%</span> {m.judged} <span className="db-bv-of">{judged}/{summary.total}</span>
+            </b>
           </div>
         </header>
 

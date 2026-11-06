@@ -185,6 +185,17 @@ export function DashboardSection() {
         gameBuildId={pair?.current.gameBuildId ?? null}
         onPickVersion={() => setVersionPickerOpen(true)}
         projectId={projectId}
+        version={
+          pair
+            ? {
+                version: pair.current.version,
+                label: pair.current.label,
+                isEditor: pair.current.isEditor,
+                latest: pair.current.latest,
+                count: data.library.status === 'ready' ? data.library.value.versions.filter((one) => !one.hidden).length : 0,
+              }
+            : null
+        }
         versionName={currentName}
         waiting={versions.status === 'loading'}
       />
