@@ -446,6 +446,14 @@ export async function listQaVerdicts(qaTryId: string, signal?: AbortSignal): Pro
   })
 }
 
+export async function getQaRunThumbnail(qaRunId: string, signal?: AbortSignal): Promise<Blob | null> {
+  const response = await apiFetch(`/api/qa-runs/${encodeURIComponent(qaRunId)}/thumbnail`, { signal })
+  if (response.status === 204 || response.status === 404) return null
+  if (!response.ok) throw await toApiError(response)
+  if (response.headers.get('content-type') !== 'image/jpeg') return null
+  return response.blob()
+}
+
 export async function listQaLogs(
   qaTryId: string,
   beforeId?: string,
