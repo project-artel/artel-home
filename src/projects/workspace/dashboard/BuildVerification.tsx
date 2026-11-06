@@ -25,7 +25,7 @@ const STATES = [
 ] as const
 type StateKey = (typeof STATES)[number]['key'] | 'pending'
 
-const H = 300
+const H = 260
 const X0 = 40
 const LABEL_W = 104
 const TOP = 22
@@ -157,6 +157,7 @@ function VerificationBody({
               {summary.pending === 0 ? m.allJudged : finish === null ? m.etaUnknown : m.eta(finish.days, finish.perDay.toFixed(1))}
             </span>
           </div>
+          <p className="db-bv-headline">{m.headline[readiness.level](readiness.met, readiness.gates.length, summary.pending)}</p>
           <div className="db-bv-progress">
             <b>
               <span className="db-bv-pct">{pct}%</span> {m.judged} <span className="db-bv-of">{judged}/{summary.total}</span>
@@ -199,7 +200,7 @@ function VerificationBody({
         </div>
         <div className="db-bv-level">
           <b className={`db-tone-text-${LEVEL_TONE[readiness.level]}`}>{m.release.levels[readiness.level]}</b>
-          <span>{readiness.level === 'verifying' ? m.release.left(summary.pending) : m.release.why[readiness.level]}</span>
+          <span>{m.release.why[readiness.level]}</span>
         </div>
         <LevelTrack level={readiness.level} />
         <ul className="db-bv-gates">

@@ -31,7 +31,12 @@ export const dashboardEn = {
     confirm: 'Show this version',
   },
   verification: {
-    title: 'This build — verification progress',
+    title: 'Release readiness',
+    headline: {
+      verifying: (met: number, total: number, pending: number) => `This build meets ${met} of ${total} release criteria, with ${pending} Test Cases not judged yet.`,
+      candidate: (met: number, total: number) => `Every Test Case in this build is judged, and it meets ${met} of ${total} release criteria.`,
+      ready: (_met: number, total: number) => `This build meets all ${total} release criteria.`,
+    },
     noVersion: 'No build to judge for release yet',
     noVersionBody: 'This panel shows, day by day, how close a build is to its release criteria. It starts once a game build has Test Cases in the case library.',
     emptyVersion: 'This version cannot be judged for release yet',
@@ -61,8 +66,11 @@ export const dashboardEn = {
       title: 'Release decision',
       met: (met: number, total: number) => `${met}/${total} criteria met`,
       levels: { verifying: 'Verifying', candidate: 'Release candidate', ready: 'Ready to release' },
-      left: (n: number) => `${n} Test Cases are not judged yet.`,
-      why: { candidate: 'Everything is judged, but some criteria are not met.', ready: 'Every criterion is met.' },
+      why: {
+        verifying: 'More Test Cases are not judged than the criterion allows.',
+        candidate: 'Everything is judged, but some criteria are not met.',
+        ready: 'Every criterion is met.',
+      },
       gates: {
         pending: 'Not judged',
         regression: 'Regressions',
@@ -256,7 +264,12 @@ export const dashboardKo: Localized<typeof dashboardEn> = {
     confirm: '이 버전으로 보기',
   },
   verification: {
-    title: '이번 빌드 검증 진행',
+    title: '출시 준비',
+    headline: {
+      verifying: (met: number, total: number, pending: number) => `이 빌드는 출시 기준 ${total}개 중 ${met}개를 맞췄고, 판정 전 TC ${pending}건이 남았습니다.`,
+      candidate: (met: number, total: number) => `이 빌드는 TC 를 모두 판정했고, 출시 기준 ${total}개 중 ${met}개를 맞췄습니다.`,
+      ready: (_met: number, total: number) => `이 빌드는 출시 기준 ${total}개를 모두 맞췄습니다.`,
+    },
     noVersion: '출시 판단할 빌드가 아직 없습니다',
     noVersionBody: '이 칸은 빌드가 출시 기준에 얼마나 다가갔는지 날마다 보여 줍니다. 케이스 라이브러리에 TC 가 담긴 게임 빌드가 생기면 시작합니다.',
     emptyVersion: '이 버전은 아직 출시 판단을 할 수 없습니다',
@@ -286,8 +299,11 @@ export const dashboardKo: Localized<typeof dashboardEn> = {
       title: '출시 판단',
       met: (met: number, total: number) => `기준 ${met}/${total} 충족`,
       levels: { verifying: '검증 중', candidate: '출시 후보', ready: '출시 가능' },
-      left: (n: number) => `판정 전 TC 가 ${n}건 남았습니다.`,
-      why: { candidate: '다 판정했지만 못 미친 기준이 있습니다.', ready: '기준을 모두 충족했습니다.' },
+      why: {
+        verifying: '판정 전 TC 가 기준보다 많습니다.',
+        candidate: '다 판정했지만 못 미친 기준이 있습니다.',
+        ready: '기준을 모두 충족했습니다.',
+      },
       gates: {
         pending: '판정 전 TC',
         regression: '회귀',
