@@ -1,0 +1,133 @@
+import { useI18n } from '../i18n/useI18n'
+import type { TrackerSync } from '../tracker/useTrackerSync'
+import { IssueRow } from './IssueRow'
+import type { Issue } from './issueTypes'
+import type { IssueResolution } from './useIssueResolution'
+
+type IssueListProps = {
+  status: 'loading' | 'ready' | 'error'
+  issues: Issue[]
+  hasMore: boolean
+  loadingMore: boolean
+  onLoadMore: () => void
+  /**
+   * Given a `qaRunId` and the `qaTryId` of the scenario an issue came from,
+   * the run console address for it — or `null` inside that run's own panel,
+   * where a link back would go nowhere. Called only for an issue whose own
+   * `qaRunId` is not `null`; `IssueRow` renders a muted row itself otherwise.
+   */
+  runHref: ((qaRunId: string, qaTryId: string) => string) | null
+  /** True when a filter is narrowing the list, which changes the empty text. */
+  filtered: boolean
+  onRetry: () => void
+  /**
+   * Whether the project this list belongs to has a connected tracker at all.
+   * Required rather than optional so every call site states its own answer —
+   * `QaTryIssuePanel` has no access to the project's tracker state and passes
+   * `false` explicitly, rather than a default silently doing that for it.
+   */
+  trackerConnected: boolean
+  selection?: { ids: string[]; onToggle: (issue: Issue) => void }
+  /**
+   * The resolve toggle and the tracker export. Handed in rather than created here so a page can also call
+   * them for the project agent (ARTEL-1139) and get the same optimistic update the buttons do.
+   */
+  resolution: IssueResolution
+  trackerSync: TrackerSync
+  /** 펼쳐서 강조할 이슈(`?issue=`, ARTEL-1084). 없으면 null. */
+  focusId?: string | null
+  /** 같은 이슈를 다시 가리킬 때마다 올라가는 값. 접힌 행을 다시 펼친다. */
+  focusToken?: number
+}
+
+/**
+ * The list itself, shared by the project page and the run panel.
+ *
+ * It owns the resolve toggle so both surfaces get the same optimistic update
+ * and the same rollback; everything above it only supplies rows.
+ */
+export function IssueList({
+  status,
+  issues,
+  hasMore,
+  loadingMore,
+  onLoadMore,
+  runHref,
+  filtered,
+  onRetry,
+  trackerConnected,
+  resolution,
+  trackerSync,
+  focusId = null,
+  selection,
+  focusToken = 0,
+}: IssueListProps) {
+  const { t } = useI18n()
+  const { toggle, pending, failedId } = resolution
+  const { sync, pending: syncPending, failedId: syncFailedId } = trackerSync
+
+  if (status === 'loading') {
+    return (
+      <p className="panel-empty" aria-busy="true">
+        {t.issues.list.loading}
+      </p>
+    )
+  }
+
+  if (status === 'error') {
+    return (
+      <div className="panel-message" role="alert">
+        <p className="panel-message-copy">{t.issues.list.loadFailed}</p>
+        <button className="button button--secondary" onClick={onRetry} type="button">
+          {t.issues.list.retry}
+        </button>
+      </div>
+    )
+  }
+
+  if (issues.length === 0) {
+    // Two different facts, and confusing them sends people looking for a bug in
+    // the wrong place: nothing was ever found, versus nothing matches right now.
+    return <p className="panel-empty">{filtered ? t.issues.list.emptyFiltered : t.issues.list.empty}</p>
+  }
+
+  return (
+    <>
+      <ul className="issue-list">
+        {issues.map((issue) => (
+          <IssueRow
+            selection={selection ? {
+              checked: selection.ids.includes(issue.id),
+              onToggle: () => selection.onToggle(issue),
+              disabled: selection.ids.length >= 50 && !selection.ids.includes(issue.id),
+            } : undefined}
+            failed={failedId === issue.id}
+            focused={issue.id === focusId}
+            focusToken={focusToken}
+            issue={issue}
+            key={issue.id}
+            onSync={(target) => void sync(target)}
+            onToggle={(target) => void toggle(target)}
+            pending={pending.has(issue.id)}
+            runHref={runHref}
+            syncFailed={syncFailedId === issue.id}
+            syncPending={syncPending.has(issue.id)}
+            trackerConnected={trackerConnected}
+          />
+        ))}
+      </ul>
+      {hasMore ? (
+        <div className="list-footer">
+          <button
+            className="button button--secondary"
+            disabled={loadingMore}
+            onClick={onLoadMore}
+            type="button"
+          >
+            {loadingMore ? t.issues.list.loadingMore : t.issues.list.loadMore}
+          </button>
+        </div>
+      ) : null}
+    </>
+  )
+}

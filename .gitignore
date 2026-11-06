@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Local environment
+# 열거하면 .env.bak이나 편집기 스왑 파일 같은 파생 파일이 빠져나간다.
+# 전부 막고 예시 파일만 되살린다.
+.env*
+!.env.example
+
+# 편집기 스왑 파일. .env를 열어두면 비밀값이 그대로 담긴다.
+*.swp
+*.swo
+*~
+
+# Tooling
+*.local
+*.tsbuildinfo
+.vite/
+
+# Agent tooling
+.claude/settings.local.json
+.claude/worktrees/
+
+# Editors and OS files
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+
+# Local-only Jira credentials for the MCP server
+.jira.env
+
+# Local-only Notion credentials for the ntn CLI
+.notion.env

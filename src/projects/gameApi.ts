@@ -1,0 +1,259 @@
+import { apiFetch } from '../auth/authApi'
+import { parseBuildEnvironment } from './buildEnvironment'
+import {
+  asNullableString,
+  asRecord,
+  asString,
+  jsonRequest,
+  projectPath,
+  ProjectApiError,
+  readJson,
+  toApiError,
+} from './projectApi'
+import { parseGameBuildSummaryList, type GameBuildSummary } from './gameBuildSummary'
+import { parseGameFunctionCatalog, type GameFunctionCatalog } from './gameFunctions'
+import {
+  DEFAULT_GAME_PLATFORM,
+  type GameBuild,
+  type GameBuildPatch,
+  type GameInstance,
+  type GameInstancePatch,
+  type InstanceBuild,
+} from './gameTypes'
+
+/*
+ * Every call here goes through `apiFetch`, which sets `credentials: 'include'`
+ * and owns the single 401 branch for the whole client. Nothing in this file
+ * inspects 401 itself.
+ *
+ * `ProjectApiError` is reused rather than re-declared: these endpoints are
+ * project-scoped, they return the same `{ code, message, fields }` error body,
+ * and a second error class would mean every component had to test for two.
+ */
+
+function asBoolean(value: unknown, fallback = false): boolean {
+  return typeof value === 'boolean' ? value : fallback
+}
+
+/**
+ * The contract returns `{ items: [...] }`. A bare array is accepted too, for
+ * the same reason `parseDocumentList` accepts one: the shape of the envelope is
+ * not worth an empty screen if a proxy or a future server version flattens it.
+ */
+function toItemArray(data: unknown): unknown[] {
+  if (Array.isArray(data)) return data
+
+  const items = asRecord(data)?.items
+  return Array.isArray(items) ? items : []
+}
+
+/**
+ * Only `id` and `name` are required — they are what identifies an instance to
+ * the user and what every action needs. Everything else degrades to a value the
+ * UI knows how to render, because dropping a whole list over one cosmetic field
+ * would leave the user with no way forward.
+ *
+ * `platform` degrades to Unity rather than to an empty badge: Unity is the only
+ * engine ARTEL-75 can store, so a missing value means the field was omitted,
+ * not that the instance belongs to some other engine.
+ */
+export function parseInstance(data: unknown): GameInstance | null {
+  const record = asRecord(data)
+  if (record === null) return null
+
+  const id = asNullableString(record.id)
+  const name = asNullableString(record.name)
+  if (id === null || name === null) return null
+
+  return {
+    id,
+    projectId: asString(record.projectId),
+    name,
+    platform: asString(record.platform, DEFAULT_GAME_PLATFORM),
+    connected: asBoolean(record.connected),
+    lastConnectedAt: asString(record.lastConnectedAt),
+    createdAt: asString(record.createdAt),
+    updatedAt: asString(record.updatedAt),
+    lastGameBuild: parseInstanceBuild(record.lastGameBuild),
+  }
+}
+
+function parseInstanceBuild(data: unknown): InstanceBuild | null {
+  const record = asRecord(data)
+  const gameBuildId = record === null ? null : asNullableString(record.gameBuildId)
+  if (record === null || gameBuildId === null || gameBuildId.length === 0) return null
+  return {
+    gameBuildId,
+    version: asString(record.version),
+    label: asNullableString(record.label),
+    isEditor: parseBuildEnvironment(record.isEditor),
+  }
+}
+
+/** `version` is the build's identity to the user, so it is required alongside `id`. */
+export function parseBuild(data: unknown): GameBuild | null {
+  const record = asRecord(data)
+  if (record === null) return null
+
+  const id = asNullableString(record.id)
+  const version = asNullableString(record.version)
+  if (id === null || version === null) return null
+
+  return {
+    id,
+    projectId: asString(record.projectId),
+    version,
+    label: asNullableString(record.label),
+    notes: asNullableString(record.notes),
+    isEditor: parseBuildEnvironment(record.isEditor),
+    createdAt: asString(record.createdAt),
+    updatedAt: asString(record.updatedAt),
+  }
+}
+
+/**
+ * A mutation response has to parse: the caller applies it to the screen instead
+ * of refetching, so a response we cannot read would silently leave stale data
+ * on display. A list can tolerate a dropped row; a single applied entity cannot.
+ */
+function requireInstance(data: unknown, status: number): GameInstance {
+  const instance = parseInstance(data)
+  if (instance === null) {
+    throw new ProjectApiError(
+      status,
+      'The server described the game instance oddly.',
+      'CLIENT_MALFORMED_INSTANCE',
+    )
+  }
+  return instance
+}
+
+function requireBuild(data: unknown, status: number): GameBuild {
+  const build = parseBuild(data)
+  if (build === null) {
+    throw new ProjectApiError(
+      status,
+      'The server described the build oddly.',
+      'CLIENT_MALFORMED_BUILD',
+    )
+  }
+  return build
+}
+
+/** Instance and build IDs are opaque strings, so they are escaped, not parsed. */
+function instancePath(projectId: string, instanceId: string): string {
+  return projectPath(projectId, `/game-instances/${encodeURIComponent(instanceId)}`)
+}
+
+function buildPath(projectId: string, buildId: string): string {
+  return projectPath(projectId, `/game-builds/${encodeURIComponent(buildId)}`)
+}
+
+export async function listGameInstances(
+  projectId: string,
+  signal?: AbortSignal,
+): Promise<GameInstance[]> {
+  const response = await apiFetch(projectPath(projectId, '/game-instances'), { signal })
+  return toItemArray(await readJson(response))
+    .map(parseInstance)
+    .filter((instance): instance is GameInstance => instance !== null)
+}
+
+/*
+ * There is no create call. An instance appears when the SDK signs in, the user
+ * picks this project, and the game reports for the first time; the server owns
+ * that registration end to end.
+ */
+
+export async function updateGameInstance(
+  projectId: string,
+  instanceId: string,
+  patch: GameInstancePatch,
+): Promise<GameInstance> {
+  const response = await apiFetch(instancePath(projectId, instanceId), {
+    method: 'PATCH',
+    ...jsonRequest(patch),
+  })
+  return requireInstance(await readJson(response), response.status)
+}
+
+/**
+ * Returns `204`, so there is no body to read. The row disappears, but nothing
+ * is revoked: the same install reporting again registers a fresh instance, so
+ * this removes a record rather than cutting a game off for good.
+ */
+export async function deleteGameInstance(projectId: string, instanceId: string): Promise<void> {
+  const response = await apiFetch(instancePath(projectId, instanceId), { method: 'DELETE' })
+  if (!response.ok) {
+    throw await toApiError(response)
+  }
+}
+
+export async function listGameBuilds(
+  projectId: string,
+  signal?: AbortSignal,
+): Promise<GameBuild[]> {
+  const response = await apiFetch(projectPath(projectId, '/game-builds'), { signal })
+  return toItemArray(await readJson(response))
+    .map(parseBuild)
+    .filter((build): build is GameBuild => build !== null)
+}
+
+/**
+ * 옛 서버가 `/summary` 를 모를 때 돌려주는 상태. `GET /game-builds/summary` 는 `PATCH /game-builds/{buildId}` 와
+ * 경로가 겹쳐 404 대신 405 가 온다.
+ */
+const SUMMARY_UNSUPPORTED_STATUSES = new Set([404, 405])
+
+/**
+ * `GET .../game-builds/summary`(ARTEL-1104) — 빌드마다 instance · catalog · QA run 수를 붙인 목록.
+ * 이 엔드포인트가 없는 서버면 `null` 이다. 화면은 그때 workspace 의 빌드 목록으로 그리고 모르는 수는 `—` 로 둔다.
+ * 그 밖의 실패는 그대로 던진다 — 5xx 를 `—` 로 덮으면 고장이 "아직 없음" 으로 읽힌다.
+ */
+export async function listGameBuildSummaries(
+  projectId: string,
+  signal?: AbortSignal,
+): Promise<GameBuildSummary[] | null> {
+  const response = await apiFetch(projectPath(projectId, '/game-builds/summary'), { signal })
+  if (SUMMARY_UNSUPPORTED_STATUSES.has(response.status)) return null
+  return parseGameBuildSummaryList(await readJson(response))
+}
+
+/**
+ * Only `label` and `notes` are patchable. `version` is observed from Player
+ * Settings on every registration, so there is no endpoint to change it and no
+ * control that offers to.
+ */
+export async function updateGameBuild(
+  projectId: string,
+  buildId: string,
+  patch: GameBuildPatch,
+): Promise<GameBuild> {
+  const response = await apiFetch(buildPath(projectId, buildId), {
+    method: 'PATCH',
+    ...jsonRequest(patch),
+  })
+  return requireBuild(await readJson(response), response.status)
+}
+
+/**
+ * `GET .../game-builds/{buildId}/game-functions` — the cheats and behaviors the game
+ * registered (ARTEL-1051). A build that never sent a catalog answers `200` with
+ * `revision: 0` and two empty lists, so an empty catalog is an ordinary answer.
+ */
+export async function getGameFunctionCatalog(
+  projectId: string,
+  buildId: string,
+  signal?: AbortSignal,
+): Promise<GameFunctionCatalog> {
+  const response = await apiFetch(`${buildPath(projectId, buildId)}/game-functions`, { signal })
+  const catalog = parseGameFunctionCatalog(await readJson(response))
+  if (catalog === null) {
+    throw new ProjectApiError(
+      response.status,
+      'The server described the game functions oddly.',
+      'CLIENT_MALFORMED_GAME_FUNCTIONS',
+    )
+  }
+  return catalog
+}

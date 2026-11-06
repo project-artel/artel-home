@@ -1,0 +1,235 @@
+import { buildDisplayName } from '../projects/buildEnvironment'
+import { selectedLibraryCase } from './selectedLibraryCase'
+import { formatTestCaseId } from './testCaseId'
+import type { GameBuild } from '../projects/gameTypes'
+import type { CaseKind, CaseOrigin, TestCase, VerificationStatus } from './testCaseTypes'
+import type { VersionCaseRow } from './testCaseVersions'
+
+export function editableCase(caseId: string | null, cases: readonly TestCase[], versionRows: readonly VersionCaseRow[] | null): TestCase | null {
+  return selectedLibraryCase(caseId, cases, versionRows ?? undefined)
+}
+
+/*
+ * 케이스 라이브러리 화면이 목록을 좁히고 줄 세우는 규칙.
+ *
+ * 컴포넌트가 아니라 이 파일에 두는 이유는 두 가지다. 규칙이 순수 함수라 렌더 없이 그대로
+ * 테스트할 수 있고, 목록·집계·빈 상태 문구가 모두 같은 판정을 읽어야 "3건"이라 적어 놓고
+ * 네 줄을 그리는 일이 생기지 않는다.
+ */
+
+export type TestCaseStatusFilter = 'ALL' | VerificationStatus
+
+/** 목록을 세우는 두 가지 기준. */
+export type TestCaseSort =
+  /** 실패 → 미검증 → 통과. 이 화면이 답하려는 질문("무엇이 깨졌나")의 순서다. */
+  | 'FAILING_FIRST'
+  /** 서버가 준 순서 그대로. 서버는 `id DESC` 로 내므로 최근에 만든 케이스가 위다. */
+  | 'NEWEST'
+
+export type TestCaseFilters = {
+  query: string
+  /** 빈 문자열은 씬을 가리지 않는다는 뜻이다. */
+  scene: string
+  status: TestCaseStatusFilter
+  /** 출처(ARTEL-1032). `ALL` 은 가리지 않는다. 출처를 모르는 케이스는 `ALL` 에서만 보인다. */
+  origin: 'ALL' | CaseOrigin
+  /** 종류(ARTEL-1308). `ALL` 은 가리지 않는다. 종류를 모르는 케이스는 기능이다. */
+  kind: 'ALL' | CaseKind
+  /** 씬 전이 TC 만(ARTEL-1313). 도착 화면이 있는 TC 다. 종류와 겹칠 수 있어 따로 켜고 끈다. */
+  transition: boolean
+}
+
+export const NO_FILTERS: TestCaseFilters = { query: '', scene: '', status: 'ALL', origin: 'ALL', kind: 'ALL', transition: false }
+
+/** 하나라도 걸려 있으면 빈 목록의 문구가 "아직 없음"이 아니라 "조건에 맞는 것이 없음"이 된다. */
+export function hasActiveFilters(filters: TestCaseFilters): boolean {
+  return (
+    filters.query.trim().length > 0 ||
+    filters.scene.length > 0 ||
+    filters.status !== 'ALL' ||
+    filters.origin !== 'ALL' ||
+    filters.kind !== 'ALL' ||
+    filters.transition
+  )
+}
+
+export type SceneCount = { scene: string; count: number }
+
+/**
+ * 이 프로젝트에 실제로 있는 씬과 각 씬의 케이스 수, 많은 것부터.
+ *
+ * 씬 목록을 서버가 따로 내주지 않으므로 케이스에서 뽑는다. 같은 수면 이름순으로 갈라
+ * 목록을 다시 그릴 때 순서가 흔들리지 않게 한다.
+ */
+export function countScenes(cases: TestCase[]): SceneCount[] {
+  const counts = new Map<string, number>()
+  for (const testCase of cases) {
+    const scene = testCase.scene.trim()
+    if (scene.length === 0) continue
+    counts.set(scene, (counts.get(scene) ?? 0) + 1)
+  }
+
+  return [...counts.entries()]
+    .map(([scene, count]) => ({ scene, count }))
+    .sort((left, right) => right.count - left.count || left.scene.localeCompare(right.scene))
+}
+
+/**
+ * 표시 식별자와 원본 ID, 케이스 본문 네 필드로 검색한다.
+ */
+function matchesQuery(testCase: TestCase, query: string, numbers?: ReadonlyMap<string, string>): boolean {
+  if (query.length === 0) return true
+
+  return (
+    (numbers?.has(testCase.id) === true && formatTestCaseId(numbers.get(testCase.id)!).toLowerCase().includes(query)) || testCase.id.toLowerCase().includes(query) ||
+    testCase.step.toLowerCase().includes(query) ||
+    testCase.scene.toLowerCase().includes(query) ||
+    testCase.expectedValue.toLowerCase().includes(query) ||
+    (testCase.precondition ?? '').toLowerCase().includes(query)
+  )
+}
+
+const FAILING_FIRST_RANK: Record<VerificationStatus, number> = {
+  FAILED: 0,
+  BROKEN: 1,
+  REGRESSION: 2,
+  DRAFT: 3,
+  VERIFIED: 4,
+}
+
+/**
+ * 걸러 낸 뒤 세운 목록.
+ *
+ * `NEWEST` 는 받은 순서를 그대로 둔다. 서버가 이미 최근 것부터 주므로 여기서 `createdAt` 을
+ * 다시 정렬하면, 같은 초에 만들어진 케이스들의 순서만 서버와 어긋난다.
+ * `FAILING_FIRST` 는 상태 순위로만 세우고 같은 순위 안에서는 원래 순서를 지킨다(안정 정렬).
+ */
+export function selectTestCases(
+  cases: TestCase[],
+  filters: TestCaseFilters,
+  sort: TestCaseSort,
+  numbers?: ReadonlyMap<string, string>,
+): TestCase[] {
+  const query = filters.query.trim().toLowerCase()
+  const shown = cases.filter(
+    (testCase) =>
+      (filters.status === 'ALL' || testCase.verificationStatus === filters.status) &&
+      (filters.scene.length === 0 || testCase.scene === filters.scene) &&
+      (filters.origin === 'ALL' || testCase.origin === filters.origin) &&
+      (filters.kind === 'ALL' || (testCase.kind ?? 'FUNCTION') === filters.kind) &&
+      (!filters.transition || (testCase.arrivesAt ?? '').length > 0) &&
+      matchesQuery(testCase, query, numbers),
+  )
+
+  if (sort === 'NEWEST') return shown
+
+  return [...shown].sort(
+    (left, right) =>
+      FAILING_FIRST_RANK[left.verificationStatus] - FAILING_FIRST_RANK[right.verificationStatus],
+  )
+}
+
+export type TestCaseTally = {
+  total: number
+  verified: number
+  failed: number
+  regression: number
+  draft: number
+  broken: number
+}
+
+/** 필터 chip 옆에 붙는 수. 전체 목록에서 세므로 필터를 걸어도 숫자가 흔들리지 않는다. */
+export function tallyTestCases(cases: TestCase[]): TestCaseTally {
+  const tally: TestCaseTally = { total: cases.length, verified: 0, failed: 0, regression: 0, draft: 0, broken: 0 }
+  for (const testCase of cases) {
+    if (testCase.verificationStatus === 'VERIFIED') tally.verified += 1
+    else if (testCase.verificationStatus === 'FAILED') tally.failed += 1
+    else if (testCase.verificationStatus === 'REGRESSION') tally.regression += 1
+    else if (testCase.verificationStatus === 'BROKEN') tally.broken += 1
+    else tally.draft += 1
+  }
+  return tally
+}
+
+/**
+ * 마지막으로 검증한 build 를 사람이 읽는 이름으로.
+ *
+ * `lastVerifiedBuildId` 가 가리키는 build 가 이미 지워졌을 수 있어 `null` 을 낸다 — 그때
+ * 화면은 build 칸을 비운다. 없는 build 의 id 를 그대로 적어 주면 사용자가 확인할 방법이
+ * 없는 숫자만 남는다. editor build 는 version 대신 [editorLabel] 로 부른다.
+ */
+export function describeVerifiedBuild(
+  buildId: string | null,
+  builds: GameBuild[],
+  editorLabel: string,
+): string | null {
+  if (buildId === null) return null
+
+  const build = builds.find((candidate) => candidate.id === buildId)
+  if (build === undefined) return null
+
+  // editor build 의 version 은 마지막으로 보고된 값일 뿐이라, 그 build 에서 검증했다는 말의
+  // 이름으로는 맞지 않다.
+  if (build.isEditor) return editorLabel
+
+  return buildDisplayName(build)
+}
+
+/** `vdot` 와 결과 pill 이 상태마다 쓰는 CSS 접미사. 대문자 상태값을 클래스에 그대로 넣지 않는다. */
+export const STATUS_CLASS: Record<VerificationStatus, string> = {
+  VERIFIED: 'verified',
+  FAILED: 'failed',
+  REGRESSION: 'regression',
+  DRAFT: 'draft',
+  BROKEN: 'broken',
+}
+
+/** 결과 chip 옆의 수. */
+/** 종류마다 몇 건인가(ARTEL-1308). 종류를 모르는 케이스는 기능으로 센다. */
+export function countKinds(cases: TestCase[]): Record<CaseKind, number> & { transition: number } {
+  const counts = { FUNCTION: 0, EXCEPTION: 0, transition: 0 }
+  for (const testCase of cases) {
+    counts[testCase.kind ?? 'FUNCTION'] += 1
+    if ((testCase.arrivesAt ?? '').length > 0) counts.transition += 1
+  }
+  return counts
+}
+
+export function countOf(tally: TestCaseTally, status: VerificationStatus): number {
+  if (status === 'VERIFIED') return tally.verified
+  if (status === 'FAILED') return tally.failed
+  if (status === 'REGRESSION') return tally.regression
+  if (status === 'BROKEN') return tally.broken
+  return tally.draft
+}
+
+/**
+ * 편집 창의 화면 · 도착 화면 칩에 쓰는 씬 순서(ARTEL-1313). 화면 칸은 TC 가 많은 씬부터, 도착 화면 칸은 도착 화면으로
+ * 많이 쓴 씬부터(그다음 TC 가 많은 씬) 놓는다. 칩은 앞 일곱 개만 보이고 나머지는 검색 팝업에서 찾는다.
+ */
+export type SceneUsage = {
+  scenes: string[]
+  sceneCounts: Map<string, number>
+  arrivals: string[]
+  arrivalCounts: Map<string, number>
+}
+
+export const NO_SCENE_USAGE: SceneUsage = { scenes: [], sceneCounts: new Map(), arrivals: [], arrivalCounts: new Map() }
+
+export function sceneUsageOf(cases: TestCase[]): SceneUsage {
+  const sceneCounts = new Map<string, number>()
+  const arrivalCounts = new Map<string, number>()
+  for (const testCase of cases) {
+    const scene = testCase.scene.trim()
+    if (scene.length > 0) sceneCounts.set(scene, (sceneCounts.get(scene) ?? 0) + 1)
+    const arrival = testCase.arrivesAt?.trim() ?? ''
+    if (arrival.length > 0) arrivalCounts.set(arrival, (arrivalCounts.get(arrival) ?? 0) + 1)
+  }
+  const byCount = (counts: Map<string, number>) => (left: string, right: string) =>
+    (counts.get(right) ?? 0) - (counts.get(left) ?? 0) || left.localeCompare(right)
+  const scenes = [...sceneCounts.keys()].sort(byCount(sceneCounts))
+  const arrivals = [...new Set([...arrivalCounts.keys(), ...scenes])].sort(
+    (left, right) => (arrivalCounts.get(right) ?? 0) - (arrivalCounts.get(left) ?? 0) || byCount(sceneCounts)(left, right),
+  )
+  return { scenes, sceneCounts, arrivals, arrivalCounts }
+}

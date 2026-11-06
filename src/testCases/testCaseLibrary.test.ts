@@ -1,0 +1,246 @@
+import assert from 'node:assert/strict'
+import test from 'node:test'
+import type { GameBuild } from '../projects/gameTypes'
+import {
+  sceneUsageOf,
+  countKinds,
+  countScenes,
+  editableCase,
+  describeVerifiedBuild,
+  hasActiveFilters,
+  NO_FILTERS,
+  selectTestCases,
+  tallyTestCases,
+} from './testCaseLibrary'
+import type { TestCase, VerificationStatus } from './testCaseTypes'
+
+function makeCase(id: string, extra: Partial<TestCase> = {}): TestCase {
+  return {
+    id,
+    projectId: '1',
+    scene: 'Lobby',
+    step: `step ${id}`,
+    precondition: null,
+    expectedValue: 'something happens',
+    verificationStatus: 'DRAFT',
+    lastVerifiedBuildId: null,
+    createdAt: '2026-08-27T00:00:00.000Z',
+    folderId: null,
+    evidenceGaps: [],
+    ...extra,
+  }
+}
+
+function makeBuild(id: string, extra: Partial<GameBuild> = {}): GameBuild {
+  return {
+    id,
+    projectId: '1',
+    version: '1.4.0',
+    label: null,
+    notes: null,
+    isEditor: false,
+    createdAt: '2026-08-27T00:00:00.000Z',
+    updatedAt: '2026-08-27T00:00:00.000Z',
+    ...extra,
+  }
+}
+
+function idsOf(cases: TestCase[]): string[] {
+  return cases.map((testCase) => testCase.id)
+}
+
+test('선택한 build의 snapshot을 편집하고 최신 내용으로 fallback하지 않는다', () => {
+  const latest = makeCase('1', { origin: 'MAP', step: '최신 내용' })
+  const older = makeCase('1', { origin: 'MAP', step: '이전 build 내용' })
+  const row = { testCase: older, origin: 'MAP' as const, verificationStatus: null, presence: 'BOTH' as const, compareVerificationStatus: null }
+  assert.equal(editableCase('1', [latest], [row]), older)
+  assert.equal(editableCase('1', [latest], []), null)
+  assert.equal(editableCase('1', [latest], [{ ...row, presence: 'ONLY_OTHER' }]), null)
+  assert.equal(editableCase('1', [latest], [{ ...row, presence: 'ONLY_THIS' }]), older)
+})
+
+test('버전 없음과 수동 TC는 해당 편집 기준을 유지하고 신규 생성은 null이다', () => {
+  const manual = makeCase('1', { origin: 'MANUAL' })
+  const row = { testCase: manual, origin: 'MANUAL' as const, verificationStatus: null, presence: 'BOTH' as const, compareVerificationStatus: null }
+  assert.equal(editableCase('1', [manual], null), manual)
+  assert.equal(editableCase('1', [], [row]), manual)
+  assert.equal(editableCase(null, [manual], null), null)
+})
+
+test('필터가 하나도 없으면 받은 목록을 그대로 낸다', () => {
+  const cases = [makeCase('1'), makeCase('2')]
+
+  assert.deepEqual(idsOf(selectTestCases(cases, NO_FILTERS, 'NEWEST')), ['1', '2'])
+  assert.equal(hasActiveFilters(NO_FILTERS), false)
+})
+
+test('검색어는 본문 네 필드에 걸린다', () => {
+  const cases = [
+    makeCase('1', { step: '상점을 연다' }),
+    makeCase('2', { scene: 'Shop' }),
+    makeCase('3', { expectedValue: '상점 목록이 보인다' }),
+    makeCase('4', { precondition: '상점 해금 상태' }),
+    makeCase('5', { step: '전투를 시작한다', scene: 'Battle', expectedValue: '적이 나온다' }),
+  ]
+
+  assert.deepEqual(idsOf(selectTestCases(cases, { ...NO_FILTERS, query: '상점' }, 'NEWEST')), [
+    '1',
+    '3',
+    '4',
+  ])
+  assert.deepEqual(idsOf(selectTestCases(cases, { ...NO_FILTERS, query: 'shop' }, 'NEWEST')), ['2'])
+})
+
+test('검색어의 앞뒤 공백은 무시하고, 빈 검색어는 아무것도 거르지 않는다', () => {
+  const cases = [makeCase('1', { step: '상점을 연다' }), makeCase('2', { step: '전투' })]
+
+  assert.deepEqual(idsOf(selectTestCases(cases, { ...NO_FILTERS, query: '  상점  ' }, 'NEWEST')), ['1'])
+  assert.deepEqual(idsOf(selectTestCases(cases, { ...NO_FILTERS, query: '   ' }, 'NEWEST')), ['1', '2'])
+  assert.equal(hasActiveFilters({ ...NO_FILTERS, query: '   ' }), false)
+})
+
+test('씬과 검증 상태 필터는 함께 걸린다', () => {
+  const cases = [
+    makeCase('1', { scene: 'Lobby', verificationStatus: 'BROKEN' }),
+    makeCase('2', { scene: 'Lobby', verificationStatus: 'VERIFIED' }),
+    makeCase('3', { scene: 'Shop', verificationStatus: 'BROKEN' }),
+  ]
+
+  const filters = { query: '', scene: 'Lobby', status: 'BROKEN' as VerificationStatus, origin: 'ALL' as const, kind: 'ALL' as const, transition: false }
+  assert.deepEqual(idsOf(selectTestCases(cases, filters, 'NEWEST')), ['1'])
+  assert.equal(hasActiveFilters(filters), true)
+})
+
+test('FAILING_FIRST 는 실패·미검증·통과 순으로 세우고 같은 상태 안에서는 받은 순서를 지킨다', () => {
+  const cases = [
+    makeCase('1', { verificationStatus: 'VERIFIED' }),
+    makeCase('2', { verificationStatus: 'DRAFT' }),
+    makeCase('3', { verificationStatus: 'BROKEN' }),
+    makeCase('4', { verificationStatus: 'VERIFIED' }),
+    makeCase('5', { verificationStatus: 'BROKEN' }),
+  ]
+
+  assert.deepEqual(idsOf(selectTestCases(cases, NO_FILTERS, 'FAILING_FIRST')), [
+    '3',
+    '5',
+    '2',
+    '1',
+    '4',
+  ])
+})
+
+test('정렬이 원본 배열을 뒤집지 않는다', () => {
+  const cases = [
+    makeCase('1', { verificationStatus: 'VERIFIED' }),
+    makeCase('2', { verificationStatus: 'BROKEN' }),
+  ]
+
+  selectTestCases(cases, NO_FILTERS, 'FAILING_FIRST')
+
+  assert.deepEqual(idsOf(cases), ['1', '2'])
+})
+
+test('씬 집계는 많은 것부터, 같은 수면 이름순이고 빈 씬은 세지 않는다', () => {
+  const cases = [
+    makeCase('1', { scene: 'Shop' }),
+    makeCase('2', { scene: 'Lobby' }),
+    makeCase('3', { scene: 'Shop' }),
+    makeCase('4', { scene: 'Battle' }),
+    makeCase('5', { scene: '   ' }),
+  ]
+
+  assert.deepEqual(countScenes(cases), [
+    { scene: 'Shop', count: 2 },
+    { scene: 'Battle', count: 1 },
+    { scene: 'Lobby', count: 1 },
+  ])
+})
+
+test('집계는 다섯 상태를 각각 센다', () => {
+  const cases = [
+    makeCase('1', { verificationStatus: 'VERIFIED' }),
+    makeCase('2', { verificationStatus: 'BROKEN' }),
+    makeCase('3', { verificationStatus: 'BROKEN' }),
+    makeCase('4', { verificationStatus: 'DRAFT' }),
+    makeCase('5', { verificationStatus: 'FAILED' }),
+    makeCase('6', { verificationStatus: 'REGRESSION' }),
+  ]
+
+  assert.deepEqual(tallyTestCases(cases), {
+    total: 6, verified: 1, failed: 1, regression: 1, draft: 1, broken: 2,
+  })
+})
+
+test('build 이름은 label 을 쓰고, 없으면 version 으로 떨어진다', () => {
+  const builds = [
+    makeBuild('10', { label: '1차 QA 빌드' }),
+    makeBuild('11', { label: '   ', version: '1.5.2' }),
+  ]
+
+  assert.equal(describeVerifiedBuild('10', builds, 'Editor'), '1.4.0 · Standalone · 1차 QA 빌드')
+  assert.equal(describeVerifiedBuild('11', builds, 'Editor'), '1.5.2 · Standalone')
+})
+
+test('가리키는 build 가 없으면 이름 대신 null 을 낸다', () => {
+  assert.equal(describeVerifiedBuild(null, [makeBuild('10')], 'Editor'), null)
+  assert.equal(describeVerifiedBuild('99', [makeBuild('10')], 'Editor'), null)
+})
+
+test('editor build 는 label 이나 version 이 있어도 Editor 로 부른다', () => {
+  const builds = [makeBuild('20', { isEditor: true, label: '내 label', version: '1.6.0' })]
+
+  assert.equal(describeVerifiedBuild('20', builds, 'Editor'), 'Editor')
+})
+
+test('출처 필터는 자동 생성 · 사용자 생성을 가르고, 출처를 모르는 케이스는 전체에서만 보인다', () => {
+  const cases = [
+    makeCase('1', { origin: 'MAP' }),
+    makeCase('2', { origin: 'MANUAL' }),
+    makeCase('3'),
+  ]
+  const only = (origin: 'ALL' | 'MAP' | 'MANUAL') => idsOf(selectTestCases(cases, { ...NO_FILTERS, origin }, 'NEWEST'))
+
+  assert.deepEqual(only('ALL'), ['1', '2', '3'])
+  assert.deepEqual(only('MAP'), ['1'])
+  assert.deepEqual(only('MANUAL'), ['2'])
+  assert.equal(hasActiveFilters({ ...NO_FILTERS, origin: 'MANUAL' }), true)
+})
+
+test('종류 필터는 예외만 · 기능만 고르고, 종류를 모르는 케이스는 기능이다', () => {
+  const cases = [
+    makeCase('1', { kind: 'FUNCTION' }),
+    makeCase('2', { kind: 'EXCEPTION' }),
+    makeCase('3'),
+  ]
+
+  assert.deepEqual(idsOf(selectTestCases(cases, { ...NO_FILTERS, kind: 'EXCEPTION' }, 'NEWEST')), ['2'])
+  assert.deepEqual(idsOf(selectTestCases(cases, { ...NO_FILTERS, kind: 'FUNCTION' }, 'NEWEST')), ['1', '3'])
+  assert.equal(hasActiveFilters({ ...NO_FILTERS, kind: 'EXCEPTION' }), true)
+  assert.deepEqual(countKinds(cases), { FUNCTION: 2, EXCEPTION: 1, transition: 0 })
+})
+
+test('화면 칩은 TC 가 많은 씬부터, 도착 화면 칩은 도착 화면으로 많이 쓴 씬부터 놓는다', () => {
+  const cases = [
+    makeCase('1', { scene: '광장', arrivesAt: '숲' }),
+    makeCase('2', { scene: '광장', arrivesAt: '숲' }),
+    makeCase('3', { scene: '광장' }),
+    makeCase('4', { scene: '여관', arrivesAt: '광장' }),
+    makeCase('5', { scene: '대장간' }),
+  ]
+  const usage = sceneUsageOf(cases)
+  assert.deepEqual(usage.scenes, ['광장', '대장간', '여관'])
+  assert.deepEqual(usage.arrivals, ['숲', '광장', '대장간', '여관'])
+  assert.equal(usage.arrivalCounts.get('숲'), 2)
+})
+
+test('씬 전이 칩은 도착 화면이 있는 TC 만 남기고, 종류와 함께 걸린다', () => {
+  const cases = [
+    makeCase('1', { arrivesAt: '숲' }),
+    makeCase('2', { arrivesAt: '광장', kind: 'EXCEPTION' }),
+    makeCase('3'),
+  ]
+  assert.deepEqual(idsOf(selectTestCases(cases, { ...NO_FILTERS, transition: true }, 'NEWEST')), ['1', '2'])
+  assert.deepEqual(idsOf(selectTestCases(cases, { ...NO_FILTERS, transition: true, kind: 'FUNCTION' }, 'NEWEST')), ['1'])
+  assert.equal(hasActiveFilters({ ...NO_FILTERS, transition: true }), true)
+  assert.equal(countKinds(cases).transition, 2)
+})

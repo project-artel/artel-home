@@ -1,0 +1,87 @@
+/* Moved from admin-page. Every rule is nested under .admin-console so the class names (.field, .control, .table, ...) never reach the rest of the console. */
+.admin-console {
+  /* 프로젝트 선택기. `.control`과 `.field`는 dashboard.css가 정의한 것을 그대로 쓴다. */
+  
+  .picker {
+    position: relative;
+  }
+  
+  .picker__input {
+    width: 200px;
+  }
+  
+  .picker__input::placeholder {
+    color: var(--color-text-muted);
+  }
+  
+  .picker__list {
+    position: absolute;
+    z-index: 20;
+    top: calc(100% + 2px);
+    left: 0;
+    min-width: 100%;
+    max-width: 320px;
+    max-height: 280px;
+    overflow-y: auto;
+    margin: 0;
+    padding: var(--space-1) 0;
+    list-style: none;
+    background: var(--color-bg-surface);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 6px 16px rgb(32 35 43 / 12%);
+  }
+  
+  .picker__option {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    /* 포인터 대상 최소 32px(DESIGN.md 접근성). */
+    min-height: 32px;
+    padding: 0 var(--space-3);
+    font-size: 13px;
+    color: var(--color-text-primary);
+    cursor: pointer;
+  }
+  
+  .picker__option--active {
+    background: var(--color-bg-hover);
+  }
+  
+  .picker__option[aria-selected='true'] .picker__name {
+    font-weight: 600;
+  }
+  
+  .picker__name {
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  .picker__badge {
+    flex: 0 0 auto;
+    padding: 1px var(--space-2);
+    font-size: 11px;
+    line-height: 16px;
+    color: var(--color-text-secondary);
+    background: var(--color-bg-raised);
+    border-radius: var(--radius-sm);
+  }
+  
+  .picker__empty,
+  .picker__count {
+    padding: var(--space-2) var(--space-3);
+    font-size: 11px;
+    line-height: 16px;
+    color: var(--color-text-muted);
+  }
+  
+  /* 목록이 길면 스크롤 아래로 밀려 안 보인다. 몇 건이 잘렸는지가 이 줄의 요점이라 바닥에 고정한다. */
+  .picker__count {
+    position: sticky;
+    bottom: 0;
+    background: var(--color-bg-surface);
+    border-top: 1px solid var(--color-border-subtle);
+  }
+}

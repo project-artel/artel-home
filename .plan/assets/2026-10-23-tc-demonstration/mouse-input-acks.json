@@ -1,0 +1,809 @@
+{
+  "videoBounds": {
+    "x": 520,
+    "y": 464,
+    "width": 530,
+    "height": 298.125
+  },
+  "videoResolution": {
+    "width": 1280,
+    "height": 720
+  },
+  "observedGamePointer": {
+    "x": 1440,
+    "y": 540
+  },
+  "observedCount": 1,
+  "frames": [
+    {
+      "method": "Network.webSocketFrameSent",
+      "timestamp": 371427.339839,
+      "payload": {
+        "method": "move_mouse",
+        "params": [
+          0.009999976967865566,
+          0.010000040946016772
+        ],
+        "type": "INPUT",
+        "sequence": 1
+      }
+    },
+    {
+      "method": "Network.webSocketFrameReceived",
+      "timestamp": 371427.492313,
+      "payload": {
+        "type": "ACK",
+        "sequence": 1,
+        "eventId": 541,
+        "code": null,
+        "message": null
+      }
+    },
+    {
+      "method": "Network.webSocketFrameSent",
+      "timestamp": 371432.438463,
+      "payload": {
+        "method": "move_mouse",
+        "params": [
+          0.034499949329304246,
+          0.03449998771619497
+        ],
+        "type": "INPUT",
+        "sequence": 2
+      }
+    },
+    {
+      "method": "Network.webSocketFrameReceived",
+      "timestamp": 371432.523572,
+      "payload": {
+        "type": "ACK",
+        "sequence": 2,
+        "eventId": 545,
+        "code": null,
+        "message": null
+      }
+    },
+    {
+      "method": "Network.webSocketFrameSent",
+      "timestamp": 371432.523711,
+      "payload": {
+        "method": "move_mouse",
+        "params": [
+          0.08350000921285378,
+          0.08350008598663522
+        ],
+        "type": "INPUT",
+        "sequence": 3
+      }
+    },
+    {
+      "method": "Network.webSocketFrameReceived",
+      "timestamp": 371432.600328,
+      "payload": {
+        "type": "ACK",
+        "sequence": 3,
+        "eventId": 547,
+        "code": null,
+        "message": null
+      }
+    },
+    {
+      "method": "Network.webSocketFrameSent",
+      "timestamp": 371432.600486,
+      "payload": {
+        "method": "move_mouse",
+        "params": [
+          0.1325000690964033,
+          0.1324999795269916
+        ],
+        "type": "INPUT",
+        "sequence": 4
+      }
+    },
+    {
+      "method": "Network.webSocketFrameReceived",
+      "timestamp": 371432.681227,
+      "payload": {
+        "type": "ACK",
+        "sequence": 4,
+        "eventId": 549,
+        "code": null,
+        "message": null
+      }
+    },
+    {
+      "method": "Network.webSocketFrameSent",
+      "timestamp": 371432.681406,
+      "payload": {
+        "method": "move_mouse",
+        "params": [
+          0.20599998618071935,
+          0.20600002456761007
+        ],
+        "type": "INPUT",
+        "sequence": 5
+      }
+    },
+    {
+      "method": "Network.webSocketFrameReceived",
+      "timestamp": 371432.771951,
+      "payload": {
+        "type": "ACK",
+        "sequence": 5,
+        "eventId": 552,
+        "code": null,
+        "message": null
+      }
+    },
+    {
+      "method": "Network.webSocketFrameSent",
+      "timestamp": 371432.772055,
+      "payload": {
+        "method": "move_mouse",
+        "params": [
+          0.27950001842570754,
+          0.2794999672431866
+        ],
+        "type": "INPUT",
+        "sequence": 6
+      }
+    },
+    {
+      "method": "Network.webSocketFrameReceived",
+      "timestamp": 371432.848924,
+      "payload": {
+        "type": "ACK",
+        "sequence": 6,
+        "eventId": 554,
+        "code": null,
+        "message": null
+      }
+    },
+    {
+      "method": "Network.webSocketFrameSent",
+      "timestamp": 371432.849019,
+      "payload": {
+        "method": "move_mouse",
+        "params": [
+          0.3284999631485849,
+          0.32850006551362687
+        ],
+        "type": "INPUT",
+        "sequence": 7
+      }
+    },
+    {
+      "method": "Network.webSocketFrameReceived",
+      "timestamp": 371432.93089,
+      "payload": {
+        "type": "ACK",
+        "sequence": 7,
+        "eventId": 556,
+        "code": null,
+        "message": null
+      }
+    },
+    {
+      "method": "Network.webSocketFrameSent",
+      "timestamp": 371432.931002,
+      "payload": {
+        "method": "move_mouse",
+        "params": [
+          0.3775000230321344,
+          0.37749995905398326
+        ],
+        "type": "INPUT",
+        "sequence": 8
+      }
+    },
+    {
+      "method": "Network.webSocketFrameReceived",
+      "timestamp": 371433.008414,
+      "payload": {
+        "type": "ACK",
+        "sequence": 8,
+        "eventId": 558,
+        "code": null,
+        "message": null
+      }
+    },
+    {
+      "method": "Network.webSocketFrameSent",
+      "timestamp": 371433.008562,
+      "payload": {
+        "method": "move_mouse",
+        "params": [
+          0.45100005527712267,
+          0.4509999017295598
+        ],
+        "type": "INPUT",
+        "sequence": 9
+      }
+    },
+    {
+      "method": "Network.webSocketFrameReceived",
+      "timestamp": 371433.085393,
+      "payload": {
+        "type": "ACK",
+        "sequence": 9,
+        "eventId": 560,
+        "code": null,
+        "message": null
+      }
+    },
+    {
+      "method": "Network.webSocketFrameSent",
+      "timestamp": 371433.085529,
+      "payload": {
+        "method": "move_mouse",
+        "params": [
+          0.5,
+          0.5
+        ],
+        "type": "INPUT",
+        "sequence": 10
+      }
+    },
+    {
+      "method": "Network.webSocketFrameReceived",
+      "timestamp": 371433.160712,
+      "payload": {
+        "type": "ACK",
+        "sequence": 10,
+        "eventId": 562,
+        "code": null,
+        "message": null
+      }
+    },
+    {
+      "method": "Network.webSocketFrameSent",
+      "timestamp": 371433.160867,
+      "payload": {
+        "method": "move_mouse",
+        "params": [
+          0.5489999447228773,
+          0.5490000982704403
+        ],
+        "type": "INPUT",
+        "sequence": 11
+      }
+    },
+    {
+      "method": "Network.webSocketFrameReceived",
+      "timestamp": 371433.234563,
+      "payload": {
+        "type": "ACK",
+        "sequence": 11,
+        "eventId": 564,
+        "code": null,
+        "message": null
+      }
+    },
+    {
+      "method": "Network.webSocketFrameSent",
+      "timestamp": 371433.234663,
+      "payload": {
+        "method": "move_mouse",
+        "params": [
+          0.598000119767099,
+          0.5979999918107967
+        ],
+        "type": "INPUT",
+        "sequence": 12
+      }
+    },
+    {
+      "method": "Network.webSocketFrameReceived",
+      "timestamp": 371433.308897,
+      "payload": {
+        "type": "ACK",
+        "sequence": 12,
+        "eventId": 566,
+        "code": null,
+        "message": null
+      }
+    },
+    {
+      "method": "Network.webSocketFrameSent",
+      "timestamp": 371433.309083,
+      "payload": {
+        "method": "move_mouse",
+        "params": [
+          0.671500036851415,
+          0.6714999344863731
+        ],
+        "type": "INPUT",
+        "sequence": 13
+      }
+    },
+    {
+      "method": "Network.webSocketFrameReceived",
+      "timestamp": 371433.385382,
+      "payload": {
+        "type": "ACK",
+        "sequence": 13,
+        "eventId": 568,
+        "code": null,
+        "message": null
+      }
+    },
+    {
+      "method": "Network.webSocketFrameSent",
+      "timestamp": 371433.385562,
+      "payload": {
+        "method": "move_mouse",
+        "params": [
+          0.7205000967349646,
+          0.7205000327568134
+        ],
+        "type": "INPUT",
+        "sequence": 14
+      }
+    },
+    {
+      "method": "Network.webSocketFrameReceived",
+      "timestamp": 371433.457764,
+      "payload": {
+        "type": "ACK",
+        "sequence": 14,
+        "eventId": 570,
+        "code": null,
+        "message": null
+      }
+    },
+    {
+      "method": "Network.webSocketFrameSent",
+      "timestamp": 371433.457843,
+      "payload": {
+        "method": "move_mouse",
+        "params": [
+          0.7695001566185142,
+          0.7694999262971698
+        ],
+        "type": "INPUT",
+        "sequence": 15
+      }
+    },
+    {
+      "method": "Network.webSocketFrameReceived",
+      "timestamp": 371433.529169,
+      "payload": {
+        "type": "ACK",
+        "sequence": 15,
+        "eventId": 572,
+        "code": null,
+        "message": null
+      }
+    },
+    {
+      "method": "Network.webSocketFrameSent",
+      "timestamp": 371433.529276,
+      "payload": {
+        "method": "move_mouse",
+        "params": [
+          0.8184999861807194,
+          0.8185000245676102
+        ],
+        "type": "INPUT",
+        "sequence": 16
+      }
+    },
+    {
+      "method": "Network.webSocketFrameReceived",
+      "timestamp": 371433.602329,
+      "payload": {
+        "type": "ACK",
+        "sequence": 16,
+        "eventId": 574,
+        "code": null,
+        "message": null
+      }
+    },
+    {
+      "method": "Network.webSocketFrameSent",
+      "timestamp": 371433.602457,
+      "payload": {
+        "method": "move_mouse",
+        "params": [
+          0.8675000460642689,
+          0.8675001228380503
+        ],
+        "type": "INPUT",
+        "sequence": 17
+      }
+    },
+    {
+      "method": "Network.webSocketFrameReceived",
+      "timestamp": 371433.677511,
+      "payload": {
+        "type": "ACK",
+        "sequence": 17,
+        "eventId": 576,
+        "code": null,
+        "message": null
+      }
+    },
+    {
+      "method": "Network.webSocketFrameSent",
+      "timestamp": 371433.677602,
+      "payload": {
+        "method": "move_mouse",
+        "params": [
+          0.9409999631485849,
+          0.9410000655136268
+        ],
+        "type": "INPUT",
+        "sequence": 18
+      }
+    },
+    {
+      "method": "Network.webSocketFrameReceived",
+      "timestamp": 371433.75373,
+      "payload": {
+        "type": "ACK",
+        "sequence": 18,
+        "eventId": 578,
+        "code": null,
+        "message": null
+      }
+    },
+    {
+      "method": "Network.webSocketFrameSent",
+      "timestamp": 371433.753848,
+      "payload": {
+        "method": "move_mouse",
+        "params": [
+          0.9900001381928065,
+          0.9899999590539832
+        ],
+        "type": "INPUT",
+        "sequence": 19
+      }
+    },
+    {
+      "method": "Network.webSocketFrameReceived",
+      "timestamp": 371433.82779,
+      "payload": {
+        "type": "ACK",
+        "sequence": 19,
+        "eventId": 580,
+        "code": null,
+        "message": null
+      }
+    },
+    {
+      "method": "Network.webSocketFrameSent",
+      "timestamp": 371433.827878,
+      "payload": {
+        "method": "move_mouse",
+        "params": [
+          0.9409999631485849,
+          0.9410000655136268
+        ],
+        "type": "INPUT",
+        "sequence": 20
+      }
+    },
+    {
+      "method": "Network.webSocketFrameReceived",
+      "timestamp": 371433.900998,
+      "payload": {
+        "type": "ACK",
+        "sequence": 20,
+        "eventId": 582,
+        "code": null,
+        "message": null
+      }
+    },
+    {
+      "method": "Network.webSocketFrameSent",
+      "timestamp": 371433.901105,
+      "payload": {
+        "method": "move_mouse",
+        "params": [
+          0.8919999032650354,
+          0.8919999672431866
+        ],
+        "type": "INPUT",
+        "sequence": 21
+      }
+    },
+    {
+      "method": "Network.webSocketFrameReceived",
+      "timestamp": 371433.980269,
+      "payload": {
+        "type": "ACK",
+        "sequence": 21,
+        "eventId": 584,
+        "code": null,
+        "message": null
+      }
+    },
+    {
+      "method": "Network.webSocketFrameSent",
+      "timestamp": 371433.980393,
+      "payload": {
+        "method": "move_mouse",
+        "params": [
+          0.8184999861807194,
+          0.8185000245676102
+        ],
+        "type": "INPUT",
+        "sequence": 22
+      }
+    },
+    {
+      "method": "Network.webSocketFrameReceived",
+      "timestamp": 371434.055228,
+      "payload": {
+        "type": "ACK",
+        "sequence": 22,
+        "eventId": 586,
+        "code": null,
+        "message": null
+      }
+    },
+    {
+      "method": "Network.webSocketFrameSent",
+      "timestamp": 371434.055302,
+      "payload": {
+        "method": "move_mouse",
+        "params": [
+          0.7450000690964033,
+          0.7450000818920335
+        ],
+        "type": "INPUT",
+        "sequence": 23
+      }
+    },
+    {
+      "method": "Network.webSocketFrameReceived",
+      "timestamp": 371434.12905,
+      "payload": {
+        "type": "ACK",
+        "sequence": 23,
+        "eventId": 588,
+        "code": null,
+        "message": null
+      }
+    },
+    {
+      "method": "Network.webSocketFrameSent",
+      "timestamp": 371434.129163,
+      "payload": {
+        "method": "move_mouse",
+        "params": [
+          0.6960000092128538,
+          0.6960001883516771
+        ],
+        "type": "INPUT",
+        "sequence": 24
+      }
+    },
+    {
+      "method": "Network.webSocketFrameReceived",
+      "timestamp": 371434.206933,
+      "payload": {
+        "type": "ACK",
+        "sequence": 24,
+        "eventId": 590,
+        "code": null,
+        "message": null
+      }
+    },
+    {
+      "method": "Network.webSocketFrameSent",
+      "timestamp": 371434.207059,
+      "payload": {
+        "method": "move_mouse",
+        "params": [
+          0.6469999493293043,
+          0.6470000900812369
+        ],
+        "type": "INPUT",
+        "sequence": 25
+      }
+    },
+    {
+      "method": "Network.webSocketFrameReceived",
+      "timestamp": 371434.280248,
+      "payload": {
+        "type": "ACK",
+        "sequence": 25,
+        "eventId": 592,
+        "code": null,
+        "message": null
+      }
+    },
+    {
+      "method": "Network.webSocketFrameSent",
+      "timestamp": 371434.280424,
+      "payload": {
+        "method": "move_mouse",
+        "params": [
+          0.598000119767099,
+          0.5979999918107967
+        ],
+        "type": "INPUT",
+        "sequence": 26
+      }
+    },
+    {
+      "method": "Network.webSocketFrameReceived",
+      "timestamp": 371434.355669,
+      "payload": {
+        "type": "ACK",
+        "sequence": 26,
+        "eventId": 594,
+        "code": null,
+        "message": null
+      }
+    },
+    {
+      "method": "Network.webSocketFrameSent",
+      "timestamp": 371434.355939,
+      "payload": {
+        "method": "move_mouse",
+        "params": [
+          0.5244999723614387,
+          0.524500253865304
+        ],
+        "type": "INPUT",
+        "sequence": 27
+      }
+    },
+    {
+      "method": "Network.webSocketFrameReceived",
+      "timestamp": 371434.428992,
+      "payload": {
+        "type": "ACK",
+        "sequence": 27,
+        "eventId": 596,
+        "code": null,
+        "message": null
+      }
+    },
+    {
+      "method": "Network.webSocketFrameSent",
+      "timestamp": 371434.429121,
+      "payload": {
+        "method": "move_mouse",
+        "params": [
+          0.5,
+          0.5
+        ],
+        "type": "INPUT",
+        "sequence": 28
+      }
+    },
+    {
+      "method": "Network.webSocketFrameReceived",
+      "timestamp": 371434.513445,
+      "payload": {
+        "type": "ACK",
+        "sequence": 28,
+        "eventId": 598,
+        "code": null,
+        "message": null
+      }
+    },
+    {
+      "method": "Network.webSocketFrameSent",
+      "timestamp": 371437.721355,
+      "payload": {
+        "method": "move_mouse",
+        "params": [
+          0.75,
+          0.5
+        ],
+        "type": "INPUT",
+        "sequence": 29
+      }
+    },
+    {
+      "method": "Network.webSocketFrameReceived",
+      "timestamp": 371438.112,
+      "payload": {
+        "type": "ACK",
+        "sequence": 29,
+        "eventId": 602,
+        "code": null,
+        "message": null
+      }
+    },
+    {
+      "method": "Network.webSocketFrameSent",
+      "timestamp": 371438.112169,
+      "payload": {
+        "method": "move_mouse",
+        "params": [
+          0.75,
+          0.5
+        ],
+        "type": "INPUT",
+        "sequence": 30
+      }
+    },
+    {
+      "method": "Network.webSocketFrameReceived",
+      "timestamp": 371438.236605,
+      "payload": {
+        "type": "ACK",
+        "sequence": 30,
+        "eventId": 604,
+        "code": null,
+        "message": null
+      }
+    },
+    {
+      "method": "Network.webSocketFrameSent",
+      "timestamp": 371438.236834,
+      "payload": {
+        "method": "mouse_down",
+        "params": [
+          0
+        ],
+        "type": "INPUT",
+        "sequence": 31
+      }
+    },
+    {
+      "method": "Network.webSocketFrameReceived",
+      "timestamp": 371438.362913,
+      "payload": {
+        "type": "ACK",
+        "sequence": 31,
+        "eventId": 607,
+        "code": null,
+        "message": null
+      }
+    },
+    {
+      "method": "Network.webSocketFrameSent",
+      "timestamp": 371438.363049,
+      "payload": {
+        "method": "move_mouse",
+        "params": [
+          0.75,
+          0.5
+        ],
+        "type": "INPUT",
+        "sequence": 32
+      }
+    },
+    {
+      "method": "Network.webSocketFrameReceived",
+      "timestamp": 371438.443194,
+      "payload": {
+        "type": "ACK",
+        "sequence": 32,
+        "eventId": 610,
+        "code": null,
+        "message": null
+      }
+    },
+    {
+      "method": "Network.webSocketFrameSent",
+      "timestamp": 371438.443343,
+      "payload": {
+        "method": "mouse_up",
+        "params": [
+          0
+        ],
+        "type": "INPUT",
+        "sequence": 33
+      }
+    },
+    {
+      "method": "Network.webSocketFrameReceived",
+      "timestamp": 371438.526308,
+      "payload": {
+        "type": "ACK",
+        "sequence": 33,
+        "eventId": 612,
+        "code": null,
+        "message": null
+      }
+    }
+  ]
+}

@@ -1,0 +1,268 @@
+import { Fragment, useState } from 'react'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { CollapseIcon } from '../../design-system/primitives/CollapseIcon'
+import { useI18n } from '../../i18n/useI18n'
+import { readLabOpen, readNavCollapsed, storeLabOpen, storeNavCollapsed } from './navCollapse'
+import { LAB_NAV_GROUP, sectionHref, WORKSPACE_NAV_GROUPS, WORKSPACE_SECTIONS, type WorkspaceSectionId } from './sections'
+
+/**
+ * Line icons at 15px, drawn from `currentColor` so a section's icon takes the
+ * same colour as its label in every state without a second rule per state.
+ */
+const ICON_PATHS: Record<WorkspaceSectionId, string[]> = {
+  dashboard: ['M2.5 2.5h4.7v4.7H2.5z', 'M8.8 2.5h4.7v4.7H8.8z', 'M2.5 8.8h4.7v4.7H2.5z', 'M8.8 8.8h4.7v4.7H8.8z'],
+  chat: ['M3 2.5h10v8H7l-4 3v-11Z', 'M5.5 5.5h5', 'M5.5 8h3'],
+  documents: ['M4 2h5.3L12 4.7V14H4z', 'M9.3 2v2.7H12', 'M6 8h4', 'M6 10.5h4'],
+  // 두 항목 앞의 체크 표시. 통과 여부가 붙는 목록이라는 것을 15px 안에서 말한다.
+  testCases: ['M2.6 4.4l1.5 1.5 2.5-2.7', 'M2.6 10.4l1.5 1.5 2.5-2.7', 'M9.2 4.6h4.2', 'M9.2 10.6h4.2'],
+  testRuns: ['M5.2 3.4l7 4.6-7 4.6z'],
+  qa: ['M8.8 2L4 9h3.4l-.9 5L12 7H8.4z'],
+  qaHistory: ['M3 4.2h10', 'M3 8h10', 'M3 11.8h6.5'],
+  // 겹쳐 쌓인 상자 셋. 버전마다 하나씩 쌓이는 빌드 목록을 15px 안에서 그린다.
+  gameBuilds: ['M8 2.2l5.6 2.8L8 7.8 2.4 5z', 'M2.4 8l5.6 2.8L13.6 8', 'M2.4 11l5.6 2.8 5.6-2.8'],
+  gameIdentities: ['M2.5 3h11v10h-11z', 'M5.5 3v10', 'M2.5 6.5h11', 'M8 9h3'],
+  // A box holding two smaller boxes, with a line leaving it: a scene container,
+  // the screens inside it, and a transition out. The drawing's own shape, small.
+  contentMap: ['M2.2 3h7.6v7.6H2.2z', 'M3.8 4.6h1.9v1.9H3.8z', 'M6.4 4.6h1.9v1.9H6.4z', 'M9.8 6.8h2.6v6.4H6.6'],
+  // A saved command: the `>` prompt chevron with a line after it, boxed. A
+  // macro is a script the agent wrote down and calls again.
+  macros: ['M2.4 3.2h11.2v9.6H2.4z', 'M4.8 6l1.8 2-1.8 2', 'M8.2 10h3'],
+  performance: ['M2.5 12.5l3.2-3.4 2.5 1.8 5.3-7', 'M10.8 3.9h2.7v2.7'],
+  issues: ['M4 14V2.7', 'M4 3h8l-1.8 2.8L12 8.6H4'],
+  // Three nodes and the lines between them: the graph's own shape, small.
+  knowledge: ['M4 4.6l4.4 2.2', 'M8.4 6.8L12 11.4', 'M4 4.6l1.6 6.8', 'M5.6 11.4h6.4'],
+  // An arrow coming down into a tray: something to install, once.
+  setup: ['M8 2.4v7.2', 'M5.2 6.8L8 9.6l2.8-2.8', 'M2.8 10.6v2.6h10.4v-2.6'],
+  // 칸 넷이 짙어지는 순서로 놓인 잔디 한 줄. 이 섹션이 그리는 그림 자체를 15px 로 줄인 것이다.
+  usage: ['M2.4 9.4h2.6v3.2H2.4z', 'M6.2 7.2h2.6v5.4H6.2z', 'M10 4.2h2.6v8.4H10z', 'M2 3.4h1.6', 'M4.6 3.4h1.6'],
+  // 사람 둘. 한 명은 앞에, 한 명은 뒤에 반쯤 가려 서서 "혼자가 아니다" 를 15px 안에서 말한다.
+  members: ['M6.2 8.6a3.4 3.4 0 1 1 0-5.2', 'M2.2 13.4c0-2.2 1.8-3.4 4-3.4s4 1.2 4 3.4', 'M10.4 4a2.8 2.8 0 0 1 0 4.4', 'M11.4 10.3c1.5.4 2.4 1.5 2.4 3.1'],
+  settings: ['M8 1.8v2M8 12.2v2M1.8 8h2M12.2 8h2M3.6 3.6l1.4 1.4M11 11l1.4 1.4M12.4 3.6L11 5M5 11l-1.4 1.4'],
+}
+
+/** 실험실 묶음 머리의 플라스크. 같은 15px 선 그림이다. */
+const LAB_ICON_PATHS = ['M6.2 2.4h3.6', 'M6.8 2.4v4.2L3.2 12.6a.9.9 0 0 0 .8 1.4h8a.9.9 0 0 0 .8-1.4L9.2 6.6V2.4', 'M4.6 10.2h6.8']
+
+function LabIcon() {
+  return (
+    <svg aria-hidden="true" className="nav-icon" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.3} viewBox="0 0 16 16">
+      {LAB_ICON_PATHS.map((d) => <path d={d} key={d} />)}
+    </svg>
+  )
+}
+
+function SectionIcon({ id }: { id: WorkspaceSectionId }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className="nav-icon"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={1.3}
+      viewBox="0 0 16 16"
+    >
+      {id === 'settings' && <circle cx={8} cy={8} r={2.2} />}
+      {ICON_PATHS[id].map((d) => (
+        <path d={d} key={d} />
+      ))}
+    </svg>
+  )
+}
+
+/**
+ * The project's left rail.
+ *
+ * Counts are the reason the rail is worth its width: they answer "is there
+ * anything in there" without a visit. A count is omitted rather than shown as
+ * `0` while its read is still in flight, so a number never appears, changes,
+ * and reflows the row under the pointer.
+ *
+ * 접으면 아이콘만 남는 48px 레일이 된다. 폭을 내주고 싶지 않은 화면에서 쓰라고
+ * 둔 것이라 label 은 화면에서만 사라질 뿐 DOM 에는 남는다 — 접힌 레일도 스크린
+ * 리더에게는 펼친 레일과 똑같이 읽힌다.
+ */
+export function ProjectNav({
+  counts,
+  genreLabel,
+  projectId,
+  projectName,
+  forceCollapsed = false,
+  agentEnabled,
+}: {
+  agentEnabled: boolean
+  counts: Partial<Record<WorkspaceSectionId, number | null>>
+  genreLabel: string
+  projectId: string
+  projectName: string
+  /**
+   * 저장된 선택과 상관없이 접어서 그린다. 폭이 모자란 화면이 이번 방문에만 쓰는 것이라,
+   * 이때 접기 버튼은 저장값을 바꾸지 않고 이 화면에서만 펼친다.
+   */
+  forceCollapsed?: boolean
+}) {
+  const { t } = useI18n()
+  const workspace = t.projects.workspace
+  const nav = workspace.nav
+  const { pathname } = useLocation()
+  const navigate = useNavigate()
+  const visibleSections = WORKSPACE_SECTIONS.filter(section => section.id !== 'chat' || agentEnabled)
+  // 별도 경로로 열리는 상세 화면도 진입한 섹션을 메뉴에 표시한다.
+  const navPathname = pathname
+    .replace(`${sectionHref(projectId, 'test-scenarios')}/`, `${sectionHref(projectId, 'test-runs')}/`)
+    .replace(`${sectionHref(projectId, 'qa-runs')}/`, `${sectionHref(projectId, 'qa-history')}/`)
+    .replace(`${sectionHref(projectId, 'instances')}/`, `${sectionHref(projectId, 'qa')}/`)
+  const currentSection = [...visibleSections].sort((left, right) => right.path.length - left.path.length)
+    .find(section => {
+      const href = sectionHref(projectId, section.path)
+      return navPathname === href || navPathname.startsWith(href + '/')
+    }) ?? visibleSections[0]
+  const [storedCollapsed, setStoredCollapsed] = useState(readNavCollapsed)
+  const [expandedHere, setExpandedHere] = useState(false)
+  const [lastForce, setLastForce] = useState(forceCollapsed)
+  if (lastForce !== forceCollapsed) {
+    // 강제 접힘이 풀리거나 다시 걸리면 이 화면에서만 펼친 기록은 버린다.
+    setLastForce(forceCollapsed)
+    setExpandedHere(false)
+  }
+  const collapsed = forceCollapsed ? !expandedHere : storedCollapsed
+  // 실험실은 처음에 접혀 있고, 그 안의 화면을 보고 있으면 저절로 펴진다(ARTEL-1379).
+  const [labOpen, setLabOpen] = useState(readLabOpen)
+  const labShown = labOpen || currentSection.group === LAB_NAV_GROUP
+  const labSections = visibleSections.filter((section) => section.group === LAB_NAV_GROUP)
+
+  const toggleLabel = collapsed ? workspace.expandNav : workspace.collapseNav
+
+  const navItem = (section: (typeof WORKSPACE_SECTIONS)[number]) => (
+    <li key={section.id}>
+      <NavLink
+        className={({ isActive }) => isActive ? 'nav-item nav-item--active' : 'nav-item'}
+        end={section.path.length === 0 || section.id === 'chat'}
+        title={collapsed ? nav[section.id] : undefined}
+        to={sectionHref(projectId, section.path)}
+      >
+        <SectionIcon id={section.id} />
+        <span className={collapsed ? 'nav-label visually-hidden' : 'nav-label'}>{nav[section.id]}</span>
+        <NavCount alert={section.id === 'issues'} value={counts[section.id] ?? null} />
+      </NavLink>
+    </li>
+  )
+
+  // 실험실은 "프로젝트 데이터" 바로 아래에 선다(ARTEL-1379, 사용자 지시). 관리 묶음은 그대로 맨 아래다.
+  const labGroup = labSections.length > 0 ? (
+    <section aria-labelledby="project-nav-lab" className="project-nav-group project-nav-group--lab">
+      <button
+        aria-controls="project-nav-lab-list"
+        aria-expanded={labShown}
+        className="nav-item nav-lab-toggle"
+        id="project-nav-lab"
+        onClick={() => {
+          const next = !labShown
+          setLabOpen(next)
+          storeLabOpen(next)
+        }}
+        title={collapsed ? workspace.navGroups.lab : workspace.labHint}
+        type="button"
+      >
+        <LabIcon />
+        <span className={collapsed ? 'nav-label visually-hidden' : 'nav-label'}>{workspace.navGroups.lab}</span>
+        {!collapsed && <span className="nav-lab-badge">{workspace.labBadge}</span>}
+        {!collapsed && (
+          <span aria-hidden="true" className={'nav-lab-chevron' + (labShown ? ' is-open' : '')}>
+            <CollapseIcon direction="right" />
+          </span>
+        )}
+      </button>
+      {labShown && (
+        <ul className="project-nav-list project-nav-list--lab" id="project-nav-lab-list">
+          {labSections.map(navItem)}
+        </ul>
+      )}
+    </section>
+  ) : null
+
+  return (
+    <nav
+      aria-label={workspace.navLabel}
+      className={collapsed ? 'project-nav project-nav--collapsed' : 'project-nav'}
+    >
+      <div className="project-nav-head">
+        <div className="project-nav-head-row">
+          <p className="project-nav-eyebrow">{workspace.projectEyebrow}</p>
+          <button
+            aria-label={toggleLabel}
+            className="nav-collapse-toggle"
+            onClick={() => {
+              if (forceCollapsed) {
+                setExpandedHere(!expandedHere)
+                return
+              }
+              const next = !storedCollapsed
+              setStoredCollapsed(next)
+              storeNavCollapsed(next)
+            }}
+            title={toggleLabel}
+            type="button"
+          >
+            <CollapseIcon direction={collapsed ? 'right' : 'left'} />
+          </button>
+        </div>
+        <div className="project-nav-identity">
+          <span className="project-nav-name" title={projectName}>{projectName}</span>
+          <span className="badge">{genreLabel}</span>
+        </div>
+        {/* 접힌 레일에 이름이 들어갈 자리는 없지만, 어느 프로젝트를 보고 있는지는
+            남아야 한다. 머리글자 하나가 그 자리를 대신한다. */}
+        <span
+          aria-label={projectName}
+          className="project-nav-initial"
+          role="img"
+          title={projectName}
+        >
+          {projectName.slice(0, 1).toUpperCase()}
+        </span>
+      </div>
+
+      <select
+        aria-label={workspace.navLabel}
+        className="project-nav-select"
+        onChange={event => navigate(event.target.value)}
+        value={sectionHref(projectId, currentSection.path)}
+      >
+        {visibleSections.map(section => (
+          <option key={section.id} value={sectionHref(projectId, section.path)}>{nav[section.id]}</option>
+        ))}
+      </select>
+
+      <div className="project-nav-groups">
+        {[null, ...WORKSPACE_NAV_GROUPS.filter((group) => group !== LAB_NAV_GROUP)].map((group) => (
+          <Fragment key={group ?? 'primary'}>
+          <section className={`project-nav-group project-nav-group--${group ?? 'primary'}`} aria-labelledby={group === null ? undefined : 'project-nav-' + group}>
+            {group !== null && (
+              <h2 className={collapsed ? 'visually-hidden' : 'project-nav-group-label'} id={'project-nav-' + group}>
+                {workspace.navGroups[group]}
+              </h2>
+            )}
+            <ul className="project-nav-list">
+              {WORKSPACE_SECTIONS.filter((section) => section.group === group && (section.id !== 'chat' || agentEnabled)).map(navItem)}
+            </ul>
+          </section>
+          {group === 'data' && labGroup}
+          </Fragment>
+        ))}
+      </div>
+    </nav>
+  )
+}
+
+/**
+ * Issues wear the critical tint only when there is at least one: a zero in
+ * red would read as a problem the user has to go and look at.
+ */
+function NavCount({ alert, value }: { alert: boolean; value: number | null }) {
+  if (value === null) return null
+
+  const tone = alert && value > 0 ? 'nav-count nav-count--alert' : 'nav-count'
+  return <span className={tone}>{value}</span>
+}

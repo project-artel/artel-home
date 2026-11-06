@@ -1,0 +1,83 @@
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { endSession, getCurrentUser, setUnauthorizedHandler } from './authApi'
+import { AuthContext, type AuthContextValue } from './AuthContext'
+import type { AuthState, AuthUser } from './authTypes'
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [state, setState] = useState<AuthState>({ status: 'loading', user: null })
+
+  const logout = useCallback(async () => {
+    try {
+      await endSession()
+    } finally {
+      setState({ status: 'unauthenticated', user: null })
+    }
+  }, [])
+
+  const applyProfile = useCallback((user: AuthUser) => {
+    setState((current) => (current.status === 'authenticated' ? { status: 'authenticated', user } : current))
+  }, [])
+
+  const applyPendingEmail = useCallback((pendingEmail: string) => {
+    setState((current) =>
+      current.status === 'authenticated'
+        ? { status: 'authenticated', user: { ...current.user, pendingEmail } }
+        : current,
+    )
+  }, [])
+
+  const applyEmailVerified = useCallback(() => {
+    setState((current) => {
+      if (current.status !== 'authenticated' || current.user.pendingEmail === null) {
+        return current
+      }
+
+      return {
+        status: 'authenticated',
+        user: {
+          ...current.user,
+          email: current.user.pendingEmail,
+          emailVerified: true,
+          pendingEmail: null,
+        },
+      }
+    })
+  }, [])
+
+  const refresh = useCallback(async () => {
+    try {
+      const user = await getCurrentUser()
+      setState(user ? { status: 'authenticated', user } : { status: 'unauthenticated', user: null })
+    } catch {
+      setState({ status: 'error', user: null })
+    }
+  }, [])
+
+  useEffect(() => setUnauthorizedHandler(() => {
+    setState({ status: 'unauthenticated', user: null })
+  }), [])
+
+  useEffect(() => {
+    const controller = new AbortController()
+
+    getCurrentUser(controller.signal)
+      .then((user) => {
+        setState(user
+          ? { status: 'authenticated', user }
+          : { status: 'unauthenticated', user: null })
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === 'AbortError') return
+        setState({ status: 'error', user: null })
+      })
+
+    return () => controller.abort()
+  }, [])
+
+  const value = useMemo<AuthContextValue>(
+    () => ({ ...state, applyEmailVerified, applyPendingEmail, applyProfile, logout, refresh }),
+    [applyEmailVerified, applyPendingEmail, applyProfile, logout, refresh, state],
+  )
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+}

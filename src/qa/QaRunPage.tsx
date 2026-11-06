@@ -1,0 +1,671 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { NotFoundPage } from '../NotFoundPage'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useI18n } from '../i18n/useI18n'
+import { useActionBinding, useFieldBinding } from '../projectAgent/bindings'
+import { requireKnownId } from '../projectAgent/specs/fieldWriters'
+import {
+  createCancelRunner,
+  QA_RUN_CANCEL_ACTION,
+  QA_RUN_OPEN_PERFORMANCE_ACTION,
+  QA_RUN_SCENARIO_FIELD,
+  QA_RUN_SELECT_SCENARIO_ACTION,
+  QA_RUN_SWITCH_LOG_VIEW_ACTION,
+  requireLogView,
+  requireTryId,
+} from '../projectAgent/specs/qaRun'
+import { GameStreamView } from '../streaming/GameStreamView'
+import { QaTryIssuePanel } from '../issues/QaTryIssuePanel'
+import { listTestScenarios } from '../testScenarios/scenarioApi'
+import { cancelQaRun, compareDecimalIds, getQaRun, isDecimalId } from './qaApi'
+import { isAgentRun } from './agentDockState'
+import { QaAgentDock } from './QaAgentDock'
+import { QaBehaviorLanes } from './QaBehaviorLanes'
+import { QaFocusStage } from './QaFocusStage'
+import { QaRunFunctionOptions } from './QaFunctionOptionsSummary'
+import { QaLogTimeline, type QaLogFocusRequest } from './QaLogTimeline'
+import { filterFlowLogs } from './qaFlow'
+import { QaRunStopDialog } from './QaRunStopDialog'
+import { QaScenarioRail, type QaScenarioRailProps } from './QaScenarioRail'
+import { notStartedCount, stopLinesOf, stopNoticeOf, type QaStopNotice } from './qaStop'
+import { deriveCaseVerdicts, deriveQaContextUsage, deriveQaProgress, isQaContextLog } from './qaProgress'
+import { deriveQaCaseReports } from './qaCaseProgress'
+import { isTerminalQaStatus, QA_STOP_NOT_STARTED, type QaLog, type QaRun, type QaTry } from './qaTypes'
+import { useQaAgentLogs } from './useQaAgentLogs'
+import { useQaTry } from './useQaTry'
+import { useScenarioSteps } from './useScenarioSteps'
+import { QaRawLogControls } from './QaRawLogControls'
+import { DEFAULT_QA_LOG_FILTER, filterQaLogs, qaLogContains } from './qaLogFilter'
+import { QaReplay } from './QaReplay'
+import { logAt } from './qaReplayModel'
+import { loadReplayLogContext, logsAround } from './qaReplayLogs'
+
+export function QaRunRoute() {
+  const { projectId = '', qaRunId = '' } = useParams()
+  // A malformed `try` degrades to no pin rather than a broken focus — the same
+  // rule the id fields the console reads from the server already follow.
+  const [searchParams] = useSearchParams()
+  const tryParam = searchParams.get('try')
+  const initialTryId = tryParam !== null && isDecimalId(tryParam) ? tryParam : null
+  if (!isDecimalId(qaRunId)) return <QaRunMissing projectId={projectId} />
+  return (
+    <QaRunPage
+      // Keys by the (run, try) pair, not just the run: a link from one scenario
+      // in a run to a sibling scenario in the same run must still re-seed
+      // `pinnedTryId`, and a plain `run`-keyed remount would not fire because
+      // the component instance would already exist.
+      key={`${qaRunId}:${initialTryId ?? ''}`}
+      initialTryId={initialTryId}
+      projectId={projectId}
+      qaRunId={qaRunId}
+    />
+  )
+}
+
+function runPerformancePath(projectId: string, qaRunId: string): string {
+  return `/projects/${encodeURIComponent(projectId)}/qa-runs/${encodeURIComponent(qaRunId)}/performance`
+}
+
+function projectLink(projectId: string): string {
+  return `/projects/${encodeURIComponent(projectId)}`
+}
+
+function QaRunMissing({ projectId }: { projectId: string }) {
+  const { t } = useI18n()
+  return <NotFoundPage back={{ to: projectLink(projectId), label: t.qa.run.back }} title={t.qa.run.notFound} />
+}
+
+// Only these carry meaning for the compact "Flow" view; the rest (raw LOG lines,
+// per-frame GAME_STATE) are noise there and stay in the Raw tab.
+//
+// `ACTION` 은 여기서 빠졌다. 조작 tool 이 SDK 로 내보낸 요청이라 그 tool 의 `TOOL` 행과
+// 같은 사건을 두 번 말하고, 흐름은 "에이전트가 무엇을 불렀나"의 나열로 읽혀야 한다.
+// 전송 프레임을 봐야 할 때는 Raw 탭이 그대로 들고 있다.
+/** How often the console re-reads the run while it is still going. */
+const POLL_INTERVAL_MS = 3000
+
+/** The ceiling the retry delay backs off to while the server is unreachable. */
+const POLL_BACKOFF_MAX_MS = 30_000
+
+/**
+ * The QA run console (ARTEL-290): one run-scoped page for the whole execution.
+ * A left rail lists every scenario in the run with its status, unfolds the
+ * focused one into its steps, and keeps that scenario's model usage at the
+ * bottom. The centre shows the live game with a "Now" panel beside it and the
+ * operator chat below; the log column on the right has Flow, Raw, and Issues
+ * tabs. The console follows the active scenario as the run advances — no
+ * refresh — and lets the operator click back to a finished one.
+ *
+ * `initialTryId` (ARTEL-723) is how the five retired `QaTryPage` entry points,
+ * plus every other place that used to link to one scenario, land here instead:
+ * they pass `?try=<id>`, which pins that scenario with follow off, exactly as
+ * clicking a rail item would. `QaRunRoute` keys this component by `(qaRunId,
+ * initialTryId)`, so this is read once per navigation, never re-applied by a
+ * poll tick.
+ */
+function QaRunPage({
+  initialTryId,
+  projectId,
+  qaRunId,
+}: {
+  initialTryId: string | null
+  projectId: string
+  qaRunId: string
+}) {
+  const { t } = useI18n()
+  const [run, setRun] = useState<QaRun | null>(null)
+  const [state, setState] = useState<'loading' | 'ready' | 'missing'>('loading')
+  const [cancelling, setCancelling] = useState(false)
+  const [cancelError, setCancelError] = useState<string | null>(null)
+  const [titleById, setTitleById] = useState<Map<string, string>>(new Map())
+  const [timelineHost, setTimelineHost] = useState<HTMLDivElement | null>(null)
+  const stop = useRef(false)
+  const refresh = useRef<() => void>(() => {})
+  const navigate = useNavigate()
+  const consoleRoot = useRef<HTMLElement>(null)
+  const cancelButton = useRef<HTMLButtonElement>(null)
+  const performanceLink = useRef<HTMLAnchorElement>(null)
+  // 모델 API 오류로 멈춘 까닭(ARTEL-1372). 오류 프레임은 SSE 로 먼저 오고 런 조회는 다음 폴링에 오므로, 프레임이
+  // 오는 순간 창을 띄우고 런을 곧바로 다시 읽는다. 사용자가 닫으면 이 화면에서는 다시 띄우지 않는다.
+  const [liveStop, setLiveStop] = useState<QaStopNotice | null>(null)
+  const [stopDismissed, setStopDismissed] = useState(false)
+  const onStopSeen = useCallback((notice: QaStopNotice) => {
+    setLiveStop((current) => current ?? notice)
+    refresh.current()
+  }, [])
+
+  useEffect(() => {
+    stop.current = false
+    let timer: ReturnType<typeof setTimeout> | null = null
+    // Grows while the server is unreachable so a long outage is not a request
+    // every three seconds, and resets on the first answer.
+    let backoff = POLL_INTERVAL_MS
+
+    function schedule(delay: number) {
+      if (timer !== null) clearTimeout(timer)
+      timer = setTimeout(() => void tick(), delay)
+    }
+
+    async function tick() {
+      try {
+        const next = await getQaRun(qaRunId)
+        if (stop.current) return
+        setRun(next)
+        setState('ready')
+        backoff = POLL_INTERVAL_MS
+        if (!isTerminalQaStatus(next.status)) schedule(POLL_INTERVAL_MS)
+      } catch {
+        if (stop.current) return
+        setState((prev) => (prev === 'ready' ? 'ready' : 'missing'))
+        // **Keep polling.** This used to stop here, and one failed request ended
+        // the loop for good: the page froze on its last snapshot — typically
+        // `RUNNING` — and never moved again, so ending the run looked like it did
+        // nothing. A deploy restarting Orchestration mid-run is exactly the case,
+        // and exactly when the operator reaches for the cancel button.
+        schedule(backoff)
+        backoff = Math.min(backoff * 2, POLL_BACKOFF_MAX_MS)
+      }
+    }
+
+    refresh.current = () => void tick()
+    void tick()
+    return () => {
+      stop.current = true
+      refresh.current = () => {}
+      if (timer !== null) clearTimeout(timer)
+    }
+  }, [qaRunId])
+
+  // Scenario titles for the rail — QaTry only carries testScenarioId.
+  useEffect(() => {
+    const controller = new AbortController()
+    listTestScenarios(Number(projectId), controller.signal)
+      .then((list) => setTitleById(new Map(list.map((s) => [String(s.testScenarioId), s.title]))))
+      .catch(() => { /* rail falls back to ordinals */ })
+    return () => controller.abort()
+  }, [projectId])
+
+  const onCancel = useCallback(async (): Promise<boolean> => {
+    setCancelling(true)
+    setCancelError(null)
+    try {
+      await cancelQaRun(qaRunId)
+      // Read the run back now rather than waiting for the next poll: the button
+      // is the one place the operator expects the page to answer immediately.
+      refresh.current()
+      return true
+    } catch {
+      setCancelError(t.qa.run.cancelFailed)
+      return false
+    } finally {
+      setCancelling(false)
+    }
+  }, [qaRunId, t.qa.run.cancelFailed])
+
+  // Auto-advance: follow the active scenario unless the operator has pinned one.
+  const activeTryId = run?.tries.find((entry) => !isTerminalQaStatus(entry.status))?.id ?? null
+  const lastTryId = run?.tries.at(-1)?.id ?? null
+  // 모델 API 오류로 멈춘 런은 마지막 시나리오가 아니라 멈춘 시나리오를 보인다(ARTEL-1372). 뒤는 모두 실행 안 함이라
+  // 볼 것이 없고, 오류 원문도 멈춘 시나리오의 로그에만 있다.
+  const stoppedTryId = run?.tries.find((entry) => entry.stop !== null && entry.stop.code !== QA_STOP_NOT_STARTED)?.id ?? null
+  const [following, setFollowing] = useState(initialTryId === null)
+  const [pinnedTryId, setPinnedTryId] = useState<string | null>(initialTryId)
+  const focusedTryId = following ? (activeTryId ?? stoppedTryId ?? lastTryId) : pinnedTryId
+  // A scenario's steps are shown while it is focused, unless the operator folded
+  // it, and stay shown after focus moves on only if the operator opened them.
+  // Entering a scenario always unfolds it, which is why focusing drops its entry.
+  const [expandedOverrides, setExpandedOverrides] = useState<ReadonlyMap<string, boolean>>(new Map())
+  function focusTry(id: string) {
+    setPinnedTryId(id)
+    setFollowing(false)
+    setExpandedOverrides((current) => {
+      const next = new Map(current)
+      next.delete(id)
+      return next
+    })
+  }
+  function isExpanded(id: string): boolean {
+    return expandedOverrides.get(id) ?? id === focusedTryId
+  }
+  function toggleExpanded(id: string) {
+    const expanded = isExpanded(id)
+    setExpandedOverrides((current) => new Map(current).set(id, !expanded))
+  }
+
+  const tryIds = run?.tries.map((entry) => entry.id) ?? []
+  function scenarioTitleOf(entry: QaTry, index: number): string {
+    const title = titleById.get(entry.testScenarioId)
+    return title !== undefined && title.length > 0 ? title : t.qa.run.scenario(index + 1)
+  }
+  const runActive = run !== null && !isTerminalQaStatus(run.status)
+
+  useFieldBinding(QA_RUN_SCENARIO_FIELD, {
+    target: () => consoleRoot.current?.querySelector<HTMLElement>('.qa-console-rail') ?? null,
+    read: () => focusedTryId,
+    options: () =>
+      run === null ? [] : run.tries.map((entry, index) => ({ value: entry.id, label: scenarioTitleOf(entry, index) })),
+    write: (value) => focusTry(requireKnownId(QA_RUN_SCENARIO_FIELD.name, value, tryIds)),
+  })
+
+  useActionBinding(QA_RUN_SELECT_SCENARIO_ACTION, {
+    target: () => consoleRoot.current?.querySelector<HTMLElement>('.qa-console-rail') ?? null,
+    blocked: () => (run === null ? t.qa.run.loading : null),
+    run: async (args) => {
+      const tryId = requireTryId(args, tryIds)
+      focusTry(tryId)
+      return { tryId }
+    },
+  })
+
+  // 취소 버튼은 진행 중일 때만 그려진다. 같은 `onCancel` 을 부르고, 실패하면 화면의 문구와 같은 것을 던진다.
+  useActionBinding(QA_RUN_CANCEL_ACTION, {
+    target: () => cancelButton.current,
+    blocked: () => (run === null ? t.qa.run.loading : runActive ? (cancelling ? t.qa.run.cancelling : null) : 'This QA run already finished.'),
+    run: () => createCancelRunner(onCancel, () => t.qa.run.cancelFailed)(),
+  })
+
+  useActionBinding(QA_RUN_OPEN_PERFORMANCE_ACTION, {
+    target: () => performanceLink.current,
+    blocked: () => (run === null ? t.qa.run.loading : null),
+    run: async () => {
+      navigate(runPerformancePath(projectId, qaRunId))
+      return { qaRunId }
+    },
+  })
+
+  if (state === 'loading') {
+    return <section className="page"><div className="panel-message"><p>{t.qa.run.loading}</p></div></section>
+  }
+  if (state === 'missing' || run === null) {
+    return <QaRunMissing projectId={projectId} />
+  }
+
+  const done = run.tries.filter((entry) => isTerminalQaStatus(entry.status)).length
+  const active = !isTerminalQaStatus(run.status)
+  const stopNotice = stopNoticeOf(run, liveStop)
+  const notRun = notStartedCount(run)
+  const focusedTry = run.tries.find((entry) => entry.id === focusedTryId) ?? null
+
+  const scenarioTitle = scenarioTitleOf
+
+  const rail: QaScenarioRailProps = {
+    projectId,
+    gameBuildId: run.testRunGameBuildId,
+    tries: run.tries,
+    activeTryId,
+    focusedTryId,
+    scenarioTitle,
+    isExpanded,
+    onToggle: toggleExpanded,
+    onFocus: focusTry,
+  }
+
+  return (
+    <section className="qa-console" ref={consoleRoot}>
+      <header className="qa-console-top">
+        <Link className="st-back" to={projectLink(projectId)}>{t.qa.run.back}</Link>
+        <div className="qa-console-title">
+          <strong>{t.qa.run.title}</strong>
+          <span className={`qa-run-status qa-run-status--${run.status.toLowerCase()}`}>
+            {t.qa.statusLabels[run.status]}
+          </span>
+          <span className="qa-console-progress">
+            {notRun > 0
+              ? t.qa.run.progressStopped(run.tries.length - notRun, run.tries.length, notRun)
+              : t.qa.run.progress(done, run.tries.length)}
+          </span>
+        </div>
+        <div className="qa-console-top-actions">
+          <Link
+            className="button button--secondary button--compact"
+            ref={performanceLink}
+            to={runPerformancePath(projectId, qaRunId)}
+          >
+            {t.performance.entry.run}
+          </Link>
+          <button
+            className={`qa-follow${following ? ' qa-follow--on' : ''}`}
+            onClick={() => setFollowing(true)}
+            disabled={following}
+            type="button"
+          >
+            {following ? t.qa.run.following : t.qa.run.follow}
+          </button>
+          {active && (
+            <button className="button button--secondary button--compact" disabled={cancelling} onClick={() => void onCancel()} ref={cancelButton} type="button">
+              {cancelling ? t.qa.run.cancelling : t.qa.run.cancel}
+            </button>
+          )}
+          {cancelError !== null && <span className="qa-run-error">{cancelError}</span>}
+        </div>
+      </header>
+
+      {focusedTry !== null ? (
+        <FocusedTry key={focusedTry.id} onStopSeen={onStopSeen} qaRun={run} rail={rail} tryId={focusedTry.id} timelineHost={timelineHost} />
+
+      ) : (
+        <div className="qa-console-grid">
+          <QaScenarioRail {...rail} focused={null} />
+          <div className="qa-focus qa-focus--empty"><p className="panel-empty">{t.qa.run.selectScenario}</p></div>
+        </div>
+      )}
+      <div className="qa-replay-timeline-host" ref={setTimelineHost} />
+
+      {stopNotice !== null && !stopDismissed && (
+        <QaRunStopDialog
+          discarded={run.discarded}
+          notice={stopNotice}
+          onClose={() => setStopDismissed(true)}
+          relaunchTo={`${projectLink(projectId)}/qa?run=${encodeURIComponent(run.testRunId)}`}
+        />
+      )}
+
+    </section>
+  )
+}
+
+/**
+ * The focused scenario's detail, embedded in the console. Keyed by tryId in the
+ * parent so advancing to the next scenario swaps the whole session cleanly (its
+ * own SSE, game stream, logs) with no page refresh.
+ *
+ * It renders the rail too, because the rail lists the focused scenario's steps
+ * with their verdicts and those come from this session's log stream. The rail's
+ * own state (which scenarios are unfolded) lives in the parent, so remounting
+ * here on a scenario change does not reset it.
+ */
+function FocusedTry({
+  onStopSeen,
+  timelineHost,
+  qaRun,
+  rail,
+  tryId,
+}: {
+  timelineHost: HTMLDivElement | null
+  onStopSeen: (notice: QaStopNotice) => void
+  qaRun: QaRun
+  rail: QaScenarioRailProps
+  tryId: string
+}) {
+
+  const { t } = useI18n()
+  const session = useQaTry(tryId)
+  const agentLogs = useQaAgentLogs(tryId, session.logs)
+  const { steps: scenarioSteps, executionMode } = useScenarioSteps(session.qaTry?.testScenarioId ?? null)
+  const [logView, setLogView] = useState<'flow' | 'raw' | 'issues'>('flow')
+  // planner–executer 런은 로그 탭 대신 에이전트 창을 보인다.
+  const agentRun = isAgentRun(agentLogs)
+  const logTabs = useRef<HTMLDivElement>(null)
+  const [focusRequest, setFocusRequest] = useState<QaLogFocusRequest | null>(null)
+  const [rawFilter, setRawFilter] = useState(DEFAULT_QA_LOG_FILTER)
+  const [findQuery, setFindQuery] = useState('')
+  const [foundLogId, setFoundLogId] = useState<string | null>(null)
+  const [replayTimestamp, setReplayTimestamp] = useState<number | null>(null)
+  const [replayJump, setReplayJump] = useState<number | null>(null)
+  const [allReplayLogs, setAllReplayLogs] = useState(false)
+  const [replayContext, setReplayContext] = useState<{ timestamp: number; logs: QaLog[] } | null>(null)
+  const [replayLogsLoading, setReplayLogsLoading] = useState(false)
+  const [replayLogsFailure, setReplayLogsFailure] = useState<string | null>(null)
+  const [replayLogsRetry, setReplayLogsRetry] = useState(0)
+  const historicalLogs = useMemo(() => replayTimestamp === null ? session.logs : session.logs.filter(log => Date.parse(log.createdAt) <= replayTimestamp), [session.logs, replayTimestamp])
+  // 에이전트 창도 왼쪽 스텝처럼 타임라인 재생 위치까지의 상태를 그린다.
+  const dockLogs = useMemo(() => replayTimestamp === null ? agentLogs : agentLogs.filter(log => Date.parse(log.createdAt) <= replayTimestamp), [agentLogs, replayTimestamp])
+  const historicalVerdicts = useMemo(() => replayTimestamp === null ? session.verdictLogs : session.verdictLogs.filter(log => Date.parse(log.createdAt) <= replayTimestamp), [session.verdictLogs, replayTimestamp])
+
+  const progress = useMemo(
+    () =>
+      deriveQaProgress({
+        scenarioSteps,
+        executionMode,
+        logs: historicalVerdicts,
+        status: replayTimestamp === null || replayTimestamp >= Date.parse(session.qaTry?.completedAt ?? '') ? session.qaTry?.status ?? 'STARTING' : 'RUNNING',
+        historyComplete: session.loadStatus === 'ready',
+      }),
+    [scenarioSteps, executionMode, session.loadStatus, historicalVerdicts, session.qaTry?.status, session.qaTry?.completedAt, replayTimestamp],
+  )
+
+  const contextUsage = useMemo(() => deriveQaContextUsage(historicalLogs), [historicalLogs])
+  const caseVerdicts = useMemo(() => deriveCaseVerdicts(session.verdictLogs), [session.verdictLogs])
+  const caseReports = useMemo(() => deriveQaCaseReports(session.verdictLogs), [session.verdictLogs])
+  const stopLines = useMemo(() => stopLinesOf(session.logs), [session.logs])
+  const stopError = stopLines.find((line) => line.kind === 'error')
+  useEffect(() => {
+    if (stopError === undefined || stopError.kind !== 'error') return
+    onStopSeen({ code: stopError.code })
+  }, [onStopSeen, stopError])
+
+  useActionBinding(QA_RUN_SWITCH_LOG_VIEW_ACTION, {
+    target: () => logTabs.current,
+    blocked: () =>
+      session.loadStatus === 'error'
+        ? t.qa.run.loadFailed
+        : session.qaTry === null
+          ? t.qa.run.loading
+          : agentRun
+            ? t.qa.run.agentDock.noLogTabs
+            : null,
+    run: async (args) => {
+      const view = requireLogView(args)
+      setLogView(view)
+      return { view }
+    },
+  })
+
+  const jumpToLog = useCallback((logId: string) => {
+    setLogView('raw')
+    setAllReplayLogs(true)
+    setFocusRequest((current) => ({ logId, token: (current?.token ?? 0) + 1 }))
+  }, [])
+  const clearFocusRequest = useCallback(() => setFocusRequest(null), [])
+
+  const filteredLogs = useMemo(() => {
+    // Context readings are shown by the gauge, in one place, not as a line per model call.
+    const merged = new Map(session.logs.map(log => [log.id, log]))
+    if (logView === 'raw') for (const log of replayContext?.logs ?? []) merged.set(log.id, log)
+    const withoutContext = [...merged.values()].filter((log) => !isQaContextLog(log)).sort((left, right) => compareDecimalIds(left.id, right.id))
+    if (logView !== 'flow') return filterQaLogs(withoutContext, rawFilter)
+    return filterFlowLogs(withoutContext, executionMode)
+  }, [logView, session.logs, executionMode, rawFilter, replayContext])
+  const shownLogs = useMemo(() => replayTimestamp !== null && !allReplayLogs && logView === 'raw'
+    ? logsAround(filterQaLogs((replayContext?.logs ?? []).filter(log => !isQaContextLog(log)), rawFilter), replayTimestamp) : filteredLogs,
+  [filteredLogs, replayTimestamp, allReplayLogs, logView, replayContext, rawFilter])
+
+  const onReplayPosition = useCallback((timestamp: number, seek: boolean) => {
+    setReplayTimestamp(timestamp)
+    if (seek) { setLogView('raw'); setAllReplayLogs(false); setReplayJump(timestamp) }
+  }, [])
+  const { hasMore: hasOlderLogs, historyLoading: loadingOlderLogs, historyFailure: olderLogsFailure, loadOlder: loadOlderLogs, verdictLogs } = session
+  useEffect(() => {
+    if (replayJump === null) return
+    const controller = new AbortController()
+    const frame = window.requestAnimationFrame(() => {
+      setReplayLogsLoading(true)
+      setReplayLogsFailure(null)
+    })
+    void loadReplayLogContext(tryId, replayJump, verdictLogs, controller.signal).then(logs => {
+      if (controller.signal.aborted) return
+      window.cancelAnimationFrame(frame)
+      setReplayContext({ timestamp: replayJump, logs })
+      const candidates = filterQaLogs(logs, rawFilter)
+      const target = logAt(candidates, replayJump) ?? candidates[0]
+      if (target) setFocusRequest(current => ({ logId: target.id, token: (current?.token ?? 0) + 1, scrollOnly: true }))
+      setReplayJump(null)
+      setReplayLogsLoading(false)
+    }).catch(() => {
+      if (controller.signal.aborted) return
+      window.cancelAnimationFrame(frame)
+      setReplayLogsLoading(false)
+      setReplayLogsFailure(t.qa.run.loadFailed)
+    })
+    return () => { window.cancelAnimationFrame(frame); controller.abort() }
+  }, [replayJump, tryId, verdictLogs, rawFilter, t.qa.run.loadFailed, replayLogsRetry])
+
+  useEffect(() => {
+    if (replayTimestamp === null || allReplayLogs || replayJump !== null || !replayContext || replayLogsLoading || replayLogsFailure !== null) return
+    const end = Date.parse(replayContext.logs.at(-1)?.createdAt ?? '')
+    if (replayTimestamp <= end || replayTimestamp <= replayContext.timestamp + 5000) return
+    const frame = window.requestAnimationFrame(() => setReplayJump(replayTimestamp))
+    return () => window.cancelAnimationFrame(frame)
+  }, [replayTimestamp, allReplayLogs, replayJump, replayContext, replayLogsLoading, replayLogsFailure])
+
+  useEffect(() => {
+    if (!rawFilter.text.trim() || !hasOlderLogs || loadingOlderLogs || olderLogsFailure !== null) return
+    void loadOlderLogs()
+  }, [rawFilter.text, hasOlderLogs, loadingOlderLogs, olderLogsFailure, loadOlderLogs])
+
+  const findMatches = useMemo(() => findQuery.trim() === '' ? [] : filteredLogs.filter((log) => qaLogContains(log, findQuery)), [filteredLogs, findQuery])
+  const foundIndex = findMatches.findIndex((log) => log.id === foundLogId)
+  function findNext(direction: -1 | 1) {
+    if (findMatches.length === 0) return
+    const index = foundIndex < 0 ? (direction === 1 ? 0 : findMatches.length - 1) : (foundIndex + direction + findMatches.length) % findMatches.length
+    const logId = findMatches[index].id
+    setAllReplayLogs(true)
+    setFoundLogId(logId)
+    setFocusRequest((current) => ({ logId, token: (current?.token ?? 0) + 1, scrollOnly: true }))
+  }
+
+
+  // Carried over from the retired `QaTryPage` (ARTEL-723): a failed load needs
+  // its own retry, distinct from the plain "still loading" state below — the
+  // console has no page refresh to fall back on, so this is the only way back.
+  if (session.loadStatus === 'error') {
+    return (
+      <div className="qa-console-grid">
+        <QaScenarioRail {...rail} focused={null} />
+        <div className="qa-focus qa-focus--empty">
+          <div className="panel-message" role="alert">
+            <p>{t.qa.run.loadFailed}</p>
+            <button className="button button--secondary" onClick={session.reload} type="button">
+              {t.qa.panel.retry}
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (session.qaTry === null) {
+    return (
+      <div className="qa-console-grid">
+        <QaScenarioRail {...rail} focused={null} />
+        <div className="qa-focus qa-focus--empty"><p className="panel-empty">{t.qa.run.loading}</p></div>
+      </div>
+    )
+  }
+
+  const active = !isTerminalQaStatus(session.qaTry.status)
+  // Carried over from `QaTryPage` (ARTEL-723): what state the live log stream
+  // is in. Only meaningful while the try is active — a terminal one already
+  // says "ended · stored logs" via `endedGame` below.
+  const streamLabel =
+    session.streamState === 'offline'
+      ? t.qa.run.streamOffline
+      : session.streamState === 'degraded'
+        ? t.qa.run.streamDegraded
+        : session.streamState === 'connecting'
+          ? t.qa.run.streamConnecting
+          : session.streamState === 'live'
+            ? t.qa.run.streamLive
+            : t.qa.run.streamStored
+
+  return (
+    <div className="qa-console-grid">
+      <QaScenarioRail
+        {...rail}
+        focused={{
+          tryId: session.qaTry.id,
+          active,
+          progress,
+          scenarioSteps,
+          executionMode,
+          onJump: agentRun ? undefined : jumpToLog,
+          caseVerdicts,
+          caseReports,
+        }}
+      />
+      <div className="qa-focus">
+        <div className="qa-focus-center">
+          <QaFocusStage
+            replay={!active}
+            chatDisabled={session.qaTry.status !== 'RUNNING'}
+            contextUsage={contextUsage}
+            game={
+              <section className="qa-focus-game" aria-label={active ? t.qa.run.liveGame : t.qa.run.endedGame}>
+                {active ? (
+                  <GameStreamView instanceId={session.qaTry.gameInstanceId} />
+                ) : session.qaTry.stop?.code === QA_STOP_NOT_STARTED ? (
+                  <p className="panel-empty">{t.qa.run.stop.notRunLine}</p>
+                ) : (
+                  <QaReplay projectId={rail.projectId} qaTry={session.qaTry} onPosition={onReplayPosition} timelineHost={timelineHost} />
+                )}
+              </section>
+            }
+            logs={session.logs}
+            historicalLogs={historicalLogs}
+            progress={progress}
+            qaRun={qaRun}
+            qaTryId={session.qaTry.id}
+          />
+        </div>
+
+        <aside className="qa-focus-logs-col" aria-label={agentRun ? t.qa.run.agentDock.title : t.qa.run.logsTitle}>
+          <header className="qa-focus-logs-head">
+            {agentRun ? <strong className="qa-agent-dock-title">{t.qa.run.agentDock.title}</strong> : (
+            <div className="qa-log-tabs" ref={logTabs} role="tablist">
+              <button className={logView === 'flow' ? 'on' : ''} onClick={() => setLogView('flow')} role="tab" aria-selected={logView === 'flow'} type="button">{t.qa.run.logsFlow}</button>
+              <button className={logView === 'raw' ? 'on' : ''} onClick={() => setLogView('raw')} role="tab" aria-selected={logView === 'raw'} type="button">{t.qa.run.logsRaw}</button>
+              <button className={logView === 'issues' ? 'on' : ''} onClick={() => setLogView('issues')} role="tab" aria-selected={logView === 'issues'} type="button">{t.qa.run.tabIssues}</button>
+            </div>
+            )}
+            {/* Carried over from `QaTryPage` (ARTEL-723): the stream state and the
+                loaded-log count. A summarized state, so `aria-live` fits DESIGN.md's
+                "do not announce every live log entry" rule. */}
+            <div className="qa-focus-logs-meta">
+              {active && (
+                <span aria-live="polite" className="qa-focus-stream-state mono">
+                  {streamLabel}
+                </span>
+              )}
+              {!agentRun && <span className="qa-focus-logs-count mono">{t.qa.run.logsCount(session.logs.length)}</span>}
+            </div>
+          </header>
+            {!agentRun && logView === 'raw' && <QaRawLogControls
+              filter={rawFilter} onFilter={(filter) => { setRawFilter(filter); setAllReplayLogs(true); setFoundLogId(null); setFocusRequest(null) }}
+              query={findQuery} onQuery={(query) => { setFindQuery(query); setFoundLogId(null); setFocusRequest(null) }}
+              matches={findMatches.length} current={foundIndex} onFind={findNext}
+            />}
+          {!agentRun && logView !== 'raw' && <div className="gf-logs-extras">
+            <QaRunFunctionOptions qaTryId={session.qaTry.id} />
+            <QaBehaviorLanes logs={session.logs} onJump={jumpToLog} />
+          </div>}
+          <div className="qa-focus-logs-body">
+            {agentRun ? (
+              <QaAgentDock live={active} logs={dockLogs} />
+            ) : logView === 'issues' ? (
+              <QaTryIssuePanel projectId={rail.projectId} qaTryId={session.qaTry.id} />
+            ) : (
+              <QaLogTimeline
+                projectId={rail.projectId}
+                gameBuildId={qaRun.testRunGameBuildId}
+                executionMode={executionMode}
+                flow={logView === 'flow'}
+                focusRequest={focusRequest}
+                hasMore={session.hasMore && (active || allReplayLogs)}
+                historyFailure={replayLogsFailure ?? session.historyFailure}
+                historyLoading={replayLogsLoading || session.historyLoading}
+                live={active}
+                loadOlder={replayLogsFailure !== null ? async () => { setReplayLogsRetry(value => value + 1); return true } : session.loadOlder}
+                logs={shownLogs}
+                onFocusResolved={clearFocusRequest}
+                scenarioSteps={scenarioSteps}
+                stopLines={stopLines}
+                restNotRun={stopError === undefined ? 0 : notStartedCount(qaRun)}
+              />
+            )}
+          </div>
+        </aside>
+      </div>
+    </div>
+  )
+}
+

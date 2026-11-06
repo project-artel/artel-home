@@ -1,0 +1,10 @@
+/* 대화 칸 접기 · 펴기(ARTEL-1265). 접힌 막대는 케이스 라이브러리의 접힌 창(.tcl-rail)과 같은 모양이다. */
+.st-chat-rail { position: relative; border-left: 1px solid var(--color-border-subtle); border-radius: 0; background: var(--color-bg-surface); }
+.st-chat-rail-busy { position: absolute; top: 52px; left: 50%; width: 8px; height: 8px; margin-left: -4px; border-radius: 50%; background: var(--color-brand-accent); animation: st-chat-rail-pulse 1.2s ease-in-out infinite; }
+@keyframes st-chat-rail-pulse { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .st-chat-rail-busy { animation: none; } }
+.run-chat-collapse { display: inline-grid; place-items: center; width: 26px; height: 26px; margin-left: auto; padding: 0; border: 1px solid var(--color-border-subtle); border-radius: 6px; background: transparent; color: var(--color-text-secondary); cursor: pointer; }
+.run-chat-collapse:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
+#run-chat-title:has(.run-chat-collapse) { display: flex; align-items: center; gap: 6px; width: 100%; }
+/* 접힌 동안 폭 손잡이는 쓸 일이 없다. 칸은 그대로 두어 격자가 밀리지 않게 한다. */
+.scenario-studio.is-chat-collapsed .st-split { visibility: hidden; pointer-events: none; }

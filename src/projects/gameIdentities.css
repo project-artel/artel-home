@@ -1,0 +1,26 @@
+.gi-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-3); }
+.gi-heading h3, .gi-heading h4 { margin: 0; }
+.gi-note { color: var(--color-text-secondary); font-size: 12px; }
+.gi-list { list-style: none; padding: 0; margin: 0; }
+.gi-item { border-top: 1px solid var(--color-border-subtle); padding-block: var(--space-4); }
+.gi-name, .gi-fields dd { overflow-wrap: anywhere; min-width: 0; white-space: pre-wrap; }
+.gi-fields { margin-block: var(--space-3); }
+.gi-form, .gi-history { border-top: 1px solid var(--color-border-strong); margin-top: var(--space-4); padding-top: var(--space-4); }
+.gi-form fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+.gi-form legend { padding: 0 0 var(--space-3); font-weight: 600; }
+.gi-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); margin-bottom: var(--space-4); }
+.gi-form-grid label, .gi-form-grid > div { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; font-size: 12px; }
+.gi-form-grid input, .gi-form-grid select, .gi-form-grid textarea { width: 100%; min-height: 44px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); padding: var(--space-2); color: var(--color-text-primary); background: var(--color-bg-surface); }
+.gi-form-grid textarea { min-height: 80px; resize: vertical; }
+.gi-form-wide { grid-column: 1 / -1; }
+.gi-panel .form-actions { flex-wrap: wrap; }
+.gi-build-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.gi-build-toolbar .cm-build-switcher { min-width: 0; max-width: 100%; }
+.gi-table-scroll { max-width: 100%; overflow-x: auto; }
+.gi-table { min-width: 980px; }
+.gi-table th, .gi-table td { vertical-align: top; }
+.gi-table .gi-name { min-width: 160px; white-space: nowrap; overflow-wrap: normal; }
+.gi-table td:nth-child(2) { min-width: 180px; max-width: 280px; overflow-wrap: anywhere; }
+.gi-table .form-actions { min-width: 150px; margin: 0; }
+.gi-table .gi-note { margin-block: var(--space-2) 0; }
+@media (max-width: 600px) { .gi-form-grid { grid-template-columns: 1fr; } .gi-panel .button { min-height: 44px; } }

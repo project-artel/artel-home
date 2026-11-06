@@ -1,0 +1,27 @@
+.telemetry-contents {
+  margin-top: var(--space-2);
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--color-text-secondary);
+}
+
+.telemetry-contents summary {
+  cursor: pointer;
+  color: var(--color-text-primary);
+}
+
+.telemetry-contents__title {
+  margin: var(--space-3) 0 var(--space-1);
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--color-text-primary);
+}
+
+.telemetry-contents__heading {
+  margin: var(--space-2) 0 0;
+}
+
+.telemetry-contents ul {
+  margin: var(--space-1) 0 0;
+  padding-left: var(--space-4);
+}

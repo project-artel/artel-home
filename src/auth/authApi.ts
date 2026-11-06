@@ -1,0 +1,353 @@
+import { isLocale, type Locale } from '../i18n/locale'
+import type { AccountProfileDraft, AuthUser, LinkedIdentity } from './authTypes'
+import type { RelayRequestKind } from './sdkLoginRequest'
+
+const orchestrationUrl = (import.meta.env.VITE_ORCHESTRATION_URL ?? 'http://localhost:8080').replace(/\/$/, '')
+
+/**
+ * The absolute URL of an orchestration path.
+ *
+ * `apiFetch` covers everything that goes through `fetch`. This exists for the
+ * two callers that cannot: an OAuth redirect the browser performs itself, and
+ * `EventSource`, which is given a URL and opens the connection on its own.
+ */
+export function orchestrationUrlFor(path: string): string {
+  return `${orchestrationUrl}${path}`
+}
+
+export function getOAuthLoginUrl(path: string): string {
+  const loginUrl = orchestrationUrlFor(path)
+  if ((import.meta.env.BASE_URL ?? '/') === '/') return loginUrl
+  const url = new URL(loginUrl, window.location.origin)
+  const returnTo = new URL(window.location.href)
+  returnTo.searchParams.delete('error')
+  returnTo.searchParams.delete('auth_error')
+  url.searchParams.set('return_to', returnTo.href)
+  return url.href
+}
+
+export class UnauthorizedError extends Error {
+  constructor() {
+    super('The session is no longer valid')
+    this.name = 'UnauthorizedError'
+  }
+}
+
+/**
+ * A failure the email endpoints described through their status code rather
+ * than an OK response. Neither endpoint's contract (`## Server contract` on
+ * `ARTEL-733`) promises a JSON error body, so `status` — not a parsed `code`
+ * field — is what a caller distinguishes `409` and `400` on.
+ */
+export class AuthApiError extends Error {
+  readonly status: number
+  /** The server's `code` (`email_taken`, `invalid_credentials`, ...), or `''` when the body had none. */
+  readonly code: string
+
+  constructor(status: number, message: string, code = '') {
+    super(message)
+    this.name = 'AuthApiError'
+    this.status = status
+    this.code = code
+  }
+}
+
+let unauthorizedHandler: (() => void) | null = null
+
+/**
+ * Registers the single listener notified when a call is rejected with 401 that
+ * refreshing could not rescue. Access tokens expire after 15 minutes, but the
+ * refresh cookie renews them silently, so reaching this handler means the
+ * session itself is over and the app must return to the login boundary.
+ */
+export function setUnauthorizedHandler(handler: () => void): () => void {
+  unauthorizedHandler = handler
+  return () => {
+    if (unauthorizedHandler === handler) {
+      unauthorizedHandler = null
+    }
+  }
+}
+
+let refreshInFlight: Promise<boolean> | null = null
+
+/**
+ * Trades the refresh cookie for a fresh access cookie. Resolves to whether a
+ * retry is worth attempting; the cookies themselves never reach this code.
+ *
+ * A page renders several panels at once, so an expired access token produces a
+ * burst of simultaneous 401s. They share one call: without that, each panel
+ * would refresh on its own and the later responses would race to overwrite the
+ * cookie the earlier ones just installed.
+ */
+function refreshSession(): Promise<boolean> {
+  refreshInFlight ??= fetch(`${orchestrationUrl}/api/auth/refresh`, {
+    method: 'POST',
+    credentials: 'include',
+  })
+    .then((response) => response.ok)
+    .catch(() => false)
+    .finally(() => {
+      refreshInFlight = null
+    })
+
+  return refreshInFlight
+}
+
+/**
+ * Sends the request and, on a 401, retries once behind a refresh. Only once:
+ * if the retry is rejected as well, the refresh cookie is gone or expired too,
+ * and retrying again would loop against a session that is genuinely over.
+ *
+ * This is what lets a reload after the 15-minute access token expired (but
+ * with a still-valid refresh cookie) proceed instead of bouncing to login.
+ */
+async function sendWithRefresh(send: () => Promise<Response>): Promise<Response> {
+  let response = await send()
+
+  if (response.status === 401 && await refreshSession()) {
+    response = await send()
+  }
+
+  return response
+}
+
+/**
+ * Performs a credentialed call against the orchestration server. Every
+ * authenticated request must go through here so session expiry is handled in
+ * one place. `getCurrentUser` deliberately bypasses it: a 401 there means
+ * "not signed in yet", not "the session just expired".
+ */
+export async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
+  const response = await sendWithRefresh(() => fetch(`${orchestrationUrl}${path}`, {
+    ...init,
+    credentials: 'include',
+  }))
+
+  if (response.status === 401) {
+    unauthorizedHandler?.()
+    throw new UnauthorizedError()
+  }
+
+  return response
+}
+
+function parseLinkedIdentity(data: unknown): LinkedIdentity | null {
+  if (typeof data !== 'object' || data === null) {
+    return null
+  }
+
+  const { provider, login, displayName, avatarUrl } = data as Record<string, unknown>
+
+  if (typeof provider !== 'string' || typeof login !== 'string' || typeof displayName !== 'string') {
+    return null
+  }
+
+  return {
+    provider,
+    login,
+    displayName,
+    avatarUrl: typeof avatarUrl === 'string' ? avatarUrl : null,
+  }
+}
+
+/**
+ * `id`, `displayName`, `nickname`, and `userTag` are required. The first two
+ * are what the shell renders; the latter two the server now guarantees on
+ * every user, so a payload missing either one is not a user with an unset
+ * nickname — it is a malformed response, and this throws rather than
+ * inventing a placeholder the rest of the app would treat as real.
+ *
+ * Every other field degrades to a safe default instead: a session that is
+ * otherwise valid must never be rejected over a cosmetic field, which would
+ * bounce the user back to the login screen with no way forward.
+ */
+export function parseAuthUser(data: unknown): AuthUser {
+  if (typeof data !== 'object' || data === null) {
+    throw new Error('Malformed session payload')
+  }
+
+  const {
+    id, displayName, email, emailVerified, pendingEmail, nickname, userTag, locale, identities,
+    platformRole, mustChangePassword,
+  } = data as Record<string, unknown>
+
+  if (
+    typeof id !== 'string'
+    || typeof displayName !== 'string'
+    || typeof nickname !== 'string'
+    || typeof userTag !== 'string'
+  ) {
+    throw new Error('Malformed session payload')
+  }
+
+  return {
+    id,
+    displayName,
+    email: typeof email === 'string' ? email : null,
+    // A session from before `ARTEL-732` added this field, or a wrong-typed
+    // value, degrades to "not verified" rather than a false positive.
+    emailVerified: typeof emailVerified === 'boolean' ? emailVerified : false,
+    pendingEmail: typeof pendingEmail === 'string' ? pendingEmail : null,
+    nickname,
+    userTag,
+    // A locale the client has no translations for degrades to "never chosen".
+    locale: isLocale(locale) ? locale : null,
+    identities: Array.isArray(identities)
+      ? identities
+          .map(parseLinkedIdentity)
+          .filter((identity): identity is LinkedIdentity => identity !== null)
+      : [],
+    // A missing or unknown grade degrades to the least privileged one.
+    platformRole: platformRole === 'ADMIN' || platformRole === 'DEVELOPER' ? platformRole : 'USER',
+    mustChangePassword: mustChangePassword === true,
+  }
+}
+
+export async function getCurrentUser(signal?: AbortSignal): Promise<AuthUser | null> {
+  const response = await sendWithRefresh(() => fetch(`${orchestrationUrl}/api/auth/me`, {
+    credentials: 'include',
+    signal,
+  }))
+
+  if (response.status === 401) {
+    return null
+  }
+
+  if (!response.ok) {
+    throw new Error('Unable to check the current session')
+  }
+
+  return parseAuthUser(await response.json())
+}
+
+/**
+ * Persists the language choice on the account so it follows the user across
+ * browsers. Callers treat failure as non-fatal: the switch already happened
+ * locally, and the next sign-in simply falls back to the previous value.
+ */
+export async function updateMyLocale(locale: Locale): Promise<void> {
+  const response = await apiFetch('/api/auth/me/locale', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ locale }),
+  })
+
+  if (!response.ok) {
+    throw new Error('Unable to save the language preference')
+  }
+}
+
+/**
+ * Saves the account's nickname. The server assigns the matching `userTag`
+ * itself and answers `200` with the full session user, so the caller learns
+ * the new tag from this response instead of sending its own guess or issuing
+ * a second call to `/api/auth/me`.
+ *
+ * The browser has already checked that the nickname is not blank before
+ * calling this; a rejection here is a network, length, or server failure.
+ */
+export async function updateMyProfile(profile: AccountProfileDraft): Promise<AuthUser> {
+  const response = await apiFetch('/api/auth/me/profile', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(profile),
+  })
+
+  if (!response.ok) {
+    throw new Error('Unable to save the account profile')
+  }
+
+  return parseAuthUser(await response.json())
+}
+
+/**
+ * Registers a new email address as pending. The response is `202`, never a
+ * body — the address the server just accepted is the exact string the caller
+ * already sent, so `AccountSettingsPage` applies it to `AuthProvider` itself
+ * rather than re-fetching `/api/auth/me` for one field.
+ *
+ * `409` means another verified account already holds this address; a caller
+ * that needs to say so distinguishes it from a generic failure via
+ * `error.status`.
+ */
+export async function registerEmail(email: string): Promise<void> {
+  const response = await apiFetch('/api/auth/me/email', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  })
+
+  if (response.status !== 202) {
+    throw new AuthApiError(response.status, 'Unable to register the email address')
+  }
+}
+
+/**
+ * Consumes the verification token. `ARTEL-733` sends no real email — the
+ * server only logs the token — so this is what the account settings screen
+ * calls once the user pastes what they read from that log. The response is
+ * `204`, so the caller applies the verified state itself rather than getting
+ * an updated `AuthUser` back.
+ *
+ * `400` covers a token that is unknown, expired, or already consumed; a
+ * caller that needs to say so distinguishes it from a generic failure via
+ * `error.status`.
+ */
+export async function verifyEmail(token: string): Promise<void> {
+  const response = await apiFetch('/api/auth/me/email/verify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token }),
+  })
+
+  if (response.status !== 204) {
+    throw new AuthApiError(response.status, 'Unable to verify the email address')
+  }
+}
+
+/**
+ * Issues the one-time code the SDK or the CLI trades for its own token.
+ *
+ * The browser session is the only credential this call carries: `apiFetch`
+ * sends the cookie, and the caller proves later that it is the process that
+ * started the flow by presenting the verifier behind `codeChallenge`. That is
+ * why the code may travel back over plain loopback HTTP — on its own it is
+ * useless to anyone who intercepts it.
+ *
+ * `kind` records which flow minted the code, so the server can refuse to
+ * exchange a code minted for one flow through the other flow's endpoint. A
+ * missing `kind` defaults to `sdk` on the server too, matching `readKind` in
+ * `sdkLoginRequest.ts`.
+ */
+export async function createSdkLoginCode(codeChallenge: string, kind: RelayRequestKind): Promise<string> {
+  const response = await apiFetch('/api/auth/sdk/codes', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ codeChallenge, kind }),
+  })
+
+  if (!response.ok) {
+    throw new Error('Unable to issue an SDK login code')
+  }
+
+  const data: unknown = await response.json()
+  const code = (data as Record<string, unknown> | null)?.code
+
+  if (typeof code !== 'string' || code.length === 0) {
+    throw new Error('The server did not return an SDK login code')
+  }
+
+  return code
+}
+
+export async function endSession(): Promise<void> {
+  const response = await fetch(`${orchestrationUrl}/api/auth/logout`, {
+    method: 'POST',
+    credentials: 'include',
+  })
+
+  if (!response.ok && response.status !== 401) {
+    throw new Error('Unable to end the current session')
+  }
+}

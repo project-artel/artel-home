@@ -1,0 +1,721 @@
+import { useMemo, useState, type CSSProperties } from 'react'
+import { useI18n } from '../i18n/useI18n'
+import { truncate } from '../knowledge/knowledgeLabels'
+import { sceneHue } from '../testCases/sceneHue'
+import { CapturePlaceholder } from './CapturePlaceholder'
+import { conditionSummary } from './conditionSummary'
+import {
+  sameSelection,
+  transitionKindStyle,
+  type ContentMapSelection,
+  type SceneThumbnail,
+} from './contentMapTypes'
+import { sceneKind, sceneTitle } from './sceneLabels'
+import type { CanvasViewport } from './useCanvasViewport'
+import {
+  CARD_IMAGE_HEIGHT,
+  CARD_IMAGE_WIDTH,
+  CARD_INSET,
+  SCREEN_IMAGE_HEIGHT,
+  type PlacedContainer,
+  type PlacedSceneEdge,
+  type PlacedScreen,
+  type PlacedScreenTransition,
+  type ScreenMapLayout,
+} from './screenMapLayout'
+
+/**
+ * 중첩 다이어그램.
+ *
+ * 기존 `SceneGraphCanvas` 와 같은 이유로 포인터 전용이고 `aria-hidden` 이다. 씬과 화면 수십 개가
+ * 전부 포커스를 받으면 페이지의 나머지에 닿기 전에 탭을 수십 번 눌러야 하고, 스크린 리더가
+ * `<path>` 에 대해 할 말은 없다. `DESIGN.md` 가 시각 주석에 요구하는 대등한 대체물은 인스펙터이고,
+ * 그것은 ARTEL-598 이다.
+ *
+ * ## 색을 빼고 읽어도 전부 갈린다
+ *
+ * | 무엇 | 채널 |
+ * |---|---|
+ * | 검증된 씬 전이 | 실선 + 속 찬 화살촉 |
+ * | 아직 못 가본 씬 전이 | 점선 + 속 빈 화살촉 |
+ * | 씬 전이 vs 화면 전이 | 굵기와 화살촉 모양 |
+ * | 씬 경계를 넘는 화면 전이 | 선 밑에 깔린 배경색 casing |
+ * | 밟은 씬 / 안 밟은 씬 | 컨테이너 테두리의 실선 / 점선 |
+ *
+ * casing 은 장식이 아니다. 없으면 선이 컨테이너 테두리와 만나는 자리에서 거기서 끊긴 것인지
+ * 지나간 것인지 읽히지 않는다. 이 그림에서 경계를 넘는다는 사실이 가장 중요한 선에 그 모호함을
+ * 남길 수 없다.
+ */
+
+type CanvasProps = {
+  layout: ScreenMapLayout
+  selection: ContentMapSelection | null
+  onSelect: (selection: ContentMapSelection) => void
+  /**
+   * Pan and zoom, owned by the section so its controls can sit outside the
+   * drawing. The canvas is `aria-hidden`, so a control placed inside it would
+   * be unreachable by anything but a pointer.
+   */
+  viewport: CanvasViewport
+  /** 화면이 많은 씬의 접기 칸을 눌렀을 때. 그 씬 id 를 넘긴다. */
+  onToggleScreens: (containerId: string) => void
+  /**
+   * 화면 전이를 전부 그릴지(ARTEL-1172). 끄면 고른 것에 닿는 화면 전이만 그린다 — 화면 전이는 씬 경계를 가로질러
+   * 카드와 다른 화면 위를 지나고, 서른 개가 넘으면 그림을 덮었다.
+   */
+  showScreenLinks: boolean
+}
+
+/** 씬 이름 라벨의 폭 예산, 라틴 문자 기준. 한글로는 절반쯤이다. */
+const SCENE_NAME_WIDTH = 15
+
+/** 화면 이름 라벨의 폭 예산. */
+const SCREEN_NAME_WIDTH = 16
+
+/** 캡처가 노드 테두리 안쪽으로 물러서는 거리. */
+const CAPTURE_INSET = 4
+
+
+/**
+ * `discriminator` 한 줄의 폭 예산. 원문은 인스펙터가 전부 보인다.
+ *
+ * 이 값은 **뒤에서부터** 남긴다. 앞은 어느 화면이든 `[{"selector":"` 로 똑같이 시작하고,
+ * 두 화면을 실제로 가르는 것은 셀렉터의 끝마디와 `active` 값이다. 앞에서 자르면 한 씬의 세
+ * 화면이 모두 같은 글자를 달고 서서, 왜 셋인지를 말해야 할 줄이 아무 말도 하지 않는다.
+ */
+const DISCRIMINATOR_WIDTH = 30
+
+/** 선 위 라벨의 폭 예산. */
+const EDGE_LABEL_WIDTH = 24
+
+/**
+ * 선 라벨을 늘 펼쳐 두는 선 수의 상한.
+ *
+ * 넘으면 글자들이 서로 겹쳐 어느 것이 어느 선의 것인지 못 읽는다. 그때는 고른 것과 포인터가
+ * 얹힌 것만 보인다 — 감추는 것이 아니라 묻는 순서를 바꾸는 것이다.
+ */
+const EDGE_LABEL_LIMIT = 14
+
+export function ScreenMapCanvas({ layout, selection, onSelect, viewport, onToggleScreens, showScreenLinks }: CanvasProps) {
+  // 고른 것이 닿는 요소들. 나머지를 지우지 않고 조용하게만 두는 이유는, 주변이 있어야 고른
+  // 것이 무엇을 뜻하는지 읽히기 때문이다.
+  const related = useMemo(() => relatedIds(layout, selection), [layout, selection])
+  // 그려지는 선만 센다. 화면 전이를 감춘 동안은 씬 전이 수만으로 라벨을 펼칠지 정한다.
+  const labelled = layout.sceneEdges.length + (showScreenLinks ? layout.screenTransitions.length : 0) <= EDGE_LABEL_LIMIT
+  // 상자 머리 둘째 줄의 나가는 · 들어오는 길 수. 자기 자신으로 가는 고리는 양쪽에 다 센다 — 나가서 돌아오는 길이다.
+  const edgeCounts = useMemo(() => {
+    const counts = new Map<string, { out: number; in: number }>()
+    const of = (id: string) => counts.get(id) ?? counts.set(id, { out: 0, in: 0 }).get(id)!
+    for (const placed of layout.sceneEdges) {
+      of(placed.edge.from).out += 1
+      of(placed.edge.to).in += 1
+    }
+    return counts
+  }, [layout.sceneEdges])
+
+  return (
+    <svg
+      aria-hidden="true"
+      className={`sm-canvas${viewport.panning ? ' is-panning' : ''}`}
+      preserveAspectRatio="xMidYMid meet"
+      viewBox={viewport.viewBox}
+      {...viewport.bind}
+    >
+      <defs>
+        {/*
+          화살촉은 `userSpaceOnUse` 다. 기본값인 `strokeWidth` 로 두면 씬 전이와 화면 전이의
+          굵기 차이가 화살촉 크기까지 밀어, 굵기 하나가 두 가지를 말하게 된다.
+        */}
+        <marker
+          className="sm-arrow sm-arrow--verified"
+          id="sm-arrow-verified"
+          markerHeight="9"
+          markerUnits="userSpaceOnUse"
+          markerWidth="9"
+          orient="auto-start-reverse"
+          refX="8"
+          refY="4.5"
+          viewBox="0 0 9 9"
+        >
+          <path d="M 0 0 L 9 4.5 L 0 9 z" />
+        </marker>
+        {/* 속이 빈 화살촉. 실선/점선과 함께, 색 없이도 두 번 갈린다. */}
+        <marker
+          className="sm-arrow sm-arrow--unverified"
+          id="sm-arrow-unverified"
+          markerHeight="9"
+          markerUnits="userSpaceOnUse"
+          markerWidth="9"
+          orient="auto-start-reverse"
+          refX="8"
+          refY="4.5"
+          viewBox="0 0 9 9"
+        >
+          <path d="M 0.8 0.9 L 8 4.5 L 0.8 8.1 z" />
+        </marker>
+        {/* 얇은 갈매기. 삼각형과 한눈에 갈려 화면 전이가 씬 전이로 읽히지 않는다. */}
+        <marker
+          className="sm-arrow sm-arrow--screen"
+          id="sm-arrow-screen"
+          markerHeight="8"
+          markerUnits="userSpaceOnUse"
+          markerWidth="8"
+          orient="auto-start-reverse"
+          refX="6.6"
+          refY="4"
+          viewBox="0 0 8 8"
+        >
+          <path d="M 0.8 0.8 L 6.6 4 L 0.8 7.2" />
+        </marker>
+      </defs>
+
+      <g className="sm-scene-edges">
+        {layout.sceneEdges.map((placed) => (
+          <SceneEdgeMark
+            dimmed={related !== null && !related.has(placed.id)}
+            key={placed.id}
+            labelled={labelled || (related !== null && related.has(placed.id))}
+            onSelect={() => onSelect({ kind: 'sceneEdge', id: placed.id })}
+            placed={placed}
+            selected={sameSelection(selection, { kind: 'sceneEdge', id: placed.id })}
+          />
+        ))}
+      </g>
+
+      <g className="sm-containers">
+        {layout.containers.map((container) => (
+          <ContainerMark
+            container={container}
+            counts={edgeCounts.get(container.id) ?? { out: 0, in: 0 }}
+            dimmed={related !== null && !related.has(container.id)}
+            key={container.id}
+            onSelect={() => onSelect({ kind: 'scene', id: container.id })}
+            selected={sameSelection(selection, { kind: 'scene', id: container.id })}
+          />
+        ))}
+      </g>
+
+      {/*
+        컨테이너 위에 그린다. 밑에 그리면 경계를 넘는 선이 컨테이너 안쪽 구간에서 배경에
+        덮여, 이 그림이 보여 주려는 그 하나가 보이지 않는다.
+      */}
+      <g className="sm-screen-transitions">
+        {layout.screenTransitions
+          .filter((placed) => showScreenLinks || (related !== null && related.has(placed.id)))
+          .map((placed) => (
+            <ScreenTransitionMark
+              dimmed={related !== null && !related.has(placed.id)}
+              key={placed.id}
+              labelled={labelled || (related !== null && related.has(placed.id))}
+              onSelect={() => onSelect({ kind: 'screenTransition', id: placed.id })}
+              placed={placed}
+              selected={sameSelection(selection, { kind: 'screenTransition', id: placed.id })}
+            />
+          ))}
+      </g>
+
+      <g className="sm-screens">
+        {layout.containers.flatMap((container) =>
+          container.screens.map((placed) => (
+            <ScreenMark
+              dimmed={related !== null && !related.has(placed.screen.id)}
+              key={placed.screen.id}
+              onSelect={() => onSelect({ kind: 'screen', id: placed.screen.id })}
+              placed={placed}
+              selected={sameSelection(selection, { kind: 'screen', id: placed.screen.id })}
+            />
+          )),
+        )}
+      </g>
+
+      <g className="sm-toggles">
+        {layout.containers.map((container) =>
+          container.toggle === null ? null : (
+            <ScreenToggle
+              dimmed={related !== null && !related.has(container.id)}
+              key={container.id}
+              onToggle={() => onToggleScreens(container.id)}
+              toggle={container.toggle}
+            />
+          ),
+        )}
+      </g>
+    </svg>
+  )
+}
+
+/**
+ * 화면이 많은 씬의 접기 · 펼치기 칸(ARTEL-1172). 화면 한 칸 자리에 선다. 접혔을 땐 숨은 화면 수를 크게 보이고,
+ * 펼쳤을 땐 접기 단추다. 씬을 고르는 click 과 섞이지 않게 여기서 멈춘다.
+ */
+function ScreenToggle({
+  toggle,
+  dimmed,
+  onToggle,
+}: {
+  toggle: NonNullable<PlacedContainer['toggle']>
+  dimmed: boolean
+  onToggle: () => void
+}) {
+  const { t } = useI18n()
+  const copy = t.contentMap.screenMap
+  return (
+    <g
+      className={classes('sm-toggle', toggle.expanded && 'is-expanded', dimmed && 'is-dimmed')}
+      onClick={(event) => {
+        event.stopPropagation()
+        onToggle()
+      }}
+      transform={`translate(${toggle.x} ${toggle.y})`}
+    >
+      <rect className="sm-toggle-frame" height={toggle.height} rx="4" width={toggle.width} />
+      {toggle.expanded ? (
+        <text className="sm-toggle-label" textAnchor="middle" x={toggle.width / 2} y={toggle.height / 2 + 5}>
+          {copy.collapseScreens}
+        </text>
+      ) : (
+        <>
+          <text className="sm-toggle-count" textAnchor="middle" x={toggle.width / 2} y={toggle.height / 2 - 2}>
+            +{toggle.hidden}
+          </text>
+          <text className="sm-toggle-label" textAnchor="middle" x={toggle.width / 2} y={toggle.height / 2 + 20}>
+            {copy.moreScreens}
+          </text>
+        </>
+      )}
+    </g>
+  )
+}
+
+/**
+ * 고른 것이 닿는 요소들의 id. 아무것도 고르지 않았으면 `null` 이다.
+ *
+ * 빈 `Set` 이 아니라 `null` 인 것은 두 상태가 다르기 때문이다. 아무것도 안 골랐으면 전부
+ * 또렷하고, 아무것도 안 닿는 것을 골랐으면 그것 하나만 또렷하다.
+ */
+function relatedIds(layout: ScreenMapLayout, selection: ContentMapSelection | null): Set<string> | null {
+  if (selection === null) return null
+
+  const touched = new Set<string>([selection.id])
+  const containerOfScreen = new Map<string, string>()
+  for (const container of layout.containers) {
+    for (const placed of container.screens) containerOfScreen.set(placed.screen.id, container.id)
+  }
+
+  if (selection.kind === 'scene') {
+    const container = layout.containers.find((candidate) => candidate.id === selection.id)
+    for (const placed of container?.screens ?? []) touched.add(placed.screen.id)
+    for (const placed of layout.sceneEdges) {
+      if (placed.edge.from !== selection.id && placed.edge.to !== selection.id) continue
+      touched.add(placed.id)
+      touched.add(placed.edge.from)
+      touched.add(placed.edge.to)
+    }
+    // 이 씬의 화면에 붙은 전이도 함께 밝힌다. 씬을 골랐는데 그 안의 선이 흐려지면 컨테이너가
+    // 비어 보인다.
+    for (const placed of layout.screenTransitions) {
+      const from = containerOfScreen.get(placed.transition.fromScreenId)
+      const to = containerOfScreen.get(placed.transition.toScreenId)
+      if (from !== selection.id && to !== selection.id) continue
+      touched.add(placed.id)
+      touched.add(placed.transition.fromScreenId)
+      touched.add(placed.transition.toScreenId)
+    }
+    return touched
+  }
+
+  if (selection.kind === 'screen') {
+    const container = containerOfScreen.get(selection.id)
+    if (container !== undefined) touched.add(container)
+    for (const placed of layout.screenTransitions) {
+      const { fromScreenId, toScreenId } = placed.transition
+      if (fromScreenId !== selection.id && toScreenId !== selection.id) continue
+      touched.add(placed.id)
+      touched.add(fromScreenId)
+      touched.add(toScreenId)
+      for (const id of [fromScreenId, toScreenId]) {
+        const owner = containerOfScreen.get(id)
+        if (owner !== undefined) touched.add(owner)
+      }
+    }
+    return touched
+  }
+
+  if (selection.kind === 'sceneEdge') {
+    const placed = layout.sceneEdges.find((candidate) => candidate.id === selection.id)
+    if (placed !== undefined) {
+      touched.add(placed.edge.from)
+      touched.add(placed.edge.to)
+    }
+    return touched
+  }
+
+  const placed = layout.screenTransitions.find((candidate) => candidate.id === selection.id)
+  if (placed !== undefined) {
+    for (const id of [placed.transition.fromScreenId, placed.transition.toScreenId]) {
+      touched.add(id)
+      const owner = containerOfScreen.get(id)
+      if (owner !== undefined) touched.add(owner)
+    }
+  }
+  return touched
+}
+
+/**
+ * 긴 글의 **끝**을 남기고 앞을 줄인다.
+ *
+ * `truncate` 는 반대로 앞을 남긴다. 요약이나 이름에는 그쪽이 맞지만 `discriminator` 에는
+ * 틀리다 — 어느 화면이든 같은 접두사로 시작하므로, 앞만 남기면 한 씬의 세 화면이 전부 같은
+ * 글자를 달고 선다.
+ */
+function keepTail(text: string, limit: number): string {
+  return text.length <= limit ? text : `…${text.slice(text.length - limit + 1)}`
+}
+
+function classes(...parts: (string | false | null)[]): string {
+  return parts.filter((part): part is string => typeof part === 'string').join(' ')
+}
+
+/**
+ * 씬 컨테이너 하나.
+ *
+ * 머리글에 이름과 화면 수가 있고, 화면이 0 개인 씬은 몸통에 그 사실을 한 줄로 쓴다. 빈 몸통을
+ * 그냥 두면 "아직 QA 런이 없다"가 "이 씬은 그리다 만 것 같다"로 읽힌다.
+ *
+ * **단, 그 씬의 `thumbnail` 이 `state: 'available'` 이면 문장 대신 그 이미지를 그린다.** `screen`
+ * 표는 QA 런 전에 0행인 것이 정상이지만(`ContentMapScreen` 주석), 정적 분석만으로도 씬 대표
+ * 이미지는 이미 서버에 있다 — evidence scan 만 돌리고 QA 런은 아직 안 돌린 사람에게 빈 상자
+ * 대신 그 그림을 보여 줄 수 있다. `thumbnail` 이 `null` 이거나 `unavailable` 이면 지금과
+ * 같은 문장으로 되돌아간다.
+ */
+function ContainerMark({
+  container,
+  counts,
+  selected,
+  dimmed,
+  onSelect,
+}: {
+  container: PlacedContainer
+  counts: { out: number; in: number }
+  selected: boolean
+  dimmed: boolean
+  onSelect: () => void
+}) {
+  const { t } = useI18n()
+  const copy = t.contentMap.screenMap
+  const kind = sceneKind(container.node)
+  const empty = container.screens.length === 0
+  const title = sceneTitle(t, container.node)
+
+  const thumbnail = container.node.scene?.thumbnail ?? null
+  const image: Extract<SceneThumbnail, { state: 'available' }> | null =
+    thumbnail !== null && thumbnail.state === 'available' ? thumbnail : null
+  const scene = container.node.scene
+  const textX = CARD_INSET * 2 + CARD_IMAGE_WIDTH
+
+  return (
+    <g
+      className={classes(
+        'sm-container',
+        `sm-container--${kind}`,
+        selected && 'is-selected',
+        dimmed && 'is-dimmed',
+      )}
+      onClick={onSelect}
+      style={{ '--cat-hue': String(sceneHue(container.node.name)) } as CSSProperties}
+      transform={`translate(${container.x} ${container.y})`}
+    >
+      <rect className="sm-container-frame" height={container.height} rx="6" width={container.width} />
+
+      {/*
+        씬 카드(ARTEL-1172): 왼쪽 대표 이미지, 오른쪽 상세. 이미지가 없으면 같은 자리를 비워 두고 그 사실을 적는다 —
+        카드마다 글자 자리가 달라지면 열 안의 카드들이 줄이 안 맞는다.
+      */}
+      {image !== null ? (
+        <image
+          className="sm-container-thumbnail"
+          height={CARD_IMAGE_HEIGHT}
+          href={image.url}
+          preserveAspectRatio="xMidYMid meet"
+          width={CARD_IMAGE_WIDTH}
+          x={CARD_INSET}
+          y={CARD_INSET}
+        >
+          <title>{title}</title>
+        </image>
+      ) : (
+        <CapturePlaceholder height={CARD_IMAGE_HEIGHT} label={copy.noCapture} width={CARD_IMAGE_WIDTH} x={CARD_INSET} y={CARD_INSET} />
+      )}
+
+      {/* 씬 색은 이름 앞의 점 하나로만 말한다 — 상자 전체를 칠하면 씬 일곱 개가 일곱 색 덩어리로 서서 선이 묻힌다.
+          같은 색이 tree 의 점에도 있다. */}
+      <circle className="sm-container-dot" cx={textX + 5} cy={CARD_INSET + 12} r={5} />
+      <text className="sm-container-name" x={textX + 17} y={CARD_INSET + 17}>
+        {truncate(title, SCENE_NAME_WIDTH)}
+      </text>
+
+      {/* 수 넷을 한 줄에 하나씩(ARTEL-1172) — 글 한 줄로 이어 쓰면 숫자가 글자 사이에 묻혔고, 두 칸으로 두면 카드가
+          넓어져 열 여섯의 지도가 그만큼 작아졌다. 숫자는 굵고 색이 있고, 이름은 옆에 작게. 응답에 없는 씬
+          (scene === null)은 능력을 모르므로 위 두 줄을 비운다. */}
+      {scene !== null && (
+        <>
+          <CardStat label={t.contentMap.summary.statuses.runnable} tone="runnable" value={scene.capabilities.runnable} x={textX} y={CARD_INSET + 40} />
+          <CardStat label={t.contentMap.summary.statuses.needsProbe} tone="needsProbe" value={scene.capabilities.needsProbe} x={textX} y={CARD_INSET + 59} />
+        </>
+      )}
+      <CardStat label={t.contentMap.inspector.stats.outgoing} tone="route" value={counts.out} x={textX} y={CARD_INSET + 78} />
+      <CardStat label={t.contentMap.inspector.stats.incoming} tone="route" value={counts.in} x={textX} y={CARD_INSET + 97} />
+      {/* 이미지 아래 한 줄: 관측된 화면 수, 없으면 그 사실. 이름 줄 끝에 두면 좁은 카드에서 긴 씬 이름과 겹쳤다. */}
+      <text className={empty ? 'sm-container-empty' : 'sm-container-count mono'} x={CARD_INSET} y={CARD_INSET + CARD_IMAGE_HEIGHT + 15}>
+        {empty ? copy.noScreens : copy.screenCount(container.screens.length)}
+      </text>
+    </g>
+  )
+}
+
+/** 카드 안의 수 하나: 굵은 숫자와 옆의 작은 이름. */
+function CardStat({ label, tone, value, x, y }: { label: string; tone: 'runnable' | 'needsProbe' | 'route'; value: number; x: number; y: number }) {
+  return (
+    <text className="sm-card-stat" x={x} y={y}>
+      <tspan className={`sm-card-num sm-card-num--${tone}${value === 0 ? ' is-zero' : ''}`}>{value}</tspan>
+      <tspan className="sm-card-label" dx={5}>
+        {label}
+      </tspan>
+    </text>
+  )
+}
+
+/**
+ * 화면 하나: 캡처 한 장과 그 아래 두 줄.
+ *
+ * ## 왜 그림에 캡처가 있나
+ *
+ * 이름과 `discriminator` 만으로는 이 노드가 **무엇인지** 답할 수 없다. `Canvas/continue` 가 켜진
+ * 화면과 꺼진 화면은 글자로는 한 글자 차이지만 눈으로는 전혀 다른 그림이고, 지도를 여는 사람이
+ * 찾는 것은 대개 그 그림이다. 캡처가 없을 때는 노드를 하나씩 골라 인스펙터를 봐야 했다.
+ *
+ * 아래 두 줄은 그대로 남는다. 위는 이름, 아래는 `discriminator` — 이름은 표시용이고 화면을 실제로
+ * 가르는 것은 아래쪽이라, 이름이 같아 보이는 두 화면이 왜 둘인지 그림에서 바로 읽혀야 한다.
+ *
+ * ## 잘리지 않는다
+ *
+ * `ScreenImage` 에는 픽셀 크기가 없어서 어떤 비율이 올지 모른 채 자리를 잡아야 한다. 그래서 틀은
+ * 고정이고 `preserveAspectRatio="xMidYMid meet"` 가 남는 자리를 letterbox 로 둔다 — 잘라서 채우면
+ * 화면을 알아보게 하려고 넣은 그림이 정작 구별되는 부분을 잘라 낸다.
+ *
+ * 캡처가 `CAPTURE_INSET` 만큼 물러서는 것은 노드 테두리가 `rx=4` 로 둥글기 때문이다. 딱 맞춰 넣으면
+ * 이미지 모서리가 둥근 테두리 밖으로 비어져 나온다. 노드마다 `clipPath` 를 두는 것보다 싸다.
+ */
+function ScreenMark({
+  placed,
+  selected,
+  dimmed,
+  onSelect,
+}: {
+  placed: PlacedScreen
+  selected: boolean
+  dimmed: boolean
+  onSelect: () => void
+}) {
+  const { t } = useI18n()
+  const copy = t.contentMap.screenMap
+  const { screen } = placed
+  const name = screen.name?.trim() ?? ''
+
+  /*
+   * 불러오지 못한 캡처의 주소. boolean 이 아닌 이유는 다시 읽은 맵이 새 주소를 줄 수 있어야 하기 때문이다.
+   *
+   * 서명된 주소가 만료되면 `onError` 가 온다. 콘텐츠 맵은 주기적으로 다시 읽히고 서버가 그때 새로
+   * 서명한 주소를 준다. 그런데 이 컴포넌트의 React key 는 `placed.screen.id` 라 새 스냅샷이
+   * 와도 같은 인스턴스가 살아남는다 — boolean 으로 들면 unmount 될 때까지 안 풀려서, 화면이 새
+   * 주소를 받고도 "불러오지 못함"을 계속 띄운다.
+   */
+  const [failedUrl, setFailedUrl] = useState<string | null>(null)
+  const image = screen.image
+  const broken = image !== null && failedUrl === image.url
+
+  const captureWidth = placed.width - CAPTURE_INSET * 2
+  const captureHeight = SCREEN_IMAGE_HEIGHT - CAPTURE_INSET * 2
+  const nameBaseline = SCREEN_IMAGE_HEIGHT + 14
+  const discriminatorBaseline = SCREEN_IMAGE_HEIGHT + 29
+
+  return (
+    <g
+      className={classes('sm-screen', selected && 'is-selected', dimmed && 'is-dimmed')}
+      onClick={onSelect}
+      transform={`translate(${placed.x} ${placed.y})`}
+    >
+      <rect className="sm-screen-frame" height={placed.height} rx="4" width={placed.width} />
+
+      {image !== null && !broken ? (
+        <image
+          className="sm-screen-capture"
+          height={captureHeight}
+          href={image.url}
+          onError={() => setFailedUrl(image.url)}
+          preserveAspectRatio="xMidYMid meet"
+          width={captureWidth}
+          x={CAPTURE_INSET}
+          y={CAPTURE_INSET}
+        />
+      ) : (
+        /*
+           캡처가 없는 것과 못 불러온 것을 한 문장으로 접지 않는다. 앞은 QA 런을 한 번 돌리면
+           채워지고, 뒤는 새로고침하면 된다 — 사용자가 할 일이 다르므로 같은 자리표시라도 문장은
+           갈린다.
+        */
+        <CapturePlaceholder
+          height={captureHeight}
+          label={broken ? copy.captureBroken : copy.noCapture}
+          width={captureWidth}
+          x={CAPTURE_INSET}
+          y={CAPTURE_INSET}
+        />
+      )}
+
+      <text
+        className={classes('sm-screen-name', name.length === 0 && 'is-unnamed')}
+        x={9}
+        y={nameBaseline}
+      >
+        {truncate(name.length > 0 ? name : copy.unnamedScreen, SCREEN_NAME_WIDTH)}
+      </text>
+      <text className="sm-screen-observed mono" textAnchor="end" x={placed.width - 9} y={nameBaseline}>
+        {copy.observed(screen.observedCount)}
+      </text>
+      <text className="sm-screen-discriminator mono" x={9} y={discriminatorBaseline}>
+        {keepTail(screen.discriminator, DISCRIMINATOR_WIDTH)}
+      </text>
+    </g>
+  )
+}
+
+/**
+ * 씬 전이 하나.
+ *
+ * `verifiedAt` 이 null 인 것이 이 화면 전체가 존재하는 이유다 — 아직 아무도 안 가 본 길이고,
+ * 그것이 커버리지 구멍이다. 그래서 실선/점선과 속 찬/빈 화살촉 두 채널로 말한다. 색 하나로만
+ * 갈랐다면 흑백으로 인쇄한 순간 그 사실이 사라진다.
+ */
+function SceneEdgeMark({
+  placed,
+  selected,
+  dimmed,
+  labelled,
+  onSelect,
+}: {
+  placed: PlacedSceneEdge
+  selected: boolean
+  dimmed: boolean
+  labelled: boolean
+  onSelect: () => void
+}) {
+  const { t } = useI18n()
+  const { transition } = placed.edge
+  const verified = transition.verifiedAt !== null
+  // 조건이 없는 전이는 라벨 자체가 없다. 빈 자리를 그리면 "조건 없음"과 "조건을 못 읽음"이
+  // 같은 모양이 된다 — 그 둘을 가르는 것은 인스펙터의 문장이고, 그림은 아예 말하지 않는 쪽을
+  // 고른다.
+  const label = transition.given === null ? '' : conditionSummary(t, transition.given)
+
+  return (
+    <g
+      className={classes(
+        'sm-link sm-link--scene',
+        verified ? 'is-verified' : 'is-unverified',
+        selected && 'is-selected',
+        dimmed && 'is-dimmed',
+      )}
+      onClick={onSelect}
+    >
+      {/* 선 자체는 1.9px 이라 포인터로 집기 어렵다. 넓고 투명한 사본이 히트 영역이 된다. */}
+      <path className="sm-link-hit" d={placed.path} />
+      <path
+        className="sm-link-line"
+        d={placed.path}
+        markerEnd={`url(#sm-arrow-${verified ? 'verified' : 'unverified'})`}
+      />
+      <EdgeLabel labelled={labelled} placed={placed} selected={selected} text={label} />
+    </g>
+  )
+}
+
+/**
+ * 화면 전이 하나.
+ *
+ * 씬 경계를 넘는 전이에는 선 밑에 배경색 casing 을 깐다. 컨테이너 테두리를 뚫고 지나가는
+ * 것이 눈에 보여야 하기 때문이고, 그것이 이 선과 씬 안에서만 도는 선을 가르는 사실이다.
+ */
+function ScreenTransitionMark({
+  placed,
+  selected,
+  dimmed,
+  labelled,
+  onSelect,
+}: {
+  placed: PlacedScreenTransition
+  selected: boolean
+  dimmed: boolean
+  labelled: boolean
+  onSelect: () => void
+}) {
+  const { transition } = placed
+  const crossing = transition.crossesScene || placed.crossesContainer
+
+  return (
+    <g
+      className={classes(
+        'sm-link sm-link--screen',
+        `sm-link--${transitionKindStyle(transition.kind)}`,
+        crossing && 'is-crossing',
+        selected && 'is-selected',
+        dimmed && 'is-dimmed',
+      )}
+      onClick={onSelect}
+    >
+      {crossing && <path className="sm-link-casing" d={placed.path} />}
+      <path className="sm-link-hit" d={placed.path} />
+      <path className="sm-link-line" d={placed.path} markerEnd="url(#sm-arrow-screen)" />
+      <EdgeLabel
+        labelled={labelled}
+        placed={placed}
+        selected={selected}
+        text={transition.capabilitySummary ?? ''}
+      />
+    </g>
+  )
+}
+
+/**
+ * 선 위의 한 줄.
+ *
+ * 늘 보이지 않을 때는 CSS 가 hover 로 되살린다. hover 를 React 상태로 들면 포인터가 지나갈
+ * 때마다 그림 전체가 다시 그려지고, 씬이 수십 개인 빌드에서 그 비용이 곧바로 보인다.
+ */
+function EdgeLabel({
+  placed,
+  selected,
+  labelled,
+  text,
+}: {
+  placed: { midX: number; midY: number }
+  selected: boolean
+  labelled: boolean
+  text: string
+}) {
+  const trimmed = text.trim()
+  // 할 말이 없으면 자리도 만들지 않는다. 빈 라벨을 그리면 "조건 없음"과 "조건을 못 읽음"이
+  // 같은 빈칸으로 보인다.
+  if (trimmed.length === 0) return null
+
+  return (
+    <text
+      className={classes('sm-link-label', !labelled && !selected && 'is-quiet')}
+      textAnchor="middle"
+      x={placed.midX}
+      y={placed.midY - 8}
+    >
+      {truncate(trimmed, EDGE_LABEL_WIDTH)}
+    </text>
+  )
+}

@@ -1,0 +1,274 @@
+import assert from 'node:assert/strict'
+import test from 'node:test'
+import { parseChatMarkdown, parseInline, type Block } from './chatMarkdown'
+
+function texts(block: Block): string[] {
+  if (block.kind === 'paragraph') {
+    return block.lines.map((line) => line.map((part) => part.text).join(''))
+  }
+  if (block.kind === 'list') {
+    return block.items.map((item) => item.content.map((part) => part.text).join(''))
+  }
+  if (block.kind === 'fence') return [block.text]
+  return block.header.map((cell) => cell.map((part) => part.text).join(''))
+}
+
+test('마크다운이 없는 본문은 한 문단 그대로다', () => {
+  const blocks = parseChatMarkdown('전투 씬에서 카드를 낸다.')
+  assert.deepEqual(blocks, [
+    { kind: 'paragraph', lines: [[{ kind: 'text', text: '전투 씬에서 카드를 낸다.' }]] },
+  ])
+})
+
+test('빈 줄이 문단을 가른다', () => {
+  const blocks = parseChatMarkdown('첫 문단\n\n둘째 문단')
+  assert.equal(blocks.length, 2)
+  assert.deepEqual(texts(blocks[0]), ['첫 문단'])
+  assert.deepEqual(texts(blocks[1]), ['둘째 문단'])
+})
+
+test('한 문단 안의 줄바꿈은 줄로 남는다', () => {
+  // 25건 중 1건뿐이지만, 붙여 버리면 그 1건이 다른 뜻이 된다.
+  const blocks = parseChatMarkdown('첫 줄\n둘째 줄')
+  assert.equal(blocks.length, 1)
+  assert.deepEqual(texts(blocks[0]), ['첫 줄', '둘째 줄'])
+})
+
+test('순서 없는 목록을 읽는다', () => {
+  const blocks = parseChatMarkdown('- 첫 항목\n- 둘째 항목')
+  assert.equal(blocks.length, 1)
+  assert.equal(blocks[0].kind, 'list')
+  assert.equal(blocks[0].kind === 'list' && blocks[0].ordered, false)
+  assert.deepEqual(texts(blocks[0]), ['첫 항목', '둘째 항목'])
+})
+
+test('번호 목록을 읽고, 번호를 본문에 남기지 않는다', () => {
+  const blocks = parseChatMarkdown('1. 첫 항목\n2. 둘째 항목')
+  assert.equal(blocks[0].kind === 'list' && blocks[0].ordered, true)
+  assert.deepEqual(texts(blocks[0]), ['첫 항목', '둘째 항목'])
+})
+
+test('번호 목록과 하이픈 목록은 서로 다른 목록이다', () => {
+  const blocks = parseChatMarkdown('1. 번호\n- 하이픈')
+  assert.equal(blocks.length, 2)
+  assert.equal(blocks[0].kind === 'list' && blocks[0].ordered, true)
+  assert.equal(blocks[1].kind === 'list' && blocks[1].ordered, false)
+})
+
+test('들여쓴 항목은 바로 위 항목에 붙는다', () => {
+  const blocks = parseChatMarkdown('1. 자동 전환\n   - TurnBattleScene → GameClearScene\n   - EndingScene → Map_scene')
+  assert.equal(blocks.length, 1)
+  const list = blocks[0]
+  assert.equal(list.kind, 'list')
+  if (list.kind !== 'list') return
+  assert.equal(list.items.length, 1)
+  assert.deepEqual(
+    list.items[0].children.map((child) => child.map((part) => part.text).join('')),
+    ['TurnBattleScene → GameClearScene', 'EndingScene → Map_scene'],
+  )
+})
+
+test('위에 붙일 항목이 없으면 들여쓴 항목도 버리지 않는다', () => {
+  const blocks = parseChatMarkdown('  - 들여써서 시작한 목록')
+  assert.equal(blocks.length, 1)
+  assert.deepEqual(texts(blocks[0]), ['들여써서 시작한 목록'])
+})
+
+test('목록 뒤의 산문은 목록에 딸려 들어가지 않는다', () => {
+  const blocks = parseChatMarkdown('- 항목\n그다음 문장')
+  assert.equal(blocks.length, 2)
+  assert.equal(blocks[0].kind, 'list')
+  assert.equal(blocks[1].kind, 'paragraph')
+})
+
+test('볼드와 인라인 코드를 가른다', () => {
+  assert.deepEqual(parseInline('**진입** 시 `HpText` 갱신'), [
+    { kind: 'bold', text: '진입' },
+    { kind: 'text', text: ' 시 ' },
+    { kind: 'code', text: 'HpText' },
+    { kind: 'text', text: ' 갱신' },
+  ])
+})
+
+test('목록 항목 안에서도 볼드와 코드를 읽는다', () => {
+  const blocks = parseChatMarkdown('1. **Route lookup timeouts**: `find_path` 가 느리다')
+  const list = blocks[0]
+  assert.equal(list.kind, 'list')
+  if (list.kind !== 'list') return
+  assert.deepEqual(list.items[0].content, [
+    { kind: 'bold', text: 'Route lookup timeouts' },
+    { kind: 'text', text: ': ' },
+    { kind: 'code', text: 'find_path' },
+    { kind: 'text', text: ' 가 느리다' },
+  ])
+})
+
+test('닫히지 않은 표시는 글자 그대로 남는다', () => {
+  // 고쳐 주지 않는다. 사용자가 보는 것은 모델이 쓴 그 글자다.
+  assert.deepEqual(parseInline('2 ** 3 은 곱셈이 아니다'), [
+    { kind: 'text', text: '2 ** 3 은 곱셈이 아니다' },
+  ])
+  assert.deepEqual(parseInline('`열기만 한 백틱'), [{ kind: 'text', text: '`열기만 한 백틱' }])
+})
+
+test('코드 안의 별표는 볼드가 아니다', () => {
+  assert.deepEqual(parseInline('`a ** b`'), [{ kind: 'code', text: 'a ** b' }])
+})
+
+test('빈 볼드는 강조가 아니라 네 글자다', () => {
+  assert.deepEqual(parseInline('****'), [{ kind: 'text', text: '****' }])
+})
+
+test('빈 본문은 블록을 만들지 않는다', () => {
+  assert.deepEqual(parseChatMarkdown(''), [])
+  assert.deepEqual(parseChatMarkdown('\n\n'), [])
+})
+
+// ---- 표(ARTEL-929) — 설명 칸은 모델이 가시성 우선으로 표를 쓸 수 있다 ----------------
+
+function cellTexts(cells: import('./chatMarkdown').Inline[][]): string[] {
+  return cells.map((cell) => cell.map((part) => part.text).join(''))
+}
+
+test('머리줄과 구분줄이 있으면 표다', () => {
+  const blocks = parseChatMarkdown(
+    '| 시나리오 | 스텝 |\n|---|---:|\n| **게임 시작 → 맵** | 12 |\n| 첫 전투 | 16 |',
+  )
+  assert.equal(blocks.length, 1)
+  const table = blocks[0]
+  assert.equal(table.kind, 'table')
+  if (table.kind !== 'table') return
+  assert.deepEqual(cellTexts(table.header), ['시나리오', '스텝'])
+  assert.equal(table.rows.length, 2)
+  assert.deepEqual(cellTexts(table.rows[1]), ['첫 전투', '16'])
+  // 칸 안의 강조도 읽는다.
+  assert.deepEqual(table.rows[0][0], [{ kind: 'bold', text: '게임 시작 → 맵' }])
+})
+
+test('구분줄이 없으면 파이프가 있어도 글이다', () => {
+  // `|` 는 경로나 문장에도 나온다 — 구분줄 없이 표로 읽으면 멀쩡한 문장이 깨진다.
+  const blocks = parseChatMarkdown('| 이건 표가 아니다 |')
+  assert.equal(blocks.length, 1)
+  assert.equal(blocks[0].kind, 'paragraph')
+})
+
+test('표 앞뒤의 글은 따로 남는다', () => {
+  const blocks = parseChatMarkdown('둘로 나눴어요.\n| a | b |\n|---|---|\n| 1 | 2 |\n그래서 이렇게 됐어요.')
+  assert.deepEqual(
+    blocks.map((block) => block.kind),
+    ['paragraph', 'table', 'paragraph'],
+  )
+})
+
+test('칸 수가 모자란 줄은 빈 칸으로 채운다', () => {
+  const blocks = parseChatMarkdown('| a | b | c |\n|---|---|---|\n| 1 |')
+  const table = blocks[0]
+  if (table.kind !== 'table') throw new Error('table expected')
+  assert.deepEqual(cellTexts(table.rows[0]), ['1', '', ''])
+})
+
+// ---- TC·TS 참조 표식(ARTEL-933) — 번호는 표식 안에서만 읽고 글자로는 내지 않는다 ----------
+
+test('참조 표식은 번호 없는 ref 조각이 된다', () => {
+  assert.deepEqual(parseInline('[[tc:5]] 도 따로 볼까요?'), [
+    { kind: 'ref', refKind: 'tc', id: 5, text: '' },
+    { kind: 'text', text: ' 도 따로 볼까요?' },
+  ])
+})
+
+test('표식과 강조가 한 줄에 같이 있다', () => {
+  assert.deepEqual(parseInline('**상점** 다음에 [[ts:7]] 를 고쳤어요'), [
+    { kind: 'bold', text: '상점' },
+    { kind: 'text', text: ' 다음에 ' },
+    { kind: 'ref', refKind: 'ts', id: 7, text: '' },
+    { kind: 'text', text: ' 를 고쳤어요' },
+  ])
+})
+
+test('모양이 틀린 표식은 글자 그대로다', () => {
+  assert.deepEqual(parseInline('[[tc:abc]]'), [{ kind: 'text', text: '[[tc:abc]]' }])
+})
+
+test('승인 전 draft 를 가리키는 음수 번호 표식도 ref 조각이다', () => {
+  assert.deepEqual(parseInline('기존 [[ts:-1]]과 같은 범위'), [
+    { kind: 'text', text: '기존 ' },
+    { kind: 'ref', refKind: 'ts', id: -1, text: '' },
+    { kind: 'text', text: '과 같은 범위' },
+  ])
+})
+
+const OPT = { links: true, fences: true }
+
+test('a fence keeps its lines and drops the language tag', () => {
+  const body = '아래를 실행하세요.\n```bash\nnpm i\n\n  npx artel\n```\n끝'
+  assert.deepEqual(parseChatMarkdown(body, OPT), [
+    { kind: 'paragraph', lines: [[{ kind: 'text', text: '아래를 실행하세요.' }]] },
+    { kind: 'fence', text: 'npm i\n\n  npx artel' },
+    { kind: 'paragraph', lines: [[{ kind: 'text', text: '끝' }]] },
+  ])
+})
+
+test('a fence without a language tag is a fence', () => {
+  assert.deepEqual(parseChatMarkdown('```\na\n```', OPT), [{ kind: 'fence', text: 'a' }])
+  assert.deepEqual(parseChatMarkdown('```text\n- not a list\n```', OPT), [{ kind: 'fence', text: '- not a list' }])
+})
+
+test('an unclosed fence takes the rest of the message as code', () => {
+  assert.deepEqual(parseChatMarkdown('```sh\nnpm i\n\nmore', OPT), [{ kind: 'fence', text: 'npm i\n\nmore' }])
+})
+
+test('links: app path, http(s) url', () => {
+  const [paragraph] = parseChatMarkdown('[계정 설정](/account) 와 [문서](https://example.com/a?b=1)', OPT)
+  assert.deepEqual(paragraph, {
+    kind: 'paragraph',
+    lines: [[
+      { kind: 'link', text: '계정 설정', href: '/account', target: 'internal' },
+      { kind: 'text', text: ' 와 ' },
+      { kind: 'link', text: '문서', href: 'https://example.com/a?b=1', target: 'external' },
+    ]],
+  })
+})
+
+test('links with another scheme stay plain text', () => {
+  for (const href of ['javascript:alert(1)', 'data:text/html,x', '//evil.example', '/\\evil', 'mailto:a@b.c', 'account']) {
+    const parts = parseInline(`[x](${href})`, OPT)
+    assert.ok(parts.every((part) => part.kind === 'text'), href)
+    assert.equal(parts.map((part) => part.text).join(''), `[x](${href})`)
+  }
+})
+
+test('code inside link text stays text', () => {
+  assert.deepEqual(parseInline('[`npm`](/a)', OPT), [{ kind: 'link', text: '`npm`', href: '/a', target: 'internal' }])
+})
+
+test('default parsing ignores fences and links', () => {
+  const body = '```bash\nnpm i\n```\n[계정 설정](/account) `code`'
+  const blocks = parseChatMarkdown(body)
+  assert.ok(blocks.every((block) => block.kind === 'paragraph'))
+  assert.deepEqual(parseChatMarkdown(body, {}), blocks)
+  assert.deepEqual(parseInline('[a](/b)'), [{ kind: 'text', text: '[a](/b)' }])
+  assert.deepEqual(parseInline('[a](/b) `c`'), [{ kind: 'text', text: '[a](/b) ' }, { kind: 'code', text: 'c' }])
+})
+
+test('질문 답의 페이지 표식(테스트 런 · QA 실행 · 이슈 · 빌드)도 ref 조각이다', () => {
+  assert.deepEqual(parseInline('[[qa:17]] 에서 [[issue:9]]'), [
+    { kind: 'ref', refKind: 'qa', id: 17, text: '' },
+    { kind: 'text', text: ' 에서 ' },
+    { kind: 'ref', refKind: 'issue', id: 9, text: '' },
+  ])
+})
+
+test('사전조건 · 기대 결과 머리말은 label 조각이 된다', () => {
+  assert.deepEqual(parseInline('- 사전조건: 타이틀 화면'), [
+    { kind: 'label', tone: 'precondition', text: '사전조건' },
+    { kind: 'text', text: '타이틀 화면' },
+  ])
+  assert.deepEqual(parseInline('기대 결과: `TurnBattleScene` 으로 넘어간다')[0], { kind: 'label', tone: 'expected', text: '기대 결과' })
+})
+
+test('표 칸에서는 사전조건 · 기대 결과 머리말을 떼어 낸다', () => {
+  const blocks = parseChatMarkdown('| 케이스 | 사전조건 |\n|---|---|\n| a | 사전조건: 타이틀 |')
+  const table = blocks[0]
+  assert.equal(table.kind, 'table')
+  if (table.kind === 'table') assert.deepEqual(table.rows[0][1], [{ kind: 'text', text: '타이틀' }])
+})

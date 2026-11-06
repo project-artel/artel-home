@@ -1,0 +1,124 @@
+import { useEffect, useState } from 'react'
+import { NotFoundPage } from '../NotFoundPage'
+import { Link, useParams } from 'react-router-dom'
+import { GameStreamView } from '../streaming/GameStreamView'
+import { listGameInstances } from './gameApi'
+import { useI18n } from '../i18n/useI18n'
+import { ProjectApiError } from './projectApi'
+import { describePlatform, type GameInstance } from './gameTypes'
+
+/**
+ * Keyed by the instance id so opening another instance remounts rather than
+ * pointing the existing socket and peer connection at a different game.
+ */
+export function GameInstanceDetailRoute() {
+  const { instanceId = '', projectId = '' } = useParams()
+  return <GameInstanceDetailPage instanceId={instanceId} key={instanceId} projectId={projectId} />
+}
+
+function projectLink(projectId: string): string {
+  return `/projects/${encodeURIComponent(projectId)}`
+}
+
+type PageStatus = 'loading' | 'ready' | 'missing' | 'error'
+
+/**
+ * One game instance's live screen.
+ *
+ * Deliberately thin. QA runs are started and listed on the project page, where
+ * both halves of a run — the game and the scenario — are picked together; this
+ * page answers one question: is the SDK connected and rendering. The design
+ * investment belongs in `GameStreamView`, which the QA Try route mounts
+ * unchanged.
+ *
+ * The instance key stays on the project page. This screen is about what the
+ * game is doing, and repeating a durable credential on a second surface is not
+ * identity.
+ */
+function GameInstanceDetailPage({
+  instanceId,
+  projectId,
+}: {
+  instanceId: string
+  projectId: string
+}) {
+  const [status, setStatus] = useState<PageStatus>('loading')
+  const [instance, setInstance] = useState<GameInstance | null>(null)
+  const { t } = useI18n()
+
+  /*
+   * There is no endpoint that reads a single instance — the contract exposes
+   * create, list, rename, and delete — so the row is found in the project's
+   * list. A list the user is not a member of comes back as a 404, which is the
+   * same answer as a deleted instance and gets the same screen.
+   */
+  useEffect(() => {
+    const controller = new AbortController()
+
+    listGameInstances(projectId, controller.signal)
+      .then((instances) => {
+        const found = instances.find((candidate) => candidate.id === instanceId) ?? null
+        setInstance(found)
+        setStatus(found === null ? 'missing' : 'ready')
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === 'AbortError') return
+        setStatus(error instanceof ProjectApiError && error.isNotFound ? 'missing' : 'error')
+      })
+
+    return () => controller.abort()
+  }, [instanceId, projectId])
+
+  if (status === 'loading') {
+    return (
+      <section className="page" aria-busy="true">
+        <p className="panel-empty">{t.projects.instanceDetail.loading}</p>
+      </section>
+    )
+  }
+
+  if (status === 'error') {
+    return (
+      <section className="page">
+        <div className="panel-message" role="alert">
+          <p>{t.projects.instanceDetail.loadFailed}</p>
+          <Link className="button button--secondary" to={projectLink(projectId)}>
+            {t.projects.shared.backToProject}
+          </Link>
+        </div>
+      </section>
+    )
+  }
+
+  // `instance` is null only when the read failed or matched nothing, both of
+  // which are already handled; the test is what narrows the type.
+  if (status === 'missing' || instance === null) {
+    return (
+      <NotFoundPage
+        back={{ to: projectLink(projectId), label: t.projects.shared.backToProject }}
+        copy={t.projects.shared.missingCopy}
+        title={t.projects.instanceDetail.notFoundTitle}
+      />
+    )
+  }
+
+  return (
+    <section className="page" aria-labelledby="instance-title">
+      <header className="page-header">
+        <div>
+          <Link className="back-link" to={projectLink(projectId)}>
+            {t.projects.shared.backToProject}
+          </Link>
+          <h1 id="instance-title">{instance.name}</h1>
+          <p className="page-subtitle">
+            <span className="badge">{describePlatform(instance.platform)}</span>
+            <span aria-hidden="true">·</span>
+            <span className="mono">{instance.id}</span>
+          </p>
+        </div>
+      </header>
+
+      <GameStreamView instanceId={instance.id} />
+    </section>
+  )
+}

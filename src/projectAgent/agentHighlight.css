@@ -1,0 +1,44 @@
+/* 에이전트가 만지는 element 의 강조 표시. 색은 tokens.css 의 semantic 변수만 쓴다. */
+
+.agent-highlight {
+  position: fixed; z-index: 1200; pointer-events: none;
+  border: 2px solid var(--color-agent-reasoning); border-radius: var(--radius-md);
+  transition: top 160ms var(--ease-standard), left 160ms var(--ease-standard),
+    width 160ms var(--ease-standard), height 160ms var(--ease-standard);
+}
+.agent-highlight--approval { border: 2px dashed var(--color-status-warning); }
+
+.agent-highlight__label {
+  position: absolute; left: -2px; bottom: calc(100% + 4px); max-width: 320px;
+  padding: 2px 8px; border-radius: var(--radius-md);
+  background: var(--color-agent-reasoning); color: var(--color-bg-surface);
+  font: 600 12px/1.5 var(--font-sans);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.agent-highlight--approval .agent-highlight__label { background: var(--color-status-warning); }
+.agent-highlight__label.is-below { bottom: auto; top: calc(100% + 4px); }
+
+.agent-highlight__popover {
+  position: fixed; z-index: 1201; width: 280px; box-sizing: border-box; padding: 12px;
+  background: var(--color-bg-surface); color: var(--color-text-primary);
+  border: 1px solid var(--color-status-warning); border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+}
+.agent-highlight__summary { margin: 0 0 12px; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.agent-highlight__actions { display: flex; gap: 8px; }
+
+.agent-dev-panel {
+  position: fixed; z-index: 1202; left: 12px; bottom: 12px; max-width: 360px; max-height: 60vh; overflow: auto;
+  padding: 6px 10px; background: var(--color-bg-surface); color: var(--color-text-primary);
+  border: 1px solid var(--color-border-strong); border-radius: var(--radius-md);
+  font: 12px/1.5 var(--font-sans);
+}
+.agent-dev-panel summary { cursor: pointer; font-weight: 600; }
+.agent-dev-panel h2 { margin: 8px 0 4px; font-size: 12px; }
+.agent-dev-panel ul { margin: 0; padding-left: 16px; }
+.agent-dev-panel input { width: 100%; box-sizing: border-box; margin: 2px 0; }
+.agent-dev-panel pre { margin: 8px 0 0; white-space: pre-wrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .agent-highlight { transition: none; }
+}

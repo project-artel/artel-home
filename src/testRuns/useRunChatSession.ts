@@ -1,0 +1,618 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useI18n } from '../i18n/useI18n'
+import { ProjectApiError } from '../projects/projectApi'
+import type { ChatMessage } from '../testScenarios/scenarioTypes'
+import { chatErrorText } from './chatErrors'
+import {
+  applyRunChatDraft,
+  cancelRunChat,
+  closeRunChat,
+  discardRunChatDraft,
+  getRunChatDraft,
+  listRunChatMessages,
+  parseRunStreamEvent,
+  runChatStreamUrl,
+  sendRunChatMessage,
+  STAGE_STALL_MS,
+  TERMINAL_STAGES,
+  updateRunChatDraft,
+  type AuthoringStage,
+  type DraftApplyResult,
+  type DraftScenario,
+  type RunChatAnswer,
+} from './runChatApi'
+import type { ScenarioDraft } from '../testScenarios/scenarioTypes'
+
+/*
+ * Run-scoped authoring chat (ARTEL-206 Step 6). The conversation belongs to the
+ * run, so this hook keeps the messaging + SSE parts of the old per-scenario chat
+ * but drops its single step-draft/undo — scenario bodies are the case
+ * composition, a separate hook. Whether the agent's results are saved depends on
+ * the autoApply toggle sent with the message: on, the server saves them; off, they
+ * stay a draft the user approves from the scenario list (ARTEL-1075).
+ */
+
+// Default OFF = draft review ON (the user reviews before anything is written).
+const AUTO_APPLY_KEY = 'artel.run-chat.autoApply'
+
+function readAutoApply(): boolean {
+  try {
+    return window.localStorage.getItem(AUTO_APPLY_KEY) === 'true'
+  } catch {
+    return false
+  }
+}
+
+function writeAutoApply(value: boolean): void {
+  try {
+    window.localStorage.setItem(AUTO_APPLY_KEY, String(value))
+  } catch {
+    // Storage can be unavailable (private mode); the toggle just won't persist.
+  }
+}
+
+export type RunChatSession = ReturnType<typeof useRunChatSession>
+
+/**
+ * @param projectId owning project (string id).
+ * @param runId the run whose conversation this is, or null when the studio was
+ *   opened outside a run — then the chat is inert (no run to author into).
+ * @param onApplied called after scenarios are written (auto-apply or a card
+ *   commit) so the page can rebase the open scenario onto what the server now holds.
+ * @param onTurnEnded called once a turn is over, whatever it did. Lists read again on
+ *   this; the editor does not. The two are different questions — "did the run change?"
+ *   is true far more often than "did the scenario I have open change?", and rebasing
+ *   the editor throws away a draft the user was typing.
+ */
+/**
+ * What the user's line says when they only pressed a button. The picked labels are
+ * already phrased as instructions, so echoing them reads as something a person wrote.
+ */
+/** 질문지 한 묶음의 답을 서버가 대화에 남기는 모양(`1. 질문 → 답`)으로. 새로고침 전후가 같게 보인다. */
+function batchSummary(answers: readonly RunChatAnswer[]): string {
+  return answers.map((one, index) => `${index + 1}. ${one.displayText ?? one.text ?? ''}`).join('\n')
+}
+
+function answerSummary(answer: RunChatAnswer | undefined): string {
+  if (answer === undefined) return ''
+  const said = answer.text?.trim() ?? ''
+  const picked = answer.displayText?.trim() ?? ''
+  return [picked, said].filter((part) => part.length > 0).join(' — ')
+}
+
+export function useRunChatSession(
+  projectId: string,
+  runId: string | null,
+  onApplied?: () => void,
+  onTurnEnded?: () => void,
+  /**
+   * 말을 보내기 직전에 할 일(ARTEL-1265). 편집 화면은 모아 둔 자동저장을 먼저 끝낸다 — AI 는 보내는 순간 저장된
+   * 본문을 읽으므로, 저장 안 된 수정은 AI 가 모른 채 고치고, 그 수정은 나중에 AI 결과와 부딪힌다.
+   */
+  beforeSend?: () => Promise<unknown>,
+) {
+  const beforeSendRef = useRef(beforeSend)
+  useEffect(() => {
+    beforeSendRef.current = beforeSend
+  })
+  const { t } = useI18n()
+  // 실패한 턴의 안내 문구(ARTEL-1072). 스트림 구독은 런이 바뀔 때만 다시 거므로 최신 언어를 ref 로 읽는다.
+  const errorMessagesRef = useRef(t.scenarios.chat.errors)
+  useEffect(() => {
+    errorMessagesRef.current = t.scenarios.chat.errors
+  }, [t])
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  /**
+   * 자동저장을 끈 턴이 남긴 draft(ARTEL-1075). 서버가 들고 있고 바뀔 때마다 전부를 보낸다 —
+   * 여기서는 받은 것으로 갈아 끼우기만 한다.
+   */
+  const [drafts, setDrafts] = useState<DraftScenario[]>([])
+  // 처음 읽기가 끝났는가. 그전의 빈 배열은 "없다" 가 아니라 "아직 모른다" 다.
+  const [draftsLoaded, setDraftsLoaded] = useState(false)
+  const [connected, setConnected] = useState(false)
+  // 붙어 있다가 끊겼다. 처음 붙기 전의 `connected=false` 와 가른다 — 그때 "끊겼다" 고 하면 거짓이다.
+  const [reconnecting, setReconnecting] = useState(false)
+  const [awaitingReply, setAwaitingReply] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [sendFailure, setSendFailure] = useState<string | null>(null)
+  const [closed, setClosed] = useState(false)
+  const [applying, setApplying] = useState(false)
+  // 취소 요청이 왕복 중인가(ARTEL-956). 화면에 보일 일은 없고, 아래 ref 와 짝으로 둔다.
+  const [cancelling, setCancelling] = useState(false)
+  /**
+   * 같은 것을 ref 로도 든다. **state 로는 빠른 연타를 못 막는다** — ESC 를 세 번 잇달아 누르면
+   * 세 handler 가 같은 렌더의 `cancelling` 을 읽어 셋 다 `false` 를 보고 지나간다. 실측에서
+   * 대화에 "요청을 취소했습니다" 가 세 줄 남았다.
+   */
+  const cancellingRef = useRef(false)
+  // SSE 리스너가 읽는 지금 값. 리스너는 런이 바뀔 때만 다시 걸리므로 state 를 직접 읽으면 옛 값을 본다.
+  const awaitingRef = useRef(false)
+  const sendingRef = useRef(false)
+  useEffect(() => {
+    awaitingRef.current = awaitingReply
+  }, [awaitingReply])
+  const [applyFailure, setApplyFailure] = useState<string | null>(null)
+  const [autoApply, setAutoApplyState] = useState(readAutoApply)
+
+  // Stages of the turn in flight (ARTEL-419), in arrival order. Empty = nothing to
+  // show: either no turn is running or the one that was has reached its end.
+  const [stages, setStages] = useState<AuthoringStage[]>([])
+  /**
+   * 지금 단계의 진행 (ARTEL-952). `writing` 의 n/N 이 여기 담긴다.
+   */
+  const [count, setCount] = useState<{ done?: number; total?: number } | null>(null)
+  /**
+   * 마지막 진행 표시 이후 한도를 넘겼다 (ARTEL-952).
+   *
+   * 이것이 없을 때 무슨 일이 생겼나 — 런 87 의 턴이 Agent 재시작으로 끊겼고, 화면은
+   * **16시간 48분 뒤에도 같았다**. 사용자는 느린 것과 죽은 것을 구분할 방법이 없었다.
+   */
+  const [stalled, setStalled] = useState(false)
+  // When the current turn was sent, so the wait can be counted out loud. Elapsed
+  // time is what separates "slow" from "stuck" while the server has nothing new
+  // to report — and having nothing to report is the normal case between stages.
+  const [turnStartedAt, setTurnStartedAt] = useState<number | null>(null)
+
+  // The autoApply value sent with the in-flight message decides how its result is
+  // handled, even if the user toggles before the reply lands.
+  const inFlightAutoApply = useRef(autoApply)
+  const onAppliedRef = useRef(onApplied)
+  const onTurnEndedRef = useRef(onTurnEnded)
+  useEffect(() => {
+    onAppliedRef.current = onApplied
+  }, [onApplied])
+  useEffect(() => {
+    onTurnEndedRef.current = onTurnEnded
+  }, [onTurnEnded])
+
+  const setAutoApply = useCallback((value: boolean) => {
+    setAutoApplyState(value)
+    writeAutoApply(value)
+  }, [])
+
+  // Load the run's thread and open the SSE stream. Re-runs if the run changes.
+  // runId is stable for the studio's lifetime, so there's no value→null reset to do.
+  useEffect(() => {
+    if (runId === null) return
+    const controller = new AbortController()
+    let source: EventSource | null = null
+
+    void listRunChatMessages(projectId, runId, controller.signal)
+      .then((loaded) => setMessages(loaded))
+      .catch(() => {
+        // A fresh run has no thread yet; leave it empty.
+      })
+    // 새로고침해도 draft 는 서버에 남아 있다. 되찾지 않으면 승인할 길이 없다.
+    void getRunChatDraft(projectId, runId, controller.signal)
+      .then(setDrafts)
+      .catch(() => {
+        // 옛 서버는 이 창구를 모른다. draft 가 없는 것과 같다.
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setDraftsLoaded(true)
+      })
+
+    source = new EventSource(runChatStreamUrl(projectId, runId), { withCredentials: true })
+    source.addEventListener('open', () => {
+      setConnected(true)
+      setReconnecting(false)
+    })
+    source.addEventListener('result', (event: Event) => {
+      if (!(event instanceof MessageEvent)) return
+      const parsed = parseRunStreamEvent(event.data)
+      if (parsed === null || parsed.type !== 'result') return
+      setAwaitingReply(false)
+      setMessages((previous) => [
+        ...previous.map((message) => ({ ...message, pending: false })),
+        {
+          id: `reply-${previous.length}`,
+          role: 'ASSISTANT' as const,
+          content: parsed.message,
+          createdAt: null,
+          pending: false,
+          reply: parsed.reply,
+          refs: parsed.refs,
+        },
+      ])
+      // In draft mode the result IS the end of the turn — no audit runs, so
+      // no terminal stage will arrive and the indicator has to close itself here.
+      // Under auto-apply, checking/saved still follow: leave it up.
+      if (!inFlightAutoApply.current) {
+        setStages([])
+        setCount(null)
+        setTurnStartedAt(null)
+      }
+      // Server already reconciled these; reflect them in the composition/rail. In
+      // draft mode they arrive as a `draft` frame instead (below).
+      if (parsed.scenarios.length > 0 && inFlightAutoApply.current) {
+        onAppliedRef.current?.()
+      }
+    })
+    source.addEventListener('draft', (event: Event) => {
+      if (!(event instanceof MessageEvent)) return
+      const parsed = parseRunStreamEvent(event.data)
+      if (parsed === null || parsed.type !== 'draft') return
+      setDrafts(parsed.drafts)
+    })
+    // 붙자마자 오는 지금 턴 상태. 새로고침 · 연결 끊김 뒤에 진행 표시를 되살리거나, 끊긴 사이 끝난 턴의 기다림을 놓는다.
+    source.addEventListener('turn', (event: Event) => {
+      if (!(event instanceof MessageEvent)) return
+      const parsed = parseRunStreamEvent(event.data)
+      if (parsed === null || parsed.type !== 'turn') return
+      const { stage } = parsed
+      if (stage === null) {
+        // 보내는 중이면 서버가 아직 턴을 잡기 전일 수 있다. 기다리지 않던 화면이면 놓칠 것이 없다.
+        if (sendingRef.current || !awaitingRef.current) return
+        setAwaitingReply(false)
+        setStages([])
+        setCount(null)
+        setTurnStartedAt(null)
+        setStalled(false)
+        void listRunChatMessages(projectId, runId).then(setMessages, () => undefined)
+        void getRunChatDraft(projectId, runId).then(setDrafts, () => undefined)
+        onTurnEndedRef.current?.()
+        return
+      }
+      setStalled(false)
+      setAwaitingReply(true)
+      setTurnStartedAt((previous) => previous ?? Date.now())
+      setCount(parsed.done === undefined && parsed.total === undefined ? null : { done: parsed.done, total: parsed.total })
+      setStages((previous) => (previous[previous.length - 1] === stage ? previous : [...previous, stage]))
+    })
+    source.addEventListener('progress', (event: Event) => {
+      if (!(event instanceof MessageEvent)) return
+      const parsed = parseRunStreamEvent(event.data)
+      if (parsed === null || parsed.type !== 'progress') return
+      const { stage } = parsed
+      // 무엇이든 왔다는 것은 살아 있다는 뜻이다. 한도 시계를 되감는다.
+      setStalled(false)
+      if (TERMINAL_STAGES.includes(stage)) {
+        // The turn is over. What happened is already in the thread (the agent's
+        // reply, or the notice explaining the refusal) — keeping a spent stepper
+        // on screen would just be one more thing to read.
+        setStages([])
+        setCount(null)
+        setTurnStartedAt(null)
+        // And stop waiting. Every turn used to end with a `result` frame, which
+        // cleared this; a turn the server finishes on its own does not send one —
+        // declining a question, filling a gap from the user's own words. Without
+        // this the typing dots spin forever on a turn that is already done (run 150).
+        setAwaitingReply(false)
+        setMessages((previous) => previous.map((message) => ({ ...message, pending: false })))
+        // 그리고 목록은 다시 읽는다. 자동 적용에서 갱신이 `result` 프레임이 `scenarios` 를
+        // 되돌려 줄 때만 일어나서, 서버가 스스로 반영을 끝내고 그 배열을 비워 보내면 새
+        // 시나리오가 새로고침 전까지 안 보였다(ARTEL-882, run 47 에서 11 → 12 인데 레일은 11).
+        // 턴의 끝은 여기가 이미 알고 있고, 목록 재조회는 싸고 여러 번 해도 같은 결과다.
+        onTurnEndedRef.current?.()
+        return
+      }
+      // A repair turn was sent back to the agent, so another reply is coming. The
+      // `result` that triggered it already cleared the waiting state; restore it,
+      // or the wait that follows looks like nothing is happening.
+      if (stage === 'repairing') setAwaitingReply(true)
+      setCount(
+        parsed.done === undefined && parsed.total === undefined
+          ? null
+          : { done: parsed.done, total: parsed.total },
+      )
+      setStages((previous) =>
+        previous[previous.length - 1] === stage ? previous : [...previous, stage],
+      )
+    })
+    source.addEventListener('notice', (event: Event) => {
+      if (!(event instanceof MessageEvent)) return
+      const parsed = parseRunStreamEvent(event.data)
+      if (parsed === null || parsed.type !== 'notice' || parsed.message.length === 0) return
+      setMessages((previous) => [
+        ...previous,
+        {
+          id: `notice-${previous.length}`,
+          role: 'ASSISTANT' as const,
+          content: parsed.message,
+          createdAt: null,
+          pending: false,
+        },
+      ])
+    })
+    source.addEventListener('question', (event: Event) => {
+      if (!(event instanceof MessageEvent)) return
+      const parsed = parseRunStreamEvent(event.data)
+      if (parsed === null || parsed.type !== 'question') return
+      // The question rides on its own assistant line. Keeping it beside the thread
+      // instead would put it out of order with the turn it belongs to.
+      setMessages((previous) => [
+        ...previous,
+        {
+          id: `question-${parsed.question.id}-${previous.length}`,
+          role: 'ASSISTANT' as const,
+          content: parsed.question.text,
+          createdAt: null,
+          pending: false,
+          question: parsed.question,
+          // 함께 낸 것을 한 줄이 다 든다. 옛 서버는 `questions` 를 안 보내므로 첫 것만 남는다.
+          questions: parsed.questions ?? [parsed.question],
+          refs: parsed.refs,
+        },
+      ])
+    })
+    source.addEventListener('applied', (event: Event) => {
+      if (!(event instanceof MessageEvent)) return
+      const parsed = parseRunStreamEvent(event.data)
+      if (parsed === null || parsed.type !== 'applied') return
+      // The server changed the scenarios on its own (a gap answer it could place
+      // itself). No model ran, so no reply is coming — stop waiting and reload.
+      setAwaitingReply(false)
+      setMessages((previous) => previous.map((message) => ({ ...message, pending: false })))
+      onAppliedRef.current?.()
+    })
+    source.addEventListener('error', (event: Event) => {
+      if (event instanceof MessageEvent) {
+        // A server `error` frame is a failed turn, not a dead session: clear the
+        // pending state and surface the reason as an assistant message so the user
+        // can just try again (do NOT close the chat).
+        const parsed = parseRunStreamEvent(event.data)
+        if (parsed !== null && parsed.type === 'error') {
+          setAwaitingReply(false)
+          setStages([])
+          setTurnStartedAt(null)
+          setMessages((previous) => [
+            ...previous.map((m) => ({ ...m, pending: false })),
+            {
+              id: `err-${previous.length}`,
+              role: 'ASSISTANT' as const,
+              // 원문(모델 예외 등)은 보이지 않는다. code 로 안내를 고른다.
+              content: chatErrorText(parsed.code, parsed.detail, errorMessagesRef.current),
+              createdAt: null,
+              pending: false,
+            },
+          ])
+        }
+        return
+      }
+      // Transport hiccup: mark disconnected; EventSource retries on its own.
+      setConnected(false)
+      setReconnecting(true)
+    })
+
+    return () => {
+      controller.abort()
+      source?.close()
+    }
+  }, [projectId, runId])
+
+  const send = useCallback(
+    async (message: string, answer?: RunChatAnswer, answers: RunChatAnswer[] = []): Promise<boolean> => {
+      const trimmed = message.trim()
+      // An answer can stand on its own: picking an option is a complete reply, so an
+      // empty message is only rejected when there is nothing else to send.
+      if (runId === null || sending) return false
+      if (trimmed.length === 0 && answer === undefined && answers.length === 0) return false
+      setSending(true)
+      sendingRef.current = true
+      setSendFailure(null)
+      inFlightAutoApply.current = autoApply
+      const answered = new Set([...(answer === undefined ? [] : [answer.questionId]), ...answers.map((one) => one.questionId)])
+      setMessages((previous) => [
+        // The answered question loses its buttons — it has been answered, and leaving
+        // them live invites a second answer to a question that is no longer pending.
+        ...previous.map((m) =>
+          // **답한 것만 지운다**(ARTEL-630). 묶음의 나머지는 아직 답을 기다린다 — 하나 답했다고
+          // 다 치우면 물어본 보람이 없다.
+          answered.size === 0
+            ? m
+            : {
+                ...m,
+                question: m.question != null && answered.has(m.question.id) ? null : m.question,
+                questions: m.questions?.filter((q) => !answered.has(q.id)),
+              },
+        ),
+        {
+          id: `user-${previous.length}`,
+          role: 'USER' as const,
+          content: trimmed.length > 0 ? trimmed : answers.length > 0 ? batchSummary(answers) : answerSummary(answer),
+          createdAt: null,
+          pending: true,
+        },
+      ])
+      setAwaitingReply(true)
+      // A new turn starts its own history; the previous turn's stages are done.
+      setStages([])
+      setTurnStartedAt(Date.now())
+      try {
+        // draft 가 있는 동안은 draft 만 고친다(ARTEL-1075). 새 요청은 draft 를 승인하거나 버린 뒤에 보낸다.
+        await beforeSendRef.current?.()
+        await sendRunChatMessage(projectId, runId, trimmed, autoApply, answer, drafts.length > 0, answers)
+        return true
+      } catch (error: unknown) {
+        // 서버가 아는 draft 와 화면의 것이 갈렸다(다른 탭에서 승인했거나 서버가 다시 떴다). draft 를 다시 읽어
+        // 입력창이 맞는 모드로 돌아가게 한다.
+        if (error instanceof ProjectApiError && error.status === 409) {
+          void getRunChatDraft(projectId, runId).then(setDrafts, () => undefined)
+        }
+        // Drop the optimistic pending message and surface the failure.
+        setMessages((previous) => previous.filter((m) => !m.pending))
+        setAwaitingReply(false)
+        setStages([])
+        setCount(null)
+        setTurnStartedAt(null)
+        setSendFailure('send-failed')
+        return false
+      } finally {
+        setSending(false)
+        sendingRef.current = false
+      }
+    },
+    [projectId, runId, sending, autoApply, drafts.length],
+  )
+
+  /**
+   * 고른 draft 를 승인한다(ARTEL-1075). 자동저장과 같은 엔진으로 반영된다.
+   *
+   * @return 서버의 답. 실패하면 null 이다 — 그때 draft 는 그대로 남는다.
+   */
+  const applyDrafts = useCallback(
+    async (draftIds: string[]): Promise<DraftApplyResult | null> => {
+      if (runId === null || draftIds.length === 0 || applying) return null
+      setApplying(true)
+      setApplyFailure(null)
+      try {
+        const result = await applyRunChatDraft(projectId, runId, draftIds)
+        setDrafts(result.drafts)
+        onAppliedRef.current?.()
+        // 무엇이 되고 무엇이 안 됐는지는 대화에 남긴다. 목록만 보고는 막힌 것이 왜 남았는지 모른다.
+        const lines = [...result.absorbed.map((title) => `'${title}' 은 합치면서 런에서 뺐습니다.`), ...result.kept, ...result.refused]
+        if (lines.length > 0) {
+          setMessages((previous) => [
+            ...previous,
+            {
+              id: `draft-applied-${previous.length}`,
+              role: 'ASSISTANT' as const,
+              content: lines.join('\n'),
+              createdAt: null,
+              pending: false,
+            },
+          ])
+        }
+        return result
+      } catch {
+        // **실패를 말한다.** 화면에서는 누른 적이 없는 것과 구분되지 않아 사용자는 계속 다시 누른다.
+        // 실제로 이렇게 잃었다: 열어 둔 런이 지워져 커밋이 404 였는데, 화면은 아무 말도 안 했다.
+        setApplyFailure('apply-failed')
+        return null
+      } finally {
+        setApplying(false)
+      }
+    },
+    [projectId, runId, applying],
+  )
+
+  const discardDrafts = useCallback(
+    async (draftIds: string[]): Promise<boolean> => {
+      if (runId === null || draftIds.length === 0 || applying) return false
+      setApplying(true)
+      setApplyFailure(null)
+      try {
+        setDrafts(await discardRunChatDraft(projectId, runId, draftIds))
+        return true
+      } catch {
+        setApplyFailure('apply-failed')
+        return false
+      } finally {
+        setApplying(false)
+      }
+    },
+    [projectId, runId, applying],
+  )
+
+  /** 사용자가 고친 draft 본문을 서버 draft 에 쓴다. 시나리오에는 쓰지 않는다. */
+  const saveDraft = useCallback(
+    async (draftId: string, body: ScenarioDraft): Promise<void> => {
+      if (runId === null) return
+      await updateRunChatDraft(projectId, runId, draftId, body)
+    },
+    [projectId, runId],
+  )
+
+  /**
+   * 지금 단계의 한도를 넘기면 끊긴 것으로 본다 (ARTEL-952).
+   *
+   * **단계마다 한도가 다르다.** 노드마다 걸리는 시간이 자리수로 다르기 때문이다 — 라우터는
+   * 0.24초이고 문장 쓰기는 묶음 하나에 29~54초다(실측). 한 값으로 두면 둘 중 하나가 틀린다.
+   *
+   * 시계는 **마지막 진행 표시**에서 다시 돈다. 무엇이든 오면 살아 있다는 뜻이므로, 그때마다
+   * 앞의 타이머를 버리고 새로 건다. 끊김은 되돌릴 수 있는 상태다 — 늦게라도 프레임이 오면
+   * 경고가 사라지고 화면은 다시 진행으로 돌아간다.
+   */
+  const current = stages[stages.length - 1]
+  useEffect(() => {
+    if (!awaitingReply || current === undefined) return
+    const limit = STAGE_STALL_MS[current]
+    if (!Number.isFinite(limit)) return
+    const timer = window.setTimeout(() => setStalled(true), limit)
+    return () => window.clearTimeout(timer)
+    // `count` 가 바뀌면(묶음 하나가 끝나면) 시계도 다시 돈다 — 같은 단계가 이어져도 움직였다.
+  }, [awaitingReply, current, count])
+
+  /**
+   * 도는 요청을 끊는다(ARTEL-956). ESC 두 번이 여기로 온다.
+   *
+   * **끊을 요청이 없었으면 화면을 건드리지 않는다.** 답이 방금 도착한 순간의 ESC 가 그 길이고,
+   * 그때 기다림을 지우면 방금 받은 답 위에 취소가 얹힌다.
+   *
+   * 취소 문구는 여기서 만들지 않는다 — 서버가 대화에 저장하고 `notice` 로 보내므로 위의
+   * 리스너가 평소대로 줄을 붙인다. 여기서 한 줄 더 붙이면 새로고침 전에는 두 줄, 뒤에는 한
+   * 줄이 보인다.
+   *
+   * @return 실제로 끊었는지.
+   */
+  const cancel = useCallback(async (): Promise<boolean> => {
+    if (runId === null || cancellingRef.current) return false
+    cancellingRef.current = true
+    setCancelling(true)
+    try {
+      const outcome = await cancelRunChat(projectId, runId)
+      if (!outcome.cancelled) return false
+      setAwaitingReply(false)
+      setStages([])
+      setCount(null)
+      setTurnStartedAt(null)
+      setStalled(false)
+      setMessages((previous) => previous.map((message) => ({ ...message, pending: false })))
+      // 끊기 전에 저장을 마친 것이 있을 수 있다. 지우지 않으므로 목록은 다시 읽어야 한다 —
+      // 안 읽으면 취소한 뒤에 레일과 DB 가 어긋난 채로 남는다.
+      onTurnEndedRef.current?.()
+      return true
+    } catch {
+      // 못 끊었다. 기다림은 그대로 둔다 — 치우면 오지 않을 답을 기다리지 않는 대신, 오고 있는
+      // 답을 받을 자리가 없어진다.
+      return false
+    } finally {
+      cancellingRef.current = false
+      setCancelling(false)
+    }
+  }, [projectId, runId])
+
+  const close = useCallback(async () => {
+    if (runId === null) return
+    try {
+      await closeRunChat(projectId, runId)
+      setClosed(true)
+    } catch {
+      // Best-effort teardown; the session expires on its own if this fails.
+    }
+  }, [projectId, runId])
+
+  return {
+    active: runId !== null,
+    // 되묻기 모달이 그 판의 시나리오를 읽어 자리를 짚는다(ARTEL-677).
+    runId,
+    // 커버리지를 읽는 쪽이 이 세션 안에 있다(RunChat). 파라미터로 이미 들고 있는 값을
+    // 밖으로 내보내 프롭을 하나 더 엮지 않는다.
+    projectId,
+    messages,
+    drafts,
+    draftsLoaded,
+    connected,
+    reconnecting,
+    // 지금 단계의 n/N 과, 한도를 넘겨 끊긴 것으로 보이는지 (ARTEL-952).
+    count,
+    stalled,
+    awaitingReply,
+    sending,
+    sendFailure,
+    closed,
+    applying,
+    applyFailure,
+    autoApply,
+    cancelling,
+    stages,
+    turnStartedAt,
+    setAutoApply,
+    send,
+    cancel,
+    applyDrafts,
+    discardDrafts,
+    saveDraft,
+    close,
+  }
+}

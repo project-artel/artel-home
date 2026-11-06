@@ -1,0 +1,288 @@
+/* 테스트 런 맵(ARTEL-1245). 서비스 토큰만 쓴다. 씬은 색으로 가르지 않고, 색은 상태(GAP · 고른 것)에만 쓴다. */
+.workspace:has(.rmap) { padding: 0; place-items: stretch; background: none; }
+.workspace:has(.rmap-shell) { padding: 0; place-items: stretch; background: none; }
+.rmap-shell { height: 100%; display: grid; place-items: center; background: var(--color-bg-canvas); color: var(--color-text-primary); }
+
+.rmap {
+  --rm-warn: var(--color-status-warning);
+  --rm-warn-bg: var(--color-status-warning-muted);
+  --rm-band-a: color-mix(in srgb, var(--color-text-primary) 5%, var(--color-bg-surface));
+  --rm-band-b: color-mix(in srgb, var(--color-text-primary) 10%, var(--color-bg-surface));
+  height: 100%; min-height: 0; display: flex; flex-direction: column;
+  background: var(--color-bg-canvas); color: var(--color-text-primary);
+}
+
+/* 머리줄 · 도구줄 */
+.rmap-top { flex: none; display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; padding: 10px 16px; border-bottom: 1px solid var(--color-border-subtle); background: var(--color-bg-surface); }
+.rmap-back { color: var(--color-text-secondary); font-size: 12px; text-decoration: none; }
+.rmap-back:hover { color: var(--color-text-primary); }
+.rmap-name { font-weight: 700; font-size: 14px; }
+.rmap-stats { display: flex; gap: 12px; font-family: var(--font-mono); font-size: 11.5px; color: var(--color-text-secondary); }
+.rmap-stats b { color: var(--color-text-primary); font-weight: 600; }
+.rmap-gap { color: var(--rm-warn); }
+.rmap-spacer { flex: 1; }
+.rmap-seg { display: inline-flex; border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); overflow: hidden; }
+.rmap-seg button { border: 0; background: none; padding: 4px 12px; font-size: 12px; color: var(--color-text-secondary); cursor: pointer; }
+.rmap-seg button.on { background: var(--color-action-primary); color: var(--color-text-on-accent); font-weight: 600; }
+.rmap-tools { flex: none; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; padding: 8px 16px; border-bottom: 1px solid var(--color-border-subtle); background: var(--color-bg-surface); }
+.rmap-search { flex: 0 1 280px; display: flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); background: var(--color-bg-canvas); color: var(--color-text-muted); }
+.rmap-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; color: var(--color-text-primary); font: inherit; font-size: 12px; }
+.rmap-legend { margin-left: auto; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; font-size: 11px; color: var(--color-text-secondary); }
+.rmap-legend i { display: inline-block; width: 10px; height: 10px; margin-right: 5px; border-radius: 50%; vertical-align: -1px; }
+.rmap-legend .lg-step { background: var(--color-text-secondary); }
+.rmap-legend .lg-tc { background: var(--color-text-primary); box-shadow: inset 0 0 0 3px var(--color-text-primary), inset 0 0 0 5px var(--color-bg-surface); }
+.rmap-legend .lg-unknown { border: 2px solid var(--color-border-strong); }
+.rmap-legend .lg-gap { background: var(--rm-warn); }
+
+/* 캔버스 */
+.rmap-stage {
+  position: relative; flex: 1; min-height: 0; overflow: hidden; cursor: default; touch-action: none;
+  background-image: radial-gradient(circle, var(--color-border-subtle) 1.2px, transparent 1.2px); background-size: 24px 24px;
+}
+/* 끌 때 글자가 같이 골라지지 않게 한다. 고치는 칸만 예외. */
+.rmap-stage { user-select: none; -webkit-user-select: none; }
+.rmap-stage [contenteditable="true"], .rmap-stage input { user-select: text; -webkit-user-select: text; }
+/* 손 도구(스페이스를 누르고 있는 동안 포함)는 무엇 위에서든 화면을 잡는다. */
+.rmap-stage.tool-hand, .rmap-stage.tool-hand * { cursor: grab !important; }
+.rmap-stage.tool-hand.is-panning, .rmap-stage.tool-hand.is-panning * { cursor: grabbing !important; }
+.rmap-stage.tool-note, .rmap-stage.tool-text, .rmap-stage.tool-ts { cursor: copy; }
+.rmap-stage.tool-rect, .rmap-stage.tool-ellipse, .rmap-stage.tool-section, .rmap-stage.tool-arrow, .rmap-stage.tool-pen { cursor: crosshair; }
+.rm-world { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+
+/* TS 프레임 */
+.rmf { position: absolute; border: 1px solid var(--color-border-subtle); border-radius: 14px; background: var(--color-bg-surface); }
+.rmf.is-picked { border-color: var(--color-action-primary); }
+.rmf.is-dim { opacity: .25; }
+.rmf-head { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 8px 0 12px; border-bottom: 1px solid var(--color-border-subtle); cursor: move; user-select: none; }
+.rmf-no { flex: none; padding: 1px 7px; border-radius: 999px; background: var(--color-text-primary); color: var(--color-bg-canvas); font-family: var(--font-mono); font-size: 11px; font-weight: 700; }
+.rmf-title { cursor: text; }
+.rmf-title:hover { text-decoration: underline dotted; text-underline-offset: 3px; }
+.rmf-title-input { flex: 1; min-width: 0; height: 26px; padding: 0 6px; border: 1px solid var(--color-action-primary); border-radius: 6px; background: var(--color-bg-canvas, var(--color-bg-surface)); color: var(--color-text-primary); font: inherit; font-size: 13px; font-weight: 700; outline: 0; }
+.rmf.is-marked { outline: 2px dashed var(--color-action-primary); outline-offset: 3px; }
+.rma-group { position: absolute; z-index: 940; box-sizing: border-box; border: 1px dashed var(--color-action-primary); border-radius: 6px; pointer-events: none; }
+.rma-marquee { position: absolute; z-index: 960; box-sizing: border-box; border: 1px solid var(--color-action-primary); background: color-mix(in srgb, var(--color-action-primary) 10%, transparent); pointer-events: none; }
+/* 여럿 고른 도형은 제 색 그대로 점선으로. 화살표 · 그림은 뒤의 빛 띠로 보인다. */
+.rma-shape.is-marked { stroke-dasharray: 6 4; }
+.rma-note.is-marked, .rma-text.is-marked, .rma-section.is-marked { outline: 2px dashed var(--color-action-primary); outline-offset: 3px; }
+.rmf-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.rmf-meta { flex: none; font-family: var(--font-mono); font-size: 11px; color: var(--color-text-secondary); }
+.rmf-gap { color: var(--rm-warn); }
+.rmf-btn { flex: none; border: 0; background: none; padding: 2px 6px; border-radius: var(--radius-sm); font-size: 12px; color: var(--color-text-muted); cursor: pointer; }
+.rmf-btn:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
+.rmf-open { color: var(--color-action-primary); font-weight: 600; }
+.rmf:not(:hover) .rmf-edit { display: none; }
+.rmf:hover .rmf-meta { display: none; }
+.rmf-body { position: relative; }
+.rmf-empty { margin: 0; padding: 14px 16px; font-size: 12px; color: var(--color-text-muted); }
+.rmf-summary { position: absolute; left: 12px; right: 12px; top: 9px; display: flex; gap: 2px; height: 12px; }
+.rmf-summary i { flex: 1 1 0; border-radius: 2px; background: var(--color-text-secondary); opacity: .6; }
+.rmf-summary i.is-shade { opacity: .3; }
+.rmf-summary i.is-gap { background: var(--rm-warn); opacity: 1; }
+
+.rmf-band { position: absolute; height: 50px; border-radius: 9px; background: var(--rm-band-a); }
+.rmf-band.is-shade { background: var(--rm-band-b); }
+.rmf-band.is-unknown { background: none; border: 1.5px dashed var(--color-border-subtle); }
+.rmf-band.is-lit { outline: 2px solid var(--color-action-primary); outline-offset: -1px; }
+.rmf-band-name { position: absolute; font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; color: var(--color-text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rmf-band-name.is-lit { color: var(--color-action-primary); }
+.rm-world.is-scene-focus .rmf-band:not(.is-lit), .rm-world.is-scene-focus .rmf-band-name:not(.is-lit) { opacity: .3; }
+
+.rmf-wires { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+.rmf-wire { fill: none; stroke: var(--color-text-secondary); stroke-width: 1.5; stroke-linejoin: round; }
+.rmf-arrowhead { fill: var(--color-text-secondary); }
+
+.rmf-step { position: absolute; width: 56px; padding: 0; border: 0; background: none; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; color: inherit; }
+.rmf-dot { position: relative; width: 16px; height: 16px; border-radius: 50%; background: var(--color-text-secondary); }
+.rmf-step.is-tc .rmf-dot { background: var(--color-text-primary); }
+.rmf-step.is-tc .rmf-dot::before { content: ""; position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: var(--color-bg-surface); }
+.rmf-step.is-unknown .rmf-dot { background: var(--color-bg-surface); border: 2px solid var(--color-border-strong); }
+.rmf-step.is-gap .rmf-dot { background: var(--rm-warn); }
+.rmf-step.is-gap .rmf-dot::after { content: "!"; position: absolute; inset: 0; display: grid; place-items: center; font: 700 10.5px var(--font-mono); color: var(--color-text-on-accent); }
+.rmf-step:hover .rmf-dot, .rmf-step:focus-visible .rmf-dot { outline: 2px solid var(--color-text-primary); outline-offset: 3px; }
+.rmf-step.is-picked .rmf-dot { background: var(--color-action-primary); outline: 3px solid color-mix(in srgb, var(--color-action-primary) 40%, transparent); outline-offset: 2px; }
+.rmf-num { font-family: var(--font-mono); font-size: 10px; color: var(--color-text-muted); }
+.rmf-step.is-picked .rmf-num { color: var(--color-action-primary); font-weight: 700; }
+.rm-world.is-far .rmf-num, .rm-world.is-far .rmf-band-name, .rm-world.is-far .rmf-meta, .rm-world.is-far .rmf-btn { display: none; }
+.rm-world.is-far .rmf-title { font-size: 22px; }
+.rm-world.is-far .rmf-no { font-size: 20px; }
+
+/* 주석: 프레임 위에 얹는다 */
+/* 주석 색. 정해진 다섯 색만 쓰고, 다크 · 라이트마다 읽히는 값을 고른다. */
+.rmap { --rm-c-y: #b8860b; --rm-c-p: #c4456b; --rm-c-b: #2f6fc0; --rm-c-g: #2e8a55; --rm-c-r: #d23b2f; }
+:root[data-theme='dark'] .rmap { --rm-c-y: #e6b740; --rm-c-p: #ec85a2; --rm-c-b: #64a2ec; --rm-c-g: #5cc28a; --rm-c-r: #f0675b; }
+.rma-c-y { --c: var(--rm-c-y); } .rma-c-p { --c: var(--rm-c-p); } .rma-c-b { --c: var(--rm-c-b); } .rma-c-g { --c: var(--rm-c-g); } .rma-c-r { --c: var(--rm-c-r); }
+.rma-shape.has-c { fill: color-mix(in srgb, var(--c) 16%, transparent); stroke: var(--c); }
+.rma-arrow.has-c, .rma-pen.has-c { stroke: var(--c); }
+.rma-arrowhead.has-c { fill: var(--c); }
+.rma-text.has-c { color: var(--c); }
+.rma-section.has-c { border-color: var(--c); background: color-mix(in srgb, var(--c) 7%, transparent); }
+.rma-section.has-c .rma-section-label { border-color: var(--c); color: var(--c); }
+.rm-tool-colors { display: flex; align-items: center; gap: 6px; padding: 0 4px; }
+.rma-swatch { width: 20px; height: 20px; padding: 0; border: 2px solid transparent; border-radius: 50%; background: var(--c); cursor: pointer; }
+.rma-swatch.is-none { background: var(--color-text-secondary); }
+.rma-swatch[aria-pressed="true"] { border-color: var(--color-bg-surface); box-shadow: 0 0 0 2px var(--color-action-primary); }
+.rma-svg { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; z-index: 900; }
+.rma-shape { fill: color-mix(in srgb, var(--color-text-primary) 6%, transparent); stroke: var(--color-text-secondary); stroke-width: 2; pointer-events: all; cursor: move; }
+.rma-arrow { fill: none; stroke: var(--color-text-primary); stroke-width: 2.2; pointer-events: stroke; cursor: move; }
+.rma-hit { fill: none; stroke: transparent; stroke-width: 16; stroke-linecap: round; pointer-events: stroke; cursor: move; }
+.rma-arrowhead { fill: var(--color-text-primary); }
+.rma-pen { fill: none; stroke: var(--color-action-primary); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; pointer-events: stroke; cursor: move; }
+/* 고른 화살표 · 그림은 선 색을 바꾸지 않고 뒤에 옅은 빛 띠를 깐다. 색을 바꿔도 바로 보이게. */
+.rma-hit.is-selected, .rma-hit.is-marked { stroke: color-mix(in srgb, var(--color-action-primary) 28%, transparent); stroke-width: 12; }
+.rma-place { position: absolute; z-index: 901; }
+.rma-note { width: 180px; min-height: 110px; box-sizing: border-box; padding: 10px 12px 12px; border-radius: 4px 4px 12px 4px; color: #20232b; font-size: 12.5px; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; overflow: hidden; cursor: move; outline: 0; }
+.rma-note.is-sized { width: 100%; height: 100%; min-height: 0; }
+.rma-note--y { background: #f6dd85; } .rma-note--p { background: #f3b9c6; } .rma-note--b { background: #b8d6f2; } .rma-note--g { background: #bfe3c6; }
+.rma-text { font-size: 18px; font-weight: 700; color: var(--color-text-primary); white-space: nowrap; cursor: move; outline: 0; }
+.rma-text.is-sized { width: 100%; height: 100%; white-space: pre-wrap; overflow-wrap: anywhere; }
+.rma-note.is-editing, .rma-text.is-editing, .rma-inner-text.is-editing, .rma-section-label.is-editing { cursor: text; box-shadow: 0 0 0 2px var(--color-action-primary); }
+.rma-note.is-selected, .rma-text.is-selected { outline: 0; }
+/* 도형 안의 글: 도형 가운데. 누르기는 밑의 도형이 받는다(고칠 때만 칸이 받는다). */
+.rma-inner { position: absolute; z-index: 901; display: flex; align-items: center; justify-content: center; padding: 8px; box-sizing: border-box; pointer-events: none; }
+.rma-inner-text { max-width: 100%; color: var(--color-text-primary); font-size: 14px; font-weight: 600; line-height: 1.4; text-align: center; white-space: pre-wrap; overflow-wrap: anywhere; outline: 0; }
+.rma-inner-text.is-editing { min-width: 40px; pointer-events: auto; }
+/* 묶음 상자: TS 프레임 밑에 깔고, 왼쪽 위 탭이 이름이다. */
+.rma-section { position: absolute; z-index: 0; box-sizing: border-box; border: 1.5px solid var(--color-border-strong); border-radius: 0 12px 12px 12px; background: color-mix(in srgb, var(--color-text-primary) 3.5%, transparent); cursor: move; }
+.rma-section.is-selected { border-color: var(--color-action-primary); }
+.rma-section-label { position: absolute; left: -1.5px; bottom: 100%; min-width: 64px; max-width: calc(100% + 3px); box-sizing: border-box; padding: 5px 12px 4px; border: 1.5px solid var(--color-border-strong); border-bottom: 0; border-radius: 9px 9px 0 0; background: var(--color-bg-surface); color: var(--color-text-secondary); font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; outline: 0; }
+.rma-section-label:empty::before { content: attr(data-placeholder); opacity: .5; }
+.rma-section.is-selected .rma-section-label { border-color: var(--color-action-primary); color: var(--color-text-primary); }
+/* 고른 것의 영역과 손잡이. */
+.rma-sel-layer { position: absolute; left: 0; top: 0; z-index: 950; pointer-events: none; }
+.rma-sel-place { position: absolute; }
+.rma-sel { position: absolute; inset: 0; pointer-events: none; }
+.rma-sel-box { position: absolute; inset: 0; box-sizing: border-box; border: 1.5px dashed var(--color-action-primary); }
+.rma-h { position: absolute; box-sizing: border-box; border: 1.5px solid var(--color-action-primary); background: var(--color-bg-surface); pointer-events: auto; }
+.rma-h.is-round { border-radius: 50%; cursor: grab; }
+.rma-h--c { background: var(--color-action-primary); }
+.rma-h--nw, .rma-h--se { cursor: nwse-resize; } .rma-h--ne, .rma-h--sw { cursor: nesw-resize; }
+.rma-h--n, .rma-h--s { cursor: ns-resize; } .rma-h--e, .rma-h--w { cursor: ew-resize; }
+.rma-by { display: block; margin-top: 8px; font-family: var(--font-mono); font-size: 10px; opacity: .6; }
+
+/* 툴바 · 조작 · 미니맵 */
+.rm-toolbar { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 10; display: flex; align-items: center; gap: 2px; padding: 4px; border: 1px solid var(--color-border-strong); border-radius: 12px; background: var(--color-bg-surface); }
+.rm-tool { height: 34px; min-width: 34px; padding: 0 8px; display: flex; align-items: center; gap: 6px; border: 0; border-radius: 8px; background: none; color: var(--color-text-secondary); font-size: 12px; cursor: pointer; }
+.rm-tool:hover:not(:disabled) { background: var(--color-bg-hover); color: var(--color-text-primary); }
+.rm-tool[aria-pressed="true"] { background: var(--color-text-primary); color: var(--color-bg-canvas); }
+.rm-tool--primary[aria-pressed="false"] { background: var(--color-action-primary); color: var(--color-text-on-accent); font-weight: 600; }
+.rm-tool:disabled { opacity: .35; cursor: default; }
+.rm-tool svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.rm-tool-sep { width: 1px; height: 22px; margin: 0 4px; background: var(--color-border-subtle); }
+.rm-ctrls { position: absolute; left: 12px; bottom: 12px; z-index: 10; display: flex; align-items: center; gap: 6px; }
+.rm-ctrl { height: 30px; min-width: 30px; padding: 0 9px; border: 1px solid var(--color-border-strong); border-radius: 7px; background: var(--color-bg-surface); color: var(--color-text-primary); font-size: 12px; cursor: pointer; }
+.rm-ctrl:hover { background: var(--color-bg-hover); }
+.rm-zoom { padding: 5px 8px; border: 1px solid var(--color-border-subtle); border-radius: 7px; background: var(--color-bg-surface); font-family: var(--font-mono); font-size: 11px; color: var(--color-text-secondary); }
+.rm-toast { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 20; display: flex; align-items: center; gap: 10px; padding: 7px 14px; border-radius: 999px; background: var(--color-text-primary); color: var(--color-bg-canvas); font-size: 12.5px; }
+.rm-toast button { border: 0; background: none; color: var(--color-action-primary); font-weight: 700; cursor: pointer; }
+
+/* 마우스 카드 */
+.rm-hover { position: fixed; z-index: 1000; display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border: 1px solid var(--color-border-strong); border-radius: 10px; background: var(--color-bg-surface); color: var(--color-text-primary); pointer-events: none; }
+.rm-hover.is-gap { background: var(--rm-warn-bg, var(--color-status-warning-muted)); border-color: var(--color-status-warning); }
+.rm-hover-head { display: flex; align-items: center; gap: 6px; font-size: 11.5px; }
+.rm-hover-no { font-family: var(--font-mono); color: var(--color-text-muted); }
+.rm-hover-tc { margin-left: auto; padding: 0 6px; border-radius: 4px; background: var(--color-action-primary); color: var(--color-text-on-accent); font-family: var(--font-mono); font-size: 10.5px; font-weight: 700; }
+.rm-hover-target { font-family: var(--font-mono); font-size: 12px; font-weight: 700; overflow-wrap: anywhere; }
+.rm-hover-text { font-size: 12.5px; line-height: 1.5; overflow-wrap: anywhere; }
+.rm-hover-scene { font-family: var(--font-mono); font-size: 10.5px; color: var(--color-text-muted); }
+
+/* 서랍 */
+.rm-drawer { position: absolute; top: 0; right: 0; bottom: 0; z-index: 15; width: 560px; max-width: 94%; display: flex; flex-direction: column; border-left: 1px solid var(--color-border-subtle); background: var(--color-bg-surface); box-shadow: -16px 0 32px rgb(0 0 0 / 18%); }
+.rmd-head { padding: 16px 18px 12px; display: flex; flex-direction: column; gap: 8px; border-bottom: 1px solid var(--color-border-subtle); }
+.rmd-top { display: flex; align-items: flex-start; gap: 8px; }
+.rmd-top > div { flex: 1; min-width: 0; }
+.rmd-pos { font-family: var(--font-mono); font-size: 11px; color: var(--color-text-muted); }
+.rmd-head h2 { margin: 0; font-size: 17px; line-height: 1.35; text-wrap: balance; }
+.rmd-close { flex: none; width: 30px; height: 30px; border: 1px solid var(--color-border-subtle); border-radius: 7px; background: none; color: var(--color-text-primary); cursor: pointer; }
+.rmd-meta { font-family: var(--font-mono); font-size: 11px; color: var(--color-text-secondary); }
+.rmd-gap { color: var(--rm-warn); }
+.rmd-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.rmd-spacer { flex: 1; }
+.rmd-hint { margin: 0; font-size: 11.5px; color: var(--color-text-muted); }
+/* 목록: 씬 구간마다 머리줄, 그 아래 스텝 칸과 TC 묶음. 칸마다 테두리를 둬 스텝이 서로 붙어 보이지 않게 한다. */
+.rmd-listwrap { position: relative; flex: 1; min-height: 0; }
+.rmd-steps, .rmd-steps ol { list-style: none; margin: 0; padding: 0; }
+.rmd-steps { height: 100%; overflow: auto; padding: 4px 18px 24px 14px; scrollbar-width: none; }
+.rmd-steps::-webkit-scrollbar { display: none; }
+.rmd-segment + .rmd-segment { margin-top: 6px; }
+.rmd-scene { position: sticky; top: 0; z-index: 2; display: flex; align-items: baseline; gap: 8px; margin: 0 -4px; padding: 10px 4px 6px; background: var(--color-bg-surface); font-size: 12px; }
+.rmd-scene b { font-family: var(--font-mono); font-weight: 700; color: var(--color-text-primary); }
+.rmd-scene span { color: var(--color-text-muted); font-size: 11px; }
+.rmd-blocks { display: flex; flex-direction: column; gap: 6px; }
+.rmd-row { position: relative; display: grid; grid-template-columns: 18px minmax(0, 1fr); align-items: stretch; border: 1px solid var(--color-border-subtle); border-radius: 9px; background: var(--color-bg-raised); }
+.rmd-row.is-in-tc { border-radius: 7px; background: var(--color-bg-surface); }
+.rmd-row:has(.rmd-tc) { border-left: 3px solid var(--color-action-primary); }
+.rmd-row.is-in-tc:has(.rmd-tc) { border-left-width: 1px; }
+.rmd-handle { display: grid; place-items: center; color: var(--color-text-muted); font-size: 11px; letter-spacing: -2px; cursor: grab; opacity: .45; user-select: none; }
+.rmd-row:hover > .rmd-handle, .rmd-tchead:hover > .rmd-handle { opacity: 1; }
+.rmd-handle:active { cursor: grabbing; }
+.rmd-step { width: 100%; display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; gap: 8px; align-items: start; padding: 9px 12px 9px 2px; border: 0; border-radius: 0 9px 9px 0; background: none; color: inherit; font: inherit; font-size: 13px; line-height: 1.5; text-align: left; cursor: pointer; }
+.rmd-row:hover { border-color: var(--color-border-strong); }
+.rmd-step.is-picked { background: color-mix(in srgb, var(--color-action-primary) 12%, transparent); }
+.rmd-row:has(.rmd-step.is-picked) { border-color: var(--color-action-primary); }
+.rmd-step.is-gap { background: var(--color-status-warning-muted); }
+.rmd-no { font-family: var(--font-mono); font-size: 11px; color: var(--color-text-muted); text-align: right; padding-top: 2px; }
+.rmd-step.is-gap .rmd-no { color: var(--rm-warn); font-weight: 700; }
+.rmd-text { overflow-wrap: anywhere; }
+.rmd-gap-tag { padding: 1px 6px; border-radius: 4px; background: var(--rm-warn); color: var(--color-text-on-accent); font-family: var(--font-mono); font-size: 10px; font-weight: 700; }
+/* TC 묶음: 머리줄(TC 번호 · 스텝 수 · 손잡이) 아래에 그 TC 의 스텝들. 왼쪽 띠로 한 TC 임을 보인다. */
+.rmd-tcblock { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 6px 6px 6px 8px; border: 1px solid var(--color-border-subtle); border-left: 3px solid var(--color-action-primary); border-radius: 9px; background: var(--color-bg-raised); }
+.rmd-tcblock > ol { display: flex; flex-direction: column; gap: 4px; }
+.rmd-tchead { display: flex; align-items: center; gap: 8px; height: 22px; }
+.rmd-tchead .rmd-handle { width: 18px; height: 100%; }
+.rmd-tcsize { font-size: 11px; color: var(--color-text-muted); }
+.rmd-row.is-dragging, .rmd-tcblock.is-dragging { opacity: .35; }
+/* 놓을 자리: 칸 위 · 아래에 브랜드 색 줄. */
+.rmd-row.is-drop-before::before, .rmd-tcblock.is-drop-before::before,
+.rmd-row.is-drop-after::after, .rmd-tcblock.is-drop-after::after { content: ''; position: absolute; left: -2px; right: -2px; height: 3px; border-radius: 2px; background: var(--color-brand-accent); pointer-events: none; }
+.rmd-row.is-drop-before::before, .rmd-tcblock.is-drop-before::before { top: -5px; }
+.rmd-row.is-drop-after::after, .rmd-tcblock.is-drop-after::after { bottom: -5px; }
+/* 서비스 스크롤 막대. */
+.rm-drawer .edgebar { position: absolute; z-index: 3; right: 0; width: 18px; pointer-events: none; }
+.rm-drawer .edgebar-thumb { position: absolute; left: 0; right: 0; pointer-events: auto; cursor: grab; touch-action: none; }
+.rm-drawer .edgebar-thumb:active { cursor: grabbing; }
+.rm-drawer .edgebar-fill { position: absolute; top: 0; bottom: 0; right: 0; width: 4px; border-radius: 2px; background: var(--color-brand-accent); transition: width 120ms; }
+.rm-drawer .edgebar.is-near .edgebar-fill { width: 11px; background: var(--color-brand-accent-strong); }
+.rmd-tc { padding: 1px 6px; border-radius: 4px; background: var(--color-action-primary); color: var(--color-text-on-accent); font-family: var(--font-mono); font-size: 10.5px; font-weight: 700; white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) { .rmap * { transition: none !important; } }
+
+/* 캔버스 스텝 끌기: 놓을 자리(두 스텝 사이의 세로 줄)와 포인터를 따라다니는 표. */
+.rm-drop-slot { position: absolute; z-index: 960; width: 4px; border-radius: 2px; background: var(--color-brand-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand-accent) 25%, transparent); pointer-events: none; }
+.rm-drag-ghost { position: absolute; z-index: 40; display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 6px; border: 1px solid var(--color-brand-accent); border-radius: 999px; background: var(--color-bg-surface); color: var(--color-text-primary); font-size: 12px; font-weight: 600; pointer-events: none; white-space: nowrap; box-shadow: 0 14px 28px rgb(0 0 0 / 28%), 0 2px 6px rgb(0 0 0 / 18%); transform-origin: 14px 100%; animation: rm-lift 160ms var(--ease-standard) both; }
+/* 들어 올린 점: 포인터 바로 아래에 붙어 따라온다. 여럿이면 겹쳐 쌓인 동그라미. */
+.rm-drag-dots { position: relative; display: inline-flex; align-items: center; height: 22px; }
+.rm-drag-dots i { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--color-bg-surface); background: var(--color-brand-accent); }
+.rm-drag-dots i + i { margin-left: -10px; }
+.rm-drag-text { display: flex; flex-direction: column; line-height: 1.25; }
+@keyframes rm-lift { from { transform: scale(.85); opacity: .4; } to { transform: scale(1.06); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .rm-drag-ghost { animation: none; } }
+.rm-drag-text span { color: var(--color-text-secondary); font-size: 11px; font-weight: 500; }
+.rm-drag-ghost.is-nowhere { border-color: var(--color-border-strong); opacity: .7; }
+.rmap-stage:has(.rm-drag-ghost), .rmap-stage:has(.rm-drag-ghost) * { cursor: grabbing !important; }
+
+/* 끄는 동안: 남은 점 · 화살표 · 씬 칸이 비켜 주며 미끄러진다. 끄지 않을 때는 transition 이 없다(편집 즉시 그대로). */
+.rmf.is-sorting .rmf-step { transition: left 200ms var(--ease-standard), top 200ms var(--ease-standard); }
+.rmf.is-sorting .rmf-wire { transition: d 200ms var(--ease-standard); }
+.rmf.is-sorting .rmf-band, .rmf.is-sorting .rmf-band-name { transition: left 200ms var(--ease-standard), top 200ms var(--ease-standard), width 200ms var(--ease-standard); }
+.rmf.is-sorting { transition: height 200ms var(--ease-standard); }
+/* 놓일 자리: 끄는 점과 같은 크기의 빈 점선 동그라미. */
+.rmf-step.is-slot { pointer-events: none; }
+.rmf-step.is-slot .rmf-dot { background: transparent; border: 2px dashed var(--color-brand-accent); box-shadow: none; animation: rm-slot-open 200ms var(--ease-standard); }
+.rmf-step.is-slot .rmf-num { opacity: 0; }
+@keyframes rm-slot-open { from { transform: scale(.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+/* 내려놓은 점: 살짝 눌렀다 튀어 오르며 자리를 잡는다. */
+.rmf-step.is-dropped .rmf-dot { animation: rm-dropped 420ms cubic-bezier(.2, .9, .3, 1.4); }
+@keyframes rm-dropped { 0% { transform: scale(1.5); box-shadow: 0 0 0 8px color-mix(in srgb, var(--color-brand-accent) 35%, transparent); } 55% { transform: scale(.86); } 100% { transform: scale(1); box-shadow: 0 0 0 0 transparent; } }
+@media (prefers-reduced-motion: reduce) {
+  .rmf.is-sorting .rmf-step, .rmf.is-sorting .rmf-wire, .rmf.is-sorting .rmf-band, .rmf.is-sorting .rmf-band-name, .rmf.is-sorting { transition: none; }
+  .rmf-step.is-slot .rmf-dot, .rmf-step.is-dropped .rmf-dot { animation: none; }
+}
+
+/* 맵 대화 칸(ARTEL-1265): 편집 화면의 대화 칸과 같은 것(.scenario-studio .st-chat)을 오른쪽에 띄운다.
+   .scenario-studio 는 화면 전체 격자(머리줄 52px + 본문)라, 여기서는 세로로 꽉 채우는 칸으로만 쓴다. */
+.rm-chat.scenario-studio { position: absolute; top: 0; right: 0; bottom: 0; z-index: 16; display: flex; flex-direction: column; height: auto; grid-template-rows: none; }
+.rm-chat.scenario-studio > .st-chat { flex: 1; min-height: 0; }
+.rmap-stage.has-chat .rm-toast { margin-right: 380px; }
+.rmap-stage.has-chat-rail .rm-toast { margin-right: 44px; }
+/* 서랍(상세)은 대화 칸 자리에 겹쳐 뜬다. 나란히 서서 캔버스를 둘이 나눠 먹지 않게 한다. 닫으면 대화가 다시 보인다. */
+.rm-drawer { z-index: 17; }

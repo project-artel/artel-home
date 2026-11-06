@@ -1,0 +1,52 @@
+import type { Attempt, Playback, Segment } from './evaluation/evaluationApi'
+import type { QaLog, QaTry } from './qaTypes'
+
+export function replayBounds(qaTry: QaTry, playback: Playback) {
+  const start = Date.parse(qaTry.startedAt ?? playback.recording?.startedAt ?? '')
+  const end = Date.parse(qaTry.completedAt ?? playback.recording?.endedAt ?? '')
+  return Number.isFinite(start) && Number.isFinite(end) && end > start ? { start, end } : null
+}
+
+export function segmentAt(segments: Segment[], timestamp: number) {
+  return segments.find(segment => segment.state === 'READY' && segment.url !== null &&
+    Date.parse(segment.startedAt) <= timestamp && timestamp < Date.parse(segment.endedAt)) ?? null
+}
+
+export function firstReplayTimestamp(segments: Segment[], bounds: { start: number; end: number }): number {
+  const starts = segments.filter(segment => segment.state === 'READY' && segment.url !== null && Date.parse(segment.endedAt) > bounds.start && Date.parse(segment.startedAt) < bounds.end)
+    .map(segment => Math.max(bounds.start, Date.parse(segment.startedAt)))
+  return starts.length > 0 ? Math.min(...starts) : bounds.start
+}
+
+export function attemptRange(attempt: Attempt, bounds: { start: number; end: number }) {
+  if (attempt.startedAt === null) return null
+  const start = Math.max(bounds.start, Date.parse(attempt.startedAt))
+  const end = Math.min(bounds.end, Date.parse(attempt.finishedAt ?? new Date(bounds.end).toISOString()))
+  return Number.isFinite(start) && Number.isFinite(end) && end > start ? { start, end } : null
+}
+
+export function caseTimelineTracks(attempts: Attempt[], bounds: { start: number; end: number }) {
+  type Interval = { attempt: Attempt; range: { start: number; end: number }; lane: number }
+  const tracks = new Map<string, { caseId: string; laneEnds: number[]; intervals: Interval[] }>()
+  const ordered = attempts.map(attempt => ({ attempt, range: attemptRange(attempt, bounds) }))
+    .filter(item => item.range !== null).sort((left, right) => left.range!.start - right.range!.start)
+  for (const { attempt, range } of ordered) {
+    if (range === null) continue
+    let track = tracks.get(attempt.testCaseId)
+    if (!track) { track = { caseId: attempt.testCaseId, laneEnds: [], intervals: [] }; tracks.set(attempt.testCaseId, track) }
+    let lane = track.laneEnds.findIndex(end => end <= range.start)
+    if (lane === -1) lane = track.laneEnds.length
+    track.laneEnds[lane] = range.end
+    track.intervals.push({ attempt, range, lane })
+  }
+  return [...tracks.values()]
+}
+
+export function logAt(logs: QaLog[], timestamp: number) {
+  let nearest: QaLog | null = null
+  for (const log of logs) {
+    const time = Date.parse(log.createdAt)
+    if (time <= timestamp && (nearest === null || time >= Date.parse(nearest.createdAt))) nearest = log
+  }
+  return nearest
+}

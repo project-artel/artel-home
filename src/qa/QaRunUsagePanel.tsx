@@ -1,0 +1,171 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { InfoHint } from '../design-system/primitives/InfoHint'
+import { useI18n } from '../i18n/useI18n'
+import { useProjectChange } from '../live/useProjectChange'
+import { usePolling } from '../live/usePolling'
+import { getQaRunUsage, usedTokens, type QaRunUsage } from './qaUsageApi'
+
+type LoadStatus = 'loading' | 'ready' | 'error'
+
+const counts = new Intl.NumberFormat()
+
+/**
+ * Cost is shown to four decimals below a dollar. A single run is often under a
+ * cent, and stopping at two turns most runs into `$0.00`, which is exactly the
+ * number a reader would want to compare.
+ */
+function formatCost(value: number | null, unknown: string): string {
+  if (value === null) return unknown
+  return `$${value.toFixed(value >= 1 ? 2 : 4)}`
+}
+
+/**
+ * What this run cost, beside what it did.
+ *
+ * Not drawn from the run's log stream. The agent batches usage and posts it
+ * after the calls happen, so a running run's numbers trail the log by up to a
+ * flush interval — and a failed batch is dropped rather than retried. Drawing
+ * it from the log would show a total that jumps backwards relative to the
+ * timeline, so the panel re-reads the totals when the project change stream
+ * reports `USAGE` (any run of the project), polls while that stream is down,
+ * and says plainly that a run still going has not finished reporting.
+ */
+export function QaRunUsagePanel({
+  projectId,
+  qaTryId,
+  active,
+}: {
+  projectId: string
+  qaTryId: string
+  active: boolean
+}) {
+  const { t } = useI18n()
+  const [usage, setUsage] = useState<QaRunUsage | null>(null)
+  const [status, setStatus] = useState<LoadStatus>('loading')
+  const inFlight = useRef<AbortController | null>(null)
+
+  // A different run remounts this panel (`QaTryPage` is keyed by its id), so the
+  // initial `loading` covers the first fetch. A poll aborts any request still
+  // running and never returns to `loading`; a failure becomes `error` only while
+  // nothing has loaded yet.
+  const load = useCallback(() => {
+    inFlight.current?.abort()
+    const controller = new AbortController()
+    inFlight.current = controller
+
+    getQaRunUsage(qaTryId, controller.signal)
+      .then((result) => {
+        setUsage(result)
+        setStatus('ready')
+      })
+      .catch(() => {
+        if (controller.signal.aborted) return
+        setStatus((current) => (current === 'ready' ? current : 'error'))
+      })
+  }, [qaTryId])
+
+  useEffect(() => {
+    load()
+    return () => inFlight.current?.abort()
+  }, [load])
+
+  const live = useProjectChange(projectId || null, 'USAGE', load)
+  usePolling(load, undefined, !live)
+
+  const tokens = usage === null ? 0 : usedTokens(usage)
+  // The amount stands on fewer calls than the run made, so it is a floor.
+  const partial = usage !== null && usage.pricedCalls < usage.calls
+
+  return (
+    <section className="qa-usage-panel" aria-labelledby="qa-usage-title">
+      {/* Folded by default: the rail is narrow, and the steps above it are what
+          the operator reads while a run is going. The summary line still carries
+          the two numbers someone opens this for. */}
+      <details className="qa-usage-details">
+        <summary className="qa-usage-summary">
+          <h2 id="qa-usage-title">
+            {t.qa.usage.title}
+            <InfoHint>{t.qa.usage.subtitle}</InfoHint>
+          </h2>
+          {status === 'ready' && usage !== null && usage.calls > 0 && (
+            <span className="qa-usage-summary-figures mono">
+              {counts.format(tokens)} {t.qa.usage.tokens} · {formatCost(usage.costUsd, t.qa.usage.costUnknown)}
+              {partial && usage.costUsd !== null && '+'}
+            </span>
+          )}
+        </summary>
+        <div className="qa-usage-body">
+          {/* 진행 중이라는 안내는 지금 상태이므로 보이게 둔다. */}
+          {active && (
+            <div className="qa-usage-body-head">
+              <p className="qa-usage-note">{t.qa.usage.stillRunning}</p>
+            </div>
+          )}
+
+          {status === 'loading' && <p className="panel-empty">{t.qa.usage.loading}</p>}
+
+          {status === 'error' && (
+            <p className="panel-empty" role="alert">
+              {t.qa.usage.loadFailed}
+            </p>
+          )}
+
+          {status === 'ready' && (usage === null || usage.calls === 0) && (
+            // Zero is not "this run was free" — it is "nothing has arrived yet".
+            <p className="panel-empty">{t.qa.usage.nothingReported}</p>
+          )}
+
+          {status === 'ready' && usage !== null && usage.calls > 0 && (
+            <dl className="qa-usage-grid">
+              <div className="qa-usage-item">
+                <dt>{t.qa.usage.tokens}</dt>
+                <dd className="mono">{counts.format(tokens)}</dd>
+                <p className="qa-usage-hint">
+                  {t.qa.usage.tokenSplit(
+                    counts.format(usage.inputTokens),
+                    counts.format(usage.outputTokens),
+                  )}
+                </p>
+              </div>
+
+              <div className="qa-usage-item">
+                <dt>{t.qa.usage.cost}</dt>
+                <dd className="mono">
+                  {formatCost(usage.costUsd, t.qa.usage.costUnknown)}
+                  {partial && usage.costUsd !== null && (
+                    <span className="qa-usage-partial" title={t.qa.usage.partialHint}>
+                      +
+                    </span>
+                  )}
+                </dd>
+                <p className="qa-usage-hint">
+                  {usage.costUsd === null
+                    ? t.qa.usage.noPricedCall
+                    : partial
+                      ? t.qa.usage.partialPrice(usage.pricedCalls, usage.calls)
+                      : t.qa.usage.fullyPriced(usage.calls)}
+                </p>
+              </div>
+
+              <div className="qa-usage-item">
+                <dt>{t.qa.usage.calls}</dt>
+                <dd className="mono">{counts.format(usage.calls)}</dd>
+                <p className="qa-usage-hint">
+                  {t.qa.usage.perCall(counts.format(Math.round(tokens / usage.calls)))}
+                </p>
+              </div>
+
+              <div className="qa-usage-item">
+                <dt>
+                  {t.qa.usage.cached}
+                  <InfoHint>{t.qa.usage.cachedHint}</InfoHint>
+                </dt>
+                <dd className="mono">{counts.format(usage.cachedInputTokens)}</dd>
+              </div>
+            </dl>
+          )}
+        </div>
+      </details>
+    </section>
+  )
+}

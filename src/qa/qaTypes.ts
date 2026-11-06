@@ -1,0 +1,206 @@
+export const QA_TRY_STATUSES = [
+  // PENDING: a run-unit scenario waiting its turn (qa_run executes scenarios in
+  // order; the ones not yet started sit PENDING). Not terminal.
+  'PENDING',
+  'STARTING',
+  'RUNNING',
+  'COMPLETED',
+  'FAILED',
+  'CANCELLED',
+  // 게임을 검증하지 못하고 끝났다(ARTEL-1372). 모델 API 가 크레딧 · 인증 · 모델 오류로 거절해 QA 가 멈춘
+  // 시나리오와, 그 때문에 시작하지 못한 시나리오다. 실패가 아니다. 까닭은 `stop`.
+  'UNDECIDED',
+] as const
+
+export type QaTryStatus = (typeof QA_TRY_STATUSES)[number]
+
+export const QA_LOG_TYPES = [
+  'LOG',
+  // 에이전트가 부른 tool 하나와 그 답. `ACTION` 과 다르다 — 저쪽은 조작 tool 이 SDK 로
+  // 내보낸 요청이라 tool 28개 중 15개만 남기고, 지식 검색이나 스텝 판정처럼 SDK 를
+  // 거치지 않는 tool 은 흔적이 없었다.
+  'TOOL',
+  'TOOL_RESULT',
+  'ACTION',
+  'ACTION_RESULT',
+  'GAME_STATE',
+  // SDK 가 1초에 한 번 보내는 화면 판독(ARTEL-414). 서버는 처음부터 보냈는데 이 목록에만
+  // 빠져 있었다 — try 46 의 최근 200건 중 44건이 이것이다. `흐름` 이 조작 대상의 이름을
+  // 여기서 찾는다(`id` → `path`).
+  'PULSE',
+  'STATUS',
+  'ERROR',
+  'CHAT',
+  // QA 판정을 TC 상태에 반영했다는 서버 기록(ARTEL-995). payload 는 `case_id` · `verification_status`.
+  'CASE_VERDICT',
+  // behavior 하나가 끝났다는 기록(ARTEL-1051). payload 는 `behaviorId` · `name` · `target` · `reason` ·
+  // `detail` · `seconds` · `frame`.
+  'BEHAVIOR_ENDED',
+] as const
+
+export type QaLogType = (typeof QA_LOG_TYPES)[number]
+
+export const QA_LOG_DIRECTIONS = [
+  'AGENT_TO_ORCHE',
+  'ORCHE_TO_AGENT',
+  'ORCHE_TO_SDK',
+  'SDK_TO_ORCHE',
+  'ORCHE_INTERNAL',
+  'USER_TO_ORCHE',
+] as const
+
+export type QaLogDirection = (typeof QA_LOG_DIRECTIONS)[number]
+
+export type QaTry = {
+  id: string
+  testScenarioId: string
+  gameInstanceId: string
+  agentSessionId: string | null
+  status: QaTryStatus
+  startedAt: string | null
+  completedAt: string | null
+  /**
+   * The `QaRun` this scenario belongs to. `null` for a try older than ARTEL-722,
+   * or while that server change has not shipped yet — callers render a plain
+   * muted row instead of a link when this is `null`, never a dead link.
+   */
+  qaRunId: string | null
+  /** `status` 가 `UNDECIDED` 일 때 왜 판정하지 못했는가. 옛 서버나 다른 끝 상태면 null. */
+  stop: QaStop | null
+}
+
+/**
+ * 미판정으로 끝난 까닭(ARTEL-1371). `code` 는 `llm_credit_exhausted` · `llm_auth_failed` · `llm_model_unavailable`
+ * 이거나, 앞 시나리오가 멈춰 시작하지 못한 시나리오의 `not_started` 다.
+ */
+export type QaStop = {
+  code: string
+  /** `anthropic` · `openai` · `openrouter` · `bedrock`. 모르면 null. */
+  provider: string | null
+  message: string | null
+}
+
+export const QA_STOP_NOT_STARTED = 'not_started'
+
+/**
+ * A QA_Run (TR 단위 실행): the run's scenarios run in order, each as its own
+ * `QaTry`. `status` is the run's own lifecycle; `tries` is one entry per scenario.
+ */
+export type QaRun = {
+  id: string
+  testRunId: string
+  gameInstanceId: string
+  /** 이 run 이 시작할 때 고정한 게임 빌드(ARTEL-1104). 빌드를 모르는 옛 run 이나 옛 서버면 null. */
+  gameBuildId: string | null
+  status: QaTryStatus
+  startedAt: string | null
+  completedAt: string | null
+  tries: QaTry[]
+  /** 판정 기준이 된 케이스 내용의 버전 — TR 이 따르는 게임 빌드다(ARTEL-1070). TR 에 버전이 없으면 null — 최신이다. */
+  testRunGameBuildId: string | null
+  /** QA 를 멈춘 모델 API 오류. 멈추지 않은 run 이나 옛 서버면 null. */
+  stop: QaStop | null
+  /** 판정 없이 오류로 끝나 버린 run 이다. 히스토리 · 알림함에는 나오지 않는다. */
+  discarded: boolean
+}
+
+export type QaReasoningCapability =
+  | {
+      kind: 'effort'
+      efforts: string[]
+      minTokens: null
+      maxTokens: null
+      step: null
+    }
+  | {
+      kind: 'max_tokens'
+      efforts: null
+      minTokens: number
+      maxTokens: number
+      step: number
+    }
+
+/**
+ * Whose API key a run's model calls are billed to.
+ *
+ * `platform` is the key an administrator registered — the platform pays, and
+ * while testers are being recruited the picker offers these as free. `user` is a
+ * key the signed-in user registered for one provider — they pay for the calls.
+ * The same model can appear once under each, so a model's identity in the picker
+ * is the pair, not the id (`qaModelOptionKey`).
+ */
+export const QA_KEY_SOURCES = ['platform', 'user'] as const
+export type QaKeySource = (typeof QA_KEY_SOURCES)[number]
+
+/** USD per million tokens, the unit `llm_model.pricing` is stored in. */
+export type QaModelPricing = {
+  inputPerMtok: number
+  outputPerMtok: number
+}
+
+export type QaModel = {
+  id: string
+  label: string
+  provider: string
+  supportsVision: boolean
+  inputModalities: string[]
+  multimodal: boolean
+  reasoning: QaReasoningCapability | null
+  keySource: QaKeySource
+  /**
+   * The service a `user` key is registered with — `anthropic` for a key that
+   * calls Anthropic directly, `openrouter` for one that reaches many vendors'
+   * models. Not `provider`: that is who made the model, and one OpenRouter key
+   * unlocks models from several of them. Null on platform models.
+   */
+  keyProvider: string | null
+  /** False only for a `user` model whose key service has no key registered yet. */
+  keyRegistered: boolean
+  /** The registered key with all but its ends masked, as the server shows it. */
+  keyHint: string | null
+  pricing: QaModelPricing | null
+}
+
+/** A model's identity in the picker: the same id can be offered on both keys. */
+export function qaModelOptionKey(model: Pick<QaModel, 'id' | 'keySource'>): string {
+  return `${model.keySource}:${model.id}`
+}
+
+export type QaReasoningSelection =
+  | { effort: string }
+  | { maxTokens: number }
+
+export type QaLog = {
+  id: string
+  qaTryId: string
+  messageId: string | null
+  correlationId: string | null
+  direction: QaLogDirection
+  type: QaLogType
+  message: string
+  payload: unknown
+  createdAt: string
+}
+
+export type QaLogPage = {
+  items: QaLog[]
+  nextBeforeId: string | null
+  hasMore: boolean
+}
+
+export type QaStreamState = 'connecting' | 'live' | 'degraded' | 'offline' | 'closed'
+
+export function isTerminalQaStatus(status: QaTryStatus): boolean {
+  return status === 'COMPLETED' || status === 'FAILED' || status === 'CANCELLED' || status === 'UNDECIDED'
+}
+
+/**
+ * Address of the QA run console (ARTEL-723), optionally pinned to one
+ * scenario. The six call sites that used to link to the retired `QaTryPage`
+ * build their href through this one function so the query param shape lives
+ * in one place.
+ */
+export function qaRunPath(projectId: string, qaRunId: string, qaTryId?: string): string {
+  const base = `/projects/${encodeURIComponent(projectId)}/qa-runs/${encodeURIComponent(qaRunId)}`
+  return qaTryId === undefined ? base : `${base}?try=${encodeURIComponent(qaTryId)}`
+}

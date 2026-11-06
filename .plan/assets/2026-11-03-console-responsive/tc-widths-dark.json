@@ -1,0 +1,90 @@
+[
+  {
+    "width": 320,
+    "client": 271,
+    "height": 480,
+    "overflow": false,
+    "rows": 1,
+    "scroll": 1160
+  },
+  {
+    "width": 360,
+    "client": 311,
+    "height": 480,
+    "overflow": false,
+    "rows": 1,
+    "scroll": 1160
+  },
+  {
+    "width": 390,
+    "client": 341,
+    "height": 480,
+    "overflow": false,
+    "rows": 1,
+    "scroll": 1160
+  },
+  {
+    "width": 480,
+    "client": 431,
+    "height": 480,
+    "overflow": false,
+    "rows": 1,
+    "scroll": 1160
+  },
+  {
+    "width": 640,
+    "client": 591,
+    "height": 480,
+    "overflow": false,
+    "rows": 1,
+    "scroll": 1160
+  },
+  {
+    "width": 720,
+    "client": 671,
+    "height": 480,
+    "overflow": false,
+    "rows": 1,
+    "scroll": 1160
+  },
+  {
+    "width": 721,
+    "client": 416,
+    "height": 480,
+    "overflow": false,
+    "rows": 1,
+    "scroll": 1160
+  },
+  {
+    "width": 768,
+    "client": 463,
+    "height": 480,
+    "overflow": false,
+    "rows": 1,
+    "scroll": 1160
+  },
+  {
+    "width": 1024,
+    "client": 719,
+    "height": 480,
+    "overflow": false,
+    "rows": 1,
+    "scroll": 1160
+  },
+  {
+    "width": 1280,
+    "client": 975,
+    "height": 95,
+    "overflow": false,
+    "rows": 1,
+    "scroll": 1160
+  },
+  {
+    "width": 1440,
+    "client": 855,
+    "height": 440,
+    "overflow": false,
+    "rows": 1,
+    "scroll": 1160
+  }
+]

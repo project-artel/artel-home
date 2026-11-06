@@ -7,7 +7,7 @@ argument-hint: <file-or-pattern>
 
 Review these files for compliance: $ARGUMENTS
 
-Read files, check against rules below. Output concise but comprehensive—sacrifice grammar for brevity. High signal-to-noise.
+Read files, check against rules below. Write concise, complete sentences. Preserve grammar and the context needed to act on each finding.
 
 ## Rules
 
@@ -178,3 +178,10 @@ src/Modal.tsx:34 - "..." → "…"
 ```
 
 State issue + location. Skip explanation unless fix non-obvious. No preamble.
+
+## Project Writing Style
+
+Before writing the result, follow [writing-style.md](../../docs/writing-style.md).
+Use its natural Korean prose and concrete-title rules while preserving required
+templates, paths, metadata, and machine-readable verdicts. Pass the same rules
+to any reviewer subagents invoked by this skill.

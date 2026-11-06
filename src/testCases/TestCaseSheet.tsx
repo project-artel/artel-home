@@ -1,0 +1,161 @@
+import { useTestCaseLabel } from './testCaseIdentifiers'
+import type { SceneUsage } from './testCaseLibrary'
+import { useEffect, useRef, useState } from 'react'
+import type { Messages } from '../i18n/messages'
+import { useI18n } from '../i18n/useI18n'
+import { formatDate } from '../projects/formatters'
+import type { GameBuild } from '../projects/gameTypes'
+import { SceneChip } from './SceneChip'
+import { TestCaseEditor, type VersionChoice } from './TestCaseEditor'
+import { describeVerifiedBuild } from './testCaseLibrary'
+import type { TestCase } from './testCaseTypes'
+import { ContentReviewPanel } from '../qa/evaluation/ContentReviewPanel'
+import { CaseEvaluationPanel } from '../qa/evaluation/CaseEvaluationPanel'
+import { getTestCase } from './testCaseApi'
+
+/**
+ * The right-hand sheet that shows one TC and edits it.
+ *
+ * Lifted out of the TC library (ARTEL-940) so the authoring chat can open the very
+ * same view when someone clicks a TC chip — a second, smaller card would show less
+ * and drift from this one. `testCase` null means a new case is being written.
+ */
+export function TestCaseSheet({
+  builds = [],
+  folderId = null,
+  sceneUsage,
+  projectId,
+  testCase: listedCase,
+  versionChoice,
+  editGameBuildId,
+  onClose,
+  onCreated = () => {},
+  onDelete,
+  onSaved,
+}: {
+  builds?: GameBuild[]
+  sceneUsage?: SceneUsage
+  /** 새 케이스를 넣을 폴더. */
+  folderId?: string | null
+  projectId: string
+  testCase: TestCase | null
+  /** 새 케이스를 넣을 버전 고르기(ARTEL-1032). */
+  versionChoice?: VersionChoice
+  editGameBuildId?: string | null
+  onClose: () => void
+  onCreated?: (created: TestCase) => void
+  onDelete: () => void
+  onSaved: (saved: TestCase) => void
+}) {
+  const { t } = useI18n()
+  const caseLabel = useTestCaseLabel()
+  const m = t.testCases
+  const sheetRef = useRef<HTMLElement | null>(null)
+  const caseId = listedCase?.id ?? null
+  const detailSource = caseId !== null && editGameBuildId ? `${projectId}:${caseId}:${editGameBuildId}` : null
+  const [detail, setDetail] = useState<{ source: string; testCase: TestCase | null; failed: boolean } | null>(null)
+  const [detailRevision, setDetailRevision] = useState(0)
+  const loadedDetail = detailSource !== null && detail?.source === detailSource ? detail : null
+  const editorReady = detailSource === null || loadedDetail?.testCase != null
+  const testCase = loadedDetail?.testCase ?? listedCase
+
+  useEffect(() => {
+    if (caseId === null || !editGameBuildId || detailSource === null) return
+    const controller = new AbortController()
+    void getTestCase(projectId, caseId, controller.signal, { gameBuildId: editGameBuildId })
+      .then(saved => { if (!controller.signal.aborted) setDetail({ source: detailSource, testCase: saved, failed: false }) })
+      .catch(() => { if (!controller.signal.aborted) setDetail({ source: detailSource, testCase: null, failed: true }) })
+    return () => controller.abort()
+  }, [projectId, caseId, editGameBuildId, detailSource, detailRevision])
+
+  // 시트가 열리면 초점을 안으로 옮긴다. 열어 놓고 초점이 뒤 표에 남아 있으면 키보드로
+  // 시트에 닿을 방법이 없고, `Escape` 도 표가 먼저 받는다.
+  useEffect(() => {
+    const box = sheetRef.current
+    // 입력칸을 먼저 찾는다. DOM 순서로만 고르면 닫기 버튼이 먼저 잡히는데, 시트를 연 이유는
+    // 닫으려는 것이 아니라 고치려는 것이다.
+    const first = box?.querySelector<HTMLElement>('textarea, input') ?? box?.querySelector<HTMLElement>('button')
+    first?.focus()
+  }, [editorReady])
+
+  return (
+    <>
+      <div className="tcl-scrim" onClick={onClose} />
+      <aside
+        aria-label={m.editor.editTitle}
+        aria-modal="true"
+        className="tcl-sheet"
+        onKeyDown={(event) => { if (event.key === 'Escape') { event.stopPropagation(); onClose() } }}
+        ref={sheetRef}
+        role="dialog"
+      >
+        <header className="tcl-sheet-head">
+          <div className="tcl-sheet-tags">
+            {testCase && <span className="tc-id">{caseLabel(testCase.id)}</span>}
+            {testCase !== null && (
+              <>
+                <span className={`vpill ${testCase.verificationStatus}`}>
+                  <span className={`vdot ${testCase.verificationStatus}`} />
+                  {m.outcome[testCase.verificationStatus]}
+                </span>
+                <SceneChip scene={testCase.scene} />
+              </>
+            )}
+          </div>
+          <button
+            className="tcl-sheet-close"
+            onClick={onClose}
+            title={m.row.close}
+            type="button"
+          >✕</button>
+        </header>
+        {testCase !== null && (
+          <p className="tcl-sheet-meta">
+            {buildNote(testCase, builds, m, t.projects.builds.editorLabel)} · {m.outcome.addedAt(formatDate(testCase.createdAt))}
+          </p>
+        )}
+        {testCase && <ContentReviewPanel key={`content:${testCase.id}`} projectId={projectId} testCaseId={testCase.id} builds={builds} defaultBuildId={editGameBuildId ?? testCase.lastVerifiedBuildId} />}
+        {!editorReady && (loadedDetail?.failed
+          ? <p role="alert">{t.scenarios.tcModal.error} <button className="button button--secondary button--compact" type="button" onClick={() => setDetailRevision(previous => previous + 1)}>{m.section.retry}</button></p>
+          : <p role="status">{t.scenarios.tcModal.loading}</p>)}
+        {editorReady && <TestCaseEditor
+          builds={builds}
+          folderId={folderId}
+          key={`${testCase?.id ?? 'new'}:${editGameBuildId ?? ''}`}
+          sceneUsage={sceneUsage}
+          onCreated={onCreated}
+          onDelete={onDelete}
+          onDone={onClose}
+          onSaved={saved => {
+            if (detailSource !== null) setDetail({ source: detailSource, testCase: saved, failed: false })
+            onSaved(saved)
+          }}
+          projectId={projectId}
+          testCase={testCase}
+          versionChoice={versionChoice}
+          editGameBuildId={editGameBuildId}
+        />}
+        {testCase && <CaseEvaluationPanel key={`evaluation:${testCase.id}`} projectId={projectId} testCaseId={testCase.id} />}
+      </aside>
+    </>
+  )
+}
+
+/**
+ * 결과 아래 한 줄. 어떤 build 에서 그렇게 판정했는지가 결과 자체만큼 중요하다 — 두 버전 전
+ * build 에서 실패한 케이스와 어제 build 에서 실패한 케이스는 같은 "실패" 가 아니다.
+ */
+function buildNote(
+  testCase: TestCase,
+  builds: GameBuild[],
+  m: Messages['testCases'],
+  editorLabel: string,
+): string {
+  const build = describeVerifiedBuild(
+    testCase.lastVerifiedBuildId,
+    builds,
+    editorLabel,
+  )
+  if (build !== null) return m.outcome.onBuild(build)
+  return testCase.lastVerifiedBuildId !== null ? m.outcome.buildGone : m.outcome.neverRun
+}

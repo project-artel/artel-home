@@ -1,0 +1,15 @@
+[
+  {
+    "url": "http://127.0.0.1:8096/api/projects/1/demonstrations/cf713356-456d-4d5b-a0be-6a2aa1f3c04a/annotations",
+    "method": "OPTIONS"
+  },
+  {
+    "url": "http://127.0.0.1:8096/api/projects/1/demonstrations/cf713356-456d-4d5b-a0be-6a2aa1f3c04a/annotations",
+    "method": "POST",
+    "body": "{\"outcome\":\"PASS\",\"evidenceEventId\":472}"
+  },
+  {
+    "url": "http://127.0.0.1:8096/api/projects/1/demonstrations/cf713356-456d-4d5b-a0be-6a2aa1f3c04a/extract",
+    "method": "POST"
+  }
+]

@@ -1,0 +1,107 @@
+/**
+ * Game instances (one SDK installation) and game builds (one version the SDK
+ * has reported), agreed with the orchestration server in ARTEL-75.
+ *
+ * Instances are no longer created from this client: the SDK signs in, the user
+ * picks a project, and the server registers the instance on first contact. So
+ * everything here is the response side — nothing is submitted but a rename.
+ */
+export const GAME_PLATFORMS = ['UNITY'] as const
+
+export type GamePlatform = (typeof GAME_PLATFORMS)[number]
+
+/** Unity is the only engine the SDK ships for, so it is also the only default. */
+export const DEFAULT_GAME_PLATFORM: GamePlatform = 'UNITY'
+
+export const PLATFORM_LABELS: Record<GamePlatform, string> = {
+  UNITY: 'Unity',
+}
+
+/**
+ * These mirror the project name/description limits so the two forms feel the
+ * same. As everywhere else in this client, they exist to give immediate
+ * feedback and the server stays the authority: never advertise a looser rule
+ * than the server enforces, and if the two disagree the client is the bug.
+ */
+export const INSTANCE_NAME_MAX_LENGTH = 80
+export const BUILD_LABEL_MAX_LENGTH = 80
+export const BUILD_NOTES_MAX_LENGTH = 2000
+
+export type GameInstance = {
+  /** Opaque server-owned identifier. Never parsed, split, or used in arithmetic. */
+  id: string
+  projectId: string
+  name: string
+  /**
+   * Kept as a plain string rather than `GamePlatform` because this is the
+   * response side. If the server ever starts returning an engine this client
+   * does not know about, showing the raw value is honest, whereas narrowing it
+   * to the union would relabel that instance "Unity" — a real bug.
+   */
+  platform: string
+  /**
+   * A snapshot from the last load, not a subscription. Nothing polls it, so
+   * the UI must not read as a live indicator.
+   */
+  connected: boolean
+  /** `''` when the instance has never connected; rendered as its own wording. */
+  lastConnectedAt: string
+  createdAt: string
+  updatedAt: string
+  /**
+   * The build this instance last registered with (ARTEL-1049), or `null` when it never has. The QA start panel compares it
+   * with the run's case version. For an editor build `version` is what the editor reported from Player Settings.
+   */
+  lastGameBuild: InstanceBuild | null
+}
+
+export type InstanceBuild = {
+  gameBuildId: string
+  version: string
+  label: string | null
+  isEditor: boolean | null
+}
+
+export type GameBuild = {
+  id: string
+  projectId: string
+  /**
+   * Observed from Unity's Player Settings when the SDK registered the build.
+   * Never editable — no control anywhere may offer to change it, because the
+   * next registration would overwrite whatever was typed.
+   */
+  version: string
+  label: string | null
+  notes: string | null
+  /**
+   * The one build per project that the Unity editor reports. It shares a version
+   * string with development builds but is not a game version, so version lists
+   * skip it. Servers that predate ARTEL-1014 omit the field; it parses as `null`, which screens show as Unknown.
+   */
+  isEditor: boolean | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type GameInstancePatch = {
+  name: string
+}
+
+/**
+ * Both fields are always sent. Per the ARTEL-75 contract `null` means untouched
+ * and `''` clears a nullable string, so an emptied input clears the stored
+ * value rather than leaving it behind.
+ */
+export type GameBuildPatch = {
+  label: string
+  notes: string
+}
+
+export function isGamePlatform(value: unknown): value is GamePlatform {
+  return typeof value === 'string' && (GAME_PLATFORMS as readonly string[]).includes(value)
+}
+
+/** Falls back to the raw server value so an unknown engine is shown, not renamed. */
+export function describePlatform(platform: string): string {
+  return isGamePlatform(platform) ? PLATFORM_LABELS[platform] : platform
+}

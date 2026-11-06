@@ -1,0 +1,626 @@
+/**
+ * 한 게임 빌드의 콘텐츠 맵 — 서버가 증거 문서에서 뽑아낸 씬·능력·전이.
+ *
+ * `source`, `capture`, gap `reason` 은 모두 서버가 소유한 열린 어휘다. 이 빌드가 아는 값으로 좁혀 두면 서버가 값을 하나
+ * 추가하는 날부터 화면이 그 항목을 조용히 버리거나 — 더 나쁘게 — 다른
+ * 값으로 잘못 표시한다. 그래서 전부 평범한 문자열로 두고, 아래의 `KNOWN_*`
+ * 목록은 오직 선 모양이나 라벨을 고를 때만 쓴다. 목록 밖의 값은 명시적인
+ * "알 수 없음" 갈래를 타고, 서버가 말한 그대로 화면에 남는다.
+ *
+ * id 는 이 엔드포인트들에서 Long(숫자)로 온다. 문자열로 정규화해서 들고
+ * 다니는 이유는 downstream 에서 전부 Map 키이자 React key 이기 때문이다.
+ */
+
+/** 이 빌드가 라벨을 붙일 줄 아는 능력 상태. 순서가 곧 요약 줄의 순서다. */
+export const KNOWN_CAPABILITY_STATUSES = [
+  'runnable',
+  'needsProbe',
+  'notAStep',
+  'unreachablePrecondition',
+] as const
+
+/**
+ * 한 씬의 능력 집계. 아는 네 상태와 그 합뿐이다.
+ *
+ * `capabilities` 안의 모르는 키는 읽지 않는다. 서버가 그 객체에 숫자 필드를
+ * 하나 추가한다고 해서 그게 상태라는 보장이 없기 때문이다 — 버전이나 id 일
+ * 수도 있다. 그런 값을 상태로 그리면 없는 상태를 하나 지어내는 동시에
+ * `total` 까지 부풀린다. 상태 어휘가 실제로 늘어나면 그때 이 목록에 넣는다.
+ */
+export type CapabilityCounts = {
+  total: number
+  runnable: number
+  needsProbe: number
+  notAStep: number
+  unreachablePrecondition: number
+}
+
+/**
+ * 서버가 정규화해서 보내는 조건 트리의 마디 하나.
+ *
+ * 명세는 두 가지를 약속한다: `kind` 는 늘 소문자이고, 이름표 없는 마디는
+ * 오지 않는다. 그 약속이 있기 때문에 이 화면은 **다시 관대해지지 않는다** —
+ * 목록에 없는 `kind` 를 아는 모양으로 접으면 서버가 말하지 않은 조건을
+ * 화면이 지어내게 되고, 그 줄을 읽은 QA 는 반대로 된 테스트 케이스를 쓴다.
+ * 모르는 값은 `unrecognisedKind` 로 남아서 서버가 뭐라고 했는지 그대로
+ * 보인다.
+ *
+ * `unrecognisedKind` 에 대문자가 섞인 것은 우연이 아니다. 소문자 `kind` 만
+ * 온다는 약속 덕분에 이 이름은 서버가 보낸 어떤 값과도 겹칠 수 없고, 그래서
+ * 서버가 나중에 어휘를 늘려도 이 갈래를 조용히 덮어쓰지 못한다.
+ *
+ * `unknown` 과 `always` 는 절대 같은 모양으로 그리지 않는다. `always` 는
+ * "아무 때나 된다"는 사실이고 `unknown` 은 "우리가 못 읽었다"는 사실이다.
+ * 둘을 섞으면 조건 없는 단계와 조건을 모르는 단계가 한 줄로 보인다.
+ */
+export type ConditionNode =
+  | { kind: 'always' }
+  | {
+      kind: 'test'
+      left: string
+      operator: string
+      right: string
+      context: string | null
+      /** 서버가 좌변의 주체를 놓친 자리. 있으면 그 조건은 반쪽만 읽힌 것이다. */
+      subjectLost: string | null
+      offset: number
+    }
+  | { kind: 'gesture'; input: string; offset: number }
+  | { kind: 'every' | 'either'; parts: ConditionNode[] }
+  | { kind: 'unknown'; reason: string; unread: string | null }
+  | { kind: 'unrecognisedKind'; reportedKind: string }
+
+/** 마디의 갈래로 CSS 한 조각을 고른다. 색은 반복일 뿐이고 이름은 늘 글로 적힌다. */
+export type ConditionKind = ConditionNode['kind']
+
+/**
+ * 씬에서 할 수 있는 조작 하나.
+ *
+ * `status` 와 `interaction` 은 서버가 쓴 철자를 그대로 들고 다닌다. 아는
+ * 값으로 좁혀 두면 서버가 어휘를 늘리는 날 화면이 그 단계를 조용히 다른
+ * 것으로 부른다. 라벨을 고를 때만 아래 `stepStatusStyle` · `interactionStyle`
+ * 을 쓰고, 목록에 없으면 서버 문자열이 그대로 화면에 남는다.
+ *
+ * `notAStep` 인 기능은 여기 오지 않는다. 단계가 아닌 것을 단계 목록에 넣지
+ * 않는다는 것이 서버 쪽 규칙이고, 그래서 `steps.length` 는 대체로
+ * `capabilities.total` 보다 작다.
+ */
+export type ContentMapStep = {
+  id: string
+  summary: string
+  /** `runnable` | `needs-probe` | `unreachable-precondition`, 그리고 무엇이든. */
+  status: string
+  /** `click` | `press` | `drag` | `none`, 그리고 무엇이든. */
+  interaction: string
+  inputKey: string | null
+  controlLabel: string | null
+  controlPath: string | null
+  /**
+   * 조건을 사람이 읽는 한 문장으로 옮긴 것. 지금은 늘 null 이고 ARTEL-447 이
+   * 채운다. 화면은 이것이 있으면 이것을 먼저 쓰므로, 그날 아무것도 고치지
+   * 않아도 조건 줄이 트리에서 문장으로 바뀐다.
+   */
+  givenText: string | null
+  given: ConditionNode | null
+}
+
+/** 이 빌드가 라벨을 붙일 줄 아는 단계 상태. 요약 줄의 상태 이름과 같은 것들이다. */
+export type StepStatusStyle =
+  | 'runnable'
+  | 'needsProbe'
+  | 'unreachablePrecondition'
+  | 'unknown'
+
+/*
+ * 서버는 상태를 kebab-case 로 보내고 요약 줄은 camelCase 키로 센다. 두 철자를
+ * 잇는 표는 여기 하나뿐이다 — 화면 여기저기서 문자열을 바꿔 쓰기 시작하면
+ * 어느 쪽이 서버 어휘인지 아무도 모르게 된다.
+ */
+const STEP_STATUS_STYLES = new Map<string, StepStatusStyle>([
+  ['runnable', 'runnable'],
+  ['needs-probe', 'needsProbe'],
+  ['unreachable-precondition', 'unreachablePrecondition'],
+])
+
+export function stepStatusStyle(status: string): StepStatusStyle {
+  return STEP_STATUS_STYLES.get(status) ?? 'unknown'
+}
+
+/** 이 빌드가 이름을 아는 상호작용. 목록 밖의 값은 서버 철자 그대로 보인다. */
+export const KNOWN_INTERACTIONS = ['click', 'press', 'drag', 'none'] as const
+
+export type KnownInteraction = (typeof KNOWN_INTERACTIONS)[number]
+
+export type InteractionStyle = KnownInteraction | 'unknown'
+
+export function interactionStyle(interaction: string): InteractionStyle {
+  return (KNOWN_INTERACTIONS as readonly string[]).includes(interaction)
+    ? (interaction as KnownInteraction)
+    : 'unknown'
+}
+
+/**
+ * 한 단계의 조건을 무엇으로 그릴지.
+ *
+ * **순서가 계약이다.** `givenText` 가 있으면 그것을 쓰고, 없을 때만 트리를
+ * 그린다. ARTEL-447 이 문장을 채우는 날 이 함수 하나 때문에 화면이 저절로
+ * 좋아지고, 그 전까지는 트리가 그 자리를 지킨다.
+ *
+ * 문장이 있어도 트리를 같이 들려 보낸다. 화면은 그것을 접어 두었다가 사용자가
+ * 펼칠 때만 보여 준다 — 요약을 먼저 보이고 원본은 명시적으로 펼치게 하라는
+ * `DESIGN.md` 의 규칙 그대로다.
+ */
+export type StepCondition =
+  | { form: 'sentence'; text: string; tree: ConditionNode | null }
+  | { form: 'tree'; tree: ConditionNode }
+  | { form: 'none' }
+
+export function stepCondition(step: ContentMapStep): StepCondition {
+  const text = step.givenText?.trim() ?? ''
+  if (text.length > 0) return { form: 'sentence', text, tree: step.given }
+  if (step.given !== null) return { form: 'tree', tree: step.given }
+  // 조건 절이 아예 없다. `always` 와 다르다 — 저쪽은 서버가 "아무 때나 된다"고
+  // 말한 것이고 이쪽은 아무 말도 하지 않은 것이다.
+  return { form: 'none' }
+}
+
+/**
+ * 씬 대표 이미지, 또는 만들지 못한 이유.
+ *
+ * **세 상태를 가른다.** `thumbnail` 자체가 null 이면 서버가 캡처를 아예
+ * 신고하지 않은 것이고 — 이 절을 보내지 않는 옛 서버이거나, 캡처를 올리지
+ * 않는 옛 SDK 다 — `unavailable` 은 시도했다가 못 찍었다는 사실이다. 둘을
+ * 같은 자리표시로 그리면 "아직 안 올렸다"와 "이 씬은 못 찍는다"가 한 모양이
+ * 되고, 사용자는 기다려야 할지 고쳐야 할지 알 수 없다.
+ *
+ * `url` 은 서명된 단기 주소다. 만료되면 이미지가 깨지므로 화면은 그 실패를
+ * 자리표시로 받아 낸다 — 깨진 이미지 아이콘은 사실을 말하지 않는다.
+ */
+export type SceneThumbnail =
+  | { state: 'available'; url: string; width: number | null; height: number | null }
+  | { state: 'unavailable'; reason: string }
+
+/**
+ * 한 씬에서 관측된 화면 하나.
+ *
+ * **씬 하나에 화면이 여럿일 수 있다** — 오버레이, 팝업, 상태 branch. `Canvas/continue` 가 켜진 것과
+ * 꺼진 것은 같은 씬의 다른 화면이고, 그 둘을 한 노드로 접으면 "continue 를 누른다"는 테스트 케이스가
+ * 절반은 실패한다.
+ *
+ * 정적 분석은 화면을 모른다. 그래서 QA 런 전에는 이 목록이 비고 **그것이 정상이다** — 빈 목록을
+ * 결함으로 그리면 안 된다.
+ */
+export type ContentMapScreen = {
+  id: string
+  /** 이 화면이 속한 씬. 화면 전이가 화면 id 로만 오므로 되짚을 자리가 필요하다. */
+  sceneId: string
+  /**
+   * 표시용 이름. **조인 키가 아니다** — 기계는 `discriminator` 로 판정하고 이름은 LLM 이 짓는다.
+   * null 이면 아직 아무도 이름을 붙이지 않은 것이고, 빈 문자열과 같은 뜻이 아니다.
+   */
+  name: string | null
+  /**
+   * 이 화면임을 판정하는 pulse 관측 조건. 서버가 읽지 않고 그대로 옮기는 열린 JSON 이라
+   * 여기서도 해석하지 않고 원문 그대로 들고 다닌다 — 모양을 못 박으면 관측 쪽이 조건 어휘를
+   * 늘리는 날 이 화면이 먼저 깨진다.
+   */
+  discriminator: string
+  observedCount: number
+  firstSeenQaRunId: string | null
+  /**
+   * 이 화면의 캡처. 없으면 아직 못 찍은 것이다.
+   *
+   * 씬 대표 이미지(`SceneThumbnail`)와 달리 `state` 도 `reason` 도 없다. `screen` 표에 실패 코드 칸이
+   * 없어 가를 두 상태가 없기 때문이다 — 캡처가 있으면 이 객체가 있고, 없으면 통째로 null 이다.
+   * 없는 상태를 흉내 내는 칸을 만들면 화면이 영영 오지 않는 값을 분기한다.
+   */
+  image: ScreenImage | null
+}
+
+/**
+ * 화면 캡처의 서명된 주소.
+ *
+ * `url` 은 단기 서명이라 만료되면 이미지가 깨진다. 화면은 그 실패를 `onError` 로 받아 자리표시로
+ * 바꾼다 — 깨진 이미지 아이콘은 아무 사실도 말하지 않는다.
+ */
+export type ScreenImage = {
+  url: string
+  /** 서명이 만료되는 시각. 서버가 말하지 않으면 null 이다. */
+  expiresAt: string | null
+  /** 찍은 시각. 지금 모양과 얼마나 떨어진 그림인지를 말한다. */
+  capturedAt: string | null
+}
+
+/**
+ * 한 씬의 capability 하나. **개수(`CapabilityCounts`)가 센 그 행이다.**
+ *
+ * `steps` 와 겹치되 같지 않다. 이쪽이 상위집합이고, 차이가 `not-a-step` 이다 — 조작이 없어 단독
+ * 명세가 될 수 없지만 given/then 의 재료로 실재하는 행이라, 인스펙터가 "그 나머지가 무엇인가"를
+ * 물으면 답이 있어야 한다.
+ *
+ * `status` · `origin` · `verification` 을 비롯한 축은 전부 평범한 문자열이다. 서버가 소유한 열린
+ * 어휘이고, 아는 값으로 좁혀 두면 서버가 값을 하나 늘리는 날 화면이 그 행을 다른 것으로 부른다.
+ * 아래 `capabilityOriginStyle` · `verificationStyle` 은 오직 배지 모양을 고를 때만 쓴다.
+ */
+export type SceneCapability = {
+  id: string
+  summary: string
+  /** `runnable` | `needs-probe` | `unreachable-precondition` | `not-a-step`, 그리고 무엇이든. */
+  status: string
+  /** `evidence` | `observed` | `inferred` | `human`. 어디서 알아냈나. */
+  origin: string
+  /** `unverified` | `confirmed` | `contradicted`. 실행으로 확인됐나. */
+  verification: string
+  /** 이 조작을 실제로 할 수 있나. */
+  actionability: string
+  /** 그 결과를 볼 수 있나. */
+  observability: string
+  /** 이 빌드에 이 규칙이 적용되나. */
+  applicability: string
+  /** `click` | `press` | `none` 등. 프로토콜 메서드가 아니라 의도다. */
+  interaction: string
+}
+
+/** 이 빌드가 이름을 아는 capability 출처. 목록 밖의 값은 서버 철자 그대로 보인다. */
+export const KNOWN_CAPABILITY_ORIGINS = ['evidence', 'observed', 'inferred', 'human'] as const
+
+export type KnownCapabilityOrigin = (typeof KNOWN_CAPABILITY_ORIGINS)[number]
+
+export type CapabilityOriginStyle = KnownCapabilityOrigin | 'unknown'
+
+export function capabilityOriginStyle(origin: string): CapabilityOriginStyle {
+  return (KNOWN_CAPABILITY_ORIGINS as readonly string[]).includes(origin)
+    ? (origin as KnownCapabilityOrigin)
+    : 'unknown'
+}
+
+/**
+ * 이 빌드가 이름을 아는 확인 상태.
+ *
+ * `unverified` 와 `contradicted` 를 절대 같은 모양으로 그리지 않는다. 앞은 "아직 안 해 봤다"이고
+ * 뒤는 "해 봤는데 아니었다"이다. 둘을 섞으면 커버리지 구멍과 실제 결함이 한 줄로 보인다.
+ */
+export const KNOWN_VERIFICATIONS = ['unverified', 'confirmed', 'contradicted'] as const
+
+export type KnownVerification = (typeof KNOWN_VERIFICATIONS)[number]
+
+export type VerificationStyle = KnownVerification | 'unknown'
+
+export function verificationStyle(verification: string): VerificationStyle {
+  return (KNOWN_VERIFICATIONS as readonly string[]).includes(verification)
+    ? (verification as KnownVerification)
+    : 'unknown'
+}
+
+/**
+ * 화면에서 화면으로 가는 전이 하나. **관측된 것만 있다.**
+ *
+ * 씬 전이(`SceneTransition`)로 대신할 수 없다. 팝업이 열리는 것처럼 씬 안에서만 일어나는 전이가
+ * 있고, 그런 전이는 씬 그래프에 자리가 없다.
+ *
+ * `crossesScene` 이 이 화면의 중첩 다이어그램에서 컨테이너 **안**의 선과 경계를 **넘는** 선을
+ * 가른다. 두 씬에 걸친 전이를 어느 씬 안에 접어 넣어도 반쪽이 되므로, 이 목록은 씬 밖 최상위에
+ * 그대로 선다.
+ */
+export type ScreenTransition = {
+  id: string
+  fromScreenId: string
+  toScreenId: string
+  /** null 이면 자동 전이다 — 타이머나 로딩 완료처럼 테스트 케이스가 지시할 수 없는 것. */
+  capabilityId: string | null
+  capabilitySummary: string | null
+  /** `action` | `state` | `auto`, 그리고 서버가 나중에 추가할 무엇이든. */
+  kind: string
+  /** 씬 경계를 넘었나. false 면 같은 씬 안의 상태 변화다. */
+  crossesScene: boolean
+  observedCount: number
+  firstSeenQaRunId: string | null
+}
+
+/** 이 빌드가 이름을 아는 화면 전이의 갈래. 목록 밖의 값은 서버 철자 그대로 보인다. */
+export const KNOWN_TRANSITION_KINDS = ['action', 'state', 'auto'] as const
+
+export type KnownTransitionKind = (typeof KNOWN_TRANSITION_KINDS)[number]
+
+export type TransitionKindStyle = KnownTransitionKind | 'unknown'
+
+export function transitionKindStyle(kind: string): TransitionKindStyle {
+  return (KNOWN_TRANSITION_KINDS as readonly string[]).includes(kind)
+    ? (kind as KnownTransitionKind)
+    : 'unknown'
+}
+
+/**
+ * 중첩 다이어그램에서 지금 고른 것.
+ *
+ * 네 갈래를 하나의 union 으로 두는 이유는 인스펙터(ARTEL-598)가 고른 것 하나만 받으면 되기
+ * 때문이다. 갈래마다 상태를 따로 들면 "씬과 전이가 동시에 골라진" 상태를 표현할 수 있게 되고,
+ * 그것은 이 화면에 없는 상태다.
+ */
+export type ContentMapSelection =
+  | { kind: 'scene'; id: string }
+  | { kind: 'screen'; id: string }
+  | { kind: 'sceneEdge'; id: string }
+  | { kind: 'screenTransition'; id: string }
+
+/** 두 선택이 같은 것을 가리키나. `null` 끼리도 같다. */
+export function sameSelection(
+  left: ContentMapSelection | null,
+  right: ContentMapSelection | null,
+): boolean {
+  if (left === null || right === null) return left === right
+  return left.kind === right.kind && left.id === right.id
+}
+
+export type ContentMapScene = {
+  id: string
+  name: string
+  /** QA 가 실제로 이 씬을 밟아 본 적이 있는지. */
+  walked: boolean
+  capabilities: CapabilityCounts
+  /**
+   * 이 씬에서 할 수 있는 조작들.
+   *
+   * `null` 과 빈 배열은 다른 사실이다. `null` 은 응답에 `steps` 절이 아예
+   * 없다는 뜻이고 — 이 절을 아직 보내지 않는 서버다 — 그때 화면은 그 절을
+   * 통째로 그리지 않는다. 빈 배열은 서버가 "이 씬에는 단계가 없다"고 말한
+   * 것이고, 그건 화면에 적을 값어치가 있는 사실이다.
+   */
+  steps: ContentMapStep[] | null
+  /** 대표 이미지. null 이면 서버가 이 씬에 대해 캡처를 말하지 않았다. */
+  thumbnail: SceneThumbnail | null
+  /**
+   * 이 씬에서 관측된 화면들. QA 런 전에는 비어 있고 그것이 정상이다 —
+   * 씬을 그리다 화면이 생기는 것이지, 화면이 없어 씬이 덜 그려지는 것이 아니다.
+   */
+  screens: ContentMapScreen[]
+  /**
+   * `capabilities` 가 센 그 행들.
+   *
+   * `steps` 와 달리 `not-a-step` 까지 전부 들어 있어 `capabilityList.length` 가
+   * `capabilities.total` 과 같다. 인스펙터가 capability id 하나로 `origin` 과 `verification` 을
+   * 되찾는 자리이고, 그 id 는 screen transition 이 들고 온다.
+   */
+  capabilityList: SceneCapability[]
+  /**
+   * 유니티 빌드 설정에서의 순번(ARTEL-1173). null 이면 서버가 모른다 — 빌드의 씬 스캔이 없거나, 이 필드를 아직 안
+   * 보내는 서버다. 지도와 tree 가 게임 시작 씬부터 이 순서로 선다.
+   */
+  buildOrder: number | null
+  /** 게임을 켜면 열리는 씬인가. 순환 그래프에서 지도가 어디서 출발할지를 이것이 정한다. */
+  entry: boolean
+}
+
+/**
+ * 씬에서 씬으로 가는 전이 하나.
+ *
+ * `toSceneId` 가 null 이면 목적지가 이름으로만 알려져 있다는 뜻이다 —
+ * 정적 분석이 씬 이름을 읽었지만 그 이름의 씬이 아직 콘텐츠 맵에 없다.
+ * 그 전이를 버리면 화면은 "이 씬에서 나가는 길이 없다"고 잘못 말하게 된다.
+ */
+export type SceneTransition = {
+  fromSceneId: string
+  toSceneName: string
+  toSceneId: string | null
+  capabilityId: string | null
+  /** `static` | `runtime`, 그리고 서버가 나중에 추가할 무엇이든. */
+  source: string
+  /** 런타임으로 확인된 시각. null 이면 아직 확인되지 않은 전이다. */
+  verifiedAt: string | null
+  /**
+   * 이 전이가 일어나는 조건. 단계 쪽 `given` 과 같은 트리다.
+   *
+   * null 은 "조건 없음"이 아니라 "조건 근거가 없음"이다. 자동 전이에는 기능이
+   * 없어 조건도 없고, 그 사실은 `always` 와 다르다.
+   */
+  given: ConditionNode | null
+}
+
+/** 이 빌드가 선 모양을 정해 둔 전이 출처. */
+export const KNOWN_EDGE_SOURCES = ['static', 'runtime'] as const
+
+export type KnownEdgeSource = (typeof KNOWN_EDGE_SOURCES)[number]
+
+/** 선을 어떤 패턴으로 그릴지. 모르는 출처는 하나의 정직한 갈래로 모은다. */
+export type EdgeSourceStyle = KnownEdgeSource | 'unknown'
+
+export function edgeSourceStyle(source: string): EdgeSourceStyle {
+  return (KNOWN_EDGE_SOURCES as readonly string[]).includes(source)
+    ? (source as KnownEdgeSource)
+    : 'unknown'
+}
+
+/**
+ * 서버가 기록한 결손 사유와 그 개수.
+ *
+ * `reason` 어휘는 아직 공개되지 않았다. 그래서 번역하지 않고 서버가 쓴
+ * 문자열을 그대로 보여 준다 — 추측한 라벨은 없는 뜻을 만들어 낸다.
+ */
+export type ContentMapGap = {
+  reason: string
+  count: number
+}
+
+export type ContentMapVerification = {
+  verified: number
+  total: number
+}
+
+/**
+ * 아직 콘텐츠 맵에 반영되지 않은 문서.
+ *
+ * `ingestFailedAt` 이 있으면 시도했다가 실패한 것이고, 없으면 아직 시도하지
+ * 않은 것이다. 두 사실은 사용자가 할 일이 다르므로 합치지 않는다.
+ */
+export type PendingDocument = {
+  documentId: string
+  receivedAt: string
+  ingestFailedAt: string | null
+  ingestError: string | null
+}
+
+/** `ScanState` 서버 값. `REQUESTED` 는 도는 중, `SUCCEEDED`·`FAILED` 는 끝났다. */
+export const SCAN_STATES = ['REQUESTED', 'SUCCEEDED', 'FAILED'] as const
+
+export type ScanState = (typeof SCAN_STATES)[number]
+
+/**
+ * 이 빌드에 마지막으로 시킨 원격 스캔. SSE `snapshot`·`scan` 이벤트로 온다.
+ *
+ * `null` 은 "스캔이 없었다"가 아니라 **"이 서버는 이 빌드의 스캔을 모른다"**는
+ * 뜻이다 — 이 값을 들고 있는 `ScanStatusRegistry` 가 프로세스 메모리에만
+ * 살아서, 서버가 재시작하면 사라진다. 화면은 이것을 영원한 진행 중으로
+ * 그리면 안 된다. 문서 적재 진행(`IngestProgress`, `ContentMapDocumentEvent`)은
+ * DB 에서 나오므로 재시작과 무관하게 그대로 남는다.
+ */
+export type LastScan = {
+  state: ScanState
+  gameInstanceId: string
+  gameInstanceName: string
+  requestedAt: string
+  /** 끝난 시각. `state` 가 `REQUESTED` 면 null 이다. */
+  finishedAt: string | null
+  ingestedDocuments: number | null
+  /** `state` 가 `FAILED` 일 때 사람에게 보여 줄 사유. */
+  error: string | null
+  /** "스캔하고 TC 생성" 으로 시킨 스캔의 TC 쪽 결과(ARTEL-1041). 그냥 스캔이면 null 이다. */
+  testCases: ScanTestCases | null
+  /** 지금(끝났으면 마지막으로) 지난 단계(ARTEL-1178). 단계를 모르는 옛 서버면 null 이다. */
+  phase: ScanPhase | null
+  /** 지금 단계의 몇 개 중 몇 개. `SCANNING` 이면 씬 수다. 게임이 알려 준 적이 없으면 null 이다. */
+  progress: ScanProgress | null
+}
+
+/**
+ * 스캔 하나가 지나가는 단계. 앞 둘은 게임이, 뒤 둘은 서버가 옮긴다. 진행을 안 보내는 옛 SDK 면 결과가 올 때까지
+ * `SCANNING` 에 머문다.
+ */
+export const SCAN_PHASES = ['SCANNING', 'UPLOADING', 'INGESTING', 'GENERATING_TEST_CASES'] as const
+
+export type ScanPhase = (typeof SCAN_PHASES)[number]
+
+export type ScanProgress = {
+  done: number
+  total: number
+  /** 지금 여는 씬. 모르면 null. */
+  scene: string | null
+}
+
+export const SCAN_TEST_CASE_STATES = ['PENDING', 'GENERATED', 'SKIPPED', 'FAILED'] as const
+
+/**
+ * 스캔 뒤 TC 생성의 결과. `PENDING` 은 스캔이 아직 안 끝났거나 스캔이 깨져 만들지 않았다는 뜻이고, `SKIPPED` 는 그사이
+ * 이 빌드의 TC 가 만들어져 건너뛰었다는 뜻이다.
+ */
+export type ScanTestCases = {
+  state: (typeof SCAN_TEST_CASE_STATES)[number]
+  created: number | null
+  carriedOver: number | null
+  reason: string | null
+}
+
+/** 스캔이 `REQUESTED` 상태로 흐른 시간(초). `finishedAt` 이 있으면 거기까지, 없으면 `nowMs` 까지. */
+export function scanElapsedSeconds(scan: LastScan, nowMs: number): number {
+  const endMs = scan.finishedAt !== null ? Date.parse(scan.finishedAt) : nowMs
+  const startMs = Date.parse(scan.requestedAt)
+  if (Number.isNaN(startMs) || Number.isNaN(endMs)) return 0
+  return Math.max(0, Math.floor((endMs - startMs) / 1000))
+}
+
+/**
+ * 문서 적재 진행. SSE `snapshot`·`ingest` 이벤트로 온다.
+ *
+ * 서버는 퍼센트를 만들지 않는다 — 분모(`receivedDocuments`)가 스캔이 도는
+ * 동안 계속 늘어서, 서버가 계산한 순간 이미 낡기 때문이다. 이 두 수만 받아
+ * 화면이 자기가 그리는 시점의 값으로 비율을 만든다.
+ */
+export type IngestProgress = {
+  receivedDocuments: number
+  ingestedDocuments: number
+  failedDocuments: number
+}
+
+/** 문서 한 행의 적재 상태 세 갈래. */
+export type DocumentIngestState = 'pending' | 'ingested' | 'failed'
+
+/**
+ * SSE 로 받는 문서 한 행. `PendingDocument`(REST) 와 달리 `ingestedAt` 을 들고
+ * 있어서, 이미 적재된 문서도 같은 모양으로 그릴 수 있다 — `snapshot` 의
+ * `documents` 는 이 빌드의 `content_map_document` 행 전부이고, 아직 적재되지
+ * 않은 것만 담는 `PendingDocument` 의 상위집합이다.
+ */
+export type ContentMapDocumentEvent = {
+  documentId: string
+  receivedAt: string
+  ingestedAt: string | null
+  ingestFailedAt: string | null
+  ingestError: string | null
+}
+
+/** `ingestedAt` 과 `ingestFailedAt` 으로 세 갈래를 가른다. */
+export function documentIngestState(document: ContentMapDocumentEvent): DocumentIngestState {
+  if (document.ingestedAt !== null) return 'ingested'
+  if (document.ingestFailedAt !== null) return 'failed'
+  return 'pending'
+}
+
+/**
+ * `.../content-map/events` 구독의 연결 상태. `DESIGN.md` 의 `## States` 사다리와
+ * 같은 어휘다(connecting → live → degraded → offline). `useQaTry.ts` 의
+ * `QaStreamState` 와 같은 뜻이지만, ARTEL-761 의 SSE 훅과 공유하지 않기 위해
+ * 이 파일에 따로 둔다.
+ */
+export type ContentMapStreamState = 'connecting' | 'live' | 'degraded' | 'offline'
+
+/**
+ * 콘텐츠 맵 자체의 머리말.
+ *
+ * `ingestedAt === null` 은 "업로드는 됐지만 아직 읽히지 않았다"는 뜻이고,
+ * 이 객체 전체가 null 인 것(= 한 번도 올린 적 없음)과 다른 상태다.
+ */
+export type ContentMapHeader = {
+  id: string
+  /** 캡처 식별자. 형식이 명세에 없어 문자열로 두고 그대로 보여 준다. */
+  capture: string
+  schemaVersion: string
+  evidenceDigest: string
+  unity: string | null
+  platform: string | null
+  sdkVersion: string | null
+  ingestedAt: string | null
+}
+
+/** `GET .../content-map` 가 돌려주는 것 전부. */
+export type ContentMapView = {
+  contentMap: ContentMapHeader | null
+  scenes: ContentMapScene[]
+  edges: SceneTransition[]
+  /**
+   * 화면 전이. 씬 안에 접히지 않고 최상위에 선다 — `crossesScene` 인 전이는 두 씬에 걸쳐
+   * 있어 어느 씬에 넣어도 반쪽이 된다.
+   */
+  screenTransitions: ScreenTransition[]
+  gaps: ContentMapGap[]
+  verification: ContentMapVerification
+  pendingDocuments: PendingDocument[]
+}
+
+/** 씬 여럿의 능력 집계를 하나로 더한다. */
+export function sumCapabilities(scenes: readonly ContentMapScene[]): CapabilityCounts {
+  const total: CapabilityCounts = {
+    total: 0,
+    runnable: 0,
+    needsProbe: 0,
+    notAStep: 0,
+    unreachablePrecondition: 0,
+  }
+
+  for (const scene of scenes) {
+    total.total += scene.capabilities.total
+    for (const status of KNOWN_CAPABILITY_STATUSES) {
+      total[status] += scene.capabilities[status]
+    }
+  }
+
+  return total
+}
