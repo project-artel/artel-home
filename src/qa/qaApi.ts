@@ -446,19 +446,12 @@ export async function listQaVerdicts(qaTryId: string, signal?: AbortSignal): Pro
   })
 }
 
-export async function listQaPreviewUrls(qaTryId: string, signal?: AbortSignal): Promise<string[]> {
-  const response = await apiFetch(`${qaPath(qaTryId, '/logs')}?types=SCREENSHOT&size=8`, { signal })
+export async function getQaRunThumbnail(qaRunId: string, signal?: AbortSignal): Promise<Blob | null> {
+  const response = await apiFetch(`/api/qa-runs/${encodeURIComponent(qaRunId)}/thumbnail`, { signal })
+  if (response.status === 204 || response.status === 404) return null
   if (!response.ok) throw await toApiError(response)
-  const items = asRecord(await readJson(response))?.items
-  if (!Array.isArray(items)) return []
-
-  return items.slice().reverse().flatMap((item) => {
-    const log = asRecord(item)
-    const capture = asRecord(log?.payload)
-    const url = capture?.url
-    return log?.type === 'SCREENSHOT' && capture?.targetId == null &&
-      typeof url === 'string' && /^https?:\/\//i.test(url) ? [url] : []
-  })
+  if (response.headers.get('content-type') !== 'image/jpeg') return null
+  return response.blob()
 }
 
 export async function listQaLogs(

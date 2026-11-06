@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { usePolling } from '../live/usePolling'
 import { listProjectQaRuns, type QaRunSummary } from '../qa/launch/qaLaunchApi'
-import { getQaRun, listQaPreviewUrls } from '../qa/qaApi'
+import { getQaRunThumbnail } from '../qa/qaApi'
 import { qaRunPath } from '../qa/qaTypes'
 import type { ProjectSummary } from './projectTypes'
 import './runningQa.css'
@@ -95,8 +95,8 @@ export function RunningQaSection({ projects }: { projects: readonly ProjectSumma
 }
 
 function QaPreview({ runId }: { runId: string }) {
-  const [urls, setUrls] = useState<string[]>([])
-  const [failed, setFailed] = useState<ReadonlySet<string>>(() => new Set())
+  const [frame, setFrame] = useState<Blob | null>(null)
+  const [url, setUrl] = useState<string | null>(null)
   const request = useRef<AbortController | null>(null)
 
   const refresh = useCallback(async () => {
@@ -104,15 +104,8 @@ function QaPreview({ runId }: { runId: string }) {
     const controller = new AbortController()
     request.current = controller
     try {
-      const run = await getQaRun(runId, controller.signal)
-      const active = run.tries.find((entry) => entry.status === 'RUNNING')
-      const attempt = active ?? run.tries.slice().reverse().find((entry) => entry.completedAt !== null)
-      if (attempt === undefined) return
-      const next = await listQaPreviewUrls(attempt.id, controller.signal)
-      if (!controller.signal.aborted && next.length > 0) {
-        setUrls(next)
-        setFailed(new Set())
-      }
+      const next = await getQaRunThumbnail(runId, controller.signal)
+      if (!controller.signal.aborted) setFrame(next)
     } catch {
       // 다음 polling까지 마지막 썸네일을 유지한다.
     } finally {
@@ -130,14 +123,21 @@ function QaPreview({ runId }: { runId: string }) {
   }, [refresh])
   usePolling(refresh, 15_000)
 
-  const url = urls.find((candidate) => !failed.has(candidate))
+  useEffect(() => {
+    const objectUrl = frame === null ? null : URL.createObjectURL(frame)
+    const update = window.setTimeout(() => setUrl(objectUrl), 0)
+    return () => {
+      window.clearTimeout(update)
+      if (objectUrl !== null) URL.revokeObjectURL(objectUrl)
+    }
+  }, [frame])
   return (
     <span className="running-qa-preview" aria-hidden="true">
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
         <path d="M7 7h10c2 0 3 1.5 3.5 4l.8 4.5c.5 2.5-1.6 3.2-3.1 1.7L16 15H8l-2.2 2.2c-1.5 1.5-3.6.8-3.1-1.7l.8-4.5C4 8.5 5 7 7 7Z" />
         <path d="M7.5 10v4m-2-2h4m5.5 0h.01m3-1.5h.01" />
       </svg>
-      {url !== undefined && <img alt="" loading="lazy" src={url} onError={() => setFailed((current) => new Set([...current, url]))} />}
+      {url !== null && <img alt="" src={url} onError={() => setUrl(null)} />}
     </span>
   )
 }

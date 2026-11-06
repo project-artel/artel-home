@@ -3,7 +3,7 @@ import test from 'node:test'
 import { ProjectApiError } from '../projects/projectApi'
 import {
   listGameBuildQaRuns,
-  listQaPreviewUrls,
+  getQaRunThumbnail,
   parseQaLog,
   parseQaModels,
   parseQaRun,
@@ -14,22 +14,16 @@ import {
 } from './qaApi'
 import { toArchRequest } from './qaArch'
 
-test('QA 썸네일은 전체 화면 캡처를 최신순으로 반환한다', async () => {
+test('QA 썸네일은 JPEG 한 장을 읽고 프레임이 없으면 null을 반환한다', async () => {
   const originalFetch = globalThis.fetch
-  globalThis.fetch = async (input) => {
-    assert.match(String(input), /\/api\/qa-tries\/41\/logs\?types=SCREENSHOT&size=8$/)
-    return Response.json({ items: [
-      { type: 'SCREENSHOT', payload: { url: 'https://example.com/older.jpg' } },
-      { type: 'SCREENSHOT', payload: { url: 'https://example.com/cropped.jpg', targetId: 'button' } },
-      { type: 'SCREENSHOT', payload: { url: 'https://example.com/latest.jpg' } },
-      { type: 'SCREENSHOT', payload: { url: 'javascript:void(0)' } },
-    ] })
-  }
   try {
-    assert.deepEqual(await listQaPreviewUrls('41'), [
-      'https://example.com/latest.jpg',
-      'https://example.com/older.jpg',
-    ])
+    globalThis.fetch = async (input) => {
+      assert.match(String(input), /\/api\/qa-runs\/41\/thumbnail$/)
+      return new Response('frame', { headers: { 'content-type': 'image/jpeg' } })
+    }
+    assert.equal(await (await getQaRunThumbnail('41'))?.text(), 'frame')
+    globalThis.fetch = async () => new Response(null, { status: 204 })
+    assert.equal(await getQaRunThumbnail('41'), null)
   } finally {
     globalThis.fetch = originalFetch
   }
