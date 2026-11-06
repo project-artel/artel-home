@@ -7,7 +7,7 @@ export const releaseEn = {
   ownerOnly: 'Only the project owner changes these numbers.',
   columns: { criterion: 'Criterion', number: 'Number', now: (version: string) => `Now · ${version}` },
   gates: {
-    pending: { name: 'Not judged', rule: 'Test Cases in this build never judged' },
+    pending: { name: 'Not verified', rule: 'Test Cases in this build never judged' },
     regression: { name: 'Regressions', rule: 'passed in the previous version, fail in this one' },
     passRate: { name: 'Pass rate', rule: 'share of judged Test Cases that passed' },
     blockers: { name: 'Blocker · Critical issues', rule: 'open Blocker · Critical issues from this build’s QA' },
@@ -54,7 +54,7 @@ export const releaseKo: Localized<typeof releaseEn> = {
   ownerOnly: '숫자는 프로젝트 OWNER 만 바꿉니다.',
   columns: { criterion: '기준', number: '숫자', now: (version: string) => `지금 · ${version}` },
   gates: {
-    pending: { name: '판정 전 TC', rule: '이 빌드에서 한 번도 판정 안 된 TC' },
+    pending: { name: '미검증 TC', rule: '이 빌드에서 한 번도 판정 안 된 TC' },
     regression: { name: '회귀', rule: '앞 버전에서 통과했는데 이번에 실패한 TC' },
     passRate: { name: '통과율', rule: '판정한 TC 중 통과 비율' },
     blockers: { name: 'Blocker · Critical 이슈', rule: '이 빌드의 QA 에서 나온 안 닫힌 Blocker · Critical 이슈' },
@@ -89,8 +89,8 @@ export const releaseKo: Localized<typeof releaseEn> = {
   },
   levels: { verifying: '검증 중', candidate: '출시 후보', ready: '출시 가능' },
   levelRules: {
-    verifying: '판정 전 TC 가 기준보다 많음',
-    candidate: '판정 전 TC 는 기준 안, 다른 기준 미달',
+    verifying: '미검증 TC 가 기준보다 많음',
+    candidate: '미검증 TC 는 기준 안, 다른 기준 미달',
     ready: '다섯 기준 모두 충족',
   },
 }
