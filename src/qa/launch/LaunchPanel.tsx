@@ -383,7 +383,7 @@ export function LaunchPanel({
 
         <div className="ql-field" ref={modelField}>
           <label className="ql-field-label" htmlFor={modelSelectId}>{l.agentLabel}</label>
-          <QaModelPicker disabled={models.length === 0} id={modelSelectId} models={models} onChange={onModelChange} popoverWidth={460} projectKeySettings={`${sectionHref(projectId, 'settings')}?tab=llm-keys`} value={modelKey} />
+          <QaModelPicker disabled={models.length === 0} id={modelSelectId} models={models} onChange={onModelChange} popoverWidth={460} projectKeySettings={sectionHref(projectId, 'api')} value={modelKey} />
           {model !== null && reasoning === null && <p className="qa-reasoning-unavailable">{p.reasoningUnavailable}</p>}
         </div>
 

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
 import { SettingsScreenFill, SettingsTabs, type SettingsTab } from '../../layouts/SettingsTabs'
-import { BuildSketch, ModelChipSketch, ReviewSketch, TerminalSketch, TrackerSketch } from '../../emptyStates/sketches'
+import { BuildSketch, ModelChipSketch, ReviewSketch, TrackerSketch } from '../../emptyStates/sketches'
 import { useActionBinding, useFieldBinding } from '../../projectAgent/bindings'
 import { requireKnownId } from '../../projectAgent/specs/fieldWriters'
 import {
@@ -22,7 +22,6 @@ import { GENRES, type Genre, type ProjectDetail, type ProjectDraft } from '../pr
 import { TrackerLinkPanel } from '../../tracker/TrackerLinkPanel'
 import { ReviewSettingsPanel } from '../../issues/discussions/ReviewSettingsPanel'
 import '../../issues/discussions/discussions.css'
-import { LlmKeysPanel } from '../../account/LlmKeysPanel'
 import { ProjectAgentModelPanel } from './ProjectAgentModelPanel'
 import { sectionHref } from './sections'
 import { useWorkspace } from './workspaceContext'
@@ -44,7 +43,7 @@ function toDraft(project: ProjectDetail): ProjectDraft {
  * in a form.
  */
 export function SettingsSection() {
-  const { applyProject, builds, coverage, documents, models, openIssues, project, reloadExtras, runs, trackerLink, tries } = useWorkspace()
+  const { applyProject, builds, coverage, documents, models, openIssues, project, runs, trackerLink, tries } = useWorkspace()
   const [draft, setDraft] = useState<ProjectDraft>(() => toDraft(project))
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [failure, setFailure] = useState<string | null>(null)
@@ -321,17 +320,6 @@ export function SettingsSection() {
         <>
           <ProjectAgentModelPanel canEdit={owner} models={models} projectId={project.id} />
           <SettingsScreenFill body={w.settingsScreens.agent} sketch={<ModelChipSketch />} title={t.projectAgent.model.projectTitle} />
-        </>
-      ),
-    },
-    {
-      // 프로젝트 키(ARTEL-1393). API 관리가 사용량이 되면서 이리로 옮겼다. QA 모델 고르기의 "프로젝트 키 관리" 가 이 탭을 연다.
-      id: 'llm-keys',
-      label: t.account.llmKeys.title,
-      content: (
-        <>
-          <LlmKeysPanel canManage={owner} key={project.id} note={t.usage.api.keysScope} onChange={reloadExtras} projectId={project.id} />
-          <SettingsScreenFill body={w.settingsScreens.llmKeys} sketch={<TerminalSketch />} title={t.account.llmKeys.title} />
         </>
       ),
     },

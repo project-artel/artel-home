@@ -608,7 +608,6 @@ export const projectsEn = {
       tracker: 'Connect a GitHub repository so QA issues open there, and pick which severities sync on their own.',
       review: 'How many members must approve before an issue’s review is done.',
       agent: 'The model the project agent uses to author scenarios and answer in chat.',
-      llmKeys: 'The provider keys this project\'s QA runs on. The owner registers them; a member can link a personal key.',
     },
     settingsStats: {
       cases: 'Test Cases',
@@ -645,7 +644,7 @@ export const projectsEn = {
       issues: 'Issues',
       knowledge: 'Knowledge graph',
       setup: 'Setup guide',
-      usage: 'Usage',
+      usage: 'API management',
       members: 'Members',
       settings: 'Settings',
     },
@@ -1245,7 +1244,6 @@ export const projectsKo: Localized<typeof projectsEn> = {
       tracker: 'GitHub 저장소를 연결하면 QA 이슈가 그곳에 열리고, 어떤 심각도를 저절로 올릴지 고를 수 있습니다.',
       review: '이슈 검토를 끝내려면 멤버 몇 명이 승인해야 하는지 정합니다.',
       agent: '프로젝트 agent 가 시나리오를 쓰고 대화에 답할 때 쓰는 모델입니다.',
-      llmKeys: '이 프로젝트의 QA 가 쓰는 제공사 키입니다. OWNER 가 등록하고, 멤버는 개인 키를 연결할 수 있습니다.',
     },
     settingsStats: {
       cases: 'Test Case',
@@ -1282,7 +1280,7 @@ export const projectsKo: Localized<typeof projectsEn> = {
       issues: '이슈',
       knowledge: '지식 그래프',
       setup: '설치 안내',
-      usage: '사용량',
+      usage: 'API 관리',
       members: '멤버',
       settings: '설정',
     },
