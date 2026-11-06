@@ -121,10 +121,21 @@ columns, keys, or object paths — and what the next consumer reads back. Prefer
 real values taken from a fixture, a test, or a local run over invented ones, and
 say which they are. "It is persisted" is not an example; the row is.
 
-**Screens.** Embed a screenshot for every state the change introduces, not just
-the successful one. Capture against a running stack whenever the screen can
-reach one — a screenshot of mock data proves the component renders, not that the
-contract holds. Commit the images into the repository, under
+**Screens.** Capture the complete running application through its normal route
+for every state the change introduces, not just the successful one. Keep the
+real application shell, navigation, adjacent panels, and changed interaction
+visible at the target viewport size. Do not substitute isolated component
+renders, standalone preview pages, Storybook/mock screens, or component-only
+crops. Use the running stack and actual service data when available. If test
+fixtures or seeded rows are needed, keep the actual application and routing,
+and disclose the data setup; do not rebuild a separate screen.
+
+Attach these full-application screenshots before treating a UI PR as complete.
+Fix connection or authentication failures instead of skipping screenshots or
+replacing the application with a separate rendering. If the environment remains
+blocked, keep the PR draft and state the missing evidence explicitly.
+
+Commit the images into the repository, under
 `.plan/assets/<plan-name>/` where the repository keeps plans, and link them with
 a `raw.githubusercontent.com` address pinned to the commit hash. A
 repository-relative path does not render inside a pull request body, and an
