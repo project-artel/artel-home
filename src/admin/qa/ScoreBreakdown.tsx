@@ -47,8 +47,8 @@ export function ScoreBreakdown({ cells }: { cells: QaStatsCell[] }) {
           </InfoHint>
         </h2>
         <span className="topbar__spacer" />
-        <span className="field">
-          <label className="field__label" htmlFor={axisFieldId}>
+        <span className="admin-field">
+          <label className="admin-field__label" htmlFor={axisFieldId}>
             {t.score.axis}
           </label>
           <select

@@ -42,12 +42,12 @@ export default function LabelsPage() {
 
   return (
     <div className="shell">
-      <main className="main">
+      <div className="main">
         <p className="section__note section__note--block">{t.adminLabels.intro}</p>
         <ProjectPicker projects={projects} value={projectId} onChange={setProjectId} />
         {error && <p className="notice notice--critical">{t.admin.states.loadFailed}</p>}
         {projectId !== null && <ProjectLabels key={projectId} projectId={projectId} />}
-      </main>
+      </div>
     </div>
   )
 }
