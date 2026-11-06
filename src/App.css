@@ -13493,6 +13493,8 @@ body:has(.dialog-scrim) .qa-notice-stack { visibility: hidden; }
 .qa-notice-pill--passed { color: var(--color-status-success); border-color: color-mix(in srgb, var(--color-status-success) 55%, transparent); }
 .qa-notice-pill--failed { color: var(--color-status-critical); border-color: color-mix(in srgb, var(--color-status-critical) 55%, transparent); }
 .qa-notice-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.qa-notice--done { border-left-color: var(--color-status-success); }
+.qa-notice--done .qa-notice-head svg { color: var(--color-status-success); }
 
 /* 상단바 알림함(ARTEL-1255). 버튼은 테마 버튼과 같은 네모, 펼침 칸은 QA 모델 고르기 창과 같은 판. */
 .qa-bell { position: relative; }

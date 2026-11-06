@@ -131,6 +131,7 @@ function parseScenario(data: unknown, status: number): TestScenario {
     testScenarioId,
     projectId: asNumber(record?.projectId),
     payload: parseScenarioDraft(record?.payload),
+    reviewStatus: record?.reviewStatus === 'DRAFT' ? 'DRAFT' : 'READY',
   }
 }
 

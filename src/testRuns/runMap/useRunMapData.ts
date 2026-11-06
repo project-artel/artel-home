@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useProjectChange } from '../../live/useProjectChange'
+import { REVIEW_NOTICES_CHANGED } from '../../testCases/reviewNoticeApi'
 import { getTestScenario } from '../../testScenarios/scenarioApi'
 import type { ScenarioDraft } from '../../testScenarios/scenarioTypes'
 import { useProjectCases } from '../../testScenarios/useProjectCases'
@@ -21,6 +22,7 @@ export function useRunMapData(projectId: string, runId: string, keepLocalMap: ()
   const [run, setRun] = useState<TestRun | null>(null)
   const [order, setOrder] = useState<string[]>([])
   const [drafts, setDrafts] = useState<Record<string, ScenarioDraft>>({})
+  const [reviewPendingIds, setReviewPendingIds] = useState<ReadonlySet<string>>(new Set())
   const [map, setMap] = useState<RunMap>(EMPTY_RUN_MAP)
   const keepRef = useRef(keepLocalMap)
   useEffect(() => {
@@ -40,6 +42,7 @@ export function useRunMapData(projectId: string, runId: string, keepLocalMap: ()
     setRun(result.run)
     setOrder(result.ids)
     setDrafts(result.drafts)
+    setReviewPendingIds(result.reviewPendingIds)
     if (result.map !== null && !(quiet && keepRef.current())) setMap(result.map)
     setStatus('ready')
   }, [])
@@ -57,6 +60,12 @@ export function useRunMapData(projectId: string, runId: string, keepLocalMap: ()
   }, [projectId, runId, apply])
 
   useProjectChange(projectId, 'TEST_RUNS', () => void load(undefined, true))
+  // 변경 스트림이 끊겨 있어도 이 탭에서 승인한 시나리오의 표시가 사라지게 한다.
+  useEffect(() => {
+    const reload = () => void load(undefined, true)
+    window.addEventListener(REVIEW_NOTICES_CHANGED, reload)
+    return () => window.removeEventListener(REVIEW_NOTICES_CHANGED, reload)
+  }, [load])
 
   const cases = useProjectCases(projectId, status === 'ready', run?.gameBuild?.gameBuildId ?? null)
   const sceneOfCase = useMemo(() => {
@@ -69,22 +78,36 @@ export function useRunMapData(projectId: string, runId: string, keepLocalMap: ()
     [order, drafts, sceneOfCase],
   )
 
-  return { status, run, order, setOrder, drafts, setDrafts, scenarios, map, setMap, cases, reload: load }
+  return { status, run, order, setOrder, drafts, setDrafts, reviewPendingIds, scenarios, map, setMap, cases, reload: load }
 }
 
-type Loaded = { run: TestRun | null; ids: string[]; drafts: Record<string, ScenarioDraft>; map: RunMap | null }
+type Loaded = {
+  run: TestRun | null
+  ids: string[]
+  drafts: Record<string, ScenarioDraft>
+  /** 아직 승인되지 않은 TS. 승인 대기는 TS 본문이 아니라 TS 의 상태라 [drafts] 와 따로 둔다. */
+  reviewPendingIds: ReadonlySet<string>
+  map: RunMap | null
+}
 
 /** 런 · 구성 · TS 본문 · 맵을 한 번에 읽는다. 읽지 못하면 null, 런이 없으면 run 이 null. */
 async function readAll(projectId: string, runId: string, signal?: AbortSignal): Promise<Loaded | null> {
   try {
     const [run, items] = await Promise.all([getTestRun(projectId, runId, signal), getRunScenarios(projectId, runId, signal)])
-    if (run === null) return { run: null, ids: [], drafts: {}, map: null }
+    if (run === null) return { run: null, ids: [], drafts: {}, reviewPendingIds: new Set(), map: null }
     const ids = [...items].sort((a, b) => a.position - b.position).map((item) => item.testScenarioId)
     const [loaded, map] = await Promise.all([
-      Promise.all(ids.map((id) => getTestScenario(Number(id), signal).then((s) => [id, s.payload] as const).catch(() => null))),
+      Promise.all(ids.map((id) => getTestScenario(Number(id), signal).then((scenario) => ({ id, scenario })).catch(() => null))),
       getRunMap(projectId, runId, signal).catch(() => null),
     ])
-    return { run, ids, drafts: Object.fromEntries(loaded.filter((entry) => entry !== null)), map }
+    const scenarios = loaded.filter((entry) => entry !== null)
+    return {
+      run,
+      ids,
+      drafts: Object.fromEntries(scenarios.map(({ id, scenario }) => [id, scenario.payload])),
+      reviewPendingIds: new Set(scenarios.filter(({ scenario }) => scenario.reviewStatus === 'DRAFT').map(({ id }) => id)),
+      map,
+    }
   } catch {
     return null
   }

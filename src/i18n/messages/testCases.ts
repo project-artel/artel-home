@@ -293,6 +293,8 @@ export const testCasesEn = {
     stale: (count: number) => `${count} changed after you read them. Check the new content and decide again.`,
     cancel: 'Cancel',
     rejectCopy: (count: number) => `${count} Test Case(s) will be deleted. This can't be undone.`,
+    approved: (count: number) => `Approved ${count} Test Case(s).`,
+    rejected: (count: number) => `Rejected and deleted ${count} Test Case(s).`,
     close: 'Close',
   },
   review: {
@@ -981,6 +983,8 @@ export const testCasesKo: Localized<typeof testCasesEn> = {
     stale: (count: number) => `${count}건은 읽은 뒤 내용이 바뀌었습니다. 새 내용을 확인하고 다시 결정해 주세요.`,
     cancel: '취소',
     rejectCopy: (count: number) => `Test Case ${count}건을 삭제합니다. 되돌릴 수 없습니다.`,
+    approved: (count: number) => `Test Case ${count}건을 승인했습니다.`,
+    rejected: (count: number) => `Test Case ${count}건을 거절하고 삭제했습니다.`,
     close: '닫기',
   },
   review: {

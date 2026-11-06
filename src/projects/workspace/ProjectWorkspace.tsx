@@ -250,8 +250,9 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
       {dock.enabled && !dockOpen && !pageHostsChat && <AgentReopenButton onOpen={dock.openChat} />}
       {/* 오른쪽 아래 알림은 한 줄로 쌓는다. 비어 있으면 자리를 차지하지 않는다. */}
       <div aria-live="polite" className="qa-notice-stack">
-        <CaseReviewNotice projectId={projectId} />
-        <ScenarioReviewNotice projectId={projectId} />
+        {/* 접은 상태는 프로젝트마다 따로다. */}
+        <CaseReviewNotice key={`case-review-${projectId}`} projectId={projectId} />
+        <ScenarioReviewNotice key={`scenario-review-${projectId}`} projectId={projectId} />
         <QaFinishedNotice projectId={projectId} />
       </div>
     </div>

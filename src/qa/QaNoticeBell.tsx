@@ -3,6 +3,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { formatDate, formatElapsedSeconds } from '../projects/formatters'
+import { pendingReviewCount, REVIEW_NOTICES_OPEN, type ReviewNotice } from '../testCases/reviewNoticeApi'
+import { useReviewNotices } from '../testCases/useReviewNotices'
 import {
   listQaNotices,
   QA_NOTICES_CHANGED,
@@ -22,7 +24,10 @@ const DAY_MS = 24 * 60 * 60 * 1000
  * 상단바 알림함(ARTEL-1255). 내가 시작한 QA 실행이 끝난 것을 프로젝트를 가리지 않고 모아 둔다. 오른쪽 아래 끝
  * 알림([QaFinishedNotice])은 그대로 뜨고, 닫거나 놓친 것이 여기에 남는다. 읽음은 서버에 남아 다른 기기에서도 같다.
  *
- * 따로 폴링하지 않는다. 처음 그릴 때, 창이 다시 앞으로 올 때, 열 때, 끝 알림이 새로 떴을 때 다시 읽는다.
+ * QA 알림은 따로 폴링하지 않는다. 처음 그릴 때, 창이 다시 앞으로 올 때, 열 때, 끝 알림이 새로 떴을 때 다시 읽는다.
+ *
+ * 내가 승인을 요청한 Test Case 와 시나리오도 프로젝트별로 맨 위에 보인다. 프로젝트에 들어가기 전에도 대기 건을 알 수 있게 하려는 것이다.
+ * 읽음이 없어 승인하거나 거절할 때까지 남는다.
  */
 export function QaNoticeBell() {
   const { t } = useI18n()
@@ -31,6 +36,7 @@ export function QaNoticeBell() {
   const rootRef = useRef<HTMLDivElement>(null)
   const [open, setOpen] = useState(false)
   const [notices, setNotices] = useState<QaNotices>({ items: [], unreadCount: 0 })
+  const reviews = useReviewNotices()
   // "몇 분 전" 의 기준. 다시 읽을 때마다 고친다.
   const [now, setNow] = useState(() => Date.now())
 
@@ -83,6 +89,12 @@ export function QaNoticeBell() {
     navigate(qaNoticeTarget(notice.projectId, notice.run))
   }
 
+  function goToReview(notice: ReviewNotice) {
+    setOpen(false)
+    navigate(`/projects/${encodeURIComponent(notice.projectId)}`)
+    window.dispatchEvent(new CustomEvent(REVIEW_NOTICES_OPEN, { detail: notice.projectId }))
+  }
+
   function when(completedAt: string): string {
     const elapsed = now - Date.parse(completedAt)
     if (!(elapsed < DAY_MS)) return formatDate(completedAt)
@@ -96,15 +108,20 @@ export function QaNoticeBell() {
   }
 
   const unread = notices.unreadCount
+  const pendingReviews = pendingReviewCount(reviews.notices)
+  const attention = unread + pendingReviews
   return (
     <div className="qa-bell" ref={rootRef}>
       <button
         aria-expanded={open}
         aria-haspopup="dialog"
-        aria-label={unread > 0 ? copy.labelUnread(unread) : copy.label}
+        aria-label={pendingReviews > 0 ? copy.labelPending(unread, pendingReviews) : unread > 0 ? copy.labelUnread(unread) : copy.label}
         className={'theme-toggle qa-bell-button' + (open ? ' is-open' : '')}
         onClick={() => {
-          if (!open) reload()
+          if (!open) {
+            reload()
+            reviews.reload()
+          }
           setOpen(!open)
         }}
         type="button"
@@ -113,14 +130,14 @@ export function QaNoticeBell() {
           <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
           <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
         </svg>
-        {unread > 0 && <span aria-hidden="true" className="qa-bell-badge">{unread > 99 ? '99+' : unread}</span>}
+        {attention > 0 && <span aria-hidden="true" className="qa-bell-badge">{attention > 99 ? '99+' : attention}</span>}
       </button>
 
       {open && (
         <div aria-label={copy.title} className="qa-bell-popover" role="dialog">
           <div className="qa-bell-head">
             <b>{copy.title}</b>
-            {unread > 0 && <span className="qa-bell-count">{unread}</span>}
+            {attention > 0 && <span className="qa-bell-count">{attention}</span>}
             {unread > 0 && (
               <button
                 className="qa-bell-readall"
@@ -134,11 +151,25 @@ export function QaNoticeBell() {
               </button>
             )}
           </div>
-          {notices.items.length === 0 ? (
+          {notices.items.length === 0 && reviews.notices.length === 0 ? (
             <p className="qa-bell-empty">{copy.empty}</p>
           ) : (
             <>
               <ul className="qa-bell-list">
+                {reviews.notices.map((notice) => (
+                  <li key={`review-${notice.projectId}`}>
+                    <button className="qa-bell-item" onClick={() => goToReview(notice)} type="button">
+                      <span aria-hidden="true" className="qa-bell-dot" />
+                      <span className="qa-bell-body">
+                        <span className="qa-bell-name">{copy.reviewPending(notice.projectName)}</span>
+                        <span className="qa-notice-stats">
+                          {notice.testCaseCount > 0 && <span className="qa-notice-pill">{copy.reviewCases(notice.testCaseCount)}</span>}
+                          {notice.scenarioCount > 0 && <span className="qa-notice-pill">{copy.reviewScenarios(notice.scenarioCount)}</span>}
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                ))}
                 {notices.items.map((notice) => {
                   const { run } = notice
                   const ms = runDuration(run)
@@ -170,7 +201,7 @@ export function QaNoticeBell() {
                   )
                 })}
               </ul>
-              <p className="qa-bell-foot">{copy.foot}</p>
+              {notices.items.length > 0 && <p className="qa-bell-foot">{copy.foot}</p>}
             </>
           )}
         </div>
