@@ -17,6 +17,7 @@ import { isLocale, LOCALE_LABELS, LOCALES } from '../i18n/locale'
 import { useI18n } from '../i18n/useI18n'
 import { SettingsScreenFill, SettingsTabs } from '../layouts/SettingsTabs'
 import { DisplaySketch, IdCardSketch, MailSketch, TerminalSketch } from '../emptyStates/sketches'
+import { AccountApiTab } from '../usage/ApiSection'
 import { useCliTokens } from '../auth/useCliTokens'
 import { listLlmKeys } from './llmKeyApi'
 import { listProjects } from '../projects/projectApi'
@@ -65,8 +66,8 @@ export function AccountSettingsPage() {
         </div>
       </header>
 
-      {/* 왼쪽 탭 + 오른쪽 한 화면(ARTEL-1380). 칸은 예전 그대로이고 탭마다 하나씩 선다. LLM API 키는 프로젝트의
-          API 관리로 옮겼다(ARTEL-1379) — 탭 아래에 그 길을 남긴다. */}
+      {/* 왼쪽 탭 + 오른쪽 한 화면(ARTEL-1380). 칸은 예전 그대로이고 탭마다 하나씩 선다. LLM API 키와 모델 지출은
+          API 관리 탭에 있다(ARTEL-1393). */}
       <SettingsTabs
         label={copy.tocLabel}
         tabs={[
@@ -104,6 +105,11 @@ export function AccountSettingsPage() {
                 <SettingsScreenFill body={copy.screens.preferences} sketch={<DisplaySketch />} title={copy.preferences.title} />
               </>
             ),
+          },
+          {
+            id: 'api',
+            label: t.usage.api.tab,
+            content: <AccountApiTab />,
           },
           {
             id: 'cli-tokens',
@@ -590,9 +596,7 @@ function useMyProjects(): { items: ProjectSummary[]; total: number } | null {
   return state
 }
 
-function keysHref(project: ProjectSummary): string {
-  return `/projects/${encodeURIComponent(project.id)}/api`
-}
+const KEYS_HREF = '/account?tab=api'
 
 /** 프로필 탭 머리(ARTEL-1380). 큰 머리 + 숫자 칸으로 화면을 채운다. 값은 이미 있는 API(프로젝트 · 키 · CLI 토큰)만 쓴다. */
 function ProfileOverview({ user }: { user: AuthUser }) {
@@ -610,7 +614,6 @@ function ProfileOverview({ user }: { user: AuthUser }) {
   }, [])
   const avatar = user.identities.find((identity) => identity.avatarUrl !== null)?.avatarUrl ?? null
   const owned = projects?.items.filter((project) => project.myRole === 'OWNER').length ?? 0
-  const first = projects?.items[0] ?? null
 
   return (
     <>
@@ -642,19 +645,11 @@ function ProfileOverview({ user }: { user: AuthUser }) {
           <span className="settings-stat-value">{projects === null ? '—' : projects.total}</span>
           <span className="settings-stat-sub">{copy.stats.projectsSub(owned)}</span>
         </div>
-        {first !== null ? (
-          <Link className="settings-stat" to={keysHref(first)}>
-            <span className="settings-stat-label">{copy.stats.llmKeys}</span>
-            <span className="settings-stat-value">{keyCount === null ? '—' : keyCount}</span>
-            <span className="settings-stat-sub">{copy.stats.llmKeysSub} ›</span>
-          </Link>
-        ) : (
-          <div className="settings-stat">
-            <span className="settings-stat-label">{copy.stats.llmKeys}</span>
-            <span className="settings-stat-value">{keyCount === null ? '—' : keyCount}</span>
-            <span className="settings-stat-sub">{copy.stats.llmKeysSub}</span>
-          </div>
-        )}
+        <Link className="settings-stat" to={KEYS_HREF}>
+          <span className="settings-stat-label">{copy.stats.llmKeys}</span>
+          <span className="settings-stat-value">{keyCount === null ? '—' : keyCount}</span>
+          <span className="settings-stat-sub">{copy.stats.llmKeysSub} ›</span>
+        </Link>
         <div className="settings-stat">
           <span className="settings-stat-label">{copy.stats.cliTokens}</span>
           <span className="settings-stat-value">{cli.status === 'ready' ? cli.tokens.length : '—'}</span>

@@ -1,105 +1,262 @@
-import { Navigate, useLocation } from 'react-router-dom'
-import type { ReactNode } from 'react'
+import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
+import { useEffect, useState, type ReactNode } from 'react'
 import { LlmKeysPanel } from '../account/LlmKeysPanel'
 import { ProviderLogo } from '../qa/launch/ProviderLogo'
+import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
-import { useWorkspace } from '../projects/workspace/workspaceContext'
+import { listProjects } from '../projects/projectApi'
+import type { Genre, ProjectSummary } from '../projects/projectTypes'
 import { formatCost, totalTokens } from './format'
 import { dayAt, dayTokens, toDateKey, type GrassDay, type GrassGrid } from './grass'
-import { serviceLabel, type UsageTotals } from './usageApi'
+import { serviceLabel, type ProjectUsage, type UsageTotals } from './usageApi'
 import { UsageGrass } from './UsageGrass'
-import { useProjectUsage } from './useProjectUsage'
+import { useUsage, type ProjectUsageRead } from './useProjectUsage'
 
 const compact = new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 })
 const percents = new Intl.NumberFormat(undefined, { style: 'percent', maximumFractionDigits: 1 })
 
 /**
- * API 관리(ARTEL-1379). 예전 "사용량" 화면(모델 지출)과 계정 설정에 있던 LLM API 키를 한 화면에 둔다. 위는 키와 기능별
- * 지출 그래프, 가운데는 최근 12주 잔디를 칸 크기에 맞게 키워 남는 높이를 받고, 아래는 기능별 · 모델별 표다.
+ * 계정 설정의 API 관리 탭(ARTEL-1393). 예전(ARTEL-1379)에는 프로젝트 사이드바 밑에 있었지만, LLM API 키는 계정 단위라
+ * 계정 설정으로 옮겼다. 위는 키, 아래는 모델 지출 — 왼쪽 프로젝트 목록에서 누르면 오른쪽에 그 프로젝트의 금액이 자세히
+ * 나온다. 목록은 볼 수 있는 전 프로젝트 합산을 한 번 읽어 `byProject` 로 그리고, 고른 프로젝트만 따로 읽는다.
+ * 고른 프로젝트는 주소(`?project=`)에 남는다.
  */
-export function ApiSection() {
+export function AccountApiTab() {
   const { t } = useI18n()
   const a = t.usage.api
   const u = t.usage
-  const { projectId } = useWorkspace()
-  const { status, usage, grid, today } = useProjectUsage(projectId)
+  const [params, setParams] = useSearchParams()
+  const selected = params.get('project')
+  const overall = useUsage(null)
+  const [listScroller, setListScroller] = useState<HTMLDivElement | null>(null)
+  const projects = useMyProjectList()
+  const pick = (projectId: string | null) =>
+    setParams(
+      (next) => {
+        if (projectId === null) next.delete('project')
+        else next.set('project', projectId)
+        return next
+      },
+      { replace: true },
+    )
+
+  const rows = projectRows(overall.usage, projects)
+  const current = rows.find((row) => row.projectId === selected) ?? null
 
   return (
-    <div className="api-page">
-      <div className="api-top">
-        <LlmKeysPanel note={a.keysScope} />
-        <section aria-labelledby="api-share-title" className="panel api-share">
-          <header className="panel-header">
-            <h2 id="api-share-title">{a.spendTitle}</h2>
-          </header>
-          {status === 'loading' && <ShareSkeleton />}
-          {status === 'error' && <p className="panel-empty">{u.loadFailed}</p>}
-          {status === 'ready' && usage !== null && <FeatureShare byService={usage.byService} total={usage.total} />}
-        </section>
-      </div>
-
-      {status === 'loading' && <SpendSkeleton label={u.loading} />}
-
-      {status === 'ready' && usage !== null && grid !== null && (
-        <>
-          <section aria-labelledby="api-overview-title" className="panel api-overview">
-            <header className="panel-header">
-              <h2 id="api-overview-title">
-                {u.sectionTitle}
-                <InfoHint>{u.sectionSubtitle(usage.zone)}</InfoHint>
-              </h2>
-            </header>
-            {usage.total.calls === 0 ? (
-              <p className="panel-empty">{u.nothingYet}</p>
+    <div className="api-page api-page--account">
+      <LlmKeysPanel note={a.keysScope} />
+      <section aria-labelledby="api-spend-title" className="panel api-spend">
+        <header className="panel-header">
+          <h2 id="api-spend-title">
+            {a.spendSection}
+            <InfoHint>{u.sectionSubtitle(overall.usage?.zone ?? Intl.DateTimeFormat().resolvedOptions().timeZone)}</InfoHint>
+          </h2>
+          <span className="api-spend-hint">{a.spendHint}</span>
+        </header>
+        <div className="api-spend-body">
+          <div className="api-projects-frame">
+          <span aria-hidden="true" className="api-projects-caption">
+            {a.projectsCaption}
+          </span>
+          <div className="api-projects-scroll" ref={setListScroller}>
+          <ul aria-label={a.projectsCaption} className="api-projects">
+            {overall.status === 'loading' ? (
+              [0, 1, 2].map((row) => (
+                <li className="api-project api-project--skeleton" key={row}>
+                  <span className="skeleton-line" />
+                  <span className="skeleton-line skeleton-line--short" />
+                </li>
+              ))
             ) : (
-              <div className="usage-overview">
-                <div className="usage-overview-grass">
-                  <UsageGrass grid={grid} zone={usage.zone} />
-                </div>
-                <SpendFigures grid={grid} today={today} total={usage.total} />
-              </div>
+              <>
+                <ProjectRow
+                  name={a.allProjects}
+                  onPick={() => pick(null)}
+                  selected={current === null}
+                  share={1}
+                  totals={overall.usage?.total ?? null}
+                />
+                {rows.map((row) => (
+                  <ProjectRow
+                    genre={row.genre}
+                    key={row.projectId}
+                    name={row.name}
+                    onPick={() => pick(row.projectId)}
+                    selected={row.projectId === current?.projectId}
+                    share={shareOf(row.totals, overall.usage?.total ?? null)}
+                    totals={row.totals}
+                  />
+                ))}
+              </>
             )}
-          </section>
-
-          <div className="usage-breakdowns">
-            <SpendTable
-              axis={u.featureAxis}
-              note={u.embeddingNote}
-              rows={usage.byService.map((cell) => ({
-                key: cell.service,
-                label: serviceLabel(cell.service, u.services),
-                sub: cell.service,
-                icon: <FeatureIcon service={cell.service} />,
-                totals: cell.totals,
-              }))}
-              title={u.byFeature}
-              total={usage.total}
-            />
-            <SpendTable
-              axis={u.modelAxis}
-              rows={usage.byModel.map((cell) => ({
-                key: `${cell.provider}/${cell.model}`,
-                label: cell.model,
-                sub: cell.provider,
-                // 모델 제공사 로고. bedrock 처럼 중개 이름이면 모델 이름에서 회사를 읽는다(ProviderLogo 가 포함으로 찾는다).
-                icon: <ProviderLogo provider={`${cell.provider} ${cell.model}`} size={20} />,
-                totals: cell.totals,
-              }))}
-              title={u.byModel}
-              total={usage.total}
-            />
+          </ul>
           </div>
-        </>
-      )}
+          <EdgeScrollbar label={a.projectsCaption} scroller={listScroller} side="right" />
+          </div>
+          <div className="api-spend-detail">
+            <div className="api-spend-detail-head">
+              <b>{current?.name ?? a.allProjects}</b>
+              {current?.genre && <span className="badge">{t.projects.genreLabels[current.genre]}</span>}
+              <span className="api-spend-window">{a.window}</span>
+              {current !== null && (
+                <Link className="api-spend-open" to={`/projects/${encodeURIComponent(current.projectId)}`}>
+                  {a.openProject}
+                </Link>
+              )}
+            </div>
+            {current === null ? (
+              <SpendDetail read={overall} />
+            ) : (
+              <ProjectSpend key={current.projectId} projectId={current.projectId} />
+            )}
+          </div>
+        </div>
+      </section>
     </div>
   )
 }
 
-/** 옛 주소 `…/usage` 를 새 주소로 넘긴다. 북마크와 다른 화면의 링크가 계속 산다. */
-export function UsageRedirect() {
-  const { search } = useLocation()
-  return <Navigate replace to={`../api${search}`} />
+type ProjectRowData = { projectId: string; name: string; genre: Genre | null; totals: UsageTotals | null }
+
+/** 지출이 있는 프로젝트(`byProject`)와 내가 속한 프로젝트를 합친다. 지출이 없는 프로젝트도 0 으로 보인다. 많이 쓴 것부터. */
+function projectRows(usage: ProjectUsage | null, projects: readonly ProjectSummary[] | null): ProjectRowData[] {
+  const byId = new Map<string, ProjectRowData>()
+  for (const cell of usage?.byProject ?? []) byId.set(cell.projectId, { projectId: cell.projectId, name: cell.projectName, genre: null, totals: cell.totals })
+  for (const project of projects ?? []) {
+    const known = byId.get(project.id)
+    byId.set(project.id, { projectId: project.id, name: project.name, genre: project.genre, totals: known?.totals ?? null })
+  }
+  const cost = (row: ProjectRowData) => row.totals?.costUsd ?? 0
+  const tokens = (row: ProjectRowData) => (row.totals ? totalTokens(row.totals) : 0)
+  return [...byId.values()].sort((x, y) => cost(y) - cost(x) || tokens(y) - tokens(x) || x.name.localeCompare(y.name))
+}
+
+/** 목록은 금액 목록이라 비중도 금액으로 잰다. 금액을 모르는 호출만 있으면 토큰으로 잰다. */
+function shareOf(totals: UsageTotals | null, all: UsageTotals | null): number {
+  if (totals === null || all === null) return 0
+  if (all.costUsd !== null && all.costUsd > 0) return (totals.costUsd ?? 0) / all.costUsd
+  const whole = totalTokens(all)
+  return whole === 0 ? 0 : totalTokens(totals) / whole
+}
+
+function ProjectRow({
+  name,
+  genre,
+  totals,
+  share,
+  selected,
+  onPick,
+}: {
+  name: string
+  genre?: Genre | null
+  totals: UsageTotals | null
+  share: number
+  selected: boolean
+  onPick: () => void
+}) {
+  const { t } = useI18n()
+  const u = t.usage
+  return (
+    <li>
+      <button aria-pressed={selected} className={selected ? 'api-project is-selected' : 'api-project'} onClick={onPick} type="button">
+        <span className="api-project-name">
+          <b>{name}</b>
+          {genre && <span className="badge">{t.projects.genreLabels[genre]}</span>}
+        </span>
+        <b className="api-project-cost mono">{totals === null ? formatCost(0, u.costUnknown) : formatCost(totals.costUsd, u.costUnknown)}</b>
+        <span className="api-project-share">
+          <span aria-hidden="true" className="api-table-bar">
+            <span className="api-fill-0" style={{ width: `${Math.round(share * 100)}%` }} />
+          </span>
+          <span className="mono">
+            {percents.format(share)} · {t.usage.api.calls(totals?.calls ?? 0)}
+          </span>
+        </span>
+      </button>
+    </li>
+  )
+}
+
+function ProjectSpend({ projectId }: { projectId: string }) {
+  return <SpendDetail read={useUsage(projectId)} />
+}
+
+/** 고른 범위(전체 또는 프로젝트 하나)의 금액: 기능별 도넛 · 잔디 · 숫자 칸 · 기능별 / 모델별 표. 예전 API 관리 화면의 칸 그대로다. */
+function SpendDetail({ read }: { read: ProjectUsageRead }) {
+  const { t } = useI18n()
+  const u = t.usage
+  const { status, usage, grid, today } = read
+  if (status === 'loading')
+    return (
+      <>
+        <ShareSkeleton />
+        <SpendSkeleton label={u.loading} />
+      </>
+    )
+  if (status === 'error' || usage === null || grid === null) return <p className="panel-empty">{u.loadFailed}</p>
+  if (usage.total.calls === 0) return <p className="panel-empty">{t.usage.api.noSpend}</p>
+  return (
+    <>
+      <div className="api-spend-overview">
+        <div className="usage-overview-grass">
+          <UsageGrass grid={grid} zone={usage.zone} />
+        </div>
+        <div className="api-spend-side">
+          <FeatureShare byService={usage.byService} total={usage.total} />
+          <SpendFigures grid={grid} today={today} total={usage.total} />
+        </div>
+      </div>
+      <div className="usage-breakdowns">
+        <SpendTable
+          axis={u.featureAxis}
+          note={u.embeddingNote}
+          rows={usage.byService.map((cell) => ({
+            key: cell.service,
+            label: serviceLabel(cell.service, u.services),
+            sub: cell.service,
+            icon: <FeatureIcon service={cell.service} />,
+            totals: cell.totals,
+          }))}
+          title={u.byFeature}
+          total={usage.total}
+        />
+        <SpendTable
+          axis={u.modelAxis}
+          rows={usage.byModel.map((cell) => ({
+            key: `${cell.provider}/${cell.model}`,
+            label: cell.model,
+            sub: cell.provider,
+            // 모델 제공사 로고. bedrock 처럼 중개 이름이면 모델 이름에서 회사를 읽는다(ProviderLogo 가 포함으로 찾는다).
+            icon: <ProviderLogo provider={`${cell.provider} ${cell.model}`} size={20} />,
+            totals: cell.totals,
+          }))}
+          title={u.byModel}
+          total={usage.total}
+        />
+      </div>
+    </>
+  )
+}
+
+function useMyProjectList(): ProjectSummary[] | null {
+  const [projects, setProjects] = useState<ProjectSummary[] | null>(null)
+  useEffect(() => {
+    const controller = new AbortController()
+    listProjects({ page: 0, size: 100, signal: controller.signal })
+      .then((page) => setProjects(page.items))
+      .catch(() => setProjects([]))
+    return () => controller.abort()
+  }, [])
+  return projects
+}
+
+/** 옛 주소 `…/api` · `…/usage` 를 계정 설정 API 관리 탭으로 넘긴다(ARTEL-1393). 북마크와 다른 화면의 링크가 계속 산다. */
+export function ApiRedirect() {
+  const { projectId } = useParams()
+  const query = projectId ? `&project=${encodeURIComponent(projectId)}` : ''
+  return <Navigate replace to={`/account?tab=api${query}`} />
 }
 
 /**
