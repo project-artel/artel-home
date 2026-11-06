@@ -446,6 +446,21 @@ export async function listQaVerdicts(qaTryId: string, signal?: AbortSignal): Pro
   })
 }
 
+export async function listQaPreviewUrls(qaTryId: string, signal?: AbortSignal): Promise<string[]> {
+  const response = await apiFetch(`${qaPath(qaTryId, '/logs')}?types=SCREENSHOT&size=8`, { signal })
+  if (!response.ok) throw await toApiError(response)
+  const items = asRecord(await readJson(response))?.items
+  if (!Array.isArray(items)) return []
+
+  return items.slice().reverse().flatMap((item) => {
+    const log = asRecord(item)
+    const capture = asRecord(log?.payload)
+    const url = capture?.url
+    return log?.type === 'SCREENSHOT' && capture?.targetId == null &&
+      typeof url === 'string' && /^https?:\/\//i.test(url) ? [url] : []
+  })
+}
+
 export async function listQaLogs(
   qaTryId: string,
   beforeId?: string,

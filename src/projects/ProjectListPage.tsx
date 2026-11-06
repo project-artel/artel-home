@@ -11,6 +11,7 @@ import { formatDate } from './formatters'
 import { InvitationInbox } from './InvitationInbox'
 import { ProjectCover } from './ProjectCover'
 import { ProjectCreateDialog } from './ProjectCreateDialog'
+import { RunningQaSection } from './RunningQaSection'
 import { arrangeProjects, pageCount, pageSlice, type ProjectSort } from './projectPaging'
 import type { ProjectSummary } from './projectTypes'
 import { useFavoriteProjects } from './useFavoriteProjects'
@@ -85,6 +86,8 @@ export function ProjectListPage() {
         </div>
         <ArtelMarkIntro />
       </header>
+
+      {status === 'ready' && <RunningQaSection projects={projects} />}
 
       <div className="screen-toolbar">
         <h2 className="screen-toolbar-title">

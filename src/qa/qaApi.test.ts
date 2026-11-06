@@ -3,6 +3,7 @@ import test from 'node:test'
 import { ProjectApiError } from '../projects/projectApi'
 import {
   listGameBuildQaRuns,
+  listQaPreviewUrls,
   parseQaLog,
   parseQaModels,
   parseQaRun,
@@ -12,6 +13,27 @@ import {
   qaStartConflict,
 } from './qaApi'
 import { toArchRequest } from './qaArch'
+
+test('QA 썸네일은 전체 화면 캡처를 최신순으로 반환한다', async () => {
+  const originalFetch = globalThis.fetch
+  globalThis.fetch = async (input) => {
+    assert.match(String(input), /\/api\/qa-tries\/41\/logs\?types=SCREENSHOT&size=8$/)
+    return Response.json({ items: [
+      { type: 'SCREENSHOT', payload: { url: 'https://example.com/older.jpg' } },
+      { type: 'SCREENSHOT', payload: { url: 'https://example.com/cropped.jpg', targetId: 'button' } },
+      { type: 'SCREENSHOT', payload: { url: 'https://example.com/latest.jpg' } },
+      { type: 'SCREENSHOT', payload: { url: 'javascript:void(0)' } },
+    ] })
+  }
+  try {
+    assert.deepEqual(await listQaPreviewUrls('41'), [
+      'https://example.com/latest.jpg',
+      'https://example.com/older.jpg',
+    ])
+  } finally {
+    globalThis.fetch = originalFetch
+  }
+})
 
 const QA_TRY_FIELDS = {
   id: '41',
