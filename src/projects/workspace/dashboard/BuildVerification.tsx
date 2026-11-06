@@ -10,7 +10,7 @@ import {
 } from '../../../release/releaseApi'
 import { daysToFinish, evaluateRelease, judgedOf, RELEASE_LEVELS, type Gate, type ReleaseLevel } from '../../../release/releaseModel'
 import { SketchEmpty } from '../../../emptyStates/SketchEmpty'
-import { BuildSketch } from '../../../emptyStates/sketches'
+import { CalendarSketch } from '../../../emptyStates/sketches'
 import { sectionHref } from '../sections'
 import { useWidth } from './useWidth'
 
@@ -85,7 +85,7 @@ export function BuildVerification({
       {waiting ? (
         <VerificationSkeleton title={m.title} />
       ) : gameBuildId === null ? (
-        <SketchEmpty body={m.noVersionBody} compact sketch={<BuildSketch />} title={m.noVersion} />
+        <SketchEmpty body={m.noVersionBody} compact sketch={<CalendarSketch />} title={m.noVersion} />
       ) : loaded.status === 'loading' || criteria.status === 'loading' ? (
         <VerificationSkeleton title={m.title} />
       ) : loaded.status === 'failed' || criteria.status === 'failed' ? (
@@ -104,7 +104,7 @@ export function BuildVerification({
           }
           body={m.emptyVersionBody(versionName)}
           compact
-          sketch={<BuildSketch />}
+          sketch={<CalendarSketch />}
           title={m.emptyVersion}
         />
       ) : (
