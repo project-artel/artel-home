@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
-import { SettingsLayout, type SettingsTocItem } from '../../layouts/SettingsLayout'
+import { SettingsScreenFill, SettingsTabs, type SettingsTab } from '../../layouts/SettingsTabs'
+import { BuildSketch, ModelChipSketch, ReviewSketch, TrackerSketch } from '../../emptyStates/sketches'
 import { useActionBinding, useFieldBinding } from '../../projectAgent/bindings'
 import { requireKnownId } from '../../projectAgent/specs/fieldWriters'
 import {
@@ -22,6 +23,7 @@ import { TrackerLinkPanel } from '../../tracker/TrackerLinkPanel'
 import { ReviewSettingsPanel } from '../../issues/discussions/ReviewSettingsPanel'
 import '../../issues/discussions/discussions.css'
 import { ProjectAgentModelPanel } from './ProjectAgentModelPanel'
+import { sectionHref } from './sections'
 import { useWorkspace } from './workspaceContext'
 
 function toDraft(project: ProjectDetail): ProjectDraft {
@@ -41,7 +43,7 @@ function toDraft(project: ProjectDetail): ProjectDraft {
  * in a form.
  */
 export function SettingsSection() {
-  const { applyProject, models, project } = useWorkspace()
+  const { applyProject, builds, coverage, documents, models, openIssues, project, runs, trackerLink, tries } = useWorkspace()
   const [draft, setDraft] = useState<ProjectDraft>(() => toDraft(project))
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [failure, setFailure] = useState<string | null>(null)
@@ -171,22 +173,84 @@ export function SettingsSection() {
     },
   })
 
-  const tocItems: SettingsTocItem[] = [
-    { targetId: 'information-title', label: t.projects.workspace.generalTitle },
-    { targetId: 'tracker-title', label: t.tracker.panel.title },
-    { targetId: 'review-settings-title', label: t.projects.workspace.reviewToc },
+  const w = t.projects.workspace
+  const owner = project.myRole === 'OWNER'
+  const qaRunIds = new Set(tries.map((qaTry) => qaTry.qaRunId))
+  const failedRuns = new Set(tries.filter((qaTry) => qaTry.status === 'FAILED').map((qaTry) => qaTry.qaRunId))
+  const latestBuild = [...builds].sort((left, right) => right.createdAt.localeCompare(left.createdAt))[0] ?? null
+  const stats = [
+    { key: 'testCases', label: w.settingsStats.cases, value: coverage.total, sub: w.settingsStats.casesSub(coverage.authored), path: 'test-cases' },
+    { key: 'testRuns', label: w.settingsStats.runs, value: runs.length, sub: w.settingsStats.runsSub(builds.length), path: 'test-runs' },
+    { key: 'qaHistory', label: w.settingsStats.qa, value: qaRunIds.size, sub: w.settingsStats.qaSub(failedRuns.size), path: 'qa-history' },
+    { key: 'issues', label: w.settingsStats.issues, value: openIssues.length, sub: null, path: 'issues' },
+    { key: 'documents', label: w.settingsStats.documents, value: documents.length, sub: null, path: 'documents' },
   ]
-  if (project.myRole === 'OWNER') tocItems.push({ targetId: 'danger-title', label: t.projects.workspace.dangerTitle, tone: 'danger' })
 
-  // 왼쪽 목차 + 칸 격자(ARTEL-1208). 칸은 예전 그대로다.
-  return (
-    <SettingsLayout items={tocItems} label={t.projects.workspace.settingsTocLabel}>
-      <section className="panel settings-wide" aria-labelledby="information-title">
-        <header className="panel-header panel-header--split">
-          <h2 id="information-title">{t.projects.workspace.generalTitle}</h2>
-          {/* Read first, edit on request: a form left permanently open makes
-              the whole screen read as unsaved work. */}
-          {!editing && (
+  // 일반 탭(ARTEL-1380). 읽을 때는 큰 머리 + 숫자 칸 + 정보 표로 화면을 채우고, 고칠 때는 예전 폼 그대로다.
+  const general = (
+    <>
+      <section className="panel" aria-labelledby="information-title">
+        {editing ? (
+          <>
+            <header className="panel-header panel-header--split">
+              <h2 id="information-title">{w.generalTitle}</h2>
+            </header>
+            <form onSubmit={save} noValidate>
+              {failure !== null && (
+                <div className="inline-error" role="alert">
+                  <span aria-hidden="true">!</span>
+                  {failure}
+                </div>
+              )}
+
+              <ProjectForm
+                draft={draft}
+                onChange={setDraft}
+                fieldErrors={fieldErrors}
+                disabled={saving}
+              >
+                <div className="form-actions">
+                  <button
+                    className="button button--secondary"
+                    disabled={saving}
+                    onClick={cancelEditing}
+                    type="button"
+                  >
+                    {t.projects.shared.cancel}
+                  </button>
+                  <button
+                    className="button button--primary"
+                    data-agent-target="settings.save"
+                    disabled={!dirty || saving || draft.name.trim().length === 0}
+                    type="submit"
+                  >
+                    {saving ? t.projects.shared.saving : t.projects.shared.saveChanges}
+                  </button>
+                </div>
+              </ProjectForm>
+            </form>
+          </>
+        ) : (
+          <div className="settings-hero">
+            <span aria-hidden="true" className="settings-hero-mark">{project.name.slice(0, 1).toUpperCase()}</span>
+            <div className="settings-hero-body">
+              <div className="settings-hero-name">
+                <h2 id="information-title">{project.name}</h2>
+                <span className="badge">{t.projects.genreLabels[project.genre]}</span>
+              </div>
+              <p className="settings-hero-desc">
+                {project.description !== null && project.description.length > 0 ? (
+                  project.description
+                ) : (
+                  <span className="detail-empty">{t.projects.detail.noDescription}</span>
+                )}
+              </p>
+              <span className="settings-hero-meta">
+                {t.projects.detail.createdField} {formatDate(project.createdAt)} · {t.projects.roles[project.myRole]}
+              </span>
+            </div>
+            {/* Read first, edit on request: a form left permanently open makes
+                the whole screen read as unsaved work. */}
             <button
               className="button button--secondary button--compact"
               data-agent-target="settings.edit"
@@ -195,94 +259,102 @@ export function SettingsSection() {
             >
               {t.projects.shared.edit}
             </button>
-          )}
-        </header>
-
-        {editing ? (
-          <form onSubmit={save} noValidate>
-            {failure !== null && (
-              <div className="inline-error" role="alert">
-                <span aria-hidden="true">!</span>
-                {failure}
-              </div>
-            )}
-
-            <ProjectForm
-              draft={draft}
-              onChange={setDraft}
-              fieldErrors={fieldErrors}
-              disabled={saving}
-            >
-              <div className="form-actions">
-                <button
-                  className="button button--secondary"
-                  disabled={saving}
-                  onClick={cancelEditing}
-                  type="button"
-                >
-                  {t.projects.shared.cancel}
-                </button>
-                <button
-                  className="button button--primary"
-                  data-agent-target="settings.save"
-                  disabled={!dirty || saving || draft.name.trim().length === 0}
-                  type="submit"
-                >
-                  {saving ? t.projects.shared.saving : t.projects.shared.saveChanges}
-                </button>
-              </div>
-            </ProjectForm>
-          </form>
-        ) : (
-          <dl className="detail-fields">
-            <dt>{t.projects.shared.nameLabel}</dt>
-            <dd>{project.name}</dd>
-
-            <dt>{t.projects.form.genreLabel}</dt>
-            <dd>{t.projects.genreLabels[project.genre]}</dd>
-
-            <dt>{t.projects.form.descriptionLabel}</dt>
-            <dd>
-              {project.description !== null && project.description.length > 0 ? (
-                project.description
-              ) : (
-                <span className="detail-empty">{t.projects.detail.noDescription}</span>
-              )}
-            </dd>
-
-            <dt>{t.projects.detail.createdField}</dt>
-            <dd>{formatDate(project.createdAt)}</dd>
-          </dl>
+          </div>
         )}
-
         <p aria-live="polite" className="visually-hidden">{announcement}</p>
       </section>
 
-      <TrackerLinkPanel />
+      <div className="settings-stats">
+        {stats.map((stat) => (
+          <Link className="settings-stat" key={stat.key} to={sectionHref(project.id, stat.path)}>
+            <span className="settings-stat-label">{stat.label}</span>
+            <span className="settings-stat-value">{stat.value}</span>
+            {stat.sub !== null && <span className="settings-stat-sub">{stat.sub}</span>}
+          </Link>
+        ))}
+      </div>
 
-      <ProjectAgentModelPanel canEdit={project.myRole === 'OWNER'} models={models} projectId={project.id} />
+      <section className="panel" aria-labelledby="settings-facts-title">
+        <header className="panel-header">
+          <h2 id="settings-facts-title">{w.settingsFacts.title}</h2>
+        </header>
+        <dl className="settings-facts">
+          <div><dt>{t.projects.shared.nameLabel}</dt><dd>{project.name}</dd></div>
+          <div><dt>{t.projects.form.genreLabel}</dt><dd>{t.projects.genreLabels[project.genre]}</dd></div>
+          <div><dt>{w.settingsFacts.id}</dt><dd className="mono">{project.id}</dd></div>
+          <div><dt>{t.projects.detail.createdField}</dt><dd>{formatDate(project.createdAt)}</dd></div>
+          <div><dt>{w.settingsFacts.latestBuild}</dt><dd className="mono">{latestBuild === null ? w.settingsFacts.noBuild : (latestBuild.label ?? latestBuild.version)}</dd></div>
+          <div><dt>{w.settingsFacts.tracker}</dt><dd>{trackerLink?.repository ?? w.settingsFacts.trackerNone}</dd></div>
+        </dl>
+      </section>
+      <SettingsScreenFill body={w.settingsScreens.general} sketch={<BuildSketch />} title={w.generalTitle} />
+    </>
+  )
 
-      <ReviewSettingsPanel canEdit={project.myRole === 'OWNER'} projectId={project.id} />
+  const tabs: SettingsTab[] = [
+    { id: 'general', label: w.generalTitle, content: general },
+    {
+      id: 'tracker',
+      label: t.tracker.panel.title,
+      content: (
+        <>
+          <TrackerLinkPanel />
+          <SettingsScreenFill body={w.settingsScreens.tracker} sketch={<TrackerSketch />} title={t.tracker.panel.title} />
+        </>
+      ),
+    },
+    {
+      id: 'review',
+      label: w.reviewToc,
+      content: (
+        <>
+          <ReviewSettingsPanel canEdit={owner} projectId={project.id} />
+          <SettingsScreenFill body={w.settingsScreens.review} sketch={<ReviewSketch />} title={w.reviewToc} />
+        </>
+      ),
+    },
+    {
+      id: 'agent',
+      label: t.projectAgent.model.projectTitle,
+      content: (
+        <>
+          <ProjectAgentModelPanel canEdit={owner} models={models} projectId={project.id} />
+          <SettingsScreenFill body={w.settingsScreens.agent} sketch={<ModelChipSketch />} title={t.projectAgent.model.projectTitle} />
+        </>
+      ),
+    },
+  ]
+  // Members have no path to becoming an owner in this release, so a
+  // disabled control would be permanently dead UI.
+  if (owner) {
+    tabs.push({
+      id: 'danger',
+      label: w.dangerTitle,
+      tone: 'danger',
+      content: (
+        <>
+          <section className="panel panel--danger" aria-labelledby="danger-title">
+            <header className="panel-header">
+              <h2 id="danger-title">{w.dangerTitle}</h2>
+            </header>
+            <p className="section-intro">{w.dangerCopy}</p>
+            <button
+              className="button button--danger-quiet"
+              data-agent-target="settings.delete"
+              onClick={() => setDeleting(true)}
+              type="button"
+            >
+              {t.projects.detail.deleteProject}
+            </button>
+          </section>
+        </>
+      ),
+    })
+  }
 
-      {/* Members have no path to becoming an owner in this release, so a
-          disabled control would be permanently dead UI. */}
-      {project.myRole === 'OWNER' && (
-        <section className="panel panel--danger settings-wide" aria-labelledby="danger-title">
-          <header className="panel-header">
-            <h2 id="danger-title">{t.projects.workspace.dangerTitle}</h2>
-          </header>
-          <p className="section-intro">{t.projects.workspace.dangerCopy}</p>
-          <button
-            className="button button--danger-quiet"
-            data-agent-target="settings.delete"
-            onClick={() => setDeleting(true)}
-            type="button"
-          >
-            {t.projects.detail.deleteProject}
-          </button>
-        </section>
-      )}
-
+  return (
+    <>
+      <SettingsTabs label={w.settingsTocLabel} tabs={tabs} />
       {deleting && (
         <DeleteProjectDialog
           onClose={() => setDeleting(false)}
@@ -291,6 +363,7 @@ export function SettingsSection() {
           projectName={project.name}
         />
       )}
-    </SettingsLayout>
+    </>
   )
 }
+

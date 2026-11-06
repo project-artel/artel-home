@@ -1,4 +1,5 @@
-import { useId, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { LlmKeysPanel } from './LlmKeysPanel'
 import { AuthApiError, registerEmail, updateMyLocale, updateMyProfile, verifyEmail } from '../auth/authApi'
 import {
@@ -15,8 +16,12 @@ import { useAuth } from '../auth/useAuth'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { isLocale, LOCALE_LABELS, LOCALES } from '../i18n/locale'
 import { useI18n } from '../i18n/useI18n'
-import { SettingsLayout } from '../layouts/SettingsLayout'
-
+import { SettingsScreenFill, SettingsTabs } from '../layouts/SettingsTabs'
+import { DisplaySketch, IdCardSketch, MailSketch, ModelChipSketch, TerminalSketch } from '../emptyStates/sketches'
+import { useCliTokens } from '../auth/useCliTokens'
+import { listLlmKeys } from './llmKeyApi'
+import { listProjects } from '../projects/projectApi'
+import type { ProjectSummary } from '../projects/projectTypes'
 
 type ProfileFormDraft = {
   nickname: string
@@ -61,27 +66,68 @@ export function AccountSettingsPage() {
         </div>
       </header>
 
-      {/* 왼쪽 목차 + 칸 격자(ARTEL-1208). 칸은 예전 그대로이고, 언어를 고르는 환경 칸이 더해졌다. */}
-      <SettingsLayout
-        items={[
-          { targetId: 'profile-title', label: copy.profile.title },
-          { targetId: 'email-title', label: copy.email.title },
-          { targetId: 'preferences-title', label: copy.preferences.title },
-          { targetId: 'llm-keys-title', label: copy.llmKeys.title },
-          { targetId: 'cli-tokens-title', label: copy.cliTokens.title },
-        ]}
+      {/* 왼쪽 탭 + 오른쪽 한 화면(ARTEL-1380). 칸은 예전 그대로이고 탭마다 하나씩 선다. LLM API 키 탭은 내 개인 키다 —
+          프로젝트 키는 그 프로젝트의 API 관리에서 다루고, 개인 키를 거기 연결할 수 있다. */}
+      <SettingsTabs
         label={copy.tocLabel}
-      >
-        <ProfilePanel applyProfile={auth.applyProfile} user={auth.user} />
-        <EmailPanel
-          applyEmailVerified={auth.applyEmailVerified}
-          applyPendingEmail={auth.applyPendingEmail}
-          user={auth.user}
-        />
-        <PreferencesPanel />
-        <LlmKeysPanel />
-        <CliTokenPanel />
-      </SettingsLayout>
+        tabs={[
+          {
+            id: 'profile',
+            label: copy.profile.title,
+            content: (
+              <>
+                <ProfileOverview user={auth.user} />
+                <ProfilePanel applyProfile={auth.applyProfile} user={auth.user} />
+                <SettingsScreenFill body={copy.screens.profile} sketch={<IdCardSketch />} title={copy.profile.title} />
+              </>
+            ),
+          },
+          {
+            id: 'email',
+            label: copy.email.title,
+            content: (
+              <>
+                <EmailPanel
+                  applyEmailVerified={auth.applyEmailVerified}
+                  applyPendingEmail={auth.applyPendingEmail}
+                  user={auth.user}
+                />
+                <SettingsScreenFill body={copy.screens.email} sketch={<MailSketch />} title={copy.email.title} />
+              </>
+            ),
+          },
+          {
+            id: 'preferences',
+            label: copy.preferences.title,
+            content: (
+              <>
+                <PreferencesPanel />
+                <SettingsScreenFill body={copy.screens.preferences} sketch={<DisplaySketch />} title={copy.preferences.title} />
+              </>
+            ),
+          },
+          {
+            id: 'llm-keys',
+            label: copy.llmKeys.title,
+            content: (
+              <>
+                <LlmKeysPanel />
+                <SettingsScreenFill body={copy.screens.llmKeys} sketch={<ModelChipSketch />} title={copy.llmKeys.title} />
+              </>
+            ),
+          },
+          {
+            id: 'cli-tokens',
+            label: copy.cliTokens.title,
+            content: (
+              <>
+                <CliTokenPanel />
+                <SettingsScreenFill body={copy.screens.cliTokens} sketch={<TerminalSketch />} title={copy.cliTokens.title} />
+              </>
+            ),
+          },
+        ]}
+      />
     </section>
   )
 }
@@ -539,5 +585,82 @@ function EmailPanel({
 
       <p aria-live="polite" className="visually-hidden">{announcement}</p>
     </section>
+  )
+}
+
+/** 내가 든 프로젝트 몇 개(ARTEL-1380). 숫자 칸이 쓴다. 못 읽으면 빈 목록이다. */
+function useMyProjects(): { items: ProjectSummary[]; total: number } | null {
+  const [state, setState] = useState<{ items: ProjectSummary[]; total: number } | null>(null)
+  useEffect(() => {
+    const controller = new AbortController()
+    listProjects({ page: 0, size: 100, signal: controller.signal })
+      .then((page) => setState({ items: page.items, total: page.total }))
+      .catch(() => setState({ items: [], total: 0 }))
+    return () => controller.abort()
+  }, [])
+  return state
+}
+
+const KEYS_HREF = '/account?tab=llm-keys'
+
+/** 프로필 탭 머리(ARTEL-1380). 큰 머리 + 숫자 칸으로 화면을 채운다. 값은 이미 있는 API(프로젝트 · 키 · CLI 토큰)만 쓴다. */
+function ProfileOverview({ user }: { user: AuthUser }) {
+  const { t } = useI18n()
+  const copy = t.account
+  const projects = useMyProjects()
+  const cli = useCliTokens()
+  const [keyCount, setKeyCount] = useState<number | null>(null)
+  useEffect(() => {
+    const controller = new AbortController()
+    listLlmKeys(controller.signal)
+      .then((keys) => setKeyCount(keys.length))
+      .catch(() => setKeyCount(null))
+    return () => controller.abort()
+  }, [])
+  const avatar = user.identities.find((identity) => identity.avatarUrl !== null)?.avatarUrl ?? null
+  const owned = projects?.items.filter((project) => project.myRole === 'OWNER').length ?? 0
+
+  return (
+    <>
+      <section aria-label={user.nickname} className="panel">
+        <div className="settings-hero">
+          <span aria-hidden="true" className="settings-hero-mark settings-hero-mark--round">
+            {avatar !== null ? <img alt="" src={avatar} /> : user.nickname.slice(0, 1).toUpperCase()}
+          </span>
+          <div className="settings-hero-body">
+            <div className="settings-hero-name">
+              <h2>{user.nickname}</h2>
+            </div>
+            <span className="settings-hero-meta mono">{composeNicknameTag(user.nickname, user.userTag)}</span>
+            <div className="settings-hero-chips">
+              {user.identities.map((identity) => (
+                <span className="badge" key={`${identity.provider}:${identity.login}`}>
+                  {identity.provider} · {identity.login}
+                </span>
+              ))}
+              <span className="badge">{user.emailVerified ? copy.chips.verified : copy.chips.unverified}</span>
+              {user.locale !== null && <span className="badge">{LOCALE_LABELS[user.locale]}</span>}
+            </div>
+          </div>
+        </div>
+      </section>
+      <div className="settings-stats">
+        <div className="settings-stat">
+          <span className="settings-stat-label">{copy.stats.projects}</span>
+          <span className="settings-stat-value">{projects === null ? '—' : projects.total}</span>
+          <span className="settings-stat-sub">{copy.stats.projectsSub(owned)}</span>
+        </div>
+        <Link className="settings-stat" to={KEYS_HREF}>
+          <span className="settings-stat-label">{copy.stats.llmKeys}</span>
+          <span className="settings-stat-value">{keyCount === null ? '—' : keyCount}</span>
+          <span className="settings-stat-sub">{copy.stats.llmKeysSub} ›</span>
+        </Link>
+        <div className="settings-stat">
+          <span className="settings-stat-label">{copy.stats.cliTokens}</span>
+          <span className="settings-stat-value">{cli.status === 'ready' ? cli.tokens.length : '—'}</span>
+          <span className="settings-stat-sub">{copy.stats.cliTokensSub}</span>
+        </div>
+      </div>
+    </>
   )
 }
