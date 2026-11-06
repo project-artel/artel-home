@@ -9,6 +9,7 @@ import {
   type ReleaseCriteria,
 } from '../../../release/releaseApi'
 import { daysToFinish, evaluateRelease, judgedOf, RELEASE_LEVELS, type Gate, type ReleaseLevel } from '../../../release/releaseModel'
+import { ReleaseCriteriaDialog } from '../../../release/ReleaseCriteriaDialog'
 import { SketchEmpty } from '../../../emptyStates/SketchEmpty'
 import { CalendarSketch } from '../../../emptyStates/sketches'
 import { buildEnvironment } from '../../buildEnvironment'
@@ -48,6 +49,7 @@ export function BuildVerification({
   version,
   onPickVersion,
   waiting,
+  canEdit,
 }: {
   projectId: string
   gameBuildId: string | null
@@ -57,6 +59,8 @@ export function BuildVerification({
   onPickVersion: () => void
   /** 버전 목록을 아직 받는 중이면 빈 화면 대신 스켈레톤을 보인다. */
   waiting: boolean
+  /** 출시 기준 숫자를 바꿀 수 있는가(OWNER). */
+  canEdit: boolean
 }) {
   const { t } = useI18n()
   const m = t.dashboard.verification
@@ -115,7 +119,16 @@ export function BuildVerification({
           title={m.emptyVersion}
         />
       ) : (
-        <VerificationBody criteria={criteria.value} onPickVersion={onPickVersion} progress={loaded.value} projectId={projectId} version={version} versionName={versionName} />
+        <VerificationBody
+          canEdit={canEdit}
+          criteria={criteria.value}
+          onCriteriaSaved={(value) => setCriteria({ status: 'ready', value })}
+          onPickVersion={onPickVersion}
+          progress={loaded.value}
+          projectId={projectId}
+          version={version}
+          versionName={versionName}
+        />
       )}
     </section>
   )
@@ -128,6 +141,8 @@ function VerificationBody({
   versionName,
   version,
   onPickVersion,
+  canEdit,
+  onCriteriaSaved,
 }: {
   progress: BuildVerificationProgress
   criteria: ReleaseCriteria
@@ -135,7 +150,10 @@ function VerificationBody({
   versionName: string
   version: VersionChoice | null
   onPickVersion: () => void
+  canEdit: boolean
+  onCriteriaSaved: (criteria: ReleaseCriteria) => void
 }) {
+  const [criteriaOpen, setCriteriaOpen] = useState(false)
   const { t } = useI18n()
   const m = t.dashboard.verification
   const { summary, days } = progress
@@ -260,9 +278,12 @@ function VerificationBody({
             <GateRow gate={gate} key={gate.key} />
           ))}
         </ul>
-        <Link className="db-more db-bv-criteria" to={`${sectionHref(projectId, 'settings')}?tab=release`}>
+        <button className="db-more db-link-button db-bv-criteria" onClick={() => setCriteriaOpen(true)} type="button">
           {m.release.change}
-        </Link>
+        </button>
+        {criteriaOpen && (
+          <ReleaseCriteriaDialog canEdit={canEdit} onClose={() => setCriteriaOpen(false)} onSaved={onCriteriaSaved} projectId={projectId} />
+        )}
       </aside>
     </>
   )

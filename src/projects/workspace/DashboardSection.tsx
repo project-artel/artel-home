@@ -198,6 +198,7 @@ export function DashboardSection() {
         }
         versionName={currentName}
         waiting={versions.status === 'loading'}
+        canEdit={project.myRole === 'OWNER'}
       />
 
       <div className="db-trio">
