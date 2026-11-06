@@ -351,10 +351,10 @@ export const scenariosEn = {
       removed: 'Test Case removed from scenario.',
     },
     status: {
-      VERIFIED: 'Verified',
+      VERIFIED: 'Passed',
       FAILED: 'Failed',
       REGRESSION: 'Re-verify',
-      DRAFT: 'Draft',
+      DRAFT: 'Not verified',
       BROKEN: 'Source missing',
     },
     library: {
@@ -1248,10 +1248,10 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
       removed: 'Test Case를 시나리오에서 뺐습니다.',
     },
     status: {
-      VERIFIED: '검증됨',
+      VERIFIED: '통과',
       FAILED: '실패',
       REGRESSION: '재검증 필요',
-      DRAFT: '초안',
+      DRAFT: '미검증',
       BROKEN: '원본 누락',
     },
     library: {

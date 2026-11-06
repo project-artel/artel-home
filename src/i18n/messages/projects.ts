@@ -687,7 +687,7 @@ export const projectsEn = {
         `Write a scenario covering the ${count} Test Cases still uncovered in ${scene}.`,
       /** The verification axis, kept beside the authoring one rather than merged. */
       verification: (verified: number, draft: number, broken: number) =>
-        `${verified} verified · ${draft} not run · ${broken} source missing`,
+        `${verified} passed · ${draft} not verified · ${broken} source missing`,
     },
   },
 } as const
@@ -1309,7 +1309,7 @@ export const projectsKo: Localized<typeof projectsEn> = {
       requestFor: (scene: string, count: number) =>
         `${scene}에서 아직 시나리오에 담기지 않은 ${count}건을 검증하는 시나리오를 만들어줘.`,
       verification: (verified: number, draft: number, broken: number) =>
-        `검증됨 ${verified} · 미실행 ${draft} · 원본 누락 ${broken}`,
+        `통과 ${verified} · 미검증 ${draft} · 원본 누락 ${broken}`,
     },
   },
 }
