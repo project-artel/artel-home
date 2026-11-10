@@ -83,6 +83,7 @@ function GameFunctionItem({ entry }: { entry: GameFunction }) {
     <li className="gf-item">
       <div className="gf-item-head">
         <span className="gf-name mono" translate="no">{entry.name}</span>
+        {entry.readOnly && <span className="gf-chip">{t.gameFunctions.readOnly}</span>}
         {/* 대상과 그룹은 칩 글자로 말한다. 색에 기대지 않는다. */}
         <span className="gf-chip">
           {entry.targetComponent === null ? m.staticTarget : m.targetComponent(entry.targetComponent)}

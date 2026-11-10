@@ -29,6 +29,7 @@ export type GameFunctionParam = {
 export type GameFunction = {
   name: string
   description: string
+  readOnly?: boolean
   params: GameFunctionParam[]
   /** 인스턴스 메서드가 달린 `MonoBehaviour` 이름. static 이면 null. */
   targetComponent: string | null
@@ -94,6 +95,7 @@ function parseFunction(data: unknown): GameFunction | null {
   return {
     name,
     description: asString(record.description),
+    ...(record.readOnly === true ? { readOnly: true } : {}),
     params,
     targetComponent: component !== null && component.length > 0 ? component : null,
     group: asNullableString(record.group),

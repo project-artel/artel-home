@@ -17,7 +17,7 @@ export type QaCheckMet = 'met' | 'unmet' | 'unknown'
 export type QaCitation = 'match' | 'mismatch' | 'missing' | 'unchecked'
 
 export type QaEvidenceSource = {
-  kind: 'pulse' | 'capture' | 'scene' | 'other'
+  kind: 'pulse' | 'capture' | 'scene' | 'query' | 'other'
   /** 판독 키, 캡처 id, 씬 이름. */
   key: string | null
   /** agent 가 근거로 댄 값. */
@@ -45,7 +45,7 @@ export type QaVerdictDetail = {
 
 const MET: Record<string, QaCheckMet> = { yes: 'met', no: 'unmet', unknown: 'unknown' }
 const CITATIONS = new Set<QaCitation>(['match', 'mismatch', 'missing', 'unchecked'])
-const KINDS = new Set<QaEvidenceSource['kind']>(['pulse', 'capture', 'scene'])
+const KINDS = new Set<QaEvidenceSource['kind']>(['pulse', 'capture', 'scene', 'query'])
 
 /** 값은 문자열이 아닐 수 있다(판독 값은 숫자 · 객체다). 보이는 대로 한 줄로. */
 function shown(value: unknown): string | null {
