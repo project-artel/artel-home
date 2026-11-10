@@ -19,7 +19,7 @@ skill 이 맡는 일은 다음과 같습니다.
 - Unity SDK 설치와 게임 등록 (\`artel-unity-sdk\`)
 - CLI 설치, 로그인, 실행
 - 로컬 MCP server 로 게임 조작 (prototype)
-- QA 에이전트용 치트 추가 (\`artel-cheats\`). QA 에이전트가 씬 이동, 적 처치, 엔딩 확인을 한 번에 할 수 있게 합니다.
+- 읽기 전용 조회와 테스트 사전조건 준비 함수 추가 (\`artel-cheats\`)
 - 게임 안에서 계속 공격하거나 턴을 넘기는 behavior 추가 (\`artel-behaviors\`)
 
 전체 skill 목록은 https://github.com/project-artel/artel-skills 에 있습니다.

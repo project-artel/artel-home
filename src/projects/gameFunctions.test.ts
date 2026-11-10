@@ -16,6 +16,13 @@ const CHEAT = {
 }
 
 describe('parseGameFunctionCatalog', () => {
+  it('catalog가 읽기 전용으로 선언한 함수만 구분한다', () => {
+    const catalog = parseGameFunctionCatalog({
+      cheats: [CHEAT, { name: 'get_xp', readOnly: true }, { name: 'malformed', readOnly: 'true' }],
+    })
+    assert.deepEqual(catalog?.cheats.map((entry) => entry.readOnly === true), [false, true, false])
+  })
+
   it('계약의 예시 항목을 읽는다', () => {
     const catalog = parseGameFunctionCatalog({
       revision: 3,
