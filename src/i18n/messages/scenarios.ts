@@ -168,7 +168,7 @@ export const scenariosEn = {
       recommended: 'Recommended',
       mcpHint: 'You can also author from your own AI tool (Claude Code, Codex …) over MCP.',
       mcpLink: 'Setup guide ›',
-      keyMissing: 'There is no API key for the model you picked. Add a key, or pick the default model.',
+      keyMissing: 'There is no API key for the model you picked. Add a key, or pick another model.',
     },
     awaitingReply: 'Waiting for Artel to reply.',
     /*
@@ -1087,7 +1087,7 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
       recommended: '추천',
       mcpHint: 'MCP 로 내 AI 도구(Claude Code, Codex 등)에서 저작할 수도 있어요.',
       mcpLink: '설치 안내 ›',
-      keyMissing: '고른 모델의 API 키가 없습니다. 키를 등록하거나 기본 모델을 고르세요.',
+      keyMissing: '고른 모델의 API 키가 없습니다. 키를 등록하거나 다른 모델을 고르세요.',
     },
     awaitingReply: 'Artel의 응답을 기다리고 있습니다.',
     /*
