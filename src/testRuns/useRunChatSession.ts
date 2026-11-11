@@ -11,7 +11,6 @@ import {
   cancelRunChat,
   closeRunChat,
   discardRunChatDraft,
-  getRunChatDefaultModel,
   getRunChatDraft,
   listRunChatMessages,
   parseRunStreamEvent,
@@ -56,8 +55,8 @@ function writeAutoApply(value: boolean): void {
 }
 
 /**
- * 챗봇에서 고른 모델(ARTEL-1428). 값은 QA 실행의 picker 와 같은 `keySource:id` 이고, 빈 값은 기본 모델(서버가 정하는
- * 저작 모델 · 공용 키)이다. 프로젝트마다 기억한다 — 프로젝트 키는 프로젝트마다 다르다.
+ * 챗봇에서 고른 모델(ARTEL-1428). 값은 QA 실행의 picker 와 같은 `keySource:id` 이고, 빈 값은 아직 안 고른 것이다 —
+ * 기본 모델은 없어서 고르기 전에는 보내지 못한다. 프로젝트마다 기억한다 — 프로젝트 키는 프로젝트마다 다르다.
  */
 const MODEL_KEY = (projectId: string) => `artel.run-chat.model.${projectId}`
 
@@ -176,24 +175,12 @@ export function useRunChatSession(
     (next: string) => {
       setStoredModel({ projectId, key: next })
       writeModelKey(projectId, next)
+      // 모델을 고르라던 안내는 골랐으니 내린다. 다른 실패는 그대로 둔다.
+      setSendFailure((failure) => (failure === 'model-required' ? null : failure))
     },
     [projectId],
   )
-  // 고르지 않았을 때 쓰는 모델. "기본 모델" 을 로고와 이름으로 보이는 데만 쓴다 — 보내는 값은 늘 빈 값이다.
-  const [defaultModelId, setDefaultModelId] = useState<{ runId: string; model: string | null } | null>(null)
-  useEffect(() => {
-    if (runId === null) return undefined
-    const controller = new AbortController()
-    getRunChatDefaultModel(projectId, runId, controller.signal)
-      .then((model) => setDefaultModelId({ runId, model }))
-      .catch(() => undefined)
-    return () => controller.abort()
-  }, [projectId, runId])
-  const defaultModel =
-    defaultModelId === null || defaultModelId.runId !== runId || defaultModelId.model === null
-      ? null
-      : (models.find((model) => model.keySource === 'platform' && model.id === defaultModelId.model) ?? null)
-  // 기억해 둔 모델이 목록에서 사라졌으면(키를 지웠거나 관리자가 껐다) 기본 모델로 돈다.
+  // 기억해 둔 모델이 목록에서 사라졌으면(키를 지웠거나 관리자가 껐다) 다시 골라야 한다. 다른 모델로 몰래 넘어가지 않는다.
   const chosenModel = models.find((model) => qaModelOptionKey(model) === modelKey) ?? null
 
   // Stages of the turn in flight (ARTEL-419), in arrival order. Empty = nothing to
@@ -449,6 +436,11 @@ export function useRunChatSession(
       // empty message is only rejected when there is nothing else to send.
       if (runId === null || sending) return false
       if (trimmed.length === 0 && answer === undefined && answers.length === 0) return false
+      // 기본 모델이 없다(ARTEL-1428). 고르기 전에는 보내지 않고 무엇을 해야 하는지 말한다.
+      if (chosenModel === null) {
+        setSendFailure('model-required')
+        return false
+      }
       setSending(true)
       sendingRef.current = true
       setSendFailure(null)
@@ -485,7 +477,7 @@ export function useRunChatSession(
         await beforeSendRef.current?.()
         await sendRunChatMessage(
           projectId, runId, trimmed, autoApply, answer, drafts.length > 0, answers,
-          chosenModel === null ? undefined : { model: chosenModel.id, keySource: chosenModel.keySource },
+          { model: chosenModel.id, keySource: chosenModel.keySource },
         )
         return true
       } catch (error: unknown) {
@@ -501,7 +493,13 @@ export function useRunChatSession(
         setCount(null)
         setTurnStartedAt(null)
         // 고른 모델의 키가 없다(ARTEL-1428). 공용 키로 넘어가지 않으므로 무엇을 해야 하는지 말한다.
-        setSendFailure(error instanceof ProjectApiError && error.code === 'llm_key_missing' ? 'llm-key-missing' : 'send-failed')
+        setSendFailure(
+          error instanceof ProjectApiError && error.code === 'llm_key_missing'
+            ? 'llm-key-missing'
+            : error instanceof ProjectApiError && error.code === 'model_required'
+              ? 'model-required'
+              : 'send-failed',
+        )
         return false
       } finally {
         setSending(false)
@@ -671,8 +669,9 @@ export function useRunChatSession(
     applyFailure,
     autoApply,
     models,
-    defaultModel,
     modelKey: chosenModel === null ? '' : modelKey,
+    /** 아직 모델을 안 골랐다 — 보내기를 막는다. */
+    needsModel: chosenModel === null,
     setModelKey,
     cancelling,
     stages,

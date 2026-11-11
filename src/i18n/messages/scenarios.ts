@@ -163,8 +163,8 @@ export const scenariosEn = {
     sendFailed: 'The message could not be sent. Please try again.',
     model: {
       label: 'Model',
-      default: 'Default model',
-      defaultHint: 'Platform key',
+      required: 'Pick the model that writes the scenario first.',
+      pickFirst: 'Pick a model above to send',
       recommended: 'Recommended',
       mcpHint: 'You can also author from your own AI tool (Claude Code, Codex …) over MCP.',
       mcpLink: 'Setup guide ›',
@@ -1082,8 +1082,8 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     sendFailed: '메시지를 전송하지 못했습니다. 다시 시도해 주세요.',
     model: {
       label: '모델',
-      default: '기본 모델',
-      defaultHint: '서비스 공용 키',
+      required: '시나리오를 만들 모델을 먼저 고르세요.',
+      pickFirst: '위에서 모델을 고르면 보낼 수 있어요',
       recommended: '추천',
       mcpHint: 'MCP 로 내 AI 도구(Claude Code, Codex 등)에서 저작할 수도 있어요.',
       mcpLink: '설치 안내 ›',

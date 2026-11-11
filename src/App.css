@@ -3459,8 +3459,6 @@ a.instance-name:hover {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* 기본 모델 행의 모델 이름(ARTEL-1428). "기본 모델" 이 행의 이름이고 모델은 덧붙인 설명이다. */
-.qa-model-option-sub { color: var(--color-text-secondary); font-weight: 400; }
 /* 우리가 권하는 것(ARTEL-1428). 행의 다른 태그와 같은 모양에 강조색만 얹는다 — 색만으로 말하지 않게 글자를 둔다. */
 .qa-model-tag.qa-model-tag--recommended { border-color: var(--color-action-primary); color: var(--color-action-primary); font-weight: 600; }
 .qa-model-footer { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-top: 1px solid var(--color-border-subtle); font-size: 12px; color: var(--color-text-secondary); }

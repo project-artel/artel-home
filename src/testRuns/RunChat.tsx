@@ -694,16 +694,19 @@ export function RunChat({
           {session.sendFailure !== null && (
             <div className="inline-error" role="alert">
               <span aria-hidden="true">!</span>
-              {session.sendFailure === 'llm-key-missing' ? c.model.keyMissing : c.sendFailed}
+              {session.sendFailure === 'llm-key-missing'
+                ? c.model.keyMissing
+                : session.sendFailure === 'model-required'
+                  ? c.model.required
+                  : c.sendFailed}
             </div>
           )}
 
-          {/* 모델(ARTEL-1428). 지금 쓰는 모델을 로고와 함께 보이고, 누르면 QA 실행과 같은 목록이 열린다. 목록 맨 위가
-              "기본 모델"(서버가 정하는 저작 모델 · 공용 키)이고, 다른 모델은 사용자 · 프로젝트 키로 돈다. */}
+          {/* 모델(ARTEL-1428). 지금 쓰는 모델을 로고와 함께 보이고, 누르면 QA 실행과 같은 목록이 열린다. 기본 모델은
+              없다 — 고르기 전에는 보내기가 꺼진다. 공용 키 모델과 사용자 · 프로젝트 키 모델을 같은 목록에서 고른다. */}
           <div className="run-chat-model">
             <label className="visually-hidden" htmlFor={modelPickerId}>{c.model.label}</label>
             <QaModelPicker
-              defaultOption={{ label: c.model.default, hint: c.model.defaultHint, model: session.defaultModel }}
               footer={
                 <>
                   <span className="qa-model-tag qa-model-tag--recommended">{c.model.recommended}</span>
@@ -748,12 +751,12 @@ export function RunChat({
                 한 번 눌러 물어보는 말은 여기가 아니라 대화 끝에 붙는다 — 사용자가 보고 있는
                 곳이 거기다. */}
             <p className="shortcut-hint" id="run-chat-hint">
-              {session.awaitingReply ? c.cancelHint : c.shortcutHint}
+              {session.awaitingReply ? c.cancelHint : session.needsModel ? c.model.pickFirst : c.shortcutHint}
             </p>
             <button
               aria-label={session.sending ? c.sending : c.send}
               className="button button--primary button--compact chat-send"
-              disabled={session.sending || input.trim().length === 0}
+              disabled={session.sending || session.needsModel || input.trim().length === 0}
               title={session.sending ? c.sending : c.send}
               type="submit"
             >

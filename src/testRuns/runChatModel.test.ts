@@ -2,8 +2,8 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { sendRunChatMessage } from './runChatApi'
 
-// 챗봇에서 고른 모델(ARTEL-1428)은 QA 실행과 같은 `model` · `keySource` 로 메시지에 실린다. 고르지 않으면 두 칸 모두
-// 안 나가야 서버가 지금처럼 기본 모델 · 공용 키로 돈다.
+// 챗봇에서 고른 모델(ARTEL-1428)은 QA 실행과 같은 `model` · `keySource` 로 메시지에 실린다. 기본 모델은 없다 — 화면은
+// 고르기 전에 보내지 않고, 칸 없이 오면 서버가 400 `model_required` 로 거절한다.
 
 async function sentBody(run: () => Promise<void>): Promise<Record<string, unknown>> {
   const originalFetch = globalThis.fetch

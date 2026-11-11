@@ -27,15 +27,6 @@ const PLATFORM_TAB = 'platform'
 
 const PRICE = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 })
 
-/** {@link QaModelPicker} 의 `defaultOption` 행. 고르면 `onChange('')` 다 — 빈 값이 "기본" 이다. */
-const DEFAULT_KEY = 'default:'
-
-/**
- * 고르지 않았을 때 쓰는 모델을 목록 맨 위의 한 행으로 둔다(ARTEL-1428, 시나리오 생성 챗봇). `model` 은 그 모델이 목록에
- * 있을 때의 행 — 로고와 이름을 거기서 읽는다. 없으면(서버가 정하지 못했거나 목록 밖) 이름만 보인다.
- */
-export type QaModelDefaultOption = { label: string; hint: string; model: QaModel | null }
-
 /** 우리가 권하는 모델에 다는 배지(ARTEL-1428). 행과, 그 모델을 고른 트리거에 함께 붙는다. */
 export type QaModelRecommendation = { label: string; isRecommended: (model: QaModel) => boolean }
 
@@ -73,15 +64,12 @@ export function QaModelPicker({
   value,
   popoverWidth,
   projectKeySettings,
-  defaultOption,
   recommendation,
   footer,
 }: {
   recommendation?: QaModelRecommendation
   /** 목록 아래에 두는 한 줄(예: 챗봇의 MCP 안내). 고르는 행이 아니다. */
   footer?: ReactNode
-  /** 주면 첫 탭 맨 위에 "기본" 행이 생기고, `value` 가 빈 값일 때 트리거가 그것을 보인다. */
-  defaultOption?: QaModelDefaultOption
   /**
    * 주면 목록을 트리거 폭이 아니라 이 폭으로, 트리거 오른쪽 끝에 맞춰 화면에 고정해 연다(ARTEL-1084).
    * 좁은 패널 안에서 쓰면 트리거 폭으로는 탭(특히 OpenRouter)과 이름이 잘린다. 패널이 스크롤 영역이라
@@ -144,22 +132,8 @@ export function QaModelPicker({
         : matched,
     [tabbed, tab, matched],
   )
-  const firstTab = tabs[0]?.id
-  const defaultMatches =
-    defaultOption !== undefined &&
-    (tabbed
-      ? (shownTab?.id ?? firstTab) === firstTab
-      : `${defaultOption.label} ${defaultOption.model === null ? '' : qaModelDisplayLabel(defaultOption.model)}`
-          .toLowerCase()
-          .includes(query.trim().toLowerCase()))
-  const keys = useMemo(
-    () => [...(defaultMatches ? [DEFAULT_KEY] : []), ...selectableQaModelKeys(groups)],
-    [defaultMatches, groups],
-  )
+  const keys = useMemo(() => selectableQaModelKeys(groups), [groups])
   const selected = models.find((model) => qaModelOptionKey(model) === value) ?? null
-  const usingDefault = defaultOption !== undefined && value === ''
-  // 목록 안에서 "고른 것" 을 가리키는 열쇠. 빈 값은 기본 행이다.
-  const valueKey = usingDefault ? DEFAULT_KEY : value
   // 검색이 바뀌면 가리키던 행이 목록에서 빠질 수 있다. effect 로 고치면 한 프레임 동안 아무것도
   // 안 가리키므로, 그릴 때 첫 행으로 돌린다.
   const current = keys.includes(active) ? active : (keys[0] ?? '')
@@ -190,7 +164,7 @@ export function QaModelPicker({
         ? PLATFORM_TAB
         : qaKeyServiceOf(selected),
     )
-    setActive(valueKey)
+    setActive(value)
     const rect = triggerRef.current?.getBoundingClientRect()
     const below = rect === undefined ? 0 : window.innerHeight - rect.bottom - 12
     const above = rect === undefined ? 0 : rect.top - 12
@@ -212,7 +186,7 @@ export function QaModelPicker({
   }
 
   function choose(key: string) {
-    onChange(key === DEFAULT_KEY ? '' : key)
+    onChange(key)
     setOpen(false)
     triggerRef.current?.focus()
   }
@@ -261,34 +235,6 @@ export function QaModelPicker({
     return model !== null && recommendation?.isRecommended(model) ? (
       <span className="qa-model-tag qa-model-tag--recommended">{recommendation.label}</span>
     ) : null
-  }
-
-  /** 기본 모델 행(`defaultOption`). 공용 키로 돌므로 잠기지 않는다. */
-  function defaultRow(entry: QaModelDefaultOption) {
-    return (
-      <li
-        aria-selected={usingDefault}
-        className={
-          'qa-model-option qa-model-option--default'
-          + (current === DEFAULT_KEY ? ' is-active' : '')
-          + (usingDefault ? ' is-selected' : '')
-        }
-        id={optionId(DEFAULT_KEY)}
-        key={DEFAULT_KEY}
-        onClick={() => choose(DEFAULT_KEY)}
-        onMouseEnter={() => setActive(DEFAULT_KEY)}
-        role="option"
-      >
-        <span className="qa-model-option-mark">{usingDefault ? <CheckIcon /> : null}</span>
-        {entry.model === null ? <GiftIcon size={16} /> : <ProviderLogo provider={entry.model.provider} size={16} />}
-        <span className="qa-model-option-label">
-          {entry.label}
-          {entry.model !== null && <span className="qa-model-option-sub"> · {qaModelDisplayLabel(entry.model)}</span>}
-        </span>
-        {recommendedTag(entry.model)}
-        <span className="qa-model-option-trailing">{entry.hint}</span>
-      </li>
-    )
   }
 
   function option(model: QaModel, trailing: string, service = model.provider) {
@@ -343,20 +289,7 @@ export function QaModelPicker({
         ref={triggerRef}
         type="button"
       >
-        {usingDefault ? (
-          <>
-            <span className="qa-model-badge qa-model-badge--platform">
-              <GiftIcon size={14} />
-              {defaultOption.label}
-            </span>
-            {defaultOption.model !== null && <ProviderLogo provider={defaultOption.model.provider} size={18} />}
-            <span className="qa-model-trigger-label">
-              {defaultOption.model === null ? defaultOption.hint : qaModelDisplayLabel(defaultOption.model)}
-            </span>
-            {recommendedTag(defaultOption.model)}
-            {defaultOption.model !== null && <span className="qa-model-trigger-provider">{defaultOption.model.provider}</span>}
-          </>
-        ) : selected === null ? (
+        {selected === null ? (
           <span className="qa-model-trigger-placeholder">{p.modelPlaceholder}</span>
         ) : (
           <>
@@ -449,7 +382,6 @@ export function QaModelPicker({
             </p>
           )}
           <ul aria-label={p.modelLabel} className="qa-model-list" id={listId} ref={setListNode} role="listbox">
-            {defaultMatches && defaultOption !== undefined && defaultRow(defaultOption)}
             {groups.platform.length > 0 && (
               <li className="qa-model-group" role="presentation">
                 <div className="qa-model-section" hidden={tabbed}>
@@ -495,7 +427,7 @@ export function QaModelPicker({
               </li>
             )}
 
-            {groups.platform.length === 0 && groups.user.length === 0 && !defaultMatches && (
+            {groups.platform.length === 0 && groups.user.length === 0 && (
               <li className="qa-model-empty" role="presentation">
                 {tabbed && shownTab !== undefined && shownTab.id !== PLATFORM_TAB
                   ? p.keyTabEmpty(llmKeyServiceName(shownTab.id))

@@ -401,15 +401,6 @@ export type RunChatAnswer = {
   displayText?: string
 }
 
-/** 고르지 않았을 때 저작이 쓰는 모델의 id(ARTEL-1428). 서버가 정하지 못하면 null 이다. */
-export async function getRunChatDefaultModel(projectId: string, runId: string, signal?: AbortSignal): Promise<string | null> {
-  const response = await apiFetch(chatPath(projectId, runId, '/default-model'), { signal })
-  if (!response.ok) throw await toApiError(response)
-  const body: unknown = await response.json()
-  const model = typeof body === 'object' && body !== null ? (body as { model?: unknown }).model : null
-  return typeof model === 'string' && model.length > 0 ? model : null
-}
-
 /** 챗봇에서 고른 모델(ARTEL-1428). `/api/qa-models` 의 `id` · `keySource` 그대로다. */
 export type RunChatModelChoice = { model: string; keySource: string }
 
@@ -422,7 +413,7 @@ export async function sendRunChatMessage(
   draftOnly = false,
   /** 질문지 한 묶음의 답. 하나씩 보내면 둘째부터 앞선 턴에 막힌다. */
   answers: RunChatAnswer[] = [],
-  /** 고른 저작 모델과 키(ARTEL-1428). 없으면 서버의 기본 모델 · 공용 키로 돈다. 값은 QA 실행과 같다. */
+  /** 고른 저작 모델과 키(ARTEL-1428). 기본 모델은 없다 — 없으면 서버가 400 `model_required` 로 거절한다. 값은 QA 실행과 같다. */
   choice?: RunChatModelChoice,
 ): Promise<void> {
   const response = await apiFetch(chatPath(projectId, runId, '/message'), {
