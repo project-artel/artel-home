@@ -94,7 +94,7 @@ export function CliTokenPanel() {
         <p className="guide-copy">
           <a href={CLI_README_URL} rel="noreferrer" target="_blank">{copy.install.readme}</a>
           <span aria-hidden="true"> · </span>
-          <Link to="/setup">{copy.install.fullGuide}</Link>
+          <Link to="/setup?guide=cli">{copy.install.fullGuide}</Link>
         </p>
       </CliInstallSteps>
 
