@@ -24,5 +24,5 @@ export const mcpConnect: Guide = {
 
 등록된 개발자 macro 는 프로젝트의 Macros 화면(\`/projects/<project id>/macros\`)에서 **개발자 macro (MCP)** 를 골라 읽기만 할 수 있습니다. 등록과 수정은 MCP 연결로만 합니다.
 
-MCP server 를 설치하고 클라이언트에 등록하는 방법은 이 콘솔에 없습니다. 안내 문서 \`skills-install\` 의 skill 이 로컬 MCP server 설정을 돕습니다.`,
+스테이징 MCP에 연결하려면 안내 문서 \`skills-install\`의 ARTEL 플러그인 설치 절차를 따릅니다.`,
 }
