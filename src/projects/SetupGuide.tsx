@@ -14,6 +14,7 @@ import {
   CliCopyLine,
 } from '../auth/CliInstallSteps'
 import { useI18n } from '../i18n/useI18n'
+import { CopyButton } from './CopyButton'
 import '../layouts/screens.css'
 import {
   PROJECT_ID_PLACEHOLDER,
@@ -29,6 +30,8 @@ const pluginAgents = [
   { id: 'codex', name: 'Codex' },
   { id: 'claude-code', name: 'Claude Code' },
   { id: 'cursor', name: 'Cursor' },
+  { id: 'vscode', name: 'VS Code' },
+  { id: 'other', name: '' },
 ] as const
 
 /**
@@ -76,7 +79,7 @@ export function SetupGuide({ projectId }: { projectId?: string }) {
       <div className="setup-guide-page">
         {guide === 'sdk' && <SdkGuide onResult={setAnnouncement} projectId={projectId} />}
         {guide === 'cli' && <CliGuide onResult={setAnnouncement} projectId={projectId} />}
-        {guide === 'skills' && <PluginGuide />}
+        {guide === 'skills' && <PluginGuide onResult={setAnnouncement} />}
       </div>
 
       <p aria-live="polite" className="visually-hidden">
@@ -353,21 +356,39 @@ function CliGuide({ projectId, onResult }: { projectId?: string; onResult: (mess
   )
 }
 
-function PluginGuide() {
+function PluginGuide({ onResult }: { onResult: (message: string) => void }) {
   const { locale, t } = useI18n()
   const copy = t.projects.setupPages.skills
   const guideUrl = locale === 'ko' ? 'https://artel.kr/skills' : 'https://artel.kr/en/skills'
+  const [searchParams] = useSearchParams()
+  const selected = pluginAgents.find(({ id }) => id === searchParams.get('agent')) ?? pluginAgents[0]
 
   return (
     <>
       <Intro hint={copy.hint} id="setup-skills-title" lead={copy.lead} title={copy.title} />
 
-      <Step index={1} title={copy.installTitle}>
-        <ul>
-          {pluginAgents.map(({ id, name }) => (
-            <li key={id}><a href={`${guideUrl}#${id}`}>{name}</a></li>
-          ))}
-        </ul>
+      <nav aria-label={copy.installTitle} className="setup-agent-nav">
+        {pluginAgents.map(({ id, name }) => {
+          const next = new URLSearchParams(searchParams)
+          next.set('agent', id)
+          return (
+            <Link aria-current={selected.id === id ? 'page' : undefined} key={id} to={{ search: next.toString() }}>
+              {id === 'other' ? copy.otherAgent : name}
+            </Link>
+          )
+        })}
+      </nav>
+
+      <Step index={1} title={selected.id === 'other' ? copy.otherAgent : selected.name}>
+        {selected.id === 'other' ? (
+          <>
+            <p className="setup-copy">{copy.otherIntro}</p>
+            <pre className="setup-agent-prompt">{copy.otherPrompt}</pre>
+            <CopyButton copiedMessage={copy.promptCopied} label={copy.copyPrompt} onResult={onResult} text={copy.otherPrompt} />
+          </>
+        ) : (
+          <a href={`${guideUrl}?agent=${selected.id}`}>{copy.openGuide}</a>
+        )}
       </Step>
 
       <section aria-labelledby="setup-skills-list" className="panel">
