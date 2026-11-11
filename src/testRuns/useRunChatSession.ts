@@ -3,6 +3,9 @@ import { useI18n } from '../i18n/useI18n'
 import { ProjectApiError } from '../projects/projectApi'
 import type { ChatMessage } from '../testScenarios/scenarioTypes'
 import { chatErrorText } from './chatErrors'
+import { listQaModels } from '../qa/qaApi'
+import { offeredQaModels } from '../qa/qaModelGroups'
+import { qaModelOptionKey, type QaModel } from '../qa/qaTypes'
 import {
   applyRunChatDraft,
   cancelRunChat,
@@ -48,6 +51,29 @@ function writeAutoApply(value: boolean): void {
     window.localStorage.setItem(AUTO_APPLY_KEY, String(value))
   } catch {
     // Storage can be unavailable (private mode); the toggle just won't persist.
+  }
+}
+
+/**
+ * 챗봇에서 고른 모델(ARTEL-1428). 값은 QA 실행의 picker 와 같은 `keySource:id` 이고, 빈 값은 기본 모델(서버가 정하는
+ * 저작 모델 · 공용 키)이다. 프로젝트마다 기억한다 — 프로젝트 키는 프로젝트마다 다르다.
+ */
+const MODEL_KEY = (projectId: string) => `artel.run-chat.model.${projectId}`
+
+function readModelKey(projectId: string): string {
+  try {
+    return window.localStorage.getItem(MODEL_KEY(projectId)) ?? ''
+  } catch {
+    return ''
+  }
+}
+
+function writeModelKey(projectId: string, value: string): void {
+  try {
+    if (value === '') window.localStorage.removeItem(MODEL_KEY(projectId))
+    else window.localStorage.setItem(MODEL_KEY(projectId), value)
+  } catch {
+    // Storage can be unavailable (private mode); the choice just won't persist.
   }
 }
 
@@ -133,6 +159,27 @@ export function useRunChatSession(
   }, [awaitingReply])
   const [applyFailure, setApplyFailure] = useState<string | null>(null)
   const [autoApply, setAutoApplyState] = useState(readAutoApply)
+  // 고를 수 있는 모델(ARTEL-1428). QA 실행과 같은 목록이다 — 그 프로젝트의 키까지 따진다.
+  const [models, setModels] = useState<QaModel[]>([])
+  const [storedModel, setStoredModel] = useState(() => ({ projectId, key: readModelKey(projectId) }))
+  // 다른 프로젝트로 넘어가면 그 프로젝트에 기억한 것을 읽는다.
+  const modelKey = storedModel.projectId === projectId ? storedModel.key : readModelKey(projectId)
+  useEffect(() => {
+    const controller = new AbortController()
+    listQaModels(controller.signal, projectId)
+      .then((list) => setModels(offeredQaModels(list)))
+      .catch(() => undefined)
+    return () => controller.abort()
+  }, [projectId])
+  const setModelKey = useCallback(
+    (next: string) => {
+      setStoredModel({ projectId, key: next })
+      writeModelKey(projectId, next)
+    },
+    [projectId],
+  )
+  // 기억해 둔 모델이 목록에서 사라졌으면(키를 지웠거나 관리자가 껐다) 기본 모델로 돈다.
+  const chosenModel = models.find((model) => qaModelOptionKey(model) === modelKey) ?? null
 
   // Stages of the turn in flight (ARTEL-419), in arrival order. Empty = nothing to
   // show: either no turn is running or the one that was has reached its end.
@@ -421,7 +468,10 @@ export function useRunChatSession(
       try {
         // draft 가 있는 동안은 draft 만 고친다(ARTEL-1075). 새 요청은 draft 를 승인하거나 버린 뒤에 보낸다.
         await beforeSendRef.current?.()
-        await sendRunChatMessage(projectId, runId, trimmed, autoApply, answer, drafts.length > 0, answers)
+        await sendRunChatMessage(
+          projectId, runId, trimmed, autoApply, answer, drafts.length > 0, answers,
+          chosenModel === null ? undefined : { model: chosenModel.id, keySource: chosenModel.keySource },
+        )
         return true
       } catch (error: unknown) {
         // 서버가 아는 draft 와 화면의 것이 갈렸다(다른 탭에서 승인했거나 서버가 다시 떴다). draft 를 다시 읽어
@@ -435,14 +485,15 @@ export function useRunChatSession(
         setStages([])
         setCount(null)
         setTurnStartedAt(null)
-        setSendFailure('send-failed')
+        // 고른 모델의 키가 없다(ARTEL-1428). 공용 키로 넘어가지 않으므로 무엇을 해야 하는지 말한다.
+        setSendFailure(error instanceof ProjectApiError && error.code === 'llm_key_missing' ? 'llm-key-missing' : 'send-failed')
         return false
       } finally {
         setSending(false)
         sendingRef.current = false
       }
     },
-    [projectId, runId, sending, autoApply, drafts.length],
+    [projectId, runId, sending, autoApply, drafts.length, chosenModel],
   )
 
   /**
@@ -604,6 +655,9 @@ export function useRunChatSession(
     applying,
     applyFailure,
     autoApply,
+    models,
+    modelKey: chosenModel === null ? '' : modelKey,
+    setModelKey,
     cancelling,
     stages,
     turnStartedAt,

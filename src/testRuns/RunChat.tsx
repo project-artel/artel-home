@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useId, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { PaneIcon } from '../testCases/PaneIcon'
@@ -47,6 +47,8 @@ import { TestCaseSheet } from '../testCases/TestCaseSheet'
 import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
 import { ProjectApiError } from '../projects/projectApi'
 import { getRunCoverage } from './testRunApi'
+import { QaModelPicker } from '../qa/QaModelPicker'
+import { sectionHref } from '../projects/workspace/sections'
 import type { RunCoverage } from './testRunApi'
 import type { RunChatSession } from './useRunChatSession'
 
@@ -229,6 +231,7 @@ export function RunChat({
   const { t } = useI18n()
   const u = t.projects.workspace.uncovered
   const c = t.scenarios.chat
+  const modelPickerId = useId()
   // 대시보드에서 넘어온 요청문으로 시작한다(ARTEL-405). **보내지는 않는다** — 제안은 제안이고
   // 무엇을 보낼지는 사람이 정한다. 처음 한 번만 씨앗으로 쓰므로 이후 타이핑을 덮지 않는다.
   const [searchParams] = useSearchParams()
@@ -690,9 +693,34 @@ export function RunChat({
           {session.sendFailure !== null && (
             <div className="inline-error" role="alert">
               <span aria-hidden="true">!</span>
-              {c.sendFailed}
+              {session.sendFailure === 'llm-key-missing' ? c.model.keyMissing : c.sendFailed}
             </div>
           )}
+
+          {/* 모델 고르기(ARTEL-1428). QA 실행과 같은 picker · 목록이고, 고르지 않으면 서버의 기본 모델이다.
+              고른 모델은 사용자 · 프로젝트 키로 돈다. Project agent 의 모델 줄과 같은 모양이다. */}
+          <div className="run-chat-model">
+            <label className="run-chat-model-label" htmlFor={modelPickerId}>{c.model.label}</label>
+            <button
+              aria-pressed={session.modelKey === ''}
+              className={'run-chat-model-default' + (session.modelKey === '' ? ' is-selected' : '')}
+              disabled={session.sending}
+              onClick={() => session.setModelKey('')}
+              title={c.model.defaultHelp}
+              type="button"
+            >
+              {c.model.default}
+            </button>
+            <QaModelPicker
+              disabled={session.sending || session.models.length === 0}
+              id={modelPickerId}
+              models={session.models}
+              onChange={session.setModelKey}
+              popoverWidth={360}
+              projectKeySettings={sectionHref(session.projectId, 'api')}
+              value={session.modelKey}
+            />
+          </div>
 
           <label className="visually-hidden" htmlFor="run-chat-input">
             {c.inputLabel}

@@ -8,3 +8,13 @@
 #run-chat-title:has(.run-chat-collapse) { display: flex; align-items: center; gap: 6px; width: 100%; }
 /* 접힌 동안 폭 손잡이는 쓸 일이 없다. 칸은 그대로 두어 격자가 밀리지 않게 한다. */
 .scenario-studio.is-chat-collapsed .st-split { visibility: hidden; pointer-events: none; }
+
+/* 모델 고르기 줄(ARTEL-1428). Project agent 의 `.agent-model-bar` 와 같은 모양을 저작 대화의 색으로 둔다. */
+.scenario-studio .run-chat-model { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
+.scenario-studio .run-chat-model-label { font-size: 12px; color: var(--st-muted); }
+.scenario-studio .run-chat-model-default {
+  font: inherit; font-size: 12px; padding: 4px 8px; border-radius: 6px; cursor: pointer;
+  background: var(--st-surface); color: var(--st-text); border: 1px solid var(--st-border);
+}
+.scenario-studio .run-chat-model-default.is-selected { border-color: var(--st-action); color: var(--st-action); }
+.scenario-studio .run-chat-model-default:disabled { opacity: .6; cursor: default; }
