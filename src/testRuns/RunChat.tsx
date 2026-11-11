@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useId, useRef, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { PaneIcon } from '../testCases/PaneIcon'
 import { Dialog } from '../design-system/primitives/Dialog'
@@ -49,6 +49,7 @@ import { ProjectApiError } from '../projects/projectApi'
 import { getRunCoverage } from './testRunApi'
 import { QaModelPicker } from '../qa/QaModelPicker'
 import { sectionHref } from '../projects/workspace/sections'
+import { isRecommendedAuthoringModel } from './recommendedModel'
 import type { RunCoverage } from './testRunApi'
 import type { RunChatSession } from './useRunChatSession'
 
@@ -703,6 +704,14 @@ export function RunChat({
             <label className="visually-hidden" htmlFor={modelPickerId}>{c.model.label}</label>
             <QaModelPicker
               defaultOption={{ label: c.model.default, hint: c.model.defaultHint, model: session.defaultModel }}
+              footer={
+                <>
+                  <span className="qa-model-tag qa-model-tag--recommended">{c.model.recommended}</span>
+                  <span>{c.model.mcpHint}</span>
+                  <Link to={sectionHref(session.projectId, 'setup')}>{c.model.mcpLink}</Link>
+                </>
+              }
+              recommendation={{ label: c.model.recommended, isRecommended: isRecommendedAuthoringModel }}
               disabled={session.sending}
               id={modelPickerId}
               models={session.models}

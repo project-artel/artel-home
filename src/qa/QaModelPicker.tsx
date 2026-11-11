@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { LLM_KEY_SERVICES, llmKeyApiName, llmKeyServiceName } from '../account/llmKeyTypes'
 import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
@@ -36,6 +36,9 @@ const DEFAULT_KEY = 'default:'
  */
 export type QaModelDefaultOption = { label: string; hint: string; model: QaModel | null }
 
+/** 우리가 권하는 모델에 다는 배지(ARTEL-1428). 행과, 그 모델을 고른 트리거에 함께 붙는다. */
+export type QaModelRecommendation = { label: string; isRecommended: (model: QaModel) => boolean }
+
 /**
  * The model a QA run uses, picked from two sections: models offered on the
  * platform key and models on the user's own keys.
@@ -71,7 +74,12 @@ export function QaModelPicker({
   popoverWidth,
   projectKeySettings,
   defaultOption,
+  recommendation,
+  footer,
 }: {
+  recommendation?: QaModelRecommendation
+  /** 목록 아래에 두는 한 줄(예: 챗봇의 MCP 안내). 고르는 행이 아니다. */
+  footer?: ReactNode
   /** 주면 첫 탭 맨 위에 "기본" 행이 생기고, `value` 가 빈 값일 때 트리거가 그것을 보인다. */
   defaultOption?: QaModelDefaultOption
   /**
@@ -249,6 +257,12 @@ export function QaModelPicker({
     )
   }
 
+  function recommendedTag(model: QaModel | null) {
+    return model !== null && recommendation?.isRecommended(model) ? (
+      <span className="qa-model-tag qa-model-tag--recommended">{recommendation.label}</span>
+    ) : null
+  }
+
   /** 기본 모델 행(`defaultOption`). 공용 키로 돌므로 잠기지 않는다. */
   function defaultRow(entry: QaModelDefaultOption) {
     return (
@@ -271,6 +285,7 @@ export function QaModelPicker({
           {entry.label}
           {entry.model !== null && <span className="qa-model-option-sub"> · {qaModelDisplayLabel(entry.model)}</span>}
         </span>
+        {recommendedTag(entry.model)}
         <span className="qa-model-option-trailing">{entry.hint}</span>
       </li>
     )
@@ -303,6 +318,7 @@ export function QaModelPicker({
         <span className="qa-model-option-label">{qaModelDisplayLabel(model)}</span>
         {model.multimodal && <span className="qa-model-tag">{p.multimodal}</span>}
         {model.reasoning !== null && <span className="qa-model-tag">{p.reasoningTag}</span>}
+        {recommendedTag(model)}
         <span className="qa-model-option-trailing">{trailing}</span>
       </li>
     )
@@ -337,6 +353,7 @@ export function QaModelPicker({
             <span className="qa-model-trigger-label">
               {defaultOption.model === null ? defaultOption.hint : qaModelDisplayLabel(defaultOption.model)}
             </span>
+            {recommendedTag(defaultOption.model)}
             {defaultOption.model !== null && <span className="qa-model-trigger-provider">{defaultOption.model.provider}</span>}
           </>
         ) : selected === null ? (
@@ -356,6 +373,7 @@ export function QaModelPicker({
             )}
             <ProviderLogo provider={selected.provider} size={18} />
             <span className="qa-model-trigger-label">{qaModelDisplayLabel(selected)}</span>
+            {recommendedTag(selected)}
             <span className="qa-model-trigger-provider">{selected.provider}</span>
           </>
         )}
@@ -487,6 +505,7 @@ export function QaModelPicker({
           </ul>
           <EdgeScrollbar label={p.modelLabel} scroller={listNode} side="right" />
 
+          {footer !== undefined && <div className="qa-model-footer">{footer}</div>}
           {priced && <p className="qa-model-footnote">{p.pricingNote}</p>}
         </div>
       )}
