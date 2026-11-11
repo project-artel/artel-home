@@ -17,15 +17,15 @@ function model(id: string, route: LlmModelRoute, enabled = true, label = id): Ad
 }
 
 describe('groupModelsByRoute', () => {
-  it('orders groups OpenRouter, Bedrock, Claude, GPT and drops empty routes', () => {
+  it('orders groups OpenRouter, Claude, GPT and drops empty routes', () => {
     const groups = groupModelsByRoute([
+      model('gpt/luna', 'gpt'),
       model('claude/opus', 'claude'),
       model('openai/gpt', 'openrouter'),
-      model('bedrock/haiku', 'bedrock'),
     ])
     assert.deepEqual(
       groups.map((group) => group.route),
-      ['openrouter', 'bedrock', 'claude'],
+      ['openrouter', 'claude', 'gpt'],
     )
   })
 
