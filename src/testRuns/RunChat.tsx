@@ -697,26 +697,17 @@ export function RunChat({
             </div>
           )}
 
-          {/* 모델 고르기(ARTEL-1428). QA 실행과 같은 picker · 목록이고, 고르지 않으면 서버의 기본 모델이다.
-              고른 모델은 사용자 · 프로젝트 키로 돈다. Project agent 의 모델 줄과 같은 모양이다. */}
+          {/* 모델(ARTEL-1428). 지금 쓰는 모델을 로고와 함께 보이고, 누르면 QA 실행과 같은 목록이 열린다. 목록 맨 위가
+              "기본 모델"(서버가 정하는 저작 모델 · 공용 키)이고, 다른 모델은 사용자 · 프로젝트 키로 돈다. */}
           <div className="run-chat-model">
-            <label className="run-chat-model-label" htmlFor={modelPickerId}>{c.model.label}</label>
-            <button
-              aria-pressed={session.modelKey === ''}
-              className={'run-chat-model-default' + (session.modelKey === '' ? ' is-selected' : '')}
-              disabled={session.sending}
-              onClick={() => session.setModelKey('')}
-              title={c.model.defaultHelp}
-              type="button"
-            >
-              {c.model.default}
-            </button>
+            <label className="visually-hidden" htmlFor={modelPickerId}>{c.model.label}</label>
             <QaModelPicker
-              disabled={session.sending || session.models.length === 0}
+              defaultOption={{ label: c.model.default, hint: c.model.defaultHint, model: session.defaultModel }}
+              disabled={session.sending}
               id={modelPickerId}
               models={session.models}
               onChange={session.setModelKey}
-              popoverWidth={360}
+              popoverWidth={520}
               projectKeySettings={sectionHref(session.projectId, 'api')}
               value={session.modelKey}
             />

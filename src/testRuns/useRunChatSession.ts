@@ -11,6 +11,7 @@ import {
   cancelRunChat,
   closeRunChat,
   discardRunChatDraft,
+  getRunChatDefaultModel,
   getRunChatDraft,
   listRunChatMessages,
   parseRunStreamEvent,
@@ -178,6 +179,20 @@ export function useRunChatSession(
     },
     [projectId],
   )
+  // 고르지 않았을 때 쓰는 모델. "기본 모델" 을 로고와 이름으로 보이는 데만 쓴다 — 보내는 값은 늘 빈 값이다.
+  const [defaultModelId, setDefaultModelId] = useState<{ runId: string; model: string | null } | null>(null)
+  useEffect(() => {
+    if (runId === null) return undefined
+    const controller = new AbortController()
+    getRunChatDefaultModel(projectId, runId, controller.signal)
+      .then((model) => setDefaultModelId({ runId, model }))
+      .catch(() => undefined)
+    return () => controller.abort()
+  }, [projectId, runId])
+  const defaultModel =
+    defaultModelId === null || defaultModelId.runId !== runId || defaultModelId.model === null
+      ? null
+      : (models.find((model) => model.keySource === 'platform' && model.id === defaultModelId.model) ?? null)
   // 기억해 둔 모델이 목록에서 사라졌으면(키를 지웠거나 관리자가 껐다) 기본 모델로 돈다.
   const chosenModel = models.find((model) => qaModelOptionKey(model) === modelKey) ?? null
 
@@ -656,6 +671,7 @@ export function useRunChatSession(
     applyFailure,
     autoApply,
     models,
+    defaultModel,
     modelKey: chosenModel === null ? '' : modelKey,
     setModelKey,
     cancelling,

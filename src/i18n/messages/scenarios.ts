@@ -164,7 +164,7 @@ export const scenariosEn = {
     model: {
       label: 'Model',
       default: 'Default model',
-      defaultHelp: 'The model the service runs authoring on, billed to the platform key.',
+      defaultHint: 'Platform key',
       keyMissing: 'There is no API key for the model you picked. Add a key, or pick the default model.',
     },
     awaitingReply: 'Waiting for Artel to reply.',
@@ -1080,7 +1080,7 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     model: {
       label: '모델',
       default: '기본 모델',
-      defaultHelp: '서비스가 정한 저작 모델입니다. 비용은 서비스의 공용 키로 나갑니다.',
+      defaultHint: '서비스 공용 키',
       keyMissing: '고른 모델의 API 키가 없습니다. 키를 등록하거나 기본 모델을 고르세요.',
     },
     awaitingReply: 'Artel의 응답을 기다리고 있습니다.',

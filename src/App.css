@@ -3459,6 +3459,8 @@ a.instance-name:hover {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* 기본 모델 행의 모델 이름(ARTEL-1428). "기본 모델" 이 행의 이름이고 모델은 덧붙인 설명이다. */
+.qa-model-option-sub { color: var(--color-text-secondary); font-weight: 400; }
 
 .qa-model-tag {
   flex: none;

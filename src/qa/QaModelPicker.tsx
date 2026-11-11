@@ -27,6 +27,15 @@ const PLATFORM_TAB = 'platform'
 
 const PRICE = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 })
 
+/** {@link QaModelPicker} 의 `defaultOption` 행. 고르면 `onChange('')` 다 — 빈 값이 "기본" 이다. */
+const DEFAULT_KEY = 'default:'
+
+/**
+ * 고르지 않았을 때 쓰는 모델을 목록 맨 위의 한 행으로 둔다(ARTEL-1428, 시나리오 생성 챗봇). `model` 은 그 모델이 목록에
+ * 있을 때의 행 — 로고와 이름을 거기서 읽는다. 없으면(서버가 정하지 못했거나 목록 밖) 이름만 보인다.
+ */
+export type QaModelDefaultOption = { label: string; hint: string; model: QaModel | null }
+
 /**
  * The model a QA run uses, picked from two sections: models offered on the
  * platform key and models on the user's own keys.
@@ -61,7 +70,10 @@ export function QaModelPicker({
   value,
   popoverWidth,
   projectKeySettings,
+  defaultOption,
 }: {
+  /** 주면 첫 탭 맨 위에 "기본" 행이 생기고, `value` 가 빈 값일 때 트리거가 그것을 보인다. */
+  defaultOption?: QaModelDefaultOption
   /**
    * 주면 목록을 트리거 폭이 아니라 이 폭으로, 트리거 오른쪽 끝에 맞춰 화면에 고정해 연다(ARTEL-1084).
    * 좁은 패널 안에서 쓰면 트리거 폭으로는 탭(특히 OpenRouter)과 이름이 잘린다. 패널이 스크롤 영역이라
@@ -124,8 +136,22 @@ export function QaModelPicker({
         : matched,
     [tabbed, tab, matched],
   )
-  const keys = useMemo(() => selectableQaModelKeys(groups), [groups])
+  const firstTab = tabs[0]?.id
+  const defaultMatches =
+    defaultOption !== undefined &&
+    (tabbed
+      ? (shownTab?.id ?? firstTab) === firstTab
+      : `${defaultOption.label} ${defaultOption.model === null ? '' : qaModelDisplayLabel(defaultOption.model)}`
+          .toLowerCase()
+          .includes(query.trim().toLowerCase()))
+  const keys = useMemo(
+    () => [...(defaultMatches ? [DEFAULT_KEY] : []), ...selectableQaModelKeys(groups)],
+    [defaultMatches, groups],
+  )
   const selected = models.find((model) => qaModelOptionKey(model) === value) ?? null
+  const usingDefault = defaultOption !== undefined && value === ''
+  // 목록 안에서 "고른 것" 을 가리키는 열쇠. 빈 값은 기본 행이다.
+  const valueKey = usingDefault ? DEFAULT_KEY : value
   // 검색이 바뀌면 가리키던 행이 목록에서 빠질 수 있다. effect 로 고치면 한 프레임 동안 아무것도
   // 안 가리키므로, 그릴 때 첫 행으로 돌린다.
   const current = keys.includes(active) ? active : (keys[0] ?? '')
@@ -156,7 +182,7 @@ export function QaModelPicker({
         ? PLATFORM_TAB
         : qaKeyServiceOf(selected),
     )
-    setActive(value)
+    setActive(valueKey)
     const rect = triggerRef.current?.getBoundingClientRect()
     const below = rect === undefined ? 0 : window.innerHeight - rect.bottom - 12
     const above = rect === undefined ? 0 : rect.top - 12
@@ -178,7 +204,7 @@ export function QaModelPicker({
   }
 
   function choose(key: string) {
-    onChange(key)
+    onChange(key === DEFAULT_KEY ? '' : key)
     setOpen(false)
     triggerRef.current?.focus()
   }
@@ -220,6 +246,33 @@ export function QaModelPicker({
         <CircleXIcon size={13} />
         {p.keyMissing}
       </span>
+    )
+  }
+
+  /** 기본 모델 행(`defaultOption`). 공용 키로 돌므로 잠기지 않는다. */
+  function defaultRow(entry: QaModelDefaultOption) {
+    return (
+      <li
+        aria-selected={usingDefault}
+        className={
+          'qa-model-option qa-model-option--default'
+          + (current === DEFAULT_KEY ? ' is-active' : '')
+          + (usingDefault ? ' is-selected' : '')
+        }
+        id={optionId(DEFAULT_KEY)}
+        key={DEFAULT_KEY}
+        onClick={() => choose(DEFAULT_KEY)}
+        onMouseEnter={() => setActive(DEFAULT_KEY)}
+        role="option"
+      >
+        <span className="qa-model-option-mark">{usingDefault ? <CheckIcon /> : null}</span>
+        {entry.model === null ? <GiftIcon size={16} /> : <ProviderLogo provider={entry.model.provider} size={16} />}
+        <span className="qa-model-option-label">
+          {entry.label}
+          {entry.model !== null && <span className="qa-model-option-sub"> · {qaModelDisplayLabel(entry.model)}</span>}
+        </span>
+        <span className="qa-model-option-trailing">{entry.hint}</span>
+      </li>
     )
   }
 
@@ -274,7 +327,19 @@ export function QaModelPicker({
         ref={triggerRef}
         type="button"
       >
-        {selected === null ? (
+        {usingDefault ? (
+          <>
+            <span className="qa-model-badge qa-model-badge--platform">
+              <GiftIcon size={14} />
+              {defaultOption.label}
+            </span>
+            {defaultOption.model !== null && <ProviderLogo provider={defaultOption.model.provider} size={18} />}
+            <span className="qa-model-trigger-label">
+              {defaultOption.model === null ? defaultOption.hint : qaModelDisplayLabel(defaultOption.model)}
+            </span>
+            {defaultOption.model !== null && <span className="qa-model-trigger-provider">{defaultOption.model.provider}</span>}
+          </>
+        ) : selected === null ? (
           <span className="qa-model-trigger-placeholder">{p.modelPlaceholder}</span>
         ) : (
           <>
@@ -366,6 +431,7 @@ export function QaModelPicker({
             </p>
           )}
           <ul aria-label={p.modelLabel} className="qa-model-list" id={listId} ref={setListNode} role="listbox">
+            {defaultMatches && defaultOption !== undefined && defaultRow(defaultOption)}
             {groups.platform.length > 0 && (
               <li className="qa-model-group" role="presentation">
                 <div className="qa-model-section" hidden={tabbed}>
@@ -411,7 +477,7 @@ export function QaModelPicker({
               </li>
             )}
 
-            {groups.platform.length === 0 && groups.user.length === 0 && (
+            {groups.platform.length === 0 && groups.user.length === 0 && !defaultMatches && (
               <li className="qa-model-empty" role="presentation">
                 {tabbed && shownTab !== undefined && shownTab.id !== PLATFORM_TAB
                   ? p.keyTabEmpty(llmKeyServiceName(shownTab.id))
