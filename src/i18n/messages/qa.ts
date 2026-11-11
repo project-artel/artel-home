@@ -2,7 +2,7 @@ import type { Localized } from '../messages'
 
 /** Strings for `src/qa/*`. See `common.ts` for the typing convention. */
 export const qaEn = {
-  replay: { title: 'Execution timeline', zoom: 'Timeline zoom', resize: 'Resize timeline height', collapse: 'Collapse timeline', expand: 'Expand timeline', timeline: 'QA recording timeline', intervals: 'TC verification intervals', unknownStart: 'Start time unknown · jump to report', gaps: (count: number) => `${count} video gaps`, unknownIntervals: (count: number) => `${count} attempts without a start time` },
+  replay: { title: 'Execution timeline', zoom: 'Timeline zoom', playbackRate: 'Playback speed', resize: 'Resize timeline height', collapse: 'Collapse timeline', expand: 'Expand timeline', timeline: 'QA recording timeline', intervals: 'TC verification intervals', unknownStart: 'Start time unknown · jump to report', gaps: (count: number) => `${count} video gaps`, unknownIntervals: (count: number) => `${count} attempts without a start time` },
   rawLogs: {
     filter: 'Filter text', type: 'Type', direction: 'Direction', all: 'All',
     includePulse: 'Include pulse relay', find: 'Find in filtered logs',
@@ -786,7 +786,7 @@ export const qaEn = {
 } as const
 
 export const qaKo: Localized<typeof qaEn> = {
-  replay: { title: '실행 타임라인', zoom: '시간축 확대', resize: '타임라인 높이 조절', collapse: '타임라인 접기', expand: '타임라인 펼치기', timeline: 'QA 녹화 실행 바', intervals: 'TC 검증 구간', unknownStart: '시작 시각 없음 · 결과 보고 시점으로 이동', gaps: (count: number) => `영상 누락 ${count}구간`, unknownIntervals: (count: number) => `시작 시각 없는 검증 ${count}건` },
+  replay: { title: '실행 타임라인', zoom: '시간축 확대', playbackRate: '재생 속도', resize: '타임라인 높이 조절', collapse: '타임라인 접기', expand: '타임라인 펼치기', timeline: 'QA 녹화 실행 바', intervals: 'TC 검증 구간', unknownStart: '시작 시각 없음 · 결과 보고 시점으로 이동', gaps: (count: number) => `영상 누락 ${count}구간`, unknownIntervals: (count: number) => `시작 시각 없는 검증 ${count}건` },
   rawLogs: {
     filter: '텍스트 필터', type: '종류', direction: '방향', all: '전체',
     includePulse: 'pulse relay 포함', find: '필터 결과에서 찾기',
