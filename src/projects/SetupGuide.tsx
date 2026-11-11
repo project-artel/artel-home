@@ -24,7 +24,16 @@ import {
   gameListCommand,
   gameStartCommand,
 } from './setupCommands'
-import { SETUP_GUIDES, setupGuideFrom } from './setupGuides'
+import {
+  MCP_CLAUDE_ADD_COMMAND,
+  MCP_CODEX_CONFIG,
+  MCP_CODEX_LOGIN_COMMAND,
+  MCP_JSON_CONFIG,
+  MCP_SERVER_NAME,
+  MCP_SERVER_URL,
+  SETUP_GUIDES,
+  setupGuideFrom,
+} from './setupGuides'
 
 const pluginAgents = [
   { id: 'codex', name: 'Codex' },
@@ -37,7 +46,7 @@ const pluginAgents = [
 /**
  * Everything needed to connect a game and drive it from a terminal.
  *
- * 왼쪽에서 고른 안내 하나만 연다(ARTEL-1208): Unity SDK · CLI · ARTEL 플러그인. 나눈 만큼 자리가 넓어서 단계마다
+ * 왼쪽에서 고른 안내 하나만 연다(ARTEL-1208): Unity SDK · CLI · ARTEL 플러그인 · MCP(ARTEL-1433). 나눈 만큼 자리가 넓어서 단계마다
  * 설명을 자세히 쓰고 그림을 크게 둔다. 설명은 agent 안내 문서(`sdk-connect` · `cli-install` · `cli-run-qa` ·
  * `skills-install`)와 같은 내용이다. 고른 안내는 `?guide=` 라 주소로 바로 열 수 있다.
  *
@@ -80,6 +89,7 @@ export function SetupGuide({ projectId }: { projectId?: string }) {
         {guide === 'sdk' && <SdkGuide onResult={setAnnouncement} projectId={projectId} />}
         {guide === 'cli' && <CliGuide onResult={setAnnouncement} projectId={projectId} />}
         {guide === 'skills' && <PluginGuide onResult={setAnnouncement} />}
+        {guide === 'mcp' && <McpGuide onResult={setAnnouncement} />}
       </div>
 
       <p aria-live="polite" className="visually-hidden">
@@ -416,6 +426,109 @@ function PluginGuide({ onResult }: { onResult: (message: string) => void }) {
               ))}
             </tbody>
           </table>
+        </div>
+      </section>
+    </>
+  )
+}
+
+/**
+ * 스테이징 MCP 에 코딩 에이전트를 직접 붙이는 쪽(ARTEL-1433). ARTEL 플러그인을 쓰지 않거나 MCP 만 붙이려는 사람이
+ * 따라 한다. 내용은 artel-macro-mcp README 의 "연결하기" 와 도구 표를 사람 말로 옮긴 것이다.
+ */
+function McpGuide({ onResult }: { onResult: (message: string) => void }) {
+  const { t } = useI18n()
+  const copy = t.projects.setupPages.mcp
+
+  return (
+    <>
+      <Intro hint={copy.hint} id="setup-mcp-title" lead={copy.lead} title={copy.title}>
+        <dl className="setup-facts">
+          <div>
+            <dt>{copy.addressLabel}</dt>
+            <dd>
+              <code className="mono">{MCP_SERVER_URL}</code>
+            </dd>
+          </div>
+          <div>
+            <dt>{copy.nameLabel}</dt>
+            <dd>
+              <code className="mono">{MCP_SERVER_NAME}</code>
+            </dd>
+          </div>
+          <div>
+            <dt>{copy.accountLabel}</dt>
+            <dd>
+              <Rich text={copy.account} />
+            </dd>
+          </div>
+        </dl>
+      </Intro>
+
+      <Step index={1} title={copy.addTitle}>
+        <h4 className="setup-subhead">Claude Code</h4>
+        <CliCopyLine copiedMessage={copy.copied} copyLabel={copy.copyCommand} onResult={onResult} text={MCP_CLAUDE_ADD_COMMAND} />
+        <Paragraphs lines={copy.claude} />
+        <h4 className="setup-subhead">Codex</h4>
+        <Paragraphs lines={copy.codex} />
+        <div className="setup-config-row">
+          <pre className="setup-config">{MCP_CODEX_CONFIG}</pre>
+          <CopyButton copiedMessage={copy.copied} label={copy.copyConfig} onResult={onResult} text={MCP_CODEX_CONFIG} />
+        </div>
+        <CliCopyLine copiedMessage={copy.copied} copyLabel={copy.copyCommand} onResult={onResult} text={MCP_CODEX_LOGIN_COMMAND} />
+        <h4 className="setup-subhead">{copy.otherTitle}</h4>
+        <Paragraphs lines={copy.other} />
+        <div className="setup-config-row">
+          <pre className="setup-config">{MCP_JSON_CONFIG}</pre>
+          <CopyButton copiedMessage={copy.copied} label={copy.copyConfig} onResult={onResult} text={MCP_JSON_CONFIG} />
+        </div>
+      </Step>
+
+      <Step index={2} title={copy.signInTitle}>
+        <Paragraphs lines={copy.signIn} />
+        <Bullets lines={copy.signInMore} />
+      </Step>
+
+      <Step index={3} title={copy.checkTitle}>
+        <Paragraphs lines={copy.check} />
+        <CliCopyLine copiedMessage={copy.copied} copyLabel={copy.copyPrompt} onResult={onResult} text={copy.checkPrompt} />
+        <Bullets lines={copy.checkMore} />
+      </Step>
+
+      <section aria-labelledby="setup-mcp-scopes" className="panel">
+        <header className="panel-header">
+          <h2 id="setup-mcp-scopes">{copy.scopesTitle}</h2>
+        </header>
+        <div className="screen-table-wrap">
+          <table className="screen-table">
+            <thead>
+              <tr>
+                <th scope="col">{copy.scopeColumn}</th>
+                <th scope="col">{copy.doesColumn}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {copy.scopes.map(([scope, does]) => (
+                <tr key={scope}>
+                  <td>
+                    <Rich text={scope} />
+                  </td>
+                  <td className="screen-table-wrap-text">
+                    <Rich text={does} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section aria-labelledby="setup-mcp-notes" className="panel">
+        <header className="panel-header">
+          <h2 id="setup-mcp-notes">{copy.notesTitle}</h2>
+        </header>
+        <div className="setup-panel-body">
+          <Bullets lines={copy.notes} />
         </div>
       </section>
     </>
