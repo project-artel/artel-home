@@ -708,7 +708,7 @@ export function RunChat({
                 <>
                   <span className="qa-model-tag qa-model-tag--recommended">{c.model.recommended}</span>
                   <span>{c.model.mcpHint}</span>
-                  <Link to={sectionHref(session.projectId, 'setup')}>{c.model.mcpLink}</Link>
+                  <Link to={`${sectionHref(session.projectId, 'setup')}?guide=skills`}>{c.model.mcpLink}</Link>
                 </>
               }
               recommendation={{ label: c.model.recommended, isRecommended: isRecommendedAuthoringModel }}
