@@ -1402,7 +1402,7 @@ export function TestCaseLibrary({
                           <input
                             aria-describedby={selection.isLimitReached ? limitNoteId : undefined}
                             aria-label={m.selection.selectRow(
-                              testCase.step.length > 0 ? testCase.step : m.row.untitled,
+                              caseLabel(testCase.id),
                             )}
                             checked={selection.isSelected(testCase.id)}
                             disabled={selection.isLimitReached && !selection.isSelected(testCase.id)}
@@ -1680,7 +1680,7 @@ export function TestCaseLibrary({
           body={
             <>
               <strong>
-                {deleting.step.length > 0 ? deleting.step : m.delete.untitledName}
+                {caseLabel(deleting.id)}
               </strong>
               {m.delete.copySuffix}
             </>

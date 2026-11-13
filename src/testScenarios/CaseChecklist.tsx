@@ -2,7 +2,7 @@ import { TestCaseHover } from '../testCases/TestCaseHover'
 import { useId, useMemo, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { SceneChip } from '../testCases/SceneChip'
-import type { TestCase } from '../testCases/testCaseTypes'
+import { useTestCaseLabel } from '../testCases/testCaseIdentifiers'
 import { selectAddableCases } from './freeScenarioCases'
 import type { ScenarioStep } from './scenarioTypes'
 import type { ProjectCases } from './useProjectCases'
@@ -25,6 +25,7 @@ export function CaseChecklist({
   steps: readonly ScenarioStep[]
 }) {
   const { t } = useI18n()
+  const caseLabel = useTestCaseLabel()
   const m = t.scenarios.free.addDialog
   const searchId = useId()
   const [query, setQuery] = useState('')
@@ -57,13 +58,16 @@ export function CaseChecklist({
             <li key={testCase.id}>
               <label className="free-add-row">
                 <input
-                  aria-label={m.selectRow(describe(testCase))}
+                  aria-label={m.selectRow(caseLabel(testCase.id))}
                   checked={picked.has(testCase.id)}
                   onChange={() => onToggle(testCase.id)}
                   type="checkbox"
                 />
                 <span className={`vdot ${testCase.verificationStatus}`} />
-                <TestCaseHover projectId={testCase.projectId} caseId={testCase.id} gameBuildId={project.gameBuildId}><span className="free-add-text">{describe(testCase)}</span></TestCaseHover>
+                <TestCaseHover projectId={testCase.projectId} caseId={testCase.id} gameBuildId={project.gameBuildId}><span className="free-add-text">
+                  <span className="tc-id">{caseLabel(testCase.id)}</span>
+                  {testCase.step && <><br />{testCase.step}</>}
+                </span></TestCaseHover>
                 <SceneChip scene={testCase.scene} />
               </label>
             </li>
@@ -72,8 +76,4 @@ export function CaseChecklist({
       )}
     </>
   )
-}
-
-function describe(testCase: TestCase): string {
-  return testCase.step.length > 0 ? testCase.step : testCase.id
 }

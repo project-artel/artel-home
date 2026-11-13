@@ -133,7 +133,6 @@ export function TestCaseSpecModal({
                   <CaseListRow
                     gameBuildId={gameBuildId}
                     active={index === active}
-                    fallbackTitle={caseLabel(testCase.id)}
                     index={index}
                     key={testCase.id}
                     onClick={() => (onPick !== undefined ? onPick(testCase) : setActive(index))}
@@ -155,10 +154,9 @@ export function TestCaseSpecModal({
                   <>
                     <div className="cp-info-head">
                       <span className={`vdot ${info.verificationStatus}`} />
-                      <span className="cp-info-title">{info.step.length > 0 ? info.step : caseLabel(info.id)}</span>
+                      <span className="cp-info-title tc-id">{caseLabel(info.id)}</span>
                     </div>
                     <div className="cp-info-tags">
-                      <span className="tc-id">{caseLabel(info.id)}</span>
                       <SceneChip scene={info.scene} />
                       <span className={`vpill ${info.verificationStatus}`}><span className={`vdot ${info.verificationStatus}`} />{statusLabel[info.verificationStatus]}</span>
                       {/* Always here, settled or not — the pane is the answer to
@@ -170,6 +168,8 @@ export function TestCaseSpecModal({
                     <dl className="cp-info-fields">
                       <dt>{p.infoPre}</dt>
                       <dd>{info.precondition !== null && info.precondition.length > 0 ? info.precondition : <span className="cp-info-none">—</span>}</dd>
+                      <dt>{t.testCases.editor.step}</dt>
+                      <dd>{info.step || <span className="cp-info-none">—</span>}</dd>
                       <dt>{p.infoExp}</dt>
                       <dd>{info.expectedValue.length > 0 ? info.expectedValue : <span className="cp-info-none">—</span>}</dd>
                     </dl>

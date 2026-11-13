@@ -289,7 +289,7 @@ export function CaseImportDialog({
                               ) : (
                                 <label className="tct-check">
                                   <input
-                                    aria-label={lib.selection.selectRow(testCase.step.length > 0 ? testCase.step : lib.row.untitled)}
+                                    aria-label={lib.selection.selectRow(caseLabel(testCase.id))}
                                     checked={false}
                                     onChange={() => addOnce([testCase.id])}
                                     type="checkbox"

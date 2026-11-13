@@ -4597,7 +4597,7 @@ a.instance-name:hover {
 :is(.scenario-studio, .cp-scope) .cp-row.active{ background:var(--st-hover); }
 :is(.scenario-studio, .cp-scope) .cp-main{ min-width:0; flex:1; display:flex; flex-direction:column; gap:2px; }
 :is(.scenario-studio, .cp-scope) .cp-title{ font-size:14px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-:is(.scenario-studio, .cp-scope) .cp-sub{ font-size:11.5px; color:var(--st-text-2); }
+:is(.scenario-studio, .cp-scope) .cp-sub{ font-size:11.5px; color:var(--st-text-2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 :is(.scenario-studio, .cp-scope) .cp-empty{ padding:28px 12px; text-align:center; color:var(--st-muted); font-size:13px; }
 :is(.scenario-studio, .cp-scope) .cp-foot{ display:flex; justify-content:space-between; gap:12px; padding:9px 16px; border-top:1px solid var(--st-border); font-size:11px; color:var(--st-muted); }
 

@@ -1,15 +1,17 @@
 import { useEffect } from 'react'
 import { useI18n } from '../i18n/useI18n'
+import { useTestCaseLabel } from './testCaseIdentifiers'
 import { TestCaseDetails } from './TestCaseDetails'
 
-export function TestCaseModal({ projectId, caseId, label, onClose, gameBuildId = null }: {
+export function TestCaseModal({ projectId, caseId, onClose, gameBuildId = null }: {
   projectId: string
   caseId: number
-  label: string
   onClose: () => void
   gameBuildId?: string | null
 }) {
   const { t } = useI18n()
+  const caseLabel = useTestCaseLabel()
+  const label = caseLabel(caseId)
   useEffect(() => {
     function onKey(event: KeyboardEvent) { if (event.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)

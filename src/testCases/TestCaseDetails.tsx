@@ -1,6 +1,5 @@
 import { buildDisplayName } from '../projects/buildEnvironment'
-import { useTestCaseLabel } from './testCaseIdentifiers'
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { formatDate } from '../projects/formatters'
 import { SceneChip } from './SceneChip'
@@ -14,9 +13,7 @@ export function TestCaseDetails({ projectId, caseId, gameBuildId = null }: {
   gameBuildId?: string | null
 }) {
   const { t } = useI18n()
-  const caseLabel = useTestCaseLabel()
   const m = t.scenarios.tcModal
-  const titleId = useId()
   const statusLabel = t.scenarios.composition.status
   const [testCase, setTestCase] = useState<TestCase | null>(null)
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading')
@@ -42,9 +39,7 @@ export function TestCaseDetails({ projectId, caseId, gameBuildId = null }: {
         {state === 'error' && <p className="tc-modal-note">{m.error}</p>}
         {state === 'ready' && testCase !== null && (
           <div className="tc-modal-body">
-            <h3 id={titleId} className="tc-modal-title">{testCase.step || m.untitled}</h3>
             <div className="tc-modal-tags">
-              <span className="tc-id">{caseLabel(testCase.id)}</span>
               <SceneChip scene={testCase.scene} />
               <span className={`vpill ${testCase.verificationStatus}`}>
                 <span className={`vdot ${testCase.verificationStatus}`} />{statusLabel[testCase.verificationStatus]}
@@ -63,6 +58,10 @@ export function TestCaseDetails({ projectId, caseId, gameBuildId = null }: {
               <div className="tc-field">
                 <dt className="tc-field-label">{m.precondition}</dt>
                 <dd className="tc-field-val">{testCase.precondition && testCase.precondition.length > 0 ? testCase.precondition : '—'}</dd>
+              </div>
+              <div className="tc-field">
+                <dt className="tc-field-label">{t.testCases.editor.step}</dt>
+                <dd className="tc-field-val">{testCase.step || '—'}</dd>
               </div>
               <div className="tc-field">
                 <dt className="tc-field-label">{m.expected}</dt>
