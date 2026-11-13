@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
 import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../i18n/useI18n'
 import { useActionBinding, useFieldBinding } from '../projectAgent/bindings'
@@ -16,6 +15,7 @@ import { ContextMenu, type ContextMenuItem } from '../testCases/ContextMenu'
 import type { DraftScenario } from '../testRuns/runChatApi'
 import { getRunScenarios, setRunScenarios } from '../testRuns/testRunApi'
 import { createTestScenario, deleteTestScenario, listTestScenarios } from './scenarioApi'
+import { DeleteScenarioDialog } from './DeleteScenarioDialog'
 import type { ScenarioImportResult } from './scenarioLibrary'
 import { FreeScenarioBadge } from './FreeScenarioBadge'
 import { PlaylistAddIcon, PlusIcon } from './scenarioIcons'
@@ -146,12 +146,10 @@ export function ScenarioList({
     if (runId !== null) navigate(`/projects/${encodeURIComponent(projectId)}/test-runs/${encodeURIComponent(runId)}/edit`)
   }
 
-  /** 확인 대화상자의 삭제 버튼과 agent 의 삭제 action 이 함께 쓴다. */
-  async function deleteScenario(item: TestScenarioSummary) {
-    await deleteTestScenario(item.testScenarioId)
+  function onScenarioDeleted(id: number) {
     setDeleting(null)
     setReload((n) => n + 1)
-    leaveIfActive(item.testScenarioId)
+    leaveIfActive(id)
   }
 
   async function removeFromRun(item: TestScenarioSummary) {
@@ -291,7 +289,8 @@ export function ScenarioList({
       const item = resolveEntry('scenario', args.scenario, lookups)
       pickedId.current = item.testScenarioId
       try {
-        await deleteScenario(item)
+        await deleteTestScenario(item.testScenarioId)
+        onScenarioDeleted(item.testScenarioId)
       } catch {
         throw new Error(s.menu.deleteFailed)
       }
@@ -426,15 +425,13 @@ export function ScenarioList({
         <ContextMenu items={menuItems(menu.item)} label={s.menu.label} onClose={() => setMenu(null)} x={menu.x} y={menu.y} />
       )}
       {deleting !== null && (
-        <ConfirmActionDialog
-          body={<p>{s.menu.deleteCopy(deleting.title.length > 0 ? deleting.title : s.untitled)}</p>}
-          cancelLabel={s.menu.cancel}
-          confirmLabel={s.menu.delete}
+        <DeleteScenarioDialog
+          key={deleting.testScenarioId}
+          confirmationCopy={s.menu.deleteCopy(deleting.title.length > 0 ? deleting.title : s.untitled)}
           onClose={() => setDeleting(null)}
-          onConfirm={() => deleteScenario(deleting)}
-          pendingLabel={s.menu.deleting}
-          title={s.menu.deleteTitle}
-          toFailureMessage={() => s.menu.deleteFailed}
+          onDeleted={() => onScenarioDeleted(deleting.testScenarioId)}
+          scenarioTitle={deleting.title}
+          testScenarioId={deleting.testScenarioId}
         />
       )}
     </aside>
