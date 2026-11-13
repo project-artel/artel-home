@@ -1,5 +1,6 @@
 import { Fragment, useCallback, useEffect, useId, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { useTestCaseLabel } from '../testCases/testCaseIdentifiers'
 import { useI18n } from '../i18n/useI18n'
 import { PaneIcon } from '../testCases/PaneIcon'
 import { Dialog } from '../design-system/primitives/Dialog'
@@ -230,6 +231,7 @@ export function RunChat({
   onCollapse?: () => void
 }) {
   const { t } = useI18n()
+  const caseLabel = useTestCaseLabel()
   const u = t.projects.workspace.uncovered
   const c = t.scenarios.chat
   const modelPickerId = useId()
@@ -826,7 +828,7 @@ export function RunChat({
           body={
             <>
               <strong>
-                {deletingCase.step.length > 0 ? deletingCase.step : t.testCases.delete.untitledName}
+                {caseLabel(deletingCase.id)}
               </strong>
               {t.testCases.delete.copySuffix}
             </>

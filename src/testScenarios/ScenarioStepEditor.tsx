@@ -90,7 +90,7 @@ export function ScenarioStepEditor({
   const [anchor, setAnchor] = useState<number | null>(null)
   const [fresh, setFresh] = useState<number | null>(null)
   const [dropped, setDropped] = useState<number | null>(null)
-  const [tcView, setTcView] = useState<{ caseId: number; label: string } | null>(null)
+  const [tcView, setTcView] = useState<number | null>(null)
   const [linking, setLinking] = useState<number | null>(null)
   const [gapFill, setGapFill] = useState<{ index: number; blockedBy: string | null; detail: string } | null>(null)
   const [scroller, setScroller] = useState<HTMLDivElement | null>(null)
@@ -475,7 +475,7 @@ export function ScenarioStepEditor({
                             className="se-tc"
                             onClick={(event) => {
                               event.stopPropagation()
-                              setTcView({ caseId: step.case_id as number, label: caseLabel(step.case_id as number) })
+                              setTcView(step.case_id as number)
                             }}
                             title={b.openCase(caseLabel(step.case_id as number))}
                             type="button"
@@ -568,7 +568,7 @@ export function ScenarioStepEditor({
             onMove={(to) => moveStep(current, to)}
             onRemove={() => removeStep(current)}
             onSelect={(to) => select(to)}
-            onViewCase={(caseId, label) => setTcView({ caseId, label })}
+            onViewCase={setTcView}
             step={openStep}
             stepCount={steps.length}
             testCase={openStep.case_id === null ? undefined : cases.get(String(openStep.case_id))}
@@ -600,7 +600,7 @@ export function ScenarioStepEditor({
         />
       )}
       {tcView !== null && (
-        <TestCaseModal caseId={tcView.caseId} gameBuildId={caseBuild?.gameBuildId ?? null} label={tcView.label} onClose={() => setTcView(null)} projectId={projectId} />
+        <TestCaseModal caseId={tcView} gameBuildId={caseBuild?.gameBuildId ?? null} onClose={() => setTcView(null)} projectId={projectId} />
       )}
     </div>
     </SceneContext.Provider>
@@ -649,7 +649,7 @@ function StepInspector({
   onRemove: () => void
   onClose: () => void
   onFillGap: () => void
-  onViewCase: (caseId: number, label: string) => void
+  onViewCase: (caseId: number) => void
 }) {
   const { t } = useI18n()
   const caseLabel = useTestCaseLabel()
@@ -765,7 +765,7 @@ function StepInspector({
             <span className="se-muted">{b.readOnly}</span>
             <span className="se-spacer" />
             {step.case_id !== null && caseOrdinal !== null && (
-              <button className="se-link" onClick={() => onViewCase(step.case_id as number, caseLabel(step.case_id as number))} title={e.viewCase} type="button">
+              <button className="se-link" onClick={() => onViewCase(step.case_id as number)} title={e.viewCase} type="button">
                 {b.fullSpec}
                 <StudioIcon name="external" size={13} />
               </button>

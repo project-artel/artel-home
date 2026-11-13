@@ -3,6 +3,7 @@ import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDi
 import { Dialog } from '../design-system/primitives/Dialog'
 import { useI18n } from '../i18n/useI18n'
 import { settleReviews, useReviewSelection, type SettleOutcome } from './reviewSelection'
+import { useTestCaseLabel } from './testCaseIdentifiers'
 import { decideCaseReview } from './testCaseApi'
 import type { CaseReviewItem, ReviewDecision } from './testCaseTypes'
 
@@ -23,6 +24,7 @@ export function CaseReviewDialog({
   onReviewed: () => void
 }) {
   const { t } = useI18n()
+  const caseLabel = useTestCaseLabel()
   const copy = t.testCases.reviewNotice
   const fields = t.testCases.editor
   const selection = useReviewSelection(cases)
@@ -64,13 +66,14 @@ export function CaseReviewDialog({
                   <input checked={selection.isChosen(testCase)} onChange={() => selection.toggle(testCase)} type="checkbox" />
                   <span className="crd-body">
                     <span className="crd-step">
-                      {testCase.step}
+                      <span className="tc-id">{caseLabel(testCase.id)}</span>
                       {testCase.kind === 'EXCEPTION' && <span className="crd-kind">{t.testCases.kind.EXCEPTION}</span>}
                       {selection.isChanged(testCase) && <span className="crd-kind crd-kind--changed">{copy.changed}</span>}
                     </span>
                     {testCase.precondition !== null && (
                       <span className="crd-field crd-field--precondition"><b>{fields.precondition}</b><span>{testCase.precondition}</span></span>
                     )}
+                    <span className="crd-field"><b>{fields.step}</b><span>{testCase.step || '—'}</span></span>
                     <span className="crd-field crd-field--expected"><b>{fields.expectedValue}</b><span>{testCase.expectedValue}</span></span>
                   </span>
                 </label>
