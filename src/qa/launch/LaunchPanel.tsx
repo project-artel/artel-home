@@ -35,11 +35,14 @@ import { ArchSettings } from './ArchSettings'
 import { useDismiss } from './useDismiss'
 import { useRunVersionCases } from './useRunVersionCases'
 import { RunVersionCasesDialog } from './RunVersionCasesDialog'
+import { QaPendingReviewDialog } from './QaPendingReviewDialog'
+import { approvePendingQaReview, pendingQaReview, type PendingQaReview } from './qaPendingReview'
 import { versionCaseBuildName } from './versionCaseBuildName'
 
 type Check = { tone: 'ok' | 'warn' | 'bad'; title: string; detail?: string; fix?: { label: string; to: string }; versionCases?: boolean }
 type VersionPrompt = { key: string; force: boolean; outside: RunCasesOutsideBuild; version: string }
 type VersionChoice = { prompt: VersionPrompt; action: 'add' | 'skip' }
+type ReviewPrompt = { key: string; review: PendingQaReview; force: boolean; choice: VersionChoice | null }
 
 /**
  * QA 실행 화면의 오른쪽 "실행 설정" 패널(ARTEL-1084).
@@ -107,6 +110,7 @@ export function LaunchPanel({
   const [failure, setFailure] = useState<string | null>(null)
   const [takeoverOpen, setTakeoverOpen] = useState(false)
   const [versionPrompt, setVersionPrompt] = useState<VersionPrompt | null>(null)
+  const [reviewPrompt, setReviewPrompt] = useState<ReviewPrompt | null>(null)
   const [takeoverChoice, setTakeoverChoice] = useState<VersionChoice | null>(null)
   const startInFlight = useRef(false)
   const [functionOptions, setFunctionOptions] = useState<QaFunctionOptions>(DEFAULT_QA_FUNCTION_OPTIONS)
@@ -136,6 +140,8 @@ export function LaunchPanel({
   const skippedGame = versionCaseBuildName(versionCases.outside?.gameBuildId, builds, instance?.lastGameBuild ?? null) ?? l.currentVersion
   const selectionKey = JSON.stringify([projectId, run?.id, instance?.id, instance?.lastGameBuild])
   const visibleVersionPrompt = versionPrompt?.key === selectionKey ? versionPrompt : null
+  const reviewKey = JSON.stringify([selectionKey, modelKey, selectedReasoning, effectiveArch, functionOptions])
+  const visibleReviewPrompt = reviewPrompt?.key === reviewKey ? reviewPrompt : null
   const checks: Check[] = []
   if (instance === null) checks.push({ tone: 'bad', title: l.noGame })
   else if (instance.connected) checks.push({ tone: 'ok', title: l.connected })
@@ -167,14 +173,29 @@ export function LaunchPanel({
    * 버튼, 단축키, agent 가 함께 쓴다. 시작하지 않았으면 null 이다(막혀 있거나 이미 시작하는 중).
    * `force` 는 사용자가 인수 대화상자에서 답했을 때만 true 다 — agent 는 절대 보내지 않는다.
    */
-  async function start(force = false, choice: VersionChoice | null = null): Promise<StartOutcome | null> {
+  async function start(
+    force = false,
+    choice: VersionChoice | null = null,
+    confirmedReview: ReviewPrompt | null = null,
+  ): Promise<StartOutcome | null> {
     if (blocked || startInFlight.current || versionCases.pending || run === null || instance === null || model === null) return null
+    if (visibleReviewPrompt !== confirmedReview) return { kind: 'failed', message: l.pendingReview.required }
     startInFlight.current = true
     setStarting(true)
     setFailure(null)
     // 알림 권한은 클릭 직후에 묻는다. run 생성 응답을 기다린 뒤에 물으면 브라우저가 창을 띄우지 않는다.
     const permission = requestQuestionNotificationPermission()
     try {
+      if (confirmedReview !== null) {
+        try {
+          await approvePendingQaReview(run.id, confirmedReview.review)
+          setReviewPrompt(null)
+        } catch (error: unknown) {
+          if (pendingQaReview(error) !== null) throw error
+          setFailure(l.pendingReview.failed)
+          return { kind: 'failed', message: l.pendingReview.failed }
+        }
+      }
       const fresh = await versionCases.refresh()
       if (fresh === null) {
         setFailure(l.addVersionCasesFailed)
@@ -210,6 +231,13 @@ export function LaunchPanel({
       navigate(`/projects/${encodeURIComponent(projectId)}/qa-runs/${encodeURIComponent(created.id)}`)
       return { kind: 'started', qaRunId: created.id }
     } catch (error: unknown) {
+      const review = pendingQaReview(error)
+      if (review !== null) {
+        setTakeoverOpen(false)
+        setReviewPrompt({ key: reviewKey, review, force, choice })
+        if (confirmedReview !== null) setFailure(l.pendingReview.changed)
+        return { kind: 'failed', message: l.pendingReview.required }
+      }
       const conflict = qaStartConflict(error)
       if (conflict === 'qa_run_active' && !force) {
         setTakeoverOpen(true)
@@ -288,6 +316,7 @@ export function LaunchPanel({
   // 버튼이 막혀 있을 때 보이는 점검 항목 중 막힌 것들을 그대로 이유로 돌려준다.
   function startBlockedReason(): string | null {
     if (starting) return p.starting
+    if (visibleReviewPrompt !== null) return l.pendingReview.required
     if (visibleVersionPrompt !== null) return l.versionChoiceRequired
     if (versionCases.pending) return l.addingVersionCases
     if (run === null) return t.qa.errors.missingSelection
@@ -517,7 +546,7 @@ export function LaunchPanel({
 
       <EdgeScrollbar label={l.title} scroller={panelScroller} side="right" />
       <div className="ql-panel-foot">
-        {failure !== null && !takeoverOpen && visibleVersionPrompt === null && (
+        {failure !== null && !takeoverOpen && visibleVersionPrompt === null && visibleReviewPrompt === null && (
           <div className="inline-error" role="alert">
             <span aria-hidden="true">!</span>
             {failure}
@@ -539,6 +568,15 @@ export function LaunchPanel({
         </p>
       </div>
 
+      {visibleReviewPrompt !== null && visibleVersionPrompt === null && (
+        <QaPendingReviewDialog
+          review={visibleReviewPrompt.review}
+          failure={failure}
+          pending={starting || versionCases.pending}
+          onClose={() => { setReviewPrompt(null); setFailure(null) }}
+          onConfirm={() => void start(visibleReviewPrompt.force, visibleReviewPrompt.choice, visibleReviewPrompt)}
+        />
+      )}
       {visibleVersionPrompt !== null && (
         <RunVersionCasesDialog
           count={visibleVersionPrompt.outside.testCaseIds.length}
@@ -550,7 +588,7 @@ export function LaunchPanel({
           onSkip={() => void start(visibleVersionPrompt.force, { prompt: visibleVersionPrompt, action: 'skip' })}
         />
       )}
-      {takeoverOpen && visibleVersionPrompt === null && (
+      {takeoverOpen && visibleVersionPrompt === null && visibleReviewPrompt === null && (
         <TakeOverQaRunDialog
           failure={failure}
           onClose={() => setTakeoverOpen(false)}

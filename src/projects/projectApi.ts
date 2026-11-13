@@ -24,18 +24,21 @@ export class ProjectApiError extends Error {
   readonly status: number
   readonly code: string | null
   readonly fields: Record<string, string>
+  readonly pendingReview: unknown
 
   constructor(
     status: number,
     message: string,
     code: string | null = null,
     fields: Record<string, string> = {},
+    pendingReview?: unknown,
   ) {
     super(message)
     this.name = 'ProjectApiError'
     this.status = status
     this.code = code
     this.fields = fields
+    this.pendingReview = pendingReview
   }
 
   /** Not a member — the server will not even confirm the project exists. */
@@ -125,6 +128,7 @@ export async function toApiError(response: Response): Promise<ProjectApiError> {
   let code: string | null = null
   let message = ''
   let fields: Record<string, string> = {}
+  let pendingReview: unknown
 
   try {
     const body = asRecord(await response.json())
@@ -132,6 +136,7 @@ export async function toApiError(response: Response): Promise<ProjectApiError> {
       code = asNullableString(body.code)
       message = asString(body.message)
       fields = asFieldErrors(body.fields)
+      pendingReview = body.pendingReview
     }
   } catch {
     // Keep the generic message below.
@@ -144,6 +149,7 @@ export async function toApiError(response: Response): Promise<ProjectApiError> {
     // so the code follows it; a server-provided code is never overwritten.
     code ?? (message.length > 0 ? null : 'CLIENT_GENERIC'),
     fields,
+    pendingReview,
   )
 }
 
