@@ -243,7 +243,7 @@ export async function checkLlmModels(): Promise<LlmKeyCheck> {
   return parseLlmKeyCheck(await readJson(response))
 }
 
-export type LlmModelRoute = 'openrouter' | 'bedrock' | 'claude' | 'gpt'
+export type LlmModelRoute = 'openrouter' | 'claude' | 'gpt'
 export type LlmDiscoveryProvider = 'openrouter' | 'openai' | 'claude'
 
 export interface LlmModelCandidate {
@@ -251,7 +251,7 @@ export interface LlmModelCandidate {
   label: string
 }
 
-const LLM_MODEL_ROUTES: readonly LlmModelRoute[] = ['openrouter', 'bedrock', 'claude', 'gpt']
+const LLM_MODEL_ROUTES: readonly LlmModelRoute[] = ['openrouter', 'claude', 'gpt']
 
 export interface AdminLlmModel {
   id: string
@@ -264,10 +264,9 @@ export interface AdminLlmModel {
   updatedAt: string | null
 }
 
-function parseLlmModelRoute(value: unknown, id: string): LlmModelRoute {
-  const known = LLM_MODEL_ROUTES.find((route) => route === value)
-  if (known !== undefined) return known
-  return value === undefined && id.startsWith('bedrock/') ? 'bedrock' : 'openrouter'
+/** 모르는 값은 OpenRouter 다. 예전 서버의 `bedrock` 도 여기에 든다 — Bedrock 은 걷었다(ARTEL-1440). */
+function parseLlmModelRoute(value: unknown): LlmModelRoute {
+  return LLM_MODEL_ROUTES.find((route) => route === value) ?? 'openrouter'
 }
 
 export function parseAdminLlmModel(raw: unknown): AdminLlmModel {
@@ -278,7 +277,7 @@ export function parseAdminLlmModel(raw: unknown): AdminLlmModel {
     label: asNullableString(row.label) ?? id,
     provider: asNullableString(row.provider) ?? '',
     // The server derives the route from the id prefix; do the same when it is missing.
-    route: parseLlmModelRoute(row.route, id),
+    route: parseLlmModelRoute(row.route),
     enabled: row.enabled === true,
     supportsVision: row.supportsVision === true,
     maxInputTokens: asNullableNumber(row.maxInputTokens),
@@ -327,29 +326,21 @@ export function replaceLlmModel(models: AdminLlmModel[], updated: AdminLlmModel)
   return models.map((model) => (model.id === updated.id ? updated : model))
 }
 
-/** One Bedrock model the check called. `error` is the provider's message or the transport error. */
-export interface BedrockModelCheck {
+/** One model a key check called. `error` is the provider's message or the transport error. */
+export interface KeyModelCheck {
   id: string
   reachable: boolean
   error: string | null
 }
 
-export interface BedrockCheck {
+/** A provider key check: whether a key was there, and which enabled models it reached. */
+export interface KeyModelsCheck {
   checkedAt: string | null
   keyConfigured: boolean
-  models: BedrockModelCheck[]
+  models: KeyModelCheck[]
 }
 
-export interface BedrockSettings {
-  configured: boolean
-  /** The server's masked tail such as `…abcd`. The full key is never sent. */
-  maskedKey: string | null
-  updatedAt: string | null
-  region: string | null
-  lastCheck: BedrockCheck | null
-}
-
-export function parseBedrockCheck(raw: unknown): BedrockCheck {
+export function parseKeyModelsCheck(raw: unknown): KeyModelsCheck {
   const record = asRecord(raw)
   return {
     checkedAt: asNullableString(record.checkedAt),
@@ -367,39 +358,8 @@ export function parseBedrockCheck(raw: unknown): BedrockCheck {
   }
 }
 
-export function parseBedrockSettings(body: unknown): BedrockSettings {
-  const record = asRecord(body)
-  const lastCheck = record.lastCheck
-  return {
-    configured: record.configured === true,
-    maskedKey: asNullableString(record.maskedKey),
-    updatedAt: asNullableString(record.updatedAt),
-    region: asNullableString(record.region),
-    lastCheck: typeof lastCheck === 'object' && lastCheck !== null ? parseBedrockCheck(lastCheck) : null,
-  }
-}
-
-export async function getBedrockSettings(signal?: AbortSignal): Promise<BedrockSettings> {
-  return parseBedrockSettings(await readJson(await apiFetch('/api/admin/settings/bedrock', { signal })))
-}
-
-/** Sets the key, or deletes it (and the last check) when `apiKey` is `null`. */
-export async function putBedrockKey(apiKey: string | null): Promise<BedrockSettings> {
-  const response = await apiFetch('/api/admin/settings/bedrock', {
-    method: 'PUT',
-    headers: JSON_HEADERS,
-    body: JSON.stringify({ apiKey }),
-  })
-  return parseBedrockSettings(await readJson(response))
-}
-
-export async function checkBedrockModels(): Promise<BedrockCheck> {
-  const response = await apiFetch('/api/admin/settings/bedrock/check', { method: 'POST' })
-  return parseBedrockCheck(await readJson(response))
-}
-
-/** Claude API(Anthropic) 키. 상태 모양은 Bedrock 키와 같고 region 만 없다. */
-export type ClaudeCheck = BedrockCheck
+/** Claude API(Anthropic) 키. */
+export type ClaudeCheck = KeyModelsCheck
 
 export interface ClaudeSettings {
   configured: boolean
@@ -416,7 +376,7 @@ export function parseClaudeSettings(body: unknown): ClaudeSettings {
     configured: record.configured === true,
     maskedKey: asNullableString(record.maskedKey),
     updatedAt: asNullableString(record.updatedAt),
-    lastCheck: typeof lastCheck === 'object' && lastCheck !== null ? parseBedrockCheck(lastCheck) : null,
+    lastCheck: typeof lastCheck === 'object' && lastCheck !== null ? parseKeyModelsCheck(lastCheck) : null,
   }
 }
 
@@ -436,7 +396,7 @@ export async function putClaudeKey(apiKey: string | null): Promise<ClaudeSetting
 
 export async function checkClaudeModels(): Promise<ClaudeCheck> {
   const response = await apiFetch('/api/admin/settings/anthropic/check', { method: 'POST' })
-  return parseBedrockCheck(await readJson(response))
+  return parseKeyModelsCheck(await readJson(response))
 }
 
 /** The direct TypeSafe (Jev) API key. Same status shape as the Anthropic key, without a model check. */

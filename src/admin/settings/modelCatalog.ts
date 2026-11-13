@@ -1,11 +1,10 @@
 import type { AdminLlmModel, LlmModelRoute } from './settingsApi'
 
 /** 모델 목록 화면의 group 순서와 이름. route 마다 쓰는 key 가 달라서 key 단위로 묶어 보인다. */
-export const MODEL_GROUP_ORDER: readonly LlmModelRoute[] = ['openrouter', 'bedrock', 'claude', 'gpt']
+export const MODEL_GROUP_ORDER: readonly LlmModelRoute[] = ['openrouter', 'claude', 'gpt']
 
 export const MODEL_GROUP_LABEL: Record<LlmModelRoute, string> = {
   openrouter: 'OpenRouter',
-  bedrock: 'AWS Bedrock',
   claude: 'Claude API',
   gpt: 'OpenAI API',
 }

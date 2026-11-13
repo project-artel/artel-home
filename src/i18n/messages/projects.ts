@@ -114,7 +114,7 @@ export const projectsEn = {
       storage:
         'Storage: the original PDF is kept in the S3-compatible file storage this ARTEL server uses. Only members of this project can download it.',
       extraction:
-        'Summary: the server extracts the text from the PDF, sends it to an LLM provider (OpenRouter or AWS Bedrock), and saves the summary it returns as knowledge.',
+        'Summary: the server extracts the text from the PDF, sends it to an LLM provider, and saves the summary it returns as knowledge.',
       qaRuns:
         'QA runs: the QA agent can read this knowledge while it tests the game, and whatever it reads is sent to the LLM provider.',
       deletion:
@@ -159,7 +159,7 @@ export const projectsEn = {
       stepsLabel: 'What happens when you upload',
       steps: {
         store: { title: 'Kept on this server', body: 'The original stays in this server’s file store. Only members can download it.' },
-        extract: { title: 'Text extracted and summarized', body: 'The text is sent to the LLM provider (OpenRouter or Bedrock) for a summary.' },
+        extract: { title: 'Text extracted and summarized', body: 'The text is sent to the LLM provider for a summary.' },
         knowledge: { title: 'Saved as knowledge', body: 'The summary goes into the knowledge graph.' },
         qa: { title: 'Read during QA', body: 'The QA agent consults this knowledge while it tests.' },
       },
@@ -809,7 +809,7 @@ export const projectsKo: Localized<typeof projectsEn> = {
       storage:
         '저장: 원본 PDF 는 이 ARTEL 서버가 사용하는 S3 호환 파일 저장소에 보관됩니다. 이 프로젝트의 멤버만 내려받을 수 있습니다.',
       extraction:
-        '요약: 서버가 PDF 에서 텍스트를 추출해 LLM 제공자(OpenRouter 또는 AWS Bedrock)에게 보내고, 돌려받은 요약을 knowledge 로 저장합니다.',
+        '요약: 서버가 PDF 에서 텍스트를 추출해 LLM 제공자에게 보내고, 돌려받은 요약을 knowledge 로 저장합니다.',
       qaRuns:
         'QA 실행: QA agent 는 게임을 테스트하는 동안 이 knowledge 를 읽을 수 있고, 읽은 내용은 LLM 제공자에게 전송됩니다.',
       deletion:
@@ -852,7 +852,7 @@ export const projectsKo: Localized<typeof projectsEn> = {
       stepsLabel: '올리면 일어나는 일',
       steps: {
         store: { title: '서버에 보관', body: '원본은 이 서버의 파일 저장소에 둡니다. 멤버만 내려받습니다.' },
-        extract: { title: '텍스트 추출과 요약', body: '글을 뽑아 LLM 제공자(OpenRouter 또는 Bedrock)에게 요약을 맡깁니다.' },
+        extract: { title: '텍스트 추출과 요약', body: '글을 뽑아 LLM 제공자에게 요약을 맡깁니다.' },
         knowledge: { title: 'knowledge 로 저장', body: '요약은 지식 그래프에 들어갑니다.' },
         qa: { title: 'QA 가 읽음', body: 'QA agent 가 테스트하며 이 knowledge 를 참고합니다.' },
       },

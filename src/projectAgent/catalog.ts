@@ -58,7 +58,7 @@ export const GLOBAL_LINKS: GlobalLink[] = [
   { id: 'projects', title: 'Projects', url: '/projects', description: 'All projects of the user, with the received project invitations on top. Create a new project here.' },
   { id: 'account', title: 'Account settings', url: '/account', description: 'Nickname, email address, the user\'s own LLM API keys, and CLI tokens. The language is a select in the top bar, and there is no password form here.' },
   { id: 'setupGuide', title: 'Setup guide', url: '/setup', description: 'Install the Unity SDK, the artel CLI, and the ARTEL agent skills on a machine. Not tied to one project.' },
-  { id: 'admin', title: 'Admin', url: '/admin', description: 'Platform administration (ADMIN only, other users see a not-found page): QA run stats, token usage, knowledge, knowledge graph, expected-judgement labels, users, and settings (models, Bedrock and TypeSafe keys).' },
+  { id: 'admin', title: 'Admin', url: '/admin', description: 'Platform administration (ADMIN only, other users see a not-found page): QA run stats, token usage, knowledge, knowledge graph, expected-judgement labels, users, and settings (models, OpenRouter, Claude API and TypeSafe keys).' },
 ]
 
 export const PAGE_CATALOG: PageCatalogEntry[] = [
