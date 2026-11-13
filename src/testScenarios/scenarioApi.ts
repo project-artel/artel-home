@@ -372,8 +372,9 @@ export async function approveTestScenario(
  * closes the agent session. There is no restore path, so the caller confirms
  * first and leaves the screen once it resolves.
  */
-export async function deleteTestScenario(testScenarioId: number): Promise<void> {
-  const response = await apiFetch(scenarioPath(testScenarioId), { method: 'DELETE' })
+export async function deleteTestScenario(testScenarioId: number, force = false): Promise<void> {
+  const path = scenarioPath(testScenarioId)
+  const response = await apiFetch(force ? `${path}?force=true` : path, { method: 'DELETE' })
 
   if (!response.ok) {
     throw await toApiError(response)
