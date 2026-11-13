@@ -6022,6 +6022,7 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
 
 .stat-tile {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
@@ -6044,6 +6045,7 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
 }
 
 .stat-label {
+  overflow-wrap: anywhere;
   color: var(--color-text-muted);
   font-size: 11px;
 }
@@ -6058,6 +6060,10 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
 }
 
 .stat-sub {
+  min-width: 0;
+  max-width: 100%;
+  margin-inline-start: auto;
+  overflow-wrap: anywhere;
   color: var(--color-text-muted);
   font-size: 11px;
   text-align: right;
@@ -6083,7 +6089,7 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
 .dashboard-columns {
   display: grid;
   gap: var(--space-3);
-  grid-template-columns: 5fr 3fr;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 3fr);
   align-items: start;
 }
 
@@ -6097,6 +6103,7 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
 
 .summary-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
@@ -6143,11 +6150,15 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
 
 /* 씬 · 건수 · 저작으로 넘어가는 링크. 링크를 오른쪽 끝에 두어 행마다 같은 자리에서 눌린다. */
 .summary-row--uncovered {
-  grid-template-columns: auto auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto auto;
 }
 
 .summary-row--uncovered .table-link {
   justify-self: end;
+}
+
+.dashboard :is(.summary-head, .summary-row, .mini-panel) {
+  overflow-wrap: anywhere;
 }
 
 .summary-title {
@@ -6212,6 +6223,7 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
 
 .mini-panel-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
@@ -6254,6 +6266,7 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
 
 .mini-line {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
   font-size: 12px;
@@ -6261,6 +6274,7 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
 
 .mini-name {
   flex: 1;
+  min-width: 0;
   overflow: hidden;
   color: var(--color-text-primary);
   font-weight: 600;
@@ -6398,6 +6412,14 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
 
 /* The rail becomes a horizontal strip rather than eating half a narrow screen. */
 @media (max-width: 720px) {
+  .summary-row--issue {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .summary-row--issue .summary-title {
+    white-space: normal;
+  }
+
   .project-workspace {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1fr);
@@ -10257,8 +10279,14 @@ button.run-chat-coverage:hover {
 }
 /* 대시보드 목록은 모달이 아니라 패널 안에 산다. 높이를 패널에서 받고, 고른 행은
    커서(active)와 달리 계속 표가 나야 한다 — 편집기가 그 케이스를 열고 있기 때문이다. */
-.tcl .cp-listwrap{ flex:1; min-height:0; }
-.tcl .cp-list{ max-height:none; }
+.tcl-list-panel > .cp-listwrap{
+  display:grid; grid-template:minmax(0, 1fr) / minmax(0, 1fr);
+  flex:1 1 auto; min-height:0;
+}
+.tcl-list-panel > .cp-listwrap .tcl-scroll{
+  min-width:0; min-height:0; overflow:auto; scrollbar-width:thin;
+}
+.tcl-list-panel > .cp-listwrap .tcl-scroll::-webkit-scrollbar{ display:block; }
 :is(.scenario-studio, .cp-scope) .cp-row.picked{ background:var(--color-bg-hover); border-color:var(--color-brand-accent); }
 :is(.scenario-studio, .cp-scope) .cp-row.picked .cp-title{ color:var(--st-action); }
 .tcl .cp-foot{ border-top:1px solid var(--st-border); }
@@ -10267,13 +10295,17 @@ button.run-chat-coverage:hover {
 
 /* 대시보드 목록을 팔레트처럼 자기 안에서 스크롤시킨다(ARTEL-872). */
 .tcl-list-panel{
-  display:flex; flex-direction:column; min-height:0;
-  max-height:calc(100vh - var(--shell-topbar-h) - var(--space-6) * 2);
+  display:flex; flex-direction:column;
 }
-.tcl-list-panel > .tcl-filters,
-.tcl-list-panel > .tcl-status-row,
-.tcl-list-panel > .cp-filter-row,
-.tcl-list-panel > .cp-foot{ flex:none; }
+.tcl-list-panel > :not(.cp-listwrap){ flex:none; }
+
+@media (max-width: 1439px), (max-height: 759px) {
+  .tcl-list-panel .tcl-scroll{ max-height:65dvh; }
+}
+
+@media (max-width: 720px) {
+  .tcl-list-panel .tcl-table{ min-width:720px; }
+}
 
 /* ── 케이스 라이브러리: 전폭 표 + side sheet (ARTEL-872) ───────────────────────
    `.section-content` 가 모든 워크스페이스 화면을 1240px 로 가운데 몰고 있었다. 2560px
@@ -10640,8 +10672,7 @@ col.mct-c-updated { width: 12%; }
 /* 선택 bar — 고른 건수와 그 선택에 거는 동작 (ARTEL-968) */
 /* 자리는 늘 같은 높이로 잡는다. bar 가 나타나며 표를 한 줄 밀면 가만히 있는 포인터 아래로 다른 행이
    들어와 키보드 커서가 옮겨 간다. */
-.tcl-list-panel > .tcl-selection-slot{ flex:none; min-height:48px; }
-.tcl-selection-slot{ display:flex; align-items:center; border-top:1px solid var(--color-border-subtle); border-bottom:1px solid var(--color-border-subtle); }
+.tcl-selection-slot{ display:flex; align-items:center; min-height:48px; border-top:1px solid var(--color-border-subtle); border-bottom:1px solid var(--color-border-subtle); }
 .tcl-selection-hint{ margin:0; padding:0 var(--space-4); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; line-height:1.4; color:var(--color-text-muted); }
 .tcl-selection-bar{
   display:flex; align-items:center; flex-wrap:wrap; gap:var(--space-2) var(--space-3); width:100%; min-height:48px;
@@ -10887,9 +10918,12 @@ col.mct-c-updated { width: 12%; }
    빼지 않으면 그만큼 바깥 스크롤이 생긴다. */
 @media (min-width: 1440px) {
   .tcl-folders,
-  .tcl-list-panel{ height:calc(100dvh - var(--tcl-top, 108px) - var(--space-6) * 2); max-height:none; }
+  .tcl-list-panel{ height:calc(100dvh - var(--tcl-top, 108px) - var(--space-6) * 2); }
   .tcl{ transition:grid-template-columns .22s cubic-bezier(.2,.7,.2,1); }
   .tcl.is-side-collapsed{ grid-template-columns:44px minmax(0, 1fr); }
+}
+@media (min-width: 1440px) and (max-height: 759px) {
+  .tcl-list-panel{ height:auto; }
 }
 @media (prefers-reduced-motion: reduce) {
   .tcl{ transition:none; }
