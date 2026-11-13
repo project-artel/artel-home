@@ -20,11 +20,11 @@ import {
 } from '../../projectAgent/specs/qa'
 import { sectionHref } from '../../projects/workspace/sections'
 import type { TestRun, RunCasesOutsideBuild } from '../../testRuns/testRunApi'
-import { QA_ENGINES, archEngine, archLabelMissing, changedSettingCount, toArchRequest, withEngine, withoutVisionKnobs, type QaArchSelection } from '../qaArch'
+import { QA_ENGINES, archEngine, archLabelMissing, changedSettingCount, toArchRequest, withEngine, withoutVisionKnobs } from '../qaArch'
 import { createQaRun, qaStartConflict } from '../qaApi'
 import { requestQuestionNotificationPermission, subscribeQuestionNotifications } from '../evaluation/questionNotificationOptIn'
-import { readLastInputMode, storeLastArch, storeLastInputMode } from '../qaStartChoices'
-import { DEFAULT_QA_FUNCTION_OPTIONS, type QaFunctionOptions } from '../qaFunctionOptions'
+import type { QaArchSelection } from '../qaArch'
+import { readLastAdvancedSettings, storeLastAdvancedSettings } from '../qaStartChoices'
 import { QaFunctionOptionsFields } from '../QaFunctionOptionsFields'
 import { CheckIcon, ChevronDownIcon, CircleCheckIcon, CircleXIcon } from '../qaModelIcons'
 import { QaModelPicker } from '../QaModelPicker'
@@ -84,7 +84,6 @@ export function LaunchPanel({
   onReasoningEnabled: (value: boolean) => void
   reasoningValue: number
   onReasoningValue: (value: number) => void
-  /** agent 구조 고급 설정(ARTEL-1091). 바꾼 knob 이 없으면 요청에 실리지 않는다. */
   arch: QaArchSelection
   onArchChange: (next: QaArchSelection) => void
   etaMs: number | null
@@ -110,8 +109,8 @@ export function LaunchPanel({
   const [versionPrompt, setVersionPrompt] = useState<VersionPrompt | null>(null)
   const [takeoverChoice, setTakeoverChoice] = useState<VersionChoice | null>(null)
   const startInFlight = useRef(false)
-  const [functionOptions, setFunctionOptions] = useState<QaFunctionOptions>(DEFAULT_QA_FUNCTION_OPTIONS)
-  const [inputMode, setInputMode] = useState(() => readLastInputMode(projectId))
+  const [advanced, setAdvanced] = useState(() => readLastAdvancedSettings(projectId))
+  const { functionOptions, inputMode } = advanced
 
   const instance = instances.find((one) => one.id === instanceId) ?? null
   const model = models.find((one) => `${one.keySource}:${one.id}` === modelKey) ?? null
@@ -206,8 +205,7 @@ export function LaunchPanel({
       setTakeoverChoice(choice)
       const created = await createQaRun(run.id, instance.id, model.id, model.keySource, selectedReasoning, force, toArchRequest(effectiveArch), functionOptions, inputMode)
       // 시작이 성공한 구조만 다음 폼의 기본값이 된다. 고르다 만 값은 남기지 않는다.
-      storeLastArch(effectiveArch)
-      storeLastInputMode(projectId, inputMode)
+      storeLastAdvancedSettings(projectId, { ...advanced, arch: effectiveArch })
       void permission.then(() => subscribeQuestionNotifications(projectId))
       setTakeoverOpen(false)
       navigate(`/projects/${encodeURIComponent(projectId)}/qa-runs/${encodeURIComponent(created.id)}`)
@@ -480,7 +478,7 @@ export function LaunchPanel({
         <QaFunctionOptionsFields
           builds={builds}
           disabled={starting}
-          onChange={setFunctionOptions}
+          onChange={(functionOptions) => setAdvanced((current) => ({ ...current, functionOptions }))}
           projectId={projectId}
           summaryBadge={changedSettings > 0 ? <span className="qa-advanced-count">{p.advanced.changed(changedSettings)}</span> : undefined}
           value={functionOptions}
@@ -491,7 +489,10 @@ export function LaunchPanel({
               className="field-input"
               disabled={starting || takeoverOpen || visibleVersionPrompt !== null}
               id={inputModeId}
-              onChange={(event) => setInputMode(event.target.value === 'os' ? 'os' : 'virtual')}
+              onChange={(event) => {
+                const inputMode = event.target.value === 'os' ? 'os' : 'virtual'
+                setAdvanced((current) => ({ ...current, inputMode }))
+              }}
               value={inputMode}
             >
               <option value="virtual">{l.virtualInput}</option>
