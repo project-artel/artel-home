@@ -139,17 +139,23 @@ test('the bookkeeping call is left out — it is neither a thought nor an action
   assert.equal(steps[0].attempts, 0)
 })
 
-test('steps keep the order they ran in, and each is one block', () => {
+test('다른 step을 거쳐 돌아오면 새 블록에 표시한다', () => {
   const steps = buildFlowSteps(
     [
       tool('1', 'report_step', { step: 6, passed: false, thought: 'ㄱ' }),
       tool('2', 'press_key', { step: 7, key_code: 'Return', thought: 'ㄴ' }),
       tool('3', 'report_step', { step: 7, passed: true, thought: 'ㄷ' }),
+      tool('4', 'press_key', { step: 6, key_code: 'Return', thought: '다시 실행' }),
+      tool('5', 'press_key', { step: 6, key_code: 'Return', thought: '다시 실행' }),
+      tool('6', 'report_step', { step: 6, passed: true, thought: '재시도 통과' }),
     ],
     NO_NAMES,
   )
 
-  assert.deepEqual(steps.map((block) => block.step), [6, 7])
+  assert.deepEqual(steps.map((block) => block.step), [6, 7, 6])
+  assert.deepEqual(steps.map((block) => block.id), ['1', '2', '4'])
+  assert.deepEqual(steps.map((block) => block.attempts), [0, 1, 2])
+  assert.deepEqual(steps.map((block) => block.passed), [false, true, true])
 })
 
 test('a thought repeated by a retry is written once, not once per try', () => {

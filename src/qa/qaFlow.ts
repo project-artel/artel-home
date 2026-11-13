@@ -145,6 +145,7 @@ export type FlowLine =
  * Agent 가 따로 보내는 STATUS 프레임에 있다.
  */
 export type FlowStep = {
+  id: string
   step: number
   lines: FlowLine[]
   /** `report_step` 이 낸 판정. 아직 안 냈으면 null. */
@@ -164,16 +165,14 @@ export type FlowStep = {
 const HIDDEN = new Set(['skip_memory_update'])
 
 /**
- * 로그를 스텝 덩어리로 묶는다.
+ * 같은 step의 로그가 연속으로 표시될 때 한 블록으로 묶는다.
  *
  * `report_step` 은 그 스텝을 닫는다 — 생각은 한 줄로 남고, 통과 여부는 덩어리의 것이 된다.
  * 판정 문구(`message`)는 싣지 않는다. 화면이 묻는 것이 아니다.
  */
 export function buildFlowSteps(logs: readonly QaLog[], names: ObjectNames): FlowStep[] {
   const steps: FlowStep[] = []
-  const byStep = new Map<number, FlowStep>()
-  /** 덩어리마다 이미 적은 생각. 같은 문장을 두 번 적지 않는다. */
-  const saidByStep = new Map<number, Set<string>>()
+  const said = new Set<string>()
   const outputs = new Map<string, string>()
 
   for (const log of logs) {
@@ -192,14 +191,12 @@ export function buildFlowSteps(logs: readonly QaLog[], names: ObjectNames): Flow
     const step = stepOf(log)
     if (step === null) continue
 
-    let block = byStep.get(step)
-    if (block === undefined) {
-      block = { step, lines: [], passed: null, reason: null, attempts: 0 }
-      byStep.set(step, block)
-      saidByStep.set(step, new Set())
+    let block = steps.at(-1)
+    if (block?.step !== step) {
+      block = { id: log.id, step, lines: [], passed: null, reason: null, attempts: 0 }
       steps.push(block)
+      said.clear()
     }
-    const said = saidByStep.get(step) ?? new Set<string>()
 
     // 한 덩어리 안에서 같은 문장은 한 번만 적는다. 되풀이해 시도한 호출은 `thought` 를
     // 글자 그대로 다시 싣는다 — try 46 의 TC 20 에서 한 문장이 세 번 나왔다. 사이에 조작이
@@ -238,7 +235,7 @@ export function filterFlowLogs(logs: readonly QaLog[], executionMode: ExecutionM
 }
 
 /** FREE는 TC별로 다시 모으지 않고 행동과 판정을 도착 순서대로 표시한다. */
-export function buildFreeFlow(logs: readonly QaLog[], names: ObjectNames, scenarioSteps: ScenarioStep[]): (FlowStep & { id: string; caseId: string | null })[] {
+export function buildFreeFlow(logs: readonly QaLog[], names: ObjectNames, scenarioSteps: ScenarioStep[]): (FlowStep & { caseId: string | null })[] {
   const outputs = new Map<string, string>()
   for (const log of logs) {
     const payload = asRecord(log.payload)
@@ -247,7 +244,7 @@ export function buildFreeFlow(logs: readonly QaLog[], names: ObjectNames, scenar
   return logs.flatMap((log) => {
     const payload = asRecord(log.payload)
     const step = stepOf(log)
-    const block: FlowStep & { id: string; caseId: string | null } = {
+    const block: FlowStep & { caseId: string | null } = {
       id: log.id, step: step ?? 0, lines: [], passed: null, reason: null, attempts: 0, caseId: null,
     }
     if (log.type === 'STATUS' && step !== null && (payload?.status === 'COMPLETED' || payload?.status === 'FAILED')) {
