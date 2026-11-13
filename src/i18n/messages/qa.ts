@@ -194,6 +194,9 @@ export const qaEn = {
       noGame: 'Choose a game',
       offline: 'Turn on the Artel SDK in the game. Once it connects, it appears here on its own and you can run.',
       agentLabel: 'Agent',
+      inputModeLabel: 'Input mode',
+      virtualInput: 'Virtual input',
+      osInput: 'OS input',
       engineTitle: 'Engine',
       engines: { agent: 'Workflow', planner_executer: 'Plan & Execute' },
       engineHint:
@@ -975,6 +978,9 @@ export const qaKo: Localized<typeof qaEn> = {
       noGame: '게임을 고르세요',
       offline: '게임에서 Artel SDK 를 켜 주세요. 연결되면 목록에 자동으로 나타나고 바로 실행할 수 있습니다.',
       agentLabel: '에이전트',
+      inputModeLabel: '입력 방식',
+      virtualInput: '가상 입력',
+      osInput: 'OS 입력',
       engineTitle: '엔진',
       engines: { agent: '워크플로우', planner_executer: 'Plan & Execute' },
       engineHint:

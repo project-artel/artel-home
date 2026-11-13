@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { EMPTY_ARCH_SELECTION, archEngine } from './qaArch'
-import { LAST_ARCH_STORAGE_KEY, readLastArch, storeLastArch } from './qaStartChoices'
+import { LAST_ARCH_STORAGE_KEY, readLastAdvancedSettings, storeLastAdvancedSettings } from './qaStartChoices'
 
 function fakeStorage(initial: Record<string, string> = {}) {
   const map = new Map(Object.entries(initial))
@@ -20,32 +20,33 @@ const throwingStorage = {
   },
 }
 
-test('last arch round trips', () => {
+test('고급 설정은 프로젝트별로 한 번에 저장하고 복원한다', () => {
   const storage = fakeStorage()
-  const selection = { label: 'a', phase_cycle: 'off', fold_threshold_chars: 10 } as const
-  storeLastArch(selection, storage)
-  assert.deepEqual(readLastArch(storage), selection)
+  const settings = {
+    arch: { label: 'a', phase_cycle: 'off' as const },
+    functionOptions: { cheatMode: 'off' as const, behaviorMode: 'on' as const, allowedCheats: null, allowedBehaviors: ['walk'] },
+    inputMode: 'os' as const,
+  }
+  storeLastAdvancedSettings('one', settings, storage)
+  assert.deepEqual(readLastAdvancedSettings('one', storage), settings)
+  assert.equal(readLastAdvancedSettings('two', storage).inputMode, 'virtual')
+  assert.equal(readLastAdvancedSettings('two', storage).functionOptions.cheatMode, 'on')
 })
 
-test('blocked storage reads as empty and does not throw on store', () => {
-  assert.deepEqual(readLastArch(throwingStorage), EMPTY_ARCH_SELECTION)
-  assert.doesNotThrow(() => storeLastArch({ label: 'a' }, throwingStorage))
+test('기존 브라우저의 구조 설정과 입력 방식을 불러온다', () => {
+  const storage = fakeStorage({
+    [LAST_ARCH_STORAGE_KEY]: JSON.stringify({ label: 'arm', phase_cycle: 'off', engine: 'planner_executer' }),
+    'artel.qa.lastInputMode.one': 'os',
+  })
+  const restored = readLastAdvancedSettings('one', storage)
+  assert.deepEqual(restored.arch, { label: 'arm', phase_cycle: 'off' })
+  assert.equal(archEngine(restored.arch), 'agent')
+  assert.equal(restored.inputMode, 'os')
 })
 
-test('broken JSON reads as the empty selection', () => {
-  assert.deepEqual(readLastArch(fakeStorage({ [LAST_ARCH_STORAGE_KEY]: '{oops' })), EMPTY_ARCH_SELECTION)
-})
-
-test('engine 이 생기기 전에 저장된 값은 agent 엔진으로 그대로 읽힌다', () => {
-  // ARTEL-1091 이 남긴 모양 그대로다. `engine` 키가 없다.
-  const before = JSON.stringify({ label: 'home-phase-off', phase_cycle: 'off', fold_threshold_chars: 56000 })
-  const read = readLastArch(fakeStorage({ [LAST_ARCH_STORAGE_KEY]: before }))
-  assert.deepEqual(read, { label: 'home-phase-off', phase_cycle: 'off', fold_threshold_chars: 56000 })
-  assert.equal(archEngine(read), 'agent')
-})
-
-test('planner_executer 로 돌렸어도 다음 화면은 agent 로 열리고, knob 과 label 만 돌아온다', () => {
-  const storage = fakeStorage()
-  storeLastArch({ label: 'arm', phase_cycle: 'off', engine: 'planner_executer' }, storage)
-  assert.deepEqual(readLastArch(storage), { label: 'arm', phase_cycle: 'off' })
+test('브라우저 저장소가 차단되면 고급 설정의 기본값으로 시작한다', () => {
+  const defaults = readLastAdvancedSettings('one', throwingStorage)
+  assert.deepEqual(defaults.arch, EMPTY_ARCH_SELECTION)
+  assert.equal(defaults.inputMode, 'virtual')
+  assert.doesNotThrow(() => storeLastAdvancedSettings('one', defaults, throwingStorage))
 })
