@@ -27,18 +27,26 @@ export function TestCasePreview({ projectId, caseId, gameBuildId }: {
   if (failed) return <p className="tc-hover-note" role="status">{labels.error}</p>
   if (testCase === null) return <p className="tc-hover-note" role="status">{labels.loading}</p>
 
+  return <TestCasePreviewContent title={caseLabel(testCase.id)} step={testCase.step}
+    scene={testCase.scene} sceneLabel={labels.scene}
+    fields={[[labels.precondition, testCase.precondition || '—'], [labels.expected, testCase.expectedValue || '—']]} />
+}
+
+export function TestCasePreviewContent({ title, step, scene, sceneLabel, fields }: {
+  title: string
+  step?: string | null
+  scene?: string | null
+  sceneLabel: string
+  fields: ReadonlyArray<readonly [string, string | null]>
+}) {
   return <>
-    <p className="tc-id">{caseLabel(testCase.id)}</p>
-    <p className="tc-hover-step">{testCase.step || '—'}</p>
-    <dl className="tc-hover-fields">
-      <div>
-        <dt>{labels.precondition}</dt>
-        <dd>{testCase.precondition || '—'}</dd>
-      </div>
-      <div>
-        <dt>{labels.expected}</dt>
-        <dd>{testCase.expectedValue || '—'}</dd>
-      </div>
-    </dl>
+    <header className="tc-hover-header">
+      <strong className="tc-hover-title" translate="no">{title}</strong>
+      {step && <p className="tc-hover-step">{step}</p>}
+    </header>
+    {fields.some(([, value]) => value) && <dl className="tc-hover-fields">
+      {fields.map(([label, value]) => value && <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
+    </dl>}
+    {scene && <p className="tc-hover-scene"><span>{sceneLabel}</span><span>{scene}</span></p>}
   </>
 }

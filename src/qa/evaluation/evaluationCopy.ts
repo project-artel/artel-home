@@ -1,6 +1,6 @@
 export const evaluationCopy = {
   ko: { title: 'Test Case 판정 검토', attempt: '검증 시도', loading: '불러오는 중…', error: '불러오지 못했습니다. 다시 시도해 주세요.', retry: '다시 시도', empty: '검증 시도가 없습니다.',
-    original: 'Agent 판정', human: '사람 평가', originalReason: '판정 이유', snapshot: 'Test Case 내용', scene: '장면', precondition: '사전 조건', step: '검증 절차', expected: '기대 결과',
+    original: 'Agent 판정', human: '사람 평가', originalReason: '판정 이유', snapshot: 'Test Case 내용', scene: '씬', precondition: '사전 조건', step: '검증 절차', expected: '기대 결과',
     actual: '실제 결과', reason: '이유 (선택)', help: '평가와 이유는 QA agent의 판정 정확도를 개선하는 데 도움이 됩니다.',
     save: '평가 저장', saved: '평가를 저장했습니다.', historyLoadFailed: '평가는 저장됐지만 수정 이력을 불러오지 못했습니다.', history: '평가 수정 이력', video: '검증 당시 영상', unavailable: '재생할 수 있는 영상이 없습니다.',
     play: '재생', pause: '일시 정지', mute: '음소거', fullscreen: '전체 화면',

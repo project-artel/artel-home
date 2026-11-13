@@ -800,6 +800,7 @@ export const scenariosEn = {
     loading: 'Loading…',
     error: 'Could not load this Test Case.',
     untitled: 'Untitled Test Case',
+    scene: 'Scene',
     precondition: 'Preconditions',
     expected: 'Expected result',
     /**
@@ -1703,6 +1704,7 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     loading: '불러오는 중…',
     error: '이 Test Case를 불러오지 못했습니다.',
     untitled: '이름 없는 Test Case',
+    scene: '씬',
     precondition: '사전 조건',
     expected: '기대 결과',
     evidenceGaps: '명세가 확정되지 못한 이유',

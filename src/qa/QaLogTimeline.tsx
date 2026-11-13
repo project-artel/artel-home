@@ -246,6 +246,7 @@ function QaFlowStep({ projectId, gameBuildId, block, free = false, caseId = null
 
   return (
     <li className="qa-flow-step" data-log-id={logId ?? block.lines[0]?.id}>
+      <TestCaseHover projectId={projectId} caseId={caseId} gameBuildId={gameBuildId}>
       <div className="qa-flow-card">
         {/* 한 TC 가 스텝 여럿에 걸칠 때 어디서 갈리는지, 그리고 레일의 몇 번째인지를 잇는다. */}
         {!free && <p className="qa-flow-step-no">{text.flowStepLabel(block.step)}</p>}
@@ -279,11 +280,12 @@ function QaFlowStep({ projectId, gameBuildId, block, free = false, caseId = null
             <div className="qa-flow-said">
               {block.reason !== null && <p className="qa-flow-reason">{block.reason}</p>}
               {/* 결과는 이유에 이어 붙이지 않는다. 붙이면 모델이 쓴 문장의 일부처럼 읽힌다. */}
-              <p className="qa-flow-call">{caseId !== null && <TestCaseHover projectId={projectId} caseId={caseId} gameBuildId={gameBuildId}><span translate="no">{caseLabel(caseId)} · </span></TestCaseHover>}{verdict}</p>
+              <p className="qa-flow-call">{free && caseId !== null && <span translate="no">{caseLabel(caseId)} · </span>}{verdict}</p>
             </div>
           </div>
         )}
       </div>
+      </TestCaseHover>
     </li>
   )
 }
@@ -345,6 +347,7 @@ function QaLogRow({
         ? log.message
         : (behaviorEndedMessage ?? 'No message')
   const focused = log.id === focusedLogId
+  const hoverCaseId = caseId ?? (step === null ? null : scenarioSteps[step - 1]?.case_id)
 
   return (
     <li
@@ -355,6 +358,7 @@ function QaLogRow({
       tabIndex={-1}
     >
       <div className="qa-log-marker" aria-hidden="true" />
+      <TestCaseHover projectId={projectId} caseId={hoverCaseId} gameBuildId={gameBuildId}>
       <article aria-labelledby={`qa-log-${log.id}-message`}>
         <header className="qa-log-meta">
           <span className="qa-log-kind">{TYPE_LABELS[log.type]}</span>
@@ -362,7 +366,7 @@ function QaLogRow({
             <span className="qa-log-tool-name mono" translate="no">{call.tool}</span>
           )}
           {executionMode === 'FREE'
-            ? caseId !== null && <TestCaseHover projectId={projectId} caseId={caseId} gameBuildId={gameBuildId}><span className="qa-tc-badge" translate="no">{caseLabel(caseId)}</span></TestCaseHover>
+            ? caseId !== null && <span className="qa-tc-badge" translate="no">{caseLabel(caseId)}</span>
             : step !== null && <span className="qa-log-step">{t.qa.steps.short(step)}</span>}
           {repeats > 1 && (
             /* Counted, not just styled: the number is the information. */
@@ -424,6 +428,7 @@ function QaLogRow({
           </>
         )}
       </article>
+      </TestCaseHover>
     </li>
   )
 }
@@ -794,7 +799,8 @@ export function QaLogTimeline({
                 </p></TestCaseHover>
                 <ol className="qa-flow-blocks">
                   {group.blocks.map((block) => (
-                    <QaFlowStep projectId={projectId} gameBuildId={gameBuildId} block={block} key={block.id} />
+                    <QaFlowStep projectId={projectId} gameBuildId={gameBuildId} block={block}
+                      caseId={group.tcNo === null ? null : String(caseGroups[group.tcNo - 1]?.caseId ?? '') || null} key={block.id} />
                   ))}
                 </ol>
               </li>
@@ -804,15 +810,18 @@ export function QaLogTimeline({
             )) : listItems.map((item) => {
               if (item.kind === 'header') {
             return (
-              <li className="qa-log-section" key={item.id}>
+              <TestCaseHover key={item.id} projectId={projectId}
+                caseId={item.section.kind === 'tc' ? caseGroups[item.section.tcNo - 1]?.caseId : null} gameBuildId={gameBuildId}>
+              <li className="qa-log-section">
                 {item.section.kind === 'tc' ? (
-                  <TestCaseHover projectId={projectId} caseId={caseGroups[item.section.tcNo - 1]?.caseId} gameBuildId={gameBuildId}><span className="qa-tc-badge">{caseGroups[item.section.tcNo - 1]?.caseId != null ? caseLabel(caseGroups[item.section.tcNo - 1].caseId!) : '—'}</span></TestCaseHover>
+                  <span className="qa-tc-badge">{caseGroups[item.section.tcNo - 1]?.caseId != null ? caseLabel(caseGroups[item.section.tcNo - 1].caseId!) : '—'}</span>
                 ) : (
                   <span className="qa-log-section-label">
                     {item.section.kind === 'action' ? t.qa.run.logAction : t.qa.run.logGeneral}
                   </span>
                 )}
               </li>
+              </TestCaseHover>
             )
           }
           const anchor = anchorOf(item.row)

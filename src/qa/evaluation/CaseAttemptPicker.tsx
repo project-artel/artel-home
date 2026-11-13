@@ -1,5 +1,6 @@
 import { useTestCaseLabel, useTestCaseIdentifiers } from '../../testCases/testCaseIdentifiers'
 import { TestCaseHoverPanel } from '../../testCases/TestCaseHover'
+import { TestCasePreviewContent } from '../../testCases/TestCasePreview'
 import { useEffect, useRef } from 'react'
 import { shortWhen } from '../history/historyModel'
 import type { Attempt } from './evaluationApi'
@@ -67,9 +68,8 @@ export function CaseAttemptPicker({ id, options, current, onSelect, copy }: {
         if (!snapshot || fields.length === 0) return tab
 
         return <TestCaseHoverPanel key={caseId} label={`${caseLabel(caseId)} · ${copy.snapshot}`} content={
-          <dl className="tc-hover-fields">
-            {fields.map(field => <div key={field}><dt>{copy[field]}</dt><dd>{snapshot[field]}</dd></div>)}
-          </dl>
+          <TestCasePreviewContent title={caseLabel(caseId)} step={snapshot.step} scene={snapshot.scene}
+            sceneLabel={copy.scene} fields={[[copy.precondition, snapshot.precondition], [copy.expected, snapshot.expected]]} />
         }>{tab}</TestCaseHoverPanel>
       })}
     </div>
