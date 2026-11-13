@@ -183,6 +183,8 @@ export type TestScenario = {
   testScenarioId: number
   projectId: number
   payload: ScenarioDraft
+  /** `DRAFT` 는 승인 전이라 QA 에 쓰지 않는다. 모르면 승인된 것으로 다룬다. */
+  reviewStatus: 'DRAFT' | 'READY'
 }
 
 /**

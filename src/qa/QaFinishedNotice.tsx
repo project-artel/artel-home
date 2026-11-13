@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { useI18n } from '../i18n/useI18n'
+import { usePolling } from '../live/usePolling'
 import { useProjectChange } from '../live/useProjectChange'
 import { formatElapsedSeconds } from '../projects/formatters'
 import { listProjectQaRuns, QA_NOTICES_CHANGED, qaNoticeTarget, readQaNotice, type QaRunSummary } from './launch/qaLaunchApi'
@@ -30,7 +31,7 @@ function writeSeen(projectId: string, seen: Set<string>) {
 
 /**
  * 내가 시작한 QA 실행이 끝나면 어느 화면에서든 오른쪽 아래에 띄운다(ARTEL-1255). 결과와 남은 추가 검토 수를 보이고,
- * 판정 근거 페이지로 바로 간다. 서버가 `QA_RUNS` 변경을 알리면 최신 실행을 다시 읽어, 이 화면을 연 뒤에 끝난 것만 고른다.
+ * 판정 근거 페이지로 바로 간다. 서버가 `QA_RUNS` 변경을 알리거나 스트림이 끊긴 동안의 폴링이 돌면 최신 실행을 다시 읽어, 이 화면을 연 뒤에 끝난 것만 고른다.
  * 닫을 때까지 남는다. 닫거나 놓친 것은 상단바 알림함([QaNoticeBell])에 남는다.
  */
 export function QaFinishedNotice({ projectId }: { projectId: string }) {
@@ -66,7 +67,9 @@ export function QaFinishedNotice({ projectId }: { projectId: string }) {
       })
   }, [projectId, me, openedAt])
 
-  useProjectChange(projectId, 'QA_RUNS', check)
+  const live = useProjectChange(projectId, 'QA_RUNS', check)
+  // 변경 스트림이 끊긴 동안(배포로 `/events` 가 502 를 받는 경우 등)은 폴링으로 끝난 실행을 찾는다.
+  usePolling(check, undefined, !live)
 
   const dismiss = (runId: string) => setShown((current) => current.filter((run) => run.id !== runId))
 

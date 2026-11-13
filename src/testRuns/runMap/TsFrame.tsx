@@ -26,6 +26,7 @@ export const TsFrame = memo(function TsFrame({
   dropped = null,
   lifting = false,
   botLocked = false,
+  reviewPending = false,
 }: {
   scenario: MapScenario
   /** 런 안의 순서(1부터). */
@@ -50,6 +51,8 @@ export const TsFrame = memo(function TsFrame({
   lifting?: boolean
   /** Artel Bot 이 이 TS 를 고치는 중(ARTEL-1265). 흐리게 하고 누르지 못하게 한다. */
   botLocked?: boolean
+  /** 아직 승인되지 않았다. 승인 전에는 QA 에 쓰이지 않는다. 승인되면 표시 없이 그린다. */
+  reviewPending?: boolean
 }) {
   const { t } = useI18n()
   const m = t.scenarios.map
@@ -81,6 +84,7 @@ export const TsFrame = memo(function TsFrame({
         ) : (
           <b className="rmf-title" data-rename={scenario.id} title={m.frame.rename}>{title}</b>
         )}
+        {reviewPending && <span className="rmf-review">{t.scenarios.reviewNotice.pending}</span>}
         <span className="rmf-meta">
           {m.frame.steps(scenario.steps.length)}
           {scenario.gapCount > 0 && <span className="rmf-gap"> · {m.frame.gaps(scenario.gapCount)}</span>}
