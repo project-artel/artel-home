@@ -1,4 +1,4 @@
-import { cloneElement, useEffect, useId, useLayoutEffect, useRef, useState, type HTMLAttributes, type ReactElement } from 'react'
+import { cloneElement, useEffect, useId, useLayoutEffect, useRef, useState, type HTMLAttributes, type ReactElement, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { TestCasePreview } from './TestCasePreview'
 
@@ -9,18 +9,28 @@ export function TestCaseHover({ children, projectId, caseId, gameBuildId = null 
   caseId: string | number | null | undefined
   gameBuildId?: string | null
 }) {
+  if (!projectId || caseId == null) return children
+
+  return <TestCaseHoverPanel label="Test Case" content={
+    <TestCasePreview key={`${projectId}:${caseId}:${gameBuildId}`} projectId={projectId} caseId={String(caseId)} gameBuildId={gameBuildId} />
+  }>{children}</TestCaseHoverPanel>
+}
+
+export function TestCaseHoverPanel({ children, label, content }: {
+  children: ReactElement<HTMLAttributes<HTMLElement>>
+  label: string
+  content: ReactNode
+}) {
   const id = useId()
   const [anchor, setAnchor] = useState<HTMLElement | null>(null)
   const panel = useRef<HTMLDivElement>(null)
   const trigger = useRef<HTMLElement | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const hovering = useRef(false)
-  const enabled = Boolean(projectId) && caseId !== null && caseId !== undefined
 
   function cancelTimer() { clearTimeout(timer.current) }
   function close() { cancelTimer(); setAnchor(null) }
   function open(element: HTMLElement, delay = 300) {
-    if (!enabled) return
     cancelTimer()
     trigger.current = element
     timer.current = setTimeout(() => setAnchor(element), delay)
@@ -80,7 +90,6 @@ export function TestCaseHover({ children, projectId, caseId, gameBuildId = null 
     }
   }, [anchor])
 
-  if (!enabled) return children
   const props = children.props
   return <>
     {/* cloneElement는 이벤트 함수를 실행하지 않는다. ref는 아래 이벤트에서만 읽는다. */}
@@ -89,7 +98,7 @@ export function TestCaseHover({ children, projectId, caseId, gameBuildId = null 
       tabIndex: props.tabIndex ?? 0,
       'aria-haspopup': 'dialog',
       'aria-expanded': anchor !== null,
-      'aria-controls': anchor !== null ? id : undefined,
+      'aria-controls': anchor !== null ? [props['aria-controls'], id].filter(Boolean).join(' ') : props['aria-controls'],
       onMouseEnter: (event) => { props.onMouseEnter?.(event); hovering.current = true; open(event.currentTarget) },
       onMouseLeave: (event) => { props.onMouseLeave?.(event); hovering.current = false; scheduleClose() },
       onFocus: (event) => { props.onFocus?.(event); open(event.currentTarget, 0) },
@@ -104,7 +113,7 @@ export function TestCaseHover({ children, projectId, caseId, gameBuildId = null 
       },
     })}
     {anchor !== null && createPortal(
-      <div className="tc-hover" id={id} role="dialog" aria-label="Test Case" tabIndex={-1} ref={panel}
+      <div className="tc-hover" id={id} role="dialog" aria-label={label} tabIndex={-1} ref={panel}
         onMouseEnter={() => { hovering.current = true; cancelTimer() }}
         onMouseLeave={() => { hovering.current = false; scheduleClose() }}
         onFocus={cancelTimer} onBlur={scheduleClose}
@@ -113,7 +122,7 @@ export function TestCaseHover({ children, projectId, caseId, gameBuildId = null 
         onMouseDown={(event) => event.stopPropagation()}
         onDragStart={(event) => event.stopPropagation()}
         onKeyDown={(event) => event.stopPropagation()}>
-        <TestCasePreview key={`${projectId}:${caseId}:${gameBuildId}`} projectId={projectId} caseId={String(caseId)} gameBuildId={gameBuildId} />
+        {content}
       </div>, document.body,
     )}
   </>

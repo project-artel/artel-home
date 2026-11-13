@@ -1,4 +1,5 @@
 import { useTestCaseLabel, useTestCaseIdentifiers } from '../../testCases/testCaseIdentifiers'
+import { TestCaseHoverPanel } from '../../testCases/TestCaseHover'
 import { useEffect, useRef } from 'react'
 import { shortWhen } from '../history/historyModel'
 import type { Attempt } from './evaluationApi'
@@ -48,9 +49,12 @@ export function CaseAttemptPicker({ id, options, current, onSelect, copy }: {
         const selected = caseId === current.testCaseId
         const row = selected ? current : rows[0]
         const label = `${caseLabel(caseId)} · ${outcome(row, copy)}`
-        return <button type="button" role="tab" key={caseId} id={`${id}-case-${caseId}`} aria-controls={`${id}-panel`}
+        const snapshot = row.caseSnapshot
+        const fields = (['scene', 'precondition', 'step', 'expected'] as const)
+          .filter(field => snapshot?.[field])
+        const tab = <button type="button" role="tab" key={caseId} id={`${id}-case-${caseId}`} aria-controls={`${id}-panel`}
           aria-selected={selected} tabIndex={selected ? 0 : -1} aria-label={label}
-          className="qe-case-tab" title={row.caseSnapshot?.step ?? label}
+          className="qe-case-tab"
           onClick={() => { if (!selected) onSelect(rows[0].id) }}>
           <span className="qe-case-tab-head"><span className="mono">{caseLabel(caseId)}</span>
             <span aria-hidden="true" className={`qe-case-glyph qe-case-glyph--${row.verdict ?? 'running'}`}>
@@ -60,6 +64,13 @@ export function CaseAttemptPicker({ id, options, current, onSelect, copy }: {
           {row.caseSnapshot?.step && <span className="qe-case-tab-title">{row.caseSnapshot.step}</span>}
           <span className="qe-case-tab-status">{outcome(row, copy)}</span>
         </button>
+        if (!snapshot || fields.length === 0) return tab
+
+        return <TestCaseHoverPanel key={caseId} label={`${caseLabel(caseId)} · ${copy.snapshot}`} content={
+          <dl className="tc-hover-fields">
+            {fields.map(field => <div key={field}><dt>{copy[field]}</dt><dd>{snapshot[field]}</dd></div>)}
+          </dl>
+        }>{tab}</TestCaseHoverPanel>
       })}
     </div>
     {attempts.length > 1 && <div className="qe-attempt-history">
