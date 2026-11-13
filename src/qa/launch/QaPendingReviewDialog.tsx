@@ -2,7 +2,6 @@ import { useId } from 'react'
 import { Dialog } from '../../design-system/primitives/Dialog'
 import { useI18n } from '../../i18n/useI18n'
 import type { PendingQaReview } from './qaPendingReview'
-import './qaPendingReview.css'
 
 export function QaPendingReviewDialog({ review, pending, failure, onClose, onConfirm }: {
   review: PendingQaReview
