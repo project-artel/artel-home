@@ -1,3 +1,4 @@
+import { InlineError } from '../../design-system/primitives/Feedback'
 import { buildDisplayName } from '../../projects/buildEnvironment'
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -507,10 +508,10 @@ export function LaunchPanel({
             ))}
           </ul>
           {versionCases.failed && (
-            <div className="inline-error ql-version-error" role="alert">
+            <InlineError className="ql-version-error">
               {l.addVersionCasesFailed}
               <button className="ql-text-button" disabled={versionCases.pending} onClick={versionCases.retry} type="button">{l.retryVersionCases}</button>
-            </div>
+            </InlineError>
           )}
         </div>
       </div>
@@ -518,10 +519,10 @@ export function LaunchPanel({
       <EdgeScrollbar label={l.title} scroller={panelScroller} side="right" />
       <div className="ql-panel-foot">
         {failure !== null && !takeoverOpen && visibleVersionPrompt === null && (
-          <div className="inline-error" role="alert">
+          <InlineError>
             <span aria-hidden="true">!</span>
             {failure}
-          </div>
+          </InlineError>
         )}
         <button
           aria-disabled={blocked || starting || versionCases.pending}

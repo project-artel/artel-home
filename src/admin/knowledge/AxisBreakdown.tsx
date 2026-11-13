@@ -1,3 +1,4 @@
+import { DataTable, TableScroll } from '../../design-system/primitives/Table'
 import { useI18n } from '../../i18n/useI18n'
 import { adminFormat } from '../shared/format'
 import { RateCell } from './RateCell'
@@ -35,8 +36,8 @@ export function KnowledgeAxisBreakdown({
       <h3 className="panel__title" id={`knowledge-axis-${axis}`}>
         {strings.axes[axis]}
       </h3>
-      <div className="table-scroll">
-        <table className="table">
+      <TableScroll>
+        <DataTable>
           <thead>
             <tr>
               <th scope="col">{strings.axes[axis]}</th>
@@ -123,8 +124,8 @@ export function KnowledgeAxisBreakdown({
               </tr>
             </tfoot>
           )}
-        </table>
-      </div>
+        </DataTable>
+      </TableScroll>
     </section>
   )
 }

@@ -1,3 +1,5 @@
+import { InlineError, PanelEmpty } from '../design-system/primitives/Feedback'
+import { Button } from '../design-system/primitives/Button'
 import { TestCaseHover } from './TestCaseHover'
 import { useEffect, useId, useMemo, useState } from 'react'
 import { Dialog } from '../design-system/primitives/Dialog'
@@ -157,13 +159,13 @@ export function ImportManualCasesDialog({
           </nav>
           <section aria-label={m.cases} className="mimp-cases">
             {source === null ? (
-              <p className="panel-empty">{m.pickSource}</p>
+              <PanelEmpty>{m.pickSource}</PanelEmpty>
             ) : current === null || targetIds === null ? (
-              <p className="panel-empty" aria-busy="true">{m.loading}</p>
+              <PanelEmpty aria-busy="true">{m.loading}</PanelEmpty>
             ) : 'failed' in current ? (
-              <p className="panel-empty" role="alert">{m.loadFailed}</p>
+              <PanelEmpty role="alert">{m.loadFailed}</PanelEmpty>
             ) : candidates.length === 0 ? (
-              <p className="panel-empty">{m.empty}</p>
+              <PanelEmpty>{m.empty}</PanelEmpty>
             ) : (
               <>
                 <label className="mimp-all">
@@ -197,23 +199,23 @@ export function ImportManualCasesDialog({
         <div className="mimp-picked" aria-live="polite">
           <span>{chosen.length === 0 ? m.pickedNone : m.pickedTotal(chosen.length)}</span>
           {chosen.length > 0 && (
-            <button className="button button--secondary button--compact" disabled={pending} onClick={() => setPicked(new Map())} type="button">
+            <Button variant="secondary" size="compact" disabled={pending} onClick={() => setPicked(new Map())} type="button">
               {m.clearPicked}
-            </button>
+            </Button>
           )}
         </div>
         {failure !== null && (
-          <div className="inline-error" role="alert">
+          <InlineError>
             <span aria-hidden="true">!</span>
             {failure}
-          </div>
+          </InlineError>
         )}
         <div className="dialog-actions">
-          <button className="button button--secondary" disabled={pending} onClick={onClose} type="button">
+          <Button variant="secondary" disabled={pending} onClick={onClose} type="button">
             {m.cancel}
-          </button>
-          <button
-            className="button button--primary"
+          </Button>
+          <Button
+            variant="primary"
             disabled={pending || chosen.length === 0}
             onClick={() => {
               setPending(true)
@@ -226,7 +228,7 @@ export function ImportManualCasesDialog({
             type="button"
           >
             {pending ? m.pending : m.confirm(chosen.length)}
-          </button>
+          </Button>
         </div>
       </div>
     </Dialog>

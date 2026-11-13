@@ -1,3 +1,6 @@
+import { PanelEmpty, PanelMessage } from '../design-system/primitives/Feedback'
+import { Button } from '../design-system/primitives/Button'
+import { PanelHeader } from '../design-system/primitives/Headers'
 import { buildDisplayName } from '../projects/buildEnvironment'
 import { useTestCaseLabel, useTestCaseIdentifiers } from './testCaseIdentifiers'
 import { sceneNamesOf, scenePattern } from './sceneHighlight'
@@ -893,12 +896,12 @@ export function TestCaseLibrary({
     return (
       <div className="section-single">
         <section className="panel">
-          <div className="panel-message" role="alert">
+          <PanelMessage role="alert">
             <p>{m.section.loadFailed}</p>
-            <button className="button button--secondary" onClick={library.reload} type="button">
+            <Button variant="secondary" onClick={library.reload} type="button">
               {m.section.retry}
-            </button>
-          </div>
+            </Button>
+          </PanelMessage>
         </section>
       </div>
     )
@@ -994,7 +997,7 @@ export function TestCaseLibrary({
           if (event.key === 'Enter' && cursored !== null) { event.preventDefault(); select(cursored) }
         }}
       >
-        <header className="panel-header panel-header--split">
+        <PanelHeader split>
           <h2 className="tcl-title">
             {m.section.title}
             <InfoHint>{m.section.subtitle}</InfoHint>
@@ -1006,19 +1009,19 @@ export function TestCaseLibrary({
           </h2>
           <div className="tcl-head-actions">
             {/* 화면 지도에 있던 TC 생성을 라이브러리로 옮겼다(ARTEL-1041). 빌드는 모달에서 고른다. */}
-            <button
-              className="button button--secondary button--compact"
+            <Button
+              variant="secondary" size="compact"
               data-tour="generate-from-map"
               onClick={() => setIsGenerating(true)}
               ref={generateButton}
               type="button"
             >
               {m.section.generateFromMap}
-            </button>
-            <button
+            </Button>
+            <Button
               aria-expanded={exportMenu !== null}
               aria-haspopup="menu"
-              className="button button--secondary button--compact"
+              variant="secondary" size="compact"
               data-tour="export-cases"
               disabled={shown.length === 0}
               onClick={(event) => {
@@ -1029,18 +1032,18 @@ export function TestCaseLibrary({
               type="button"
             >
               {m.section.exportCases} ▾
-            </button>
-            <button
-              className="button button--primary button--compact"
+            </Button>
+            <Button
+              variant="primary" size="compact"
               data-tour="new-case"
               onClick={startCreating}
               ref={newCaseButton}
               type="button"
             >
               {m.section.newCase}
-            </button>
+            </Button>
           </div>
-        </header>
+        </PanelHeader>
         {generationNotice !== null && (
           <p className="tcl-notice">
             <span>{generationNotice}</span>
@@ -1105,7 +1108,7 @@ export function TestCaseLibrary({
           </div>
         </div>
 
-        {contentReviews.status === 'failed' && <p className="inline-error" role="alert">{contentCopy.contentStatus} · {contentCopy.error} <button type="button" className="button button--secondary button--compact" onClick={() => contentReviews.reload()}>{contentCopy.retry}</button></p>}
+        {contentReviews.status === 'failed' && <p className="inline-error" role="alert">{contentCopy.contentStatus} · {contentCopy.error} <Button type="button" variant="secondary" size="compact" onClick={() => contentReviews.reload()}>{contentCopy.retry}</Button></p>}
         {(draftCount > 0 || filters.review !== 'ALL') && (
           <div className="tcl-review-row">
             <span className="field-label">{m.review.label}</span>
@@ -1124,14 +1127,14 @@ export function TestCaseLibrary({
             </div>
             {reviewError !== null && <span className="tcl-review-note" role="alert">{reviewError}</span>}
             {filters.review === 'DRAFT' && shown.length > 0 && (
-              <button
-                className="button button--primary button--compact tcl-review-all"
+              <Button
+                variant="primary" size="compact" className="tcl-review-all"
                 disabled={reviewing}
                 onClick={() => runQuietly(reviewCases(visibleIds, 'READY'))}
                 type="button"
               >
                 {reviewing ? m.review.approving : m.review.approveShown(shown.length)}
-              </button>
+              </Button>
             )}
           </div>
         )}
@@ -1260,28 +1263,28 @@ export function TestCaseLibrary({
 
         {folderView && folderItems.failed ? (
           <div className="panel-empty-block" role="alert">
-            <p className="panel-empty">{m.folderItems.loadFailed}</p>
-            <button className="button button--secondary button--compact" onClick={folderItems.refresh} type="button">
+            <PanelEmpty>{m.folderItems.loadFailed}</PanelEmpty>
+            <Button variant="secondary" size="compact" onClick={folderItems.refresh} type="button">
               {m.section.retry}
-            </button>
+            </Button>
           </div>
         ) : !loadingRows && shown.length === 0 ? (
           <div className="panel-empty-block">
-            <p className="panel-empty">
+            <PanelEmpty>
               {filtered
                 ? m.section.emptyFiltered
                 : folderSelection.kind !== 'all'
                   ? m.section.emptyFolder
                   : m.section.empty}
-            </p>
+            </PanelEmpty>
             {filtered && (
-              <button
-                className="button button--secondary button--compact"
+              <Button
+                variant="secondary" size="compact"
                 onClick={() => setFilters(NO_FILTERS)}
                 type="button"
               >
                 {m.section.clearFilters}
-              </button>
+              </Button>
             )}
           </div>
         ) : (

@@ -1,5 +1,7 @@
+import { SelectField } from '../design-system/primitives/Fields'
+import { Button, ButtonLink } from '../design-system/primitives/Button'
+import { InlineError } from '../design-system/primitives/Feedback'
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { ProgressRing } from '../design-system/primitives/ProgressRing'
@@ -273,8 +275,8 @@ export function EvidenceScanPanel({
               <label className="visually-hidden" htmlFor={instanceSelectId}>
                 {copy.instanceLabel}
               </label>
-              <select
-                className="field-input cm-scan-instance"
+              <SelectField
+                className="cm-scan-instance"
                 disabled={scan.phase === 'running'}
                 id={instanceSelectId}
                 onChange={(event) => setSelectedInstanceId(event.target.value)}
@@ -286,38 +288,38 @@ export function EvidenceScanPanel({
                     {game.name}
                   </option>
                 ))}
-              </select>
+              </SelectField>
             </>
           )}
 
-          <button
-            className="button button--primary button--compact"
+          <Button
+            variant="primary" size="compact"
             disabled={disabled}
             onClick={() => void start(false)}
             ref={scanButton}
             type="button"
           >
             {scan.phase === 'running' && !scan.withTestCases ? copy.running : copy.action}
-          </button>
+          </Button>
           {/* 스캔이 끝나 지도가 다 읽히면 서버가 그 빌드의 TC 도 만든다(ARTEL-1041). */}
-          <button
-            className="button button--secondary button--compact"
+          <Button
+            variant="secondary" size="compact"
             disabled={disabled}
             onClick={() => void start(true)}
             ref={scanWithTestCasesButton}
             type="button"
           >
             {scan.phase === 'running' && scan.withTestCases ? copy.running : copy.actionWithTestCases}
-          </button>
-          <button
+          </Button>
+          <Button
             aria-controls={detailsId}
             aria-expanded={open}
-            className="button button--secondary button--compact cm-scan-toggle"
+            variant="secondary" size="compact" className="cm-scan-toggle"
             onClick={() => setOpen((current) => !current)}
             type="button"
           >
             {open ? layoutCopy.detailsClose : layoutCopy.detailsOpen}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -340,10 +342,10 @@ export function EvidenceScanPanel({
       )}
 
       {scan.phase === 'failed' && (
-        <div className="inline-error" role="alert">
+        <InlineError>
           <span aria-hidden="true">!</span>
           <span>{scan.message}</span>
-        </div>
+        </InlineError>
       )}
 
       {/* 접혀도 남긴다(`hidden`). 지우면 경과 초 · 문서 목록 상태가 펼 때마다 처음부터 다시 선다. */}
@@ -687,9 +689,9 @@ function ScanStatusPanel({ events, projectId }: { events: ContentMapEventsState;
         <p className={'cm-scan-tc' + (scan.testCases.state === 'FAILED' ? ' cm-scan-tc--failed' : '')}>
           <span>{scanTestCasesLabel(copy.testCases, scan.state, scan.testCases)}</span>
           {scan.testCases.state === 'GENERATED' && (
-            <Link className="button button--secondary button--compact" to={testCaseLibraryPath(projectId, null)}>
+            <ButtonLink variant="secondary" size="compact" to={testCaseLibraryPath(projectId, null)}>
               {copy.testCases.openLibrary}
-            </Link>
+            </ButtonLink>
           )}
         </p>
       )}

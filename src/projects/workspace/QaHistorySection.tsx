@@ -1,3 +1,5 @@
+import { InlineError, PanelEmpty } from '../../design-system/primitives/Feedback'
+import { Button } from '../../design-system/primitives/Button'
 import { useI18n } from '../../i18n/useI18n'
 import { QaHistory } from '../../qa/history/QaHistory'
 import { ReliabilityPanel } from '../../qa/evaluation/ReliabilityPanel'
@@ -13,16 +15,16 @@ export function QaHistorySection() {
   const { t } = useI18n()
   const { extrasStatus, reloadExtras, projectId } = useWorkspace()
 
-  if (extrasStatus === 'loading') return <p className="panel-empty">{t.qa.panel.loading}</p>
+  if (extrasStatus === 'loading') return <PanelEmpty>{t.qa.panel.loading}</PanelEmpty>
   if (extrasStatus === 'failed') {
     return (
-      <div className="inline-error" role="alert">
+      <InlineError>
         <span aria-hidden="true">!</span>
         {t.qa.panel.loadFailed}
-        <button className="button button--secondary button--compact" onClick={reloadExtras} type="button">
+        <Button variant="secondary" size="compact" onClick={reloadExtras} type="button">
           {t.qa.panel.retry}
-        </button>
-      </div>
+        </Button>
+      </InlineError>
     )
   }
   return <><ReliabilityPanel projectId={projectId} /><QaHistory /></>

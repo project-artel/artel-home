@@ -1,3 +1,6 @@
+import { PanelHeader } from '../design-system/primitives/Headers'
+import { InlineError, PanelEmpty } from '../design-system/primitives/Feedback'
+import { Button } from '../design-system/primitives/Button'
 import { useEffect, useRef, useState } from 'react'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
@@ -81,16 +84,16 @@ export function QaChatPanel({
 
   return (
     <section className="panel qa-chat" aria-labelledby="qa-chat-title">
-      <header className="panel-header">
+      <PanelHeader>
         <h2 id="qa-chat-title">
           {t.qa.chat.title}
           <InfoHint>{t.qa.chat.hint}</InfoHint>
         </h2>
-      </header>
+      </PanelHeader>
 
       <div className="qa-chat-thread" ref={viewportRef}>
         {turns.length === 0 ? (
-          <p className="panel-empty">{t.qa.chat.empty}</p>
+          <PanelEmpty>{t.qa.chat.empty}</PanelEmpty>
         ) : (
           <ul className="qa-chat-list">
             {turns.map((turn) => (
@@ -112,14 +115,14 @@ export function QaChatPanel({
 
       {questions.failed && <p className="inline-error" role="alert">{copy.error}</p>}
       {failure !== null && (
-        <div className="inline-error" role="alert">
+        <InlineError>
           <span aria-hidden="true">!</span>
           {failure}
-        </div>
+        </InlineError>
       )}
 
       {disabled ? (
-        <p className="panel-empty">{t.qa.chat.closed}</p>
+        <PanelEmpty>{t.qa.chat.closed}</PanelEmpty>
       ) : (
         <form
           className="qa-chat-composer"
@@ -147,13 +150,13 @@ export function QaChatPanel({
             rows={2}
             value={draft}
           />
-          <button
-            className="button button--primary"
+          <Button
+            variant="primary"
             disabled={!canSend || draft.trim().length === 0 || (question !== null && draft.trim().length > 4000)}
             type="submit"
           >
             {sending ? t.qa.chat.sending : question !== null ? copy.answer : t.qa.chat.send}
-          </button>
+          </Button>
         </form>
       )}
     </section>

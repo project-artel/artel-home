@@ -1,3 +1,5 @@
+import { PanelEmpty } from '../design-system/primitives/Feedback'
+import { Button } from '../design-system/primitives/Button'
 import { useEffect, useId, useMemo, useState } from 'react'
 import { Dialog } from '../design-system/primitives/Dialog'
 import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
@@ -234,7 +236,7 @@ export function VerdictImportDialog({
 
         <section aria-label={m.crumb} className="vimp-right">
           {source === null ? (
-            <p className="panel-empty">{m.noSource}</p>
+            <PanelEmpty>{m.noSource}</PanelEmpty>
           ) : (
             <>
               <header className="vimp-head">
@@ -261,9 +263,9 @@ export function VerdictImportDialog({
               </div>
               <div className={'vimp-table-wrap' + (mode === 'NONE' ? ' is-muted' : '')}>
                 <div className="vimp-table" ref={setTableEl}>
-                  {preview.status === 'loading' && <p className="panel-empty" aria-busy="true">{m.loading}</p>}
-                  {preview.status === 'failed' && <p className="panel-empty" role="alert">{m.loadFailed}</p>}
-                  {preview.status === 'ready' && rows.length === 0 && <p className="panel-empty">{m.empty}</p>}
+                  {preview.status === 'loading' && <PanelEmpty aria-busy="true">{m.loading}</PanelEmpty>}
+                  {preview.status === 'failed' && <PanelEmpty role="alert">{m.loadFailed}</PanelEmpty>}
+                  {preview.status === 'ready' && rows.length === 0 && <PanelEmpty>{m.empty}</PanelEmpty>}
                   {preview.status === 'ready' && rows.length > 0 && (
                     <table className="tcl-table vimp-tbl">
                       <colgroup>
@@ -350,10 +352,10 @@ export function VerdictImportDialog({
                   : m.summary.NONE(count, versionName(target))}
               {failure !== null && <span className="vimp-failure" role="alert"> {failure}</span>}
             </span>
-            <button className="button button--secondary" onClick={onClose} type="button">{t.testCases.generate.cancel}</button>
-            <button className="button button--primary" disabled={!ready || pending} onClick={() => void confirm()} type="button">
+            <Button variant="secondary" onClick={onClose} type="button">{t.testCases.generate.cancel}</Button>
+            <Button variant="primary" disabled={!ready || pending} onClick={() => void confirm()} type="button">
               {mode === 'NONE' ? m.confirmReset : m.confirm}
-            </button>
+            </Button>
           </footer>
         </section>
       </div>

@@ -1,3 +1,4 @@
+import { Button } from '../design-system/primitives/Button'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { QaExecutionTimeline } from './QaExecutionTimeline'
@@ -130,7 +131,7 @@ export function QaReplay({ projectId, qaTry, onPosition, timelineHost }: {
     setMediaFailed(false)
     setReload(value => value + 1)
   }
-  if (failed) return <div className="qa-replay-status qa-replay-without-video" role="alert">{evidence.error} <button className="button button--secondary" type="button" onClick={refresh}>{evidence.retry}</button></div>
+  if (failed) return <div className="qa-replay-status qa-replay-without-video" role="alert">{evidence.error} <Button variant="secondary" type="button" onClick={refresh}>{evidence.retry}</Button></div>
   if (!data) return <p className="qa-replay-status qa-replay-without-video" role="status">{evidence.loading}</p>
   if (!bounds) return <p className="qa-replay-status qa-replay-without-video">{evidence.unavailable}</p>
   const expired = data.playback.recording?.expiresAt != null && Date.parse(data.playback.recording.expiresAt) <= data.loadedAt
@@ -164,7 +165,7 @@ export function QaReplay({ projectId, qaTry, onPosition, timelineHost }: {
         }} /> : <p role="status">{expired ? evidence.expired : mediaFailed ? evidence.error : data.playback.recording === null ? evidence.unavailable : evidence.gap}</p>}
     </div> : <div className="qa-replay-status qa-replay-without-video" role={mediaFailed ? 'alert' : 'status'}>
       {expired ? evidence.expired : mediaFailed ? evidence.error : preparing ? evidence.loading : evidence.unavailable}
-      {mediaFailed && <button className="button button--secondary" type="button" onClick={refresh}>{evidence.retry}</button>}
+      {mediaFailed && <Button variant="secondary" type="button" onClick={refresh}>{evidence.retry}</Button>}
     </div>}
     {timelineHost && createPortal(<QaExecutionTimeline bounds={bounds} timestamp={currentTime} playback={data.playback} attempts={data.attempts} playing={playing} playable={hasVideo && segment !== null} playbackRate={playbackRate} onPlaybackRateChange={changePlaybackRate} onSeek={seek} onRefresh={refresh} onTogglePlay={() => {
       const video = videoRef.current

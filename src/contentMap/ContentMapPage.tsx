@@ -1,3 +1,4 @@
+import { Button } from '../design-system/primitives/Button'
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
@@ -126,9 +127,9 @@ export function ContentMapReport({
         <div className="panel cm-empty" role="alert">
           <SketchEmpty
             actions={
-              <button className="button button--secondary" onClick={reload} type="button">
+              <Button variant="secondary" onClick={reload} type="button">
                 {copy.states.retry}
-              </button>
+              </Button>
             }
             sketch={<SceneMapSketch broken />}
             surface
@@ -374,9 +375,9 @@ function SceneGraphView({ projectId, view }: { projectId: string; view: ContentM
               model.screenTransitions.length,
             )}
           </p>
-          <button
+          <Button
             aria-expanded={overviewOpen && selection === null}
-            className="button button--secondary button--compact cm-overview-button"
+            variant="secondary" size="compact" className="cm-overview-button"
             onClick={() => {
               setSelection(null)
               setOverviewOpen((current) => !(current && selection === null))
@@ -384,11 +385,11 @@ function SceneGraphView({ projectId, view }: { projectId: string; view: ContentM
             type="button"
           >
             {t.contentMap.layout.overviewTitle}
-          </button>
+          </Button>
           {model.screenTransitions.length > 0 && (
-            <button
+            <Button
               aria-pressed={showScreenLinks}
-              className="button button--secondary button--compact cm-links-button"
+              variant="secondary" size="compact" className="cm-links-button"
               onClick={() => setShowScreenLinks((current) => !current)}
               title={t.contentMap.layout.screenLinksHint}
               type="button"
@@ -396,7 +397,7 @@ function SceneGraphView({ projectId, view }: { projectId: string; view: ContentM
               {showScreenLinks
                 ? t.contentMap.layout.hideScreenLinks
                 : t.contentMap.layout.showScreenLinks(model.screenTransitions.length)}
-            </button>
+            </Button>
           )}
           <CanvasViewportControls viewport={viewport} />
         </header>

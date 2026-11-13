@@ -1,3 +1,5 @@
+import { Button } from '../../design-system/primitives/Button'
+import { DataTable, TableScroll } from '../../design-system/primitives/Table'
 import { useId, type FormEvent, type ReactNode } from 'react'
 import { useI18n } from '../../i18n/useI18n'
 import { adminFormat } from '../shared/format'
@@ -115,13 +117,13 @@ export function ProviderKeyCard({
             value={keyValue}
             onChange={(event) => onKeyChange(event.target.value)}
           />
-          <button
+          <Button
             type="submit"
-            className="control control--action"
+            variant="primary" size="compact"
             disabled={saving || saveBlocked || keyValue.trim() === ''}
           >
             {saving ? t.adminSettings.common.saving : t.adminSettings.common.saveKey}
-          </button>
+          </Button>
         </div>
       </form>
 
@@ -213,8 +215,8 @@ export function KeyCheckResult({
   return (
     <details className="adm-check">
       <summary className="adm-check__summary">{line}</summary>
-      <div className="table-scroll">
-        <table className="table">
+      <TableScroll>
+        <DataTable>
           <caption className="adm-visually-hidden">{caption}</caption>
           <thead>
             <tr>
@@ -238,8 +240,8 @@ export function KeyCheckResult({
               </tr>
             ))}
           </tbody>
-        </table>
-      </div>
+        </DataTable>
+      </TableScroll>
     </details>
   )
 }

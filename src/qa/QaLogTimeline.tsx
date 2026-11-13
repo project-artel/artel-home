@@ -1,3 +1,4 @@
+import { Button } from '../design-system/primitives/Button'
 import { useTestCaseLabel } from '../testCases/testCaseIdentifiers'
 import { TestCaseHover } from '../testCases/TestCaseHover'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
@@ -748,7 +749,7 @@ export function QaLogTimeline({
     return (
       <div className="qa-log-empty">
         <p role={historyFailure !== null ? 'alert' : 'status'}>{historyLoading ? t.qa.run.loading : historyFailure ?? t.qa.rawLogs.empty}</p>
-        {historyFailure !== null && <button className="button button--secondary button--compact" onClick={loadOlder} type="button">{t.qa.panel.retry}</button>}
+        {historyFailure !== null && <Button variant="secondary" size="compact" onClick={loadOlder} type="button">{t.qa.panel.retry}</Button>}
         {live && <span>{t.qa.run.logsEmptyLive}</span>}
 
       </div>
@@ -770,9 +771,9 @@ export function QaLogTimeline({
         {historyFailure !== null && (
           <>
             <span role="alert">{historyFailure}</span>
-            <button className="button button--secondary button--compact" onClick={loadOlder} type="button">
+            <Button variant="secondary" size="compact" onClick={loadOlder} type="button">
               Retry older logs
-            </button>
+            </Button>
           </>
         )}
         {!historyLoading && historyFailure === null && hasMore && (

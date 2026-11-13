@@ -1,3 +1,5 @@
+import { TextInput } from '../../../design-system/primitives/Fields'
+import { Button } from '../../../design-system/primitives/Button'
 import { useId, useMemo, useState } from 'react'
 import { Dialog } from '../../../design-system/primitives/Dialog'
 import { EdgeScrollbar } from '../../../design-system/primitives/EdgeScrollbar'
@@ -143,8 +145,7 @@ export function FreeRunPicker({
               <label className="visually-hidden" htmlFor={searchId}>
                 {m.search}
               </label>
-              <input
-                className="field-input"
+              <TextInput
                 id={searchId}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder={m.searchPlaceholder}
@@ -158,9 +159,9 @@ export function FreeRunPicker({
                 {shownAllPicked ? m.unpickShown(shown.length) : m.pickShown(shown.length)}
               </label>
               {picked.size > 0 && (
-                <button className="button button--secondary button--compact frp-clear" onClick={() => setPicked(new Set())} type="button">
+                <Button variant="secondary" size="compact" className="frp-clear" onClick={() => setPicked(new Set())} type="button">
                   {m.clear}
-                </button>
+                </Button>
               )}
             </div>
             {shown.length === 0 ? (
@@ -199,12 +200,12 @@ export function FreeRunPicker({
         )}
         <div className="dialog-actions frp-actions">
           <span className="frp-summary">{m.summary(picked.size, items.length)}</span>
-          <button className="button button--secondary" disabled={pending} onClick={onClose} type="button">
+          <Button variant="secondary" disabled={pending} onClick={onClose} type="button">
             {t.projects.shared.cancel}
-          </button>
-          <button className="button button--primary" disabled={pending || picked.size === 0} onClick={() => void create()} type="button">
+          </Button>
+          <Button variant="primary" disabled={pending || picked.size === 0} onClick={() => void create()} type="button">
             {pending ? t.dashboard.remaining.making : m.create(picked.size)}
-          </button>
+          </Button>
         </div>
       </div>
     </Dialog>

@@ -1,3 +1,5 @@
+import { InlineError } from '../design-system/primitives/Feedback'
+import { Button } from '../design-system/primitives/Button'
 import { Dialog } from '../design-system/primitives/Dialog'
 import { useI18n } from '../i18n/useI18n'
 
@@ -30,29 +32,29 @@ export function TakeOverQaRunDialog({
       <p className="dialog-copy">{t.qa.takeover.copy}</p>
 
       {failure !== null && (
-        <div className="inline-error" role="alert">
+        <InlineError>
           <span aria-hidden="true">!</span>
           {failure}
-        </div>
+        </InlineError>
       )}
 
       <div className="dialog-actions">
-        <button
-          className="button button--secondary"
+        <Button
+          variant="secondary"
           disabled={pending}
           onClick={onClose}
           type="button"
         >
           {t.qa.takeover.keepRunning}
-        </button>
-        <button
-          className="button button--danger"
+        </Button>
+        <Button
+          variant="danger"
           disabled={pending}
           onClick={onConfirm}
           type="button"
         >
           {pending ? t.qa.takeover.pending : t.qa.takeover.confirm}
-        </button>
+        </Button>
       </div>
     </Dialog>
   )

@@ -1,6 +1,8 @@
+import { InlineError } from '../../design-system/primitives/Feedback'
+import { ButtonLink } from '../../design-system/primitives/Button'
 import { gameBuildName } from '../../testRuns/testRunApi'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { EdgeScrollbar } from '../../design-system/primitives/EdgeScrollbar'
 import { SplitHandle } from '../../design-system/primitives/SplitHandle'
 import { PaneIcon } from '../../testCases/PaneIcon'
@@ -297,7 +299,7 @@ export function QaHistory() {
               ))}
             </div>
           </div>
-          {failure !== null && <div className="inline-error" role="alert"><span aria-hidden="true">!</span>{failure}</div>}
+          {failure !== null && <InlineError><span aria-hidden="true">!</span>{failure}</InlineError>}
 
           {cardRuns.length === 0 ? (
             <div className="qh-empty-inline">
@@ -388,7 +390,7 @@ function HistoryEmpty({ projectId }: { projectId: string }) {
       <BoardSketch />
       <h2>{b.emptyTitle}</h2>
       <p>{b.emptyBody}</p>
-      <Link className="button button--primary" to={sectionHref(projectId, 'qa')}>{b.emptyAction}</Link>
+      <ButtonLink variant="primary" to={sectionHref(projectId, 'qa')}>{b.emptyAction}</ButtonLink>
     </div>
   )
 }

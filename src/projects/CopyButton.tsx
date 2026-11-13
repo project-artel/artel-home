@@ -1,3 +1,4 @@
+import { Button } from '../design-system/primitives/Button'
 import { useI18n } from '../i18n/useI18n'
 
 /**
@@ -39,12 +40,12 @@ export function CopyButton({
   }
 
   return (
-    <button
-      className="button button--secondary button--compact"
+    <Button
+      variant="secondary" size="compact"
       onClick={() => void copy()}
       type="button"
     >
       {label}
-    </button>
+    </Button>
   )
 }

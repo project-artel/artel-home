@@ -1,3 +1,4 @@
+import { Button } from '../../design-system/primitives/Button'
 import { useTestCaseLabel } from '../../testCases/testCaseIdentifiers'
 import { useEffect, useState } from 'react'
 import { useI18n } from '../../i18n/useI18n'
@@ -53,7 +54,7 @@ export function ReliabilityPanel({ projectId }: { projectId: string }) {
       <form className="qe-dates" onSubmit={event => { event.preventDefault(); setRange({ from, to }) }}>
         <label>{copy.from}<input required type="date" value={from} max={to} onChange={event => setFrom(event.target.value)} /></label>
         <label>{copy.to}<input required type="date" value={to} min={from} onChange={event => setTo(event.target.value)} /></label>
-        <button className="button button--secondary button--compact" type="submit">{copy.apply}</button>
+        <Button variant="secondary" size="compact" type="submit">{copy.apply}</Button>
       </form>
       {error && <p className="qe-status" role="alert">{copy.error}</p>}
       {!data && !error && <p className="qe-status" role="status">{copy.loading}</p>}

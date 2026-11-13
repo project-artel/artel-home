@@ -1,3 +1,7 @@
+import { PanelHeader } from '../design-system/primitives/Headers'
+import { InlineError, PanelEmpty } from '../design-system/primitives/Feedback'
+import { TextArea } from '../design-system/primitives/Fields'
+import { Button } from '../design-system/primitives/Button'
 import { Fragment, useCallback, useEffect, useId, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
@@ -491,7 +495,7 @@ export function RunChat({
   return (
     <ChatLinkContext.Provider value={{ projectId: session.projectId, gameBuildId, runId: session.runId, openCase }}>
     <section className="panel scenario-chat" aria-labelledby="run-chat-title">
-      <header className="panel-header">
+      <PanelHeader>
         <h2 id="run-chat-title">
           <StudioIcon className="run-chat-star" name="sparkles" size={15} />
           {c.title}
@@ -560,7 +564,7 @@ export function RunChat({
           </span>
         </label>
         </div>
-      </header>
+      </PanelHeader>
 
       {session.messages.length === 0 && !session.closed ? (
         <div className="run-chat-empty">
@@ -661,10 +665,10 @@ export function RunChat({
         </p>
       )}
       {session.applyFailure !== null && (
-        <div className="inline-error" role="alert">
+        <InlineError>
           <span aria-hidden="true">!</span>
           {c.applyFailed}
-        </div>
+        </InlineError>
       )}
 
       {/* ESC 를 한 번 눌렀다(ARTEL-956). 대화의 끝에 붙인다 — 기다리는 동안 사용자가
@@ -692,14 +696,14 @@ export function RunChat({
             </div>
           )}
           {session.sendFailure !== null && (
-            <div className="inline-error" role="alert">
+            <InlineError>
               <span aria-hidden="true">!</span>
               {session.sendFailure === 'llm-key-missing'
                 ? c.model.keyMissing
                 : session.sendFailure === 'model-required'
                   ? c.model.required
                   : c.sendFailed}
-            </div>
+            </InlineError>
           )}
 
           {/* 모델(ARTEL-1428). 지금 쓰는 모델을 로고와 함께 보이고, 누르면 QA 실행과 같은 목록이 열린다. 기본 모델은
@@ -730,9 +734,9 @@ export function RunChat({
           </label>
           {/* 길게 쓰면 칸 안이 스크롤한다. 막대는 대화 목록과 같은 `EdgeScrollbar` 다. */}
           <div className="chat-input-frame">
-          <textarea
+          <TextArea
             ref={setInputNode}
-            className="field-input field-input--multiline"
+            className="field-input--multiline"
             aria-describedby="run-chat-hint"
             disabled={session.sending}
             id="run-chat-input"
@@ -753,15 +757,15 @@ export function RunChat({
             <p className="shortcut-hint" id="run-chat-hint">
               {session.awaitingReply ? c.cancelHint : session.needsModel ? c.model.pickFirst : c.shortcutHint}
             </p>
-            <button
+            <Button
               aria-label={session.sending ? c.sending : c.send}
-              className="button button--primary button--compact chat-send"
+              variant="primary" size="compact" className="chat-send"
               disabled={session.sending || session.needsModel || input.trim().length === 0}
               title={session.sending ? c.sending : c.send}
               type="submit"
             >
               <StudioIcon name="arrowUp" size={17} />
-            </button>
+            </Button>
           </div>
         </form>
       )}
@@ -782,7 +786,7 @@ export function RunChat({
             {c.runCoverageSummary(runCoverage.covered, runCoverage.total)}
           </p>
           {runCoverage.scenarios.length === 0 ? (
-            <p className="panel-empty">{c.runCoverageEmpty}</p>
+            <PanelEmpty>{c.runCoverageEmpty}</PanelEmpty>
           ) : (
             <table className="run-coverage-table">
               <thead>

@@ -1,3 +1,6 @@
+import { PanelHeader } from '../design-system/primitives/Headers'
+import { Badge } from '../design-system/primitives/Badge'
+import { PanelEmpty } from '../design-system/primitives/Feedback'
 import { Link, Navigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useEffect, useState, type ReactNode } from 'react'
 import { LlmKeysPanel } from '../account/LlmKeysPanel'
@@ -49,13 +52,13 @@ export function AccountApiTab() {
     <div className="api-page api-page--account">
       <LlmKeysPanel note={a.accountKeysScope} />
       <section aria-labelledby="api-spend-title" className="panel api-spend">
-        <header className="panel-header">
+        <PanelHeader>
           <h2 id="api-spend-title">
             {a.spendSection}
             <InfoHint>{u.sectionSubtitle(overall.usage?.zone ?? Intl.DateTimeFormat().resolvedOptions().timeZone)}</InfoHint>
           </h2>
           <span className="api-spend-hint">{a.spendHint}</span>
-        </header>
+        </PanelHeader>
         <div className="api-spend-body">
           <div className="api-projects-frame">
           <span aria-hidden="true" className="api-projects-caption">
@@ -99,7 +102,7 @@ export function AccountApiTab() {
           <div className="api-spend-detail">
             <div className="api-spend-detail-head">
               <b>{current?.name ?? a.allProjects}</b>
-              {current?.genre && <span className="badge">{t.projects.genreLabels[current.genre]}</span>}
+              {current?.genre && <Badge>{t.projects.genreLabels[current.genre]}</Badge>}
               <span className="api-spend-window">{a.window}</span>
               {current !== null && (
                 <Link className="api-spend-open" to={`/projects/${encodeURIComponent(current.projectId)}`}>
@@ -164,7 +167,7 @@ function ProjectRow({
       <button aria-pressed={selected} className={selected ? 'api-project is-selected' : 'api-project'} onClick={onPick} type="button">
         <span className="api-project-name">
           <b>{name}</b>
-          {genre && <span className="badge">{t.projects.genreLabels[genre]}</span>}
+          {genre && <Badge>{t.projects.genreLabels[genre]}</Badge>}
         </span>
         <b className="api-project-cost mono">{totals === null ? formatCost(0, u.costUnknown) : formatCost(totals.costUsd, u.costUnknown)}</b>
         <span className="api-project-share">
@@ -196,8 +199,8 @@ function SpendDetail({ read }: { read: ProjectUsageRead }) {
         <SpendSkeleton label={u.loading} />
       </>
     )
-  if (status === 'error' || usage === null || grid === null) return <p className="panel-empty">{u.loadFailed}</p>
-  if (usage.total.calls === 0) return <p className="panel-empty">{t.usage.api.noSpend}</p>
+  if (status === 'error' || usage === null || grid === null) return <PanelEmpty>{u.loadFailed}</PanelEmpty>
+  if (usage.total.calls === 0) return <PanelEmpty>{t.usage.api.noSpend}</PanelEmpty>
   return (
     <>
       <div className="api-spend-overview">
@@ -279,11 +282,11 @@ export function ApiSection() {
           onChange={reloadExtras}
         />
         <section aria-labelledby="api-share-title" className="panel api-share">
-          <header className="panel-header">
+          <PanelHeader>
             <h2 id="api-share-title">{a.spendTitle}</h2>
-          </header>
+          </PanelHeader>
           {status === 'loading' && <ShareSkeleton />}
-          {status === 'error' && <p className="panel-empty">{u.loadFailed}</p>}
+          {status === 'error' && <PanelEmpty>{u.loadFailed}</PanelEmpty>}
           {status === 'ready' && usage !== null && <FeatureShare byService={usage.byService} total={usage.total} />}
         </section>
       </div>
@@ -293,14 +296,14 @@ export function ApiSection() {
       {status === 'ready' && usage !== null && grid !== null && (
         <>
           <section aria-labelledby="api-overview-title" className="panel api-overview">
-            <header className="panel-header">
+            <PanelHeader>
               <h2 id="api-overview-title">
                 {u.sectionTitle}
                 <InfoHint>{u.sectionSubtitle(usage.zone)}</InfoHint>
               </h2>
-            </header>
+            </PanelHeader>
             {usage.total.calls === 0 ? (
-              <p className="panel-empty">{u.nothingYet}</p>
+              <PanelEmpty>{u.nothingYet}</PanelEmpty>
             ) : (
               <div className="usage-overview">
                 <div className="usage-overview-grass">
@@ -369,7 +372,7 @@ function FeatureShare({ byService, total }: { byService: { service: string; tota
       totals: cell.totals,
       tone: `api-tone-${Math.min(index, PALETTE_SIZE - 1)}`,
     }))
-  if (rows.length === 0) return <p className="panel-empty">{a.noSpend}</p>
+  if (rows.length === 0) return <PanelEmpty>{a.noSpend}</PanelEmpty>
 
   // 앞 조각들이 차지한 비율의 합이 다음 조각의 시작점이다.
   const starts = rows.map((_, index) => rows.slice(0, index).reduce((sum, row) => sum + row.share * 100, 0))
@@ -572,14 +575,14 @@ function SpendTable({
   const id = `api-table-${axis}`
   return (
     <section aria-labelledby={id} className="panel api-table">
-      <header className="panel-header">
+      <PanelHeader>
         <h2 id={id}>
           {title}
           {note !== undefined && <InfoHint>{note}</InfoHint>}
         </h2>
-      </header>
+      </PanelHeader>
       {sorted.length === 0 ? (
-        <p className="panel-empty">{u.nothingYet}</p>
+        <PanelEmpty>{u.nothingYet}</PanelEmpty>
       ) : (
         <div className="api-table-rows" role="table">
           <div className="api-table-row api-table-row--head" role="row">
@@ -640,9 +643,9 @@ function SpendSkeleton({ label }: { label: string }) {
     <>
       <p className="visually-hidden" role="status">{label}</p>
       <section aria-hidden="true" className="panel api-overview api-skel">
-        <header className="panel-header">
+        <PanelHeader>
           <span className="skeleton-line" style={{ width: 120 }} />
-        </header>
+        </PanelHeader>
         <div className="usage-overview">
           <div className="api-skel-grass">
             {Array.from({ length: 84 }, (_, cell) => <span className="skeleton-block" key={cell} />)}
@@ -664,9 +667,9 @@ function SpendSkeleton({ label }: { label: string }) {
       <div aria-hidden="true" className="usage-breakdowns api-skel">
         {[0, 1].map((table) => (
           <section className="panel api-table" key={table}>
-            <header className="panel-header">
+            <PanelHeader>
               <span className="skeleton-line" style={{ width: 80 }} />
-            </header>
+            </PanelHeader>
             <div className="api-table-rows">
               {[0, 1, 2].map((row) => (
                 <div className="api-table-row" key={row}>

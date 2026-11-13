@@ -1,3 +1,4 @@
+import { Button } from '../../design-system/primitives/Button'
 import { useId } from 'react'
 import { useI18n } from '../../i18n/useI18n'
 import {
@@ -85,13 +86,13 @@ export function ArchSettings({
         </div>
         {changed > 0 && (
           <div className="qa-advanced-actions">
-            <button
-              className="button button--secondary button--compact"
+            <Button
+              variant="secondary" size="compact"
               onClick={() => onChange(EMPTY_ARCH_SELECTION)}
               type="button"
             >
               {advanced.reset}
-            </button>
+            </Button>
           </div>
         )}
       </fieldset>

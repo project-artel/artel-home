@@ -1,3 +1,6 @@
+import { InlineError } from '../design-system/primitives/Feedback'
+import { Button } from '../design-system/primitives/Button'
+import { Badge } from '../design-system/primitives/Badge'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { ProgressRing as SharedProgressRing } from '../design-system/primitives/ProgressRing'
 import { Link } from 'react-router-dom'
@@ -284,20 +287,20 @@ export function DocumentPanel({
           )}
 
           {upload.phase === 'failed' && (
-            <div className="inline-error" role="alert">
+            <InlineError>
               <span aria-hidden="true">!</span>
               <span>{upload.message}</span>
               {pendingFile !== null && (
-                <button
-                  className="button button--secondary button--compact"
+                <Button
+                  variant="secondary" size="compact"
                   onClick={() => void start(pendingFile)}
                   ref={retryButton}
                   type="button"
                 >
                   {t.projects.shared.retry}
-                </button>
+                </Button>
               )}
-            </div>
+            </InlineError>
           )}
 
           <KnowledgePreview current={current} knowledge={knowledge} projectId={projectId} />
@@ -440,18 +443,18 @@ function CurrentDocument({ document, actions }: { document: ProjectDocument; act
           <span className="dw-current-title">
             <span className="dw-ellipsis">{document.fileName}</span>
             <span className="mono dw-version">v{document.version}</span>
-            <span className="badge badge--current">{t.projects.documents.current}</span>
+            <Badge tone="current">{t.projects.documents.current}</Badge>
           </span>
           {document.sizeBytes > 0 && <span className="dw-muted">{formatBytes(document.sizeBytes)}</span>}
         </span>
         {!confirming && (
           <span className="dw-actions">
-            <button className="button button--secondary button--compact" onClick={() => actions.onDownload(document)} type="button">
+            <Button variant="secondary" size="compact" onClick={() => actions.onDownload(document)} type="button">
               {t.projects.documents.download}
-            </button>
-            <button className="button button--danger-quiet button--compact" onClick={() => actions.onRequestDelete(document.id)} type="button">
+            </Button>
+            <Button variant="danger-quiet" size="compact" onClick={() => actions.onRequestDelete(document.id)} type="button">
               {t.projects.documents.delete}
-            </button>
+            </Button>
           </span>
         )}
       </div>
@@ -524,19 +527,19 @@ function DeleteConfirm({ document, actions }: { document: ProjectDocument; actio
   return (
     <div className="document-confirm dw-confirm">
       {deleteState.error !== null && (
-        <div className="inline-error" role="alert">
+        <InlineError>
           <span aria-hidden="true">!</span>
           <span>{deleteState.error}</span>
-        </div>
+        </InlineError>
       )}
       <p className="document-confirm-copy">{t.projects.documents.deleteConfirmCopy}</p>
       <div className="document-confirm-actions">
-        <button className="button button--secondary button--compact" disabled={deleteState.pending} onClick={actions.onCancelDelete} type="button">
+        <Button variant="secondary" size="compact" disabled={deleteState.pending} onClick={actions.onCancelDelete} type="button">
           {t.projects.shared.cancel}
-        </button>
-        <button className="button button--danger button--compact" disabled={deleteState.pending} onClick={() => actions.onConfirmDelete(document)} type="button">
+        </Button>
+        <Button variant="danger" size="compact" disabled={deleteState.pending} onClick={() => actions.onConfirmDelete(document)} type="button">
           {deleteState.pending ? t.projects.shared.deleting : t.projects.documents.deleteConfirm}
-        </button>
+        </Button>
       </div>
     </div>
   )
@@ -720,18 +723,18 @@ function ParseStatusBadge({ document }: { document: ProjectDocument }) {
   const copy = t.projects.documents.parseStatus
 
   if (document.parseStatus === 'EXTRACTING' && document.stale) {
-    return <span className="badge badge--offline">{copy.stale}</span>
+    return <Badge tone="offline">{copy.stale}</Badge>
   }
   if (document.parseStatus === 'EXTRACTING') {
-    return <span className="badge badge--warning">{copy.extracting}</span>
+    return <Badge tone="warning">{copy.extracting}</Badge>
   }
   if (document.parseStatus === 'EXTRACTED') {
-    return <span className="badge badge--success">{copy.extracted}</span>
+    return <Badge tone="success">{copy.extracted}</Badge>
   }
   if (document.parseStatus === 'FAILED') {
-    return <span className="badge badge--critical">{copy.failed}</span>
+    return <Badge tone="critical">{copy.failed}</Badge>
   }
-  return <span className="badge">{copy.pending}</span>
+  return <Badge>{copy.pending}</Badge>
 }
 
 /**

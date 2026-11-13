@@ -1,3 +1,4 @@
+import { Button } from '../design-system/primitives/Button'
 import { useTestCaseLabel } from './testCaseIdentifiers'
 import type { SceneUsage } from './testCaseLibrary'
 import { useEffect, useRef, useState } from 'react'
@@ -116,7 +117,7 @@ export function TestCaseSheet({
         )}
         {testCase && <ContentReviewPanel key={`content:${testCase.id}`} projectId={projectId} testCaseId={testCase.id} builds={builds} defaultBuildId={editGameBuildId ?? testCase.lastVerifiedBuildId} />}
         {!editorReady && (loadedDetail?.failed
-          ? <p role="alert">{t.scenarios.tcModal.error} <button className="button button--secondary button--compact" type="button" onClick={() => setDetailRevision(previous => previous + 1)}>{m.section.retry}</button></p>
+          ? <p role="alert">{t.scenarios.tcModal.error} <Button variant="secondary" size="compact" type="button" onClick={() => setDetailRevision(previous => previous + 1)}>{m.section.retry}</Button></p>
           : <p role="status">{t.scenarios.tcModal.loading}</p>)}
         {editorReady && <TestCaseEditor
           builds={builds}

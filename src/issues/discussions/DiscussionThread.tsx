@@ -1,3 +1,4 @@
+import { Button } from '../../design-system/primitives/Button'
 import { useBuildDisplayName } from '../../projects/useBuildDisplayName'
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { Dialog } from '../../design-system/primitives/Dialog'
@@ -111,9 +112,9 @@ export function OriginalReport({
         focusId={issueId}
       />
       <div className="dc-report-foot">
-        <button className="button button--secondary" onClick={onClose} type="button">
+        <Button variant="secondary" onClick={onClose} type="button">
           {text.close}
-        </button>
+        </Button>
       </div>
     </Dialog>
   )
@@ -274,12 +275,12 @@ export function DiscussionThread({
       <div className="dc-empty" role="alert">
         <p>{text.failed}</p>
         <div className="dc-empty-actions">
-          <button className="button button--secondary" onClick={() => setRevision((value) => value + 1)} type="button">
+          <Button variant="secondary" onClick={() => setRevision((value) => value + 1)} type="button">
             {text.retry}
-          </button>
-          <button className="button button--secondary" onClick={onBack} type="button">
+          </Button>
+          <Button variant="secondary" onClick={onBack} type="button">
             {text.back}
-          </button>
+          </Button>
         </div>
       </div>
     )
@@ -449,8 +450,8 @@ export function DiscussionThread({
               <div className="dc-reply-foot">
                 <div className="dc-reply-buttons">
                   {(editing || replyTo) && (
-                    <button
-                      className="button button--secondary"
+                    <Button
+                      variant="secondary"
                       disabled={pending}
                       onClick={() => {
                         setEditing(undefined)
@@ -461,15 +462,15 @@ export function DiscussionThread({
                       type="button"
                     >
                       {editing ? text.cancelEdit : text.cancel}
-                    </button>
+                    </Button>
                   )}
-                  <button
-                    className="button button--primary"
+                  <Button
+                    variant="primary"
                     disabled={pending || comments.status !== 'ready' || !body.trim()}
                     type="submit"
                   >
                     {pending ? text.saving : editing ? text.save : replyTo ? text.reply : text.send}
-                  </button>
+                  </Button>
                 </div>
               </div>
             </form>
@@ -545,30 +546,30 @@ export function DiscussionThread({
           {post.canManage && (
             <span className="dc-conclude">
               {post.state === 'DRAFT' ? (
-                <button
-                  className="button button--primary"
+                <Button
+                  variant="primary"
                   disabled={pending}
                   onClick={() => change('state', { state: 'OPEN' })}
                   title={text.draftHint}
                   type="button"
                 >
                   {text.publishDraft}
-                </button>
+                </Button>
               ) : post.purpose === 'QUESTION' && post.state === 'OPEN' ? (
                 <span className="dc-approval-gate" title={text.approvalGate}>
                   <DiscussionIcon name="seal" size={14} />
                   {text.approvals(approvedCount, post.approvalsRequired)}
                 </span>
               ) : (
-                <button
-                  className="button button--secondary dc-with-icon"
+                <Button
+                  variant="secondary" className="dc-with-icon"
                   disabled={pending}
                   onClick={() => (post.state === 'OPEN' ? change('state', { state: 'CLOSED' }) : setReopening(true))}
                   type="button"
                 >
                   {post.state === 'OPEN' && <DiscussionIcon name="check" size={15} />}
                   {post.state === 'OPEN' ? text.conclude : text.reopen}
-                </button>
+                </Button>
               )}
               <InfoHint label={text.independent}>{text.independent}</InfoHint>
             </span>
@@ -685,14 +686,14 @@ export function DiscussionThread({
               </p>
             )}
             {comments.hasMore && (
-              <button
-                className="button button--secondary dc-more"
+              <Button
+                variant="secondary" className="dc-more"
                 disabled={comments.loadingMore}
                 onClick={() => void comments.loadMore()}
                 type="button"
               >
                 {comments.loadingMore ? text.loading : text.more}
-              </button>
+              </Button>
             )}
 
             {replyTo === null && renderForm()}

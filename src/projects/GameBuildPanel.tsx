@@ -1,6 +1,9 @@
+import { PanelHeader } from '../design-system/primitives/Headers'
+import { InlineError, PanelEmpty } from '../design-system/primitives/Feedback'
+import { TextArea, TextInput } from '../design-system/primitives/Fields'
+import { Button, ButtonLink } from '../design-system/primitives/Button'
 import { buildDisplayName } from './buildEnvironment'
 import { useId, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { apiErrorMessage } from './apiErrorMessage'
 import { formatDate, PLACEHOLDER } from './formatters'
 import { versionBuilds } from './gameBuilds'
@@ -45,14 +48,14 @@ export function GameBuildPanel({
 
   return (
     <section className="panel" aria-labelledby="builds-title">
-      <header className="panel-header">
+      <PanelHeader>
         <h2 id="builds-title">{t.projects.builds.title}</h2>
-      </header>
+      </PanelHeader>
 
       {versions.length === 0 ? (
-        <p className="panel-empty">
+        <PanelEmpty>
           {builds.length > 0 ? t.projects.builds.emptyEditorOnly : t.projects.builds.empty}
-        </p>
+        </PanelEmpty>
       ) : (
         <ul className="build-list">
           {versions.map((build) => (
@@ -175,10 +178,10 @@ function GameBuildRow({
       {expanded && (
         <div className="build-detail">
           {failure !== null && (
-            <div className="inline-error" role="alert">
+            <InlineError>
               <span aria-hidden="true">!</span>
               {failure}
-            </div>
+            </InlineError>
           )}
 
           {editing ? (
@@ -198,10 +201,9 @@ function GameBuildRow({
                     {t.projects.builds.labelLabel}
                     <InfoHint>{t.projects.builds.labelHint}</InfoHint>
                   </label>
-                  <input
+                  <TextInput
                     aria-describedby={fieldErrors.label ? `${labelId}-error` : undefined}
                     aria-invalid={fieldErrors.label ? true : undefined}
-                    className="field-input"
                     disabled={saving}
                     id={labelId}
                     maxLength={BUILD_LABEL_MAX_LENGTH}
@@ -218,10 +220,10 @@ function GameBuildRow({
                     {t.projects.builds.notesLabel}
                     <InfoHint>{t.projects.builds.notesHint}</InfoHint>
                   </label>
-                  <textarea
+                  <TextArea
                     aria-describedby={fieldErrors.notes ? `${notesId}-error` : undefined}
                     aria-invalid={fieldErrors.notes ? true : undefined}
-                    className="field-input field-input--multiline"
+                    className="field-input--multiline"
                     disabled={saving}
                     id={notesId}
                     maxLength={BUILD_NOTES_MAX_LENGTH}
@@ -235,21 +237,21 @@ function GameBuildRow({
                 </div>
 
                 <div className="form-actions">
-                  <button
-                    className="button button--secondary button--compact"
+                  <Button
+                    variant="secondary" size="compact"
                     disabled={saving}
                     onClick={cancelEditing}
                     type="button"
                   >
                     {t.projects.shared.cancel}
-                  </button>
-                  <button
-                    className="button button--primary button--compact"
+                  </Button>
+                  <Button
+                    variant="primary" size="compact"
                     disabled={!dirty || saving}
                     type="submit"
                   >
                     {saving ? t.projects.shared.saving : t.projects.shared.save}
-                  </button>
+                  </Button>
                 </div>
               </div>
             </form>
@@ -288,31 +290,31 @@ function GameBuildRow({
 
               <div className="form-actions">
                 {/* 이 빌드의 QA run 과 케이스 판정까지 한 화면에 모은 게임 빌드 섹션의 상세(ARTEL-1105). */}
-                <Link
-                  className="button button--secondary button--compact"
+                <ButtonLink
+                  variant="secondary" size="compact"
                   to={gameBuildDetailHref(projectId, build.id)}
                 >
                   {t.gameBuilds.list.openInSection}
-                </Link>
-                <Link
-                  className="button button--secondary button--compact"
+                </ButtonLink>
+                <ButtonLink
+                  variant="secondary" size="compact"
                   to={`/projects/${encodeURIComponent(projectId)}/game-builds/${encodeURIComponent(build.id)}/content-map`}
                 >
                   {t.contentMap.entry.build}
-                </Link>
-                <Link
-                  className="button button--secondary button--compact"
+                </ButtonLink>
+                <ButtonLink
+                  variant="secondary" size="compact"
                   to={`/projects/${encodeURIComponent(projectId)}/game-builds/${encodeURIComponent(build.id)}/performance`}
                 >
                   {t.performance.entry.build}
-                </Link>
-                <button
-                  className="button button--secondary button--compact"
+                </ButtonLink>
+                <Button
+                  variant="secondary" size="compact"
                   onClick={() => setEditing(true)}
                   type="button"
                 >
                   {t.projects.shared.edit}
-                </button>
+                </Button>
               </div>
             </>
           )}

@@ -1,3 +1,4 @@
+import { Button } from '../design-system/primitives/Button'
 import { useCallback, useEffect, useRef, type ReactNode } from 'react'
 import { useGameStream } from './useGameStream'
 import { streamErrorNotice } from './streamErrors'
@@ -228,9 +229,9 @@ export function GameStreamView({
           <p className="game-stream-notice-label">{notice.label}</p>
           <p className="game-stream-notice-detail">{notice.detail}</p>
           {notice.retryLabel !== null && (
-            <button className="button button--secondary" onClick={retry} type="button">
+            <Button variant="secondary" onClick={retry} type="button">
               {notice.retryLabel}
-            </button>
+            </Button>
           )}
         </div>
       )}

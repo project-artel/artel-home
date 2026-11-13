@@ -1,3 +1,5 @@
+import { TextArea } from '../../design-system/primitives/Fields'
+import { Button } from '../../design-system/primitives/Button'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
@@ -44,10 +46,10 @@ function QuestionForm({ question, projectId, reload }: { question: api.Question;
       <span className="qe-status">{copy.waiting}</span>
     </div>
     <p className="qe-question-text">{question.question}</p>
-    <label className="qe-field">{copy.answerLabel}<textarea className="field-input field-input--multiline" required maxLength={4000} value={answer} onChange={event => setAnswer(event.target.value)} /></label>
+    <label className="qe-field">{copy.answerLabel}<TextArea className="field-input--multiline" required maxLength={4000} value={answer} onChange={event => setAnswer(event.target.value)} /></label>
     <div className="qe-form-foot">
       <span className="qe-hint">{copy.first}</span>
-      <button className="button button--primary button--compact" type="submit" disabled={busy || !answer.trim()}>{copy.answer}</button>
+      <Button variant="primary" size="compact" type="submit" disabled={busy || !answer.trim()}>{copy.answer}</Button>
     </div>
     {error && <p className="qe-status" role="alert">{error}</p>}
   </form>

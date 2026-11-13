@@ -1,3 +1,5 @@
+import { PanelEmpty, PanelMessage } from '../design-system/primitives/Feedback'
+import { Button } from '../design-system/primitives/Button'
 import { useI18n } from '../i18n/useI18n'
 import type { TrackerSync } from '../tracker/useTrackerSync'
 import { IssueRow } from './IssueRow'
@@ -68,27 +70,27 @@ export function IssueList({
 
   if (status === 'loading') {
     return (
-      <p className="panel-empty" aria-busy="true">
+      <PanelEmpty aria-busy="true">
         {t.issues.list.loading}
-      </p>
+      </PanelEmpty>
     )
   }
 
   if (status === 'error') {
     return (
-      <div className="panel-message" role="alert">
+      <PanelMessage role="alert">
         <p className="panel-message-copy">{t.issues.list.loadFailed}</p>
-        <button className="button button--secondary" onClick={onRetry} type="button">
+        <Button variant="secondary" onClick={onRetry} type="button">
           {t.issues.list.retry}
-        </button>
-      </div>
+        </Button>
+      </PanelMessage>
     )
   }
 
   if (issues.length === 0) {
     // Two different facts, and confusing them sends people looking for a bug in
     // the wrong place: nothing was ever found, versus nothing matches right now.
-    return <p className="panel-empty">{filtered ? t.issues.list.emptyFiltered : t.issues.list.empty}</p>
+    return <PanelEmpty>{filtered ? t.issues.list.emptyFiltered : t.issues.list.empty}</PanelEmpty>
   }
 
   return (
@@ -118,14 +120,14 @@ export function IssueList({
       </ul>
       {hasMore ? (
         <div className="list-footer">
-          <button
-            className="button button--secondary"
+          <Button
+            variant="secondary"
             disabled={loadingMore}
             onClick={onLoadMore}
             type="button"
           >
             {loadingMore ? t.issues.list.loadingMore : t.issues.list.loadMore}
-          </button>
+          </Button>
         </div>
       ) : null}
     </>

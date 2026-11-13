@@ -1,3 +1,5 @@
+import { InlineError } from '../design-system/primitives/Feedback'
+import { Button } from '../design-system/primitives/Button'
 import { useState } from 'react'
 import { Dialog } from '../design-system/primitives/Dialog'
 import { useI18n } from '../i18n/useI18n'
@@ -51,10 +53,10 @@ export function ProjectCreateDialog({
     <Dialog title={t.projects.list.newProject} labelledBy="create-project-title" onClose={onClose}>
       <form onSubmit={submit} noValidate>
         {failure !== null && (
-          <div className="inline-error" role="alert">
+          <InlineError>
             <span aria-hidden="true">!</span>
             {failure}
-          </div>
+          </InlineError>
         )}
 
         <ProjectForm
@@ -64,21 +66,21 @@ export function ProjectCreateDialog({
           disabled={pending}
         >
           <div className="dialog-actions">
-            <button
-              className="button button--secondary"
+            <Button
+              variant="secondary"
               disabled={pending}
               onClick={onClose}
               type="button"
             >
               {t.projects.shared.cancel}
-            </button>
-            <button
-              className="button button--primary"
+            </Button>
+            <Button
+              variant="primary"
               disabled={pending || draft.name.trim().length === 0}
               type="submit"
             >
               {pending ? t.projects.shared.creating : t.projects.createDialog.create}
-            </button>
+            </Button>
           </div>
         </ProjectForm>
       </form>

@@ -1,3 +1,4 @@
+import { Button } from '../design-system/primitives/Button'
 import { useEffect, useState, type ReactNode } from 'react'
 import { composeNicknameTag, type AuthUser } from '../auth/authTypes'
 import { useAuth } from '../auth/useAuth'
@@ -156,12 +157,12 @@ function McpConsent({ request, user }: { request: McpConnectRequest; user: AuthU
 
       {showsActions && (
         <div className="form-actions">
-          <button className="button button--secondary" disabled={isBusy} onClick={deny} type="button">
+          <Button variant="secondary" disabled={isBusy} onClick={deny} type="button">
             {copy.deny}
-          </button>
-          <button className="button button--primary" disabled={isBusy} onClick={allow} type="button">
+          </Button>
+          <Button variant="primary" disabled={isBusy} onClick={allow} type="button">
             {copy.allow}
-          </button>
+          </Button>
         </div>
       )}
     </McpConnectFrame>

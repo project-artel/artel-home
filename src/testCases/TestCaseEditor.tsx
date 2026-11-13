@@ -1,3 +1,5 @@
+import { InlineError } from '../design-system/primitives/Feedback'
+import { Button } from '../design-system/primitives/Button'
 import { buildDisplayName } from '../projects/buildEnvironment'
 import { useId, useState } from 'react'
 import { SceneChipPicker } from './CaseSceneFilter'
@@ -261,10 +263,10 @@ export function TestCaseEditor({
       </header>
 
       {failure !== null && (
-        <div className="inline-error" role="alert">
+        <InlineError>
           <span aria-hidden="true">!</span>
           {failure}
-        </div>
+        </InlineError>
       )}
 
       <ol className="tce-flow">
@@ -338,14 +340,14 @@ export function TestCaseEditor({
               <span className={'tce-version-name' + (chosenVersion === undefined ? ' is-none' : '')}>
                 {chosenVersion === undefined ? t.testCases.versions.unversioned : versionName(chosenVersion)}
               </span>
-              <button
-                className="button button--secondary button--compact"
+              <Button
+                variant="secondary" size="compact"
                 disabled={pending}
                 onClick={() => setPickingVersion(true)}
                 type="button"
               >
                 {m.changeVersion}
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -478,33 +480,33 @@ export function TestCaseEditor({
         {/* 삭제는 저장 짝의 반대편에 둔다. 되돌릴 수 없는 버튼이 저장 옆에 붙어 있으면
             빠르게 누르다 잘못 맞힌다. */}
         {!creating && (
-          <button
-            className="button button--danger-quiet button--compact"
+          <Button
+            variant="danger-quiet" size="compact"
             disabled={pending}
             onClick={onDelete}
             type="button"
           >
             {m.delete}
-          </button>
+          </Button>
         )}
         <span className="tcl-editor-spacer" />
-        <button
-          className="button button--secondary button--compact"
+        <Button
+          variant="secondary" size="compact"
           disabled={pending}
           onClick={onDone}
           type="button"
         >
           {m.cancel}
-        </button>
-        <button
-          className="button button--primary button--compact"
+        </Button>
+        <Button
+          variant="primary" size="compact"
           disabled={pending || !dirty}
           type="submit"
         >
           {pending
             ? creating ? m.creating : m.saving
             : creating ? m.create : m.save}
-        </button>
+        </Button>
       </div>
     </form>
     {/* 폼 밖에 둔다. dialog 는 body 로 뜨지만 React 의 submit 이벤트는 컴포넌트 트리를 따라 올라와, 폼 안에 두면

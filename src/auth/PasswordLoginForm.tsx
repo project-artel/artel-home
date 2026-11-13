@@ -1,3 +1,5 @@
+import { TextInput } from '../design-system/primitives/Fields'
+import { Button } from '../design-system/primitives/Button'
 import { useId, useState, type FormEvent } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { useAuth } from './useAuth'
@@ -81,9 +83,8 @@ export function PasswordLoginForm({ signupOpen }: { signupOpen: boolean }) {
       {activeMode === 'signUp' && (
         <div className="field">
           <label className="field-label" htmlFor={nameId}>{copy.nameLabel}</label>
-          <input
+          <TextInput
             id={nameId}
-            className="field-input"
             type="text"
             autoComplete="name"
             value={name}
@@ -94,9 +95,8 @@ export function PasswordLoginForm({ signupOpen }: { signupOpen: boolean }) {
       )}
       <div className="field">
         <label className="field-label" htmlFor={emailId}>{copy.emailLabel}</label>
-        <input
+        <TextInput
           id={emailId}
-          className="field-input"
           type="email"
           autoComplete="email"
           value={email}
@@ -106,9 +106,8 @@ export function PasswordLoginForm({ signupOpen }: { signupOpen: boolean }) {
       </div>
       <div className="field">
         <label className="field-label" htmlFor={passwordId}>{copy.passwordLabel}</label>
-        <input
+        <TextInput
           id={passwordId}
-          className="field-input"
           type="password"
           autoComplete={activeMode === 'signIn' ? 'current-password' : 'new-password'}
           value={password}
@@ -120,9 +119,9 @@ export function PasswordLoginForm({ signupOpen }: { signupOpen: boolean }) {
       </div>
       {activeMode === 'signUp' && <p className="field-hint">{copy.signUpHint}</p>}
 
-      <button className="button button--primary login-submit" type="submit" disabled={!canSubmit || submitting}>
+      <Button variant="primary" className="login-submit" type="submit" disabled={!canSubmit || submitting}>
         {submitting ? copy.submitting : activeMode === 'signIn' ? copy.signInSubmit : copy.signUpSubmit}
-      </button>
+      </Button>
     </form>
   )
 }

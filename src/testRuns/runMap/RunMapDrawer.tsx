@@ -1,3 +1,4 @@
+import { Button } from '../../design-system/primitives/Button'
 import { TestCaseHover } from '../../testCases/TestCaseHover'
 import { useTestCaseLabel } from '../../testCases/testCaseIdentifiers'
 import { useEffect, useRef, useState } from 'react'
@@ -145,14 +146,14 @@ export function RunMapDrawer({
           {scenario.gapCount > 0 && <span className="rmd-gap"> · GAP {scenario.gapCount}</span>}
         </div>
         <div className="rmd-actions">
-          <button className="button button--secondary button--compact" disabled={position === 1} onClick={onPrev} type="button">{m.drawer.prev}</button>
-          <button className="button button--secondary button--compact" disabled={position === total} onClick={onNext} type="button">{m.drawer.next}</button>
-          <button className="button button--secondary button--compact" onClick={onAddStep} type="button">
+          <Button variant="secondary" size="compact" disabled={position === 1} onClick={onPrev} type="button">{m.drawer.prev}</Button>
+          <Button variant="secondary" size="compact" disabled={position === total} onClick={onNext} type="button">{m.drawer.next}</Button>
+          <Button variant="secondary" size="compact" onClick={onAddStep} type="button">
             {pickedStep === null ? m.drawer.addStepEnd : m.drawer.addStepAfter(pickedStep + 1)}
-          </button>
-          <button className="button button--secondary button--compact" onClick={onImportTcs} type="button">{m.drawer.importTcs}</button>
+          </Button>
+          <Button variant="secondary" size="compact" onClick={onImportTcs} type="button">{m.drawer.importTcs}</Button>
           <span className="rmd-spacer" />
-          <button className="button button--primary button--compact" data-open-editor={scenario.id} onClick={onOpenEditor} type="button">{m.openHint}</button>
+          <Button variant="primary" size="compact" data-open-editor={scenario.id} onClick={onOpenEditor} type="button">{m.openHint}</Button>
         </div>
         <p className="rmd-hint">{m.drawer.dragHint}</p>
       </div>
