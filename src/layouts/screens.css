@@ -427,6 +427,11 @@
   font-size: 14px;
   line-height: 1.7;
 }
+
+.setup-agent-nav { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.setup-agent-nav a { padding: var(--space-2) var(--space-3); color: var(--color-text-primary); border-bottom: 2px solid transparent; }
+.setup-agent-nav a[aria-current="page"] { border-bottom-color: var(--color-action-primary); font-weight: 600; }
+.setup-agent-prompt { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--font-mono); font-size: 13px; }
 .setup-copy code,
 .setup-list code,
 .setup-facts code,

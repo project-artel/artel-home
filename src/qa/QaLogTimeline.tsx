@@ -543,7 +543,7 @@ export function QaLogTimeline({
         last.blocks.push(block)
         continue
       }
-      groups.push({ key: `${tcNo ?? 's'}:${block.step}`, tcNo, blocks: [block] })
+      groups.push({ key: block.id, tcNo, blocks: [block] })
     }
     return groups
   }, [flowSteps, regionByStep])
@@ -794,7 +794,7 @@ export function QaLogTimeline({
                 </p></TestCaseHover>
                 <ol className="qa-flow-blocks">
                   {group.blocks.map((block) => (
-                    <QaFlowStep projectId={projectId} gameBuildId={gameBuildId} block={block} key={block.step} />
+                    <QaFlowStep projectId={projectId} gameBuildId={gameBuildId} block={block} key={block.id} />
                   ))}
                 </ol>
               </li>

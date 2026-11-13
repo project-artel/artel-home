@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useI18n } from '../../i18n/useI18n'
 import { OpenRouterKeySection } from './OpenRouterKeySection'
-import { BedrockKeySection } from './BedrockKeySection'
 import { ClaudeKeySection } from './ClaudeKeySection'
 import { CacheInvalidationSection } from './CacheInvalidationSection'
 import { LlmModelsSection } from './LlmModelsSection'
@@ -41,7 +40,6 @@ export default function SettingsPage() {
         <div className="adm-key-grid">
           <OpenRouterKeySection onConfiguredChange={setOpenRouterConfigured} />
           <ClaudeKeySection onConfiguredChange={setClaudeConfigured} />
-          <BedrockKeySection />
           <TypesafeKeySection onConfiguredChange={setTypesafeConfigured} />
         </div>
       </section>

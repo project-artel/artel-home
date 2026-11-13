@@ -73,11 +73,10 @@ export function groupQaModels(models: QaModel[], query = ''): QaModelGroups {
 /**
  * The models the run panel offers.
  *
- * Bedrock rows are not offered on the platform key: what testers are offered
- * free is decided per model, and Bedrock is not part of it. The rows stay in the
- * catalog — the server still routes and prices them. Turning a row off belongs
- * to the admin screen (`llm_model.enabled`, orchestration#307); once that lands,
- * this filter goes.
+ * Bedrock rows are never offered. Bedrock is gone (ARTEL-1440): the server deletes
+ * its rows and the agent refuses them, so this only guards against an older server
+ * that still lists one. Turning any other row off belongs to the admin screen
+ * (`llm_model.enabled`).
  */
 export function offeredQaModels(models: QaModel[]): QaModel[] {
   return models.filter(
@@ -89,7 +88,7 @@ export function offeredQaModels(models: QaModel[]): QaModel[] {
  * The name a picker row shows, from the catalog's `label`.
  *
  * - Anything in parentheses is dropped: `(Claude API)`, `(OpenAI API)`,
- *   `(AWS Bedrock)`, `(free)`. The tab a row sits in already says which key it
+ *   `(free)`. The tab a row sits in already says which key it
  *   runs on, and once a model is chosen the trigger's badge says it again
  *   (`llmKeyApiName`), so in the list the suffixes only made the names long.
  * - "Claude" is dropped from Anthropic models — the provider beside the name

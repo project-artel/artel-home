@@ -57,6 +57,11 @@ export function QaReplay({ projectId, qaTry, onPosition, timelineHost }: {
   const segmentId = segment?.id
   const segmentStartedAt = segment?.startedAt
   const boundsEnd = bounds?.end
+  const [playbackRate, setPlaybackRate] = useState(1)
+  function changePlaybackRate(rate: number) {
+    if (videoRef.current) videoRef.current.playbackRate = rate
+    setPlaybackRate(rate)
+  }
   useEffect(() => {
     const video = videoRef.current
     return () => { video?.pause() }
@@ -137,6 +142,7 @@ export function QaReplay({ projectId, qaTry, onPosition, timelineHost }: {
       {segment && !mediaFailed ? <video key={segment.id} ref={videoRef} src={segment.url!} muted playsInline preload="metadata" aria-label={evidence.video}
         onLoadedMetadata={event => {
           const video = event.currentTarget
+          video.playbackRate = playbackRate
           video.currentTime = Math.max(0, ((seekRef.current ?? currentTime) - Date.parse(segment.startedAt)) / 1000)
           if (resumeRef.current) void video.play().catch(() => setPlaying(false))
         }}
@@ -160,7 +166,7 @@ export function QaReplay({ projectId, qaTry, onPosition, timelineHost }: {
       {expired ? evidence.expired : mediaFailed ? evidence.error : preparing ? evidence.loading : evidence.unavailable}
       {mediaFailed && <button className="button button--secondary" type="button" onClick={refresh}>{evidence.retry}</button>}
     </div>}
-    {timelineHost && createPortal(<QaExecutionTimeline bounds={bounds} timestamp={currentTime} playback={data.playback} attempts={data.attempts} playing={playing} playable={hasVideo && segment !== null} onSeek={seek} onRefresh={refresh} onTogglePlay={() => {
+    {timelineHost && createPortal(<QaExecutionTimeline bounds={bounds} timestamp={currentTime} playback={data.playback} attempts={data.attempts} playing={playing} playable={hasVideo && segment !== null} playbackRate={playbackRate} onPlaybackRateChange={changePlaybackRate} onSeek={seek} onRefresh={refresh} onTogglePlay={() => {
       const video = videoRef.current
       if (!video) return
       if (video.paused) { resumeRef.current = true; void video.play().catch(() => setPlaying(false)) }

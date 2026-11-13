@@ -1,5 +1,5 @@
-import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Fragment, useCallback, useEffect, useId, useRef, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
 import { PaneIcon } from '../testCases/PaneIcon'
 import { Dialog } from '../design-system/primitives/Dialog'
@@ -47,6 +47,9 @@ import { TestCaseSheet } from '../testCases/TestCaseSheet'
 import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
 import { ProjectApiError } from '../projects/projectApi'
 import { getRunCoverage } from './testRunApi'
+import { QaModelPicker } from '../qa/QaModelPicker'
+import { sectionHref } from '../projects/workspace/sections'
+import { isRecommendedAuthoringModel } from './recommendedModel'
 import type { RunCoverage } from './testRunApi'
 import type { RunChatSession } from './useRunChatSession'
 
@@ -229,6 +232,7 @@ export function RunChat({
   const { t } = useI18n()
   const u = t.projects.workspace.uncovered
   const c = t.scenarios.chat
+  const modelPickerId = useId()
   // 대시보드에서 넘어온 요청문으로 시작한다(ARTEL-405). **보내지는 않는다** — 제안은 제안이고
   // 무엇을 보낼지는 사람이 정한다. 처음 한 번만 씨앗으로 쓰므로 이후 타이핑을 덮지 않는다.
   const [searchParams] = useSearchParams()
@@ -690,9 +694,36 @@ export function RunChat({
           {session.sendFailure !== null && (
             <div className="inline-error" role="alert">
               <span aria-hidden="true">!</span>
-              {c.sendFailed}
+              {session.sendFailure === 'llm-key-missing'
+                ? c.model.keyMissing
+                : session.sendFailure === 'model-required'
+                  ? c.model.required
+                  : c.sendFailed}
             </div>
           )}
+
+          {/* 모델(ARTEL-1428). 지금 쓰는 모델을 로고와 함께 보이고, 누르면 QA 실행과 같은 목록이 열린다. 기본 모델은
+              없다 — 고르기 전에는 보내기가 꺼진다. 공용 키 모델과 사용자 · 프로젝트 키 모델을 같은 목록에서 고른다. */}
+          <div className="run-chat-model">
+            <label className="visually-hidden" htmlFor={modelPickerId}>{c.model.label}</label>
+            <QaModelPicker
+              footer={
+                <>
+                  <span className="qa-model-tag qa-model-tag--recommended">{c.model.recommended}</span>
+                  <span>{c.model.mcpHint}</span>
+                  <Link to={`${sectionHref(session.projectId, 'setup')}?guide=skills`}>{c.model.mcpLink}</Link>
+                </>
+              }
+              recommendation={{ label: c.model.recommended, isRecommended: isRecommendedAuthoringModel }}
+              disabled={session.sending}
+              id={modelPickerId}
+              models={session.models}
+              onChange={session.setModelKey}
+              popoverWidth={520}
+              projectKeySettings={sectionHref(session.projectId, 'api')}
+              value={session.modelKey}
+            />
+          </div>
 
           <label className="visually-hidden" htmlFor="run-chat-input">
             {c.inputLabel}
@@ -720,12 +751,12 @@ export function RunChat({
                 한 번 눌러 물어보는 말은 여기가 아니라 대화 끝에 붙는다 — 사용자가 보고 있는
                 곳이 거기다. */}
             <p className="shortcut-hint" id="run-chat-hint">
-              {session.awaitingReply ? c.cancelHint : c.shortcutHint}
+              {session.awaitingReply ? c.cancelHint : session.needsModel ? c.model.pickFirst : c.shortcutHint}
             </p>
             <button
               aria-label={session.sending ? c.sending : c.send}
               className="button button--primary button--compact chat-send"
-              disabled={session.sending || input.trim().length === 0}
+              disabled={session.sending || session.needsModel || input.trim().length === 0}
               title={session.sending ? c.sending : c.send}
               type="submit"
             >

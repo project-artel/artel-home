@@ -35,7 +35,7 @@ export function ClaudeCheckResult({ check }: { check: ClaudeCheck }) {
   )
 }
 
-/** Claude API 키 카드. 저장, 삭제, 확인 상태는 Bedrock 카드와 같다. */
+/** Claude API 키 카드. 저장, 삭제, 확인 상태는 OpenRouter 카드와 같다. */
 export function ClaudeKeySection({
   onConfiguredChange,
 }: {

@@ -161,6 +161,15 @@ export const scenariosEn = {
     sending: 'Sending…',
     send: 'Send',
     sendFailed: 'The message could not be sent. Please try again.',
+    model: {
+      label: 'Model',
+      required: 'Pick the model that writes the scenario first.',
+      pickFirst: 'Pick a model above to send',
+      recommended: 'Recommended',
+      mcpHint: 'You can also author from your own AI tool (Claude Code, Codex …) over MCP.',
+      mcpLink: 'Setup guide ›',
+      keyMissing: 'There is no API key for the model you picked. Add a key, or pick another model.',
+    },
     awaitingReply: 'Waiting for Artel to reply.',
     /*
      * Stage labels (ARTEL-419). Each one says only what someone actually saw.
@@ -1071,6 +1080,15 @@ export const scenariosKo: Localized<typeof scenariosEn> = {
     sending: '전송 중…',
     send: '전송',
     sendFailed: '메시지를 전송하지 못했습니다. 다시 시도해 주세요.',
+    model: {
+      label: '모델',
+      required: '시나리오를 만들 모델을 먼저 고르세요.',
+      pickFirst: '위에서 모델을 고르면 보낼 수 있어요',
+      recommended: '추천',
+      mcpHint: 'MCP 로 내 AI 도구(Claude Code, Codex 등)에서 저작할 수도 있어요.',
+      mcpLink: '설치 안내 ›',
+      keyMissing: '고른 모델의 API 키가 없습니다. 키를 등록하거나 다른 모델을 고르세요.',
+    },
     awaitingReply: 'Artel의 응답을 기다리고 있습니다.',
     /*
      * 단계 문구(ARTEL-419). 누군가 실제로 본 것까지만 말한다. `writing`이 유일한 추론이라

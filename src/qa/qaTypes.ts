@@ -75,7 +75,7 @@ export type QaTry = {
  */
 export type QaStop = {
   code: string
-  /** `anthropic` · `openai` · `openrouter` · `bedrock`. 모르면 null. */
+  /** `anthropic` · `openai` · `openrouter`. 예전 Bedrock 런은 `bedrock`. 모르면 null. */
   provider: string | null
   message: string | null
 }

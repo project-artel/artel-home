@@ -210,21 +210,28 @@ export function QaVerdictsSection() {
               </span>
               {tally.review > 0 && <span className="qv-review-count">{copy.review.count(tally.review)}</span>}
             </div>
-            {evaluation}
-            <StepNavigator onPick={(step) => choose({ scenario: scenario.qaTryId, step: String(step) })} rows={rows} selected={pickedStep} />
-            <div className="qv-legend">
-              <span><i className="qv-sw qv-sw--passed" />{copy.legend.passed}</span>
-              <span><i className="qv-sw qv-sw--failed" />{copy.legend.failed}</span>
-              <span><i className="qv-sw qv-sw--action" />{copy.legend.action}</span>
-              <span><i className="qv-sw qv-sw--issue" />{copy.legend.issue}</span>
-              <span><i className="qv-sw qv-sw--review" />{copy.legend.review}</span>
-            </div>
+            <CaseEvaluationPanel
+              emptyFallback={(
+                <>
+                  <StepNavigator onPick={(step) => choose({ scenario: scenario.qaTryId, step: String(step) })} rows={rows} selected={pickedStep} />
+                  <div className="qv-legend">
+                    <span><i className="qv-sw qv-sw--passed" />{copy.legend.passed}</span>
+                    <span><i className="qv-sw qv-sw--failed" />{copy.legend.failed}</span>
+                    <span><i className="qv-sw qv-sw--action" />{copy.legend.action}</span>
+                    <span><i className="qv-sw qv-sw--issue" />{copy.legend.issue}</span>
+                    <span><i className="qv-sw qv-sw--review" />{copy.legend.review}</span>
+                  </div>
+                  <div className="qv-body">
+                    <StepList filter={listFilter} onFilter={setFilter} onPick={(step) => choose({ scenario: scenario.qaTryId, step: String(step) })} rows={rows} selected={pickedStep} shown={shownRows} />
+                    {selected !== null && <StepDetail onDecided={() => void load()} projectId={projectId} qaRunId={qaRunId} row={selected} rows={rows} />}
+                  </div>
+                </>
+              )}
+              id={EVALUATION_PANEL_ID}
+              projectId={projectId}
+              qaTryId={scenario.qaTryId}
+            />
           </section>
-
-          <div className="qv-body">
-            <StepList filter={listFilter} onFilter={setFilter} onPick={(step) => choose({ scenario: scenario.qaTryId, step: String(step) })} rows={rows} selected={pickedStep} shown={shownRows} />
-            {selected !== null && <StepDetail onDecided={() => void load()} projectId={projectId} qaRunId={qaRunId} row={selected} rows={rows} />}
-          </div>
         </>
       )}
     </section>

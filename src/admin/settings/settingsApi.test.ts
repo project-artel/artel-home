@@ -2,13 +2,11 @@ import assert from 'node:assert/strict'
 import { afterEach, describe, it, mock } from 'node:test'
 import {
   SettingsApiError,
-  checkBedrockModels,
   checkClaudeModels,
   getClaudeSettings,
   parseClaudeSettings,
   putClaudeKey,
   checkLlmModels,
-  getBedrockSettings,
   getFeatureModels,
   getTypesafeSettings,
   parseTypesafeSettings,
@@ -16,9 +14,7 @@ import {
   parseFeatureModels,
   putFeatureModels,
   invalidateLlmCache,
-  parseBedrockSettings,
   parseCacheInvalidation,
-  putBedrockKey,
   createAdminUser,
   listLlmModels,
   discoverLlmModels,
@@ -190,10 +186,10 @@ describe('OpenRouter key endpoints', () => {
 
 describe('admin llm model endpoints', () => {
   const modelBody = {
-    id: 'bedrock/us.openai.gpt-6.1-sol',
-    label: 'GPT-6.1 Sol (AWS Bedrock)',
+    id: 'gpt/gpt-6.1-sol',
+    label: 'GPT-6.1 Sol (OpenAI API)',
     provider: 'openai',
-    route: 'bedrock',
+    route: 'gpt',
     enabled: false,
     supportsVision: true,
     maxInputTokens: 922000,
@@ -216,7 +212,8 @@ describe('admin llm model endpoints', () => {
       maxInputTokens: null,
       updatedAt: null,
     })
-    assert.equal(parseAdminLlmModel({ id: 'bedrock/x' }).route, 'bedrock')
+    // Bedrock 은 걷었다(ARTEL-1440). 예전 서버가 `bedrock` 을 보내도 아는 경로가 아니라 OpenRouter 로 읽는다.
+    assert.equal(parseAdminLlmModel({ id: 'bedrock/x', route: 'bedrock' }).route, 'openrouter')
   })
 
   it('lists rows from a bare array or an items wrapper', async () => {
@@ -264,73 +261,6 @@ describe('admin llm model endpoints', () => {
   it('raises the server code on a refusal', async () => {
     stubFetch({ code: 'not_found', message: 'unknown model' }, 404)
     await assert.rejects(setLlmModelEnabled('nope', true), { status: 404, code: 'not_found' })
-  })
-})
-
-describe('Bedrock key endpoints', () => {
-  const bedrockBody = {
-    configured: true,
-    maskedKey: '…abcd',
-    updatedAt: '2026-10-14T00:00:00Z',
-    region: 'us-west-2',
-    lastCheck: {
-      checkedAt: '2026-10-14T00:01:00Z',
-      keyConfigured: true,
-      models: [
-        { id: 'bedrock/a', reachable: true, error: null },
-        { id: 'bedrock/b', reachable: false, error: 'not available' },
-      ],
-    },
-  }
-
-  it('parses settings with the last check', () => {
-    assert.deepEqual(parseBedrockSettings(bedrockBody), bedrockBody)
-  })
-
-  it('falls back to safe values for a malformed body', () => {
-    assert.deepEqual(parseBedrockSettings({ lastCheck: 'x', models: 3 }), {
-      configured: false,
-      maskedKey: null,
-      updatedAt: null,
-      region: null,
-      lastCheck: null,
-    })
-    const check = parseBedrockSettings({ lastCheck: { models: [{ id: 'm', reachable: 'yes' }] } }).lastCheck
-    assert.equal(check?.keyConfigured, false)
-    assert.deepEqual(check?.models[0], { id: 'm', reachable: false, error: null })
-    assert.equal(check?.models.length, 1)
-  })
-
-  it('reads settings from the bedrock path', async () => {
-    const fetchMock = stubFetch(bedrockBody)
-    assert.equal((await getBedrockSettings()).region, 'us-west-2')
-    assert.equal(fetchMock.mock.calls[0].arguments[0], 'http://localhost:8080/api/admin/settings/bedrock')
-  })
-
-  it('saves and deletes the key through PUT', async () => {
-    const fetchMock = stubFetch(bedrockBody)
-    await putBedrockKey('abc')
-    await putBedrockKey(null)
-    const [url, init] = fetchMock.mock.calls[0].arguments
-    assert.equal(url, 'http://localhost:8080/api/admin/settings/bedrock')
-    assert.equal(init?.method, 'PUT')
-    assert.deepEqual(JSON.parse(init?.body as string), { apiKey: 'abc' })
-    assert.deepEqual(JSON.parse(fetchMock.mock.calls[1].arguments[1]?.body as string), { apiKey: null })
-  })
-
-  it('surfaces secrets_key_missing from a save', async () => {
-    stubFetch({ code: 'secrets_key_missing', message: 'x' }, 409)
-    await assert.rejects(putBedrockKey('abc'), { status: 409, code: 'secrets_key_missing' })
-  })
-
-  it('posts the check and reads per-model results', async () => {
-    const fetchMock = stubFetch(bedrockBody.lastCheck)
-    const check = await checkBedrockModels()
-    const [url, init] = fetchMock.mock.calls[0].arguments
-    assert.equal(url, 'http://localhost:8080/api/admin/settings/bedrock/check')
-    assert.equal(init?.method, 'POST')
-    assert.deepEqual(check.models.map((model) => model.reachable), [true, false])
-    assert.equal(check.models[1].error, 'not available')
   })
 })
 
