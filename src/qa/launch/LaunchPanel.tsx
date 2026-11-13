@@ -477,20 +477,6 @@ export function LaunchPanel({
           </div>
         )}
 
-        <div className="ql-field">
-          <label className="ql-field-label" htmlFor={inputModeId}>{l.inputModeLabel}</label>
-          <select
-            className="field-input"
-            disabled={starting || takeoverOpen || visibleVersionPrompt !== null}
-            id={inputModeId}
-            onChange={(event) => setInputMode(event.target.value === 'os' ? 'os' : 'virtual')}
-            value={inputMode}
-          >
-            <option value="virtual">{l.virtualInput}</option>
-            <option value="os">{l.osInput}</option>
-          </select>
-        </div>
-
         <QaFunctionOptionsFields
           builds={builds}
           disabled={starting}
@@ -499,6 +485,19 @@ export function LaunchPanel({
           summaryBadge={changedSettings > 0 ? <span className="qa-advanced-count">{p.advanced.changed(changedSettings)}</span> : undefined}
           value={functionOptions}
         >
+          <div className="ql-field">
+            <label className="ql-field-label" htmlFor={inputModeId}>{l.inputModeLabel}</label>
+            <select
+              className="field-input"
+              disabled={starting || takeoverOpen || visibleVersionPrompt !== null}
+              id={inputModeId}
+              onChange={(event) => setInputMode(event.target.value === 'os' ? 'os' : 'virtual')}
+              value={inputMode}
+            >
+              <option value="virtual">{l.virtualInput}</option>
+              <option value="os">{l.osInput}</option>
+            </select>
+          </div>
           <ArchSettings onChange={onArchChange} readsImages={readsImages} selection={effectiveArch} />
         </QaFunctionOptionsFields>
 
