@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { useTestCaseLabel } from '../testCases/testCaseIdentifiers'
 import type { Attempt, Playback } from './evaluation/evaluationApi'
@@ -6,22 +6,53 @@ import { evaluationCopy } from './evaluation/evaluationCopy'
 import { clipTimeLabel } from './evaluation/videoEvidence'
 import { caseTimelineTracks, firstReplayTimestamp } from './qaReplayModel'
 
-export function QaExecutionTimeline({ bounds, timestamp, playback, attempts, playing, playable, onSeek, onTogglePlay, onRefresh }: {
+const timelineZoomLevels = [1, 2, 4, 8, 16]
+const playbackRates = [0.5, 1, 1.5, 2, 4, 8, 16]
+
+export function QaExecutionTimeline({ bounds, timestamp, playback, attempts, playing, playable, playbackRate, onPlaybackRateChange, onSeek, onTogglePlay, onRefresh }: {
   bounds: { start: number; end: number }; timestamp: number; playback: Playback; attempts: Attempt[]
   playing: boolean; playable: boolean; onSeek: (timestamp: number) => void; onTogglePlay: () => void; onRefresh: () => void
+  playbackRate: number; onPlaybackRateChange: (rate: number) => void
 }) {
   const { t, locale } = useI18n()
   const copy = t.qa.replay
   const evidence = evaluationCopy[locale === 'ko' ? 'ko' : 'en']
   const caseLabel = useTestCaseLabel()
   const [collapsed, setCollapsed] = useState(false)
-  const [zoom, setZoom] = useState(1)
+  const [zoomIndex, setZoomIndex] = useState(0)
+  const zoom = timelineZoomLevels[zoomIndex]
   const [height, setHeight] = useState(155)
   const [maximumHeight, setMaximumHeight] = useState(400)
   const [resizing, setResizing] = useState(false)
   const panel = useRef<HTMLElement>(null)
   const drag = useRef<{ y: number; height: number } | null>(null)
   const scroll = useRef<HTMLDivElement>(null)
+  const axis = useRef<HTMLDivElement>(null)
+  const zoomAnchor = useRef<{ fraction: number; clientX: number } | null>(null)
+  useLayoutEffect(() => {
+    const anchor = zoomAnchor.current
+    const viewport = scroll.current
+    const ruler = axis.current
+    if (!anchor || !viewport || !ruler) return
+    zoomAnchor.current = null
+    const rect = ruler.getBoundingClientRect()
+    viewport.scrollLeft += rect.left + rect.width * anchor.fraction - anchor.clientX
+  }, [zoomIndex])
+  useEffect(() => {
+    const ruler = axis.current
+    if (!ruler) return
+    const onWheel = (event: WheelEvent) => {
+      if (event.ctrlKey || event.metaKey || event.shiftKey || Math.abs(event.deltaX) >= Math.abs(event.deltaY)) return
+      const next = zoomIndex + (event.deltaY < 0 ? 1 : -1)
+      if (next < 0 || next >= timelineZoomLevels.length) return
+      event.preventDefault()
+      const rect = ruler.getBoundingClientRect()
+      zoomAnchor.current = { fraction: (event.clientX - rect.left) / rect.width, clientX: event.clientX }
+      setZoomIndex(next)
+    }
+    ruler.addEventListener('wheel', onWheel, { passive: false })
+    return () => ruler.removeEventListener('wheel', onWheel)
+  }, [collapsed, zoomIndex])
   useEffect(() => {
     const container = panel.current?.closest('.qa-console')
     if (!container) return
@@ -72,20 +103,24 @@ export function QaExecutionTimeline({ bounds, timestamp, playback, attempts, pla
         const item = ranges.find(item => item.attempt.id === event.target.value)
         if (item) onSeek(firstReplayTimestamp(playback.segments, item.range))
       }}><option value="">{copy.intervals}</option>{ranges.map(({ attempt, range }) => <option key={attempt.id} value={attempt.id}>{caseLabel(attempt.testCaseId)} · {clipTimeLabel((range.start - bounds.start) / 1000)}–{clipTimeLabel((range.end - bounds.start) / 1000)}</option>)}</select>
-      <select className="qa-timeline-zoom" aria-label={copy.zoom} value={zoom} onChange={event => {
-        const next = Number(event.target.value)
-        setZoom(next)
-        window.requestAnimationFrame(() => {
-          if (scroll.current) scroll.current.scrollLeft = Math.max(0, percentage(timestamp) / 100 * (scroll.current.scrollWidth - 84) - scroll.current.clientWidth / 2)
-        })
-      }}>{[1, 2, 4, 8, 16].map(value => <option key={value} value={value}>{value}×</option>)}</select></>}
+      <select className="qa-timeline-rate" aria-label={copy.playbackRate} title={copy.playbackRate} value={playbackRate} onChange={event => onPlaybackRateChange(Number(event.target.value))}>
+        {playbackRates.map(value => <option key={value} value={value}>{value}×</option>)}
+      </select></>}
       <button className="qa-icon-button qa-timeline-refresh" type="button" aria-label={evidence.retry} title={evidence.retry} onClick={onRefresh}><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M20 7v5h-5" /><path d="M19.4 12a7.5 7.5 0 1 0-1.8 5" /></svg></button>
       <button className="qa-icon-button qa-timeline-collapse" type="button" aria-label={collapsed ? copy.expand : copy.collapse} title={collapsed ? copy.expand : copy.collapse} aria-expanded={!collapsed} onClick={() => setCollapsed(value => !value)}><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={collapsed ? 'm6 15 6-6 6 6' : 'm6 9 6 6 6-6'} /></svg></button>
     </header>
     {!collapsed && <>
       <div className="qa-timeline-scroll" ref={scroll} style={{ height: shownHeight }}>
         <div className="qa-timeline-chart" style={{ width: `${zoom * 100}%` }}>
-          <div className="qa-timeline-axis">
+          <div className="qa-timeline-axis" ref={axis} title={copy.zoom} onKeyDown={event => {
+            if (event.key !== '+' && event.key !== '-' && event.key !== '=') return
+            const next = zoomIndex + (event.key === '-' ? -1 : 1)
+            const viewport = scroll.current
+            if (!viewport || next < 0 || next >= timelineZoomLevels.length) return
+            event.preventDefault()
+            zoomAnchor.current = { fraction: percentage(timestamp) / 100, clientX: viewport.getBoundingClientRect().left + viewport.clientWidth / 2 }
+            setZoomIndex(next)
+          }}>
             <div className="qa-timeline-ruler" aria-hidden="true">{Array.from({ length: 6 * zoom }, (_, index) => <span key={index}>{clipTimeLabel(duration * index / (6 * zoom - 1))}</span>)}</div>
             <div className="qa-timeline-recording" aria-hidden="true">{playback.segments.filter(segment => segment.state === 'READY' && segment.url).map(segment => <span key={segment.id} style={{ left: `${percentage(Date.parse(segment.startedAt))}%`, width: `${Math.max(0, percentage(Date.parse(segment.endedAt)) - percentage(Date.parse(segment.startedAt)))}%` }} />)}</div>
             <input className="qa-timeline-seek" type="range" min={0} max={duration} step={0.1} value={(timestamp - bounds.start) / 1000} aria-label={copy.timeline} aria-valuetext={`${clipTimeLabel((timestamp - bounds.start) / 1000)} / ${clipTimeLabel(duration)}`} onChange={event => onSeek(bounds.start + Number(event.target.value) * 1000)} />
