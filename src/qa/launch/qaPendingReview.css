@@ -1,0 +1,15 @@
+.qa-pending-review h3 {
+  margin: 0 0 var(--space-2);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.qa-pending-review ul {
+  padding-inline-start: var(--space-5);
+  overflow-wrap: anywhere;
+}
+
+.qa-pending-review li + li {
+  margin-top: var(--space-1);
+}
