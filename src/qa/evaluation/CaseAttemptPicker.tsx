@@ -69,7 +69,7 @@ export function CaseAttemptPicker({ id, options, current, onSelect, copy }: {
 
         return <TestCaseHoverPanel key={caseId} label={`${caseLabel(caseId)} · ${copy.snapshot}`} content={
           <TestCasePreviewContent title={caseLabel(caseId)} scene={snapshot.scene}
-            sceneLabel={copy.scene} fields={[[copy.precondition, snapshot.precondition], [copy.step, snapshot.step], [copy.expected, snapshot.expected]]} />
+            fields={[[copy.precondition, snapshot.precondition], [copy.step, snapshot.step], [copy.expected, snapshot.expected]]} />
         }>{tab}</TestCaseHoverPanel>
       })}
     </div>

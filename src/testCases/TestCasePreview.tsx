@@ -28,14 +28,13 @@ export function TestCasePreview({ projectId, caseId, gameBuildId }: {
   if (testCase === null) return <p className="tc-hover-note" role="status">{labels.loading}</p>
 
   return <TestCasePreviewContent title={caseLabel(testCase.id)}
-    scene={testCase.scene} sceneLabel={labels.scene}
+    scene={testCase.scene}
     fields={[[labels.precondition, testCase.precondition || '—'], [labels.step, testCase.step || '—'], [labels.expected, testCase.expectedValue || '—']]} />
 }
 
-export function TestCasePreviewContent({ title, scene, sceneLabel, fields }: {
+export function TestCasePreviewContent({ title, scene, fields }: {
   title: string
   scene?: string | null
-  sceneLabel: string
   fields: ReadonlyArray<readonly [string, string | null]>
 }) {
   return <>
@@ -45,6 +44,6 @@ export function TestCasePreviewContent({ title, scene, sceneLabel, fields }: {
     {fields.some(([, value]) => value) && <dl className="tc-hover-fields">
       {fields.map(([label, value]) => value && <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
     </dl>}
-    {scene && <p className="tc-hover-scene"><span>{sceneLabel}</span><span>{scene}</span></p>}
+    {scene && <p className="tc-hover-scene">{scene}</p>}
   </>
 }
