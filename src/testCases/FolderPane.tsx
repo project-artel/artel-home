@@ -3,6 +3,7 @@ import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDi
 import { useI18n } from '../i18n/useI18n'
 import { ProjectApiError } from '../projects/projectApi'
 import { PaneIcon } from './PaneIcon'
+import { Chevron } from './VersionList'
 import { ContextMenu, type ContextMenuItem } from './ContextMenu'
 import { FolderDialog, type FolderDialogMode, type FolderDraft } from './FolderDialog'
 import { currentFolderDrag, dragKind, endFolderDrag, readDrag, writeFolderDrag, type DragPayload } from './folderDrag'
@@ -114,6 +115,8 @@ export function FolderPane({
   const [deleting, setDeleting] = useState<TestCaseFolder | null>(null)
   const [menu, setMenu] = useState<MenuState | null>(null)
   const [dropTarget, setDropTarget] = useState<string | null>(null)
+  // 접은 폴더. 처음에는 모두 펼쳐 있다. 버전 목록의 묶음 접기(`VersionList`)와 같이 이 화면에 있는 동안만 기억한다.
+  const [folded, setFolded] = useState<ReadonlySet<string>>(new Set())
   const treeRef = useRef<HTMLElement | null>(null)
 
   const tree = useMemo(() => buildFolderTree(folders), [folders])
@@ -339,9 +342,19 @@ export function FolderPane({
             counts={counts}
             dropHandlers={dropHandlers}
             dropTarget={dropTarget}
+            folded={folded}
+            messages={m}
             nodes={tree}
             onContextMenu={readOnly ? undefined : openMenu}
             onSelect={onSelect}
+            onToggleFold={(folderId) =>
+              setFolded((current) => {
+                const next = new Set(current)
+                if (next.has(folderId)) next.delete(folderId)
+                else next.add(folderId)
+                return next
+              })
+            }
             selectedId={selection.kind === 'folder' ? selection.id : null}
           />
         )}
@@ -415,6 +428,7 @@ function FolderItem({
   current,
   dragFolderId,
   dropping = false,
+  inTree = false,
   label,
   onClick,
   onContextMenu,
@@ -424,6 +438,8 @@ function FolderItem({
   /** 있으면 이 줄을 끌어 다른 폴더로 옮길 수 있다. */
   dragFolderId?: string
   dropping?: boolean
+  /** tree 의 폴더 줄. 왼쪽에 접기 단추 자리를 비워, 하위 폴더가 없는 줄도 이름이 같은 자리에서 시작한다. */
+  inTree?: boolean
   label: string
   onClick: () => void
   onContextMenu?: (event: React.MouseEvent | React.KeyboardEvent) => void
@@ -431,7 +447,7 @@ function FolderItem({
   return (
     <button
       aria-current={current ? 'true' : undefined}
-      className={'tcl-folder' + (current ? ' is-current' : '') + (dropping ? ' is-drop-target' : '')}
+      className={'tcl-folder' + (inTree ? ' tcl-folder--tree' : '') + (current ? ' is-current' : '') + (dropping ? ' is-drop-target' : '')}
       draggable={dragFolderId !== undefined}
       onClick={onClick}
       onContextMenu={onContextMenu}
@@ -458,49 +474,76 @@ function FolderBranch({
   counts,
   dropHandlers,
   dropTarget,
+  folded,
+  messages,
   nested = false,
   nodes,
   onContextMenu,
   onSelect,
+  onToggleFold,
   selectedId,
 }: {
   counts: FolderCounts
   dropHandlers: (targetId: string) => DropHandlers
   dropTarget: string | null
+  folded: ReadonlySet<string>
+  messages: FolderPaneMessages
   nested?: boolean
   nodes: readonly FolderNode[]
   /** 없으면 고르기만 하는 tree 다. 메뉴도 끌기도 없다. */
   onContextMenu?: (event: React.MouseEvent | React.KeyboardEvent, folder: TestCaseFolder) => void
   onSelect: (selection: FolderSelection) => void
+  onToggleFold: (folderId: string) => void
   selectedId: string | null
 }) {
   return (
     <ul className={'tcl-folder-list' + (nested ? ' tcl-folder-list--nested' : '')}>
-      {nodes.map((node) => (
-        <li key={node.folder.id} {...dropHandlers(node.folder.id)}>
-          <FolderItem
-            count={counts.byFolder.get(node.folder.id) ?? 0}
-            current={node.folder.id === selectedId}
-            dragFolderId={onContextMenu === undefined ? undefined : node.folder.id}
-            dropping={dropTarget === node.folder.id}
-            label={node.folder.name}
-            onClick={() => onSelect({ kind: 'folder', id: node.folder.id })}
-            onContextMenu={onContextMenu === undefined ? undefined : (event) => onContextMenu(event, node.folder)}
-          />
-          {node.children.length > 0 && (
-            <FolderBranch
-              counts={counts}
-              dropHandlers={dropHandlers}
-              dropTarget={dropTarget}
-              nested
-              nodes={node.children}
-              onContextMenu={onContextMenu}
-              onSelect={onSelect}
-              selectedId={selectedId}
+      {nodes.map((node) => {
+        const hasChildren = node.children.length > 0
+        const isFolded = folded.has(node.folder.id)
+        return (
+          <li className="tcl-folder-node" key={node.folder.id} {...dropHandlers(node.folder.id)}>
+            <FolderItem
+              count={counts.byFolder.get(node.folder.id) ?? 0}
+              current={node.folder.id === selectedId}
+              dragFolderId={onContextMenu === undefined ? undefined : node.folder.id}
+              dropping={dropTarget === node.folder.id}
+              inTree
+              label={node.folder.name}
+              onClick={() => onSelect({ kind: 'folder', id: node.folder.id })}
+              onContextMenu={onContextMenu === undefined ? undefined : (event) => onContextMenu(event, node.folder)}
             />
-          )}
-        </li>
-      ))}
+            {/* 줄(폴더 고르기) 안에 단추를 둘 수 없어 형제로 두고 줄 왼쪽 빈자리에 겹쳐 놓는다. 접기는 고르지 않는다. */}
+            {hasChildren && (
+              <button
+                aria-expanded={!isFolded}
+                aria-label={isFolded ? messages.unfoldFolder(node.folder.name) : messages.foldFolder(node.folder.name)}
+                className="tcl-folder-toggle"
+                onClick={() => onToggleFold(node.folder.id)}
+                title={isFolded ? messages.unfoldFolder(node.folder.name) : messages.foldFolder(node.folder.name)}
+                type="button"
+              >
+                <Chevron open={!isFolded} />
+              </button>
+            )}
+            {hasChildren && !isFolded && (
+              <FolderBranch
+                counts={counts}
+                dropHandlers={dropHandlers}
+                dropTarget={dropTarget}
+                folded={folded}
+                messages={messages}
+                nested
+                nodes={node.children}
+                onContextMenu={onContextMenu}
+                onSelect={onSelect}
+                onToggleFold={onToggleFold}
+                selectedId={selectedId}
+              />
+            )}
+          </li>
+        )
+      })}
     </ul>
   )
 }

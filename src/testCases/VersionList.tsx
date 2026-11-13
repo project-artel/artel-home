@@ -397,7 +397,8 @@ export function VersionList({
   )
 }
 
-function Chevron({ open }: { open: boolean }) {
+/** 묶음 · 폴더의 접힘 표시. 오른쪽이 접힘, 아래가 펼침. 폴더 tree(`FolderPane`)도 쓴다. */
+export function Chevron({ open }: { open: boolean }) {
   return (
     <svg aria-hidden="true" className={'tcl-chevron' + (open ? ' is-open' : '')} viewBox="0 0 16 16">
       <path d="M6 4l4 4-4 4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" />
