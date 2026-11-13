@@ -401,6 +401,9 @@ export type RunChatAnswer = {
   displayText?: string
 }
 
+/** 챗봇에서 고른 모델(ARTEL-1428). `/api/qa-models` 의 `id` · `keySource` 그대로다. */
+export type RunChatModelChoice = { model: string; keySource: string }
+
 export async function sendRunChatMessage(
   projectId: string,
   runId: string,
@@ -410,6 +413,8 @@ export async function sendRunChatMessage(
   draftOnly = false,
   /** 질문지 한 묶음의 답. 하나씩 보내면 둘째부터 앞선 턴에 막힌다. */
   answers: RunChatAnswer[] = [],
+  /** 고른 저작 모델과 키(ARTEL-1428). 기본 모델은 없다 — 없으면 서버가 400 `model_required` 로 거절한다. 값은 QA 실행과 같다. */
+  choice?: RunChatModelChoice,
 ): Promise<void> {
   const response = await apiFetch(chatPath(projectId, runId, '/message'), {
     method: 'POST',
@@ -422,6 +427,7 @@ export async function sendRunChatMessage(
         ? { question_id: answer.questionId, option_ids: answer.optionIds, text: answer.text ?? null }
         : null,
       answers: answers.map((one) => ({ question_id: one.questionId, option_ids: one.optionIds, text: one.text ?? null })),
+      ...(choice === undefined ? {} : { model: choice.model, keySource: choice.keySource }),
       // `displayText` stays here on purpose — see its doc comment.
     }),
   })

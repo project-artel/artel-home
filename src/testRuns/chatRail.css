@@ -8,3 +8,7 @@
 #run-chat-title:has(.run-chat-collapse) { display: flex; align-items: center; gap: 6px; width: 100%; }
 /* 접힌 동안 폭 손잡이는 쓸 일이 없다. 칸은 그대로 두어 격자가 밀리지 않게 한다. */
 .scenario-studio.is-chat-collapsed .st-split { visibility: hidden; pointer-events: none; }
+
+/* 모델 줄(ARTEL-1428). 지금 모델을 보이는 트리거 하나가 줄을 다 쓴다 — 목록은 트리거를 누르면 열린다. */
+.scenario-studio .run-chat-model { margin-bottom: 8px; }
+.scenario-studio .run-chat-model .qa-model-picker { width: 100%; }
