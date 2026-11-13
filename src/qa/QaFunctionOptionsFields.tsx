@@ -71,7 +71,11 @@ export function QaFunctionOptionsFields({
       <GameFunctionChoice
         chosen={chosen}
         emptyNote={status === 'loading' ? m.catalogLoading : ready ? m.noneRegistered : m.catalogFailed}
-        entries={entries.map((entry) => ({ name: entry.name, description: entry.description }))}
+        entries={entries.map((entry) => ({
+          name: entry.name,
+          description: entry.description,
+          note: entry.readOnly ? t.gameFunctions.readOnly : undefined,
+        }))}
         footer={entries.length > 0 && chosen.length === 0 && <p className="gf-note" role="status">{m.nothingSelected}</p>}
         kind={runChoiceKind(value, axis)}
         label={label}

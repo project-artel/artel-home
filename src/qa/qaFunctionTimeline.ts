@@ -73,7 +73,7 @@ function actionItemsOf(payload: unknown): ActionItem[] {
 export function cheatNamesOf(log: QaLog): string[] {
   if (log.type !== 'ACTION') return []
   return actionItemsOf(log.payload).flatMap((item) => {
-    if (item.method !== INVOKE_CHEAT_METHOD) return []
+    if (item.method !== INVOKE_CHEAT_METHOD || item.params.requireReadOnly === true) return []
     return [typeof item.params.name === 'string' ? item.params.name : '']
   })
 }

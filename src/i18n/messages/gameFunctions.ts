@@ -6,17 +6,18 @@ function plural(count: number, word: string): string {
 
 /** Strings for the cheat and behavior screens (ARTEL-1051). See `common.ts` for the typing convention. */
 export const gameFunctionsEn = {
+  readOnly: 'Read-only',
   build: {
-    title: 'Cheats and behaviors',
+    title: 'Game Functions',
     loading: 'Loading the catalog…',
     loadFailed: 'The catalog could not be loaded.',
     retry: 'Retry',
     empty: 'This build has not reported any cheats or behaviors.',
     revision: (revision: number) => `Catalog revision ${revision}`,
     receivedAt: (when: string) => `received ${when}`,
-    cheatsTitle: (count: number) => `Cheats (${count})`,
+    cheatsTitle: (count: number) => `One-time functions (${count})`,
     behaviorsTitle: (count: number) => `Behaviors (${count})`,
-    noCheats: 'No cheats registered.',
+    noCheats: 'No one-time functions registered.',
     noBehaviors: 'No behaviors registered.',
     group: (group: string) => `Group ${group}`,
     targetComponent: (component: string) => `On ${component}`,
@@ -28,11 +29,11 @@ export const gameFunctionsEn = {
   },
   run: {
     advancedTitle: 'Advanced settings',
-    title: 'Cheats and behaviors',
+    title: 'Game Functions',
     hint: 'What the agent may call in the game during this run.',
     buildLabel: 'Catalog from build',
     noBuild: 'No build has reported yet.',
-    cheats: 'Cheats',
+    cheats: 'One-time functions',
     behaviors: 'Behaviors',
     catalogLoading: 'Loading the catalog…',
     catalogFailed: 'The catalog could not be loaded. The run starts with every function the build registered.',
@@ -87,7 +88,7 @@ export const gameFunctionsEn = {
   caseFunctions: {
     title: 'Functions the agent may use',
     hint: 'This narrows the list set when the run starts. It never widens it.',
-    cheats: 'Cheats',
+    cheats: 'One-time functions',
     behaviors: 'Behaviors',
     chosenNone: 'Nothing chosen yet. Saving now stores None.',
     namesFrom: (version: string) => `Names come from build ${version}.`,
@@ -99,17 +100,18 @@ export const gameFunctionsEn = {
 }
 
 export const gameFunctionsKo: Localized<typeof gameFunctionsEn> = {
+  readOnly: '읽기 전용',
   build: {
-    title: 'Cheat 와 behavior',
+    title: 'Game Function',
     loading: 'catalog 를 불러오는 중…',
     loadFailed: 'catalog 를 불러오지 못했습니다.',
     retry: '다시 시도',
     empty: '이 빌드는 cheat 도 behavior 도 보고하지 않았습니다.',
     revision: (revision: number) => `catalog revision ${revision}`,
     receivedAt: (when: string) => `${when} 수신`,
-    cheatsTitle: (count: number) => `Cheat (${count})`,
+    cheatsTitle: (count: number) => `일회 실행 (${count})`,
     behaviorsTitle: (count: number) => `Behavior (${count})`,
-    noCheats: '등록된 cheat 가 없습니다.',
+    noCheats: '등록된 일회 실행 함수가 없습니다.',
     noBehaviors: '등록된 behavior 가 없습니다.',
     group: (group: string) => `그룹 ${group}`,
     targetComponent: (component: string) => `${component} 에 달림`,
@@ -121,11 +123,11 @@ export const gameFunctionsKo: Localized<typeof gameFunctionsEn> = {
   },
   run: {
     advancedTitle: '고급 설정',
-    title: 'Cheat 와 behavior',
+    title: 'Game Function',
     hint: '이 run 에서 에이전트가 게임 안에서 부를 수 있는 것입니다.',
     buildLabel: 'catalog 를 읽을 빌드',
     noBuild: '아직 보고한 빌드가 없습니다.',
-    cheats: 'Cheat',
+    cheats: '일회 실행',
     behaviors: 'Behavior',
     catalogLoading: 'catalog 를 불러오는 중…',
     catalogFailed: 'catalog 를 불러오지 못했습니다. run 은 빌드가 등록한 함수 전부로 시작합니다.',
@@ -180,7 +182,7 @@ export const gameFunctionsKo: Localized<typeof gameFunctionsEn> = {
   caseFunctions: {
     title: '에이전트가 쓸 수 있는 함수',
     hint: 'run 을 시작할 때 정한 목록을 좁히기만 하고, 넓히지는 않습니다.',
-    cheats: 'Cheat',
+    cheats: '일회 실행',
     behaviors: 'Behavior',
     chosenNone: '아직 고른 것이 없습니다. 지금 저장하면 없음으로 저장됩니다.',
     namesFrom: (version: string) => `이름은 빌드 ${version} 에서 가져왔습니다.`,

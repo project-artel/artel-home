@@ -86,7 +86,11 @@ function SelectionRow({
       chosen={chosenNames}
       emptyNote={status === 'ready' ? m.noneRegistered : status === 'loading' ? m.catalogLoading : m.catalogFailed}
       entries={[
-        ...entries.map((entry) => ({ name: entry.name, description: entry.description })),
+        ...entries.map((entry) => ({
+          name: entry.name,
+          description: entry.description,
+          note: entry.readOnly ? t.gameFunctions.readOnly : undefined,
+        })),
         ...missingNames.map((name) => ({ name, description: null, note: m.notInCatalog })),
       ]}
       footer={chosenNames.length === 0 && <p className="gf-note" role="status">{m.chosenNone}</p>}
