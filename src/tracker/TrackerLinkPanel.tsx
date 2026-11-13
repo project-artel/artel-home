@@ -1,3 +1,7 @@
+import { PanelHeader } from '../design-system/primitives/Headers'
+import { InlineError, PanelEmpty, PanelMessage } from '../design-system/primitives/Feedback'
+import { Button } from '../design-system/primitives/Button'
+import { Badge } from '../design-system/primitives/Badge'
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { InfoHint } from '../design-system/primitives/InfoHint'
@@ -364,18 +368,18 @@ export function TrackerLinkPanel() {
   if (extrasStatus !== 'ready') {
     return (
       <section className="panel" aria-labelledby="tracker-title">
-        <header className="panel-header">
+        <PanelHeader>
           <h2 id="tracker-title">{t.tracker.panel.title}</h2>
-        </header>
+        </PanelHeader>
         {extrasStatus === 'loading' ? (
-          <p className="panel-empty" aria-busy="true">{t.tracker.panel.loading}</p>
+          <PanelEmpty aria-busy="true">{t.tracker.panel.loading}</PanelEmpty>
         ) : (
-          <div className="panel-message" role="alert">
+          <PanelMessage role="alert">
             <p className="panel-message-copy">{t.tracker.panel.loadFailed}</p>
-            <button className="button button--secondary button--compact" onClick={reloadExtras} type="button">
+            <Button variant="secondary" size="compact" onClick={reloadExtras} type="button">
               {t.projects.shared.retry}
-            </button>
-          </div>
+            </Button>
+          </PanelMessage>
         )}
       </section>
     )
@@ -383,18 +387,18 @@ export function TrackerLinkPanel() {
 
   return (
     <section className="panel" aria-labelledby="tracker-title">
-      <header className="panel-header">
+      <PanelHeader>
         <h2 id="tracker-title">
           {t.tracker.panel.title}
           <InfoHint>{t.tracker.panel.subtitle}</InfoHint>
         </h2>
-      </header>
+      </PanelHeader>
 
       {installFailedNotice && (
-        <div className="inline-error" role="alert">
+        <InlineError>
           <span aria-hidden="true">!</span>
           {t.tracker.panel.installFailedAnnouncement}
-        </div>
+        </InlineError>
       )}
 
       {showInstallationPicker && (
@@ -481,27 +485,27 @@ function NotConnected({
   const { t } = useI18n()
 
   if (!isOwner) {
-    return <p className="panel-empty">{t.tracker.panel.notConnected}</p>
+    return <PanelEmpty>{t.tracker.panel.notConnected}</PanelEmpty>
   }
 
   return (
     <div className="panel-empty-block">
-      <p className="panel-empty">{t.tracker.panel.notConnected}</p>
+      <PanelEmpty>{t.tracker.panel.notConnected}</PanelEmpty>
       {connectFailure !== null && (
-        <div className="inline-error" role="alert">
+        <InlineError>
           <span aria-hidden="true">!</span>
           {connectFailure}
-        </div>
+        </InlineError>
       )}
-      <button
-        className="button button--primary button--compact"
+      <Button
+        variant="primary" size="compact"
         data-agent-target="settings.connectTracker"
         disabled={connecting}
         onClick={onConnect}
         type="button"
       >
         {connecting ? t.tracker.panel.connecting : t.tracker.panel.connect}
-      </button>
+      </Button>
     </div>
   )
 }
@@ -534,7 +538,7 @@ function RepositoryPicker({
   const { t } = useI18n()
 
   if (!isOwner) {
-    return <p className="panel-empty">{t.tracker.panel.awaitingOwner}</p>
+    return <PanelEmpty>{t.tracker.panel.awaitingOwner}</PanelEmpty>
   }
 
   return (
@@ -542,23 +546,23 @@ function RepositoryPicker({
       <p className="section-intro">{t.tracker.panel.chooseRepositoryCopy}</p>
 
       {repoConnectFailure !== null && (
-        <div className="inline-error" role="alert">
+        <InlineError>
           <span aria-hidden="true">!</span>
           {repoConnectFailure}
-        </div>
+        </InlineError>
       )}
 
       {loading ? (
-        <p className="panel-empty" aria-busy="true">{t.tracker.panel.repositoriesLoading}</p>
+        <PanelEmpty aria-busy="true">{t.tracker.panel.repositoriesLoading}</PanelEmpty>
       ) : loadFailure !== null ? (
-        <div className="panel-message" role="alert">
+        <PanelMessage role="alert">
           <p className="panel-message-copy">{loadFailure}</p>
-          <button className="button button--secondary button--compact" onClick={onRetry} type="button">
+          <Button variant="secondary" size="compact" onClick={onRetry} type="button">
             {t.projects.shared.retry}
-          </button>
-        </div>
+          </Button>
+        </PanelMessage>
       ) : repositories !== null && repositories.length === 0 ? (
-        <p className="panel-empty">{t.tracker.panel.repositoriesEmpty}</p>
+        <PanelEmpty>{t.tracker.panel.repositoriesEmpty}</PanelEmpty>
       ) : (
         <ul className="tracker-repo-list">
           {(repositories ?? []).map((repository) => (
@@ -566,9 +570,9 @@ function RepositoryPicker({
               <span className="tracker-repo-name">
                 {repository.workspace}/{repository.repository}
               </span>
-              {repository.private && <span className="badge">{t.tracker.panel.private}</span>}
-              <button
-                className="button button--secondary button--compact"
+              {repository.private && <Badge>{t.tracker.panel.private}</Badge>}
+              <Button
+                variant="secondary" size="compact"
                 disabled={connectingRepo !== null}
                 onClick={() => onConnect(repository)}
                 type="button"
@@ -576,7 +580,7 @@ function RepositoryPicker({
                 {connectingRepo === repoKey(repository)
                   ? t.tracker.panel.connecting
                   : t.tracker.panel.connectRepository}
-              </button>
+              </Button>
             </li>
           ))}
         </ul>
@@ -595,14 +599,14 @@ function ChangeAccountButton({ changing, onChangeAccount }: { changing: boolean;
   const { t } = useI18n()
 
   return (
-    <button
-      className="button button--secondary button--compact"
+    <Button
+      variant="secondary" size="compact"
       disabled={changing}
       onClick={onChangeAccount}
       type="button"
     >
       {changing ? t.tracker.panel.connecting : t.tracker.panel.changeAccount}
-    </button>
+    </Button>
   )
 }
 
@@ -611,10 +615,10 @@ function ChangeAccountFailure({ failure }: { failure: string | null }) {
   if (failure === null) return null
 
   return (
-    <div className="inline-error" role="alert">
+    <InlineError>
       <span aria-hidden="true">!</span>
       {failure}
-    </div>
+    </InlineError>
   )
 }
 
@@ -656,25 +660,25 @@ function InstallationPicker({
   const needsReauthorization = selectFailure?.authorizationRequired === true
 
   const reauthorizeButton = (
-    <button
-      className="button button--primary button--compact"
+    <Button
+      variant="primary" size="compact"
       disabled={busy}
       onClick={onReauthorize}
       type="button"
     >
       {connecting ? t.tracker.panel.connecting : t.tracker.panel.reauthorize}
-    </button>
+    </Button>
   )
 
   const installElsewhereButton = (
-    <button
-      className="button button--secondary button--compact"
+    <Button
+      variant="secondary" size="compact"
       disabled={busy}
       onClick={onInstallElsewhere}
       type="button"
     >
       {installingElsewhere ? t.tracker.panel.connecting : t.tracker.panel.installOnAnotherAccount}
-    </button>
+    </Button>
   )
 
   return (
@@ -682,42 +686,42 @@ function InstallationPicker({
       <p className="section-intro">{t.tracker.panel.chooseInstallationCopy}</p>
 
       {connectFailure !== null && (
-        <div className="inline-error" role="alert">
+        <InlineError>
           <span aria-hidden="true">!</span>
           {connectFailure}
-        </div>
+        </InlineError>
       )}
 
       {selectFailure !== null && (
-        <div className="inline-error" role="alert">
+        <InlineError>
           <span aria-hidden="true">!</span>
           {selectFailure.message}
-        </div>
+        </InlineError>
       )}
 
       {loading ? (
-        <p className="panel-empty" aria-busy="true">{t.tracker.panel.installationsLoading}</p>
+        <PanelEmpty aria-busy="true">{t.tracker.panel.installationsLoading}</PanelEmpty>
       ) : loadFailure !== null ? (
-        <div className="panel-message" role="alert">
+        <PanelMessage role="alert">
           <p className="panel-message-copy">{loadFailure.message}</p>
           {loadFailure.authorizationRequired ? (
             reauthorizeButton
           ) : (
-            <button className="button button--secondary button--compact" onClick={onRetry} type="button">
+            <Button variant="secondary" size="compact" onClick={onRetry} type="button">
               {t.projects.shared.retry}
-            </button>
+            </Button>
           )}
-        </div>
+        </PanelMessage>
       ) : needsReauthorization ? null : installations !== null && installations.length === 0 ? (
-        <p className="panel-empty">{t.tracker.panel.installationsEmpty}</p>
+        <PanelEmpty>{t.tracker.panel.installationsEmpty}</PanelEmpty>
       ) : (
         <ul className="tracker-repo-list">
           {(installations ?? []).map((installation) => (
             <li className="tracker-repo-row" key={installation.installationId}>
               <span className="tracker-repo-name">{installation.account}</span>
-              <span className="badge">{t.tracker.panel.accountTypeLabels[installation.accountType]}</span>
-              <button
-                className="button button--secondary button--compact"
+              <Badge>{t.tracker.panel.accountTypeLabels[installation.accountType]}</Badge>
+              <Button
+                variant="secondary" size="compact"
                 disabled={busy}
                 onClick={() => onSelect(installation)}
                 type="button"
@@ -725,7 +729,7 @@ function InstallationPicker({
                 {selectingInstallation === installation.installationId
                   ? t.tracker.panel.connecting
                   : t.tracker.panel.useInstallation}
-              </button>
+              </Button>
             </li>
           ))}
         </ul>
@@ -734,14 +738,14 @@ function InstallationPicker({
       <div className="tracker-actions">
         {needsReauthorization && reauthorizeButton}
         {!loading && loadFailure === null && !needsReauthorization && installElsewhereButton}
-        <button
-          className="button button--secondary button--compact"
+        <Button
+          variant="secondary" size="compact"
           disabled={busy}
           onClick={onCancel}
           type="button"
         >
           {t.projects.shared.cancel}
-        </button>
+        </Button>
       </div>
     </div>
   )
@@ -795,10 +799,10 @@ function Connected({
       </p>
 
       {severityFailure !== null && (
-        <div className="inline-error" role="alert">
+        <InlineError>
           <span aria-hidden="true">!</span>
           {severityFailure}
-        </div>
+        </InlineError>
       )}
 
       {isOwner ? (
@@ -816,7 +820,7 @@ function Connected({
           ))}
         </div>
       ) : trackerLink.autoSyncSeverities.length === 0 ? (
-        <p className="panel-empty">{t.tracker.panel.noAutoSyncSeverities}</p>
+        <PanelEmpty>{t.tracker.panel.noAutoSyncSeverities}</PanelEmpty>
       ) : (
         <div className="tracker-severity-list">
           {trackerLink.autoSyncSeverities.map((severity) => (
@@ -830,24 +834,24 @@ function Connected({
       {isOwner && (
         <>
           {disconnectFailure !== null && (
-            <div className="inline-error" role="alert">
+            <InlineError>
               <span aria-hidden="true">!</span>
               {disconnectFailure}
-            </div>
+            </InlineError>
           )}
           <ChangeAccountFailure failure={changeAccountFailure} />
           <p className="panel-note">{t.tracker.panel.disconnectNote}</p>
           <div className="tracker-actions">
             <ChangeAccountButton changing={changingAccount} onChangeAccount={onChangeAccount} />
-            <button
-              className="button button--secondary button--compact"
+            <Button
+              variant="secondary" size="compact"
               data-agent-target="settings.disconnectTracker"
               disabled={disconnecting}
               onClick={onDisconnect}
               type="button"
             >
               {disconnecting ? t.tracker.panel.disconnecting : t.tracker.panel.disconnect}
-            </button>
+            </Button>
           </div>
         </>
       )}

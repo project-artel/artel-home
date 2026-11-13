@@ -1,3 +1,5 @@
+import { InlineError } from './Feedback'
+import { Button } from './Button'
 import { useId, useState, type ReactNode } from 'react'
 import { Dialog } from './Dialog'
 
@@ -59,29 +61,29 @@ export function ConfirmActionDialog({
       <p className="dialog-copy">{body}</p>
 
       {failure !== null && (
-        <div className="inline-error" role="alert">
+        <InlineError>
           <span aria-hidden="true">!</span>
           {failure}
-        </div>
+        </InlineError>
       )}
 
       <div className="dialog-actions">
-        <button
-          className="button button--secondary"
+        <Button
+          variant="secondary"
           disabled={pending}
           onClick={onClose}
           type="button"
         >
           {cancelLabel}
-        </button>
-        <button
-          className="button button--danger"
+        </Button>
+        <Button
+          variant="danger"
           disabled={pending}
           onClick={() => void confirm()}
           type="button"
         >
           {pending ? pendingLabel : confirmLabel}
-        </button>
+        </Button>
       </div>
     </Dialog>
   )

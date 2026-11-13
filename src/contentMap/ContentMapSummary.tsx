@@ -1,3 +1,4 @@
+import { PanelHeader } from '../design-system/primitives/Headers'
 import { useI18n } from '../i18n/useI18n'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { formatDateTime } from '../projects/formatters'
@@ -115,9 +116,9 @@ export function CaptureHeader({ view }: { view: ContentMapView }) {
 
   return (
     <section className="panel cm-capture" aria-labelledby="cm-capture-title">
-      <header className="panel-header">
+      <PanelHeader>
         <h2 id="cm-capture-title">{copy.title}</h2>
-      </header>
+      </PanelHeader>
       <dl className="detail-fields">
         <dt>{copy.captureLabel}</dt>
         <dd className="mono">{header.capture || t.contentMap.header.unknown}</dd>

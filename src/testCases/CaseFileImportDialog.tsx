@@ -1,3 +1,5 @@
+import { Button } from '../design-system/primitives/Button'
+import { InlineError, PanelEmpty } from '../design-system/primitives/Feedback'
 import { useId, useRef, useState } from 'react'
 import { Dialog } from '../design-system/primitives/Dialog'
 import { useI18n } from '../i18n/useI18n'
@@ -132,8 +134,8 @@ export function CaseFileImportDialog({
         <p className="cfi-template">
           <span>{m.template}</span>
           {(['xlsx', 'csv'] as const).map((format) => (
-            <button
-              className="button button--secondary button--compact"
+            <Button
+              variant="secondary" size="compact"
               disabled={pending}
               key={format}
               onClick={() => {
@@ -142,16 +144,16 @@ export function CaseFileImportDialog({
               type="button"
             >
               {format === 'xlsx' ? m.templateXlsx : m.templateCsv}
-            </button>
+            </Button>
           ))}
         </p>
 
-        {read.kind === 'reading' && <p className="panel-empty" aria-busy="true">{m.reading}</p>}
+        {read.kind === 'reading' && <PanelEmpty aria-busy="true">{m.reading}</PanelEmpty>}
         {read.kind === 'failed' && (
-          <div className="inline-error" role="alert">
+          <InlineError>
             <span aria-hidden="true">!</span>
             {read.message}
-          </div>
+          </InlineError>
         )}
         {preview !== null && (
           <>
@@ -163,7 +165,7 @@ export function CaseFileImportDialog({
               ))}
             </div>
             {toImport === 0 && preview.counts.rejected === 0 ? (
-              <p className="panel-empty">{m.nothing}</p>
+              <PanelEmpty>{m.nothing}</PanelEmpty>
             ) : (
               <div className="cfi-table-wrap">
                 <table className="cfi-table">
@@ -204,17 +206,17 @@ export function CaseFileImportDialog({
         )}
 
         {failure !== null && (
-          <div className="inline-error" role="alert">
+          <InlineError>
             <span aria-hidden="true">!</span>
             {failure}
-          </div>
+          </InlineError>
         )}
         <div className="dialog-actions">
-          <button className="button button--secondary" disabled={pending} onClick={onClose} type="button">
+          <Button variant="secondary" disabled={pending} onClick={onClose} type="button">
             {m.cancel}
-          </button>
-          <button
-            className="button button--primary"
+          </Button>
+          <Button
+            variant="primary"
             disabled={pending || file === null || toImport === 0}
             onClick={() => {
               if (file === null) return
@@ -228,7 +230,7 @@ export function CaseFileImportDialog({
             type="button"
           >
             {pending ? m.pending : m.confirm(toImport)}
-          </button>
+          </Button>
         </div>
       </div>
     </Dialog>

@@ -1,3 +1,6 @@
+import { TextInput } from '../design-system/primitives/Fields'
+import { InlineError } from '../design-system/primitives/Feedback'
+import { Button } from '../design-system/primitives/Button'
 import { useId, useState } from 'react'
 import { Dialog } from '../design-system/primitives/Dialog'
 import { useI18n } from '../i18n/useI18n'
@@ -59,9 +62,8 @@ export function NameDialog({
       <form className="form" onSubmit={(event) => void submit(event)}>
         <div className="field">
           <label className="field-label" htmlFor={nameId}>{m.name}</label>
-          <input
+          <TextInput
             autoComplete="off"
-            className="field-input"
             id={nameId}
             maxLength={200}
             onChange={(event) => setName(event.target.value)}
@@ -69,23 +71,23 @@ export function NameDialog({
           />
         </div>
         {failure !== null && (
-          <div className="inline-error" role="alert">
+          <InlineError>
             <span aria-hidden="true">!</span>
             {failure}
-          </div>
+          </InlineError>
         )}
         <div className="dialog-actions">
-          <button className="button button--secondary" disabled={pending} onClick={onClose} type="button">
+          <Button variant="secondary" disabled={pending} onClick={onClose} type="button">
             {m.cancel}
-          </button>
-          <button
-            className="button button--primary"
+          </Button>
+          <Button
+            variant="primary"
             // 이름을 바꾸는데 그대로면 누를 것이 없다. 비었을 때는 눌러서 왜 안 되는지 듣게 둔다.
             disabled={pending || (initialName.trim().length > 0 && name.trim() === initialName.trim())}
             type="submit"
           >
             {pending ? m.pending : submitLabel}
-          </button>
+          </Button>
         </div>
       </form>
     </Dialog>

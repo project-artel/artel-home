@@ -1,3 +1,7 @@
+import { PanelHeader } from '../../design-system/primitives/Headers'
+import { InlineError } from '../../design-system/primitives/Feedback'
+import { Button } from '../../design-system/primitives/Button'
+import { Badge } from '../../design-system/primitives/Badge'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
@@ -192,15 +196,15 @@ export function SettingsSection() {
       <section className="panel" aria-labelledby="information-title">
         {editing ? (
           <>
-            <header className="panel-header panel-header--split">
+            <PanelHeader split>
               <h2 id="information-title">{w.generalTitle}</h2>
-            </header>
+            </PanelHeader>
             <form onSubmit={save} noValidate>
               {failure !== null && (
-                <div className="inline-error" role="alert">
+                <InlineError>
                   <span aria-hidden="true">!</span>
                   {failure}
-                </div>
+                </InlineError>
               )}
 
               <ProjectForm
@@ -210,22 +214,22 @@ export function SettingsSection() {
                 disabled={saving}
               >
                 <div className="form-actions">
-                  <button
-                    className="button button--secondary"
+                  <Button
+                    variant="secondary"
                     disabled={saving}
                     onClick={cancelEditing}
                     type="button"
                   >
                     {t.projects.shared.cancel}
-                  </button>
-                  <button
-                    className="button button--primary"
+                  </Button>
+                  <Button
+                    variant="primary"
                     data-agent-target="settings.save"
                     disabled={!dirty || saving || draft.name.trim().length === 0}
                     type="submit"
                   >
                     {saving ? t.projects.shared.saving : t.projects.shared.saveChanges}
-                  </button>
+                  </Button>
                 </div>
               </ProjectForm>
             </form>
@@ -236,7 +240,7 @@ export function SettingsSection() {
             <div className="settings-hero-body">
               <div className="settings-hero-name">
                 <h2 id="information-title">{project.name}</h2>
-                <span className="badge">{t.projects.genreLabels[project.genre]}</span>
+                <Badge>{t.projects.genreLabels[project.genre]}</Badge>
               </div>
               <p className="settings-hero-desc">
                 {project.description !== null && project.description.length > 0 ? (
@@ -251,14 +255,14 @@ export function SettingsSection() {
             </div>
             {/* Read first, edit on request: a form left permanently open makes
                 the whole screen read as unsaved work. */}
-            <button
-              className="button button--secondary button--compact"
+            <Button
+              variant="secondary" size="compact"
               data-agent-target="settings.edit"
               onClick={() => setEditing(true)}
               type="button"
             >
               {t.projects.shared.edit}
-            </button>
+            </Button>
           </div>
         )}
         <p aria-live="polite" className="visually-hidden">{announcement}</p>
@@ -275,9 +279,9 @@ export function SettingsSection() {
       </div>
 
       <section className="panel" aria-labelledby="settings-facts-title">
-        <header className="panel-header">
+        <PanelHeader>
           <h2 id="settings-facts-title">{w.settingsFacts.title}</h2>
-        </header>
+        </PanelHeader>
         <dl className="settings-facts">
           <div><dt>{t.projects.shared.nameLabel}</dt><dd>{project.name}</dd></div>
           <div><dt>{t.projects.form.genreLabel}</dt><dd>{t.projects.genreLabels[project.genre]}</dd></div>
@@ -334,18 +338,18 @@ export function SettingsSection() {
       content: (
         <>
           <section className="panel panel--danger" aria-labelledby="danger-title">
-            <header className="panel-header">
+            <PanelHeader>
               <h2 id="danger-title">{w.dangerTitle}</h2>
-            </header>
+            </PanelHeader>
             <p className="section-intro">{w.dangerCopy}</p>
-            <button
-              className="button button--danger-quiet"
+            <Button
+              variant="danger-quiet"
               data-agent-target="settings.delete"
               onClick={() => setDeleting(true)}
               type="button"
             >
               {t.projects.detail.deleteProject}
-            </button>
+            </Button>
           </section>
         </>
       ),

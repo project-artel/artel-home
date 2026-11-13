@@ -1,3 +1,5 @@
+import { Button, ButtonLink } from '../../design-system/primitives/Button'
+import { InlineError } from '../../design-system/primitives/Feedback'
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { BuildSwitcher } from '../../contentMap/BuildSwitcher'
@@ -129,7 +131,7 @@ export function GameIdentitiesSection() {
             next.set('build', buildId)
             setSearch(next)
           }} />
-          <Link className="button button--secondary button--compact" to={gameBuildDetailHref(projectId, selected.id)}>{messages.openBuild}</Link>
+          <ButtonLink variant="secondary" size="compact" to={gameBuildDetailHref(projectId, selected.id)}>{messages.openBuild}</ButtonLink>
         </div>
       </div>
 
@@ -175,11 +177,11 @@ export function GameIdentitiesSection() {
       ) : loaded.status === 'loading' ? (
         <Skeleton />
       ) : loaded.status === 'failed' ? (
-        <div className="inline-error" role="alert">
+        <InlineError>
           <span aria-hidden="true">!</span>
           {t.testCases.glossary.loadFailed}
-          <button className="button button--secondary button--compact" onClick={() => setReload((value) => value + 1)} type="button">{t.testCases.glossary.retry}</button>
-        </div>
+          <Button variant="secondary" size="compact" onClick={() => setReload((value) => value + 1)} type="button">{t.testCases.glossary.retry}</Button>
+        </InlineError>
       ) : tab === 'states' ? (
         <GlossaryStates buildName={buildDisplayName(selected)} onSaved={saved} projectId={projectId} terms={terms} variables={shownVariables} />
       ) : (

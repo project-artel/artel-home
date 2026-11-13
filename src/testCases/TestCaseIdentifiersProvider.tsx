@@ -1,3 +1,5 @@
+import { InlineError } from '../design-system/primitives/Feedback'
+import { Button } from '../design-system/primitives/Button'
 import { useEffect, useState, type ReactNode } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { useProjectChange } from '../live/useProjectChange'
@@ -26,9 +28,9 @@ export function TestCaseIdentifiersProvider({ projectId, children }: { projectId
   const current = result?.projectId === projectId ? result : null
   return <TestCaseIdentifiersContext.Provider value={{ projectId, numbers: current?.numbers ?? EMPTY }}>
     {children}
-    {current?.failed && <div className="inline-error tc-identifiers-status" role="alert">
+    {current?.failed && <InlineError className="tc-identifiers-status">
       <span className="tc-id">Test Case</span> {copy.error}
-      <button className="button button--secondary button--compact" type="button" onClick={() => setRevision(value => value + 1)}>{copy.retry}</button>
-    </div>}
+      <Button variant="secondary" size="compact" type="button" onClick={() => setRevision(value => value + 1)}>{copy.retry}</Button>
+    </InlineError>}
   </TestCaseIdentifiersContext.Provider>
 }

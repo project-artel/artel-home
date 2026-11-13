@@ -1,3 +1,4 @@
+import { DataTable, TableScroll } from '../design-system/primitives/Table'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
 import type { Selection } from './KnowledgeGraphCanvas'
@@ -49,8 +50,8 @@ export function KnowledgeRelationTable({
         </h2>
       </div>
 
-      <div className="table-scroll table-scroll--tall">
-        <table className="table">
+      <TableScroll tall>
+        <DataTable>
           <thead>
             <tr>
               <th scope="col">{strings.columns.relation}</th>
@@ -89,8 +90,8 @@ export function KnowledgeRelationTable({
               )
             })}
           </tbody>
-        </table>
-      </div>
+        </DataTable>
+      </TableScroll>
     </section>
   )
 }

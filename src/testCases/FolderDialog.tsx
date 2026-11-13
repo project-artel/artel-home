@@ -1,3 +1,6 @@
+import { TextInput } from '../design-system/primitives/Fields'
+import { InlineError } from '../design-system/primitives/Feedback'
+import { Button } from '../design-system/primitives/Button'
 import { useId, useState } from 'react'
 import { Dialog } from '../design-system/primitives/Dialog'
 import { useI18n } from '../i18n/useI18n'
@@ -68,9 +71,8 @@ export function FolderDialog({
         {showsName && (
           <div className="field">
             <label className="field-label" htmlFor={nameId}>{m.name}</label>
-            <input
+            <TextInput
               autoComplete="off"
-              className="field-input"
               id={nameId}
               maxLength={NAME_MAX_LENGTH}
               onChange={(event) => setName(event.target.value)}
@@ -91,19 +93,19 @@ export function FolderDialog({
         )}
 
         {failure !== null && (
-          <div className="inline-error" role="alert">
+          <InlineError>
             <span aria-hidden="true">!</span>
             {failure}
-          </div>
+          </InlineError>
         )}
 
         <div className="dialog-actions">
-          <button className="button button--secondary" disabled={pending} onClick={onClose} type="button">
+          <Button variant="secondary" disabled={pending} onClick={onClose} type="button">
             {m.cancel}
-          </button>
-          <button className="button button--primary" disabled={pending || isUnchanged} type="submit">
+          </Button>
+          <Button variant="primary" disabled={pending || isUnchanged} type="submit">
             {pending ? m.pending : m.submit[mode]}
-          </button>
+          </Button>
         </div>
       </form>
     </Dialog>

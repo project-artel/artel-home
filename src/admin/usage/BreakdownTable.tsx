@@ -1,3 +1,4 @@
+import { DataTable, TableScroll } from '../../design-system/primitives/Table'
 import { useI18n } from '../../i18n/useI18n'
 import { adminFormat } from '../shared/format'
 import type { AdminFormat } from '../shared/format'
@@ -54,8 +55,8 @@ export function BreakdownTable({
         </h3>
       </div>
 
-      <div className="table-scroll">
-        <table className="table">
+      <TableScroll>
+        <DataTable>
           <thead>
             <tr>
               <th scope="col">{axisLabel}</th>
@@ -136,8 +137,8 @@ export function BreakdownTable({
               </tr>
             </tfoot>
           )}
-        </table>
-      </div>
+        </DataTable>
+      </TableScroll>
     </section>
   )
 }

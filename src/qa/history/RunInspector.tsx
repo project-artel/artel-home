@@ -1,3 +1,4 @@
+import { ButtonLink } from '../../design-system/primitives/Button'
 import { buildDisplayName } from '../../projects/buildEnvironment'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -116,19 +117,19 @@ export function RunInspector({
 
         <div className="qh-inspector-links">
           {/* 판정을 보고 평가하는 것이 이 화면의 주된 행동이라 유일한 primary 다. step 판정이 없는 TC 단위 실행도 이 버튼으로 간다. */}
-          <Link
-            className="button button--primary button--compact"
+          <ButtonLink
+            variant="primary" size="compact"
             to={`/projects/${encodeURIComponent(projectId)}/qa-history/${encodeURIComponent(run.id)}${run.reviewPending > 0 ? '?review=1' : ''}`}
           >
             {b.reviewVerdicts}
-          </Link>
-          <Link className="button button--secondary button--compact" to={qaRunPath(projectId, run.id)}>{b.timeline}</Link>
-          <Link
-            className="button button--secondary button--compact"
+          </ButtonLink>
+          <ButtonLink variant="secondary" size="compact" to={qaRunPath(projectId, run.id)}>{b.timeline}</ButtonLink>
+          <ButtonLink
+            variant="secondary" size="compact"
             to={`/projects/${encodeURIComponent(projectId)}/qa-runs/${encodeURIComponent(run.id)}/performance`}
           >
             {b.performance}
-          </Link>
+          </ButtonLink>
         </div>
 
         {ordered.map((qaTry, index) => (

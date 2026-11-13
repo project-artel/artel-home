@@ -1,3 +1,4 @@
+import { DataTable, TableScroll } from '../../design-system/primitives/Table'
 import { EMPTY_MARK } from '../shared/format'
 import type { QaTryStatus, QaTrySummary } from './qaStatsTypes'
 import { useQa } from './useQa'
@@ -45,8 +46,8 @@ export function RecentRuns({ runs }: { runs: QaTrySummary[] }) {
         </h2>
       </div>
 
-      <div className="table-scroll">
-        <table className="table">
+      <TableScroll>
+        <DataTable>
           <thead>
             <tr>
               <th scope="col">{t.recent.start}</th>
@@ -95,8 +96,8 @@ export function RecentRuns({ runs }: { runs: QaTrySummary[] }) {
               </tr>
             )}
           </tbody>
-        </table>
-      </div>
+        </DataTable>
+      </TableScroll>
     </section>
   )
 }

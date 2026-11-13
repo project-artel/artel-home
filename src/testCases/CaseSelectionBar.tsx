@@ -1,3 +1,4 @@
+import { Button } from '../design-system/primitives/Button'
 import { useI18n } from '../i18n/useI18n'
 import { MAX_BULK_SELECTION } from './testCaseTypes'
 
@@ -38,25 +39,25 @@ export function CaseSelectionBar({
         </span>
       )}
       <span className="tcl-selection-spacer" />
-      <button className="button button--secondary button--compact" onClick={onClear} type="button">
+      <Button variant="secondary" size="compact" onClick={onClear} type="button">
         {m.selection.clear}
-      </button>
-      <button className="button button--secondary button--compact" onClick={onMove} type="button">
+      </Button>
+      <Button variant="secondary" size="compact" onClick={onMove} type="button">
         {moveLabel ?? m.moveCases.action}
-      </button>
+      </Button>
       {actions.map((action) => (
-        <button
-          className="button button--secondary button--compact"
+        <Button
+          variant="secondary" size="compact"
           key={action.label}
           onClick={action.onClick}
           type="button"
         >
           {action.label}
-        </button>
+        </Button>
       ))}
-      <button className="button button--danger button--compact" onClick={onDelete} type="button">
+      <Button variant="danger" size="compact" onClick={onDelete} type="button">
         {m.bulkDelete.action}
-      </button>
+      </Button>
     </div>
   )
 }

@@ -1,3 +1,6 @@
+import { InlineError, PanelMessage } from '../design-system/primitives/Feedback'
+import { Button } from '../design-system/primitives/Button'
+import { Badge } from '../design-system/primitives/Badge'
 import { useId, useState } from 'react'
 import { Dialog } from '../design-system/primitives/Dialog'
 import { InfoHint } from '../design-system/primitives/InfoHint'
@@ -74,12 +77,12 @@ export function InvitationInbox({
           <header className="screen-subhead">
             <h2 id="inbox-title">{copy.title}</h2>
           </header>
-          <div className="panel-message" role="alert">
+          <PanelMessage role="alert">
             <p>{copy.loadFailed}</p>
-            <button className="button button--secondary" onClick={reload} type="button">
+            <Button variant="secondary" onClick={reload} type="button">
               {t.projects.shared.retry}
-            </button>
-          </div>
+            </Button>
+          </PanelMessage>
         </section>
       )
     }
@@ -108,7 +111,7 @@ export function InvitationInbox({
                   <span className="project-card-body">
                     <span className="project-card-top">
                       <span className="project-card-name">{invitation.projectName}</span>
-                      <span className="badge">{copy.roleChip(t.projects.roles[invitation.role])}</span>
+                      <Badge>{copy.roleChip(t.projects.roles[invitation.role])}</Badge>
                     </span>
                     {invitation.invitedBy !== null && (
                       <span className="project-card-description">{copy.invitedByShort(invitation.invitedBy)}</span>
@@ -177,32 +180,32 @@ function AnswerDialog({
       </p>
 
       {failure !== null && (
-        <div className="inline-error" role="alert">
+        <InlineError>
           <span aria-hidden="true">!</span>
           {failure}
-        </div>
+        </InlineError>
       )}
 
       <div className="dialog-actions">
-        <button className="button button--secondary" disabled={pending !== null} onClick={onClose} type="button">
+        <Button variant="secondary" disabled={pending !== null} onClick={onClose} type="button">
           {copy.later}
-        </button>
-        <button
-          className="button button--danger-quiet"
+        </Button>
+        <Button
+          variant="danger-quiet"
           disabled={pending !== null}
           onClick={() => void answer('decline')}
           type="button"
         >
           {pending === 'decline' ? copy.declining : copy.decline}
-        </button>
-        <button
-          className="button button--primary"
+        </Button>
+        <Button
+          variant="primary"
           disabled={pending !== null}
           onClick={() => void answer('accept')}
           type="button"
         >
           {pending === 'accept' ? copy.accepting : copy.acceptAndEnter}
-        </button>
+        </Button>
       </div>
     </Dialog>
   )

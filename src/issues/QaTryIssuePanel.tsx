@@ -1,3 +1,4 @@
+import { PanelHeader } from '../design-system/primitives/Headers'
 import { useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { IssueList } from './IssueList'
@@ -25,14 +26,14 @@ export function QaTryIssuePanel({ projectId, qaTryId }: { projectId: string; qaT
 
   return (
     <section className="panel qa-issue-panel qa-focus-issues" aria-labelledby="qa-issues-title">
-      <header className="panel-header panel-header--split">
+      <PanelHeader split>
         <div className="qa-issue-title">
           <h2 id="qa-issues-title">{t.issues.panel.title}</h2>
           {issues.status === 'ready' && count > 0 && (
             <span className="qa-issue-count">{count}{issues.hasMore ? '+' : ''}</span>
           )}
         </div>
-      </header>
+      </PanelHeader>
 
       <IssueList
         filtered={false}

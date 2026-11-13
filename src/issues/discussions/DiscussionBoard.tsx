@@ -1,3 +1,4 @@
+import { Button } from '../../design-system/primitives/Button'
 import { useBuildDisplayName } from '../../projects/useBuildDisplayName'
 import { useTestCaseLabel } from '../../testCases/testCaseIdentifiers'
 import { useEffect, useState, type FormEvent } from 'react'
@@ -143,9 +144,9 @@ export function DiscussionBoard({
         {settled?.failed && (
           <div className="dc-empty" role="alert">
             <p>{text.failed}</p>
-            <button className="button button--secondary" onClick={() => setRevision((value) => value + 1)} type="button">
+            <Button variant="secondary" onClick={() => setRevision((value) => value + 1)} type="button">
               {text.retry}
-            </button>
+            </Button>
           </div>
         )}
         {settled !== null && !settled.failed && items.length === 0 && (
@@ -153,10 +154,10 @@ export function DiscussionBoard({
             <BoardSketch />
             <h3>{narrowed ? text.noResults : text.empty}</h3>
             <p>{text.emptyHelp}</p>
-            <button className="button button--primary dc-with-icon" onClick={onNew} type="button">
+            <Button variant="primary" className="dc-with-icon" onClick={onNew} type="button">
               <DiscussionIcon name="plus" size={15} />
               {text.newPost}
-            </button>
+            </Button>
           </div>
         )}
 

@@ -1,3 +1,4 @@
+import { Badge } from '../../design-system/primitives/Badge'
 import { Fragment, useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { CollapseIcon } from '../../design-system/primitives/CollapseIcon'
@@ -210,7 +211,7 @@ export function ProjectNav({
         </div>
         <div className="project-nav-identity">
           <span className="project-nav-name" title={projectName}>{projectName}</span>
-          <span className="badge">{genreLabel}</span>
+          <Badge>{genreLabel}</Badge>
         </div>
         {/* 접힌 레일에 이름이 들어갈 자리는 없지만, 어느 프로젝트를 보고 있는지는
             남아야 한다. 머리글자 하나가 그 자리를 대신한다. */}

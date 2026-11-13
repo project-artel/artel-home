@@ -1,3 +1,4 @@
+import { Button } from '../../design-system/primitives/Button'
 import { useEffect, useId, useState } from 'react'
 import { useI18n } from '../../i18n/useI18n'
 import { adminFormat } from '../shared/format'
@@ -267,14 +268,14 @@ export function LlmModelsSection() {
                   ))}
                 </select>
               </span>
-              <button
+              <Button
                 type="button"
-                className="control control--action"
+                variant="secondary" size="compact"
                 disabled={importStatus !== 'idle' || !selectedId}
                 onClick={() => void add()}
               >
                 {importStatus === 'adding' ? copy.adding : copy.add}
-              </button>
+              </Button>
             </>
           )}
           {candidates?.length === 0 && (

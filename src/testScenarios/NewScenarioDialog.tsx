@@ -1,3 +1,6 @@
+import { Button } from '../design-system/primitives/Button'
+import { TextInput } from '../design-system/primitives/Fields'
+import { InlineError } from '../design-system/primitives/Feedback'
 import { useId, useState } from 'react'
 import { Dialog } from '../design-system/primitives/Dialog'
 import { useI18n } from '../i18n/useI18n'
@@ -78,7 +81,7 @@ export function NewScenarioDialog({
             </button>
           </div>
           <div className="dialog-actions">
-            <button className="button button--secondary" onClick={onClose} type="button">{m.cancel}</button>
+            <Button variant="secondary" onClick={onClose} type="button">{m.cancel}</Button>
           </div>
         </div>
       </Dialog>
@@ -90,8 +93,7 @@ export function NewScenarioDialog({
       <form className="form new-free-form" onSubmit={(event) => void create(event)}>
         <div className="field">
           <label className="field-label" htmlFor={inputId}>{m.free.titleLabel}</label>
-          <input
-            className="field-input"
+          <TextInput
             id={inputId}
             maxLength={200}
             onChange={(event) => setTitle(event.target.value)}
@@ -102,22 +104,22 @@ export function NewScenarioDialog({
         </div>
         <CaseChecklist onToggle={toggle} picked={picked} project={project} steps={[]} />
         {failure !== null && (
-          <div className="inline-error" role="alert">
+          <InlineError>
             <span aria-hidden="true">!</span>
             {failure}
-          </div>
+          </InlineError>
         )}
         <div className="dialog-actions">
-          <button className="button button--secondary" disabled={pending} onClick={() => setKind('choose')} type="button">
+          <Button variant="secondary" disabled={pending} onClick={() => setKind('choose')} type="button">
             {m.free.back}
-          </button>
-          <button
-            className="button button--primary"
+          </Button>
+          <Button
+            variant="primary"
             disabled={pending || title.trim().length === 0 || picked.size === 0}
             type="submit"
           >
             {pending ? m.free.pending : m.free.confirm(picked.size)}
-          </button>
+          </Button>
         </div>
       </form>
     </Dialog>

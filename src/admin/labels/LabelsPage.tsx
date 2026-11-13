@@ -1,3 +1,4 @@
+import { Button } from '../../design-system/primitives/Button'
 import { useCallback, useEffect, useState } from 'react'
 import { useI18n } from '../../i18n/useI18n'
 import { UnauthorizedError } from '../shared/adminApi'
@@ -163,9 +164,9 @@ function ScenarioLabels({ projectId, scenarioId }: { projectId: string; scenario
       <h2 className="panel__title">{draft.title === '' ? t.adminLabels.untitled : draft.title}</h2>
       <StepLabelList steps={draft.steps} onChange={setLabel} />
       <div className="labels__actions">
-        <button type="button" className="control control--action" disabled={busy || pending.length === 0} onClick={save}>
+        <Button type="button" variant="primary" size="compact" disabled={busy || pending.length === 0} onClick={save}>
           {busy ? t.adminLabels.saving : t.adminLabels.save(format.count(pending.length))}
-        </button>
+        </Button>
         {pending.length > 0 && !busy && <span className="muted">{t.adminLabels.unsaved(format.count(pending.length))}</span>}
       </div>
     </>

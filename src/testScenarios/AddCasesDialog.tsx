@@ -1,3 +1,4 @@
+import { Button } from '../design-system/primitives/Button'
 import { useId, useState } from 'react'
 import { Dialog } from '../design-system/primitives/Dialog'
 import { useI18n } from '../i18n/useI18n'
@@ -40,15 +41,15 @@ export function AddCasesDialog({
       <div className="form">
         <CaseChecklist onToggle={toggle} picked={picked} project={project} steps={steps} />
         <div className="dialog-actions">
-          <button className="button button--secondary" onClick={onClose} type="button">{m.cancel}</button>
-          <button
-            className="button button--primary"
+          <Button variant="secondary" onClick={onClose} type="button">{m.cancel}</Button>
+          <Button
+            variant="primary"
             disabled={picked.size === 0}
             onClick={confirm}
             type="button"
           >
             {m.confirm(picked.size)}
-          </button>
+          </Button>
         </div>
       </div>
     </Dialog>

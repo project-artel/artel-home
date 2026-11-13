@@ -1,3 +1,4 @@
+import { Button } from '../design-system/primitives/Button'
 import { buildDisplayName } from '../projects/buildEnvironment'
 import { useCallback, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -102,9 +103,9 @@ export function QaFinishedNotice({ projectId }: { projectId: string }) {
               )}
             </div>
             <div className="qa-notice-actions">
-              <button className="button button--secondary button--compact" onClick={() => dismiss(run.id)} type="button">{copy.later}</button>
-              <button
-                className="button button--primary button--compact"
+              <Button variant="secondary" size="compact" onClick={() => dismiss(run.id)} type="button">{copy.later}</Button>
+              <Button
+                variant="primary" size="compact"
                 onClick={() => {
                   dismiss(run.id)
                   // 알림함의 같은 줄도 읽음이 된다. 못 남겨도 이동은 한다.
@@ -116,7 +117,7 @@ export function QaFinishedNotice({ projectId }: { projectId: string }) {
                 type="button"
               >
                 {run.reviewPending > 0 ? copy.goReview : copy.goResult}
-              </button>
+              </Button>
             </div>
           </section>
         )

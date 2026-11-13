@@ -1,3 +1,5 @@
+import { PanelEmpty, PanelMessage } from '../design-system/primitives/Feedback'
+import { Button } from '../design-system/primitives/Button'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
@@ -83,20 +85,20 @@ export function KnowledgeGraphContent({
     <>
       {status === 'loading' && (
         <section className="panel">
-          <p aria-busy="true" className="panel-empty">
+          <PanelEmpty aria-busy="true">
             {t.knowledge.states.loading}
-          </p>
+          </PanelEmpty>
         </section>
       )}
 
       {status === 'error' && (
         <section className="panel">
-          <div className="panel-message" role="alert">
+          <PanelMessage role="alert">
             <p className="panel-message-copy">{t.knowledge.states.loadFailed}</p>
-            <button className="button button--secondary" onClick={reload} type="button">
+            <Button variant="secondary" onClick={reload} type="button">
               {t.knowledge.states.retry}
-            </button>
-          </div>
+            </Button>
+          </PanelMessage>
         </section>
       )}
 
@@ -197,10 +199,10 @@ function KnowledgeGraphView({
       <section className="panel">
         {truncatedBanner}
         {droppedEdgesNotice}
-        <div className="panel-message">
+        <PanelMessage>
           <h2>{t.knowledge.empty.noItemsTitle}</h2>
           <p className="panel-message-copy">{t.knowledge.empty.noItemsCopy}</p>
-        </div>
+        </PanelMessage>
       </section>
     )
   }
@@ -262,32 +264,32 @@ function KnowledgeGraphView({
 
           <div className="kg-canvas-tools">
             <span className="kg-canvas-scale mono">{t.knowledge.canvas.scale(viewport.scale.toFixed(1))}</span>
-            <button
+            <Button
               aria-label={t.knowledge.canvas.zoomOut}
-              className="button button--secondary button--compact kg-tool-square"
+              variant="secondary" size="compact" className="kg-tool-square"
               onClick={viewport.zoomOut}
               title={t.knowledge.canvas.zoomOut}
               type="button"
             >
               −
-            </button>
-            <button
+            </Button>
+            <Button
               aria-label={t.knowledge.canvas.zoomIn}
-              className="button button--secondary button--compact kg-tool-square"
+              variant="secondary" size="compact" className="kg-tool-square"
               onClick={viewport.zoomIn}
               title={t.knowledge.canvas.zoomIn}
               type="button"
             >
               +
-            </button>
-            <button
-              className="button button--secondary button--compact"
+            </Button>
+            <Button
+              variant="secondary" size="compact"
               disabled={!viewport.moved}
               onClick={viewport.reset}
               type="button"
             >
               {t.knowledge.canvas.fit}
-            </button>
+            </Button>
           </div>
 
           <div className="kg-canvas-foot">
@@ -295,14 +297,14 @@ function KnowledgeGraphView({
               <p className="kg-canvas-note">{t.knowledge.legend.labelNote}</p>
             )}
             {/* 범례는 접어 둔다(ARTEL-1190). 늘 펼쳐 두면 그래프 높이를 먹는다. 상세를 보는 중에도 열 수 있다. */}
-            <button
+            <Button
               aria-expanded={legendOpen}
-              className="button button--secondary button--compact"
+              variant="secondary" size="compact"
               onClick={() => setLegendOpen((open) => !open)}
               type="button"
             >
               {t.knowledge.overview.legend}
-            </button>
+            </Button>
           </div>
           {legendOpen && (
             <div className="kg-legend-popover">

@@ -1,3 +1,4 @@
+import { Button } from '../../design-system/primitives/Button'
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { StateNameSketch } from '../../emptyStates/sketches'
 import { SketchEmpty } from '../../emptyStates/SketchEmpty'
@@ -327,8 +328,8 @@ function GlossaryTermSheet({ projectId, term, variables, buildName, onClose, onS
 
           <div className="tcl-editor-actions">
             <span className="tcl-editor-spacer" />
-            <button className="button button--secondary button--compact" disabled={pending} onClick={onClose} type="button">{m.cancel}</button>
-            <button className="button button--primary button--compact" disabled={pending || !dirty} type="submit">{pending ? m.saving : m.save}</button>
+            <Button variant="secondary" size="compact" disabled={pending} onClick={onClose} type="button">{m.cancel}</Button>
+            <Button variant="primary" size="compact" disabled={pending || !dirty} type="submit">{pending ? m.saving : m.save}</Button>
           </div>
         </form>
       </aside>

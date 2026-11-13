@@ -1,3 +1,4 @@
+import { Button } from '../design-system/primitives/Button'
 import { useEffect, useState } from 'react'
 import { createSdkLoginCode } from './authApi'
 import { callbackUrl, parkRequest, readRelayRequest } from './sdkLoginRequest'
@@ -120,9 +121,9 @@ function SdkLoginPanel({ message, onRetry }: { message: string; onRetry?: () => 
 
         {onRetry !== undefined && (
           <div className="form-actions">
-            <button className="button button--primary" onClick={onRetry} type="button">
+            <Button variant="primary" onClick={onRetry} type="button">
               {t.common.sdkLogin.retry}
-            </button>
+            </Button>
           </div>
         )}
 

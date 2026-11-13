@@ -1,3 +1,6 @@
+import { InlineError, PanelEmpty, PanelMessage } from '../../design-system/primitives/Feedback'
+import { Badge } from '../../design-system/primitives/Badge'
+import { Button, ButtonLink } from '../../design-system/primitives/Button'
 import { GameIdentityPanel } from '../GameIdentityPanel'
 import { buildEnvironment } from '../buildEnvironment'
 import { useCallback, useEffect, useState } from 'react'
@@ -95,10 +98,10 @@ export function GameBuildDetail({
     return (
       <div className="section-single">
         {backLink}
-        <div className="panel-message">
+        <PanelMessage>
           <h2>{m.notFoundTitle}</h2>
           <p className="panel-message-copy">{m.notFoundCopy}</p>
-        </div>
+        </PanelMessage>
       </div>
     )
   }
@@ -116,7 +119,7 @@ export function GameBuildDetail({
         <header className="gb-detail-head">
           <h2 className="gb-detail-title" id="gb-detail-title">
             <span className="mono" translate="no">{build.version}</span>
-            <span className="badge">{buildEnvironment(build.isEditor)}</span>
+            <Badge>{buildEnvironment(build.isEditor)}</Badge>
           </h2>
           <p className={hasLabel ? 'gb-detail-label' : 'gb-detail-label detail-empty'}>
             {hasLabel ? build.label : m.noLabel}
@@ -152,18 +155,18 @@ export function GameBuildDetail({
         <p className="gb-detail-note">{m.editHint}</p>
 
         <nav aria-label={m.linksLabel} className="form-actions gb-detail-links">
-          <Link
-            className="button button--secondary button--compact"
+          <ButtonLink
+            variant="secondary" size="compact"
             to={`/projects/${encodedProject}/content-map?build=${encodedBuild}`}
           >
             {t.contentMap.entry.build}
-          </Link>
-          <Link
-            className="button button--secondary button--compact"
+          </ButtonLink>
+          <ButtonLink
+            variant="secondary" size="compact"
             to={`/projects/${encodedProject}/game-builds/${encodedBuild}/performance`}
           >
             {t.performance.entry.build}
-          </Link>
+          </ButtonLink>
         </nav>
       </section>
 
@@ -199,10 +202,10 @@ function BuildQaRuns({ buildId, projectId }: { buildId: string; projectId: strin
     <section aria-labelledby="gb-runs-title" className="panel panel--flush">
       <h3 className="gb-block-title" id="gb-runs-title">{m.runsTitle}</h3>
 
-      {read.status === 'loading' && <p className="panel-empty panel-empty--inset">{m.runsLoading}</p>}
-      {read.status === 'unsupported' && <p className="panel-empty panel-empty--inset">{m.runsUnsupported}</p>}
+      {read.status === 'loading' && <PanelEmpty inset>{m.runsLoading}</PanelEmpty>}
+      {read.status === 'unsupported' && <PanelEmpty inset>{m.runsUnsupported}</PanelEmpty>}
       {read.status === 'failed' && <BlockError message={m.runsFailed} onRetry={reload} />}
-      {read.status === 'ready' && runs.length === 0 && <p className="panel-empty panel-empty--inset">{m.runsEmpty}</p>}
+      {read.status === 'ready' && runs.length === 0 && <PanelEmpty inset>{m.runsEmpty}</PanelEmpty>}
 
       {read.status === 'ready' && runs.length > 0 && (
         <>
@@ -267,10 +270,10 @@ function BuildCaseResults({ buildId, projectId }: { buildId: string; projectId: 
     <section aria-labelledby="gb-cases-title" className="panel">
       <h3 className="gb-block-title gb-block-title--plain" id="gb-cases-title">{m.casesTitle}</h3>
 
-      {read.status === 'loading' && <p className="panel-empty">{m.casesLoading}</p>}
+      {read.status === 'loading' && <PanelEmpty>{m.casesLoading}</PanelEmpty>}
       {read.status === 'failed' && <BlockError message={m.casesFailed} onRetry={reload} />}
       {read.status === 'ready' && (version === undefined || version.total === 0) && (
-        <p className="panel-empty">{m.casesEmpty}</p>
+        <PanelEmpty>{m.casesEmpty}</PanelEmpty>
       )}
 
       {version !== undefined && version.total > 0 && (
@@ -294,9 +297,9 @@ function BuildCaseResults({ buildId, projectId }: { buildId: string; projectId: 
 
       {read.status === 'ready' && (
         <div className="form-actions">
-          <Link className="button button--secondary button--compact" to={libraryHref}>
+          <ButtonLink variant="secondary" size="compact" to={libraryHref}>
             {m.openLibrary}
-          </Link>
+          </ButtonLink>
         </div>
       )}
     </section>
@@ -306,12 +309,12 @@ function BuildCaseResults({ buildId, projectId }: { buildId: string; projectId: 
 function BlockError({ message, onRetry }: { message: string; onRetry: () => void }) {
   const { t } = useI18n()
   return (
-    <div className="inline-error inline-error--inset" role="alert">
+    <InlineError inset>
       <span aria-hidden="true">!</span>
       {message}
-      <button className="button button--secondary button--compact" onClick={onRetry} type="button">
+      <Button variant="secondary" size="compact" onClick={onRetry} type="button">
         {t.gameBuilds.detail.retry}
-      </button>
-    </div>
+      </Button>
+    </InlineError>
   )
 }

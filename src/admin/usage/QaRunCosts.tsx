@@ -1,3 +1,4 @@
+import { DataTable, TableScroll } from '../../design-system/primitives/Table'
 import { useI18n } from '../../i18n/useI18n'
 import { EMPTY_MARK, adminFormat } from '../shared/format'
 import type { QaRunStatus, QaRunUsage } from './llmUsageTypes'
@@ -55,8 +56,8 @@ export function QaRunCosts({ runs }: { runs: QaRunUsage[] }) {
         </h2>
       </div>
 
-      <div className="table-scroll">
-        <table className="table">
+      <TableScroll>
+        <DataTable>
           <thead>
             <tr>
               <th scope="col">{strings.runs.start}</th>
@@ -136,8 +137,8 @@ export function QaRunCosts({ runs }: { runs: QaRunUsage[] }) {
               </tr>
             )}
           </tbody>
-        </table>
-      </div>
+        </DataTable>
+      </TableScroll>
     </section>
   )
 }

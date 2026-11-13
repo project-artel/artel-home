@@ -1,3 +1,6 @@
+import { PanelEmpty, PanelMessage } from '../design-system/primitives/Feedback'
+import { PanelHeader } from '../design-system/primitives/Headers'
+import { Button } from '../design-system/primitives/Button'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { SketchEmpty } from '../emptyStates/SketchEmpty'
 import { MacroSketch } from '../emptyStates/sketches'
@@ -96,10 +99,10 @@ export function MacroSection() {
   if (view === null) {
     return (
       <section className="panel">
-        <div className="panel-message">
+        <PanelMessage>
           <h3>{copy.noBuildsTitle}</h3>
           <p className="panel-message-copy">{copy.noBuildsCopy}</p>
-        </div>
+        </PanelMessage>
       </section>
     )
   }
@@ -330,22 +333,22 @@ function MacroLibraryView({
       </aside>
 
       <section aria-busy={status === 'loading' || undefined} aria-label={copy.section.title} className="panel tcl-list-panel">
-        <header className="panel-header panel-header--split">
+        <PanelHeader split>
           <h2 className="tcl-title">
             {copy.section.title}
             <InfoHint>{copy.section.subtitle}</InfoHint>
             {titleChip}
           </h2>
-        </header>
+        </PanelHeader>
 
         {/* 주기적으로 다시 읽다가 실패해도 직전 목록이 있으면 그대로 남는다(`useBuildMacros`,
             `useDeveloperMacros`). 그때 이 알림이 그 목록이 지금의 사실이 아니라고 말한다. */}
         {status === 'error' && (
           <p className="tcl-notice" role="alert">
             <span>{loadFailedText}</span>
-            <button className="button button--secondary button--compact" onClick={onReload} type="button">
+            <Button variant="secondary" size="compact" onClick={onReload} type="button">
               {copy.section.retry}
-            </button>
+            </Button>
           </p>
         )}
 
@@ -363,17 +366,17 @@ function MacroLibraryView({
 
         {waiting ? (
           <div aria-busy="true" className="panel-empty-block">
-            <p className="panel-empty">{copy.section.loading}</p>
+            <PanelEmpty>{copy.section.loading}</PanelEmpty>
           </div>
         ) : status === 'error' && items.length === 0 ? null : shown.length === 0 && !filtered ? (
           // 이 버전에 macro 가 하나도 없다. 글 한 줄 대신 그림과 어디서 생기는지를 보인다(ARTEL-1162).
           <SketchEmpty body={emptyHelp} sketch={<MacroSketch />} surface title={emptyText} />
         ) : shown.length === 0 ? (
           <div className="panel-empty-block">
-            <p className="panel-empty">{copy.section.emptyFiltered}</p>
-            <button className="button button--secondary button--compact" onClick={() => setQuery('')} type="button">
+            <PanelEmpty>{copy.section.emptyFiltered}</PanelEmpty>
+            <Button variant="secondary" size="compact" onClick={() => setQuery('')} type="button">
               {caseCopy.section.clearFilters}
-            </button>
+            </Button>
           </div>
         ) : (
           <div className="cp-listwrap" ref={listRef}>

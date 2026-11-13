@@ -1,3 +1,4 @@
+import { Button } from '../../design-system/primitives/Button'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Dialog } from '../../design-system/primitives/Dialog'
 import { useI18n } from '../../i18n/useI18n'
@@ -380,10 +381,10 @@ export function DiscussionComposer({
               ))}
             </ul>
           )}
-          <button className="button button--secondary dc-with-icon" onClick={() => setLinking(true)} type="button">
+          <Button variant="secondary" className="dc-with-icon" onClick={() => setLinking(true)} type="button">
             <DiscussionIcon name="link" size={15} />
             {text.linkButton}
-          </button>
+          </Button>
         </fieldset>
 
         <div className="dc-rail-actions">
@@ -392,13 +393,13 @@ export function DiscussionComposer({
               {error}
             </p>
           )}
-          <button className="button button--primary dc-publish" disabled={pending} type="submit">
+          <Button variant="primary" className="dc-publish" disabled={pending} type="submit">
             {pending ? text.saving : editing ? text.save : text.publish}
-          </button>
+          </Button>
           <div className="dc-rail-secondary">
             {!editing && (
-              <button
-                className="button button--secondary"
+              <Button
+                variant="secondary"
                 disabled={pending}
                 onClick={(event) => {
                   setTouched({ title: true, body: true })
@@ -408,11 +409,11 @@ export function DiscussionComposer({
                 type="button"
               >
                 {text.saveDraft}
-              </button>
+              </Button>
             )}
-            <button className="button button--secondary" disabled={pending} onClick={onClose} type="button">
+            <Button variant="secondary" disabled={pending} onClick={onClose} type="button">
               {text.cancel}
-            </button>
+            </Button>
           </div>
           <p className="dc-quiet">{text.sharedWith}</p>
         </div>

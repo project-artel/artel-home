@@ -1,3 +1,4 @@
+import { Button } from '../design-system/primitives/Button'
 import { buildDisplayName } from '../projects/buildEnvironment'
 import { useTestCaseLabel } from '../testCases/testCaseIdentifiers'
 import { sceneNamesOf, scenePattern } from '../testCases/sceneHighlight'
@@ -369,7 +370,7 @@ export function ScenarioStepEditor({
               <StepsSketch />
               <b>{b.emptyTitle}</b>
               <span>{b.emptyBody}</span>
-              <button className="button button--primary button--compact" onClick={() => insertAt(0)} type="button">{e.addStep}</button>
+              <Button variant="primary" size="compact" onClick={() => insertAt(0)} type="button">{e.addStep}</Button>
             </div>
           ) : (
             <ol className="se-rows">
@@ -728,30 +729,30 @@ function StepInspector({
           )}
           <div className="se-detail-actions">
             {gap ? (
-              <button className="button button--primary button--compact" onClick={onFillGap} type="button">
+              <Button variant="primary" size="compact" onClick={onFillGap} type="button">
                 <StudioIcon name="plus" size={14} />
                 {e.gapAddStep}
-              </button>
+              </Button>
             ) : (
               <>
-                <button className="button button--secondary button--compact" disabled={index === 0} onClick={() => onMove(index - 1)} type="button">
+                <Button variant="secondary" size="compact" disabled={index === 0} onClick={() => onMove(index - 1)} type="button">
                   <StudioIcon name="arrowUp" size={14} />
                   {e.moveUp}
-                </button>
-                <button className="button button--secondary button--compact" disabled={index === stepCount - 1} onClick={() => onMove(index + 1)} type="button">
+                </Button>
+                <Button variant="secondary" size="compact" disabled={index === stepCount - 1} onClick={() => onMove(index + 1)} type="button">
                   <StudioIcon name="arrowDown" size={14} />
                   {e.moveDown}
-                </button>
-                <button className="button button--secondary button--compact" onClick={onAddBelow} type="button">
+                </Button>
+                <Button variant="secondary" size="compact" onClick={onAddBelow} type="button">
                   <StudioIcon name="plus" size={14} />
                   {b.addBelow}
-                </button>
+                </Button>
               </>
             )}
-            <button className="button button--danger-quiet button--compact" onClick={onRemove} type="button">
+            <Button variant="danger-quiet" size="compact" onClick={onRemove} type="button">
               <StudioIcon name="trash" size={14} />
               {e.remove}
-            </button>
+            </Button>
             <span className="se-spacer" />
             {!gap && <span className="se-muted">{b.autosaveNote}</span>}
           </div>
@@ -774,20 +775,20 @@ function StepInspector({
           {!gap && (
             <div className="se-case-actions">
               {step.case_id === null ? (
-                <button className="button button--secondary button--compact" onClick={onLinkCase} type="button">
+                <Button variant="secondary" size="compact" onClick={onLinkCase} type="button">
                   <StudioIcon name="plus" size={14} />
                   {b.linkCase}
-                </button>
+                </Button>
               ) : (
                 <>
-                  <button className="button button--secondary button--compact" onClick={onLinkCase} type="button">
+                  <Button variant="secondary" size="compact" onClick={onLinkCase} type="button">
                     <StudioIcon name="refresh" size={14} />
                     {b.changeCase}
-                  </button>
-                  <button className="button button--danger-quiet button--compact" onClick={onUnlinkCase} type="button">
+                  </Button>
+                  <Button variant="danger-quiet" size="compact" onClick={onUnlinkCase} type="button">
                     <StudioIcon name="close" size={14} />
                     {b.unlinkCase}
-                  </button>
+                  </Button>
                 </>
               )}
             </div>

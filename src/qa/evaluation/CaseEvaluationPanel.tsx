@@ -1,6 +1,8 @@
+import { Button, ButtonLink } from '../../design-system/primitives/Button'
+import { TextArea } from '../../design-system/primitives/Fields'
 import { loadAttemptReview } from './loadAttemptReview'
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
 import { shortWhen } from '../history/historyModel'
 import * as api from './evaluationApi'
@@ -68,7 +70,7 @@ function AttemptList({ projectId, qaTryId, testCaseId, id, emptyFallback }: Case
       setSelected(attemptId)
     }} copy={copy} />}
     {loading && <p className="qe-status" role="status">{copy.loading}</p>}
-    {error && <p className="qe-status" role="alert">{copy.error} <button className="button button--secondary button--compact" onClick={() => void load()} type="button">{copy.retry}</button></p>}
+    {error && <p className="qe-status" role="alert">{copy.error} <Button variant="secondary" size="compact" onClick={() => void load()} type="button">{copy.retry}</Button></p>}
     {!loading && !rows.length && <p className="qe-status">{copy.empty}</p>}
     {current && <div role="tabpanel" id={`${pickId}-panel`} aria-labelledby={`${pickId}-case-${current.testCaseId}`}>
       <AttemptReview key={current.id} attempt={current} projectId={projectId} onSaved={saved => {
@@ -77,10 +79,10 @@ function AttemptList({ projectId, qaTryId, testCaseId, id, emptyFallback }: Case
         void load()
       }} />
     </div>}
-    {hasMore && rows.length > 0 && <button className="button button--secondary button--compact qe-more" type="button" onClick={() => {
+    {hasMore && rows.length > 0 && <Button variant="secondary" size="compact" className="qe-more" type="button" onClick={() => {
       void api.attempts(projectId, { qaTryId, testCaseId, before: rows[rows.length - 1].createdAt, beforeId: rows[rows.length - 1].id })
         .then(next => { setRows(previous => [...previous, ...next.filter(row => !previous.some(existing => existing.id === row.id))]); setHasMore(next.length === 100) }).catch(() => setError(true))
-    }}>{copy.more}</button>}
+    }}>{copy.more}</Button>}
   </section>
 }
 
@@ -135,9 +137,9 @@ function AttemptReview({ attempt, projectId, onSaved }: { attempt: api.Attempt; 
             {snapshotRows.map(([key, value]) => <div key={key}><dt>{copy[key]}</dt><dd>{value}</dd></div>)}
           </dl>}
           <nav className="qe-links" aria-label={copy.snapshot}>
-            <Link className="button button--secondary button--compact" to={`/projects/${encodeURIComponent(projectId)}/test-cases?case=${encodeURIComponent(attempt.testCaseId)}`}>{copy.testcase}</Link>
+            <ButtonLink variant="secondary" size="compact" to={`/projects/${encodeURIComponent(projectId)}/test-cases?case=${encodeURIComponent(attempt.testCaseId)}`}>{copy.testcase}</ButtonLink>
             {attempt.qaRunId
-              ? <Link className="button button--secondary button--compact" to={`/projects/${encodeURIComponent(projectId)}/qa-history/${encodeURIComponent(attempt.qaRunId)}?scenario=${encodeURIComponent(attempt.qaTryId)}`}>{copy.qa} #{attempt.qaTryId}</Link>
+              ? <ButtonLink variant="secondary" size="compact" to={`/projects/${encodeURIComponent(projectId)}/qa-history/${encodeURIComponent(attempt.qaRunId)}?scenario=${encodeURIComponent(attempt.qaTryId)}`}>{copy.qa} #{attempt.qaTryId}</ButtonLink>
               : <span className="qe-chip">{copy.qa} <b>#{attempt.qaTryId}</b></span>}
           </nav>
         </div>
@@ -173,10 +175,10 @@ function AttemptReview({ attempt, projectId, onSaved }: { attempt: api.Attempt; 
               ><i aria-hidden="true" className={value} />{copy[value]}</button>)}
             </div>
           </div>
-          <label>{copy.reason}<textarea className="field-input field-input--multiline" maxLength={2000} value={note} onChange={event => setNote(event.target.value)} /></label>
+          <label>{copy.reason}<TextArea className="field-input--multiline" maxLength={2000} value={note} onChange={event => setNote(event.target.value)} /></label>
           <div className="qe-form-foot">
             <span className="qe-hint">{copy.help}</span>
-            <button className="button button--primary button--compact" disabled={busy} type="submit">{copy.save}</button>
+            <Button variant="primary" size="compact" disabled={busy} type="submit">{copy.save}</Button>
           </div>
         </form>}
         {message && <p className="qe-status" role="status">{message}</p>}

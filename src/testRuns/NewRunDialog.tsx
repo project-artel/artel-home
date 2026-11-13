@@ -1,3 +1,6 @@
+import { TextInput } from '../design-system/primitives/Fields'
+import { Button } from '../design-system/primitives/Button'
+import { InlineError } from '../design-system/primitives/Feedback'
 import { useId, useState } from 'react'
 import { Dialog } from '../design-system/primitives/Dialog'
 import { useI18n } from '../i18n/useI18n'
@@ -81,9 +84,8 @@ export function NewRunDialog({
         >
           <div className="field">
             <label className="field-label" htmlFor={nameId}>{r.newDialog.nameLabel}</label>
-            <input
+            <TextInput
               autoFocus
-              className="field-input"
               disabled={pending}
               id={nameId}
               maxLength={200}
@@ -96,25 +98,25 @@ export function NewRunDialog({
             <div className="nrd-version">
               <strong>{chosenLabel}</strong>
               {chosen?.latest === true && <span className="tcl-version-latest">{t.testCases.versions.latest}</span>}
-              <button className="button button--secondary button--compact" disabled={pending} onClick={() => setPicking(true)} type="button">
+              <Button variant="secondary" size="compact" disabled={pending} onClick={() => setPicking(true)} type="button">
                 {r.newDialog.changeVersion}
-              </button>
+              </Button>
             </div>
             {inFolder !== null && <p className="field-hint">{r.newDialog.inFolder(inFolder.name)}</p>}
           </div>
           {failure !== null && (
-            <div className="inline-error" role="alert">
+            <InlineError>
               <span aria-hidden="true">!</span>
               {failure}
-            </div>
+            </InlineError>
           )}
           <div className="dialog-actions">
-            <button className="button button--secondary" disabled={pending} onClick={onClose} type="button">
+            <Button variant="secondary" disabled={pending} onClick={onClose} type="button">
               {r.cancel}
-            </button>
-            <button className="button button--primary" disabled={pending} type="submit">
+            </Button>
+            <Button variant="primary" disabled={pending} type="submit">
               {pending ? r.creating : r.newDialog.confirm}
-            </button>
+            </Button>
           </div>
         </form>
       </Dialog>
