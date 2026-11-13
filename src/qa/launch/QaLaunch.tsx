@@ -16,7 +16,7 @@ import { listRunFolders, type RunFolder } from '../../testRuns/testRunFolders'
 import { ChevronDownIcon, PencilIcon } from '../qaModelIcons'
 import type { QaArchSelection } from '../qaArch'
 import { offeredQaModels } from '../qaModelGroups'
-import { readLastAdvancedSettings } from '../qaStartChoices'
+import { readLastAdvancedSettings, readLastModelKey, storeLastModelKey } from '../qaStartChoices'
 import { qaModelOptionKey, type QaModel } from '../qaTypes'
 import { byAscendingEffort } from '../reasoningEfforts'
 import { ConsolesDialog } from './ConsolesDialog'
@@ -75,8 +75,8 @@ function reasoningStart(model: QaModel | undefined): number {
  * 가운데는 "무엇을 · 지난번엔 어땠나" 를 보고, 오른쪽은 "어떻게 돌릴지" 를 정한다. 사이드바 · 탑바는
  * 워크스페이스의 것을 그대로 쓴다.
  *
- * 첫 선택은 **마지막 실행 조합**이다. 소규모 팀의 QA 는 고치고 다시 돌리는 일이 대부분이라, 빈 칸에서
- * 시작하면 매번 같은 셋을 다시 고르게 된다. 사람이 무엇이든 한 번 고르면 그 뒤로는 덮지 않는다.
+ * 마지막 실행 조합에서 시작하고, 브라우저에 저장된 모델을 사용할 수 있으면 우선 적용한다.
+ * 화면에서 직접 고른 값은 목록이 늦게 도착해도 유지한다.
  */
 export function QaLaunch() {
   const { projectId } = useWorkspace()
@@ -134,6 +134,7 @@ function QaLaunchReady() {
   const [searchParams] = useSearchParams()
   const askedRun = searchParams.get('run')
   const [choice, setChoice] = useState<Choice>(() => (askedRun === null ? {} : { runId: askedRun }))
+  const [savedModelKey] = useState(() => readLastModelKey(projectId))
   const [arch, setArch] = useState<QaArchSelection>(() => readLastAdvancedSettings(projectId).arch)
 
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -181,9 +182,11 @@ function QaLaunchReady() {
   }, [starts, runs, instances, offered])
   const runId = choice.runId !== undefined ? choice.runId : defaults.runId
   const instanceId = choice.instanceId ?? defaults.instanceId
-  const modelKey = choice.modelKey ?? defaults.modelKey
-  const reasoningEnabled = choice.reasoningEnabled ?? defaults.reasoningEnabled
-  const reasoningValue = choice.reasoningValue ?? defaults.reasoningValue
+  const savedModel = offered.find((model) => model.keyRegistered && qaModelOptionKey(model) === savedModelKey)
+  const modelKey = choice.modelKey ?? (savedModel === undefined ? defaults.modelKey : qaModelOptionKey(savedModel))
+  const usesSavedModel = choice.modelKey === undefined && savedModel !== undefined && modelKey !== defaults.modelKey
+  const reasoningEnabled = choice.reasoningEnabled ?? (!usesSavedModel && defaults.reasoningEnabled)
+  const reasoningValue = choice.reasoningValue ?? (usesSavedModel ? reasoningStart(savedModel) : defaults.reasoningValue)
   const applyStart = (start: QuickStart) => setChoice(fromStart(start, instances, offered))
 
   const run = runs.find((one) => one.id === runId) ?? null
@@ -223,6 +226,7 @@ function QaLaunchReady() {
   }
 
   function pickModel(next: string) {
+    storeLastModelKey(projectId, next)
     setChoice((current) => ({
       ...current,
       modelKey: next,

@@ -70,3 +70,19 @@ export function storeLastAdvancedSettings(projectId: string, settings: QaAdvance
     // 브라우저에서 저장을 차단해도 실행은 이어간다.
   }
 }
+
+export function readLastModelKey(projectId: string, storage?: ReadableStorage): string | null {
+  try {
+    return storageOf(storage).getItem(`artel.qa.lastModel.${projectId}`)
+  } catch {
+    return null
+  }
+}
+
+export function storeLastModelKey(projectId: string, modelKey: string, storage?: ReadableStorage): void {
+  try {
+    storageOf(storage).setItem(`artel.qa.lastModel.${projectId}`, modelKey)
+  } catch {
+    // 브라우저에서 저장을 차단해도 이번 화면에서는 선택을 유지한다.
+  }
+}
