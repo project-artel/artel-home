@@ -12,6 +12,8 @@
 
 import { EMPTY_ARCH_SELECTION, parseArchSelection, withEngine, type QaArchSelection } from './qaArch'
 
+import type { QaInputMode } from './qaTypes'
+
 export const LAST_ARCH_STORAGE_KEY = 'artel.qa.lastArch'
 
 type ReadableStorage = Pick<Storage, 'getItem' | 'setItem'>
@@ -36,5 +38,21 @@ export function storeLastArch(selection: QaArchSelection, storage?: ReadableStor
     storageOf(storage).setItem(LAST_ARCH_STORAGE_KEY, JSON.stringify(selection))
   } catch {
     // private mode 등. 이번 화면에서만 기억한다.
+  }
+}
+
+export function readLastInputMode(projectId: string, storage?: ReadableStorage): QaInputMode {
+  try {
+    return storageOf(storage).getItem(`artel.qa.lastInputMode.${projectId}`) === 'os' ? 'os' : 'virtual'
+  } catch {
+    return 'virtual'
+  }
+}
+
+export function storeLastInputMode(projectId: string, inputMode: QaInputMode, storage?: ReadableStorage): void {
+  try {
+    storageOf(storage).setItem(`artel.qa.lastInputMode.${projectId}`, inputMode)
+  } catch {
+    // 브라우저에서 저장을 차단해도 실행은 이어간다.
   }
 }

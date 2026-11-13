@@ -354,6 +354,7 @@ function QaLaunchReady() {
       </div>
 
       <LaunchPanel
+        key={projectId}
         arch={arch}
         builds={builds}
         etaMs={lastDuration}

@@ -23,7 +23,7 @@ import type { TestRun, RunCasesOutsideBuild } from '../../testRuns/testRunApi'
 import { QA_ENGINES, archEngine, archLabelMissing, changedSettingCount, toArchRequest, withEngine, withoutVisionKnobs, type QaArchSelection } from '../qaArch'
 import { createQaRun, qaStartConflict } from '../qaApi'
 import { requestQuestionNotificationPermission, subscribeQuestionNotifications } from '../evaluation/questionNotificationOptIn'
-import { storeLastArch } from '../qaStartChoices'
+import { readLastInputMode, storeLastArch, storeLastInputMode } from '../qaStartChoices'
 import { DEFAULT_QA_FUNCTION_OPTIONS, type QaFunctionOptions } from '../qaFunctionOptions'
 import { QaFunctionOptionsFields } from '../QaFunctionOptionsFields'
 import { CheckIcon, ChevronDownIcon, CircleCheckIcon, CircleXIcon } from '../qaModelIcons'
@@ -98,6 +98,7 @@ export function LaunchPanel({
   const navigate = useNavigate()
   const modelSelectId = useId()
   const reasoningControlId = useId()
+  const inputModeId = useId()
   const [consoleOpen, setConsoleOpen] = useState(false)
   const [panelScroller, setPanelScroller] = useState<HTMLDivElement | null>(null)
   const consoleBox = useRef<HTMLDivElement>(null)
@@ -110,6 +111,7 @@ export function LaunchPanel({
   const [takeoverChoice, setTakeoverChoice] = useState<VersionChoice | null>(null)
   const startInFlight = useRef(false)
   const [functionOptions, setFunctionOptions] = useState<QaFunctionOptions>(DEFAULT_QA_FUNCTION_OPTIONS)
+  const [inputMode, setInputMode] = useState(() => readLastInputMode(projectId))
 
   const instance = instances.find((one) => one.id === instanceId) ?? null
   const model = models.find((one) => `${one.keySource}:${one.id}` === modelKey) ?? null
@@ -202,9 +204,10 @@ export function LaunchPanel({
       }
       setVersionPrompt(null)
       setTakeoverChoice(choice)
-      const created = await createQaRun(run.id, instance.id, model.id, model.keySource, selectedReasoning, force, toArchRequest(effectiveArch), functionOptions)
+      const created = await createQaRun(run.id, instance.id, model.id, model.keySource, selectedReasoning, force, toArchRequest(effectiveArch), functionOptions, inputMode)
       // 시작이 성공한 구조만 다음 폼의 기본값이 된다. 고르다 만 값은 남기지 않는다.
       storeLastArch(effectiveArch)
+      storeLastInputMode(projectId, inputMode)
       void permission.then(() => subscribeQuestionNotifications(projectId))
       setTakeoverOpen(false)
       navigate(`/projects/${encodeURIComponent(projectId)}/qa-runs/${encodeURIComponent(created.id)}`)
@@ -473,6 +476,20 @@ export function LaunchPanel({
             )}
           </div>
         )}
+
+        <div className="ql-field">
+          <label className="ql-field-label" htmlFor={inputModeId}>{l.inputModeLabel}</label>
+          <select
+            className="field-input"
+            disabled={starting || takeoverOpen || visibleVersionPrompt !== null}
+            id={inputModeId}
+            onChange={(event) => setInputMode(event.target.value === 'os' ? 'os' : 'virtual')}
+            value={inputMode}
+          >
+            <option value="virtual">{l.virtualInput}</option>
+            <option value="os">{l.osInput}</option>
+          </select>
+        </div>
 
         <QaFunctionOptionsFields
           builds={builds}

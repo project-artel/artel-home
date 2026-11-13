@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { EMPTY_ARCH_SELECTION, archEngine } from './qaArch'
-import { LAST_ARCH_STORAGE_KEY, readLastArch, storeLastArch } from './qaStartChoices'
+import { LAST_ARCH_STORAGE_KEY, readLastArch, readLastInputMode, storeLastArch, storeLastInputMode } from './qaStartChoices'
 
 function fakeStorage(initial: Record<string, string> = {}) {
   const map = new Map(Object.entries(initial))
@@ -48,4 +48,18 @@ test('planner_executer 로 돌렸어도 다음 화면은 agent 로 열리고, kn
   const storage = fakeStorage()
   storeLastArch({ label: 'arm', phase_cycle: 'off', engine: 'planner_executer' }, storage)
   assert.deepEqual(readLastArch(storage), { label: 'arm', phase_cycle: 'off' })
+})
+
+test('마지막 입력 방식은 프로젝트별로 저장된다', () => {
+  const storage = fakeStorage()
+  storeLastInputMode('one', 'os', storage)
+  assert.equal(readLastInputMode('one', storage), 'os')
+  assert.equal(readLastInputMode('two', storage), 'virtual')
+  storeLastInputMode('one', 'virtual', storage)
+  assert.equal(readLastInputMode('one', storage), 'virtual')
+})
+
+test('저장소가 차단되면 가상 입력을 기본값으로 사용한다', () => {
+  assert.equal(readLastInputMode('one', throwingStorage), 'virtual')
+  assert.doesNotThrow(() => storeLastInputMode('one', 'os', throwingStorage))
 })
