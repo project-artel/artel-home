@@ -1,3 +1,4 @@
+import { Button } from '../../../design-system/primitives/Button'
 import { useId, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Dialog } from '../../../design-system/primitives/Dialog'
@@ -82,9 +83,9 @@ export function ChangedCasesDialog({
           </div>
         )}
         <div className="dialog-actions">
-          <button className="button button--secondary" onClick={onClose} type="button">
+          <Button variant="secondary" onClick={onClose} type="button">
             {m.close}
-          </button>
+          </Button>
         </div>
       </div>
     </Dialog>

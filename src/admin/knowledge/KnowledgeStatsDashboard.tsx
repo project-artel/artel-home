@@ -1,3 +1,4 @@
+import { Notice } from '../../design-system/primitives/Feedback'
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { UnauthorizedError } from '../shared/adminApi'
 import { listProjects, type ProjectSummary } from '../shared/projects/projectsApi'
@@ -168,16 +169,16 @@ export function KnowledgeStatsDashboard() {
 
       <div className="main">
         {error && (
-          <div className="notice notice--critical" role="alert">
+          <Notice tone="critical" role="alert">
             <p className="notice__title">{strings.loadFailedTitle}</p>
             {t.admin.states.loadFailed}
-          </div>
+          </Notice>
         )}
 
         {projects?.length === 0 && !error && (
-          <div className="notice">
+          <Notice>
             {strings.noProjects}
-          </div>
+          </Notice>
         )}
 
         {data !== null && (
@@ -185,9 +186,9 @@ export function KnowledgeStatsDashboard() {
             <KnowledgeTotalsRail total={data.total} />
 
             {data.truncated && (
-              <div className="notice" role="status">
+              <Notice role="status">
                 {strings.truncated(format.count(data.cellLimit))}
-              </div>
+              </Notice>
             )}
 
             {/*
@@ -196,9 +197,9 @@ export function KnowledgeStatsDashboard() {
               모여 있다는 뜻이다.
             */}
             {data.total.retrievalTotal > 0 && data.total.citationKnownTotal === 0 && (
-              <div className="notice" role="status">
+              <Notice role="status">
                 {strings.citationUnknownNotice}
-              </div>
+              </Notice>
             )}
 
             <section aria-labelledby="knowledge-axes-title">
@@ -218,7 +219,7 @@ export function KnowledgeStatsDashboard() {
           </>
         )}
 
-        {data === null && loading && <div className="notice">{strings.loading}</div>}
+        {data === null && loading && <Notice>{strings.loading}</Notice>}
       </div>
     </div>
   )

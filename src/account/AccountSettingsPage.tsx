@@ -1,3 +1,8 @@
+import { PageHeader, PanelHeader } from '../design-system/primitives/Headers'
+import { Button } from '../design-system/primitives/Button'
+import { InlineError } from '../design-system/primitives/Feedback'
+import { TextInput } from '../design-system/primitives/Fields'
+import { Badge } from '../design-system/primitives/Badge'
 import { useEffect, useId, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AuthApiError, registerEmail, updateMyLocale, updateMyProfile, verifyEmail } from '../auth/authApi'
@@ -59,12 +64,7 @@ export function AccountSettingsPage() {
   const copy = t.account
   return (
     <section className="page page--wide page--account" aria-labelledby="account-title">
-      <header className="page-header">
-        <div>
-          <p className="eyebrow">{copy.eyebrow}</p>
-          <h1 id="account-title">{copy.title}</h1>
-        </div>
-      </header>
+      <PageHeader eyebrow={copy.eyebrow} title={copy.title} titleId="account-title" />
 
       {/* 왼쪽 탭 + 오른쪽 한 화면(ARTEL-1380). 칸은 예전 그대로이고 탭마다 하나씩 선다. API 관리 탭은 내 개인 키와
           모델 지출이다(ARTEL-1393) — 프로젝트 키는 그 프로젝트의 API 관리에서 다루고, 개인 키를 거기 연결할 수 있다. */}
@@ -137,10 +137,10 @@ function PreferencesPanel() {
 
   return (
     <section aria-labelledby="preferences-title" className="panel settings-wide">
-      <header className="panel-header panel-header--split">
+      <PanelHeader split>
         <h2 id="preferences-title">{copy.title}</h2>
         <span className="settings-hint">{copy.hint}</span>
-      </header>
+      </PanelHeader>
       <div className="preference-row">
         <span className="preference-label" id="preferences-language">
           {copy.languageLabel}
@@ -238,26 +238,26 @@ function ProfilePanel({
 
   return (
     <section className="panel" aria-labelledby="profile-title">
-      <header className="panel-header panel-header--split">
+      <PanelHeader split>
         <h2 id="profile-title">{copy.title}</h2>
         {!editing && (
-          <button
-            className="button button--secondary button--compact"
+          <Button
+            variant="secondary" size="compact"
             onClick={startEditing}
             type="button"
           >
             {copy.edit}
-          </button>
+          </Button>
         )}
-      </header>
+      </PanelHeader>
 
       {editing ? (
         <form onSubmit={(event) => void save(event)} noValidate>
           {failure !== null && (
-            <div className="inline-error" role="alert">
+            <InlineError>
               <span aria-hidden="true">!</span>
               {failure}
-            </div>
+            </InlineError>
           )}
 
           <div className="field">
@@ -265,10 +265,9 @@ function ProfilePanel({
               {copy.nicknameLabel}
               <InfoHint>{copy.userTagHint}</InfoHint>
             </label>
-            <input
+            <TextInput
               aria-describedby={nicknameError !== null ? `${nicknameId}-error` : undefined}
               aria-invalid={nicknameError !== null || undefined}
-              className="field-input"
               disabled={saving}
               id={nicknameId}
               maxLength={NICKNAME_MAX_LENGTH}
@@ -283,17 +282,17 @@ function ProfilePanel({
           </div>
 
           <div className="form-actions">
-            <button
-              className="button button--secondary"
+            <Button
+              variant="secondary"
               disabled={saving}
               onClick={cancelEditing}
               type="button"
             >
               {copy.cancel}
-            </button>
-            <button className="button button--primary" disabled={!dirty || saving} type="submit">
+            </Button>
+            <Button variant="primary" disabled={!dirty || saving} type="submit">
               {saving ? copy.saving : copy.save}
-            </button>
+            </Button>
           </div>
         </form>
       ) : (
@@ -438,35 +437,34 @@ function EmailPanel({
 
   return (
     <section className="panel" aria-labelledby="email-title">
-      <header className="panel-header panel-header--split">
+      <PanelHeader split>
         <h2 id="email-title">{copy.title}</h2>
         {!editingEmail && (
-          <button
-            className="button button--secondary button--compact"
+          <Button
+            variant="secondary" size="compact"
             onClick={startEditing}
             type="button"
           >
             {verified || pending ? copy.change : copy.add}
-          </button>
+          </Button>
         )}
-      </header>
+      </PanelHeader>
 
       {editingEmail ? (
         <form onSubmit={(event) => void submitEmail(event)} noValidate>
           {registerFailure !== null && (
-            <div className="inline-error" role="alert">
+            <InlineError>
               <span aria-hidden="true">!</span>
               {registerFailure}
-            </div>
+            </InlineError>
           )}
 
           <div className="field">
             <label className="field-label" htmlFor={emailId}>{copy.emailLabel}</label>
-            <input
+            <TextInput
               aria-describedby={emailError !== null ? `${emailId}-error` : undefined}
               aria-invalid={emailError !== null || undefined}
               autoComplete="email"
-              className="field-input"
               disabled={registering}
               id={emailId}
               maxLength={EMAIL_MAX_LENGTH}
@@ -483,21 +481,21 @@ function EmailPanel({
           </div>
 
           <div className="form-actions">
-            <button
-              className="button button--secondary"
+            <Button
+              variant="secondary"
               disabled={registering}
               onClick={cancelEditing}
               type="button"
             >
               {copy.cancel}
-            </button>
-            <button
-              className="button button--primary"
+            </Button>
+            <Button
+              variant="primary"
               disabled={emailDraft.trim().length === 0 || registering}
               type="submit"
             >
               {registering ? copy.registering : copy.register}
-            </button>
+            </Button>
           </div>
         </form>
       ) : (
@@ -508,7 +506,7 @@ function EmailPanel({
               {verified ? (
                 <>
                   <span className="mono">{user.email}</span>{' '}
-                  <span className="badge badge--success">{copy.verifiedBadge}</span>
+                  <Badge tone="success">{copy.verifiedBadge}</Badge>
                 </>
               ) : (
                 <span className="detail-empty">{copy.notSet}</span>
@@ -537,17 +535,17 @@ function EmailPanel({
             <dt>{copy.pendingBadge}</dt>
             <dd>
               <span className="mono">{user.pendingEmail}</span>{' '}
-              <span className="badge badge--warning">{copy.pendingBadge}</span>
+              <Badge tone="warning">{copy.pendingBadge}</Badge>
             </dd>
           </dl>
           <p className="field-hint">{copy.pendingNotice(user.pendingEmail ?? '')}</p>
 
           <form onSubmit={(event) => void submitToken(event)} noValidate>
             {verifyFailure !== null && (
-              <div className="inline-error" role="alert">
+              <InlineError>
                 <span aria-hidden="true">!</span>
                 {verifyFailure}
-              </div>
+              </InlineError>
             )}
 
             <div className="field">
@@ -555,8 +553,8 @@ function EmailPanel({
                 {copy.tokenLabel}
                 <InfoHint>{copy.tokenHint}</InfoHint>
               </label>
-              <input
-                className="field-input mono"
+              <TextInput
+                className="mono"
                 disabled={verifying}
                 id={tokenId}
                 onChange={(event) => setTokenDraft(event.target.value)}
@@ -566,13 +564,13 @@ function EmailPanel({
             </div>
 
             <div className="form-actions">
-              <button
-                className="button button--primary"
+              <Button
+                variant="primary"
                 disabled={tokenDraft.trim().length === 0 || verifying}
                 type="submit"
               >
                 {verifying ? copy.verifying : copy.verify}
-              </button>
+              </Button>
             </div>
           </form>
         </>
@@ -629,12 +627,12 @@ function ProfileOverview({ user }: { user: AuthUser }) {
             <span className="settings-hero-meta mono">{composeNicknameTag(user.nickname, user.userTag)}</span>
             <div className="settings-hero-chips">
               {user.identities.map((identity) => (
-                <span className="badge" key={`${identity.provider}:${identity.login}`}>
+                <Badge key={`${identity.provider}:${identity.login}`}>
                   {identity.provider} · {identity.login}
-                </span>
+                </Badge>
               ))}
-              <span className="badge">{user.emailVerified ? copy.chips.verified : copy.chips.unverified}</span>
-              {user.locale !== null && <span className="badge">{LOCALE_LABELS[user.locale]}</span>}
+              <Badge>{user.emailVerified ? copy.chips.verified : copy.chips.unverified}</Badge>
+              {user.locale !== null && <Badge>{LOCALE_LABELS[user.locale]}</Badge>}
             </div>
           </div>
         </div>

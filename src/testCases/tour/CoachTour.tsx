@@ -1,3 +1,4 @@
+import { Button } from '../../design-system/primitives/Button'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useI18n } from '../../i18n/useI18n'
@@ -160,18 +161,18 @@ export function CoachTour({
           ))}
         </div>
         <div className="tour-actions">
-          <button className="button button--secondary button--compact" disabled={index === 0} onClick={() => go(index - 1)} type="button">
+          <Button variant="secondary" size="compact" disabled={index === 0} onClick={() => go(index - 1)} type="button">
             {m.previous}
-          </button>
+          </Button>
           <span className="tour-spacer" />
           {!last && (
             <button className="tour-link" onClick={() => go(index + 1)} title={m.skipStepTitle} type="button">
               {m.skipStep}
             </button>
           )}
-          <button className="button button--primary button--compact" onClick={() => go(index + 1)} type="button">
+          <Button variant="primary" size="compact" onClick={() => go(index + 1)} type="button">
             {last ? m.done : m.next}
-          </button>
+          </Button>
         </div>
       </div>
     </div>,

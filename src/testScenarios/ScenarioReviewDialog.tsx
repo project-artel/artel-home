@@ -1,3 +1,5 @@
+import { InlineError } from '../design-system/primitives/Feedback'
+import { Button } from '../design-system/primitives/Button'
 import { useState } from 'react'
 import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
 import { Dialog } from '../design-system/primitives/Dialog'
@@ -90,16 +92,16 @@ export function ScenarioReviewDialog({
             </section>
           ))}
         </div>
-        {outcome.stale > 0 && <div className="inline-error" role="alert"><span aria-hidden="true">!</span>{copy.stale(outcome.stale)}</div>}
-        {outcome.failed > 0 && <div className="inline-error" role="alert"><span aria-hidden="true">!</span>{copy.failed(outcome.failed)}</div>}
+        {outcome.stale > 0 && <InlineError><span aria-hidden="true">!</span>{copy.stale(outcome.stale)}</InlineError>}
+        {outcome.failed > 0 && <InlineError><span aria-hidden="true">!</span>{copy.failed(outcome.failed)}</InlineError>}
         <div className="dialog-actions">
-          <button className="button button--secondary" disabled={pending} onClick={onClose} type="button">{copy.close}</button>
-          <button className="button button--secondary crd-reject" disabled={pending || rejectable.length === 0} onClick={() => setConfirmingReject(true)} type="button">
+          <Button variant="secondary" disabled={pending} onClick={onClose} type="button">{copy.close}</Button>
+          <Button variant="secondary" className="crd-reject" disabled={pending || rejectable.length === 0} onClick={() => setConfirmingReject(true)} type="button">
             {copy.reject(rejectable.length)}
-          </button>
-          <button className="button button--primary" disabled={pending || chosen.length === 0} onClick={() => void decide(chosen, 'APPROVE')} type="button">
+          </Button>
+          <Button variant="primary" disabled={pending || chosen.length === 0} onClick={() => void decide(chosen, 'APPROVE')} type="button">
             {pending ? copy.approving : copy.approve(chosen.length)}
-          </button>
+          </Button>
         </div>
       </div>
       {confirmingReject && (

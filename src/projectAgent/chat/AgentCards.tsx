@@ -1,3 +1,4 @@
+import { Button } from '../../design-system/primitives/Button'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
@@ -21,12 +22,12 @@ export function ApprovalCard({ approval }: { approval: PendingApproval }) {
       <p className="agent-card__title">{copy.approvalTitle}</p>
       <p className="agent-card__body">{approval.summary}</p>
       <div className="agent-card__actions">
-        <button className="button button--primary button--compact" onClick={approval.approve} type="button">
+        <Button variant="primary" size="compact" onClick={approval.approve} type="button">
           {copy.approve}
-        </button>
-        <button className="button button--secondary button--compact" onClick={approval.reject} type="button">
+        </Button>
+        <Button variant="secondary" size="compact" onClick={approval.reject} type="button">
           {copy.cancelApproval}
-        </button>
+        </Button>
       </div>
     </section>
   )
@@ -59,14 +60,14 @@ export function ChoiceCard({ choice, onAnswer }: { choice: PendingChoice; onAnsw
             ))}
           </div>
           <div className="agent-card__actions">
-            <button
-              className="button button--primary button--compact"
+            <Button
+              variant="primary" size="compact"
               disabled={picked.length === 0}
               onClick={() => onAnswer(picked)}
               type="button"
             >
               {copy.choiceConfirm}
-            </button>
+            </Button>
           </div>
         </>
       ) : (
@@ -119,12 +120,12 @@ export function ResumeCard({
       <p className="agent-card__title">{copy.resumeTitle}</p>
       <p className="agent-card__body">{copy.resumeBody(pending.calls.length)}</p>
       <div className="agent-card__actions">
-        <button className="button button--primary button--compact" onClick={onResume} type="button">
+        <Button variant="primary" size="compact" onClick={onResume} type="button">
           {copy.resume}
-        </button>
-        <button className="button button--secondary button--compact" onClick={onStop} type="button">
+        </Button>
+        <Button variant="secondary" size="compact" onClick={onStop} type="button">
           {copy.stopConversation}
-        </button>
+        </Button>
       </div>
     </section>
   )

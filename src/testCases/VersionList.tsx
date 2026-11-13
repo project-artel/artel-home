@@ -1,3 +1,5 @@
+import { InlineError } from '../design-system/primitives/Feedback'
+import { Button } from '../design-system/primitives/Button'
 import { useCallback, useId, useMemo, useState } from 'react'
 import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
 import { Dialog } from '../design-system/primitives/Dialog'
@@ -446,22 +448,22 @@ function GroupMoveDialog({
           />
         </div>
         {failure !== null && (
-          <div className="inline-error" role="alert">
+          <InlineError>
             <span aria-hidden="true">!</span>
             {failure}
-          </div>
+          </InlineError>
         )}
         <div className="dialog-actions">
-          <button className="button button--secondary" disabled={pending} onClick={onClose} type="button">
+          <Button variant="secondary" disabled={pending} onClick={onClose} type="button">
             {m.cancel}
-          </button>
-          <button
-            className="button button--primary"
+          </Button>
+          <Button
+            variant="primary"
             disabled={pending || groupId === (version.groupId ?? '')}
             type="submit"
           >
             {pending ? m.pending : m.move}
-          </button>
+          </Button>
         </div>
       </form>
     </Dialog>

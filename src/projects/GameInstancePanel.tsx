@@ -1,3 +1,8 @@
+import { PanelHeader } from '../design-system/primitives/Headers'
+import { Button, ButtonLink } from '../design-system/primitives/Button'
+import { InlineError, PanelEmpty } from '../design-system/primitives/Feedback'
+import { TextInput } from '../design-system/primitives/Fields'
+import { Badge } from '../design-system/primitives/Badge'
 import { useId, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { DeleteGameInstanceDialog } from './DeleteGameInstanceDialog'
@@ -49,21 +54,21 @@ export function GameInstancePanel({
 
   return (
     <section className="panel" aria-labelledby="instances-title">
-      <header className="panel-header panel-header--split">
+      <PanelHeader split>
         <h2 id="instances-title">{t.projects.instances.title}</h2>
         <div className="panel-header-actions">
-          <Link className="button button--primary button--compact" to={guideHref}>
+          <ButtonLink variant="primary" size="compact" to={guideHref}>
             {t.projects.instances.installGuide}
-          </Link>
+          </ButtonLink>
         </div>
-      </header>
+      </PanelHeader>
 
       {instances.length === 0 ? (
         <div className="panel-empty-block">
-          <p className="panel-empty">{t.projects.instances.empty}</p>
-          <Link className="button button--secondary button--compact" to={guideHref}>
+          <PanelEmpty>{t.projects.instances.empty}</PanelEmpty>
+          <ButtonLink variant="secondary" size="compact" to={guideHref}>
             {t.projects.instances.installGuide}
-          </Link>
+          </ButtonLink>
         </div>
       ) : (
         <ul className="instance-list">
@@ -167,20 +172,19 @@ function GameInstanceRow({
   return (
     <li className="instance-row">
       {failure !== null && (
-        <div className="inline-error" role="alert">
+        <InlineError>
           <span aria-hidden="true">!</span>
           {failure}
-        </div>
+        </InlineError>
       )}
 
       {editing ? (
         <form className="instance-edit" onSubmit={save} noValidate>
           <div className="field">
             <label className="field-label" htmlFor={nameId}>{t.projects.shared.nameLabel}</label>
-            <input
+            <TextInput
               aria-describedby={fieldErrors.name ? `${nameId}-error` : undefined}
               aria-invalid={fieldErrors.name ? true : undefined}
-              className="field-input"
               disabled={saving}
               id={nameId}
               maxLength={INSTANCE_NAME_MAX_LENGTH}
@@ -193,21 +197,21 @@ function GameInstanceRow({
             )}
           </div>
           <div className="form-actions">
-            <button
-              className="button button--secondary button--compact"
+            <Button
+              variant="secondary" size="compact"
               disabled={saving}
               onClick={cancelEditing}
               type="button"
             >
               {t.projects.shared.cancel}
-            </button>
-            <button
-              className="button button--primary button--compact"
+            </Button>
+            <Button
+              variant="primary" size="compact"
               disabled={!dirty || saving || name.trim().length === 0}
               type="submit"
             >
               {saving ? t.projects.shared.saving : t.projects.shared.save}
-            </button>
+            </Button>
           </div>
         </form>
       ) : (
@@ -222,7 +226,7 @@ function GameInstanceRow({
             >
               {instance.name}
             </Link>
-            <span className="badge">{describePlatform(instance.platform)}</span>
+            <Badge>{describePlatform(instance.platform)}</Badge>
             <ConnectionState connected={instance.connected} />
           </div>
 
@@ -235,20 +239,20 @@ function GameInstanceRow({
           </p>
 
           <div className="instance-actions">
-            <button
-              className="button button--secondary button--compact"
+            <Button
+              variant="secondary" size="compact"
               onClick={() => setEditing(true)}
               type="button"
             >
               {t.projects.shared.edit}
-            </button>
-            <button
-              className="button button--danger-quiet button--compact"
+            </Button>
+            <Button
+              variant="danger-quiet" size="compact"
               onClick={() => onDelete(instance)}
               type="button"
             >
               {t.projects.instances.delete}
-            </button>
+            </Button>
           </div>
         </>
       )}

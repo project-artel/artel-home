@@ -1,4 +1,5 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Button, ButtonLink } from './design-system/primitives/Button'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { BrokenLogoScene } from './emptyStates/BrokenLogoScene'
 import { useI18n } from './i18n/useI18n'
 
@@ -38,18 +39,18 @@ export function NotFoundPage({
         <span className="sketch-empty-body">{copy ?? m.copy}</span>
         <code className="not-found-path">{location.pathname}</code>
         <span className="sketch-empty-actions">
-          <Link className="button button--primary" to={back?.to ?? '/projects'}>
+          <ButtonLink variant="primary" to={back?.to ?? '/projects'}>
             {back?.label ?? m.backToProjects}
-          </Link>
+          </ButtonLink>
           {canGoBack && (
-            <button className="button button--secondary" onClick={() => navigate(-1)} type="button">
+            <Button variant="secondary" onClick={() => navigate(-1)} type="button">
               {m.goBack}
-            </button>
+            </Button>
           )}
           {back && (
-            <Link className="button button--secondary" to="/projects">
+            <ButtonLink variant="secondary" to="/projects">
               {m.backToProjects}
-            </Link>
+            </ButtonLink>
           )}
         </span>
         <span aria-hidden="true" className="nf-after" />

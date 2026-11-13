@@ -1,3 +1,6 @@
+import { PanelEmpty, PanelMessage } from '../design-system/primitives/Feedback'
+import { PanelHeader } from '../design-system/primitives/Headers'
+import { DataTable } from '../design-system/primitives/Table'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import '../layouts/screens.css'
 import { useI18n } from '../i18n/useI18n'
@@ -29,32 +32,32 @@ export function UsageSection() {
   const { projectId } = useWorkspace()
   const { status, usage, grid, today } = useProjectUsage(projectId)
 
-  if (status === 'loading') return <p className="panel-empty">{u.loading}</p>
+  if (status === 'loading') return <PanelEmpty>{u.loading}</PanelEmpty>
   if (status === 'error' || usage === null || grid === null) {
     return (
-      <div className="panel-message" role="alert">
+      <PanelMessage role="alert">
         <p>{u.loadFailed}</p>
-      </div>
+      </PanelMessage>
     )
   }
 
   return (
     <div className="usage-section">
       <section className="panel" aria-labelledby="usage-window-title">
-        <header className="panel-header panel-header--split">
+        <PanelHeader split>
           <div>
             <h2 id="usage-window-title">
               {u.sectionTitle}
               <InfoHint>{u.sectionSubtitle(usage.zone)}</InfoHint>
             </h2>
           </div>
-        </header>
+        </PanelHeader>
 
         {/* 잔디는 제 폭만큼만 쓰고, 남는 옆자리에 수치를 둔다(ARTEL-1208). 전폭으로 늘리면 칸만 길고 비었다. */}
         <div className="usage-overview">
           <div className="usage-overview-grass">
             {usage.total.calls === 0 ? (
-              <p className="panel-empty">{u.nothingYet}</p>
+              <PanelEmpty>{u.nothingYet}</PanelEmpty>
             ) : (
               <UsageGrass grid={grid} zone={usage.zone} />
             )}
@@ -129,19 +132,19 @@ export function Breakdown({
 
   return (
     <section className="panel" aria-labelledby={id}>
-      <header className="panel-header panel-header--split">
+      <PanelHeader split>
         <div>
           <h2 id={id}>
             {title}
             {note !== undefined && <InfoHint>{note}</InfoHint>}
           </h2>
         </div>
-      </header>
+      </PanelHeader>
 
       {sorted.length === 0 ? (
-        <p className="panel-empty">{u.nothingYet}</p>
+        <PanelEmpty>{u.nothingYet}</PanelEmpty>
       ) : (
-        <table className="table usage-table">
+        <DataTable className="usage-table">
           {/* 칸 폭을 정해 둔다. 숫자 칸이 넓게 벌어지지 않고, 긴 모델 이름은 말줄임으로 줄인다. */}
           <colgroup>
             <col />
@@ -198,7 +201,7 @@ export function Breakdown({
               )
             })}
           </tbody>
-        </table>
+        </DataTable>
       )}
     </section>
   )

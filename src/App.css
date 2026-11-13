@@ -4086,10 +4086,6 @@ a.instance-name:hover {
 .scenario-studio .savebadge.saved{ color:var(--st-muted); } .scenario-studio .savebadge.unsaved{ color:var(--st-draft); background:var(--st-draft-dim); border:1px solid var(--color-status-warning); } .scenario-studio .savebadge.saving{ color:var(--st-action); }
 .scenario-studio .savebadge .d{ width:6px; height:6px; border-radius:999px; background:currentColor; }
 .scenario-studio .reconnect{ font-size:11.5px; color:var(--st-draft); background:var(--st-draft-dim); border:1px solid var(--color-status-warning); border-radius:999px; padding:4px 10px; display:inline-flex; align-items:center; gap:6px; }
-.scenario-studio .st-btn{ font:inherit; font-size:13px; cursor:pointer; border-radius:6px; padding:6px 11px; border:1px solid transparent; white-space:nowrap; }
-.scenario-studio .st-btn:disabled{ opacity:.4; cursor:default; }
-.scenario-studio .st-btn--primary{ background:var(--st-action); color:var(--color-text-on-accent); font-weight:600; } .scenario-studio .st-btn--primary:hover:not(:disabled){ background:var(--st-action-strong); }
-.scenario-studio .st-btn--danger{ color:var(--st-broken); background:transparent; } .scenario-studio .st-btn--danger:hover:not(:disabled){ background:var(--st-broken-dim); }
 
 /* 3-col edit */
 /* 대화 칸 폭은 사용자가 정한다(ARTEL-832). 답변 평균이 443자인데 360px 에서는 한 줄에
@@ -4479,10 +4475,6 @@ a.instance-name:hover {
 .scenario-studio .lib-row1 .cat-chip{ flex:none; }
 
 /* delete confirm modal + danger affordances */
-.scenario-studio .st-btn--ghost{ border-color:var(--st-border-strong); color:var(--st-text-2); background:transparent; }
-.scenario-studio .st-btn--ghost:hover:not(:disabled){ background:var(--st-hover); color:var(--st-text); }
-.scenario-studio .st-btn--danger-solid{ background:var(--st-broken); color:var(--color-text-on-accent); border:0; font-weight:600; }
-.scenario-studio .st-btn--danger-solid:hover:not(:disabled){ background:var(--color-status-critical-strong); }
 .scenario-studio .iconbtn--danger:hover:not(:disabled){ color:var(--st-broken); border-color:var(--st-broken); background:var(--st-broken-dim); }
 .scenario-studio .lib-actions{ gap:8px; }
 .scenario-studio .lib-actions .iconbtn{ margin-left:2px; }
@@ -4690,16 +4682,12 @@ a.instance-name:hover {
 @media (max-width:720px){ :is(.scenario-studio, .cp-scope) .cp-info{ display:none; } }
 
 /* run delete confirm modal */
-.run-del-overlay{ position:fixed; inset:0; background:var(--color-overlay-scrim); display:grid; place-items:center; z-index:60; padding:20px; }
-.run-del-modal{ width:min(420px,92vw); background:var(--color-bg-surface); border:1px solid var(--color-border-strong); border-radius:10px; padding:20px 22px; box-shadow:0 24px 70px -24px #000; }
-.run-del-modal h3{ margin:0 0 10px; font-size:16px; font-weight:650; }
 .run-del-name{ margin:0 0 6px; font-size:13px; font-weight:600; color:var(--color-text-primary); }
 .run-del-copy{ margin:0 0 12px; font-size:12.5px; color:var(--color-text-secondary); line-height:1.6; }
 /* 함께 지울지 고르는 자리. 되돌릴 수 없는 선택이라 본문과 버튼 사이에 두어 반드시 지나가게 한다. */
 .run-del-option{ display:flex; align-items:flex-start; gap:8px; margin:0 0 12px; padding:10px 12px; border:1px solid var(--color-border-subtle); border-radius:8px; font-size:12.5px; line-height:1.5; cursor:pointer; }
 .run-del-option input{ margin-top:2px; flex:none; }
 .run-del-note{ display:block; margin-top:2px; font-size:11.5px; font-style:normal; color:var(--color-text-secondary); }
-.run-del-actions{ display:flex; justify-content:flex-end; gap:8px; }
 
 /* run row delete icon (small, right-aligned) */
 .run-del-icon{ flex:none; width:28px; height:28px; display:grid; place-items:center; border-radius:6px; border:1px solid transparent; background:transparent; color:var(--color-text-muted); cursor:pointer; font-size:13px; }
@@ -5268,7 +5256,7 @@ a.instance-name:hover {
 .scenario-studio .st-erow--over{ border-color:var(--color-action-primary,#4c8bf5); box-shadow:0 -2px 0 var(--color-action-primary,#4c8bf5) inset; }
 
 /* 전체 TC 명세 ⌘K 조회 (ARTEL-289 #4)는 이전 CasePalette의 cp-* 스타일을 재사용한다. */
-.scenario-studio .st-btn .kbd{ font-family:var(--st-mono); font-size:10.5px; color:var(--st-muted); background:var(--st-canvas); border:1px solid var(--st-border-strong); border-radius:5px; padding:1px 5px; margin-left:5px; }
+.scenario-studio .button .kbd{ font-family:var(--st-mono); font-size:10.5px; color:var(--st-muted); background:var(--st-canvas); border:1px solid var(--st-border-strong); border-radius:5px; padding:1px 5px; margin-left:5px; }
 
 /* SceneChip 테마 대응 (ARTEL-289, ARTEL-369에서 개명): 라이트=밝은 틴트+짙은 글자, 다크=잉크 반전.
    hue만 인라인(--cat-hue), 명도/채도는 여기서 테마별로.
@@ -10872,7 +10860,6 @@ col.mct-c-updated { width: 12%; }
 .tip-btn .tip{ position:absolute; top:calc(100% + 8px); left:50%; transform:translateX(-50%); z-index:20; padding:6px 10px; border-radius:6px; background:var(--color-brand-charcoal); color:#f2efe9; font-size:12px; font-weight:500; line-height:16px; white-space:nowrap; letter-spacing:0; text-transform:none; pointer-events:none; opacity:0; visibility:hidden; transition:opacity 120ms; box-shadow:0 4px 12px rgba(0,0,0,.24); }
 .tip-btn .tip::before{ content:""; position:absolute; bottom:100%; left:50%; transform:translateX(-50%); border:5px solid transparent; border-bottom-color:var(--color-brand-charcoal); }
 .tip-btn:hover .tip, .tip-btn:focus-visible .tip{ opacity:1; visibility:visible; }
-.st-btn--icon{ display:inline-flex; align-items:center; gap:6px; }
 .scenario-studio .mini-add + .mini-add{ margin-left:0; }
 .scenario-studio .mini-add.tip-btn{ display:inline-flex; align-items:center; justify-content:center; padding:0; line-height:0; }
 .scenario-studio .mini-add.tip-btn > svg{ display:block; flex:none; }

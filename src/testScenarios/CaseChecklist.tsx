@@ -1,3 +1,4 @@
+import { TextInput } from '../design-system/primitives/Fields'
 import { TestCaseHover } from '../testCases/TestCaseHover'
 import { useId, useMemo, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
@@ -38,8 +39,7 @@ export function CaseChecklist({
     <>
       <div className="field">
         <label className="field-label" htmlFor={searchId}>{m.search}</label>
-        <input
-          className="field-input"
+        <TextInput
           id={searchId}
           onChange={(event) => setQuery(event.target.value)}
           placeholder={m.searchPlaceholder}

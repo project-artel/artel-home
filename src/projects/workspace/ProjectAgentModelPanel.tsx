@@ -1,3 +1,5 @@
+import { PanelHeader } from '../../design-system/primitives/Headers'
+import { Button } from '../../design-system/primitives/Button'
 import { useEffect, useState } from 'react'
 import { useI18n } from '../../i18n/useI18n'
 import type { QaModel } from '../../qa/qaTypes'
@@ -60,9 +62,9 @@ export function ProjectAgentModelPanel({
   const orphan = stored !== null && !options.some((model) => model.id === stored)
   return (
     <section aria-labelledby="project-agent-model-title" className="panel">
-      <header className="panel-header">
+      <PanelHeader>
         <h2 id="project-agent-model-title">{copy.projectTitle}</h2>
-      </header>
+      </PanelHeader>
       <div className="review-settings">
         <select
           aria-label={copy.projectTitle}
@@ -78,14 +80,14 @@ export function ProjectAgentModelPanel({
           ))}
         </select>
         {canEdit ? (
-          <button
-            className="button button--secondary"
+          <Button
+            variant="secondary"
             disabled={pending || current === null || value === (stored ?? '')}
             onClick={() => void save()}
             type="button"
           >
             {pending ? copy.projectSaving : copy.projectSave}
-          </button>
+          </Button>
         ) : (
           <span className="dc-quiet">{copy.projectOwnerOnly}</span>
         )}

@@ -1,3 +1,4 @@
+import { Button } from '../../../design-system/primitives/Button'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../../../i18n/useI18n'
@@ -32,7 +33,7 @@ export function DashboardReliability({ projectId, days, now }: { projectId: stri
       <Link className="db-more" to={`/projects/${encodeURIComponent(projectId)}/qa-history`}>{copy.title}</Link>
     </header>
     {!current ? <p className="db-quiet" role="status">{copy.loading}</p> : current.failed ?
-      <div role="alert"><p className="db-quiet">{copy.error}</p><button type="button" className="button button--secondary button--compact" onClick={() => setRetry(value => value + 1)}>{copy.retry}</button></div> :
+      <div role="alert"><p className="db-quiet">{copy.error}</p><Button type="button" variant="secondary" size="compact" onClick={() => setRetry(value => value + 1)}>{copy.retry}</Button></div> :
       current.data && <ReliabilityContent data={current.data} firstDay={firstDay} lastDay={lastDay} copy={copy} />}
   </section>
 }

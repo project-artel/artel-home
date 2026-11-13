@@ -1,3 +1,4 @@
+import { Button } from '../../design-system/primitives/Button'
 import { useState } from 'react'
 import { useI18n } from '../../i18n/useI18n'
 
@@ -45,9 +46,9 @@ export function TemporaryPasswordNotice({
         <code className="adm-secret__value" aria-label={t.adminSettings.users.temporaryPasswordLabel}>
           {password}
         </code>
-        <button type="button" className="control control--action" onClick={copy}>
+        <Button type="button" variant="secondary" size="compact" onClick={copy}>
           {t.adminSettings.users.copy}
-        </button>
+        </Button>
         <button type="button" className="control" onClick={onDismiss}>
           {t.adminSettings.users.delivered}
         </button>

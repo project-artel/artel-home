@@ -1,3 +1,4 @@
+import { Button } from '../design-system/primitives/Button'
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { useActionRegistry } from './registry/registryContext'
@@ -72,12 +73,12 @@ export function AgentHighlight() {
         >
           <p className="agent-highlight__summary">{approval.summary}</p>
           <div className="agent-highlight__actions">
-            <button className="button button--primary" onClick={approval.approve} ref={approveButton} type="button">
+            <Button variant="primary" onClick={approval.approve} ref={approveButton} type="button">
               {strings.approve}
-            </button>
-            <button className="button button--secondary" onClick={approval.reject} type="button">
+            </Button>
+            <Button variant="secondary" onClick={approval.reject} type="button">
               {strings.reject}
-            </button>
+            </Button>
           </div>
         </div>
       )}

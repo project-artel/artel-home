@@ -1,3 +1,4 @@
+import { Button } from '../design-system/primitives/Button'
 import { useEffect, useId, useState } from 'react'
 import { Dialog } from '../design-system/primitives/Dialog'
 import { useI18n } from '../i18n/useI18n'
@@ -273,17 +274,17 @@ function Body({
         )}
         <span className="rc-actions">
           {canEdit && (
-            <button className="button button--secondary" disabled={saving || state.isDefault} onClick={() => void apply(() => resetReleaseCriteria(projectId))} type="button">
+            <Button variant="secondary" disabled={saving || state.isDefault} onClick={() => void apply(() => resetReleaseCriteria(projectId))} type="button">
               {m.resetDefaults}
-            </button>
+            </Button>
           )}
-          <button className="button button--secondary" disabled={saving} onClick={onClose} type="button">
+          <Button variant="secondary" disabled={saving} onClick={onClose} type="button">
             {canEdit ? m.cancel : m.close}
-          </button>
+          </Button>
           {canEdit && (
-            <button className="button button--primary" disabled={saving || changed === 0} onClick={() => void apply(() => updateReleaseCriteria(projectId, draft))} type="button">
+            <Button variant="primary" disabled={saving || changed === 0} onClick={() => void apply(() => updateReleaseCriteria(projectId, draft))} type="button">
               {saving ? m.saving : m.save}
-            </button>
+            </Button>
           )}
         </span>
       </footer>

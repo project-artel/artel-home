@@ -1,3 +1,4 @@
+import { Button } from '../design-system/primitives/Button'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
@@ -122,22 +123,22 @@ export function useDraftPreview(projectId: string, runChat: RunChatSession, case
             )}
           </div>
           <div className="draft-banner-acts">
-            <button
-              className="st-btn st-btn--ghost"
+            <Button
+              variant="secondary" size="compact"
               disabled={runChat.applying}
               onClick={() => void discardDrafts([activeDraft.draftId])}
               type="button"
             >
               {d.discard}
-            </button>
-            <button
-              className="st-btn st-btn--primary"
+            </Button>
+            <Button
+              variant="primary" size="compact"
               disabled={runChat.applying}
               onClick={() => void approve([activeDraft.draftId])}
               type="button"
             >
               {runChat.applying ? d.working : d.approve}
-            </button>
+            </Button>
           </div>
         </div>
       }

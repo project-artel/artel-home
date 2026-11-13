@@ -1,3 +1,5 @@
+import { InlineError } from '../../design-system/primitives/Feedback'
+import { Button } from '../../design-system/primitives/Button'
 import { useState, type FormEvent, type KeyboardEvent } from 'react'
 import { useI18n } from '../../i18n/useI18n'
 import type { AgentSession } from './sessionContext'
@@ -36,10 +38,10 @@ export function AgentComposer({ session }: { session: AgentSession }) {
   return (
     <form className="agent-panel__composer" onSubmit={onSubmit}>
       {state.error !== null && (
-        <div className="inline-error" role="alert">
+        <InlineError>
           <span aria-hidden="true">!</span>
           {state.error}
-        </div>
+        </InlineError>
       )}
       <textarea
         aria-describedby="agent-composer-hint"
@@ -57,18 +59,18 @@ export function AgentComposer({ session }: { session: AgentSession }) {
           {copy.chat.composerHint}
         </p>
         {conversationBusy ? (
-          <button className="button button--secondary button--compact agent-button--stop" onClick={() => void store.cancel()} type="button">
+          <Button variant="secondary" size="compact" className="agent-button--stop" onClick={() => void store.cancel()} type="button">
             <span aria-hidden="true" className="agent-stop-mark" />
             {copy.chat.stop}
-          </button>
+          </Button>
         ) : (
-          <button
-            className="button button--primary button--compact"
+          <Button
+            variant="primary" size="compact"
             disabled={disabled || draft.trim().length === 0}
             type="submit"
           >
             {copy.chat.send}
-          </button>
+          </Button>
         )}
       </div>
     </form>

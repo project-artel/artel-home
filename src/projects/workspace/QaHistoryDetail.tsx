@@ -1,3 +1,5 @@
+import { PanelEmpty } from '../../design-system/primitives/Feedback'
+import { ButtonLink } from '../../design-system/primitives/Button'
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
@@ -70,11 +72,11 @@ export function QaHistoryDetail({
   }, [qaTryId])
 
   if (status === 'loading') {
-    return <p className="panel-empty panel-empty--inset">{t.qa.history.detail.loading}</p>
+    return <PanelEmpty inset>{t.qa.history.detail.loading}</PanelEmpty>
   }
 
   if (status === 'gone') {
-    return <p className="panel-empty panel-empty--inset">{t.qa.history.detail.gone}</p>
+    return <PanelEmpty inset>{t.qa.history.detail.gone}</PanelEmpty>
   }
 
   if (status === 'error' || detail === null) {
@@ -236,7 +238,7 @@ function RunDetailVerdicts({ href, scenario }: { href: string; scenario: QaTryVe
             ))}
           </ul>
         )}
-        <Link className="button button--secondary button--compact qh-steps-open" to={href}>{copy.entry.open}</Link>
+        <ButtonLink variant="secondary" size="compact" className="qh-steps-open" to={href}>{copy.entry.open}</ButtonLink>
       </div>
     </section>
   )

@@ -1,3 +1,6 @@
+import { InlineError, PanelEmpty } from '../../design-system/primitives/Feedback'
+import { Button } from '../../design-system/primitives/Button'
+import { Badge } from '../../design-system/primitives/Badge'
 import { buildEnvironment } from '../buildEnvironment'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
@@ -57,19 +60,19 @@ export function GameBuildsSection() {
       <p className="section-intro">{m.intro}</p>
 
       <section aria-label={m.label} className="panel panel--flush">
-        {status === 'loading' && <p className="panel-empty panel-empty--inset">{m.loading}</p>}
+        {status === 'loading' && <PanelEmpty inset>{m.loading}</PanelEmpty>}
 
         {status === 'failed' && (
-          <div className="inline-error inline-error--inset" role="alert">
+          <InlineError inset>
             <span aria-hidden="true">!</span>
             {m.loadFailed}
-            <button className="button button--secondary button--compact" onClick={reload} type="button">
+            <Button variant="secondary" size="compact" onClick={reload} type="button">
               {m.retry}
-            </button>
-          </div>
+            </Button>
+          </InlineError>
         )}
 
-        {status === 'ready' && rows.length === 0 && <p className="panel-empty panel-empty--inset">{m.empty}</p>}
+        {status === 'ready' && rows.length === 0 && <PanelEmpty inset>{m.empty}</PanelEmpty>}
 
         {status === 'ready' && rows.length > 0 && (
           <>
@@ -125,7 +128,7 @@ function GameBuildRow({ row }: { row: GameBuildSummary }) {
           >
             {row.version}
           </Link>
-          <span className="badge">{buildEnvironment(row.isEditor)}</span>
+          <Badge>{buildEnvironment(row.isEditor)}</Badge>
         </div>
         {hasLabel && <div className="gb-label">{row.label}</div>}
       </td>

@@ -1,3 +1,6 @@
+import { TextInput } from '../design-system/primitives/Fields'
+import { Button } from '../design-system/primitives/Button'
+import { InlineError } from '../design-system/primitives/Feedback'
 import { useId, useState } from 'react'
 import { SketchEmpty } from '../emptyStates/SketchEmpty'
 import { FolderSketch } from '../emptyStates/sketches'
@@ -93,9 +96,8 @@ export function MoveCasesDialog({
             actions={
               onCreateFolder !== undefined && mode === 'add' ? (
                 <span className="move-cases-create">
-                  <input
+                  <TextInput
                     aria-label={items.newFolderName}
-                    className="field-input"
                     disabled={creating}
                     onChange={(event) => setNewName(event.target.value)}
                     onKeyDown={(event) => {
@@ -107,14 +109,14 @@ export function MoveCasesDialog({
                     placeholder={items.newFolderName}
                     value={newName}
                   />
-                  <button
-                    className="button button--secondary"
+                  <Button
+                    variant="secondary"
                     disabled={creating || newName.trim().length === 0}
                     onClick={() => void createFolder()}
                     type="button"
                   >
                     {items.createFolder}
-                  </button>
+                  </Button>
                 </span>
               ) : undefined
             }
@@ -136,19 +138,19 @@ export function MoveCasesDialog({
         )}
 
         {failure !== null && (
-          <div className="inline-error" role="alert">
+          <InlineError>
             <span aria-hidden="true">!</span>
             {failure}
-          </div>
+          </InlineError>
         )}
 
         <div className="dialog-actions">
-          <button className="button button--secondary" disabled={pending} onClick={onClose} type="button">
+          <Button variant="secondary" disabled={pending} onClick={onClose} type="button">
             {m.cancel}
-          </button>
-          <button className="button button--primary" disabled={pending || (!allowsNone && folderId === null)} type="submit">
+          </Button>
+          <Button variant="primary" disabled={pending || (!allowsNone && folderId === null)} type="submit">
             {pending ? m.pending : m.confirm(count)}
-          </button>
+          </Button>
         </div>
       </form>
     </Dialog>

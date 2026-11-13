@@ -1,3 +1,5 @@
+import { InlineError } from '../design-system/primitives/Feedback'
+import { Button } from '../design-system/primitives/Button'
 import { useEffect, useId, useRef, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { TelemetryContents } from '../telemetry/TelemetryContents'
@@ -68,24 +70,24 @@ export function UsageStatsPrompt() {
       <p className="dialog-copy">{copy.body}</p>
       <TelemetryContents />
       {failed && (
-        <div className="inline-error usage-stats-prompt__error" role="alert">
+        <InlineError className="usage-stats-prompt__error">
           <span aria-hidden="true">!</span>
           {copy.saveFailed}
-        </div>
+        </InlineError>
       )}
       <div className="dialog-actions">
-        <button className="button button--secondary" type="button" disabled={saving} onClick={() => void choose(false)}>
+        <Button variant="secondary" type="button" disabled={saving} onClick={() => void choose(false)}>
           {copy.dontSend}
-        </button>
-        <button
+        </Button>
+        <Button
           ref={sendRef}
-          className="button button--primary"
+          variant="primary"
           type="button"
           disabled={saving}
           onClick={() => void choose(true)}
         >
           {copy.send}
-        </button>
+        </Button>
       </div>
     </dialog>
   )

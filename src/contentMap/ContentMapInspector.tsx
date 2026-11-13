@@ -1,3 +1,4 @@
+import { Button } from '../design-system/primitives/Button'
 import { useState, type ReactNode } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { InlineCode } from './InlineCode'
@@ -88,13 +89,13 @@ export function ContentMapInspector({
         <header className="cm-inspector-header">
           <h3 id="sm-inspector-title">{copy.title}</h3>
           {selection !== null && (
-            <button
-              className="button button--secondary button--compact"
+            <Button
+              variant="secondary" size="compact"
               onClick={onClear}
               type="button"
             >
               {copy.clear}
-            </button>
+            </Button>
           )}
         </header>
 

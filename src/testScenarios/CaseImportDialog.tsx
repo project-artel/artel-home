@@ -1,3 +1,4 @@
+import { Button } from '../design-system/primitives/Button'
 import { useTestCaseIdentifiers, useTestCaseLabel } from '../testCases/testCaseIdentifiers'
 import { TestCaseHover } from '../testCases/TestCaseHover'
 import { useId, useMemo, useState } from 'react'
@@ -390,10 +391,10 @@ export function CaseImportDialog({
           <div className="cid-where">
             <Picker label={m.where} onChange={(value) => setAt(Number(value))} options={positions.map((one) => ({ value: String(one.at), label: one.label }))} value={String(at)} />
           </div>
-          <button className="button button--secondary" onClick={onClose} type="button">{m.cancel}</button>
-          <button className="button button--primary" disabled={picks.length === 0} onClick={() => onAdd(picks.map((pick) => pick.caseId), at)} type="button">
+          <Button variant="secondary" onClick={onClose} type="button">{m.cancel}</Button>
+          <Button variant="primary" disabled={picks.length === 0} onClick={() => onAdd(picks.map((pick) => pick.caseId), at)} type="button">
             {m.confirm(picks.length)}
-          </button>
+          </Button>
         </div>
       </div>
     </Dialog>

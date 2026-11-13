@@ -1,3 +1,4 @@
+import { Button } from '../design-system/primitives/Button'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
@@ -353,22 +354,22 @@ export function ScenarioList({
             <span>{d.barHint}</span>
           </p>
           <div className="draft-bar-acts">
-            <button
-              className="st-btn st-btn--ghost"
+            <Button
+              variant="secondary" size="compact"
               disabled={draftBusy}
               onClick={() => onDiscardDrafts?.(drafts.map((draft) => draft.draftId))}
               type="button"
             >
               {d.discardAll}
-            </button>
-            <button
-              className="st-btn st-btn--primary"
+            </Button>
+            <Button
+              variant="primary" size="compact"
               disabled={draftBusy}
               onClick={() => onApplyDrafts?.(drafts.map((draft) => draft.draftId))}
               type="button"
             >
               {draftBusy ? d.working : d.approveAll}
-            </button>
+            </Button>
           </div>
         </div>
       )}

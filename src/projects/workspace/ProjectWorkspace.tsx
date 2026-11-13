@@ -1,3 +1,5 @@
+import { PanelEmpty, PanelMessage } from '../../design-system/primitives/Feedback'
+import { Button } from '../../design-system/primitives/Button'
 import { TestCaseIdentifiersProvider } from '../../testCases/TestCaseIdentifiersProvider'
 import { useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { NotFoundPage } from '../../NotFoundPage'
@@ -148,7 +150,7 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
   if (status === 'loading') {
     return (
       <section className="page" aria-busy="true">
-        <p className="panel-empty">{t.projects.detail.loading}</p>
+        <PanelEmpty>{t.projects.detail.loading}</PanelEmpty>
       </section>
     )
   }
@@ -162,12 +164,12 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
   if (status === 'error' || project === null || value === null) {
     return (
       <section className="page">
-        <div className="panel-message" role="alert">
+        <PanelMessage role="alert">
           <p>{t.projects.detail.loadFailed}</p>
-          <button className="button button--secondary" onClick={reload} type="button">
+          <Button variant="secondary" onClick={reload} type="button">
             {t.projects.shared.retry}
-          </button>
-        </div>
+          </Button>
+        </PanelMessage>
       </section>
     )
   }

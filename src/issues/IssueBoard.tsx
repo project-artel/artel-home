@@ -1,3 +1,4 @@
+import { Button, ButtonLink } from '../design-system/primitives/Button'
 import { useBuildDisplayName } from '../projects/useBuildDisplayName'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -567,13 +568,13 @@ export function IssueBoard({
           )}
           <span className="ib-toolbar-spacer" />
           {selectedIds.length > 0 && (
-            <button
-              className="button button--secondary button--compact"
+            <Button
+              variant="secondary" size="compact"
               onClick={() => void archiveSelected(!filters.archived)}
               type="button"
             >
               {filters.archived ? b.unarchive : b.archiveSelected}
-            </button>
+            </Button>
           )}
           <button
             aria-pressed={filters.archived === true}
@@ -588,9 +589,9 @@ export function IssueBoard({
             {b.archiveBox(facets?.archived ?? 0)}
           </button>
           {openFolder !== null && selectedIds.length > 0 && (
-            <button className="button button--secondary button--compact" onClick={() => void removeSelectedFromFolder()} type="button">
+            <Button variant="secondary" size="compact" onClick={() => void removeSelectedFromFolder()} type="button">
               {b.removeFromFolder}
-            </button>
+            </Button>
           )}
         </div>
 
@@ -640,9 +641,9 @@ export function IssueBoard({
         {issues.status === 'error' && (
           <div className="ib-message" role="alert">
             <p>{t.issues.list.loadFailed}</p>
-            <button className="button button--secondary" onClick={() => setReloadToken((value) => value + 1)} type="button">
+            <Button variant="secondary" onClick={() => setReloadToken((value) => value + 1)} type="button">
               {t.issues.list.retry}
-            </button>
+            </Button>
           </div>
         )}
         {issues.status === 'ready' && issues.items.length === 0 && (
@@ -750,9 +751,9 @@ export function IssueBoard({
         )}
         {issues.hasMore && (
           <div className="ib-more">
-            <button className="button button--secondary" disabled={issues.loadingMore} onClick={issues.loadMore} type="button">
+            <Button variant="secondary" disabled={issues.loadingMore} onClick={issues.loadMore} type="button">
               {issues.loadingMore ? t.issues.list.loadingMore : t.issues.list.loadMore}
-            </button>
+            </Button>
           </div>
         )}
         <p className="visually-hidden" role="status">
@@ -850,21 +851,21 @@ function IssueSheet({
           selected={issue.categories.map((category) => category.id)}
         />
         <div className="ib-sheet-actions">
-          <button className="button button--secondary button--compact" disabled={pending} onClick={onToggle} type="button">
+          <Button variant="secondary" size="compact" disabled={pending} onClick={onToggle} type="button">
             {pending ? t.issues.row.pending : resolved ? t.issues.row.reopen : t.issues.row.resolve}
-          </button>
+          </Button>
           {issue.qaRunId !== null ? (
-            <Link className="button button--secondary button--compact" to={qaRunPath(projectId, issue.qaRunId, issue.qaTryId)}>
+            <ButtonLink variant="secondary" size="compact" to={qaRunPath(projectId, issue.qaRunId, issue.qaTryId)}>
               {t.issues.row.openQaTry}
-            </Link>
+            </ButtonLink>
           ) : null}
-          <button className="button button--secondary button--compact" onClick={onArchive} type="button">
+          <Button variant="secondary" size="compact" onClick={onArchive} type="button">
             {issue.archivedAt === null ? b.archive : b.unarchive}
-          </button>
+          </Button>
           {trackerConnected && (issue.tracker === null || issue.tracker.syncState === 'FAILED') ? (
-            <button className="button button--secondary button--compact" disabled={syncPending} onClick={onSync} type="button">
+            <Button variant="secondary" size="compact" disabled={syncPending} onClick={onSync} type="button">
               {syncPending ? t.tracker.row.exporting : issue.tracker === null ? t.tracker.row.export : t.tracker.row.retry}
-            </button>
+            </Button>
           ) : null}
         </div>
         {trackerConnected && <IssueTrackerStatus tracker={issue.tracker} />}
@@ -946,9 +947,9 @@ function IssueSheet({
         <pre className="mono">{JSON.stringify(issue.detail, null, 2)}</pre>
       </details>
       <footer className="ib-sheet-foot">
-        <button className="button button--secondary" onClick={onClose} type="button">
+        <Button variant="secondary" onClick={onClose} type="button">
           {b.close}
-        </button>
+        </Button>
       </footer>
     </article>
   )

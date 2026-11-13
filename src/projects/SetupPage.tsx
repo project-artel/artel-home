@@ -1,3 +1,4 @@
+import { PageHeader } from '../design-system/primitives/Headers'
 import { useI18n } from '../i18n/useI18n'
 import { SetupGuide } from './SetupGuide'
 
@@ -11,12 +12,7 @@ export function SetupPage() {
 
   return (
     <section className="page page--wide" aria-labelledby="setup-title">
-      <header className="page-header">
-        <div>
-          <p className="eyebrow">{t.projects.setup.eyebrow}</p>
-          <h1 id="setup-title">{t.projects.setup.title}</h1>
-        </div>
-      </header>
+      <PageHeader eyebrow={t.projects.setup.eyebrow} title={t.projects.setup.title} titleId="setup-title" />
 
       <SetupGuide />
     </section>

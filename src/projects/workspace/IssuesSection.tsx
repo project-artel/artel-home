@@ -1,3 +1,4 @@
+import { Button } from '../../design-system/primitives/Button'
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
@@ -147,14 +148,14 @@ function IssueWorkspace() {
           </button>
         </nav>
         {!composingNew && !categoriesTab && (team || selected.length === 0) && (
-          <button
-            className="button button--primary dc-with-icon"
+          <Button
+            variant="primary" className="dc-with-icon"
             onClick={() => openComposer()}
             type="button"
           >
             <DiscussionIcon name="plus" size={15} />
             {text.newPost}
-          </button>
+          </Button>
         )}
       </div>
       {composingNew ? (
@@ -199,10 +200,10 @@ function IssueWorkspace() {
                 {text.clear}
               </button>
               <span className="dc-selection-spacer" />
-              <button className="button button--primary dc-with-icon" onClick={() => openComposer()} type="button">
+              <Button variant="primary" className="dc-with-icon" onClick={() => openComposer()} type="button">
                 <DiscussionIcon name="messages" size={15} />
                 {text.selectedShare}
-              </button>
+              </Button>
             </div>
           )}
           <IssueBoard

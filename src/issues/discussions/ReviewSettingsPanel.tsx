@@ -1,3 +1,5 @@
+import { PanelHeader } from '../../design-system/primitives/Headers'
+import { Button } from '../../design-system/primitives/Button'
 import { useEffect, useState } from 'react'
 import { useI18n } from '../../i18n/useI18n'
 import { getDiscussionSettings, updateDiscussionSettings } from './discussionApi'
@@ -41,9 +43,9 @@ export function ReviewSettingsPanel({ projectId, canEdit }: { projectId: string;
 
   return (
     <section aria-labelledby="review-settings-title" className="panel">
-      <header className="panel-header">
+      <PanelHeader>
         <h2 id="review-settings-title">{text.approvalsSetting}</h2>
-      </header>
+      </PanelHeader>
       <p className="section-intro">{text.reviewersHint}</p>
       <div className="review-settings">
         <input
@@ -57,14 +59,14 @@ export function ReviewSettingsPanel({ projectId, canEdit }: { projectId: string;
           value={value ?? ''}
         />
         {canEdit ? (
-          <button
-            className="button button--secondary"
+          <Button
+            variant="secondary"
             disabled={pending || value === null || value === saved}
             onClick={() => void save()}
             type="button"
           >
             {pending ? text.saving : text.save}
-          </button>
+          </Button>
         ) : (
           <span className="dc-quiet">{text.approvalsSettingHint}</span>
         )}

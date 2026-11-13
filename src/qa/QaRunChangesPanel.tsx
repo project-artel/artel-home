@@ -1,3 +1,5 @@
+import { InlineError, PanelEmpty } from '../design-system/primitives/Feedback'
+import { Button } from '../design-system/primitives/Button'
 import { useId, useMemo, useState } from 'react'
 import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
 import { useI18n } from '../i18n/useI18n'
@@ -32,17 +34,17 @@ export function QaRunChangesPanel({ changes, qaRunId }: { changes: QaRunChanges;
 
   return (
     <section className="qa-changes" aria-label={t.qa.changes.heading}>
-      {state === 'loading' && <p className="panel-empty">{t.qa.changes.loading}</p>}
+      {state === 'loading' && <PanelEmpty>{t.qa.changes.loading}</PanelEmpty>}
       {state === 'error' && (
-        <div className="inline-error" role="alert">
+        <InlineError>
           <span aria-hidden="true">!</span>
           {t.qa.changes.loadFailed}
-          <button className="button button--secondary button--compact" onClick={reload} type="button">
+          <Button variant="secondary" size="compact" onClick={reload} type="button">
             {t.qa.changes.retry}
-          </button>
-        </div>
+          </Button>
+        </InlineError>
       )}
-      {state === 'ready' && items.length === 0 && <p className="panel-empty">{t.qa.changes.empty}</p>}
+      {state === 'ready' && items.length === 0 && <PanelEmpty>{t.qa.changes.empty}</PanelEmpty>}
       {state === 'ready' && items.length > 0 && (
         <ul className="qa-changes-list">
           {items.map((item) => (
@@ -108,9 +110,9 @@ function QaChangeItem({ item, onRevert }: { item: QaChange; onRevert: () => void
           {reverted && <span className="qa-change-state">{t.qa.changes.reverted}</span>}
         </button>
         {item.revertible && (
-          <button className="button button--secondary button--compact" onClick={onRevert} type="button">
+          <Button variant="secondary" size="compact" onClick={onRevert} type="button">
             {t.qa.changes.revert}
-          </button>
+          </Button>
         )}
         {!item.revertible && !reverted && item.notRevertibleReason !== null && (
           <span className="qa-change-reason">{t.qa.changes.notRevertible[item.notRevertibleReason]}</span>
@@ -131,7 +133,7 @@ function LineDiffView({ after, before, label }: { after: string | null; before: 
   const [expanded, setExpanded] = useState<ReadonlySet<number>>(new Set())
   const rows = useMemo(() => foldUnchanged(diffLines(before, after), CONTEXT_LINES), [after, before])
 
-  if (rows.length === 0) return <p className="panel-empty">{t.qa.changes.noLineChange}</p>
+  if (rows.length === 0) return <PanelEmpty>{t.qa.changes.noLineChange}</PanelEmpty>
 
   return (
     <div aria-label={label} className="qa-diff" role="group">

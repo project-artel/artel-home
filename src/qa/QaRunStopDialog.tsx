@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Button, ButtonLink } from '../design-system/primitives/Button'
 import { Dialog } from '../design-system/primitives/Dialog'
 import { useI18n } from '../i18n/useI18n'
 import type { QaStopNotice } from './qaStop'
@@ -35,9 +35,9 @@ export function QaRunStopDialog({
           {copy.notJudged} {discarded ? copy.discarded : copy.kept}
         </p>
         <div className="dialog-actions qa-stop-actions">
-          <Link className="button button--primary" to={relaunchTo}>{copy.retryOtherModel}</Link>
-          <Link className="button button--secondary" to="/account">{copy.llmKeySettings}</Link>
-          <button className="button button--secondary" onClick={onClose} type="button">{copy.closeAndSeeLogs}</button>
+          <ButtonLink variant="primary" to={relaunchTo}>{copy.retryOtherModel}</ButtonLink>
+          <ButtonLink variant="secondary" to="/account">{copy.llmKeySettings}</ButtonLink>
+          <Button variant="secondary" onClick={onClose} type="button">{copy.closeAndSeeLogs}</Button>
         </div>
       </div>
     </Dialog>

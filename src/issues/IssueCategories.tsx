@@ -1,3 +1,4 @@
+import { Button } from '../design-system/primitives/Button'
 import { useState } from 'react'
 import { Dialog } from '../design-system/primitives/Dialog'
 import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
@@ -46,9 +47,9 @@ export function CategoryManager({
     <Dialog labelledBy="issue-category-manager" onClose={onClose} title={b.manageCategories}>
       <CategoryWorkbench categories={categories} onChanged={onChanged} projectId={projectId} variant="dialog" />
       <div className="cm2-foot">
-        <button className="button button--secondary" onClick={onClose} type="button">
+        <Button variant="secondary" onClick={onClose} type="button">
           {b.done}
-        </button>
+        </Button>
       </div>
     </Dialog>
   )
@@ -236,11 +237,11 @@ export function CategoryWorkbench({
               <strong>{b.deleteConfirmTitle(confirmTargets.length)}</strong>
               <p>{b.deleteConfirmBody(confirmIssues, confirmPosts)}</p>
               <div className="cm2-confirm-actions">
-                <button className="button button--secondary" disabled={pending} onClick={() => setConfirming(null)} type="button">
+                <Button variant="secondary" disabled={pending} onClick={() => setConfirming(null)} type="button">
                   {t.discussions.cancel}
-                </button>
-                <button
-                  className="button button--danger"
+                </Button>
+                <Button
+                  variant="danger"
                   disabled={pending}
                   onClick={() =>
                     void run(async () => {
@@ -253,7 +254,7 @@ export function CategoryWorkbench({
                   type="button"
                 >
                   {b.deleteCategory}
-                </button>
+                </Button>
               </div>
             </div>
           )}
@@ -320,9 +321,9 @@ function NewCategory({ onCreate, disabled }: { onCreate: (name: string, color: s
           {name.trim() || b.categoryNamePlaceholder}
         </span>
       </div>
-      <button className="button button--primary" disabled={disabled || !name.trim()} type="submit">
+      <Button variant="primary" disabled={disabled || !name.trim()} type="submit">
         {b.addCategory}
-      </button>
+      </Button>
     </form>
   )
 }
@@ -393,12 +394,12 @@ function CategoryEditor({
         </dd>
       </dl>
       <div className="cm2-form-actions">
-        <button className="button button--primary" disabled={disabled || !dirty || !name.trim()} type="submit">
+        <Button variant="primary" disabled={disabled || !dirty || !name.trim()} type="submit">
           {b.saveCategory}
-        </button>
-        <button className="button button--danger-quiet" disabled={disabled} onClick={onDelete} type="button">
+        </Button>
+        <Button variant="danger-quiet" disabled={disabled} onClick={onDelete} type="button">
           {b.deleteCategory}
-        </button>
+        </Button>
       </div>
     </form>
   )

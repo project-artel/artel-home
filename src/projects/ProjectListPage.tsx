@@ -1,3 +1,6 @@
+import { PanelMessage } from '../design-system/primitives/Feedback'
+import { Button } from '../design-system/primitives/Button'
+import { Badge } from '../design-system/primitives/Badge'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
@@ -160,20 +163,20 @@ export function ProjectListPage() {
       )}
 
       {status === 'error' && (
-        <div className="panel-message" role="alert">
+        <PanelMessage role="alert">
           <p>{copy.loadFailed}</p>
-          <button className="button button--secondary" onClick={reload} type="button">
+          <Button variant="secondary" onClick={reload} type="button">
             {t.projects.shared.retry}
-          </button>
-        </div>
+          </Button>
+        </PanelMessage>
       )}
 
       {status === 'ready' && projects.length === 0 && (
         <SketchEmpty
           actions={
-            <button className="button button--primary" onClick={() => setCreating(true)} type="button">
+            <Button variant="primary" onClick={() => setCreating(true)} type="button">
               {copy.newProject}
-            </button>
+            </Button>
           }
           body={copy.emptyCopy}
           sketch={<BuildSketch />}
@@ -288,7 +291,7 @@ function ProjectCard({
             {project.description ? project.description : t.projects.detail.noDescription}
           </span>
           <span className="project-card-meta">
-            <span className="badge">{t.projects.genreLabels[project.genre]}</span>
+            <Badge>{t.projects.genreLabels[project.genre]}</Badge>
             {/* 글로 상태를 말한다. 색만으로 "문서 있음" 과 "없음" 을 가르지 않는다. */}
             {project.latestDocument === null ? (
               <span>{copy.noDocument}</span>

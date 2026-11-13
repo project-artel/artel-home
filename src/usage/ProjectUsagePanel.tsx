@@ -1,4 +1,6 @@
-import { Link } from 'react-router-dom'
+import { PanelHeader } from '../design-system/primitives/Headers'
+import { ButtonLink } from '../design-system/primitives/Button'
+import { PanelEmpty } from '../design-system/primitives/Feedback'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
 import { sectionHref } from '../projects/workspace/sections'
@@ -20,7 +22,7 @@ export function ProjectUsagePanel({ projectId }: { projectId: string }) {
 
   return (
     <section className="panel usage-panel" aria-labelledby="usage-panel-title">
-      <header className="panel-header panel-header--split">
+      <PanelHeader split>
         <div>
           <h2 id="usage-panel-title">
             {u.panelTitle}
@@ -28,18 +30,18 @@ export function ProjectUsagePanel({ projectId }: { projectId: string }) {
           </h2>
         </div>
         <div className="usage-panel-actions">
-          <Link className="button button--secondary button--compact" to={sectionHref(projectId, 'usage')}>
+          <ButtonLink variant="secondary" size="compact" to={sectionHref(projectId, 'usage')}>
             {u.seeAll}
-          </Link>
+          </ButtonLink>
         </div>
-      </header>
+      </PanelHeader>
 
-      {status === 'loading' && <p className="panel-empty">{u.loading}</p>}
+      {status === 'loading' && <PanelEmpty>{u.loading}</PanelEmpty>}
 
       {status === 'error' && (
-        <p className="panel-empty" role="alert">
+        <PanelEmpty role="alert">
           {u.loadFailed}
-        </p>
+        </PanelEmpty>
       )}
 
       {status === 'ready' && usage !== null && grid !== null && (
@@ -48,7 +50,7 @@ export function ProjectUsagePanel({ projectId }: { projectId: string }) {
           {/* 창 전체에 호출이 하나도 없으면 격자는 빈 칸 84개다. 그것을 그리는 대신 한 줄로
               말한다 — 빈 격자는 "아직 안 썼다"와 "불러오지 못했다"를 구분해 주지 않는다. */}
           {usage.total.calls === 0 ? (
-            <p className="panel-empty">{u.nothingYet}</p>
+            <PanelEmpty>{u.nothingYet}</PanelEmpty>
           ) : (
             <UsageGrass grid={grid} zone={usage.zone} />
           )}

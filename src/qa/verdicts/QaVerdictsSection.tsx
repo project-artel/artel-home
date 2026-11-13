@@ -1,3 +1,5 @@
+import { Button, ButtonLink } from '../../design-system/primitives/Button'
+import { PanelEmpty } from '../../design-system/primitives/Feedback'
 import { buildDisplayName } from '../../projects/buildEnvironment'
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
@@ -141,8 +143,8 @@ export function QaVerdictsSection() {
         <div className="qv-top-actions">
           {scenario?.reportingUnit === 'TEST_CASE' && (
             // 평가가 이 화면의 주된 행동이라 유일한 primary 다. 패널은 아래에 있어서 누르면 거기로 내려가 시도 선택에 focus 를 준다.
-            <button
-              className="button button--primary button--compact"
+            <Button
+              variant="primary" size="compact"
               onClick={() => {
                 const panel = document.getElementById(EVALUATION_PANEL_ID)
                 panel?.scrollIntoView({ block: 'start', behavior: 'smooth' })
@@ -151,9 +153,9 @@ export function QaVerdictsSection() {
               type="button"
             >
               {evaluationCopy[locale === 'ko' ? 'ko' : 'en'].title}
-            </button>
+            </Button>
           )}
-          <Link className="button button--secondary button--compact" to={qaRunPath(projectId, qaRunId, scenario?.qaTryId)}>{copy.timeline}</Link>
+          <ButtonLink variant="secondary" size="compact" to={qaRunPath(projectId, qaRunId, scenario?.qaTryId)}>{copy.timeline}</ButtonLink>
         </div>
       </header>
 
@@ -177,7 +179,7 @@ export function QaVerdictsSection() {
         <>
           {scenario && <h1 className="qv-scn-title" id="qv-scenario-title">{scenario.scenarioTitle}</h1>}
           {evaluation}
-          <p className="panel-empty">{copy.noSteps}</p>
+          <PanelEmpty>{copy.noSteps}</PanelEmpty>
         </>
       ) : (
         <>

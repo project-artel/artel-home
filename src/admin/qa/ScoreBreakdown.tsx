@@ -1,3 +1,4 @@
+import { DataTable, TableScroll } from '../../design-system/primitives/Table'
 import { useId, useState } from 'react'
 import { Coverage } from './Coverage'
 import { ScoreRate } from './ScoreRate'
@@ -66,8 +67,8 @@ export function ScoreBreakdown({ cells }: { cells: QaStatsCell[] }) {
         </span>
       </div>
 
-      <div className="table-scroll">
-        <table className="table">
+      <TableScroll>
+        <DataTable>
           <thead>
             <tr>
               <th scope="col">{t.axes[axis]}</th>
@@ -115,8 +116,8 @@ export function ScoreBreakdown({ cells }: { cells: QaStatsCell[] }) {
               <ScoreRow group={{ value: t.totalRow, ...footer }} />
             </tfoot>
           )}
-        </table>
-      </div>
+        </DataTable>
+      </TableScroll>
     </section>
   )
 }

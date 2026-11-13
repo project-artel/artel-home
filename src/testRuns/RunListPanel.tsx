@@ -1,3 +1,5 @@
+import { InlineError, PanelEmpty } from '../design-system/primitives/Feedback'
+import { Button } from '../design-system/primitives/Button'
 import { useEffect, useMemo, useRef, useState, type DragEvent, type MouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
@@ -29,6 +31,7 @@ import {
 import { useTestCaseVersionList } from '../testCases/useTestCaseVersions'
 import { VersionTreeDialog } from '../testCases/VersionTreeDialog'
 import { ClipboardListIcon } from '../testScenarios/scenarioIcons'
+import { Dialog } from '../design-system/primitives/Dialog'
 import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
 import { NameDialog } from '../testCases/NameDialog'
 import { NewRunDialog } from './NewRunDialog'
@@ -671,15 +674,15 @@ export function RunListPanel({
         </p>
       )}
       {failure !== null && (
-        <div className="inline-error" role="alert"><span aria-hidden="true">!</span>{failure}</div>
+        <InlineError><span aria-hidden="true">!</span>{failure}</InlineError>
       )}
 
-      {status === 'loading' && <p className="panel-empty">{r.loading}</p>}
+      {status === 'loading' && <PanelEmpty>{r.loading}</PanelEmpty>}
       {status === 'failed' && (
-        <div className="inline-error" role="alert">
+        <InlineError>
           <span aria-hidden="true">!</span>{r.loadFailed}
-          <button className="button button--secondary button--compact" onClick={onReload} type="button">{r.retry}</button>
-        </div>
+          <Button variant="secondary" size="compact" onClick={onReload} type="button">{r.retry}</Button>
+        </InlineError>
       )}
       {status === 'ready' && (
         <div className="trl" ref={setFrame}>
@@ -763,16 +766,16 @@ export function RunListPanel({
                 </h3>
               </div>
               <span className="trl-chip">{r.runCount(shown.length)}</span>
-              <button
-                className="button button--secondary button--compact"
+              <Button
+                variant="secondary" size="compact"
                 onClick={() => setNaming({ kind: 'createFolder', bucket, parentId: selectedFolder?.id ?? null })}
                 type="button"
               >
                 {r.folders.newFolder}
-              </button>
-              <button className="button button--primary button--compact" onClick={() => setCreating(true)} ref={newRunButton} type="button">
+              </Button>
+              <Button variant="primary" size="compact" onClick={() => setCreating(true)} ref={newRunButton} type="button">
                 {r.newButton}
-              </button>
+              </Button>
             </div>
             {shown.length + shownFolders.length > 0 && (
               <>
@@ -1087,34 +1090,31 @@ export function RunListPanel({
       )}
 
       {pendingDelete !== null && (
-        <div className="run-del-overlay" onClick={() => !deleting && setPendingDelete(null)}>
-          <div aria-modal="true" className="run-del-modal" onClick={(event) => event.stopPropagation()} role="dialog">
-            <h3>{r.deleteTitle}</h3>
-            <p className="run-del-name">{pendingDelete.name.length > 0 ? pendingDelete.name : r.untitled}</p>
-            <p className="run-del-copy">{r.deleteCopy}</p>
-            {impact !== null && impact.removableScenarioCount > 0 && (
-              <label className="run-del-option">
-                <input
-                  checked={dropScenarios}
-                  disabled={deleting}
-                  onChange={(event) => setDropScenarios(event.target.checked)}
-                  type="checkbox"
-                />
-                <span>
-                  {r.deleteScenarios(impact.removableScenarioCount)}
-                  <em className="run-del-note">{r.deleteScenariosWhy}</em>
-                </span>
-              </label>
-            )}
-            {impact !== null && impact.keptForQaHistoryCount > 0 && (
-              <p className="run-del-note">{r.deleteKeptForHistory(impact.keptForQaHistoryCount)}</p>
-            )}
-            <div className="run-del-actions">
-              <button className="button button--secondary" disabled={deleting} onClick={() => setPendingDelete(null)} type="button">{r.cancel}</button>
-              <button className="button button--danger" disabled={deleting} onClick={confirmDelete} type="button">{deleting ? r.deleting : r.delete}</button>
-            </div>
+        <Dialog title={r.deleteTitle} labelledBy="run-delete-title" onClose={() => !deleting && setPendingDelete(null)}>
+          <p className="run-del-name">{pendingDelete.name.length > 0 ? pendingDelete.name : r.untitled}</p>
+          <p className="run-del-copy">{r.deleteCopy}</p>
+          {impact !== null && impact.removableScenarioCount > 0 && (
+            <label className="run-del-option">
+              <input
+                checked={dropScenarios}
+                disabled={deleting}
+                onChange={(event) => setDropScenarios(event.target.checked)}
+                type="checkbox"
+              />
+              <span>
+                {r.deleteScenarios(impact.removableScenarioCount)}
+                <em className="run-del-note">{r.deleteScenariosWhy}</em>
+              </span>
+            </label>
+          )}
+          {impact !== null && impact.keptForQaHistoryCount > 0 && (
+            <p className="run-del-note">{r.deleteKeptForHistory(impact.keptForQaHistoryCount)}</p>
+          )}
+          <div className="dialog-actions">
+            <Button variant="secondary" disabled={deleting} onClick={() => setPendingDelete(null)} type="button">{r.cancel}</Button>
+            <Button variant="danger" disabled={deleting} onClick={confirmDelete} type="button">{deleting ? r.deleting : r.delete}</Button>
           </div>
-        </div>
+        </Dialog>
       )}
     </section>
   )

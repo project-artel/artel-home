@@ -1,3 +1,4 @@
+import { Button } from '../design-system/primitives/Button'
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
@@ -80,15 +81,15 @@ export function KnowledgeInspector({
         <h2 className="kg-side-title" id="kg-inspector-title">
           {selectedNode !== null ? itemTitle(t, selectedNode) : t.knowledge.inspector.edgeHeading}
         </h2>
-        <button
+        <Button
           aria-label={t.knowledge.inspector.clear}
-          className="button button--secondary button--compact kg-side-close"
+          variant="secondary" size="compact" className="kg-side-close"
           onClick={onClear}
           title={t.knowledge.inspector.clear}
           type="button"
         >
           ×
-        </button>
+        </Button>
       </header>
 
       {selectedNode !== null ? (
@@ -296,9 +297,9 @@ function KnowledgeItemBody({
     return (
       <div className="kg-detail-body-error" role="alert">
         <p className="kg-inspector-hint">{t.knowledge.inspector.bodyFailed}</p>
-        <button className="button button--secondary button--compact" onClick={onRetry} type="button">
+        <Button variant="secondary" size="compact" onClick={onRetry} type="button">
           {t.knowledge.states.retry}
-        </button>
+        </Button>
       </div>
     )
   }

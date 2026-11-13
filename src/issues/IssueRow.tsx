@@ -1,3 +1,4 @@
+import { Button } from '../design-system/primitives/Button'
 import { useEffect, useId, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
@@ -119,8 +120,8 @@ export function IssueRow({
 
       <div className="issue-row-actions">
         {trackerConnected && (issue.tracker === null || issue.tracker.syncState === 'FAILED') ? (
-          <button
-            className="button button--secondary button--compact"
+          <Button
+            variant="secondary" size="compact"
             data-issue-action="export"
             disabled={syncPending}
             onClick={() => onSync(issue)}
@@ -131,29 +132,29 @@ export function IssueRow({
               : issue.tracker === null
                 ? t.tracker.row.export
                 : t.tracker.row.retry}
-          </button>
+          </Button>
         ) : null}
         {hasDetail ? (
-          <button
+          <Button
             aria-controls={detailId}
             aria-expanded={open}
-            className="button button--secondary button--compact"
+            variant="secondary" size="compact"
             data-issue-action="detail"
             onClick={() => setOpen((current) => !current)}
             type="button"
           >
             {open ? t.issues.row.hideDetail : t.issues.row.showDetail}
-          </button>
+          </Button>
         ) : null}
-        <button
-          className="button button--secondary button--compact"
+        <Button
+          variant="secondary" size="compact"
           data-issue-action="resolve"
           disabled={pending}
           onClick={() => onToggle(issue)}
           type="button"
         >
           {pending ? t.issues.row.pending : resolved ? t.issues.row.reopen : t.issues.row.resolve}
-        </button>
+        </Button>
       </div>
 
       {failed ? (

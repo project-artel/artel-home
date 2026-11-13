@@ -1,3 +1,4 @@
+import { TextInput } from '../design-system/primitives/Fields'
 import { buildEnvironment } from '../projects/buildEnvironment'
 import { forwardRef, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
@@ -89,9 +90,9 @@ export const BuildSwitcher = forwardRef<HTMLButtonElement, {
           }}
           role="dialog"
         >
-          <input
+          <TextInput
             aria-label={copy.search}
-            className="field-input cm-build-search"
+            className="cm-build-search"
             onChange={(event) => setQuery(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === 'Enter' && shown.length > 0) pick(shown[0].id)

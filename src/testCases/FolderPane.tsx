@@ -1,3 +1,5 @@
+import { PanelMessage } from '../design-system/primitives/Feedback'
+import { Button } from '../design-system/primitives/Button'
 import { useCallback, useId, useMemo, useRef, useState, type ReactNode } from 'react'
 import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
 import { useI18n } from '../i18n/useI18n'
@@ -214,12 +216,12 @@ export function FolderPane({
     return (
       <aside aria-labelledby={headingId} className="tcl-folders">
         <h2 className="tcl-folders-title" id={headingId}>{m.title}</h2>
-        <div className="panel-message" role="alert">
+        <PanelMessage role="alert">
           <p>{m.loadFailed}</p>
-          <button className="button button--secondary button--compact" onClick={onRetry} type="button">
+          <Button variant="secondary" size="compact" onClick={onRetry} type="button">
             {m.retry}
-          </button>
-        </div>
+          </Button>
+        </PanelMessage>
       </aside>
     )
   }

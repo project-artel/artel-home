@@ -1,3 +1,4 @@
+import { ButtonLink } from '../../../design-system/primitives/Button'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useI18n } from '../../../i18n/useI18n'
@@ -109,9 +110,9 @@ export function BuildVerification({
       ) : loaded.value.summary.total === 0 ? (
         <SketchEmpty
           actions={
-            <Link className="button button--secondary" to={`${sectionHref(projectId, 'test-cases')}?version=${encodeURIComponent(gameBuildId)}`}>
+            <ButtonLink variant="secondary" to={`${sectionHref(projectId, 'test-cases')}?version=${encodeURIComponent(gameBuildId)}`}>
               {m.openLibrary}
-            </Link>
+            </ButtonLink>
           }
           body={m.emptyVersionBody(versionName)}
           compact

@@ -1,3 +1,4 @@
+import { DataTable, TableScroll } from '../../design-system/primitives/Table'
 import { useId, useState } from 'react'
 import {
   completionRate,
@@ -151,8 +152,8 @@ export function CombinationMatrix({ cells }: { cells: QaStatsCell[] }) {
         </span>
       </div>
 
-      <div className="table-scroll">
-        <table className="table matrix">
+      <TableScroll>
+        <DataTable className="matrix">
           <caption className="section__note" style={{ captionSide: 'bottom', textAlign: 'left' }}>
             {t.matrix.caption(t.axes[rowAxis], t.axes[colAxis], metricText.label)}
           </caption>
@@ -216,8 +217,8 @@ export function CombinationMatrix({ cells }: { cells: QaStatsCell[] }) {
               </tr>
             </tfoot>
           )}
-        </table>
-      </div>
+        </DataTable>
+      </TableScroll>
     </section>
   )
 }

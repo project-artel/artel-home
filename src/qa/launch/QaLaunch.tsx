@@ -1,3 +1,5 @@
+import { InlineError, PanelEmpty } from '../../design-system/primitives/Feedback'
+import { Button, ButtonLink } from '../../design-system/primitives/Button'
 import { gameBuildName } from '../../testRuns/testRunApi'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { SketchEmpty } from '../../emptyStates/SketchEmpty'
@@ -105,17 +107,17 @@ function QaLaunchLoader({ projectId }: { projectId: string }) {
 
   if (status === 'failed') {
     return (
-      <div className="inline-error" role="alert">
+      <InlineError>
         <span aria-hidden="true">!</span>{t.scenarios.runList.loadFailed}
-        <button className="button button--secondary button--compact" onClick={() => {
+        <Button variant="secondary" size="compact" onClick={() => {
           setStatus('loading')
           setReloadToken((token) => token + 1)
-        }} type="button">{t.scenarios.runList.retry}</button>
-      </div>
+        }} type="button">{t.scenarios.runList.retry}</Button>
+      </InlineError>
     )
   }
   if (status === 'loading') {
-    return <p aria-busy="true" className="panel-empty">{t.scenarios.runList.loading}</p>
+    return <PanelEmpty aria-busy="true">{t.scenarios.runList.loading}</PanelEmpty>
   }
   return <QaLaunchReady />
 }
@@ -337,9 +339,9 @@ function QaLaunchReady() {
             // 테스트 런이 없으면 고를 것도, 쌓일 실행도 없다. 남은 자리를 그림과 할 일로 채운다(ARTEL-1162).
             <SketchEmpty
               actions={
-                <Link className="button button--primary" to={sectionHref(projectId, 'test-runs')}>
+                <ButtonLink variant="primary" to={sectionHref(projectId, 'test-runs')}>
                   {l.createRunButton}
-                </Link>
+                </ButtonLink>
               }
               body={l.noRunsHelp}
               sketch={<TestRunSketch />}

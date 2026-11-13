@@ -1,3 +1,4 @@
+import { TextInput } from '../design-system/primitives/Fields'
 import { useId, useMemo, useState } from 'react'
 import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../i18n/useI18n'
@@ -89,8 +90,8 @@ export function KnowledgeExplorer({
       <label className="visually-hidden" htmlFor={searchId}>
         {copy.search}
       </label>
-      <input
-        className="field-input kg-explorer-search"
+      <TextInput
+        className="kg-explorer-search"
         id={searchId}
         onChange={(event) => setText(event.target.value)}
         placeholder={copy.searchPlaceholder}

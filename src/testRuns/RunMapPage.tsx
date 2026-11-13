@@ -1,3 +1,5 @@
+import { PanelMessage } from '../design-system/primitives/Feedback'
+import { Button, ButtonLink } from '../design-system/primitives/Button'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
@@ -1287,10 +1289,10 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
   if (data.status === 'missing' || data.status === 'error') {
     return (
       <div className="rmap-shell">
-        <div className="panel-message">
+        <PanelMessage>
           <p>{data.status === 'missing' ? m.missing : m.loadFailed}</p>
-          <Link className="button button--secondary" to={`/projects/${encodeURIComponent(projectId)}`}>{m.back}</Link>
-        </div>
+          <ButtonLink variant="secondary" to={`/projects/${encodeURIComponent(projectId)}`}>{m.back}</ButtonLink>
+        </PanelMessage>
       </div>
     )
   }
@@ -1334,8 +1336,8 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
           <span aria-hidden="true">⌕</span>
           <input aria-label={m.searchPlaceholder} onChange={(event) => setQuery(event.target.value)} placeholder={m.searchPlaceholder} type="search" value={query} />
         </label>
-        <button className="button button--secondary button--compact" onClick={() => layOut()} type="button">{m.autoLayout}</button>
-        <button className="button button--secondary button--compact" onClick={() => layOut(!allFolded)} type="button">{allFolded ? m.unfoldAll : m.foldAll}</button>
+        <Button variant="secondary" size="compact" onClick={() => layOut()} type="button">{m.autoLayout}</Button>
+        <Button variant="secondary" size="compact" onClick={() => layOut(!allFolded)} type="button">{allFolded ? m.unfoldAll : m.foldAll}</Button>
         <span className="rmap-legend">
           <span><i className="lg-step" />{m.legend.step}</span>
           <span><i className="lg-tc" />{m.legend.tcStep}</span>

@@ -1,3 +1,8 @@
+import { PanelHeader } from '../../design-system/primitives/Headers'
+import { SelectField, TextInput } from '../../design-system/primitives/Fields'
+import { InlineError, PanelMessage } from '../../design-system/primitives/Feedback'
+import { Button } from '../../design-system/primitives/Button'
+import { Badge } from '../../design-system/primitives/Badge'
 import { useId, useRef, useState } from 'react'
 import '../../layouts/screens.css'
 import { composeNicknameTag } from '../../auth/authTypes'
@@ -103,20 +108,20 @@ export function MembersSection() {
   return (
     <div className="members-screen">
       <section className="panel" aria-labelledby="members-title">
-        <header className="panel-header panel-header--split">
+        <PanelHeader split>
           <h2 id="members-title">
             {copy.title}
             {status === 'ready' && <span className="panel-count">{members.length}</span>}
           </h2>
-          <input
+          <TextInput
             aria-label={copy.searchLabel}
-            className="field-input members-search"
+            className="members-search"
             onChange={(event) => setQuery(event.target.value)}
             placeholder={copy.searchPlaceholder}
             type="search"
             value={query}
           />
-        </header>
+        </PanelHeader>
 
         {status === 'loading' && (
           <ul className="member-list" aria-busy="true" aria-label={copy.loadingLabel}>
@@ -130,12 +135,12 @@ export function MembersSection() {
         )}
 
         {status === 'error' && (
-          <div className="panel-message" role="alert">
+          <PanelMessage role="alert">
             <p>{copy.loadFailed}</p>
-            <button className="button button--secondary" onClick={reload} type="button">
+            <Button variant="secondary" onClick={reload} type="button">
               {t.projects.shared.retry}
-            </button>
-          </div>
+            </Button>
+          </PanelMessage>
         )}
 
         {status === 'ready' && (
@@ -250,13 +255,13 @@ function MemberRow({
       <td>{copy.joined(formatDate(member.joinedAt))}</td>
       <td className="screen-table-action">
         {onRemove !== null && (
-          <button
-            className="button button--danger-quiet button--compact"
+          <Button
+            variant="danger-quiet" size="compact"
             onClick={onRemove}
             type="button"
           >
             {copy.remove}
-          </button>
+          </Button>
         )}
       </td>
     </tr>
@@ -394,20 +399,20 @@ function InvitePanel({
 
   return (
     <section className="panel members-pending" aria-labelledby="invite-title">
-      <header className="panel-header">
+      <PanelHeader>
         <h2 id="invite-title">
           {copy.pendingTitle}
           {status === 'ready' && <span className="panel-count">{invitations.length}</span>}
           <InfoHint>{copy.inviteCopy}</InfoHint>
         </h2>
-      </header>
+      </PanelHeader>
 
       <form className="invite-form" onSubmit={send} noValidate>
         {failure !== null && (
-          <div className="inline-error" role="alert">
+          <InlineError>
             <span aria-hidden="true">!</span>
             {failure}
-          </div>
+          </InlineError>
         )}
 
         <div className="invite-form-fields">
@@ -425,8 +430,7 @@ function InvitePanel({
 
           <label className="field field--compact">
             <span className="field-label">{copy.roleLabel}</span>
-            <select
-              className="field-input"
+            <SelectField
               disabled={sending}
               onChange={(event) => setRole(event.target.value as ProjectRole)}
               ref={roleSelect}
@@ -437,17 +441,17 @@ function InvitePanel({
                   {t.projects.roles[option]}
                 </option>
               ))}
-            </select>
+            </SelectField>
           </label>
 
-          <button
-            className="button button--primary"
+          <Button
+            variant="primary"
             disabled={sending || (target.candidate === null && target.text.trim().length === 0)}
             ref={sendButton}
             type="submit"
           >
             {sending ? copy.sending : copy.send}
-          </button>
+          </Button>
         </div>
       </form>
 
@@ -587,13 +591,12 @@ function InviteTargetCombobox({
 
   return (
     <div className="invite-combobox">
-      <input
+      <TextInput
         aria-activedescendant={activeCandidate !== null ? optionId(id, activeCandidate) : undefined}
         aria-autocomplete="list"
         aria-controls={candidates.length > 0 ? listboxId : undefined}
         aria-expanded={open}
         autoComplete="off"
-        className="field-input"
         disabled={disabled}
         id={id}
         maxLength={INVITATION_EMAIL_MAX_LENGTH}
@@ -692,21 +695,21 @@ function SentInvitationRow({
         </span>
       </div>
       <div className="invitation-row-actions">
-        <span className="badge">{t.projects.roles[invitation.role]}</span>
-        <button
-          className="button button--secondary button--compact"
+        <Badge>{t.projects.roles[invitation.role]}</Badge>
+        <Button
+          variant="secondary" size="compact"
           disabled={pending}
           onClick={() => void revoke()}
           type="button"
         >
           {pending ? copy.revoking : copy.revoke}
-        </button>
+        </Button>
       </div>
       {failure !== null && (
-        <div className="inline-error" role="alert">
+        <InlineError>
           <span aria-hidden="true">!</span>
           {failure}
-        </div>
+        </InlineError>
       )}
     </li>
   )

@@ -1,3 +1,4 @@
+import { Button } from '../../design-system/primitives/Button'
 import { useEffect, useRef, useState } from 'react'
 import { shortWhen } from '../history/historyModel'
 import type { evaluationCopy } from './evaluationCopy'
@@ -95,21 +96,21 @@ export function EvidencePlayer({ clips, copy }: { clips: EvidenceClip[]; copy: t
         }}
         onEnded={event => advance(event.currentTarget, true)} />
       <div className="qe-player-controls">
-        <button className="button button--secondary button--compact" type="button" aria-label={playing ? copy.pause : copy.play}
+        <Button variant="secondary" size="compact" type="button" aria-label={playing ? copy.pause : copy.play}
           onClick={() => {
             const video = videoRef.current
             if (!video) return
             if (!video.paused) video.pause()
             else if (elapsed >= duration) seek(0, true)
             else play(video)
-          }}><span aria-hidden="true">{playing ? 'Ⅱ' : '▶'}</span></button>
+          }}><span aria-hidden="true">{playing ? 'Ⅱ' : '▶'}</span></Button>
         <input type="range" aria-label={copy.video} min={0} max={duration} step={0.1} value={Math.min(elapsed, duration)}
           aria-valuetext={`${clipTimeLabel(elapsed)} / ${clipTimeLabel(duration)}`} onChange={event => seek(Number(event.target.value))} />
         <span className="mono qe-player-time">{clipTimeLabel(elapsed)} / {clipTimeLabel(duration)}</span>
-        <button className="button button--secondary button--compact" type="button" aria-label={copy.mute} aria-pressed={muted}
-          onClick={() => setMuted(value => !value)}><span aria-hidden="true">{muted ? '♩̸' : '♪'}</span></button>
-        <button className="button button--secondary button--compact" type="button" aria-label={copy.fullscreen}
-          onClick={() => { if (document.fullscreenElement === containerRef.current) void document.exitFullscreen().catch(() => {}); else void containerRef.current?.requestFullscreen().catch(() => {}) }}><span aria-hidden="true">⛶</span></button>
+        <Button variant="secondary" size="compact" type="button" aria-label={copy.mute} aria-pressed={muted}
+          onClick={() => setMuted(value => !value)}><span aria-hidden="true">{muted ? '♩̸' : '♪'}</span></Button>
+        <Button variant="secondary" size="compact" type="button" aria-label={copy.fullscreen}
+          onClick={() => { if (document.fullscreenElement === containerRef.current) void document.exitFullscreen().catch(() => {}); else void containerRef.current?.requestFullscreen().catch(() => {}) }}><span aria-hidden="true">⛶</span></Button>
       </div>
     </div>
     <div className="qe-media-bar">

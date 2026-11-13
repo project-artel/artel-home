@@ -1,3 +1,7 @@
+import { PanelHeader } from '../design-system/primitives/Headers'
+import { InlineError } from '../design-system/primitives/Feedback'
+import { Button } from '../design-system/primitives/Button'
+import { TextInput } from '../design-system/primitives/Fields'
 import { useCallback, useEffect, useId, useState } from 'react'
 import { ConfirmActionDialog } from '../design-system/primitives/ConfirmActionDialog'
 import { InfoHint } from '../design-system/primitives/InfoHint'
@@ -126,13 +130,13 @@ export function LlmKeysPanel({
 
   return (
     <section className="panel" aria-labelledby="llm-keys-title">
-      <header className="panel-header">
+      <PanelHeader>
         <h2 id="llm-keys-title">
           {copy.title}
           {projectId === undefined && <InfoHint>{copy.intro}</InfoHint>}
         </h2>
         {note !== undefined && <p className="llm-key-scope">{note}</p>}
-      </header>
+      </PanelHeader>
 
       {/* 받는 동안 진짜 줄과 같은 높이의 빈 줄 셋. 다 받아도 칸이 밀리지 않는다(케이스 표와 같은 방식). */}
       {state.status === 'loading' && (
@@ -156,13 +160,13 @@ export function LlmKeysPanel({
       )}
 
       {state.status === 'error' && (
-        <div className="inline-error" role="alert">
+        <InlineError>
           <span aria-hidden="true">!</span>
           {copy.loadFailed}
-          <button className="button button--secondary button--compact" onClick={reload} type="button">
+          <Button variant="secondary" size="compact" onClick={reload} type="button">
             {copy.retry}
-          </button>
-        </div>
+          </Button>
+        </InlineError>
       )}
 
       {state.status === 'ready' && (
@@ -194,26 +198,26 @@ export function LlmKeysPanel({
                   )}
                   {editing !== service && (
                     <div className="llm-key-actions">
-                      {canManage && <button
-                        className="button button--secondary button--compact"
+                      {canManage && <Button
+                        variant="secondary" size="compact"
                         onClick={() => startEditing(service)}
                         type="button"
                       >
                         {key !== null ? copy.replace : copy.register}
-                      </button>}
+                      </Button>}
                       {projectId !== undefined && key === null && personalKeys.some((personal) => personal.service === service) && (
-                        <button className="button button--secondary button--compact" onClick={() => setLinking(service)} type="button">
+                        <Button variant="secondary" size="compact" onClick={() => setLinking(service)} type="button">
                           {copy.linkKey}
-                        </button>
+                        </Button>
                       )}
                       {key !== null && (canManage || key.ownLink) && (
-                        <button
-                          className="button button--secondary button--compact"
+                        <Button
+                          variant="secondary" size="compact"
                           onClick={() => setRemoving(service)}
                           type="button"
                         >
                           {key.linked ? copy.unlinkKey : copy.remove}
-                        </button>
+                        </Button>
                       )}
                     </div>
                   )}
@@ -223,12 +227,12 @@ export function LlmKeysPanel({
                   <form className="llm-key-form" onSubmit={(event) => void submit(event, service)} noValidate>
                     <div className="field">
                       <label className="field-label" htmlFor={inputId}>{copy.keyLabel(name)}</label>
-                      <input
+                      <TextInput
                         aria-describedby={draftError !== null ? `${inputId}-error` : `${inputId}-hint`}
                         aria-invalid={draftError !== null || undefined}
                         autoComplete="off"
                         autoFocus
-                        className="field-input mono"
+                        className="mono"
                         disabled={saving}
                         id={inputId}
                         onChange={(event) => {
@@ -247,17 +251,17 @@ export function LlmKeysPanel({
                       )}
                     </div>
                     <div className="form-actions">
-                      <button
-                        className="button button--secondary"
+                      <Button
+                        variant="secondary"
                         disabled={saving}
                         onClick={cancelEditing}
                         type="button"
                       >
                         {copy.cancel}
-                      </button>
-                      <button className="button button--primary" disabled={saving} type="submit">
+                      </Button>
+                      <Button variant="primary" disabled={saving} type="submit">
                         {saving ? copy.checking : copy.submit}
-                      </button>
+                      </Button>
                     </div>
                   </form>
                 )}
