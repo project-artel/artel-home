@@ -1,5 +1,5 @@
 import { loadAttemptReview } from './loadAttemptReview'
-import { useCallback, useEffect, useId, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
 import { shortWhen } from '../history/historyModel'
@@ -14,11 +14,20 @@ import './evaluation.css'
 
 const REVIEW_CHOICES = ['PASSED', 'FAILED', 'INCONCLUSIVE', 'TC_CONTENT_ISSUE'] as const
 
-export function CaseEvaluationPanel({ projectId, qaTryId, testCaseId, id }: { projectId: string; qaTryId?: string; testCaseId?: string; id?: string }) {
-  return <AttemptList key={`${projectId}:${qaTryId ?? ''}:${testCaseId ?? ''}`} projectId={projectId} qaTryId={qaTryId} testCaseId={testCaseId} id={id} />
+type CaseEvaluationPanelProps = {
+  projectId: string
+  qaTryId?: string
+  testCaseId?: string
+  id?: string
+  emptyFallback?: ReactNode
 }
 
-function AttemptList({ projectId, qaTryId, testCaseId, id }: { projectId: string; qaTryId?: string; testCaseId?: string; id?: string }) {
+export function CaseEvaluationPanel(props: CaseEvaluationPanelProps) {
+  const { projectId, qaTryId, testCaseId } = props
+  return <AttemptList key={`${projectId}:${qaTryId ?? ''}:${testCaseId ?? ''}`} {...props} />
+}
+
+function AttemptList({ projectId, qaTryId, testCaseId, id, emptyFallback }: CaseEvaluationPanelProps) {
   const [params] = useSearchParams()
   const { locale } = useI18n()
   const copy = evaluationCopy[locale === 'ko' ? 'ko' : 'en']
@@ -46,6 +55,8 @@ function AttemptList({ projectId, qaTryId, testCaseId, id }: { projectId: string
   }, [projectId, qaTryId, testCaseId, selected])
   const options = linkedAttempt?.id === selected && !rows.some(row => row.id === linkedAttempt.id) ? [linkedAttempt, ...rows] : rows
   const current = options.find(row => row.id === selected) ?? rows[0]
+  if (!loading && !error && !current && emptyFallback) return emptyFallback
+
   return <section className="qe-panel" aria-label={copy.title} id={id}>
     <div className="qe-head">
       <h3>{copy.title}</h3>
