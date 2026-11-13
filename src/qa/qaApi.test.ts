@@ -228,3 +228,10 @@ test('listGameBuildQaRuns calls the build path, not the project QA launch list (
   assert.match(urls[0], /\/api\/projects\/7\/game-builds\/12\/qa-runs\?size=5$/)
   assert.match(urls[1], /\/api\/projects\/7\/game-builds\/12\/qa-runs$/)
 })
+
+test('QA 실행 요청에 선택한 입력 방식이 포함된다', () => {
+  for (const inputMode of ['virtual', 'os'] as const) {
+    const body = qaRunRequestBody('1', '2', 'm', 'platform', null, false, null, undefined, inputMode)
+    assert.equal(body.inputMode, inputMode)
+  }
+})

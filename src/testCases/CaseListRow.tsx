@@ -18,7 +18,6 @@ import type { TestCase } from './testCaseTypes'
 export function CaseListRow({
   gameBuildId,
   active,
-  fallbackTitle,
   index,
   onClick,
   onMouseEnter,
@@ -28,8 +27,6 @@ export function CaseListRow({
 }: {
   gameBuildId?: string | null
   active: boolean
-  /** Shown when the case has no step text yet. */
-  fallbackTitle: string
   /** Position in the shown list. Keyboard travel finds the row by it. */
   index: number
   onClick: () => void
@@ -51,8 +48,8 @@ export function CaseListRow({
     >
       <span className={`vdot ${testCase.verificationStatus}`} />
       <span className="cp-main">
-        <span className="cp-title">{testCase.step.length > 0 ? testCase.step : fallbackTitle}</span>
-        <span className="cp-sub"><span className="tc-id">{caseLabel(testCase.id)}</span> · {statusLabel}</span>
+        <span className="cp-title"><span className="tc-id">{caseLabel(testCase.id)}</span> · {statusLabel}</span>
+        {testCase.step && <span className="cp-sub">{testCase.step}</span>}
       </span>
       <SceneChip scene={testCase.scene} />
     </button></TestCaseHover>

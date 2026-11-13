@@ -16,7 +16,7 @@ import { listRunFolders, type RunFolder } from '../../testRuns/testRunFolders'
 import { ChevronDownIcon, PencilIcon } from '../qaModelIcons'
 import type { QaArchSelection } from '../qaArch'
 import { offeredQaModels } from '../qaModelGroups'
-import { readLastArch, readLastModelKey, storeLastModelKey } from '../qaStartChoices'
+import { readLastAdvancedSettings, readLastModelKey, storeLastModelKey } from '../qaStartChoices'
 import { qaModelOptionKey, type QaModel } from '../qaTypes'
 import { byAscendingEffort } from '../reasoningEfforts'
 import { ConsolesDialog } from './ConsolesDialog'
@@ -135,8 +135,7 @@ function QaLaunchReady() {
   const askedRun = searchParams.get('run')
   const [choice, setChoice] = useState<Choice>(() => (askedRun === null ? {} : { runId: askedRun }))
   const [savedModelKey] = useState(() => readLastModelKey(projectId))
-  // agent 구조는 서버의 실행 기록에 없으므로(ARTEL-1091) 마지막으로 시작한 값을 이 브라우저에서 읽는다.
-  const [arch, setArch] = useState<QaArchSelection>(() => readLastArch())
+  const [arch, setArch] = useState<QaArchSelection>(() => readLastAdvancedSettings(projectId).arch)
 
   const [pickerOpen, setPickerOpen] = useState(false)
   const pickerAnchor = useRef<HTMLDivElement>(null)

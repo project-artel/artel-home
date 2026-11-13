@@ -1,6 +1,7 @@
 import { TestCaseHover } from './TestCaseHover'
 import { useEffect, useId, useMemo, useState } from 'react'
 import { Dialog } from '../design-system/primitives/Dialog'
+import { useTestCaseLabel } from './testCaseIdentifiers'
 import { useI18n } from '../i18n/useI18n'
 import { buildFolderTree, flattenFolderTree } from './testCaseFolders'
 import { listFolderItems, type TestCaseFolder } from './testCaseFolderApi'
@@ -46,6 +47,7 @@ export function ImportManualCasesDialog({
   versions: readonly TestCaseVersionSummary[]
 }) {
   const { t } = useI18n()
+  const caseLabel = useTestCaseLabel()
   const m = t.testCases.importManual
   const titleId = useId()
   const others = useMemo(
@@ -183,7 +185,10 @@ export function ImportManualCasesDialog({
                           onChange={() => toggle([one], !picked.has(one.id))}
                           type="checkbox"
                         />
-                        <TestCaseHover projectId={projectId} caseId={one.id} gameBuildId={source?.kind === "version" ? source.id === UNVERSIONED ? null : source.id : target.gameBuildId}><span className="mimp-case-step">{one.step.length > 0 ? one.step : t.testCases.row.untitled}</span></TestCaseHover>
+                        <TestCaseHover projectId={projectId} caseId={one.id} gameBuildId={source?.kind === "version" ? source.id === UNVERSIONED ? null : source.id : target.gameBuildId}><span className="mimp-case-step">
+                          <span className="tc-id">{caseLabel(one.id)}</span>
+                          {one.step && <><br />{one.step}</>}
+                        </span></TestCaseHover>
                         <span className="mimp-case-scene">{one.scene}</span>
                       </label>
                     </li>

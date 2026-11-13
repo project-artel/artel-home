@@ -1,6 +1,7 @@
 import { useId, useMemo, useState } from 'react'
 import { Dialog } from '../../../design-system/primitives/Dialog'
 import { EdgeScrollbar } from '../../../design-system/primitives/EdgeScrollbar'
+import { useTestCaseLabel } from '../../../testCases/testCaseIdentifiers'
 import { useI18n } from '../../../i18n/useI18n'
 import { SceneChip } from '../../../testCases/SceneChip'
 import type { RemainingSplit } from './dashboardModel'
@@ -27,6 +28,7 @@ export function FreeRunPicker({
   onCreate: (caseIds: string[]) => Promise<void>
 }) {
   const { t } = useI18n()
+  const caseLabel = useTestCaseLabel()
   const m = t.dashboard.picker
   const titleId = useId()
   const searchId = useId()
@@ -172,9 +174,8 @@ export function FreeRunPicker({
                     <label className={`frp-row${picked.has(item.testCase.id) ? ' is-picked' : ''}`}>
                       <input checked={picked.has(item.testCase.id)} onChange={() => toggle(item.testCase.id)} type="checkbox" />
                       <span className="frp-text">
-                        <span className="frp-step" title={item.testCase.step}>
-                          {item.testCase.step || `#${item.testCase.id}`}
-                        </span>
+                        <span className="tc-id">{caseLabel(item.testCase.id)}</span>
+                        {item.testCase.step && <span className="frp-step" title={item.testCase.step}>{item.testCase.step}</span>}
                         {item.testCase.expectedValue.length > 0 && (
                           <span className="frp-expected" title={item.testCase.expectedValue}>
                             {item.testCase.expectedValue}

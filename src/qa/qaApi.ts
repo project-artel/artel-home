@@ -24,6 +24,7 @@ import {
   type QaModelPricing,
   type QaReasoningSelection,
   type QaRun,
+  type QaInputMode,
   type QaTry,
   type QaStop,
   type QaTryStatus,
@@ -199,6 +200,7 @@ export type QaRunRequestBody = {
   reasoning: QaReasoningSelection | null
   force: boolean
   arch?: QaArchRequest
+  inputMode?: QaInputMode
 } & Partial<QaFunctionOptions>
 
 /** `arch` 키는 구조를 바꾼 run 에만 실린다. 없으면 서버 기본 구조다. */
@@ -211,9 +213,11 @@ export function qaRunRequestBody(
   force: boolean,
   arch: QaArchRequest | null,
   functionOptions?: QaFunctionOptions,
+  inputMode?: QaInputMode,
 ): QaRunRequestBody {
   const body: QaRunRequestBody = { testRunId, gameInstanceId, model, keySource, reasoning, force }
   if (arch !== null) body.arch = arch
+  if (inputMode !== undefined) body.inputMode = inputMode
   // 옵션을 안 보내면 서버 기본값(둘 다 켜고 catalog 전부)이 적용된다.
   if (functionOptions !== undefined) Object.assign(body, functionOptionsRequestFields(functionOptions))
   return body
@@ -237,10 +241,11 @@ export async function createQaRun(
   force = false,
   arch: QaArchRequest | null = null,
   functionOptions?: QaFunctionOptions,
+  inputMode?: QaInputMode,
 ): Promise<QaRun> {
   const response = await apiFetch(QA_RUNS_ROOT, {
     method: 'POST',
-    ...jsonRequest(qaRunRequestBody(testRunId, gameInstanceId, model, keySource, reasoning, force, arch, functionOptions)),
+    ...jsonRequest(qaRunRequestBody(testRunId, gameInstanceId, model, keySource, reasoning, force, arch, functionOptions, inputMode)),
   })
   return parseQaRun(await readJson(response), response.status)
 }

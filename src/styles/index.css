@@ -1,6 +1,7 @@
 @import '../testCases/testCaseHover.css';
 @import './tokens.css';
 @import '../design-system/section-nav.css';
+@import '../qa/launch/qaPendingReview.css';
 
 *,
 *::before,
