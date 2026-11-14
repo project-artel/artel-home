@@ -25,7 +25,7 @@ export const gameIdentitiesEn = {
   dictionary: {
     intro: 'The names Test Cases and QA runs use — states and screen moves — matched to the variables the game reports through the SDK. A field you fix here is yours: AI cleanup and MCP will not overwrite it.',
     tabsLabel: 'Variable metadata',
-    tabs: { states: 'State names', exits: 'Screen moves', variables: 'Game variables' },
+    tabs: { states: 'State names', exits: 'Screen moves', variables: 'Game variables', facts: 'Facts', rules: 'Rules' },
     results: {
       states: 'State names',
       statesSub: (n: number) => `${n} used by Test Cases`,
@@ -47,6 +47,22 @@ export const gameIdentitiesEn = {
     to: 'to',
     noWay: 'No way yet',
     seenByQa: 'Seen in QA',
+    factsHint: 'Facts are the game information the QA engine looks at to choose its next move while it plays, and rules describe the game in terms of them. They apply to the whole project, not to the selected build.',
+    factsLoadFailed: 'Facts and rules could not be loaded.',
+    factsEmptyTitle: 'No facts yet',
+    factsEmpty: 'They appear when the game developer’s coding agent declares them through MCP.',
+    rulesEmptyTitle: 'No rules yet',
+    rulesEmpty: 'They appear when the game developer’s coding agent declares them through MCP. A rule names facts declared first.',
+    factName: 'Fact',
+    factReads: 'Game value read',
+    factType: 'Type',
+    factMeans: 'Meaning',
+    factRules: 'Rules',
+    factScope: { objects: 'Object', statics: 'Static' },
+    ruleName: 'Rule',
+    ruleSays: 'How the game works',
+    ruleFacts: 'Facts it names',
+    unknownFact: 'not a declared fact',
   },
 } as const
 
@@ -75,7 +91,7 @@ export const gameIdentitiesKo: Localized<typeof gameIdentitiesEn> = {
   dictionary: {
     intro: 'TC 와 QA 실행에서 쓰는 이름(상태 · 화면 이동)을 모아, 게임이 SDK 로 알려 준 변수와 맞춥니다. 여기서 고친 칸은 사람이 정한 것이 되어 AI 정리와 MCP 가 덮지 않습니다.',
     tabsLabel: '변수 메타데이터',
-    tabs: { states: '상태 이름', exits: '화면 이동', variables: '게임 변수' },
+    tabs: { states: '상태 이름', exits: '화면 이동', variables: '게임 변수', facts: '게임 정보', rules: '규칙' },
     results: {
       states: '상태 이름',
       statesSub: (n: number) => `TC 가 쓰는 이름 ${n}`,
@@ -97,6 +113,22 @@ export const gameIdentitiesKo: Localized<typeof gameIdentitiesEn> = {
     to: '에서',
     noWay: '방법 없음',
     seenByQa: 'QA 가 봄',
+    factsHint: 'QA 엔진이 플레이하며 다음 행동을 고를 때 보는 게임 정보와, 그 정보로 설명한 게임 규칙이에요. 고른 빌드가 아니라 프로젝트 전체에 적용돼요.',
+    factsLoadFailed: '게임 정보와 규칙을 불러오지 못했습니다.',
+    factsEmptyTitle: '아직 게임 정보가 없어요',
+    factsEmpty: '게임 개발자의 코딩 에이전트가 MCP 로 선언하면 생겨요.',
+    rulesEmptyTitle: '아직 규칙이 없어요',
+    rulesEmpty: '게임 개발자의 코딩 에이전트가 MCP 로 선언하면 생겨요. 규칙은 먼저 선언한 게임 정보를 가리켜요.',
+    factName: '게임 정보',
+    factReads: '읽는 게임 값',
+    factType: '타입',
+    factMeans: '뜻',
+    factRules: '규칙',
+    factScope: { objects: '오브젝트', statics: '정적' },
+    ruleName: '규칙',
+    ruleSays: '게임이 도는 방식',
+    ruleFacts: '다루는 게임 정보',
+    unknownFact: '선언되지 않은 게임 정보',
   },
 }
 

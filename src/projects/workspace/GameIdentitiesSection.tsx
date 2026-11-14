@@ -6,23 +6,27 @@ import { ScreenMoveSketch } from '../../emptyStates/sketches'
 import { SketchEmpty } from '../../emptyStates/SketchEmpty'
 import { useI18n } from '../../i18n/useI18n'
 import { fetchGlossaryBook, type GlossaryBook, type GlossaryTerm } from '../../testCases/glossaryApi'
+import { fetchGameFactBook, type GameFactBook } from '../gameFactApi'
 import { buildDisplayName } from '../buildEnvironment'
 import { listGameIdentities, type GameIdentity } from '../gameIdentityApi'
 import { GameIdentityPanel } from '../GameIdentityPanel'
+import { FactTable, RuleTable } from './GameFactTables'
 import { GlossaryStates } from './GlossarySection'
 import { linkOf } from './glossaryLinks'
 import { gameBuildDetailHref, sectionHref } from './sections'
 import { useWorkspace } from './workspaceContext'
 import './gameDictionary.css'
 
-type Tab = 'states' | 'exits' | 'variables'
-const TABS: readonly Tab[] = ['states', 'exits', 'variables']
+type Tab = 'states' | 'exits' | 'variables' | 'facts' | 'rules'
+const TABS: readonly Tab[] = ['states', 'exits', 'variables', 'facts', 'rules']
 type Loaded<T> = { status: 'loading' } | { status: 'failed' } | { status: 'ready'; value: T }
 
 /**
  * 변수 메타데이터(ARTEL-1396). 게임 사전(TC · QA 실행에서 모은 상태 이름 · 화면 이동, 예전 용어집)과 게임이 SDK 로 알려 준
  * 변수(예전 변수 메타데이터)를 한 화면에 모아 맞춘다(지식 매칭). 탭은 상태 이름 · 화면 이동 · 게임 변수(예전 화면 그대로)다. 상태 이름은 프로젝트
  * 단위고, 게임 변수는 빌드마다 달라 빌드 고르기를 따른다. 고른 탭은 주소(`?tab=`)에 남는다.
+ *
+ * 게임 정보(`fact`) · 규칙(`rule`) 탭은 코딩 에이전트가 MCP 로 선언한 fact · rule 을 읽기 전용으로 보여 준다. 프로젝트 단위라 빌드 고르기와 상관없다.
  */
 export function GameIdentitiesSection() {
   const { projectId, builds } = useWorkspace()
@@ -35,6 +39,10 @@ export function GameIdentitiesSection() {
   const [book, setBook] = useState<{ key: string; value: Loaded<GlossaryBook> }>({ key: '', value: { status: 'loading' } })
   const [variables, setVariables] = useState<{ key: string; value: GameIdentity[] }>({ key: '', value: [] })
   const [reload, setReload] = useState(0)
+  const [factBook, setFactBook] = useState<{ key: string; value: Loaded<GameFactBook> }>({ key: '', value: { status: 'loading' } })
+  const [factReload, setFactReload] = useState(0)
+  const [focusFact, setFocusFact] = useState<string | null>(null)
+  const factBookKey = `${projectId}#${factReload}`
   const bookKey = `${projectId}#${reload}`
   const selectedId = selected?.id ?? null
   // 게임 변수 탭에서 등록 · 고치면 다른 탭으로 올 때 다시 읽는다(그 탭의 표는 `GameIdentityPanel` 이 따로 읽는다).
@@ -47,6 +55,14 @@ export function GameIdentitiesSection() {
       .catch(() => { if (!controller.signal.aborted) setBook({ key: bookKey, value: { status: 'failed' } }) })
     return () => controller.abort()
   }, [projectId, bookKey])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    fetchGameFactBook(projectId, controller.signal)
+      .then((value) => setFactBook({ key: factBookKey, value: { status: 'ready', value } }))
+      .catch(() => { if (!controller.signal.aborted) setFactBook({ key: factBookKey, value: { status: 'failed' } }) })
+    return () => controller.abort()
+  }, [projectId, factBookKey])
 
   useEffect(() => {
     if (selectedId === null) return
@@ -87,11 +103,20 @@ export function GameIdentitiesSection() {
   const named = terms.filter((term) => term.usedBy > 0).length
   const noWay = exits.filter((exit) => exit.by.trim().length === 0).length
   const ready = loaded.status === 'ready'
+  const facts = factBook.key === factBookKey ? factBook.value : { status: 'loading' as const }
+  // 게임 정보 · 규칙을 아직 못 읽었거나 읽지 못했을 때는 0 이 아니라 모른다고 보여 준다.
+  const factCount = facts.status === 'ready' ? String(facts.value.facts.length) : '—'
+  const ruleCount = facts.status === 'ready' ? String(facts.value.rules.length) : '—'
+  const counts: Record<Tab, string> = { states: String(terms.length), exits: String(exits.length), variables: String(shownVariables.length), facts: factCount, rules: ruleCount }
   const pick = (next: Tab) => {
     const params = new URLSearchParams(search)
     if (next === 'states') params.delete('tab')
     else params.set('tab', next)
     setSearch(params, { replace: true })
+  }
+  const openFact = (name: string) => {
+    setFocusFact(name)
+    pick('facts')
   }
 
   return (
@@ -126,17 +151,29 @@ export function GameIdentitiesSection() {
         {TABS.map((value) => (
           <button aria-selected={tab === value} className={tab === value ? 'on' : ''} key={value} onClick={() => pick(value)} role="tab" type="button">
             {m.tabs[value]}
-            <span className="gd-tab-count">{value === 'states' ? terms.length : value === 'exits' ? exits.length : shownVariables.length}</span>
+            <span className="gd-tab-count">{counts[value]}</span>
           </button>
         ))}
       </div>
 
       {tab === 'variables' ? (
         <GameIdentityPanel key={`${projectId}/${selected.id}`} projectId={projectId} buildId={selected.id} layout="table" />
+      ) : tab === 'facts' || tab === 'rules' ? (
+        facts.status === 'loading' ? (
+          <Skeleton />
+        ) : facts.status === 'failed' ? (
+          <div className="inline-error" role="alert">
+            <span aria-hidden="true">!</span>
+            {m.factsLoadFailed}
+            <button className="button button--secondary button--compact" onClick={() => setFactReload((value) => value + 1)} type="button">{t.testCases.glossary.retry}</button>
+          </div>
+        ) : tab === 'facts' ? (
+          <FactTable book={facts.value} focus={focusFact} />
+        ) : (
+          <RuleTable book={facts.value} onOpenFact={openFact} />
+        )
       ) : loaded.status === 'loading' ? (
-        <section aria-busy="true" className="panel panel--flush gd-skeleton">
-          {[0, 1, 2, 3, 4].map((row) => <span aria-hidden="true" className="skeleton-line" key={row} />)}
-        </section>
+        <Skeleton />
       ) : loaded.status === 'failed' ? (
         <div className="inline-error" role="alert">
           <span aria-hidden="true">!</span>
@@ -149,6 +186,14 @@ export function GameIdentitiesSection() {
         <ExitTable exits={exits} />
       )}
     </div>
+  )
+}
+
+function Skeleton() {
+  return (
+    <section aria-busy="true" className="panel panel--flush gd-skeleton">
+      {[0, 1, 2, 3, 4].map((row) => <span aria-hidden="true" className="skeleton-line" key={row} />)}
+    </section>
   )
 }
 
