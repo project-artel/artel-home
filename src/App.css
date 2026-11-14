@@ -13799,7 +13799,11 @@ body:has(.dialog-scrim) .qa-notice-stack { visibility: hidden; }
 .api-table-share .mono { font-size: 12.5px; color: var(--color-text-secondary); min-width: 48px; text-align: right; }
 .api-table-bar { flex: 1; height: 8px; border-radius: 999px; background: var(--color-bg-hover); overflow: hidden; }
 .api-table-bar span { display: block; height: 100%; border-radius: inherit; }
-@media (max-width: 1100px) { .api-figures { grid-template-columns: minmax(0, 1fr); } .api-table-row { grid-template-columns: minmax(0, 1fr) 120px 80px; } .api-table-row > :nth-child(3), .api-table-row > :nth-child(5) { display: none; } }
+/* 열은 화면 폭이 아니라 표 칸 폭을 보고 접는다. 화면 폭으로 접으면 1440px 에서 표가 반 폭인데도 다섯 열이 남아
+   이름 칸이 60px 아래로 눌려 모델 이름이 잘렸다. 이름 칸이 160px · 120px 을 지킬 수 있는 폭에서 접는다. */
+.api-table { container: api-table / inline-size; }
+@container api-table (max-width: 680px) { .api-table-row { grid-template-columns: minmax(0, 1fr) 120px 80px; } .api-table-row > :nth-child(3), .api-table-row > :nth-child(5) { display: none; } }
+@container api-table (max-width: 420px) { .api-table-row { grid-template-columns: minmax(0, 1fr) 80px; } .api-table-row > :nth-child(2) { display: none; } }
 
 /* API 관리를 받는 동안(ARTEL-1379): 진짜 칸과 같은 틀에 케이스 표의 박동(`tct-skel-pulse`)으로 깜박이는 막대 · 칸. */
 .skeleton-block { display: block; border-radius: 6px; background: var(--color-bg-hover); }
