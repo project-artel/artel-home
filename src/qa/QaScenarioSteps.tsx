@@ -125,10 +125,12 @@ export function QaScenarioSteps({
       && !['passed', 'failed', 'inconclusive'].includes(row.progress.state) ? null : row.progress
     if (step === null) {
       return (
-        <li key={row.step} className="qa-rail-step qa-rail-step--neutral">
-          <TestCaseHover projectId={projectId} caseId={isFree ? scenarioSteps[row.step - 1]?.case_id : null} gameBuildId={gameBuildId}><span className="qa-rail-step-no">{numberLabel}</span></TestCaseHover>
-          <span className="qa-rail-step-title">{title}</span>
-        </li>
+        <TestCaseHover key={row.step} projectId={projectId} caseId={caseId} gameBuildId={gameBuildId}>
+          <li className="qa-rail-step qa-rail-step--neutral">
+            <span className="qa-rail-step-no">{numberLabel}</span>
+            <span className="qa-rail-step-title">{title}</span>
+          </li>
+        </TestCaseHover>
       )
     }
 
@@ -152,7 +154,7 @@ export function QaScenarioSteps({
           />
         )}
         <span aria-hidden="true" className="qa-rail-step-glyph">{STATE_GLYPHS[step.state]}</span>
-        <TestCaseHover projectId={projectId} caseId={isFree ? scenarioSteps[row.step - 1]?.case_id : null} gameBuildId={gameBuildId}><span className="qa-rail-step-no">{numberLabel}</span></TestCaseHover>
+        <span className="qa-rail-step-no">{numberLabel}</span>
         <span className="qa-rail-step-title">{title}</span>
         <span className="visually-hidden">{s.stateLabels[step.state]}</span>
       </>
@@ -161,13 +163,14 @@ export function QaScenarioSteps({
     const verdictLogId = step.verdictLogId
     return (
       <li key={row.step}>
-        {verdictLogId === null || onJump === undefined ? (
-          <span className={className} title={label}>{body}</span>
-        ) : (
-          <button className={`${className} qa-rail-step--linked`} onClick={() => onJump(verdictLogId)} title={label} type="button">
-            {body}
-          </button>
-        )}
+        <TestCaseHover projectId={projectId} caseId={caseId} gameBuildId={gameBuildId}>
+          {verdictLogId === null || onJump === undefined ? (
+            <span className={className} title={caseId == null ? label : undefined} aria-label={caseId != null ? label : undefined}>{body}</span>
+          ) : (
+            <button className={`${className} qa-rail-step--linked`} onClick={() => onJump(verdictLogId)}
+              title={caseId == null ? label : undefined} aria-label={caseId != null ? label : undefined} type="button">{body}</button>
+          )}
+        </TestCaseHover>
       </li>
     )
   }
@@ -200,18 +203,18 @@ export function QaScenarioSteps({
           )
           return (
             <li key={`case-${blockIndex}`} className="qa-rail-case">
-              <div className="qa-rail-case-head">
-                <TestCaseHover projectId={projectId} caseId={block.caseId} gameBuildId={gameBuildId}><span className="qa-rail-case-no">{caseLabel(block.caseId)}</span></TestCaseHover>
+              <TestCaseHover projectId={projectId} caseId={block.caseId} gameBuildId={gameBuildId}><div className="qa-rail-case-head">
+                <span className="qa-rail-case-no">{caseLabel(block.caseId)}</span>
                 {caseVerdicts.has(String(block.caseId)) && (
                   <SavedVerdict status={caseVerdicts.get(String(block.caseId)) as VerificationStatus} />
                 )}
                 {state !== undefined && (logId == null || onJump === undefined ? (
-                  <span className={`qa-rail-case-verdict ${toneClass('qa-rail-case-verdict', state, grade)}`} title={label ?? undefined}>{verdict}</span>
+                  <span className={`qa-rail-case-verdict ${toneClass('qa-rail-case-verdict', state, grade)}`}>{verdict}</span>
                 ) : (
                   <button type="button" className={`qa-rail-case-verdict ${toneClass('qa-rail-case-verdict', state, grade)}`}
                     aria-label={label ?? undefined} onClick={() => onJump(logId)}>{verdict}</button>
                 ))}
-              </div>
+              </div></TestCaseHover>
               <ol className="qa-rail-step-list">{block.rows.map(renderRow)}</ol>
             </li>
           )
