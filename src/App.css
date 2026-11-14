@@ -13713,9 +13713,12 @@ body:has(.dialog-scrim) .qa-notice-stack { visibility: hidden; }
 .llm-key-logo { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid var(--color-border-subtle); border-radius: 10px; background: var(--color-bg-raised); color: var(--color-text-primary); }
 .llm-key-logo .provider-logo--text { font-size: 13px; }
 .llm-keys-moved-links { display: flex; flex-wrap: wrap; gap: var(--space-2); }
-.section-content:has(.api-page) { display: flex; flex: 1; flex-direction: column; width: 100%; min-height: 0; }
+/* 높이가 남으면 모델 지출 칸이 늘어나 채우고, 모자라면 어느 칸도 내용보다 줄지 않고 `workspace-body` 가 스크롤한다.
+   줄어들게 두면 세로가 낮은 노트북(1440×820)에서 모델 지출 칸이 358px 로 눌려 아래 표가 그 위를 덮었다. */
+.section-content:has(.api-page) { display: flex; flex: 1 0 auto; flex-direction: column; width: 100%; }
 .workspace-body:has(.api-page) .section-header { width: 100%; }
-.api-page { flex: 1; display: flex; flex-direction: column; gap: var(--space-4); min-height: 0; }
+.api-page { flex: 1 0 auto; display: flex; flex-direction: column; gap: var(--space-4); }
+.api-page > * { flex-shrink: 0; }
 .api-page > .panel, .api-top > .panel { margin: 0; }
 .api-top { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(360px, 1fr); gap: var(--space-4); align-items: stretch; }
 .api-share { display: flex; flex-direction: column; }
@@ -13726,13 +13729,17 @@ body:has(.dialog-scrim) .qa-notice-stack { visibility: hidden; }
 .api-donut-value { fill: var(--color-text-primary); font-size: 15px; font-weight: 800; font-family: var(--font-mono); }
 .api-donut-label { fill: var(--color-text-muted); font-size: 8.5px; font-family: var(--font-mono); }
 .api-share-legend { flex: 1; min-width: 0; list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+/* 칸이 좁으면 범례가 도넛 아래로 내려간다. 옆에 붙어 있으면 390px 폭에서 기능 이름이 한 글자씩 세로로 접혔다. */
+.api-share > .api-share-body { flex-wrap: wrap; justify-content: center; }
+.api-share .api-share-legend { flex: 1 1 240px; }
 .api-share-legend li { display: grid; grid-template-columns: 10px minmax(0, 1fr) 56px 72px; gap: var(--space-2); align-items: center; min-height: 36px; }
 .api-share-dot { width: 10px; height: 10px; border-radius: 3px; }
 .api-share-name { display: flex; flex-direction: column; min-width: 0; font-weight: 600; font-size: 13px; }
 .api-share-name .mono { font-weight: 400; font-size: 11px; color: var(--color-text-muted); }
 .api-share-pct, .api-share-cost { text-align: right; font-size: 12.5px; color: var(--color-text-secondary); }
 /* 잔디 칸이 남는 높이를 받고, 잔디 · 수치를 그 크기에 맞게 키운다. 예전 사용량 화면의 13px 칸은 이 큰 칸에서 점처럼 보였다. */
-.api-overview { flex: 1; display: flex; flex-direction: column; min-height: 360px; }
+.api-overview { flex: 1 0 auto; display: flex; flex-direction: column; min-height: 360px; container: api-overview / inline-size; }
+
 .api-overview .usage-overview { flex: 1; grid-template-columns: max-content minmax(0, 1fr); justify-content: stretch; align-content: center; column-gap: clamp(32px, 5vw, 96px); padding: var(--space-5) clamp(var(--space-5), 4vw, 80px); }
 .api-overview .grass-cell { width: clamp(16px, 2.1vw, 34px); height: clamp(16px, 2.1vw, 34px); border-radius: 5px; }
 .api-overview .grass-grid { border-spacing: 5px; margin: -5px; }
@@ -13742,6 +13749,12 @@ body:has(.dialog-scrim) .qa-notice-stack { visibility: hidden; }
 .api-overview .usage-figure dd { font-size: clamp(22px, 2vw, 34px); }
 .api-overview .usage-figure dt { font-size: 13px; }
 @media (max-width: 1100px) { .api-top { grid-template-columns: minmax(0, 1fr); } .api-overview .usage-overview { grid-template-columns: minmax(0, 1fr); } }
+/* 잔디 옆에 카드 두 칸(240px 씩)이 안 들어가는 폭이면 잔디를 위에, 카드를 아래에 둔다. 옆에 붙인 채 카드가 한 칸으로
+   내려가면 카드 넷이 세로로 쌓이고 잔디가 그 가운데 떠 있었다(1280×720). */
+@container api-overview (max-width: 1080px) {
+  .api-overview .usage-overview { grid-template-columns: minmax(0, 1fr); row-gap: var(--space-5); justify-items: center; }
+  .api-overview .usage-overview > .api-figures { justify-self: stretch; }
+}
 /* 키운 잔디는 칸 안에 다 들어간다. 넘김 막대를 두지 않는다(서비스에 네이티브 막대는 없다). */
 .api-overview .usage-overview-grass, .api-overview .grass-plot { overflow: visible; }
 
@@ -13759,7 +13772,9 @@ body:has(.dialog-scrim) .qa-notice-stack { visibility: hidden; }
 .api-fill-0 { background: var(--api-c0); } .api-fill-1 { background: var(--api-c1); } .api-fill-2 { background: var(--api-c2); }
 .api-fill-3 { background: var(--api-c3); } .api-fill-4 { background: var(--api-c4); } .api-fill-5 { background: var(--api-c5); }
 /* 수치 카드: 아이콘 · 값 · 설명 · 작은 막대 그래프 */
-.api-figures { display: grid; grid-template-columns: repeat(2, minmax(240px, 1fr)); gap: var(--space-4); min-width: 0; }
+/* 두 칸까지만 두고, 한 칸이 240px 아래로 좁아지면 한 줄에 하나로 내린다. 고정 두 칸이면 1280px 화면에서 잔디 옆에
+   남은 폭보다 넓어져 오른쪽 카드가 칸 밖으로 나갔다. */
+.api-figures { display: grid; grid-template-columns: repeat(auto-fit, minmax(max(min(240px, 100%), calc((100% - var(--space-4)) / 2)), 1fr)); gap: var(--space-4); min-width: 0; }
 .api-figure { display: flex; flex-direction: column; gap: 6px; padding: var(--space-4) var(--space-5); border: 1px solid var(--color-border-subtle); border-radius: 12px; background: var(--color-bg-raised); min-width: 0; }
 .api-figure-head { display: flex; align-items: center; gap: var(--space-2); }
 .api-figure-icon { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 9px; background: color-mix(in srgb, currentColor 14%, transparent); }
@@ -13770,7 +13785,6 @@ body:has(.dialog-scrim) .qa-notice-stack { visibility: hidden; }
 .api-minibars { display: block; width: 100%; height: 40px; }
 .api-minibars rect { fill: currentColor; opacity: .32; }
 .api-minibars rect.is-hot { opacity: 1; }
-.api-overview .usage-overview { grid-template-columns: max-content minmax(0, 1fr); }
 /* 기능별 · 모델별: 아이콘 · 색 막대 · 넓은 줄 */
 .api-table-rows { display: flex; flex-direction: column; padding: 0 var(--space-4) var(--space-4); }
 .api-table-row { display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(140px, 1.4fr) 110px 90px 64px; gap: var(--space-3); align-items: center; min-height: 56px; padding: 0 var(--space-2); border-top: 1px solid var(--color-border-subtle); }
@@ -13785,7 +13799,11 @@ body:has(.dialog-scrim) .qa-notice-stack { visibility: hidden; }
 .api-table-share .mono { font-size: 12.5px; color: var(--color-text-secondary); min-width: 48px; text-align: right; }
 .api-table-bar { flex: 1; height: 8px; border-radius: 999px; background: var(--color-bg-hover); overflow: hidden; }
 .api-table-bar span { display: block; height: 100%; border-radius: inherit; }
-@media (max-width: 1100px) { .api-figures { grid-template-columns: minmax(0, 1fr); } .api-table-row { grid-template-columns: minmax(0, 1fr) 120px 80px; } .api-table-row > :nth-child(3), .api-table-row > :nth-child(5) { display: none; } }
+/* 열은 화면 폭이 아니라 표 칸 폭을 보고 접는다. 화면 폭으로 접으면 1440px 에서 표가 반 폭인데도 다섯 열이 남아
+   이름 칸이 60px 아래로 눌려 모델 이름이 잘렸다. 이름 칸이 160px · 120px 을 지킬 수 있는 폭에서 접는다. */
+.api-table { container: api-table / inline-size; }
+@container api-table (max-width: 680px) { .api-table-row { grid-template-columns: minmax(0, 1fr) 120px 80px; } .api-table-row > :nth-child(3), .api-table-row > :nth-child(5) { display: none; } }
+@container api-table (max-width: 420px) { .api-table-row { grid-template-columns: minmax(0, 1fr) 80px; } .api-table-row > :nth-child(2) { display: none; } }
 
 /* API 관리를 받는 동안(ARTEL-1379): 진짜 칸과 같은 틀에 케이스 표의 박동(`tct-skel-pulse`)으로 깜박이는 막대 · 칸. */
 .skeleton-block { display: block; border-radius: 6px; background: var(--color-bg-hover); }
