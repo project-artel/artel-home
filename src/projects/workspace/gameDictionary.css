@@ -61,4 +61,17 @@
 .gd-route { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
 .gd-route-arrow { color: var(--color-brand-accent); font-weight: 700; }
 
+/* 게임 정보(`fact`) · 규칙(`rule`) 표. 코딩 에이전트가 MCP 로 선언한 값이라 읽기만 한다. */
+.gd-tab-hint { margin: 0; padding: 10px 14px; border-bottom: 1px solid var(--color-border-subtle); color: var(--color-text-muted); font-size: 12px; }
+.gd-facts td, .gd-rules td { vertical-align: middle; }
+.gd-fact-source { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+.gd-fact-type { white-space: nowrap; }
+.gd-fact-means, .gd-rule-says { min-width: 260px; color: var(--color-text-secondary); }
+.gd-rule-facts { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.gd-fact-chip { display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px; border: 1px solid var(--color-border-strong); border-radius: 999px; background: var(--color-bg-raised); color: var(--color-text-primary); font-size: 11.5px; white-space: nowrap; }
+button.gd-fact-chip { cursor: pointer; }
+button.gd-fact-chip:hover { border-color: var(--color-brand-accent); }
+button.gd-fact-chip:focus-visible { outline: 2px solid var(--color-brand-accent); outline-offset: 2px; }
+.gd-fact-chip.is-missing { border-style: dashed; color: var(--color-status-warning); }
+
 @media (max-width: 900px) { .gd-results { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
