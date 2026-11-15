@@ -209,12 +209,15 @@ test('지금 step 이 앞 계획으로 돌면 그 계획까지 거슬러 받는�
 })
 
 test('planner 가 답을 받는 동안 남기는 진행을 계획을 쓰는 동안만 보인다', () => {
-  const progress = (step: number, elapsed: number, chars: number, tail: string) =>
-    log('LOG', { kind: 'planner_progress', step, message: 'p', decision: { elapsed, chars, tail } })
+  const progress = (step: number, elapsed: number, chars: number, tail: string, thinking = '') =>
+    log('LOG', { kind: 'planner_progress', step, message: 'p', decision: { elapsed, chars, tail, thinking } })
   const logs = [writing(3), progress(3, 4, 0, '')]
   let dock = deriveAgentDock(logs, true)
   assert.equal(dock.active, 'planner')
-  assert.deepEqual(dock.progress, { elapsed: 4, chars: 0, tail: '' }, '글이 아직 없으면 추론 중이다')
+  assert.deepEqual(dock.progress, { elapsed: 4, chars: 0, tail: '', thinking: '' }, '글이 아직 없으면 추론 중이다')
+
+  logs.push(progress(3, 9, 0, '', 'Checking which slot is empty'))
+  assert.equal(deriveAgentDock(logs, true).progress?.thinking, 'Checking which slot is empty', '추론 요약을 싣는다')
 
   logs.push(progress(3, 18, 120, '```goals\nread: ...'))
   dock = deriveAgentDock(logs, true)

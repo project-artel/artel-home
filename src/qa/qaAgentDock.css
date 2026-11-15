@@ -159,6 +159,12 @@
   overflow: hidden;
 }
 
+/* 답을 쓰기 전 추론 요약. 답 글자와 구분되게 본문 글꼴로 쓴다. */
+.qa-agent-stream--thinking {
+  font-size: 12px;
+  font-style: italic;
+}
+
 .qa-agent-goals {
   margin: 0;
   padding: 0;

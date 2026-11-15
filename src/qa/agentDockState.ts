@@ -44,8 +44,11 @@ export type AgentTurn = {
 
 export type AgentVerdict = { step: number; passed: boolean; message: string; stopped: string | null }
 
-/** Planner 가 답을 받는 동안 몇 초마다 남기는 진행(`planner_progress`). 글이 아직 없으면 추론 중이다. */
-export type AgentProgress = { elapsed: number; chars: number; tail: string }
+/**
+ * Planner 가 답을 받는 동안 몇 초마다 남기는 진행(`planner_progress`). 글이 아직 없으면 추론 중이고, provider 가 추론 요약을
+ * 주면 `thinking` 에 그 끝부분이 실린다.
+ */
+export type AgentProgress = { elapsed: number; chars: number; tail: string; thinking: string }
 
 /** 판정 줄. 판정은 실행이 끝난 step 을 앞에서부터 하나씩 한다. */
 export type AgentJudgement =
@@ -280,6 +283,7 @@ export function deriveAgentDock(logs: readonly QaLog[], live: boolean): AgentDoc
           elapsed: score(decision?.elapsed) ?? 0,
           chars: score(decision?.chars) ?? 0,
           tail: text(decision?.tail) ?? '',
+          thinking: text(decision?.thinking) ?? '',
         },
       }
       continue

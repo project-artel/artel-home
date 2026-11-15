@@ -155,6 +155,9 @@ function PlannerBody({ dock, text, pe }: { dock: AgentDockState; text: Text; pe:
       {writing && progress !== null && progress.tail.length > 0 && (
         <pre aria-label={text.progressWriting(progress.elapsed, progress.chars)} className="qa-agent-stream mono">{progress.tail}</pre>
       )}
+      {writing && progress !== null && progress.tail.length === 0 && progress.thinking.length > 0 && (
+        <p aria-label={text.progressThinking(progress.elapsed)} className="qa-agent-stream qa-agent-stream--thinking">{progress.thinking}</p>
+      )}
       {plan === null ? (
         !writing && <p className="qa-agent-idle">{text.noPlan}</p>
       ) : (
