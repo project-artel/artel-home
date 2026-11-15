@@ -185,6 +185,11 @@ function PlannerBody({ dock, text, pe }: { dock: AgentDockState; text: Text; pe:
         </>
       )}
       {refusal !== null && <p className="qa-agent-note"><PeText text={pe} value={text.refused(refusal.answer, refusal.reason)} /></p>}
+      {dock.ahead !== null && (
+        <p className="qa-agent-sub">
+          {dock.ahead.ready ? text.aheadReady(dock.ahead.step) : text.aheadWriting(dock.ahead.step, dock.ahead.elapsed)}
+        </p>
+      )}
     </>
   )
 }

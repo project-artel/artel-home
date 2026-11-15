@@ -86,6 +86,11 @@ export type AgentDockState = {
   progress: AgentProgress | null
   /** 판정 줄: 끝난 판정(오래된 것부터), 지금 판정 중인 step, 판정을 기다리는 step. */
   judgements: AgentJudgement[]
+  /**
+   * 지금 step 이 도는 동안 뒤에서 미리 쓰는 다음 step 의 계획(`plan_ahead`). 쓰는 중이면 지난 시간을, 다 썼으면 `ready` 다.
+   * 지금 step 의 내용과 섞지 않는다. 다음 step 이 시작하면 지운다.
+   */
+  ahead: { step: number; elapsed: number; ready: boolean } | null
 }
 
 export type AgentGoal = { name: string; goal: string; step: number | null; state: 'done' | 'current' | 'next' }
@@ -96,6 +101,7 @@ export type PlanSegment = { planStep: number; steps: number[] }
 const PLAN_KINDS = new Set(['step_macros', 'replan_macros', 'travel_macros'])
 const REFUSED_KINDS = new Set(['step_macros_refused', 'replan_macros_refused', 'travel_macros_refused'])
 const WRITING = /the planner is writing macros/
+const AHEAD_KINDS = new Set(['ahead_macros', 'ahead_macros_refused', 'ahead_plan_dropped', 'ahead_plan_restarted'])
 /** 창이 읽는 로그만 받는다. `PULSE` 는 전혀 안 쓴다. */
 export const AGENT_LOG_TYPES = ['LOG', 'STATUS'] as const
 
@@ -152,6 +158,7 @@ export function isAgentLog(log: QaLog): boolean {
     kind === 'segment_step' ||
     kind === 'planner_progress' ||
     kind === 'segment_judgement' ||
+    AHEAD_KINDS.has(kind) ||
     PLAN_KINDS.has(kind) ||
     REFUSED_KINDS.has(kind)
   )
@@ -238,6 +245,7 @@ const EMPTY: AgentDockState = {
   pending: null,
   progress: null,
   judgements: [],
+  ahead: null,
 }
 
 /**
@@ -268,6 +276,17 @@ export function deriveAgentDock(logs: readonly QaLog[], live: boolean): AgentDoc
       }
       verdicts.push(arrived)
       state = { ...state, verdict: arrived }
+      continue
+    }
+    // 미리 쓰는 다음 step 의 계획은 지금 step 을 바꾸지 않는다. Planner 칸에 한 줄로만 보인다.
+    const aheadKind = kindOf(log)
+    const aheadProgress = aheadKind === 'planner_progress' && asRecord(payload.decision)?.ahead === true
+    const aheadWriting = isWriting(log) && /\(ahead\)/.test(text(payload.message) ?? '')
+    if (step !== null && (aheadProgress || aheadWriting || (aheadKind !== null && AHEAD_KINDS.has(aheadKind)))) {
+      if (aheadKind === 'ahead_plan_dropped') state = { ...state, ahead: null }
+      else if (aheadKind === 'ahead_macros') state = { ...state, ahead: { step, elapsed: state.ahead?.elapsed ?? 0, ready: true } }
+      else if (aheadProgress) state = { ...state, ahead: { step, elapsed: score(asRecord(payload.decision)?.elapsed) ?? 0, ready: false } }
+      else if (aheadKind !== 'ahead_macros_refused') state = { ...state, ahead: { step, elapsed: 0, ready: false } }
       continue
     }
     if (step !== null) seen.add(step)

@@ -276,3 +276,24 @@ test('앞 step 이 완료 조건에서 멈추지 않아 다음 step 을 새로 �
   const logs = [segmented, turn(1, 0), evidence(1, 2), writing(2)]
   assert.deepEqual(deriveAgentDock(logs, true).judgements.map((item) => [item.step, item.state]), [[1, 'judging']])
 })
+
+test('다음 step 의 미리 쓰는 계획은 지금 step 을 바꾸지 않고 따로 보인다', () => {
+  const logs = [
+    plan(3, ['developer:a']), turn(3, 0),
+    log('LOG', { step: 4, message: 'Step 4 (ahead): the planner is writing macros. Prompt v6.' }),
+    log('LOG', { kind: 'planner_progress', step: 4, message: 'p', decision: { elapsed: 12, chars: 0, tail: '', ahead: true } }),
+  ]
+  let dock = deriveAgentDock(logs, true)
+  assert.equal(dock.step, 3, '지금 step 은 그대로다')
+  assert.equal(dock.active, 'executor')
+  assert.equal(dock.progress, null, '지금 step 의 planner 진행으로 읽지 않는다')
+  assert.deepEqual(dock.ahead, { step: 4, elapsed: 12, ready: false })
+
+  logs.push(log('LOG', { kind: 'ahead_macros', step: 4, message: 'Step 4 (ahead): 1 actions', decision: { actions: ['developer:a'] } }))
+  assert.deepEqual(deriveAgentDock(logs, true).ahead, { step: 4, elapsed: 12, ready: true })
+
+  logs.push(evidence(3, 2), log('LOG', { kind: 'step_macros', step: 4, message: 'Step 4: 1 actions (written ahead)', decision: { actions: ['developer:a'], written_ahead: true } }))
+  dock = deriveAgentDock(logs, true)
+  assert.equal(dock.step, 4)
+  assert.equal(dock.ahead, null, '다음 step 이 시작하면 지운다')
+})
