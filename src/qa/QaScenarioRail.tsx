@@ -4,7 +4,7 @@ import type { ExecutionMode, ScenarioStep } from '../testScenarios/scenarioTypes
 import type { QaProgress } from './qaProgress'
 import type { QaCaseReport } from './qaCaseProgress'
 import { QaRunUsagePanel } from './QaRunUsagePanel'
-import { QaScenarioSteps } from './QaScenarioSteps'
+import { QaScenarioSteps, type AgentStepInfo } from './QaScenarioSteps'
 import { QA_STOP_NOT_STARTED, type QaTry } from './qaTypes'
 import { useScenarioSteps } from './useScenarioSteps'
 
@@ -20,6 +20,8 @@ export type FocusedScenarioDetail = {
   /** 이 실행이 TC 상태로 저장한 판정(ARTEL-995). `case_id` → 저장된 상태. */
   caseVerdicts: ReadonlyMap<string, VerificationStatus>
   caseReports: ReadonlyMap<string, QaCaseReport>
+  /** planner–executer 런일 때만 온다. 한 계획이 맡은 step 묶음과 지금 도는 step. */
+  agentSteps?: AgentStepInfo | null
 }
 
 export type QaScenarioRailProps = {
@@ -152,6 +154,7 @@ function RailScenario({
         <div id={stepsId}>
           {focused !== null ? (
             <QaScenarioSteps
+              agentSteps={focused.agentSteps ?? null}
               caseVerdicts={focused.caseVerdicts}
               caseReports={focused.caseReports}
               onJump={focused.onJump}

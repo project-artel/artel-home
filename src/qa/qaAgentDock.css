@@ -1,4 +1,4 @@
-/* 로그 창 자리에 들어가는 에이전트 창. 세 칸의 높이는 비율로 고정이라 내용이 바뀌어도 아이콘 자리가 흔들리지 않는다. */
+/* 로그 창 자리에 들어가는 에이전트 창. 계획·실행 칸은 최소 높이를 둬 turn 마다 내용이 바뀌어도 아래 칸이 덜 흔들린다. */
 .qa-agent-dock {
   flex: 1;
   min-height: 0;
@@ -26,17 +26,14 @@
   min-height: 0;
   overflow-y: auto;
   display: grid;
-  grid-template-rows: minmax(190px, 1fr) minmax(230px, 1.4fr) minmax(150px, 1fr);
-}
-
-/* 끝난 런은 타임라인이 창 아래를 덮는다. 내용 높이만 써서 Evaluator 가 가려지지 않게 한다. */
-.qa-console:has(.qa-execution-timeline) .qa-agent-rows {
-  grid-template-rows: auto auto auto;
+  grid-template-rows: minmax(150px, auto) minmax(170px, auto) auto auto;
   align-content: start;
+  gap: 10px;
 }
 
-.qa-console:has(.qa-execution-timeline) .qa-agent-stem {
-  flex: none;
+/* 끝난 런은 타임라인이 창 아래를 덮는다. 내용 높이만 써서 판정 칸이 가려지지 않게 한다. */
+.qa-console:has(.qa-execution-timeline) .qa-agent-rows {
+  grid-template-rows: auto auto auto auto;
 }
 
 .qa-agent-row {
@@ -53,16 +50,15 @@
   opacity: 0.6;
 }
 
+/* 칸 내용은 늘 읽혀야 해서 흐리게 하지 않는다. 행동 중이 아닌 칸은 머리만 흐리다. */
 .qa-agent-row.is-on .qa-agent-who,
-.qa-agent-row.is-on .qa-agent-stem > *,
-.qa-agent-dock--idle .qa-agent-who,
-.qa-agent-dock--idle .qa-agent-stem > * {
+.qa-agent-dock--idle .qa-agent-who {
   opacity: 1;
 }
 
 .qa-agent-icon {
-  width: 40px;
-  height: 40px;
+  width: 34px;
+  height: 34px;
   box-sizing: border-box;
   flex: none;
   display: flex;
@@ -84,6 +80,11 @@
   color: var(--color-status-success);
 }
 
+.qa-agent-row--done.is-on .qa-agent-icon {
+  border: 1px solid var(--color-status-success);
+  color: var(--color-status-success);
+}
+
 .qa-agent-row.is-on .qa-agent-icon {
   border: 2px solid var(--color-action-primary);
 }
@@ -100,6 +101,13 @@
 
 .qa-agent-label--evaluator {
   color: var(--color-status-success);
+}
+
+.qa-agent-code {
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 450;
+  color: var(--color-text-muted);
 }
 
 .qa-agent-status {
@@ -149,81 +157,17 @@
   }
 }
 
-/* 에이전트 사이의 선. 아이콘 아래 선에 이어진다. */
-.qa-agent-line {
-  flex: none;
-  position: relative;
-  height: 26px;
-  margin-left: 19px;
-  padding-left: 12px;
-  display: flex;
-  align-items: center;
-  border-left: 2px solid var(--color-border-strong);
-}
-
-/* 다음 에이전트로 넘어가는 동안 아이콘 사이 선 전체가 켜진다. 빨간 테두리는 아이콘에만 둔다. */
-.qa-agent-row.is-passing .qa-agent-stem,
-.qa-agent-row.is-passing .qa-agent-line {
-  border-left-color: var(--color-text-primary);
-}
-
-.qa-agent-line-tag {
-  overflow: hidden;
-  font-size: 11px;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.qa-agent-line-dot {
-  position: absolute;
-  left: -5px;
-  width: 8px;
-  height: 8px;
-  border-radius: var(--radius-sm);
-  background: var(--color-text-primary);
-}
-
-.qa-agent-line-dot--down {
-  animation: qa-agent-go-down 1.2s linear infinite;
-}
-
-.qa-agent-line-dot--up {
-  animation: qa-agent-go-up 1.2s linear infinite;
-}
-
-@keyframes qa-agent-go-down {
-  from {
-    top: 0;
-  }
-  to {
-    top: calc(100% - 8px);
-  }
-}
-
-@keyframes qa-agent-go-up {
-  from {
-    top: calc(100% - 8px);
-  }
-  to {
-    top: 0;
-  }
-}
-
 /* 아이콘에서 자기 블럭으로 내려오는 선과 작은 블럭 */
 .qa-agent-stem {
-  flex: 1 1 0;
+  flex: 1 0 auto;
   min-height: 0;
-  margin-left: 19px;
+  margin-left: 16px;
   padding: 6px 0 0 12px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 4px;
   border-left: 2px solid var(--color-border-strong);
-}
-
-.qa-agent-stem > * {
-  opacity: 0.6;
 }
 
 .qa-agent-block {
@@ -320,7 +264,7 @@
   color: var(--color-status-critical);
 }
 
-.qa-agent-confidence {
+.qa-agent-meter {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -329,7 +273,12 @@
   color: var(--color-text-secondary);
 }
 
-.qa-agent-confidence .mono {
+.qa-agent-meter > span:first-child {
+  flex: none;
+  width: 84px;
+}
+
+.qa-agent-meter .mono {
   font-size: 12px;
   font-weight: 600;
   color: var(--color-text-primary);
@@ -350,11 +299,11 @@
   background: var(--color-text-primary);
 }
 
-.qa-agent-confidence.is-low .mono {
+.qa-agent-meter.is-low .mono {
   color: var(--color-status-warning);
 }
 
-.qa-agent-confidence.is-low .qa-agent-bar i {
+.qa-agent-meter.is-low .qa-agent-bar i {
   background: var(--color-status-warning);
 }
 
@@ -374,9 +323,6 @@
   opacity: 0.7;
 }
 
-.qa-agent-options li.is-picked {
-  opacity: 1;
-}
 
 .qa-agent-options li > .mono {
   text-align: right;
@@ -393,12 +339,125 @@
   height: 4px;
 }
 
-.qa-agent-options li.is-picked .qa-agent-bar i {
-  background: var(--color-action-primary);
+.qa-agent-options .qa-agent-bar i,
+.qa-agent-meter--wait:not(.is-low) .qa-agent-bar i {
+  background: var(--color-border-strong);
 }
 
-.qa-agent-options li:not(.is-picked) .qa-agent-bar i {
-  background: var(--color-border-strong);
+/* 하위 목표: 이룬 것은 체크, 지금 것은 굵게, 뒤의 것은 흐리게. 글은 두 줄까지만 보이고 지금 것만 다 보인다. */
+.qa-agent-goals {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.qa-agent-goal {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 0 6px;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  line-height: 17px;
+  color: var(--color-text-secondary);
+}
+
+.qa-agent-goal-text {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.qa-agent-goal--done .qa-agent-goal-glyph {
+  color: var(--color-status-success);
+}
+
+.qa-agent-goal--current {
+  background: color-mix(in srgb, var(--color-action-primary) 10%, transparent);
+  color: var(--color-text-primary);
+}
+
+.qa-agent-goal--current .qa-agent-goal-glyph {
+  color: var(--color-action-primary);
+}
+
+.qa-agent-goal--current .qa-agent-goal-text {
+  display: block;
+}
+
+.qa-agent-goal--next {
+  opacity: 0.7;
+}
+
+.qa-agent-goal-step {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.qa-agent-chips {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.qa-agent-chip {
+  padding: 1px 8px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 999px;
+  background: var(--color-bg-raised);
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
+.qa-agent-chip--warning {
+  border-color: var(--color-status-warning);
+  background: var(--color-status-warning-muted);
+  color: var(--color-text-primary);
+}
+
+.qa-agent-done-state {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 8px;
+  color: var(--color-text-secondary);
+}
+
+.qa-agent-done-state strong {
+  font-size: 13px;
+  color: var(--color-text-primary);
+}
+
+.qa-agent-done-state.is-met strong {
+  color: var(--color-status-success);
+}
+
+.qa-agent-verdict.is-passed span {
+  color: var(--color-status-success);
+}
+
+.qa-agent-verdict.is-failed span {
+  color: var(--color-status-critical);
+}
+
+.qa-agent-verdict-text {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.qa-agent-block .qa-agent-next {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--color-text-secondary);
 }
 
 /* 글 안의 코드 이름·씬·매크로. `PeText` 가 쓴다. */
@@ -453,9 +512,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .qa-agent-dots i,
-  .qa-agent-line-dot--down,
-  .qa-agent-line-dot--up {
+  .qa-agent-dots i {
     animation: none;
   }
 }

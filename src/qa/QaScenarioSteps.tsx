@@ -5,6 +5,7 @@ import type { VerificationStatus } from '../testCases/testCaseTypes'
 import { indexCasesById } from '../testScenarios/freeScenarioCases'
 import { groupStepsByCase, type ExecutionMode, type ScenarioStep } from '../testScenarios/scenarioTypes'
 import { useProjectCases } from '../testScenarios/useProjectCases'
+import type { PlanSegment } from './agentDockState'
 import type { QaProgress, QaStepGrade, QaStepProgress, QaStepState } from './qaProgress'
 import { summarizeQaCases, type QaCaseReport } from './qaCaseProgress'
 
@@ -21,6 +22,9 @@ import { summarizeQaCases, type QaCaseReport } from './qaCaseProgress'
  * coloured by whether the Agent's verdict matched it, not by the verdict itself.
  * The glyph keeps showing what actually happened, and the band at the row's left
  * edge shows what was expected.
+ *
+ * planner–executer 런이면 `agentSteps` 가 온다. 한 계획이 함께 맡은 step 들은 띠 하나로 묶고, 지금 도는 step 은
+ * 판정 순서가 아니라 에이전트 로그의 step 으로 밝힌다. 판정이 뒤에서 돌아 판정 앞선 step 이 지금 step 이 아닐 수 있다.
  */
 const STATE_GLYPHS: Record<QaStepState, string> = {
   passed: '✓',
@@ -55,7 +59,11 @@ function stepRows(
   return scenarioSteps.map((step, index) => ({ step: index + 1, title: titleOf(index + 1, step.action), progress: null }))
 }
 
+/** planner–executer 런의 step 정보: 한 계획이 맡은 묶음과 에이전트가 지금 도는 step. */
+export type AgentStepInfo = { segments: PlanSegment[]; current: number | null }
+
 export function QaScenarioSteps({
+  agentSteps = null,
   caseVerdicts = new Map(),
   caseReports = new Map(),
   executionMode = 'ORDERED',
@@ -65,6 +73,7 @@ export function QaScenarioSteps({
   projectId,
   scenarioSteps,
 }: {
+  agentSteps?: AgentStepInfo | null
   /**
    * FREE의 한 행은 TC다. 실행 순서와 무관하게 case_id로 판정을 대응하고
    * 화면의 행 순서는 시나리오 순서를 유지한다.
@@ -115,7 +124,36 @@ export function QaScenarioSteps({
         }))
       : [{ caseId: null, caseNumber: 0, rows }]
 
+  /** 판정이 없는 step 의 색. PE 런은 판정 순서 대신 에이전트가 지금 도는 step 을 `running` 으로 둔다. */
+  function shownState(row: StepRow, state: QaStepState): QaStepState {
+    if (agentSteps === null || ['passed', 'failed', 'inconclusive'].includes(state)) return state
+    if (row.step === agentSteps.current) return 'running'
+    return state === 'running' ? 'pending' : state
+  }
+
+  function segmentLabel(row: StepRow) {
+    const segment = agentSteps?.segments.find((candidate) => candidate.steps[0] === row.step)
+    if (segment === undefined) return null
+    const from = segment.steps[0]
+    const to = segment.steps[segment.steps.length - 1]
+    return (
+      <li className="qa-rail-seg qa-rail-seg--first qa-rail-seg-label" key={`segment-${row.step}`} title={s.planSegmentLabel(from, to, segment.planStep)}>
+        {s.planSegment(from, to)}
+      </li>
+    )
+  }
+
+  function segmentClass(row: StepRow): string {
+    const segment = agentSteps?.segments.find((candidate) => candidate.steps.includes(row.step))
+    if (segment === undefined) return ''
+    return segment.steps[segment.steps.length - 1] === row.step ? ' qa-rail-seg qa-rail-seg--last' : ' qa-rail-seg'
+  }
+
   function renderRow(row: StepRow) {
+    return [segmentLabel(row), renderStep(row)]
+  }
+
+  function renderStep(row: StepRow) {
     const caseId = scenarioSteps[row.step - 1]?.case_id
     const identifier = caseId == null ? null : caseLabel(caseId)
     const title = row.title.length > 0 ? row.title : isFree && identifier ? identifier : s.untitled(row.step)
@@ -126,7 +164,7 @@ export function QaScenarioSteps({
     if (step === null) {
       return (
         <TestCaseHover key={row.step} projectId={projectId} caseId={caseId} gameBuildId={gameBuildId}>
-          <li className="qa-rail-step qa-rail-step--neutral">
+          <li className={`qa-rail-step qa-rail-step--neutral${segmentClass(row)}`}>
             <span className="qa-rail-step-no">{numberLabel}</span>
             <span className="qa-rail-step-title">{title}</span>
           </li>
@@ -134,12 +172,13 @@ export function QaScenarioSteps({
       )
     }
 
+    const state = shownState(row, step.state)
     const expectation =
       step.expectedPassed === null ? null : step.expectedPassed ? s.expected.passed : s.expected.failed
     // The tooltip is where an inverted colour is explained, so it names all three:
     // what happened, what was expected, and which way they went.
     const label = [
-      `${numberLabel}. ${title} · ${s.stateLabels[step.state]}`,
+      `${numberLabel}. ${title} · ${s.stateLabels[state]}`,
       expectation,
       step.grade === null ? null : s.gradeLabels[step.grade],
     ]
@@ -153,16 +192,16 @@ export function QaScenarioSteps({
             className={`qa-rail-step-expect qa-rail-step-expect--${step.expectedPassed ? 'passed' : 'failed'}`}
           />
         )}
-        <span aria-hidden="true" className="qa-rail-step-glyph">{STATE_GLYPHS[step.state]}</span>
+        <span aria-hidden="true" className="qa-rail-step-glyph">{STATE_GLYPHS[state]}</span>
         <span className="qa-rail-step-no">{numberLabel}</span>
         <span className="qa-rail-step-title">{title}</span>
-        <span className="visually-hidden">{s.stateLabels[step.state]}</span>
+        <span className="visually-hidden">{s.stateLabels[state]}</span>
       </>
     )
-    const className = `qa-rail-step ${toneClass('qa-rail-step', step.state, step.grade)}`
+    const className = `qa-rail-step ${toneClass('qa-rail-step', state, step.grade)}`
     const verdictLogId = step.verdictLogId
     return (
-      <li key={row.step}>
+      <li className={segmentClass(row).trim() || undefined} key={row.step}>
         <TestCaseHover projectId={projectId} caseId={caseId} gameBuildId={gameBuildId}>
           {verdictLogId === null || onJump === undefined ? (
             <span className={className} title={caseId == null ? label : undefined} aria-label={caseId != null ? label : undefined}>{body}</span>

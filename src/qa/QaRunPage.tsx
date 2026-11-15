@@ -18,7 +18,7 @@ import { GameStreamView } from '../streaming/GameStreamView'
 import { QaTryIssuePanel } from '../issues/QaTryIssuePanel'
 import { listTestScenarios } from '../testScenarios/scenarioApi'
 import { cancelQaRun, compareDecimalIds, getQaRun, isDecimalId } from './qaApi'
-import { isAgentRun } from './agentDockState'
+import { deriveAgentDock, deriveStepSegments, isAgentRun } from './agentDockState'
 import { QaAgentDock } from './QaAgentDock'
 import { QaBehaviorLanes } from './QaBehaviorLanes'
 import { QaFocusStage } from './QaFocusStage'
@@ -414,6 +414,11 @@ function FocusedTry({
   const historicalLogs = useMemo(() => logsThrough(session.logs, logCutoff), [session.logs, logCutoff])
   const dockLogs = useMemo(() => logsThrough(agentLogs, logCutoff), [agentLogs, logCutoff])
   const historicalVerdicts = useMemo(() => logsThrough(session.verdictLogs, logCutoff), [session.verdictLogs, logCutoff])
+  // planner–executer 런이면 왼쪽 step 목록에 한 계획이 맡은 묶음과 에이전트가 지금 도는 step 을 넘긴다.
+  const agentSteps = useMemo(
+    () => (agentRun ? { segments: deriveStepSegments(dockLogs), current: deriveAgentDock(dockLogs, true).step } : null),
+    [agentRun, dockLogs],
+  )
 
   const progress = useMemo(
     () =>
@@ -586,6 +591,7 @@ function FocusedTry({
           scenarioSteps,
           executionMode,
           onJump: agentRun ? undefined : jumpToLog,
+          agentSteps,
           caseVerdicts,
           caseReports,
         }}

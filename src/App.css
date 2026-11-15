@@ -13895,3 +13895,9 @@ body:has(.dialog-scrim) .qa-notice-stack { visibility: hidden; }
 .crd-step-action{ display:block; margin-bottom:3px; font-size:13px; font-weight:600; color:var(--color-text-primary); }
 .crd-kind--changed{ border-color:var(--color-status-warning); color:var(--color-status-warning); }
 .crd-reject{ color:var(--color-status-critical); border-color:color-mix(in srgb, var(--color-status-critical) 55%, transparent); }
+
+/* planner–executer 런에서 한 계획이 함께 맡은 step 묶음. Planner 색의 왼쪽 선과 옅은 바탕으로 묶고, 지금 step 은 안에서 `running` 색을 그대로 쓴다. */
+.qa-rail-seg{ border-left:2px solid var(--color-agent-reasoning); background:color-mix(in srgb, var(--color-agent-reasoning) 6%, transparent); }
+.qa-rail-seg--first{ margin-top:4px; border-top-right-radius:4px; }
+.qa-rail-seg--last{ margin-bottom:4px; border-bottom-right-radius:4px; }
+.qa-rail-seg-label{ padding:2px 6px 0 8px; font-size:11px; line-height:16px; font-weight:600; color:var(--color-text-secondary); }
