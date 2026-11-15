@@ -38,7 +38,7 @@
 }
 
 .qa-agent-card.is-on {
-  border-color: var(--color-action-primary);
+  border-color: var(--color-border-strong);
 }
 
 .qa-agent-card--planner.is-on {
@@ -102,7 +102,7 @@
 }
 
 .qa-agent-card.is-on .qa-agent-card-status {
-  color: var(--color-action-primary);
+  color: var(--color-text-primary);
 }
 
 .qa-agent-card--planner.is-on .qa-agent-card-status {
@@ -176,7 +176,7 @@
 
 .qa-agent-goal {
   display: grid;
-  grid-template-columns: 14px minmax(0, 1fr) auto;
+  grid-template-columns: 14px auto minmax(0, 1fr);
   gap: 6px;
   align-items: baseline;
   padding: 2px 4px;
@@ -212,8 +212,9 @@
 }
 
 .qa-agent-goal-step {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--color-text-muted);
+  white-space: nowrap;
 }
 
 .qa-agent-picked {

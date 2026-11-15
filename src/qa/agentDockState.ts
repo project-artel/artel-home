@@ -50,10 +50,13 @@ export type AgentVerdict = { step: number; passed: boolean; message: string; sto
  */
 export type AgentProgress = { elapsed: number; chars: number; tail: string; thinking: string }
 
-/** 판정 줄. 판정은 실행이 끝난 step 을 앞에서부터 하나씩 한다. */
+/**
+ * 판정 줄. 판정은 실행이 끝난 step 을 앞에서부터 하나씩 한다. 한 계획이 함께 맡은 묶음의 step 은 묶음이 끝난 뒤 묶음 전체의
+ * 기록으로 판정하므로(`segment_judgement`), 그때까지는 `segment` 에 묶음 범위를 달고 기다린다.
+ */
 export type AgentJudgement =
   | { step: number; state: 'judged'; verdict: AgentVerdict }
-  | { step: number; state: 'judging' | 'waiting' }
+  | { step: number; state: 'judging' | 'waiting'; segment?: { from: number; to: number } }
 
 export type AgentStatus =
   | { kind: 'writing' | 'replanning' | 'rewriting' | 'reusing' | 'turn' | 'finished' }
@@ -148,6 +151,7 @@ export function isAgentLog(log: QaLog): boolean {
     kind === 'evidence' ||
     kind === 'segment_step' ||
     kind === 'planner_progress' ||
+    kind === 'segment_judgement' ||
     PLAN_KINDS.has(kind) ||
     REFUSED_KINDS.has(kind)
   )
@@ -383,10 +387,34 @@ export function deriveAgentDock(logs: readonly QaLog[], live: boolean): AgentDoc
   const unjudged = live
     ? sortedSteps(seen).filter((step) => !judged.has(step) && (played.has(step) || [...seen].some((later) => later > step)))
     : []
+  // 묶음의 step 은 에이전트가 아직 그 묶음 안에 있고 묶음 판정이 시작되지 않았으면 묶음이 끝나기를 기다린다.
+  const startedTogether = new Set<number>()
+  for (const log of logs) {
+    if (kindOf(log) !== 'segment_judgement') continue
+    const steps = asRecord(asRecord(log.payload)?.decision)?.steps
+    if (Array.isArray(steps)) for (const value of steps) if (typeof value === 'number') startedTogether.add(value)
+  }
+  const segments = unjudged.length > 0 ? deriveStepSegments(logs) : []
+  const openSegment = (step: number) =>
+    startedTogether.has(step) || state.step === null
+      ? undefined
+      : segments.find((segment) => segment.steps.includes(step) && segment.steps.includes(state.step as number))
   const judgements: AgentJudgement[] = [
     ...verdicts.map((verdict) => ({ step: verdict.step, state: 'judged' as const, verdict })),
-    ...unjudged.map((step, at) => ({ step, state: at === 0 ? ('judging' as const) : ('waiting' as const) })),
+    ...unjudged.map((step, at) => {
+      const segment = openSegment(step)
+      if (segment !== undefined) {
+        return { step, state: 'waiting' as const, segment: { from: segment.steps[0], to: segment.steps[segment.steps.length - 1] } }
+      }
+      return { step, state: at === 0 ? ('judging' as const) : ('waiting' as const) }
+    }),
   ]
+  // 앞 step 이 묶음을 기다리면 뒤 step 도 판정 중일 수 없다.
+  const firstWaiting = judgements.findIndex((item) => item.state === 'waiting')
+  for (let at = firstWaiting + 1; firstWaiting >= 0 && at < judgements.length; at += 1) {
+    const item = judgements[at]
+    if (item.state === 'judging') judgements[at] = { step: item.step, state: 'waiting' }
+  }
   return live
     ? { ...state, pending, judgements }
     : { ...state, active: null, status: null, pending: null, progress: null, judgements }

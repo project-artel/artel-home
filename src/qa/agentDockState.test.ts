@@ -244,3 +244,26 @@ test('판정 줄은 끝난 판정 뒤에 판정 중 한 step 과 판정 대기 s
   )
   assert.equal(deriveAgentDock(logs, false).judgements.filter((item) => item.state !== 'judged').length, 0, '끝난 런은 끝난 판정만')
 })
+
+test('묶음의 step 은 묶음이 끝나 함께 판정이 시작될 때까지 묶음 대기로 둔다', () => {
+  const segmented = log('LOG', {
+    kind: 'step_macros', step: 4, message: 'plan',
+    decision: { summary: '요약', actions: ['developer:a'], segment: { 4: ['line'], 5: ['map'] } },
+  })
+  const together = log('LOG', { kind: 'segment_judgement', step: 4, message: 'Steps 4-5: judged together', decision: { steps: [4, 5] } })
+  const logs = [
+    plan(3, ['developer:a']), turn(3, 0), evidence(3, 2), verdict(3),
+    segmented, turn(4, 0), evidence(4, 2),
+    log('LOG', { kind: 'segment_step', step: 5, message: 'Step 5: played with the plan written for the earlier step' }),
+    turn(5, 0),
+  ]
+  let dock = deriveAgentDock(logs, true)
+  assert.deepEqual(
+    dock.judgements.map((item) => [item.step, item.state, item.state === 'judged' ? null : item.segment ?? null]),
+    [[3, 'judged', null], [4, 'waiting', { from: 4, to: 5 }]],
+    '에이전트가 묶음 안에 있으면 step 4 는 판정 중이 아니다',
+  )
+  logs.push(evidence(5, 3), together)
+  dock = deriveAgentDock(logs, true)
+  assert.deepEqual(dock.judgements.map((item) => [item.step, item.state]), [[3, 'judged'], [4, 'judging'], [5, 'waiting']])
+})

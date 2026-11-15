@@ -171,8 +171,10 @@ function PlannerBody({ dock, text, pe }: { dock: AgentDockState; text: Text; pe:
               {goals.map((goal) => (
                 <li className={`qa-agent-goal qa-agent-goal--${goal.state}`} key={goal.name} title={goal.goal}>
                   <span aria-hidden="true" className="qa-agent-goal-glyph">{GOAL_GLYPHS[goal.state]}</span>
+                  <span className="qa-agent-goal-step" aria-label={segmented && goal.step !== null ? text.goalStep(goal.step) : undefined}>
+                    {segmented && goal.step !== null ? `${goal.step} ·` : ''}
+                  </span>
                   <span className="qa-agent-goal-text"><PeText text={pe} value={goal.goal} /></span>
-                  {segmented && goal.step !== null && <span className="qa-agent-goal-step mono">{text.goalStep(goal.step)}</span>}
                   <span className="visually-hidden">{text.goalStates[goal.state]}</span>
                 </li>
               ))}
@@ -261,7 +263,13 @@ function JudgementItem({ item, text, pe }: { item: AgentJudgement; text: Text; p
         <strong>{text.step(item.step)}</strong>
         <span className="qa-agent-judgement-state">{text.judgeStates[item.state]}</span>
       </p>
-      <p className="qa-agent-judgement-text">{judging ? text.judgeJudgingLine(item.step) : text.judgeWaitingLine(item.step)}</p>
+      <p className="qa-agent-judgement-text">
+        {judging
+          ? text.judgeJudgingLine(item.step)
+          : item.segment !== undefined
+            ? text.judgeSegmentLine(item.segment.from, item.segment.to)
+            : text.judgeWaitingLine(item.step)}
+      </p>
     </li>
   )
 }

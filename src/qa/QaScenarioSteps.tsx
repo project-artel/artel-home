@@ -131,29 +131,33 @@ export function QaScenarioSteps({
     return state === 'running' ? 'pending' : state
   }
 
-  function segmentLabel(row: StepRow) {
-    const segment = agentSteps?.segments.find((candidate) => candidate.steps[0] === row.step)
-    if (segment === undefined) return null
-    const from = segment.steps[0]
-    const to = segment.steps[segment.steps.length - 1]
+  /** 지금 step 을 맡은 묶음. 묶음이 끝나면 `agentSteps.segments` 가 비어 띠도 사라진다. */
+  const segment = agentSteps?.segments[0] ?? null
+  const segmentFirst = segment?.steps[0] ?? null
+  const segmentLast = segment?.steps.at(-1) ?? null
+  const inSegment = (step: number) => segment !== null && segment.steps.includes(step)
+
+  /** 묶음 상자의 머리. 묶음의 첫 step 이 든 줄 바로 앞에 한 번 둔다. */
+  function segmentLabel() {
+    if (segment === null || segmentFirst === null || segmentLast === null) return null
     return (
-      <li className="qa-rail-seg qa-rail-seg--first qa-rail-seg-label" key={`segment-${row.step}`} title={s.planSegmentLabel(from, to, segment.planStep)}>
-        {s.planSegment(from, to)}
+      <li className="qa-rail-seg qa-rail-seg--first qa-rail-seg-label" key="segment-label" title={s.planSegmentLabel(segmentFirst, segmentLast, segment.planStep)}>
+        {s.planSegment(segmentFirst, segmentLast)}
       </li>
     )
   }
 
-  function segmentClass(row: StepRow): string {
-    const segment = agentSteps?.segments.find((candidate) => candidate.steps.includes(row.step))
-    if (segment === undefined) return ''
-    return segment.steps[segment.steps.length - 1] === row.step ? ' qa-rail-seg qa-rail-seg--last' : ' qa-rail-seg'
+  /** 묶음 상자의 한 조각. TC 하나가 통째로 묶음 안이면 그 TC 줄 전체가, 아니면 step 줄 하나가 조각이다. */
+  function segmentClass(steps: number[]): string {
+    if (steps.length === 0 || !steps.every(inSegment)) return ''
+    return steps.includes(segmentLast ?? -1) ? ' qa-rail-seg qa-rail-seg--last' : ' qa-rail-seg'
   }
 
-  function renderRow(row: StepRow) {
-    return [segmentLabel(row), renderStep(row)]
+  function renderRow(row: StepRow, wholeBlockInSegment = false) {
+    return renderStep(row, wholeBlockInSegment ? '' : segmentClass([row.step]))
   }
 
-  function renderStep(row: StepRow) {
+  function renderStep(row: StepRow, band: string) {
     const caseId = scenarioSteps[row.step - 1]?.case_id
     const identifier = caseId == null ? null : caseLabel(caseId)
     const title = row.title.length > 0 ? row.title : isFree && identifier ? identifier : s.untitled(row.step)
@@ -164,7 +168,7 @@ export function QaScenarioSteps({
     if (step === null) {
       return (
         <TestCaseHover key={row.step} projectId={projectId} caseId={caseId} gameBuildId={gameBuildId}>
-          <li className={`qa-rail-step qa-rail-step--neutral${segmentClass(row)}`}>
+          <li className={`qa-rail-step qa-rail-step--neutral${band}`}>
             <span className="qa-rail-step-no">{numberLabel}</span>
             <span className="qa-rail-step-title">{title}</span>
           </li>
@@ -201,7 +205,7 @@ export function QaScenarioSteps({
     const className = `qa-rail-step ${toneClass('qa-rail-step', state, step.grade)}`
     const verdictLogId = step.verdictLogId
     return (
-      <li className={segmentClass(row).trim() || undefined} key={row.step}>
+      <li className={band.trim() || undefined} key={row.step}>
         <TestCaseHover projectId={projectId} caseId={caseId} gameBuildId={gameBuildId}>
           {verdictLogId === null || onJump === undefined ? (
             <span className={className} title={caseId == null ? label : undefined} aria-label={caseId != null ? label : undefined}>{body}</span>
@@ -229,19 +233,32 @@ export function QaScenarioSteps({
       )}
       <ol className="qa-rail-step-list">
         {blocks.map((block, blockIndex) => {
-          if (block.caseId === null) return block.rows.map(renderRow)
+          const steps = block.rows.map((row) => row.step)
+          const whole = segmentClass(steps) !== ''
+          const label = steps.includes(segmentFirst ?? -1) ? segmentLabel() : null
+          if (block.caseId === null) {
+            if (agentSteps === null) return block.rows.map((row) => renderRow(row))
+            // PE 런: TC 없이 이어 주는 step 도 TC 안의 step 과 같은 들여쓰기에 둔다.
+            return [
+              label,
+              <li key={`loose-${blockIndex}`} className={`qa-rail-case qa-rail-case--loose${whole ? segmentClass(steps) : ''}`}>
+                <ol className="qa-rail-step-list">{block.rows.map((row) => renderRow(row, whole))}</ol>
+              </li>,
+            ]
+          }
           const last = block.rows.at(-1)?.progress ?? null
           const caseReport = caseReports.get(String(block.caseId))
           const report = caseReport?.source === 'case_report' ? caseReport : undefined
           const state = report?.state ?? last?.state
           const grade = report === undefined ? last?.grade ?? null : null
           const logId = report?.logId ?? last?.verdictLogId
-          const label = state === undefined ? null : `${caseLabel(block.caseId)} · ${s.stateLabels[state]}`
+          const verdictLabel = state === undefined ? null : `${caseLabel(block.caseId)} · ${s.stateLabels[state]}`
           const verdict = state === undefined ? null : (
             <><span aria-hidden="true">{STATE_GLYPHS[state]}</span>{s.stateLabels[state]}</>
           )
-          return (
-            <li key={`case-${blockIndex}`} className="qa-rail-case">
+          return [
+            label,
+            <li key={`case-${blockIndex}`} className={`qa-rail-case${whole ? segmentClass(steps) : ''}`}>
               <TestCaseHover projectId={projectId} caseId={block.caseId} gameBuildId={gameBuildId}><div className="qa-rail-case-head">
                 <span className="qa-rail-case-no">{caseLabel(block.caseId)}</span>
                 {caseVerdicts.has(String(block.caseId)) && (
@@ -251,12 +268,12 @@ export function QaScenarioSteps({
                   <span className={`qa-rail-case-verdict ${toneClass('qa-rail-case-verdict', state, grade)}`}>{verdict}</span>
                 ) : (
                   <button type="button" className={`qa-rail-case-verdict ${toneClass('qa-rail-case-verdict', state, grade)}`}
-                    aria-label={label ?? undefined} onClick={() => onJump(logId)}>{verdict}</button>
+                    aria-label={verdictLabel ?? undefined} onClick={() => onJump(logId)}>{verdict}</button>
                 ))}
               </div></TestCaseHover>
-              <ol className="qa-rail-step-list">{block.rows.map(renderRow)}</ol>
-            </li>
-          )
+              <ol className="qa-rail-step-list">{block.rows.map((row) => renderRow(row, whole))}</ol>
+            </li>,
+          ]
         })}
       </ol>
     </div>
