@@ -1,3 +1,4 @@
+import { PanelHeader } from '../design-system/primitives/Headers'
 import { Fragment, useState, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import addPackageFromGitUrlShot from '../assets/sdk-guide/step1-add-package-from-git-url.png'
@@ -136,10 +137,10 @@ function Bullets({ lines }: { lines: readonly string[] }) {
 function Intro({ id, title, hint, lead, children }: { id: string; title: string; hint: string; lead: string; children?: ReactNode }) {
   return (
     <section aria-labelledby={id} className="panel setup-intro">
-      <header className="panel-header panel-header--split">
+      <PanelHeader split>
         <h2 id={id}>{title}</h2>
         <span className="settings-hint">{hint}</span>
-      </header>
+      </PanelHeader>
       <p className="setup-lead">
         <Rich text={lead} />
       </p>
@@ -244,9 +245,9 @@ function SdkGuide({ projectId, onResult }: { projectId?: string; onResult: (mess
       </Step>
 
       <section aria-labelledby="setup-sdk-notes" className="panel">
-        <header className="panel-header">
+        <PanelHeader>
           <h2 id="setup-sdk-notes">{copy.notesTitle}</h2>
-        </header>
+        </PanelHeader>
         <div className="setup-panel-body">
           <Bullets lines={copy.notes} />
         </div>
@@ -329,9 +330,9 @@ function CliGuide({ projectId, onResult }: { projectId?: string; onResult: (mess
       </Step>
 
       <section aria-labelledby="setup-cli-ci" className="panel">
-        <header className="panel-header">
+        <PanelHeader>
           <h2 id="setup-cli-ci">{copy.ciTitle}</h2>
-        </header>
+        </PanelHeader>
         <div className="setup-panel-body">
           <Paragraphs lines={copy.ci} />
           <p className="setup-copy">
@@ -345,9 +346,9 @@ function CliGuide({ projectId, onResult }: { projectId?: string; onResult: (mess
       </section>
 
       <section aria-labelledby="setup-cli-notes" className="panel">
-        <header className="panel-header">
+        <PanelHeader>
           <h2 id="setup-cli-notes">{copy.notesTitle}</h2>
-        </header>
+        </PanelHeader>
         <div className="setup-panel-body">
           <Bullets lines={copy.notes} />
         </div>
@@ -392,9 +393,9 @@ function PluginGuide({ onResult }: { onResult: (message: string) => void }) {
       </Step>
 
       <section aria-labelledby="setup-skills-list" className="panel">
-        <header className="panel-header">
+        <PanelHeader>
           <h2 id="setup-skills-list">{copy.listTitle}</h2>
-        </header>
+        </PanelHeader>
         <div className="screen-table-wrap">
           <table className="screen-table">
             <thead>

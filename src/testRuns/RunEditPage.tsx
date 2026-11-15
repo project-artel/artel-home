@@ -1,3 +1,4 @@
+import { Button } from '../design-system/primitives/Button'
 import { useEffect, useRef, useState } from 'react'
 import { NotFoundPage } from '../NotFoundPage'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
@@ -186,13 +187,13 @@ function RunEditPage({ projectId, runId }: { projectId: string; runId: string })
                 <h1 className="run-empty-title">{e.emptyTitle}</h1>
                 <p className="run-empty-copy">{e.emptyCopy}</p>
                 <div className="run-empty-actions">
-                  <button className="st-btn st-btn--primary" disabled={creating} onClick={() => setChoosingKind(true)} type="button">
+                  <Button variant="primary" size="compact" disabled={creating} onClick={() => setChoosingKind(true)} type="button">
                     {creating ? e.creating : e.createFirst}
-                  </button>
-                  <button className="st-btn st-btn--icon" disabled={creating} onClick={() => setImporting(true)} type="button">
+                  </Button>
+                  <Button variant="secondary" size="compact" disabled={creating} onClick={() => setImporting(true)} type="button">
                     <PlaylistAddIcon size={16} />
                     {e.importExisting}
-                  </button>
+                  </Button>
                 </div>
               </>
             )}

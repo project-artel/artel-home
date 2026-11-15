@@ -1,3 +1,4 @@
+import { PanelEmpty, PanelMessage } from '../design-system/primitives/Feedback'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
@@ -159,13 +160,13 @@ export function BuildPerformanceReport({
         )}
 
         {failed ? (
-          <div className="panel-message" role="alert">
+          <PanelMessage role="alert">
             {copy.loadFailed}
-          </div>
+          </PanelMessage>
         ) : isStale ? (
-          <p aria-busy="true" className="panel-empty">
+          <PanelEmpty aria-busy="true">
             {copy.loading}
-          </p>
+          </PanelEmpty>
         ) : runs.length === 0 ? (
           <EmptyBuild label={label} onPickBuild={onPickBuild} others={others} />
         ) : (

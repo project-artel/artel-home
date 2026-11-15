@@ -1,3 +1,8 @@
+import { PanelHeader } from '../design-system/primitives/Headers'
+import { InlineError, PanelEmpty, PanelMessage } from '../design-system/primitives/Feedback'
+import { SelectField, TextInput } from '../design-system/primitives/Fields'
+import { Button } from '../design-system/primitives/Button'
+import { Badge } from '../design-system/primitives/Badge'
 import { useId, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { CopyButton } from '../projects/CopyButton'
@@ -78,12 +83,12 @@ export function CliTokenPanel() {
 
   return (
     <section className="panel" aria-labelledby="cli-tokens-title">
-      <header className="panel-header">
+      <PanelHeader>
         <h2 id="cli-tokens-title">
           {copy.title}
           <InfoHint>{copy.intro}</InfoHint>
         </h2>
-      </header>
+      </PanelHeader>
 
       <CliInstallSteps collapsed onResult={setAnnouncement}>
         <p className="guide-copy">
@@ -100,19 +105,18 @@ export function CliTokenPanel() {
 
       <form onSubmit={(event) => void submit(event)} noValidate>
         {createFailure !== null && (
-          <div className="inline-error" role="alert">
+          <InlineError>
             <span aria-hidden="true">!</span>
             {createFailure}
-          </div>
+          </InlineError>
         )}
 
         <div className="invite-form-fields">
           <div className="field">
             <label className="field-label" htmlFor={nameId}>{copy.nameLabel}</label>
-            <input
+            <TextInput
               aria-describedby={nameError !== null ? `${nameId}-error` : undefined}
               aria-invalid={nameError !== null || undefined}
-              className="field-input"
               disabled={creating}
               id={nameId}
               onChange={(event) => setNameDraft(event.target.value)}
@@ -125,8 +129,7 @@ export function CliTokenPanel() {
 
           <div className="field field--compact">
             <label className="field-label" htmlFor={expiryId}>{copy.expiryLabel}</label>
-            <select
-              className="field-input"
+            <SelectField
               disabled={creating}
               id={expiryId}
               onChange={(event) => setExpiryDraft(event.target.value as CliTokenExpiryDraft)}
@@ -135,16 +138,16 @@ export function CliTokenPanel() {
               {CLI_TOKEN_EXPIRY_OPTIONS.map((option) => (
                 <option key={option} value={option}>{expiryOptionLabel(copy, option)}</option>
               ))}
-            </select>
+            </SelectField>
           </div>
 
-          <button
-            className="button button--primary"
+          <Button
+            variant="primary"
             disabled={creating || nameDraft.trim().length === 0}
             type="submit"
           >
             {creating ? copy.creating : copy.create}
-          </button>
+          </Button>
         </div>
       </form>
 
@@ -164,13 +167,13 @@ export function CliTokenPanel() {
             />
           </div>
           <div className="form-actions">
-            <button
-              className="button button--secondary button--compact"
+            <Button
+              variant="secondary" size="compact"
               onClick={() => setCreatedToken(null)}
               type="button"
             >
               {copy.dismissReveal}
-            </button>
+            </Button>
           </div>
         </>
       )}
@@ -187,16 +190,16 @@ export function CliTokenPanel() {
       )}
 
       {status === 'error' && (
-        <div className="panel-message" role="alert">
+        <PanelMessage role="alert">
           <p>{copy.loadFailed}</p>
-          <button className="button button--secondary" onClick={reload} type="button">
+          <Button variant="secondary" onClick={reload} type="button">
             {t.projects.shared.retry}
-          </button>
-        </div>
+          </Button>
+        </PanelMessage>
       )}
 
       {status === 'ready' && tokens.length === 0 && (
-        <p className="panel-empty">{copy.empty}</p>
+        <PanelEmpty>{copy.empty}</PanelEmpty>
       )}
 
       {status === 'ready' && tokens.length > 0 && (
@@ -262,8 +265,8 @@ function CliTokenRow({
     <li className={rowClassName}>
       <div className="cli-token-row-main">
         <span className="cli-token-row-name">{token.name}</span>
-        {revoked && <span className="badge badge--critical">{copy.revokedBadge}</span>}
-        {!revoked && expired && <span className="badge badge--warning">{copy.expiredBadge}</span>}
+        {revoked && <Badge tone="critical">{copy.revokedBadge}</Badge>}
+        {!revoked && expired && <Badge tone="warning">{copy.expiredBadge}</Badge>}
       </div>
 
       <p className="cli-token-row-meta">
@@ -276,13 +279,13 @@ function CliTokenRow({
 
       {!revoked && (
         <div className="cli-token-row-actions">
-          <button
-            className="button button--danger-quiet button--compact"
+          <Button
+            variant="danger-quiet" size="compact"
             onClick={onRevoke}
             type="button"
           >
             {copy.revoke}
-          </button>
+          </Button>
         </div>
       )}
     </li>

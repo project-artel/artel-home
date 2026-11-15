@@ -1,3 +1,4 @@
+import { Notice } from '../../design-system/primitives/Feedback'
 import { useEffect, useId, useMemo, useState } from 'react'
 import { useI18n } from '../../i18n/useI18n'
 import { KnowledgeGraphContent, type KnowledgeGraphDiagnostics } from '../../knowledge/KnowledgeGraphPage'
@@ -63,12 +64,12 @@ export default function GraphPage() {
           <GraphToolbar {...toolbar} />
           <div className="main">
             {projectsFailed && (
-              <div className="notice notice--critical" role="alert">
+              <Notice tone="critical" role="alert">
                 <p className="notice__title">{t.admin.states.loadFailed}</p>
-              </div>
+              </Notice>
             )}
             {projects?.length === 0 && !projectsFailed && (
-              <div className="notice">{t.adminGraph.noProjects}</div>
+              <Notice>{t.adminGraph.noProjects}</Notice>
             )}
           </div>
         </>

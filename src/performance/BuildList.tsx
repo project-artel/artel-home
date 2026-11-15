@@ -1,3 +1,4 @@
+import { TextInput } from '../design-system/primitives/Fields'
 import { forwardRef, useId, useState } from 'react'
 import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
 import { useI18n } from '../i18n/useI18n'
@@ -39,8 +40,7 @@ export const BuildList = forwardRef<HTMLDivElement, {
         <label className="visually-hidden" htmlFor={searchId}>
           {copy.searchLabel}
         </label>
-        <input
-          className="field-input"
+        <TextInput
           id={searchId}
           onChange={(event) => setQuery(event.target.value)}
           placeholder={copy.searchPlaceholder}

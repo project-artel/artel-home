@@ -1,3 +1,5 @@
+import { PanelEmpty, PanelMessage } from '../design-system/primitives/Feedback'
+import { Button, ButtonLink } from '../design-system/primitives/Button'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { NotFoundPage } from '../NotFoundPage'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
@@ -273,7 +275,7 @@ function QaRunPage({
   })
 
   if (state === 'loading') {
-    return <section className="page"><div className="panel-message"><p>{t.qa.run.loading}</p></div></section>
+    return <section className="page"><PanelMessage><p>{t.qa.run.loading}</p></PanelMessage></section>
   }
   if (state === 'missing' || run === null) {
     return <QaRunMissing projectId={projectId} />
@@ -315,13 +317,13 @@ function QaRunPage({
           </span>
         </div>
         <div className="qa-console-top-actions">
-          <Link
-            className="button button--secondary button--compact"
+          <ButtonLink
+            variant="secondary" size="compact"
             ref={performanceLink}
             to={runPerformancePath(projectId, qaRunId)}
           >
             {t.performance.entry.run}
-          </Link>
+          </ButtonLink>
           <button
             className={`qa-follow${following ? ' qa-follow--on' : ''}`}
             onClick={() => setFollowing(true)}
@@ -331,9 +333,9 @@ function QaRunPage({
             {following ? t.qa.run.following : t.qa.run.follow}
           </button>
           {active && (
-            <button className="button button--secondary button--compact" disabled={cancelling} onClick={() => void onCancel()} ref={cancelButton} type="button">
+            <Button variant="secondary" size="compact" disabled={cancelling} onClick={() => void onCancel()} ref={cancelButton} type="button">
               {cancelling ? t.qa.run.cancelling : t.qa.run.cancel}
-            </button>
+            </Button>
           )}
           {cancelError !== null && <span className="qa-run-error">{cancelError}</span>}
         </div>
@@ -345,7 +347,7 @@ function QaRunPage({
       ) : (
         <div className="qa-console-grid">
           <QaScenarioRail {...rail} focused={null} />
-          <div className="qa-focus qa-focus--empty"><p className="panel-empty">{t.qa.run.selectScenario}</p></div>
+          <div className="qa-focus qa-focus--empty"><PanelEmpty>{t.qa.run.selectScenario}</PanelEmpty></div>
         </div>
       )}
       <div className="qa-replay-timeline-host" ref={setTimelineHost} />
@@ -532,12 +534,12 @@ function FocusedTry({
       <div className="qa-console-grid">
         <QaScenarioRail {...rail} focused={null} />
         <div className="qa-focus qa-focus--empty">
-          <div className="panel-message" role="alert">
+          <PanelMessage role="alert">
             <p>{t.qa.run.loadFailed}</p>
-            <button className="button button--secondary" onClick={session.reload} type="button">
+            <Button variant="secondary" onClick={session.reload} type="button">
               {t.qa.panel.retry}
-            </button>
-          </div>
+            </Button>
+          </PanelMessage>
         </div>
       </div>
     )
@@ -547,7 +549,7 @@ function FocusedTry({
     return (
       <div className="qa-console-grid">
         <QaScenarioRail {...rail} focused={null} />
-        <div className="qa-focus qa-focus--empty"><p className="panel-empty">{t.qa.run.loading}</p></div>
+        <div className="qa-focus qa-focus--empty"><PanelEmpty>{t.qa.run.loading}</PanelEmpty></div>
       </div>
     )
   }
@@ -595,7 +597,7 @@ function FocusedTry({
                 {active ? (
                   <GameStreamView instanceId={session.qaTry.gameInstanceId} />
                 ) : session.qaTry.stop?.code === QA_STOP_NOT_STARTED ? (
-                  <p className="panel-empty">{t.qa.run.stop.notRunLine}</p>
+                  <PanelEmpty>{t.qa.run.stop.notRunLine}</PanelEmpty>
                 ) : (
                   <QaReplay projectId={rail.projectId} qaTry={session.qaTry} onPosition={onReplayPosition} timelineHost={timelineHost} />
                 )}

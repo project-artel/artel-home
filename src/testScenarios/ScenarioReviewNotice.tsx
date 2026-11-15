@@ -1,3 +1,4 @@
+import { Button } from '../design-system/primitives/Button'
 import { useCallback, useEffect, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { useProjectChange } from '../live/useProjectChange'
@@ -80,8 +81,8 @@ export function ScenarioReviewNotice({ projectId }: { projectId: string }) {
         {drafts.length > 2 && <span className="qa-notice-pill">{copy.more(drafts.length - 2)}</span>}
       </div>
       <div className="qa-notice-actions">
-        <button className="button button--secondary button--compact" onClick={dismiss} type="button">{copy.later}</button>
-        <button className="button button--primary button--compact" onClick={() => setDetailOpen(true)} type="button">{copy.details}</button>
+        <Button variant="secondary" size="compact" onClick={dismiss} type="button">{copy.later}</Button>
+        <Button variant="primary" size="compact" onClick={() => setDetailOpen(true)} type="button">{copy.details}</Button>
       </div>
     </section>
   )

@@ -1,3 +1,4 @@
+import { DataTable, TableScroll } from '../../design-system/primitives/Table'
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { useAuth } from '../../auth/useAuth'
 import { useI18n } from '../../i18n/useI18n'
@@ -128,8 +129,8 @@ export default function UsersPage() {
           ) : users.length === 0 ? (
             <p className="notice">{t.adminSettings.users.empty}</p>
           ) : (
-            <div className="table-scroll">
-              <table className="table">
+            <TableScroll>
+              <DataTable>
                 <caption className="adm-visually-hidden">{t.adminSettings.users.caption}</caption>
                 <thead>
                   <tr>
@@ -210,8 +211,8 @@ export default function UsersPage() {
                     )
                   })}
                 </tbody>
-              </table>
-            </div>
+              </DataTable>
+            </TableScroll>
           )}
           <span className="section__note section__note--block" aria-live="polite">
             {busyUserId !== null ? t.adminSettings.users.saving : ''}

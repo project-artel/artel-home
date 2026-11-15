@@ -1,3 +1,4 @@
+import { PanelEmpty } from '../design-system/primitives/Feedback'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
@@ -102,17 +103,17 @@ export function QaRunUsagePanel({
             </div>
           )}
 
-          {status === 'loading' && <p className="panel-empty">{t.qa.usage.loading}</p>}
+          {status === 'loading' && <PanelEmpty>{t.qa.usage.loading}</PanelEmpty>}
 
           {status === 'error' && (
-            <p className="panel-empty" role="alert">
+            <PanelEmpty role="alert">
               {t.qa.usage.loadFailed}
-            </p>
+            </PanelEmpty>
           )}
 
           {status === 'ready' && (usage === null || usage.calls === 0) && (
             // Zero is not "this run was free" — it is "nothing has arrived yet".
-            <p className="panel-empty">{t.qa.usage.nothingReported}</p>
+            <PanelEmpty>{t.qa.usage.nothingReported}</PanelEmpty>
           )}
 
           {status === 'ready' && usage !== null && usage.calls > 0 && (

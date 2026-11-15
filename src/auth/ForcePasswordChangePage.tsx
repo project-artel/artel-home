@@ -1,3 +1,5 @@
+import { TextInput } from '../design-system/primitives/Fields'
+import { Button } from '../design-system/primitives/Button'
 import { useId, useState, type FormEvent } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { useAuth } from './useAuth'
@@ -64,31 +66,31 @@ export function ForcePasswordChangePage() {
           )}
           <div className="field">
             <label className="field-label" htmlFor={currentId}>{copy.currentLabel}</label>
-            <input id={currentId} className="field-input" type="password" autoComplete="current-password"
+            <TextInput id={currentId} type="password" autoComplete="current-password"
               value={current} onChange={(event) => setCurrent(event.target.value)} required />
           </div>
           <div className="field">
             <label className="field-label" htmlFor={nextId}>{copy.newLabel}</label>
-            <input id={nextId} className="field-input" type="password" autoComplete="new-password"
+            <TextInput id={nextId} type="password" autoComplete="new-password"
               value={next} onChange={(event) => setNext(event.target.value)} minLength={PASSWORD_MIN_LENGTH}
               aria-describedby={`${nextId}-hint`} required />
             <p className="field-hint" id={`${nextId}-hint`}>{copy.newPasswordHint}</p>
           </div>
           <div className="field">
             <label className="field-label" htmlFor={repeatId}>{copy.confirmLabel}</label>
-            <input id={repeatId} className="field-input" type="password" autoComplete="new-password"
+            <TextInput id={repeatId} type="password" autoComplete="new-password"
               value={repeat} onChange={(event) => setRepeat(event.target.value)} required />
           </div>
-          <button
-            className="button button--primary login-submit"
+          <Button
+            variant="primary" className="login-submit"
             type="submit"
             disabled={submitting || current === '' || next === '' || repeat === ''}
           >
             {submitting ? copy.submitting : copy.submit}
-          </button>
-          <button className="button button--secondary login-submit" type="button" onClick={() => void logout()}>
+          </Button>
+          <Button variant="secondary" className="login-submit" type="button" onClick={() => void logout()}>
             {copy.signOut}
-          </button>
+          </Button>
         </form>
       </section>
     </AuthLayout>

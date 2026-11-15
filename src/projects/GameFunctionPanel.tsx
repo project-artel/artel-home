@@ -1,3 +1,5 @@
+import { InlineError } from '../design-system/primitives/Feedback'
+import { Button } from '../design-system/primitives/Button'
 import { useI18n } from '../i18n/useI18n'
 import { formatDateTime } from './formatters'
 import {
@@ -25,13 +27,13 @@ export function GameFunctionPanel({ buildId, projectId }: { buildId: string; pro
       {status === 'loading' && <p className="gf-note">{m.loading}</p>}
 
       {status === 'error' && (
-        <div className="inline-error" role="alert">
+        <InlineError>
           <span aria-hidden="true">!</span>
           {m.loadFailed}
-          <button className="button button--secondary button--compact" onClick={reload} type="button">
+          <Button variant="secondary" size="compact" onClick={reload} type="button">
             {m.retry}
-          </button>
-        </div>
+          </Button>
+        </InlineError>
       )}
 
       {status === 'ready' && catalog !== null && (

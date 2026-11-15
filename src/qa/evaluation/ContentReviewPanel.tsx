@@ -1,7 +1,8 @@
+import { Button, ButtonLink } from '../../design-system/primitives/Button'
 import { buildDisplayName } from '../../projects/buildEnvironment'
 import { useTestCaseIdentifiers } from '../../testCases/testCaseIdentifiers'
 import { useContext, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
 import type { GameBuild } from '../../projects/gameTypes'
 import { WorkspaceContext } from '../../projects/workspace/workspaceContext'
@@ -32,25 +33,25 @@ export function ContentReviewPanel({ projectId, testCaseId, builds = [], default
   const source = row && contentReviewVideoPath(projectId, row)
   const runName = revalidationRunName(testCaseId, numbers, copy.revalidate)
   if (content.status === 'loading') return <p className="qe-status" role="status">{copy.contentStatus} · {copy.loading}</p>
-  if (content.status === 'failed') return <p className="qe-status" role="alert">{copy.contentStatus} · {copy.error} <button className="button button--secondary button--compact" type="button" onClick={() => content.reload()}>{copy.retry}</button></p>
+  if (content.status === 'failed') return <p className="qe-status" role="alert">{copy.contentStatus} · {copy.error} <Button variant="secondary" size="compact" type="button" onClick={() => content.reload()}>{copy.retry}</Button></p>
   if (!row) return null
   return <section className="qe-content-panel" aria-label={copy.contentStatus}>
     <div className="qe-head"><h3>{copy.contentStatus}</h3><ContentReviewBadge row={row} /></div>
     <p className="qe-content-reason"><b>{copy.contentReason}</b> {row.note || '—'}</p>
     <div className="qe-links">
-      {source && <Link className="button button--secondary button--compact" to={source}>{copy.sourceVideo}</Link>}
+      {source && <ButtonLink variant="secondary" size="compact" to={source}>{copy.sourceVideo}</ButtonLink>}
       {row.state === 'NEEDS_REVALIDATION' && <>
         <label className="qe-content-build">{copy.revalidationBuild}<select className="qe-select" disabled={busy} value={selectedBuild} onChange={event => setBuildId(event.target.value)}>
           {!builds.length && <option value="">—</option>}
           {builds.map(build => <option key={build.id} value={build.id}>{buildDisplayName(build)}</option>)}
         </select></label>
-        <button className="button button--primary button--compact" disabled={busy || !selectedBuild || runName === null} type="button" onClick={() => {
+        <Button variant="primary" size="compact" disabled={busy || !selectedBuild || runName === null} type="button" onClick={() => {
           if (runName === null) return
           setBusy(true); setFailed(false)
           void createFreeRun(projectId, selectedBuild, runName, [testCaseId])
             .then(async runId => { if (workspace?.projectId === projectId) await workspace.refreshRuns(); navigate(`/projects/${encodeURIComponent(projectId)}/qa?${new URLSearchParams({ run: runId })}`) })
             .catch(() => setFailed(true)).finally(() => setBusy(false))
-        }}>{copy.revalidate}</button>
+        }}>{copy.revalidate}</Button>
       </>}
     </div>
     {failed && <p className="qe-status" role="alert">{copy.error}</p>}

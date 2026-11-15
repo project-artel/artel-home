@@ -1,3 +1,5 @@
+import { PanelEmpty } from '../design-system/primitives/Feedback'
+import { Button } from '../design-system/primitives/Button'
 import { useEffect, useId, useRef } from 'react'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
@@ -166,19 +168,19 @@ function MacroSource({
   const copy = t.macros
 
   if (status === 'loading' || status === 'idle') {
-    return <p aria-busy="true" className="panel-empty">{copy.sheet.sourceLoading}</p>
+    return <PanelEmpty aria-busy="true">{copy.sheet.sourceLoading}</PanelEmpty>
   }
   if (status === 'error' || source === null) {
     return (
       <div className="panel-empty-block" role="alert">
-        <p className="panel-empty">{copy.sheet.sourceFailed}</p>
-        <button className="button button--secondary button--compact" onClick={onRetry} type="button">
+        <PanelEmpty>{copy.sheet.sourceFailed}</PanelEmpty>
+        <Button variant="secondary" size="compact" onClick={onRetry} type="button">
           {copy.section.retry}
-        </button>
+        </Button>
       </div>
     )
   }
-  if (source.length === 0) return <p className="panel-empty">{copy.sheet.sourceEmpty}</p>
+  if (source.length === 0) return <PanelEmpty>{copy.sheet.sourceEmpty}</PanelEmpty>
 
   /*
    * 가로로 넘치는 영역이라 키보드만 쓰는 사람이 스크롤할 수 있어야 한다. `tabIndex` 와 이름이

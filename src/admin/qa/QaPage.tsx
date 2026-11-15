@@ -1,3 +1,4 @@
+import { Notice } from '../../design-system/primitives/Feedback'
 import { useEffect, useId, useMemo, useState } from 'react'
 import { UnauthorizedError } from '../shared/adminApi'
 import { toDateInputValue } from '../shared/format'
@@ -351,19 +352,19 @@ export default function QaPage() {
 
       <div className="main">
         {failed && (
-          <div className="notice notice--critical" role="alert">
+          <Notice tone="critical" role="alert">
             <p className="notice__title">{t.loadFailedTitle}</p>
             {/* The cause is developer text from `AdminApiError`; the user gets the shared message. */}
             {shared.loadFailed}
-          </div>
+          </Notice>
         )}
 
-        {projects?.length === 0 && !failed && <div className="notice">{t.noProjects}</div>}
+        {projects?.length === 0 && !failed && <Notice>{t.noProjects}</Notice>}
 
         {scopeNotice !== null && (
-          <div className="notice" role="status">
+          <Notice role="status">
             {scopeNotice} {t.scope.reason}
-          </div>
+          </Notice>
         )}
 
         {data !== null && (
@@ -371,9 +372,9 @@ export default function QaPage() {
             <TotalsRail total={data.stats.total} />
 
             {data.stats.truncated && (
-              <div className="notice" role="status">
+              <Notice role="status">
                 {emphasize(t.truncated(data.stats.cellLimit))}
-              </div>
+              </Notice>
             )}
 
             <section aria-labelledby="axes-title">
@@ -400,7 +401,7 @@ export default function QaPage() {
           </>
         )}
 
-        {data === null && loading && <div className="notice">{t.loadingStats}</div>}
+        {data === null && loading && <Notice>{t.loadingStats}</Notice>}
       </div>
     </>
   )

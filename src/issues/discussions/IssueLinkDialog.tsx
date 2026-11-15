@@ -1,3 +1,4 @@
+import { Button } from '../../design-system/primitives/Button'
 import { useBuildDisplayName } from '../../projects/useBuildDisplayName'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Dialog } from '../../design-system/primitives/Dialog'
@@ -316,14 +317,14 @@ export function IssueLinkDialog({
                   {!onlyPicked && (
                     <span className="il2-empty-actions">
                       {widerCount > 0 && (
-                        <button className="button button--secondary" onClick={() => pickBuild(null)} type="button">
+                        <Button variant="secondary" onClick={() => pickBuild(null)} type="button">
                           {query === '' ? text.searchAllBuilds(widerCount) : text.searchAllBuildsPlain}
-                        </button>
+                        </Button>
                       )}
                       {active.length > 1 && (
-                        <button className="button button--secondary" onClick={reset} type="button">
+                        <Button variant="secondary" onClick={reset} type="button">
                           {text.resetFilters}
-                        </button>
+                        </Button>
                       )}
                     </span>
                   )}
@@ -361,9 +362,9 @@ export function IssueLinkDialog({
               })}
               {issues.hasMore && !onlyPicked && (
                 <div className="ib-more">
-                  <button className="button button--secondary" disabled={issues.loadingMore} onClick={issues.loadMore} type="button">
+                  <Button variant="secondary" disabled={issues.loadingMore} onClick={issues.loadMore} type="button">
                     {issues.loadingMore ? text.loading : text.more}
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>
@@ -387,9 +388,9 @@ export function IssueLinkDialog({
             )}
           </span>
           <span className="il2-foot-actions">
-            <button className="button button--secondary" onClick={onClose} type="button">
+            <Button variant="secondary" onClick={onClose} type="button">
               {text.cancel}
-            </button>
+            </Button>
             <button
               className={`button ${picked.length === 0 && initial.length > 0 ? 'button--danger-quiet' : 'button--primary'}`}
               disabled={!changed}

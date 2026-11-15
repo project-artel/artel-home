@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { InlineError } from '../design-system/primitives/Feedback'
+import { Button } from '../design-system/primitives/Button'
 import { Dialog } from '../design-system/primitives/Dialog'
 import { useI18n } from '../i18n/useI18n'
 import { ProjectApiError } from '../projects/projectApi'
@@ -64,24 +66,24 @@ export function DeleteScenarioDialog({
       </p>
 
       {failure !== null && (
-        <div className="inline-error" role="alert">
+        <InlineError>
           <span aria-hidden="true">!</span>
           {failure}
-        </div>
+        </InlineError>
       )}
 
       <div className="dialog-actions">
-        <button
-          className="button button--secondary"
+        <Button
+          variant="secondary"
           disabled={pending}
           onClick={onClose}
           ref={cancelButton}
           type="button"
         >
           {t.scenarios.delete.cancel}
-        </button>
-        <button
-          className="button button--danger"
+        </Button>
+        <Button
+          variant="danger"
           disabled={pending}
           onClick={() => void confirm()}
           type="button"
@@ -89,7 +91,7 @@ export function DeleteScenarioDialog({
           {pending
             ? t.scenarios.delete.pending
             : hasQaHistory ? t.scenarios.delete.confirmWithHistory : t.scenarios.delete.confirm}
-        </button>
+        </Button>
       </div>
     </Dialog>
   )

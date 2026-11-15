@@ -1,3 +1,4 @@
+import { Button, ButtonLink } from '../../design-system/primitives/Button'
 import { buildDisplayName } from '../buildEnvironment'
 import { useMemo, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -125,9 +126,9 @@ export function DashboardSection() {
             </button>
           ))}
         </div>
-        <Link className="button button--primary db-run" to={sectionHref(projectId, 'qa')}>
+        <ButtonLink variant="primary" className="db-run" to={sectionHref(projectId, 'qa')}>
           {m.runQa}
-        </Link>
+        </ButtonLink>
       </div>
 
       <div className="db-kpis">
@@ -239,9 +240,9 @@ export function DashboardSection() {
                 <p className="db-quiet">{m.remaining.nothingLeft}</p>
               ) : (
                 <div className="db-free">
-                  <button className="button button--primary" onClick={() => setFreeRunOpen(true)} type="button">
+                  <Button variant="primary" onClick={() => setFreeRunOpen(true)} type="button">
                     {firstCheck > 0 ? m.remaining.freeRun(firstCheck) : m.remaining.freeRunAll(left)}
-                  </button>
+                  </Button>
                   <span className="db-quiet">{m.remaining.freeRunNote}</span>
                 </div>
               )}

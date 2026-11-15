@@ -1,3 +1,4 @@
+import { Button } from '../../design-system/primitives/Button'
 import { useId, useState, type ReactNode } from 'react'
 import { Dialog } from '../../design-system/primitives/Dialog'
 import { Link } from 'react-router-dom'
@@ -194,7 +195,7 @@ function DecideForm({
         value={note}
       />
       {onCancel !== undefined && (
-        <button className="button button--secondary button--compact" disabled={saving} onClick={onCancel} type="button">{d.cancel}</button>
+        <Button variant="secondary" size="compact" disabled={saving} onClick={onCancel} type="button">{d.cancel}</Button>
       )}
       {failed && <p className="qv-decide-failed" role="alert">{d.failed}</p>}
     </div>

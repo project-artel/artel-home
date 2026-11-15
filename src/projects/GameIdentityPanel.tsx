@@ -1,3 +1,6 @@
+import { Button } from '../design-system/primitives/Button'
+import { InlineError, PanelEmpty } from '../design-system/primitives/Feedback'
+import { Badge } from '../design-system/primitives/Badge'
 import { useEffect, useState, type FormEvent } from 'react'
 import { GameVariableSketch } from '../emptyStates/sketches'
 import { SketchEmpty } from '../emptyStates/SketchEmpty'
@@ -72,9 +75,9 @@ export function GameIdentityPanel({ projectId, buildId, layout = 'cards' }: {
 
   function actions(identity: GameIdentity) {
     return <div className="form-actions">
-      <button className="button button--secondary button--compact" type="button" disabled={busy || editor !== null} aria-label={`${identity.deleted ? messages.restore : messages.edit}: ${identity.name}`} onClick={() => { setEditor(identity); setError('') }}>{identity.deleted ? messages.restore : messages.edit}</button>
-      <button className="button button--secondary button--compact" type="button" aria-label={`${messages.history}: ${identity.name}`} onClick={() => setHistoryName(identity.name)}>{messages.history}</button>
-      {!identity.deleted && <button className="button button--secondary button--compact" type="button" disabled={busy || editor !== null} aria-label={`${messages.remove}: ${identity.name}`} onClick={() => { if (window.confirm(messages.deleteConfirm(identity.name))) void mutate(() => deleteGameIdentity(projectId, identity)) }}>{messages.remove}</button>}
+      <Button variant="secondary" size="compact" type="button" disabled={busy || editor !== null} aria-label={`${identity.deleted ? messages.restore : messages.edit}: ${identity.name}`} onClick={() => { setEditor(identity); setError('') }}>{identity.deleted ? messages.restore : messages.edit}</Button>
+      <Button variant="secondary" size="compact" type="button" aria-label={`${messages.history}: ${identity.name}`} onClick={() => setHistoryName(identity.name)}>{messages.history}</Button>
+      {!identity.deleted && <Button variant="secondary" size="compact" type="button" disabled={busy || editor !== null} aria-label={`${messages.remove}: ${identity.name}`} onClick={() => { if (window.confirm(messages.deleteConfirm(identity.name))) void mutate(() => deleteGameIdentity(projectId, identity)) }}>{messages.remove}</Button>}
     </div>
   }
 
@@ -82,15 +85,15 @@ export function GameIdentityPanel({ projectId, buildId, layout = 'cards' }: {
     <section className="panel gi-panel" aria-labelledby="game-identities-title">
       <header className="gi-heading">
         <h3 id="game-identities-title">{messages.title}</h3>
-        <button className="button button--secondary button--compact" type="button" disabled={busy || identities === null || editor !== null} onClick={() => { setEditor('new'); setError('') }}>{messages.add}</button>
+        <Button variant="secondary" size="compact" type="button" disabled={busy || identities === null || editor !== null} onClick={() => { setEditor('new'); setError('') }}>{messages.add}</Button>
       </header>
       <p className="gi-note">{messages.buildHint}</p>
       {error && <p className="inline-error" role="alert">{error}</p>}
-      {failed ? <div className="inline-error" role="alert">{messages.failed}<button className="button button--secondary button--compact" type="button" onClick={refresh}>{messages.retry}</button></div>
+      {failed ? <InlineError>{messages.failed}<Button variant="secondary" size="compact" type="button" onClick={refresh}>{messages.retry}</Button></InlineError>
         : identities === null ? <p role="status">{messages.loading}</p>
           : identities.length === 0 ? (layout === 'table'
             ? <SketchEmpty body={messages.emptyBody} compact sketch={<GameVariableSketch />} surface title={messages.emptyTitle} />
-            : <p className="panel-empty">{messages.empty}</p>)
+            : <PanelEmpty>{messages.empty}</PanelEmpty>)
             : layout === 'table' ? <div className="gi-table-scroll" role="region" aria-label={messages.tableLabel} tabIndex={0}>
               <table className="data-table gi-table" aria-label={messages.tableLabel}>
                 <thead><tr>{[messages.name, messages.meaning, messages.kind, messages.identifies, messages.source, messages.status, messages.actions].map((label) => <th key={label} scope="col">{label}</th>)}</tr></thead>
@@ -105,7 +108,7 @@ export function GameIdentityPanel({ projectId, buildId, layout = 'cards' }: {
               </table>
             </div> : <ul className="gi-list">{identities.map((identity) => (
               <li key={identity.name} className="gi-item">
-                <div className="gi-heading"><strong className="mono gi-name" translate="no">{identity.name}</strong><span className="badge">{identity.deleted ? messages.deleted : messages.active}</span></div>
+                <div className="gi-heading"><strong className="mono gi-name" translate="no">{identity.name}</strong><Badge>{identity.deleted ? messages.deleted : messages.active}</Badge></div>
                 <p className="gi-note">{messages.source}: {identity.source}</p>
                 <IdentityFields identity={identity} />
                 {actions(identity)}
@@ -157,7 +160,7 @@ function IdentityForm({ identity, busy, onSave, onCancel }: {
         <div className="gi-form-wide"><label htmlFor="gi-meaning">{messages.meaning}</label><textarea id="gi-meaning" name="meaning" required maxLength={500} defaultValue={identity?.meaning ?? ''} /></div>
         <div className="gi-form-wide"><label htmlFor="gi-changes-when">{messages.changesWhen}</label><textarea id="gi-changes-when" name="changesWhen" required maxLength={500} defaultValue={identity?.changesWhen ?? ''} /></div>
       </div>
-      <div className="form-actions"><button className="button" type="submit">{messages.save}</button><button className="button button--secondary" type="button" onClick={onCancel}>{messages.cancel}</button></div>
+      <div className="form-actions"><button className="button" type="submit">{messages.save}</button><Button variant="secondary" type="button" onClick={onCancel}>{messages.cancel}</Button></div>
     </fieldset>
   </form>
 }
@@ -176,9 +179,9 @@ function IdentityHistory({ projectId, name, onClose }: { projectId: string; name
     return () => controller.abort()
   }, [projectId, name, reload])
   return <section className="gi-history" aria-label={`${messages.historyTitle}: ${name}`}>
-    <header className="gi-heading"><h4>{messages.historyTitle} · <span className="mono">{name}</span></h4><button className="button button--secondary button--compact" type="button" onClick={onClose}>{messages.close}</button></header>
+    <header className="gi-heading"><h4>{messages.historyTitle} · <span className="mono">{name}</span></h4><Button variant="secondary" size="compact" type="button" onClick={onClose}>{messages.close}</Button></header>
     <p className="gi-note">{messages.historyHint}</p>
-    {failed ? <div className="inline-error" role="alert">{messages.historyFailed}<button className="button button--secondary button--compact" type="button" onClick={() => { setFailed(false); setReload((value) => value + 1) }}>{messages.retry}</button></div>
+    {failed ? <InlineError>{messages.historyFailed}<Button variant="secondary" size="compact" type="button" onClick={() => { setFailed(false); setReload((value) => value + 1) }}>{messages.retry}</Button></InlineError>
       : entries === null ? <p role="status">{messages.loading}</p>
         : entries.length === 0 ? <p>{messages.historyEmpty}</p>
           : <ol className="gi-list">{entries.map((identity) => <li className="gi-item" key={identity.revisionId}>

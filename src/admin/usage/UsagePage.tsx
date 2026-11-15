@@ -1,3 +1,4 @@
+import { Notice } from '../../design-system/primitives/Feedback'
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { useI18n } from '../../i18n/useI18n'
 import { usePolling } from '../../live/usePolling'
@@ -165,19 +166,19 @@ export default function UsagePage() {
 
       <div className="main">
         {error && (
-          <div className="notice notice--critical" role="alert">
+          <Notice tone="critical" role="alert">
             <p className="notice__title">{strings.loadFailedTitle}</p>
             {t.admin.states.loadFailed}
-          </div>
+          </Notice>
         )}
 
-        {projects?.length === 0 && !error && <div className="notice">{strings.noProjects}</div>}
+        {projects?.length === 0 && !error && <Notice>{strings.noProjects}</Notice>}
 
         {data !== null && (
           <>
             <TotalsRail stats={data.stats} />
             {/* 이 화면에서 가장 오해받기 쉬운 두 가지를 표 위에 못박는다. */}
-            <div className="notice" role="note">
+            <Notice role="note">
               <p className="notice__title">{strings.scopeTitle}</p>
               {scope === ALL_PROJECTS ? strings.allScope : strings.oneScope}{' '}
               {strings.calledAt.before}
@@ -191,7 +192,7 @@ export default function UsagePage() {
                   {strings.unattributed.after}
                 </>
               )}
-            </div>
+            </Notice>
 
             <DailyTrend days={data.stats.daily} from={from} to={to} zone={data.stats.zone} />
 
@@ -247,7 +248,7 @@ export default function UsagePage() {
             <QaRunCosts runs={data.runs} />
           </>
         )}
-        {data === null && loading && <div className="notice">{strings.loadingSpend}</div>}
+        {data === null && loading && <Notice>{strings.loadingSpend}</Notice>}
       </div>
     </div>
   )

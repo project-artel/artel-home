@@ -1,3 +1,5 @@
+import { InlineError, PanelEmpty } from '../design-system/primitives/Feedback'
+import { Button } from '../design-system/primitives/Button'
 import { buildDisplayName } from '../projects/buildEnvironment'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { readCarryOver, readCarryVerdicts, storeCarryOver, storeCarryVerdicts } from '../contentMap/carryOverChoice'
@@ -231,9 +233,9 @@ export function GenerateTestCasesDialog({
             </div>
             <div className="vimp-tree-wrap">
               <div aria-label={m.listLabel} className="vimp-tree" ref={setTreeEl} role="radiogroup">
-                {loaded.status === 'loading' && <p className="panel-empty" aria-busy="true">{m.loading}</p>}
-                {loaded.status === 'failed' && <p className="panel-empty" role="alert">{m.loadFailed}</p>}
-                {loaded.status === 'ready' && candidates.length === 0 && <p className="panel-empty">{m.empty}</p>}
+                {loaded.status === 'loading' && <PanelEmpty aria-busy="true">{m.loading}</PanelEmpty>}
+                {loaded.status === 'failed' && <PanelEmpty role="alert">{m.loadFailed}</PanelEmpty>}
+                {loaded.status === 'ready' && candidates.length === 0 && <PanelEmpty>{m.empty}</PanelEmpty>}
                 {candidates.length > 0 && (
                   <>
                     <ul className="vimp-list">
@@ -310,21 +312,21 @@ export function GenerateTestCasesDialog({
               <div className="dialog-actions">
                 {running ? (
                   <>
-                    <button className="button button--secondary" onClick={onClose} type="button">
+                    <Button variant="secondary" onClick={onClose} type="button">
                       {m.progress.close}
-                    </button>
-                    <button className="button button--danger" disabled={cancelling} onClick={() => void cancel()} type="button">
+                    </Button>
+                    <Button variant="danger" disabled={cancelling} onClick={() => void cancel()} type="button">
                       {cancelling ? m.progress.cancelling : m.progress.cancel}
-                    </button>
+                    </Button>
                   </>
                 ) : (
                   <>
-                    <button className="button button--secondary" onClick={onClose} type="button">
+                    <Button variant="secondary" onClick={onClose} type="button">
                       {outcome === null ? m.cancel : m.progress.close}
-                    </button>
-                    <button className="button button--primary" disabled={chosen === null} type="submit">
+                    </Button>
+                    <Button variant="primary" disabled={chosen === null} type="submit">
                       {outcome !== null && outcome.kind !== 'alreadyRunning' ? m.progress.retry : overwriting ? m.overwrite.open : m.confirm}
-                    </button>
+                    </Button>
                   </>
                 )}
               </div>
@@ -423,7 +425,7 @@ function GenerationStatus({
     // 서버가 남긴 사유가 있으면 그것을 쓴다. 몇 단계에서 멈췄는지도 함께 말한다.
     const stopped = generation?.state === 'FAILED' ? generation : null
     return (
-      <div className="inline-error gen-failure" role="alert">
+      <InlineError className="gen-failure">
         <span aria-hidden="true">!</span>
         <div>
           <p>{stopped?.error ?? outcome.message}</p>
@@ -431,7 +433,7 @@ function GenerationStatus({
             <p className="gen-notice-copy">{p.stoppedAt(p.phases[stopped.phase], elapsed)}</p>
           )}
         </div>
-      </div>
+      </InlineError>
     )
   }
 

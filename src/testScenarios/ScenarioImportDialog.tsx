@@ -1,3 +1,5 @@
+import { InlineError, PanelMessage } from '../design-system/primitives/Feedback'
+import { Button } from '../design-system/primitives/Button'
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Dialog } from '../design-system/primitives/Dialog'
@@ -160,10 +162,10 @@ export function ScenarioImportDialog({
             <div className="sil-scroll">
               {state.kind === 'loading' && <p className="sil-empty">{m.loading}</p>}
               {state.kind === 'failed' && (
-                <div className="panel-message" role="alert">
+                <PanelMessage role="alert">
                   <p>{m.loadFailed}</p>
-                  <button
-                    className="button button--secondary button--compact"
+                  <Button
+                    variant="secondary" size="compact"
                     onClick={() => {
                       setState({ kind: 'loading' })
                       setReload((n) => n + 1)
@@ -171,8 +173,8 @@ export function ScenarioImportDialog({
                     type="button"
                   >
                     {m.retry}
-                  </button>
-                </div>
+                  </Button>
+                </PanelMessage>
               )}
               {state.kind === 'ready' && versions.length === 0 && <p className="sil-empty">{m.empty}</p>}
               {state.kind === 'ready' && versions.length > 0 && (
@@ -301,12 +303,12 @@ export function ScenarioImportDialog({
           </main>
         </div>
 
-        {error !== null && <div className="inline-error" role="alert">{error}</div>}
+        {error !== null && <InlineError>{error}</InlineError>}
         <div className="dialog-actions sil-actions">
-          <button className="button button--secondary" disabled={pending} onClick={onClose} type="button">{m.cancel}</button>
-          <button className="button button--primary" disabled={pending || picked.length === 0} onClick={() => void confirm()} type="button">
+          <Button variant="secondary" disabled={pending} onClick={onClose} type="button">{m.cancel}</Button>
+          <Button variant="primary" disabled={pending || picked.length === 0} onClick={() => void confirm()} type="button">
             {pending ? m.importing : m.confirm(picked.length)}
-          </button>
+          </Button>
         </div>
       </div>
     </Dialog>,

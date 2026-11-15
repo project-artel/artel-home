@@ -1,3 +1,4 @@
+import { SelectField, TextArea, TextInput } from '../design-system/primitives/Fields'
 import { useId, type ReactNode } from 'react'
 import { InfoHint } from '../design-system/primitives/InfoHint'
 import { useI18n } from '../i18n/useI18n'
@@ -42,10 +43,9 @@ export function ProjectForm({
           {t.projects.shared.nameLabel}{' '}
           <span className="field-required" aria-hidden="true">*</span>
         </label>
-        <input
+        <TextInput
           aria-describedby={fieldErrors.name ? `${nameId}-error` : undefined}
           aria-invalid={fieldErrors.name ? true : undefined}
-          className="field-input"
           data-agent-target="settings.name"
           disabled={disabled}
           id={nameId}
@@ -61,8 +61,7 @@ export function ProjectForm({
 
       <div className="field">
         <label className="field-label" htmlFor={genreId}>{t.projects.form.genreLabel}</label>
-        <select
-          className="field-input"
+        <SelectField
           data-agent-target="settings.genre"
           disabled={disabled}
           id={genreId}
@@ -72,7 +71,7 @@ export function ProjectForm({
           {GENRES.map((genre) => (
             <option key={genre} value={genre}>{t.projects.genreLabels[genre]}</option>
           ))}
-        </select>
+        </SelectField>
         {fieldErrors.genre && <p className="field-error">{fieldErrors.genre}</p>}
       </div>
 
@@ -81,8 +80,8 @@ export function ProjectForm({
           {t.projects.form.descriptionLabel}
           <InfoHint>{t.projects.form.descriptionHint}</InfoHint>
         </label>
-        <textarea
-          className="field-input field-input--multiline"
+        <TextArea
+          className="field-input--multiline"
           data-agent-target="settings.description"
           disabled={disabled}
           id={descriptionId}

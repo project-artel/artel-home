@@ -1,3 +1,7 @@
+import { PanelEmpty, PanelMessage } from '../design-system/primitives/Feedback'
+import { ButtonLink } from '../design-system/primitives/Button'
+import { PageHeader } from '../design-system/primitives/Headers'
+import { Badge } from '../design-system/primitives/Badge'
 import { useEffect, useState } from 'react'
 import { NotFoundPage } from '../NotFoundPage'
 import { Link, useParams } from 'react-router-dom'
@@ -72,7 +76,7 @@ function GameInstanceDetailPage({
   if (status === 'loading') {
     return (
       <section className="page" aria-busy="true">
-        <p className="panel-empty">{t.projects.instanceDetail.loading}</p>
+        <PanelEmpty>{t.projects.instanceDetail.loading}</PanelEmpty>
       </section>
     )
   }
@@ -80,12 +84,12 @@ function GameInstanceDetailPage({
   if (status === 'error') {
     return (
       <section className="page">
-        <div className="panel-message" role="alert">
+        <PanelMessage role="alert">
           <p>{t.projects.instanceDetail.loadFailed}</p>
-          <Link className="button button--secondary" to={projectLink(projectId)}>
+          <ButtonLink variant="secondary" to={projectLink(projectId)}>
             {t.projects.shared.backToProject}
-          </Link>
-        </div>
+          </ButtonLink>
+        </PanelMessage>
       </section>
     )
   }
@@ -104,19 +108,22 @@ function GameInstanceDetailPage({
 
   return (
     <section className="page" aria-labelledby="instance-title">
-      <header className="page-header">
-        <div>
+      <PageHeader
+        title={instance.name}
+        titleId="instance-title"
+        leading={
           <Link className="back-link" to={projectLink(projectId)}>
             {t.projects.shared.backToProject}
           </Link>
-          <h1 id="instance-title">{instance.name}</h1>
-          <p className="page-subtitle">
-            <span className="badge">{describePlatform(instance.platform)}</span>
+        }
+        subtitle={
+          <>
+            <Badge>{describePlatform(instance.platform)}</Badge>
             <span aria-hidden="true">·</span>
             <span className="mono">{instance.id}</span>
-          </p>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       <GameStreamView instanceId={instance.id} />
     </section>

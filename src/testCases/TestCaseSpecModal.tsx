@@ -1,3 +1,4 @@
+import { Button } from '../design-system/primitives/Button'
 import { useTestCaseLabel } from './testCaseIdentifiers'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
@@ -174,9 +175,9 @@ export function TestCaseSpecModal({
                       <dd>{info.expectedValue.length > 0 ? info.expectedValue : <span className="cp-info-none">—</span>}</dd>
                     </dl>
                     {onPick !== undefined && (
-                      <button className="button button--primary button--compact cp-pick" onClick={() => onPick(info)} type="button">
+                      <Button variant="primary" size="compact" className="cp-pick" onClick={() => onPick(info)} type="button">
                         {p.pickThis}
-                      </button>
+                      </Button>
                     )}
                   </>
                 )

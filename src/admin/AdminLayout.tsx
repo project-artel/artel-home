@@ -1,3 +1,4 @@
+import { PageHeader } from '../design-system/primitives/Headers'
 import { Suspense } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
@@ -22,12 +23,7 @@ export function AdminLayout() {
 
   return (
     <section aria-labelledby="admin-title" className="page admin-console">
-      <header className="page-header">
-        <h1 id="admin-title">
-          {t.admin.title}
-          <InfoHint>{t.admin.subtitle}</InfoHint>
-        </h1>
-      </header>
+      <PageHeader titleId="admin-title" title={<>{t.admin.title}<InfoHint>{t.admin.subtitle}</InfoHint></>} />
       <nav className="section-nav admin-console__nav" aria-label={t.admin.tabsLabel}>
         {ADMIN_TABS.map((tab) => (
           <NavLink key={tab} to={`/admin/${tab}`} className="section-nav__item">

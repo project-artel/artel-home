@@ -1,3 +1,4 @@
+import { Button } from '../../design-system/primitives/Button'
 import { useEffect, useMemo, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react'
 import { useI18n } from '../../i18n/useI18n'
 import { formatDate } from '../../projects/formatters'
@@ -124,9 +125,9 @@ export function ComposeSettingsDrawer({
         )}
         <footer className="csd-foot">
           <span className="dc-quiet">{text.drawerHint}</span>
-          <button className="button button--primary" onClick={onClose} type="button">
+          <Button variant="primary" onClick={onClose} type="button">
             {text.drawerDone}
-          </button>
+          </Button>
         </footer>
       </div>
     </div>

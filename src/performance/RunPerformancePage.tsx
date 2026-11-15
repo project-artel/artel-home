@@ -1,3 +1,4 @@
+import { PanelEmpty, PanelMessage } from '../design-system/primitives/Feedback'
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { EdgeScrollbar } from '../design-system/primitives/EdgeScrollbar'
@@ -60,9 +61,9 @@ export function RunPerformanceRoute() {
   if (failedFor === qaRunId) {
     return (
       <section className="page">
-        <div className="panel-message" role="alert">
+        <PanelMessage role="alert">
           {copy.loadFailed}
-        </div>
+        </PanelMessage>
       </section>
     )
   }
@@ -71,7 +72,7 @@ export function RunPerformanceRoute() {
   if (data === null || String(data.runId) !== qaRunId) {
     return (
       <section className="page" aria-busy="true">
-        <p className="panel-empty">{copy.loading}</p>
+        <PanelEmpty>{copy.loading}</PanelEmpty>
       </section>
     )
   }

@@ -1,3 +1,4 @@
+import { Button, ButtonLink } from '../../design-system/primitives/Button'
 import { useTestCaseLabel } from '../../testCases/testCaseIdentifiers'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -23,16 +24,16 @@ export function CaseIssueHistoryPanel({ projectId, issueId }: { projectId: strin
       .catch(() => { if (!controller.signal.aborted) setError(true) })
     return () => controller.abort()
   }, [projectId, issueId, retry])
-  if (error) return <p className="qe-status" role="alert">{copy.error} <button className="button button--secondary button--compact" onClick={() => setRetry(value => value + 1)} type="button">{copy.retry}</button></p>
+  if (error) return <p className="qe-status" role="alert">{copy.error} <Button variant="secondary" size="compact" onClick={() => setRetry(value => value + 1)} type="button">{copy.retry}</Button></p>
   if (!data?.testCaseId) return null
   const issueLink = (id: string) => `/projects/${encodeURIComponent(projectId)}/issues?issue=${encodeURIComponent(id)}`
   return <section className="qe-panel" aria-label={copy.occurrences}>
     <div className="qe-head">
       <h3>{copy.occurrences}</h3>
       <nav className="qe-links" aria-label={copy.occurrences}>
-        <Link className="button button--secondary button--compact" to={`/projects/${encodeURIComponent(projectId)}/test-cases?case=${encodeURIComponent(data.testCaseId)}`}>{caseLabel(data.testCaseId)} · {copy.testcase}</Link>
-        {data.previousIssueId && <Link className="button button--secondary button--compact" to={issueLink(data.previousIssueId)}>{copy.previousIssue} #{data.previousIssueId}</Link>}
-        {data.mergedInto && <Link className="button button--secondary button--compact" to={issueLink(data.mergedInto)}>{copy.mergedIssue} #{data.mergedInto}</Link>}
+        <ButtonLink variant="secondary" size="compact" to={`/projects/${encodeURIComponent(projectId)}/test-cases?case=${encodeURIComponent(data.testCaseId)}`}>{caseLabel(data.testCaseId)} · {copy.testcase}</ButtonLink>
+        {data.previousIssueId && <ButtonLink variant="secondary" size="compact" to={issueLink(data.previousIssueId)}>{copy.previousIssue} #{data.previousIssueId}</ButtonLink>}
+        {data.mergedInto && <ButtonLink variant="secondary" size="compact" to={issueLink(data.mergedInto)}>{copy.mergedIssue} #{data.mergedInto}</ButtonLink>}
       </nav>
     </div>
     {data.autoClosed && <p className="qe-status">{copy.autoClosed}</p>}
@@ -48,10 +49,10 @@ export function CaseIssueHistoryPanel({ projectId, issueId }: { projectId: strin
         ? <Link className="table-link" to={`/projects/${encodeURIComponent(projectId)}/qa-history/${encodeURIComponent(item.qaRunId)}?scenario=${encodeURIComponent(item.qaTryId)}&attempt=${encodeURIComponent(item.attemptId)}`}>{copy.qa} #{item.qaTryId}</Link>
         : <span className="table-link table-link--muted">{copy.qa} #{item.qaTryId}</span>}
     </li>)}</ol>
-    {more && <button className="button button--secondary button--compact qe-more" type="button" onClick={() => {
+    {more && <Button variant="secondary" size="compact" className="qe-more" type="button" onClick={() => {
       const before = data.occurrences.at(-1)?.logId
       if (!before) return
       void issueHistory(projectId, issueId, undefined, before).then(next => { setData(previous => previous && { ...previous, occurrences: [...previous.occurrences, ...next.occurrences] }); setMore(next.occurrences.length === 100) }).catch(() => setError(true))
-    }}>{copy.more}</button>}
+    }}>{copy.more}</Button>}
   </section>
 }

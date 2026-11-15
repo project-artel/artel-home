@@ -1,3 +1,4 @@
+import { Button } from '../design-system/primitives/Button'
 import { buildDisplayName } from '../projects/buildEnvironment'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { NotFoundPage } from '../NotFoundPage'
@@ -321,9 +322,9 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
           <span className="scn">{title}</span>
         </div>
         <div className="st-spacer" />
-        <button className="st-btn st-btn--ghost" type="button" onClick={() => setSpecOpen(true)} title={e.viewSpec}>
+        <Button variant="secondary" size="compact" type="button" onClick={() => setSpecOpen(true)} title={e.viewSpec}>
           {e.viewSpec} <kbd className="kbd">{shortcutLabel('K')}</kbd>
-        </button>
+        </Button>
         <div className="st-icons">
           <button className="iconbtn" type="button" disabled={!active.canUndo} onClick={active.undo} title={e.undo} aria-label={e.undo}><StudioIcon name="undo" /></button>
           <button className="iconbtn" type="button" disabled={!active.canRedo} onClick={active.redo} title={e.redo} aria-label={e.redo}><StudioIcon name="redo" /></button>
@@ -342,8 +343,8 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
             버튼인지 헷갈린다 — draft 의 승인 · 버리기는 가운데 띠에 있다. */}
         {activeDraft === null && (
           <>
-            <button className="st-btn st-btn--danger" onClick={() => setDialog('delete')} type="button">{t.scenarios.page.delete}</button>
-            <button className="st-btn st-btn--primary" onClick={() => setDialog('approve')} ref={approveButton} type="button">{t.scenarios.page.approve}</button>
+            <Button variant="danger-quiet" size="compact" onClick={() => setDialog('delete')} type="button">{t.scenarios.page.delete}</Button>
+            <Button variant="primary" size="compact" onClick={() => setDialog('approve')} ref={approveButton} type="button">{t.scenarios.page.approve}</Button>
           </>
         )}
       </header>
@@ -373,12 +374,12 @@ function TestScenarioPage({ projectId, testScenarioId }: { projectId: string; te
         {unsavedDuringLock && !botLocked && (
           <div className="st-bot-banner" role="alert">
             <span>{t.scenarios.botLock.unsaved}</span>
-            <button className="button button--secondary button--compact" onClick={() => { setUnsavedDuringLock(false); pullLatest() }} type="button">
+            <Button variant="secondary" size="compact" onClick={() => { setUnsavedDuringLock(false); pullLatest() }} type="button">
               {t.scenarios.botLock.showLatest}
-            </button>
-            <button className="button button--primary button--compact" onClick={() => { setUnsavedDuringLock(false); void flush() }} type="button">
+            </Button>
+            <Button variant="primary" size="compact" onClick={() => { setUnsavedDuringLock(false); void flush() }} type="button">
               {t.scenarios.botLock.saveMine}
-            </button>
+            </Button>
           </div>
         )}
         <SplitHandle label={t.scenarios.chat.widthHandle} {...split.handle} />
