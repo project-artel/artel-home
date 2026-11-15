@@ -249,7 +249,12 @@ export function QaScenarioSteps({
           const last = block.rows.at(-1)?.progress ?? null
           const caseReport = caseReports.get(String(block.caseId))
           const report = caseReport?.source === 'case_report' ? caseReport : undefined
-          const state = report?.state ?? last?.state
+          const reported = report?.state ?? last?.state
+          // PE 런: TC 의 진행 중 표시도 판정 순서가 아니라 에이전트가 지금 그 TC 의 step 을 도는지로 정한다.
+          const state =
+            agentSteps === null || reported === undefined || ['passed', 'failed', 'inconclusive'].includes(reported)
+              ? reported
+              : steps.includes(agentSteps.current ?? -1) ? 'running' : 'pending'
           const grade = report === undefined ? last?.grade ?? null : null
           const logId = report?.logId ?? last?.verdictLogId
           const verdictLabel = state === undefined ? null : `${caseLabel(block.caseId)} · ${s.stateLabels[state]}`

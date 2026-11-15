@@ -395,10 +395,17 @@ export function deriveAgentDock(logs: readonly QaLog[], live: boolean): AgentDoc
     if (Array.isArray(steps)) for (const value of steps) if (typeof value === 'number') startedTogether.add(value)
   }
   const segments = unjudged.length > 0 ? deriveStepSegments(logs) : []
+  // 지금 step 이 묶음의 첫 step 이거나 묶음의 계획으로 이어 돌 때만 묶음이 열려 있다. 앞 step 이 제 완료 조건에서 멈추지 않아
+  // 지금 step 의 계획을 새로 쓰면 묶음은 끊겼고, 앞 step 은 바로 판정된다.
+  const reused = new Set(logs.filter((log) => kindOf(log) === 'segment_step').map((log) => stepNumber(asRecord(log.payload)?.step)))
+  const current = state.step
   const openSegment = (step: number) =>
-    startedTogether.has(step) || state.step === null
+    startedTogether.has(step) || current === null
       ? undefined
-      : segments.find((segment) => segment.steps.includes(step) && segment.steps.includes(state.step as number))
+      : segments.find(
+          (segment) =>
+            segment.steps.includes(step) && segment.steps.includes(current) && (segment.steps[0] === current || reused.has(current)),
+        )
   const judgements: AgentJudgement[] = [
     ...verdicts.map((verdict) => ({ step: verdict.step, state: 'judged' as const, verdict })),
     ...unjudged.map((step, at) => {

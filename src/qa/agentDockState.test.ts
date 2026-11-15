@@ -267,3 +267,12 @@ test('묶음의 step 은 묶음이 끝나 함께 판정이 시작될 때까지 �
   dock = deriveAgentDock(logs, true)
   assert.deepEqual(dock.judgements.map((item) => [item.step, item.state]), [[3, 'judged'], [4, 'judging'], [5, 'waiting']])
 })
+
+test('앞 step 이 완료 조건에서 멈추지 않아 다음 step 을 새로 계획하면 묶음은 끊겨 앞 step 은 바로 판정 중이다', () => {
+  const segmented = log('LOG', {
+    kind: 'step_macros', step: 1, message: 'plan',
+    decision: { summary: '요약', actions: [], segment: { 1: ['look'], 2: ['start'] } },
+  })
+  const logs = [segmented, turn(1, 0), evidence(1, 2), writing(2)]
+  assert.deepEqual(deriveAgentDock(logs, true).judgements.map((item) => [item.step, item.state]), [[1, 'judging']])
+})
