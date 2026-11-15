@@ -207,3 +207,37 @@ test('지금 step 이 앞 계획으로 돌면 그 계획까지 거슬러 받는�
   assert.equal(agentHistoryComplete([verdict(2), segmentPlan(3, segment), segmentStep(4, []), turn(4, 0)]), true)
   assert.equal(isAgentLog(segmentStep(4, [])), true)
 })
+
+test('planner 가 답을 받는 동안 남기는 진행을 계획을 쓰는 동안만 보인다', () => {
+  const progress = (step: number, elapsed: number, chars: number, tail: string) =>
+    log('LOG', { kind: 'planner_progress', step, message: 'p', decision: { elapsed, chars, tail } })
+  const logs = [writing(3), progress(3, 4, 0, '')]
+  let dock = deriveAgentDock(logs, true)
+  assert.equal(dock.active, 'planner')
+  assert.deepEqual(dock.progress, { elapsed: 4, chars: 0, tail: '' }, '글이 아직 없으면 추론 중이다')
+
+  logs.push(progress(3, 18, 120, '```goals\nread: ...'))
+  dock = deriveAgentDock(logs, true)
+  assert.equal(dock.progress?.chars, 120)
+
+  logs.push(plan(3, ['developer:a']))
+  assert.equal(deriveAgentDock(logs, true).progress, null, '계획이 나오면 진행은 지운다')
+  assert.ok(isAgentLog(progress(3, 1, 0, '')))
+})
+
+test('판정 줄은 끝난 판정 뒤에 판정 중 한 step 과 판정 대기 step 들을 쌓는다', () => {
+  const logs = [
+    plan(1, ['developer:a']), turn(1, 0), evidence(1, 2),
+    plan(2, ['developer:a']), turn(2, 0), evidence(2, 2),
+    plan(3, ['developer:a']), turn(3, 0), evidence(3, 2),
+    plan(4, ['developer:a']), turn(4, 0),
+    verdict(1),
+  ]
+  const dock = deriveAgentDock(logs, true)
+  assert.deepEqual(
+    dock.judgements.map((item) => [item.step, item.state]),
+    [[1, 'judged'], [2, 'judging'], [3, 'waiting']],
+    '실행 중인 step 4 는 아직 판정 줄에 없다',
+  )
+  assert.equal(deriveAgentDock(logs, false).judgements.filter((item) => item.state !== 'judged').length, 0, '끝난 런은 끝난 판정만')
+})

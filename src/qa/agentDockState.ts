@@ -44,6 +44,14 @@ export type AgentTurn = {
 
 export type AgentVerdict = { step: number; passed: boolean; message: string; stopped: string | null }
 
+/** Planner 가 답을 받는 동안 몇 초마다 남기는 진행(`planner_progress`). 글이 아직 없으면 추론 중이다. */
+export type AgentProgress = { elapsed: number; chars: number; tail: string }
+
+/** 판정 줄. 판정은 실행이 끝난 step 을 앞에서부터 하나씩 한다. */
+export type AgentJudgement =
+  | { step: number; state: 'judged'; verdict: AgentVerdict }
+  | { step: number; state: 'judging' | 'waiting' }
+
 export type AgentStatus =
   | { kind: 'writing' | 'replanning' | 'rewriting' | 'reusing' | 'turn' | 'finished' }
   | { kind: 'handoff'; plan: number }
@@ -68,6 +76,10 @@ export type AgentDockState = {
   verdict: AgentVerdict | null
   /** 아직 판정이 안 온 가장 앞 step. `played` 면 실행이 끝나 판정을 기다린다. */
   pending: { step: number; played: boolean } | null
+  /** Planner 의 마지막 진행. 계획을 쓰는 동안만 있다. */
+  progress: AgentProgress | null
+  /** 판정 줄: 끝난 판정(오래된 것부터), 지금 판정 중인 step, 판정을 기다리는 step. */
+  judgements: AgentJudgement[]
 }
 
 export type AgentGoal = { name: string; goal: string; step: number | null; state: 'done' | 'current' | 'next' }
@@ -128,7 +140,14 @@ export function isAgentLog(log: QaLog): boolean {
   if (log.type !== 'LOG') return false
   const kind = kindOf(log)
   if (kind === null) return isWriting(log)
-  return kind === 'turn' || kind === 'evidence' || kind === 'segment_step' || PLAN_KINDS.has(kind) || REFUSED_KINDS.has(kind)
+  return (
+    kind === 'turn' ||
+    kind === 'evidence' ||
+    kind === 'segment_step' ||
+    kind === 'planner_progress' ||
+    PLAN_KINDS.has(kind) ||
+    REFUSED_KINDS.has(kind)
+  )
 }
 
 /** planner–executer 런인가. 이 엔진만 남기는 줄로 가른다. 창은 이 런에서만 보인다. */
@@ -210,6 +229,8 @@ const EMPTY: AgentDockState = {
   stepGoals: [],
   verdict: null,
   pending: null,
+  progress: null,
+  judgements: [],
 }
 
 /**
@@ -221,6 +242,7 @@ export function deriveAgentDock(logs: readonly QaLog[], live: boolean): AgentDoc
   const seen = new Set<number>()
   const played = new Set<number>()
   const judged = new Set<number>()
+  const verdicts: AgentVerdict[] = []
   for (const log of logs) {
     if (!isAgentLog(log)) continue
     const payload = asRecord(log.payload) ?? {}
@@ -230,16 +252,15 @@ export function deriveAgentDock(logs: readonly QaLog[], live: boolean): AgentDoc
       const verdict = asRecord(payload.verdict)
       const playedRecord = asRecord(payload.played)
       if (step !== null) judged.add(step)
-      state = {
-        ...state,
-        verdict: {
-          step: step ?? 0,
-          passed: payload.status === 'COMPLETED',
-          message: withoutStopNote(text(payload.message) ?? text(verdict?.reason) ?? ''),
-          // `done` 은 목표를 이뤄 끝난 것이라 중단이 아니다.
-          stopped: playedRecord?.stopped === 'done' ? null : text(playedRecord?.stopped),
-        },
+      const arrived: AgentVerdict = {
+        step: step ?? 0,
+        passed: payload.status === 'COMPLETED',
+        message: withoutStopNote(text(payload.message) ?? text(verdict?.reason) ?? ''),
+        // `done` 은 목표를 이뤄 끝난 것이라 중단이 아니다.
+        stopped: playedRecord?.stopped === 'done' ? null : text(playedRecord?.stopped),
       }
+      verdicts.push(arrived)
+      state = { ...state, verdict: arrived }
       continue
     }
     if (step !== null) seen.add(step)
@@ -250,6 +271,19 @@ export function deriveAgentDock(logs: readonly QaLog[], live: boolean): AgentDoc
       state = { ...EMPTY, step, plan, verdict: state.verdict }
     }
     const kind = kindOf(log)
+    if (kind === 'planner_progress') {
+      const decision = asRecord(payload.decision)
+      state = {
+        ...state,
+        active: 'planner',
+        progress: {
+          elapsed: score(decision?.elapsed) ?? 0,
+          chars: score(decision?.chars) ?? 0,
+          tail: text(decision?.tail) ?? '',
+        },
+      }
+      continue
+    }
     if (kind === null) {
       const replan = /\(replan\)/.test(text(payload.message) ?? '')
       const again = /again/.test(text(payload.message) ?? '')
@@ -257,6 +291,7 @@ export function deriveAgentDock(logs: readonly QaLog[], live: boolean): AgentDoc
         ...state,
         active: 'planner',
         status: { kind: again ? 'rewriting' : replan ? 'replanning' : 'writing' },
+        progress: null,
         refusal: again ? state.refusal : null,
         turn: null,
         executed: false,
@@ -270,6 +305,7 @@ export function deriveAgentDock(logs: readonly QaLog[], live: boolean): AgentDoc
         active: 'planner',
         status: { kind: 'rewriting' },
         refusal: refusalOf(text(payload.message) ?? '', text(decision?.refusal)),
+        progress: null,
       }
     } else if (PLAN_KINDS.has(kind)) {
       const decision = asRecord(payload.decision)
@@ -283,6 +319,7 @@ export function deriveAgentDock(logs: readonly QaLog[], live: boolean): AgentDoc
         refusal: null,
         turn: null,
         executed: false,
+        progress: null,
         plan: {
           number,
           step: planStep,
@@ -324,6 +361,7 @@ export function deriveAgentDock(logs: readonly QaLog[], live: boolean): AgentDoc
         active: 'executor',
         status: { kind: 'turn' },
         refusal: null,
+        progress: null,
         turn: shown,
         executed: false,
         done: state.done || done,
@@ -337,7 +375,17 @@ export function deriveAgentDock(logs: readonly QaLog[], live: boolean): AgentDoc
   const waiting = live ? sortedSteps(seen).find((step) => !judged.has(step)) : undefined
   const pending =
     waiting === undefined ? null : { step: waiting, played: played.has(waiting) || [...seen].some((step) => step > waiting) }
-  return live ? { ...state, pending } : { ...state, active: null, status: null, pending: null }
+  // 실행이 끝났는데 판정이 안 온 step. 판정은 앞 step 부터 하나씩이라 맨 앞이 판정 중이고 나머지는 기다린다.
+  const unjudged = live
+    ? sortedSteps(seen).filter((step) => !judged.has(step) && (played.has(step) || [...seen].some((later) => later > step)))
+    : []
+  const judgements: AgentJudgement[] = [
+    ...verdicts.map((verdict) => ({ step: verdict.step, state: 'judged' as const, verdict })),
+    ...unjudged.map((step, at) => ({ step, state: at === 0 ? ('judging' as const) : ('waiting' as const) })),
+  ]
+  return live
+    ? { ...state, pending, judgements }
+    : { ...state, active: null, status: null, pending: null, progress: null, judgements }
 }
 
 /**
