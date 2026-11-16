@@ -297,3 +297,15 @@ test('다음 step 의 미리 쓰는 계획은 지금 step 을 바꾸지 않고 �
   assert.equal(dock.step, 4)
   assert.equal(dock.ahead, null, '다음 step 이 시작하면 지운다')
 })
+
+test('선택지가 하나라 바로 실행한 turn 을 표시한다 (pe11)', () => {
+  const only = turn(3, 0, { picked: 'developer:advance_dialogue', options: ['developer:advance_dialogue'], picked_by: 'only_option' })
+  const jev = turn(3, 1, { picked_by: 'jev' })
+  assert.equal(deriveAgentDock([writing(3), plan(3, ['developer:advance_dialogue']), only], true).turn?.onlyOption, true)
+  assert.equal(deriveAgentDock([writing(3), plan(3, ['developer:advance_dialogue']), only, jev], true).turn?.onlyOption, false)
+})
+
+test('뒤 step 의 결과로 끝난 step 은 그 이유를 단다 (pe11)', () => {
+  const ended = log('STATUS', { step: 4, status: 'FAILED', message: '실패했다.', played: { stopped: 'later_done' } })
+  assert.equal(deriveAgentDock([ended], true).verdict?.stopped, 'later_done')
+})

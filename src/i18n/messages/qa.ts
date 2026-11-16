@@ -497,6 +497,7 @@ export const qaEn = {
       others: 'Other options',
       wait: 'Game busy',
       waited: 'The game was busy, so this turn waited.',
+      onlyOption: 'Only one action could run, so it ran without asking Jev.',
       repeated: (count: number) => `Same action ${count} times in a row`,
       doneMet: 'Met',
       doneOpen: 'Not yet',
@@ -507,6 +508,13 @@ export const qaEn = {
       noVerdict: 'No verdict yet',
       verdict: (step: number, passed: boolean) => `Step ${step} · ${passed ? 'Passed' : 'Failed'}`,
       stopped: (reason: string) => `Executor stopped: ${reason}`,
+      stopReasons: {
+        later_done: "A later step's done condition became true, so this step ended there.",
+        result_in_earlier_step: "This step's result came while the earlier step played. No input was sent in this step.",
+        passed_in_earlier_step: 'The earlier step went past this step. No input was sent in this step.',
+        done_at_start: 'The done condition was already true at the start, so no input was sent.',
+      },
+      offPlan: 'The scene changed and the done condition stayed false, so play stopped here.',
       nextJudge: (step: number, played: boolean) =>
         played ? `Next: step ${step}, played and waiting for its verdict` : `Next: step ${step}, judged once it is played`,
       progressThinking: (seconds: number) => `Reasoning · ${seconds}s`,
@@ -1295,6 +1303,7 @@ export const qaKo: Localized<typeof qaEn> = {
       others: '다른 선택지',
       wait: '게임 대기 확률',
       waited: '게임이 바빠 이 turn 은 기다렸습니다.',
+      onlyOption: '고를 수 있는 행동이 하나라 Jev 에게 묻지 않고 바로 실행했습니다.',
       repeated: (count: number) => `같은 행동 ${count}회 연속`,
       doneMet: '충족',
       doneOpen: '아직',
@@ -1305,6 +1314,13 @@ export const qaKo: Localized<typeof qaEn> = {
       noVerdict: '아직 판정 없음',
       verdict: (step: number, passed: boolean) => `step ${step} · ${passed ? '통과' : '실패'}`,
       stopped: (reason: string) => `Executor 중단: ${reason}`,
+      stopReasons: {
+        later_done: '뒤 step 의 완료 조건이 참이 되어 여기서 끝냈습니다.',
+        result_in_earlier_step: '이 step 의 결과는 앞 step 을 하는 동안 났습니다. 이 step 에서는 입력을 보내지 않았습니다.',
+        passed_in_earlier_step: '앞 step 이 이 step 을 지나갔습니다. 이 step 에서는 입력을 보내지 않았습니다.',
+        done_at_start: '시작할 때 이미 완료 조건이 참이라 입력을 보내지 않았습니다.',
+      },
+      offPlan: '씬이 바뀌었는데 완료 조건이 거짓이라 여기서 멈췄습니다.',
       nextJudge: (step: number, played: boolean) =>
         played ? `다음 판정: step ${step} (실행 끝, 판정 대기)` : `다음 판정: step ${step} (실행이 끝나면 판정)`,
       progressThinking: (seconds: number) => `추론 중 · ${seconds}초`,

@@ -234,8 +234,9 @@ function ExecutorBody({ dock, text, pe }: { dock: AgentDockState; text: Text; pe
           ))}
         </ul>
       )}
-      {(busy || (repeat !== null && repeat.count >= REPEAT_WARN)) && (
+      {(busy || turn.onlyOption || (repeat !== null && repeat.count >= REPEAT_WARN)) && (
         <p className="qa-agent-chips">
+          {turn.onlyOption && <span className="qa-agent-chip">{text.onlyOption}</span>}
           {busy && <span className="qa-agent-chip">{text.waited}</span>}
           {repeat !== null && repeat.count >= REPEAT_WARN && (
             <span className="qa-agent-chip qa-agent-chip--warning">{text.repeated(repeat.count)}</span>
@@ -244,6 +245,14 @@ function ExecutorBody({ dock, text, pe }: { dock: AgentDockState; text: Text; pe
       )}
     </>
   )
+}
+
+/** executer 가 멈춘 이유. 코드가 정한 멈춤(pe11)은 단어장의 말로, 나머지는 진단 문장 그대로 보인다. */
+function stopText(reason: string, text: Text): string {
+  const known = text.stopReasons[reason as keyof Text['stopReasons']]
+  if (known !== undefined) return known
+  if (reason.startsWith('off_plan')) return text.offPlan
+  return text.stopped(reason)
 }
 
 function JudgementItem({ item, text, pe }: { item: AgentJudgement; text: Text; pe: PeTextProps }) {
@@ -256,7 +265,7 @@ function JudgementItem({ item, text, pe }: { item: AgentJudgement; text: Text; p
           <strong>{text.verdict(verdict.step, verdict.passed)}</strong>
         </p>
         <p className="qa-agent-judgement-text"><PeText text={pe} value={verdict.message} /></p>
-        {verdict.stopped && <p className="qa-agent-judgement-stop">{text.stopped(verdict.stopped)}</p>}
+        {verdict.stopped && <p className="qa-agent-judgement-stop">{stopText(verdict.stopped, text)}</p>}
       </li>
     )
   }

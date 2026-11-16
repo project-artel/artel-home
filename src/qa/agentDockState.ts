@@ -40,6 +40,8 @@ export type AgentTurn = {
   goal: string | null
   /** 게임이 바쁠 확률. 0.7 이상이면 그 turn 은 기다렸다. */
   wait: number | null
+  /** 선택지가 하나라 Jev 가 고르지 않고 바로 실행했다(pe11 `picked_by: "only_option"`). */
+  onlyOption: boolean
 }
 
 export type AgentVerdict = { step: number; passed: boolean; message: string; stopped: string | null }
@@ -201,6 +203,7 @@ function turnOf(payload: Record<string, unknown>): (AgentTurn & { done: boolean 
           ),
     goal: text(record.goal),
     wait: score(record.wait),
+    onlyOption: record.picked_by === 'only_option',
     done: record.done === true,
   }
 }
