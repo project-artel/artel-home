@@ -6,7 +6,7 @@ import { shortWhen } from '../history/historyModel'
 import * as api from './evaluationApi'
 import { evaluationCopy } from './evaluationCopy'
 import { VerdictPill } from './VerdictPill'
-import { clipGaps, clipSegments, evidenceExpired } from './videoEvidence'
+import { PAUSED_GAP, clipGaps, clipSegments, evidenceExpired, unexplainedHole } from './videoEvidence'
 import { useProjectChange } from '../../live/useProjectChange'
 import { EvidencePlayer } from './EvidencePlayer'
 import { CaseContentEditor } from './CaseContentEditor'
@@ -226,9 +226,10 @@ function VideoEvidence({ attempt, playback }: { attempt: api.Attempt; playback: 
   const expired = evidenceExpired(attempt, playback, now)
   const clipStart = Date.parse(attempt.startedAt ?? attempt.finishedAt ?? attempt.createdAt) - 10000
   const clipEnd = attempt.finishedAt ? Date.parse(attempt.finishedAt) + 5000 : Infinity
-  const gaps = clipGaps(attempt, playback.gaps)
+  const clipped = clipGaps(attempt, playback.gaps)
+  const gaps = clipped.filter(gap => gap.reason !== PAUSED_GAP)
   const missing = gaps.length > 0 || playback.segments.some(segment => segment.state === 'UPLOADING' && Date.parse(segment.endedAt) > clipStart && Date.parse(segment.startedAt) < clipEnd) ||
-    segments.some((segment, position) => position > 0 && Date.parse(segment.startedAt) - Date.parse(segments[position - 1].endedAt) > 1000)
+    segments.some((segment, position) => position > 0 && unexplainedHole(segments[position - 1].endedAt, segment.startedAt, clipped))
   const time = (value: string) => new Date(value).toLocaleTimeString(undefined, { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
   return <section className="qe-media" aria-label={copy.video}>
     {expired ? <p className="qe-notice">{copy.expired}</p> : segments.length > 0
