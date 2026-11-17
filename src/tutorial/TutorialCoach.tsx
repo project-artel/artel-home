@@ -2,7 +2,7 @@ import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useSta
 import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useI18n } from '../i18n/useI18n'
-import { dockFor, placeTag, ringOf, veilPieces, type Box } from './coachGeometry'
+import { placeCallout, ringOf, type Box } from './coachGeometry'
 import { McpScene } from './McpScene'
 import { START_TUTORIAL_STEPS, flatIndex, type CoachContext, type TutorialAction } from './startTutorialSteps'
 import { UnityScene } from './UnityScene'
@@ -101,40 +101,100 @@ export function TutorialCoach({
     return () => window.removeEventListener('keydown', onKey, true)
   }, [clickToAdvance, next, onClose, phase])
 
-  const hudRef = useRef<HTMLDivElement | null>(null)
-  const hudHeight = useHeight(hudRef, 128)
   const viewport = useViewport()
   const ring = target.box === null ? null : ringOf(target.box, viewport)
-  const dock = dockFor(ring, viewport, hudHeight)
-
-  const tagRef = useRef<HTMLSpanElement | null>(null)
-  const tagSize = useSize(tagRef)
-  const copy = phase === 'play' ? action.copy(m) : null
-  const tag = copy !== null && 'tag' in copy && typeof copy.tag === 'string' ? copy.tag : null
-  const tagPlace = ring === null ? null : placeTag(ring, tagSize, viewport, { dock, height: hudHeight })
-
   const lines = useMemo(() => (action.kind === 'mcp' ? action.lines(m) : null), [action, m])
   const scene = phase === 'play' && (action.kind === 'unity' || action.kind === 'mcp')
   const waiting = phase === 'play' && !scene && target.element === null
+  // 화면이 바뀌는 동안(새 자리를 아직 못 찾음)에는 구멍을 화면 가운데로 닫아 둔다. 새 자리를 찾으면 거기서 열린다.
+  // 고리 · 구멍 · 말풍선이 CSS 전환으로 옮겨 가므로, 자리를 바꿀 때 끊기지 않고 미끄러진다.
+  const hole: Box = ring !== null && phase === 'play' && !scene
+    ? ring
+    : { left: viewport.width / 2, top: viewport.height / 2, width: 0, height: 0 }
+
+  const calloutRef = useRef<HTMLElement | null>(null)
+  const calloutSize = useSize(calloutRef)
+  const copy = phase === 'play' ? action.copy(m) : null
+  const tag = copy !== null && 'tag' in copy && typeof copy.tag === 'string' ? copy.tag : null
+  const placed = ring !== null && !scene && !waiting
+    ? placeCallout(ring, calloutSize, viewport)
+    : { left: (viewport.width - calloutSize.width) / 2, top: viewport.height - calloutSize.height - 24, side: 'none' as const, arrow: 0 }
+
+  const callout = phase === 'play' && copy !== null && (
+    <section
+      aria-label={m.player.label}
+      className={`tut-callout tut-callout--${scene ? 'inline' : placed.side}`}
+      ref={calloutRef}
+      style={scene ? undefined : ({ left: placed.left, top: placed.top, '--tut-arrow': `${placed.arrow}px` } as React.CSSProperties)}
+    >
+      <header className="tut-callout-head">
+        <span className="tut-callout-step">{m.player.stepLabel(position.step + 1, m.steps[step.id].name)}</span>
+        <span className="tut-callout-count">{m.player.actionCount(position.action + 1, step.actions.length)}</span>
+        <span className="tut-callout-badge" title={m.player.exampleTitle}>{m.player.example}</span>
+        <button aria-label={m.player.close} className="tut-callout-close" onClick={onClose} title={m.player.closeTitle} type="button">×</button>
+      </header>
+      <div className="tut-callout-body" key={flat}>
+        {position.action === 0 && !waiting && (
+          <div className="tut-why">
+            <b>{m.player.why}</b>
+            <p>{m.steps[step.id].why}</p>
+          </div>
+        )}
+        {tag !== null && !waiting && <span className="tut-callout-tag">{tag}</span>}
+        <h2 aria-live="polite">{waiting ? m.player.loading : copy.title}</h2>
+        {!waiting && <p>{copy.body}</p>}
+      </div>
+      <footer className="tut-callout-foot">
+        <ol aria-label={m.player.steps} className="tut-steps">
+          {STEPS.map((one, index) => {
+            const locked = firstRun && flatIndex(STEPS, index, 0) > reached
+            const current = index === position.step
+            const done = flatIndex(STEPS, index + 1, 0) <= reached && !current
+            return (
+              <li key={one.id}>
+                <button
+                  aria-current={current ? 'step' : undefined}
+                  aria-label={m.player.stepLabel(index + 1, m.steps[one.id].name)}
+                  className={'tut-step' + (current ? ' is-current' : '') + (done ? ' is-done' : '')}
+                  disabled={locked}
+                  onClick={() => goTo({ step: index, action: 0 })}
+                  title={locked ? m.player.lockedStep : m.steps[one.id].name}
+                  type="button"
+                >
+                  {index + 1}
+                </button>
+              </li>
+            )
+          })}
+        </ol>
+        <div aria-hidden="true" className="tut-progress"><span style={{ width: `${((flat + 1) / TOTAL_ACTIONS) * 100}%` }} /></div>
+        <div className="tut-callout-actions">
+          <button className="tut-link" disabled={position.action === 0} onClick={restartStep} type="button">{m.player.restartStep}</button>
+          <span className="tut-spacer" />
+          {action.kind === 'fill' && (
+            <button className="button button--secondary button--compact" onClick={() => void action.fill(ctx)} type="button">{m.player.fill}</button>
+          )}
+          {clickToAdvance && !waiting ? (
+            <span className="tut-hint">{m.player.clickHint}</span>
+          ) : (
+            (!waiting || target.patienceOver) && (
+              <button autoFocus className="button button--primary button--compact" onClick={next} type="button">{m.player.next}</button>
+            )
+          )}
+        </div>
+      </footer>
+    </section>
+  )
 
   return createPortal(
-    <div className="tut" data-dock={dock}>
-      {/* 덮개: 짚는 자리만 비운다. 자리를 아직 못 찾았거나 장면 · 안내 카드가 뜬 동안은 통째로 덮는다. */}
-      {ring !== null && !scene && phase === 'play' ? (
-        veilPieces(ring, viewport).map((piece, index) => <div aria-hidden="true" className="tut-veil" key={index} style={box(piece)} />)
-      ) : (
-        <div aria-hidden="true" className="tut-veil tut-veil--full" />
+    <div className="tut">
+      {/* 덮개 한 장. 짚는 자리만 뚫어 그 자리는 실제로 눌린다(뚫린 자리는 덮개가 받지 않는다). */}
+      <div aria-hidden="true" className="tut-veil" style={{ clipPath: holePath(hole, viewport) }} />
+      {phase === 'play' && !scene && (
+        <div aria-hidden="true" className={'tut-ring' + (ring === null ? ' is-closed' : '')} style={box(ring ?? hole)} />
       )}
-      {ring !== null && phase === 'play' && !scene && (
-        <>
-          <div aria-hidden="true" className="tut-ring" key={`ring-${flat}`} style={box(ring)} />
-          {action.kind === 'look' && <div aria-hidden="true" className="tut-block" style={box(ring)} />}
-          {tag !== null && (
-            <span aria-hidden="true" className="tut-tag" key={`tag-${flat}`} ref={tagRef} style={tagPlace === null ? undefined : { left: tagPlace.left, top: tagPlace.top }}>
-              {tag}
-            </span>
-          )}
-        </>
+      {ring !== null && phase === 'play' && !scene && action.kind === 'look' && (
+        <div aria-hidden="true" className="tut-block" style={box(ring)} />
       )}
 
       {phase === 'play' && action.kind === 'unity' && (
@@ -142,13 +202,16 @@ export function TutorialCoach({
           <div className="tut-scene-frame">
             <UnityScene key={action.stage} onAdvance={next} stage={action.stage} />
           </div>
+          {callout}
         </div>
       )}
       {phase === 'play' && lines !== null && (
         <div className="tut-scene">
           <McpScene key={flat} lines={lines} />
+          {callout}
         </div>
       )}
+      {!scene && callout}
 
       {phase === 'intro' && (
         <div aria-labelledby={titleId} aria-modal="true" className="tut-card" role="dialog">
@@ -186,62 +249,20 @@ export function TutorialCoach({
           </div>
         </div>
       )}
-
-      {phase === 'play' && copy !== null && (
-        <section aria-label={m.player.label} className={`tut-hud tut-hud--${dock}`} ref={hudRef}>
-          <div className="tut-hud-copy">
-            <div className="tut-hud-meta">
-              <span className="tut-hud-step">{m.player.stepLabel(position.step + 1, m.steps[step.id].name)}</span>
-              <span className="tut-hud-count">{m.player.actionCount(position.action + 1, step.actions.length)}</span>
-              <span className="tut-hud-badge">{m.player.example}</span>
-            </div>
-            <h2 aria-live="polite">{waiting ? m.player.loading : copy.title}</h2>
-            {!waiting && <p>{copy.body}</p>}
-          </div>
-          <div className="tut-hud-side">
-            <ol aria-label={m.player.steps} className="tut-steps">
-              {STEPS.map((one, index) => {
-                const locked = firstRun && flatIndex(STEPS, index, 0) > reached
-                const current = index === position.step
-                const done = flatIndex(STEPS, index + 1, 0) <= reached && !current
-                return (
-                  <li key={one.id}>
-                    <button
-                      aria-current={current ? 'step' : undefined}
-                      aria-label={m.player.stepLabel(index + 1, m.steps[one.id].name)}
-                      className={'tut-step' + (current ? ' is-current' : '') + (done ? ' is-done' : '')}
-                      disabled={locked}
-                      onClick={() => goTo({ step: index, action: 0 })}
-                      title={locked ? m.player.lockedStep : m.steps[one.id].name}
-                      type="button"
-                    >
-                      {index + 1}
-                    </button>
-                  </li>
-                )
-              })}
-            </ol>
-            <div aria-hidden="true" className="tut-progress"><span style={{ width: `${((flat + 1) / TOTAL_ACTIONS) * 100}%` }} /></div>
-            <div className="tut-hud-buttons">
-              <button className="tut-link" onClick={onClose} title={m.player.closeTitle} type="button">{m.player.close}</button>
-              <button className="tut-link" disabled={position.action === 0} onClick={restartStep} type="button">{m.player.restartStep}</button>
-              {action.kind === 'fill' && (
-                <button className="button button--secondary button--compact" onClick={() => void action.fill(ctx)} type="button">{m.player.fill}</button>
-              )}
-              {clickToAdvance && !waiting ? (
-                <span className="tut-hint">{m.player.clickHint}</span>
-              ) : (
-                (!waiting || target.patienceOver) && (
-                  <button className="button button--primary button--compact" onClick={next} type="button">{m.player.next}</button>
-                )
-              )}
-            </div>
-          </div>
-        </section>
-      )}
     </div>,
     document.body,
   )
+}
+
+/**
+ * 화면 전체를 덮고 고리 자리만 뚫는 모양. 꼭짓점 수가 늘 같아서 자리가 바뀔 때 CSS 전환으로 부드럽게 옮겨 간다.
+ */
+function holePath(hole: Box, viewport: { width: number; height: number }): string {
+  const l = hole.left
+  const t = hole.top
+  const r = hole.left + hole.width
+  const b = hole.top + hole.height
+  return `polygon(evenodd, 0 0, ${viewport.width}px 0, ${viewport.width}px ${viewport.height}px, 0 ${viewport.height}px, 0 0, ${l}px ${t}px, ${l}px ${b}px, ${r}px ${b}px, ${r}px ${t}px, ${l}px ${t}px)`
 }
 
 function box(rect: Box): React.CSSProperties {
@@ -304,20 +325,8 @@ function useViewport() {
   return size
 }
 
-function useHeight(ref: React.RefObject<HTMLElement | null>, fallback: number): number {
-  const [height, setHeight] = useState(fallback)
-  useLayoutEffect(() => {
-    const element = ref.current
-    if (element === null) return undefined
-    const observer = new ResizeObserver(() => setHeight(element.offsetHeight))
-    observer.observe(element)
-    return () => observer.disconnect()
-  })
-  return height
-}
-
 function useSize(ref: React.RefObject<HTMLElement | null>) {
-  const [size, setSize] = useState({ width: 120, height: 30 })
+  const [size, setSize] = useState({ width: 360, height: 240 })
   useLayoutEffect(() => {
     const element = ref.current
     if (element === null) return undefined

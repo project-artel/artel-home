@@ -1,41 +1,47 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { dockFor, placeTag, ringOf, veilPieces } from './coachGeometry.ts'
+import { placeCallout, ringOf, type Box } from './coachGeometry.ts'
 
 const viewport = { width: 1440, height: 900 }
-const HUD = 120
+const callout = { width: 340, height: 200 }
 
-test('안내 줄은 아래에 두고, 아래에 두면 짚는 자리를 가릴 때만 위로 올린다', () => {
-  assert.equal(dockFor({ left: 100, top: 300, width: 120, height: 36 }, viewport, HUD), 'bottom')
-  assert.equal(dockFor({ left: 1200, top: 840, width: 120, height: 36 }, viewport, HUD), 'top')
-  assert.equal(dockFor(null, viewport, HUD), 'bottom')
+const overlaps = (a: Box, b: Box) =>
+  a.left < b.left + b.width && b.left < a.left + a.width && a.top < b.top + b.height && b.top < a.top + a.height
+
+test('왼쪽 메뉴의 자리는 말풍선을 오른쪽에 붙이고 화살표가 자리 가운데를 가리킨다', () => {
+  const ring = { left: 4, top: 400, width: 200, height: 40 }
+  const placed = placeCallout(ring, callout, viewport)
+  assert.equal(placed.side, 'right')
+  assert.equal(placed.top + placed.arrow, ring.top + ring.height / 2)
 })
 
-test('화면만큼 큰 자리는 덜 가리는 쪽에 둔다', () => {
-  assert.equal(dockFor({ left: 0, top: 60, width: 1440, height: 820 }, viewport, HUD), 'top')
-  assert.equal(dockFor({ left: 0, top: 20, width: 1440, height: 790 }, viewport, HUD), 'bottom')
+test('오른쪽 끝의 버튼은 말풍선을 왼쪽에 붙인다', () => {
+  const placed = placeCallout({ left: 1300, top: 100, width: 120, height: 36 }, callout, viewport)
+  assert.equal(placed.side, 'left')
 })
 
-test('위에 붙은 안내 줄 바로 아래의 자리면 꼬리표는 자리 아래로 간다', () => {
-  const tag = { width: 120, height: 30 }
-  const ring = { left: 600, top: 140, width: 100, height: 40 }
-  const placed = placeTag(ring, tag, viewport, { dock: 'top', height: HUD })
-  assert.ok(placed.top >= ring.top + ring.height)
+test('말풍선은 어느 쪽에 붙어도 짚는 자리와 겹치지 않는다', () => {
+  const rings: Box[] = [
+    { left: 4, top: 860, width: 200, height: 36 },
+    { left: 1200, top: 4, width: 236, height: 40 },
+    { left: 300, top: 300, width: 1100, height: 60 },
+    { left: 700, top: 820, width: 300, height: 40 },
+  ]
+  for (const ring of rings) {
+    const placed = placeCallout(ring, callout, viewport)
+    assert.equal(overlaps(ring, { left: placed.left, top: placed.top, ...callout }), false, JSON.stringify(ring))
+  }
+})
+
+test('화면만큼 큰 자리는 화면 오른쪽 아래에 둔다', () => {
+  const placed = placeCallout({ left: 10, top: 10, width: 1420, height: 880 }, callout, viewport)
+  assert.equal(placed.side, 'none')
+  assert.equal(placed.left + callout.width, viewport.width - 12)
 })
 
 test('고리는 대상보다 조금 넓고 화면 밖으로 나가지 않는다', () => {
   const ring = ringOf({ left: 0, top: 0, width: 50, height: 20 }, viewport)
   assert.ok(ring.left >= 0 && ring.top >= 0)
   assert.ok(ring.width >= 50)
-})
-
-test('덮개 네 장은 고리 자리를 비운다', () => {
-  const ring = { left: 100, top: 200, width: 300, height: 50 }
-  const pieces = veilPieces(ring, viewport)
-  const covers = (x: number, y: number) => pieces.some((p) => x >= p.left && x < p.left + p.width && y >= p.top && y < p.top + p.height)
-  assert.equal(covers(250, 225), false)
-  assert.equal(covers(50, 225), true)
-  assert.equal(covers(250, 100), true)
-  assert.equal(covers(250, 600), true)
 })

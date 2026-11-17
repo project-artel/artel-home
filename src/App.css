@@ -13908,8 +13908,8 @@ body:has(.dialog-scrim) .workspace-corner { visibility: hidden; }
 /* PE 런에서 TC 없이 이어 주는 step. TC 안의 step 과 같은 들여쓰기에 두되 TC 선은 긋지 않는다. */
 .qa-rail-case--loose:not(.qa-rail-seg){ border-left-color:transparent; }
 /* ── 시작 튜토리얼 (ARTEL-1461) ─────────────────────────────────────────────
-   실제 서비스 화면 위에 덧씌운다. 짚는 자리 밖만 흐리게 덮고, 안내 줄은 그 자리를 가리지 않는 쪽(위 · 아래)에
-   붙는다. 다른 화면과 이름이 겹치지 않게 `tut-` 으로 시작한다. */
+   실제 서비스 화면 위에 덧씌운다. 짚는 자리 밖은 어둡고 흐리게 덮고, 설명은 그 자리 바로 옆 말풍선에 붙는다.
+   고리 · 덮개 구멍 · 말풍선은 자리를 옮길 때 함께 미끄러진다. 다른 화면과 이름이 겹치지 않게 `tut-` 으로 시작한다. */
 .top-bar-link--button {
   border: 0;
   background: transparent;
@@ -13919,85 +13919,112 @@ body:has(.dialog-scrim) .workspace-corner { visibility: hidden; }
 }
 .top-bar-link--button:disabled { cursor: default; opacity: .5; }
 
-.tut { position: fixed; inset: 0; z-index: 460; pointer-events: none; }
+.tut { --tut-move: .42s cubic-bezier(.22, .8, .24, 1); position: fixed; inset: 0; z-index: 460; pointer-events: none; }
 .tut > * { pointer-events: auto; }
-.tut-veil { position: fixed; background: rgb(8 9 12 / 55%); animation: tut-fade .2s ease both; }
-.tut-veil--full { inset: 0; }
+.tut-veil {
+  position: fixed;
+  inset: 0;
+  background: rgb(6 7 10 / 62%);
+  backdrop-filter: blur(5px) saturate(.75);
+  -webkit-backdrop-filter: blur(5px) saturate(.75);
+  transition: clip-path var(--tut-move);
+  animation: tut-fade .35s ease both;
+}
 .tut-ring {
   position: fixed;
   border: 2px solid var(--color-brand-accent);
-  border-radius: var(--radius-lg);
+  border-radius: 10px;
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--color-brand-accent) 28%, transparent),
+    0 0 28px 6px color-mix(in srgb, var(--color-brand-accent) 38%, transparent);
   pointer-events: none !important;
-  animation: tut-fade .2s ease both, tut-pulse 1.6s ease-in-out .2s infinite;
+  transition: left var(--tut-move), top var(--tut-move), width var(--tut-move), height var(--tut-move), opacity .2s ease;
+  animation: tut-glow 1.8s ease-in-out infinite;
 }
+.tut-ring.is-closed { opacity: 0; }
 .tut-block { position: fixed; background: transparent; cursor: default; }
-.tut-tag {
-  position: fixed;
-  padding: 5px 10px;
-  border-radius: var(--radius-md);
-  background: var(--color-brand-accent);
-  color: var(--color-text-on-accent);
-  font-size: 13px;
-  font-weight: 700;
-  white-space: nowrap;
-  pointer-events: none !important;
-  animation: tut-fade .2s ease both;
-}
 
-.tut-hud {
+/* 말풍선 */
+.tut-callout {
   position: fixed;
-  left: 50%;
   display: flex;
-  align-items: center;
-  gap: var(--space-5);
-  width: min(1120px, calc(100vw - 32px));
-  padding: var(--space-4) var(--space-5);
-  transform: translateX(-50%);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-lg);
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 380px;
+  max-width: calc(100vw - 24px);
+  padding: var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--color-brand-accent) 45%, var(--color-border-strong));
+  border-radius: 12px;
   background: var(--color-bg-surface);
   color: var(--color-text-primary);
+  transition: left var(--tut-move), top var(--tut-move);
+  animation: tut-pop .32s cubic-bezier(.22, .8, .24, 1) both;
 }
-.tut-hud--bottom { bottom: 16px; }
-.tut-hud--top { top: 16px; }
-.tut-hud-copy { display: flex; flex: 1; flex-direction: column; gap: 4px; min-width: 0; }
-.tut-hud-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
-.tut-hud-step { color: var(--color-brand-accent); font-size: 12px; font-weight: 700; }
-.tut-hud-count { color: var(--color-text-muted); font: 500 11px/1 var(--font-mono); }
-.tut-hud-badge {
-  padding: 2px 8px;
-  border: 1px solid var(--color-border-strong);
-  border-radius: 999px;
-  color: var(--color-text-secondary);
-  font-size: 11px;
+.tut-callout--inline { position: relative; flex: none; transition: none; }
+/* 화살표: 말풍선이 붙은 쪽에서 짚는 자리 가운데를 가리킨다. */
+.tut-callout::before {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border: inherit;
+  background: inherit;
+  transform: rotate(45deg);
 }
-.tut-hud-copy h2 { margin: 0; font-size: 18px; line-height: 1.35; }
-.tut-hud-copy p { margin: 0; color: var(--color-text-secondary); font-size: 14px; line-height: 1.6; }
-.tut-hud-side { display: flex; flex: none; flex-direction: column; align-items: flex-end; gap: var(--space-2); }
+.tut-callout--right::before { left: -7px; top: calc(var(--tut-arrow) - 6px); border-top: 0; border-right: 0; }
+.tut-callout--left::before { right: -7px; top: calc(var(--tut-arrow) - 6px); border-bottom: 0; border-left: 0; }
+.tut-callout--below::before { top: -7px; left: calc(var(--tut-arrow) - 6px); border-right: 0; border-bottom: 0; }
+.tut-callout--above::before { bottom: -7px; left: calc(var(--tut-arrow) - 6px); border-top: 0; border-left: 0; }
+.tut-callout--none::before, .tut-callout--inline::before { display: none; }
+.tut-callout-head { display: flex; align-items: center; gap: var(--space-2); }
+.tut-callout-step { color: var(--color-brand-accent); font-size: 12px; font-weight: 700; white-space: nowrap; }
+.tut-callout-count { color: var(--color-text-muted); font: 500 11px/1 var(--font-mono); white-space: nowrap; }
+.tut-callout-badge { margin-left: auto; padding: 2px 8px; border: 1px solid var(--color-border-strong); border-radius: 999px; color: var(--color-text-muted); font-size: 10.5px; white-space: nowrap; }
+.tut-callout-close { width: 24px; height: 24px; padding: 0; border: 0; border-radius: var(--radius-md); background: transparent; color: var(--color-text-muted); font-size: 18px; line-height: 1; cursor: pointer; }
+.tut-callout-close:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
+.tut-callout-body { display: flex; flex-direction: column; gap: 6px; animation: tut-rise .32s ease both; }
+.tut-callout-tag { align-self: flex-start; padding: 3px 9px; border-radius: var(--radius-md); background: var(--color-brand-accent); color: var(--color-text-on-accent); font-size: 12px; font-weight: 700; }
+.tut-callout-body h2 { margin: 0; font-size: 17px; line-height: 1.4; }
+.tut-callout-body p { margin: 0; color: var(--color-text-secondary); font-size: 13.5px; line-height: 1.6; }
+.tut-why {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 4px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--color-brand-accent);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  background: color-mix(in srgb, var(--color-brand-accent) 9%, var(--color-bg-raised));
+}
+.tut-why b { color: var(--color-brand-accent); font-size: 11.5px; }
+.tut-why p { color: var(--color-text-primary) !important; font-size: 13px !important; }
+.tut-callout-foot { display: flex; flex-direction: column; gap: var(--space-2); padding-top: var(--space-3); border-top: 1px solid var(--color-border-subtle); }
+.tut-callout-actions { display: flex; align-items: center; gap: var(--space-2); }
+.tut-spacer { flex: 1; }
 .tut-steps { display: flex; gap: 4px; margin: 0; padding: 0; list-style: none; }
 .tut-step {
   display: grid;
   place-items: center;
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   padding: 0;
   border: 1px solid transparent;
   border-radius: 999px;
   background: var(--color-bg-raised);
   color: var(--color-text-muted);
-  font: 700 11px/1 var(--font-mono);
+  font: 700 10.5px/1 var(--font-mono);
   cursor: pointer;
+  transition: background .2s ease, color .2s ease;
 }
 .tut-step:disabled { cursor: not-allowed; opacity: .5; }
 .tut-step:focus-visible { outline: 2px solid var(--color-brand-accent); outline-offset: 2px; }
 .tut-step.is-done { background: color-mix(in srgb, var(--color-status-success) 22%, transparent); color: var(--color-status-success); }
 .tut-step.is-current { background: var(--color-brand-accent); color: var(--color-text-on-accent); }
-.tut-progress { width: 216px; height: 3px; overflow: hidden; border-radius: 999px; background: var(--color-bg-hover); }
-.tut-progress > span { display: block; height: 100%; background: var(--color-brand-accent); transition: width .25s ease; }
-.tut-hud-buttons { display: flex; align-items: center; gap: var(--space-2); }
-.tut-hint { color: var(--color-brand-accent); font-size: 13px; font-weight: 700; }
+.tut-progress { height: 3px; overflow: hidden; border-radius: 999px; background: var(--color-bg-hover); }
+.tut-progress > span { display: block; height: 100%; background: var(--color-brand-accent); transition: width .35s ease; }
+.tut-hint { color: var(--color-brand-accent); font-size: 12.5px; font-weight: 700; animation: tut-nudge 1.6s ease-in-out infinite; }
 .tut-link {
-  padding: 2px 4px;
+  padding: 2px 0;
   border: 0;
   background: transparent;
   color: var(--color-text-muted);
@@ -14008,7 +14035,7 @@ body:has(.dialog-scrim) .workspace-corner { visibility: hidden; }
   cursor: pointer;
 }
 .tut-link:hover:not(:disabled) { color: var(--color-text-primary); }
-.tut-link:disabled { cursor: default; opacity: .45; text-decoration: none; }
+.tut-link:disabled { cursor: default; opacity: .4; text-decoration: none; }
 
 .tut-card {
   position: fixed;
@@ -14023,10 +14050,10 @@ body:has(.dialog-scrim) .workspace-corner { visibility: hidden; }
   overflow-y: auto;
   transform: translate(-50%, -50%);
   border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-lg);
+  border-radius: 12px;
   background: var(--color-bg-surface);
   color: var(--color-text-primary);
-  animation: tut-fade .25s ease both;
+  animation: tut-card-in .4s cubic-bezier(.22, .8, .24, 1) both;
 }
 .tut-card-eyebrow { color: var(--color-brand-accent); font-size: 12px; font-weight: 700; }
 .tut-card h2 { margin: 0; font-size: 22px; line-height: 1.35; }
@@ -14036,9 +14063,9 @@ body:has(.dialog-scrim) .workspace-corner { visibility: hidden; }
 .tut-card-steps span { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 999px; background: var(--color-bg-raised); font: 700 11px/1 var(--font-mono); }
 .tut-card-actions { display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-2); }
 
-/* 가상 Unity 화면 · 코딩 에이전트 창은 실제 화면 가운데에 뜬다. */
-.tut-scene { position: fixed; inset: 0; display: grid; place-items: center; padding: 24px 24px 180px; }
-.tut-scene-frame { position: relative; width: min(1040px, 100%, (100vh - 220px) * 1.6); aspect-ratio: 16 / 10; overflow: hidden; border: 1px solid #333; border-radius: 10px; }
+/* 가상 Unity 화면 · 코딩 에이전트 창은 실제 화면 가운데에 뜨고, 말풍선이 그 옆에 붙는다. */
+.tut-scene { position: fixed; inset: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; align-content: center; gap: var(--space-5); padding: 24px; overflow-y: auto; animation: tut-card-in .4s cubic-bezier(.22, .8, .24, 1) both; }
+.tut-scene-frame { position: relative; width: min(900px, 100%, calc((100vh - 48px) * 1.6)); aspect-ratio: 16 / 10; overflow: hidden; border: 1px solid #333; border-radius: 10px; }
 
 /* 가상 Unity 화면. Unity 에디터의 어두운 색을 흉내 내므로 테마 토큰을 따르지 않는다. */
 .tut-unity { position: absolute; inset: 0; background: #191919; color: #d2d2d2; font: 13px/1.4 -apple-system, "Segoe UI", sans-serif; animation: tut-fade .3s ease both; }
@@ -14109,8 +14136,8 @@ body:has(.dialog-scrim) .workspace-corner { visibility: hidden; }
 .tut-unity .tut-unity-add.tut-is-target::after { bottom: auto; left: calc(100% + 12px); top: 50%; transform: translateY(-50%); }
 
 /* 코딩 에이전트 창 */
-.tut-mcp { display: grid; place-items: center; width: 100%; animation: tut-fade .3s ease both; }
-.tut-mcp-window { display: flex; flex-direction: column; width: min(720px, 100%); max-height: calc(100vh - 220px); overflow: hidden; border: 1px solid #2c3140; border-radius: 10px; background: #0f1117; }
+.tut-mcp { display: grid; place-items: center; width: min(720px, 100%); animation: tut-fade .3s ease both; }
+.tut-mcp-window { display: flex; flex-direction: column; width: 100%; max-height: calc(100vh - 64px); overflow: hidden; border: 1px solid #2c3140; border-radius: 10px; background: #0f1117; }
 .tut-mcp-bar { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-bottom: 1px solid #222634; background: #171a23; color: #9aa3b5; font: 12px/1 var(--font-mono); }
 .tut-mcp-bar i { display: inline-block; width: 10px; height: 10px; border-radius: 999px; background: #3a3f4d; }
 .tut-mcp-bar span { margin-left: 6px; }
@@ -14127,6 +14154,14 @@ body:has(.dialog-scrim) .workspace-corner { visibility: hidden; }
 .tut-mcp-caret { display: inline-block; width: 7px; height: 14px; margin-left: 2px; vertical-align: -2px; background: #f2efe9; animation: tut-blink 1s steps(1) infinite; }
 
 @keyframes tut-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes tut-pop { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
+@keyframes tut-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes tut-card-in { from { opacity: 0; transform: translate(-50%, calc(-50% + 12px)) scale(.98); } to { opacity: 1; } }
+@keyframes tut-nudge { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
+@keyframes tut-glow {
+  0%, 100% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-brand-accent) 28%, transparent), 0 0 28px 6px color-mix(in srgb, var(--color-brand-accent) 38%, transparent); }
+  50% { box-shadow: 0 0 0 9px color-mix(in srgb, var(--color-brand-accent) 10%, transparent), 0 0 40px 12px color-mix(in srgb, var(--color-brand-accent) 22%, transparent); }
+}
 @keyframes tut-pulse {
   0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-brand-accent) 45%, transparent); }
   50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--color-brand-accent) 0%, transparent); }
@@ -14134,14 +14169,12 @@ body:has(.dialog-scrim) .workspace-corner { visibility: hidden; }
 @keyframes tut-blink { 50% { opacity: 0; } }
 
 @media (max-width: 900px) {
-  .tut-hud { flex-direction: column; align-items: stretch; gap: var(--space-3); padding: var(--space-3) var(--space-4); }
-  .tut-hud-side { align-items: stretch; }
-  .tut-progress { width: 100%; }
-  .tut-hud-buttons { flex-wrap: wrap; justify-content: space-between; }
+  .tut-callout { width: min(360px, calc(100vw - 24px)); }
   .tut-card-steps { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tut-veil, .tut-ring, .tut-tag, .tut-card, .tut-unity, .tut-unity-sdk, .tut-unity-pm, .tut-unity-browser, .tut-mcp, .tut-mcp-line,
+  .tut-veil, .tut-ring, .tut-callout, .tut-callout-body, .tut-hint, .tut-card, .tut-scene, .tut-unity, .tut-unity-sdk, .tut-unity-pm, .tut-unity-browser, .tut-mcp, .tut-mcp-line,
   .tut-unity .tut-is-target { animation: none; }
+  .tut-veil, .tut-ring, .tut-callout { transition: none; }
 }

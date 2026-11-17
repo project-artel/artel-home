@@ -4,64 +4,51 @@
 
 export type Box = { left: number; top: number; width: number; height: number }
 export type Viewport = { width: number; height: number }
+export type Side = 'right' | 'left' | 'below' | 'above' | 'none'
 
 export const RING_PAD = 6
-const TAG_GAP = 10
-const EDGE = 8
+const GAP = 14
+const EDGE = 12
+/** 말풍선 화살표가 말풍선 모서리에 너무 붙지 않게 둔다. */
+const ARROW_INSET = 18
 
 /** 고리는 대상보다 조금 넓게 두르고 화면 밖으로 나가지 않게 한다. */
 export function ringOf(target: Box, viewport: Viewport): Box {
-  const left = Math.max(EDGE / 2, target.left - RING_PAD)
-  const top = Math.max(EDGE / 2, target.top - RING_PAD)
-  const right = Math.min(viewport.width - EDGE / 2, target.left + target.width + RING_PAD)
-  const bottom = Math.min(viewport.height - EDGE / 2, target.top + target.height + RING_PAD)
+  const left = Math.max(EDGE / 3, target.left - RING_PAD)
+  const top = Math.max(EDGE / 3, target.top - RING_PAD)
+  const right = Math.min(viewport.width - EDGE / 3, target.left + target.width + RING_PAD)
+  const bottom = Math.min(viewport.height - EDGE / 3, target.top + target.height + RING_PAD)
   return { left, top, width: Math.max(0, right - left), height: Math.max(0, bottom - top) }
 }
 
 /**
- * 안내 줄을 위에 붙일지 아래에 붙일지. 짚는 자리를 가리지 않는 쪽을 고른다 — 아래에 두면 가리는 경우만 위로 올리고,
- * 둘 다 가리면(화면만큼 큰 자리) 덜 가리는 쪽이다.
+ * 설명 말풍선을 짚는 자리 바로 옆에 둔다. 오른쪽 · 왼쪽 · 아래 · 위 순으로 자리가 남는 쪽을 고르고, 짚는 자리와는
+ * 겹치지 않는다. 화살표는 짚는 자리의 가운데를 가리킨다.
+ *
+ * 네 쪽 모두 모자라면(화면만큼 큰 자리) 화면 오른쪽 아래에 둔다. 그런 자리는 읽기만 하는 자리라 조금 가려도 누를 것이
+ * 가려지지 않는다.
  */
-export function dockFor(target: Box | null, viewport: Viewport, hudHeight: number): 'top' | 'bottom' {
-  if (target === null) return 'bottom'
-  const bottomEdge = viewport.height - hudHeight - EDGE
-  if (target.top + target.height <= bottomEdge) return 'bottom'
-  if (target.top >= hudHeight + EDGE) return 'top'
-  const hiddenIfBottom = target.top + target.height - bottomEdge
-  const hiddenIfTop = hudHeight + EDGE - target.top
-  return hiddenIfTop < hiddenIfBottom ? 'top' : 'bottom'
-}
-
-/**
- * 꼬리표는 고리 위에 두고, 위가 모자라면 아래, 그것도 모자라면 오른쪽 · 왼쪽 순으로 옮긴다. 안내 줄이 차지한 자리와
- * 화면 밖으로는 나가지 않는다.
- */
-export function placeTag(
+export function placeCallout(
   ring: Box,
-  tag: { width: number; height: number },
+  size: { width: number; height: number },
   viewport: Viewport,
-  hud: { dock: 'top' | 'bottom'; height: number },
-): { left: number; top: number } {
-  const minTop = hud.dock === 'top' ? hud.height + EDGE : EDGE
-  const maxBottom = hud.dock === 'bottom' ? viewport.height - hud.height - EDGE : viewport.height - EDGE
-  const centered = clamp(ring.left + ring.width / 2 - tag.width / 2, EDGE, viewport.width - tag.width - EDGE)
-  if (ring.top - TAG_GAP - tag.height >= minTop) return { left: centered, top: ring.top - TAG_GAP - tag.height }
-  if (ring.top + ring.height + TAG_GAP + tag.height <= maxBottom) return { left: centered, top: ring.top + ring.height + TAG_GAP }
-  const middle = clamp(ring.top + ring.height / 2 - tag.height / 2, minTop, maxBottom - tag.height)
-  if (ring.left + ring.width + TAG_GAP + tag.width <= viewport.width - EDGE) return { left: ring.left + ring.width + TAG_GAP, top: middle }
-  return { left: Math.max(EDGE, ring.left - TAG_GAP - tag.width), top: middle }
-}
+): { left: number; top: number; side: Side; arrow: number } {
+  const centerX = ring.left + ring.width / 2
+  const centerY = ring.top + ring.height / 2
+  const besideTop = clamp(centerY - size.height / 2, EDGE, viewport.height - size.height - EDGE)
+  const stackedLeft = clamp(centerX - size.width / 2, EDGE, viewport.width - size.width - EDGE)
+  const arrowY = clamp(centerY - besideTop, ARROW_INSET, size.height - ARROW_INSET)
+  const arrowX = clamp(centerX - stackedLeft, ARROW_INSET, size.width - ARROW_INSET)
 
-/** 고리 밖을 덮는 네 장. 그 사이(고리 안)는 비워 실제 화면을 누를 수 있게 둔다. */
-export function veilPieces(ring: Box, viewport: Viewport): Box[] {
-  const right = ring.left + ring.width
-  const bottom = ring.top + ring.height
-  return [
-    { left: 0, top: 0, width: viewport.width, height: ring.top },
-    { left: 0, top: bottom, width: viewport.width, height: Math.max(0, viewport.height - bottom) },
-    { left: 0, top: ring.top, width: ring.left, height: ring.height },
-    { left: right, top: ring.top, width: Math.max(0, viewport.width - right), height: ring.height },
-  ]
+  const right = ring.left + ring.width + GAP
+  if (right + size.width <= viewport.width - EDGE) return { left: right, top: besideTop, side: 'right', arrow: arrowY }
+  const left = ring.left - GAP - size.width
+  if (left >= EDGE) return { left, top: besideTop, side: 'left', arrow: arrowY }
+  const below = ring.top + ring.height + GAP
+  if (below + size.height <= viewport.height - EDGE) return { left: stackedLeft, top: below, side: 'below', arrow: arrowX }
+  const above = ring.top - GAP - size.height
+  if (above >= EDGE) return { left: stackedLeft, top: above, side: 'above', arrow: arrowX }
+  return { left: viewport.width - size.width - EDGE, top: viewport.height - size.height - EDGE, side: 'none', arrow: 0 }
 }
 
 function clamp(value: number, min: number, max: number): number {

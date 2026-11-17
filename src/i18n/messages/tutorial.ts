@@ -14,7 +14,8 @@ export const tutorialEn = {
   },
   player: {
     label: 'Start tutorial',
-    example: 'Example data · nothing is saved',
+    example: 'Example data',
+    exampleTitle: 'The screens show an example project while the tutorial runs. Nothing is saved.',
     close: 'Close tutorial',
     closeTitle: 'You can watch it again from Tutorial at the top',
     restartStep: 'Restart this step',
@@ -38,6 +39,7 @@ export const tutorialEn = {
     doneAgain: 'Watch again',
     mcpTitle: 'Coding agent · artel MCP',
     unityLabel: 'Virtual Unity screen',
+    why: 'Why',
   },
   unity: {
     sdkBody: 'Sign in with your ARTEL account to connect.',
@@ -52,6 +54,7 @@ export const tutorialEn = {
   steps: {
     connect: {
       name: 'Connect the game',
+      why: 'The QA agent plays your game itself and reads its state. For that, the game has to be connected to this project through the SDK.',
       setup: { tag: 'Setup guide', title: 'First, connect your game', body: 'Everything about connecting is in the Setup guide.' },
       copy: { tag: 'Copy URL', title: 'Copy the SDK address', body: 'You paste it into Add package from git URL in the Unity Package Manager.' },
       plus: { tag: 'Click +', title: 'Click + in the Package Manager', body: 'This is the window from Window → Package Manager in Unity.' },
@@ -63,6 +66,7 @@ export const tutorialEn = {
     },
     keys: {
       name: 'Register an AI key',
+      why: 'ARTEL uses AI models to write scenarios and to judge QA runs. Those calls run on your own key, so you pay your model provider directly.',
       account: { tag: 'Account settings', title: 'AI keys live in your account settings', body: 'Scenario writing and QA runs call models with the AI API key you register. Click your name at the top right.' },
       tab: { tag: 'API management', title: 'Open API management', body: 'The LLM API keys panel is here.' },
       panel: { tag: 'My AI API keys', title: 'Only the keys of the models you use', body: 'Register Claude, GPT or OpenRouter. Without a key, scenario writing and QA runs cannot start.' },
@@ -72,6 +76,7 @@ export const tutorialEn = {
     },
     testCase: {
       name: 'Write a Test Case',
+      why: 'A Test Case (TC) is one line: do this, and that should happen. It is what QA judges pass or fail against — without TCs, the agent does not know what to check.',
       nav: { tag: 'Test Cases', title: 'Write down what to check', body: 'One Test Case line becomes what QA judges against.' },
       create: { tag: 'New Test Case', title: 'Create a Test Case', body: 'In plain words, no code.' },
       fill: { tag: 'Action · expected result', title: 'Write the action and the expected result', body: 'Type them yourself, or fill them with an example.' },
@@ -94,6 +99,7 @@ export const tutorialEn = {
     },
     testRun: {
       name: 'Build a test run',
+      why: 'TCs stand alone, so they cannot be played as they are. A test scenario (TS) strings TCs together in the order you actually play — the script the agent follows. A test run bundles scenarios to run together.',
       nav: { tag: 'Test runs', title: 'Put Test Cases in order', body: 'That ordered bundle is a test run.' },
       create: { tag: 'New test run', title: 'Create a test run', body: 'Test runs are grouped by build version.' },
       name_: { tag: 'Name', title: 'Name it', body: 'The current build version is already selected.' },
@@ -113,6 +119,7 @@ export const tutorialEn = {
     },
     qa: {
       name: 'Run QA',
+      why: 'A QA run is the agent playing the game along the test run\'s scenarios and judging every TC pass or fail. You do not have to play it yourself.',
       nav: { tag: 'QA run', title: 'An agent plays the game for you', body: 'It moves through the test run on a connected game.' },
       testRun: { tag: 'Test run to run', title: 'Choose what to run', body: 'Click it to pick another test run.' },
       console: { tag: 'Game console', title: 'Choose where to run', body: 'The game you connected in step 1. It shows as connected.' },
@@ -129,6 +136,7 @@ export const tutorialEn = {
     },
     results: {
       name: 'Check the results',
+      why: 'The agent\'s verdict is not always right. Checking its evidence and confirming the verdict is what makes the result trustworthy.',
       nav: { tag: 'QA history', title: 'Go see the results', body: 'Every run keeps its verdicts and evidence.' },
       card: { tag: 'This run', title: 'Pick a run', body: 'A summary opens on the right.' },
       review: { tag: 'Review verdicts', title: 'Go through the verdicts', body: 'Verdicts and evidence per Test Case.' },
@@ -145,6 +153,7 @@ export const tutorialEn = {
     },
     issues: {
       name: 'Collect issues',
+      why: 'Defects found while judging pile up as issues. That list is what needs fixing.',
       nav: { tag: 'Issues', title: 'Defects gather as issues', body: 'The number by the menu is how many are still open.' },
       tab: { tag: 'All issues', title: 'Open the issue list', body: 'The Team tab is for sharing; the list is here.' },
       severity: { tag: 'By severity', title: 'They pile up with every run', body: 'Filter by severity.' },
@@ -156,6 +165,7 @@ export const tutorialEn = {
     },
     team: {
       name: 'Share with the team',
+      why: 'The person who fixes an issue is often someone else. To look at the same issue together, the team has to be in one project.',
       members: { tag: 'Members', title: 'Invite teammates to the project', body: 'To look at the same issues, they need to be members of this project.' },
       invite: { tag: 'Name · email', title: 'Find them by name or email', body: 'Type it yourself, or fill it with an example.' },
       send: { tag: 'Send invitation', title: 'Send the invitation', body: 'They become members once they accept.' },
@@ -178,7 +188,8 @@ export const tutorialKo: Localized<typeof tutorialEn> = {
   },
   player: {
     label: '시작 튜토리얼',
-    example: '예시 데이터 · 저장되지 않습니다',
+    example: '예시 데이터',
+    exampleTitle: '튜토리얼 동안 화면에는 예시 프로젝트의 데이터가 들어갑니다. 아무것도 저장되지 않습니다.',
     close: '튜토리얼 닫기',
     closeTitle: '위쪽의 튜토리얼에서 다시 볼 수 있습니다',
     restartStep: '이 단계 처음부터',
@@ -202,6 +213,7 @@ export const tutorialKo: Localized<typeof tutorialEn> = {
     doneAgain: '다시 보기',
     mcpTitle: '코딩 에이전트 · artel MCP',
     unityLabel: '가상 Unity 화면',
+    why: '왜 필요한가요',
   },
   unity: {
     sdkBody: 'ARTEL 계정으로 로그인하면 연결됩니다.',
@@ -216,6 +228,7 @@ export const tutorialKo: Localized<typeof tutorialEn> = {
   steps: {
     connect: {
       name: '게임 연결하기',
+      why: 'QA Agent 가 게임을 직접 조작하고 게임 상태를 읽습니다. 그러려면 게임이 SDK 로 이 프로젝트에 연결돼 있어야 합니다.',
       setup: { tag: '설치 안내', title: '먼저 게임을 연결합니다', body: '연결 방법은 모두 설치 안내에 있습니다.' },
       copy: { tag: 'URL 복사', title: 'SDK 주소를 복사합니다', body: 'Unity Package Manager 의 Add package from git URL 에 붙여 넣을 주소입니다.' },
       plus: { tag: '+ 누르기', title: 'Package Manager 에서 + 를 누릅니다', body: 'Unity 에서 Window → Package Manager 로 연 창입니다.' },
@@ -227,6 +240,7 @@ export const tutorialKo: Localized<typeof tutorialEn> = {
     },
     keys: {
       name: 'AI 키 등록하기',
+      why: 'ARTEL 은 시나리오를 쓰고 QA 를 판정할 때 AI 모델을 씁니다. 그 호출은 내가 등록한 키로 하고, 비용도 그 키로 나갑니다.',
       account: { tag: '계정 설정', title: 'AI 키는 계정 설정에서 등록합니다', body: '시나리오 작성과 QA 실행은 내가 등록한 AI API 키로 모델을 부릅니다. 오른쪽 위 내 이름을 누릅니다.' },
       tab: { tag: 'API 관리', title: 'API 관리를 엽니다', body: 'LLM API 키 칸이 여기 있습니다.' },
       panel: { tag: '내 AI API 키', title: '쓰는 모델의 키만 있으면 됩니다', body: 'Claude · GPT · OpenRouter 중 쓰는 것을 등록합니다. 키가 없으면 시나리오 작성과 QA 실행을 할 수 없습니다.' },
@@ -236,6 +250,7 @@ export const tutorialKo: Localized<typeof tutorialEn> = {
     },
     testCase: {
       name: 'Test Case 쓰기',
+      why: 'TC(Test Case)는 \'이걸 하면 이렇게 돼야 한다\' 한 줄입니다. QA 가 통과 · 실패를 가르는 기준이라, TC 가 없으면 Agent 가 무엇을 확인할지 모릅니다.',
       nav: { tag: 'Test Cases', title: '확인할 것을 적으러 갑니다', body: 'Test Case 한 줄이 QA 의 판정 기준이 됩니다.' },
       create: { tag: '새 Test Case', title: '새 Test Case 를 만듭니다', body: '코드 없이 말로 씁니다.' },
       fill: { tag: '테스트 내용 · 기대 결과', title: '테스트 내용과 기대 결과를 씁니다', body: '직접 써도 되고, 예시로 채워도 됩니다.' },
@@ -258,6 +273,7 @@ export const tutorialKo: Localized<typeof tutorialEn> = {
     },
     testRun: {
       name: '테스트 런 만들기',
+      why: 'TC 는 하나씩 떨어져 있어서 그대로는 플레이할 수 없습니다. 테스트 시나리오(TS)는 TC 를 실제 플레이 순서로 이은 대본이고, Agent 는 이 대본대로 움직입니다. 테스트 런은 시나리오를 한 번에 돌리는 묶음입니다.',
       nav: { tag: '테스트 런', title: 'Test Case 를 묶어 순서를 정합니다', body: '그 묶음이 테스트 런입니다.' },
       create: { tag: '새로운 테스트런', title: '새 테스트 런을 만듭니다', body: '테스트 런은 빌드 버전마다 따로 모입니다.' },
       name_: { tag: '이름', title: '이름을 정합니다', body: '빌드 버전은 지금 버전이 골라져 있습니다.' },
@@ -277,6 +293,7 @@ export const tutorialKo: Localized<typeof tutorialEn> = {
     },
     qa: {
       name: 'QA 실행하기',
+      why: 'QA 실행은 Agent 가 테스트 런의 시나리오대로 게임을 플레이하며 TC 마다 통과 · 실패를 판정하는 단계입니다. 직접 플레이하지 않아도 됩니다.',
       nav: { tag: 'QA 실행', title: 'Agent 가 게임을 대신 플레이합니다', body: '연결된 게임에서 테스트 런대로 움직입니다.' },
       testRun: { tag: '돌릴 테스트 런', title: '무엇을 돌릴지 고릅니다', body: '누르면 다른 테스트 런을 고를 수 있습니다.' },
       console: { tag: '게임 콘솔', title: '어디서 돌릴지 고릅니다', body: '1단계에서 연결한 게임입니다. 연결됨으로 보입니다.' },
@@ -293,6 +310,7 @@ export const tutorialKo: Localized<typeof tutorialEn> = {
     },
     results: {
       name: '결과 확인하기',
+      why: 'Agent 의 판정이 늘 맞지는 않습니다. 근거를 보고 사람이 확정해야 결과를 믿을 수 있습니다.',
       nav: { tag: 'QA 실행 기록', title: '결과를 보러 갑니다', body: '실행마다 판정과 근거가 남습니다.' },
       card: { tag: '이 실행', title: '실행을 고릅니다', body: '고르면 오른쪽에 요약이 뜹니다.' },
       review: { tag: '판정 검토', title: '판정을 하나씩 봅니다', body: 'Test Case 마다 판정과 근거가 있습니다.' },
@@ -309,6 +327,7 @@ export const tutorialKo: Localized<typeof tutorialEn> = {
     },
     issues: {
       name: '이슈 쌓기',
+      why: '판정하다 찾은 결함은 이슈로 쌓입니다. 고쳐야 할 일의 목록입니다.',
       nav: { tag: '이슈', title: '찾은 결함은 이슈로 모입니다', body: '메뉴 옆 숫자가 아직 안 풀린 이슈 수입니다.' },
       tab: { tag: '전체 이슈', title: '이슈 목록을 엽니다', body: '팀 공유 탭은 함께 이야기하는 곳이고, 목록은 여기 있습니다.' },
       severity: { tag: '심각도별로', title: '실행할수록 쌓입니다', body: '심각도별로 거를 수 있습니다.' },
@@ -320,6 +339,7 @@ export const tutorialKo: Localized<typeof tutorialEn> = {
     },
     team: {
       name: '팀과 공유하기',
+      why: '이슈를 고치는 사람은 보통 따로 있습니다. 같은 이슈를 보며 이야기하려면 팀이 한 프로젝트에 있어야 합니다.',
       members: { tag: '멤버', title: '팀원을 프로젝트에 초대합니다', body: '같은 이슈를 함께 보려면 먼저 이 프로젝트의 멤버여야 합니다.' },
       invite: { tag: '이름 · 이메일', title: '이름이나 이메일로 찾습니다', body: '직접 써도 되고, 예시로 채워도 됩니다.' },
       send: { tag: '초대 보내기', title: '초대를 보냅니다', body: '받은 사람이 수락하면 멤버가 됩니다.' },
