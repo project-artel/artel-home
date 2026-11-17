@@ -127,7 +127,7 @@ export function QaVerdictsSection() {
   const elapsed = data.startedAt !== null && data.completedAt !== null
     ? Math.round((Date.parse(data.completedAt) - Date.parse(data.startedAt)) / 1000)
     : null
-  const evaluation = scenario && <CaseEvaluationPanel id={EVALUATION_PANEL_ID} key={scenario.qaTryId} projectId={projectId} qaTryId={scenario.qaTryId} />
+  const evaluation = scenario && <CaseEvaluationPanel id={EVALUATION_PANEL_ID} key={scenario.qaTryId} projectId={projectId} qaTryId={scenario.qaTryId} scenario={scenario} />
 
   return (
     <section className="qv" aria-labelledby="qv-scenario-title">
@@ -230,6 +230,7 @@ export function QaVerdictsSection() {
               id={EVALUATION_PANEL_ID}
               projectId={projectId}
               qaTryId={scenario.qaTryId}
+              scenario={scenario}
             />
           </section>
         </>
