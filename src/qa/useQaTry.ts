@@ -181,7 +181,7 @@ export function useQaTry(qaTryId: string) {
     setHistoryFailure(null)
 
     try {
-      const page = await listQaLogs(qaTryId, cursor, controller.signal)
+      const page = await listQaLogs(qaTryId, cursor, controller.signal, undefined, 100)
       if (generationRef.current !== generation) return false
       setLogs((current) => mergeLogs(current, page.items))
       const cursorAdvanced = page.nextBeforeId !== cursor

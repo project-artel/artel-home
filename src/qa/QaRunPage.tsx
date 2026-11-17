@@ -37,7 +37,7 @@ import { QaRawLogControls } from './QaRawLogControls'
 import { DEFAULT_QA_LOG_FILTER, filterQaLogs, qaLogContains } from './qaLogFilter'
 import { QaReplay } from './QaReplay'
 import { logAt } from './qaReplayModel'
-import { loadReplayLogContext, logsAround } from './qaReplayLogs'
+import { loadReplayLogContext, logsAround, logsThrough } from './qaReplayLogs'
 
 export function QaRunRoute() {
   const { projectId = '', qaRunId = '' } = useParams()
@@ -389,6 +389,7 @@ function FocusedTry({
 
   const { t } = useI18n()
   const session = useQaTry(tryId)
+  const [openedFromHistory] = useState(() => qaRun.tries.some((entry) => entry.id === tryId && isTerminalQaStatus(entry.status)))
   const agentLogs = useQaAgentLogs(tryId, session.logs)
   const { steps: scenarioSteps, executionMode } = useScenarioSteps(session.qaTry?.testScenarioId ?? null)
   const [logView, setLogView] = useState<'flow' | 'raw' | 'issues'>('flow')
@@ -406,10 +407,13 @@ function FocusedTry({
   const [replayLogsLoading, setReplayLogsLoading] = useState(false)
   const [replayLogsFailure, setReplayLogsFailure] = useState<string | null>(null)
   const [replayLogsRetry, setReplayLogsRetry] = useState(0)
-  const historicalLogs = useMemo(() => replayTimestamp === null ? session.logs : session.logs.filter(log => Date.parse(log.createdAt) <= replayTimestamp), [session.logs, replayTimestamp])
-  // 에이전트 창도 왼쪽 스텝처럼 타임라인 재생 위치까지의 상태를 그린다.
-  const dockLogs = useMemo(() => replayTimestamp === null ? agentLogs : agentLogs.filter(log => Date.parse(log.createdAt) <= replayTimestamp), [agentLogs, replayTimestamp])
-  const historicalVerdicts = useMemo(() => replayTimestamp === null ? session.verdictLogs : session.verdictLogs.filter(log => Date.parse(log.createdAt) <= replayTimestamp), [session.verdictLogs, replayTimestamp])
+  const replayStart = session.qaTry && isTerminalQaStatus(session.qaTry.status) ? Date.parse(session.qaTry.startedAt ?? '') : NaN
+  const completedAt = Date.parse(session.qaTry?.completedAt ?? '')
+  const visibleThrough = replayTimestamp ?? (openedFromHistory && replayStart < completedAt ? replayStart : null)
+  const logCutoff = visibleThrough !== null && visibleThrough >= completedAt ? null : visibleThrough
+  const historicalLogs = useMemo(() => logsThrough(session.logs, logCutoff), [session.logs, logCutoff])
+  const dockLogs = useMemo(() => logsThrough(agentLogs, logCutoff), [agentLogs, logCutoff])
+  const historicalVerdicts = useMemo(() => logsThrough(session.verdictLogs, logCutoff), [session.verdictLogs, logCutoff])
 
   const progress = useMemo(
     () =>
@@ -417,10 +421,10 @@ function FocusedTry({
         scenarioSteps,
         executionMode,
         logs: historicalVerdicts,
-        status: replayTimestamp === null || replayTimestamp >= Date.parse(session.qaTry?.completedAt ?? '') ? session.qaTry?.status ?? 'STARTING' : 'RUNNING',
+        status: visibleThrough === null || visibleThrough >= completedAt ? session.qaTry?.status ?? 'STARTING' : 'RUNNING',
         historyComplete: session.loadStatus === 'ready',
       }),
-    [scenarioSteps, executionMode, session.loadStatus, historicalVerdicts, session.qaTry?.status, session.qaTry?.completedAt, replayTimestamp],
+    [scenarioSteps, executionMode, session.loadStatus, historicalVerdicts, session.qaTry?.status, completedAt, visibleThrough],
   )
 
   const contextUsage = useMemo(() => deriveQaContextUsage(historicalLogs), [historicalLogs])
@@ -459,20 +463,20 @@ function FocusedTry({
 
   const filteredLogs = useMemo(() => {
     // Context readings are shown by the gauge, in one place, not as a line per model call.
-    const merged = new Map(session.logs.map(log => [log.id, log]))
+    const merged = new Map((logView === 'flow' ? historicalLogs : session.logs).map(log => [log.id, log]))
     if (logView === 'raw') for (const log of replayContext?.logs ?? []) merged.set(log.id, log)
     const withoutContext = [...merged.values()].filter((log) => !isQaContextLog(log)).sort((left, right) => compareDecimalIds(left.id, right.id))
     if (logView !== 'flow') return filterQaLogs(withoutContext, rawFilter)
     return filterFlowLogs(withoutContext, executionMode)
-  }, [logView, session.logs, executionMode, rawFilter, replayContext])
-  const shownLogs = useMemo(() => replayTimestamp !== null && !allReplayLogs && logView === 'raw'
-    ? logsAround(filterQaLogs((replayContext?.logs ?? []).filter(log => !isQaContextLog(log)), rawFilter), replayTimestamp) : filteredLogs,
+  }, [logView, historicalLogs, session.logs, executionMode, rawFilter, replayContext])
+  const shownLogs = useMemo(() => replayTimestamp !== null && !allReplayLogs && logView === 'raw' && replayContext !== null
+    ? logsAround(filterQaLogs(replayContext.logs.filter(log => !isQaContextLog(log)), rawFilter), replayTimestamp) : filteredLogs,
   [filteredLogs, replayTimestamp, allReplayLogs, logView, replayContext, rawFilter])
 
   const onReplayPosition = useCallback((timestamp: number, seek: boolean) => {
     setReplayTimestamp(timestamp)
-    if (seek) { setLogView('raw'); setAllReplayLogs(false); setReplayJump(timestamp) }
-  }, [])
+    if (seek && logView === 'raw') { setAllReplayLogs(false); setReplayJump(timestamp) }
+  }, [logView])
   const { hasMore: hasOlderLogs, historyLoading: loadingOlderLogs, historyFailure: olderLogsFailure, loadOlder: loadOlderLogs, verdictLogs } = session
   useEffect(() => {
     if (replayJump === null) return
@@ -508,9 +512,9 @@ function FocusedTry({
   }, [replayTimestamp, allReplayLogs, replayJump, replayContext, replayLogsLoading, replayLogsFailure])
 
   useEffect(() => {
-    if (!rawFilter.text.trim() || !hasOlderLogs || loadingOlderLogs || olderLogsFailure !== null) return
+    if ((!rawFilter.text.trim() && visibleThrough === null) || !hasOlderLogs || loadingOlderLogs || olderLogsFailure !== null) return
     void loadOlderLogs()
-  }, [rawFilter.text, hasOlderLogs, loadingOlderLogs, olderLogsFailure, loadOlderLogs])
+  }, [rawFilter.text, visibleThrough, hasOlderLogs, loadingOlderLogs, olderLogsFailure, loadOlderLogs])
 
   const findMatches = useMemo(() => findQuery.trim() === '' ? [] : filteredLogs.filter((log) => qaLogContains(log, findQuery)), [filteredLogs, findQuery])
   const foundIndex = findMatches.findIndex((log) => log.id === foundLogId)
@@ -553,6 +557,9 @@ function FocusedTry({
   }
 
   const active = !isTerminalQaStatus(session.qaTry.status)
+  const isReplaying = visibleThrough !== null && (Number.isNaN(completedAt) || visibleThrough < completedAt)
+  // 재생 중에는 모델 호출 집계를 영상의 초 단위로 조회한다.
+  const usageThrough = isReplaying ? Math.floor(visibleThrough / 1000) * 1000 : undefined
   // Carried over from `QaTryPage` (ARTEL-723): what state the live log stream
   // is in. Only meaningful while the try is active — a terminal one already
   // says "ended · stored logs" via `endedGame` below.
@@ -574,6 +581,7 @@ function FocusedTry({
         focused={{
           tryId: session.qaTry.id,
           active,
+          usageThrough,
           progress,
           scenarioSteps,
           executionMode,
@@ -596,8 +604,10 @@ function FocusedTry({
                   <GameStreamView instanceId={session.qaTry.gameInstanceId} />
                 ) : session.qaTry.stop?.code === QA_STOP_NOT_STARTED ? (
                   <p className="panel-empty">{t.qa.run.stop.notRunLine}</p>
+                ) : openedFromHistory && hasOlderLogs && olderLogsFailure === null ? (
+                  <p className="panel-empty" role="status">{t.qa.run.loading}</p>
                 ) : (
-                  <QaReplay projectId={rail.projectId} qaTry={session.qaTry} onPosition={onReplayPosition} timelineHost={timelineHost} />
+                  <QaReplay autoPlay={openedFromHistory} projectId={rail.projectId} qaTry={session.qaTry} onPosition={onReplayPosition} timelineHost={timelineHost} />
                 )}
               </section>
             }
@@ -627,7 +637,7 @@ function FocusedTry({
                   {streamLabel}
                 </span>
               )}
-              {!agentRun && <span className="qa-focus-logs-count mono">{t.qa.run.logsCount(session.logs.length)}</span>}
+              {!agentRun && <span className="qa-focus-logs-count mono">{t.qa.run.logsCount(logView === 'flow' ? historicalLogs.length : session.logs.length)}</span>}
             </div>
           </header>
             {!agentRun && logView === 'raw' && <QaRawLogControls
@@ -636,11 +646,11 @@ function FocusedTry({
               matches={findMatches.length} current={foundIndex} onFind={findNext}
             />}
           {!agentRun && logView !== 'raw' && <div className="gf-logs-extras">
-            <QaBehaviorLanes logs={session.logs} onJump={jumpToLog} />
+            <QaBehaviorLanes logs={historicalLogs} onJump={jumpToLog} />
           </div>}
           <div className="qa-focus-logs-body">
             {agentRun ? (
-              <QaAgentDock live={active} logs={dockLogs} />
+              <QaAgentDock live={active || isReplaying} logs={dockLogs} />
             ) : logView === 'issues' ? (
               <QaTryIssuePanel projectId={rail.projectId} qaTryId={session.qaTry.id} />
             ) : (
@@ -650,15 +660,15 @@ function FocusedTry({
                 executionMode={executionMode}
                 flow={logView === 'flow'}
                 focusRequest={focusRequest}
-                hasMore={session.hasMore && (active || allReplayLogs)}
+                hasMore={session.hasMore && (active || allReplayLogs || logView === 'flow')}
                 historyFailure={replayLogsFailure ?? session.historyFailure}
                 historyLoading={replayLogsLoading || session.historyLoading}
-                live={active}
+                live={active || (logView === 'flow' && isReplaying)}
                 loadOlder={replayLogsFailure !== null ? async () => { setReplayLogsRetry(value => value + 1); return true } : session.loadOlder}
                 logs={shownLogs}
                 onFocusResolved={clearFocusRequest}
                 scenarioSteps={scenarioSteps}
-                stopLines={stopLines}
+                stopLines={isReplaying ? stopLinesOf(historicalLogs) : stopLines}
                 restNotRun={stopError === undefined ? 0 : notStartedCount(qaRun)}
               />
             )}
