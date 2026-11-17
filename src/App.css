@@ -14093,6 +14093,30 @@ body:has(.dialog-scrim) .workspace-corner { visibility: hidden; }
 .tut-card-steps span { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 999px; background: var(--color-bg-raised); font: 700 11px/1 var(--font-mono); }
 .tut-card-actions { display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-2); }
 
+/* QA 실행 화면에 겹쳐 그리는 예시 게임 화면. 튜토리얼 덮개 아래에 있어 함께 어두워지고, 클릭은 받지 않는다. */
+.tut-game { position: fixed; z-index: 455; overflow: hidden; border-radius: 8px; background: linear-gradient(165deg, #20344a, #16202f 55%, #283a29); color: #f2efe9; font-family: var(--font-sans); pointer-events: none; animation: tut-fade .4s ease both; }
+.tut-game-hud { position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; padding: 10px 16px; background: rgb(0 0 0 / 28%); font: 700 13px/1 var(--font-mono); letter-spacing: .04em; }
+.tut-game-title { position: absolute; inset: 0; display: grid; place-items: center; }
+.tut-game-title b { font: 800 clamp(28px, 5vw, 64px)/1 var(--font-display); letter-spacing: .06em; opacity: .9; }
+.tut-game-btn, .tut-game-card, .tut-game-toggle { position: absolute; transform: translate(-50%, -50%); padding: 12px 26px; border-radius: 999px; background: #f2c14e; color: #2b2111; font-weight: 800; font-size: 16px; white-space: nowrap; animation: tut-fade .3s ease both; }
+.tut-game-btn--ghost { background: rgb(255 255 255 / 14%); color: #f2efe9; }
+.tut-game-card { padding: 28px 30px; border-radius: 14px; background: #f6efe0; }
+.tut-game-toggle { background: #3a72c4; color: #fff; }
+.tut-game-plots { position: absolute; inset: 22% 18% 18%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.tut-game-plot { position: relative; display: grid; place-items: center; border: 2px solid #6b4f2f; border-radius: 12px; background: #4a3420; font-size: clamp(22px, 3vw, 44px); animation: tut-fade .3s ease both; }
+.tut-game-water { position: absolute; top: -12px; right: -8px; font-size: 22px; font-style: normal; }
+.tut-game-gauge { grid-column: 1 / -1; height: 10px; overflow: hidden; border-radius: 999px; background: rgb(255 255 255 / 15%); }
+.tut-game-gauge span { display: block; height: 100%; background: #6fd18b; }
+.tut-game-cursor { position: absolute; width: 0; height: 0; transition: left .5s cubic-bezier(.22, .8, .24, 1), top .5s cubic-bezier(.22, .8, .24, 1); }
+.tut-game-cursor::before { content: ""; position: absolute; left: -2px; top: -2px; width: 18px; height: 22px; background: #fff; clip-path: polygon(0 0, 0 100%, 30% 75%, 50% 100%, 65% 92%, 45% 68%, 85% 68%); filter: drop-shadow(0 1px 2px rgb(0 0 0 / 60%)); }
+.tut-game-tap { position: absolute; left: -22px; top: -22px; width: 44px; height: 44px; border: 3px solid #ff5c48; border-radius: 999px; opacity: 0; animation: tut-tap .7s ease-out .45s both; }
+.tut-game-verdict { position: absolute; right: 16px; top: 48px; padding: 6px 14px; border-radius: 999px; font-weight: 800; font-size: 14px; animation: tut-fade .25s ease both; }
+.tut-game-verdict--pass { background: #24895c; color: #fff; }
+.tut-game-verdict--fail { background: #d8423a; color: #fff; }
+.tut-game-caption { position: absolute; left: 50%; bottom: 16px; max-width: 80%; padding: 8px 14px; transform: translateX(-50%); border-radius: 8px; background: rgb(0 0 0 / 55%); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tut-game-label { position: absolute; left: 16px; bottom: 16px; padding: 3px 8px; border: 1px solid #6b5ccc; border-radius: 4px; color: #c9b8ff; font: 600 11px/1 var(--font-mono); }
+@keyframes tut-tap { 0% { opacity: .9; transform: scale(.4); } 100% { opacity: 0; transform: scale(1.6); } }
+
 /* 가상 Unity 화면 · 코딩 에이전트 창은 실제 화면 가운데에 뜨고, 말풍선이 그 옆에 붙는다. */
 .tut-scene { position: fixed; inset: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; align-content: center; gap: var(--space-5); padding: 24px; overflow-y: auto; animation: tut-card-in .4s cubic-bezier(.22, .8, .24, 1) both; }
 .tut-scene-frame { position: relative; width: min(900px, 100%, calc((100vh - 48px) * 1.6)); aspect-ratio: 16 / 10; overflow: hidden; border: 1px solid #333; border-radius: 10px; }

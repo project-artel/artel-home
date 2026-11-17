@@ -500,6 +500,7 @@ export function buildTutorialData(session: TutorialSession, now: Date = new Date
   ]
 
   return {
+    locale: session.locale,
     project: {
       id: projectId,
       name: t({ ko: '별빛 정원 (예시)', en: 'Starlight Garden (example)' }),

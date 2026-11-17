@@ -1,4 +1,5 @@
-import { resetTutorialData } from './tutorialMockApi'
+import { resetTutorialData, tutorialData } from './tutorialMockApi'
+import { attachPlayback } from './tutorialPlayback'
 
 /**
  * 튜토리얼 모드(ARTEL-1461). 켜져 있는 동안 화면은 실제 서비스 그대로 그려지지만, 서버 대신 미리 준비한 목데이터가 답한다.
@@ -23,6 +24,35 @@ export type TutorialSession = {
 let session: TutorialSession | null = null
 const listeners = new Set<() => void>()
 const RealEventSource = typeof window === 'undefined' ? undefined : window.EventSource
+const RealWebSocket = typeof window === 'undefined' ? undefined : window.WebSocket
+
+/**
+ * 게임 화면 소켓은 튜토리얼 동안 열리지 않은 채로 둔다. 실제 게임이 없어서, 그 자리에는 튜토리얼이 예시 게임 화면을
+ * 그린다. 다른 소켓은 그대로 연다.
+ */
+function TutorialWebSocket(this: unknown, url: string | URL, protocols?: string | string[]) {
+  if (RealWebSocket === undefined || !String(url).includes('/ws/viewer')) {
+    return new (RealWebSocket as typeof WebSocket)(url, protocols)
+  }
+  const idle = new EventTarget() as EventTarget & Record<string, unknown>
+  Object.assign(idle, {
+    url: String(url),
+    readyState: 0,
+    binaryType: 'blob',
+    bufferedAmount: 0,
+    protocol: '',
+    extensions: '',
+    onopen: null,
+    onmessage: null,
+    onclose: null,
+    onerror: null,
+    send: () => undefined,
+    close: () => {
+      idle.readyState = 3
+    },
+  })
+  return idle
+}
 
 const sources = new Set<SilentEventSource>()
 
@@ -49,6 +79,24 @@ class SilentEventSource extends EventTarget {
     this.url = String(url)
     this.withCredentials = init?.withCredentials ?? false
     sources.add(this)
+    // QA 실행 화면의 스트림이면 튜토리얼 각본을 튼다. 실제 실행처럼 로그가 한 줄씩 온다.
+    const qaTry = /\/api\/qa-tries\/([^/?]+)\/events/.exec(this.url)?.[1]
+    const d = tutorialData()
+    if (qaTry !== undefined && d !== null) {
+      window.setTimeout(() => {
+        if (this.readyState === 2) return
+        this.readyState = 1
+        this.dispatchEvent(new Event('open'))
+        this.detach = attachPlayback(
+          d,
+          qaTry,
+          (log) => {
+            if (this.readyState === 1) this.dispatchEvent(new MessageEvent('log', { data: JSON.stringify(log) }))
+          },
+          () => notifyTutorialChange('QA_RUNS'),
+        )
+      }, 0)
+    }
     if (this.isProjectChanges()) {
       window.setTimeout(() => {
         if (this.readyState === 2) return
@@ -63,8 +111,11 @@ class SilentEventSource extends EventTarget {
     return /\/api\/projects\/[^/]+\/events(\?|$)/.test(this.url)
   }
 
+  private detach: () => void = () => undefined
+
   close(): void {
     this.readyState = 2
+    this.detach()
     sources.delete(this)
   }
 }
@@ -93,6 +144,7 @@ export function enterTutorialMode(next: TutorialSession): void {
   resetTutorialData(next)
   if (typeof window !== 'undefined') {
     window.EventSource = SilentEventSource as unknown as typeof EventSource
+    window.WebSocket = Object.assign(TutorialWebSocket, { CONNECTING: 0, OPEN: 1, CLOSING: 2, CLOSED: 3 }) as unknown as typeof WebSocket
   }
   listeners.forEach((listener) => listener())
 }
@@ -101,6 +153,9 @@ export function exitTutorialMode(): void {
   session = null
   if (typeof window !== 'undefined' && RealEventSource !== undefined) {
     window.EventSource = RealEventSource
+  }
+  if (typeof window !== 'undefined' && RealWebSocket !== undefined) {
+    window.WebSocket = RealWebSocket
   }
   listeners.forEach((listener) => listener())
 }

@@ -1,5 +1,6 @@
 import type { Messages } from '../i18n/messages'
 import { IDS } from './mock/tutorialFixtures'
+import { liveRun } from './mock/tutorialPlayback'
 
 /**
  * 시작 튜토리얼 8단계(ARTEL-1461). 실제 서비스 화면 위에서 진행하고, 화면 데이터는 튜토리얼 목데이터다.
@@ -42,7 +43,13 @@ type Base = {
 }
 
 export type TutorialAction =
-  | (Base & { kind: 'click' | 'look'; target: Find; copy: CopyOf })
+  | (Base & {
+      kind: 'click' | 'look'
+      target: Find
+      copy: CopyOf
+      /** 이것이 참이 될 때까지 다음으로 가지 않는다. 실행이 끝나기를 기다릴 때 쓴다. */
+      until?: () => boolean
+    })
   | (Base & { kind: 'fill'; target: Find; copy: CopyOf; fields: (ctx: CoachContext) => TypedField[] })
   | (Base & { kind: 'unity'; stage: UnityStage; copy: CopyOf })
   | (Base & { kind: 'mcp'; copy: (m: Messages['tutorial']) => { title: string; body: string }; lines: (m: Messages['tutorial']) => McpLine[] })
@@ -77,7 +84,9 @@ const visible = (element: Element | null): Element | null => {
 export function typeInto(element: Element | null, value: string): void {
   if (!(element instanceof HTMLInputElement) && !(element instanceof HTMLTextAreaElement)) return
   const prototype = element instanceof HTMLInputElement ? HTMLInputElement.prototype : HTMLTextAreaElement.prototype
+  if (document.activeElement !== element) element.focus({ preventScroll: true })
   Object.getOwnPropertyDescriptor(prototype, 'value')?.set?.call(element, value)
+  element.setSelectionRange(value.length, value.length)
   element.dispatchEvent(new Event('input', { bubbles: true }))
 }
 
@@ -223,7 +232,12 @@ export const START_TUTORIAL_STEPS: readonly TutorialStep[] = [
       { id: 'console', kind: 'look', target: () => document.querySelectorAll('.ql-panel .ql-field')[0] ?? null, copy: (m) => m.steps.qa.console },
       { id: 'agent', kind: 'look', target: () => document.querySelectorAll('.ql-panel .ql-field')[1] ?? null, copy: (m) => m.steps.qa.agent },
       { id: 'checks', kind: 'look', target: () => Array.from(document.querySelectorAll('.ql-panel .ql-field')).pop() ?? null, copy: (m) => m.steps.qa.checks },
-      { id: 'run', kind: 'look', target: () => $('.ql-run'), copy: (m) => m.steps.qa.run },
+      { id: 'run', kind: 'click', target: () => $('.ql-run'), copy: (m) => m.steps.qa.run },
+      { id: 'rail', kind: 'look', target: () => $('.qa-console-rail'), copy: (m) => m.steps.qa.rail },
+      { id: 'stage', kind: 'look', target: () => $('.qa-stage-top'), copy: (m) => m.steps.qa.stage },
+      { id: 'logs', kind: 'look', target: () => $('.qa-focus-logs-col'), copy: (m) => m.steps.qa.logs },
+      { id: 'chat', kind: 'look', target: () => $('.qa-stage-chat'), copy: (m) => m.steps.qa.chat },
+      { id: 'finish', kind: 'look', target: () => $('.qa-console-rail'), until: () => liveRun()?.done === true, copy: (m) => m.steps.qa.finish },
       {
         id: 'mcp',
         kind: 'mcp',
@@ -301,6 +315,30 @@ export const START_TUTORIAL_STEPS: readonly TutorialStep[] = [
         ],
         copy: (m) => m.steps.team.title,
       },
+      {
+        id: 'mention',
+        kind: 'fill',
+        target: () => $('.dc-canvas textarea.md-input'),
+        // 쓴 본문 끝에 이어서 친다. `@` 뒤에 이름을 치면 멤버 목록이 뜬다.
+        fields: (ctx) => {
+          const body = $('.dc-canvas textarea.md-input')
+          const text = body instanceof HTMLTextAreaElement ? body.value : ''
+          return [[() => $('.dc-canvas textarea.md-input'), `${text}${text.length > 0 && !/\s$/.test(text) ? ' ' : ''}@${ctx.t.tutorial.steps.team.exampleMention}`]]
+        },
+        copy: (m) => m.steps.team.mention,
+      },
+      { id: 'mentionPick', kind: 'click', target: () => $('.mention-list [role="option"]'), copy: (m) => m.steps.team.mentionPick },
+      { id: 'tcLink', kind: 'click', target: () => $('.dc-canvas .md-tool--tc'), copy: (m) => m.steps.team.tcLink },
+      {
+        id: 'tcPick',
+        kind: 'click',
+        // 글이 다루는 물 주기 TC 를 단다. 고르는 창에서는 줄을 누르면 바로 달린다.
+        target: () => [...document.querySelectorAll('.cp--pick .cp-list > *')].find((row) => row.textContent?.includes('TC-004')) ?? null,
+        copy: (m) => m.steps.team.tcPick,
+      },
+      { id: 'issueLink', kind: 'click', target: (ctx) => byTextIncludes('.dc-rail button', ctx.t.discussions.linkButton), copy: (m) => m.steps.team.issueLink },
+      { id: 'issuePick', kind: 'click', target: () => $('.dialog-panel button.il2-row'), copy: (m) => m.steps.team.issuePick },
+      { id: 'issueConfirm', kind: 'click', target: () => $('.dialog-panel button.button--primary'), copy: (m) => m.steps.team.issueConfirm },
       { id: 'kinds', kind: 'look', target: () => $('.dc-rail')?.firstElementChild ?? null, copy: (m) => m.steps.team.kinds },
       { id: 'share', kind: 'click', target: () => $('.dc-publish'), copy: (m) => m.steps.team.share },
     ],

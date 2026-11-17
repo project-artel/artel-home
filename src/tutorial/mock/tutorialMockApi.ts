@@ -1,5 +1,6 @@
 import { buildTutorialData, IDS, type TutorialData } from './tutorialFixtures'
 import { notifyTutorialChange, type TutorialSession } from './tutorialMode'
+import { createLiveRun, liveRun, resetPlayback } from './tutorialPlayback'
 
 /**
  * 튜토리얼 모드에서 `apiFetch` 대신 답한다(ARTEL-1461). 서버로는 아무것도 보내지 않는다.
@@ -18,6 +19,74 @@ let data: TutorialData | null = null
 
 export function resetTutorialData(session: TutorialSession): void {
   data = buildTutorialData(session)
+  resetPlayback()
+}
+
+/** 스트림(`tutorialMode`)이 각본을 틀 때 읽는다. */
+export function tutorialData(): TutorialData | null {
+  return data
+}
+
+function tryShape(d: TutorialData, id: string, testScenarioId: number | string, qaRunId: string, status: string, startedAt: string, completedAt: string | null) {
+  return {
+    id,
+    testScenarioId: String(testScenarioId),
+    gameInstanceId: IDS.instance,
+    startedBy: d.members[0].userId,
+    status,
+    startedAt,
+    completedAt,
+    model: 'claude/claude-sonnet-5-5',
+    promptVersion: null,
+    agentArch: null,
+    agentFingerprint: null,
+    runConfig: null,
+    knowledgeScopeId: null,
+    cheatMode: 'on',
+    behaviorMode: 'on',
+    allowedCheats: null,
+    allowedBehaviors: null,
+    effectiveCheats: [],
+    effectiveBehaviors: [],
+    qaRunId,
+    stop: null,
+    inputMode: 'virtual',
+  }
+}
+
+/** 실행 하나의 개요. 방금 시작한 실행이면 각본이 끝날 때까지 RUNNING 이다. */
+function runShape(d: TutorialData, runId: string) {
+  const current = liveRun()
+  if (current !== null && current.runId === runId) {
+    const status = current.done ? 'COMPLETED' : 'RUNNING'
+    return {
+      id: runId,
+      testRunId: current.testRunId,
+      gameInstanceId: IDS.instance,
+      gameBuildId: IDS.build,
+      startedBy: d.members[0].userId,
+      status,
+      startedAt: current.startedAt,
+      completedAt: current.completedAt,
+      label: null,
+      tries: [tryShape(d, current.tryId, current.scenarioId, runId, status, current.startedAt, current.completedAt)],
+    }
+  }
+  const run = d.qaRuns.find((one) => one.id === runId)
+  if (run === undefined) return NOT_FOUND
+  const one = d.tries.find((entry) => entry.qaRunId === runId)
+  return {
+    id: runId,
+    testRunId: run.testRunId,
+    gameInstanceId: IDS.instance,
+    gameBuildId: IDS.build,
+    startedBy: run.startedBy,
+    status: run.status,
+    startedAt: run.startedAt,
+    completedAt: run.completedAt,
+    label: null,
+    tries: one === undefined ? [] : [tryShape(d, one.id, one.testScenarioId, runId, one.status, one.startedAt, one.completedAt)],
+  }
 }
 
 const P = String.raw`/api/projects/[^/]+`
@@ -127,7 +196,14 @@ const ROUTES: Route[] = [
   // ── QA 실행 · 결과 ───────────────────────────────────────────
   { method: 'GET', pattern: /^\/api\/qa-tries$/, handle: (_m, _r, d) => d.tries },
   { method: 'GET', pattern: /^\/api\/qa-tries\/([^/]+)\/detail$/, handle: (match, _r, d) => d.tryDetail(match[1]) },
-  { method: 'GET', pattern: new RegExp(`^${P}/qa-runs$`), handle: (_m, _r, d) => items(d.qaRuns) },
+  {
+    method: 'GET',
+    pattern: new RegExp(`^${P}/qa-runs$`),
+    handle: (_m, request, d) => {
+      const testRunId = request.url.searchParams.get('testRunId')
+      return items(d.qaRuns.filter((one) => testRunId === null || one.testRunId === testRunId))
+    },
+  },
   { method: 'GET', pattern: /^\/api\/qa-runs\/([^/]+)\/verdicts$/, handle: (match, _r, d) => d.verdicts[match[1]] ?? NOT_FOUND },
   { method: 'GET', pattern: new RegExp(`^${P}/qa-evaluation/reliability$`), handle: (_m, request) => ({ from: request.url.searchParams.get('from') ?? '', to: request.url.searchParams.get('to') ?? '', overall: emptyCounts(), daily: [], cases: [], sample: 'USER_SELECTED_REVIEWS', includesInterruptedFailures: false }) },
   {
@@ -157,6 +233,52 @@ const ROUTES: Route[] = [
   { method: 'GET', pattern: new RegExp(`^${P}/qa-evaluation/issues/([^/]+)$`), handle: (match) => ({ issueId: match[1], testCaseId: null, previousIssueId: null, mergedInto: null, autoClosed: false, occurrences: [] }) },
   { method: 'PUT', pattern: new RegExp(`^${P}/qa-evaluation/.+$`), handle: (_m, request) => request.body ?? {} },
   { method: 'POST', pattern: new RegExp(`^${P}/qa-evaluation/.+$`), handle: (_m, request) => request.body ?? {} },
+
+  // ── 방금 시작하는 QA 실행 ────────────────────────────────────
+  {
+    method: 'POST',
+    pattern: /^\/api\/qa-runs$/,
+    handle: (_m, request, d) => {
+      const testRunId = String(record(request.body).testRunId ?? '')
+      const run = createLiveRun(d, testRunId)
+      if (run === null) return INVALID
+      return runShape(d, run.runId)
+    },
+  },
+  { method: 'GET', pattern: /^\/api\/qa-runs\/([^/]+)$/, handle: (match, _r, d) => runShape(d, match[1]) },
+  { method: 'GET', pattern: /^\/api\/qa-runs\/[^/]+\/changes$/, handle: () => items([]) },
+  { method: 'POST', pattern: /^\/api\/qa-runs\/[^/]+\/cancel$/, handle: () => undefined },
+  {
+    method: 'GET',
+    pattern: /^\/api\/qa-tries\/([^/]+)$/,
+    handle: (match, _r, d) => {
+      const current = liveRun()
+      if (current !== null && current.tryId === match[1]) {
+        const status = current.done ? 'COMPLETED' : 'RUNNING'
+        return tryShape(d, current.tryId, current.scenarioId, current.runId, status, current.startedAt, current.completedAt)
+      }
+      const one = d.tries.find((entry) => entry.id === match[1])
+      return one === undefined ? NOT_FOUND : tryShape(d, one.id, one.testScenarioId, one.qaRunId, one.status, one.startedAt, one.completedAt)
+    },
+  },
+  { method: 'GET', pattern: /^\/api\/qa-tries\/([^/]+)\/logs$/, handle: (match) => ({ items: liveLogs(match[1]), nextBeforeId: null, hasMore: false }) },
+  { method: 'GET', pattern: /^\/api\/qa-tries\/([^/]+)\/verdicts$/, handle: (match) => liveLogs(match[1]).filter((log) => log.type === 'STATUS' || log.type === 'CASE_VERDICT') },
+  {
+    method: 'GET',
+    pattern: /^\/api\/llm-usage\/qa-runs\/([^/]+)$/,
+    handle: (match, _r, d) => ({
+      qaTryId: match[1],
+      projectId: d.project.id,
+      status: liveRun()?.done === false ? 'RUNNING' : 'COMPLETED',
+      startedAt: liveRun()?.startedAt ?? d.now(),
+      completedAt: liveRun()?.completedAt ?? null,
+      model: 'claude/claude-sonnet-5-5',
+      reasoningEffort: null,
+      promptVersion: null,
+      agentArch: null,
+      totals: { inputTokens: 0, outputTokens: 0, cachedInputTokens: 0, cacheWriteTokens: 0, reasoningTokens: 0, costUsd: null, costEstimated: false, calls: 0, pricedCalls: 0 },
+    }),
+  },
 
   // ── 이슈 · 팀 공유 ───────────────────────────────────────────
   { method: 'GET', pattern: new RegExp(`^${P}/issues$`), handle: (_m, request, d) => { const status = request.url.searchParams.get('status'); return { items: d.issues.filter((one) => status === null || one.status === status), nextBeforeId: null, hasMore: false } } },
@@ -222,6 +344,12 @@ const ROUTES: Route[] = [
 ]
 
 const NOT_FOUND = Symbol('not found')
+const INVALID = Symbol('invalid')
+
+function liveLogs(tryId: string) {
+  const current = liveRun()
+  return current !== null && current.tryId === tryId ? current.logs : []
+}
 
 /**
  * 목데이터로 답한다. 화면이 부르는 순서 그대로 실제 서버처럼 비동기로 답해, 화면의 로딩 처리도 그대로 지나가게 한다.
@@ -251,6 +379,7 @@ export async function tutorialResponse(
     if (match === null) continue
     const body = route.handle(match, request, current)
     if (body === NOT_FOUND) return json(404, { code: 'not_found', message: 'Not found' })
+    if (body === INVALID) return json(422, { code: 'error', message: session.locale === 'en' ? 'This test run has no scenario yet.' : '이 테스트 런에는 아직 시나리오가 없습니다.' })
     const topic = method === 'GET' ? null : changedTopic(url.pathname)
     if (topic !== null) window.setTimeout(() => notifyTutorialChange(topic), 120)
     return body === undefined ? new Response(null, { status: 204 }) : json(200, body)
