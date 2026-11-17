@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useI18n } from '../i18n/useI18n'
 import { useActionBinding } from '../projectAgent/bindings'
 import { TEST_RUN_EDIT_RENAME_ACTION } from '../projectAgent/specs/testRunEdit'
@@ -31,9 +31,13 @@ export function RunNameCrumb({
   const [renaming, setRenaming] = useState(false)
   const [saving, setSaving] = useState(false)
   const [current, setCurrent] = useState(name)
+  const [previousName, setPreviousName] = useState(name)
   const cancel = useRef(false)
 
-  useEffect(() => setCurrent(name), [name])
+  if (name !== previousName) {
+    setPreviousName(name)
+    setCurrent(name)
+  }
 
   /** 이름을 서버에 저장한다. 실패하면 던진다. 입력칸은 삼키고, agent 는 오류로 받는다. */
   async function save(next: string) {
