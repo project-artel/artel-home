@@ -8,8 +8,9 @@ export type ContentReview = { testCaseId: string; state: ContentReviewState; not
 export type CaseSnapshot = { scene: string | null; precondition: string | null; step: string | null; expected: string | null }
 export type Attempt = { id: string; qaTryId: string; qaRunId?: string | null; testCaseId: string; startedAt: string | null; finishedAt: string | null;
   verdict: Verdict | null; logId: string | null; review: ReviewDecision | null; note: string | null; createdAt: string;
-  caseSnapshot?: CaseSnapshot | null; originalReason?: string | null }
-export type Revision = { id: string; decision: string; note: string | null; decidedBy: string | null; decidedAt: string }
+  caseSnapshot?: CaseSnapshot | null; originalReason?: string | null; reviewedAgainstRevision?: boolean; hasContentIssue?: boolean }
+export type RevisedCase = { scene: string; precondition: string | null; step: string; expected: string }
+export type Revision = { id: string; decision: string; note: string | null; decidedBy: string | null; decidedAt: string; revisedCase?: CaseSnapshot | null }
 export type Segment = { id: string; startedAt: string; endedAt: string; state: string; url: string | null }
 export type Gap = { startedAt: string; endedAt: string; reason: string }
 export type Playback = { recording: { id: string; startedAt: string; endedAt: string | null; expiresAt: string | null; error: string | null } | null;
@@ -40,7 +41,7 @@ function attempt(value: unknown): Attempt {
   const steps = snapshot && Array.isArray(snapshot.steps) && snapshot.steps.every(step => typeof step === 'string') ? snapshot.steps.join('\n') : null
   return { id: string(row.id), qaTryId: string(row.qaTryId), qaRunId: nullable(row.qaRunId), testCaseId: string(row.testCaseId), startedAt: nullable(row.startedAt),
     finishedAt: nullable(row.finishedAt), verdict: verdict(row.verdict), logId: nullable(row.logId), review: reviewDecision(row.review), note: nullable(row.note), createdAt: string(row.createdAt),
-    originalReason: nullable(row.originalReason), caseSnapshot: snapshot ? { scene: text(snapshot.scene), precondition: text(snapshot.precondition),
+    originalReason: nullable(row.originalReason), reviewedAgainstRevision: row.reviewedAgainstRevision === true, hasContentIssue: row.hasContentIssue === true, caseSnapshot: snapshot ? { scene: text(snapshot.scene), precondition: text(snapshot.precondition),
       step: text(snapshot.step) ?? text(snapshot.test_step) ?? steps, expected: text(snapshot.expected) ?? text(snapshot.expected_value) ?? text(snapshot.expected_result) } : null }
 }
 function counts(value: unknown): Counts {
@@ -61,8 +62,11 @@ export async function attempts(project: string, filters: { qaTryId?: string; tes
   for (const [key, value] of Object.entries(filters)) if (value !== undefined) params.set(key, value)
   return list(await request(project, '/attempts?' + params, signal), attempt)
 }
-export async function review(project: string, log: string, decision: string, note: string) {
-  await request(project, `/verdicts/${encodeURIComponent(log)}/review`, undefined, 'PUT', { decision, note })
+export async function review(project: string, log: string, decision: string, note: string, revisedCase?: RevisedCase) {
+  await request(project, `/verdicts/${encodeURIComponent(log)}/review`, undefined, 'PUT', { decision, note, revisedCase })
+}
+export async function reportContentIssue(project: string, log: string, note: string) {
+  await request(project, `/verdicts/${encodeURIComponent(log)}/content-issue`, undefined, 'PUT', { note })
 }
 export async function getAttempt(project: string, id: string, signal?: AbortSignal): Promise<Attempt> {
   return attempt(await request(project, `/attempts/${encodeURIComponent(id)}`, signal))
@@ -70,7 +74,8 @@ export async function getAttempt(project: string, id: string, signal?: AbortSign
 export async function revisions(project: string, log: string, signal?: AbortSignal): Promise<Revision[]> {
   return list(await request(project, `/verdicts/${encodeURIComponent(log)}/reviews`, signal), value => {
     const row = record(value)
-    return { id: string(row.id), decision: string(row.decision), note: nullable(row.note), decidedBy: nullable(row.decidedBy), decidedAt: string(row.decidedAt) }
+    return { id: string(row.id), decision: string(row.decision), note: nullable(row.note), decidedBy: nullable(row.decidedBy), decidedAt: string(row.decidedAt),
+      revisedCase: row.revisedCase == null ? null : record(row.revisedCase) as CaseSnapshot }
   })
 }
 export async function playback(project: string, tryId: string, signal?: AbortSignal): Promise<Playback> {
