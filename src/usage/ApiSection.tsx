@@ -462,7 +462,7 @@ function SpendFigures({ grid, today, total }: { grid: GrassGrid; today: Date; to
   const yesterdayTotals = dayAt(grid, yesterday)
   const busiest = days.reduce<GrassDay | null>((best, day) => {
     const tokens = day.totals === null ? 0 : dayTokens(day.totals)
-    return tokens > 0 && (best === null || tokens > dayTokens(best.totals ?? { inputTokens: 0, outputTokens: 0, costUsd: null, calls: 0 })) ? day : best
+    return tokens > 0 && (best?.totals == null || tokens > dayTokens(best.totals)) ? day : best
   }, null)
   const todayTokens = todayTotals === null ? 0 : dayTokens(todayTotals)
   const yesterdayTokens = yesterdayTotals === null ? 0 : dayTokens(yesterdayTotals)

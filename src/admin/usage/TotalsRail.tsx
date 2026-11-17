@@ -27,13 +27,13 @@ export function TotalsRail({ stats }: { stats: LlmUsageStats }) {
           {format.tokens(tokens)}
         </span>
         <span className="rail__hint">
-          {strings.tokensHint(format.tokens(total.inputTokens), format.tokens(total.outputTokens))}
+          {strings.tokensHint(format.tokens(total.inputTokens + total.cacheWriteTokens), format.tokens(total.outputTokens))}
         </span>
       </div>
 
       <div className="rail__item">
         <span className="rail__label">{strings.totalCost}</span>
-        <span className="rail__value">{format.cost(total.costUsd)}</span>
+        <span className="rail__value">{format.cost(total.costUsd)}{total.costEstimated && ` · ${t.qa.history.detail.estimated}`}</span>
         {/* 단가 미상 호출이 섞이면 이 금액은 하한이다. 안 적으면 절반이 미상인 합계가 전체
             지출로 읽힌다. */}
         <span className="rail__hint">
@@ -52,6 +52,13 @@ export function TotalsRail({ stats }: { stats: LlmUsageStats }) {
         </span>
         <span className="rail__value" title={format.count(total.cachedInputTokens)}>
           {format.tokens(total.cachedInputTokens)}
+        </span>
+      </div>
+
+      <div className="rail__item">
+        <span className="rail__label">{t.qa.usage.cacheWrite}</span>
+        <span className="rail__value" title={format.count(total.cacheWriteTokens)}>
+          {format.tokens(total.cacheWriteTokens)}
         </span>
       </div>
 

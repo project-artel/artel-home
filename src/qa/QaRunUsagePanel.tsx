@@ -89,7 +89,7 @@ export function QaRunUsagePanel({
           </h2>
           {status === 'ready' && usage !== null && usage.calls > 0 && (
             <span className="qa-usage-summary-figures mono">
-              {counts.format(tokens)} {t.qa.usage.tokens} · {formatCost(usage.costUsd, t.qa.usage.costUnknown)}
+              {counts.format(tokens)} {t.qa.usage.tokens} · {formatCost(usage.costUsd, t.qa.usage.costUnknown)}{usage.costEstimated && ` · ${t.qa.history.detail.estimated}`}
               {partial && usage.costUsd !== null && '+'}
             </span>
           )}
@@ -122,7 +122,7 @@ export function QaRunUsagePanel({
                 <dd className="mono">{counts.format(tokens)}</dd>
                 <p className="qa-usage-hint">
                   {t.qa.usage.tokenSplit(
-                    counts.format(usage.inputTokens),
+                    counts.format(usage.inputTokens + usage.cacheWriteTokens),
                     counts.format(usage.outputTokens),
                   )}
                 </p>
@@ -131,7 +131,7 @@ export function QaRunUsagePanel({
               <div className="qa-usage-item">
                 <dt>{t.qa.usage.cost}</dt>
                 <dd className="mono">
-                  {formatCost(usage.costUsd, t.qa.usage.costUnknown)}
+                  {formatCost(usage.costUsd, t.qa.usage.costUnknown)}{usage.costEstimated && ` · ${t.qa.history.detail.estimated}`}
                   {partial && usage.costUsd !== null && (
                     <span className="qa-usage-partial" title={t.qa.usage.partialHint}>
                       +
@@ -161,6 +161,10 @@ export function QaRunUsagePanel({
                   <InfoHint>{t.qa.usage.cachedHint}</InfoHint>
                 </dt>
                 <dd className="mono">{counts.format(usage.cachedInputTokens)}</dd>
+              </div>
+              <div>
+                <dt>{t.qa.usage.cacheWrite}</dt>
+                <dd className="mono">{counts.format(usage.cacheWriteTokens)}</dd>
               </div>
             </dl>
           )}

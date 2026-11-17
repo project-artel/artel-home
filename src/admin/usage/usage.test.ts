@@ -8,6 +8,8 @@ function totals(overrides: Partial<UsageTotals> = {}): UsageTotals {
     inputTokens: 0,
     outputTokens: 0,
     cachedInputTokens: 0,
+    cacheWriteTokens: 0,
+    costEstimated: false,
     reasoningTokens: 0,
     costUsd: null,
     calls: 0,
@@ -23,10 +25,11 @@ describe('totalTokens', () => {
       inputTokens: 1000,
       outputTokens: 100,
       cachedInputTokens: 800,
+      cacheWriteTokens: 500,
       reasoningTokens: 60,
     })
 
-    assert.equal(totalTokens(row), 1100)
+    assert.equal(totalTokens(row), 1600)
   })
 })
 

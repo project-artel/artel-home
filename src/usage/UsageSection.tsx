@@ -183,7 +183,7 @@ export function Breakdown({
                     </span>
                   </td>
                   <td className="num mono">
-                    {formatCost(row.totals.costUsd, u.costUnknown)}
+                    {formatCost(row.totals.costUsd, u.costUnknown)}{row.totals.costEstimated && ` · ${t.qa.history.detail.estimated}`}
                     {row.totals.costUsd !== null && row.totals.pricedCalls < row.totals.calls && (
                       <span
                         className="usage-partial"

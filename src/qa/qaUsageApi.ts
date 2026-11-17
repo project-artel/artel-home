@@ -16,8 +16,10 @@ export interface QaRunUsage {
   inputTokens: number
   outputTokens: number
   cachedInputTokens: number
+  cacheWriteTokens: number
   reasoningTokens: number
   costUsd: number | null
+  costEstimated: boolean
   calls: number
   pricedCalls: number
 }
@@ -71,8 +73,10 @@ export async function getQaRunUsage(
     inputTokens: asNumber(totals.inputTokens, 0),
     outputTokens: asNumber(totals.outputTokens, 0),
     cachedInputTokens: asNumber(totals.cachedInputTokens, 0),
+    cacheWriteTokens: asNumber(totals.cacheWriteTokens, 0),
     reasoningTokens: asNumber(totals.reasoningTokens, 0),
     costUsd: asNullableNumber(totals.costUsd),
+    costEstimated: totals.costEstimated === true,
     calls: asNumber(totals.calls, 0),
     pricedCalls: asNumber(totals.pricedCalls, 0),
   }
@@ -81,10 +85,8 @@ export async function getQaRunUsage(
 /**
  * Tokens this run used.
  *
- * Cached input and reasoning are left out: the provider already counts them
- * inside input and output. Adding them would count the same tokens twice and
- * put a number on screen that does not match the bill.
+ * 캐시 쓰기는 별도 입력이다. 캐시 읽기와 reasoning은 각각 입력과 출력에 포함된다.
  */
 export function usedTokens(usage: QaRunUsage): number {
-  return usage.inputTokens + usage.outputTokens
+  return usage.inputTokens + usage.cacheWriteTokens + usage.outputTokens
 }

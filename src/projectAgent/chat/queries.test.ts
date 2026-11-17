@@ -113,6 +113,8 @@ test('trimUsage keeps cost, calls and tokens per service and model', () => {
     inputTokens: 10,
     outputTokens: 5,
     cachedInputTokens: 1,
+    cacheWriteTokens: 7,
+    costEstimated: false,
     reasoningTokens: 2,
     costUsd: 0.5,
     calls: 3,
@@ -127,8 +129,8 @@ test('trimUsage keeps cost, calls and tokens per service and model', () => {
     zone: 'Asia/Seoul',
   }
   const trimmed = trimUsage(usage)
-  assert.deepEqual(trimmed.total, { costUsd: 0.5, calls: 3, inputTokens: 10, outputTokens: 5 })
-  assert.deepEqual(trimmed.byService.rows[0], { service: 'QA', costUsd: 0.5, calls: 3, inputTokens: 10, outputTokens: 5 })
+  assert.deepEqual(trimmed.total, { costUsd: 0.5, calls: 3, inputTokens: 17, outputTokens: 5 })
+  assert.deepEqual(trimmed.byService.rows[0], { service: 'QA', costUsd: 0.5, calls: 3, inputTokens: 17, outputTokens: 5 })
   assert.equal(trimmed.byModel.rows[0].model, 'm')
   assert.equal('daily' in trimmed, false)
 })

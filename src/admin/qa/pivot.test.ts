@@ -37,6 +37,8 @@ function cell(overrides: Partial<QaStatsCell>): QaStatsCell {
     inputTokens: 0,
     outputTokens: 0,
     cachedInputTokens: 0,
+    cacheWriteTokens: 0,
+    costEstimated: false,
     reasoningTokens: 0,
     costUsd: null,
     llmCalls: 0,

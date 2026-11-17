@@ -29,6 +29,8 @@ export function UsageFigures({
   const { t } = useI18n()
   const u = t.usage
   const partial = total.pricedCalls < total.calls
+  const cost = formatCost(total.costUsd, u.costUnknown)
+  const costLabel = total.costEstimated ? `${cost} · ${t.qa.history.detail.estimated}` : cost
 
   return (
     <dl className="usage-figures">
@@ -39,8 +41,8 @@ export function UsageFigures({
           {total.costUsd === null
             ? u.noPricedCall
             : partial
-              ? u.partialPrice(formatCost(total.costUsd, u.costUnknown), total.pricedCalls, total.calls)
-              : u.fullyPriced(formatCost(total.costUsd, u.costUnknown), total.calls)}
+              ? u.partialPrice(costLabel, total.pricedCalls, total.calls)
+              : u.fullyPriced(costLabel, total.calls)}
         </p>
       </div>
 
