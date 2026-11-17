@@ -66,31 +66,19 @@
 .agent-composer__actions .button--primary:hover:not(:disabled) { background: var(--color-action-primary-strong); }
 .agent-composer__actions .button:disabled { opacity: 0.4; }
 
-/* 닫힌 대화창 자리의 40px 칸. 페이지 위에 떠 있으면 RunChat 의 보내기 버튼 같은 페이지 내용을
-   가리므로, grid 의 마지막 칸으로 따로 둔다. 버튼은 세로 가운데에 112px 높이로 선다. */
-.agent-reopen-rail {
-  display: flex; align-items: center; min-height: 0;
-  border-left: 1px solid var(--color-border-subtle); background: var(--color-bg-surface);
+.agent-reopen.button {
+  position: relative;
+  align-self: flex-end;
+  min-height: 44px;
+  border-radius: var(--radius-lg);
+  pointer-events: auto;
 }
-.agent-reopen {
-  width: 100%; height: 112px; padding: 0; box-sizing: border-box;
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
-  background: transparent; color: var(--color-action-primary); font-family: var(--font-sans);
-  border: 0; cursor: pointer;
-  transition: background 120ms var(--ease-standard);
-}
-.agent-reopen:hover { background: var(--color-bg-hover); }
-.agent-reopen__icon { position: relative; display: inline-grid; place-items: center; }
 /* 닫힌 대화창에서 사용자를 기다리는 것(승인, 질문, 끝난 job)의 수. 숫자로도 말하므로 색만으로 전하지 않는다. */
 .agent-reopen__badge {
   position: absolute; top: -8px; right: -10px; min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box;
   display: inline-grid; place-items: center; border-radius: 999px;
   background: var(--color-status-warning); color: var(--color-text-on-accent);
   font-size: 10px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums;
-}
-.agent-reopen__label {
-  writing-mode: vertical-rl; font-size: 13px; font-weight: 600; letter-spacing: 0.04em;
-  color: var(--color-text-primary);
 }
 
 /* SplitHandle 의 class 는 `.scenario-studio` 밑에서만 꾸며지므로 여기서 따로 꾸민다. */
@@ -123,7 +111,6 @@
 .agent-reopen:focus-visible {
   outline: 2px solid var(--color-action-primary); outline-offset: 2px;
 }
-.agent-reopen:focus-visible { outline-offset: -2px; }
 
 @media (prefers-reduced-motion: reduce) {
   .agent-icon-button,

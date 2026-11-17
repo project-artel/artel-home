@@ -5,7 +5,7 @@ import { QaFinishedNotice } from '../../qa/QaFinishedNotice'
 import { CaseReviewNotice } from '../../testCases/CaseReviewNotice'
 import { ScenarioReviewNotice } from '../../testScenarios/ScenarioReviewNotice'
 import { OperatorQuestions } from '../../qa/evaluation/OperatorQuestions'
-import { Link, Navigate, Outlet, useLocation, useMatch, useParams } from 'react-router-dom'
+import { Link, Navigate, Outlet, useLocation, useMatch, useNavigate, useParams } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
 import { AgentChatPanel, AgentReopenButton, AgentSplitHandle } from '../../projectAgent/AgentDock'
 import { AgentSessionProvider } from '../../projectAgent/chat/AgentSessionProvider'
@@ -68,6 +68,7 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
   const extras = useWorkspaceExtras(projectId)
   const { t } = useI18n()
   const { pathname } = useLocation()
+  const navigate = useNavigate()
   // rail 을 접으면 페이지 칸이 168px 넓어질 뿐이라, 대화창 폭 상한은 펼친 rail 폭으로 계산한다.
   const dock = useAgentDock(projectId, pathname, PROJECT_RAIL_PX)
   // 페이지가 대화를 자기 칸에 직접 그리는 동안(시나리오 화면의 project 모드) dock 을 숨긴다.
@@ -181,9 +182,11 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
 
   if (dock.fullPage && !dock.enabled) return <Navigate replace to={'/projects/' + encodeURIComponent(projectId)} />
   const agentHome = dock.enabled && dock.fullPage
+  const mobile = dock.viewportWidth <= 720
+  const showLauncher = dock.enabled && !agentHome && !pageHostsChat && (mobile || !dockOpen)
   const workspaceClass =
     'project-workspace' +
-    (dockOpen ? (agentHome ? ' has-agent-home' : ' has-agent') : dock.enabled && !pageHostsChat ? ' has-agent-closed' : '') +
+    (dockOpen ? (agentHome ? ' has-agent-home' : ' has-agent') : '') +
     (dock.splitting ? ' is-splitting' : '')
 
   // 대화 session 은 대화창 밖에 둔다. 대화창을 닫아도 agent 가 하던 일을 계속한다.
@@ -247,12 +250,15 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
 
       {dockOpen && !agentHome && <AgentSplitHandle {...dock.handle} />}
       {dockOpen && <AgentChatPanel onClose={agentHome ? undefined : dock.closeChat} wide={agentHome} />}
-      {dock.enabled && !dockOpen && !pageHostsChat && <AgentReopenButton onOpen={dock.openChat} />}
-      {/* 오른쪽 아래 알림은 한 줄로 쌓는다. 비어 있으면 자리를 차지하지 않는다. */}
-      <div aria-live="polite" className="qa-notice-stack">
-        <CaseReviewNotice projectId={projectId} />
-        <ScenarioReviewNotice projectId={projectId} />
-        <QaFinishedNotice projectId={projectId} />
+      <div className="workspace-corner">
+        <div aria-live="polite" className="qa-notice-stack">
+          <CaseReviewNotice projectId={projectId} />
+          <ScenarioReviewNotice projectId={projectId} />
+          <QaFinishedNotice projectId={projectId} />
+        </div>
+        {showLauncher && (
+          <AgentReopenButton onOpen={mobile ? () => navigate('/projects/' + encodeURIComponent(projectId) + '/chat') : dock.openChat} />
+        )}
       </div>
     </div>
     </ProjectAgentProviders>

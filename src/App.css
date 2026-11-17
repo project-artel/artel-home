@@ -5619,16 +5619,6 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   grid-template-columns: 48px minmax(0, 1fr) 6px var(--agent-chat-w);
 }
 
-/* 닫혀 있으면 오른쪽 40px 칸에 다시 열기 버튼만 남는다. */
-.project-workspace.has-agent-closed {
-  grid-template-columns: 216px minmax(0, 1fr) 40px;
-}
-
-.project-workspace.has-agent-closed:has(.project-nav--collapsed) {
-  grid-template-columns: 48px minmax(0, 1fr) 40px;
-}
-
-
 .project-workspace.is-splitting {
   cursor: col-resize;
   user-select: none;
@@ -6461,16 +6451,13 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   .project-workspace.has-agent,
   .project-workspace.has-agent-home,
   .project-workspace.has-agent:has(.project-nav--collapsed),
-  .project-workspace.has-agent-home:has(.project-nav--collapsed),
-  .project-workspace.has-agent-closed,
-  .project-workspace.has-agent-closed:has(.project-nav--collapsed) {
+  .project-workspace.has-agent-home:has(.project-nav--collapsed) {
     grid-template-columns: minmax(0, 1fr);
   }
 
 
   .project-workspace > .agent-panel,
-  .project-workspace > .agent-dock-split,
-  .project-workspace > .agent-reopen-rail {
+  .project-workspace > .agent-dock-split {
     display: none;
   }
 
@@ -13522,9 +13509,21 @@ col.vimp-c-scene{ width:18% } col.vimp-c-verdict{ width:16% }
 .qh-tile-review { display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; padding: 0 7px; border-radius: 999px; font-size: 11px; font-weight: 600; color: var(--color-agent-reasoning); border: 1px solid color-mix(in srgb, var(--color-agent-reasoning) 55%, transparent); }
 .qh-tile-review .qv-dot { width: 6px; height: 6px; }
 .qh-tile-review.is-done { color: var(--color-text-muted); border-color: var(--color-border-subtle); }
-.qa-notice-stack { position: fixed; right: 20px; bottom: 20px; z-index: 300; display: flex; flex-direction: column; gap: 10px; }
+.workspace-corner {
+  position: fixed;
+  right: max(var(--space-5), env(safe-area-inset-right));
+  bottom: max(var(--space-5), env(safe-area-inset-bottom));
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  pointer-events: none;
+}
+.qa-notice-stack { display: flex; flex-direction: column; gap: 10px; }
+.qa-notice-stack:empty { display: none; }
+.qa-notice-stack > * { pointer-events: auto; }
 /* 알림이 팝업의 버튼을 가리지 않게, 팝업이 떠 있는 동안 숨긴다. */
-body:has(.dialog-scrim) .qa-notice-stack { visibility: hidden; }
+body:has(.dialog-scrim) .workspace-corner { visibility: hidden; }
 .qa-notice { width: min(380px, calc(100vw - 40px)); padding: 14px 16px; border: 1px solid var(--color-border-strong); border-left: 3px solid var(--color-agent-reasoning); border-radius: 10px; background: var(--color-bg-raised); box-shadow: 0 14px 40px rgb(0 0 0 / 45%); }
 .qa-notice-head { display: flex; align-items: center; gap: 8px; font-size: 14px; }
 .qa-notice-head svg { color: var(--color-agent-reasoning); flex: none; }
