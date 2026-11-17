@@ -1,5 +1,5 @@
 import { loadAttemptReview } from './loadAttemptReview'
-import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
 import { shortWhen } from '../history/historyModel'
@@ -20,7 +20,6 @@ type CaseEvaluationPanelProps = {
   qaTryId?: string
   testCaseId?: string
   id?: string
-  emptyFallback?: ReactNode
 }
 
 export function CaseEvaluationPanel(props: CaseEvaluationPanelProps) {
@@ -28,7 +27,7 @@ export function CaseEvaluationPanel(props: CaseEvaluationPanelProps) {
   return <AttemptList key={`${projectId}:${qaTryId ?? ''}:${testCaseId ?? ''}`} {...props} />
 }
 
-function AttemptList({ projectId, qaTryId, testCaseId, id, emptyFallback }: CaseEvaluationPanelProps) {
+function AttemptList({ projectId, qaTryId, testCaseId, id }: CaseEvaluationPanelProps) {
   const [params] = useSearchParams()
   const { locale } = useI18n()
   const copy = evaluationCopy[locale === 'ko' ? 'ko' : 'en']
@@ -56,7 +55,6 @@ function AttemptList({ projectId, qaTryId, testCaseId, id, emptyFallback }: Case
   }, [projectId, qaTryId, testCaseId, selected])
   const options = linkedAttempt?.id === selected && !rows.some(row => row.id === linkedAttempt.id) ? [linkedAttempt, ...rows] : rows
   const current = options.find(row => row.id === selected) ?? rows[0]
-  if (!loading && !error && !current && emptyFallback) return emptyFallback
 
   return <section className="qe-panel" aria-label={copy.title} id={id}>
     <div className="qe-head">
