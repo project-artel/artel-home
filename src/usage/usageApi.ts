@@ -24,9 +24,11 @@ export interface UsageTotals {
   inputTokens: number
   outputTokens: number
   cachedInputTokens: number
+  cacheWriteTokens: number
   reasoningTokens: number
   /** null is "no provider priced these calls" — **not** zero. */
   costUsd: number | null
+  costEstimated: boolean
   calls: number
   /** How many of `calls` the money stands on. Below `calls`, the amount is a floor. */
   pricedCalls: number
@@ -63,10 +65,12 @@ function parseTotals(raw: Record<string, unknown> | null): UsageTotals {
     inputTokens: asNumber(r.inputTokens, 0),
     outputTokens: asNumber(r.outputTokens, 0),
     cachedInputTokens: asNumber(r.cachedInputTokens, 0),
+    cacheWriteTokens: asNumber(r.cacheWriteTokens, 0),
     reasoningTokens: asNumber(r.reasoningTokens, 0),
     // Never fall to 0 here: "nobody priced this" drawn as "$0.00" makes a real
     // bill look free.
     costUsd: asNullableNumber(r.costUsd),
+    costEstimated: r.costEstimated === true,
     calls: asNumber(r.calls, 0),
     pricedCalls: asNumber(r.pricedCalls, 0),
   }

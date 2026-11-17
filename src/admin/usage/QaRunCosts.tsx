@@ -98,8 +98,8 @@ export function QaRunCosts({ runs }: { runs: QaRunUsage[] }) {
                   <td className="num" title={format.count(tokens)}>
                     {format.tokens(tokens)}
                   </td>
-                  <td className="num" title={format.count(run.totals.inputTokens)}>
-                    {format.tokens(run.totals.inputTokens)}
+                  <td className="num" title={format.count(run.totals.inputTokens + run.totals.cacheWriteTokens)}>
+                    {format.tokens(run.totals.inputTokens + run.totals.cacheWriteTokens)}
                   </td>
                   <td className="num" title={format.count(run.totals.outputTokens)}>
                     {format.tokens(run.totals.outputTokens)}

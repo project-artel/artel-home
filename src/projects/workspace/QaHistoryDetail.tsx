@@ -252,8 +252,9 @@ function RunDetailCost({ detail }: { detail: QaTryDetail }) {
   const { t } = useI18n()
   const { usage } = detail
   const elapsed = elapsedSeconds(detail)
+  const inputTokens = usage.inputTokens + usage.cacheWriteTokens
   const cachedPercent =
-    usage.inputTokens === 0 ? 0 : Math.round((usage.cachedInputTokens / usage.inputTokens) * 100)
+    inputTokens === 0 ? 0 : Math.round((usage.cachedInputTokens / inputTokens) * 100)
 
   return (
     <section className="run-detail-group">
@@ -264,6 +265,7 @@ function RunDetailCost({ detail }: { detail: QaTryDetail }) {
           {formatCost(usage.costUsd, t.qa.history.detail.costUnknown)}
           {usage.costEstimated && <EstimatedChip />}
         </Fact>
+        <Fact label={t.qa.usage.cacheWrite}>{counts.format(usage.cacheWriteTokens)}</Fact>
         <Fact label={t.qa.history.detail.outputTokens}>{counts.format(usage.outputTokens)}</Fact>
         <Fact label={t.qa.history.detail.elapsed}>
           {elapsed === null ? PLACEHOLDER : formatElapsedSeconds(elapsed)}
@@ -271,7 +273,7 @@ function RunDetailCost({ detail }: { detail: QaTryDetail }) {
 
         <div className="run-detail-fact run-detail-fact--wide">
           <dt className="run-detail-fact-label">{t.qa.history.detail.inputTokens}</dt>
-          <dd className="run-detail-fact-value mono">{counts.format(usage.inputTokens)}</dd>
+          <dd className="run-detail-fact-value mono">{counts.format(inputTokens)}</dd>
           {usage.cachedInputTokens > 0 && (
             <div className="run-detail-nested">
               {/* 막대는 뺐다(ARTEL-1100). 길이가 캐시 적중률이라 어느 실행이든 97% 안팎으로 같았고,

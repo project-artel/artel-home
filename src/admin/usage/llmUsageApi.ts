@@ -134,9 +134,11 @@ function parseTotals(raw: Record<string, unknown>): UsageTotals {
     inputTokens: asNumber(raw.inputTokens, 0),
     outputTokens: asNumber(raw.outputTokens, 0),
     cachedInputTokens: asNumber(raw.cachedInputTokens, 0),
+    cacheWriteTokens: asNumber(raw.cacheWriteTokens, 0),
     reasoningTokens: asNumber(raw.reasoningTokens, 0),
     // 0으로 떨어뜨리지 않는다. "단가 미상"이 "공짜"로 읽히면 비용 비교가 조용히 틀린다.
     costUsd: asNullableNumber(raw.costUsd),
+    costEstimated: raw.costEstimated === true,
     calls: asNumber(raw.calls, 0),
     // 0으로 떨어뜨려도 안전하다. 화면은 pricedCalls < calls일 때만 하한 표시를 켜고,
     // 서버가 이 필드를 안 주면 costUsd도 함께 없어 그릴 금액 자체가 없다.

@@ -94,8 +94,8 @@ export function BreakdownTable({
                   <td>
                     <ShareBar value={share(tokens, tokenTotal)} format={format} />
                   </td>
-                  <td className="num" title={format.count(row.totals.inputTokens)}>
-                    {format.tokens(row.totals.inputTokens)}
+                  <td className="num" title={format.count(row.totals.inputTokens + row.totals.cacheWriteTokens)}>
+                    {format.tokens(row.totals.inputTokens + row.totals.cacheWriteTokens)}
                   </td>
                   <td className="num" title={format.count(row.totals.outputTokens)}>
                     {format.tokens(row.totals.outputTokens)}
@@ -123,8 +123,8 @@ export function BreakdownTable({
                   {format.tokens(tokenTotal)}
                 </td>
                 <td />
-                <td className="num" title={format.count(footer.inputTokens)}>
-                  {format.tokens(footer.inputTokens)}
+                <td className="num" title={format.count(footer.inputTokens + footer.cacheWriteTokens)}>
+                  {format.tokens(footer.inputTokens + footer.cacheWriteTokens)}
                 </td>
                 <td className="num" title={format.count(footer.outputTokens)}>
                   {format.tokens(footer.outputTokens)}

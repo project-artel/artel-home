@@ -14,16 +14,16 @@ import {
 } from './grass'
 
 function totals(tokens: number, over: Partial<DayTotals> = {}): DayTotals {
-  return { inputTokens: tokens, outputTokens: 0, costUsd: 0.001, calls: 1, ...over }
+  return { inputTokens: tokens, cacheWriteTokens: 0, outputTokens: 0, costUsd: 0.001, calls: 1, ...over }
 }
 
 /** A fixed Wednesday, so nothing here depends on the day the suite runs. */
 const TODAY = new Date(2026, 8, 2)
 
 describe('dayTokens', () => {
-  it('adds input and output only', () => {
+  it('adds input, cache writes, and output', () => {
     // 캐시 입력과 reasoning 은 provider 가 세는 입력·출력의 부분집합이라 더하면 두 번 센다.
-    assert.equal(dayTokens({ inputTokens: 900, outputTokens: 100, costUsd: null, calls: 2 }), 1000)
+    assert.equal(dayTokens({ inputTokens: 900, cacheWriteTokens: 200, outputTokens: 100, costUsd: null, calls: 2 }), 1200)
   })
 })
 

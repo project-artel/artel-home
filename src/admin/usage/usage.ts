@@ -12,7 +12,7 @@ export const EMPTY_MARK = '—'
  * 청구서와 안 맞는데 왜 안 맞는지 화면에서 알 수 없다.
  */
 export function totalTokens(totals: UsageTotals): number {
-  return totals.inputTokens + totals.outputTokens
+  return totals.inputTokens + totals.cacheWriteTokens + totals.outputTokens
 }
 
 /**
@@ -52,6 +52,8 @@ export function sumTotals(rows: UsageTotals[]): UsageTotals {
       inputTokens: accumulated.inputTokens + row.inputTokens,
       outputTokens: accumulated.outputTokens + row.outputTokens,
       cachedInputTokens: accumulated.cachedInputTokens + row.cachedInputTokens,
+      cacheWriteTokens: accumulated.cacheWriteTokens + row.cacheWriteTokens,
+      costEstimated: accumulated.costEstimated || row.costEstimated,
       reasoningTokens: accumulated.reasoningTokens + row.reasoningTokens,
       // null + 값 = 값이다. "모른다"가 합계를 통째로 null로 만들면, 한 줄만 단가 미상이어도
       // 나머지 줄의 아는 지출까지 화면에서 사라진다.
@@ -66,6 +68,8 @@ export function sumTotals(rows: UsageTotals[]): UsageTotals {
       inputTokens: 0,
       outputTokens: 0,
       cachedInputTokens: 0,
+      cacheWriteTokens: 0,
+      costEstimated: false,
       reasoningTokens: 0,
       costUsd: null,
       calls: 0,

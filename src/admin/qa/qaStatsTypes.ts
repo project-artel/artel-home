@@ -25,9 +25,11 @@ export interface QaStatsCell {
   inputTokens: number
   outputTokens: number
   cachedInputTokens: number
+  cacheWriteTokens: number
   reasoningTokens: number
   /** null은 "공짜"가 아니라 "단가 미상"이다. */
   costUsd: number | null
+  costEstimated: boolean
   llmCalls: number
   avgCompletedDurationMs: number | null
 

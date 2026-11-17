@@ -3,6 +3,7 @@ import { ScoreRate } from './ScoreRate'
 import { scoreCoverage, stepPassRate, verdictCoverage } from './pivot'
 import type { QaStatsTotals } from './qaStatsTypes'
 import { useQa } from './useQa'
+import { useI18n } from '../../i18n/useI18n'
 import { InfoHint } from '../../design-system/primitives/InfoHint'
 
 /**
@@ -13,7 +14,8 @@ import { InfoHint } from '../../design-system/primitives/InfoHint'
  */
 export function TotalsRail({ total }: { total: QaStatsTotals }) {
   const { t, fmt } = useQa()
-  const tokens = total.inputTokens + total.outputTokens
+  const { t: i18n } = useI18n()
+  const tokens = total.inputTokens + total.cacheWriteTokens + total.outputTokens
 
   return (
     <div className="rail">
@@ -71,12 +73,12 @@ export function TotalsRail({ total }: { total: QaStatsTotals }) {
           {fmt.tokens(tokens)}
         </span>
         <span className="rail__hint">
-          {t.rail.tokensInOut(fmt.tokens(total.inputTokens), fmt.tokens(total.outputTokens))}
+          {t.rail.tokensInOut(fmt.tokens(total.inputTokens + total.cacheWriteTokens), fmt.tokens(total.outputTokens))}
         </span>
       </div>
       <div className="rail__item">
         <span className="rail__label">{t.rail.llmCost}</span>
-        <span className="rail__value">{fmt.cost(total.costUsd)}</span>
+        <span className="rail__value">{fmt.cost(total.costUsd)}{total.costEstimated && ` · ${i18n.qa.history.detail.estimated}`}</span>
         <span className="rail__hint">
           {total.costUsd === null
             ? t.rail.noPricedCall

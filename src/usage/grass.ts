@@ -10,6 +10,7 @@
 /** One day's spend. The fields the graph reads; the API carries more. */
 export interface DayTotals {
   inputTokens: number
+  cacheWriteTokens: number
   outputTokens: number
   /** null is "no provider priced these calls", not "free". */
   costUsd: number | null
@@ -44,9 +45,9 @@ export interface GrassGrid {
 export const WEEKS = 12
 export const DAYS_PER_WEEK = 7
 
-/** Tokens a day used. Cached input and reasoning are already inside these two. */
+/** 캐시 쓰기는 별도 입력이다. 캐시 읽기는 inputTokens에 포함된다. */
 export function dayTokens(totals: DayTotals): number {
-  return totals.inputTokens + totals.outputTokens
+  return totals.inputTokens + totals.cacheWriteTokens + totals.outputTokens
 }
 
 /** `YYYY-MM-DD` in the local calendar. Slicing an ISO string would cut in UTC. */

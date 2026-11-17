@@ -147,7 +147,7 @@ function usageFigures(totals: UsageTotals): UsageFigures {
   return {
     costUsd: totals.costUsd,
     calls: totals.calls,
-    inputTokens: totals.inputTokens,
+    inputTokens: totals.inputTokens + totals.cacheWriteTokens,
     outputTokens: totals.outputTokens,
   }
 }

@@ -86,9 +86,11 @@ function parseTotals(raw: Record<string, unknown>): QaStatsTotals {
     inputTokens: asNumber(raw.inputTokens, 0),
     outputTokens: asNumber(raw.outputTokens, 0),
     cachedInputTokens: asNumber(raw.cachedInputTokens, 0),
+    cacheWriteTokens: asNumber(raw.cacheWriteTokens, 0),
     reasoningTokens: asNumber(raw.reasoningTokens, 0),
     // 0으로 떨어뜨리지 않는다. "단가 미상"이 "공짜"로 읽히면 비용 비교가 조용히 틀린다.
     costUsd: asNullableNumber(raw.costUsd),
+    costEstimated: raw.costEstimated === true,
     llmCalls: asNumber(raw.llmCalls, 0),
     avgCompletedDurationMs: asNullableNumber(raw.avgCompletedDurationMs),
     // 판정과 채점은 서버가 이미 합계로 준다(평균이 아니다). 여기서 비율로 접지 않는 이유도 같다 —

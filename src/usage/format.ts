@@ -14,5 +14,5 @@ export function formatCost(value: number | null, unknown: string): string {
 
 /** Tokens a bucket used. Cached input and reasoning already sit inside these two. */
 export function totalTokens(totals: UsageTotals): number {
-  return totals.inputTokens + totals.outputTokens
+  return totals.inputTokens + totals.cacheWriteTokens + totals.outputTokens
 }

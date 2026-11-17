@@ -11,9 +11,11 @@ export interface UsageTotals {
   inputTokens: number
   outputTokens: number
   cachedInputTokens: number
+  cacheWriteTokens: number
   reasoningTokens: number
   /** null은 "단가 미상"이다. **0(공짜)과 다르다** — 같은 글자로 그리면 비용 비교가 조용히 틀린다. */
   costUsd: number | null
+  costEstimated: boolean
   calls: number
   /** `costUsd`가 몇 건 위에 얹힌 값인지. `calls`보다 작으면 그 금액은 실제 지출의 하한이다. */
   pricedCalls: number

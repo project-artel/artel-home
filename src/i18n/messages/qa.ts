@@ -671,6 +671,7 @@ export const qaEn = {
     partialPrice: (priced: number, total: number) =>
       `Sum of the ${priced} of ${total} calls with a known unit price — the real cost is higher.`,
     partialHint: 'Some calls came without a unit price, so this amount is a floor.',
+    cacheWrite: 'Cache write',
     fullyPriced: (calls: number) => `All ${calls} calls came with a unit price.`,
     calls: 'Model calls',
     perCall: (tokens: string) => `${tokens} tokens per call on average`,
@@ -1424,6 +1425,7 @@ export const qaKo: Localized<typeof qaEn> = {
     partialPrice: (priced: number, total: number) =>
       `호출 ${total}건 중 단가를 아는 ${priced}건의 합입니다. 실제 비용은 이보다 큽니다.`,
     partialHint: '단가가 없는 호출이 섞여 있어 이 금액은 하한입니다.',
+    cacheWrite: '캐시 쓰기',
     fullyPriced: (calls: number) => `호출 ${calls}건 모두 단가가 실려 있습니다.`,
     calls: '모델 호출',
     perCall: (tokens: string) => `호출당 평균 ${tokens} 토큰`,

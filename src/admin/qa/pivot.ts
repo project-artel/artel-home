@@ -112,6 +112,8 @@ export function sumCells(cells: QaStatsTotals[]): QaStatsTotals {
     inputTokens: total(cells, (cell) => cell.inputTokens),
     outputTokens: total(cells, (cell) => cell.outputTokens),
     cachedInputTokens: total(cells, (cell) => cell.cachedInputTokens),
+    cacheWriteTokens: total(cells, (cell) => cell.cacheWriteTokens),
+    costEstimated: cells.some((cell) => cell.costEstimated),
     reasoningTokens: total(cells, (cell) => cell.reasoningTokens),
     // 단가를 아는 셀이 하나도 없으면 null을 유지한다. 0으로 접으면 "공짜"가 된다.
     costUsd: priced.length === 0 ? null : total(priced, (cell) => cell.costUsd ?? 0),
