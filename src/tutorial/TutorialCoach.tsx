@@ -14,6 +14,12 @@ const STEPS = START_TUTORIAL_STEPS
 const TOTAL_ACTIONS = flatIndex(STEPS, STEPS.length, 0)
 /** 짚을 자리가 이만큼 기다려도 안 뜨면 다음으로 넘길 수 있게 한다. */
 const FIND_PATIENCE_MS = 6000
+/** 튜토리얼이 Esc 를 양보하는 앱의 창 · 목록. */
+const APP_POPUPS = '.cp-overlay, .mention-list, .dialog-panel, [role="dialog"]:not(.tut *)'
+
+function isEditable(target: EventTarget | null): boolean {
+  return target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || (target instanceof HTMLElement && target.isContentEditable)
+}
 /** 화면이 바뀌며 짚던 자리를 잃었을 때 마지막 자리에 머무는 시간. */
 const LOST_GRACE_MS = 450
 
@@ -77,6 +83,10 @@ export function TutorialCoach({
   }, [flat, phase])
 
   const target = useTarget(phase === 'play' ? action : null, ctx, flat)
+  const targetElementRef = useRef<Element | null>(null)
+  useEffect(() => {
+    targetElementRef.current = target.element
+  }, [target.element])
 
   // 사용자가 빛나는 자리를 직접 누르면 넘어간다. 화면이 먼저 반응하도록 다음 차례에 넘긴다.
   useEffect(() => {
@@ -141,12 +151,43 @@ export function TutorialCoach({
     return () => window.clearInterval(timer)
   }, [flat, until])
 
+  // 앞 장면에서 이미 해 버린 일은 기다리지 않고 넘어간다. 짚을 것이 사라졌으면 다시 띄운다.
+  const done = action.kind === 'click' ? action.done : undefined
+  const recover = action.kind === 'click' ? action.recover : undefined
+  useEffect(() => {
+    if (phase !== 'play' || (done === undefined && recover === undefined)) return undefined
+    const started = performance.now()
+    let recoveredAt = 0
+    let missingSince = started
+    let advanced = false
+    const timer = window.setInterval(() => {
+      if (advanced) return
+      if (done?.() === true) {
+        advanced = true
+        next()
+        return
+      }
+      const now = performance.now()
+      // 사라진 직후(닫는 중 · 다시 그리는 중)는 건드리지 않는다.
+      if (targetElementRef.current?.isConnected) missingSince = now
+      if (recover !== undefined && now - missingSince > 600 && now - started > 500 && now - recoveredAt > 1200) {
+        recoveredAt = now
+        recover(ctx)
+      }
+    }, 300)
+    return () => window.clearInterval(timer)
+  }, [ctx, done, flat, next, phase, recover])
+
   // 짚은 버튼이 꺼져 있으면(이미 보냈거나 칸이 비었다) 눌러서 넘어갈 수 없으니 다음을 보여 준다.
   const targetDisabled = target.element instanceof HTMLButtonElement && target.element.disabled
   const clickToAdvance = phase === 'play' && !targetDisabled && (action.kind === 'click' || (action.kind === 'unity' && action.stage !== 'browser'))
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
+      // 앱의 창 · 목록이 열려 있으면 Esc 는 그것을 닫는 데 쓴다. 글자 칸 안의 화살표는 커서를 옮기는 데 쓴다.
+      const inTutorial = event.target instanceof Element && event.target.closest('.tut') !== null
+      if (event.key === 'Escape' && !inTutorial && document.querySelector(APP_POPUPS) !== null) return
+      if (event.key === 'ArrowRight' && isEditable(event.target)) return
       if (event.key === 'Escape') {
         event.preventDefault()
         event.stopPropagation()

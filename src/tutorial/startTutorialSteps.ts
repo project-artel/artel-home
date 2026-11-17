@@ -1,5 +1,6 @@
 import type { Messages } from '../i18n/messages'
 import { IDS } from './mock/tutorialFixtures'
+import { tutorialData } from './mock/tutorialMockApi'
 import { liveRun } from './mock/tutorialPlayback'
 
 /**
@@ -49,6 +50,10 @@ export type TutorialAction =
       copy: CopyOf
       /** 이것이 참이 될 때까지 다음으로 가지 않는다. 실행이 끝나기를 기다릴 때 쓴다. */
       until?: () => boolean
+      /** 사용자가 앞 장면에서 이미 해 버렸으면 참이다. 그러면 짚을 것이 없어도 저절로 넘어간다. */
+      done?: () => boolean
+      /** 짚을 것이 사라졌을 때(목록이 닫혔다) 다시 띄운다. */
+      recover?: (ctx: CoachContext) => void
     })
   | (Base & { kind: 'fill'; target: Find; copy: CopyOf; fields: (ctx: CoachContext) => TypedField[] })
   | (Base & { kind: 'unity'; stage: UnityStage; copy: CopyOf })
@@ -327,18 +332,54 @@ export const START_TUTORIAL_STEPS: readonly TutorialStep[] = [
         },
         copy: (m) => m.steps.team.mention,
       },
-      { id: 'mentionPick', kind: 'click', target: () => $('.mention-list [role="option"]'), copy: (m) => m.steps.team.mentionPick },
+      {
+        id: 'mentionPick',
+        kind: 'click',
+        target: () => $('.mention-list [role="option"]'),
+        // 목록은 입력 장면에서 바로 눌러도 되고, 그러면 이 장면은 이미 끝난 것이다.
+        done: () => {
+          const teammate = tutorialData()?.members.find((member) => member.userId === IDS.teammate)
+          return teammate !== undefined && bodyText().includes(`@${teammate.nickname}`)
+        },
+        // 칸에서 포커스가 빠지면 목록이 닫힌다. 글 끝을 다시 누르면 @ 뒤의 이름으로 목록이 다시 뜬다.
+        recover: () => {
+          const body = $('.dc-canvas textarea.md-input')
+          if (!(body instanceof HTMLTextAreaElement)) return
+          body.focus({ preventScroll: true })
+          body.setSelectionRange(body.value.length, body.value.length)
+          body.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+        },
+        copy: (m) => m.steps.team.mentionPick,
+      },
       { id: 'tcLink', kind: 'click', target: () => $('.dc-canvas .md-tool--tc'), copy: (m) => m.steps.team.tcLink },
       {
         id: 'tcPick',
         kind: 'click',
         // 글이 다루는 물 주기 TC 를 단다. 고르는 창에서는 줄을 누르면 바로 달린다.
         target: () => [...document.querySelectorAll('.cp--pick .cp-list > *')].find((row) => row.textContent?.includes('TC-004')) ?? null,
+        done: () => bodyText().includes('[[tc:'),
+        recover: () => {
+          if ($('.cp--pick') === null) clickOn($('.dc-canvas .md-tool--tc'))
+        },
         copy: (m) => m.steps.team.tcPick,
       },
       { id: 'issueLink', kind: 'click', target: (ctx) => byTextIncludes('.dc-rail button', ctx.t.discussions.linkButton), copy: (m) => m.steps.team.issueLink },
-      { id: 'issuePick', kind: 'click', target: () => $('.dialog-panel button.il2-row'), copy: (m) => m.steps.team.issuePick },
-      { id: 'issueConfirm', kind: 'click', target: () => $('.dialog-panel button.button--primary'), copy: (m) => m.steps.team.issueConfirm },
+      {
+        id: 'issuePick',
+        kind: 'click',
+        target: () => $('.dialog-panel button.il2-row'),
+        done: linkedIssue,
+        recover: reopenIssueLink,
+        copy: (m) => m.steps.team.issuePick,
+      },
+      {
+        id: 'issueConfirm',
+        kind: 'click',
+        target: () => $('.dialog-panel button.button--primary'),
+        done: linkedIssue,
+        recover: reopenIssueLink,
+        copy: (m) => m.steps.team.issueConfirm,
+      },
       { id: 'kinds', kind: 'look', target: () => $('.dc-rail')?.firstElementChild ?? null, copy: (m) => m.steps.team.kinds },
       { id: 'share', kind: 'click', target: () => $('.dc-publish'), copy: (m) => m.steps.team.share },
     ],
@@ -350,4 +391,23 @@ export function flatIndex(steps: readonly TutorialStep[], stepIndex: number, act
   let index = actionIndex
   for (let i = 0; i < stepIndex; i += 1) index += steps[i].actions.length
   return index
+}
+
+function bodyText(): string {
+  const body = $('.dc-canvas textarea.md-input')
+  return body instanceof HTMLTextAreaElement ? body.value : ''
+}
+
+function clickOn(element: Element | null) {
+  if (element instanceof HTMLElement) element.click()
+}
+
+/** 글에 이슈가 하나라도 붙어 있다. */
+function linkedIssue(): boolean {
+  return $('.dc-linked-mini li') !== null
+}
+
+/** 이슈 고르는 창이 닫혔으면 다시 연다. */
+function reopenIssueLink(ctx: CoachContext) {
+  if ($('.dialog-panel') === null) clickOn(byTextIncludes('.dc-rail button', ctx.t.discussions.linkButton))
 }
