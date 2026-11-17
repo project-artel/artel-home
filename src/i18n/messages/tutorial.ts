@@ -40,6 +40,8 @@ export const tutorialEn = {
     mcpTitle: 'Coding agent · artel MCP',
     unityLabel: 'Virtual Unity screen',
     why: 'Why',
+    mcpGuide: 'How to connect MCP',
+    mcpGuideTitle: 'Opens the setup guide for the ARTEL plugin in a new tab',
   },
   unity: {
     sdkBody: 'Sign in with your ARTEL account to connect.',
@@ -214,6 +216,8 @@ export const tutorialKo: Localized<typeof tutorialEn> = {
     mcpTitle: '코딩 에이전트 · artel MCP',
     unityLabel: '가상 Unity 화면',
     why: '왜 필요한가요',
+    mcpGuide: 'MCP 연결하는 법 보기',
+    mcpGuideTitle: '새 탭에서 ARTEL 플러그인 설치 안내를 엽니다',
   },
   unity: {
     sdkBody: 'ARTEL 계정으로 로그인하면 연결됩니다.',

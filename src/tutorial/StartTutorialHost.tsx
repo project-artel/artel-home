@@ -4,6 +4,7 @@ import { markTutorialSeen } from '../auth/authApi'
 import { useAuth } from '../auth/useAuth'
 import { useI18n } from '../i18n/useI18n'
 import { enterTutorialMode, exitTutorialMode } from './mock/tutorialMode'
+import { TUTORIAL_SKIP_PARAM } from './startTutorialSteps'
 import { TutorialCoach } from './TutorialCoach'
 
 /** 프로젝트 밖에서 시작할 때 쓰는 예시 프로젝트 번호. 목데이터만 이 번호를 안다. */
@@ -23,7 +24,9 @@ export function StartTutorialHost() {
   const auth = useAuth()
   const { t, locale } = useI18n()
   const location = useLocation()
+  // 튜토리얼에서 새 탭으로 연 안내 화면에서는 다시 띄우지 않는다.
   const owed = auth.status === 'authenticated' && auth.user.startTutorialPending
+    && !new URLSearchParams(location.search).has(TUTORIAL_SKIP_PARAM)
   const [open, setOpen] = useState<Open | null>(() => (owed ? place(true, location.pathname) : null))
   const [phase, setPhase] = useState<'intro' | 'play' | 'done'>('intro')
   const [recorded, setRecorded] = useState(!owed)

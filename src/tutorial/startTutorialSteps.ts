@@ -15,6 +15,11 @@ import { IDS } from './mock/tutorialFixtures'
  * - mcp: 코딩 에이전트 창. 같은 일을 artel MCP 로 하면 어떻게 되는지 보여 준다.
  */
 
+/**
+ * 튜토리얼에서 새 탭으로 연 안내 화면에 붙이는 표시. 그 탭에서는 처음 온 사용자라도 튜토리얼을 다시 띄우지 않는다.
+ */
+export const TUTORIAL_SKIP_PARAM = 'from-tutorial'
+
 export type CoachContext = {
   t: Messages
   /** 튜토리얼이 들어가 있는 프로젝트의 화면 주소. 예: `/projects/17` */

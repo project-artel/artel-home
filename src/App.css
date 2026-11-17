@@ -13986,6 +13986,8 @@ body:has(.dialog-scrim) .workspace-corner { visibility: hidden; }
 .tut-callout-tag { align-self: flex-start; padding: 3px 9px; border-radius: var(--radius-md); background: var(--color-brand-accent); color: var(--color-text-on-accent); font-size: 12px; font-weight: 700; }
 .tut-callout-body h2 { margin: 0; font-size: 17px; line-height: 1.4; }
 .tut-callout-body p { margin: 0; color: var(--color-text-secondary); font-size: 13.5px; line-height: 1.6; }
+.tut-callout-link { align-self: flex-start; margin-top: 2px; color: var(--color-brand-accent); font-size: 13px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.tut-callout-link:hover { color: var(--color-brand-accent-strong); }
 .tut-why {
   display: flex;
   flex-direction: column;

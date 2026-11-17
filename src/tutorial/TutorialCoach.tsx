@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { appPath } from '../appPath'
 import { useI18n } from '../i18n/useI18n'
 import { placeCallout, ringOf, type Box } from './coachGeometry'
 import { McpScene } from './McpScene'
-import { START_TUTORIAL_STEPS, flatIndex, type CoachContext, type TutorialAction } from './startTutorialSteps'
+import { START_TUTORIAL_STEPS, TUTORIAL_SKIP_PARAM, flatIndex, type CoachContext, type TutorialAction } from './startTutorialSteps'
 import { UnityScene } from './UnityScene'
 
 const STEPS = START_TUTORIAL_STEPS
@@ -143,6 +144,17 @@ export function TutorialCoach({
         {tag !== null && !waiting && <span className="tut-callout-tag">{tag}</span>}
         <h2 aria-live="polite">{waiting ? m.player.loading : copy.title}</h2>
         {!waiting && <p>{copy.body}</p>}
+        {action.kind === 'mcp' && (
+          <a
+            className="tut-callout-link"
+            href={appPath(`/setup?guide=skills&${TUTORIAL_SKIP_PARAM}=1`)}
+            rel="noreferrer"
+            target="_blank"
+            title={m.player.mcpGuideTitle}
+          >
+            {m.player.mcpGuide} ↗
+          </a>
+        )}
       </div>
       <footer className="tut-callout-foot">
         <ol aria-label={m.player.steps} className="tut-steps">
