@@ -1,4 +1,7 @@
-/* 로그 창 자리에 들어가는 에이전트 창. 세 칸의 높이는 비율로 고정이라 내용이 바뀌어도 아이콘 자리가 흔들리지 않는다. */
+/*
+ * planner–executer 런의 에이전트 창. 칸 넷(계획·실행·완료 조건·판정)을 위에서 아래로 쌓는다. 칸은 늘 자기 내용 높이만
+ * 쓰고 겹치지 않는다. 지금 행동 중인 칸만 테두리로 강조하고, 나머지 칸도 내용은 흐리게 하지 않는다.
+ */
 .qa-agent-dock {
   flex: 1;
   min-height: 0;
@@ -9,106 +12,381 @@
   padding: 10px 14px 12px;
 }
 
-.qa-agent-dock-title {
-  font-family: var(--font-display);
-  font-size: 14px;
-  font-weight: 600;
-}
-
 .qa-agent-dock-head {
   flex: none;
   font-size: 12px;
   color: var(--color-text-secondary);
 }
 
-.qa-agent-rows {
+.qa-agent-stack {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  display: grid;
-  grid-template-rows: minmax(190px, 1fr) minmax(230px, 1.4fr) minmax(150px, 1fr);
-}
-
-/* 끝난 런은 타임라인이 창 아래를 덮는다. 내용 높이만 써서 Evaluator 가 가려지지 않게 한다. */
-.qa-console:has(.qa-execution-timeline) .qa-agent-rows {
-  grid-template-rows: auto auto auto;
-  align-content: start;
-}
-
-.qa-console:has(.qa-execution-timeline) .qa-agent-stem {
-  flex: none;
-}
-
-.qa-agent-row {
-  min-height: 0;
   display: flex;
   flex-direction: column;
+  gap: 8px;
 }
 
-.qa-agent-who {
+.qa-agent-card {
   flex: none;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  opacity: 0.6;
-}
-
-.qa-agent-row.is-on .qa-agent-who,
-.qa-agent-row.is-on .qa-agent-stem > *,
-.qa-agent-dock--idle .qa-agent-who,
-.qa-agent-dock--idle .qa-agent-stem > * {
-  opacity: 1;
-}
-
-.qa-agent-icon {
-  width: 40px;
-  height: 40px;
+  min-width: 0;
   box-sizing: border-box;
-  flex: none;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-raised);
+  padding: 10px 12px;
+}
+
+.qa-agent-card.is-on {
+  border-color: var(--color-border-strong);
+}
+
+.qa-agent-card--planner.is-on {
+  border-color: var(--color-agent-reasoning);
+}
+
+.qa-agent-card--done.is-on {
+  border-color: var(--color-status-success);
+}
+
+.qa-agent-card-head {
   display: flex;
   align-items: center;
-  justify-content: center;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-lg);
-  background: var(--color-bg-raised);
-  color: var(--color-text-primary);
-}
-
-.qa-agent-icon--planner {
-  background: color-mix(in srgb, var(--color-agent-reasoning) 18%, transparent);
-  color: var(--color-agent-reasoning);
-}
-
-.qa-agent-icon--evaluator {
-  background: var(--color-status-success-muted);
-  color: var(--color-status-success);
-}
-
-.qa-agent-row.is-on .qa-agent-icon {
-  border: 2px solid var(--color-action-primary);
-}
-
-.qa-agent-name {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.3;
-}
-
-.qa-agent-label--planner {
-  color: var(--color-agent-reasoning);
-}
-
-.qa-agent-label--evaluator {
-  color: var(--color-status-success);
-}
-
-.qa-agent-status {
+  gap: 6px;
+  min-width: 0;
+  margin-bottom: 6px;
   font-size: 12px;
   color: var(--color-text-secondary);
 }
 
-.qa-agent-row.is-on .qa-agent-status {
-  color: var(--color-action-primary);
+.qa-agent-card-icon {
+  flex: none;
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  align-items: center;
+  justify-content: center;
+}
+
+.qa-agent-card-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.qa-agent-card--planner .qa-agent-card-icon,
+.qa-agent-card--planner .qa-agent-card-label {
+  color: var(--color-agent-reasoning);
+}
+
+.qa-agent-card--evaluator .qa-agent-card-icon,
+.qa-agent-card--evaluator .qa-agent-card-label {
+  color: var(--color-status-success);
+}
+
+.qa-agent-card-label {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.qa-agent-card-agent {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.qa-agent-card-status {
+  margin-left: auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.qa-agent-card.is-on .qa-agent-card-status {
+  color: var(--color-text-primary);
+}
+
+.qa-agent-card--planner.is-on .qa-agent-card-status {
+  color: var(--color-agent-reasoning);
+}
+
+.qa-agent-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--color-text-primary);
+}
+
+.qa-agent-card-body p {
+  margin: 0;
+}
+
+.qa-agent-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  min-width: 0;
+}
+
+.qa-agent-meta,
+.qa-agent-sub,
+.qa-agent-idle {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.qa-agent-note {
+  font-size: 12px;
+  color: var(--color-status-warning);
+}
+
+/* planner 가 지금까지 쓴 답의 끝부분. 세 줄만 보인다. */
+.qa-agent-stream {
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-agent-reasoning) 8%, transparent);
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 답을 쓰기 전 추론 요약. 답 글자와 구분되게 본문 글꼴로 쓴다. */
+.qa-agent-stream--thinking {
+  font-size: 12px;
+  font-style: italic;
+}
+
+.qa-agent-goals {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.qa-agent-goal {
+  display: grid;
+  grid-template-columns: 14px auto minmax(0, 1fr);
+  gap: 6px;
+  align-items: baseline;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.qa-agent-goal-text {
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.qa-agent-goal--current {
+  background: color-mix(in srgb, var(--color-agent-reasoning) 10%, transparent);
+  color: var(--color-text-primary);
+}
+
+.qa-agent-goal--current .qa-agent-goal-text {
+  -webkit-line-clamp: 3;
+}
+
+.qa-agent-goal--current .qa-agent-goal-glyph {
+  color: var(--color-agent-reasoning);
+  font-weight: 700;
+}
+
+.qa-agent-goal--done .qa-agent-goal-glyph {
+  color: var(--color-status-success);
+}
+
+.qa-agent-goal-step {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.qa-agent-picked {
+  min-width: 0;
+}
+
+.qa-agent-confidence {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.qa-agent-result {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
+.qa-agent-result--effect_met {
+  color: var(--color-status-success);
+}
+
+.qa-agent-result--effect_unmet,
+.qa-agent-result--precondition_false,
+.qa-agent-result--stale_target,
+.qa-agent-result--input_rejected,
+.qa-agent-result--contract_error {
+  color: var(--color-status-critical);
+}
+
+.qa-agent-meter {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 72px 34px;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.qa-agent-meter-label {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.qa-agent-meter-value {
+  text-align: right;
+  color: var(--color-text-primary);
+}
+
+.qa-agent-bar {
+  display: block;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--color-border-subtle);
+  overflow: hidden;
+}
+
+.qa-agent-bar i {
+  display: block;
+  height: 100%;
+  background: var(--color-text-primary);
+}
+
+.qa-agent-meter.is-thin .qa-agent-bar i {
+  background: var(--color-text-muted);
+}
+
+.qa-agent-meter.is-low .qa-agent-bar i {
+  background: var(--color-status-warning);
+}
+
+.qa-agent-options {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.qa-agent-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.qa-agent-chip {
+  padding: 1px 8px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 999px;
+  background: var(--color-bg-raised);
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
+.qa-agent-chip--warning {
+  border-color: var(--color-status-warning);
+  background: var(--color-status-warning-muted);
+  color: var(--color-text-primary);
+}
+
+.qa-agent-done-state strong {
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.qa-agent-done-state.is-met strong {
+  color: var(--color-status-success);
+}
+
+/* 판정 줄: 끝난 판정이 위에, 판정 중·판정 대기가 아래로 쌓인다. */
+.qa-agent-judgements {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.qa-agent-judgement {
+  padding: 6px 8px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+}
+
+.qa-agent-judgement-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.qa-agent-judgement-state {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.qa-agent-judgement-text {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.qa-agent-judgement-stop {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.qa-agent-judgement.is-passed .qa-agent-judgement-head {
+  color: var(--color-status-success);
+}
+
+.qa-agent-judgement.is-failed .qa-agent-judgement-head {
+  color: var(--color-status-critical);
+}
+
+.qa-agent-judgement.is-judging {
+  border-color: var(--color-status-success);
+  background: var(--color-status-success-muted);
+}
+
+.qa-agent-judgement.is-waiting {
+  border-style: dashed;
+  color: var(--color-text-muted);
 }
 
 /* 행동 중 표시: 점 셋이 차례로 튄다. */
@@ -117,7 +395,6 @@
   align-items: center;
   gap: 3px;
   height: 12px;
-  margin-left: 6px;
   vertical-align: middle;
 }
 
@@ -149,313 +426,13 @@
   }
 }
 
-/* 에이전트 사이의 선. 아이콘 아래 선에 이어진다. */
-.qa-agent-line {
-  flex: none;
-  position: relative;
-  height: 26px;
-  margin-left: 19px;
-  padding-left: 12px;
-  display: flex;
-  align-items: center;
-  border-left: 2px solid var(--color-border-strong);
-}
-
-/* 다음 에이전트로 넘어가는 동안 아이콘 사이 선 전체가 켜진다. 빨간 테두리는 아이콘에만 둔다. */
-.qa-agent-row.is-passing .qa-agent-stem,
-.qa-agent-row.is-passing .qa-agent-line {
-  border-left-color: var(--color-text-primary);
-}
-
-.qa-agent-line-tag {
-  overflow: hidden;
-  font-size: 11px;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.qa-agent-line-dot {
-  position: absolute;
-  left: -5px;
-  width: 8px;
-  height: 8px;
-  border-radius: var(--radius-sm);
-  background: var(--color-text-primary);
-}
-
-.qa-agent-line-dot--down {
-  animation: qa-agent-go-down 1.2s linear infinite;
-}
-
-.qa-agent-line-dot--up {
-  animation: qa-agent-go-up 1.2s linear infinite;
-}
-
-@keyframes qa-agent-go-down {
-  from {
-    top: 0;
-  }
-  to {
-    top: calc(100% - 8px);
-  }
-}
-
-@keyframes qa-agent-go-up {
-  from {
-    top: calc(100% - 8px);
-  }
-  to {
-    top: 0;
-  }
-}
-
-/* 아이콘에서 자기 블럭으로 내려오는 선과 작은 블럭 */
-.qa-agent-stem {
-  flex: 1 1 0;
-  min-height: 0;
-  margin-left: 19px;
-  padding: 6px 0 0 12px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-  border-left: 2px solid var(--color-border-strong);
-}
-
-.qa-agent-stem > * {
-  opacity: 0.6;
-}
-
-.qa-agent-block {
-  max-width: 100%;
-  min-height: 0;
-  box-sizing: border-box;
-  overflow-y: auto;
-  padding: 6px 10px;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-lg);
-  background: var(--color-bg-raised);
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.qa-agent-block p {
-  margin: 2px 0 0;
-}
-
-.qa-agent-block--wide {
-  width: 100%;
-}
-
-.qa-agent-block--idle {
-  font-size: 13px;
-  color: var(--color-text-secondary);
-}
-
-.qa-agent-block-title {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0 8px;
-}
-
-.qa-agent-block-title strong,
-.qa-agent-verdict {
-  font-size: 13px;
-}
-
-.qa-agent-block-title .mono {
-  font-size: 11px;
-  color: var(--color-text-secondary);
-}
-
-.qa-agent-done {
-  font-size: 11px;
-  color: var(--color-text-secondary);
-  overflow-wrap: anywhere;
-}
-
-.qa-agent-note {
-  flex: none;
-  padding: 2px 8px;
-  border-radius: var(--radius-md);
-  background: var(--color-status-warning-muted);
-  color: var(--color-text-primary);
-  font-size: 12px;
-}
-
-.qa-agent-action {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: baseline;
-  gap: 8px;
-}
-
-.qa-agent-turn {
-  font-size: 11px;
-  color: var(--color-text-secondary);
-}
-
-.qa-agent-picked {
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.qa-agent-result {
-  font-size: 11px;
-  color: var(--color-text-secondary);
-}
-
-.qa-agent-result--effect_met {
-  color: var(--color-status-success);
-}
-
-.qa-agent-result--effect_unmet,
-.qa-agent-result--precondition_false,
-.qa-agent-result--stale_target,
-.qa-agent-result--input_rejected,
-.qa-agent-result--contract_error {
-  color: var(--color-status-critical);
-}
-
-.qa-agent-confidence {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 2px;
-  font-size: 11px;
-  color: var(--color-text-secondary);
-}
-
-.qa-agent-confidence .mono {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-
-.qa-agent-bar {
-  display: block;
-  flex: 1 1 auto;
-  height: 6px;
-  overflow: hidden;
-  border-radius: 1px;
-  background: var(--color-border-subtle);
-}
-
-.qa-agent-bar i {
-  display: block;
-  height: 100%;
-  background: var(--color-text-primary);
-}
-
-.qa-agent-confidence.is-low .mono {
-  color: var(--color-status-warning);
-}
-
-.qa-agent-confidence.is-low .qa-agent-bar i {
-  background: var(--color-status-warning);
-}
-
-.qa-agent-options {
-  margin: 4px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.qa-agent-options li {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 96px 30px;
-  align-items: center;
-  gap: 0 8px;
-  font-size: 11px;
-  line-height: 19px;
-  opacity: 0.7;
-}
-
-.qa-agent-options li.is-picked {
-  opacity: 1;
-}
-
-.qa-agent-options li > .mono {
-  text-align: right;
-}
-
-.qa-agent-option-name {
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.qa-agent-bar--thin {
-  height: 4px;
-}
-
-.qa-agent-options li.is-picked .qa-agent-bar i {
-  background: var(--color-action-primary);
-}
-
-.qa-agent-options li:not(.is-picked) .qa-agent-bar i {
-  background: var(--color-border-strong);
-}
-
-/* 글 안의 코드 이름·씬·매크로. `PeText` 가 쓴다. */
-.qa-pe-code {
-  padding: 0 4px;
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-hover);
-  font-family: var(--font-mono);
-  font-size: 0.92em;
-  overflow-wrap: anywhere;
-}
-
-.qa-pe-scene {
-  padding: 0 5px;
-  border: 1px solid var(--color-border-strong);
-  border-radius: 999px;
-  font-size: 0.92em;
-  white-space: nowrap;
-}
-
-.qa-pe-term {
-  font-weight: 500;
-  text-decoration: underline dotted var(--color-text-muted);
-}
-
-.qa-pe-macro {
-  display: inline-block;
-  padding: 0 6px;
-  border: 1px solid var(--color-agent-reasoning);
-  border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--color-agent-reasoning) 12%, transparent);
-  color: var(--color-text-primary);
-  font-family: var(--font-mono);
-  font-size: 0.9em;
-  line-height: 1.5;
-  white-space: nowrap;
-}
-
-.qa-pe-error-tag {
-  margin-right: 6px;
-  padding: 0 5px;
-  border-radius: var(--radius-sm);
-  background: var(--color-status-critical-muted);
-  color: var(--color-status-critical);
-  font-size: 0.92em;
-  font-weight: 600;
-}
-
 .qa-pe-error-text {
   font-family: var(--font-mono);
   font-size: 0.92em;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .qa-agent-dots i,
-  .qa-agent-line-dot--down,
-  .qa-agent-line-dot--up {
+  .qa-agent-dots i {
     animation: none;
   }
 }

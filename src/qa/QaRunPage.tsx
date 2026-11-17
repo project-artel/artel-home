@@ -18,7 +18,7 @@ import { GameStreamView } from '../streaming/GameStreamView'
 import { QaTryIssuePanel } from '../issues/QaTryIssuePanel'
 import { listTestScenarios } from '../testScenarios/scenarioApi'
 import { cancelQaRun, compareDecimalIds, getQaRun, isDecimalId } from './qaApi'
-import { isAgentRun } from './agentDockState'
+import { deriveAgentDock, deriveStepSegments, isAgentRun } from './agentDockState'
 import { QaAgentDock } from './QaAgentDock'
 import { QaBehaviorLanes } from './QaBehaviorLanes'
 import { QaFocusStage } from './QaFocusStage'
@@ -414,6 +414,15 @@ function FocusedTry({
   const historicalLogs = useMemo(() => logsThrough(session.logs, logCutoff), [session.logs, logCutoff])
   const dockLogs = useMemo(() => logsThrough(agentLogs, logCutoff), [agentLogs, logCutoff])
   const historicalVerdicts = useMemo(() => logsThrough(session.verdictLogs, logCutoff), [session.verdictLogs, logCutoff])
+  // planner–executer 런이면 왼쪽 step 목록에 에이전트가 지금 도는 step 과, 그 step 을 맡은 묶음만 넘긴다. 묶음의 마지막
+  // step 을 지나거나 런이 끝나면 띠를 푼다.
+  const agentSteps = useMemo(() => {
+    if (!agentRun) return null
+    const current = deriveAgentDock(dockLogs, true).step
+    const live = visibleThrough !== null || session.qaTry?.status === 'RUNNING'
+    const segments = live && current !== null ? deriveStepSegments(dockLogs).filter((segment) => segment.steps.includes(current)) : []
+    return { segments, current }
+  }, [agentRun, dockLogs, visibleThrough, session.qaTry?.status])
 
   const progress = useMemo(
     () =>
@@ -586,6 +595,7 @@ function FocusedTry({
           scenarioSteps,
           executionMode,
           onJump: agentRun ? undefined : jumpToLog,
+          agentSteps,
           caseVerdicts,
           caseReports,
         }}

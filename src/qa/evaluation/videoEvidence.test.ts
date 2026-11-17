@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { clipDuration, clipElapsed, clipGaps, clipSeek, clipSegments, clipTimeLabel, evidenceExpired } from './videoEvidence'
+import { clipDuration, clipElapsed, clipGaps, clipSeek, clipSegments, clipTimeLabel, evidenceExpired, unexplainedHole } from './videoEvidence'
 import type { Attempt, Playback, Segment } from './evaluationApi'
 
 const at = (seconds: number) => new Date(Date.UTC(2026, 9, 27, 0, 0, seconds)).toISOString()
@@ -77,3 +77,12 @@ test('30일 경계를 넘으면 갱신 전에도 만료를 표시하고 일부 �
   assert.equal(evidenceExpired(attempt, playback, Date.parse(at(90)) + thirtyDays), false)
   assert.equal(evidenceExpired(attempt, playback, Date.parse(at(120)) + thirtyDays), true)
 })
+
+test('게임 시간을 멈춘 구간으로 설명되는 segment 사이 빈 곳은 누락이 아니다', () => {
+  const paused = [{ startedAt: at(10), endedAt: at(40), reason: 'PAUSED' }]
+  assert.equal(unexplainedHole(at(10), at(40), paused), false)
+  assert.equal(unexplainedHole(at(10), at(40), []), true)
+  assert.equal(unexplainedHole(at(10), at(40), [{ ...paused[0], reason: 'VIDEO_MISSING' }]), true)
+  assert.equal(unexplainedHole(at(10), at(11), []), false)
+})
+

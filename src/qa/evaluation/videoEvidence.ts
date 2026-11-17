@@ -10,6 +10,17 @@ export function clipGaps(attempt: Attempt, gaps: Gap[]) {
       endedAt: new Date(Math.min(end, Date.parse(gap.endedAt))).toISOString() }))
 }
 
+/** 게임 시간을 멈춰 일부러 녹화하지 않은 구간의 이유(orchestration `GameTimePauses`). 영상 누락이 아니다. */
+export const PAUSED_GAP = 'PAUSED'
+
+/** 이어지는 두 segment 사이가 1초 넘게 비었고, 그 빈 곳이 게임 시간을 멈춘 구간으로 설명되지 않는다. */
+export function unexplainedHole(previousEnd: string, nextStart: string, gaps: Gap[]) {
+  const from = Date.parse(previousEnd)
+  const to = Date.parse(nextStart)
+  if (to - from <= 1000) return false
+  return !gaps.some(gap => gap.reason === PAUSED_GAP && Date.parse(gap.startedAt) <= from + 1000 && Date.parse(gap.endedAt) >= to - 1000)
+}
+
 export function evidenceExpired(attempt: Attempt, playback: Playback, now: number) {
   if (playback.recording?.expiresAt && Date.parse(playback.recording.expiresAt) <= now) return true
   const start = Date.parse(attempt.startedAt ?? attempt.finishedAt ?? attempt.createdAt) - 10000
