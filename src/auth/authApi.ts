@@ -1,6 +1,8 @@
 import { isLocale, type Locale } from '../i18n/locale'
 import type { AccountProfileDraft, AuthUser, LinkedIdentity } from './authTypes'
 import type { RelayRequestKind } from './sdkLoginRequest'
+import { tutorialResponse } from '../tutorial/mock/tutorialMockApi'
+import { tutorialSession } from '../tutorial/mock/tutorialMode'
 
 const orchestrationUrl = (import.meta.env.VITE_ORCHESTRATION_URL ?? 'http://localhost:8080').replace(/\/$/, '')
 
@@ -119,10 +121,13 @@ async function sendWithRefresh(send: () => Promise<Response>): Promise<Response>
  * "not signed in yet", not "the session just expired".
  */
 export async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
-  const response = await sendWithRefresh(() => fetch(`${orchestrationUrl}${path}`, {
+  const send = () => sendWithRefresh(() => fetch(`${orchestrationUrl}${path}`, {
     ...init,
     credentials: 'include',
   }))
+  // 시작 튜토리얼이 켜져 있으면 서버 대신 목데이터가 답한다(ARTEL-1461). 쓰기도 서버로 가지 않는다.
+  const tutorial = tutorialSession()
+  const response = tutorial === null ? await send() : await tutorialResponse(path, init, tutorial, send)
 
   if (response.status === 401) {
     unauthorizedHandler?.()
