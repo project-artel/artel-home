@@ -1,4 +1,5 @@
 import { buildDisplayName } from '../../projects/buildEnvironment'
+import { caseRatioOf } from '../scenarioOutcome'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { EdgeScrollbar } from '../../design-system/primitives/EdgeScrollbar'
@@ -83,7 +84,7 @@ export function RunInspector({
           <span className="qh-inspector-title">
             <span className="qh-inspector-line">
               {ordinalLabel !== null && <b>{ordinalLabel}</b>}
-              {isStatus(run.status) && <QaStatusPill status={run.status} />}
+              {isStatus(run.status) && <QaStatusPill ratio={caseRatioOf(run)} status={run.status} />}
             </span>
             <Link
               className="qh-ellipsis qh-inspector-name"

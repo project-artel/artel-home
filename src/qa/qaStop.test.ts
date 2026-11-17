@@ -34,6 +34,8 @@ function qaTry(id: string, stopCode: string | null): QaTry {
     completedAt: null,
     qaRunId: '59',
     stop: stopCode === null ? null : { code: stopCode, provider: 'anthropic', message: null },
+    casesPassed: null,
+    casesTotal: null,
   }
 }
 

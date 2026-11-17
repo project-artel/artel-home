@@ -6,6 +6,7 @@ import type { QaCaseReport } from './qaCaseProgress'
 import { QaRunUsagePanel } from './QaRunUsagePanel'
 import { QaScenarioSteps, type AgentStepInfo } from './QaScenarioSteps'
 import { QA_STOP_NOT_STARTED, type QaTry } from './qaTypes'
+import { caseRatioOf } from './scenarioOutcome'
 import { useScenarioSteps } from './useScenarioSteps'
 
 /** What the rail knows about the focused scenario, from its log stream. */
@@ -114,6 +115,7 @@ function RailScenario({
   const { t } = useI18n()
   // 앞 시나리오가 모델 API 오류로 멈춰 돌지 않은 시나리오(ARTEL-1372). 미판정 배지 대신 "실행 안 함" 이다.
   const notRun = entry.stop?.code === QA_STOP_NOT_STARTED
+  const ratio = caseRatioOf(entry)
   const stepsId = `qa-rail-steps-${entry.id}`
   return (
     <li className={`qa-rail-entry${expanded ? ' qa-rail-entry--expanded' : ''}`}>
@@ -134,11 +136,22 @@ function RailScenario({
           onClick={onFocus}
           type="button"
         >
-          <span className={`qa-rail-dot qa-rail-dot--${notRun ? 'pending' : entry.status.toLowerCase()}`} aria-hidden="true" />
+          <span
+            className={`qa-rail-dot qa-rail-dot--${notRun ? 'pending' : ratio !== null ? `ratio-${ratio.tone}` : entry.status.toLowerCase()}`}
+            aria-hidden="true"
+          />
           <span className="qa-rail-no">{number}</span>
           <span className="qa-rail-title">{title}</span>
           {notRun ? (
             <span className="qa-rail-not-run">{t.qa.run.stop.notRun}</span>
+          ) : ratio !== null ? (
+            // TC 하나가 실패했다고 시나리오 전체를 "실패" 로 보이지 않는다. 통과 수와 비율을 그 비율의 색으로 보인다.
+            <span
+              className={`qa-run-status qa-run-status--ratio-${ratio.tone}`}
+              title={t.qa.run.caseRatioTitle(ratio.passed, ratio.total)}
+            >
+              {t.qa.run.caseRatio(ratio.passed, ratio.total, ratio.percent)}
+            </span>
           ) : (
             <span className={`qa-run-status qa-run-status--${entry.status.toLowerCase()}`}>
               {t.qa.statusLabels[entry.status]}

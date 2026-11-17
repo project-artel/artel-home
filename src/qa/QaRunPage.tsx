@@ -33,6 +33,7 @@ import { isTerminalQaStatus, QA_STOP_NOT_STARTED, type QaLog, type QaRun, type Q
 import { useQaAgentLogs } from './useQaAgentLogs'
 import { useQaTry } from './useQaTry'
 import { useScenarioSteps } from './useScenarioSteps'
+import { runCaseRatioOf } from './scenarioOutcome'
 import { QaRawLogControls } from './QaRawLogControls'
 import { DEFAULT_QA_LOG_FILTER, filterQaLogs, qaLogContains } from './qaLogFilter'
 import { QaReplay } from './QaReplay'
@@ -283,6 +284,8 @@ function QaRunPage({
   const active = !isTerminalQaStatus(run.status)
   const stopNotice = stopNoticeOf(run, liveStop)
   const notRun = notStartedCount(run)
+  // 끝난 런은 시나리오 하나가 실패했다고 "실패" 로 보이지 않고, 시나리오들의 TC 통과 수를 합친 비율로 보인다.
+  const runRatio = run.status === 'COMPLETED' || run.status === 'FAILED' ? runCaseRatioOf(run.tries) : null
   const focusedTry = run.tries.find((entry) => entry.id === focusedTryId) ?? null
 
   const scenarioTitle = scenarioTitleOf
@@ -305,9 +308,18 @@ function QaRunPage({
         <Link className="st-back" to={projectLink(projectId)}>{t.qa.run.back}</Link>
         <div className="qa-console-title">
           <strong>{t.qa.run.title}</strong>
-          <span className={`qa-run-status qa-run-status--${run.status.toLowerCase()}`}>
-            {t.qa.statusLabels[run.status]}
-          </span>
+          {runRatio !== null ? (
+            <span
+              className={`qa-run-status qa-run-status--ratio-${runRatio.tone}`}
+              title={t.qa.run.caseRatioTitle(runRatio.passed, runRatio.total)}
+            >
+              {t.qa.run.caseRatio(runRatio.passed, runRatio.total, runRatio.percent)}
+            </span>
+          ) : (
+            <span className={`qa-run-status qa-run-status--${run.status.toLowerCase()}`}>
+              {t.qa.statusLabels[run.status]}
+            </span>
+          )}
           <span className="qa-console-progress">
             {notRun > 0
               ? t.qa.run.progressStopped(run.tries.length - notRun, run.tries.length, notRun)

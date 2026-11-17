@@ -82,7 +82,13 @@ export function parseQaTry(data: unknown, status = 200): QaTry {
     completedAt: asNullableString(record.completedAt),
     qaRunId: optionalId(record.qaRunId),
     stop: parseStop(record.stop),
+    casesPassed: countOrNull(record.casesPassed),
+    casesTotal: countOrNull(record.casesTotal),
   }
+}
+
+function countOrNull(value: unknown): number | null {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : null
 }
 
 /** 까닭은 `code` 가 있을 때만 읽는다. 옛 서버는 이 필드를 보내지 않는다. */

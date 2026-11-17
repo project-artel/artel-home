@@ -24,6 +24,8 @@ function tryWith(status: QaTryStatus, id: string): QaTry {
     completedAt: null,
     qaRunId: '55',
     stop: null,
+    casesPassed: null,
+    casesTotal: null,
   }
 }
 
