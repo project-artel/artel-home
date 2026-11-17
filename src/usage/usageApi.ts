@@ -89,7 +89,11 @@ export async function fetchProjectUsage(projectId: string, today: Date, signal?:
   return fetchUsage(projectId, today, signal)
 }
 
-/** [projectId] null 이면 볼 수 있는 전 프로젝트 합산이다(ARTEL-1393). */
+/**
+ * [projectId] null 이면 내가 멤버인 전 프로젝트 합산이다(ARTEL-1393). 계정 설정의 "API 관리" 가 쓴다.
+ * `scope=member` 로 묻는다 — 생략하면 서버가 `DEVELOPER` · `ADMIN` 에게 참여하지 않은 프로젝트의 이름과 비용까지
+ * 돌려줘, 남의 프로젝트 사용량이 내 계정 화면에 보였다. 배포 전체는 관리 화면(`src/admin/usage`)의 몫이다.
+ */
 export async function fetchUsage(
   projectId: string | null,
   today: Date,
@@ -104,6 +108,7 @@ export async function fetchUsage(
     zone: localZone(),
   })
   if (projectId !== null) params.set('projectId', projectId)
+  else params.set('scope', 'member')
 
   const response = await apiFetch(`/api/llm-usage/stats?${params}`, { signal })
   const body = asRecord(await readJson(response))
