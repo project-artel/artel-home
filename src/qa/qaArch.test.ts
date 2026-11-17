@@ -2,71 +2,57 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   archEngine,
-  archLabelMissing,
-  changedKnobCount,
   changedSettingCount,
   parseArchSelection,
-  suggestArchLabel,
   toArchRequest,
   withEngine,
   withKnob,
   withoutVisionKnobs,
 } from './qaArch'
 
-test('toArchRequest returns null when no knob is changed', () => {
-  assert.equal(toArchRequest({ label: 'x' }), null)
+test('기본 설정은 arch 요청을 생략한다', () => {
+  assert.equal(toArchRequest({}), null)
 })
 
-test('toArchRequest carries the trimmed label and only the changed knobs', () => {
-  const request = toArchRequest({ label: '  my arch  ', phase_cycle: 'off', compaction: false })
-  assert.deepEqual(request, { label: 'my arch', phase_cycle: 'off', compaction: false })
-  assert.equal(request !== null && 'skills' in request, false)
+test('같은 설정은 같은 label을 사용하고 다른 설정은 label을 구분한다', () => {
+  const request = toArchRequest({ phase_cycle: 'off', compaction: false })
+  assert.deepEqual(request, { label: 'web-v1-a0-m0', phase_cycle: 'off', compaction: false })
+  assert.deepEqual(toArchRequest({ compaction: false, phase_cycle: 'off', skills: undefined }), request)
+  assert.notEqual(toArchRequest({ phase_cycle: 'off', compaction: true })?.label, request?.label)
+  assert.notEqual(toArchRequest({ phase_cycle: 'off' })?.label, request?.label)
 })
 
-test('toArchRequest omits a key whose value is undefined', () => {
-  const request = toArchRequest({ label: 'a', skills: 'on_demand', phase_cycle: undefined })
-  assert.ok(request)
-  assert.equal('phase_cycle' in request, false)
-})
-
-test('changedKnobCount ignores the label', () => {
-  assert.equal(changedKnobCount({ label: 'a' }), 0)
-  assert.equal(changedKnobCount({ label: 'a', macros: 'off', fold_threshold_chars: 0 }), 2)
-})
-
-test('archLabelMissing is true only for a changed knob with a blank label', () => {
-  assert.equal(archLabelMissing({ label: '   ', macros: 'off' }), true)
-  assert.equal(archLabelMissing({ label: 'x', macros: 'off' }), false)
-  assert.equal(archLabelMissing({ label: '' }), false)
-})
-
-test('suggestArchLabel joins changed knobs and is empty without any', () => {
-  assert.equal(suggestArchLabel({ label: '' }), '')
-  assert.equal(suggestArchLabel({ label: '', phase_cycle: 'off', skills: 'on_demand' }), 'phase_cycle=off skills=on_demand')
-})
-
-test('suggestArchLabel cuts at 50 characters', () => {
-  const label = suggestArchLabel({
-    label: '',
-    phase_cycle: 'in_verdict',
+test('모든 설정을 지정한 label도 서버의 50자 제한을 지킨다', () => {
+  const request = toArchRequest({
+    phase_cycle: 'full',
     skills: 'on_demand',
+    macros: 'on',
     screen_capture: 'every_call',
-    fold_threshold_chars: 1234567,
+    vision: 'on',
+    pulse_relevance: true,
+    report_step_view: true,
+    fold_stale_scenes: true,
+    fold_stale_knowledge: true,
+    fold_stale_skills: true,
+    fold_stale_macro_results: true,
+    fold_threshold_chars: 10_000_000,
+    compaction: true,
   })
-  assert.equal(label.length, 50)
+  assert.ok(request?.label)
+  assert.ok(request.label.length <= 50)
 })
 
 test('withoutVisionKnobs clears vision-only values and keeps the others', () => {
   assert.deepEqual(
-    withoutVisionKnobs({ label: 'a', vision: 'on', screen_capture: 'by_role', macros: 'off' }),
-    { label: 'a', macros: 'off' },
+    withoutVisionKnobs({ vision: 'on', screen_capture: 'by_role', macros: 'off' }),
+    { macros: 'off' },
   )
-  const kept = { label: 'a', vision: 'off', screen_capture: 'on_demand' } as const
+  const kept = { vision: 'off', screen_capture: 'on_demand' } as const
   assert.equal(withoutVisionKnobs(kept), kept)
 })
 
 test('withKnob sets a value and removes the key on undefined', () => {
-  const set = withKnob({ label: 'a' }, 'macros', 'off')
+  const set = withKnob({}, 'macros', 'off')
   assert.equal(set.macros, 'off')
   const cleared = withKnob(set, 'macros', undefined)
   assert.equal('macros' in cleared, false)
@@ -74,38 +60,37 @@ test('withKnob sets a value and removes the key on undefined', () => {
 
 test('parseArchSelection drops unknown keys, unknown values and out-of-range numbers', () => {
   const parsed = parseArchSelection({
-    label: 'a',
+    label: 'legacy',
     phase_cycle: 'lite',
     skills: 'sometimes',
     bogus: true,
     fold_threshold_chars: -1,
     compaction: true,
   })
-  assert.deepEqual(parsed, { label: 'a', phase_cycle: 'lite', compaction: true })
+  assert.deepEqual(parsed, { phase_cycle: 'lite', compaction: true })
 })
 
-test('parseArchSelection returns null for a non-object and an empty label for a non-string label', () => {
+test('parseArchSelection은 object가 아니면 null을 반환하고 이전 label을 버린다', () => {
   assert.equal(parseArchSelection('x'), null)
   assert.equal(parseArchSelection(null), null)
   assert.equal(parseArchSelection([]), null)
-  assert.deepEqual(parseArchSelection({ label: 3 }), { label: '' })
+  assert.deepEqual(parseArchSelection({ label: 3 }), {})
 })
 
 // ARTEL-1119 — `engine`. `agent` 는 #165 그대로이고, `planner_executer` 는 `engine` 하나만 보낸다.
 
 test('agent 엔진은 engine 키 없이 label 과 바꾼 knob 만 보낸다', () => {
-  const request = toArchRequest({ label: 'arm', engine: 'agent', phase_cycle: 'off' })
-  assert.deepEqual(request, { label: 'arm', phase_cycle: 'off' })
-  assert.equal(toArchRequest({ label: '', engine: 'agent' }), null)
+  const request = toArchRequest({ engine: 'agent', phase_cycle: 'off' })
+  assert.deepEqual(request, { label: 'web-v1-a0', phase_cycle: 'off' })
+  assert.equal(toArchRequest({ engine: 'agent' }), null)
 })
 
 test('planner_executer 는 knob 이 없어도 engine 만 보낸다', () => {
-  assert.deepEqual(toArchRequest({ label: '', engine: 'planner_executer' }), { engine: 'planner_executer' })
+  assert.deepEqual(toArchRequest({ engine: 'planner_executer' }), { engine: 'planner_executer' })
 })
 
-test('planner_executer 는 남겨 둔 tool loop knob 과 label 을 보내지 않는다', () => {
+test('planner_executer 는 남겨 둔 tool loop knob 을 보내지 않는다', () => {
   const request = toArchRequest({
-    label: 'arm',
     engine: 'planner_executer',
     phase_cycle: 'full',
     fold_threshold_chars: 1000,
@@ -113,39 +98,32 @@ test('planner_executer 는 남겨 둔 tool loop knob 과 label 을 보내지 않
   assert.deepEqual(request, { engine: 'planner_executer' })
 })
 
-test('label 점검은 planner_executer 에서 건너뛴다', () => {
-  assert.equal(archLabelMissing({ label: '', engine: 'planner_executer', macros: 'off' }), false)
-  assert.equal(archLabelMissing({ label: '', engine: 'agent', macros: 'off' }), true)
-})
-
 test('changedSettingCount 는 엔진을 세지 않고, planner_executer 면 남겨 둔 knob 도 세지 않는다', () => {
-  assert.equal(changedSettingCount({ label: '' }), 0)
-  assert.equal(changedSettingCount({ label: '', engine: 'planner_executer' }), 0)
-  assert.equal(changedSettingCount({ label: '', engine: 'planner_executer', macros: 'off', skills: 'off' }), 0)
-  assert.equal(changedSettingCount({ label: 'a', macros: 'off', skills: 'off' }), 2)
+  assert.equal(changedSettingCount({}), 0)
+  assert.equal(changedSettingCount({ engine: 'planner_executer' }), 0)
+  assert.equal(changedSettingCount({ engine: 'planner_executer', macros: 'off', skills: 'off' }), 0)
+  assert.equal(changedSettingCount({ macros: 'off', skills: 'off' }), 2)
 })
 
-test('withEngine 은 knob 과 label 을 남기고, agent 로 돌아오면 engine 키를 지운다', () => {
-  const planner = withEngine({ label: 'arm', phase_cycle: 'off' }, 'planner_executer')
-  assert.deepEqual(planner, { label: 'arm', phase_cycle: 'off', engine: 'planner_executer' })
+test('withEngine 은 knob 을 남기고, agent 로 돌아오면 engine 키를 지운다', () => {
+  const planner = withEngine({ phase_cycle: 'off' }, 'planner_executer')
+  assert.deepEqual(planner, { phase_cycle: 'off', engine: 'planner_executer' })
   const back = withEngine(planner, 'agent')
-  assert.deepEqual(back, { label: 'arm', phase_cycle: 'off' })
+  assert.deepEqual(back, { phase_cycle: 'off' })
   assert.equal(archEngine(back), 'agent')
 })
 
 test('withoutVisionKnobs 는 engine 을 건드리지 않는다', () => {
-  assert.deepEqual(withoutVisionKnobs({ label: '', engine: 'planner_executer', vision: 'on' }), {
-    label: '',
+  assert.deepEqual(withoutVisionKnobs({ engine: 'planner_executer', vision: 'on' }), {
     engine: 'planner_executer',
   })
 })
 
 test('parseArchSelection 은 engine 이 없거나 모르는 값이면 agent 로 읽는다', () => {
-  assert.deepEqual(parseArchSelection({ label: 'a', macros: 'off' }), { label: 'a', macros: 'off' })
-  assert.deepEqual(parseArchSelection({ label: '', engine: 'planner_executer' }), {
-    label: '',
+  assert.deepEqual(parseArchSelection({ macros: 'off' }), { macros: 'off' })
+  assert.deepEqual(parseArchSelection({ engine: 'planner_executer' }), {
     engine: 'planner_executer',
   })
-  assert.deepEqual(parseArchSelection({ label: '', engine: 'agent' }), { label: '' })
-  assert.deepEqual(parseArchSelection({ label: '', engine: 'pe2' }), { label: '' })
+  assert.deepEqual(parseArchSelection({ engine: 'agent' }), {})
+  assert.deepEqual(parseArchSelection({ engine: 'pe2' }), {})
 })

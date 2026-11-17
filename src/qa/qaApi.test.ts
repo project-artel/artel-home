@@ -181,7 +181,7 @@ test('parseQaLog keeps a BEHAVIOR_ENDED row instead of dropping it as an unknown
 })
 
 test('planner_executer run 의 wire body 는 arch 에 engine 하나뿐이다', () => {
-  const arch = toArchRequest({ label: 'arm', engine: 'planner_executer', phase_cycle: 'off' })
+  const arch = toArchRequest({ engine: 'planner_executer', phase_cycle: 'off' })
   const wire = JSON.parse(JSON.stringify(qaRunRequestBody('1', '2', 'm', 'platform', null, false, arch)))
   assert.deepEqual(wire.arch, { engine: 'planner_executer' })
 })

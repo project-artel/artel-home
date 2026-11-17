@@ -34,7 +34,7 @@ describe('ArchSettings', () => {
     renderKorean(createElement(ArchSettings, { onChange: () => {}, readsImages: true, selection }))
 
   it('엔진 선택은 고급 설정에 없고, agent 면 축을 잠그지 않는다', () => {
-    const html = render({ label: '' })
+    const html = render({})
     assert.equal(html.includes('<code translate="no">engine</code>'), false)
     assert.ok(html.includes('<code translate="no">phase_cycle</code>'))
     assert.doesNotMatch(html, /<fieldset[^>]*disabled/)
@@ -42,7 +42,7 @@ describe('ArchSettings', () => {
   })
 
   it('planner_executer 면 tool loop 축을 잠그고 고른 값은 그대로 보여 준다', () => {
-    const html = render({ label: 'arm', engine: 'planner_executer', phase_cycle: 'off' })
+    const html = render({ engine: 'planner_executer', phase_cycle: 'off' })
     assert.match(html, /<fieldset class="qa-advanced-fieldset" disabled="">/)
     assert.ok(html.includes(advanced.engineLocked))
     assert.match(html, /<option value="off" selected="">off<\/option>/)
@@ -117,7 +117,7 @@ describe('LaunchPanel', () => {
     [...html.matchAll(/<button aria-checked="true" class="ql-seg-item is-on"[^>]*>([^<]*)</g)].map((match) => match[1])
 
   it('엔진은 에이전트 다음에 있고, 기본은 워크플로우다', () => {
-    const html = render({ label: '' })
+    const html = render({})
     const engineAt = html.indexOf(`aria-label="${panel.engineTitle}"`)
     assert.ok(engineAt > html.indexOf(panel.agentLabel))
     assert.ok(engineAt < html.indexOf(panel.checksTitle))
@@ -125,24 +125,24 @@ describe('LaunchPanel', () => {
   })
 
   it('planner_executer 를 고르면 Plan & Execute 만 켜져 있다', () => {
-    assert.deepEqual(onEngines(render({ label: '', engine: 'planner_executer' })), [panel.engines.planner_executer])
+    assert.deepEqual(onEngines(render({ engine: 'planner_executer' })), [panel.engines.planner_executer])
   })
 
   it('제목 옆 변경 수는 엔진을 세지 않고, planner_executer 면 남겨 둔 knob 도 세지 않는다', () => {
-    assert.equal(render({ label: '', engine: 'planner_executer' }).includes('qa-advanced-count'), false)
-    assert.equal(render({ label: 'a', engine: 'planner_executer', macros: 'off', skills: 'off' }).includes('qa-advanced-count'), false)
-    assert.ok(render({ label: 'a', macros: 'off', skills: 'off' }).includes(advanced.changed(2)))
-    assert.equal(render({ label: '' }).includes('qa-advanced-count'), false)
+    assert.equal(render({ engine: 'planner_executer' }).includes('qa-advanced-count'), false)
+    assert.equal(render({ engine: 'planner_executer', macros: 'off', skills: 'off' }).includes('qa-advanced-count'), false)
+    assert.ok(render({ macros: 'off', skills: 'off' }).includes(advanced.changed(2)))
+    assert.equal(render({}).includes('qa-advanced-count'), false)
   })
 
-
-  it('planner_executer 는 실행을 막지 않고, label 도 요구하지 않는다', () => {
-    const html = render({ label: '', engine: 'planner_executer', macros: 'off' })
-    assert.equal(html.includes(panel.archLabelMissing), false)
+  it('planner_executer 에서 남겨 둔 knob 이 있어도 실행할 수 있다', () => {
+    const html = render({ engine: 'planner_executer', macros: 'off' })
     assert.equal(runBlocked(html), false)
   })
 
-  it('agent 엔진도 실행을 막지 않는다', () => {
-    assert.equal(runBlocked(render({ label: '' })), false)
+  it('agent 설정을 바꿔도 이름 입력 없이 실행할 수 있다', () => {
+    const html = render({ macros: 'off' })
+    assert.equal(html.includes('qa-advanced-label'), false)
+    assert.equal(runBlocked(html), false)
   })
 })
