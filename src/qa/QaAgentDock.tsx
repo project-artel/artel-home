@@ -14,8 +14,6 @@ import {
 import type { QaLog } from './qaTypes'
 import './qaAgentDock.css'
 
-/** 고른 확률이 이보다 낮으면 눈에 띄게 그린다. 재질의 실측에서 되풀이 turn 이 0.38~0.60 이었다. */
-const LOW_CONFIDENCE = 0.6
 /** 게임이 바쁠 확률이 이 이상이면 그 turn 은 기다렸다. agent-server 의 기준과 같다. */
 const BUSY_WAIT = 0.7
 /** 같은 행동을 이만큼 연달아 고르면 경고한다. */
@@ -219,11 +217,15 @@ function ExecutorBody({ dock, text, pe }: { dock: AgentDockState; text: Text; pe
             <PickedAction picked={turn.picked} text={pe} />
           )}
         </span>
+        {turn.confidence !== null && (
+          <span className="qa-agent-confidence" title={text.confidenceHint} aria-label={text.confidenceLabel(turn.confidence.toFixed(2))}>
+            {turn.confidence.toFixed(2)}
+          </span>
+        )}
         {turn.result !== null && (
           <span className={`qa-agent-result qa-agent-result--${turn.result}`}>{pe.results[turn.result] ?? turn.result}</span>
         )}
       </p>
-      {turn.confidence !== null && <Meter label={text.probability} low={turn.confidence < LOW_CONFIDENCE} value={turn.confidence} />}
       {turn.wait !== null && <Meter label={text.wait} low={busy} thin value={turn.wait} />}
       {others.length > 0 && (
         <ul aria-label={text.others} className="qa-agent-options">

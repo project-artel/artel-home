@@ -221,6 +221,12 @@
   min-width: 0;
 }
 
+.qa-agent-confidence {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
 .qa-agent-result {
   font-size: 11px;
   color: var(--color-text-secondary);
