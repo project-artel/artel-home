@@ -3,10 +3,8 @@ import { useI18n } from '../../i18n/useI18n'
 import {
   EMPTY_ARCH_SELECTION,
   QA_ARCH_AXES,
-  QA_ARCH_LABEL_MAX_LENGTH,
   archEngine,
   changedKnobCount,
-  suggestArchLabel,
   withKnob,
   type QaArchAxis,
   type QaArchKnobKey,
@@ -14,7 +12,7 @@ import {
 } from '../qaArch'
 
 /**
- * 실행 설정 패널의 "고급 설정"(ARTEL-1091) — agent 구조 knob 과 label.
+ * 실행 설정 패널의 "고급 설정"(ARTEL-1091) — agent 구조 knob.
  *
  * 상위 패널의 고급 설정 안에 표시한다. knob을 바꾸면 label 입력이 나타난다.
  *
@@ -37,7 +35,6 @@ export function ArchSettings({
 }) {
   const { t } = useI18n()
   const advanced = t.qa.panel.advanced
-  const labelId = useId()
   const changed = changedKnobCount(selection)
   const engineLocked = archEngine(selection) === 'planner_executer'
 
@@ -68,20 +65,6 @@ export function ArchSettings({
               selection={selection}
             />
           ))}
-          {changed > 0 && (
-            <label className="qa-advanced-field qa-advanced-label" htmlFor={labelId}>
-              <span>{advanced.labelLabel}</span>
-              <input
-                id={labelId}
-                maxLength={QA_ARCH_LABEL_MAX_LENGTH}
-                onChange={(event) => onChange({ ...selection, label: event.target.value })}
-                placeholder={suggestArchLabel(selection)}
-                type="text"
-                value={selection.label}
-              />
-              <small>{advanced.labelHint}</small>
-            </label>
-          )}
         </div>
         {changed > 0 && (
           <div className="qa-advanced-actions">

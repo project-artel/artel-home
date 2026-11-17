@@ -3673,10 +3673,6 @@ a.instance-name:hover {
   line-height: 1.5;
 }
 
-.qa-advanced-label {
-  grid-column: 1 / -1;
-}
-
 .qa-advanced-actions {
   display: flex;
   justify-content: flex-end;

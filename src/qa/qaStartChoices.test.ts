@@ -23,7 +23,7 @@ const throwingStorage = {
 test('고급 설정은 프로젝트별로 한 번에 저장하고 복원한다', () => {
   const storage = fakeStorage()
   const settings = {
-    arch: { label: 'a', phase_cycle: 'off' as const },
+    arch: { phase_cycle: 'off' as const },
     functionOptions: { cheatMode: 'off' as const, behaviorMode: 'on' as const, allowedCheats: null, allowedBehaviors: ['walk'] },
     inputMode: 'os' as const,
   }
@@ -55,7 +55,7 @@ test('기존 브라우저의 구조 설정과 입력 방식을 불러온다', ()
     'artel.qa.lastInputMode.one': 'os',
   })
   const restored = readLastAdvancedSettings('one', storage)
-  assert.deepEqual(restored.arch, { label: 'arm', phase_cycle: 'off' })
+  assert.deepEqual(restored.arch, { phase_cycle: 'off' })
   assert.equal(archEngine(restored.arch), 'agent')
   assert.equal(restored.inputMode, 'os')
 })

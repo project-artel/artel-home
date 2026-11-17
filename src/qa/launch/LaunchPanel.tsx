@@ -20,7 +20,7 @@ import {
 } from '../../projectAgent/specs/qa'
 import { sectionHref } from '../../projects/workspace/sections'
 import type { TestRun, RunCasesOutsideBuild } from '../../testRuns/testRunApi'
-import { QA_ENGINES, archEngine, archLabelMissing, changedSettingCount, toArchRequest, withEngine, withoutVisionKnobs } from '../qaArch'
+import { QA_ENGINES, archEngine, changedSettingCount, toArchRequest, withEngine, withoutVisionKnobs } from '../qaArch'
 import { createQaRun, qaStartConflict } from '../qaApi'
 import { requestQuestionNotificationPermission, subscribeQuestionNotifications } from '../evaluation/questionNotificationOptIn'
 import type { QaArchSelection } from '../qaArch'
@@ -167,7 +167,6 @@ export function LaunchPanel({
   else checks.push({ tone: 'bad', title: l.keyMissing, fix: { label: l.fixKey, to: '/account' } })
   // knob 을 바꾼 구조는 label 이 있어야 한다. 기본 label 로 보내면 `/api/qa-stats` 가 그 run 을 기본
   // 구조와 한 묶음으로 세어, 비교하려던 두 구조가 통계에서 하나로 섞인다.
-  if (archLabelMissing(effectiveArch)) checks.push({ tone: 'bad', title: l.archLabelMissing, detail: p.advanced.labelHint })
   const blocked = run === null || checks.some((check) => check.tone === 'bad')
 
   /**

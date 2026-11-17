@@ -27,9 +27,6 @@ export const qaEn = {
       on: 'On',
       off: 'Off',
       reset: 'Reset to server defaults',
-      labelLabel: 'Structure label',
-      labelHint:
-        'Required once any knob is changed. QA stats group runs by this label, so a changed structure needs its own name.',
       visionLocked:
         'This model does not read images, so vision=on and screen_capture other than on_demand are unavailable.',
       engineLocked:
@@ -250,7 +247,6 @@ export const qaEn = {
       eta: (duration: string) => `About ${duration}, going by the last run`,
       etaNone: 'First run of this test run',
       blockedHint: 'Fix the items above and you can run.',
-      archLabelMissing: 'The changed agent structure needs a label',
     },
     consoles: { title: 'Game consoles and builds' },
   },
@@ -826,9 +822,6 @@ export const qaKo: Localized<typeof qaEn> = {
       on: '켬',
       off: '끔',
       reset: '서버 기본값으로 되돌리기',
-      labelLabel: '구조 label',
-      labelHint:
-        'knob 을 하나라도 바꾸면 필요합니다. QA 통계가 이 label 로 run 을 묶으므로 바꾼 구조에는 이름이 따로 있어야 합니다.',
       visionLocked:
         '이 모델은 이미지를 읽지 않아 vision=on 과 on_demand 이외의 screen_capture 를 쓸 수 없습니다.',
       engineLocked:
@@ -1046,7 +1039,6 @@ export const qaKo: Localized<typeof qaEn> = {
       eta: (duration: string) => `지난 실행 기준 약 ${duration}`,
       etaNone: '처음 실행하는 런입니다',
       blockedHint: '막힌 항목을 해결하면 실행할 수 있습니다.',
-      archLabelMissing: '바꾼 agent 구조에 label 이 필요합니다',
     },
     consoles: { title: '게임 콘솔 · 빌드' },
   },
