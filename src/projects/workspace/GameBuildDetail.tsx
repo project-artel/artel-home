@@ -1,4 +1,5 @@
 import { GameIdentityPanel } from '../GameIdentityPanel'
+import { runCaseRatioOf } from '../../qa/scenarioOutcome'
 import { buildEnvironment } from '../buildEnvironment'
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -242,7 +243,10 @@ function BuildQaRunRow({ projectId, run }: { projectId: string; run: QaRun }) {
         </Link>
       </td>
       <td>
-        <QaStatusPill status={run.status} />
+        <QaStatusPill
+          ratio={run.status === 'COMPLETED' || run.status === 'FAILED' ? runCaseRatioOf(run.tries) : null}
+          status={run.status}
+        />
       </td>
       <td className="table-meta">{run.startedAt === null ? PLACEHOLDER : formatDateTime(run.startedAt)}</td>
       <td className="table-meta">{t.gameBuilds.detail.scenarios(finished, run.tries.length)}</td>

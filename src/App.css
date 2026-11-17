@@ -2440,6 +2440,18 @@ a.instance-name:hover {
   color: var(--color-status-warning);
 }
 
+.qa-status--ratio-pass {
+  color: var(--color-status-success);
+}
+
+.qa-status--ratio-partial {
+  color: var(--color-status-warning);
+}
+
+.qa-status--ratio-fail {
+  color: var(--color-status-critical);
+}
+
 /* 미판정(ARTEL-1372): 실패도 통과도 아니라서 중립색이다. */
 .qa-status--undecided {
   color: var(--color-text-secondary);
@@ -5241,6 +5253,9 @@ a.instance-name:hover {
 .qa-run-status--completed{ background:var(--st-verified,#2e9e6b); color:#fff; }
 .qa-run-status--failed{ background:var(--color-status-danger,#d64545); color:#fff; }
 .qa-run-status--cancelled{ background:var(--color-text-muted,#888); color:#fff; }
+.qa-run-status--ratio-pass{ background:var(--st-verified,#2e9e6b); color:#fff; }
+.qa-run-status--ratio-partial{ background:var(--color-status-warning,#d99a1e); color:#fff; }
+.qa-run-status--ratio-fail{ background:var(--color-status-danger,#d64545); color:#fff; }
 .qa-run-status--undecided{ background:transparent; color:var(--color-text-secondary); box-shadow:inset 0 0 0 1px var(--color-border-strong); }
 
 /* Step→TC 내용 모달 + 클릭 배지 (ARTEL-289 #3) */
@@ -5376,6 +5391,9 @@ a.instance-name:hover {
 .qa-rail-dot--completed{ background:var(--color-status-success,#3a9a5c); }
 .qa-rail-dot--failed{ background:var(--color-status-critical,#d64545); }
 .qa-rail-dot--cancelled{ background:var(--color-text-muted); }
+.qa-rail-dot--ratio-pass{ background:var(--color-status-success,#3a9a5c); }
+.qa-rail-dot--ratio-partial{ background:var(--color-status-warning,#d99a1e); }
+.qa-rail-dot--ratio-fail{ background:var(--color-status-critical,#d64545); }
 .qa-rail-dot--pending{ background:transparent; border:1.5px solid var(--color-border-strong); }
 .qa-rail-dot--undecided{ background:var(--color-text-secondary); }
 /* 모델 API 오류로 멈춘 까닭과 돌지 않은 시나리오(ARTEL-1372). 까닭 줄은 제목 칸 아래에 붙는다. */

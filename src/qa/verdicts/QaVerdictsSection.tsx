@@ -1,4 +1,5 @@
 import { buildDisplayName } from '../../projects/buildEnvironment'
+import { runCaseRatioOf } from '../scenarioOutcome'
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { EdgeScrollbar } from '../../design-system/primitives/EdgeScrollbar'
@@ -163,7 +164,12 @@ export function QaVerdictsSection() {
         {scenario?.model !== null && scenario?.model !== undefined && (
           <span className="qv-chip">{copy.model} <b className="mono">{scenario.model.split('/').at(-1)}</b></span>
         )}
-        {isStatus(data.status) && <QaStatusPill status={data.status} />}
+        {isStatus(data.status) && (
+          <QaStatusPill
+            ratio={data.status === 'COMPLETED' || data.status === 'FAILED' ? runCaseRatioOf(data.tries) : null}
+            status={data.status}
+          />
+        )}
         {elapsed !== null && <span className="qv-muted mono">{formatElapsedSeconds(elapsed)}</span>}
         {runReview > 0 && (
           <span className="qv-review-pill">
