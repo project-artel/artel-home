@@ -51,6 +51,40 @@ export function placeCallout(
   return { left: viewport.width - size.width - EDGE, top: viewport.height - size.height - EDGE, side: 'none', arrow: 0 }
 }
 
+export type TagSide = 'above' | 'below' | 'left' | 'right'
+
+/**
+ * 짚는 자리에 바로 붙는 작은 말풍선(꼬리표). 위 · 아래 · 오른쪽 · 왼쪽 순으로, 화면 안에 들고 설명 상자와 겹치지
+ * 않는 쪽에 둔다. 모두 막히면 위에 둔다.
+ */
+export function placeTag(
+  ring: Box,
+  size: { width: number; height: number },
+  viewport: Viewport,
+  avoid: Box | null,
+): { left: number; top: number; side: TagSide } {
+  const gap = 10
+  const centerX = clamp(ring.left + ring.width / 2 - size.width / 2, EDGE / 2, viewport.width - size.width - EDGE / 2)
+  const centerY = clamp(ring.top + ring.height / 2 - size.height / 2, EDGE / 2, viewport.height - size.height - EDGE / 2)
+  const candidates: { left: number; top: number; side: TagSide }[] = [
+    { left: centerX, top: ring.top - gap - size.height, side: 'above' },
+    { left: centerX, top: ring.top + ring.height + gap, side: 'below' },
+    { left: ring.left + ring.width + gap, top: centerY, side: 'right' },
+    { left: ring.left - gap - size.width, top: centerY, side: 'left' },
+  ]
+  const fits = (place: { left: number; top: number }) => {
+    const box = { left: place.left, top: place.top, width: size.width, height: size.height }
+    const inside = box.left >= EDGE / 2 && box.top >= EDGE / 2
+      && box.left + box.width <= viewport.width - EDGE / 2 && box.top + box.height <= viewport.height - EDGE / 2
+    return inside && (avoid === null || !overlaps(box, avoid))
+  }
+  return candidates.find(fits) ?? candidates[0]
+}
+
+function overlaps(a: Box, b: Box): boolean {
+  return a.left < b.left + b.width && b.left < a.left + a.width && a.top < b.top + b.height && b.top < a.top + a.height
+}
+
 function clamp(value: number, min: number, max: number): number {
   if (max < min) return min
   return Math.min(max, Math.max(min, value))

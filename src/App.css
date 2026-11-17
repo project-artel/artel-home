@@ -13984,7 +13984,34 @@ body:has(.dialog-scrim) .workspace-corner { visibility: hidden; }
 .tut-callout-close { width: 24px; height: 24px; padding: 0; border: 0; border-radius: var(--radius-md); background: transparent; color: var(--color-text-muted); font-size: 18px; line-height: 1; cursor: pointer; }
 .tut-callout-close:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
 .tut-callout-body { display: flex; flex-direction: column; gap: 6px; animation: tut-rise .32s ease both; }
-.tut-callout-tag { align-self: flex-start; padding: 3px 9px; border-radius: var(--radius-md); background: var(--color-brand-accent); color: var(--color-text-on-accent); font-size: 12px; font-weight: 700; }
+/* 짚는 자리에 붙는 작은 말풍선. 꼬리가 짚는 자리를 가리킨다. */
+.tut-tag {
+  position: fixed;
+  top: 0;
+  left: 0;
+  padding: 6px 11px;
+  border-radius: 8px;
+  background: var(--color-brand-accent);
+  color: var(--color-text-on-accent);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none !important;
+  transition: transform var(--tut-move);
+  animation: tut-fade .3s ease both;
+}
+.tut-tag::after {
+  content: "";
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  background: inherit;
+  transform: rotate(45deg);
+}
+.tut-tag--above::after { bottom: -4px; left: calc(50% - 4.5px); }
+.tut-tag--below::after { top: -4px; left: calc(50% - 4.5px); }
+.tut-tag--right::after { left: -4px; top: calc(50% - 4.5px); }
+.tut-tag--left::after { right: -4px; top: calc(50% - 4.5px); }
 .tut-callout-body h2 { margin: 0; font-size: 17px; line-height: 1.4; }
 .tut-callout-body p { margin: 0; color: var(--color-text-secondary); font-size: 13.5px; line-height: 1.6; }
 .tut-callout-link { align-self: flex-start; margin-top: 2px; color: var(--color-brand-accent); font-size: 13px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
@@ -14174,7 +14201,7 @@ body:has(.dialog-scrim) .workspace-corner { visibility: hidden; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tut-spot, .tut-spot::after, .tut-callout, .tut-callout-body, .tut-hint, .tut-card, .tut-scene, .tut-unity, .tut-unity-sdk, .tut-unity-pm, .tut-unity-browser, .tut-mcp, .tut-mcp-line,
+  .tut-spot, .tut-spot::after, .tut-tag, .tut-callout, .tut-callout-body, .tut-hint, .tut-card, .tut-scene, .tut-unity, .tut-unity-sdk, .tut-unity-pm, .tut-unity-browser, .tut-mcp, .tut-mcp-line,
   .tut-unity .tut-is-target { animation: none; }
-  .tut-spot, .tut-callout { transition: none; }
+  .tut-spot, .tut-tag, .tut-callout { transition: none; }
 }

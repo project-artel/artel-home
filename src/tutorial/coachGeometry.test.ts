@@ -1,12 +1,12 @@
 /// <reference types="node" />
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { placeCallout, ringOf, type Box } from './coachGeometry.ts'
+import { placeCallout, placeTag, ringOf, type Box } from './coachGeometry.ts'
 
 const viewport = { width: 1440, height: 900 }
 const callout = { width: 340, height: 200 }
 
-const overlaps = (a: Box, b: Box) =>
+const overlaps = (a: Box, b: Box): boolean =>
   a.left < b.left + b.width && b.left < a.left + a.width && a.top < b.top + b.height && b.top < a.top + a.height
 
 test('왼쪽 메뉴의 자리는 말풍선을 오른쪽에 붙이고 화살표가 자리 가운데를 가리킨다', () => {
@@ -44,4 +44,14 @@ test('고리는 대상보다 조금 넓고 화면 밖으로 나가지 않는다'
   const ring = ringOf({ left: 0, top: 0, width: 50, height: 20 }, viewport)
   assert.ok(ring.left >= 0 && ring.top >= 0)
   assert.ok(ring.width >= 50)
+})
+
+test('꼬리표는 짚는 자리 위에 붙고, 설명 상자와 겹치면 다른 쪽으로 간다', () => {
+  const tag = { width: 110, height: 28 }
+  const ring = { left: 600, top: 400, width: 120, height: 40 }
+  assert.equal(placeTag(ring, tag, viewport, null).side, 'above')
+  const callout = { left: 560, top: 150, width: 340, height: 240 }
+  const placed = placeTag(ring, tag, viewport, callout)
+  assert.equal(placed.side, 'below')
+  assert.equal(overlaps({ left: placed.left, top: placed.top, ...tag }, callout), false)
 })

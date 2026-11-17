@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { appPath } from '../appPath'
 import { useI18n } from '../i18n/useI18n'
-import { placeCallout, ringOf, type Box } from './coachGeometry'
+import { placeCallout, placeTag, ringOf, type Box } from './coachGeometry'
 import { McpScene } from './McpScene'
 import { START_TUTORIAL_STEPS, TUTORIAL_SKIP_PARAM, flatIndex, typeFields, type CoachContext, type TutorialAction } from './startTutorialSteps'
 import { UnityScene } from './UnityScene'
@@ -156,6 +156,13 @@ export function TutorialCoach({
     ? placeCallout(hole, calloutSize, viewport)
     : { left: (viewport.width - calloutSize.width) / 2, top: viewport.height - calloutSize.height - 24, side: 'none' as const, arrow: 0 }
 
+  // 짚는 자리에 바로 붙는 작은 말풍선. 설명 상자와 겹치지 않는 쪽에 둔다.
+  const tagRef = useRef<HTMLSpanElement | null>(null)
+  const tagSize = useSize(tagRef, { width: 110, height: 30 })
+  const tagPlace = open && tag !== null
+    ? placeTag(hole, tagSize, viewport, { left: placed.left, top: placed.top, width: calloutSize.width, height: calloutSize.height })
+    : null
+
   const callout = phase === 'play' && copy !== null && (
     <section
       aria-label={m.player.label}
@@ -176,7 +183,6 @@ export function TutorialCoach({
             <p>{m.steps[step.id].why}</p>
           </div>
         )}
-        {tag !== null && !waiting && <span className="tut-callout-tag">{tag}</span>}
         <h2 aria-live="polite">{waiting ? m.player.loading : copy.title}</h2>
         {!waiting && <p>{copy.body}</p>}
         {action.kind === 'mcp' && (
@@ -240,6 +246,17 @@ export function TutorialCoach({
         className={'tut-spot' + (open ? ' is-open' : '')}
         style={{ transform: `translate(${hole.left}px, ${hole.top}px)`, width: hole.width, height: hole.height }}
       />
+      {tagPlace !== null && (
+        <span
+          aria-hidden="true"
+          className={`tut-tag tut-tag--${tagPlace.side}`}
+          key={`tag-${flat}`}
+          ref={tagRef}
+          style={{ transform: `translate(${tagPlace.left}px, ${tagPlace.top}px)` }}
+        >
+          {tag}
+        </span>
+      )}
       {/* 클릭 막이: 보이지 않고, 짚는 자리만 뚫어 그 자리는 실제로 눌린다. 읽기만 하는 자리는 뚫지 않는다. */}
       <div
         aria-hidden="true"
@@ -375,8 +392,8 @@ function useViewport() {
   return size
 }
 
-function useSize(ref: React.RefObject<HTMLElement | null>) {
-  const [size, setSize] = useState({ width: 360, height: 240 })
+function useSize(ref: React.RefObject<HTMLElement | null>, initial = { width: 380, height: 240 }) {
+  const [size, setSize] = useState(initial)
   useLayoutEffect(() => {
     const element = ref.current
     if (element === null) return undefined
