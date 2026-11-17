@@ -5,13 +5,15 @@ import { appPath } from '../appPath'
 import { useI18n } from '../i18n/useI18n'
 import { placeCallout, ringOf, type Box } from './coachGeometry'
 import { McpScene } from './McpScene'
-import { START_TUTORIAL_STEPS, TUTORIAL_SKIP_PARAM, flatIndex, type CoachContext, type TutorialAction } from './startTutorialSteps'
+import { START_TUTORIAL_STEPS, TUTORIAL_SKIP_PARAM, flatIndex, typeFields, type CoachContext, type TutorialAction } from './startTutorialSteps'
 import { UnityScene } from './UnityScene'
 
 const STEPS = START_TUTORIAL_STEPS
 const TOTAL_ACTIONS = flatIndex(STEPS, STEPS.length, 0)
 /** 짚을 자리가 이만큼 기다려도 안 뜨면 다음으로 넘길 수 있게 한다. */
 const FIND_PATIENCE_MS = 6000
+/** 화면이 바뀌며 짚던 자리를 잃었을 때 마지막 자리에 머무는 시간. */
+const LOST_GRACE_MS = 450
 
 type Position = { step: number; action: number }
 
@@ -85,7 +87,28 @@ export function TutorialCoach({
     return () => document.removeEventListener('click', onClick, true)
   }, [action.kind, next, phase, target.element])
 
-  const clickToAdvance = phase === 'play' && (action.kind === 'click' || (action.kind === 'unity' && action.stage !== 'browser'))
+  // 입력 장면에 들어가 칸이 보이면 예시 글을 사람이 치듯 한 글자씩 넣는다. 다 써지면 다음으로 갈 수 있다.
+  const [typedKey, setTypedKey] = useState(-1)
+  const typingDone = typedKey === flat
+  const typingFor = useRef(-1)
+  useEffect(() => {
+    if (phase !== 'play' || action.kind !== 'fill' || target.element === null || typingFor.current === flat) return
+    let cancelled = false
+    typingFor.current = flat
+    void typeFields(action.fields(ctx), () => cancelled).then(() => {
+      if (!cancelled) setTypedKey(flat)
+      else typingFor.current = -1
+    })
+    return () => {
+      cancelled = true
+    }
+    // 칸을 찾은 그 순간 한 번만 시작한다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [flat, phase, target.element !== null])
+
+  // 짚은 버튼이 꺼져 있으면(이미 보냈거나 칸이 비었다) 눌러서 넘어갈 수 없으니 다음을 보여 준다.
+  const targetDisabled = target.element instanceof HTMLButtonElement && target.element.disabled
+  const clickToAdvance = phase === 'play' && !targetDisabled && (action.kind === 'click' || (action.kind === 'unity' && action.stage !== 'browser'))
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -107,18 +130,30 @@ export function TutorialCoach({
   const lines = useMemo(() => (action.kind === 'mcp' ? action.lines(m) : null), [action, m])
   const scene = phase === 'play' && (action.kind === 'unity' || action.kind === 'mcp')
   const waiting = phase === 'play' && !scene && target.element === null
-  // 화면이 바뀌는 동안(새 자리를 아직 못 찾음)에는 구멍을 화면 가운데로 닫아 둔다. 새 자리를 찾으면 거기서 열린다.
-  // 고리 · 구멍 · 말풍선이 CSS 전환으로 옮겨 가므로, 자리를 바꿀 때 끊기지 않고 미끄러진다.
-  const hole: Box = ring !== null && phase === 'play' && !scene
-    ? ring
-    : { left: viewport.width / 2, top: viewport.height / 2, width: 0, height: 0 }
+
+  // 화면이 바뀌는 동안 짚던 자리를 잠깐 잃는다. 그 사이 구멍을 가운데로 접었다가 다시 펴면 끊겨 보이므로, 잠깐은 마지막
+  // 자리에 머물렀다가 새 자리를 찾으면 거기로 곧장 미끄러진다. 오래 못 찾을 때만 접는다.
+  const [lastRing, setLastRing] = useState<{ ring: Box; token: number } | null>(null)
+  const [lostToken, setLostToken] = useState(0)
+  if (ring !== null && (lastRing === null || lastRing.token !== lostToken || !sameBox(lastRing.ring, ring))) {
+    setLastRing({ ring, token: lostToken })
+  }
+  const ringPresent = ring !== null
+  useEffect(() => {
+    if (ringPresent) return undefined
+    const timer = window.setTimeout(() => setLostToken((now) => now + 1), LOST_GRACE_MS)
+    return () => window.clearTimeout(timer)
+  }, [ringPresent, flat])
+  const shown = ring ?? (lastRing !== null && lastRing.token === lostToken ? lastRing.ring : null)
+  const open = shown !== null && phase === 'play' && !scene
+  const hole: Box = open ? shown : { left: viewport.width / 2, top: viewport.height / 2, width: 0, height: 0 }
 
   const calloutRef = useRef<HTMLElement | null>(null)
   const calloutSize = useSize(calloutRef)
   const copy = phase === 'play' ? action.copy(m) : null
   const tag = copy !== null && 'tag' in copy && typeof copy.tag === 'string' ? copy.tag : null
-  const placed = ring !== null && !scene && !waiting
-    ? placeCallout(ring, calloutSize, viewport)
+  const placed = open
+    ? placeCallout(hole, calloutSize, viewport)
     : { left: (viewport.width - calloutSize.width) / 2, top: viewport.height - calloutSize.height - 24, side: 'none' as const, arrow: 0 }
 
   const callout = phase === 'play' && copy !== null && (
@@ -183,10 +218,9 @@ export function TutorialCoach({
         <div className="tut-callout-actions">
           <button className="tut-link" disabled={position.action === 0} onClick={restartStep} type="button">{m.player.restartStep}</button>
           <span className="tut-spacer" />
-          {action.kind === 'fill' && (
-            <button className="button button--secondary button--compact" onClick={() => void action.fill(ctx)} type="button">{m.player.fill}</button>
-          )}
-          {clickToAdvance && !waiting ? (
+          {action.kind === 'fill' && !typingDone && !waiting ? (
+            <span className="tut-hint">{m.player.typing}</span>
+          ) : clickToAdvance && !waiting ? (
             <span className="tut-hint">{m.player.clickHint}</span>
           ) : (
             (!waiting || target.patienceOver) && (
@@ -200,14 +234,18 @@ export function TutorialCoach({
 
   return createPortal(
     <div className="tut">
-      {/* 덮개 한 장. 짚는 자리만 뚫어 그 자리는 실제로 눌린다(뚫린 자리는 덮개가 받지 않는다). */}
-      <div aria-hidden="true" className="tut-veil" style={{ clipPath: holePath(hole, viewport) }} />
-      {phase === 'play' && !scene && (
-        <div aria-hidden="true" className={'tut-ring' + (ring === null ? ' is-closed' : '')} style={box(ring ?? hole)} />
-      )}
-      {ring !== null && phase === 'play' && !scene && action.kind === 'look' && (
-        <div aria-hidden="true" className="tut-block" style={box(ring)} />
-      )}
+      {/* 보이는 덮개: 구멍 둘레의 큰 그림자다. transform 으로 옮겨 앱이 화면을 그리느라 바쁠 때도 미끄러짐이 끊기지 않는다. */}
+      <div
+        aria-hidden="true"
+        className={'tut-spot' + (open ? ' is-open' : '')}
+        style={{ transform: `translate(${hole.left}px, ${hole.top}px)`, width: hole.width, height: hole.height }}
+      />
+      {/* 클릭 막이: 보이지 않고, 짚는 자리만 뚫어 그 자리는 실제로 눌린다. 읽기만 하는 자리는 뚫지 않는다. */}
+      <div
+        aria-hidden="true"
+        className="tut-veil"
+        style={open && action.kind !== 'look' ? { clipPath: holePath(hole, viewport) } : undefined}
+      />
 
       {phase === 'play' && action.kind === 'unity' && (
         <div className="tut-scene">
@@ -277,8 +315,8 @@ function holePath(hole: Box, viewport: { width: number; height: number }): strin
   return `polygon(evenodd, 0 0, ${viewport.width}px 0, ${viewport.width}px ${viewport.height}px, 0 ${viewport.height}px, 0 0, ${l}px ${t}px, ${l}px ${b}px, ${r}px ${b}px, ${r}px ${t}px, ${l}px ${t}px)`
 }
 
-function box(rect: Box): React.CSSProperties {
-  return { left: rect.left, top: rect.top, width: rect.width, height: rect.height }
+function sameBox(a: Box, b: Box): boolean {
+  return a.left === b.left && a.top === b.top && a.width === b.width && a.height === b.height
 }
 
 /**

@@ -10,7 +10,7 @@ import { IDS } from './mock/tutorialFixtures'
  * 동작은 다섯이다.
  * - click: 빛나는 자리를 사용자가 직접 눌러야 넘어간다. 누르면 실제 화면이 반응한다(목데이터로).
  * - look: 읽고 다음을 누른다. 그 자리는 눌리지 않는다.
- * - fill: 입력 칸이다. 직접 쓰거나 "예시로 채우기"로 채우고 다음을 누른다.
+ * - fill: 입력 칸이다. 장면에 들어가면 예시 글이 한 글자씩 써지고, 다 써지면 다음을 누른다.
  * - unity: 가상 Unity 화면. 1단계에서 SDK 를 넣고 게임을 연결하는 자리를 실제처럼 눌러 본다.
  * - mcp: 코딩 에이전트 창. 같은 일을 artel MCP 로 하면 어떻게 되는지 보여 준다.
  */
@@ -43,7 +43,7 @@ type Base = {
 
 export type TutorialAction =
   | (Base & { kind: 'click' | 'look'; target: Find; copy: CopyOf })
-  | (Base & { kind: 'fill'; target: Find; copy: CopyOf; fill: (ctx: CoachContext) => void | Promise<void> })
+  | (Base & { kind: 'fill'; target: Find; copy: CopyOf; fields: (ctx: CoachContext) => TypedField[] })
   | (Base & { kind: 'unity'; stage: UnityStage; copy: CopyOf })
   | (Base & { kind: 'mcp'; copy: (m: Messages['tutorial']) => { title: string; body: string }; lines: (m: Messages['tutorial']) => McpLine[] })
 
@@ -81,14 +81,23 @@ export function typeInto(element: Element | null, value: string): void {
   element.dispatchEvent(new Event('input', { bubbles: true }))
 }
 
+/** 입력 장면이 채울 칸과 넣을 글. 칸은 그때그때 찾는다 — 화면이 다시 그려지면 요소가 바뀐다. */
+export type TypedField = [() => Element | null, string]
+
+const CHAR_MS = 28
+
 /**
- * 여러 칸을 차례로 채운다. 칸마다 화면이 한 번 그려진 뒤 다음 칸을 넣는다 — 화면이 `{ ...draft, 칸: 값 }` 으로 받는
- * 폼은 한꺼번에 넣으면 마지막 칸만 남는다.
+ * 칸마다 사람이 치듯 한 글자씩 넣는다. 칸 하나가 다 써지면 다음 칸으로 간다 — 화면이 `{ ...draft, 칸: 값 }` 으로
+ * 받는 폼은 한 번에 여러 칸을 넣으면 마지막 칸만 남아서다. `cancelled` 가 참이 되면 멈춘다(장면을 떠났다).
  */
-async function typeEach(fields: [() => Element | null, string][]): Promise<void> {
+export async function typeFields(fields: TypedField[], cancelled: () => boolean): Promise<void> {
   for (const [find, value] of fields) {
-    typeInto(find(), value)
-    await new Promise((resolve) => window.setTimeout(resolve, 30))
+    for (let length = 1; length <= value.length; length += 1) {
+      if (cancelled()) return
+      typeInto(find(), value.slice(0, length))
+      await new Promise((resolve) => window.setTimeout(resolve, CHAR_MS))
+    }
+    await new Promise((resolve) => window.setTimeout(resolve, 120))
   }
 }
 
@@ -121,7 +130,7 @@ export const START_TUTORIAL_STEPS: readonly TutorialStep[] = [
         id: 'input',
         kind: 'fill',
         target: () => $('.llm-key-list input'),
-        fill: () => typeInto($('.llm-key-list input'), 'sk-ant-tutorial-example-key'),
+        fields: () => [[() => $('.llm-key-list input'), 'sk-ant-tutorial-example-key']],
         copy: (m) => m.steps.keys.input,
       },
       { id: 'save', kind: 'click', target: (ctx) => byText('.llm-key-list button', ctx.t.account.llmKeys.submit), copy: (m) => m.steps.keys.save },
@@ -137,15 +146,15 @@ export const START_TUTORIAL_STEPS: readonly TutorialStep[] = [
         kind: 'fill',
         // 사전 조건 · 테스트 내용 · 기대 결과 세 칸을 함께 짚는다.
         target: () => $('[role="dialog"] textarea')?.closest('ol, ul, fieldset, section') ?? $('[role="dialog"] textarea'),
-        fill: (ctx) => {
+        fields: (ctx) => {
           const example = ctx.t.tutorial.steps.testCase.example
           const area = (index: number) => () => $('[role="dialog"]')?.querySelectorAll('textarea')[index] ?? null
-          return typeEach([
+          return [
             [area(0), example.precondition],
             [area(1), example.step],
             [area(2), example.expected],
             [() => $('[role="dialog"]')?.querySelector('input:not([type="checkbox"]):not([type="radio"])') ?? null, example.scene],
-          ])
+          ]
         },
         copy: (m) => m.steps.testCase.fill,
       },
@@ -176,7 +185,7 @@ export const START_TUTORIAL_STEPS: readonly TutorialStep[] = [
         id: 'name',
         kind: 'fill',
         target: () => $('[role="dialog"] input.field-input'),
-        fill: (ctx) => typeInto($('[role="dialog"] input.field-input'), ctx.t.tutorial.steps.testRun.example),
+        fields: (ctx) => [[() => $('[role="dialog"] input.field-input'), ctx.t.tutorial.steps.testRun.example]],
         copy: (m) => m.steps.testRun.name_,
       },
       { id: 'confirm', kind: 'click', target: (ctx) => byText('[role="dialog"] button', ctx.t.scenarios.runList.newDialog.confirm), copy: (m) => m.steps.testRun.confirm },
@@ -274,8 +283,9 @@ export const START_TUTORIAL_STEPS: readonly TutorialStep[] = [
       {
         id: 'invite',
         kind: 'fill',
-        target: () => $('.invite-form .invite-form-fields'),
-        fill: (ctx) => typeInto($('.invite-form input.field-input'), ctx.t.tutorial.steps.team.exampleInvite),
+        // 입력 칸만 연다. 보내기 버튼까지 열어 두면 이 장면에서 먼저 보내 버려 다음 장면이 막힌다.
+        target: () => $('.invite-form input.field-input'),
+        fields: (ctx) => [[() => $('.invite-form input.field-input'), ctx.t.tutorial.steps.team.exampleInvite]],
         copy: (m) => m.steps.team.invite,
       },
       { id: 'send', kind: 'click', target: (ctx) => byText('.invite-form button', ctx.t.projects.members.send), copy: (m) => m.steps.team.send },
@@ -285,10 +295,10 @@ export const START_TUTORIAL_STEPS: readonly TutorialStep[] = [
         id: 'title',
         kind: 'fill',
         target: () => $('.dc-canvas') ?? $('.dc-title-input'),
-        fill: (ctx) => typeEach([
+        fields: (ctx) => [
           [() => $('.dc-title-input'), ctx.t.tutorial.steps.team.exampleTitle],
           [() => $('.dc-canvas textarea.md-input'), ctx.t.tutorial.steps.team.exampleBody],
-        ]),
+        ],
         copy: (m) => m.steps.team.title,
       },
       { id: 'kinds', kind: 'look', target: () => $('.dc-rail')?.firstElementChild ?? null, copy: (m) => m.steps.team.kinds },
