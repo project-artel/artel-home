@@ -240,8 +240,9 @@ export const START_TUTORIAL_STEPS: readonly TutorialStep[] = [
       { id: 'logs', kind: 'look', target: () => $('.qa-focus-logs-col'), copy: (m) => m.steps.qa.logs },
       { id: 'chat', kind: 'look', target: () => $('.qa-stage-chat'), copy: (m) => m.steps.qa.chat },
       // 끝나면 실행 화면은 다시 보기로 바뀌어 0:00 부터 보여 준다. 결과는 끝날 때 뜨는 알림이 모아 보여 주고,
-      // 알림의 검토하러 가기를 누르면 알림도 닫힌다(남겨 두면 다음 단계의 판정 칸을 가린다).
-      { id: 'finish', kind: 'click', target: () => $('.qa-notice .button--primary'), copy: (m) => m.steps.qa.finish },
+      // 알림 전체를 짚어 숫자가 가려지지 않게 한다. 검토하러 가기 · 나중에 · 닫기 어느 것을 눌러도 알림이 닫히고 넘어간다
+      // (남겨 두면 다음 단계의 판정 칸을 가린다).
+      { id: 'finish', kind: 'click', target: () => $('.qa-notice'), copy: (m) => m.steps.qa.finish },
       {
         id: 'mcp',
         kind: 'mcp',

@@ -226,9 +226,14 @@ const ROUTES: Route[] = [
   },
   { method: 'GET', pattern: new RegExp(`^${P}/qa-evaluation/verdicts/[^/]+/reviews$`), handle: () => [] },
   { method: 'GET', pattern: new RegExp(`^${P}/qa-evaluation/(questions|case-content-reviews)$`), handle: () => [] },
-  { method: 'GET', pattern: new RegExp(`^${P}/release-criteria$`), handle: () => null },
+  {
+    method: 'GET',
+    pattern: new RegExp(`^${P}/release-criteria$`),
+    // 서버 기본값(`ReleaseCriteria.DEFAULT`)과 같다.
+    handle: () => ({ criteria: RELEASE_DEFAULTS, defaults: RELEASE_DEFAULTS, isDefault: true, updatedAt: null }),
+  },
   { method: 'GET', pattern: /^\/api\/llm-usage\/qa-runs$/, handle: () => ({ items: [] }) },
-  { method: 'GET', pattern: new RegExp(`^${P}/game-builds/[^/]+/verification-progress$`), handle: () => ({ items: [] }) },
+  { method: 'GET', pattern: new RegExp(`^${P}/game-builds/[^/]+/verification-progress$`), handle: (_m, _r, d) => verificationProgress(d) },
   { method: 'GET', pattern: new RegExp(`^${P}/qa-evaluation/tries/[^/]+/recording$`), handle: () => ({ recording: null, segments: [], gaps: [] }) },
   { method: 'GET', pattern: new RegExp(`^${P}/qa-evaluation/issues/([^/]+)$`), handle: (match) => ({ issueId: match[1], testCaseId: null, previousIssueId: null, mergedInto: null, autoClosed: false, occurrences: [] }) },
   { method: 'PUT', pattern: new RegExp(`^${P}/qa-evaluation/.+$`), handle: (_m, request) => request.body ?? {} },
@@ -438,4 +443,36 @@ function runCoverage(d: TutorialData, runId: string) {
     scenarios: scenarios.map((one, position) => ({ position, testScenarioId: String(one.testScenarioId), title: one.title, executionMode: 'ORDERED', steps: one.steps.length, cases: one.steps.length })),
     cases: scenarios.flatMap((one) => one.steps.map((step) => String(step.case_id))),
   }
+}
+
+const RELEASE_DEFAULTS = { maxPending: 0, maxRegression: 0, minPassRate: 95, maxOpenBlockers: 0, maxInconclusiveRate: 5 }
+
+/** 대시보드 출시 준비 칸. TC 의 지금 판정을 세고, 날마다의 누적은 QA 실행이 있던 날에 오른다. */
+function verificationProgress(d: TutorialData) {
+  const passed = d.cases.filter((one) => one.verificationStatus === 'VERIFIED').length
+  const failed = d.cases.filter((one) => one.verificationStatus === 'FAILED').length
+  const firstCase = [...d.cases].sort((a, b) => a.createdAt.localeCompare(b.createdAt))[0]
+  const summary = {
+    build: { gameBuildId: IDS.build, version: '1.0', isEditor: true, createdAt: firstCase?.createdAt ?? d.now() },
+    total: d.cases.length,
+    passed,
+    failed,
+    regression: 0,
+    inconclusive: 0,
+    pending: d.cases.length - passed - failed,
+    carried: 0,
+    openBlockers: 0,
+    lastJudgedAt: d.qaRuns[0]?.completedAt ?? null,
+  }
+  const today = localDate(new Date())
+  const days = [3, 2, 1, 0].map((back) => {
+    const date = localDate(new Date(Date.now() - back * 24 * 60 * 60 * 1000))
+    const runs = d.qaRuns.filter((one) => localDate(new Date(one.startedAt)) === date).length
+    return date === today ? { date, passed, failed, regression: 0, inconclusive: 0, runs } : { date, passed: 0, failed: 0, regression: 0, inconclusive: 0, runs }
+  })
+  return { summary, previousBuild: null, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone, days }
+}
+
+function localDate(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
