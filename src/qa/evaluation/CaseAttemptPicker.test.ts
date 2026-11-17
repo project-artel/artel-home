@@ -4,7 +4,7 @@ import test from 'node:test'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { CaseAttemptPicker } from './CaseAttemptPicker'
-import { groupCaseAttempts } from './caseAttemptGroups'
+import { groupCaseAttempts, type CaseAttemptScenario } from './caseAttemptGroups'
 import { evaluationCopy } from './evaluationCopy'
 import type { Attempt } from './evaluationApi'
 
@@ -14,9 +14,9 @@ function attempt(id: string, testCaseId: string, time: number): Attempt {
     verdict: 'PASSED', logId: null, review: null, note: null,
     caseSnapshot: { scene: null, precondition: null, step: `절차 ${testCaseId}`, expected: null } }
 }
-function render(options: Attempt[], current: Attempt) {
+function render(options: Attempt[], current: Attempt, scenario?: CaseAttemptScenario) {
   return renderToStaticMarkup(createElement(TestCaseIdentifiersContext.Provider, { value: { projectId: '1', numbers: new Map(options.map(row => [row.testCaseId, row.testCaseId])) } }, createElement(CaseAttemptPicker, {
-    id: 'picker', options, current, onSelect: () => {}, copy: evaluationCopy.ko,
+    id: 'picker', options, current, onSelect: () => {}, copy: evaluationCopy.ko, scenario,
   })))
 }
 
@@ -29,6 +29,29 @@ test('TC를 중복 없이 자연수 순으로 표시하고 오래된 직접 링�
   assert.deepEqual(groups[1][1].map(row => row.id), ['latest', 'old'])
   assert.equal(rows[0], old)
   assert.equal(groupCaseAttempts([]).length, 0)
+})
+
+test('ORDERED는 시나리오 순서로 TC 탭을 표시한다', () => {
+  const rows = [attempt('one', '1', 0), attempt('two', '2', 1), attempt('three', '3', 2)]
+  const steps = ['3', null, '1', '3', '2'].map((caseId, index) => ({
+    step: index + 1, title: '', caseId, expected: null,
+  }))
+  const html = render(rows, rows[0], { executionMode: 'ORDERED', steps })
+  assert.deepEqual([...html.matchAll(/id="picker-case-(\d+)"/g)].map(match => match[1]), ['3', '1', '2'])
+})
+
+test('FREE는 첫 보고 순서로 TC 탭을 표시하고 미보고 TC를 뒤에 둔다', () => {
+  const rows = [
+    { ...attempt('retry', '2', 5), logId: '9007199254741004' },
+    { ...attempt('one', '1', 0), logId: '9007199254740993' },
+    { ...attempt('two', '2', 1), logId: '9007199254740992' },
+    { ...attempt('running', '3', 4), verdict: null },
+  ]
+  const steps = ['3', '1', '2'].map((caseId, index) => ({
+    step: index + 1, title: '', caseId, expected: null,
+  }))
+  const html = render(rows, rows[0], { executionMode: 'FREE', steps })
+  assert.deepEqual([...html.matchAll(/id="picker-case-(\d+)"/g)].map(match => match[1]), ['2', '1', '3'])
 })
 
 test('TC 선택은 dropdown 대신 단일 선택 tab과 연결된 panel을 사용한다', () => {

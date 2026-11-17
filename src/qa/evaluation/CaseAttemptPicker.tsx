@@ -5,7 +5,7 @@ import { useEffect, useRef } from 'react'
 import { shortWhen } from '../history/historyModel'
 import type { Attempt } from './evaluationApi'
 import type { evaluationCopy } from './evaluationCopy'
-import { groupCaseAttempts } from './caseAttemptGroups'
+import { groupCaseAttempts, type CaseAttemptScenario } from './caseAttemptGroups'
 
 type Copy = typeof evaluationCopy.ko
 
@@ -13,13 +13,13 @@ function outcome(row: Attempt, copy: Copy) {
   return `${row.verdict ? copy[row.verdict] : copy.running} → ${row.review && row.review !== 'TC_CONTENT_ISSUE' ? copy[row.review] : copy.unreviewed}`
 }
 
-export function CaseAttemptPicker({ id, options, current, onSelect, copy }: {
-  id: string; options: Attempt[]; current: Attempt; onSelect: (id: string) => void; copy: Copy
+export function CaseAttemptPicker({ id, options, current, onSelect, copy, scenario }: {
+  id: string; options: Attempt[]; current: Attempt; onSelect: (id: string) => void; copy: Copy; scenario?: CaseAttemptScenario
 }) {
   const caseLabel = useTestCaseLabel()
   const { numbers } = useTestCaseIdentifiers()
   const rail = useRef<HTMLDivElement>(null)
-  const groups = groupCaseAttempts(options, numbers)
+  const groups = groupCaseAttempts(options, numbers, scenario)
   const attempts = groups.find(([caseId]) => caseId === current.testCaseId)?.[1] ?? []
   const caseIds = groups.map(([caseId]) => caseId).join(':')
 

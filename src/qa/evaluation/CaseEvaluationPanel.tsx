@@ -11,6 +11,7 @@ import { useProjectChange } from '../../live/useProjectChange'
 import { EvidencePlayer } from './EvidencePlayer'
 import { CaseContentEditor } from './CaseContentEditor'
 import { CaseAttemptPicker } from './CaseAttemptPicker'
+import type { CaseAttemptScenario } from './caseAttemptGroups'
 import './evaluation.css'
 
 const REVIEW_CHOICES = ['PASSED', 'FAILED', 'INCONCLUSIVE'] as const
@@ -18,6 +19,7 @@ const REVIEW_CHOICES = ['PASSED', 'FAILED', 'INCONCLUSIVE'] as const
 type CaseEvaluationPanelProps = {
   projectId: string
   qaTryId?: string
+  scenario?: CaseAttemptScenario
   testCaseId?: string
   id?: string
   emptyFallback?: ReactNode
@@ -28,7 +30,7 @@ export function CaseEvaluationPanel(props: CaseEvaluationPanelProps) {
   return <AttemptList key={`${projectId}:${qaTryId ?? ''}:${testCaseId ?? ''}`} {...props} />
 }
 
-function AttemptList({ projectId, qaTryId, testCaseId, id, emptyFallback }: CaseEvaluationPanelProps) {
+function AttemptList({ projectId, qaTryId, scenario, testCaseId, id, emptyFallback }: CaseEvaluationPanelProps) {
   const [params] = useSearchParams()
   const { locale } = useI18n()
   const copy = evaluationCopy[locale === 'ko' ? 'ko' : 'en']
@@ -67,7 +69,7 @@ function AttemptList({ projectId, qaTryId, testCaseId, id, emptyFallback }: Case
       const picked = options.find(row => row.id === attemptId)
       if (picked) setLinkedAttempt(picked)
       setSelected(attemptId)
-    }} copy={copy} />}
+    }} copy={copy} scenario={scenario} />}
     {loading && <p className="qe-status" role="status">{copy.loading}</p>}
     {error && <p className="qe-status" role="alert">{copy.error} <button className="button button--secondary button--compact" onClick={() => void load()} type="button">{copy.retry}</button></p>}
     {!loading && !rows.length && <p className="qe-status">{copy.empty}</p>}
