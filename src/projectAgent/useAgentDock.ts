@@ -55,13 +55,10 @@ export function useAgentDock(projectId: string, pathname: string, railWidth: num
   }, [folded, pathname])
 
   const closeChat = useCallback(() => {
-    if (folded) {
-      setReopened(null)
-      return
-    }
+    setReopened(null)
     setStoredOpen(false)
     storeAgentOpen(false)
-  }, [folded])
+  }, [])
 
   const onWidthChange = useCallback((next: number) => {
     setStoredWidth(next)
