@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { loadReplayLogContext, logsAround } from './qaReplayLogs'
+import { loadReplayLogContext, logsAround, logsThrough } from './qaReplayLogs'
 import type { QaLog } from './qaTypes'
 
 const at = (second: number) => new Date(Date.UTC(2026, 10, 4) + second * 1000).toISOString()
@@ -34,4 +34,12 @@ test('cursor가 진행하지 않으면 반복 조회를 멈추고 이미 취소�
   controller.abort()
   assert.deepEqual(await loadReplayLogContext('1', 0, [], controller.signal), [])
   assert.equal(fetch.mock.calls.length, 1)
+})
+
+test('흐름에는 재생 위치까지 도착한 로그가 순서대로 나타난다', () => {
+  const logs = [row(1), row(2), row(3)]
+  assert.deepEqual(logsThrough(logs, Date.parse(at(0))), [])
+  assert.deepEqual(logsThrough(logs, Date.parse(at(2))), [row(1), row(2)])
+  assert.deepEqual(logsThrough(logs, Date.parse(at(1))), [row(1)])
+  assert.equal(logsThrough(logs, null), logs)
 })

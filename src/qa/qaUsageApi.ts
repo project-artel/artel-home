@@ -56,8 +56,10 @@ function asNullableNumber(value: unknown): number | null {
 export async function getQaRunUsage(
   qaTryId: string,
   signal?: AbortSignal,
+  through?: number,
 ): Promise<QaRunUsage | null> {
-  const response = await apiFetch(`/api/llm-usage/qa-runs/${encodeURIComponent(qaTryId)}`, {
+  const query = through === undefined ? '' : `?${new URLSearchParams({ through: new Date(through).toISOString() })}`
+  const response = await apiFetch(`/api/llm-usage/qa-runs/${encodeURIComponent(qaTryId)}${query}`, {
     signal,
   })
   if (response.status === 404) return null

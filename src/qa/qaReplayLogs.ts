@@ -1,6 +1,11 @@
 import { compareDecimalIds, listQaLogs } from './qaApi'
 import type { QaLog } from './qaTypes'
 
+export function logsThrough(logs: QaLog[], timestamp: number | null): QaLog[] {
+  if (timestamp === null) return logs
+  return logs.filter(log => Date.parse(log.createdAt) <= timestamp)
+}
+
 export function logsAround(logs: QaLog[], timestamp: number, limit = 80): QaLog[] {
   const next = logs.findIndex(log => Date.parse(log.createdAt) >= timestamp)
   const center = next === -1 ? logs.length - 1 : next

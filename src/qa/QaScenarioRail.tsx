@@ -12,6 +12,7 @@ import { useScenarioSteps } from './useScenarioSteps'
 export type FocusedScenarioDetail = {
   tryId: string
   active: boolean
+  usageThrough?: number
   progress: QaProgress
   scenarioSteps: ScenarioStep[]
   executionMode: ExecutionMode
@@ -75,6 +76,7 @@ export function QaScenarioRail({
             active={focused.active}
             projectId={rail.projectId}
             qaTryId={focused.tryId}
+            through={focused.usageThrough}
           />
         </div>
       )}

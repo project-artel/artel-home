@@ -34,13 +34,17 @@ export function QaRunUsagePanel({
   projectId,
   qaTryId,
   active,
+  through,
 }: {
   projectId: string
   qaTryId: string
   active: boolean
+  through?: number
 }) {
   const { t } = useI18n()
-  const [usage, setUsage] = useState<QaRunUsage | null>(null)
+  const [snapshot, setSnapshot] = useState<{ usage: QaRunUsage | null; through: number | undefined } | null>(null)
+  const usage = snapshot !== null && (through === undefined || (snapshot.through !== undefined && snapshot.through <= through))
+    ? snapshot.usage : null
   const [status, setStatus] = useState<LoadStatus>('loading')
   const inFlight = useRef<AbortController | null>(null)
 
@@ -53,24 +57,25 @@ export function QaRunUsagePanel({
     const controller = new AbortController()
     inFlight.current = controller
 
-    getQaRunUsage(qaTryId, controller.signal)
+    getQaRunUsage(qaTryId, controller.signal, through)
       .then((result) => {
-        setUsage(result)
+        if (controller.signal.aborted) return
+        setSnapshot({ usage: result, through })
         setStatus('ready')
       })
       .catch(() => {
         if (controller.signal.aborted) return
         setStatus((current) => (current === 'ready' ? current : 'error'))
       })
-  }, [qaTryId])
+  }, [qaTryId, through])
 
   useEffect(() => {
     load()
     return () => inFlight.current?.abort()
   }, [load])
 
-  const live = useProjectChange(projectId || null, 'USAGE', load)
-  usePolling(load, undefined, !live)
+  const live = useProjectChange(through === undefined ? projectId || null : null, 'USAGE', load)
+  usePolling(load, undefined, through === undefined && !live)
 
   const tokens = usage === null ? 0 : usedTokens(usage)
   // The amount stands on fewer calls than the run made, so it is a floor.
