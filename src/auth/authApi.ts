@@ -169,7 +169,7 @@ export function parseAuthUser(data: unknown): AuthUser {
 
   const {
     id, displayName, email, emailVerified, pendingEmail, nickname, userTag, locale, identities,
-    platformRole, mustChangePassword,
+    platformRole, mustChangePassword, tutorialSeenAt,
   } = data as Record<string, unknown>
 
   if (
@@ -201,6 +201,10 @@ export function parseAuthUser(data: unknown): AuthUser {
     // A missing or unknown grade degrades to the least privileged one.
     platformRole: platformRole === 'ADMIN' || platformRole === 'DEVELOPER' ? platformRole : 'USER',
     mustChangePassword: mustChangePassword === true,
+    // A server from before ARTEL-1462 sends no field at all. Reading that as
+    // "never seen" would open the tutorial for every existing account, so
+    // only an explicit `null` means a first visit.
+    startTutorialPending: tutorialSeenAt === null,
   }
 }
 
@@ -235,6 +239,21 @@ export async function updateMyLocale(locale: Locale): Promise<void> {
 
   if (!response.ok) {
     throw new Error('Unable to save the language preference')
+  }
+}
+
+/**
+ * Records that this account finished or closed the start tutorial, so the
+ * shell stops opening it on its own. The server keeps the first time and
+ * answers `204` however often it is called. Callers treat failure as
+ * non-fatal: the tutorial is already closed locally, and the worst case is
+ * that it opens once more on the next visit.
+ */
+export async function markTutorialSeen(): Promise<void> {
+  const response = await apiFetch('/api/auth/me/tutorial-seen', { method: 'POST' })
+
+  if (!response.ok) {
+    throw new Error('Unable to record the tutorial as seen')
   }
 }
 

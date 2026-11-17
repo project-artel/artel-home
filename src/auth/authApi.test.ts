@@ -86,6 +86,15 @@ describe('parseAuthUser', () => {
     assert.equal(user.pendingEmail, null)
   })
 
+  it('owes the start tutorial only when the server says it was never seen', () => {
+    assert.equal(parseAuthUser({ ...sessionPayload, tutorialSeenAt: null }).startTutorialPending, true)
+    assert.equal(parseAuthUser({ ...sessionPayload, tutorialSeenAt: '2026-11-17T05:00:00Z' }).startTutorialPending, false)
+  })
+
+  it('does not owe the start tutorial to a session from a server that predates the field', () => {
+    assert.equal(parseAuthUser({ ...sessionPayload, tutorialSeenAt: undefined }).startTutorialPending, false)
+  })
+
   it('degrades a wrong-typed emailVerified or pendingEmail the same way', () => {
     const user = parseAuthUser({ ...sessionPayload, emailVerified: 'true', pendingEmail: 12 })
     assert.equal(user.emailVerified, false)
