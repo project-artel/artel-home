@@ -139,18 +139,6 @@ export function TutorialCoach({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [flat, phase, target.element !== null])
 
-  // 기다릴 것이 있는 장면(실행이 끝나기)은 반 초마다 다시 본다.
-  const until = action.kind === 'look' ? action.until : undefined
-  const [untilKey, setUntilKey] = useState(-1)
-  const untilMet = until === undefined || untilKey === flat
-  useEffect(() => {
-    if (until === undefined) return undefined
-    const timer = window.setInterval(() => {
-      if (until()) setUntilKey(flat)
-    }, 500)
-    return () => window.clearInterval(timer)
-  }, [flat, until])
-
   // 앞 장면에서 이미 해 버린 일은 기다리지 않고 넘어간다. 짚을 것이 사라졌으면 다시 띄운다.
   const done = action.kind === 'click' ? action.done : undefined
   const recover = action.kind === 'click' ? action.recover : undefined
@@ -206,6 +194,8 @@ export function TutorialCoach({
   const lines = useMemo(() => (action.kind === 'mcp' ? action.lines(m) : null), [action, m])
   const scene = phase === 'play' && (action.kind === 'unity' || action.kind === 'mcp')
   const waiting = phase === 'play' && !scene && target.element === null
+  // 예시 QA 실행이 도는 동안 기다리는 것은 화면이 아니라 실행이 끝나는 것이다. 끝나기 전에는 건너뛰지 않는다.
+  const running = waiting && liveRun()?.done === false
 
   // 화면이 바뀌는 동안 짚던 자리를 잠깐 잃는다. 그 사이 구멍을 가운데로 접었다가 다시 펴면 끊겨 보이므로, 잠깐은 마지막
   // 자리에 머물렀다가 새 자리를 찾으면 거기로 곧장 미끄러진다. 오래 못 찾을 때만 접는다.
@@ -259,7 +249,7 @@ export function TutorialCoach({
             <p>{m.steps[step.id].why}</p>
           </div>
         )}
-        <h2 aria-live="polite">{waiting ? m.player.loading : copy.title}</h2>
+        <h2 aria-live="polite">{running ? m.player.waitingRun : waiting ? m.player.loading : copy.title}</h2>
         {!waiting && <p>{copy.body}</p>}
         {action.kind === 'mcp' && (
           <a
@@ -302,12 +292,10 @@ export function TutorialCoach({
           <span className="tut-spacer" />
           {action.kind === 'fill' && !typingDone && !waiting ? (
             <span className="tut-hint">{m.player.typing}</span>
-          ) : !untilMet && !waiting ? (
-            <span className="tut-hint">{m.player.waitingRun}</span>
           ) : clickToAdvance && !waiting ? (
             <span className="tut-hint">{m.player.clickHint}</span>
           ) : (
-            (!waiting || target.patienceOver) && (
+            (!waiting || (target.patienceOver && !running)) && (
               <button
                 // 입력 장면에서는 포커스를 입력 칸에 둔다. 다음 버튼이 가져가면 멘션 목록 같은 것이 닫힌다.
                 autoFocus={action.kind !== 'fill'}

@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react'
+import { tutorialSession } from '../../tutorial/mock/tutorialMode'
 import { hasSeenTour, markTourSeen } from './tourSeen'
 
 /**
@@ -12,9 +13,10 @@ export function useTour(tourId: string, ready: boolean) {
     decided: false,
   })
 
-  // 렌더 중에 한 번만 정한다(효과 안에서 상태를 바꾸면 한 번 더 그린다).
+  // 렌더 중에 한 번만 정한다(효과 안에서 상태를 바꾸면 한 번 더 그린다). 시작 튜토리얼(ARTEL-1461)을 보는 중에는
+  // 열지 않는다. 두 안내가 겹치면 시작 튜토리얼이 짚는 자리를 이 창이 가린다.
   if (ready && !state.decided) {
-    setState({ open: !hasSeenTour(tourId), index: 0, decided: true })
+    setState({ open: !hasSeenTour(tourId) && tutorialSession() === null, index: 0, decided: true })
   }
 
   const start = useCallback(() => setState((current) => ({ ...current, open: true, index: 0 })), [])

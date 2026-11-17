@@ -66,7 +66,8 @@ export function MockGameView() {
     })
   }), [])
 
-  if (rect === null || rect.width === 0) return null
+  // 실행이 끝나 다시 보기로 바뀌면 게임 화면 자리가 납작해진다. 그때는 그리지 않는다.
+  if (rect === null || rect.width === 0 || rect.height < 160) return null
   const m = t.tutorial.game
   return createPortal(
     <div

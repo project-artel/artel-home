@@ -1,7 +1,6 @@
 import type { Messages } from '../i18n/messages'
 import { IDS } from './mock/tutorialFixtures'
 import { tutorialData } from './mock/tutorialMockApi'
-import { liveRun } from './mock/tutorialPlayback'
 
 /**
  * 시작 튜토리얼 8단계(ARTEL-1461). 실제 서비스 화면 위에서 진행하고, 화면 데이터는 튜토리얼 목데이터다.
@@ -48,8 +47,6 @@ export type TutorialAction =
       kind: 'click' | 'look'
       target: Find
       copy: CopyOf
-      /** 이것이 참이 될 때까지 다음으로 가지 않는다. 실행이 끝나기를 기다릴 때 쓴다. */
-      until?: () => boolean
       /** 사용자가 앞 장면에서 이미 해 버렸으면 참이다. 그러면 짚을 것이 없어도 저절로 넘어간다. */
       done?: () => boolean
       /** 짚을 것이 사라졌을 때(목록이 닫혔다) 다시 띄운다. */
@@ -242,7 +239,9 @@ export const START_TUTORIAL_STEPS: readonly TutorialStep[] = [
       { id: 'stage', kind: 'look', target: () => $('.qa-stage-top'), copy: (m) => m.steps.qa.stage },
       { id: 'logs', kind: 'look', target: () => $('.qa-focus-logs-col'), copy: (m) => m.steps.qa.logs },
       { id: 'chat', kind: 'look', target: () => $('.qa-stage-chat'), copy: (m) => m.steps.qa.chat },
-      { id: 'finish', kind: 'look', target: () => $('.qa-console-rail'), until: () => liveRun()?.done === true, copy: (m) => m.steps.qa.finish },
+      // 끝나면 실행 화면은 다시 보기로 바뀌어 0:00 부터 보여 준다. 결과는 끝날 때 뜨는 알림이 모아 보여 주고,
+      // 알림의 검토하러 가기를 누르면 알림도 닫힌다(남겨 두면 다음 단계의 판정 칸을 가린다).
+      { id: 'finish', kind: 'click', target: () => $('.qa-notice .button--primary'), copy: (m) => m.steps.qa.finish },
       {
         id: 'mcp',
         kind: 'mcp',

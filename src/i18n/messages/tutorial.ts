@@ -145,7 +145,7 @@ export const tutorialEn = {
       stage: { tag: 'Game screen', title: 'You see the game as the agent plays it', body: 'Where it presses shows here. In the tutorial an example game is drawn instead.' },
       logs: { tag: 'Agent record', title: 'What the agent thinks and does is recorded', body: 'Thoughts, actions and verdicts pile up live. Flow shows the summary, Raw every line.' },
       chat: { tag: 'Talk to the agent', title: 'Give directions while it runs', body: 'When the agent is stuck it asks here, and you can steer it too.' },
-      finish: { tag: 'Done', title: 'When the run ends, verdicts are in', body: 'The run is kept in QA history.' },
+      finish: { tag: 'Review', title: 'When the run ends, the results arrive', body: 'The notice counts passed, failed and needs-review. Open the review from here. The run is kept in QA history.' },
       mcp: { title: 'Or run it through MCP', body: 'Hand it to the agent and keep working.' },
       lines: {
         ask: 'Run "New game to first harvest" on the dev PC with Sonnet',
@@ -347,7 +347,7 @@ export const tutorialKo: Localized<typeof tutorialEn> = {
       stage: { tag: '게임 화면', title: 'Agent 가 플레이하는 게임이 그대로 보입니다', body: '누르는 자리가 여기 보입니다. 튜토리얼에서는 예시 게임 화면을 대신 그립니다.' },
       logs: { tag: 'Agent 기록', title: 'Agent 가 생각하고 한 일이 남습니다', body: '생각 · 행동 · 판정이 실시간으로 쌓입니다. 흐름은 요약, Raw 는 모든 줄입니다.' },
       chat: { tag: 'Agent 와 대화', title: '실행 중에도 방향을 잡아 줄 수 있습니다', body: 'Agent 가 막히면 여기서 묻고, 사람이 지시를 보낼 수도 있습니다.' },
-      finish: { tag: '실행 끝', title: '실행이 끝나면 판정이 모입니다', body: '이 실행은 QA 실행 기록에 남습니다.' },
+      finish: { tag: '검토하러 가기', title: '실행이 끝나면 결과가 도착합니다', body: '통과 · 실패 · 추가 검토 필요가 몇 개인지 알림에 뜹니다. 여기서 바로 검토하러 갑니다. 이 실행은 QA 실행 기록에 남습니다.' },
       mcp: { title: 'MCP 로도 돌립니다', body: '에이전트에게 맡기고 다른 일을 해도 됩니다.' },
       lines: {
         ask: '"새 게임부터 첫 수확까지"를 개발용 PC 에서 Sonnet 으로 돌려 줘',
