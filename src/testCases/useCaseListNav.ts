@@ -27,14 +27,13 @@ export type CaseListNav = {
 
 export function useCaseListNav(count: number): CaseListNav {
   const [active, setActive] = useState(0)
+  const lastIndex = Math.max(0, count - 1)
   const [edge, setEdge] = useState<ListEdge>({ top: true, bottom: false })
   const listRef = useRef<HTMLDivElement | null>(null)
 
   // Filtering can drop the list under the cursor. Pull it back rather than leaving the
   // detail pane pointed at a row that is no longer shown.
-  useEffect(() => {
-    setActive((current) => Math.min(current, Math.max(0, count - 1)))
-  }, [count])
+  if (active > lastIndex) setActive(lastIndex)
 
   useEffect(() => {
     const element = listRef.current?.querySelector<HTMLElement>(`[data-index="${active}"]`)
@@ -62,7 +61,7 @@ export function useCaseListNav(count: number): CaseListNav {
     (event: React.KeyboardEvent) => {
       if (event.key === 'ArrowDown') {
         event.preventDefault()
-        setActive((index) => Math.min(index + 1, count - 1))
+        setActive((index) => Math.min(index + 1, lastIndex))
         return true
       }
       if (event.key === 'ArrowUp') {
@@ -72,7 +71,7 @@ export function useCaseListNav(count: number): CaseListNav {
       }
       return false
     },
-    [count],
+    [lastIndex],
   )
 
   return { active, setActive, listRef, edge, onScroll, onKeyDown }

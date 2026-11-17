@@ -92,10 +92,7 @@ export function useStepEditor(
   // moves ownership once the new draft has actually arrived.
   const ownerRef = useRef(testScenarioId)
 
-  // The last-persisted draft; `dirty` is working ≠ this. A ref so mutations don't
-  // depend on it. `savedTick` re-reads it after autosave advances it silently.
-  const baseline = useRef<ScenarioDraft>(initial)
-  const [savedTick, setSavedTick] = useState(0)
+  const [baseline, setBaseline] = useState<ScenarioDraft>(initial)
 
   // History of committed states (one per autosave / apply), with a cursor. Refs
   // so recording inside effects never re-triggers renders on its own; `avail`
@@ -196,8 +193,8 @@ export function useStepEditor(
   )
 
   const dirty = useMemo(
-    () => !isScenarioDraftEqual(working, baseline.current),
-    [working, savedTick],
+    () => !isScenarioDraftEqual(working, baseline),
+    [working, baseline],
   )
 
   // Persists a draft and, on success, advances the baseline and records the
@@ -208,9 +205,8 @@ export function useStepEditor(
       setSaveError(null)
       try {
         await writeRef.current(testScenarioId, draft)
-        baseline.current = draft
+        setBaseline(draft)
         recordCommit(draft)
-        setSavedTick((n) => n + 1)
         return true
       } catch {
         setSaveError('save-failed')
@@ -273,19 +269,17 @@ export function useStepEditor(
 
   const reset = useCallback((ownedBy: number, draft: ScenarioDraft) => {
     ownerRef.current = ownedBy
-    baseline.current = draft
+    setBaseline(draft)
     historyRef.current = [draft]
     cursorRef.current = 0
     setWorking(draft)
     syncAvail()
-    setSavedTick((n) => n + 1)
   }, [syncAvail])
 
   const rebase = useCallback((draft: ScenarioDraft) => {
-    baseline.current = draft
+    setBaseline(draft)
     recordCommit(draft)
     setWorking(draft)
-    setSavedTick((n) => n + 1)
   }, [recordCommit])
 
   return {
