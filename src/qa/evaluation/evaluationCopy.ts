@@ -13,6 +13,7 @@ export const evaluationCopy = {
     first: '프로젝트 멤버의 첫 답변으로 재개합니다.',
     answered: '이미 답변되었거나 종료된 질문입니다. 최신 내용을 확인해 주세요.', notification: 'QA agent가 답변을 기다리고 있습니다.',
     references: '참고 절차', occurrences: 'Test Case 실패 이력', previousIssue: '이전 issue', mergedIssue: '병합된 issue', autoClosed: '유효한 실패가 없어 자동 종료됐습니다.', falsePositive: '오탐', validFailure: '유효한 실패',
+    saveVerdict: '판정 저장', reportIssue: '내용 문제 저장', caseSave: 'Test Case 저장', cancelEdit: '취소', originalCase: '실행 당시 Test Case', revisedCase: '수정한 Test Case', basis: '판정 기준', revalidationNeeded: '새 실행에서 재검증 필요',
     TC_CONTENT_ISSUE: 'Test Case 내용 문제', contentStatus: 'Test Case 내용 상태', NEEDS_REVISION: '수정 필요', NEEDS_REVALIDATION: '재검증 필요', READY: '사용 가능', allContentStates: '모든 내용 상태', revalidate: '재검증', revalidationBuild: '재검증할 빌드', sourceVideo: '문제가 확인된 검증 영상', editCase: 'Test Case 수정', contentReason: '수정 이유',
     PASSED: '통과', FAILED: '실패', INCONCLUSIVE: '판단 불가', INTERRUPTED: '중단' },
   en: { title: 'Review Test Case verdicts', attempt: 'Attempt', loading: 'Loading…', error: 'Could not load. Please try again.', retry: 'Retry', empty: 'No verification attempts.',
@@ -29,6 +30,7 @@ export const evaluationCopy = {
     first: 'The first answer from a project member resumes QA.',
     answered: 'This question was answered or closed. Please check the latest state.', notification: 'The QA agent is waiting for your answer.',
     references: 'Reference procedure', occurrences: 'Test Case failure history', previousIssue: 'Previous issue', mergedIssue: 'Merged into issue', autoClosed: 'Automatically closed because no valid failures remain.', falsePositive: 'False positive', validFailure: 'Valid failure',
+    saveVerdict: 'Save verdict', reportIssue: 'Save content issue', caseSave: 'Save Test Case', cancelEdit: 'Cancel', originalCase: 'Test Case at execution', revisedCase: 'Revised Test Case', basis: 'Verdict basis', revalidationNeeded: 'Revalidation in a new run needed',
     TC_CONTENT_ISSUE: 'Test Case content issue', contentStatus: 'Test Case content status', NEEDS_REVISION: 'Needs revision', NEEDS_REVALIDATION: 'Needs revalidation', READY: 'Ready', allContentStates: 'All content states', revalidate: 'Revalidate', revalidationBuild: 'Build to revalidate', sourceVideo: 'Original verification video', editCase: 'Edit Test Case', contentReason: 'Revision reason',
     PASSED: 'Passed', FAILED: 'Failed', INCONCLUSIVE: 'Inconclusive', INTERRUPTED: 'Interrupted' },
 }

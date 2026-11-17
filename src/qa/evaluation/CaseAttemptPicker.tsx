@@ -10,7 +10,7 @@ import { groupCaseAttempts } from './caseAttemptGroups'
 type Copy = typeof evaluationCopy.ko
 
 function outcome(row: Attempt, copy: Copy) {
-  return `${row.verdict ? copy[row.verdict] : copy.running} → ${row.review ? copy[row.review] : copy.unreviewed}`
+  return `${row.verdict ? copy[row.verdict] : copy.running} → ${row.review && row.review !== 'TC_CONTENT_ISSUE' ? copy[row.review] : copy.unreviewed}`
 }
 
 export function CaseAttemptPicker({ id, options, current, onSelect, copy }: {
@@ -49,7 +49,9 @@ export function CaseAttemptPicker({ id, options, current, onSelect, copy }: {
       {groups.map(([caseId, rows]) => {
         const selected = caseId === current.testCaseId
         const row = selected ? current : rows[0]
-        const label = `${caseLabel(caseId)} · ${outcome(row, copy)}`
+        const status = [outcome(row, copy), row.reviewedAgainstRevision && copy.revisedCase,
+          (row.hasContentIssue || row.review === "TC_CONTENT_ISSUE") && copy.TC_CONTENT_ISSUE].filter(Boolean).join(" · ")
+        const label = `${caseLabel(caseId)} · ${status}`
         const snapshot = row.caseSnapshot
         const fields = (['scene', 'precondition', 'step', 'expected'] as const)
           .filter(field => snapshot?.[field])
@@ -63,7 +65,7 @@ export function CaseAttemptPicker({ id, options, current, onSelect, copy }: {
             </span>
           </span>
           {row.caseSnapshot?.step && <span className="qe-case-tab-title">{row.caseSnapshot.step}</span>}
-          <span className="qe-case-tab-status">{outcome(row, copy)}</span>
+          <span className="qe-case-tab-status">{status}</span>
         </button>
         if (!snapshot || fields.length === 0) return tab
 
