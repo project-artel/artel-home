@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import { appPath } from '../appPath'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
@@ -7,6 +7,8 @@ import { useI18n } from '../i18n/useI18n'
 import { QaNoticeBell } from '../qa/QaNoticeBell'
 import { QuestionNotifications } from '../qa/evaluation/QuestionNotifications'
 import { ThemeToggle } from '../ThemeToggle'
+import { StartTutorialHost } from '../tutorial/StartTutorialHost'
+import { subscribeTutorialMode, tutorialSession } from '../tutorial/mock/tutorialMode'
 
 /**
  * The signed-in chrome: brand, connection state, and the user menu. Everything
@@ -16,6 +18,8 @@ export function AppShell() {
   const auth = useAuth()
   const { t } = useI18n()
   const [mainNode, setMainNode] = useState<HTMLElement | null>(null)
+  // 튜토리얼이 켜지고 꺼질 때 본문을 새로 그린다. 실제 데이터를 읽어 둔 화면이 목데이터 화면에 남지 않게 한다(ARTEL-1461).
+  const tutorialProject = useSyncExternalStore(subscribeTutorialMode, () => tutorialSession()?.projectId ?? null)
 
   if (auth.status !== 'authenticated') {
     // AuthProvider only ever mounts this subtree for an authenticated user; the
@@ -44,6 +48,8 @@ export function AppShell() {
           <NavLink className="top-bar-link" to="/setup">
             {t.common.shell.setupGuide}
           </NavLink>
+          {/* 처음 온 사용자에게 스스로 열리고, 여기서 다시 연다(ARTEL-1461). */}
+          <StartTutorialHost />
           {/* The admin screens are hidden from everyone but an ADMIN; the server still decides what each API returns. */}
           {auth.user.platformRole === 'ADMIN' && (
             <NavLink className="top-bar-link" to="/admin">
@@ -82,7 +88,7 @@ export function AppShell() {
       {/* 페이지 스크롤도 서비스 막대(ARTEL-1208). 브라우저 막대는 숨긴다. */}
       <div className="scroll-frame app-main-frame">
         <main className="workspace" ref={setMainNode}>
-          <Outlet />
+          <Outlet key={tutorialProject ?? 'live'} />
         </main>
         <EdgeScrollbar label={t.common.shell.pageScroll} scroller={mainNode} side="right" />
       </div>
