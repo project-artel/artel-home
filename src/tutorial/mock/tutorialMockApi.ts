@@ -372,7 +372,14 @@ export async function tutorialResponse(
 
   // 사용자의 프로젝트 안에서 돌 때는 그 프로젝트의 이름 · 장르만 실제로 읽는다. 내용은 모두 목데이터다.
   if (session.realProject && method === 'GET' && url.pathname === `/api/projects/${session.projectId}`) {
-    return passthrough()
+    const response = await passthrough()
+    if (!response.ok) return response
+    const { name, genre } = record(await response.json())
+    return json(200, {
+      ...current.project,
+      name: typeof name === 'string' ? name : current.project.name,
+      genre: typeof genre === 'string' ? genre : current.project.genre,
+    })
   }
   const request: MockRequest = { method, url, body: parseBody(init?.body) }
 

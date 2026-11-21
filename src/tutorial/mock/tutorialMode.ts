@@ -21,7 +21,9 @@ export type TutorialSession = {
   user: { id: string; displayName: string; email: string | null; nickname: string; userTag: string }
 }
 
-let session: TutorialSession | null = null
+type ActiveTutorialSession = TutorialSession & { seenQaRunIds: Set<string> }
+
+let session: ActiveTutorialSession | null = null
 const listeners = new Set<() => void>()
 const RealEventSource = typeof window === 'undefined' ? undefined : window.EventSource
 const RealWebSocket = typeof window === 'undefined' ? undefined : window.WebSocket
@@ -129,7 +131,7 @@ export function notifyTutorialChange(topic: string): void {
   })
 }
 
-export function tutorialSession(): TutorialSession | null {
+export function tutorialSession(): ActiveTutorialSession | null {
   return session
 }
 
@@ -140,7 +142,7 @@ export function subscribeTutorialMode(listener: () => void): () => void {
 }
 
 export function enterTutorialMode(next: TutorialSession): void {
-  session = next
+  session = { ...next, seenQaRunIds: new Set() }
   resetTutorialData(next)
   if (typeof window !== 'undefined') {
     window.EventSource = SilentEventSource as unknown as typeof EventSource

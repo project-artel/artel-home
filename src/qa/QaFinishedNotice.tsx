@@ -5,6 +5,7 @@ import { useAuth } from '../auth/useAuth'
 import { useI18n } from '../i18n/useI18n'
 import { useProjectChange } from '../live/useProjectChange'
 import { formatElapsedSeconds } from '../projects/formatters'
+import { tutorialSession } from '../tutorial/mock/tutorialMode'
 import { listProjectQaRuns, QA_NOTICES_CHANGED, qaNoticeTarget, readQaNotice, type QaRunSummary } from './launch/qaLaunchApi'
 
 /** 끝 알림을 고를 때 읽는 최신 실행 수. 한 번에 이만큼 넘게 끝나는 일은 없다. */
@@ -42,12 +43,13 @@ export function QaFinishedNotice({ projectId }: { projectId: string }) {
   const [openedAt] = useState(() => Date.now())
   const [shown, setShown] = useState<QaRunSummary[]>([])
   const me = auth.status === 'authenticated' ? auth.user.id : null
+  const tutorial = tutorialSession()
 
   const check = useCallback(() => {
     if (me === null) return
     void listProjectQaRuns(projectId, RECENT_RUNS)
       .then((runs) => {
-        const seen = readSeen(projectId)
+        const seen = tutorial?.seenQaRunIds ?? readSeen(projectId)
         const fresh = runs.filter(
           (run) =>
             run.completedAt !== null &&
@@ -57,14 +59,14 @@ export function QaFinishedNotice({ projectId }: { projectId: string }) {
         )
         if (fresh.length === 0) return
         fresh.forEach((run) => seen.add(run.id))
-        writeSeen(projectId, seen)
+        if (tutorial === null) writeSeen(projectId, seen)
         window.dispatchEvent(new Event(QA_NOTICES_CHANGED))
         setShown((current) => [...fresh, ...current.filter((run) => !fresh.some((next) => next.id === run.id))].slice(0, 2))
       })
       .catch(() => {
         // 알림은 덤이다. 못 읽으면 다음 변경 때 다시 읽는다.
       })
-  }, [projectId, me, openedAt])
+  }, [projectId, me, openedAt, tutorial])
 
   useProjectChange(projectId, 'QA_RUNS', check)
 
