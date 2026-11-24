@@ -10,6 +10,7 @@ import type { GameInstance } from '../../projects/gameTypes.ts'
 import type { TestRun } from '../../testRuns/testRunApi.ts'
 import type { QaArchSelection } from '../qaArch.ts'
 import type { QaModel } from '../qaTypes.ts'
+import { axes } from '../qaArch.fixture.ts'
 import { ArchSettings } from './ArchSettings.tsx'
 import { LaunchPanel } from './LaunchPanel.tsx'
 
@@ -31,7 +32,7 @@ const panel = messages.ko.qa.launch.panel
 
 describe('ArchSettings', () => {
   const render = (selection: QaArchSelection) =>
-    renderKorean(createElement(ArchSettings, { onChange: () => {}, readsImages: true, selection }))
+    renderKorean(createElement(ArchSettings, { axes, onChange: () => {}, readsImages: true, selection }))
 
   it('엔진 선택은 고급 설정에 없고, agent 면 축을 잠그지 않는다', () => {
     const html = render({})
@@ -88,7 +89,7 @@ describe('LaunchPanel', () => {
     lastQaRun: null,
   }
 
-  const render = (arch: QaArchSelection) =>
+  const render = (arch: QaArchSelection, catalog: typeof axes | null = axes) =>
     renderKorean(
       createElement(LaunchPanel, {
         projectId: '1',
@@ -105,6 +106,7 @@ describe('LaunchPanel', () => {
         reasoningValue: 0,
         onReasoningValue: () => {},
         arch,
+        axes: catalog, optionsFailed: catalog === null, retryOptions: () => {},
         onArchChange: () => {},
         etaMs: null,
         onManageConsoles: () => {},
@@ -138,6 +140,12 @@ describe('LaunchPanel', () => {
   it('planner_executer 에서 남겨 둔 knob 이 있어도 실행할 수 있다', () => {
     const html = render({ engine: 'planner_executer', macros: 'off' })
     assert.equal(runBlocked(html), false)
+  })
+
+  it('설정 목록을 읽지 못하면 저장된 값을 적용할 실행만 막는다', () => {
+    assert.equal(runBlocked(render({}, null)), false)
+    assert.equal(runBlocked(render({ code_mode: true }, null)), true)
+    assert.equal(runBlocked(render({ engine: 'planner_executer', code_mode: true }, null)), false)
   })
 
   it('agent 설정을 바꿔도 이름 입력 없이 실행할 수 있다', () => {

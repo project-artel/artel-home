@@ -2,41 +2,31 @@ import { useId } from 'react'
 import { useI18n } from '../../i18n/useI18n'
 import {
   EMPTY_ARCH_SELECTION,
-  QA_ARCH_AXES,
   archEngine,
-  changedKnobCount,
+  choiceUnavailable,
+  withEngine,
   withKnob,
   type QaArchAxis,
-  type QaArchKnobKey,
   type QaArchSelection,
 } from '../qaArch'
 
-/**
- * 실행 설정 패널의 "고급 설정"(ARTEL-1091) — agent 구조 knob.
- *
- * 상위 패널의 고급 설정 안에 표시한다. knob을 바꾸면 label 입력이 나타난다.
- *
- * `readsImages` 가 false 면 vision 이 필요한 값은 option 을 잠근다. 이미 고른 값은 여기서 지우지
- * 않는다 — 보낼 때 `withoutVisionKnobs` 가 걷어 내므로, 모델을 되돌리면 고른 값이 그대로 산다.
- * 그래서 `selection` 은 걷어 낸 뒤의 값을 받는다. 화면이 보내는 것과 같은 것을 보여 주기 위해서다.
- *
- * 엔진(ARTEL-1119)은 패널에서 고른다. `planner_executer` 면 축 전체를 `fieldset disabled` 로 잠근다.
- * knob 은 모두 `agent` 엔진의 것이라 그 엔진은 읽지 않고, 요청에도 실리지 않는다. 값은 지우지 않는다 —
- * vision 잠금과 같은 이유로, `agent` 로 돌아가면 고른 값이 그대로 산다.
- */
+/** 엔진이나 모델을 되돌렸을 때 선택을 복원하도록, 표시할 값만 걸러낸다. */
 export function ArchSettings({
   selection,
+  axes,
   onChange,
   readsImages,
 }: {
   selection: QaArchSelection
+  axes: readonly QaArchAxis[]
   onChange: (next: QaArchSelection) => void
   readsImages: boolean
 }) {
   const { t } = useI18n()
   const advanced = t.qa.panel.advanced
-  const changed = changedKnobCount(selection)
-  const engineLocked = archEngine(selection) === 'planner_executer'
+  const engine = archEngine(selection)
+  const changed = Object.keys(selection).some((key) => key !== 'engine')
+  const engineLocked = axes.length > 0 && axes.every((axis) => !axis.engines.includes(engine))
 
   return (
     <div className="qa-advanced">
@@ -56,7 +46,7 @@ export function ArchSettings({
       )}
       <fieldset className="qa-advanced-fieldset" disabled={engineLocked}>
         <div className="qa-advanced-grid">
-          {QA_ARCH_AXES.map((axis) => (
+          {axes.map((axis) => (
             <ArchAxisField
               axis={axis}
               key={axis.key}
@@ -66,11 +56,11 @@ export function ArchSettings({
             />
           ))}
         </div>
-        {changed > 0 && (
+        {changed && (
           <div className="qa-advanced-actions">
             <button
               className="button button--secondary button--compact"
-              onClick={() => onChange(EMPTY_ARCH_SELECTION)}
+              onClick={() => onChange(withEngine(EMPTY_ARCH_SELECTION, engine))}
               type="button"
             >
               {advanced.reset}
@@ -94,13 +84,16 @@ function ArchAxisField({
   selection,
 }: {
   axis: QaArchAxis
-  onChange: (key: QaArchKnobKey, value: QaArchSelection[QaArchKnobKey]) => void
+  onChange: (key: string, value: QaArchSelection[string]) => void
   readsImages: boolean
   selection: QaArchSelection
 }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
+  const disabled = !axis.engines.includes(archEngine(selection))
   const controlId = useId()
-  const current = selection[axis.key]
+  const saved = selection[axis.key]
+  const current = axis.kind === 'choice' && typeof saved === 'string' && choiceUnavailable(axis, saved, selection, readsImages)
+    ? undefined : saved
   const advanced = t.qa.panel.advanced
 
   return (
@@ -108,6 +101,7 @@ function ArchAxisField({
       <code translate="no">{axis.key}</code>
       {axis.kind === 'choice' && (
         <select
+          disabled={disabled}
           id={controlId}
           onChange={(event) =>
             onChange(
@@ -120,7 +114,7 @@ function ArchAxisField({
           <option value="">{advanced.serverDefault}</option>
           {axis.values.map((value) => (
             <option
-              disabled={!readsImages && (axis.visionOnlyValues?.includes(value) ?? false)}
+              disabled={choiceUnavailable(axis, value, selection, readsImages)}
               key={value}
               value={value}
             >
@@ -131,6 +125,7 @@ function ArchAxisField({
       )}
       {axis.kind === 'toggle' && (
         <select
+          disabled={disabled}
           id={controlId}
           onChange={(event) =>
             onChange(axis.key, event.target.value === '' ? undefined : event.target.value === 'true')
@@ -144,6 +139,7 @@ function ArchAxisField({
       )}
       {axis.kind === 'number' && (
         <input
+          disabled={disabled}
           id={controlId}
           max={axis.max}
           min={axis.min}
@@ -155,7 +151,7 @@ function ArchAxisField({
           value={typeof current === 'number' ? current : ''}
         />
       )}
-      <small>{advanced.axes[axis.key]}</small>
+      <small>{axis.description[locale]}</small>
     </label>
   )
 }
