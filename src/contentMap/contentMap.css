@@ -95,6 +95,7 @@
 .cm-brief--failed {
   color: var(--color-status-critical);
 }
+.cm-brief--stream { min-width: 0; max-width: 100%; white-space: normal; }
 .cm-brief--warning,
 .cm-brief--requested {
   color: var(--color-status-warning);

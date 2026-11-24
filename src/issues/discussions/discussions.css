@@ -345,6 +345,7 @@
 }
 .dc-board-main {
   min-width: 0;
+  container: discussion-list / inline-size;
 }
 .dc-toolbar {
   display: flex;
@@ -3017,7 +3018,7 @@ button.md-tc:focus-visible {
   color: var(--color-text-muted);
   font-size: 12px;
 }
-@media (max-width: 900px) {
+@container discussion-list (max-width: 620px) {
   .dc-post {
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:

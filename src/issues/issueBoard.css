@@ -69,6 +69,7 @@
 /* ---- 가운데 표 ---- */
 .ib-main {
   min-width: 0;
+  container: issue-list / inline-size;
 }
 .ib-main {
   padding: var(--space-4);
@@ -152,6 +153,10 @@
   border-collapse: collapse;
   table-layout: fixed;
   font-size: 13px;
+}
+@container issue-list (max-width: 1000px) {
+  .ib-table-scroll { overflow-x: auto; }
+  .ib-table { min-width: 1000px; }
 }
 col.ib-c-check { width: 40px; }
 col.ib-c-sev { width: 84px; }

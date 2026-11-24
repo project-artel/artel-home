@@ -237,6 +237,11 @@
   .cid .cid-tablewrap { flex: none; height: 300px; }
   .cid-target, .dialog-actions { flex-wrap: wrap; }
   .dialog-actions > button { min-height: 44px; }
+}
+
+.rmap { container: run-canvas / inline-size; }
+@container run-canvas (max-width: 820px) {
+  .rmap .rmap-stage.has-chat .rm-toolbar { left: 50%; max-width: calc(100% - 24px); }
   .rmap .rm-toolbar { max-width: calc(100% - 24px); overflow-x: auto; justify-content: flex-start; }
   .rmap .rm-toolbar > button { flex: none; }
   .rmap-stage.has-chat-rail .rm-toolbar { left: calc(50% - 22px); max-width: calc(100% - 68px); }

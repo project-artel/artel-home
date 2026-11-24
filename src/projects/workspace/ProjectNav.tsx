@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react'
+import { Fragment, useState, type ReactNode } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { CollapseIcon } from '../../design-system/primitives/CollapseIcon'
 import { useI18n } from '../../i18n/useI18n'
@@ -90,8 +90,10 @@ export function ProjectNav({
   projectName,
   forceCollapsed = false,
   agentEnabled,
+  agentLauncher,
 }: {
   agentEnabled: boolean
+  agentLauncher?: ReactNode
   counts: Partial<Record<WorkspaceSectionId, number | null>>
   genreLabel: string
   projectId: string
@@ -222,6 +224,7 @@ export function ProjectNav({
         >
           {projectName.slice(0, 1).toUpperCase()}
         </span>
+        {agentLauncher}
       </div>
 
       <select

@@ -16,7 +16,7 @@ import { formatDate } from '../formatters'
 import { versionBuilds } from '../gameBuilds'
 import { useProject } from '../useProject'
 import { ProjectNav } from './ProjectNav'
-import { isDeepPath, isSectionPath, PROJECT_RAIL_PX, sectionIdFromPath } from './sections'
+import { isDeepPath, isSectionPath, PROJECT_RAIL_PX, sectionHref, sectionIdFromPath } from './sections'
 import { useWorkspaceExtras } from './useWorkspaceExtras'
 import { WorkspaceContext, type WorkspaceValue } from './workspaceContext'
 import { EdgeScrollbar } from '../../design-system/primitives/EdgeScrollbar'
@@ -74,7 +74,7 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
   // 페이지가 대화를 자기 칸에 직접 그리는 동안(시나리오 화면의 project 모드) dock 을 숨긴다.
   const [pageHostsChat, setPageHostsChat] = useState(false)
   const [bodyNode, setBodyNode] = useState<HTMLDivElement | null>(null)
-  const dockOpen = dock.open && !pageHostsChat
+  const dockOpen = dock.open && (dock.fullPage || dock.canDock) && !pageHostsChat
 
   const {
     applyTrackerLink,
@@ -182,8 +182,7 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
 
   if (dock.fullPage && !dock.enabled) return <Navigate replace to={'/projects/' + encodeURIComponent(projectId)} />
   const agentHome = dock.enabled && dock.fullPage
-  const mobile = dock.viewportWidth <= 720
-  const showLauncher = dock.enabled && !agentHome && !pageHostsChat && (mobile || !dockOpen)
+  const showLauncher = dock.enabled && !agentHome && !pageHostsChat && !dockOpen
   const workspaceClass =
     'project-workspace' +
     (dockOpen ? (agentHome ? ' has-agent-home' : ' has-agent') : '') +
@@ -197,6 +196,7 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
       style={dockOpen ? ({ '--agent-chat-w': `${dock.chatWidth}px` } as CSSProperties) : undefined}
     >
       <ProjectNav
+        agentLauncher={showLauncher && <AgentReopenButton onOpen={dock.canDock ? dock.openChat : () => navigate(sectionHref(projectId, 'chat'))} />}
         agentEnabled={dock.enabled}
         counts={{
           documents: documents.length,
@@ -256,9 +256,6 @@ function ProjectWorkspace({ projectId }: { projectId: string }) {
           <ScenarioReviewNotice projectId={projectId} />
           <QaFinishedNotice projectId={projectId} />
         </div>
-        {showLauncher && (
-          <AgentReopenButton onOpen={mobile ? () => navigate('/projects/' + encodeURIComponent(projectId) + '/chat') : dock.openChat} />
-        )}
       </div>
     </div>
     </ProjectAgentProviders>
