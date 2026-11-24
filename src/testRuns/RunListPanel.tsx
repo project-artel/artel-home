@@ -191,10 +191,10 @@ export function RunListPanel({
   useEffect(() => {
     if (pendingDelete === null) return
     const controller = new AbortController()
-    setImpact(null)
-    setDropScenarios(true)
     getRunDeletionPreview(projectId, pendingDelete.id, controller.signal)
-      .then(setImpact)
+      .then((preview) => {
+        if (!controller.signal.aborted) setImpact(preview)
+      })
       .catch(() => {
         // 못 세어도 삭제 자체는 할 수 있다. 그때는 체크박스 없이 런만 지운다.
       })
@@ -234,6 +234,12 @@ export function RunListPanel({
   async function refreshAll() {
     setFoldersKey((key) => key + 1)
     await onChanged()
+  }
+
+  function requestDelete(run: TestRun) {
+    setImpact(null)
+    setDropScenarios(true)
+    setPendingDelete(run)
   }
 
   async function confirmDelete() {
@@ -310,7 +316,7 @@ export function RunListPanel({
       { label: r.menu.changeVersion, onSelect: () => setMoving(group) },
       many
         ? { label: r.menu.deleteSelected(group.length), onSelect: () => setBulkDeleting(group), danger: true }
-        : { label: r.delete, onSelect: () => setPendingDelete(run), danger: true },
+        : { label: r.delete, onSelect: () => requestDelete(run), danger: true },
     ]
   }
 

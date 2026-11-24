@@ -153,32 +153,24 @@ function EmptyState({ onPick }: { onPick?: (text: string) => void }) {
   )
 }
 
-/**
- * 닫힌 대화창을 다시 여는 버튼. workspace grid 의 오른쪽 마지막 칸에 선다.
- * badge 는 `AgentSessionProvider` 에서 읽는다. 승인 대기, 질문 대기, 아직 보지 않은 끝난 job 의 수다.
- */
 export function AgentReopenButton({ onOpen }: { onOpen: () => void }) {
   const { t } = useI18n()
   const badgeCount = useAgentSession()?.badge.count ?? 0
   return (
-    <div className="agent-reopen-rail">
-      <button
-        aria-label={badgeCount > 0 ? t.projectAgent.chat.reopenWithBadge(badgeCount) : t.projectAgent.reopen}
-        className="agent-reopen"
-        onClick={onOpen}
-        type="button"
-      >
-        <span className="agent-reopen__icon">
-          <AgentIcon />
-          {badgeCount > 0 && (
-            <span aria-hidden="true" className="agent-reopen__badge">
-              {badgeCount > 9 ? '9+' : badgeCount}
-            </span>
-          )}
+    <button
+      aria-label={badgeCount > 0 ? t.projectAgent.chat.reopenWithBadge(badgeCount) : t.projectAgent.reopen}
+      className="button button--primary agent-reopen"
+      onClick={onOpen}
+      type="button"
+    >
+      <AgentIcon />
+      {t.projectAgent.agentName}
+      {badgeCount > 0 && (
+        <span aria-hidden="true" className="agent-reopen__badge">
+          {badgeCount > 9 ? '9+' : badgeCount}
         </span>
-        <span className="agent-reopen__label">{t.projectAgent.agentName}</span>
-      </button>
-    </div>
+      )}
+    </button>
   )
 }
 

@@ -81,6 +81,9 @@ export type QaTryVerdicts = {
   reviewCount: number
   /** 추가 검토로 골랐다가 사람이 정한 판정 수. */
   reviewedCount: number
+  /** 통과한 TC 수와 판정한 TC 수. 옛 서버면 null. */
+  casesPassed: number | null
+  casesTotal: number | null
 }
 
 export type QaRunVerdicts = {
@@ -215,6 +218,8 @@ function readTry(value: unknown): QaTryVerdicts | null {
     issues: list(record.issues, readIssue),
     reviewCount: typeof record.reviewCount === 'number' ? record.reviewCount : 0,
     reviewedCount: typeof record.reviewedCount === 'number' ? record.reviewedCount : 0,
+    casesPassed: countOrNull(record.casesPassed),
+    casesTotal: countOrNull(record.casesTotal),
   }
 }
 
@@ -262,4 +267,8 @@ export async function reviewQaVerdict(
   const decision = readHumanDecision(await readJson(response))
   if (decision === null) throw new Error('review response could not be read')
   return decision
+}
+
+function countOrNull(value: unknown): number | null {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : null
 }

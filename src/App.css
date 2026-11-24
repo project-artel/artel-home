@@ -2440,6 +2440,18 @@ a.instance-name:hover {
   color: var(--color-status-warning);
 }
 
+.qa-status--ratio-pass {
+  color: var(--color-status-success);
+}
+
+.qa-status--ratio-partial {
+  color: var(--color-status-warning);
+}
+
+.qa-status--ratio-fail {
+  color: var(--color-status-critical);
+}
+
 /* 미판정(ARTEL-1372): 실패도 통과도 아니라서 중립색이다. */
 .qa-status--undecided {
   color: var(--color-text-secondary);
@@ -5241,6 +5253,9 @@ a.instance-name:hover {
 .qa-run-status--completed{ background:var(--st-verified,#2e9e6b); color:#fff; }
 .qa-run-status--failed{ background:var(--color-status-danger,#d64545); color:#fff; }
 .qa-run-status--cancelled{ background:var(--color-text-muted,#888); color:#fff; }
+.qa-run-status--ratio-pass{ background:var(--st-verified,#2e9e6b); color:#fff; }
+.qa-run-status--ratio-partial{ background:var(--color-status-warning,#d99a1e); color:#fff; }
+.qa-run-status--ratio-fail{ background:var(--color-status-danger,#d64545); color:#fff; }
 .qa-run-status--undecided{ background:transparent; color:var(--color-text-secondary); box-shadow:inset 0 0 0 1px var(--color-border-strong); }
 
 /* Step→TC 내용 모달 + 클릭 배지 (ARTEL-289 #3) */
@@ -5376,6 +5391,9 @@ a.instance-name:hover {
 .qa-rail-dot--completed{ background:var(--color-status-success,#3a9a5c); }
 .qa-rail-dot--failed{ background:var(--color-status-critical,#d64545); }
 .qa-rail-dot--cancelled{ background:var(--color-text-muted); }
+.qa-rail-dot--ratio-pass{ background:var(--color-status-success,#3a9a5c); }
+.qa-rail-dot--ratio-partial{ background:var(--color-status-warning,#d99a1e); }
+.qa-rail-dot--ratio-fail{ background:var(--color-status-critical,#d64545); }
 .qa-rail-dot--pending{ background:transparent; border:1.5px solid var(--color-border-strong); }
 .qa-rail-dot--undecided{ background:var(--color-text-secondary); }
 /* 모델 API 오류로 멈춘 까닭과 돌지 않은 시나리오(ARTEL-1372). 까닭 줄은 제목 칸 아래에 붙는다. */
@@ -5618,16 +5636,6 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
 .project-workspace.has-agent:has(.project-nav--collapsed) {
   grid-template-columns: 48px minmax(0, 1fr) 6px var(--agent-chat-w);
 }
-
-/* 닫혀 있으면 오른쪽 40px 칸에 다시 열기 버튼만 남는다. */
-.project-workspace.has-agent-closed {
-  grid-template-columns: 216px minmax(0, 1fr) 40px;
-}
-
-.project-workspace.has-agent-closed:has(.project-nav--collapsed) {
-  grid-template-columns: 48px minmax(0, 1fr) 40px;
-}
-
 
 .project-workspace.is-splitting {
   cursor: col-resize;
@@ -6461,16 +6469,13 @@ button.qa-row-body--linked:hover{ background:var(--color-bg-hover); }
   .project-workspace.has-agent,
   .project-workspace.has-agent-home,
   .project-workspace.has-agent:has(.project-nav--collapsed),
-  .project-workspace.has-agent-home:has(.project-nav--collapsed),
-  .project-workspace.has-agent-closed,
-  .project-workspace.has-agent-closed:has(.project-nav--collapsed) {
+  .project-workspace.has-agent-home:has(.project-nav--collapsed) {
     grid-template-columns: minmax(0, 1fr);
   }
 
 
   .project-workspace > .agent-panel,
-  .project-workspace > .agent-dock-split,
-  .project-workspace > .agent-reopen-rail {
+  .project-workspace > .agent-dock-split {
     display: none;
   }
 
@@ -13522,9 +13527,21 @@ col.vimp-c-scene{ width:18% } col.vimp-c-verdict{ width:16% }
 .qh-tile-review { display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; padding: 0 7px; border-radius: 999px; font-size: 11px; font-weight: 600; color: var(--color-agent-reasoning); border: 1px solid color-mix(in srgb, var(--color-agent-reasoning) 55%, transparent); }
 .qh-tile-review .qv-dot { width: 6px; height: 6px; }
 .qh-tile-review.is-done { color: var(--color-text-muted); border-color: var(--color-border-subtle); }
-.qa-notice-stack { position: fixed; right: 20px; bottom: 20px; z-index: 300; display: flex; flex-direction: column; gap: 10px; }
+.workspace-corner {
+  position: fixed;
+  right: max(var(--space-5), env(safe-area-inset-right));
+  bottom: max(var(--space-5), env(safe-area-inset-bottom));
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  pointer-events: none;
+}
+.qa-notice-stack { display: flex; flex-direction: column; gap: 10px; }
+.qa-notice-stack:empty { display: none; }
+.qa-notice-stack > * { pointer-events: auto; }
 /* 알림이 팝업의 버튼을 가리지 않게, 팝업이 떠 있는 동안 숨긴다. */
-body:has(.dialog-scrim) .qa-notice-stack { visibility: hidden; }
+body:has(.dialog-scrim) .workspace-corner { visibility: hidden; }
 .qa-notice { width: min(380px, calc(100vw - 40px)); padding: 14px 16px; border: 1px solid var(--color-border-strong); border-left: 3px solid var(--color-agent-reasoning); border-radius: 10px; background: var(--color-bg-raised); box-shadow: 0 14px 40px rgb(0 0 0 / 45%); }
 .qa-notice-head { display: flex; align-items: center; gap: 8px; font-size: 14px; }
 .qa-notice-head svg { color: var(--color-agent-reasoning); flex: none; }
@@ -13895,3 +13912,338 @@ body:has(.dialog-scrim) .qa-notice-stack { visibility: hidden; }
 .crd-step-action{ display:block; margin-bottom:3px; font-size:13px; font-weight:600; color:var(--color-text-primary); }
 .crd-kind--changed{ border-color:var(--color-status-warning); color:var(--color-status-warning); }
 .crd-reject{ color:var(--color-status-critical); border-color:color-mix(in srgb, var(--color-status-critical) 55%, transparent); }
+
+/*
+ * planner–executer 런에서 지금 step 을 맡은 계획의 묶음. 머리 줄부터 마지막 조각까지 Planner 색 테두리 상자 하나로 이어 그린다.
+ * 조각은 TC 줄 하나 또는 step 줄 하나이고, 조각 사이 틈을 없애 상자가 끊기지 않게 한다. 묶음이 끝나면 클래스가 빠져 상자도 사라진다.
+ */
+.qa-rail-seg{ margin-top:0; margin-bottom:0; border-left:1px solid color-mix(in srgb, var(--color-agent-reasoning) 55%, transparent); border-right:1px solid color-mix(in srgb, var(--color-agent-reasoning) 55%, transparent); background:color-mix(in srgb, var(--color-agent-reasoning) 7%, transparent); }
+.qa-rail-case.qa-rail-seg{ margin:0; padding:2px 4px 2px 6px; }
+.qa-rail-seg--first{ margin-top:6px; border-top:1px solid color-mix(in srgb, var(--color-agent-reasoning) 55%, transparent); border-radius:var(--radius-sm) var(--radius-sm) 0 0; }
+.qa-rail-seg--last{ margin-bottom:6px; border-bottom:1px solid color-mix(in srgb, var(--color-agent-reasoning) 55%, transparent); border-radius:0 0 var(--radius-sm) var(--radius-sm); }
+.qa-rail-case.qa-rail-seg--last{ margin-bottom:6px; }
+.qa-rail-seg-label{ padding:4px 8px 2px; font-size:11px; line-height:16px; font-weight:600; color:var(--color-agent-reasoning); }
+/* PE 런에서 TC 없이 이어 주는 step. TC 안의 step 과 같은 들여쓰기에 두되 TC 선은 긋지 않는다. */
+.qa-rail-case--loose:not(.qa-rail-seg){ border-left-color:transparent; }
+/* ── 시작 튜토리얼 (ARTEL-1461) ─────────────────────────────────────────────
+   실제 서비스 화면 위에 덧씌운다. 짚는 자리 밖은 어둡고 흐리게 덮고, 설명은 그 자리 바로 옆 말풍선에 붙는다.
+   고리 · 덮개 구멍 · 말풍선은 자리를 옮길 때 함께 미끄러진다. 다른 화면과 이름이 겹치지 않게 `tut-` 으로 시작한다. */
+.top-bar-link--button {
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.top-bar-link--button:disabled { cursor: default; opacity: .5; }
+
+.tut { --tut-move: .42s cubic-bezier(.22, .8, .24, 1); position: fixed; inset: 0; z-index: 460; pointer-events: none; }
+.tut > * { pointer-events: auto; }
+.tut-veil { position: fixed; inset: 0; background: transparent; }
+.tut-spot {
+  position: fixed;
+  top: 0;
+  left: 0;
+  border-radius: 10px;
+  box-shadow: 0 0 0 200vmax rgb(6 7 10 / 66%);
+  pointer-events: none !important;
+  transition: transform var(--tut-move), width var(--tut-move), height var(--tut-move);
+  will-change: transform;
+  animation: tut-fade .35s ease both;
+}
+.tut-spot.is-open { outline: 2px solid var(--color-brand-accent); outline-offset: 0; }
+/* 빛 번짐은 그려 둔 그림자의 투명도만 바꾼다. 그림자 자체를 움직이면 매 프레임 다시 그려 끊긴다. */
+.tut-spot.is-open::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-brand-accent) 28%, transparent), 0 0 32px 10px color-mix(in srgb, var(--color-brand-accent) 45%, transparent);
+  animation: tut-glow 1.8s ease-in-out infinite;
+  will-change: opacity;
+}
+
+/* 말풍선 */
+.tut-callout {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 380px;
+  max-width: calc(100vw - 24px);
+  padding: var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--color-brand-accent) 45%, var(--color-border-strong));
+  border-radius: 12px;
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  transition: left var(--tut-move), top var(--tut-move);
+  animation: tut-pop .32s cubic-bezier(.22, .8, .24, 1) both;
+}
+.tut-callout--inline { position: relative; flex: none; transition: none; }
+/* 화살표: 말풍선이 붙은 쪽에서 짚는 자리 가운데를 가리킨다. */
+.tut-callout::before {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border: inherit;
+  background: inherit;
+  transform: rotate(45deg);
+}
+.tut-callout--right::before { left: -7px; top: calc(var(--tut-arrow) - 6px); border-top: 0; border-right: 0; }
+.tut-callout--left::before { right: -7px; top: calc(var(--tut-arrow) - 6px); border-bottom: 0; border-left: 0; }
+.tut-callout--below::before { top: -7px; left: calc(var(--tut-arrow) - 6px); border-right: 0; border-bottom: 0; }
+.tut-callout--above::before { bottom: -7px; left: calc(var(--tut-arrow) - 6px); border-top: 0; border-left: 0; }
+.tut-callout--none::before, .tut-callout--inline::before { display: none; }
+.tut-callout-head { display: flex; align-items: center; gap: var(--space-2); }
+.tut-callout-step { color: var(--color-brand-accent); font-size: 12px; font-weight: 700; white-space: nowrap; }
+.tut-callout-count { color: var(--color-text-muted); font: 500 11px/1 var(--font-mono); white-space: nowrap; }
+.tut-callout-badge { margin-left: auto; padding: 2px 8px; border: 1px solid var(--color-border-strong); border-radius: 999px; color: var(--color-text-muted); font-size: 10.5px; white-space: nowrap; }
+.tut-callout-close { width: 24px; height: 24px; padding: 0; border: 0; border-radius: var(--radius-md); background: transparent; color: var(--color-text-muted); font-size: 18px; line-height: 1; cursor: pointer; }
+.tut-callout-close:hover { background: var(--color-bg-hover); color: var(--color-text-primary); }
+.tut-callout-body { display: flex; flex-direction: column; gap: 6px; animation: tut-rise .32s ease both; }
+/* 짚는 자리에 붙는 작은 말풍선. 꼬리가 짚는 자리를 가리킨다. */
+.tut-tag {
+  position: fixed;
+  top: 0;
+  left: 0;
+  padding: 6px 11px;
+  border-radius: 8px;
+  background: var(--color-brand-accent);
+  color: var(--color-text-on-accent);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: none !important;
+  transition: transform var(--tut-move);
+  animation: tut-fade .3s ease both;
+}
+.tut-tag::after {
+  content: "";
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  background: inherit;
+  transform: rotate(45deg);
+}
+.tut-tag--above::after { bottom: -4px; left: calc(50% - 4.5px); }
+.tut-tag--below::after { top: -4px; left: calc(50% - 4.5px); }
+.tut-tag--right::after { left: -4px; top: calc(50% - 4.5px); }
+.tut-tag--left::after { right: -4px; top: calc(50% - 4.5px); }
+.tut-callout-body h2 { margin: 0; font-size: 17px; line-height: 1.4; }
+.tut-callout-body p { margin: 0; color: var(--color-text-secondary); font-size: 13.5px; line-height: 1.6; }
+.tut-callout-link { align-self: flex-start; margin-top: 2px; color: var(--color-brand-accent); font-size: 13px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.tut-callout-link:hover { color: var(--color-brand-accent-strong); }
+.tut-why {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 4px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--color-brand-accent);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  background: color-mix(in srgb, var(--color-brand-accent) 9%, var(--color-bg-raised));
+}
+.tut-why b { color: var(--color-brand-accent); font-size: 11.5px; }
+.tut-why p { color: var(--color-text-primary) !important; font-size: 13px !important; }
+.tut-callout-foot { display: flex; flex-direction: column; gap: var(--space-2); padding-top: var(--space-3); border-top: 1px solid var(--color-border-subtle); }
+.tut-callout-actions { display: flex; align-items: center; gap: var(--space-2); }
+.tut-spacer { flex: 1; }
+.tut-steps { display: flex; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.tut-step {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--color-bg-raised);
+  color: var(--color-text-muted);
+  font: 700 10.5px/1 var(--font-mono);
+  cursor: pointer;
+  transition: background .2s ease, color .2s ease;
+}
+.tut-step:disabled { cursor: not-allowed; opacity: .5; }
+.tut-step:focus-visible { outline: 2px solid var(--color-brand-accent); outline-offset: 2px; }
+.tut-step.is-done { background: color-mix(in srgb, var(--color-status-success) 22%, transparent); color: var(--color-status-success); }
+.tut-step.is-current { background: var(--color-brand-accent); color: var(--color-text-on-accent); }
+.tut-progress { height: 3px; overflow: hidden; border-radius: 999px; background: var(--color-bg-hover); }
+.tut-progress > span { display: block; height: 100%; background: var(--color-brand-accent); transition: width .35s ease; }
+.tut-hint { color: var(--color-brand-accent); font-size: 12.5px; font-weight: 700; animation: tut-nudge 1.6s ease-in-out infinite; }
+.tut-link {
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.tut-link:hover:not(:disabled) { color: var(--color-text-primary); }
+.tut-link:disabled { cursor: default; opacity: .4; text-decoration: none; }
+
+.tut-card {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: min(540px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  padding: var(--space-6);
+  overflow-y: auto;
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 12px;
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  animation: tut-card-in .4s cubic-bezier(.22, .8, .24, 1) both;
+}
+.tut-card-eyebrow { color: var(--color-brand-accent); font-size: 12px; font-weight: 700; }
+.tut-card h2 { margin: 0; font-size: 22px; line-height: 1.35; }
+.tut-card p { margin: 0; color: var(--color-text-secondary); font-size: 14px; line-height: 1.65; }
+.tut-card-steps { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px var(--space-4); margin: 0; padding: 0; list-style: none; font-size: 13px; }
+.tut-card-steps li { display: flex; align-items: center; gap: 8px; }
+.tut-card-steps span { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 999px; background: var(--color-bg-raised); font: 700 11px/1 var(--font-mono); }
+.tut-card-actions { display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-2); }
+
+/* QA 실행 화면에 겹쳐 그리는 예시 게임 화면. 튜토리얼 덮개 아래에 있어 함께 어두워지고, 클릭은 받지 않는다. */
+.tut-game { position: fixed; z-index: 455; overflow: hidden; border-radius: 8px; background: linear-gradient(165deg, #20344a, #16202f 55%, #283a29); color: #f2efe9; font-family: var(--font-sans); pointer-events: none; animation: tut-fade .4s ease both; }
+.tut-game-hud { position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; padding: 10px 16px; background: rgb(0 0 0 / 28%); font: 700 13px/1 var(--font-mono); letter-spacing: .04em; }
+.tut-game-title { position: absolute; inset: 0; display: grid; place-items: center; }
+.tut-game-title b { font: 800 clamp(28px, 5vw, 64px)/1 var(--font-display); letter-spacing: .06em; opacity: .9; }
+.tut-game-btn, .tut-game-card, .tut-game-toggle { position: absolute; transform: translate(-50%, -50%); padding: 12px 26px; border-radius: 999px; background: #f2c14e; color: #2b2111; font-weight: 800; font-size: 16px; white-space: nowrap; animation: tut-fade .3s ease both; }
+.tut-game-btn--ghost { background: rgb(255 255 255 / 14%); color: #f2efe9; }
+.tut-game-card { padding: 28px 30px; border-radius: 14px; background: #f6efe0; }
+.tut-game-toggle { background: #3a72c4; color: #fff; }
+.tut-game-plots { position: absolute; inset: 22% 18% 18%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.tut-game-plot { position: relative; display: grid; place-items: center; border: 2px solid #6b4f2f; border-radius: 12px; background: #4a3420; font-size: clamp(22px, 3vw, 44px); animation: tut-fade .3s ease both; }
+.tut-game-water { position: absolute; top: -12px; right: -8px; font-size: 22px; font-style: normal; }
+.tut-game-gauge { grid-column: 1 / -1; height: 10px; overflow: hidden; border-radius: 999px; background: rgb(255 255 255 / 15%); }
+.tut-game-gauge span { display: block; height: 100%; background: #6fd18b; }
+.tut-game-cursor { position: absolute; width: 0; height: 0; transition: left .5s cubic-bezier(.22, .8, .24, 1), top .5s cubic-bezier(.22, .8, .24, 1); }
+.tut-game-cursor::before { content: ""; position: absolute; left: -2px; top: -2px; width: 18px; height: 22px; background: #fff; clip-path: polygon(0 0, 0 100%, 30% 75%, 50% 100%, 65% 92%, 45% 68%, 85% 68%); filter: drop-shadow(0 1px 2px rgb(0 0 0 / 60%)); }
+.tut-game-tap { position: absolute; left: -22px; top: -22px; width: 44px; height: 44px; border: 3px solid #ff5c48; border-radius: 999px; opacity: 0; animation: tut-tap .7s ease-out .45s both; }
+.tut-game-verdict { position: absolute; right: 16px; top: 48px; padding: 6px 14px; border-radius: 999px; font-weight: 800; font-size: 14px; animation: tut-fade .25s ease both; }
+.tut-game-verdict--pass { background: #24895c; color: #fff; }
+.tut-game-verdict--fail { background: #d8423a; color: #fff; }
+.tut-game-caption { position: absolute; left: 50%; bottom: 16px; max-width: 80%; padding: 8px 14px; transform: translateX(-50%); border-radius: 8px; background: rgb(0 0 0 / 55%); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tut-game-label { position: absolute; left: 16px; bottom: 16px; padding: 3px 8px; border: 1px solid #6b5ccc; border-radius: 4px; color: #c9b8ff; font: 600 11px/1 var(--font-mono); }
+@keyframes tut-tap { 0% { opacity: .9; transform: scale(.4); } 100% { opacity: 0; transform: scale(1.6); } }
+
+/* 가상 Unity 화면 · 코딩 에이전트 창은 실제 화면 가운데에 뜨고, 말풍선이 그 옆에 붙는다. */
+.tut-scene { position: fixed; inset: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; align-content: center; gap: var(--space-5); padding: 24px; overflow-y: auto; animation: tut-card-in .4s cubic-bezier(.22, .8, .24, 1) both; }
+.tut-scene-frame { position: relative; width: min(900px, 100%, calc((100vh - 48px) * 1.6)); aspect-ratio: 16 / 10; overflow: hidden; border: 1px solid #333; border-radius: 10px; }
+
+/* 가상 Unity 화면. Unity 에디터의 어두운 색을 흉내 내므로 테마 토큰을 따르지 않는다. */
+.tut-unity { position: absolute; inset: 0; background: #191919; color: #d2d2d2; font: 13px/1.4 -apple-system, "Segoe UI", sans-serif; animation: tut-fade .3s ease both; }
+.tut-unity button { font: inherit; color: inherit; }
+.tut-unity-top { position: relative; display: flex; align-items: center; justify-content: center; gap: 6px; height: 7%; border-bottom: 1px solid #111; background: #282828; }
+.tut-unity-name { position: absolute; left: 12px; color: #a8a8a8; font-size: 12px; }
+.tut-unity-label { position: absolute; right: 12px; padding: 3px 6px; border: 1px solid #6b5ccc; border-radius: 4px; color: #c9b8ff; font: 600 11px/1 var(--font-mono); }
+.tut-unity-pbtn, .tut-unity-play { display: grid; place-items: center; width: 34px; height: 24px; border: 1px solid #1a1a1a; border-radius: 4px; background: #3c3c3c; font-size: 11px; }
+.tut-unity-play.is-on { background: #3a72c4; color: #fff; }
+.tut-unity-body { position: absolute; inset: 7% 0 0; display: grid; grid-template-columns: 18% minmax(0, 1fr); }
+.tut-unity-hierarchy { display: flex; flex-direction: column; gap: 4px; padding: 8px; border-right: 1px solid #111; background: #222; color: #bdbdbd; font-size: 12px; }
+.tut-unity-hierarchy b { margin-bottom: 4px; color: #8c8c8c; font-size: 11px; font-weight: 600; }
+.tut-unity-hierarchy span + span { padding-left: 12px; }
+.tut-unity-hierarchy span:first-of-type { padding-left: 0; }
+.tut-unity-game { position: relative; display: grid; place-items: center; background: linear-gradient(160deg, #24394a, #182230 60%, #2f3a2a); }
+.tut-unity-tab { position: absolute; top: 0; left: 0; padding: 5px 12px; border-right: 1px solid #111; background: #282828; font-size: 12px; }
+.tut-unity-title { color: #f2efe9; font: 700 34px/1 var(--font-display); letter-spacing: .04em; opacity: .35; }
+.tut-unity-sdk { position: absolute; top: 50%; left: 50%; display: flex; flex-direction: column; align-items: center; gap: 10px; width: min(46%, 360px); padding: 22px; transform: translate(-50%, -50%); border: 1px solid #333; border-radius: 10px; background: #17171c; color: #eee; animation: tut-fade .3s ease both; }
+.tut-unity-sdk b { font: 700 20px/1 var(--font-sans); }
+.tut-unity-sdk > span { color: #aaa; font-size: 13px; text-align: center; }
+.tut-unity-login { width: 100%; padding: 11px; border: 0; border-radius: 4px; background: #ff5c48; font-weight: 700; color: #2a1410 !important; }
+.tut-unity-later { width: 100%; padding: 9px; border-radius: 4px; background: #2a2d35; color: #ccc; text-align: center; }
+.tut-unity-pm { position: absolute; top: 12%; left: 22%; display: flex; flex-direction: column; width: 62%; height: 72%; border: 1px solid #111; border-radius: 8px; background: #2b2b2b; animation: tut-fade .3s ease both; }
+.tut-unity-pm-title { display: flex; align-items: center; gap: 6px; padding: 7px 10px; border-bottom: 1px solid #1a1a1a; border-radius: 8px 8px 0 0; background: #383838; font-size: 12.5px; }
+.tut-unity-pm-title i { display: inline-block; width: 10px; height: 10px; border-radius: 999px; background: #5a5a5a; }
+.tut-unity-pm-title i:nth-child(1) { background: #ff5f57; }
+.tut-unity-pm-title i:nth-child(2) { background: #febc2e; }
+.tut-unity-pm-title i:nth-child(3) { background: #28c840; }
+.tut-unity-pm-bar { position: relative; display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 1px solid #1a1a1a; background: #323232; }
+.tut-unity-plus { padding: 3px 8px; border: 1px solid #1a1a1a; border-radius: 4px; background: #3f3f3f; }
+.tut-unity-menu { position: absolute; top: 34px; left: 8px; z-index: 2; display: flex; flex-direction: column; width: 280px; padding: 4px; border: 1px solid #111; border-radius: 6px; background: #3a3a3a; }
+.tut-unity-menu > span, .tut-unity-git { padding: 6px 10px; border: 0; border-radius: 4px; background: transparent; text-align: left; }
+.tut-unity-git { background: #2f65ca; color: #fff !important; }
+.tut-unity-url { display: flex; flex-direction: column; gap: 6px; padding: 10px; border-bottom: 1px solid #1a1a1a; background: #2f2f2f; font-size: 12px; }
+.tut-unity-url > div { display: flex; gap: 8px; }
+.tut-unity-input { flex: 1; min-width: 0; min-height: 28px; padding: 6px 8px; overflow: hidden; border: 1px solid #3a72c4; border-radius: 4px; background: #1e1e1e; color: #e6e6e6; font: 12px/1.3 var(--font-mono); white-space: nowrap; text-overflow: ellipsis; }
+.tut-unity-add { padding: 6px 14px; border: 1px solid #1a1a1a; border-radius: 4px; background: #4a4a4a; }
+.tut-unity-list { display: flex; flex: 1; flex-direction: column; overflow: hidden; font-size: 12.5px; }
+.tut-unity-list > div { display: flex; justify-content: space-between; padding: 6px 12px; border-bottom: 1px solid #262626; }
+.tut-unity-list > div.is-new { background: #2f4a77; color: #fff; animation: tut-fade .4s ease both; }
+.tut-unity-status { padding: 6px 12px; border-radius: 0 0 8px 8px; background: #262626; color: #9bd0ff; font-size: 12px; }
+.tut-unity-browser { position: absolute; top: 10%; right: 4%; display: flex; flex-direction: column; width: 46%; height: 62%; border-radius: 10px; background: #f7f4ee; color: #1d2028; animation: tut-fade .4s ease both; }
+.tut-unity-browser-bar { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-radius: 10px 10px 0 0; background: #e2ddd3; color: #555; font: 12px/1 var(--font-mono); }
+.tut-unity-browser-bar i { display: inline-block; width: 10px; height: 10px; border-radius: 999px; background: #c9c3b7; }
+.tut-unity-browser-body { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 20px; font-family: var(--font-sans); text-align: center; }
+.tut-unity-browser-body b { font-size: 20px; }
+.tut-unity-browser-body > span:last-child { color: #555; font-size: 14px; }
+.tut-unity-ok { display: grid; place-items: center; width: 54px; height: 54px; border-radius: 999px; background: #24895c; color: #fff; font-size: 28px; }
+.tut-unity button:disabled { cursor: default; }
+.tut-unity .tut-is-target { position: relative; z-index: 3; outline: 2px solid var(--color-brand-accent); outline-offset: 3px; cursor: pointer; animation: tut-pulse 1.6s ease-in-out infinite; }
+.tut-unity .tut-is-target::after {
+  content: attr(data-tag);
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  padding: 5px 10px;
+  transform: translateX(-50%);
+  border-radius: var(--radius-md);
+  background: var(--color-brand-accent);
+  color: var(--color-text-on-accent);
+  font: 700 13px/1.3 var(--font-sans);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.tut-unity .tut-unity-browser.tut-is-target { outline-offset: 4px; }
+.tut-unity .tut-unity-browser.tut-is-target::after { bottom: auto; top: calc(100% + 10px); }
+.tut-unity .tut-unity-git.tut-is-target::after,
+.tut-unity .tut-unity-add.tut-is-target::after { bottom: auto; left: calc(100% + 12px); top: 50%; transform: translateY(-50%); }
+
+/* 코딩 에이전트 창 */
+.tut-mcp { display: grid; place-items: center; width: min(720px, 100%); animation: tut-fade .3s ease both; }
+.tut-mcp-window { display: flex; flex-direction: column; width: 100%; max-height: calc(100vh - 64px); overflow: hidden; border: 1px solid #2c3140; border-radius: 10px; background: #0f1117; }
+.tut-mcp-bar { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-bottom: 1px solid #222634; background: #171a23; color: #9aa3b5; font: 12px/1 var(--font-mono); }
+.tut-mcp-bar i { display: inline-block; width: 10px; height: 10px; border-radius: 999px; background: #3a3f4d; }
+.tut-mcp-bar span { margin-left: 6px; }
+.tut-mcp-body { display: flex; flex-direction: column; gap: 8px; min-height: 240px; padding: 16px 18px; overflow-y: auto; font: 13px/1.6 var(--font-mono); }
+.tut-mcp-line { margin: 0; color: #c8cfdc; white-space: pre-wrap; animation: tut-fade .2s ease both; }
+.tut-mcp-line--user { color: #f2efe9; }
+.tut-mcp-line--user::before { content: "› "; color: #ff8a7a; }
+.tut-mcp-line--call { color: #8fb4ff; }
+.tut-mcp-line--call::before { content: "⏺ "; }
+.tut-mcp-line--out { padding-left: 16px; color: #9aa3b5; }
+.tut-mcp-line--say { color: #e8e2d6; font-family: var(--font-sans); }
+.tut-mcp-line--ok { padding-left: 16px; color: #5fd39a; }
+.tut-mcp-line--ok::before { content: "✓ "; }
+.tut-mcp-caret { display: inline-block; width: 7px; height: 14px; margin-left: 2px; vertical-align: -2px; background: #f2efe9; animation: tut-blink 1s steps(1) infinite; }
+
+@keyframes tut-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes tut-pop { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
+@keyframes tut-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes tut-card-in { from { opacity: 0; transform: translate(-50%, calc(-50% + 12px)) scale(.98); } to { opacity: 1; } }
+@keyframes tut-nudge { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
+@keyframes tut-glow { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+@keyframes tut-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-brand-accent) 45%, transparent); }
+  50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--color-brand-accent) 0%, transparent); }
+}
+@keyframes tut-blink { 50% { opacity: 0; } }
+
+@media (max-width: 900px) {
+  .tut-callout { width: min(360px, calc(100vw - 24px)); }
+  .tut-card-steps { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tut-spot, .tut-spot::after, .tut-tag, .tut-callout, .tut-callout-body, .tut-hint, .tut-card, .tut-scene, .tut-unity, .tut-unity-sdk, .tut-unity-pm, .tut-unity-browser, .tut-mcp, .tut-mcp-line,
+  .tut-unity .tut-is-target { animation: none; }
+  .tut-spot, .tut-tag, .tut-callout { transition: none; }
+}

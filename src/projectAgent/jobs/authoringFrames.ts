@@ -48,9 +48,9 @@ export function interpretFrame(frame: RunChatStreamEvent, copy: TasksCopy): Fram
       const detail = [frame.code, frame.detail].filter((part) => part.length > 0).join(': ')
       return { kind: 'failure', message: detail.length > 0 ? `${copy.errors.authoringFailed} (${detail})` : copy.errors.authoringFailed }
     }
+    // 작업 목록의 진행 상태는 progress frame으로 갱신한다.
     case 'applied':
     case 'draft':
-    // 재연결 때 지금 상태를 다시 알리는 프레임이다. 작업 목록은 진행 프레임으로 이미 따라간다.
     case 'turn':
       return { kind: 'ignore' }
   }

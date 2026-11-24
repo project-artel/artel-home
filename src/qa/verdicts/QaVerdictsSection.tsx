@@ -1,4 +1,5 @@
 import { buildDisplayName } from '../../projects/buildEnvironment'
+import { runCaseRatioOf } from '../scenarioOutcome'
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { useI18n } from '../../i18n/useI18n'
@@ -88,7 +89,7 @@ export function QaVerdictsSection() {
   const elapsed = data.startedAt !== null && data.completedAt !== null
     ? Math.round((Date.parse(data.completedAt) - Date.parse(data.startedAt)) / 1000)
     : null
-  const evaluation = scenario && <CaseEvaluationPanel id={EVALUATION_PANEL_ID} key={scenario.qaTryId} projectId={projectId} qaTryId={scenario.qaTryId} />
+  const evaluation = scenario && <CaseEvaluationPanel id={EVALUATION_PANEL_ID} key={scenario.qaTryId} projectId={projectId} qaTryId={scenario.qaTryId} scenario={scenario} />
 
   return (
     <section className="qv" aria-labelledby="qv-scenario-title">
@@ -124,7 +125,12 @@ export function QaVerdictsSection() {
         {scenario?.model !== null && scenario?.model !== undefined && (
           <span className="qv-chip">{copy.model} <b className="mono">{scenario.model.split('/').at(-1)}</b></span>
         )}
-        {isStatus(data.status) && <QaStatusPill status={data.status} />}
+        {isStatus(data.status) && (
+          <QaStatusPill
+            ratio={data.status === 'COMPLETED' || data.status === 'FAILED' ? runCaseRatioOf(data.tries) : null}
+            status={data.status}
+          />
+        )}
         {elapsed !== null && <span className="qv-muted mono">{formatElapsedSeconds(elapsed)}</span>}
         {runReview > 0 && (
           <span className="qv-review-pill">

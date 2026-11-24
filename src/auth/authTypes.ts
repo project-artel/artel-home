@@ -64,6 +64,13 @@ export type AuthUser = {
    * until it is changed, so the app shows only the password screen.
    */
   mustChangePassword: boolean
+  /**
+   * True only while the server says this account never finished or closed the
+   * start tutorial (`tutorialSeenAt: null`). The shell opens the tutorial on
+   * its own only then; the server filled every account that existed before
+   * the field did, so nobody who already used the product gets it unasked.
+   */
+  startTutorialPending: boolean
 }
 
 export type PlatformRole = 'USER' | 'DEVELOPER' | 'ADMIN'

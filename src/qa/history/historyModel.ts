@@ -43,7 +43,12 @@ export function ringOf(run: Pick<QaRunSummary, 'status' | 'casesPassed' | 'cases
     return run.status === 'FAILED' ? { tone: 'fail', ratio: 1 } : { tone: 'pass', ratio: 1 }
   }
   const ratio = passed / total
-  return { tone: ratio >= 1 ? 'pass' : ratio >= 0.6 ? 'partial' : 'fail', ratio }
+  return { tone: toneOfRatio(ratio), ratio }
+}
+
+/** 통과 비율의 색 칸. 다 통과하면 초록, 60% 이상이면 노랑, 그 아래는 빨강이다. */
+export function toneOfRatio(ratio: number): 'pass' | 'partial' | 'fail' {
+  return ratio >= 1 ? 'pass' : ratio >= 0.6 ? 'partial' : 'fail'
 }
 
 export function matchesFilter(run: Pick<QaRunSummary, 'status'>, filter: HistoryFilter): boolean {

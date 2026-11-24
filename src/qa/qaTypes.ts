@@ -69,6 +69,9 @@ export type QaTry = {
   qaRunId: string | null
   /** `status` 가 `UNDECIDED` 일 때 왜 판정하지 못했는가. 옛 서버나 다른 끝 상태면 null. */
   stop: QaStop | null
+  /** 통과한 TC 수와 판정한 TC 수. 진행 중이거나 옛 서버면 null. TC 가 없는 시나리오는 `casesTotal` 이 0 이다. */
+  casesPassed: number | null
+  casesTotal: number | null
 }
 
 /**
