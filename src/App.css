@@ -1396,6 +1396,13 @@ h1 {
 
 /* 아이콘 쪽 모서리만 둥글기를 줄여서, 상자가 그 아이콘에서 나온 것으로 읽히게 한다. */
 .info-hint__bubble[data-corner="top-left"] { border-top-left-radius: 0; }
+.clipped-text-hint {
+  inset: auto;
+  margin: 0;
+  max-height: calc(100dvh - 16px);
+  overflow: auto;
+  overflow-wrap: anywhere;
+}
 .info-hint__bubble[data-corner="top-right"] { border-top-right-radius: 0; }
 .info-hint__bubble[data-corner="bottom-left"] { border-bottom-left-radius: 0; }
 .info-hint__bubble[data-corner="bottom-right"] { border-bottom-right-radius: 0; }
@@ -12914,7 +12921,7 @@ button.gf-bar:focus-visible {
 .scenario-studio .se-row-action code.se-scene-ref, .scenario-studio .se-detail code.se-scene-ref { padding: 0; border: 0; background: none; color: var(--st-action); font-family: inherit; font-size: inherit; }
 
 /* 판정은 색 점과 상태 이름. 머리의 (i) 에 범례가 있다. */
-.scenario-studio .se-columns-verdict { white-space: nowrap; }
+.scenario-studio .se-columns-verdict { white-space: normal; }
 .scenario-studio .se-verdict { display: inline-flex; align-items: center; gap: 6px; color: var(--st-text-2); font-size: 11px; white-space: nowrap; }
 .scenario-studio .se-legend { display: flex; flex-direction: column; gap: 6px; }
 .scenario-studio .se-legend-row { display: flex; align-items: center; gap: 8px; }

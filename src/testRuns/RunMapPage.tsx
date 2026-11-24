@@ -655,7 +655,17 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
   useEffect(() => {
     const stage = stageRef.current
     if (stage === null) return undefined
-    const observer = new ResizeObserver(([entry]) => setStageSize({ width: entry.contentRect.width, height: entry.contentRect.height }))
+    let previousDefaultZoom = 0.9
+    const observer = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect
+      setStageSize({ width, height })
+      const defaultZoom = Math.min(0.9, Math.max(MIN_K, (width - 20) / (FRAME_W + 20)))
+      const oldZoom = previousDefaultZoom
+      previousDefaultZoom = defaultZoom
+      setView(v => v.x === 10 && v.y === 64 && v.k === oldZoom && v.k !== defaultZoom
+        ? { ...v, k: defaultZoom }
+        : v)
+    })
     observer.observe(stage)
     return () => observer.disconnect()
   }, [data.status])

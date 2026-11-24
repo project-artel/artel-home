@@ -111,10 +111,10 @@
   .qa-replay-timeline-host { position:static; }
 }
 @media(max-width:600px) {
-  .qa-execution-head { gap:6px; }
-  .qa-timeline-case-picker { max-width:100px; }
+  .qa-execution-head { flex-wrap:wrap; gap:6px; height:auto; }
+  .qa-timeline-case-picker { max-width:100%; }
   .qa-execution-timeline { padding-inline:10px; }
-  .qa-timeline-rate { width:48px; }
+  .qa-timeline-rate { flex:none; }
 }
 .qa-replay-timeline-host { position:absolute; bottom:0; left:0; right:0; z-index:6; }
 .qa-console:has(.qa-execution-timeline) .qa-console-grid { margin-bottom:49px; }

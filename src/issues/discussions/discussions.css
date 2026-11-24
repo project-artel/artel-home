@@ -1852,6 +1852,11 @@
   color: var(--color-text-muted);
   font-weight: 600;
 }
+@media (max-width: 390px) {
+  .dc-title-input::placeholder {
+    font-size: 16px;
+  }
+}
 .dc-title-input:focus {
   outline: none;
   border-bottom-color: var(--color-brand-accent);
@@ -2162,6 +2167,7 @@
 }
 .md-editor-foot {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);

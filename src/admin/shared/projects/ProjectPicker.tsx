@@ -125,6 +125,7 @@ export function ProjectPicker({
           role="combobox"
           autoComplete="off"
           aria-expanded={open}
+          title={open ? undefined : selected?.name}
           aria-controls={listId}
           aria-autocomplete="list"
           aria-activedescendant={open && matches[cursor] ? optionId(listId, cursor) : undefined}

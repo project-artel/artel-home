@@ -65,6 +65,7 @@
 }
 
 .labels__tc {
+  display: inline-block;
   margin-left: 6px;
   font-size: 10px;
   letter-spacing: 0.06em;

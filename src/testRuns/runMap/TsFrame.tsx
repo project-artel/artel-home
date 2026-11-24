@@ -79,7 +79,7 @@ export const TsFrame = memo(function TsFrame({
             }}
           />
         ) : (
-          <b className="rmf-title" data-rename={scenario.id} title={m.frame.rename}>{title}</b>
+          <b aria-description={m.frame.rename} className="rmf-title" data-rename={scenario.id} title={title}>{title}</b>
         )}
         <span className="rmf-meta">
           {m.frame.steps(scenario.steps.length)}

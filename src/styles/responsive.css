@@ -8,10 +8,15 @@
 .project-nav-select { display: none; }
 
 /* 열이 겹치도록 줄이지 않고 표 내부에서 가로로 이동한다. */
-.tcl-table { min-width: 1160px; }
+.tcl-table:not(.macro-table) { min-width: 1160px; }
 .tcl-table:has(col:nth-child(7)) { min-width: 1280px; }
 .tcl-table col.tct-c-check { width: 44px; }
-.tcl-table col:nth-child(2) { width: 400px; }
+.tcl-table:not(.macro-table) col:nth-child(2) { width: 400px; }
+.macro-library .macro-table { min-width: 0; }
+.macro-table col.mct-c-updated { width: min(30%, 9rem); }
+.macro-table col.mct-c-macro { width: 46%; }
+.macro-table col.mct-c-doc { width: auto; }
+.macro-table .tct-quiet { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tcl-table col.tct-c-scene { width: 144px; }
 .tcl-table col.tct-c-res { width: 120px; }
 .tcl-table col.tct-c-exp { width: 300px; }

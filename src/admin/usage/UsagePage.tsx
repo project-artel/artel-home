@@ -204,7 +204,7 @@ export default function UsagePage() {
                   <InfoHint>{strings.axesNote}</InfoHint>
                 </h2>
               </div>
-              <div className="axis-grid">
+              <div className="usage-axes">
                 <BreakdownTable
                   title={strings.byService}
                   axisLabel={strings.service}
