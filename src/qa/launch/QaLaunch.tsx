@@ -14,7 +14,8 @@ import { useWorkspace } from '../../projects/workspace/workspaceContext'
 import { folderPath } from '../../testRuns/runLibrary'
 import { listRunFolders, type RunFolder } from '../../testRuns/testRunFolders'
 import { ChevronDownIcon, PencilIcon } from '../qaModelIcons'
-import type { QaArchSelection } from '../qaArch'
+import type { QaArchAxis, QaArchSelection } from '../qaArch'
+import { listQaArchOptions } from '../qaArchOptions'
 import { offeredQaModels } from '../qaModelGroups'
 import { readLastAdvancedSettings, readLastModelKey, storeLastModelKey } from '../qaStartChoices'
 import { qaModelOptionKey, type QaModel } from '../qaTypes'
@@ -136,6 +137,19 @@ function QaLaunchReady() {
   const [choice, setChoice] = useState<Choice>(() => (askedRun === null ? {} : { runId: askedRun }))
   const [savedModelKey] = useState(() => readLastModelKey(projectId))
   const [arch, setArch] = useState<QaArchSelection>(() => readLastAdvancedSettings(projectId).arch)
+
+  const [axes, setAxes] = useState<QaArchAxis[] | null>(null)
+  const [optionsFailed, setOptionsFailed] = useState(false)
+  const [optionsAttempt, setOptionsAttempt] = useState(0)
+  useEffect(() => {
+    const controller = new AbortController()
+    listQaArchOptions(controller.signal).then((options) => {
+      if (!controller.signal.aborted) setAxes(options)
+    }).catch(() => {
+      if (!controller.signal.aborted) setOptionsFailed(true)
+    })
+    return () => controller.abort()
+  }, [optionsAttempt])
 
   const [pickerOpen, setPickerOpen] = useState(false)
   const pickerAnchor = useRef<HTMLDivElement>(null)
@@ -358,6 +372,12 @@ function QaLaunchReady() {
 
       <LaunchPanel
         arch={arch}
+        axes={axes}
+        optionsFailed={optionsFailed}
+        retryOptions={() => {
+          setOptionsFailed(false)
+          setOptionsAttempt((value) => value + 1)
+        }}
         builds={builds}
         etaMs={lastDuration}
         instanceId={instanceId}

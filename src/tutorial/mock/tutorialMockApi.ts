@@ -135,6 +135,7 @@ const ROUTES: Route[] = [
       return invitation
     },
   },
+  { method: 'GET', pattern: /^\/api\/qa-arch-options$/, handle: () => ({ options: [] }) },
   { method: 'GET', pattern: /^\/api\/qa-models$/, handle: (_m, _r, d) => d.models },
 
   // ── Test Case ───────────────────────────────────────────────
@@ -383,7 +384,7 @@ export async function tutorialResponse(
   }
   const request: MockRequest = { method, url, body: parseBody(init?.body) }
 
-  await new Promise((resolve) => window.setTimeout(resolve, 60))
+  await new Promise((resolve) => setTimeout(resolve, 60))
 
   for (const route of ROUTES) {
     if (route.method !== method) continue

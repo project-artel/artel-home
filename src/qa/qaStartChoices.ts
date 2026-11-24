@@ -1,4 +1,4 @@
-import { EMPTY_ARCH_SELECTION, parseArchSelection, withEngine, type QaArchSelection } from './qaArch'
+import { EMPTY_ARCH_SELECTION, type QaArchSelection } from './qaArch'
 import { asRecord } from '../projects/projectApi'
 import { DEFAULT_QA_FUNCTION_OPTIONS, parseQaTryFunctionOptions, type QaFunctionOptions } from './qaFunctionOptions'
 import type { QaInputMode } from './qaTypes'
@@ -11,12 +11,19 @@ function storageOf(storage?: ReadableStorage): ReadableStorage {
   return storage ?? window.localStorage
 }
 
+// 서버 목록이 도착하기 전에도 저장된 선택을 보존한다. 실행할 때는 서버에 공개된 값만 쓴다.
+function storedArch(raw: unknown): QaArchSelection {
+  const entries = Object.entries(asRecord(raw) ?? {}).filter(([key, value]) =>
+    /^[a-z][a-z0-9_]*$/.test(key) && key !== 'label' && key !== 'engine' &&
+    !Object.hasOwn(Object.prototype, key) && ['boolean', 'number', 'string'].includes(typeof value))
+  return Object.fromEntries(entries) as QaArchSelection
+}
+
 function readLastArch(storage?: ReadableStorage): QaArchSelection {
   try {
     const text = storageOf(storage).getItem(LAST_ARCH_STORAGE_KEY)
     if (text === null) return EMPTY_ARCH_SELECTION
-    const stored = parseArchSelection(JSON.parse(text))
-    return stored === null ? EMPTY_ARCH_SELECTION : withEngine(stored, 'agent')
+    return storedArch(JSON.parse(text))
   } catch {
     return EMPTY_ARCH_SELECTION
   }
@@ -46,10 +53,9 @@ export function readLastAdvancedSettings(projectId: string, storage?: ReadableSt
     }
 
     const saved = asRecord(JSON.parse(text))
-    const arch = parseArchSelection(saved?.arch)
     const options = parseQaTryFunctionOptions(saved?.functionOptions)
     return {
-      arch: arch === null ? EMPTY_ARCH_SELECTION : withEngine(arch, 'agent'),
+      arch: storedArch(saved?.arch),
       functionOptions: {
         cheatMode: options?.cheatMode ?? DEFAULT_QA_FUNCTION_OPTIONS.cheatMode,
         behaviorMode: options?.behaviorMode ?? DEFAULT_QA_FUNCTION_OPTIONS.behaviorMode,

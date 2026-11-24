@@ -12,6 +12,8 @@ import {
   qaRunRequestBody,
   qaStartConflict,
 } from './qaApi'
+import { parseQaArchOptions } from './qaArchOptions'
+import { axes } from './qaArch.fixture.ts'
 import { toArchRequest } from './qaArch'
 
 test('QA 썸네일은 JPEG 한 장을 읽고 프레임이 없으면 null을 반환한다', async () => {
@@ -181,9 +183,17 @@ test('parseQaLog keeps a BEHAVIOR_ENDED row instead of dropping it as an unknown
 })
 
 test('planner_executer run 의 wire body 는 arch 에 engine 하나뿐이다', () => {
-  const arch = toArchRequest({ engine: 'planner_executer', phase_cycle: 'off' })
+  const arch = toArchRequest({ engine: 'planner_executer', phase_cycle: 'off' }, axes)
   const wire = JSON.parse(JSON.stringify(qaRunRequestBody('1', '2', 'm', 'platform', null, false, arch)))
   assert.deepEqual(wire.arch, { engine: 'planner_executer' })
+})
+
+test('서버에서 추가한 toggle을 선택하면 QA 실행 요청에 전달한다', () => {
+  const catalog = parseQaArchOptions({ options: [{
+    key: 'future_toggle', kind: 'toggle', labelCode: 'z', engines: ['agent'], description: { ko: '설정', en: 'Option' },
+  }] })
+  const arch = toArchRequest({ future_toggle: true }, catalog)
+  assert.deepEqual(qaRunRequestBody('1', '2', 'm', 'platform', null, false, arch).arch, { label: 'web-v1-z1', future_toggle: true })
 })
 
 const QA_RUN_FIELDS = {

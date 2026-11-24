@@ -20,10 +20,10 @@ import {
 } from '../../projectAgent/specs/qa'
 import { sectionHref } from '../../projects/workspace/sections'
 import type { TestRun, RunCasesOutsideBuild } from '../../testRuns/testRunApi'
-import { QA_ENGINES, archEngine, changedSettingCount, toArchRequest, withEngine, withoutVisionKnobs } from '../qaArch'
+import { QA_ENGINES, archEngine, changedSettingCount, parseArchSelection, toArchRequest, withEngine, availableArch } from '../qaArch'
 import { createQaRun, qaStartConflict } from '../qaApi'
 import { requestQuestionNotificationPermission, subscribeQuestionNotifications } from '../evaluation/questionNotificationOptIn'
-import type { QaArchSelection } from '../qaArch'
+import type { QaArchAxis, QaArchSelection } from '../qaArch'
 import { readLastAdvancedSettings, storeLastAdvancedSettings } from '../qaStartChoices'
 import { QaFunctionOptionsFields } from '../QaFunctionOptionsFields'
 import { CheckIcon, ChevronDownIcon, CircleCheckIcon, CircleXIcon } from '../qaModelIcons'
@@ -70,6 +70,9 @@ export function LaunchPanel({
   onReasoningValue,
   arch,
   onArchChange,
+  axes,
+  optionsFailed,
+  retryOptions,
   etaMs,
   onManageConsoles,
   runShortcut,
@@ -88,6 +91,9 @@ export function LaunchPanel({
   reasoningValue: number
   onReasoningValue: (value: number) => void
   arch: QaArchSelection
+  axes: readonly QaArchAxis[] | null
+  optionsFailed: boolean
+  retryOptions: () => void
   onArchChange: (next: QaArchSelection) => void
   etaMs: number | null
   onManageConsoles: () => void
@@ -133,8 +139,13 @@ export function LaunchPanel({
   // 이미지를 읽지 않는 모델이면 vision 이 필요한 knob 은 agent-server 가 422 로 거절한다. 고른 값을
   // 지우는 대신 보낼 때 걷어 내므로, 모델을 되돌리면 고른 값이 그대로 살아 있다.
   const readsImages = model?.multimodal ?? true
-  const effectiveArch = readsImages ? arch : withoutVisionKnobs(arch)
-  const changedSettings = changedSettingCount(effectiveArch)
+  const options = axes ?? []
+  const effectiveArch = availableArch(arch, options, readsImages)
+  const changedSettings = changedSettingCount(effectiveArch, options)
+  const validated = parseArchSelection(effectiveArch, options) ?? {}
+  const invalidSettings = Object.keys(effectiveArch).some((key) =>
+    key !== 'engine' && effectiveArch[key] !== validated[key] &&
+    (archEngine(arch) === 'agent' || options.some((axis) => axis.key === key && axis.engines.includes(archEngine(arch)))))
 
   const versionCases = useRunVersionCases(projectId, run?.id ?? '', instance?.id ?? '', JSON.stringify(instance?.lastGameBuild))
   const skipped = versionCases.outside?.testCaseIds.length ?? 0
@@ -144,6 +155,11 @@ export function LaunchPanel({
   const reviewKey = JSON.stringify([selectionKey, modelKey, selectedReasoning, effectiveArch, functionOptions])
   const visibleReviewPrompt = reviewPrompt?.key === reviewKey ? reviewPrompt : null
   const checks: Check[] = []
+  if (invalidSettings) checks.push({
+    tone: 'bad', title: axes === null
+      ? (optionsFailed ? p.advanced.loadFailed : p.advanced.loading)
+      : p.advanced.invalidSettings,
+  })
   if (instance === null) checks.push({ tone: 'bad', title: l.noGame })
   else if (instance.connected) checks.push({ tone: 'ok', title: l.connected })
   else checks.push({ tone: 'bad', title: l.disconnected, detail: l.offline, fix: { label: l.install, to: sectionHref(projectId, 'setup') } })
@@ -223,7 +239,7 @@ export function LaunchPanel({
       }
       setVersionPrompt(null)
       setTakeoverChoice(choice)
-      const created = await createQaRun(run.id, instance.id, model.id, model.keySource, selectedReasoning, force, toArchRequest(effectiveArch), functionOptions, inputMode)
+      const created = await createQaRun(run.id, instance.id, model.id, model.keySource, selectedReasoning, force, toArchRequest(validated, options), functionOptions, inputMode)
       // 시작이 성공한 구조만 다음 폼의 기본값이 된다. 고르다 만 값은 남기지 않는다.
       storeLastAdvancedSettings(projectId, { ...advanced, arch: effectiveArch })
       void permission.then(() => subscribeQuestionNotifications(projectId))
@@ -527,7 +543,20 @@ export function LaunchPanel({
               <option value="os">{l.osInput}</option>
             </select>
           </div>
-          <ArchSettings onChange={onArchChange} readsImages={readsImages} selection={effectiveArch} />
+          {axes === null ? (
+            <div className="qa-advanced">
+              {optionsFailed ? (
+                <div className="inline-error" role="alert">
+                  {p.advanced.loadFailed}
+                  <button className="button button--secondary button--compact" onClick={retryOptions} type="button">
+                    {t.qa.panel.retry}
+                  </button>
+                </div>
+              ) : <p aria-busy="true" className="panel-empty">{p.advanced.loading}</p>}
+            </div>
+          ) : (
+            <ArchSettings axes={axes} onChange={onArchChange} readsImages={readsImages} selection={arch} />
+          )}
         </QaFunctionOptionsFields>
 
         <div className="ql-field">

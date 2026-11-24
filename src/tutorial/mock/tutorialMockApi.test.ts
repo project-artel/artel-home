@@ -12,6 +12,16 @@ const projectSession: TutorialSession = {
   user: { id: '7', displayName: 'Tester', email: null, nickname: 'tester', userTag: '0007' },
 }
 
+it('튜토리얼 QA 설정은 빈 목록을 반환한다', async () => {
+  enterTutorialMode(projectSession)
+  try {
+    const response = await tutorialResponse('/api/qa-arch-options', undefined, projectSession, () => { throw Error('network') })
+    assert.deepEqual(await response.json(), { options: [] })
+  } finally {
+    exitTutorialMode()
+  }
+})
+
 it('실제 MEMBER 프로젝트의 이름과 장르를 가져오고 목데이터의 OWNER 권한을 유지한다', async () => {
   enterTutorialMode(projectSession)
   try {
