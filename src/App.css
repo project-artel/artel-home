@@ -253,7 +253,7 @@
   background: var(--color-bg-surface);
 }
 
-@media (max-width: 960px) {
+@media (max-width: 1119px) {
   .login-hero {
     flex-basis: 100%;
     flex-direction: row;
@@ -1396,6 +1396,13 @@ h1 {
 
 /* 아이콘 쪽 모서리만 둥글기를 줄여서, 상자가 그 아이콘에서 나온 것으로 읽히게 한다. */
 .info-hint__bubble[data-corner="top-left"] { border-top-left-radius: 0; }
+.clipped-text-hint {
+  inset: auto;
+  margin: 0;
+  max-height: calc(100dvh - 16px);
+  overflow: auto;
+  overflow-wrap: anywhere;
+}
 .info-hint__bubble[data-corner="top-right"] { border-top-right-radius: 0; }
 .info-hint__bubble[data-corner="bottom-left"] { border-bottom-left-radius: 0; }
 .info-hint__bubble[data-corner="bottom-right"] { border-bottom-right-radius: 0; }
@@ -11372,9 +11379,9 @@ col.mct-c-updated { width: 12%; }
 .trl-group:hover{ background:var(--color-bg-hover); }
 .trl-group-name{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .trl-group--hidden{ margin:8px 16px 0 12px; width:auto; font-weight:400; }
-.trl-main{ flex:1; min-width:0; display:flex; flex-direction:column; min-height:0; }
-.trl-main-head{ flex:none; display:flex; align-items:center; gap:12px; padding:22px 28px 14px; }
-.trl-main-title{ flex:1; min-width:0; display:flex; flex-direction:column; gap:4px; }
+.trl-main{ flex:1; min-width:0; display:flex; flex-direction:column; min-height:0; container: run-list / inline-size; }
+.trl-main-head{ flex:none; display:flex; flex-wrap:wrap; align-items:center; gap:12px; padding:22px 28px 14px; }
+.trl-main-title{ flex:1 1 12rem; min-width:0; display:flex; flex-direction:column; gap:4px; }
 .trl-main-title h3{ margin:0; font-family:var(--font-display); font-size:26px; line-height:32px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .trl-chip{ flex:none; padding:4px 12px; border-radius:999px; background:var(--color-bg-hover); color:var(--color-text-secondary); font-size:12px; white-space:nowrap; }
 .trl-search{ flex:none; display:flex; align-items:center; gap:10px; height:44px; margin:0 28px 12px; padding:0 14px; border:1px solid var(--color-border-subtle); border-radius:10px; background:var(--color-bg-raised); color:var(--color-text-muted); }
@@ -11403,6 +11410,8 @@ col.mct-c-updated { width: 12%; }
 @media (max-width: 900px){
   .trl{ flex-direction:column; height:auto; }
   .trl-side{ width:auto; border-right:0; border-bottom:1px solid var(--color-border-subtle); }
+}
+@container run-list (max-width: 680px){
   .trl-cols{ display:none; }
   .trl-cols, .trl-row{ grid-template-columns:28px minmax(0, 1fr) 36px; }
   .trl-row .trl-num, .trl-row .trl-qa, .trl-row .trl-date{ display:none; }
@@ -11635,7 +11644,9 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
 .ql-failed-only-button:disabled { color: var(--color-text-muted); cursor: not-allowed; opacity: .7; }
 
 /* 최근 실행 — 표와 막대가 같은 번호를 쓴다 */
-.ql-recent-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 340px); gap: var(--space-4); }
+.ql-recent-grid { display: flex; flex-wrap: wrap; gap: var(--space-4); }
+.ql-recent-grid > .ql-table { flex: 2 1 600px; min-width: 0; }
+.ql-recent-grid > .ql-chart { flex: 1 1 260px; min-width: 0; }
 .ql-table { border: 1px solid var(--color-border-subtle); border-radius: var(--radius-lg); background: var(--color-bg-surface); overflow: hidden; }
 .ql-table-head, .ql-table-row { display: grid; grid-template-columns: 28px minmax(0, 1fr) 80px 64px 64px 104px; gap: var(--space-3); align-items: center; padding: var(--space-2) var(--space-4); }
 .ql-table-head { border-bottom: 1px solid var(--color-border-subtle); background: var(--color-bg-raised); color: var(--color-text-muted); font-size: 11px; }
@@ -11727,7 +11738,7 @@ li[aria-selected='true'] > .ql-run-option { color: var(--color-action-primary); 
   .ql { grid-template-columns: minmax(0, 1fr); overflow-y: auto; }
   .ql-main { overflow: visible; }
   .ql-panel { border-top: 1px solid var(--color-border-subtle); border-left: 0; }
-  .ql-since-grid, .ql-recent-grid { grid-template-columns: minmax(0, 1fr); }
+  .ql-since-grid, .ql-recent-grid { display: grid; grid-template-columns: minmax(0, 1fr); }
   .ql-picker { width: calc(100vw - 48px); min-width: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -12910,7 +12921,7 @@ button.gf-bar:focus-visible {
 .scenario-studio .se-row-action code.se-scene-ref, .scenario-studio .se-detail code.se-scene-ref { padding: 0; border: 0; background: none; color: var(--st-action); font-family: inherit; font-size: inherit; }
 
 /* 판정은 색 점과 상태 이름. 머리의 (i) 에 범례가 있다. */
-.scenario-studio .se-columns-verdict { white-space: nowrap; }
+.scenario-studio .se-columns-verdict { white-space: normal; }
 .scenario-studio .se-verdict { display: inline-flex; align-items: center; gap: 6px; color: var(--st-text-2); font-size: 11px; white-space: nowrap; }
 .scenario-studio .se-legend { display: flex; flex-direction: column; gap: 6px; }
 .scenario-studio .se-legend-row { display: flex; align-items: center; gap: 8px; }
@@ -13541,7 +13552,7 @@ col.vimp-c-scene{ width:18% } col.vimp-c-verdict{ width:16% }
 .qa-notice-stack:empty { display: none; }
 .qa-notice-stack > * { pointer-events: auto; }
 /* 알림이 팝업의 버튼을 가리지 않게, 팝업이 떠 있는 동안 숨긴다. */
-body:has(.dialog-scrim) .workspace-corner { visibility: hidden; }
+body:has(.dialog-scrim, [role="dialog"][aria-modal="true"]) .workspace-corner { visibility: hidden; }
 .qa-notice { width: min(380px, calc(100vw - 40px)); padding: 14px 16px; border: 1px solid var(--color-border-strong); border-left: 3px solid var(--color-agent-reasoning); border-radius: 10px; background: var(--color-bg-raised); box-shadow: 0 14px 40px rgb(0 0 0 / 45%); }
 .qa-notice-head { display: flex; align-items: center; gap: 8px; font-size: 14px; }
 .qa-notice-head svg { color: var(--color-agent-reasoning); flex: none; }
@@ -13741,10 +13752,9 @@ body:has(.dialog-scrim) .workspace-corner { visibility: hidden; }
 .api-donut-arc { fill: none; stroke-width: 14; transition: stroke-dasharray 300ms var(--ease-standard); }
 .api-donut-value { fill: var(--color-text-primary); font-size: 15px; font-weight: 800; font-family: var(--font-mono); }
 .api-donut-label { fill: var(--color-text-muted); font-size: 8.5px; font-family: var(--font-mono); }
-.api-share-legend { flex: 1; min-width: 0; list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.api-share-legend { flex: 1 1 280px; min-width: 0; list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); container: spend-legend / inline-size; }
 /* 칸이 좁으면 범례가 도넛 아래로 내려간다. 옆에 붙어 있으면 390px 폭에서 기능 이름이 한 글자씩 세로로 접혔다. */
 .api-share > .api-share-body { flex-wrap: wrap; justify-content: center; }
-.api-share .api-share-legend { flex: 1 1 240px; }
 .api-share-legend li { display: grid; grid-template-columns: 10px minmax(0, 1fr) 56px 72px; gap: var(--space-2); align-items: center; min-height: 36px; }
 .api-share-dot { width: 10px; height: 10px; border-radius: 3px; }
 .api-share-name { display: flex; flex-direction: column; min-width: 0; font-weight: 600; font-size: 13px; }
@@ -13863,22 +13873,27 @@ body:has(.dialog-scrim) .workspace-corner { visibility: hidden; }
 .api-spend-window { color: var(--color-text-muted); font-size: 12px; }
 .api-spend-open { margin-left: auto; color: var(--color-brand-accent); font-size: 12px; font-weight: 600; text-decoration: none; }
 .api-spend-open:hover { text-decoration: underline; text-underline-offset: 3px; }
-.api-spend-overview { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); align-items: stretch; }
+.api-spend-overview { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: var(--space-4); align-items: stretch; }
 .api-spend-card { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; padding: var(--space-4) var(--space-5); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); background: var(--color-bg-raised); }
 .api-spend-card-title { color: var(--color-text-secondary); font-size: 12px; font-weight: 600; }
-.api-spend-card .api-share-body { flex: 1; padding: 0; gap: var(--space-5); }
+.api-spend-card .api-share-body { flex: 1; flex-wrap: wrap; justify-content: center; padding: 0; gap: var(--space-5); }
 .api-spend-card .api-donut { width: 132px; height: 132px; }
 .api-spend-card .api-share-legend li { grid-template-columns: 10px minmax(0, 1fr) 52px 64px; min-height: 32px; }
+@container spend-legend (max-width: 259px) {
+  .api-share-legend li, .api-spend-card .api-share-legend li { grid-template-columns: 10px auto minmax(0, 1fr); row-gap: 2px; }
+  .api-share-name { grid-column: 2 / -1; }
+  .api-share-pct { grid-column: 2; }
+}
 .api-spend-card--grass .usage-overview-grass { flex: 1; display: flex; align-items: center; justify-content: center; overflow: visible; }
 .api-spend-card--grass .grass-plot { overflow: visible; }
-.api-spend-card--grass .grass-cell { width: 18px; height: 18px; border-radius: 4px; }
+.api-spend-card--grass { container-type: inline-size; --grass-cell-size: clamp(8px, calc((100cqi - 76px) / 13), 18px); }
+.api-spend-card--grass .grass-cell { width: var(--grass-cell-size); height: var(--grass-cell-size); border-radius: 4px; }
 .api-spend-card--grass .grass-grid { border-spacing: 4px; margin: -4px; }
-.api-spend-card--grass .grass-weekdays { grid-template-rows: repeat(7, 18px); gap: 4px; }
-.api-spend-card--grass .grass-weekday { line-height: 18px; }
-.api-spend-detail .api-figures { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.api-spend-card--grass .grass-weekdays { grid-template-rows: repeat(7, var(--grass-cell-size)); gap: 4px; }
+.api-spend-card--grass .grass-weekday { line-height: var(--grass-cell-size); }
+.api-spend-detail .api-figures { grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); }
 .api-spend-detail .usage-breakdowns { grid-template-columns: minmax(0, 1fr); }
 .api-spend-detail .usage-breakdowns > .panel { margin: 0; }
-@media (max-width: 1280px) { .api-spend-overview { grid-template-columns: minmax(0, 1fr); } .api-spend-detail .api-figures { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 960px) { .api-spend-body { grid-template-columns: minmax(0, 1fr); } .api-spend-detail { padding-left: 0; border-left: 0; } }
 
 /* 계정 설정은 프로젝트 설정과 같은 바탕을 쓴다(ARTEL-1393). 바깥 화면의 모눈 바탕은 프로젝트 목록 같은 넓은 화면용이다. */

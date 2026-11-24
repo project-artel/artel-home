@@ -164,7 +164,7 @@ export function AgentReopenButton({ onOpen }: { onOpen: () => void }) {
       type="button"
     >
       <AgentIcon />
-      {t.projectAgent.agentName}
+      <span className="agent-reopen-label">{t.projectAgent.agentName}</span>
       {badgeCount > 0 && (
         <span aria-hidden="true" className="agent-reopen__badge">
           {badgeCount > 9 ? '9+' : badgeCount}

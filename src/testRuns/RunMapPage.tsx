@@ -19,6 +19,7 @@ import { createEmptyStep, createHumanStep, type ScenarioDraft } from '../testSce
 import { setRunScenarios } from './testRunApi'
 import { RunChat } from './RunChat'
 import { ChatRail } from './ChatRail'
+import { useSuppressAgentDock } from '../projectAgent/dockSuppression'
 import { CHAT_RAIL_PX, useChatCollapsed } from '../testScenarios/useChatCollapsed'
 import { useRunChatSession } from './useRunChatSession'
 import { boxOf, contains, controlFor, dragBox, hasText, moved, resized, type Box, type BoxHandle } from './runMap/annotationGeometry'
@@ -135,6 +136,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
   // 접힘은 편집 화면과 같은 값이다(useChatCollapsed). 접으면 오른쪽 끝에 펴기 막대만 남는다.
   const { collapsed: chatCollapsed, setCollapsed: setChatCollapsed } = useChatCollapsed()
   const chatOpen = !chatCollapsed
+  useSuppressAgentDock(chatOpen)
   // AI 가 고친 것을 반영했거나 턴이 끝나면 맵을 다시 읽는다(저장 알림도 오지만 내 대화의 끝은 여기서 바로 안다).
   const reloadQuietly = useCallback(() => void data.reload(undefined, true), [data])
   const runChat = useRunChatSession(projectId, runId, reloadQuietly, reloadQuietly)
@@ -638,7 +640,7 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
     if (!rect) return
     // 서랍은 대화 칸 자리에 겹쳐 뜬다(나란히 서지 않는다). 오른쪽에서 빼는 것은 둘 중 넓은 쪽이다.
     const chat = stageRef.current?.querySelector('.rm-chat')?.getBoundingClientRect()
-    const bottomChat = chatOpen && window.matchMedia('(max-width: 720px)').matches
+    const bottomChat = chatOpen && chat !== undefined && chat.width >= rect.width - 1
     const avail = rect.width - Math.max(drawerOpen ? Math.min(580, rect.width) : 0, bottomChat ? 0 : (chat?.width ?? CHAT_RAIL_PX))
     const height = rect.height - (bottomChat ? (chat?.height ?? 0) : 0)
     const k = Math.max(MIN_K, Math.min(1, (avail - 30) / bounds.w, (height - 80) / bounds.h))
@@ -653,7 +655,17 @@ function RunMapPage({ projectId, runId }: { projectId: string; runId: string }) 
   useEffect(() => {
     const stage = stageRef.current
     if (stage === null) return undefined
-    const observer = new ResizeObserver(([entry]) => setStageSize({ width: entry.contentRect.width, height: entry.contentRect.height }))
+    let previousDefaultZoom = 0.9
+    const observer = new ResizeObserver(([entry]) => {
+      const { width, height } = entry.contentRect
+      setStageSize({ width, height })
+      const defaultZoom = Math.min(0.9, Math.max(MIN_K, (width - 20) / (FRAME_W + 20)))
+      const oldZoom = previousDefaultZoom
+      previousDefaultZoom = defaultZoom
+      setView(v => v.x === 10 && v.y === 64 && v.k === oldZoom && v.k !== defaultZoom
+        ? { ...v, k: defaultZoom }
+        : v)
+    })
     observer.observe(stage)
     return () => observer.disconnect()
   }, [data.status])

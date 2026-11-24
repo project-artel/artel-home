@@ -19,8 +19,8 @@
 .gd-result.is-good .gd-result-value b { color: var(--color-status-success); }
 .gd-result-sub { overflow: hidden; color: var(--color-text-muted); font-size: 11.5px; text-overflow: ellipsis; white-space: nowrap; }
 
-.gd-tabs { align-self: flex-start; }
-.gd-tabs button { display: inline-flex; align-items: center; gap: 6px; }
+.gd-tabs { align-self: flex-start; max-width: 100%; flex-wrap: wrap; }
+.gd-tabs button { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .gd-tab-count { min-width: 18px; padding: 0 5px; border-radius: 999px; background: color-mix(in srgb, currentColor 14%, transparent); font-family: var(--font-mono); font-size: 11px; line-height: 17px; text-align: center; }
 
 .gd-skeleton { display: flex; flex-direction: column; gap: 14px; padding: var(--space-4); }

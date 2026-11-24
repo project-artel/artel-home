@@ -3,6 +3,8 @@ import { useI18n } from '../i18n/useI18n'
 import { projectPathSegments } from '../projects/workspace/sections'
 import {
   CHAT_WIDTH_MIN,
+  PAGE_SLOT_MIN_PX,
+  SPLIT_PX,
   chatWidthCeiling,
   clampChatWidth,
   effectiveOpen,
@@ -69,6 +71,7 @@ export function useAgentDock(projectId: string, pathname: string, railWidth: num
 
   return {
     enabled,
+    canDock: viewportWidth >= railWidth + CHAT_WIDTH_MIN + SPLIT_PX + PAGE_SLOT_MIN_PX,
     open,
     openChat,
     closeChat,

@@ -175,11 +175,13 @@ a.db-row:focus-visible { outline: 2px solid var(--color-brand-accent); outline-o
 }
 @container db (max-width: 640px) {
   .db-trio, .db-pair--even { grid-template-columns: minmax(0, 1fr); }
-  .db-row { grid-template-columns: 36px minmax(0, 1fr) auto 72px; gap: 10px; padding: 3px 12px; }
-  .db-row > :is(:nth-child(4), :nth-child(5), :nth-child(7), :nth-child(8)) { display: none; }
   .db-scenarios a { grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; padding: 8px 12px; }
   .db-scenarios a > b { grid-column: 1 / -1; }
   .db-game dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container db (max-width: 840px) {
+  .db-row { grid-template-columns: 36px minmax(0, 1fr) auto 72px; gap: 10px; padding: 3px 12px; }
+  .db-row > :is(:nth-child(4), :nth-child(5), :nth-child(7), :nth-child(8)) { display: none; }
 }
 @container db (max-width: 440px) {
   .db-kpis { grid-template-columns: minmax(0, 1fr); }
@@ -423,7 +425,8 @@ a.db-kpi-value:hover b { text-decoration: underline; text-underline-offset: 4px;
   .db-bv-release { width: auto; margin: 16px 0 0; padding: 16px 0 0; border-top: 1px solid var(--color-border-subtle); border-left: 0; }
 }
 @container db (max-width: 760px) {
-  .db-bv-tiles, .db-bv-results { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .db-bv-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .db-bv-results { grid-template-columns: repeat(auto-fit, minmax(min(100%, 165px), 1fr)); }
   .db-bv-eta, .db-bv-note { margin-left: 0; }
 }
 

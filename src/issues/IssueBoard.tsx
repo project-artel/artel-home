@@ -654,99 +654,101 @@ export function IssueBoard({
         )}
 
         {issues.items.length > 0 && (
-          <table className="ib-table">
-            <colgroup>
-              <col className="ib-c-check" />
-              <col className="ib-c-sev" />
-              <col className="ib-c-issue" />
-              <col className="ib-c-scenario" />
-              <col className="ib-c-build" />
-              <col className="ib-c-tr" />
-              <col className="ib-c-step" />
-              <col className="ib-c-found" />
-              <col className="ib-c-status" />
-            </colgroup>
-            <thead>
-              <tr>
-                <th aria-label={t.discussions.selectIssue} />
-                <th>{b.colSeverity}</th>
-                <th>{b.colIssue}</th>
-                <th>{b.scenario}</th>
-                <th>{b.colBuild}</th>
-                <th>{b.colTestRun}</th>
-                <th>{b.colStep}</th>
-                <th>{b.colReported}</th>
-                <th>{b.colStatus}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {issues.items.map((issue) => {
-                const origin = issue.origin
-                const step = parseIssueDetail(issue.detail).step
-                const checked = selectedIds.includes(issue.id)
-                return (
-                  <tr
-                    className={`ib-row${checked ? ' is-checked' : ''}${issue.status === 'RESOLVED' ? ' is-resolved' : ''}`}
-                    data-issue-id={issue.id}
-                    draggable
-                    key={issue.id}
-                    onClick={() => setOpenId(issue.id)}
-                    onDragStart={(event) => writeCasesDrag(event.dataTransfer, checked ? selectedIds : [issue.id])}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault()
-                        setOpenId(issue.id)
-                      }
-                    }}
-                    tabIndex={0}
-                  >
-                    <td onClick={(event) => event.stopPropagation()}>
-                      <label className="dc-row-select ib-check" title={b.selectRow(issue.id)}>
-                        <input
-                          checked={checked}
-                          disabled={!checked && selectedIds.length >= 50}
-                          onChange={() => onToggleSelected(issue)}
-                          type="checkbox"
-                        />
-                        <span aria-hidden="true" className="dc-check" />
-                        <span className="visually-hidden">{b.selectRow(issue.id)}</span>
-                      </label>
-                    </td>
-                    <td>
-                      <SeverityTag severity={issue.severity} />
-                    </td>
-                    <td className="ib-issue-cell">
-                      <span className="ib-id">#{issueNumber(issue)}</span>
-                      <span className="ib-issue-title" title={issue.title}>{issue.title}</span>
-                      {issue.categories.map((category) => (
-                        <CategoryChip key={category.id} small tag={category} />
-                      ))}
-                    </td>
-                    <td className="ib-ellipsis" title={origin?.testScenarioTitle}>
-                      {origin?.testScenarioTitle || <span className="ib-quiet">{b.none}</span>}
-                    </td>
-                    <td>
-                      {origin?.buildVersion ? (
-                        <span className="ib-version" title={origin.buildLabel ?? undefined}>{buildName(origin.gameBuildId, origin.buildVersion)}</span>
-                      ) : (
-                        <span className="ib-quiet">{b.none}</span>
-                      )}
-                    </td>
-                    <td className="ib-ellipsis" title={origin?.testRunName ?? undefined}>
-                      {origin?.testRunName ?? <span className="ib-quiet">{b.none}</span>}
-                    </td>
-                    <td className="ib-mono">{step ?? <span className="ib-quiet">{b.none}</span>}</td>
-                    <td className="ib-mono ib-nowrap">{formatDateTime(issue.reportedAt)}</td>
-                    <td>
-                      <span className={`ib-status ib-status--${issue.status.toLowerCase()}`}>
-                        {t.issues.statusLabels[issue.status]}
-                      </span>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+          <div className="ib-table-scroll">
+            <table className="ib-table">
+              <colgroup>
+                <col className="ib-c-check" />
+                <col className="ib-c-sev" />
+                <col className="ib-c-issue" />
+                <col className="ib-c-scenario" />
+                <col className="ib-c-build" />
+                <col className="ib-c-tr" />
+                <col className="ib-c-step" />
+                <col className="ib-c-found" />
+                <col className="ib-c-status" />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th aria-label={t.discussions.selectIssue} />
+                  <th>{b.colSeverity}</th>
+                  <th>{b.colIssue}</th>
+                  <th>{b.scenario}</th>
+                  <th>{b.colBuild}</th>
+                  <th>{b.colTestRun}</th>
+                  <th>{b.colStep}</th>
+                  <th>{b.colReported}</th>
+                  <th>{b.colStatus}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {issues.items.map((issue) => {
+                  const origin = issue.origin
+                  const step = parseIssueDetail(issue.detail).step
+                  const checked = selectedIds.includes(issue.id)
+                  return (
+                    <tr
+                      className={`ib-row${checked ? ' is-checked' : ''}${issue.status === 'RESOLVED' ? ' is-resolved' : ''}`}
+                      data-issue-id={issue.id}
+                      draggable
+                      key={issue.id}
+                      onClick={() => setOpenId(issue.id)}
+                      onDragStart={(event) => writeCasesDrag(event.dataTransfer, checked ? selectedIds : [issue.id])}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault()
+                          setOpenId(issue.id)
+                        }
+                      }}
+                      tabIndex={0}
+                    >
+                      <td onClick={(event) => event.stopPropagation()}>
+                        <label className="dc-row-select ib-check" title={b.selectRow(issue.id)}>
+                          <input
+                            checked={checked}
+                            disabled={!checked && selectedIds.length >= 50}
+                            onChange={() => onToggleSelected(issue)}
+                            type="checkbox"
+                          />
+                          <span aria-hidden="true" className="dc-check" />
+                          <span className="visually-hidden">{b.selectRow(issue.id)}</span>
+                        </label>
+                      </td>
+                      <td>
+                        <SeverityTag severity={issue.severity} />
+                      </td>
+                      <td className="ib-issue-cell">
+                        <span className="ib-id">#{issueNumber(issue)}</span>
+                        <span className="ib-issue-title" title={issue.title}>{issue.title}</span>
+                        {issue.categories.map((category) => (
+                          <CategoryChip key={category.id} small tag={category} />
+                        ))}
+                      </td>
+                      <td className="ib-ellipsis" title={origin?.testScenarioTitle}>
+                        {origin?.testScenarioTitle || <span className="ib-quiet">{b.none}</span>}
+                      </td>
+                      <td>
+                        {origin?.buildVersion ? (
+                          <span className="ib-version" title={origin.buildLabel ?? undefined}>{buildName(origin.gameBuildId, origin.buildVersion)}</span>
+                        ) : (
+                          <span className="ib-quiet">{b.none}</span>
+                        )}
+                      </td>
+                      <td className="ib-ellipsis" title={origin?.testRunName ?? undefined}>
+                        {origin?.testRunName ?? <span className="ib-quiet">{b.none}</span>}
+                      </td>
+                      <td className="ib-mono">{step ?? <span className="ib-quiet">{b.none}</span>}</td>
+                      <td className="ib-mono ib-nowrap">{formatDateTime(issue.reportedAt)}</td>
+                      <td>
+                        <span className={`ib-status ib-status--${issue.status.toLowerCase()}`}>
+                          {t.issues.statusLabels[issue.status]}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
         {issues.hasMore && (
           <div className="ib-more">

@@ -58,7 +58,7 @@ export function PerformanceChart({
 }) {
   const [box, setBox] = useState<HTMLDivElement | null>(null)
   const size = useElementSize(box, { width, height: BASE_HEIGHT })
-  const WIDTH = Math.max(size.width, 280)
+  const WIDTH = size.width
   const HEIGHT = fill ? Math.max(size.height, BASE_HEIGHT) : BASE_HEIGHT
   const { t } = useI18n()
   const copy = t.performance.chart

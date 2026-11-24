@@ -345,6 +345,7 @@
 }
 .dc-board-main {
   min-width: 0;
+  container: discussion-list / inline-size;
 }
 .dc-toolbar {
   display: flex;
@@ -1851,6 +1852,11 @@
   color: var(--color-text-muted);
   font-weight: 600;
 }
+@media (max-width: 390px) {
+  .dc-title-input::placeholder {
+    font-size: 16px;
+  }
+}
 .dc-title-input:focus {
   outline: none;
   border-bottom-color: var(--color-brand-accent);
@@ -2161,6 +2167,7 @@
 }
 .md-editor-foot {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
@@ -3017,7 +3024,7 @@ button.md-tc:focus-visible {
   color: var(--color-text-muted);
   font-size: 12px;
 }
-@media (max-width: 900px) {
+@container discussion-list (max-width: 620px) {
   .dc-post {
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:

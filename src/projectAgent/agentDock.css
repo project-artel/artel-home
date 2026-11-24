@@ -73,6 +73,12 @@
   border-radius: var(--radius-lg);
   pointer-events: auto;
 }
+.project-nav-head .agent-reopen { margin-top: var(--space-2); }
+.project-nav--collapsed .agent-reopen { padding-inline: var(--space-2); }
+.project-nav--collapsed .agent-reopen-label { display: none; }
+@media (max-width: 720px) {
+  .project-nav-head .agent-reopen { margin: 0 0 0 auto; min-height: 32px; }
+}
 /* 닫힌 대화창에서 사용자를 기다리는 것(승인, 질문, 끝난 job)의 수. 숫자로도 말하므로 색만으로 전하지 않는다. */
 .agent-reopen__badge {
   position: absolute; top: -8px; right: -10px; min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box;

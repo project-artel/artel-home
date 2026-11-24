@@ -301,7 +301,7 @@ function TrendPanel({
   const [hovered, setHovered] = useState<number | null>(null)
   const [box, setBox] = useState<HTMLDivElement | null>(null)
   const size = useElementSize(box, { width: 960, height: 280 })
-  const WIDTH = Math.max(size.width, 320)
+  const WIDTH = size.width
   const HEIGHT = Math.max(size.height, MIN_HEIGHT)
 
   const values = runs.map((run) => trendValue(run, metric))

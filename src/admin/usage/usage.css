@@ -1,5 +1,11 @@
 /* Moved from admin-page. Every rule is nested under .admin-console so the class names never reach the rest of the console. */
 .admin-console {
+  .usage-axes {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-6);
+  }
+
   /* 토큰 사용량 화면이 dashboard.css에 없는 것만 여기 둔다. 레일·표·notice·막대는 QA 화면과
      같은 클래스를 그대로 쓴다 — 두 화면이 다른 껍데기를 갖는 순간 같은 뜻의 열이 다르게 보인다. */
 

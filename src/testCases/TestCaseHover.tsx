@@ -24,6 +24,8 @@ export function TestCaseHoverPanel({ children, label, content }: {
   const id = useId()
   const [anchor, setAnchor] = useState<HTMLElement | null>(null)
   const panel = useRef<HTMLDivElement>(null)
+  const caption = useRef<HTMLDivElement>(null)
+  const details = useRef<HTMLDivElement>(null)
   const trigger = useRef<HTMLElement | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const hovering = useRef(false)
@@ -68,6 +70,22 @@ export function TestCaseHoverPanel({ children, label, content }: {
   useLayoutEffect(() => {
     const element = panel.current
     if (anchor === null || element === null) return
+    const preview = details.current
+    const heading = caption.current
+    const clipped = [anchor, ...anchor.querySelectorAll<HTMLElement>('*')].filter(node => {
+      const style = getComputedStyle(node)
+      return (style.textOverflow === 'ellipsis' && node.scrollWidth > node.clientWidth) ||
+        (Number(style.webkitLineClamp) > 0 && node.scrollHeight > node.clientHeight)
+    }).map(node => node.innerText?.trim()).filter(Boolean)
+    function syncCaption() {
+      if (!heading || !preview) return
+      const missing = [...new Set(clipped)].filter(text => !preview.innerText.includes(text))
+      heading.hidden = missing.length === 0
+      heading.textContent = missing.join('\n')
+    }
+    syncCaption()
+    const changes = new MutationObserver(syncCaption)
+    if (preview) changes.observe(preview, { childList: true, subtree: true, characterData: true })
     function position() {
       if (!anchor?.isConnected || element === null) { setAnchor(null); return }
       const bounds = anchor.getBoundingClientRect()
@@ -84,6 +102,7 @@ export function TestCaseHoverPanel({ children, label, content }: {
     window.addEventListener('resize', position)
     window.addEventListener('scroll', position, true)
     return () => {
+      changes.disconnect()
       observer.disconnect()
       window.removeEventListener('resize', position)
       window.removeEventListener('scroll', position, true)
@@ -95,6 +114,7 @@ export function TestCaseHoverPanel({ children, label, content }: {
     {/* cloneElement는 이벤트 함수를 실행하지 않는다. ref는 아래 이벤트에서만 읽는다. */}
     {/* eslint-disable-next-line react-hooks/refs */}
     {cloneElement(children, {
+      className: [props.className, 'tc-hover-trigger'].filter(Boolean).join(' '),
       tabIndex: props.tabIndex ?? 0,
       'aria-haspopup': 'dialog',
       'aria-expanded': anchor !== null,
@@ -122,7 +142,8 @@ export function TestCaseHoverPanel({ children, label, content }: {
         onMouseDown={(event) => event.stopPropagation()}
         onDragStart={(event) => event.stopPropagation()}
         onKeyDown={(event) => event.stopPropagation()}>
-        {content}
+        <div className="tc-hover-caption" ref={caption} hidden />
+        <div ref={details}>{content}</div>
       </div>, document.body,
     )}
   </>

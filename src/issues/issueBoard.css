@@ -69,6 +69,7 @@
 /* ---- 가운데 표 ---- */
 .ib-main {
   min-width: 0;
+  container: issue-list / inline-size;
 }
 .ib-main {
   padding: var(--space-4);
@@ -82,6 +83,10 @@
 }
 .ib-toolbar-spacer {
   flex: 1;
+}
+.ib-toolbar .dc-segments {
+  max-width: 100%;
+  flex-wrap: wrap;
 }
 .ib-toolbar .dc-segment {
   display: inline-flex;
@@ -153,11 +158,15 @@
   table-layout: fixed;
   font-size: 13px;
 }
+@container issue-list (max-width: 1000px) {
+  .ib-table-scroll { overflow-x: auto; }
+  .ib-table { min-width: 1000px; }
+}
 col.ib-c-check { width: 40px; }
 col.ib-c-sev { width: 84px; }
 col.ib-c-issue { width: auto; }
 col.ib-c-scenario { width: 20%; }
-col.ib-c-build { width: 84px; }
+col.ib-c-build { width: 114px; }
 col.ib-c-tr { width: 17%; }
 col.ib-c-step { width: 56px; }
 col.ib-c-found { width: 132px; }
@@ -454,6 +463,12 @@ col.ib-c-status { width: 76px; }
 }
 .ib .ib-main {
   box-sizing: border-box;
+}
+@media (max-width: 1439px) {
+  .ib .tcl-folders {
+    min-height: 0;
+    max-height: 240px;
+  }
 }
 .ib-archive-toggle {
   display: inline-flex;

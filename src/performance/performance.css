@@ -431,6 +431,7 @@
 }
 
 .pf-table-wrap {
+  position: relative;
   overflow-x: auto;
 }
 .pf-table {
@@ -642,7 +643,9 @@
     overflow-y: auto;
   }
   .pf-run {
-    grid-template-columns: minmax(0, 1fr);
+    display: flex;
+    flex: none;
+    flex-direction: column;
   }
   .pf-run-main,
   .pf-run-side {
