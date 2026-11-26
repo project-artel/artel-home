@@ -17,18 +17,18 @@ export function PasswordLoginForm({ signupOpen }: { signupOpen: boolean }) {
   const { refresh } = useAuth()
   const copy = t.common.login
   const [mode, setMode] = useState<Mode>('signIn')
-  const [email, setEmail] = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const emailId = useId()
+  const identifierId = useId()
   const passwordId = useId()
   const nameId = useId()
 
   // The sign-up tab can disappear (signup closes after the first account); fall back instead of submitting to a closed endpoint.
   const activeMode: Mode = signupOpen ? mode : 'signIn'
-  const canSubmit = email.trim() !== '' && password !== '' && (activeMode === 'signIn' || (name.trim() !== '' && password.length >= PASSWORD_MIN_LENGTH))
+  const canSubmit = identifier.trim() !== '' && password !== '' && (activeMode === 'signIn' || (name.trim() !== '' && password.length >= PASSWORD_MIN_LENGTH))
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -37,9 +37,9 @@ export function PasswordLoginForm({ signupOpen }: { signupOpen: boolean }) {
     setError(null)
     try {
       if (activeMode === 'signIn') {
-        await loginWithPassword(email.trim(), password)
+        await loginWithPassword(identifier.trim(), password)
       } else {
-        await signUpWithPassword(email.trim(), password, name.trim())
+        await signUpWithPassword(identifier.trim(), password, name.trim())
       }
       await refresh()
     } catch (cause) {
@@ -93,14 +93,14 @@ export function PasswordLoginForm({ signupOpen }: { signupOpen: boolean }) {
         </div>
       )}
       <div className="field">
-        <label className="field-label" htmlFor={emailId}>{copy.emailLabel}</label>
+        <label className="field-label" htmlFor={identifierId}>{activeMode === 'signIn' ? copy.identifierLabel : copy.emailLabel}</label>
         <input
-          id={emailId}
+          id={identifierId}
           className="field-input"
-          type="email"
-          autoComplete="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
+          type={activeMode === 'signIn' ? 'text' : 'email'}
+          autoComplete={activeMode === 'signIn' ? 'username' : 'email'}
+          value={identifier}
+          onChange={(event) => setIdentifier(event.target.value)}
           required
         />
       </div>
