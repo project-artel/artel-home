@@ -591,6 +591,17 @@
     radial-gradient(circle at 80% 72%, hsl(calc(var(--cover-hue) + 50) 55% 45% / 0.5), transparent 60%),
     var(--color-bg-raised);
 }
+.project-cover-frame {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.project-cover-frame video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 .project-cover-initial {
   color: color-mix(in srgb, var(--color-text-primary) 72%, transparent);
   font: 700 34px/1 var(--font-sans);

@@ -278,7 +278,7 @@ function ProjectCard({
   return (
     <li className="project-card-slot">
       <Link className="project-card" to={`/projects/${project.id}`}>
-        <ProjectCover id={project.id} name={project.name} />
+        <ProjectCover id={project.id} name={project.name} showRecording />
         <span className="project-card-body">
           <span className="project-card-top">
             <span className="project-card-name">{project.name}</span>
